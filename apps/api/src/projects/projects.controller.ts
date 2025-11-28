@@ -1,23 +1,40 @@
-import { Controller, Get, Param, NotFoundException } from '@nestjs/common';
-import { ProjectsService } from './projects.service';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ProjectsService, CreateProjectDto } from './projects.service';
 
 @Controller('projects')
+@UseGuards(JwtAuthGuard)
 export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   /**
-   * GET /projects/:id/integration-status
-   * Returns integration status for a project including Shopify connection
+   * GET /projects
+   * Returns all projects for the authenticated user
    */
-  @Get(':id/integration-status')
-  async getIntegrationStatus(@Param('id') projectId: string) {
-    const status = await this.projectsService.getIntegrationStatus(projectId);
+  @Get()
+  async getProjects(@Request() req: any) {
+    return this.projectsService.getProjectsForUser(req.user.id);
+  }
 
-    if (!status) {
-      throw new NotFoundException('Project not found');
-    }
-
-    return status;
+  /**
+   * POST /projects
+   * Create a new project
+   */
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async createProject(@Request() req: any, @Body() dto: CreateProjectDto) {
+    return this.projectsService.createProject(req.user.id, dto);
   }
 
   /**
@@ -25,13 +42,27 @@ export class ProjectsController {
    * Returns project details
    */
   @Get(':id')
-  async getProject(@Param('id') projectId: string) {
-    const project = await this.projectsService.getProject(projectId);
+  async getProject(@Request() req: any, @Param('id') projectId: string) {
+    return this.projectsService.getProject(projectId, req.user.id);
+  }
 
-    if (!project) {
-      throw new NotFoundException('Project not found');
-    }
+  /**
+   * DELETE /projects/:id
+   * Delete a project
+   */
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  async deleteProject(@Request() req: any, @Param('id') projectId: string) {
+    await this.projectsService.deleteProject(projectId, req.user.id);
+    return { success: true, message: 'Project deleted successfully' };
+  }
 
-    return project;
+  /**
+   * GET /projects/:id/integration-status
+   * Returns integration status for a project
+   */
+  @Get(':id/integration-status')
+  async getIntegrationStatus(@Request() req: any, @Param('id') projectId: string) {
+    return this.projectsService.getIntegrationStatus(projectId, req.user.id);
   }
 }

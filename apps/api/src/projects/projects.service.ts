@@ -1,15 +1,89 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { IntegrationType } from '@prisma/client';
+
+export interface CreateProjectDto {
+  name: string;
+  domain?: string;
+}
 
 @Injectable()
 export class ProjectsService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * Get all projects for a user
+   */
+  async getProjectsForUser(userId: string) {
+    return this.prisma.project.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * Get project by ID (with ownership check)
+   */
+  async getProject(projectId: string, userId: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    if (project.userId !== userId) {
+      throw new ForbiddenException('You do not have access to this project');
+    }
+
+    return project;
+  }
+
+  /**
+   * Create a new project
+   */
+  async createProject(userId: string, dto: CreateProjectDto) {
+    return this.prisma.project.create({
+      data: {
+        userId,
+        name: dto.name,
+        domain: dto.domain,
+      },
+    });
+  }
+
+  /**
+   * Delete a project
+   */
+  async deleteProject(projectId: string, userId: string) {
+    const project = await this.getProject(projectId, userId);
+
+    // Delete related integrations first
+    await this.prisma.integration.deleteMany({
+      where: { projectId },
+    });
+
+    // Delete related products
+    await this.prisma.product.deleteMany({
+      where: { projectId },
+    });
+
+    // Delete related crawl results
+    await this.prisma.crawlResult.deleteMany({
+      where: { projectId },
+    });
+
+    // Delete the project
+    return this.prisma.project.delete({
+      where: { id: projectId },
+    });
+  }
+
+  /**
    * Get integration status for a project
    */
-  async getIntegrationStatus(projectId: string) {
+  async getIntegrationStatus(projectId: string, userId: string) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: {
@@ -18,7 +92,11 @@ export class ProjectsService {
     });
 
     if (!project) {
-      return null;
+      throw new NotFoundException('Project not found');
+    }
+
+    if (project.userId !== userId) {
+      throw new ForbiddenException('You do not have access to this project');
     }
 
     // Build integration status map for all types
@@ -42,7 +120,6 @@ export class ProjectsService {
         createdAt: i.createdAt,
         config: i.config,
       })),
-      // Legacy format for backwards compatibility
       shopify: shopifyIntegration
         ? {
             connected: true,
@@ -93,24 +170,25 @@ export class ProjectsService {
   }
 
   /**
-   * Get project by ID
-   */
-  async getProject(projectId: string) {
-    return this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-  }
-
-  /**
    * Get project with all integrations
    */
-  async getProjectWithIntegrations(projectId: string) {
-    return this.prisma.project.findUnique({
+  async getProjectWithIntegrations(projectId: string, userId: string) {
+    const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: {
         integrations: true,
       },
     });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    if (project.userId !== userId) {
+      throw new ForbiddenException('You do not have access to this project');
+    }
+
+    return project;
   }
 
   /**

@@ -164,7 +164,7 @@ export default function ProjectDetailPage() {
                     <span className="flex items-center text-gray-600 text-sm">.myshopify.com</span>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Enter your Shopify store domain (e.g., "my-store" for my-store.myshopify.com)
+                    Enter your Shopify store domain (e.g., &quot;my-store&quot; for my-store.myshopify.com)
                   </p>
                 </div>
 
