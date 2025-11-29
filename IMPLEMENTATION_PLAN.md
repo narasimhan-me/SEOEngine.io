@@ -2,7 +2,7 @@
 
 This document provides a **step-by-step, execution-ready plan** for building the SEOEngine.io SaaS application using a monorepo (Next.js frontend + NestJS backend + Prisma + PostgreSQL + Shopify integration + AI metadata engine).
 
-AI IDEs (Cursor, Antigravity, etc.) should follow these instructions **exactly as written**.  
+AI IDEs (Cursor, Claude Code, etc.) should follow these instructions **exactly as written**.  
 Each phase should be implemented in sequence.  
 Each step should produce diffs and await approval before applying.
 
@@ -12,10 +12,10 @@ Each step should produce diffs and await approval before applying.
 
 - **Frontend:** Next.js 14 (App Router), TypeScript, TailwindCSS
 - **Backend:** NestJS (Node + TypeScript)
-- **Database:** PostgreSQL + Prisma
+- **Database:** PostgreSQL + Prisma (Neon in production)
 - **Cache / Queue (later):** Redis
 - **AI:** OpenAI / Gemini via REST API
-- **E-commerce:** Shopify Admin API (REST or GraphQL)
+- **E-commerce:** Shopify Admin API (REST or GraphQL), via a generic **Integration** model (Shopify first, others later)
 
 ---
 
@@ -148,6 +148,8 @@ At repo root:
 
 # PHASE 1 — Auth, Users & Database
 
+**Note:** Phase 1 starts with a simple Project model that will be evolved in Phase 2 to use a generic Integration model (this matches the current implementation, which uses Integration instead of connectedType).
+
 ### 1.1. Set Up Prisma + PostgreSQL
 
 Inside `apps/api`:
@@ -182,7 +184,7 @@ model Project {
   userId        String
   name          String
   domain        String?
-  connectedType String   // 'website' | 'shopify'
+  connectedType String   // 'website' | 'shopify' (will be replaced by Integration model in Phase 2)
   createdAt     DateTime @default(now())
 }
 ```
@@ -272,126 +274,256 @@ Create endpoints:
 
 ---
 
-# PHASE 2 — Shopify Integration (MVP Skeleton)
+# PHASE 2 — Shopify Integration (MVP) using Generic Integrations
+
+In this phase, we evolve the schema from a Shopify-specific connectedType to a generic Integration model that supports Shopify now and other platforms later. This matches the current implementation (Integration + IntegrationType.SHOPIFY).
 
 ### 2.0. Shopify App Setup in Shopify
 
 Before implementing any code in this phase, create and configure the actual Shopify app in the Shopify Partner dashboard so that OAuth and API calls from SEOEngine.io can succeed.
 
 **2.0.1. Create Partner account and test store**
-- Go to `https://partners.shopify.com` and sign up (or log in) as a Shopify Partner.
-- In the Partner dashboard, create at least one **development store** that you will use for testing the SEOEngine app.
+
+- Go to Shopify's Partner dashboard and sign up (or log in).
+- Create at least one development store for testing the SEOEngine app.
 
 **2.0.2. Create a public app**
+
 - In the Partner dashboard, navigate to **Apps → Create app**.
-- Choose **Public app** (listed on the Shopify App Store in the future) and give it a name such as `SEOEngine – AI SEO`.
-- Set the app’s **App URL / Primary URL** temporarily to your backend base URL (for local dev you can use a tunneling service like `ngrok` or `cloudflared`, e.g. `https://<random>.ngrok.io`).
+- Choose **Public app** (later listable on the Shopify App Store) and name it something like `SEOEngine – AI SEO`.
+- Set the app's **App URL / Primary URL** to your backend base URL (for local dev you can use a tunneling service like `ngrok` or `cloudflared`, e.g. `https://<random>.ngrok.io`).
 
 **2.0.3. Configure redirect URLs**
-- In the app settings, add the allowed redirect URL that the NestJS backend will handle for OAuth:
+
+- In app settings, add the allowed redirect URL that the NestJS backend will handle for OAuth:
   - `https://<backend-base-url>/shopify/callback`
-- Make sure **App URL** and **Allowed redirection URL(s)** in Shopify always match the values used in the backend config:
+- Make sure **App URL** and **Allowed redirection URL(s)** in Shopify match the backend config:
   - `SHOPIFY_APP_URL` → backend base URL (e.g. `https://<random>.ngrok.io`)
   - OAuth callback path → `/shopify/callback`
 
 **2.0.4. Get API credentials and scopes**
-- In the app’s **Configuration / API credentials** section, obtain:
-  - `API key` (client ID)
-  - `API secret key`
-- Decide initial scopes based on this plan (minimum for MVP product SEO):
+
+- In the app's credentials section, obtain:
+  - Client ID / API key
+  - Client secret
+- Decide initial scopes (minimum for MVP product SEO):
   - `read_products`
   - `write_products`
-  - Optionally: `read_themes`, `write_themes` if you later manipulate theme SEO or templates.
 - Add these to the backend environment:
   - `SHOPIFY_API_KEY=<your-api-key>`
   - `SHOPIFY_API_SECRET=<your-api-secret>`
-  - `SHOPIFY_SCOPES=read_products,write_products,read_themes,write_themes` (as needed)
+  - `SHOPIFY_SCOPES=read_products,write_products`
   - `SHOPIFY_APP_URL=https://<backend-base-url>`
 
 **2.0.5. Enable app for your development store**
-- From the app detail page in the Partner dashboard, click **Test your app** and install it on your development store.
-- During development you will primarily:
+
+- From the app detail page in the Partner dashboard, click **Test your app** and install it on your development store (once the backend is ready).
+- During development you will:
   - Start the NestJS API server.
   - Expose it via tunnel (if running locally).
   - Trigger OAuth from SEOEngine (`/shopify/install`) to install/authorize the app on the test store.
 
-Once steps 2.0.1–2.0.5 are complete, proceed with the backend and frontend integration steps below.
+Once steps 2.0.1–2.0.5 are complete, proceed with schema + integration steps.
 
-### 2.1. Integration DB Model (Shopify + others)
+### 2.1. DB Evolution: Generic Integration Model
 
-Add to `apps/api/prisma/schema.prisma`:
+We migrate away from connectedType on Project and move to a generic Integration model that can represent Shopify and other platforms.
+
+Update `schema.prisma`:
 
 ```prisma
-// Supported ecommerce platform integration types
 enum IntegrationType {
   SHOPIFY
-  WOOCOMMERCE
-  BIGCOMMERCE
-  MAGENTO
-  CUSTOM_WEBSITE
+  // Future: WOOCOMMERCE, BIGCOMMERCE, CUSTOM_WEBSITE, etc.
 }
 
 model Integration {
-  id          String          @id @default(cuid())
-  project     Project         @relation(fields: [projectId], references: [id])
-  projectId   String
-  type        IntegrationType
-  externalId  String?         // shop domain, store ID, account slug, etc.
-  accessToken String?         // Shopify token, Woo API key, etc.
-  config      Json?           // platform-specific configuration
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id           String          @id @default(cuid())
+  project      Project         @relation(fields: [projectId], references: [id])
+  projectId    String
+  type         IntegrationType
+  externalId   String?         // e.g. shop domain, store ID
+  accessToken  String?         // Admin API token for that store
+  config       Json?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
 
-  @@unique([projectId, type]) // One integration per type per project
+model Project {
+  id        String        @id @default(cuid())
+  user      User          @relation(fields: [userId], references: [id])
+  userId    String
+  name      String
+  domain    String?
+  // connectedType removed in favor of integrations
+  createdAt DateTime      @default(now())
+
+  integrations Integration[]
 }
 ```
 
-Run `npx prisma migrate dev --name add_integration_model`.
+**Migration notes:**
+- If connectedType still exists in the DB, remove it during migration.
+- Run:
+  ```
+  npx prisma migrate dev --name add_integration_model
+  ```
 
-### 2.2. Shopify OAuth Flow (Backend)
+### 2.2. Shopify OAuth Flow (Backend, using Integration)
 
-Create `shopify` module:
+Create `apps/api/src/shopify`:
+- `shopify.module.ts`
+- `shopify.service.ts`
+- `shopify.controller.ts`
+- Optional: `dto/`, `guards/`, `interfaces/`
 
 **Config:**
 - `SHOPIFY_API_KEY`
 - `SHOPIFY_API_SECRET`
 - `SHOPIFY_APP_URL` (your backend public URL)
-- `SHOPIFY_SCOPES` (e.g. `read_products,write_products,read_themes` etc.)
+- `SHOPIFY_SCOPES` (e.g. `read_products,write_products`)
 
-**Implement:**
+**2.2.1. Service responsibilities**
 
-- `GET /shopify/install?projectId=...`
-  - Validates that the authenticated user owns the `projectId`.
-  - Generates Shopify OAuth URL with:
-    - `client_id`
-    - `scopes`
-    - `redirect_uri` → `/shopify/callback`
-    - `state` (random, store it mapped to `projectId`)
-  - Redirects to Shopify.
+`ShopifyService` should:
+- Build Shopify install URL:
+  - `https://{shop}/admin/oauth/authorize`
+  - Params: `client_id`, `scope`, `redirect_uri`, `state`
+- Validate HMAC from Shopify on callback using the app's secret.
+- Validate state to map back to a `projectId` and protect against CSRF.
+- Exchange code for an Admin API access token:
+  - `POST https://{shop}/admin/oauth/access_token`
+- Upsert an `Integration` row:
+  - `type = SHOPIFY`
+  - `projectId = ...`
+  - `externalId = shopDomain`
+  - `accessToken = token`
+  - `config = JSON` with scope, etc.
 
-- `GET /shopify/callback`
-  - Validates HMAC from query.
-  - Validates `state` (maps back to `projectId`).
-  - Exchanges code for access token using Shopify OAuth endpoint.
-  - Persists an `Integration` row with:
-    - `type = SHOPIFY`
-    - `externalId = shopDomain` (e.g. `mystore.myshopify.com`)
-    - `accessToken`
-    - `config.scope`
-    - `config.installedAt`
+Optionally, use an auxiliary table or cache for state:
 
-### 2.3. Shopify Connect Button (Frontend)
+```prisma
+model ShopifyInstallState {
+  id        String   @id @default(cuid())
+  projectId String
+  state     String   @unique
+  createdAt DateTime @default(now())
+}
+```
+
+**2.2.2. Endpoint: GET /shopify/install?projectId=...&shop=...**
+
+- **Auth:** JWT-protected.
+- **Input (query):**
+  - `projectId`
+  - `shop` (e.g. `mystore.myshopify.com`)
+- **Steps:**
+  1. Verify authenticated user owns `projectId`.
+  2. Create and persist a random state.
+  3. Build the Shopify OAuth URL:
+     ```
+     https://{shop}/admin/oauth/authorize?
+       client_id=SHOPIFY_API_KEY&
+       scope=SHOPIFY_SCOPES&
+       redirect_uri={SHOPIFY_APP_URL}/shopify/callback&
+       state={state}
+     ```
+  4. Respond with a 302 redirect to that URL.
+
+**2.2.3. Endpoint: GET /shopify/callback**
+
+- **Query params:** `shop`, `code`, `state`, `hmac`, `timestamp`, etc.
+- **Steps:**
+  1. Validate HMAC using all query params except `hmac` and the app's secret.
+  2. Validate state:
+     - Look up `ShopifyInstallState` by `state`.
+     - Retrieve associated `projectId`.
+  3. Exchange code for access token:
+     ```
+     POST https://{shop}/admin/oauth/access_token
+     Content-Type: application/json
+
+     {
+       "client_id": SHOPIFY_API_KEY,
+       "client_secret": SHOPIFY_API_SECRET,
+       "code": code
+     }
+     ```
+  4. From response, get:
+     - `access_token`
+     - `scope`
+  5. Upsert `Integration` row:
+     ```typescript
+     await prisma.integration.upsert({
+       where: {
+         // one integration per project+type
+         projectId_type: {
+           projectId,
+           type: IntegrationType.SHOPIFY
+         }
+       },
+       update: {
+         externalId: shop,
+         accessToken,
+         config: { scope },
+       },
+       create: {
+         projectId,
+         type: IntegrationType.SHOPIFY,
+         externalId: shop,
+         accessToken,
+         config: { scope },
+       },
+     });
+     ```
+  6. Redirect to the frontend:
+     ```
+     https://app.seoengine.io/shopify/success?projectId=...&shop=...
+     ```
+
+### 2.3. Integration Status Endpoint
+
+Create an endpoint like:
+
+**GET /projects/:id/integration-status**
+
+**Returns:**
+
+```json
+{
+  "project": { ... },
+  "shopify": {
+    "connected": true | false,
+    "shopDomain": "mystore.myshopify.com" | null
+  }
+}
+```
+
+**Implementation:**
+- Query `Integration` where `projectId = :id` and `type = SHOPIFY`.
+- If found, return `connected: true` and `shopDomain` from `externalId`.
+- Else, `connected: false`.
+
+### 2.4. Shopify Connect Button (Frontend)
 
 On `/projects/[id]/page.tsx`:
 
-- Fetch project details and `ShopifyStore` status from a backend endpoint, e.g. `GET /projects/:id/integration-status`.
-- If no `ShopifyStore`:
+- Fetch `GET /projects/:id/integration-status`.
+- If not connected:
   - Show button "Connect Shopify Store".
   - On click:
-    - Call `GET /shopify/install?projectId=...`.
+    - Ask for shop domain (or let the merchant enter `mystore.myshopify.com`).
+    - Call `GET /shopify/install?projectId=...&shop=....`
     - Follow redirect to Shopify.
 - If connected:
-  - Show `shopDomain` and "Connected" badge.
+  - Show `shopDomain` and a "Connected" badge.
+  - Provide link to `/products` tab (Phase 5).
+
+### 2.5. Local Development vs Production
+
+- For local dev, use a tunnel (`ngrok`, `cloudflared`) to expose the NestJS API over HTTPS.
+- Set `SHOPIFY_APP_URL` and redirect URL in the Dev Dashboard to the tunnel URL (e.g. `https://<random>.ngrok.io`).
+- Ensure redirect URLs stay consistent between Shopify config and backend env.
 
 ---
 
@@ -425,10 +557,11 @@ Run migration.
 Create `seo-scan` module:
 
 **Endpoint:** `POST /seo-scan/start`
-- Body: `{ projectId }`.
+
+- **Body:** `{ projectId }`.
 - Validates that the project belongs to the authenticated user.
 - Fetches project domain.
-- For MVP, scan only: `/`
+- For MVP, scan only `/` (root page), plus any minimal extra paths if desired.
 
 **Steps:**
 1. Build URL (`https://{domain}/`).
@@ -458,12 +591,14 @@ On `/projects/[id]/page.tsx`:
 - Calls `POST /seo-scan/start`.
 - After success, refresh results list.
 - Below, show table:
-  - | URL | Status | Title | Issues | Scanned |
-- Compute SEO Score per page:
-  ```typescript
-  const score = Math.max(0, 100 - issues.length * 5);
-  ```
-- Optionally show an average project score.
+  - | URL | Status | Title | Issues | Score | Scanned |
+
+Compute SEO Score per page (match current code):
+```typescript
+const score = Math.max(0, 100 - issues.length * 10);
+```
+
+Optionally show an average project score.
 
 ---
 
@@ -472,7 +607,7 @@ On `/projects/[id]/page.tsx`:
 ### 4.1. AI Integration (OpenAI or Gemini)
 
 **Backend `ai` module:**
-- Load API key from `.env`.
+- Load API key(s) from `.env`.
 - Implement:
 
 ```typescript
@@ -482,17 +617,21 @@ async function generateMetadata(input: {
   currentDescription?: string;
   pageTextSnippet?: string;
   targetKeywords?: string[];
-}): Promise<{ title: string; description: string }> {
+}): Promise<{
+  title: string;
+  description: string;
+  extra?: any; // richer response allowed
+}> {
   // Call AI provider with a prompt like:
   // "You are an SEO assistant. Generate an SEO-friendly title (<= 65 chars) and meta description (<= 155 chars) for the following page..."
 }
 ```
 
-Keep prompts deterministic and short.
+Implementation can return a richer JSON payload as long as at minimum it includes a title and description.
 
 ### 4.2. Metadata Suggestion Endpoint
 
-`POST /ai/metadata`
+**POST /ai/metadata**
 
 **Body:**
 
@@ -505,18 +644,23 @@ Keep prompts deterministic and short.
 
 **Steps:**
 1. Load `CrawlResult` by ID and project.
-2. Compose a text snippet from page info (title, H1, etc.).
+2. Compose a text snippet from page info (title, H1, meta description, etc.).
 3. Call `generateMetadata`.
 4. Return:
 
 ```json
 {
-  "suggestedTitle": "string",
-  "suggestedDescription": "string"
+  "current": {
+    "title": "current title or null",
+    "description": "current meta description or null"
+  },
+  "suggested": {
+    "title": "SEO-optimized title",
+    "description": "SEO-optimized meta description"
+  },
+  "raw": { ... } // optional extra data from AI
 }
 ```
-
-You may also create a table `MetadataSuggestion` to persist suggestions, but MVP can keep it ephemeral.
 
 ### 4.3. UI for Metadata Suggestions
 
@@ -528,34 +672,42 @@ In the SEO scan table:
   - Show modal with:
     - Current title + description.
     - Suggested title + description.
-    - Buttons: "Copy to clipboard" (MVP) and "Close".
+    - Buttons: "Copy title", "Copy description", "Copy both" (MVP can just be one "Copy to clipboard" button).
 
-No application back to CMS yet (that will be done for Shopify in later phases).
+No CMS updates yet (that comes with Shopify product SEO).
 
 ---
 
 # PHASE 5 — Shopify Product SEO (Read + AI)
 
+This phase uses the generic Integration model with `IntegrationType.SHOPIFY`. Products are tied to projects and optionally to a specific integration via `integrationId`. The current implementation uses `externalId` instead of a Shopify-only ID field.
+
 ### 5.1. Product Schema
 
-Add to Prisma:
+Update Prisma:
 
 ```prisma
 model Product {
-  id             String   @id @default(cuid())
-  project        Project  @relation(fields: [projectId], references: [id])
+  id             String        @id @default(cuid())
+  project        Project       @relation(fields: [projectId], references: [id])
   projectId      String
-  externalId     String   // platform-agnostic ID (Shopify product ID, etc.)
+
+  integration    Integration?  @relation(fields: [integrationId], references: [id])
+  integrationId  String?
+
+  externalId     String        // Product ID from Shopify or other platforms
+  source         IntegrationType
+
   title          String
   description    String?
   seoTitle       String?
   seoDescription String?
   imageUrls      Json?
-  lastSyncedAt   DateTime @default(now())
+  lastSyncedAt   DateTime      @default(now())
 }
 ```
 
-Run migration.
+Run migration, making sure to match the current code's schema (this plan is aligned with the existing use of `externalId` and `source`).
 
 ### 5.2. Shopify Product Sync (Backend)
 
@@ -564,30 +716,40 @@ Run migration.
 **Steps:**
 
 1. Validate user and project.
-2. Find the project's Shopify integration (`Integration` where `type = SHOPIFY`).
-3. Call Shopify Admin API (REST or GraphQL) to fetch first N products (e.g. 50).
+2. Find `Integration` for the project where `type = SHOPIFY`.
+3. Use the stored `accessToken` and `externalId` (shop domain) to call the Shopify Admin API (REST or GraphQL) to fetch the first N products (e.g. 50).
 4. For each product:
    - Extract:
-     - `id`, `title`, `body_html` / `description`, SEO title/description (if present), image URLs.
-   - Upsert into `Product` table using `externalId` (for Shopify this is the product ID).
+     - Shopify product ID (as `externalId`)
+     - `title`
+     - `body_html` or `description`
+     - existing `seoTitle` / `seoDescription` fields, if available
+     - image URLs
+   - Upsert into `Product` table using a unique constraint on `(projectId, externalId, source)`.
 
 ### 5.3. Product List UI
 
 **Route:** `/projects/[id]/products/page.tsx`
 
+**Show:**
 - "Sync Products" button → calls sync endpoint.
 - Table columns:
   - Product title
-  - Shopify ID
+  - External ID (Shopify ID)
   - SEO title (if any)
   - SEO description (if any)
   - Last synced
+  - Actions (Scan SEO, Suggest SEO, Apply to Shopify in Phase 6)
+
+**Backend endpoints to support this:**
+- `GET /projects/:projectId/products`
+  - Returns list of products for that project.
 
 ### 5.4. Product Metadata AI Suggestions
 
 **Backend:**
 
-`POST /ai/product-metadata`
+**POST /ai/product-metadata**
 
 **Body:**
 
@@ -599,25 +761,42 @@ Run migration.
 ```
 
 - Load `Product` by ID.
-- Use AI to generate suggested SEO title and description based on product title, description, and optional keywords.
-- Return suggestions.
+- Use AI to generate suggested SEO title and description based on:
+  - `title`
+  - `description`
+  - optional `targetKeywords`.
+- Return a response similar to page metadata:
+
+```json
+{
+  "current": {
+    "title": "current SEO title or product title",
+    "description": "current SEO description or product description"
+  },
+  "suggested": {
+    "title": "AI SEO title",
+    "description": "AI SEO description"
+  },
+  "raw": { ... }
+}
+```
 
 **Frontend:**
 
 - In product table row, add "Suggest SEO" button.
-- Modal shows suggestions similar to crawl metadata modal.
+- Modal shows:
+  - Current vs suggested SEO metadata.
+  - "Apply to Shopify" (Phase 6) and/or "Copy" actions.
 
 ---
 
 # PHASE 6 — Push AI SEO Updates to Shopify
 
-✅ **COMPLETED** - Phase 6 implementation finished. All endpoints and frontend features are in place.
-
 ### 6.1. Shopify Update Endpoint
 
 **Backend:**
 
-`POST /shopify/update-product-seo`
+**POST /shopify/update-product-seo**
 
 **Body:**
 
@@ -630,9 +809,12 @@ Run migration.
 ```
 
 **Steps:**
-1. Validate user + project.
-2. Load `Product` and the project's Shopify integration (`Integration` where `type = SHOPIFY`).
-3. Call Shopify Admin API to update product SEO fields (title tag, meta description, or metafields, depending on chosen implementation).
+1. Validate user + project ownership.
+2. Load `Product` by ID and its associated `Integration` (type `SHOPIFY`).
+3. Call Shopify Admin API to update product SEO fields:
+   - This can be done via:
+     - Product update endpoint (if store theme uses these fields), or
+     - Metafields (recommended for flexibility).
 4. On success, update `Product` row in DB with new `seoTitle` and `seoDescription`.
 
 ### 6.2. Frontend Apply Buttons
@@ -641,9 +823,9 @@ In the product SEO suggestion modal:
 
 - Add "Apply to Shopify" button.
 - On click:
-  - Calls `/shopify/update-product-seo`.
-  - Shows success or error toast.
-  - Updates the table row with new SEO title/description.
+  - Call `/shopify/update-product-seo`.
+  - Show success or error toast.
+  - Update the product row with new SEO title/description.
 
 ---
 
@@ -653,7 +835,7 @@ In the product SEO suggestion modal:
 
 **Backend:**
 
-`GET /projects/:id/overview`
+**GET /projects/:id/overview**
 
 **Returns:**
 
@@ -668,6 +850,11 @@ In the product SEO suggestion modal:
 ```
 
 Stats are computed from `CrawlResult` and `Product` tables.
+- `crawlCount` → number of `CrawlResult` rows for the project.
+- `issueCount` → total number of issues across all `CrawlResults`.
+- `avgSeoScore` → average of per-page scores computed with Formula from Phase 3.
+- `productCount` → number of `Product` rows for the project.
+- `productsWithAppliedSeo` → count of products where `seoTitle` or `seoDescription` is set.
 
 ### 7.2. Dashboard UI
 
@@ -690,6 +877,8 @@ Stats are computed from `CrawlResult` and `Product` tables.
 - Buttons:
   - "Run SEO Scan"
   - "View Products"
+
+(Reuse existing components from previous phases where possible.)
 
 ---
 
@@ -932,6 +1121,7 @@ Create a new page:
 `apps/web/src/app/2fa/page.tsx`
 
 **Features:**
+
 - Simple form:
   - Input: 6-digit TOTP code.
   - Hidden or internal: `tempToken` from previous step.
