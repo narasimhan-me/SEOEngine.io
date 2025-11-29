@@ -18,6 +18,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
+    // Reject temp 2FA tokens - they should only be used for /auth/2fa/verify
+    // This ensures temp tokens cannot grant normal API access
+    if (payload.twoFactor === true) {
+      throw new UnauthorizedException('Invalid token - 2FA verification required');
+    }
+
     const user = await this.authService.validateJwtPayload(payload);
     if (!user) {
       throw new UnauthorizedException();

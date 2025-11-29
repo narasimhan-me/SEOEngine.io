@@ -26,6 +26,29 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   return response.json();
 }
 
+/**
+ * Fetch without authentication - used for endpoints that don't require JWT
+ * (e.g., /auth/2fa/verify which uses tempToken instead)
+ */
+async function fetchWithoutAuth(endpoint: string, options: RequestInit = {}) {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: response.statusText }));
+    throw new Error(error.message || `HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
 export const authApi = {
   signup: (data: { email: string; password: string; name?: string }) =>
     fetchWithAuth('/auth/signup', {
@@ -128,5 +151,42 @@ export const shopifyApi = {
     fetchWithAuth('/shopify/update-product-seo', {
       method: 'POST',
       body: JSON.stringify({ productId, seoTitle, seoDescription }),
+    }),
+};
+
+/**
+ * Two-Factor Authentication API - for managing 2FA settings (authenticated)
+ */
+export const twoFactorApi = {
+  /** Initialize 2FA setup - returns QR code and otpauth URL */
+  setupInit: () =>
+    fetchWithAuth('/2fa/setup-init', {
+      method: 'POST',
+    }),
+
+  /** Enable 2FA after verifying TOTP code */
+  enable: (code: string) =>
+    fetchWithAuth('/2fa/enable', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+
+  /** Disable 2FA */
+  disable: (code?: string) =>
+    fetchWithAuth('/2fa/disable', {
+      method: 'POST',
+      body: JSON.stringify(code ? { code } : {}),
+    }),
+};
+
+/**
+ * Two-Factor Auth Login API - for 2FA verification during login (unauthenticated)
+ */
+export const twoFactorAuthApi = {
+  /** Verify 2FA code during login - uses tempToken, not JWT */
+  verify: (tempToken: string, code: string) =>
+    fetchWithoutAuth('/auth/2fa/verify', {
+      method: 'POST',
+      body: JSON.stringify({ tempToken, code }),
     }),
 };

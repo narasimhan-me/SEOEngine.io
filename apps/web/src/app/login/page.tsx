@@ -6,6 +6,9 @@ import Link from 'next/link';
 import { authApi } from '@/lib/api';
 import { setToken } from '@/lib/auth';
 
+// Session storage key for 2FA temp token
+const TEMP_2FA_TOKEN_KEY = 'seoengine_temp_2fa_token';
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -20,6 +23,17 @@ export default function LoginPage() {
 
     try {
       const response = await authApi.login({ email, password });
+
+      // Check if 2FA is required
+      if (response.requires2FA && response.tempToken) {
+        // Store temp token in sessionStorage (cleared when tab closes)
+        sessionStorage.setItem(TEMP_2FA_TOKEN_KEY, response.tempToken);
+        // Redirect to 2FA verification page
+        router.push('/2fa');
+        return;
+      }
+
+      // Normal login (no 2FA)
       setToken(response.accessToken);
       router.push('/dashboard');
     } catch (err: any) {

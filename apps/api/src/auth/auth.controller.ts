@@ -18,6 +18,11 @@ class LoginDto {
   password: string;
 }
 
+class TwoFactorVerifyDto {
+  tempToken: string;
+  code: string;
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -33,5 +38,17 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto.email, dto.password);
+  }
+
+  /**
+   * Verify 2FA code during login.
+   * This endpoint does NOT require authentication (uses tempToken instead).
+   *
+   * TODO: Add rate limiting to prevent brute-force attacks on TOTP codes
+   */
+  @Post('2fa/verify')
+  @HttpCode(HttpStatus.OK)
+  async verifyTwoFactor(@Body() dto: TwoFactorVerifyDto) {
+    return this.authService.verifyTwoFactor(dto.tempToken, dto.code);
   }
 }

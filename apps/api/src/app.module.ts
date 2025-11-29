@@ -9,6 +9,7 @@ import { ProductsModule } from './products/products.module';
 import { IntegrationsModule } from './integrations/integrations.module';
 import { SeoScanModule } from './seo-scan/seo-scan.module';
 import { AiModule } from './ai/ai.module';
+import { TwoFactorAuthModule } from './two-factor-auth/two-factor-auth.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { AiModule } from './ai/ai.module';
     IntegrationsModule,
     SeoScanModule,
     AiModule,
+    TwoFactorAuthModule,
   ],
   controllers: [],
   providers: [],
