@@ -1182,6 +1182,10 @@ Create a new page:
 
 ---
 
+**Note:** When implementing features, assume you are a renowned SEO, eCommerce, and AI product owner with deep expertise in these domains.
+
+---
+
 # PHASE 9 — UX & Navigation Redesign + Error Handling
 
 **Goal:** Redesign the app UX so it can scale to all planned features, and implement friendly, consistent error handling.
