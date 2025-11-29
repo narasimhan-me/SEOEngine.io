@@ -288,6 +288,113 @@ export class ShopifyService {
     const data = (await response.json()) as { product: ShopifyProduct };
     return data.product || null;
   }
+
+  /**
+   * Update product SEO fields in Shopify and local database
+   */
+  async updateProductSeo(
+    productId: string,
+    seoTitle: string,
+    seoDescription: string,
+    userId: string,
+  ): Promise<{
+    productId: string;
+    shopDomain: string;
+    seoTitle: string;
+    seoDescription: string;
+  }> {
+    // Load product with project
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        project: true,
+      },
+    });
+
+    if (!product) {
+      throw new BadRequestException('Product not found');
+    }
+
+    // Validate ownership
+    if (product.project.userId !== userId) {
+      throw new BadRequestException('You do not have access to this product');
+    }
+
+    // Get Shopify integration
+    const integration = await this.getShopifyIntegration(product.projectId);
+    if (!integration || !integration.accessToken || !integration.externalId) {
+      throw new BadRequestException('No Shopify integration found for this project');
+    }
+
+    const shopDomain = integration.externalId;
+    const accessToken = integration.accessToken;
+
+    // Update SEO in Shopify using metafields
+    await this.updateShopifyProductSeo(
+      shopDomain,
+      accessToken,
+      product.externalId,
+      seoTitle,
+      seoDescription,
+    );
+
+    // Update local Product record
+    await this.prisma.product.update({
+      where: { id: productId },
+      data: {
+        seoTitle,
+        seoDescription,
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    return {
+      productId,
+      shopDomain,
+      seoTitle,
+      seoDescription,
+    };
+  }
+
+  /**
+   * Update SEO fields for a product in Shopify via Admin API
+   * Uses metafields for SEO title and description
+   */
+  private async updateShopifyProductSeo(
+    shopDomain: string,
+    accessToken: string,
+    externalProductId: string,
+    seoTitle: string,
+    seoDescription: string,
+  ): Promise<void> {
+    // Shopify REST API endpoint for updating a product
+    const url = `https://${shopDomain}/admin/api/2023-10/products/${externalProductId}.json`;
+
+    // Update product with metafields_global_title_tag and metafields_global_description_tag
+    // These are Shopify's built-in SEO fields that appear in the product admin
+    const body = {
+      product: {
+        id: externalProductId,
+        metafields_global_title_tag: seoTitle,
+        metafields_global_description_tag: seoDescription,
+      },
+    };
+
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Shopify API error updating product SEO:', errorText);
+      throw new BadRequestException('Failed to update product SEO in Shopify');
+    }
+  }
 }
 
 interface ShopifyProduct {

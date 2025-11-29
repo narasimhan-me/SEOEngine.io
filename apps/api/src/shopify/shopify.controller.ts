@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Query,
+  Body,
   Res,
   UseGuards,
   Request,
@@ -110,5 +111,24 @@ export class ShopifyController {
       throw new BadRequestException('Missing projectId parameter');
     }
     return this.shopifyService.syncProducts(projectId, req.user.id);
+  }
+
+  /**
+   * POST /shopify/update-product-seo
+   * Update product SEO fields in Shopify
+   */
+  @Post('update-product-seo')
+  @UseGuards(JwtAuthGuard)
+  async updateProductSeo(
+    @Request() req: any,
+    @Body() body: { productId: string; seoTitle: string; seoDescription: string },
+  ) {
+    const { productId, seoTitle, seoDescription } = body;
+
+    if (!productId || !seoTitle || !seoDescription) {
+      throw new BadRequestException('Missing required fields: productId, seoTitle, seoDescription');
+    }
+
+    return this.shopifyService.updateProductSeo(productId, seoTitle, seoDescription, req.user.id);
   }
 }

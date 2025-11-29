@@ -121,4 +121,10 @@ export const shopifyApi = {
     fetchWithAuth(`/shopify/sync-products?projectId=${projectId}`, {
       method: 'POST',
     }),
+
+  updateProductSeo: (productId: string, seoTitle: string, seoDescription: string) =>
+    fetchWithAuth('/shopify/update-product-seo', {
+      method: 'POST',
+      body: JSON.stringify({ productId, seoTitle, seoDescription }),
+    }),
 };
