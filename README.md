@@ -61,3 +61,19 @@ pnpm build
 - [Roadmap](./ROADMAP.md)
 - [Brand Guide](./BRAND_GUIDE.md)
 - [Shopify Integration](./SHOPIFY_INTEGRATION.md)
+- [Deployment Guide](./docs/DEPLOYMENT.md)
+
+## Production Deployment
+
+Production deployment uses the following stack:
+
+- **Database:** Neon (managed PostgreSQL)
+- **API:** Render (NestJS backend)
+- **Web:** Vercel (Next.js frontend)
+- **DNS/SSL:** Cloudflare
+- **Backups:** AWS S3 (periodic database backups)
+- **E-commerce:** Shopify Partner app
+
+Stripe billing (Phase 10B) is optional and can be configured after initial deployment.
+
+See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for full production deployment instructions.
