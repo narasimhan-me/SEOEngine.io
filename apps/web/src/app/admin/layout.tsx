@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
 import { usersApi } from '@/lib/api';
+import TopNav from '@/components/layout/TopNav';
 import AdminSideNav from '@/components/layout/AdminSideNav';
 
 interface User {
@@ -48,8 +49,13 @@ export default function AdminLayout({
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <p className="text-gray-600">Loading...</p>
+      <div className="min-h-screen flex flex-col">
+        <TopNav />
+        <div className="flex-1 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <p className="text-gray-600">Loading...</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -59,10 +65,15 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex gap-8">
-        <AdminSideNav />
-        <main className="flex-1 min-w-0">{children}</main>
+    <div className="min-h-screen flex flex-col">
+      <TopNav />
+      <div className="flex-1 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex gap-8">
+            <AdminSideNav />
+            <main className="flex-1 min-w-0">{children}</main>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -146,6 +146,174 @@ At repo root:
 
 ---
 
+# PHASE 0.5 — Public Marketing Website (Landing, Features, Pricing, Signup Funnel)
+
+*(Insert this between Phase 0 and Phase 1)*
+
+This phase creates the public-facing marketing website that visitors see before logging in. It is separate from the authenticated app UI.
+
+### 0.5.1. Goals
+
+- Provide a professional SaaS landing experience
+- Explain SEOEngine.io offering clearly
+- Show pricing
+- Drive signups
+- SEO-optimized & fast
+- Prepare for scaling into a full marketing site
+
+### 0.5.2. Marketing Routes & Layout
+
+Create a separate marketing route group:
+
+```
+apps/web/src/app/(marketing)/
+```
+
+Inside it, create:
+
+- `layout.tsx` — marketing-only layout
+  - Top navigation (lighter than app UI)
+  - Footer
+  - No sidebar
+  - No authenticated UI elements
+- `page.tsx` — Home / Landing Page
+- `pricing/page.tsx`
+- `features/page.tsx`
+- `contact/page.tsx`
+
+**Marketing Navbar:**
+
+- **Left:**
+  - Logo
+  - Links: Features, Pricing
+- **Right:**
+  - Login
+  - Button: Sign Up Free
+
+**Marketing Footer:**
+
+- Product links
+- Docs
+- Support
+- Terms
+- Privacy
+
+### 0.5.3. Required Pages
+
+**Home / Landing Page (`/`)**
+
+**Sections:**
+
+- Hero (headline + subheadline + primary CTA)
+- Product value propositions
+- Screenshots
+- Shopify integration highlights
+- Feature summary
+- Testimonials (placeholder)
+- Footer CTA
+
+**Initial copy (placeholders permitted):**
+
+- Hero text: "SEOEngine.io — AI-Powered SEO for eCommerce & SaaS."
+- Primary CTA: "Start Free"
+
+**Features Page (`/features`)**
+
+Breakdown of feature categories:
+
+- AI SEO Automation
+- Content Intelligence
+- Shopify SEO Optimization
+- Performance Monitoring
+- Competitor Insights
+- Backlinks & Local SEO
+- Automations
+
+Each section should include:
+
+- A short description
+- Placeholder icons
+
+**Pricing Page (`/pricing`)**
+
+- Starter, Pro, Agency plans (match backend plan definitions)
+- Feature comparison table
+- Monthly & annual toggle
+- CTA: "Sign Up Free"
+
+**Contact Page (`/contact`)**
+
+- Contact form (UI only, backend optional for now)
+- Support email section
+
+### 0.5.4. UX Requirements
+
+- Mobile-responsive
+- Fast-loading (optimized images)
+- Clean, SaaS-standard spacing & typography
+- SEO-optimized:
+  - Title tags
+  - Meta descriptions
+  - OpenGraph image
+  - Schema markup (basic)
+
+### 0.5.5. Frontend Implementation Details
+
+**Directory Structure:**
+
+```
+apps/web/src/app/(marketing)/
+  layout.tsx
+  page.tsx              // home
+  features/page.tsx
+  pricing/page.tsx
+  contact/page.tsx
+```
+
+**Shared Components:**
+
+Create reusable:
+
+- `components/marketing/Navbar.tsx`
+- `components/marketing/Footer.tsx`
+- `components/marketing/Hero.tsx`
+- Placeholder components for other sections
+
+### 0.5.6. Authentication Boundary
+
+**Marketing pages:**
+
+- Must not require authentication
+- Must not show TopNav used inside the app
+- Use the marketing layout exclusively
+
+**Authenticated pages:**
+
+- Use the app layout (Phase 9)
+- Logged-in users bypass landing page automatically if visiting `/`
+- Add redirect:
+  - If logged in and they visit `/`, redirect → `/projects`
+  - If not logged in, show landing page
+
+### 0.5.7. Backend Requirements
+
+No backend changes required for this phase besides ensuring:
+
+- `/auth/login` and `/auth/signup` still work
+- CORS & environment variables for production are configured
+
+### 0.5.8. Deliverables for This Phase
+
+- Marketing layout
+- Landing page
+- Features page
+- Pricing page
+- Contact page
+- Navbar + Footer
+- SEO meta setup
+- Public signup funnel connected to `/signup`
+
+---
 # PHASE 1 — Auth, Users & Database
 
 **Note:** Phase 1 starts with a simple Project model that will be evolved in Phase 2 to use a generic Integration model (this matches the current implementation, which uses Integration instead of connectedType).
