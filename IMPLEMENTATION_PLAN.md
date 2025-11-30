@@ -2128,6 +2128,285 @@ if (projectCount >= planConfig.maxProjects) {
 
 ---
 
+# PHASE 10C — Add Free Tier + Plan Limits & Enforcement
+
+**Goal:** Introduce a Free Tier that drives growth while protecting the platform from abuse. Includes new plan definitions, resource limits, backend enforcement logic, and upgrade UX.
+
+### 10C.1. New Pricing Tier: FREE
+
+**FREE ($0/mo)**
+
+For early-stage stores evaluating SEOEngine.io.
+
+**Included:**
+- 1 project
+- 10 synced products
+- 50k AI tokens per month
+- Basic homepage SEO audit only
+- Up to 3 AI metadata generations per month
+- Manual product sync (no background sync)
+
+**Not included:**
+- No automation features
+- No product SEO auto-apply
+- No AI blog generation
+- No Shopify collection SEO
+- No schema generator
+- No social media posting
+- No competitor insights
+- No keyword tracking
+- No scheduled jobs
+- No backups
+- Community support only
+
+**Purpose:** Allow merchants to experience initial value and strongly push them toward the Starter plan.
+
+### 10C.2. Updated Full Tier Structure
+
+- **FREE** — $0
+  - Limits focused on evaluation.
+- **Starter** — $19
+  - For small shops needing basic automation.
+- **Pro** — $59
+  - Most popular plan. Unlocks automation, schema, blog generation, competitor tools.
+- **Agency** — $199
+  - Unlimited usage with strong caps on AI to prevent abuse.
+
+### 10C.3. Updated PLANS Configuration
+
+Modify `apps/api/src/billing/plans.ts` to:
+
+```typescript
+export const PLANS = {
+  free: {
+    name: "Free",
+    maxProjects: 1,
+    maxProducts: 10,
+    aiTokens: 50_000,
+    aiMetadataGenerations: 3,
+    features: {
+      shopify: true,
+      automation: false,
+      aiContent: false,
+      schema: false,
+      social: false,
+      competitor: false,
+      keywordTracking: false,
+      performance: "basic",
+    },
+  },
+
+  starter: {
+    name: "Starter",
+    maxProjects: 3,
+    maxProducts: 500,
+    aiTokens: 200_000,
+    aiMetadataGenerations: 50,
+    features: {
+      shopify: true,
+      automation: true,
+      aiContent: "limited",
+      schema: "basic",
+      social: false,
+      competitor: false,
+      keywordTracking: "basic",
+      performance: "standard",
+    },
+  },
+
+  pro: {
+    name: "Pro",
+    maxProjects: 10,
+    maxProducts: 5000,
+    aiTokens: 2_000_000,
+    aiMetadataGenerations: 300,
+    features: {
+      shopify: true,
+      automation: true,
+      aiContent: "full",
+      schema: "full",
+      social: "basic",
+      competitor: "full",
+      keywordTracking: "full",
+      performance: "advanced",
+    },
+  },
+
+  agency: {
+    name: "Agency",
+    maxProjects: Infinity,
+    maxProducts: Infinity,
+    aiTokens: 10_000_000,
+    aiMetadataGenerations: Infinity,
+    features: {
+      shopify: true,
+      automation: true,
+      aiContent: "full",
+      schema: "full",
+      social: "full",
+      competitor: "full",
+      keywordTracking: "full",
+      performance: "advanced",
+    },
+  },
+};
+```
+
+### 10C.4. Backend Plan Enforcement
+
+Add middleware/guard: `PlanLimitGuard`
+
+**Location:** `apps/api/src/billing/plan-limit.guard.ts`
+
+**Functions to enforce limits:**
+
+**1. Project Creation Limit**
+
+Block new project creation:
+
+```typescript
+if (userProjectCount >= plan.maxProjects) {
+  throw new ForbiddenException("Upgrade required");
+}
+```
+
+**2. Product Sync Limit**
+
+During product sync:
+
+```typescript
+if (existingProducts + incomingProducts > plan.maxProducts) {
+  throw new ForbiddenException("Upgrade to sync more products");
+}
+```
+
+**3. AI Token Usage**
+
+Wrap AI calls:
+
+```typescript
+if (currentUsage.tokens + estimatedTokens > plan.aiTokens) {
+  throw new ForbiddenException("You've used all monthly AI credits. Upgrade to continue.");
+}
+```
+
+**4. AI Metadata Generation Count**
+
+```typescript
+if (metadataCount >= plan.aiMetadataGenerations) {
+  throw new ForbiddenException("Upgrade to generate more metadata");
+}
+```
+
+**5. Feature-based Access Control**
+
+Before executing any feature-specific endpoints:
+
+```typescript
+if (!plan.features.aiContent) throw new ForbiddenException("Upgrade required");
+if (plan.features.social !== "full") ...
+```
+
+### 10C.5. Monthly Usage Reset Cron Job
+
+Add a cron job (Render Cron or worker):
+
+- Resets monthly token usage
+- Resets metadata generation counts
+- Sends summary email
+
+### 10C.6. Frontend Enforcement & Upsell UX
+
+**Unified "Upgrade Required" Modal**
+
+Create component: `apps/web/src/components/billing/UpgradeModal.tsx`
+
+**Trigger it when:**
+- User exceeds product sync limits
+- User hits AI token cap
+- User clicks a locked feature
+- User tries to access forbidden pages
+
+**Modal Text Example:**
+> You've reached your plan's limit.  
+> Upgrade to Starter to unlock more AI SEO features, product sync, and automation.
+
+**Add "locked" UI states:**
+
+For Free plan:
+- Show greyed-out buttons
+- Show tooltips: "Upgrade to unlock this feature"
+- For menu items, show 🔒 icon
+
+### 10C.7. Subscription Enforcement Middleware (Frontend)
+
+In `apps/web/src/lib/subscription.ts`:
+
+**Logic:**
+- Fetch subscription on login
+- Cache in global state
+- On page render, check allowed features
+- If locked → show upsell modal instead of the page
+
+**Also add:**
+- Auto redirect to `/billing` if subscription expired
+- Yellow banner if user is near limits
+- Red banner when out of credits
+
+### 10C.8. Shopify Store Change Monitoring
+
+Free Tier can monitor but cannot auto-apply.
+
+**Rules:**
+
+If the store adds new products:
+- **Free tier:** notify + prompt upgrade
+- **Starter & above:**
+  - Summarize changes
+  - Queue actions:
+    - AI product metadata generation
+    - Blog/social posting
+    - Schema updates
+
+Processing pipeline uses queues added later in Phase 17.
+
+### 10C.9. Implementation Order
+
+Follow this sequence:
+
+1. Update PLANS config
+2. Implement Prisma migration for usage tracking:
+   - `MonthlyUsage` table
+   - `MetadataGenerationLog`
+3. Add backend guards
+4. Add frontend upgrade modal
+5. Add limit banners
+6. Add locked feature UI
+7. Add free plan copy to marketing pages
+8. Test all limits
+9. Test all upgrade flows
+10. Launch free tier
+11. Add metrics tracking (Mixpanel or PostHog)
+
+### 10C.10. Acceptance Criteria
+
+- Free users can sign up and use basic SEO audit
+- Free users cannot abuse AI
+- Free users cannot sync full product catalogs
+- Users see clear upgrade prompts
+- Backend prevents all misuse
+- Billing pages reflect free tier properly
+- Usage resets monthly
+- All plan limits enforced cleanly
+
+### 10C.11. Future Enhancements
+
+- Free → Starter upgrade emails
+- In-app "usage meter"
+- Plan recommendation engine
+- Shopify App Store automated upgrade pop-ups
+---
+
 ### 10.3. Admin APIs
 
 - `GET /admin/overview` → overall metrics.
@@ -2518,6 +2797,387 @@ model SocialAccount {
     - Top pages/products changes
     - Social posts published (if enabled)
   - Configured via `AutomationRule`.
+
+---
+
+# PHASE 18 — Account Security Enhancements
+
+**Goal:** Add password resets, backup codes, and user profile management.
+
+### 18.1. Password Reset (Forgot Password Flow)
+
+#### 18.1.1. Backend (NestJS API)
+
+Add new module: `password-reset`
+
+**Routes:**
+
+**POST /auth/password/forgot**
+
+- **Input:** `{ email }`
+- **Behavior:**
+  - Generate secure reset token (random UUID).
+  - Store hashed token in DB with expiration (e.g., expires in 60 min).
+  - Email user a reset link: `https://app.seoengine.io/reset-password?token=<token>`
+  - Return: `{ success: true }`
+
+**POST /auth/password/reset**
+
+- **Input:** `{ token, newPassword }`
+- **Steps:**
+  - Validate token + expiration.
+  - Update password (bcrypt hash).
+  - Invalidate token.
+  - Return: `{ success: true }`
+
+**DB Changes (Prisma):**
+
+Add table:
+
+```prisma
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+```
+
+#### 18.1.2. Frontend (Next.js)
+
+**Routes:**
+- `/forgot-password`
+- `/reset-password?token=...`
+
+**UI:**
+- Step 1: enter email
+- Step 2: enter new password
+
+**Security:**
+- Success messages should be generic (do not reveal whether email exists)
+- Token stored only in URL; never saved in localStorage
+
+### 18.2. Backup Codes (architecture now, UI later)
+
+#### 18.2.1. Backend
+
+Add to User model:
+
+```prisma
+backupCodes Json? // array of hashed codes
+```
+
+When enabling 2FA:
+- Generate 10 one-time 8-digit codes.
+- Hash and store them in DB.
+- Display plaintext once to the user.
+
+Add endpoint:
+- `POST /auth/2fa/consume-backup-code`
+
+#### 18.2.2. Frontend
+
+Add section in `/settings/security`:
+- "Download backup codes"
+- "Regenerate backup codes"
+
+### 18.3. User Profile Management
+
+#### 18.3.1. Backend
+
+Add endpoint:
+- `PATCH /users/me`
+
+**Updatable fields:**
+- `name`
+- `email` (future)
+- `company`
+- `avatar` (future)
+
+#### 18.3.2. Frontend
+
+**Page:** `/settings/profile`
+
+**Form fields:**
+- Name
+- Company
+- (Email is read-only unless verification added later)
+
+---
+
+# PHASE 19 — Subscription Management + Hard Enforcement
+
+**Goal:** Allow users to manage subscriptions and enforce plan limits strictly.
+
+### 19.1. Allow Users to Manage Subscription
+
+#### 19.1.1. Add /billing page
+
+**Shows:**
+- Current plan
+- Usage meters (products synced, AI tokens, projects)
+- Renewal date
+- "Upgrade plan"
+- "Cancel subscription"
+- If using Stripe: "Manage in Stripe Portal"
+
+**Backend:**
+- Add `GET /billing/usage`
+- Add `GET /billing/limits` (returns plan limits)
+- Add Stripe portal endpoint (Phase 10B)
+
+### 19.2. Enforcement Middleware (Backend)
+
+Create middleware `SubscriptionLimitGuard`:
+
+**Runs on protected API routes such as:**
+- `/shopify/sync-products`
+- `/ai/*`
+- `/projects`
+- `/products`
+- `/automation/*`
+
+**Checks:**
+- User subscription plan
+- Usage stats
+- Remaining quota
+
+**If exceeded:**
+
+Return structured error:
+
+```json
+{
+  "error": "LIMIT_EXCEEDED",
+  "limit": "PRODUCT_LIMIT",
+  "message": "You've reached your product sync limit for your plan.",
+  "upgradeUrl": "/pricing"
+}
+```
+
+---
+
+# PHASE 20 — Store Monitoring & Automated Actions
+
+**Goal:** Implement an event-driven Shopify monitoring engine. This is one of your strongest differentiators.
+
+### 20.1. Detecting Store Changes
+
+**Two approaches:**
+
+**A) Shopify Webhooks (recommended)**
+
+Register webhooks:
+- `products/create`
+- `products/update`
+- `collections/create`
+- `blogs/create`
+- `articles/create`
+- `orders/create` (optional for promotions)
+- `price_rules/create` (for promotions)
+
+**Webhook endpoint:**
+- `POST /shopify/webhooks/:topic`
+
+**B) Periodic Polling (fallback)**
+
+Every 15–60 mins:
+- Compare hash of product list, blog list, price rules
+- Detect changes
+
+### 20.2. Queue Detected Events
+
+Create new table:
+
+```prisma
+model StoreEvent {
+  id          String   @id @default(cuid())
+  projectId   String
+  type        String   // PRODUCT_CREATED, BLOG_CREATED, PROMO_CREATED, etc.
+  payload     Json     // raw Shopify data
+  processed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+```
+
+### 20.3. Automated Action Engine
+
+For each new event:
+
+**(A) New Product Created**
+
+Queue tasks:
+- AI-generate:
+  - product SEO title
+  - product SEO description
+  - alt text for images
+- Push updates back to Shopify
+- Post to all connected social accounts:
+  - Instagram
+  - Facebook
+  - LinkedIn
+
+**(B) New Blog Post Created**
+
+- Summarize blog post
+- Generate social post caption
+- Auto-publish to social accounts
+
+**(C) New Promotion / Sale Rule**
+
+- Generate promo announcement post
+- Push to connected networks
+
+#### 20.3.1. Task Scheduler
+
+Create:
+
+```prisma
+model AutomationTask {
+  id        String   @id @default(cuid())
+  projectId String
+  type      String    // AUTO_PRODUCT_SEO, AUTO_SOCIAL_POST
+  payload   Json
+  status    String @default("pending")
+  createdAt DateTime @default(now())
+  runAt     DateTime @default(now())
+}
+```
+
+**Worker cron:**
+- Runs every minute
+- Processes pending tasks
+- Handles retries & exponential backoff
+
+---
+
+# PHASE 21 — Blog Auto-Scheduling System
+
+**Goal:** Automate blog post generation and publishing on a schedule.
+
+### 21.1. User UI for Auto Blog Posting
+
+**Page:** `/projects/[id]/automation/blog-scheduler`
+
+**Fields:**
+- List of topic ideas
+- **Frequency:**
+  - Daily
+  - Weekly
+  - Biweekly
+  - Monthly
+- **Post destination:**
+  - Shopify blog
+  - External CMS (future)
+
+### 21.2. Backend Scheduler
+
+**New table:**
+
+```prisma
+model BlogSchedule {
+  id          String   @id @default(cuid())
+  projectId   String
+  topics      Json     // array of strings
+  frequency   String // DAILY/WEEKLY/MONTHLY
+  nextRun     DateTime
+  createdAt   DateTime @default(now())
+}
+```
+
+**Cron job:**
+- Runs every hour
+- If `nextRun <= now`:
+  - Pick next topic
+  - Generate blog using AI
+  - Publish to Shopify
+  - Generate social media caption
+  - Auto-post to socials
+  - Update `nextRun` to next interval
+
+---
+
+# PHASE 22 — Subscription Limits & Fair Usage Enforcement
+
+**Goal:** Implement pricing that prevents AI abuse. This is a product-led pricing strategy used by real SaaS companies.
+
+### 22.1. Proposed Plan Tiers
+
+- **⭐ Starter — $19/mo**
+  - For new stores.
+  - 3 projects
+  - 500 products
+  - AI tokens: 250k/month
+  - 10 automations/day
+  - Blog scheduler: 2 posts/week
+  - Social auto-posting: ON
+  - Monitoring: Every 12 hours
+
+- **⭐ Pro — $59/mo**
+  - For growing stores
+  - 10 projects
+  - 5,000 products
+  - AI tokens: 2M/month
+  - 100 automations/day
+  - Blog scheduler: 1 post/day
+  - Social auto-posting: 3 networks
+  - Monitoring: Every hour
+  - Competitor analysis
+  - Schema automation
+
+- **⭐ Agency — $199/mo**
+  - For agencies & large catalog stores
+  - Unlimited projects
+  - Up to 50,000 products
+  - AI tokens: 10M/month
+  - Unlimited automations/day
+  - Blog scheduler: unlimited
+  - White-label reporting
+
+- **⭐ Enterprise — Custom**
+  - For high-usage customers.
+  - Unlimited everything
+  - Dedicated compute
+  - SLA, premium support
+  - Custom integrations
+
+### 22.2. Usage Metrics Tracked Per Project
+
+**Track:**
+- AI tokens used
+- Shopify API calls
+- Store events processed
+- Automation tasks executed
+- Blog posts generated
+- Social posts published
+- Products synced
+- Projects used
+
+### 22.3. Hard Limits
+
+When limit reached:
+- Return `429 OVER_LIMIT`
+- Show upgrade modal:
+  - "You've hit your plan limit"
+  - Highlight the relevant plan
+
+### 22.4. Soft Limits (Warning Zones)
+
+At 80% usage:
+- Email alert
+- Dashboard banner
+- "Upgrade recommended" pop-up
+
+### 22.5. Abuse Prevention (AI Protection)
+
+To avoid AI cost disasters:
+- Global per-user rate limits
+- Maximum tokens per request:
+  - e.g., No prompt > 4k tokens on Starter
+- AI batch jobs must require queues
+- Long blog posts count against AI token quota
+- Social posting limited per-day on low plans
 
 
 END OF IMPLEMENTATION PLAN
