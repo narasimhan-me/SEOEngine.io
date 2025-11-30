@@ -20,8 +20,12 @@ Each step should produce diffs and await approval before applying.
 ---
 
 # PHASE 0 — Monorepo Structure & Tooling
-0.1. Create Monorepo Structure
+
+### 0.1. Create Monorepo Structure
+
 Create the directory structure:
+
+```
 seoengine/
   apps/
     web/        # Next.js 14 app (frontend)
@@ -32,19 +36,29 @@ seoengine/
   package.json
   tsconfig.base.json
   README.md
-Requirements:
-Use pnpm workspaces (preferred) or Yarn workspaces.
-Configure "apps/" and "packages/" as workspace folders.
-Create a root tsconfig: tsconfig.base.json with base compiler options.
-Ensure Node 20+ is assumed.
-0.2. Initialize Frontend (Next.js 14 + TS + Tailwind)
-Inside apps/web:
+```
+
+**Requirements:**
+
+- Use pnpm workspaces (preferred) or Yarn workspaces.
+- Configure "apps/" and "packages/" as workspace folders.
+- Create a root tsconfig: `tsconfig.base.json` with base compiler options.
+- Ensure Node 20+ is assumed.
+
+### 0.2. Initialize Frontend (Next.js 14 + TS + Tailwind)
+
+Inside `apps/web`:
+
 Create a new Next.js app configured with:
-App Router
-TypeScript
-TailwindCSS
-/src directory enabled
-Required directory structure:
+
+- App Router
+- TypeScript
+- TailwindCSS
+- `/src` directory enabled
+
+**Required directory structure:**
+
+```
 apps/web/src/
   app/
     (marketing)/
@@ -58,17 +72,26 @@ apps/web/src/
     layout.tsx
   components/
   lib/
-Requirements:
-TailwindCSS configured with JIT.
-Global layout with a simple navigation shell (top nav + optional sidebar).
-Home page text: SEOEngine.io – SEO on Autopilot.
-/dashboard renders "Dashboard placeholder".
-/projects renders "Projects placeholder".
-/settings renders "Settings placeholder".
-0.3. Initialize Backend (NestJS)
-Inside apps/api:
+```
+
+**Requirements:**
+
+- TailwindCSS configured with JIT.
+- Global layout with a simple navigation shell (top nav + optional sidebar).
+- Home page text: `SEOEngine.io – SEO on Autopilot.`
+- `/dashboard` renders "Dashboard placeholder".
+- `/projects` renders "Projects placeholder".
+- `/settings` renders "Settings placeholder".
+
+### 0.3. Initialize Backend (NestJS)
+
+Inside `apps/api`:
+
 Create a NestJS project using the official CLI.
-Required structure:
+
+**Required structure:**
+
+```
 apps/api/src/
   app.module.ts
   main.ts
@@ -78,24 +101,40 @@ apps/api/src/
   auth/
   users/
   projects/
-Add endpoint:
-GET /health → { "status": "ok" }
-Enable CORS (temporary: allow all origins for development).
-Add .env support via @nestjs/config.
-0.4. Shared Package
-Inside packages/shared:
-Create src/index.ts exporting shared types/interfaces, e.g.:
+```
+
+**Add endpoint:**
+
+- `GET /health` → `{ "status": "ok" }`
+
+**Enable CORS** (temporary: allow all origins for development).  
+**Add .env support** via `@nestjs/config`.
+
+### 0.4. Shared Package
+
+Inside `packages/shared`:
+
+Create `src/index.ts` exporting shared types/interfaces, e.g.:
+
+```typescript
 export interface UserDTO {
   id: string;
   email: string;
   name?: string;
   createdAt: string;
 }
-Configure TS path alias: @seoengine/shared so both web and api can import these types.
-0.5. Root Tooling
+```
+
+Configure TS path alias: `@seoengine/shared` so both web and api can import these types.
+
+### 0.5. Root Tooling
+
 At repo root:
-Add ESLint + Prettier configs shared between apps.
-Add root scripts in package.json:
+
+- Add **ESLint + Prettier** configs shared between apps.
+- Add root scripts in `package.json`:
+
+```json
 {
   "scripts": {
     "dev:web": "pnpm --filter web dev",
@@ -103,178 +142,249 @@ Add root scripts in package.json:
     "dev": "concurrently \"pnpm dev:web\" \"pnpm dev:api\""
   }
 }
-Install and configure concurrently.
-Ensure .gitignore includes standard Node/Next/Nest patterns:
-node_modules/, .next/, .turbo/, dist/, .env*, etc.
-PHASE 0.5 — Public Marketing Website (Landing, Features, Pricing, Signup Funnel)
-(Insert this between Phase 0 and Phase 1)
+```
+
+- Install and configure `concurrently`.
+- Ensure `.gitignore` includes standard Node/Next/Nest patterns:
+  - `node_modules/`, `.next/`, `.turbo/`, `dist/`, `.env*`, etc.
+
+---
+
+# # PHASE 0.5 — Public Marketing Website (Landing, Features, Pricing, Signup Funnel)
+
+*(Insert this between Phase 0 and Phase 1)*
+
 This phase creates the public-facing marketing website that visitors see before logging in. It is separate from the authenticated app UI.
-0.5.1. Goals
-Provide a professional SaaS landing experience
-Explain SEOEngine.io offering clearly
-Show pricing
-Drive signups
-SEO-optimized & fast
-Prepare for scaling into a full marketing site
-0.5.2. Marketing Routes & Layout
+
+### 0.5.1. Goals
+
+- Provide a professional SaaS landing experience
+- Explain SEOEngine.io offering clearly
+- Show pricing
+- Drive signups
+- SEO-optimized & fast
+- Prepare for scaling into a full marketing site
+
+### 0.5.2. Marketing Routes & Layout
+
 Create a separate marketing route group:
+
+```
 apps/web/src/app/(marketing)/
+```
+
 Inside it, create:
-layout.tsx — marketing-only layout
-Top navigation (lighter than app UI)
-Footer
-No sidebar
-No authenticated UI elements
-page.tsx — Home / Landing Page
-pricing/page.tsx
-features/page.tsx
-contact/page.tsx
-Marketing Navbar:
-Left:
-Logo
-Links: Features, Pricing
-Right:
-Login
-Button: Sign Up Free
-Marketing Footer:
-Product links
-Docs
-Support
-Terms
-Privacy
-0.5.3. Required Pages
-Home / Landing Page (/)
-Sections:
-Hero (headline + subheadline + primary CTA)
-Product value propositions
-Screenshots
-Shopify integration highlights
-Feature summary
-Testimonials (placeholder)
-Footer CTA
-Initial copy (placeholders permitted):
-Hero text: "SEOEngine.io — AI-Powered SEO for eCommerce & SaaS."
-Primary CTA: "Start Free"
-Features Page (/features)
+
+- `layout.tsx` — marketing-only layout
+  - Top navigation (lighter than app UI)
+  - Footer
+  - No sidebar
+  - No authenticated UI elements
+- `page.tsx` — Home / Landing Page
+- `pricing/page.tsx`
+- `features/page.tsx`
+- `contact/page.tsx`
+
+**Marketing Navbar:**
+
+- **Left:**
+  - Logo
+  - Links: Features, Pricing
+- **Right:**
+  - Login
+  - Button: Sign Up Free
+
+**Marketing Footer:**
+
+- Product links
+- Docs
+- Support
+- Terms
+- Privacy
+
+### 0.5.3. Required Pages
+
+**Home / Landing Page (`/`)**
+
+**Sections:**
+
+- Hero (headline + subheadline + primary CTA)
+- Product value propositions
+- Screenshots
+- Shopify integration highlights
+- Feature summary
+- Testimonials (placeholder)
+- Footer CTA
+
+**Initial copy (placeholders permitted):**
+
+- Hero text: "SEOEngine.io — AI-Powered SEO for eCommerce & SaaS."
+- Primary CTA: "Start Free"
+
+**Features Page (`/features`)**
+
 Breakdown of feature categories:
-AI SEO Automation
-Content Intelligence
-Shopify SEO Optimization
-Performance Monitoring
-Competitor Insights
-Backlinks & Local SEO
-Automations
+
+- AI SEO Automation
+- Content Intelligence
+- Shopify SEO Optimization
+- Performance Monitoring
+- Competitor Insights
+- Backlinks & Local SEO
+- Automations
+
 Each section should include:
-A short description
-Placeholder icons
-Pricing Page (/pricing)
-Starter, Pro, Agency plans (match backend plan definitions)
-Feature comparison table
-Monthly & annual toggle
-CTA: "Sign Up Free"
-Contact Page (/contact)
-Contact form UI
-Support email section
-0.5.4. UX Requirements
-Mobile-responsive
-Fast-loading (optimized images)
-Clean, SaaS-standard spacing & typography
-SEO-optimized:
-Title tags
-Meta descriptions
-OpenGraph image
-Schema markup (basic)
-0.5.5. Frontend Implementation Details
-Directory Structure:
+
+- A short description
+- Placeholder icons
+
+**Pricing Page (`/pricing`)**
+
+- Starter, Pro, Agency plans (match backend plan definitions)
+- Feature comparison table
+- Monthly & annual toggle
+- CTA: "Sign Up Free"
+
+**Contact Page (`/contact`)**
+
+- Contact form UI
+- Support email section
+
+### 0.5.4. UX Requirements
+
+- Mobile-responsive
+- Fast-loading (optimized images)
+- Clean, SaaS-standard spacing & typography
+- SEO-optimized:
+  - Title tags
+  - Meta descriptions
+  - OpenGraph image
+  - Schema markup (basic)
+
+### 0.5.5. Frontend Implementation Details
+
+**Directory Structure:**
+
+```
 apps/web/src/app/(marketing)/
   layout.tsx
   page.tsx              // home
   features/page.tsx
   pricing/page.tsx
   contact/page.tsx
-Shared Components:
+```
+
+**Shared Components:**
+
 Create reusable:
-components/marketing/Navbar.tsx
-components/marketing/Footer.tsx
-components/marketing/Hero.tsx
-Placeholder components for other sections
-0.5.6. Authentication Boundary
-Marketing pages:
-Must not require authentication
-Must not show TopNav used inside the app
-Use the marketing layout exclusively
-Authenticated pages:
-Use the app layout (Phase 9)
-Logged-in users bypass landing page automatically if visiting /
-Redirect logic will be implemented in 0.5.11
-0.5.7. Backend Requirements
+
+- `components/marketing/Navbar.tsx`
+- `components/marketing/Footer.tsx`
+- `components/marketing/Hero.tsx`
+- Placeholder components for other sections
+
+### 0.5.6. Authentication Boundary
+
+**Marketing pages:**
+
+- Must not require authentication
+- Must not show TopNav used inside the app
+- Use the marketing layout exclusively
+
+**Authenticated pages:**
+
+- Use the app layout (Phase 9)
+- Logged-in users bypass landing page automatically if visiting `/`
+- Redirect logic will be implemented in 0.5.11
+
+### 0.5.7. Backend Requirements
+
 No backend changes required for this phase besides ensuring:
-/auth/login and /auth/signup still work
-CORS & environment variables for production are configured
-0.5.8. Deliverables for This Phase
-Marketing layout
-Landing page
-Features page
-Pricing page
-Contact page
-Navbar + Footer
-SEO meta setup
-Public signup funnel connected to /signup
-0.5.9. Marketing Content (Copy, Features, Pricing, Contact)
-Goal: Replace placeholder text with real, conversion-focused marketing content for all public pages.
-0.5.9.1. Messaging Foundations
-Define 1–2 primary personas (e.g. "Shopify store owner", "SEO agency lead").
-Write:
-One-sentence product positioning
-3–5 key value props
-3 major pains SEOEngine.io solves
-Store this in a simple markdown file:
-apps/web/src/marketing/messaging.md (for future reuse in product, docs, ads).
-0.5.9.2. Home / Landing Page Content
-Update (marketing)/page.tsx to use finalized copy:
-Hero:
-Headline (benefit-driven, ≤ 12 words)
-Subheadline
-Primary CTA text ("Start free") + secondary CTA ("Book a demo" or "Learn how it works")
-Sections:
-"Who it's for" (2–3 audience types)
-3–4 feature blocks with short descriptions
-Shopify focus section (how it helps stores)
-Social proof placeholders (logos/testimonials)
-Final "Ready to get started?" CTA tied to /signup
-0.5.9.3. Features Page Content
-Update (marketing)/features/page.tsx:
-Group features under the same buckets as the product roadmap:
-AI SEO Automation
-Content Intelligence
-Shopify SEO
-Monitoring & Reporting
-Competitive & Backlink Intelligence
-Local SEO & Automations
-For each bucket add:
-Title
-2–3 bullet points
-Short "Why it matters" paragraph.
-0.5.9.4. Pricing Page Content
-Update (marketing)/pricing/page.tsx:
-Align plans with backend PLANS config (Starter, Pro, Agency).
-For each plan:
-1-line summary ("For solo stores getting started", etc.)
-Price placeholder (can be "TBD" until Stripe live).
-5–7 bullets (limits, AI usage, priority features).
-Add FAQ section (4–6 common questions):
-"Can I cancel anytime?"
-"Do you work with agencies?"
-"Do you support multiple stores?"
-"What is an AI token?"
-"Do I need a developer?"
-0.5.9.5. Contact Page Content
-Update (marketing)/contact/page.tsx:
-Short intro ("Need help, or want a demo?").
-Form labels: Name, Work email, Website/Store URL, Message.
-Add static info:
-Support email (e.g. support@seoengine.io)
-Expected response time (e.g. "within 1 business day").
+
+- `/auth/login` and `/auth/signup` still work
+- CORS & environment variables for production are configured
+
+### 0.5.8. Deliverables for This Phase
+
+- Marketing layout
+- Landing page
+- Features page
+- Pricing page
+- Contact page
+- Navbar + Footer
+- SEO meta setup
+- Public signup funnel connected to `/signup`
+
+### 0.5.9. Marketing Content (Copy, Features, Pricing, Contact)
+
+**Goal:** Replace placeholder text with real, conversion-focused marketing content for all public pages.
+
+#### 0.5.9.1. Messaging Foundations
+
+- Define 1–2 primary personas (e.g. "Shopify store owner", "SEO agency lead").
+- Write:
+  - One-sentence product positioning
+  - 3–5 key value props
+  - 3 major pains SEOEngine.io solves
+- Store this in a simple markdown file:
+  - `apps/web/src/marketing/messaging.md` (for future reuse in product, docs, ads).
+
+#### 0.5.9.2. Home / Landing Page Content
+
+Update `(marketing)/page.tsx` to use finalized copy:
+
+- **Hero:**
+  - Headline (benefit-driven, ≤ 12 words)
+  - Subheadline
+  - Primary CTA text ("Start free") + secondary CTA ("Book a demo" or "Learn how it works")
+- **Sections:**
+  - "Who it's for" (2–3 audience types)
+  - 3–4 feature blocks with short descriptions
+  - Shopify focus section (how it helps stores)
+  - Social proof placeholders (logos/testimonials)
+  - Final "Ready to get started?" CTA tied to `/signup`
+
+#### 0.5.9.3. Features Page Content
+
+Update `(marketing)/features/page.tsx`:
+
+- Group features under the same buckets as the product roadmap:
+  - AI SEO Automation
+  - Content Intelligence
+  - Shopify SEO
+  - Monitoring & Reporting
+  - Competitive & Backlink Intelligence
+  - Local SEO & Automations
+- For each bucket add:
+  - Title
+  - 2–3 bullet points
+  - Short "Why it matters" paragraph.
+
+#### 0.5.9.4. Pricing Page Content
+
+Update `(marketing)/pricing/page.tsx`:
+
+- Align plans with backend PLANS config (Starter, Pro, Agency).
+- For each plan:
+  - 1-line summary ("For solo stores getting started", etc.)
+  - Price placeholder (can be "TBD" until Stripe live).
+  - 5–7 bullets (limits, AI usage, priority features).
+- Add FAQ section (4–6 common questions):
+  - "Can I cancel anytime?"
+  - "Do you work with agencies?"
+  - "Do you support multiple stores?"
+  - "What is an AI token?"
+  - "Do I need a developer?"
+
+#### 0.5.9.5. Contact Page Content
+
+Update `(marketing)/contact/page.tsx`:
+
+- Short intro ("Need help, or want a demo?").
+- Form labels: Name, Work email, Website/Store URL, Message.
+- Add static info:
+  - Support email (e.g. support@seoengine.io)
+  - Expected response time (e.g. "within 1 business day").
 #### 0.5.9.6. SEO Meta & OG Content
 
 For all marketing routes (`/`, `/features`, `/pricing`, `/contact`):
@@ -287,75 +397,117 @@ For all marketing routes (`/`, `/features`, `/pricing`, `/contact`):
   - e.g. "AI SEO for Shopify", "eCommerce SEO automation", etc.
 
 ### 0.5.10. Contact Form Backend Wiring
-Connect the /contact page form to a real backend endpoint so submissions don't just disappear.
-Backend (NestJS – apps/api):
-Create Contact module:
-Folder: apps/api/src/contact
-Files:
-contact.module.ts
-contact.service.ts
-contact.controller.ts
-dto/create-contact.dto.ts
-DTO & validation:
-In create-contact.dto.ts:
-Fields:
-name: string
-email: string
-company?: string
-message: string
-(Later, add captchaToken: string – see 0.5.12)
-Add class-validator decorators:
-@IsEmail() for email
-@IsString() + @IsNotEmpty() where appropriate
-Endpoint:
-In contact.controller.ts:
-POST /contact
-Public endpoint (no auth required).
-Body: CreateContactDto
-Calls ContactService.create(...).
-Service behavior:
-In contact.service.ts:
+
+Connect the `/contact` page form to a real backend endpoint so submissions don't just disappear.
+
+**Backend (NestJS – `apps/api`):**
+
+**Create Contact module:**
+
+- **Folder:** `apps/api/src/contact`
+- **Files:**
+  - `contact.module.ts`
+  - `contact.service.ts`
+  - `contact.controller.ts`
+  - `dto/create-contact.dto.ts`
+
+**DTO & validation:**
+
+In `create-contact.dto.ts`:
+
+- **Fields:**
+  - `name: string`
+  - `email: string`
+  - `company?: string`
+  - `message: string`
+  - (Later, add `captchaToken: string` – see 0.5.12)
+- Add class-validator decorators:
+  - `@IsEmail()` for email
+  - `@IsString() + @IsNotEmpty()` where appropriate
+
+**Endpoint:**
+
+In `contact.controller.ts`:
+
+- `POST /contact`
+- Public endpoint (no auth required).
+- Body: `CreateContactDto`
+- Calls `ContactService.create(...)`.
+
+**Service behavior:**
+
+In `contact.service.ts`:
+
 For now, implement a simple "delivery" mechanism with clear TODOs:
-Log to console in development.
-Optionally send an email via an external provider (when configured):
-// Pseudocode
-await this.mailer.send({
-  to: process.env.SUPPORT_EMAIL_TO,
-  subject: "[SEOEngine.io] New contact form submission",
-  text: `Name: ...\nEmail: ...\nCompany: ...\nMessage: ...`,
-});
-Read target email from env: SUPPORT_EMAIL_TO=support@seoengine.io.
-Do not fail the request if email sending fails — log and return a generic success with a TODO.
-Wire module:
-Import ContactModule into AppModule.
-Frontend (Next.js – apps/web):
-Connect the form:
-On apps/web/src/app/(marketing)/contact/page.tsx:
-Make the form a client component and handle onSubmit.
-Call POST ${NEXT_PUBLIC_API_URL}/contact with JSON body:
-{ "name", "email", "company", "message" }
-Show:
-Success state: "Thanks, we've received your message."
-Error state: friendly, on-brand error message:
-e.g., "Our SEO robot tripped over a cable. Please try again in a few seconds."
-Validation UX:
-Basic required-field checks on the client.
-Disabled state + loading indicator on the submit button while sending.
-0.5.11. Auth-Aware Landing Redirect (/ → /projects when logged in)
+
+- Log to console in development.
+- Optionally send an email via an external provider (when configured):
+  ```typescript
+  // Pseudocode
+  await this.mailer.send({
+    to: process.env.SUPPORT_EMAIL_TO,
+    subject: "[SEOEngine.io] New contact form submission",
+    text: `Name: ...\nEmail: ...\nCompany: ...\nMessage: ...`,
+  });
+  ```
+- Read target email from env: `SUPPORT_EMAIL_TO=support@seoengine.io`.
+- Do not fail the request if email sending fails — log and return a generic success with a TODO.
+
+**Wire module:**
+
+- Import `ContactModule` into `AppModule`.
+
+**Frontend (Next.js – `apps/web`):**
+
+**Connect the form:**
+
+On `apps/web/src/app/(marketing)/contact/page.tsx`:
+
+- Make the form a client component and handle `onSubmit`.
+- Call `POST ${NEXT_PUBLIC_API_URL}/contact` with JSON body:
+  ```json
+  { "name", "email", "company", "message" }
+  ```
+
+**Show:**
+
+- **Success state:** "Thanks, we've received your message."
+- **Error state:** friendly, on-brand error message:
+  - e.g., "Our SEO robot tripped over a cable. Please try again in a few seconds."
+
+**Validation UX:**
+
+- Basic required-field checks on the client.
+- Disabled state + loading indicator on the submit button while sending.
+
+### 0.5.11. Auth-Aware Landing Redirect (`/` → `/projects` when logged in)
+
 Ensure logged-in users skip the marketing landing and go straight into the app.
-Frontend (Next.js – apps/web):
-Auth helper (if not already present):
-In apps/web/src/lib/auth.ts (or reuse existing):
-getToken() reads seoengine_token from localStorage (browser only).
-isAuthenticated() returns true if token exists.
-Create a small wrapper component:
-File: apps/web/src/components/marketing/RedirectIfAuthenticated.tsx
-Client component:
+
+**Frontend (Next.js – `apps/web`):**
+
+**Auth helper (if not already present):**
+
+In `apps/web/src/lib/auth.ts` (or reuse existing):
+
+- `getToken()` reads `seoengine_token` from localStorage (browser only).
+- `isAuthenticated()` returns `true` if token exists.
+
+**Create a small wrapper component:**
+
+**File:** `apps/web/src/components/marketing/RedirectIfAuthenticated.tsx`
+
+**Client component:**
+
 On mount:
-Check localStorage for seoengine_token.
-If present, router.replace("/projects").
-If not, render children.
-Pseudocode:
+
+- Check localStorage for `seoengine_token`.
+- If present, `router.replace("/projects")`.
+- If not, render children.
+
+**Pseudocode:**
+
+```typescript
 "use client";
 
 import { useEffect, useState } from "react";
@@ -378,8 +530,15 @@ export function RedirectIfAuthenticated({ children }: { children: React.ReactNod
   if (!checked) return null; // or a tiny spinner
   return <>{children}</>;
 }
-Wrap the landing page:
-In apps/web/src/app/(marketing)/page.tsx:
+```
+
+**Wrap the landing page:**
+
+In `apps/web/src/app/(marketing)/page.tsx`:
+
+Wrap the exported page content:
+
+```typescript
 import { RedirectIfAuthenticated } from "@/components/marketing/RedirectIfAuthenticated";
 
 export default function MarketingHomePage() {
@@ -389,9 +548,12 @@ export default function MarketingHomePage() {
     </RedirectIfAuthenticated>
   );
 }
-Keep other marketing routes public:
-/features, /pricing, /contact should not redirect automatically.
-Only the root landing page (/) uses RedirectIfAuthenticated to send logged-in users to /projects.
+```
+
+**Keep other marketing routes public:**
+
+- `/features`, `/pricing`, `/contact` should not redirect automatically.
+- Only the root landing page (`/`) uses `RedirectIfAuthenticated` to send logged-in users to `/projects`.
 ### 0.5.12. Contact Form CAPTCHA (Anti-Bot Protection)
 
 Add CAPTCHA to the contact form to reduce spam and automated junk submissions.
@@ -1704,6 +1866,28 @@ Add subscription relation to User if desired.
     - `POST /billing/cancel` → marks the subscription as canceled.
     - `POST /billing/webhook` → currently a stub that logs incoming events and includes TODOs for future Stripe integration.
 
+**Plan Configuration (code, not DB at first):**
+
+`apps/api/src/billing/plans.ts`:
+
+```typescript
+export const PLANS = {
+  starter: {
+    name: 'Starter',
+    maxProjects: 3,
+    maxProducts: 500,
+    aiTokensPerMonth: 200_000,
+    features: {
+      shopify: true,
+      advancedAutomation: false,
+      competitiveIntelligence: false,
+    },
+  },
+  pro: { ... },
+  agency: { ... },
+};
+```
+
 ---
 
 # PHASE 10B — Production-Ready Stripe Subscription Billing
@@ -1943,29 +2127,6 @@ if (projectCount >= planConfig.maxProjects) {
 - Plan enforcement TODO hooks in place
 
 ---
-
-
-**Plan Configuration (code, not DB at first):**
-
-`apps/api/src/billing/plans.ts`:
-
-```typescript
-export const PLANS = {
-  starter: {
-    name: 'Starter',
-    maxProjects: 3,
-    maxProducts: 500,
-    aiTokensPerMonth: 200_000,
-    features: {
-      shopify: true,
-      advancedAutomation: false,
-      competitiveIntelligence: false,
-    },
-  },
-  pro: { ... },
-  agency: { ... },
-};
-```
 
 ### 10.3. Admin APIs
 

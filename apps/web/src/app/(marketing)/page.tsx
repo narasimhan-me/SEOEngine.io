@@ -220,6 +220,129 @@ export default function MarketingHomePage() {
         </div>
       </section>
 
+      {/* Who it's for */}
+      <section className="border-b border-slate-100 bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+          <h2 className="text-center text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+            Who it&apos;s for
+          </h2>
+          <p className="mt-2 text-center text-sm text-slate-600">
+            Built for the teams who need SEO results without the overhead.
+          </p>
+
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-lg">
+                🛍️
+              </div>
+              <h3 className="text-sm font-semibold text-slate-900">Shopify Store Owners</h3>
+              <p className="mt-2 text-xs text-slate-600">
+                Running a DTC brand with 50–5,000 products? You know SEO matters but don&apos;t have time to learn or execute it properly. SEOEngine.io handles the technical work so you can focus on growing your business.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-lg">
+                🏢
+              </div>
+              <h3 className="text-sm font-semibold text-slate-900">SEO Agencies</h3>
+              <p className="mt-2 text-xs text-slate-600">
+                Managing SEO for multiple Shopify clients? Scale your workflows with bulk metadata, automated audits, and white-label reporting. Spend less time on repetitive tasks and more on strategy.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-lg">
+                📈
+              </div>
+              <h3 className="text-sm font-semibold text-slate-900">Growth Marketers</h3>
+              <p className="mt-2 text-xs text-slate-600">
+                Need to move fast without hiring an SEO specialist? Get agency-level results with AI-powered automation. No spreadsheets, no guesswork — just results you can measure.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Built for Shopify */}
+      <section className="border-b border-slate-100 bg-slate-50/60">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="grid gap-10 md:grid-cols-2 md:items-center">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                Native Integration
+              </div>
+              <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+                Built for Shopify first
+              </h2>
+              <p className="mt-3 text-sm text-slate-600">
+                SEOEngine.io connects directly to your Shopify store via OAuth — no theme edits, no code changes. Pull in your entire product catalog, generate optimized metadata at scale, and push changes back with a single click.
+              </p>
+
+              <ul className="mt-6 space-y-3">
+                <li className="flex items-start gap-3">
+                  <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-xs text-blue-600">✓</span>
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">One-click OAuth connection</p>
+                    <p className="text-xs text-slate-600">No API keys, no manual setup. Connect in seconds.</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-xs text-blue-600">✓</span>
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Full product &amp; collection sync</p>
+                    <p className="text-xs text-slate-600">Import products, variants, images, and collections automatically.</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-xs text-blue-600">✓</span>
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Push SEO changes to Shopify</p>
+                    <p className="text-xs text-slate-600">Approve AI suggestions and apply them to your store instantly.</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-slate-900">Shopify sync</h3>
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                  Connected
+                </span>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">📦</span>
+                    <span className="text-xs font-medium text-slate-800">Products</span>
+                  </div>
+                  <span className="text-xs text-slate-600">1,247 synced</span>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">📁</span>
+                    <span className="text-xs font-medium text-slate-800">Collections</span>
+                  </div>
+                  <span className="text-xs text-slate-600">34 synced</span>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">🖼️</span>
+                    <span className="text-xs font-medium text-slate-800">Images</span>
+                  </div>
+                  <span className="text-xs text-slate-600">4,892 analyzed</span>
+                </div>
+              </div>
+              <p className="mt-4 text-[11px] text-slate-500">
+                Mock data shown. Real sync stats appear after connecting.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Core features overview */}
       <section className="border-b border-slate-100 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
@@ -296,33 +419,73 @@ export default function MarketingHomePage() {
         </div>
       </section>
 
-      {/* Early-adopter testimonials placeholder */}
+      {/* Trusted by / Social proof */}
       <section className="border-b border-slate-100 bg-slate-50">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
           <h2 className="text-center text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
-            Help shape the future of automated SEO.
+            Trusted by modern eCommerce brands
           </h2>
           <p className="mt-2 text-center text-sm text-slate-600">
-            We&apos;re onboarding early adopters now. Real case studies and numbers will be published soon.
+            Join the Shopify stores and agencies already using SEOEngine.io to grow organic traffic.
           </p>
 
-          <div className="mt-8 grid gap-6 md:grid-cols-3">
-            {[
-              '"Beta feedback coming soon — reserve your spot as an early adopter."',
-              '"Designed to replace multiple SEO tools with one AI-powered workspace."',
-              '"Join now and influence the roadmap for Shopify & eCommerce SEO automation."',
-            ].map((quote, i) => (
-              <figure
-                key={i}
-                className="flex flex-col justify-between rounded-2xl border border-dashed border-slate-200 bg-white p-4"
+          {/* Placeholder logos */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-6">
+            {['Brand A', 'Brand B', 'Brand C', 'Brand D', 'Your brand here'].map((label) => (
+              <div
+                key={label}
+                className="flex h-12 w-32 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-white text-xs font-medium text-slate-400"
               >
-                <p className="text-xs text-slate-700">{quote}</p>
-                <figcaption className="mt-4 text-[11px] text-slate-500">
-                  Early Adopter Program
-                </figcaption>
-              </figure>
+                {label}
+              </div>
             ))}
           </div>
+
+          {/* Testimonial cards */}
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
+            <figure className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5">
+              <blockquote className="text-sm text-slate-700">
+                &ldquo;SEOEngine.io saved us hours every week on product SEO. The AI suggestions are spot-on and the Shopify sync just works.&rdquo;
+              </blockquote>
+              <figcaption className="mt-4 flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-slate-100" />
+                <div>
+                  <p className="text-xs font-semibold text-slate-900">Name Placeholder</p>
+                  <p className="text-[11px] text-slate-500">Founder, DTC Brand</p>
+                </div>
+              </figcaption>
+            </figure>
+
+            <figure className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5">
+              <blockquote className="text-sm text-slate-700">
+                &ldquo;We manage 15 Shopify stores and SEOEngine.io lets us handle metadata at scale. Game changer for our agency.&rdquo;
+              </blockquote>
+              <figcaption className="mt-4 flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-slate-100" />
+                <div>
+                  <p className="text-xs font-semibold text-slate-900">Name Placeholder</p>
+                  <p className="text-[11px] text-slate-500">SEO Lead, Agency</p>
+                </div>
+              </figcaption>
+            </figure>
+
+            <figure className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5">
+              <blockquote className="text-sm text-slate-700">
+                &ldquo;Finally, an SEO tool that understands eCommerce. The automated audits catch issues we&apos;d never find manually.&rdquo;
+              </blockquote>
+              <figcaption className="mt-4 flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-slate-100" />
+                <div>
+                  <p className="text-xs font-semibold text-slate-900">Name Placeholder</p>
+                  <p className="text-[11px] text-slate-500">Growth Marketer, SaaS</p>
+                </div>
+              </figcaption>
+            </figure>
+          </div>
+
+          <p className="mt-6 text-center text-[11px] text-slate-500">
+            Real testimonials coming soon — join as an early adopter and share your story.
+          </p>
         </div>
       </section>
 

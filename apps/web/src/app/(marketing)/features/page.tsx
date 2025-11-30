@@ -9,16 +9,23 @@ export const metadata: Metadata = {
 function FeatureBlock({
   label,
   description,
+  whyItMatters,
   bullets,
 }: {
   label: string;
   description: string;
+  whyItMatters?: string;
   bullets: string[];
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
       <h2 className="text-lg font-semibold text-slate-900">{label}</h2>
       <p className="mt-2 text-sm text-slate-600">{description}</p>
+      {whyItMatters && (
+        <p className="mt-3 max-w-3xl text-sm text-slate-700 border-l-2 border-blue-200 pl-3 italic">
+          {whyItMatters}
+        </p>
+      )}
       <ul className="mt-4 space-y-1.5 text-sm text-slate-600">
         {bullets.map((b) => (
           <li key={b}>• {b}</li>
@@ -49,6 +56,7 @@ export default function FeaturesPage() {
           <FeatureBlock
             label="AI SEO Automation"
             description="Let AI handle the repetitive SEO work while you focus on strategy and growth."
+            whyItMatters="Most stores have hundreds of missing meta descriptions, broken links, and unoptimized images. Fixing them manually takes weeks. AI automation handles the busywork so you can focus on strategy that actually moves the needle."
             bullets={[
               'Auto-fix missing titles, meta descriptions & H1 tags',
               'Generate optimized alt text for product & collection images',
@@ -61,6 +69,7 @@ export default function FeaturesPage() {
           <FeatureBlock
             label="Content Intelligence"
             description="Understand what to write, how to outrank competitors, and how each piece of content performs."
+            whyItMatters="Great content drives organic traffic, but most teams don't know what to write or how to optimize it. Content intelligence shows you exactly which topics to target and how to outrank competitors — no guesswork required."
             bullets={[
               'Keyword explorer with intent-focused suggestions',
               'Keyword clustering for topic-level planning',
@@ -73,6 +82,7 @@ export default function FeaturesPage() {
           <FeatureBlock
             label="eCommerce SEO"
             description="Purpose-built for Shopify stores and product-heavy catalogs."
+            whyItMatters="Product pages are your biggest SEO opportunity — and your biggest bottleneck. Writing unique, optimized metadata for thousands of SKUs is nearly impossible without automation. SEOEngine.io syncs with Shopify and optimizes at scale."
             bullets={[
               'Shopify product & variant sync',
               'AI-optimized product titles and descriptions',
@@ -85,6 +95,7 @@ export default function FeaturesPage() {
           <FeatureBlock
             label="SEO Performance Monitoring"
             description="Track rankings, clicks, impressions, and site health in one place."
+            whyItMatters="You can't improve what you don't measure. Performance monitoring connects your SEO efforts to real results — so you know what's working, what's not, and where to focus next."
             bullets={[
               'Rank tracking for key pages & keywords',
               'Google Search Console integration',
@@ -97,6 +108,7 @@ export default function FeaturesPage() {
           <FeatureBlock
             label="Local SEO"
             description="Help your local or multi-location business appear in the right searches."
+            whyItMatters="If you have a physical location or serve specific regions, local SEO determines whether customers find you or your competitors. Optimizing for local search drives foot traffic and nearby buyers directly to your store."
             bullets={[
               'Google Business Profile insights',
               'Local keyword generation',
@@ -108,6 +120,7 @@ export default function FeaturesPage() {
           <FeatureBlock
             label="Automations, Workflows & Social"
             description="Tie everything together with scheduled jobs, reporting, and social posting (planned)."
+            whyItMatters="SEO isn't a one-time fix — it requires ongoing attention. Automations keep your SEO moving forward without constant manual effort, while reports keep stakeholders informed and aligned."
             bullets={[
               'Scheduled SEO scans and reports',
               'Weekly email summaries tailored to each project',
