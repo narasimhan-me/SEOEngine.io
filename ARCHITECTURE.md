@@ -28,6 +28,74 @@ Deployment targets:
 - **Database:** Neon (managed PostgreSQL)
 - **Redis (cache/queue):** Managed Redis (Render or Upstash)
 
+## 1.1 Infrastructure Stack
+
+SEOEngine.io uses a modern, cloud‑native infrastructure optimized for scale, cost‑efficiency, and reliability.
+
+### Core Infrastructure Components
+
+#### Frontend Hosting (Next.js 14)
+- **Vercel**
+  - Global edge network
+  - Incremental static regeneration
+  - Fast static asset CDN
+  - Automatic SSL
+
+#### Backend API (NestJS)
+- **Render Web Service**
+  - Autoscaling stateless HTTP service
+  - Manages build ▶ deploy pipeline
+  - Health checks + zero‑downtime deploys
+  - Environment variable management
+
+#### Background Workers
+- **Render Background Worker**
+  - Runs BullMQ processors
+  - Handles SEO scans, AI tasks, sync tasks
+  - Scales independently from the API
+
+#### Cron / Scheduler Jobs
+- **Render Cron Jobs**
+  - Weekly reports
+  - Scheduled SEO scans
+  - Automation rule evaluation
+
+#### Database
+- **Neon (Serverless PostgreSQL)**
+  - Branching for dev environments
+  - Auto‑scaling compute
+  - Point‑in‑time recovery
+  - High‑performance storage
+
+#### Redis (Cache + Queues)
+- **Upstash Redis** (or Render Redis)
+  - Low‑latency queue processing
+  - Durable queue storage for BullMQ
+  - Global multi‑region availability
+
+#### Object Storage
+- **AWS S3**
+  - Daily / hourly database backups
+  - Asset storage (optional future use)
+
+#### Domain & Networking
+- **Cloudflare**
+  - DNS + CDN edge caching
+  - WAF + bot protection
+  - SSL management
+  - Rate limiting
+
+### Infra Summary Diagram (Text)
+
+- Vercel → Next.js frontend  
+- Render → NestJS API  
+- Render → Background Worker  
+- Render → Cron Jobs  
+- Neon → Postgres  
+- Upstash/Render → Redis  
+- S3 → Backups  
+- Cloudflare → DNS + Security  
+
 ---
 
 ## 2. High-Level Architecture Diagram (Text/Mermaid)
