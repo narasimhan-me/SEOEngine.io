@@ -1,232 +1,173 @@
-'use client';
-
-import { useState } from 'react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Pricing — SEOEngine.io',
+  description:
+    'Simple, transparent pricing for stores and agencies. Start free and upgrade as you grow.',
+};
 
 const plans = [
   {
     name: 'Starter',
-    monthlyPrice: '$19',
-    yearlyPrice: '$15',
-    period: 'mo',
-    description: 'For new stores and side hustlers.',
+    price: '$19',
+    period: 'per month',
+    tagline: 'For new stores and side hustlers.',
+    popular: false,
+    cta: 'Start free',
+    href: '/signup',
     features: [
-      'Up to 3 Projects',
-      '500 Synced Products',
-      '200k AI Tokens / Month',
-      'SEO Audit & Score',
-      'AI Metadata Suggestions',
-      'Basic Automations',
-      'Shopify Integration',
+      'Up to 3 projects',
+      '500 synced products',
+      '200k AI tokens / month',
+      'SEO audit & health score',
+      'AI metadata suggestions',
+      'Basic automations',
+      'Shopify integration',
     ],
-    cta: 'Start Free',
-    href: '/signup?plan=starter',
-    highlighted: false,
   },
   {
     name: 'Pro',
-    monthlyPrice: '$59',
-    yearlyPrice: '$47',
-    period: 'mo',
-    description: 'For growing eCommerce brands.',
+    price: '$59',
+    period: 'per month',
+    tagline: 'For growing eCommerce brands.',
+    popular: true,
+    cta: 'Upgrade to Pro',
+    href: '/signup',
     features: [
       'Everything in Starter',
-      '10 Projects',
-      '5,000 Products',
-      '2M AI Tokens / Month',
-      'Smart Schema Markup',
-      'AI Content Generator',
-      'Competitor Insights',
-      'Redirect Manager',
+      'Up to 10 projects',
+      '5,000 products',
+      '2M AI tokens / month',
+      'Smart schema markup',
+      'AI content generator',
+      'Competitor insights',
+      'Redirect manager',
     ],
-    cta: 'Upgrade to Pro',
-    href: '/signup?plan=pro',
-    highlighted: true,
   },
   {
     name: 'Agency',
-    monthlyPrice: '$199',
-    yearlyPrice: '$159',
-    period: 'mo',
-    description: 'For agencies and large stores.',
-    features: [
-      'Unlimited Projects',
-      'Unlimited Products',
-      '10M AI Tokens / Month',
-      'Team Accounts',
-      'Advanced Automation',
-      'Weekly Client Reports',
-      'Priority Support',
-    ],
-    cta: 'Talk to Sales',
+    price: '$199',
+    period: 'per month',
+    tagline: 'For agencies and large stores.',
+    popular: false,
+    cta: 'Talk to sales',
     href: '/contact',
-    highlighted: false,
+    features: [
+      'Unlimited projects',
+      'Unlimited products',
+      '10M AI tokens / month',
+      'Team accounts',
+      'Advanced automation',
+      'Weekly client reports',
+      'Priority support',
+    ],
   },
 ];
 
-const faqs = [
-  {
-    question: 'How does the free trial work?',
-    answer: 'Start with our Starter plan free for 14 days. No credit card required. You get full access to all Starter features during the trial period.',
-  },
-  {
-    question: 'Will this affect my Shopify theme?',
-    answer: 'No. SEOEngine.io only modifies product metadata (titles, descriptions, alt tags) and structured data. We never touch your theme files or design.',
-  },
-  {
-    question: 'Do I need a developer?',
-    answer: 'Not at all. SEOEngine.io is designed for non-technical users. Connect your Shopify store with one click and start optimizing immediately.',
-  },
-  {
-    question: 'What is an AI token?',
-    answer: 'AI tokens are used when generating content like product descriptions, blog posts, or meta tags. Each plan includes a monthly token allocation. Unused tokens don\'t roll over.',
-  },
-  {
-    question: 'Can I cancel anytime?',
-    answer: 'Yes, you can cancel your subscription at any time. You\'ll continue to have access until the end of your current billing period.',
-  },
-];
+function FaqItem({ q, a }: { q: string; a: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <h3 className="text-sm font-semibold text-slate-900">{q}</h3>
+      <p className="mt-2 text-sm text-slate-600">{a}</p>
+    </div>
+  );
+}
 
 export default function PricingPage() {
-  const [isYearly, setIsYearly] = useState(false);
-
   return (
-    <div>
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-sky-50 to-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">
-            Simple, transparent pricing for every type of business
+    <div className="bg-white">
+      <section className="border-b border-slate-100 bg-slate-50/60">
+        <div className="mx-auto max-w-6xl px-4 py-12 text-center sm:px-6 lg:px-8">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+            Simple, transparent pricing for every type of business.
           </h1>
-          <p className="text-xl text-slate-600 max-w-3xl mx-auto mb-10">
-            Start free and scale as you grow. No hidden fees, no surprises.
+          <p className="mt-3 text-sm text-slate-600">
+            Start free, connect your store, and upgrade only when you&apos;re
+            ready. No contracts, cancel anytime.
           </p>
 
-          {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-4">
-            <span className={`text-sm font-medium ${!isYearly ? 'text-slate-900' : 'text-slate-500'}`}>
-              Monthly
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600">
+            <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[11px] font-semibold text-white">
+              Coming soon
             </span>
-            <button
-              onClick={() => setIsYearly(!isYearly)}
-              className={`relative w-14 h-7 rounded-full transition-colors ${
-                isYearly ? 'bg-sky-500' : 'bg-slate-300'
-              }`}
-            >
-              <span
-                className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${
-                  isYearly ? 'translate-x-8' : 'translate-x-1'
-                }`}
-              />
-            </button>
-            <span className={`text-sm font-medium ${isYearly ? 'text-slate-900' : 'text-slate-500'}`}>
-              Annual
-            </span>
-            {isYearly && (
-              <span className="text-xs font-semibold text-sky-600 bg-sky-100 px-2 py-1 rounded-full">
-                Save 20%
-              </span>
-            )}
+            <span>Annual billing with 2 months free.</span>
           </div>
         </div>
       </section>
 
-      {/* Pricing Cards */}
-      <section className="py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-8">
-            {plans.map((plan, index) => (
+      <section className="border-b border-slate-100 bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="grid gap-8 md:grid-cols-3">
+            {plans.map((plan) => (
               <div
-                key={index}
-                className={`bg-white rounded-2xl p-8 border-2 ${
-                  plan.highlighted
-                    ? 'border-sky-500 ring-2 ring-sky-500 ring-opacity-20 shadow-lg'
+                key={plan.name}
+                className={`flex flex-col rounded-2xl border bg-slate-50 p-6 ${
+                  plan.popular
+                    ? 'border-blue-500 shadow-sm shadow-blue-100'
                     : 'border-slate-200'
                 }`}
               >
-                {plan.highlighted && (
-                  <div className="bg-sky-500 text-white text-xs font-semibold px-3 py-1 rounded-full inline-block mb-4">
-                    Most Popular
+                {plan.popular && (
+                  <div className="mb-3 inline-flex w-fit rounded-full bg-blue-50 px-3 py-1 text-[11px] font-semibold text-blue-700">
+                    Most popular
                   </div>
                 )}
-                <h3 className="text-xl font-bold text-slate-900 mb-2">{plan.name}</h3>
-                <div className="mb-4">
-                  <span className="text-4xl font-bold text-slate-900">
-                    {isYearly ? plan.yearlyPrice : plan.monthlyPrice}
-                  </span>
-                  <span className="text-slate-500 ml-1">/{plan.period}</span>
+                <h2 className="text-lg font-semibold text-slate-900">{plan.name}</h2>
+                <p className="mt-1 text-sm text-slate-600">{plan.tagline}</p>
+
+                <div className="mt-4 flex items-baseline gap-1">
+                  <span className="text-3xl font-semibold text-slate-900">{plan.price}</span>
+                  <span className="text-xs text-slate-500">{plan.period}</span>
                 </div>
-                <p className="text-slate-600 mb-6">{plan.description}</p>
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-start">
-                      <svg
-                        className="w-5 h-5 text-sky-500 mr-2 mt-0.5 flex-shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      <span className="text-slate-600 text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+
                 <Link
                   href={plan.href}
-                  className={`block w-full text-center py-3 px-4 rounded-lg font-semibold transition-colors ${
-                    plan.highlighted
-                      ? 'bg-sky-500 text-white hover:bg-sky-600'
-                      : 'bg-slate-100 text-slate-900 hover:bg-slate-200'
+                  className={`mt-5 inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold ${
+                    plan.popular
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-slate-900 text-slate-50 hover:bg-slate-800'
                   }`}
                 >
                   {plan.cta}
                 </Link>
+
+                <ul className="mt-6 flex-1 space-y-1.5 text-sm text-slate-600">
+                  {plan.features.map((f) => (
+                    <li key={f}>• {f}</li>
+                  ))}
+                </ul>
               </div>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* FAQ Section */}
-      <section className="py-20 bg-slate-50">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-slate-900 text-center mb-12">
-            Frequently Asked Questions
-          </h2>
-          <div className="space-y-6">
-            {faqs.map((faq, index) => (
-              <div key={index} className="bg-white rounded-xl p-6 border border-slate-200">
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                  {faq.question}
-                </h3>
-                <p className="text-slate-600">{faq.answer}</p>
-              </div>
-            ))}
+          {/* FAQ */}
+          <div className="mt-12 grid gap-8 md:grid-cols-2">
+            <FaqItem
+              q="How does the free trial work?"
+              a="You can connect your store, run audits, and test AI features on a limited number of products. Upgrade when you're ready for higher limits."
+            />
+            <FaqItem
+              q="Will this affect my Shopify theme?"
+              a="SEOEngine.io focuses on metadata, structured data, and search-facing fields. It does not rewrite your theme code without your approval."
+            />
+            <FaqItem
+              q="Do I need a developer to use this?"
+              a="No. SEOEngine.io is built for marketers, founders, and growth teams. Developers can help with advanced workflows, but they're not required."
+            />
+            <FaqItem
+              q="What is an AI token?"
+              a="AI tokens represent how much AI processing you can use across metadata, content generation, and analysis. Higher plans include more monthly tokens."
+            />
+            <FaqItem
+              q="Can I cancel anytime?"
+              a="Yes. You can downgrade or cancel your subscription at any time from within the app. Your account will remain active until the end of your billing period."
+            />
+            <FaqItem
+              q="Do you offer discounts for agencies or annual plans?"
+              a="Yes. Agencies and annual plans receive preferred pricing. Contact us to discuss your use case and volume."
+            />
           </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-slate-900">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-white mb-6">
-            Ready to automate your SEO?
-          </h2>
-          <p className="text-xl text-slate-300 mb-10">
-            Start your free trial today. No credit card required.
-          </p>
-          <Link
-            href="/signup"
-            className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold rounded-lg bg-sky-500 text-white hover:bg-sky-600 transition-colors shadow-lg"
-          >
-            Start Free Today
-          </Link>
         </div>
       </section>
     </div>

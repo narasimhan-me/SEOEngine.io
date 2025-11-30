@@ -1,96 +1,88 @@
 import Link from 'next/link';
 
 export default function MarketingFooter() {
-  const currentYear = new Date().getFullYear();
-
   return (
-    <footer className="bg-white border-t border-slate-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {/* Product */}
-          <div>
-            <h3 className="text-slate-900 font-semibold mb-4">Product</h3>
-            <ul className="space-y-3">
+    <footer className="border-t border-slate-200 bg-slate-50">
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="grid gap-8 md:grid-cols-4">
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-slate-900">Product</h3>
+            <ul className="space-y-1 text-sm text-slate-600">
               <li>
-                <Link href="/features" className="text-slate-600 hover:text-sky-600 text-sm transition-colors">
+                <Link href="/features" className="hover:text-slate-900">
                   Features
                 </Link>
               </li>
               <li>
-                <Link href="/pricing" className="text-slate-600 hover:text-sky-600 text-sm transition-colors">
+                <Link href="/pricing" className="hover:text-slate-900">
                   Pricing
                 </Link>
               </li>
               <li>
-                <Link href="/signup" className="text-slate-600 hover:text-sky-600 text-sm transition-colors">
-                  Sign Up
-                </Link>
+                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                  Shopify-focused
+                </span>
               </li>
             </ul>
           </div>
 
-          {/* Company */}
-          <div>
-            <h3 className="text-slate-900 font-semibold mb-4">Company</h3>
-            <ul className="space-y-3">
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-slate-900">Company</h3>
+            <ul className="space-y-1 text-sm text-slate-600">
               <li>
-                <Link href="/contact" className="text-slate-600 hover:text-sky-600 text-sm transition-colors">
+                <Link href="/contact" className="hover:text-slate-900">
                   Contact
                 </Link>
               </li>
+              <li>
+                <span className="cursor-default text-slate-400">
+                  Careers (coming soon)
+                </span>
+              </li>
             </ul>
           </div>
 
-          {/* Support */}
-          <div>
-            <h3 className="text-slate-900 font-semibold mb-4">Support</h3>
-            <ul className="space-y-3">
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-slate-900">Support</h3>
+            <ul className="space-y-1 text-sm text-slate-600">
               <li>
                 <a
-                  href="https://docs.seoengine.io"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-slate-600 hover:text-sky-600 text-sm transition-colors"
+                  href="mailto:support@seoengine.io"
+                  className="hover:text-slate-900"
                 >
-                  Documentation
+                  support@seoengine.io
                 </a>
               </li>
               <li>
-                <Link href="/contact" className="text-slate-600 hover:text-sky-600 text-sm transition-colors">
-                  Help Center
-                </Link>
+                <span className="cursor-default text-slate-500">
+                  Typical response under 24 hours
+                </span>
               </li>
             </ul>
           </div>
 
-          {/* Legal */}
-          <div>
-            <h3 className="text-slate-900 font-semibold mb-4">Legal</h3>
-            <ul className="space-y-3">
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-slate-900">Legal</h3>
+            <ul className="space-y-1 text-sm text-slate-600">
               <li>
-                <span className="text-slate-400 text-sm cursor-not-allowed">Privacy Policy</span>
+                <span className="cursor-default text-slate-400">
+                  Terms (coming soon)
+                </span>
               </li>
               <li>
-                <span className="text-slate-400 text-sm cursor-not-allowed">Terms of Service</span>
+                <span className="cursor-default text-slate-400">
+                  Privacy (coming soon)
+                </span>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-slate-200 mt-12 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-slate-500 text-sm">
-              &copy; {currentYear} SEOEngine.io. All rights reserved.
-            </p>
-            <div className="flex items-center gap-6">
-              <a
-                href="mailto:support@seoengine.io"
-                className="text-slate-500 hover:text-sky-600 text-sm transition-colors"
-              >
-                support@seoengine.io
-              </a>
-            </div>
-          </div>
+        <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-slate-200 pt-6 text-xs text-slate-500 sm:flex-row">
+          <p>&copy; {new Date().getFullYear()} SEOEngine.io. All rights reserved.</p>
+          <p className="text-[11px]">
+            Built for modern eCommerce teams &amp; Shopify merchants.
+          </p>
         </div>
       </div>
     </footer>
