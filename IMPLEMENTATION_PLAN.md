@@ -3099,6 +3099,353 @@ model BlogSchedule {
 ---
 
 
+# 
+# PHASE 22 — Advanced Pricing Tiers & Monetization for High-Cost AI Features
+
+**Goal:** Introduce advanced pricing tiers and add-ons for compute-heavy, high-value capabilities (Phases 23–30) so you can monetize them properly and protect AI/infra costs.
+
+This phase does **not** change core product behavior yet — it defines the pricing architecture, data model, and enforcement hooks that later phases (23–30) will plug into.
+
+### 22.1. Scope of “Advanced Features”
+
+Advanced features that should **not** be bundled into base Pro/Agency plans by default:
+
+- Phase 23 — AI Competitor Intelligence Dashboard
+- Phase 24 — AI SEO Opportunity Engine (if added)
+- Phase 25 — Technical SEO Theme Audit
+- Phase 26 — CRO AI Engine & UX Suggestions
+- Phase 27 — A/B Testing & Experimentation
+- Phase 28 — Review Mining & VoC Insights
+- Phase 29 — Marketplace SEO (Amazon/Etsy/etc.)
+- Phase 30 — AI Video & Social Content Studio
+
+These will be gated behind **add-ons** layered on top of base plans (Free/Starter/Pro/Agency).
+
+### 22.2. Pricing Model Overview
+
+Base subscription tiers from Phase 10C remain:
+
+- **Free** — Evaluation tier
+- **Starter** — Small shops
+- **Pro** — Growing brands
+- **Agency** — High-volume stores / agencies
+
+On top of these, introduce the following **add-on products**:
+
+1. **Enterprise Suite Add-On** (for Phases 23–28)
+   - Includes:
+     - Competitor dashboard
+     - AI opportunity engine
+     - Theme technical audits
+     - CRO recommendations
+     - A/B testing
+     - Review mining
+   - Price range (for Stripe configuration; actual prices set in dashboard):
+     - +$99–$149/mo on top of Pro
+     - +$149–$199/mo on top of Agency
+
+2. **Marketplace SEO Add-On**
+   - Includes:
+     - Amazon/Etsy integration
+     - Listing sync
+     - AI listing optimization
+     - Marketplace SEO scoring
+   - Pricing:
+     - $29–$49/mo per marketplace (e.g. Amazon, Etsy)
+     - Bundle option: $79–$99/mo for “All marketplaces”
+
+3. **AI Video & Social Studio Add-On**
+   - Includes:
+     - AI short-form video templates
+     - Auto-caption + hashtags
+     - Auto-posting scheduler to social networks
+   - Pricing:
+     - $29/mo starter usage
+     - $49–$59/mo heavier usage (higher AI token pool and posting limits)
+
+4. **Competitor & CRO Bundle Add-On**
+   - For users who want competitor tools & CRO, but not marketplaces or video.
+   - Includes:
+     - Competitor dashboard
+     - Keyword overlap & gaps
+     - CRO suggestions
+     - A/B testing
+   - Pricing:
+     - $49–$79/mo, only available on top of Pro/Agency
+
+5. **AI Usage Add-Ons (Optional, later)**
+   - Buy more AI usage without upgrading plan:
+     - +500k tokens → $10
+     - +2M tokens → $29
+   - Buy more product sync capacity:
+     - +1,000 products → $9
+     - +5,000 products → $29
+
+(Exact price points will be finalized directly in Stripe Dashboard; the code only needs to map price IDs to internal add-on types.)
+
+### 22.3. Data Model Extensions (Prisma)
+
+Extend billing schema to support add-ons independent of base subscription.
+
+**Step 1 — Add enum:**
+
+```prisma
+enum AddonType {
+  ENTERPRISE_SUITE
+  MARKETPLACE_SEO
+  AI_VIDEO_STUDIO
+  COMPETITOR_CRO
+  EXTRA_AI_TOKENS
+  EXTRA_PRODUCTS
+}
+```
+
+**Step 2 — Add SubscriptionAddon model:**
+
+```prisma
+model SubscriptionAddon {
+  id             String      @id @default(cuid())
+  user           User        @relation(fields: [userId], references: [id])
+  userId         String
+  type           AddonType
+  stripePriceId  String?     // price that created this addon
+  status         String      // "active", "canceled", "past_due"
+  quantity       Int         @default(1) // for usage-based addons like EXTRA_AI_TOKENS
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+```
+
+**Step 3 — Migration**
+
+- Update `schema.prisma` as above.
+- Run:
+  ```bash
+  npx prisma migrate dev --name add_subscription_addons
+  ```
+
+### 22.4. Backend Plan & Add-On Configuration
+
+Extend `apps/api/src/billing/plans.ts`:
+
+1. Keep `PLANS` as defined in Phase 10C (including Free).
+2. Introduce a new `ADDONS` config object:
+
+```typescript
+export const ADDONS = {
+  enterpriseSuite: {
+    type: "ENTERPRISE_SUITE" as const,
+    name: "Enterprise Suite",
+    description: "Competitors, CRO, A/B tests, review mining, and advanced insights.",
+    stripePriceEnvKey: "STRIPE_PRICE_ADDON_ENTERPRISE_SUITE",
+    // Soft limits for advanced features (can be tuned later)
+    limits: {
+      competitorDomains: 10,
+      abTestsPerMonth: 20,
+      themeAuditsPerMonth: 4,
+      reviewMiningRunsPerMonth: 20,
+    },
+  },
+  marketplaceSeo: {
+    type: "MARKETPLACE_SEO" as const,
+    name: "Marketplace SEO",
+    description: "AI SEO for Amazon, Etsy, and other marketplaces.",
+    stripePriceEnvKey: "STRIPE_PRICE_ADDON_MARKETPLACE_SEO",
+    // Per-marketplace limits applied elsewhere
+  },
+  aiVideoStudio: {
+    type: "AI_VIDEO_STUDIO" as const,
+    name: "AI Video & Social Studio",
+    description: "AI-generated product videos and social posts.",
+    stripePriceEnvKey: "STRIPE_PRICE_ADDON_AI_VIDEO_STUDIO",
+    limits: {
+      videosPerMonth: 50,
+      socialPostsPerMonth: 200,
+    },
+  },
+  competitorCro: {
+    type: "COMPETITOR_CRO" as const,
+    name: "Competitor & CRO Bundle",
+    description: "Competitor intel, CRO suggestions, and experiments.",
+    stripePriceEnvKey: "STRIPE_PRICE_ADDON_COMPETITOR_CRO",
+  },
+  extraAiTokens: {
+    type: "EXTRA_AI_TOKENS" as const,
+    name: "Extra AI Tokens",
+    description: "Additional AI credits on top of your plan.",
+    stripePriceEnvKey: "STRIPE_PRICE_ADDON_EXTRA_AI_TOKENS",
+  },
+  extraProducts: {
+    type: "EXTRA_PRODUCTS" as const,
+    name: "Extra Product Capacity",
+    description: "Sync more products without changing your base plan.",
+    stripePriceEnvKey: "STRIPE_PRICE_ADDON_EXTRA_PRODUCTS",
+  },
+} as const;
+```
+
+3. Expose helper functions:
+   - `getPlanForUser(userId)`
+   - `getActiveAddonsForUser(userId)`
+   - `hasAddon(userId, AddonType.ENTERPRISE_SUITE)`
+
+### 22.5. Stripe Integration for Add-Ons
+
+Extend Phase 10B’s Stripe Billing implementation:
+
+1. **Environment Variables:**
+
+Add to Render/Vercel:
+
+- `STRIPE_PRICE_ADDON_ENTERPRISE_SUITE`
+- `STRIPE_PRICE_ADDON_MARKETPLACE_SEO`
+- `STRIPE_PRICE_ADDON_AI_VIDEO_STUDIO`
+- `STRIPE_PRICE_ADDON_COMPETITOR_CRO`
+- `STRIPE_PRICE_ADDON_EXTRA_AI_TOKENS`
+- `STRIPE_PRICE_ADDON_EXTRA_PRODUCTS`
+
+2. **Create Checkout Sessions for Add-Ons**
+
+Add endpoint:
+
+- `POST /billing/addons/create-checkout-session`
+
+Body:
+
+```json
+{
+  "addonType": "ENTERPRISE_SUITE" | "MARKETPLACE_SEO" | "AI_VIDEO_STUDIO" | "COMPETITOR_CRO" | "EXTRA_AI_TOKENS" | "EXTRA_PRODUCTS",
+  "quantity": 1
+}
+```
+
+Behavior:
+
+- Auth user
+- Find Stripe customer (create if missing)
+- Resolve price ID from `ADDONS[addonKey].stripePriceEnvKey`
+- Create Checkout Session in subscription mode (or usage mode for usage add-ons)
+- Return `session.url`
+
+3. **Update Webhook Handler**
+
+- When receiving `customer.subscription.updated` or `invoice.payment_succeeded` for add-on price IDs:
+  - Map `price.id` to `AddonType`
+  - Upsert `SubscriptionAddon` row for that user
+  - Update status to `active`
+- When receiving `customer.subscription.deleted` or `invoice.payment_failed`:
+  - Mark `SubscriptionAddon.status` as `canceled` or `past_due`
+
+### 22.6. Feature Gating Using Add-Ons
+
+Reuse and extend the limit/enforcement logic from Phase 10C & 19.
+
+**Backend helpers:**
+
+Create `BillingAccessService`:
+
+- `canUseFeature(userId, featureKey: string): boolean`
+- `assertFeatureAccess(userId, featureKey: string): void` (throws if not allowed)
+
+Map feature keys to required add-on:
+
+- `"competitor.dashboard"` → requires `ENTERPRISE_SUITE` or `COMPETITOR_CRO`
+- `"opportunity.engine"` → requires `ENTERPRISE_SUITE`
+- `"theme.audit"` → requires `ENTERPRISE_SUITE`
+- `"cro.suggestions"` → requires `ENTERPRISE_SUITE` or `COMPETITOR_CRO`
+- `"abtesting"` → requires `ENTERPRISE_SUITE` or `COMPETITOR_CRO`
+- `"review.mining"` → requires `ENTERPRISE_SUITE`
+- `"marketplace.amazon"` / `"marketplace.etsy"` → requires `MARKETPLACE_SEO`
+- `"ai.video.studio"` → requires `AI_VIDEO_STUDIO`
+
+Then, in each advanced feature controller (Phases 23–30), call:
+
+```typescript
+this.billingAccess.assertFeatureAccess(userId, "competitor.dashboard");
+```
+
+Return structured error if lacking:
+
+```json
+{
+  "error": "ADDON_REQUIRED",
+  "addonType": "ENTERPRISE_SUITE",
+  "message": "This feature is part of the Enterprise Suite add-on. Upgrade your plan to continue."
+}
+```
+
+### 22.7. Frontend: Pricing Page & Upsell UX
+
+**Pricing Page (`/pricing`):**
+
+- Under main plans, add a section: **“Advanced Add-Ons”**
+  - Cards for:
+    - Enterprise Suite
+    - Marketplace SEO
+    - AI Video Studio
+    - Competitor & CRO
+  - Each card:
+    - Short description
+    - “Requires Pro or Agency” label (where applicable)
+    - “Talk to sales” or “Add to plan” CTA
+
+**Billing Settings Page (`/settings/billing`):**
+
+- Show:
+  - Base plan
+  - Current add-ons with status
+  - Buttons:
+    - “Add Enterprise Suite”
+    - “Add Marketplace SEO”
+    - “Add AI Video Studio”
+- Clicking opens flow:
+  - Calls `/billing/addons/create-checkout-session`
+  - Redirects to Stripe Checkout
+
+**Feature-Level Upsell Modals:**
+
+- When user on Pro/Agency clicks locked content (e.g. Competitors tab without add-on):
+  - Show modal:
+    - Explains feature
+    - Shows price (from config)
+    - Button → “Unlock with Enterprise Suite”
+    - On click → start add-on checkout session
+
+### 22.8. Analytics & Safeguards
+
+- Track in-product events (later, with PostHog/Mixpanel):
+  - Add-on viewed
+  - Add-on checkout started
+  - Add-on purchased
+- Add basic guardrails:
+  - Don’t show add-on upsell to Free users until they upgrade to Starter/Pro
+  - For Free users, first upsell path:
+    - Free → Starter/Pro
+    - Then → add-on
+
+### 22.9. Implementation Order
+
+1. Update Prisma schema: `AddonType` + `SubscriptionAddon`.
+2. Implement `ADDONS` config and helper functions.
+3. Extend Stripe config and webhook handling for add-ons.
+4. Implement `/billing/addons/create-checkout-session`.
+5. Add `BillingAccessService` and feature gating helper.
+6. Wire gating into advanced feature endpoints (as they are built in Phases 23–30).
+7. Update `/pricing` and `/settings/billing` UI for add-on visibility and purchase.
+8. Implement upsell modals on locked advanced features.
+9. Smoke-test add-on purchase + access end-to-end in Stripe test mode.
+
+### 22.10. Acceptance Criteria
+
+- Users can view and understand advanced add-ons from the pricing page.
+- Pro/Agency users can purchase add-ons through Stripe.
+- Add-ons are reflected correctly in the database (`SubscriptionAddon` rows).
+- Advanced features are **blocked** without the correct add-on and **unlocked** once purchased.
+- Errors when lacking access are friendly and lead users to an upsell path.
+- System is designed to prevent AI/compute abuse by requiring paid add-ons for heavy features.
+
+---
+
 # PHASE 23 — AI Competitor Intelligence Dashboard
 
 **Goal:** Turn competitive research into a first-class, data-backed feature that shows merchants where they can win: which competitors to watch, which keywords they’re losing, and which pages to build next.
