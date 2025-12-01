@@ -1,6 +1,6 @@
-# SEOEngine.io – Full Implementation Plan
+# EngineO.ai – Full Implementation Plan
 
-This document provides a **step-by-step, execution-ready plan** for building the SEOEngine.io SaaS application using a monorepo (Next.js frontend + NestJS backend + Prisma + PostgreSQL + Shopify integration + AI metadata engine).
+This document provides a **step-by-step, execution-ready plan** for building the EngineO.ai SaaS application using a monorepo (Next.js frontend + NestJS backend + Prisma + PostgreSQL + Shopify integration + AI metadata engine).
 
 AI IDEs (Cursor, Claude Code, etc.) should follow these instructions **exactly as written**.  
 Each phase should be implemented in sequence.  
@@ -26,7 +26,7 @@ Each step should produce diffs and await approval before applying.
 Create the directory structure:
 
 ```
-seoengine/
+engineo/
   apps/
     web/        # Next.js 14 app (frontend)
     api/        # NestJS backend API
@@ -78,7 +78,7 @@ apps/web/src/
 
 - TailwindCSS configured with JIT.
 - Global layout with a simple navigation shell (top nav + optional sidebar).
-- Home page text: `SEOEngine.io – SEO on Autopilot.`
+- Home page text: `EngineO.ai – SEO on Autopilot.`
 - `/dashboard` renders "Dashboard placeholder".
 - `/projects` renders "Projects placeholder".
 - `/settings` renders "Settings placeholder".
@@ -125,7 +125,7 @@ export interface UserDTO {
 }
 ```
 
-Configure TS path alias: `@seoengine/shared` so both web and api can import these types.
+Configure TS path alias: `@engineo/shared` so both web and api can import these types.
 
 ### 0.5. Root Tooling
 
@@ -159,7 +159,7 @@ This phase creates the public-facing marketing website that visitors see before 
 ### 0.5.1. Goals
 
 - Provide a professional SaaS landing experience
-- Explain SEOEngine.io offering clearly
+- Explain EngineO.ai offering clearly
 - Show pricing
 - Drive signups
 - SEO-optimized & fast
@@ -218,7 +218,7 @@ Inside it, create:
 
 **Initial copy (placeholders permitted):**
 
-- Hero text: "SEOEngine.io — AI-Powered SEO for eCommerce & SaaS."
+- Hero text: "EngineO.ai — AI-Powered SEO for eCommerce & SaaS."
 - Primary CTA: "Start Free"
 
 **Features Page (`/features`)**
@@ -325,7 +325,7 @@ No backend changes required for this phase besides ensuring:
 - Write:
   - One-sentence product positioning
   - 3–5 key value props
-  - 3 major pains SEOEngine.io solves
+  - 3 major pains EngineO.ai solves
 - Store this in a simple markdown file:
   - `apps/web/src/marketing/messaging.md` (for future reuse in product, docs, ads).
 
@@ -383,7 +383,7 @@ Update `(marketing)/contact/page.tsx`:
 - Short intro ("Need help, or want a demo?").
 - Form labels: Name, Work email, Website/Store URL, Message.
 - Add static info:
-  - Support email (e.g. support@seoengine.io)
+  - Support email (e.g. support@engineo.ai)
   - Expected response time (e.g. "within 1 business day").
 #### 0.5.9.6. SEO Meta & OG Content
 
@@ -446,11 +446,11 @@ For now, implement a simple "delivery" mechanism with clear TODOs:
   // Pseudocode
   await this.mailer.send({
     to: process.env.SUPPORT_EMAIL_TO,
-    subject: "[SEOEngine.io] New contact form submission",
+    subject: "[EngineO.ai] New contact form submission",
     text: `Name: ...\nEmail: ...\nCompany: ...\nMessage: ...`,
   });
   ```
-- Read target email from env: `SUPPORT_EMAIL_TO=support@seoengine.io`.
+- Read target email from env: `SUPPORT_EMAIL_TO=support@engineo.ai`.
 - Do not fail the request if email sending fails — log and return a generic success with a TODO.
 
 **Wire module:**
@@ -490,7 +490,7 @@ Ensure logged-in users skip the marketing landing and go straight into the app.
 
 In `apps/web/src/lib/auth.ts` (or reuse existing):
 
-- `getToken()` reads `seoengine_token` from localStorage (browser only).
+- `getToken()` reads `engineo_token` from localStorage (browser only).
 - `isAuthenticated()` returns `true` if token exists.
 
 **Create a small wrapper component:**
@@ -501,7 +501,7 @@ In `apps/web/src/lib/auth.ts` (or reuse existing):
 
 On mount:
 
-- Check localStorage for `seoengine_token`.
+- Check localStorage for `engineo_token`.
 - If present, `router.replace("/projects")`.
 - If not, render children.
 
@@ -725,7 +725,7 @@ Inside `apps/web/src/app`:
 - Email + password form.
 - Calls `POST /auth/login`.
 - On success:
-  - Store JWT in localStorage as `seoengine_token`.
+  - Store JWT in localStorage as `engineo_token`.
   - Redirect to `/dashboard`.
 
 **Create `/signup/page.tsx`:**
@@ -780,17 +780,17 @@ In this phase, we evolve the schema from a Shopify-specific connectedType to a g
 
 ### 2.0. Shopify App Setup in Shopify
 
-Before implementing any code in this phase, create and configure the actual Shopify app in the Shopify Partner dashboard so that OAuth and API calls from SEOEngine.io can succeed.
+Before implementing any code in this phase, create and configure the actual Shopify app in the Shopify Partner dashboard so that OAuth and API calls from EngineO.ai can succeed.
 
 **2.0.1. Create Partner account and test store**
 
 - Go to Shopify's Partner dashboard and sign up (or log in).
-- Create at least one development store for testing the SEOEngine app.
+- Create at least one development store for testing the EngineO app.
 
 **2.0.2. Create a public app**
 
 - In the Partner dashboard, navigate to **Apps → Create app**.
-- Choose **Public app** (later listable on the Shopify App Store) and name it something like `SEOEngine – AI SEO`.
+- Choose **Public app** (later listable on the Shopify App Store) and name it something like `EngineO – AI SEO`.
 - Set the app's **App URL / Primary URL** to your backend base URL (for local dev you can use a tunneling service like `ngrok` or `cloudflared`, e.g. `https://<random>.ngrok.io`).
 
 **2.0.3. Configure redirect URLs**
@@ -821,7 +821,7 @@ Before implementing any code in this phase, create and configure the actual Shop
 - During development you will:
   - Start the NestJS API server.
   - Expose it via tunnel (if running locally).
-  - Trigger OAuth from SEOEngine (`/shopify/install`) to install/authorize the app on the test store.
+  - Trigger OAuth from EngineO (`/shopify/install`) to install/authorize the app on the test store.
 
 Once steps 2.0.1–2.0.5 are complete, proceed with schema + integration steps.
 
@@ -978,7 +978,7 @@ model ShopifyInstallState {
      ```
   6. Redirect to the frontend:
      ```
-     https://app.seoengine.io/shopify/success?projectId=...&shop=...
+     https://app.engineo.ai/shopify/success?projectId=...&shop=...
      ```
 
 ### 2.3. Integration Status Endpoint
@@ -1441,7 +1441,7 @@ In `TwoFactorAuthService`:
 - Generate a TOTP secret for a user.
 - Build otpauth URL:
   ```
-  otpauth://totp/SEOEngine.io:{email}?secret={secret}&issuer=SEOEngine.io
+  otpauth://totp/EngineO.ai:{email}?secret={secret}&issuer=EngineO.ai
   ```
 - Generate a QR code as a base64 PNG string.
 - Verify a submitted TOTP code.
@@ -1467,7 +1467,7 @@ All endpoints below (except the 2FA verify during login) require the user to be 
 
 ```json
 {
-  "otpauthUrl": "otpauth://totp/SEOEngine.io:user@example.com?secret=ABC123&issuer=SEOEngine.io",
+  "otpauthUrl": "otpauth://totp/EngineO.ai:user@example.com?secret=ABC123&issuer=EngineO.ai",
   "qrCodeDataUrl": "data:image/png;base64,iVBORw0KGgoAAA..."
 }
 ```
@@ -1708,7 +1708,7 @@ Create a new page:
 Create `components/layout/TopNav.tsx`:
 
 - **Left:**
-  - Logo + text "SEOEngine.io" → links to `/projects`.
+  - Logo + text "EngineO.ai" → links to `/projects`.
   - Project switcher (dropdown with:
     - Current project name
     - Search projects (calls `GET /projects`)
@@ -1925,8 +1925,8 @@ STRIPE_PRICE_STARTER=price_xxx
 STRIPE_PRICE_PRO=price_xxx
 STRIPE_PRICE_AGENCY=price_xxx
 
-STRIPE_SUCCESS_URL=https://app.seoengine.io/settings/billing/success
-STRIPE_CANCEL_URL=https://app.seoengine.io/settings/billing/cancel
+STRIPE_SUCCESS_URL=https://app.engineo.ai/settings/billing/success
+STRIPE_CANCEL_URL=https://app.engineo.ai/settings/billing/cancel
 ```
 
 Create products & recurring prices in Stripe Dashboard and copy price IDs above.
@@ -1996,7 +1996,7 @@ Creates a Stripe portal session:
 ```typescript
 stripe.billingPortal.sessions.create({
   customer: stripeCustomerId,
-  return_url: "https://app.seoengine.io/settings/billing"
+  return_url: "https://app.engineo.ai/settings/billing"
 });
 ```
 
@@ -2136,7 +2136,7 @@ if (projectCount >= planConfig.maxProjects) {
 
 **FREE ($0/mo)**
 
-For early-stage stores evaluating SEOEngine.io.
+For early-stage stores evaluating EngineO.ai.
 
 **Included:**
 - 1 project
@@ -2445,7 +2445,7 @@ Protected with admin guard.
 
 # PHASE 11 — Cloud Infrastructure & Production Deployment (Render + Vercel + Neon + Cloudflare + S3)
 
-**Goal:** Deploy SEOEngine.io as a production-grade SaaS using:
+**Goal:** Deploy EngineO.ai as a production-grade SaaS using:
 - Neon for Postgres
 - Render for the NestJS API
 - Vercel for the Next.js frontend
@@ -2493,7 +2493,7 @@ JWT_SECRET=...
 SHOPIFY_API_KEY=...
 SHOPIFY_API_SECRET=...
 SHOPIFY_SCOPES=read_products,write_products
-SHOPIFY_APP_URL=https://api.seoengine.io (once you set custom domain)
+SHOPIFY_APP_URL=https://api.engineo.ai (once you set custom domain)
 STRIPE_SECRET_KEY=...
 STRIPE_WEBHOOK_SECRET=...
 OPENAI_API_KEY / GEMINI_API_KEY etc.
@@ -2502,7 +2502,7 @@ Any other secrets.
 
 **Custom Domain:**
 
-- In Render, add a custom domain: `api.seoengine.io`.
+- In Render, add a custom domain: `api.engineo.ai`.
 - Render will give you a CNAME to point to from Cloudflare.
 
 ### 11.3. Vercel – Frontend (Next.js 14)
@@ -2524,21 +2524,21 @@ Any other secrets.
 **Environment Variables:**
 
 ```
-NEXT_PUBLIC_API_URL=https://api.seoengine.io
+NEXT_PUBLIC_API_URL=https://api.engineo.ai
 Public keys if needed (e.g., public Stripe key).
 ```
 
 **Domain:**
 
-- Map `app.seoengine.io` → this Vercel project.
+- Map `app.engineo.ai` → this Vercel project.
 
 ### 11.4. Cloudflare – DNS & SSL
 
 - Point your domain's nameservers to Cloudflare.
 - In Cloudflare DNS:
   - CNAME `app` → Vercel provided domain.
-  - CNAME `api` → Render provided domain (for `api.seoengine.io`).
-  - A or CNAME for `seoengine.io` → your marketing site (could also be Vercel).
+  - CNAME `api` → Render provided domain (for `api.engineo.ai`).
+  - A or CNAME for `engineo.ai` → your marketing site (could also be Vercel).
 - SSL:
   - Use "Full (strict)" mode for HTTPS.
   - Add basic WAF rules:
@@ -2549,7 +2549,7 @@ Public keys if needed (e.g., public Stripe key).
 
 Even though Neon manages backups, we'll also create our own periodic logical dumps to S3.
 
-- Create an AWS S3 bucket, e.g. `seoengine-db-backups-prod`.
+- Create an AWS S3 bucket, e.g. `engineo-db-backups-prod`.
 - Create an AWS IAM user with:
   - Programmatic access.
   - Permissions to `s3:PutObject` on that bucket.
@@ -2558,7 +2558,7 @@ Even though Neon manages backups, we'll also create our own periodic logical dum
   AWS_ACCESS_KEY_ID
   AWS_SECRET_ACCESS_KEY
   AWS_REGION
-  S3_BACKUP_BUCKET=seoengine-db-backups-prod
+  S3_BACKUP_BUCKET=engineo-db-backups-prod
   ```
 - Create a small backup script in `apps/api/scripts/backup-db.ts` that:
   - Runs `pg_dump` against `DATABASE_URL`.
@@ -2577,8 +2577,8 @@ Even though Neon manages backups, we'll also create our own periodic logical dum
 
 **In Shopify Partner Dashboard:**
 
-- Set App URL → `https://api.seoengine.io/shopify/app-home` (or wherever you land merchants).
-- Redirect URI → `https://api.seoengine.io/shopify/callback`.
+- Set App URL → `https://api.engineo.ai/shopify/app-home` (or wherever you land merchants).
+- Redirect URI → `https://api.engineo.ai/shopify/callback`.
 - Ensure scopes match your backend config.
 - Use production API key/secret in Render env vars.
 
@@ -2593,8 +2593,8 @@ Even though Neon manages backups, we'll also create our own periodic logical dum
 ### 11.7. Monitoring & Go-Live
 
 - Add uptime monitoring (e.g. UptimeRobot) for:
-  - `https://app.seoengine.io`
-  - `https://api.seoengine.io/health`
+  - `https://app.engineo.ai`
+  - `https://api.engineo.ai/health`
 - Enable basic logging & alerts (Render + Vercel dashboards).
 - Soft launch with test users.
 - Once stable, launch publicly:
@@ -2818,7 +2818,7 @@ Add new module: `password-reset`
 - **Behavior:**
   - Generate secure reset token (random UUID).
   - Store hashed token in DB with expiration (e.g., expires in 60 min).
-  - Email user a reset link: `https://app.seoengine.io/reset-password?token=<token>`
+  - Email user a reset link: `https://app.engineo.ai/reset-password?token=<token>`
   - Return: `{ success: true }`
 
 **POST /auth/password/reset**
