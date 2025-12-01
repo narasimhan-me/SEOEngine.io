@@ -9,11 +9,11 @@ const navItems = [
   { label: 'Products', path: 'products' },
   { label: 'Content', path: 'content' },
   { label: 'Performance', path: 'performance' },
-  { label: 'Keywords', path: 'keywords' },
+  { label: 'Search & Intent', path: 'keywords' },
   { label: 'Competitors', path: 'competitors' },
-  { label: 'Backlinks', path: 'backlinks' },
+  { label: 'Off-site Signals', path: 'backlinks' },
   { label: 'Automation', path: 'automation' },
-  { label: 'Local SEO', path: 'local' },
+  { label: 'Local Discovery', path: 'local' },
   { label: 'Settings', path: 'settings' },
 ];
 

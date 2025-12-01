@@ -5,9 +5,9 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'EngineO.ai – Discovery Engine Optimization on Autopilot',
+  title: 'EngineO.ai – Discovery Engine Optimization (DEO) Platform',
   description:
-    'EngineO.ai is the AI-first Discovery Engine Optimization (DEO) platform for websites, stores, and brands that want to stay visible across search engines and AI assistants.',
+    'EngineO.ai is the Discovery Engine Optimization (DEO) platform that unifies SEO, AEO, PEO, and VEO to optimize your brand for search engines and AI assistants.',
   icons: {
     icon: '/branding/engineo/logo-light.png',
     apple: '/branding/engineo/logo-light.png',

@@ -54,8 +54,8 @@ export default function TopNav() {
                 className="flex items-center px-2 py-2"
               >
                 <Image
-                  src="/logo/SEOEngine_logo.png"
-                  alt="SEOEngine.io"
+                  src="/branding/engineo/logo-light.png"
+                  alt="EngineO.ai"
                   width={160}
                   height={40}
                   priority
@@ -78,8 +78,8 @@ export default function TopNav() {
               className="flex items-center px-2 py-2"
             >
               <Image
-                src="/logo/SEOEngine_logo.png"
-                alt="SEOEngine.io"
+                src="/branding/engineo/logo-light.png"
+                alt="EngineO.ai"
                 width={160}
                 height={40}
                 priority
