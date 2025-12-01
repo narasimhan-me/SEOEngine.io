@@ -1,0 +1,56 @@
+<svg width="800" height="320" viewBox="0 0 800 320" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient for the concentric rings and swoosh -->
+    <linearGradient id="engineo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#516BFF"/>
+      <stop offset="100%" stop-color="#4FD1FF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Left symbol: concentric O-shaped engine core with lower arc -->
+  <g transform="translate(120,160)">
+    <!-- Outer ring -->
+    <circle cx="0" cy="0" r="85"
+            fill="none"
+            stroke="url(#engineo-gradient)"
+            stroke-width="16"
+            stroke-linecap="round" />
+
+    <!-- Middle ring -->
+    <circle cx="0" cy="0" r="60"
+            fill="none"
+            stroke="#ffffff"
+            stroke-width="16" />
+
+    <!-- Inner ring -->
+    <circle cx="0" cy="0" r="35"
+            fill="none"
+            stroke="url(#engineo-gradient)"
+            stroke-width="16" />
+
+    <!-- Core circle -->
+    <circle cx="0" cy="0" r="18"
+            fill="#16324F" />
+
+    <!-- Lower swoosh arc -->
+    <path d="M -55 88
+             A 70 70 0 0 0 55 88"
+          fill="none"
+          stroke="url(#engineo-gradient)"
+          stroke-width="14"
+          stroke-linecap="round" />
+  </g>
+
+  <!-- Wordmark: EngineO.ai -->
+  <g transform="translate(260,178)" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+     font-size="64" font-weight="600" letter-spacing="0.02em">
+    <!-- 'Engine' -->
+    <text x="0"  y="0" fill="#16324F">Engine</text>
+
+    <!-- Cyan 'O' -->
+    <text x="260" y="0" fill="#4FD1FF">O</text>
+
+    <!-- '.ai' -->
+    <text x="315" y="0" fill="#16324F">.ai</text>
+  </g>
+</svg>
