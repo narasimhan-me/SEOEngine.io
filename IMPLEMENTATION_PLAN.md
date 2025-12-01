@@ -1,8 +1,10 @@
 
 # EngineO.ai – Full Implementation Plan
 
-**Updated Direction — DEO (Discovery Engine Optimization)**  
+**Updated Direction — DEO (Discovery Engine Optimization)**
 EngineO.ai has evolved from a traditional SEO tool into a full **DEO platform**, covering SEO (Search Engine Optimization), AEO (Answer Engine Optimization), PEO (Product Engine Optimization), VEO (Video Engine Optimization), and multi‑engine discovery. All references to SEO‑only logic in this plan should now be interpreted as part of the broader multi‑engine discovery framework. Features will progressively be expanded to support AI answer engines, product search engines, video platforms, and social discovery channels.
+
+DEO = SEO + AEO + PEO + VEO
 
 This document provides a **step-by-step, execution-ready plan** for building the EngineO.ai SaaS application using a monorepo (Next.js frontend + NestJS backend + Prisma + PostgreSQL + Shopify integration + AI metadata engine).
 
@@ -794,10 +796,392 @@ Create endpoints:
     - Link to `/projects`.
 
 ---
+## PHASE 1.5 — App Shell + Branding + Docs Alignment (EngineO.ai DEO Transition)
+
+**Author:** Narasimhan Mahendrakumar
+
+### Phase Summary
+
+Phase 1.5 updates the entire product surface area to reflect the new EngineO.ai brand and DEO (Discovery Engine Optimization) strategy.
+This phase makes no backend, API, or schema changes.
+It focuses entirely on UI shell, documentation structure, marketing copy, and system docs alignment.
+This phase is required before Phase 2, which begins the DEO Feature Stack (DEO Score → Entities → Answers → Signals).
+
+### 1.5A — App Shell Brand Alignment
+
+#### Goals
+
+- Replace all references to "SEOEngine.io" with EngineO.ai
+- Update UI navigation labels to use DEO vocabulary
+- Update layout metadata (title, description)
+- Ensure dashboard shell reflects DEO as the core product
+
+#### Scope
+
+Files typically including:
+
+- `apps/web/src/app/layout.tsx`
+- `apps/web/src/app/dashboard/layout.tsx`
+- `apps/web/src/components/layout/TopNav.tsx`
+- `AdminSideNav.tsx`
+- `ProjectSideNav.tsx`
+
+#### Changes
+
+- Update metadata title → EngineO.ai – Discovery Engine Optimization (DEO) Platform
+- Update metadata description → DEO description
+- Update top-nav brand label → EngineO.ai
+- Update any SEO-only nav labels:
+
+| Old Label | New Label |
+|-----------|-----------|
+| SEO Score | DEO Score |
+| On-page SEO | Answer-Ready Content |
+| Technical SEO | Crawl & Technical Health |
+| Backlinks | Off-site Signals |
+| Keywords | Search & Intent |
+
+#### Acceptance Criteria
+
+- No remaining "SEOEngine.io" strings in app shell
+- Navigation accurately reflects DEO concepts
+- No route structure changes
+- No design changes
+### 1.5B — Documentation Shell Alignment
+
+#### Goals
+
+- Convert docs system to EngineO.ai and DEO
+- Add DEO Fundamentals section
+- Update README + Brand Guide
+- Create placeholder DEO docs
+
+#### Changes
+
+- Update root `README.md` branding
+- Update `BRAND_GUIDE.md` with DEO definition
+- Update docs landing page title + intro
+- Create new docs:
+  - `docs/deo-fundamentals.md`
+  - `docs/deo-score-overview.md`
+  - `docs/entities-overview.md`
+  - `docs/answers-overview.md`
+- Update docs sidebar/navigation to include DEO Fundamentals
+
+#### Acceptance Criteria
+
+- Docs shell reflects EngineO.ai + DEO
+- All new placeholder docs exist
+- No "SEOEngine.io" remains in documentation structure
+
+### 1.5C — Marketing Site DEO Alignment
+
+#### Goals
+
+- Ensure homepage, features, pricing, and about pages reflect the DEO narrative
+- Update metadata for marketing pages
+
+#### Changes
+
+- Homepage hero updated to DEO message
+- Features page → "DEO Features"
+- Pricing tiers updated:
+  - "SEO features" → "DEO features"
+  - "AI SEO assistant" → "AI DEO assistant"
+- About page updated with DEO mission statement
+- All metadata updated to DEO wording
+- All OG/Twitter tags reflect EngineO.ai
+
+#### Acceptance Criteria
+
+- Marketing copy consistently expresses DEO
+- No SEOEngine.io branding remains
+- Value props match product direction
+### 1.5D — System Docs Sync Update
+
+#### Goals
+
+Synchronize system-level documentation to the new DEO vocabulary and platform direction.
+
+#### Files Updated
+
+- Implementation Plan (this document)
+- `TOKEN_USAGE_MODEL.md`
+- `PRICING_STRATEGY.md`
+- `ENTITLEMENTS_MATRIX.md`
+- `BILLING_ROADMAP.md`
+- `architecture.md` (if present)
+
+#### Changes
+
+**Global terminology:**
+
+- SEOEngine.io → EngineO.ai
+- SEO → DEO (SEO + AEO + PEO + VEO)
+- SEO Score → DEO Score
+- On-page SEO → Answer-Ready Content
+- Technical SEO → Crawl & Technical Health
+
+**Add DEO Feature Stack:**
+
+1. DEO Score
+2. Entities & Knowledge Graph
+3. Answer-Ready Content
+4. Multi-Engine Signals
+
+**Token Model Updates**
+
+- Rename token units:
+  - `seo_*` → `deo_score_*`, `deo_entity_*`, `deo_answer_*`, `deo_signal_*`
+  - and add new token categories.
+
+**Pricing Updates**
+
+- "SEO features" → "DEO features"
+- Add DEO Compute Pool definition
+
+**Entitlements Updates**
+
+- Add: Entity rights, Answer rights, DEO Compute multipliers
+
+**Billing Updates**
+
+- Add DEO compute billing steps
+- Add Stripe metadata fields:
+  - `deo_project_count`
+  - `deo_compute_pool`
+  - `deo_entity_count`
+  - `deo_answer_count`
+
+**Architecture Updates**
+
+- Rename queues:
+  - `deo_score_queue`
+  - `deo_entity_queue`
+  - `deo_answer_queue`
+  - `deo_signal_queue`
+
+#### Acceptance Criteria
+
+- All system docs use EngineO.ai + DEO vocabulary
+- No SEOEngine.io leftover
+- All system-level features share unified DEO terminology
+### 1.5E — Architecture & Infrastructure Sync
+
+#### Goals
+
+Update architecture and infrastructure documentation so DEO features and compute flows are consistent across:
+
+- Workers
+- Redis
+- Queues
+- Neon Postgres
+- Render deployment structure
+- Future DEO pipelines
+
+#### Changes
+
+**Add Redis queue naming convention:**
+
+- `deo_score_queue`
+- `deo_entity_queue`
+- `deo_answer_queue`
+- `deo_signal_queue`
+
+**Add Worker responsibilities:**
+
+| Worker | Responsibilities |
+|--------|-----------------|
+| DEO Score Worker | compute scores, recalc signals |
+| Entity Worker | entity extraction, KG enrichment |
+| Answer Worker | generate/evaluate answer units |
+| Signals Worker | crawl, visibility, citation checks |
+
+- Add Neon section (backups, branching, PITR)
+- Add Render section (API, Worker, Cron)
+- Add diagram showing DEO pipeline:
+  - Project → Crawl → Entities → Answers → DEO Score → Signals → Dashboard
+
+#### Acceptance Criteria
+
+- Architecture doc matches DEO technical direction
+- Queues + workers clearly documented
+- Infra choices justified for upcoming Phase 2–5 features
+
+---
+## Phase 1.6 – Abuse Protection & CAPTCHA
+
+**Goal:** Reduce spam and credential-stuffing by adding CAPTCHA protection to:
+
+- Marketing “Contact Us” form  
+- Signup flows  
+- Login flows (conditional, after failed attempts)
+
+This phase is front-end + API only. No changes to core DEO features.
+
+---
+
+### 1.6.1 Scope
+
+**In-scope**
+
+- Add CAPTCHA to:
+  - Contact Us form (marketing site)
+  - User signup forms
+  - User login forms (shown after N failed attempts)
+- Backend verification in NestJS for all three flows
+- Basic rate-limiting / lockout behavior based on failed logins + CAPTCHA
+
+**Out-of-scope**
+
+- Advanced bot detection (device fingerprints, risk scoring)
+- Per-tenant configurable providers
+- Full WAF configuration
+
+---
+
+### 1.6.2 Behavior Specification
+
+#### Contact Us Form
+
+- **When:** Always show CAPTCHA.  
+- **Flow:**
+  1. User fills name, email, message.
+  2. CAPTCHA must be successfully completed.
+  3. Frontend sends `captchaToken` with the form payload.
+  4. API validates CAPTCHA before:
+     - Enqueuing email / notification job
+     - Returning success response
+- **Error states:**
+  - If CAPTCHA invalid/missing: return `400` with `"captcha_failed"` error code.
+
+#### Signup
+
+- **When:** Always show CAPTCHA on all signup forms (email/password, magic link, etc.).
+- **Flow:**
+  1. User fills signup form.
+  2. CAPTCHA widget required.
+  3. Frontend sends `captchaToken` along with signup payload.
+  4. API validates CAPTCHA before creating user, workspace, or sending verification email.
+- **Error states:**
+  - Invalid/missing CAPTCHA → `400` `"captcha_failed"`.
+
+#### Login
+
+- **When to show CAPTCHA:**  
+  - Do **not** show CAPTCHA on first attempt.
+  - Track failed attempts per **(IP, login identifier)** in Redis.
+  - After **2 consecutive failed attempts within a short window (e.g. 15 minutes)**:
+    - Frontend must render CAPTCHA.
+    - Backend requires valid `captchaToken` on subsequent login attempts.
+
+- **Backend logic (pseudo):**
+  - On login failure:
+    - Increment `failed_login:{ip}:{identifier}` in Redis with TTL (e.g. 15 min).
+  - On login success:
+    - Reset/delete that key.
+  - On every login attempt:
+    - If `failed_count >= 2`, require CAPTCHA verification and return `captcha_required` if missing/invalid.
+
+- **Error states:**
+  - If `failed_count >= 2` and no/invalid CAPTCHA:
+    - Return `400` with `"captcha_required"` or `"captcha_failed"`.
+
+---
+
+### 1.6.3 Technical Design (High Level)
+
+**Provider**
+
+- Use a single, configurable provider (e.g. hCaptcha / Cloudflare Turnstile / reCAPTCHA v2/v3) behind an abstraction.
+- Configure via environment variables:
+  - `CAPTCHA_PROVIDER` (e.g. `"turnstile"`)
+  - `CAPTCHA_SITE_KEY`
+  - `CAPTCHA_SECRET_KEY`
+
+**Frontend (Next.js 14, apps/web)**
+
+- Create a shared `<Captcha />` component:
+  - Wraps provider library.
+  - Exposes:
+    - `onVerify(token: string)`
+    - `onError`
+  - Stores token in local component state.
+- Integrate `<Captcha />` into:
+  - Contact Us page
+  - Signup form(s)
+  - Login page (conditionally visible)
+
+**Backend (NestJS, apps/api)**
+
+- Create a `CaptchaService`:
+  - `verifyToken(token: string, remoteIp?: string): Promise<boolean>`
+  - Calls provider API (server-side) using `CAPTCHA_SECRET_KEY`.
+- Add a `CaptchaGuard` / validation pipe for:
+  - Contact Us endpoint
+  - Signup endpoint
+  - Login endpoint (conditional, based on failed count)
+- Create a small `AuthAbuseService` using Redis:
+  - `incrementFailedLogin(ip, identifier)`
+  - `resetFailedLogin(ip, identifier)`
+  - `getFailedCount(ip, identifier)`
+
+---
+
+### 1.6.4 Acceptance Criteria
+
+- **Contact Us**
+  - Requests without valid CAPTCHA are rejected with a clear error.
+  - Spam volume significantly reduced (once live).
+
+- **Signup**
+  - Every signup path requires valid CAPTCHA.
+  - CAPTCHA errors surfaced cleanly in the UI.
+
+- **Login**
+  - First and second failed attempts **do not** require CAPTCHA.
+  - From the 3rd attempt onward (within the window), CAPTCHA is required.
+  - On successful login, failed-attempt counter resets and CAPTCHA no longer needed next time.
+
+- **Security**
+  - CAPTCHA secrets not logged.
+  - Provider keys loaded from environment variables.
+  - No leaking provider-specific tokens to logs.
+
+- **DX**
+  - CAPTCHA specifics isolated behind `CaptchaService` and `<Captcha />` component so provider can be swapped later.
+
+---
+
+### When in the Roadmap?
+
+Concretely:
+
+- **Phase 1.5** – you've just finished: brand, docs, marketing.
+- **Phase 1.6 (this one)** – should happen **before**:
+  - DEO Score APIs
+  - Entity ingestion
+  - Answer framework
+
+So: **implement CAPTCHA in Phase 1.6, directly after 1.5 and before Phase 2 (DEO Score system).**
+
+If you'd like, next step I can:
+
+- Generate a **Patch Kit 1.6** like previous phases (with specific file paths + diffs for GPT-5.1/Claude), or
+- Help you pick a specific provider (Turnstile vs hCaptcha vs reCAPTCHA) and design the exact environment variable + module structure.
+
+---
 
 # PHASE 2 — Shopify Integration (MVP) using Generic Integrations
 
 In this phase, we evolve the schema from a Shopify-specific connectedType to a generic Integration model that supports Shopify now and other platforms later. This matches the current implementation (Integration + IntegrationType.SHOPIFY).
+
+This phase also begins the DEO Feature Stack implementation:
+
+1. DEO Score
+2. Entities & Knowledge Graph
+3. Answer-ready Content Framework
+4. Multi-engine Signals
 
 ### 2.0. Shopify App Setup in Shopify
 
@@ -1204,7 +1588,7 @@ Even if only SEO metadata is implemented now, this ensures smooth expansion into
 ```json
 {
   "crawlResultId": "string",
-  "targetKeywords": ["optional", "keywords"]
+  "targetKeywords": ["optional", "queries and intents"]
 }
 ```
 
@@ -1325,7 +1709,7 @@ Run migration, making sure to match the current code's schema (this plan is alig
 ```json
 {
   "productId": "string",
-  "targetKeywords": ["optional"]
+  "targetKeywords": ["optional queries and intents"]
 }
 ```
 
@@ -1333,7 +1717,7 @@ Run migration, making sure to match the current code's schema (this plan is alig
 - Use AI to generate suggested SEO title and description based on:
   - `title`
   - `description`
-  - optional `targetKeywords`.
+  - optional `targetKeywords` (queries & intents for the product).
 - Return a response similar to page metadata:
 
 ```json
@@ -1425,7 +1809,7 @@ In the product SEO suggestion modal:
 Stats are computed from `CrawlResult` and `Product` tables.
 - `crawlCount` → number of `CrawlResult` rows for the project.
 - `issueCount` → total number of issues across all `CrawlResults`.
-- `avgSeoScore` → average of per-page scores computed with Formula from Phase 3.
+- `avgSeoScore` → initial SEO sub-score used as part of the DEO Score formula from Phase 3.
 - `productCount` → number of `Product` rows for the project.
 - `productsWithAppliedSeo` → count of products where `seoTitle` or `seoDescription` is set.
 
@@ -1444,7 +1828,7 @@ Stats are computed from `CrawlResult` and `Product` tables.
 
 **`/projects/[id]/page.tsx`**
 - Show project-level cards:
-  - SEO score
+  - DEO Score and sub-scores (SEO, AEO, PEO, VEO)
   - Last scan date
   - Number of issues
   - Products synced
@@ -1485,7 +1869,7 @@ deoScore = round(
   0.2 * peoScore +
   0.1 * veoScore
 )
-- SEO score – average page score from CrawlResult & issues.
+- SEO sub-score – average page score from CrawlResult & issues (SEO component of the overall DEO Score).
 - AEO score – based on presence of FAQ, entities, and schema on key URLs.
 - PEO score – % of products with SEO metadata applied.
 - VEO score – 0/50/100 depending on video coverage (see Phase 30 — AI Video & Social Content Engine).
@@ -2874,7 +3258,7 @@ model ContentAsset {
 # PHASE 14 — Multi-Engine Performance Monitoring (SEO + AEO + Product) (Feature Set D)
 
 **Updated Scope:**  
-While the initial implementation may focus on SEO metrics (traffic, rankings, clicks), the data model and APIs should be designed so they can later incorporate AEO and product-level discovery signals (e.g., AI answer appearance, on-site search performance, product visibility). Think of this phase as the foundation for a DEO-wide performance view, not just Google SEO.
+While the initial implementation may focus on early DEO metrics (starting with SEO signals like traffic, rankings, and clicks), the data model and APIs should be designed so they can later incorporate AEO and product-level discovery signals (e.g., AI answer appearance, on-site search performance, product visibility). Think of this phase as the foundation for a DEO-wide performance view, not just Google SEO.
 
 - **Models:** `PageMetric`, `KeywordRank`
 - **Integrations:**
@@ -3112,7 +3496,7 @@ model SocialAccount {
 
 - Weekly email report per project:
   - Summary of:
-    - SEO score changes
+    - DEO Score and sub-score changes
     - Issues resolved / new issues
     - Top pages/products changes
     - Social posts published (if enabled)
@@ -3803,7 +4187,7 @@ Optionally:
 - Endpoint: `POST /projects/:id/competitors/discover`
   - Uses AI + search to suggest 3–5 competitors based on:
     - project domain
-    - existing keywords (if available)
+    - existing queries & intents (keywords, if available)
     - Shopify category
 
 ### 23.3. Competitor Snapshot Service
@@ -3819,10 +4203,10 @@ Create module: `apps/api/src/competitor-intel`:
 - Given a competitor domain:
   - Query external SEO APIs (or internal crawler when added later) for:
     - Estimated organic traffic
-    - Top keywords (+ positions, volume)
+    - Top queries & intents (+ positions, volume)
     - Top ranking pages (URL, title, est traffic)
   - Use AI to:
-    - cluster keywords by theme
+    - cluster queries & intents by theme
     - guess revenue segments (low confidence but directional)
   - Save a `CompetitorSnapshot` record.
 
@@ -4248,7 +4632,7 @@ model ProductReviewSummary {
   pros        Json     // list of pros
   cons        Json     // list of cons
   themes      Json     // grouped insights
-  keywords    Json     // SEO-relevant terms
+  keywords    Json     // queries & intents (SEO/DEO-relevant terms)
   createdAt   DateTime @default(now())
 }
 ```
@@ -4373,7 +4757,7 @@ AI endpoints:
 - Amazon:
   - optimized title
   - 5 bullets
-  - backend keywords
+  - backend queries & intents (keywords)
 - Etsy:
   - title
   - tags
@@ -4482,3 +4866,7 @@ These Phases 23–30 extend your IMPLEMENTATION_PLAN.md and keep your roadmap co
 - Phases 12–17: Core feature sets (automation, content, performance, competitors, local, social).
 - Phases 18–22: Security, subscription management, monitoring, fairness & limits.
 - Phases 23–30: Advanced AI-powered features gated behind add-ons for sustainable growth.
+
+---
+
+**Author:** Narasimhan Mahendrakumar

@@ -1,6 +1,6 @@
-# SEOEngine.io – API Specification
+# EngineO.ai – API Specification
 
-This document defines the main REST endpoints exposed by the SEOEngine.io backend (NestJS).
+This document defines the main REST endpoints exposed by the EngineO.ai backend (NestJS).
 All endpoints are prefixed with `/api` in production (e.g. `https://api.seoengine.io/api/...`) depending on deployment.
 
 Authentication is JWT-based unless otherwise stated.

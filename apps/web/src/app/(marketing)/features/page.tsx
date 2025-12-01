@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Features — EngineO.ai',
+  title: 'Features — EngineO.ai DEO Platform',
   description:
-    'See everything EngineO.ai does for your brand: AI-powered Discovery Engine Optimization, product and content optimization, entity intelligence, monitoring, and more.',
+    'See everything EngineO.ai does for your brand: DEO (Discovery Engine Optimization) that unifies SEO, AEO, PEO, and VEO across product, content, and technical optimization.',
 };
 
 function FeatureBlock({
@@ -45,6 +45,9 @@ export default function FeaturesPage() {
           </h1>
           <p className="mt-3 max-w-2xl text-sm text-slate-600">
             EngineO.ai combines technical SEO, product and content optimization, entity intelligence, monitoring, and automation into one platform built for modern brands and eCommerce.
+          </p>
+          <p className="mt-3 max-w-2xl text-sm text-slate-600">
+            DEO (Discovery Engine Optimization) unifies SEO, AEO, PEO, and VEO to help your brand rank, appear, and be cited across search engines and AI systems.
           </p>
         </div>
       </section>
@@ -91,7 +94,7 @@ export default function FeaturesPage() {
           />
 
           <FeatureBlock
-            label="SEO Performance Monitoring"
+            label="DEO & SEO Performance Monitoring"
             description="Track rankings, clicks, impressions, and site health in one place."
             whyItMatters="You can't improve what you don't measure. Performance monitoring connects your SEO efforts to real results — so you know what's working, what's not, and where to focus next."
             bullets={[
@@ -104,7 +107,7 @@ export default function FeaturesPage() {
           />
 
           <FeatureBlock
-            label="Local SEO"
+            label="Local Discovery & SEO"
             description="Help your local or multi-location business appear in the right searches."
             whyItMatters="If you have a physical location or serve specific regions, local SEO determines whether customers find you or your competitors. Optimizing for local search drives foot traffic and nearby buyers directly to your store."
             bullets={[
@@ -124,7 +127,7 @@ export default function FeaturesPage() {
               'Weekly email summaries tailored to each project',
               'Task list for teams and agencies',
               'Planned: social auto-posting for new products to Facebook & Instagram',
-              'Planned: AI SEO assistant chatbot for strategy questions',
+              'Planned: AI DEO assistant chatbot for strategy questions',
             ]}
           />
         </div>

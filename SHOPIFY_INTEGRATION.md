@@ -1,12 +1,12 @@
-# SEOEngine.io – Shopify Integration Guide
+# EngineO.ai – Shopify Integration Guide
 
-This document describes how SEOEngine.io integrates with Shopify, including OAuth, data sync, and SEO updates.
+This document describes how EngineO.ai integrates with Shopify, including OAuth, data sync, and SEO updates.
 
 ---
 
 ## 1. Overview
 
-SEOEngine.io integrates with Shopify as a **public app** installed by merchants.  
+EngineO.ai integrates with Shopify as a **public app** installed by merchants.  
 Once connected, it can:
 
 - Read product and collection data.
@@ -191,7 +191,7 @@ Webhook handler endpoints (e.g. `/shopify/webhooks/products-update`) should:
 
 ## 8. Embedded App (Future)
 
-SEOEngine.io can optionally be embedded inside Shopify Admin using:
+EngineO.ai can optionally be embedded inside Shopify Admin using:
 
 - Shopify App Bridge
 - Polaris (Shopify’s React component library)

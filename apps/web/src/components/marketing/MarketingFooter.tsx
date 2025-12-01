@@ -47,10 +47,10 @@ export default function MarketingFooter() {
             <ul className="space-y-1 text-sm text-slate-600">
               <li>
                 <a
-                  href="mailto:support@seoengine.io"
+                  href="mailto:support@engineo.ai"
                   className="hover:text-slate-900"
                 >
-                  support@seoengine.io
+                  support@engineo.ai
                 </a>
               </li>
               <li>

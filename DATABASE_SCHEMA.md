@@ -1,6 +1,6 @@
-# SEOEngine.io – Database Schema (Prisma)
+# EngineO.ai – Database Schema (Prisma)
 
-This document defines the Prisma schema for SEOEngine.io.
+This document defines the Prisma schema for EngineO.ai.
 
 ---
 

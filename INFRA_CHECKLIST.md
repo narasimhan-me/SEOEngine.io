@@ -1,6 +1,6 @@
-# INFRASTRUCTURE CHECKLIST — SEOEngine.io (Option A Architecture)
+# INFRASTRUCTURE CHECKLIST — EngineO.ai (Option A Architecture)
 
-This checklist provides a step-by-step guide to set up the full infrastructure for SEOEngine.io using:
+This checklist provides a step-by-step guide to set up the full infrastructure for EngineO.ai using:
 - **Vercel** (Next.js frontend)  
 - **Render** (NestJS API + workers)  
 - **Upstash Redis** (queues + caching)  

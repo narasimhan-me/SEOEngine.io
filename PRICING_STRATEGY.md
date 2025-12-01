@@ -123,6 +123,15 @@ For agencies and large teams.
 - Allow smaller stores to onboard easily
 - Position EngineO as the first-mover in DEO
 
+### DEO Guarantees Across All Tiers
+
+All launch tiers include, at minimum:
+
+- DEO Score visibility for each project
+- Entity intelligence signals (depth increases by tier)
+- Answer-ready content capabilities
+- Multi-engine visibility tracking (starting with SEO surfaces, expanding into AEO/PEO/VEO)
+
 ---
 
 ## 5. Scale Pricing (Months 6–18)
@@ -320,3 +329,12 @@ If approved, the next steps are:
 4. Add token-balancing + usage logging (for future billing).
 5. Implement annual billing toggle in the UI.
 6. Prepare for future "Business" tier.
+
+### DEO Compute Pools
+
+Each plan receives a monthly DEO Compute Pool that covers:
+
+- Entity extraction
+- Answer unit generation
+- DEO Score recalculations
+- Crawl & visibility checks

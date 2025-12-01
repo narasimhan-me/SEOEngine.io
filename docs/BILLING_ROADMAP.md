@@ -202,7 +202,22 @@ Upsell modals in:
 
 ---
 
-## 9. Phase 5 — Annual Billing, Coupons, Trials
+## 9. DEO Compute Billing (Planned Phase)
+
+**Goal:** Introduce metered DEO pipeline billing on top of base subscriptions.
+
+Meter the following DEO operations:
+
+- DEO Score recalculations
+- Entity extraction calls
+- Answer-ready content generation
+- Visibility & crawl diagnostics
+
+These metrics feed into usage dashboards and, for higher tiers, can be tied into usage-based billing or overage alerts.
+
+---
+
+## 10. Phase 5 — Annual Billing, Coupons, Trials
 
 ### Annual Billing
 
@@ -382,7 +397,18 @@ This tells your dev team EXACTLY how to implement billing.
 
 ---
 
-## 15. Summary
+## Stripe Metadata Fields (Planned)
+
+For DEO-aware billing and reporting, Stripe customer/subscription metadata should include:
+
+- `deo_project_count`
+- `deo_compute_pool`
+- `deo_entity_count`
+- `deo_answer_count`
+
+---
+
+## 16. Summary
 
 EngineO.ai's billing roadmap is structured into predictable phases:
 

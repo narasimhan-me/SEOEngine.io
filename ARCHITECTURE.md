@@ -1,12 +1,12 @@
-# SEOEngine.io – System Architecture
+# EngineO.ai Architecture — DEO Platform
 
-This document describes the **high-level and component-level architecture** for SEOEngine.io.
+This document describes the **high-level and component-level architecture** for EngineO.ai.
 
 ---
 
 ## 1. Overview
 
-SEOEngine.io is an AI-powered SEO automation platform for e‑commerce merchants supporting multiple platforms (Shopify, WooCommerce, BigCommerce, Magento, and custom websites). It consists of:
+EngineO.ai is an AI-powered Discovery Engine Optimization (DEO) platform for e‑commerce merchants supporting multiple platforms (Shopify, WooCommerce, BigCommerce, Magento, and custom websites). It consists of:
 
 - A **Next.js 14** web application (frontend).
 - A **NestJS** API server (backend).
@@ -30,7 +30,7 @@ Deployment targets:
 
 ## 1.1 Infrastructure Stack
 
-SEOEngine.io uses a modern, cloud‑native infrastructure optimized for scale, cost‑efficiency, and reliability.
+EngineO.ai uses a modern, cloud‑native infrastructure optimized for scale, cost‑efficiency, and reliability.
 
 ### Core Infrastructure Components
 
@@ -122,6 +122,16 @@ graph TD
     G --> G3[BigCommerce API]
     G --> G4[Magento 2 REST API]
 ```
+
+## 2.1 DEO Flow (Conceptual)
+
+The DEO pipeline can be summarized as:
+
+```
+Project → Crawl/Fetch → Entity Extraction → Answer Evaluation → DEO Score → Signals → Dashboard
+```
+
+This flow unifies SEO, AEO, PEO, and VEO operations into a single discovery optimization loop.
 
 ---
 
@@ -258,6 +268,13 @@ We standardize queue names by domain. Example queues:
   - **Jobs:** Publish or schedule social posts to Facebook, Instagram, LinkedIn.
   - **Producers:** Automation rules, manual "Post to social" actions.
   - **Consumers:** `SocialPostingProcessor`.
+
+In addition to the domain-specific queues above, DEO-specific processing can be conceptualized as:
+
+- `deo_score_queue` – DEO Score recalculation jobs
+- `deo_entity_queue` – Entity extraction and enrichment jobs
+- `deo_answer_queue` – Answer unit generation jobs
+- `deo_signal_queue` – Multi-engine visibility signal collection
 
 Each queue is configured with:
 - Sensible **concurrency** based on workload.

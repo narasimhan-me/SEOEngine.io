@@ -1,4 +1,4 @@
-# SEOEngine.io – Product Roadmap (MVP → 12 Months)
+# EngineO.ai – Product Roadmap (MVP → 12 Months)
 
 This roadmap is divided into **phases** and **time horizons**.  
 Timeline assumes a small team (1–3 devs) and may be adjusted as needed.

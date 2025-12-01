@@ -26,13 +26,11 @@ export default function MarketingHomePage() {
             </div>
 
             <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
-              AI-powered discovery across search engines and AI assistants — on autopilot.
+              EngineO.ai — The Discovery Engine Optimization (DEO) Platform
             </h1>
 
             <p className="max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base">
-              EngineO.ai scans your site and store, fixes technical issues, maps entities, writes metadata and
-              answer-ready content, and tracks visibility across search and AI surfaces — so you can focus on
-              growth instead of chasing algorithms.
+              Optimize your brand for search engines and AI assistants using DEO — a unified framework combining SEO, AEO, PEO, and VEO. Track your DEO Score, manage entities, build answer-ready content, and improve multi-engine visibility.
             </p>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -94,7 +92,7 @@ export default function MarketingHomePage() {
           <div className="flex-1">
             <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:max-w-lg">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-900">SEO overview</h3>
+                <h3 className="text-sm font-semibold text-slate-900">DEO overview</h3>
                 <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
                   Live preview
                 </span>
@@ -471,7 +469,7 @@ export default function MarketingHomePage() {
 
             <figure className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5">
               <blockquote className="text-sm text-slate-700">
-                &ldquo;Finally, an SEO tool that understands eCommerce. The automated audits catch issues we&apos;d never find manually.&rdquo;
+                &ldquo;Finally, a DEO platform that understands eCommerce. The automated audits catch issues we&apos;d never find manually.&rdquo;
               </blockquote>
               <figcaption className="mt-4 flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-slate-100" />

@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Contact — SEOEngine.io',
+  title: 'Contact — EngineO.ai DEO Platform',
   description:
-    'Get in touch with the SEOEngine.io team for support, partnerships, or enterprise plans.',
+    'Get in touch with the EngineO.ai team for support, partnerships, or enterprise plans related to Discovery Engine Optimization (DEO: SEO + AEO + PEO + VEO).',
 };
 
 export default function ContactPage() {
@@ -109,10 +109,10 @@ export default function ContactPage() {
                 <span className="font-medium text-slate-900">Support</span>
                 <br />
                 <a
-                  href="mailto:support@seoengine.io"
+                  href="mailto:support@engineo.ai"
                   className="text-blue-700 hover:text-blue-800"
                 >
-                  support@seoengine.io
+                  support@engineo.ai
                 </a>
                 <br />
                 Typical response: under 24 hours.

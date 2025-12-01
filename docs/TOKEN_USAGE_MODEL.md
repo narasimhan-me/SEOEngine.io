@@ -77,6 +77,16 @@ Tokens must be counted for:
 | Automations | ✅ | If they trigger AI tasks |
 | AI-powered fixes | ✅ | Each fix consumes tokens |
 
+## 3.1 DEO Pillar Token Categories
+
+Token usage can also be categorized by DEO pillar:
+
+- **DEO Score computation** – recalculating composite scores
+- **Entity extraction + enrichment** – identifying and linking entities
+- **Answer unit generation** – creating answer-ready content blocks
+- **Multi-engine visibility checks (VEO)** – video and voice surface analysis
+- **Crawl & technical diagnostics** – page-level SEO analysis
+
 ---
 
 ## 4. Token Calculation Rules

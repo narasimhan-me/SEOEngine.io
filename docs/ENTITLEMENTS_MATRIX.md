@@ -106,7 +106,7 @@ Each plan defines limits and access across:
 
 | Feature | Starter | Pro | Agency |
 |---------|---------|-----|--------|
-| Max Projects | 3 | 10 | Unlimited |
+| DEO Projects per workspace | 3 | 10 | Unlimited |
 | Max Products/Pages | 500 | 5,000 | Unlimited |
 | AI Tokens / Month | 200k | 2M | 10M+ |
 | API Access | ❌ | ❌ | ✔ (in future) |
@@ -181,6 +181,22 @@ Each plan defines limits and access across:
 | Standard Support | ✔ | ✔ | ✔ |
 | Priority Support | ❌ | ✔ | ✔ |
 | Dedicated DEO Strategist | ❌ | ❌ | Future Add-on |
+
+### 4.9 DEO-Specific Entitlements
+
+Across tiers, the system must also model:
+
+- Entity editing rights
+- Answer unit creation rights
+- DEO compute pool multipliers
+
+Each plan's entitlement definition (in code and config) should specify:
+
+- DEO Projects per workspace
+- Item limits (products/pages)
+- DEO pipeline frequency (how often full DEO runs may execute)
+- Token pool size
+- Role capabilities for admin vs editor vs viewer (where applicable)
 
 ---
 

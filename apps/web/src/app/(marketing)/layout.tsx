@@ -5,15 +5,15 @@ import MarketingFooter from '@/components/marketing/MarketingFooter';
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: {
-    default: 'EngineO.ai — Discovery Engine Optimization for modern brands',
+    default: 'EngineO.ai — Discovery Engine Optimization (DEO)',
     template: '%s | EngineO.ai',
   },
   description:
-    'EngineO.ai is the AI-first Discovery Engine Optimization platform that scans your site and store, fixes technical issues, maps entities, writes metadata and answer-ready content, and tracks visibility across search and AI surfaces.',
+    'EngineO.ai helps you optimize your presence across search engines and AI assistants using DEO: SEO + AEO + PEO + VEO.',
   openGraph: {
-    title: 'EngineO.ai — Discovery Engine Optimization for modern brands',
+    title: 'EngineO.ai — Discovery Engine Optimization (DEO)',
     description:
-      'EngineO.ai is the AI-first Discovery Engine Optimization platform that scans your site and store, fixes technical issues, maps entities, writes metadata and answer-ready content, and tracks visibility across search and AI surfaces.',
+      'EngineO.ai helps you optimize your presence across search engines and AI assistants using DEO: SEO + AEO + PEO + VEO.',
     url: '/',
     siteName: 'EngineO.ai',
     type: 'website',
@@ -28,9 +28,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'EngineO.ai — Discovery Engine Optimization for modern brands',
+    title: 'EngineO.ai — Discovery Engine Optimization (DEO)',
     description:
-      'EngineO.ai is the AI-first Discovery Engine Optimization platform that scans your site and store, fixes technical issues, maps entities, writes metadata and answer-ready content, and tracks visibility across search and AI surfaces.',
+      'EngineO.ai helps you optimize your presence across search engines and AI assistants using DEO: SEO + AEO + PEO + VEO.',
     images: ['/branding/engineo/logo-light.png'],
   },
 };

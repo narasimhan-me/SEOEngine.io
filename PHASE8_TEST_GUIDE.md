@@ -138,7 +138,7 @@ curl -X POST http://localhost:3001/2fa/setup-init \
 **Expected Response:**
 ```json
 {
-  "otpauthUrl": "otpauth://totp/SEOEngine.io:user@example.com?secret=...&issuer=SEOEngine.io",
+  "otpauthUrl": "otpauth://totp/EngineO.ai:user@example.com?secret=...&issuer=EngineO.ai",
   "qrCodeDataUrl": "data:image/png;base64,..."
 }
 ```
