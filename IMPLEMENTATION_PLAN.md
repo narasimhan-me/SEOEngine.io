@@ -1,4 +1,8 @@
+
 # EngineO.ai – Full Implementation Plan
+
+**Updated Direction — DEO (Discovery Engine Optimization)**  
+EngineO.ai has evolved from a traditional SEO tool into a full **DEO platform**, covering SEO (Search Engine Optimization), AEO (Answer Engine Optimization), PEO (Product Engine Optimization), VEO (Video Engine Optimization), and multi‑engine discovery. All references to SEO‑only logic in this plan should now be interpreted as part of the broader multi‑engine discovery framework. Features will progressively be expanded to support AI answer engines, product search engines, video platforms, and social discovery channels.
 
 This document provides a **step-by-step, execution-ready plan** for building the EngineO.ai SaaS application using a monorepo (Next.js frontend + NestJS backend + Prisma + PostgreSQL + Shopify integration + AI metadata engine).
 
@@ -1027,7 +1031,15 @@ On `/projects/[id]/page.tsx`:
 
 ---
 
-# PHASE 3 — Basic SEO Scanner
+# PHASE 3 — Discovery Scanner (SEO + AEO + PEO + VEO)
+
+**Updated Scope:**  
+This scanner is no longer limited to traditional SEO signals. It will evolve to support multi‑engine discovery checks including:
+- SEO: title, meta description, H1, internal links, load time  
+- AEO: structured data, entity extraction, answerability  
+- PEO: product metadata completeness, category alignment  
+- VEO: basic video metadata readiness  
+The initial implementation may still focus on traditional SEO, but the architecture should be prepared for multi‑engine expansion.
 
 ### 3.1. CrawlResult Schema
 
@@ -1102,7 +1114,15 @@ Optionally show an average project score.
 
 ---
 
-# PHASE 4 — AI Metadata Suggestions
+# PHASE 4 — Multi‑Engine AI Metadata Engine (SEO + AEO + Product + Video)
+
+**Updated Scope:**  
+This phase now generates **DEO metadata bundles** rather than SEO‑only suggestions. The engine should support multi‑engine outputs:  
+- SEO title + meta description  
+- AEO answer snippet + knowledge facts  
+- PEO product metadata (title, attributes, bullet points)  
+- VEO video caption + tags  
+The MVP may still only implement SEO titles/descriptions, but the underlying service and DTOs must be ready for multi‑engine expansion.
 
 ### 4.1. AI Integration (OpenAI or Gemini)
 
@@ -1178,7 +1198,10 @@ No CMS updates yet (that comes with Shopify product SEO).
 
 ---
 
-# PHASE 5 — Shopify Product SEO (Read + AI)
+# PHASE 5 — Product Discovery Optimization (Shopify-first, PEO Model)
+
+**Updated Scope:**  
+This phase evolves beyond "Shopify Product SEO" into **Product Engine Optimization (PEO)**. It prepares the data model and interfaces to later support Amazon, TikTok Shop, and other product engines. The existing Shopify MVP remains intact but should store product attributes in a platform‑agnostic way for future engine adapters.
 
 This phase uses the generic Integration model with `IntegrationType.SHOPIFY`. Products are tied to projects and optionally to a specific integration via `integrationId`. The current implementation uses `externalId` instead of a Shopify-only ID field.
 
@@ -1330,6 +1353,7 @@ In the product SEO suggestion modal:
 ---
 
 # PHASE 7 — Dashboard & Reports
+**Update:** Dashboard widgets should now include DEO Score (combined SEO + AEO + PEO + VEO readiness) as the primary KPI.
 
 ### 7.1. Project Overview API
 
