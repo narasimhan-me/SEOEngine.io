@@ -1,8 +1,8 @@
 {
-  "name": "seoengine",
+  "name": "engineo",
   "version": "1.0.0",
   "private": true,
-  "description": "SEOEngine.io - SEO on Autopilot",
+  "description": "EngineO.ai – Discovery Engine Optimization on Autopilot",
   "scripts": {
     "dev:web": "pnpm --filter web dev",
     "dev:api": "pnpm --filter api start:dev",

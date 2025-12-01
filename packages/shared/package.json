@@ -1,5 +1,5 @@
 {
-  "name": "@seoengine/shared",
+  "name": "@engineo/shared",
   "version": "0.1.0",
   "private": true,
   "main": "./src/index.ts",

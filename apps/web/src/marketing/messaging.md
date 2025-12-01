@@ -1,41 +1,58 @@
-# SEOEngine.io — Messaging Foundations
+---
+# EngineO.ai — Messaging Foundations
 
 ## Personas
 
-### Primary: Shopify Store Owner
+### Primary: Shopify & eCommerce Operator
 
-- Runs a DTC or eCommerce brand on Shopify (50–5,000 products)
-- Knows SEO matters but doesn't have time to learn or execute it properly
-- Wears multiple hats — marketing, ops, customer support
-- Frustrated by expensive agencies and confusing SEO tools
+- Runs a DTC or eCommerce brand (often on Shopify, 50–5,000 products)
+- Knows visibility in search and AI assistants matters but doesn't have time to master SEO or AEO
+- Wears multiple hats — marketing, ops, product, customer support
+- Frustrated by expensive agencies and confusing, SEO-only tools
 
-### Secondary: SEO Agency Lead
+### Secondary: SEO / Growth Lead or Agency
 
-- Manages SEO for 5–20 Shopify clients
-- Needs scalable workflows to handle bulk metadata, audits, and reporting
-- Values automation that frees up time for strategy and client communication
-- Looking for white-label or multi-project tooling
+- Manages organic growth for multiple brands or clients
+- Needs scalable workflows to handle audits, content, products, and reporting across sites
+- Values automation that frees time for strategy and communication
+- Looking for a platform that goes beyond traditional SEO into AI-era discovery
 
 ---
 
 ## Positioning
 
-SEOEngine.io is the AI-powered SEO platform built for Shopify stores — automating audits, metadata, and product optimization so merchants can grow organic traffic without hiring an agency.
+EngineO.ai is the AI-first Discovery Engine Optimization (DEO) platform that helps brands and agencies optimize their entire presence across search engines and AI assistants — including SEO, AEO, PEO, and VEO — without hiring a large team or relying solely on agencies.
 
 ---
 
 ## Key Value Props
 
-- **AI-generated metadata** — Titles, descriptions, and alt text written for you in seconds.
-- **One-click Shopify sync** — Pull products, push optimized content back to your store.
-- **Automated SEO audits** — Catch broken links, missing tags, and slow pages before they hurt rankings.
-- **Bulk product optimization** — Fix hundreds of products at once instead of one-by-one.
-- **Performance tracking** — Monitor rankings, traffic, and SEO health in a single dashboard.
+- **Multi-engine optimization, one platform** — Unifies SEO, AEO, PEO, and VEO signals so you can see, fix, and improve everything that drives discoverability.
+- **AI-generated metadata & content** — Titles, descriptions, alt text, FAQs, and answer-ready snippets generated in seconds, aligned to your brand.
+- **One-click store and site sync** — Pull products, pages, and collections; push optimized content back to Shopify and your site.
+- **Automated discovery audits** — Catch broken links, missing tags, weak entities, and answer gaps before they hurt visibility in search and AI surfaces.
+- **Bulk product & content optimization** — Fix hundreds of products or pages at once instead of one-by-one.
+- **DEO Score & visibility insights** — Track how discoverable your brand is across engines and surfaces from a single dashboard.
 
 ---
 
 ## Pains Solved
 
-- **"I don't have time to write SEO metadata for thousands of products."** — AI generates optimized titles, descriptions, and alt text in bulk.
-- **"I know my SEO is broken but I don't know where to start."** — Automated audits surface the highest-impact issues first.
-- **"SEO agencies are too expensive and I can't justify the cost."** — Self-serve automation delivers agency-level results at a fraction of the price.
+- **"I don't have time to write metadata and FAQs for thousands of products or pages."**
+  EngineO.ai generates optimized titles, descriptions, alt text, FAQs, and answer-ready content in bulk.
+
+- **"I know my SEO and AI visibility are broken, but I don't know where to start."**
+  Automated DEO audits surface the highest-impact issues first and group them into clear, fixable tasks.
+
+- **"SEO agencies are expensive and only focus on Google rankings."**
+  EngineO.ai delivers agency-level automation across SEO, AEO, PEO, and VEO — at a fraction of the cost.
+
+- **"Our content isn't showing up in AI assistants or answer boxes."**
+  EngineO.ai identifies entity and answer gaps and helps you create content that's ready to be used by AI engines and answer surfaces.
+
+---
+
+## Core Message
+
+EngineO.ai is how modern brands stay discoverable in a world where search results and AI answers change daily.
+Instead of chasing just rankings, we optimize your entire discovery footprint.

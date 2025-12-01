@@ -20,7 +20,7 @@
     "noFallthroughCasesInSwitch": false,
     "noEmit": false,
     "paths": {
-      "@seoengine/shared": ["../../packages/shared/src"]
+      "@engineo/shared": ["../../packages/shared/src"]
     }
   },
   "include": ["src/**/*", "prisma/**/*"],

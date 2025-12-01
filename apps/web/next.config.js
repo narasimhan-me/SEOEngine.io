@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@seoengine/shared'],
+  transpilePackages: ['@engineo/shared'],
 };
 
 module.exports = nextConfig;

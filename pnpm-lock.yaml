@@ -56,7 +56,7 @@ importers:
       '@prisma/client':
         specifier: ^7.0.1
         version: 7.0.1(prisma@7.0.1(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.9.3))(typescript@5.9.3)
-      '@seoengine/shared':
+      '@engineo/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@types/cheerio':
@@ -156,7 +156,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@seoengine/shared':
+      '@engineo/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       next:
