@@ -130,6 +130,8 @@ export const projectsApi = {
 
   overview: (id: string) => fetchWithAuth(`/projects/${id}/overview`),
 
+  deoScore: (id: string) => fetchWithAuth(`/projects/${id}/deo-score`),
+
   create: (data: { name: string; domain: string }) =>
     fetchWithAuth('/projects', {
       method: 'POST',

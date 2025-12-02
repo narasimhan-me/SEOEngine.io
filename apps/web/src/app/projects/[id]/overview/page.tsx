@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { isAuthenticated, removeToken, getToken } from '@/lib/auth';
-import { seoScanApi, aiApi, projectsApi } from '@/lib/api';
+import { aiApi, projectsApi, seoScanApi } from '@/lib/api';
+import type { DeoScoreLatestResponse } from '@engineo/shared';
 
 interface IntegrationStatus {
   projectId: string;
@@ -103,6 +104,8 @@ export default function ProjectOverviewPage() {
 
   // Project overview state
   const [overview, setOverview] = useState<ProjectOverview | null>(null);
+  const [deoScore, setDeoScore] = useState<DeoScoreLatestResponse | null>(null);
+  const [deoScoreLoading, setDeoScoreLoading] = useState(false);
 
   const fetchIntegrationStatus = useCallback(async () => {
     try {
@@ -160,6 +163,18 @@ export default function ProjectOverviewPage() {
     }
   }, [projectId]);
 
+  const fetchDeoScore = useCallback(async () => {
+    try {
+      setDeoScoreLoading(true);
+      const data = await projectsApi.deoScore(projectId);
+      setDeoScore(data);
+    } catch (err: unknown) {
+      console.error('Error fetching DEO score:', err);
+    } finally {
+      setDeoScoreLoading(false);
+    }
+  }, [projectId]);
+
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push('/login');
@@ -169,6 +184,7 @@ export default function ProjectOverviewPage() {
     fetchIntegrationStatus();
     fetchScanResults();
     fetchOverview();
+    fetchDeoScore();
 
     // Check if we just returned from Shopify OAuth
     if (searchParams.get('shopify') === 'connected') {
@@ -296,6 +312,24 @@ export default function ProjectOverviewPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">{status.projectName}</h1>
         <p className="text-gray-600">Project ID: {status.projectId}</p>
+      </div>
+      {/* DEO Score Preview */}
+      <div className="mb-6">
+        <h2 className="text-sm font-medium text-gray-500">DEO Score</h2>
+        {deoScoreLoading ? (
+          <p className="mt-1 text-sm text-gray-500">Loading...</p>
+        ) : deoScore?.latestScore ? (
+          <p className="mt-1 text-2xl font-bold text-gray-900">
+            {deoScore.latestScore.overall}/100
+            <span className="ml-2 text-xs font-medium text-gray-500">
+              Preview • v1 placeholder
+            </span>
+          </p>
+        ) : (
+          <p className="mt-1 text-sm text-gray-500">
+            No DEO Score yet. It will appear here once computation is enabled.
+          </p>
+        )}
       </div>
 
         {/* Project Overview Cards */}

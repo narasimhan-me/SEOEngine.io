@@ -27,189 +27,198 @@ Each step should produce diffs and await approval before applying.
 
 The Test Track runs in parallel with feature phases (1.x, 2.x, etc.) to ensure EngineO.ai remains stable as DEO features expand.
 
-**Planned stages:**
+Planned stages:
+- **Test Phase 0 – Baseline Test Harness** (this phase)
+- **Test Phase 1 – API Integration & Basic E2E**
+- **Test Phase 2 – DEO Pipelines & Regression Coverage**
+- **Test Phase 3 – Performance, Load & Chaos** (later)
 
-- Test Phase 0 – Baseline Test Harness (this phase)
-- Test Phase 1 – API Integration & Basic E2E
-- Test Phase 2 – DEO Pipelines & Regression Coverage
-- Test Phase 3 – Performance, Load & Chaos (later)
+This section defines **Test Phase 0** in detail.
 
-This section defines Test Phase 0 in detail.
+---
 
-### Test Phase 0 – Baseline Test Harness
+## Test Phase 0 – Baseline Test Harness
 
-#### Phase Summary
-
+### Phase Summary
 Establish a minimal but working test harness across the monorepo:
 
-- `apps/api` – NestJS backend unit tests
-- `apps/web` – Next.js component/unit tests
-- `packages/shared` – pure TypeScript unit tests
+- `apps/api` – NestJS backend unit tests  
+- `apps/web` – Next.js component/unit tests  
+- `packages/shared` – pure TypeScript unit tests  
 
 This phase focuses on:
 
-- Setting up Jest as the primary runner
-- Adding a small number of sample tests in each area
-- Wiring consistent scripts so future phases can layer on integration/E2E tests
+- Setting up **Jest** as the primary runner  
+- Adding a small number of sample tests in each area  
+- Wiring consistent scripts so future phases can layer on integration/E2E tests  
 
 No heavy integration or E2E yet – this is the foundation.
 
-#### Goals
+---
 
-- Make `pnpm test` run a predictable, fast baseline suite.
-- Give GPT-5.1 and Claude a clear, shared structure for all future tests.
-- Ensure backend, frontend, and shared packages all have at least one passing test.
-- Avoid test-runner fragmentation (single standard: Jest).
+### Goals
 
-#### Scope
+- Make `pnpm test` run a predictable, fast baseline suite.  
+- Give GPT-5.1 and Claude a clear, shared structure for all future tests.  
+- Ensure backend, frontend, and shared packages all have at least one passing test.  
+- Avoid test-runner fragmentation (single standard: **Jest**).
 
-**In scope**
+---
 
-- Root-level scripts for running tests
+### Scope
+
+#### In Scope
+
+- Root-level scripts for running tests  
 - Jest configuration for:
   - `apps/api`
   - `apps/web`
   - `packages/shared`
 - Sample tests:
-  - 1–2 backend unit tests
-  - 1 frontend component test
-  - 1 shared util test
-- Optional documentation for testing commands
+  - 1–2 backend unit tests  
+  - 1 frontend component test  
+  - 1 shared util test  
+- Optional documentation for testing commands  
 
-**Out of scope**
+#### Out of Scope
 
-- Full API integration tests (DB + Redis)
-- Playwright or Cypress E2E
-- Load/performance tests
+- Full API integration tests (DB + Redis)  
+- Playwright or Cypress E2E  
+- Load/performance tests  
 
 Those will be covered in later Test Phases.
-#### Implementation Details
 
-**1. Root Test Scripts & Dependencies**
+---
 
-Add Jest-related devDependencies at the root (not duplicated in each app):
+### Implementation Details
 
-- `jest`
-- `ts-jest`
-- `@types/jest`
-- `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event` (for web)
+#### 1. Root Test Scripts & Dependencies
 
-Add unified test scripts in `package.json`:
+- Add Jest-related devDependencies at the root (not duplicated in each app):
+  - `jest`  
+  - `ts-jest`  
+  - `@types/jest`
+  - `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event` (for web)
 
-- `test` → runs all suites
-- `test:api`
-- `test:web`
-- `test:shared`
+- Add unified test scripts in `package.json`:
 
-These will be wired to the app-level scripts (see below).
+```
+test → runs all suites  
+test:api  
+test:web  
+test:shared  
+```
 
-**2. Backend Tests – apps/api**
+These will be wired to the app-level scripts.
 
-- Create Jest config for the API:
-  - `apps/api/jest.config.api.ts`
-  - Uses `ts-jest`, `testEnvironment: "node"`, and matches `src/**/*.spec.ts` + `test/**/*.spec.ts`.
-- Create or update `apps/api/tsconfig.spec.json`:
-  - Extends `tsconfig.json`
+---
+
+#### 2. Backend Tests – `apps/api`
+
+- Create Jest config:  
+  - `apps/api/jest.config.api.ts`  
+  - Use `ts-jest`, `testEnvironment: "node"`, match `src/**/*.spec.ts` and `test/**/*.spec.ts`
+
+- Create/update `apps/api/tsconfig.spec.json`:
+  - Extends app tsconfig  
   - Adds `"types": ["jest", "node"]`
-  - Includes `src` and `test` directories.
+  - Includes `src` & `test`
+
 - Add `apps/api/package.json` script:
-  - `"test": "jest --config jest.config.api.ts"`
-- Add at least one unit test, e.g.:
-  - `AuthAbuseService` – verifies:
-    - `getFailedCount()` default behavior
-    - `isCaptchaRequired()` returns false when below threshold
-  - Uses Nest TestingModule with a mocked RedisService.
-  - This ensures we can test auth abuse / CAPTCHA logic without hitting external services.
 
-**3. Frontend Tests – apps/web**
+```
+"test": "jest --config jest.config.api.ts"
+```
 
-- Configure Jest via `next/jest`:
-  - `apps/web/jest.config.web.ts` using `next/jest({ dir: "./" })`
-  - `testEnvironment: "jsdom"`
-  - `testMatch: ["src/**/*.test.tsx", "src/**/*.test.ts"]`
-  - `setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"]`
-- Create `apps/web/jest.setup.ts`:
-  - Imports `@testing-library/jest-dom`.
-- Add `apps/web/package.json` script:
-  - `"test": "jest --config jest.config.web.ts"`
-- Add at least one component test, e.g.:
-  - `TopNav` component test (`TopNav.test.tsx`) that asserts:
-    - EngineO.ai brand text renders
-    - (Optionally) DEO tagline text renders
-  - This provides a smoke test that branding + layout shell render correctly.
+- Add at least one sample unit test, e.g.:
+  - `AuthAbuseService` test verifying:
+    - `getFailedCount()` default behavior  
+    - `isCaptchaRequired()` returns false when below threshold  
 
-**4. Shared Package Tests – packages/shared**
+---
 
-- Add `packages/shared/jest.config.shared.ts` with:
-  - `preset: "ts-jest"`
-  - `testEnvironment: "node"`
-  - `testMatch` for `src/**/*.spec.ts` and `test/**/*.spec.ts`.
-- Add `packages/shared/package.json` script:
-  - `"test": "jest --config jest.config.shared.ts"`
-- Add a simple util and test, e.g.:
-  - `math-utils.ts` with `clamp(value, min, max)`
-  - `math-utils.spec.ts` with 3 assertions:
-    - below min → min
-    - above max → max
-    - inside range → value
-  - This gives a pure, framework-agnostic test target for shared code.
+#### 3. Frontend Tests – `apps/web`
 
-**5. Optional: Testing Documentation**
+- Configure Jest with `next/jest`:
+  - `apps/web/jest.config.web.ts`  
+  - `testEnvironment: "jsdom"`  
+  - Matches `src/**/*.test.tsx`  
+
+- Create setup file:
+  - `apps/web/jest.setup.ts` importing `@testing-library/jest-dom`
+
+- Add script:
+
+```
+"test": "jest --config jest.config.web.ts"
+```
+
+- Add one sample React component test, e.g.:
+  - `TopNav.test.tsx` verifying "EngineO.ai" text renders
+
+---
+
+#### 4. Shared Package Tests – `packages/shared`
+
+- Create Jest config:
+  - `packages/shared/jest.config.shared.ts`  
+  - Uses `ts-jest`  
+  - Matches `src/**/*.spec.ts`
+
+- Add script:  
+
+```
+"test": "jest --config jest.config.shared.ts"
+```
+
+- Add sample util test:
+  - `clamp(value, min, max)` with 3 assertions  
+
+---
+
+#### 5. Optional: Testing Documentation
 
 Create `docs/testing.md` describing:
 
-- How to run:
-  - `pnpm test`
-  - `pnpm test:api`
-  - `pnpm test:web`
+- How to run:  
+  - `pnpm test`  
+  - `pnpm test:api`  
+  - `pnpm test:web`  
   - `pnpm test:shared`
 - Where tests live:
   - `apps/api/src/**/*.spec.ts`
   - `apps/web/src/**/*.test.tsx`
   - `packages/shared/src/**/*.spec.ts`
-- How this is Test Phase 0 and what later phases will add (API integration, E2E, etc.).
+- What later Test Phases will add (API integration, E2E, etc.)
 
-#### Dependencies & Ordering
+---
 
-**Test Phase 0 depends on:**
+### Dependencies & Ordering
 
-- Basic monorepo tooling (pnpm workspaces / package structure) being stable.
-- `apps/api`, `apps/web`, and `packages/shared` already existing with compile-clean code.
+Test Phase 0 depends on:
 
-**Test Phase 0 should ideally complete before:**
+- Monorepo tooling stable  
+- `apps/api`, `apps/web`, `packages/shared` compile without errors  
 
-- DEO Score logic becomes complex (Phase 2.2+)
-- Heavy billing / entitlements logic expansion
-- Large-scale refactors
+Should be completed before:
 
-So tests can catch regressions early.
+- DEO Score complexity (Phase 2.2+)  
+- Heavy billing/entitlement logic  
+- Large refactors  
 
-#### Acceptance Criteria
+---
 
-**Running `pnpm test` at the root:**
+### Acceptance Criteria
 
-- Executes `test:api`, `test:web`, and `test:shared` successfully.
-- All sample tests pass.
+- `pnpm test` runs all suites successfully  
+- `apps/api` has Jest config + at least one passing service unit test  
+- `apps/web` has Jest config + one passing component test  
+- `packages/shared` has Jest config + one passing util test  
+- Optional: `docs/testing.md` created  
 
-**apps/api:**
+---
 
-- Jest config present and valid.
-- At least one unit test for a core service (e.g., `AuthAbuseService` or `CaptchaService`).
-- Tests run without needing external services (Redis, DB mocked in unit tests).
-
-**apps/web:**
-
-- Jest + Testing Library can render a React component.
-- At least one test confirms EngineO.ai branding text appears.
-
-**packages/shared:**
-
-- Jest config present and valid.
-- At least one pure TypeScript utility test passes.
-
-**Optional:** `docs/testing.md` exists and matches the implemented commands.
-
-This Test Track section is intended to be maintained alongside the main Implementation Plan. Future Test Phases (1, 2, 3) will extend this with integration, E2E, and performance testing.
+_Author: Narasimhan Mahendrakumar_
 
 ---
 

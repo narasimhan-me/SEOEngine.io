@@ -1,22 +1,27 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Delete,
-  Param,
   Body,
-  UseGuards,
-  Request,
+  Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
+  Post,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ProjectsService, CreateProjectDto } from './projects.service';
+import { DeoScoreService } from './deo-score.service';
+import { DeoScoreLatestResponse } from '@engineo/shared';
 
 @Controller('projects')
 @UseGuards(JwtAuthGuard)
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(
+    private readonly projectsService: ProjectsService,
+    private readonly deoScoreService: DeoScoreService,
+  ) {}
 
   /**
    * GET /projects
@@ -73,5 +78,17 @@ export class ProjectsController {
   @Get(':id/overview')
   async getProjectOverview(@Request() req: any, @Param('id') projectId: string) {
     return this.projectsService.getProjectOverview(projectId, req.user.id);
+  }
+
+  /**
+   * GET /projects/:id/deo-score
+   * Returns latest DEO score snapshot for a project
+   */
+  @Get(':id/deo-score')
+  async getDeoScore(
+    @Request() req: any,
+    @Param('id') projectId: string,
+  ): Promise<DeoScoreLatestResponse> {
+    return this.deoScoreService.getLatestForProject(projectId, req.user.id);
   }
 }

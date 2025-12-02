@@ -31,3 +31,6 @@ export interface ApiResponse<T = any> {
 export interface HealthResponse {
   status: 'ok' | 'error';
 }
+
+// DEO Score types
+export * from './deo-score';
