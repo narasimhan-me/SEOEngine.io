@@ -13,6 +13,7 @@ const config: Config = {
   },
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
   testTimeout: 30000,
+  maxWorkers: 1,
 };
 
 export default config;

@@ -53,7 +53,7 @@ EngineO.ai is a monorepo containing:
 
 1. Log in to [Neon Console](https://console.neon.tech)
 2. Click **New Project**
-3. Choose a project name (e.g., `seoengine-prod`)
+3. Choose a project name (e.g., `engineo-prod`)
 4. Select a region close to your users (e.g., `us-east-1`)
 5. Create the project
 
@@ -98,7 +98,7 @@ npx prisma migrate deploy
 
 | Setting | Value |
 |---------|-------|
-| Name | `seoengine-api` |
+| Name | `engineo-api` |
 | Region | Same as Neon (e.g., `us-east-1`) |
 | Branch | `main` |
 | Root Directory | _(leave blank – repo root)_ |
@@ -128,11 +128,11 @@ In Render's **Environment** tab, add these variables:
 | `JWT_SECRET` | Generate with `openssl rand -base64 32` |
 | `SHOPIFY_API_KEY` | From Shopify Partner Dashboard |
 | `SHOPIFY_API_SECRET` | From Shopify Partner Dashboard |
-| `SHOPIFY_APP_URL` | `https://api.seoengine.io` |
+| `SHOPIFY_APP_URL` | `https://api.engineo.ai` |
 | `SHOPIFY_SCOPES` | `read_products,write_products` |
 | `AI_PROVIDER` | `gemini` or `openai` |
 | `AI_API_KEY` | Your AI provider API key |
-| `FRONTEND_URL` | `https://app.seoengine.io` |
+| `FRONTEND_URL` | `https://app.engineo.ai` |
 
 **Optional (Phase 10B – Stripe):**
 
@@ -146,8 +146,8 @@ In Render's **Environment** tab, add these variables:
 ### Custom Domain
 
 1. In Render service settings, go to **Settings** → **Custom Domains**
-2. Add `api.seoengine.io`
-3. Render will provide a CNAME target (e.g., `seoengine-api.onrender.com`)
+2. Add `api.engineo.ai`
+3. Render will provide a CNAME target (e.g., `engineo-api.onrender.com`)
 4. Configure this in Cloudflare (see DNS section below)
 
 ### Health Check
@@ -187,8 +187,8 @@ In Vercel's **Settings** → **Environment Variables**, add:
 
 | Variable | Value |
 |----------|-------|
-| `NEXT_PUBLIC_API_URL` | `https://api.seoengine.io` |
-| `NEXT_PUBLIC_APP_URL` | `https://app.seoengine.io` |
+| `NEXT_PUBLIC_API_URL` | `https://api.engineo.ai` |
+| `NEXT_PUBLIC_APP_URL` | `https://app.engineo.ai` |
 | `NEXT_PUBLIC_CAPTCHA_PROVIDER` | `turnstile` |
 | `NEXT_PUBLIC_CAPTCHA_SITE_KEY` | Cloudflare Turnstile site key |
 
@@ -204,7 +204,7 @@ In Vercel's **Settings** → **Environment Variables**, add:
 ### Custom Domain
 
 1. In Vercel project settings, go to **Domains**
-2. Add `app.seoengine.io`
+2. Add `app.engineo.ai`
 3. Vercel will provide DNS configuration instructions
 4. Configure in Cloudflare (see DNS section below)
 
@@ -215,7 +215,7 @@ In Vercel's **Settings** → **Environment Variables**, add:
 ### Add Domain to Cloudflare
 
 1. Log in to [Cloudflare Dashboard](https://dash.cloudflare.com)
-2. Click **Add a Site** and enter your domain (e.g., `seoengine.io`)
+2. Click **Add a Site** and enter your domain (e.g., `engineo.ai`)
 3. Follow the setup wizard to update your domain's nameservers
 
 ### Configure DNS Records
@@ -224,7 +224,7 @@ Add these DNS records:
 
 | Type | Name | Target | Proxy |
 |------|------|--------|-------|
-| CNAME | `api` | `seoengine-api.onrender.com` | Proxied (orange) |
+| CNAME | `api` | `engineo-api.onrender.com` | Proxied (orange) |
 | CNAME | `app` | `cname.vercel-dns.com` | Proxied (orange) |
 | CNAME | `@` | Your marketing site | Proxied (orange) |
 
@@ -238,15 +238,121 @@ Add these DNS records:
 
 ### Optional: WAF Rules
 
-Consider adding basic protection:
+Consider adding basic protection for your API and web app.
 
-- Rate limiting on API endpoints
-- Country blocking for `/admin` routes (if needed)
-- Bot protection
+#### 1. Rate Limiting on API Endpoints
+
+Protect your API from abuse by limiting requests per IP:
+
+1. Go to **Security** → **WAF** → **Rate limiting rules**
+2. Click **Create rule**
+3. Configure the rule:
+
+| Setting | Value |
+|---------|-------|
+| Rule name | `API Rate Limit` |
+| If incoming requests match... | `Hostname equals api.engineo.ai` |
+| Rate | `100 requests per 1 minute` |
+| Action | `Block` |
+| Duration | `1 minute` |
+
+4. For stricter auth endpoint protection, create another rule:
+
+| Setting | Value |
+|---------|-------|
+| Rule name | `Auth Rate Limit` |
+| Expression | `(http.host eq "api.engineo.ai" and http.request.uri.path contains "/auth")` |
+| Rate | `10 requests per 1 minute` |
+| Action | `Block` |
+| Duration | `10 minutes` |
+
+5. Click **Deploy**
+
+#### 2. Country Blocking for Admin Routes
+
+Restrict admin access to specific countries:
+
+1. Go to **Security** → **WAF** → **Custom rules**
+2. Click **Create rule**
+3. Configure:
+
+| Setting | Value |
+|---------|-------|
+| Rule name | `Block Admin from Outside US` |
+| Expression | `(http.request.uri.path contains "/admin" and not ip.geoip.country in {"US" "CA"})` |
+| Action | `Block` |
+
+4. Adjust country codes as needed (US, CA, GB, AU, etc.)
+5. Click **Deploy**
+
+#### 3. Bot Protection
+
+Enable Cloudflare's bot management:
+
+1. Go to **Security** → **Bots**
+2. Enable **Bot Fight Mode** (free tier) or configure **Super Bot Fight Mode** (Pro+):
+   - **Definitely automated**: Block
+   - **Likely automated**: Managed Challenge
+   - **Verified bots**: Allow (for search engines like Google, Bing)
+
+3. For API protection (Pro+ plans only), go to **Security** → **WAF** → **Custom rules**:
+
+| Setting | Value |
+|---------|-------|
+| Rule name | `Block Bad Bots on API` |
+| Expression | `(http.host eq "api.engineo.ai" and cf.client.bot)` |
+| Action | `Managed Challenge` |
+
+> **Note:** The `cf.bot_management.verified_bot` field requires a paid Bot Management add-on. On free/Pro plans, use `cf.client.bot` with "Managed Challenge" action to avoid blocking legitimate services. For free tier, rely on Bot Fight Mode instead of custom rules.
+
+#### 4. Additional Security Headers
+
+Add security headers via Response Header Transform Rules:
+
+1. Go to **Rules** → click **Create rule** button
+2. Select **Response Header Transform Rules** from the dropdown
+3. Configure:
+
+| Setting | Value |
+|---------|-------|
+| Rule name | `Security Headers` |
+| Expression | `(http.host eq "app.engineo.ai" or http.host eq "api.engineo.ai")` |
+
+4. Under **Then... Modify response header**, click **+ Set new header** and add each header:
+
+   **First header:**
+   - Select item: `Set static`
+   - Header name: `X-Content-Type-Options`
+   - Value: `nosniff`
+
+   **Second header:** (click **+ Set new header** again)
+   - Select item: `Set static`
+   - Header name: `X-Frame-Options`
+   - Value: `DENY`
+
+   **Third header:** (click **+ Set new header** again)
+   - Select item: `Set static`
+   - Header name: `Referrer-Policy`
+   - Value: `strict-origin-when-cross-origin`
+
+5. Click **Deploy**
+
+> **Note:** Response Header Transform Rules are available on all Cloudflare plans including the free tier.
+
+#### 5. DDoS Protection
+
+Cloudflare provides automatic DDoS protection on all plans (including free). The security level is fully automated and set to "always protected" by default - no configuration required.
+
+Optional settings in **Security** → **Settings**:
+
+- **I'm under attack mode**: Enable this only during an active DDoS attack. It adds an interstitial challenge page for all visitors.
+- **SSL/TLS DDoS attack protection**: Automatic mitigation for SSL-based attacks (enabled by default).
+
+> **Note:** Monitor **Security** → **Analytics** to review blocked requests and traffic patterns.
 
 ---
 
-## 5. Backups: AWS S3 + Cron Job
+## 5. Backups: AWS S3 + Cron Job (TODO)
 
 Even though Neon provides managed backups, we maintain independent backups to S3.
 
@@ -254,7 +360,7 @@ Even though Neon provides managed backups, we maintain independent backups to S3
 
 1. Log in to [AWS Console](https://console.aws.amazon.com)
 2. Go to **S3** → **Create bucket**
-3. Name: `seoengine-db-backups-prod`
+3. Name: `engineo-db-backups-prod`
 4. Region: Same as your infrastructure (e.g., `us-east-1`)
 5. Enable **Server-side encryption** (SSE-S3)
 6. Block all public access (default)
@@ -262,7 +368,7 @@ Even though Neon provides managed backups, we maintain independent backups to S3
 ### Create IAM User
 
 1. Go to **IAM** → **Users** → **Add users**
-2. Name: `seoengine-backup-bot`
+2. Name: `engineo-backup-bot`
 3. Select **Access key - Programmatic access**
 4. Attach a custom policy:
 
@@ -273,7 +379,7 @@ Even though Neon provides managed backups, we maintain independent backups to S3
     {
       "Effect": "Allow",
       "Action": ["s3:PutObject", "s3:GetObject"],
-      "Resource": "arn:aws:s3:::seoengine-db-backups-prod/*"
+      "Resource": "arn:aws:s3:::engineo-db-backups-prod/*"
     }
   ]
 }
@@ -290,7 +396,7 @@ Add these variables to your Render API service (or a dedicated cron job):
 | `AWS_ACCESS_KEY_ID` | Your IAM access key |
 | `AWS_SECRET_ACCESS_KEY` | Your IAM secret key |
 | `AWS_REGION` | `us-east-1` |
-| `S3_BACKUP_BUCKET` | `seoengine-db-backups-prod` |
+| `S3_BACKUP_BUCKET` | `engineo-db-backups-prod` |
 
 ### Backup Script
 
@@ -309,7 +415,7 @@ It performs:
 
 | Setting | Value |
 |---------|-------|
-| Name | `seoengine-db-backup` |
+| Name | `engineo-db-backup` |
 | Schedule | `0 2 * * *` (daily at 2 AM UTC) |
 | Build Command | `pnpm install && pnpm --filter api build` |
 | Command | `node apps/api/dist/scripts/backup-db.js` |
@@ -330,8 +436,8 @@ It performs:
 
 | Setting | Value |
 |---------|-------|
-| App URL | `https://app.seoengine.io` |
-| Allowed redirection URL(s) | `https://api.seoengine.io/shopify/callback` |
+| App URL | `https://app.engineo.ai` |
+| Allowed redirection URL(s) | `https://api.engineo.ai/shopify/callback` |
 
 4. Under **API access**, confirm scopes match your environment:
    - `read_products`
@@ -346,7 +452,7 @@ Ensure these are set in Render:
 |----------|--------|
 | `SHOPIFY_API_KEY` | Partners Dashboard → API credentials |
 | `SHOPIFY_API_SECRET` | Partners Dashboard → API credentials |
-| `SHOPIFY_APP_URL` | `https://api.seoengine.io` |
+| `SHOPIFY_APP_URL` | `https://api.engineo.ai` |
 | `SHOPIFY_SCOPES` | `read_products,write_products` |
 
 ### Testing
@@ -371,8 +477,8 @@ Set up monitoring with [UptimeRobot](https://uptimerobot.com), [Better Stack](ht
 
 | Endpoint | Check |
 |----------|-------|
-| `https://api.seoengine.io/health` | API health |
-| `https://app.seoengine.io` | Web app availability |
+| `https://api.engineo.ai/health` | API health |
+| `https://app.engineo.ai` | Web app availability |
 
 ### Logging
 
@@ -387,8 +493,8 @@ Before announcing your launch:
 
 - [ ] **Database:** Neon project created and `DATABASE_URL` configured
 - [ ] **Migrations:** `npx prisma migrate deploy` completed successfully
-- [ ] **API:** Render service deployed and responding at `https://api.seoengine.io`
-- [ ] **Web:** Vercel deployment live at `https://app.seoengine.io`
+- [ ] **API:** Render service deployed and responding at `https://api.engineo.ai`
+- [ ] **Web:** Vercel deployment live at `https://app.engineo.ai`
 - [ ] **DNS:** Cloudflare records configured for `api` and `app` subdomains
 - [ ] **SSL:** Full (strict) mode enabled in Cloudflare
 - [ ] **Shopify:** App URLs updated in Partner Dashboard

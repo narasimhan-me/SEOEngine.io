@@ -1414,6 +1414,93 @@ If you'd like, next step I can:
 
 ---
 
+## Phase R0 — Redis Infrastructure (Render) — Planned
+
+Redis is required for all asynchronous pipelines in EngineO.ai including:
+- DEO Score recomputation jobs
+- Crawling + indexability jobs (Phase 2.4)
+- Entity extraction jobs (Phase 3+)
+- Answer-ready content generation (Phase 4+)
+- Future rate-limiting + billing guardrails
+
+This phase introduces Redis into the EngineO infrastructure using a managed Redis instance on Render, plus a matching local development setup.
+
+### Goals of This Phase
+
+1. Provision a production-grade Redis instance on Render.
+2. Add a local Redis environment via Docker.
+3. Create a shared Redis provider (ioredis) for the NestJS API and worker.
+4. Configure BullMQ queues (e.g., deo_score_queue) to use the shared Redis connection.
+5. Update worker runtime to use Redis for job processing.
+6. Prepare for future Redis-backed queues in Phases 2.4, 3.0, and 4.0.
+
+### Deliverables
+
+#### 1. Provision Redis on Render
+- Create a Redis instance using Render's managed Redis add-on.
+- Obtain the connection string:
+  ```
+  REDIS_URL=redis://default:<password>@<host>:<port>
+  ```
+- Add `REDIS_URL` to:
+  - API service environment
+  - Worker service environment
+
+#### 2. Local Development Redis
+- Add a Docker Compose file:
+  ```yaml
+  version: "3.8"
+  services:
+    redis:
+      image: redis:7-alpine
+      container_name: engineo-redis
+      ports:
+        - "6379:6379"
+      command: ["redis-server", "--appendonly", "no"]
+  ```
+- Add `REDIS_URL=redis://localhost:6379` to `.env.development` and `.env.test`.
+
+#### 3. Redis Integration Module (API)
+- Implement a `RedisClient` using ioredis.
+- Add `RedisModule` that:
+  - Provides the Redis connection
+  - Ensures lifecycle cleanup
+
+#### 4. BullMQ Queue Integration
+- Update `deo_score_queue` (Phase 2.1+) to use Redis via `RedisClient`.
+- Ensure queue creation, job enqueue, and queue events use the shared Redis instance.
+
+#### 5. Worker Runtime
+- Update worker entrypoint to:
+  - Load `REDIS_URL`
+  - Instantiate BullMQ Worker + QueueEvents
+  - Process DEO Score jobs
+  - Log job completion/failures
+
+#### 6. Optional Add-On
+- Add a health check service using `client.ping()` for visibility.
+
+### Outcomes
+
+After Phase R0:
+- Redis will be fully provisioned for local + production environments.
+- API and workers will share a unified Redis connection.
+- DEO Score pipelines operate via a durable queue instead of in-process logic.
+- Infrastructure is ready for:
+  - Phase 2.4: Crawl/indexability jobs
+  - Phase 3.0: Entity extraction pipeline
+  - Phase 4.0: Answer-ready content generation
+  - Phase 10: Billing/rate-limiting
+
+### Follow-Up Tasks After R0
+
+- Add `crawl_queue` (Phase 2.4)
+- Add `entity_extraction_queue` (Phase 3.0)
+- Add `answer_generation_queue` (Phase 4.0)
+- Add Redis test container for T2 integration tests
+
+---
+
 # PHASE 2 — Shopify Integration (MVP) using Generic Integrations
 
 In this phase, we evolve the schema from a Shopify-specific connectedType to a generic Integration model that supports Shopify now and other platforms later. This matches the current implementation (Integration + IntegrationType.SHOPIFY).
