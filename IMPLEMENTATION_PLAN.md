@@ -214,7 +214,51 @@ Should be completed before:
 - `apps/api` has Jest config + at least one passing service unit test  
 - `apps/web` has Jest config + one passing component test  
 - `packages/shared` has Jest config + one passing util test  
-- Optional: `docs/testing.md` created  
+- Optional: `docs/testing.md` created
+
+---
+
+## Testing Track
+
+### Phase T0 – Backend API Test Foundation (Completed)
+
+Set up Jest configuration for `apps/api` suitable for unit/integration and e2e tests.
+
+Created a standard test folder structure:
+- `apps/api/test/e2e`
+- `apps/api/test/integration`
+- `apps/api/test/fixtures`
+- `apps/api/test/utils`
+
+Implemented test utilities:
+- `createTestApp()` helper to bootstrap `AppModule` in test mode using `.env.test`.
+- Test DB helper to run Prisma migrations and reset/clean the test database.
+- Added basic fixtures/factories for a test user and test project.
+
+Added a working example e2e test (e.g., `/health`) using Supertest and `createTestApp()`.
+
+Added package scripts (e.g., `test:api`, `test:api:e2e`) to run backend tests locally and in CI.
+
+### Phase T1 – Critical API E2E Coverage (Planned)
+
+Add high-confidence e2e tests for:
+- Auth flows (signup/login/token).
+- Core project endpoints (create/list).
+- DEO score endpoints (recompute + fetch latest score).
+
+Cover happy paths and core error/permission cases for these endpoints.
+
+Wire API test commands into CI so that breaking core APIs fails the pipeline.
+
+### Phase T2 – Expanded Coverage & CI Enforcement (Planned)
+
+Expand e2e coverage to additional APIs as they are built.
+
+Add integration tests for critical services (for example, `DeoScoreService` and worker pipelines).
+
+Enforce a rule that every new or modified API endpoint must add or update tests.
+
+Make backend tests a required step in the main CI pipeline.
 
 ---
 

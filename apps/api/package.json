@@ -10,7 +10,9 @@
     "start:prod": "node dist/apps/api/src/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "seed": "prisma db execute --file prisma/seed.sql",
-    "seed:ts": "ts-node prisma/seed.ts"
+    "seed:ts": "ts-node prisma/seed.ts",
+    "test:api": "jest --config jest.config.ts",
+    "test:api:e2e": "jest --config jest.e2e.config.ts"
   },
   "prisma": {
     "seed": "prisma db execute --file prisma/seed.sql"
@@ -60,6 +62,11 @@
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "supertest": "^6.3.4",
+    "@types/jest": "^29.5.12",
+    "@types/supertest": "^6.0.2"
   }
 }
