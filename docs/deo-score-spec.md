@@ -41,21 +41,38 @@ Future endpoints (later phases):
 
 - `GET /projects/:projectId/deo-score/history`
 
-## Recompute (Phase 2.1)
+## Phase 2.1 – Recompute Pipeline
+
+### Queue
+
+- **Name:** `deo_score_queue`
+- **Payload type:** `DeoScoreJobPayload` (shared type), which includes at least:
+  - `projectId: string`
+  - Optional metadata fields (e.g., `triggeredByUserId`, `reason`) may be added in later phases but are not required for Phase 2.1 behavior.
+
+### API endpoint
 
 - **POST /projects/:projectId/deo-score/recompute**
-  - Enqueues a DEO Score job into `deo_score_queue`.
-  - Payload: `DeoScoreJobPayload` (shared type).
+  - Validates project ownership before enqueueing.
+  - Enqueues a job onto `deo_score_queue` with payload `{ projectId }` (plus any optional metadata).
   - Response: `{ "projectId": string, "enqueued": true }`.
 
-## Worker Pipeline
+### Worker
 
-A worker listens on `deo_score_queue` and invokes:
+A worker process listens on `deo_score_queue` and, for each job:
 
-- `DeoScoreService.createPlaceholderSnapshotForProject(projectId)`
+1. Reads `projectId` from the payload.
+2. Calls `DeoScoreService.createPlaceholderSnapshotForProject(projectId)`.
+3. Logs success or failure, including `projectId` and `snapshotId` when available.
 
-In Phase 2.1 this uses placeholder scoring logic (e.g., fixed overall score of 50/100).
-Future phases will replace this with the real scoring engine that aggregates content, entity, technical, and visibility signals.
+### Placeholder behavior
+
+The worker uses `computePlaceholderDeoScore()` and `DeoScoreService.createPlaceholderSnapshotForProject` to:
+
+- Insert a new `DeoScoreSnapshot` row with `overallScore = 50` and component scores `null`.
+- Update `Project.currentDeoScore` and `Project.currentDeoScoreComputedAt` for fast access.
+
+No real scoring, signals, or weighting are introduced in Phase 2.1; those arrive in Phase 2.2+.
 
 ## Computation (Placeholder in Phase 2.0)
 

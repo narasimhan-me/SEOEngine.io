@@ -17,14 +17,26 @@ export class DeoScoreProcessor implements OnModuleInit, OnModuleDestroy {
       async (job: Job<DeoScoreJobPayload>): Promise<DeoScoreJobResult> => {
         const { projectId } = job.data;
 
-        const snapshot = await this.deoScoreService.createPlaceholderSnapshotForProject(
-          projectId,
-        );
+        try {
+          const snapshot = await this.deoScoreService.createPlaceholderSnapshotForProject(
+            projectId,
+          );
 
-        return {
-          projectId,
-          snapshotId: snapshot.id,
-        };
+          console.log(
+            `[DeoScoreProcessor] Successfully recomputed placeholder DEO score for project ${projectId} (snapshot ${snapshot.id})`,
+          );
+
+          return {
+            projectId,
+            snapshotId: snapshot.id,
+          };
+        } catch (error) {
+          console.error(
+            `[DeoScoreProcessor] Failed to recompute DEO score for project ${projectId}`,
+            error,
+          );
+          throw error;
+        }
       },
       {
         connection: {

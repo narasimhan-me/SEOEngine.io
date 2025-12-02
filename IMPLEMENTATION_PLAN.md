@@ -2109,6 +2109,32 @@ API endpoints:
 - (Later phase) `GET /projects/:id/deo-score/history` → historical snapshots for trend charts.
 
 Use this snapshot and denormalized score wherever DEO Score is displayed (dashboard cards, sidebar header).
+
+#### 7.3.4. Implementation Status & Follow-Ups
+
+**Phase 2.0 – Foundations (Completed)**
+
+- Prisma `DeoScoreSnapshot` model and `Project.currentDeoScore` / `currentDeoScoreComputedAt` fields are implemented in `apps/api/prisma/schema.prisma`.
+- Shared DEO Score DTOs and placeholder helper `computePlaceholderDeoScore()` live in `@engineo/shared` (see `packages/shared/src/deo-score.ts` and `deo-score-config.ts` / `deo-score-engine.ts`).
+- `DeoScoreService` and `GET /projects/:id/deo-score` are wired to read the latest snapshot or create a placeholder snapshot when none exists.
+
+**Phase 2.1 – Recompute Pipeline (Completed)**
+
+- Added `DeoScoreJobPayload` type to the shared package (`packages/shared/src/deo-jobs.ts`).
+- Registered `deo_score_queue` in the API (`apps/api/src/queues/queues.ts`).
+- Added `POST /projects/:projectId/deo-score/recompute` to enqueue DEO Score recompute jobs with the shared payload.
+- Implemented a worker processor for `deo_score_queue` (`DeoScoreProcessor`) that calls `DeoScoreService.createPlaceholderSnapshotForProject(projectId)`.
+- Pipeline now supports asynchronous DEO Score recomputation via BullMQ.
+- Documented queue, endpoint, and pipeline behavior in `docs/deo-score-spec.md` under "Phase 2.1 – Recompute Pipeline".
+
+**Phase 2.2+ – Follow-Up Tasks**
+
+- Implement real DEO scoring logic (signals, weights, computation) using `DeoScoreService.computeAndPersistScoreFromSignals` and `computeDeoScoreFromSignals`.
+- Integrate signals from crawlers, products, entities, and visibility pipelines into `DeoScoreSignals` and persist them for scoring.
+- Implement a `DeoScoreSnapshot` history endpoint (e.g., `GET /projects/:id/deo-score/history`) and wire it into dashboard trend visualizations.
+- Replace the placeholder snapshot generator with the v1 scoring engine while maintaining backwards-compatible snapshot schema.
+- Add unit and integration tests for `DeoScoreService`, the recompute endpoint, and the `deo_score_queue` worker.
+
 ---
 
 # PHASE 8 — Two-Factor Authentication (2FA)

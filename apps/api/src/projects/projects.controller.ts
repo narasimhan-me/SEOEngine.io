@@ -103,6 +103,8 @@ export class ProjectsController {
     @Param('id') projectId: string,
   ): Promise<{ projectId: string; enqueued: true }> {
     const userId = (req as any).user?.id ?? null;
+    // Validate project ownership before enqueueing
+    await this.projectsService.getProject(projectId, userId);
 
     const payload: DeoScoreJobPayload = {
       projectId,
