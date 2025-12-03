@@ -200,10 +200,13 @@ export class ShopifyService {
         },
       });
 
+      // Note: Shopify's seo.title/description are only set if merchant explicitly customized them.
+      // If not set, we fall back to product title (Shopify's default behavior).
+      // We store null for seoDescription if not set, so user knows to add one.
       const productData = {
         title: product.title,
         description: product.body_html || null,
-        seoTitle: product.metafields_global_title_tag || null,
+        seoTitle: product.metafields_global_title_tag || product.title || null,
         seoDescription: product.metafields_global_description_tag || null,
         imageUrls: product.images?.map((img: { src: string }) => img.src) || [],
         lastSyncedAt: new Date(),
