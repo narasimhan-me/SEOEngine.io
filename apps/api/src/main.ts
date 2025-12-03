@@ -5,9 +5,28 @@ import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS for development
+  // Enable CORS
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'https://staging.engineo.ai',
+    'https://app.engineo.ai',
+    'https://engineo.ai',
+    process.env.FRONTEND_URL,
+  ].filter(Boolean);
+
   app.enableCors({
-    origin: '*',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      // In development, allow all origins
+      if (process.env.NODE_ENV !== 'production') {
+        return callback(null, true);
+      }
+      callback(new Error('Not allowed by CORS'));
+    },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
