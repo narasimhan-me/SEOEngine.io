@@ -1,10 +1,6 @@
-'use client';
-
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 
 export default function MarketingFooter() {
-  const pathname = usePathname();
 
   return (
     <footer className="border-t border-slate-200 bg-slate-50">
