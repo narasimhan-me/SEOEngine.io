@@ -16,6 +16,11 @@ export default function MarketingNavbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Hide navbar on the Coming Soon root page
+  if (pathname === '/') {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
