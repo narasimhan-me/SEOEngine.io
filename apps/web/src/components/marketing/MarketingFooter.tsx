@@ -6,11 +6,6 @@ import { usePathname } from 'next/navigation';
 export default function MarketingFooter() {
   const pathname = usePathname();
 
-  // Hide footer on the Coming Soon root page
-  if (pathname === '/') {
-    return null;
-  }
-
   return (
     <footer className="border-t border-slate-200 bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
