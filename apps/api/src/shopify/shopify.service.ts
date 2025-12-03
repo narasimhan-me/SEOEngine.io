@@ -236,30 +236,107 @@ export class ShopifyService {
   }
 
   /**
-   * Fetch products from Shopify Admin REST API
+   * Fetch products from Shopify Admin GraphQL API
+   * Uses GraphQL to retrieve SEO metafields which aren't returned by REST API
    */
   private async fetchShopifyProducts(
     shopDomain: string,
     accessToken: string,
   ): Promise<ShopifyProduct[]> {
-    const url = `https://${shopDomain}/admin/api/2023-10/products.json?limit=50`;
+    const url = `https://${shopDomain}/admin/api/2024-01/graphql.json`;
+
+    const query = `
+      query GetProducts($first: Int!) {
+        products(first: $first) {
+          edges {
+            node {
+              id
+              title
+              handle
+              descriptionHtml
+              seo {
+                title
+                description
+              }
+              images(first: 10) {
+                edges {
+                  node {
+                    url
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
 
     const response = await fetch(url, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         'X-Shopify-Access-Token': accessToken,
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        query,
+        variables: { first: 50 },
+      }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Shopify API error:', errorText);
+      console.error('Shopify GraphQL API error:', errorText);
       throw new BadRequestException('Failed to fetch products from Shopify');
     }
 
-    const data = (await response.json()) as { products: ShopifyProduct[] };
-    return data.products || [];
+    const data = await response.json() as {
+      data?: {
+        products?: {
+          edges: Array<{
+            node: {
+              id: string;
+              title: string;
+              handle?: string;
+              descriptionHtml?: string;
+              seo?: {
+                title?: string;
+                description?: string;
+              };
+              images?: {
+                edges: Array<{
+                  node: { url: string };
+                }>;
+              };
+            };
+          }>;
+        };
+      };
+      errors?: Array<{ message: string }>;
+    };
+
+    if (data.errors) {
+      console.error('Shopify GraphQL errors:', data.errors);
+      throw new BadRequestException('Failed to fetch products from Shopify');
+    }
+
+    const edges = data.data?.products?.edges || [];
+
+    // Transform GraphQL response to our ShopifyProduct interface
+    return edges.map((edge) => {
+      const node = edge.node;
+      // Extract numeric ID from GraphQL ID (e.g., "gid://shopify/Product/123" -> 123)
+      const numericId = parseInt(node.id.split('/').pop() || '0', 10);
+
+      return {
+        id: numericId,
+        title: node.title,
+        handle: node.handle,
+        body_html: node.descriptionHtml,
+        metafields_global_title_tag: node.seo?.title || undefined,
+        metafields_global_description_tag: node.seo?.description || undefined,
+        images: node.images?.edges.map((imgEdge) => ({ src: imgEdge.node.url })),
+      };
+    });
   }
 
   /**

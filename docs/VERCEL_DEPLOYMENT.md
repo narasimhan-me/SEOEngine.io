@@ -141,7 +141,7 @@ These variables are not currently used in the codebase but may be added in the f
 You can set different values for different environments:
 
 - **Production (main)**: Production URLs and keys (e.g., `https://api.engineo.ai`, `https://app.engineo.ai`)
-- **Staging (develop)**: Staging URLs and keys (e.g., `https://api-staging.engineo.ai`, `https://staging.engineo.ai`)
+- **Staging (develop)**: Staging URLs and keys (e.g., `https://staging-api.engineo.ai`, `https://staging.engineo.ai`)
 - **Development**: Local development URLs
 
 Click the environment dropdown next to each variable to set environment-specific values. On Vercel, map the `main` branch to Production and the `develop` branch to a staging/preview environment with its own domain.

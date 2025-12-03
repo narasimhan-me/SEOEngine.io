@@ -31,7 +31,7 @@ EngineO.ai runs two primary environments backed by Git branches:
 | Environment | Git branch | API URL (example) | Web URL (example) |
 |------------|------------|-------------------|-------------------|
 | Production | `main`     | `https://api.engineo.ai` | `https://app.engineo.ai` |
-| Staging    | `develop`  | `https://api-staging.engineo.ai` | `https://staging.engineo.ai` |
+| Staging    | `develop`  | `https://staging-api.engineo.ai` | `https://staging.engineo.ai` |
 
 - **Production instances**
   - Render API service: `engineo-api` (branch `main`, domain `api.engineo.ai`)
@@ -41,7 +41,7 @@ EngineO.ai runs two primary environments backed by Git branches:
   - Upstash Redis: e.g., database `engineo-redis-prod`, `REDIS_PREFIX=engineo`
 
 - **Staging instances**
-  - Render API service: `engineo-api-staging` (branch `develop`, domain `api-staging.engineo.ai`)
+  - Render API service: `engineo-api-staging` (branch `develop`, domain `staging-api.engineo.ai`)
   - Render worker: `engineo-worker-staging` (branch `develop`)
   - Vercel web project: `engineo-web` (Preview/Staging environment, domain `staging.engineo.ai`)
   - Neon database/project or branch: e.g., `engineo-staging`
@@ -193,7 +193,7 @@ For **staging** (`develop` branch), create a separate Render Web Service (for ex
 - Its own `DATABASE_URL` pointing to the staging Neon database
 - Its own `REDIS_URL` (staging Upstash database or shared DB)
 - A distinct `REDIS_PREFIX` (for example, `engineo_staging`)
-- Optional: separate `JWT_SECRET`, `SHOPIFY_APP_URL`, and any other URLs (e.g., `https://api-staging.engineo.ai`, `https://staging.engineo.ai`)
+- Optional: separate `JWT_SECRET`, `SHOPIFY_APP_URL`, and any other URLs (e.g., `https://staging-api.engineo.ai`, `https://staging.engineo.ai`)
 
 ### Custom Domain
 
@@ -259,7 +259,7 @@ For **staging** (branch `develop`), configure a separate Vercel environment:
 - Set environment variables such as:
 
   ```bash
-  NEXT_PUBLIC_API_URL=https://api-staging.engineo.ai
+  NEXT_PUBLIC_API_URL=https://staging-api.engineo.ai
   NEXT_PUBLIC_APP_URL=https://staging.engineo.ai
   NEXT_PUBLIC_CAPTCHA_PROVIDER=turnstile
   NEXT_PUBLIC_CAPTCHA_SITE_KEY=<staging-site-key>
@@ -298,7 +298,7 @@ Add these DNS records for **staging**:
 
 | Type | Name | Target | Proxy |
 |------|------|--------|-------|
-| CNAME | `api-staging` | `engineo-api-staging.onrender.com` | Proxied (orange) |
+| CNAME | `staging-api` | `engineo-api-staging.onrender.com` | Proxied (orange) |
 | CNAME | `staging` | `cname.vercel-dns.com` (staging project/alias) | Proxied (orange) |
 
 > **Note:** Replace targets with the actual values from Render and Vercel for both production and staging services.
@@ -427,7 +427,7 @@ Optional settings in **Security** → **Settings**:
 
 ### Staging Access Control – One-Time Password
 
-To restrict staging (`staging.engineo.ai`, `api-staging.engineo.ai`) behind a one-time password challenge, use **Cloudflare Access**:
+To restrict staging (`staging.engineo.ai`, `staging-api.engineo.ai`) behind a one-time password challenge, use **Cloudflare Access**:
 
 1. Go to **Zero Trust** (or **Access**) in the Cloudflare dashboard.
 2. Navigate to **Access** → **Applications** → **Add an application** → **Self-hosted**.
@@ -436,7 +436,7 @@ To restrict staging (`staging.engineo.ai`, `api-staging.engineo.ai`) behind a on
    - **Session duration**: e.g., `8 hours`
    - **Application domain**:  
      - `staging.engineo.ai` (web app)  
-     - Optionally add `api-staging.engineo.ai` if you want to protect the API UI access as well.
+     - Optionally add `staging-api.engineo.ai` if you want to protect the API UI access as well.
 4. Click **Next** to define **Policies**:
    - Create a policy like:
      - **Policy name**: `staging-otp-access`
@@ -448,7 +448,7 @@ To restrict staging (`staging.engineo.ai`, `api-staging.engineo.ai`) behind a on
 6. Save and deploy the application.
 
 After configuration:
-- Any visit to `https://staging.engineo.ai` (and optionally `https://api-staging.engineo.ai`) will prompt for the Cloudflare Access one-time PIN before allowing access.
+- Any visit to `https://staging.engineo.ai` (and optionally `https://staging-api.engineo.ai`) will prompt for the Cloudflare Access one-time PIN before allowing access.
 
 ---
 

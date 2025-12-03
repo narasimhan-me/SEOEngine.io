@@ -11,7 +11,7 @@ Render hosts separate instances for production and staging:
 | Environment | Service name           | Branch   | Base URL (example)              |
 |------------|------------------------|---------|---------------------------------|
 | Production | `engineo-api`          | `main`  | `https://api.engineo.ai`        |
-| Staging    | `engineo-api-staging`  | `develop` | `https://api-staging.engineo.ai` |
+| Staging    | `engineo-api-staging`  | `develop` | `https://staging-api.engineo.ai` |
 
 Background workers follow the same pattern:
 
@@ -97,7 +97,7 @@ To add a dedicated staging API:
 1. Create a second Web Service (e.g., `engineo-api-staging`)
 2. Use the same build and start commands
 3. Set **Branch** to `develop`
-4. Point `DATABASE_URL`, `REDIS_URL`, and URLs (`SHOPIFY_APP_URL`, `FRONTEND_URL`) to your staging resources (for example, `https://api-staging.engineo.ai`, `https://staging.engineo.ai`)
+4. Point `DATABASE_URL`, `REDIS_URL`, and URLs (`SHOPIFY_APP_URL`, `FRONTEND_URL`) to your staging resources (for example, `https://staging-api.engineo.ai`, `https://staging.engineo.ai`)
 
 ---
 
@@ -227,7 +227,7 @@ REDIS_PREFIX=engineo
 For the staging API service (`engineo-api-staging`, branch `develop`):
 
 - `DATABASE_URL`: staging Neon database URL (separate from production)
-- `SHOPIFY_APP_URL`: `https://api-staging.engineo.ai`
+- `SHOPIFY_APP_URL`: `https://staging-api.engineo.ai`
 - `FRONTEND_URL`: `https://staging.engineo.ai`
 - `REDIS_URL`: staging Upstash Redis URL (or same DB with a different prefix)
 - `REDIS_PREFIX`: `engineo_staging`
