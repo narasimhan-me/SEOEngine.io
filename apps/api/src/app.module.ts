@@ -14,6 +14,7 @@ import { BillingModule } from './billing/billing.module';
 import { AdminModule } from './admin/admin.module';
 import { CaptchaModule } from './captcha/captcha.module';
 import { ContactModule } from './contact/contact.module';
+import { RedisModule } from './infra/redis/redis.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ContactModule } from './contact/contact.module';
       isGlobal: true,
       envFilePath: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
     }),
+    RedisModule,
     CaptchaModule,
     HealthModule,
     AuthModule,

@@ -1467,8 +1467,11 @@ This phase introduces Redis into the EngineO infrastructure using **Upstash serv
 #### 3. Redis Integration Module (API)
 - Implement a `RedisClient` using ioredis.
 - Add `RedisModule` that:
+  - Lives under `apps/api/src/infra/redis/redis.module.ts` with provider `RedisClient` in `apps/api/src/infra/redis/redis.provider.ts`.
   - Provides the Redis connection using `process.env.REDIS_URL` (Upstash TLS URL in production; `redis://localhost:6379` in local/dev).
-  - Ensures lifecycle cleanup.
+  - Ensures lifecycle cleanup via `OnModuleDestroy` (calling `quit()` on the shared ioredis client).
+  - Optionally exposes `RedisHealthService` in `apps/api/src/infra/redis/redis.health.ts` with a simple `ping()` check.
+  - Is imported into `AppModule` so Redis is available to queues, workers, and health checks.
 
 #### 4. BullMQ Queue Integration
 - Update `deo_score_queue` (Phase 2.1+) to use Redis via `RedisClient`.

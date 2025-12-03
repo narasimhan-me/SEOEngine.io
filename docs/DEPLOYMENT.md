@@ -646,6 +646,22 @@ Stripe billing can be added later:
 - Check Node.js version matches local development
 - Review build logs for missing dependencies
 
+### AI Suggestions / Gemini Issues
+
+If AI-powered suggestions are not working:
+
+- **Check environment variables (Render API):**
+  - `AI_PROVIDER` must be set (e.g., `gemini` or `openai`).
+  - `AI_API_KEY` must be set with a valid key for the selected provider (no quotes or extra spaces).
+- **Confirm a fresh deploy:**
+  - After changing AI env vars, trigger a manual redeploy of the API service so the new values are picked up.
+- **Inspect Render logs:**
+  - In the API service logs, search for lines containing `Gemini` / `OpenAI` / `AI`.
+  - Look for upstream error messages (invalid API key, quota exceeded, network errors).
+- **Verify frontend points to the correct API:**
+  - In Vercel, ensure `NEXT_PUBLIC_API_URL` is `https://api.engineo.ai` (or your staging API URL).
+  - Redeploy the frontend after changing environment variables.
+
 ---
 
 ## Related Documentation
