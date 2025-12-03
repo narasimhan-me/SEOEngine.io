@@ -46,3 +46,5 @@ Thumbs.db
 packages/shared/src/**/*.js
 packages/shared/src/**/*.js.map
 packages/shared/src/**/*.d.ts
+apps/api/.env_old
+.gitignore
