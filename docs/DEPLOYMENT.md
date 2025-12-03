@@ -286,7 +286,7 @@ For **staging** (branch `develop`), configure a separate Vercel environment:
 
 ### Configure DNS Records
 
-Add these DNS records:
+Add these DNS records for **production**:
 
 | Type | Name | Target | Proxy |
 |------|------|--------|-------|
@@ -294,15 +294,22 @@ Add these DNS records:
 | CNAME | `app` | `cname.vercel-dns.com` | Proxied (orange) |
 | CNAME | `@` | Your marketing site | Proxied (orange) |
 
-> **Note:** Replace targets with the actual values from Render and Vercel.
+Add these DNS records for **staging**:
 
-### SSL Configuration
+| Type | Name | Target | Proxy |
+|------|------|--------|-------|
+| CNAME | `api-staging` | `engineo-api-staging.onrender.com` | Proxied (orange) |
+| CNAME | `staging` | `cname.vercel-dns.com` (staging project/alias) | Proxied (orange) |
+
+> **Note:** Replace targets with the actual values from Render and Vercel for both production and staging services.
+
+### SSL Configuration (Both Environments)
 
 1. Go to **SSL/TLS** → **Overview**
 2. Set encryption mode to **Full (strict)**
 3. Enable **Always Use HTTPS** in **SSL/TLS** → **Edge Certificates**
 
-### Optional: WAF Rules
+### Optional: WAF Rules (Primarily Production)
 
 Consider adding basic protection for your API and web app.
 
@@ -334,7 +341,7 @@ Protect your API from abuse by limiting requests per IP:
 
 5. Click **Deploy**
 
-#### 2. Country Blocking for Admin Routes
+#### 2. Country Blocking for Admin Routes (Production)
 
 Restrict admin access to specific countries:
 
@@ -415,6 +422,33 @@ Optional settings in **Security** → **Settings**:
 - **SSL/TLS DDoS attack protection**: Automatic mitigation for SSL-based attacks (enabled by default).
 
 > **Note:** Monitor **Security** → **Analytics** to review blocked requests and traffic patterns.
+
+---
+
+### Staging Access Control – One-Time Password
+
+To restrict staging (`staging.engineo.ai`, `api-staging.engineo.ai`) behind a one-time password challenge, use **Cloudflare Access**:
+
+1. Go to **Zero Trust** (or **Access**) in the Cloudflare dashboard.
+2. Navigate to **Access** → **Applications** → **Add an application** → **Self-hosted**.
+3. Configure the application:
+   - **Application name**: `engineo-staging`
+   - **Session duration**: e.g., `8 hours`
+   - **Application domain**:  
+     - `staging.engineo.ai` (web app)  
+     - Optionally add `api-staging.engineo.ai` if you want to protect the API UI access as well.
+4. Click **Next** to define **Policies**:
+   - Create a policy like:
+     - **Policy name**: `staging-otp-access`
+     - **Action**: `Allow`
+     - **Include**: emails, emails ending in your domain, or Access groups (e.g., founders/team emails).
+5. Under **Authentication methods** for this application, enable **One-time PIN**:
+   - This forces users to enter a one-time code sent to their email before accessing staging.
+   - You can also enable additional methods (e.g., SSO) if desired, but One-time PIN ensures OTP-style access.
+6. Save and deploy the application.
+
+After configuration:
+- Any visit to `https://staging.engineo.ai` (and optionally `https://api-staging.engineo.ai`) will prompt for the Cloudflare Access one-time PIN before allowing access.
 
 ---
 
