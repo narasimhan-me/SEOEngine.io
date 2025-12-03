@@ -191,7 +191,7 @@ export default function ProjectOverviewPage() {
       setSuccessMessage('Successfully connected to Shopify!');
       setTimeout(() => setSuccessMessage(''), 5000);
     }
-  }, [projectId, searchParams, router, fetchIntegrationStatus, fetchScanResults, fetchOverview]);
+  }, [projectId, searchParams, router, fetchIntegrationStatus, fetchScanResults, fetchOverview, fetchDeoScore]);
 
   const handleConnectShopify = () => {
     if (!shopDomain) {

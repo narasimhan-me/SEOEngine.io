@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { projectsApi } from '@/lib/api';
@@ -24,6 +24,23 @@ export default function ProjectsPage() {
   const [creating, setCreating] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
 
+  const fetchProjects = useCallback(async () => {
+    try {
+      const data = await projectsApi.list();
+      setProjects(data);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : '';
+      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+        removeToken();
+        router.push('/login');
+        return;
+      }
+      setError(errorMessage || 'Failed to load projects');
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
+
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push('/login');
@@ -32,23 +49,7 @@ export default function ProjectsPage() {
 
     setAuthChecked(true);
     fetchProjects();
-  }, [router]);
-
-  const fetchProjects = async () => {
-    try {
-      const data = await projectsApi.list();
-      setProjects(data);
-    } catch (err: any) {
-      if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
-        removeToken();
-        router.push('/login');
-        return;
-      }
-      setError(err.message || 'Failed to load projects');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [router, fetchProjects]);
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,8 +61,8 @@ export default function ProjectsPage() {
       setProjects([created, ...projects]);
       setShowCreateModal(false);
       setNewProject({ name: '', domain: '' });
-    } catch (err: any) {
-      setError(err.message || 'Failed to create project');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to create project');
     } finally {
       setCreating(false);
     }
@@ -73,8 +74,8 @@ export default function ProjectsPage() {
     try {
       await projectsApi.delete(id);
       setProjects(projects.filter((p) => p.id !== id));
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete project');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to delete project');
     }
   };
 

@@ -44,8 +44,8 @@ export function ContactForm() {
       setCompany('');
       setMessage('');
       setCaptchaToken(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to send message. Please try again.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to send message. Please try again.');
     } finally {
       setLoading(false);
     }

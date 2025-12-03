@@ -44,8 +44,8 @@ export default function AdminUsersPage() {
       const data = await adminApi.getUsers(page);
       setUsers(data.users);
       setPagination(data.pagination);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load users');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load users');
     } finally {
       setLoading(false);
     }
@@ -56,8 +56,8 @@ export default function AdminUsersPage() {
       await adminApi.updateUserRole(userId, newRole);
       // Refresh the list
       fetchUsers(currentPage);
-    } catch (err: any) {
-      setError(err.message || 'Failed to update user role');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to update user role');
     }
   }
 

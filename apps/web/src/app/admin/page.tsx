@@ -21,8 +21,8 @@ export default function AdminDashboardPage() {
       try {
         const data = await adminApi.getStats();
         setStats(data);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load statistics');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Failed to load statistics');
       } finally {
         setLoading(false);
       }

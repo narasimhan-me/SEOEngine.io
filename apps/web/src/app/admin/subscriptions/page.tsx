@@ -51,8 +51,8 @@ export default function AdminSubscriptionsPage() {
       setUsers(usersData.users);
       setPagination(usersData.pagination);
       setPlans(plansData);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load data');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -68,8 +68,8 @@ export default function AdminSubscriptionsPage() {
       setSuccess('Subscription updated successfully');
       // Refresh the list
       fetchData(currentPage);
-    } catch (err: any) {
-      setError(err.message || 'Failed to update subscription');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to update subscription');
     } finally {
       setUpdating(null);
     }

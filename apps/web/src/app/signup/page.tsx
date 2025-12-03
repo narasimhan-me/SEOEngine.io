@@ -46,8 +46,8 @@ export default function SignupPage() {
       const loginResponse = await authApi.login({ email, password });
       setToken(loginResponse.accessToken);
       router.push('/projects');
-    } catch (err: any) {
-      setError(err.message || 'Signup failed. Please try again.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Signup failed. Please try again.');
     } finally {
       setLoading(false);
     }

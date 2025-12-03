@@ -51,8 +51,8 @@ export default function TwoFactorPage() {
 
       // Redirect to projects
       router.push('/projects');
-    } catch (err: any) {
-      setError(err.message || 'Invalid or expired code. Please try again.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Invalid or expired code. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -45,8 +45,8 @@ export default function SecuritySettingsPage() {
     try {
       const userData = await usersApi.me();
       setUser(userData);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load user data');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load user data');
     } finally {
       setLoading(false);
     }
@@ -60,8 +60,8 @@ export default function SecuritySettingsPage() {
     try {
       const data = await twoFactorApi.setupInit();
       setSetupData(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to initialize 2FA setup');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to initialize 2FA setup');
     } finally {
       setIsSettingUp(false);
     }
@@ -80,8 +80,8 @@ export default function SecuritySettingsPage() {
       setVerificationCode('');
       // Refresh user data to show updated status
       await fetchUser();
-    } catch (err: any) {
-      setError(err.message || 'Failed to enable 2FA. Please check your code and try again.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to enable 2FA. Please check your code and try again.');
     } finally {
       setIsEnabling(false);
     }
@@ -97,8 +97,8 @@ export default function SecuritySettingsPage() {
       setSuccess('Two-factor authentication has been disabled.');
       // Refresh user data to show updated status
       await fetchUser();
-    } catch (err: any) {
-      setError(err.message || 'Failed to disable 2FA');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to disable 2FA');
     } finally {
       setIsDisabling(false);
     }
@@ -178,6 +178,7 @@ export default function SecuritySettingsPage() {
             </p>
 
             <div className="flex flex-col items-center mb-6">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={setupData.qrCodeDataUrl}
                 alt="2FA QR Code"

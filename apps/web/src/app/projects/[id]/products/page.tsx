@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { isAuthenticated, getToken } from '@/lib/auth';
 import { productsApi, shopifyApi, seoScanApi, aiApi } from '@/lib/api';
 
@@ -308,10 +309,13 @@ export default function ProductsPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         {product.imageUrls && product.imageUrls.length > 0 ? (
-                          <img
+                          <Image
                             src={product.imageUrls[0]}
                             alt={product.title}
+                            width={40}
+                            height={40}
                             className="h-10 w-10 rounded object-cover mr-3"
+                            unoptimized
                           />
                         ) : (
                           <div className="h-10 w-10 rounded bg-gray-200 mr-3 flex items-center justify-center">

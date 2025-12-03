@@ -51,8 +51,8 @@ export default function BillingSettingsPage() {
       ]);
       setPlans(plansData);
       setSubscription(subscriptionData);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load billing data');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load billing data');
     } finally {
       setLoading(false);
     }
@@ -69,8 +69,8 @@ export default function BillingSettingsPage() {
       // Refresh subscription data
       const subscriptionData = await billingApi.getSubscription();
       setSubscription(subscriptionData);
-    } catch (err: any) {
-      setError(err.message || 'Failed to update subscription');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to update subscription');
     } finally {
       setUpdating(false);
     }
@@ -87,8 +87,8 @@ export default function BillingSettingsPage() {
       // Refresh subscription data
       const subscriptionData = await billingApi.getSubscription();
       setSubscription(subscriptionData);
-    } catch (err: any) {
-      setError(err.message || 'Failed to cancel subscription');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to cancel subscription');
     } finally {
       setUpdating(false);
     }
