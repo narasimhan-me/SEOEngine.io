@@ -37,7 +37,9 @@ async function bootstrap() {
   const port = process.env.PORT || 3001;
   await app.listen(port);
 
-  console.log(`🚀 SEOEngine API is running on: http://localhost:${port}`);
+  // Use RENDER_EXTERNAL_URL if available (Render deployment), otherwise show localhost
+  const baseUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
+  console.log(`🚀 SEOEngine API is running on: ${baseUrl}`);
 }
 
 bootstrap();
