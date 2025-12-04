@@ -5425,12 +5425,83 @@ Also moved `ProductStatus` type and `getProductStatus()` function to the shared 
 
 ---
 
-These Phases 23–30 plus Phases UX-1 and UX-2 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
+# PHASE UX-1.1 — Products Mobile Responsive Improvements
+
+**Goal:** Make the Products list and related navigation usable and legible on mobile by adapting layout responsively, without changing tablet/desktop or backend behavior.
+
+### UX-1.1.1. Scope
+
+- App: `apps/web` (Next.js, App Router).
+- Routes:
+  - `/projects/[id]/products` (Products list)
+  - Project and admin layouts that host the left sidebar.
+- Components:
+  - `ProjectLayout`, `AdminLayout`
+  - `ProjectSideNav`, `AdminSideNav`
+  - `ProductTable`, `ProductRow`
+
+### UX-1.1.2. Requirements
+
+- **Responsive-only changes**: No Prisma schema or backend logic changes.
+- **Desktop/tablet unchanged**: Layouts must remain visually identical on larger screens.
+- **Mobile adaptations**:
+  - Sidebar collapses into a drawer accessible via a Menu button.
+  - Product cards stack vertically with full-width action buttons.
+  - No horizontal scroll under normal usage.
+
+### UX-1.1.3. Implementation
+
+1. **Sidebar → Drawer Pattern**
+   - `ProjectLayout` converted to client component with `useState` for drawer state.
+   - On `<md`: Hide sidebar, show "Menu" button that opens slide-over drawer.
+   - On `≥md`: Keep existing side-by-side layout unchanged.
+   - Same pattern applied to `AdminLayout`.
+
+2. **SideNav Components**
+   - Added optional `onNavigate` prop to close drawer on link click.
+   - Width: `w-full max-w-xs md:w-48` for responsive drawer width.
+
+3. **ProductRow Mobile Stacking**
+   - On `<sm`: Vertical stacking with:
+     - Header: thumbnail + title (2-line clamp) + handle + status chip.
+     - Metadata indicators row.
+     - Full-width Optimize button.
+     - Scan SEO + overflow menu in secondary row.
+   - On `≥sm`: Horizontal 3-zone layout preserved.
+
+4. **Products Page Container**
+   - Added `overflow-x-hidden` to prevent horizontal scrolling.
+   - Header row: `flex-col sm:flex-row` with full-width Sync button on mobile.
+
+### UX-1.1.4. Files Modified
+
+| File | Changes |
+|------|---------|
+| `apps/web/src/app/projects/[id]/layout.tsx` | Client component + mobile drawer |
+| `apps/web/src/app/admin/layout.tsx` | Mobile drawer pattern |
+| `apps/web/src/components/layout/ProjectSideNav.tsx` | `onNavigate` prop, responsive width |
+| `apps/web/src/components/layout/AdminSideNav.tsx` | `onNavigate` prop, responsive width |
+| `apps/web/src/components/products/ProductRow.tsx` | Mobile stacking, split actions |
+| `apps/web/src/app/projects/[id]/products/page.tsx` | Responsive header, overflow-x-hidden |
+
+### UX-1.1.5. Acceptance Criteria
+
+- [x] On mobile: Left sidebar collapses into drawer accessible via Menu button.
+- [x] On mobile: Products list occupies full width; product cards stack vertically with actions at bottom.
+- [x] No overlapping buttons/pills; tap targets are comfortable.
+- [x] No horizontal scroll under normal usage.
+- [x] On tablet/desktop: Layout remains consistent with UX-1 (side-by-side sidebar + content, horizontal row-cards).
+- [x] Documentation updated in `docs/UX_REDESIGN.md`.
+
+---
+
+These Phases 23–30 plus Phases UX-1, UX-1.1, and UX-2 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
 
 - Phases 12–17: Core feature sets (automation, content, performance, competitors, local, social).
 - Phases 18–22: Security, subscription management, monitoring, fairness & limits.
 - Phases 23–30: Advanced AI-powered features gated behind add-ons for sustainable growth.
 - Phase UX-1: Targeted UX improvements to the Products page to improve day-to-day usability without backend changes.
+- Phase UX-1.1: Mobile responsive improvements for Products page and sidebar navigation.
 - Phase UX-2: Per-product optimization workspace with AI suggestions, manual editor, and DEO insights.
 
 ---

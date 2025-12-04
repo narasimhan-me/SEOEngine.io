@@ -258,3 +258,107 @@ These fields are populated if available from the backend but gracefully degrade 
 - **No Prisma schema changes**: New Product fields are optional and frontend-only for now
 - **Complements UX-1**: Works alongside the Products list, accessed via row click or direct URL
 
+---
+
+# Products Mobile Layout Fixes (Phase UX-1.1)
+
+This phase addresses mobile responsiveness issues in the Products page and related navigation, making the interface usable on phones without horizontal scrolling.
+
+## Goals
+
+- Make the Products list usable on mobile devices (phones)
+- Hide sidebar navigation on mobile and expose it via a slide-over drawer
+- Stack product cards vertically on small screens with full-width action buttons
+- Eliminate horizontal scrolling under normal usage conditions
+
+## Sidebar Navigation
+
+### Project Layout (`apps/web/src/app/projects/[id]/layout.tsx`)
+
+- Converted to a client component to manage drawer state
+- On mobile (`<md`): Sidebar hidden by default, "Menu" button shows at the top
+- On tablet/desktop (`≥md`): Side-by-side layout preserved unchanged
+- Drawer slides in from the left with a dark overlay backdrop
+- Clicking a nav link closes the drawer automatically
+
+### Admin Layout (`apps/web/src/app/admin/layout.tsx`)
+
+- Same drawer pattern as Project Layout
+- "Admin navigation" label with "Menu" button on mobile
+- Side-by-side layout on larger screens
+
+### SideNav Components
+
+- `ProjectSideNav` and `AdminSideNav` updated with optional `onNavigate` prop
+- When rendered in drawer, calling `onNavigate` closes the drawer on link click
+- Width adjusted: `w-full max-w-xs md:w-48` for responsive drawer width
+
+## Product Cards
+
+### `ProductRow.tsx` Mobile Stacking
+
+On mobile (`<sm`):
+1. **Header section**: Thumbnail + title (2-line clamp) + handle + status chip under title
+2. **Metadata indicators**: Title/Description/Alt text badges in one row
+3. **Actions section**:
+   - Optimize button: Full width with comfortable tap target
+   - Scan SEO + Overflow menu: Below Optimize in a secondary row
+
+On tablet/desktop (`≥sm`):
+- Horizontal 3-zone layout preserved
+- Status chip and Scan SEO button in middle section (hidden on mobile)
+
+### Layout Patterns
+
+```
+Mobile (<640px):
+┌─────────────────────────────────┐
+│ [img] Title line 1              │
+│       Title line 2 (if needed)  │
+│       handle-or-id              │
+│       [Status chip]             │
+├─────────────────────────────────┤
+│ [•Title] [•Desc] [•Alt]         │
+├─────────────────────────────────┤
+│ [    Optimize (full width)    ] │
+│ [Scan SEO]              [⋮]     │
+└─────────────────────────────────┘
+
+Desktop (≥640px):
+┌──────────────┬─────────────────────────┬──────────────┐
+│ [img] Title  │ [Status] [Scan SEO]     │ [Optimize][⋮]│
+│       handle │ [•Title][•Desc][•Alt]   │              │
+└──────────────┴─────────────────────────┴──────────────┘
+```
+
+## Horizontal Scroll Prevention
+
+### Products Page Container
+
+- Root container: `overflow-x-hidden` to prevent any horizontal scroll
+- Products list wrapper: `overflow-hidden md:overflow-visible`
+- Header row: `flex-col sm:flex-row` stacking with full-width Sync button on mobile
+- Long text truncated with `truncate` and `min-w-0` where applicable
+
+## Component Updates
+
+| File | Changes |
+|------|---------|
+| `apps/web/src/app/projects/[id]/layout.tsx` | Client component + mobile drawer |
+| `apps/web/src/app/admin/layout.tsx` | Mobile drawer pattern |
+| `apps/web/src/components/layout/ProjectSideNav.tsx` | `onNavigate` prop, responsive width |
+| `apps/web/src/components/layout/AdminSideNav.tsx` | `onNavigate` prop, responsive width |
+| `apps/web/src/components/products/ProductRow.tsx` | Mobile stacking, split actions |
+| `apps/web/src/app/projects/[id]/products/page.tsx` | Responsive header, overflow-x-hidden |
+
+## Breakpoints Used
+
+- `sm` (640px): Product cards switch from stacked to horizontal
+- `md` (768px): Sidebar drawer hidden, side-by-side layout shown
+
+## Constraints
+
+- **Responsive-only changes**: No backend or API changes
+- **Desktop/tablet unchanged**: Layouts remain visually identical on larger screens
+- **No new dependencies**: Uses Tailwind responsive utilities only
+

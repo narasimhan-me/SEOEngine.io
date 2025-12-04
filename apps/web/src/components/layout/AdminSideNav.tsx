@@ -9,7 +9,11 @@ const navItems = [
   { label: 'Subscriptions', path: '/admin/subscriptions' },
 ];
 
-export default function AdminSideNav() {
+interface AdminSideNavProps {
+  onNavigate?: () => void;
+}
+
+export default function AdminSideNav({ onNavigate }: AdminSideNavProps) {
   const pathname = usePathname();
 
   const isActive = (path: string) => {
@@ -20,7 +24,7 @@ export default function AdminSideNav() {
   };
 
   return (
-    <nav className="w-48 flex-shrink-0">
+    <nav className="w-full max-w-xs flex-shrink-0 md:w-48">
       <ul className="space-y-1">
         {navItems.map((item) => {
           const active = isActive(item.path);
@@ -28,9 +32,10 @@ export default function AdminSideNav() {
             <li key={item.path}>
               <Link
                 href={item.path}
-                className={`block px-3 py-2 text-sm rounded-md transition-colors ${
+                onClick={onNavigate}
+                className={`block rounded-md px-3 py-2 text-sm transition-colors ${
                   active
-                    ? 'bg-blue-50 text-blue-700 font-medium border-l-2 border-blue-700'
+                    ? 'border-l-2 border-blue-700 bg-blue-50 font-medium text-blue-700'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >

@@ -198,7 +198,7 @@ export default function ProductsPage() {
   }
 
   return (
-    <div>
+    <div className="overflow-x-hidden">
       <div className="mb-4 text-sm">
         <Link href={`/projects/${projectId}/overview`} className="text-blue-600 hover:text-blue-800">
           ← Back to Overview
@@ -206,21 +206,22 @@ export default function ProductsPage() {
       </div>
 
       {successMessage && (
-        <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+        <div className="mb-6 rounded border border-green-400 bg-green-100 p-4 text-green-700">
           {successMessage}
         </div>
       )}
 
       {error && (
-        <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div className="mb-6 rounded border border-red-400 bg-red-100 p-4 text-red-700">
           {error}
         </div>
       )}
 
-      <div className="mb-8 flex justify-between items-center">
-        <div>
+      {/* Header - responsive stacking */}
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-gray-900">Products</h1>
-          <p className="text-gray-600">
+          <p className="truncate text-gray-600">
             {projectInfo?.shopify.connected
               ? `Connected to ${projectInfo.shopify.shopDomain}`
               : 'Sync products from your connected Shopify store'}
@@ -229,11 +230,11 @@ export default function ProductsPage() {
         <button
           onClick={handleSyncProducts}
           disabled={syncing || !projectInfo?.shopify.connected}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         >
           {syncing ? (
             <>
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+              <svg className="-ml-1 mr-2 h-4 w-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
@@ -241,7 +242,7 @@ export default function ProductsPage() {
             </>
           ) : (
             <>
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
               Sync Products
@@ -251,7 +252,7 @@ export default function ProductsPage() {
       </div>
 
       {/* Products List */}
-      <div className="rounded-lg bg-white shadow">
+      <div className="overflow-hidden rounded-lg bg-white shadow md:overflow-visible">
         {products.length === 0 ? (
           <div className="text-center py-12">
             <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
