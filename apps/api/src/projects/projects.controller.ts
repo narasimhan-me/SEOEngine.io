@@ -144,4 +144,36 @@ export class ProjectsController {
 
     return { projectId, enqueued: true };
   }
+
+  /**
+   * POST /projects/:id/deo-score/recompute-sync
+   * Synchronously recomputes DEO score (bypasses queue - for local testing)
+   */
+  @Post(':id/deo-score/recompute-sync')
+  async recomputeDeoScoreSync(
+    @Request() req: any,
+    @Param('id') projectId: string,
+  ): Promise<{ projectId: string; computed: boolean; score?: number; message?: string }> {
+    const userId = (req as any).user?.id ?? null;
+    // Validate project ownership
+    await this.projectsService.getProject(projectId, userId);
+
+    try {
+      // Collect signals and compute score synchronously
+      const signals = await this.deoSignalsService.collectSignalsForProject(projectId);
+      const snapshot = await this.deoScoreService.computeAndPersistScoreFromSignals(projectId, signals);
+
+      return {
+        projectId,
+        computed: true,
+        score: snapshot.breakdown.overall,
+      };
+    } catch (error) {
+      return {
+        projectId,
+        computed: false,
+        message: error instanceof Error ? error.message : 'Failed to compute DEO score',
+      };
+    }
+  }
 }

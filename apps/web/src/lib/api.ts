@@ -132,6 +132,11 @@ export const projectsApi = {
 
   deoScore: (id: string) => fetchWithAuth(`/projects/${id}/deo-score`),
 
+  recomputeDeoScoreSync: (id: string) =>
+    fetchWithAuth(`/projects/${id}/deo-score/recompute-sync`, {
+      method: 'POST',
+    }),
+
   create: (data: { name: string; domain: string }) =>
     fetchWithAuth('/projects', {
       method: 'POST',

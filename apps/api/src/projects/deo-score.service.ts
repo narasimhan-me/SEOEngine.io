@@ -334,11 +334,11 @@ export class DeoSignalsService {
       if (
         lowerPath === '/' ||
         lowerPath === '/home' ||
-        lowerPath.startsWith('/about') ||
-        lowerPath.startsWith('/contact') ||
-        lowerPath.startsWith('/pricing') ||
-        lowerPath.startsWith('/faq') ||
-        lowerPath.startsWith('/support')
+        lowerPath === '/about' ||
+        lowerPath === '/contact' ||
+        lowerPath === '/pricing' ||
+        lowerPath === '/faq' ||
+        lowerPath === '/support'
       ) {
         navPages++;
       }
