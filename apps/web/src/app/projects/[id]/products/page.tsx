@@ -3,20 +3,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
+
+import { ProductTable } from '@/components/products/ProductTable';
 import { isAuthenticated, getToken } from '@/lib/auth';
 import { productsApi, shopifyApi, seoScanApi, aiApi } from '@/lib/api';
-
-interface Product {
-  id: string;
-  externalId: string;
-  title: string;
-  description: string | null;
-  seoTitle: string | null;
-  seoDescription: string | null;
-  imageUrls: string[] | null;
-  lastSyncedAt: string;
-}
+import type { Product } from '@/lib/products';
 
 interface ProductMetadataSuggestion {
   productId: string;
@@ -259,8 +250,8 @@ export default function ProductsPage() {
         </button>
       </div>
 
-      {/* Products Table */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
+      {/* Products List */}
+      <div className="rounded-lg bg-white shadow">
         {products.length === 0 ? (
           <div className="text-center py-12">
             <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -284,144 +275,17 @@ export default function ProductsPage() {
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Product
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Shopify ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    SEO Title
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    SEO Description
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Last Synced
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {products.map((product) => (
-                  <tr key={product.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        {product.imageUrls && product.imageUrls.length > 0 ? (
-                          <Image
-                            src={product.imageUrls[0]}
-                            alt={product.title}
-                            width={40}
-                            height={40}
-                            className="h-10 w-10 rounded object-cover mr-3"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="h-10 w-10 rounded bg-gray-200 mr-3 flex items-center justify-center">
-                            <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                          </div>
-                        )}
-                        <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
-                          {product.title}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {product.externalId}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {product.seoTitle ? (
-                          <div className="max-w-[200px]">
-                            <span
-                              className="block truncate cursor-help"
-                              title={product.seoTitle}
-                            >
-                              {product.seoTitle}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 italic">Not set</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {product.seoDescription ? (
-                          <div className="max-w-[250px]">
-                            <span
-                              className="block truncate cursor-help"
-                              title={product.seoDescription}
-                            >
-                              {product.seoDescription}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 italic">Not set</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(product.lastSyncedAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleScanProduct(product.id)}
-                            disabled={scanningId === product.id}
-                            className="inline-flex items-center px-3 py-1.5 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {scanningId === product.id ? (
-                              <>
-                                <svg className="animate-spin -ml-0.5 mr-1.5 h-3 w-3 text-blue-700" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Scanning...
-                              </>
-                            ) : (
-                              <>
-                                <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                                Scan SEO
-                              </>
-                            )}
-                          </button>
-                          <button
-                            onClick={() => handleSuggestMetadata(product.id)}
-                            disabled={loadingSuggestion && suggestingId === product.id}
-                            className="inline-flex items-center px-3 py-1.5 border border-purple-300 text-sm font-medium rounded-md text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {loadingSuggestion && suggestingId === product.id ? (
-                              <>
-                                <svg className="animate-spin -ml-0.5 mr-1.5 h-3 w-3 text-purple-700" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Loading...
-                              </>
-                            ) : (
-                              <>
-                                <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                                </svg>
-                                Suggest SEO
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <ProductTable
+            products={products}
+            onScanProduct={handleScanProduct}
+            onSuggestMetadata={handleSuggestMetadata}
+            onSyncProducts={handleSyncProducts}
+            syncing={syncing}
+            scanningId={scanningId}
+            suggestingId={suggestingId}
+            loadingSuggestion={loadingSuggestion}
+          />
+        )}
       </div>
 
       {/* AI Metadata Suggestion Modal */}

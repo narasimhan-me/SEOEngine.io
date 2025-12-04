@@ -5291,11 +5291,77 @@ Features:
 
 ---
 
-These Phases 23–30 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
+# PHASE UX-1 — Products Page UX Redesign
+
+**Goal:** Improve the usability and scan-ability of the Products list in the project detail view by replacing the wide, horizontally scrollable table with a compact, responsive row-card layout and an expandable detail panel.
+
+### UX-1.1. Scope
+
+- App: `apps/web` (Next.js, App Router).
+- Route: `/projects/[id]/products`.
+- Data sources:
+  - `productsApi.list(projectId)` for product data.
+  - Existing Shopify integration-status endpoint for connection state.
+  - Existing `seoScanApi` and `aiApi` endpoints for scan + AI metadata suggestions.
+
+### UX-1.2. Requirements
+
+- Remove horizontal scrolling from the Products page.
+- Replace `<table>` with a `<div>`-based, flex layout:
+  - Each product rendered as a row card with:
+    - Thumbnail, title, and Shopify identifier on the left.
+    - Status chip + DEO micro indicators (metadata presence) in the middle.
+    - Primary **Optimize** button + overflow menu on the right.
+- Add an expandable detail panel beneath each row containing:
+  - Meta title.
+  - Meta description.
+  - Alt text coverage (placeholder until backed by data).
+  - Issues (placeholder).
+  - Last synced (from `lastSyncedAt`).
+  - Last optimized (placeholder).
+  - URL (placeholder until product URLs are available).
+- Add a simple client-side filter bar:
+  - All / Needs Optimization / Optimized / Missing Metadata.
+  - Filters operate on the in-memory `products` array; no new backend endpoints.
+
+### UX-1.3. Implementation Notes
+
+- Create a shared `Product` interface for the frontend in `apps/web/src/lib/products.ts`.
+- Introduce dedicated UI components:
+  - `ProductTable` – owns filters, expanded-row state, and row status classification.
+  - `ProductRow` – renders the responsive row card, including:
+    - Scan SEO pill button (reusing existing scan handler).
+    - Optimize button (reusing existing AI suggestion flow and modal).
+    - Overflow menu with `View details`, `Sync`, `Edit` (disabled), `Remove` (disabled).
+  - `ProductDetailPanel` – renders secondary metadata/details for the expanded view.
+- Update `apps/web/src/app/projects/[id]/products/page.tsx` to:
+  - Keep all data-fetch and side-effect logic (auth, API calls, AI modal, Shopify apply).
+  - Delegate list rendering to `ProductTable`.
+- Styling:
+  - Use Tailwind flex/grid utilities (`flex`, `sm:flex-row`, `items-center`, `gap-*`, etc.).
+  - Ensure long text truncates rather than forcing horizontal scroll (`truncate`, `min-w-0`).
+
+### UX-1.4. Constraints & Non-Goals
+
+- Do **not** modify:
+  - Backend endpoints, Prisma schema, or queues.
+  - DEO scoring logic or crawler behavior.
+  - Shopify sync/update semantics.
+- UX-only refactor:
+  - Behavior and data contracts remain unchanged; only presentation and layout are updated.
+- Document the redesign in `docs/UX_REDESIGN.md` with:
+  - Layout overview.
+  - Component boundaries.
+  - Known placeholders/future hooks (alt coverage, URL, last optimized, etc.).
+
+---
+
+These Phases 23–30 plus Phase UX-1 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
 
 - Phases 12–17: Core feature sets (automation, content, performance, competitors, local, social).
 - Phases 18–22: Security, subscription management, monitoring, fairness & limits.
 - Phases 23–30: Advanced AI-powered features gated behind add-ons for sustainable growth.
+- Phase UX-1: Targeted UX improvements to the Products page to improve day-to-day usability without backend changes.
 
 ---
 
