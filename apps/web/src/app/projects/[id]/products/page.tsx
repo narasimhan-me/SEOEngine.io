@@ -157,24 +157,29 @@ export default function ProductsPage() {
   const handleApplyToShopify = async () => {
     if (!currentSuggestion) return;
 
+    // Capture values before async operation to avoid closure issues
+    const targetProductId = currentSuggestion.productId;
+    const newSeoTitle = currentSuggestion.suggested.title;
+    const newSeoDescription = currentSuggestion.suggested.description;
+
     try {
       setApplyingToShopify(true);
       setError('');
 
       await shopifyApi.updateProductSeo(
-        currentSuggestion.productId,
-        currentSuggestion.suggested.title,
-        currentSuggestion.suggested.description,
+        targetProductId,
+        newSeoTitle,
+        newSeoDescription,
       );
 
-      // Update local product state
+      // Update local product state with captured values
       setProducts((prev) =>
         prev.map((p) =>
-          p.id === currentSuggestion.productId
+          p.id === targetProductId
             ? {
                 ...p,
-                seoTitle: currentSuggestion.suggested.title,
-                seoDescription: currentSuggestion.suggested.description,
+                seoTitle: newSeoTitle,
+                seoDescription: newSeoDescription,
               }
             : p,
         ),
