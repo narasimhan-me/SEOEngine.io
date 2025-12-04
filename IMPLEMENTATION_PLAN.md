@@ -2315,6 +2315,7 @@ Use this snapshot and denormalized score wherever DEO Score is displayed (dashbo
 - Kept the DEO pipeline shape stable:
   - `DeoScoreProcessor` still pulls `DeoScoreJobPayload` from `deo_score_queue`, calls `DeoSignalsService.collectSignalsForProject(projectId)`, and passes signals into `DeoScoreService.computeAndPersistScoreFromSignals`.
   - The debug endpoint `GET /projects/:id/deo-signals/debug` continues to expose the current normalized signals, now including the Phase 2.4 crawl-derived metrics.
+  - Manually validated Phase 2.4 via local DEO score recomputes (using the sync recompute endpoint and frontend button) by toggling metadata, thin content, and navigational pages and confirming expected changes in signals and overall DEO score.
 
 ---
 

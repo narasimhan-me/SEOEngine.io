@@ -293,7 +293,9 @@ Phase 2.4 upgrades `DeoSignalsService` to compute real crawl-based signals using
 - `entityStructureAccuracy` – clamped inverse of entity structure issues:
   - `raw = 1 - (entityIssuePages / totalPages)` where entity issues include missing `title`, `metaDescription`, or `h1`, or thin content;
   - `entityStructureAccuracy = clamp(raw, 0.3, 0.9)`; if no pages exist, defaults to `0.5`.
-- `entityLinkageDensity` – if an `internalLinkCount` field is available on `CrawlResult`, use `min(avgInternalLinks / 20, 1)`; otherwise fall back to the existing word-count heuristic `min(avgWordCount / 1200, 1)`.
+- `entityLinkageDensity`:
+  - If an `internalLinkCount` field is available on `CrawlResult`, compute `avgInternalLinks = sum(internalLinkCount) / totalPages` (treating pages without the field as 0) and `entityLinkageDensity = min(avgInternalLinks / 20, 1)`.
+  - Otherwise fall back to the existing word-count heuristic `min(avgWordCount / 1200, 1)`.
 
 ### Worker behavior
 

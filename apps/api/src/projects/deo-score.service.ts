@@ -386,8 +386,9 @@ export class DeoSignalsService {
 
     // entityLinkageDensity: internal link density if available, otherwise word-count fallback
     let entityLinkageDensity: number;
-    if (internalLinkSamples > 0) {
-      const avgInternalLinks = internalLinkSum / internalLinkSamples;
+    if (internalLinkSamples > 0 && totalPages > 0) {
+      // Treat pages without internalLinkCount as 0 when averaging
+      const avgInternalLinks = internalLinkSum / totalPages;
       entityLinkageDensity = Math.min(avgInternalLinks / 20, 1);
     } else {
       entityLinkageDensity = Math.max(0, Math.min(1, avgWordCount / 1200));
