@@ -1,11 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authApi, ApiError } from '@/lib/api';
 import { setToken } from '@/lib/auth';
-import { Captcha } from '@/components/common/Captcha';
+
+// Lazy load Captcha to avoid loading Turnstile script until needed
+const Captcha = lazy(() =>
+  import('@/components/common/Captcha').then((m) => ({ default: m.Captcha }))
+);
 
 // Session storage key for 2FA temp token
 const TEMP_2FA_TOKEN_KEY = 'engineo_temp_2fa_token';
@@ -120,11 +124,13 @@ export default function LoginPage() {
 
           {showCaptcha && (
             <div className="flex justify-center">
-              <Captcha
-                onVerify={(token) => setCaptchaToken(token)}
-                onExpire={() => setCaptchaToken(null)}
-                onError={() => setCaptchaToken(null)}
-              />
+              <Suspense fallback={<div className="text-sm text-gray-500">Loading CAPTCHA...</div>}>
+                <Captcha
+                  onVerify={(token) => setCaptchaToken(token)}
+                  onExpire={() => setCaptchaToken(null)}
+                  onError={() => setCaptchaToken(null)}
+                />
+              </Suspense>
             </div>
           )}
 
