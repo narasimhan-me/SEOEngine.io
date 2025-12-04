@@ -26,8 +26,8 @@ export class AiService {
     this.provider =
       (this.configService.get<string>('AI_PROVIDER') as 'openai' | 'anthropic' | 'gemini') ||
       'openai';
-    // Allow configurable Gemini model, default to gemini-1.5-flash for better rate limits
-    this.geminiModel = this.configService.get<string>('GEMINI_MODEL') || 'gemini-1.5-flash';
+    // Allow configurable Gemini model, default to gemini-2.0-flash-lite for best rate limits
+    this.geminiModel = this.configService.get<string>('GEMINI_MODEL') || 'gemini-2.0-flash-lite';
   }
 
   async generateMetadata(input: MetadataInput): Promise<MetadataOutput> {
@@ -205,9 +205,8 @@ Respond in JSON format only:
 
   private getFallbackMetadata(): MetadataOutput {
     return {
-      title: 'AI suggestions unavailable - configure AI_API_KEY',
-      description:
-        'Configure your AI provider API key in .env to enable AI-powered metadata suggestions.',
+      title: '',
+      description: '',
     };
   }
 }
