@@ -1,11 +1,14 @@
+import type { DeoIssue } from '@engineo/shared';
 import type { Product } from '@/lib/products';
 import { getProductStatus } from '@/lib/products';
+import { ISSUE_UI_CONFIG } from '@/components/issues/IssuesList';
 
 interface ProductDeoInsightsPanelProps {
   product: Product;
+  productIssues?: DeoIssue[];
 }
 
-export function ProductDeoInsightsPanel({ product }: ProductDeoInsightsPanelProps) {
+export function ProductDeoInsightsPanel({ product, productIssues }: ProductDeoInsightsPanelProps) {
   // Calculate word count from description
   const wordCount = product.description
     ? product.description.trim().split(/\s+/).filter(Boolean).length
@@ -119,6 +122,37 @@ export function ProductDeoInsightsPanel({ product }: ProductDeoInsightsPanelProp
             </span>
           </div>
         </div>
+
+        {/* DEO Issues for this product */}
+        {productIssues && productIssues.length > 0 && (
+          <div className="border-t border-gray-100 pt-4">
+            <div className="mb-2 text-xs font-medium uppercase text-gray-500">DEO Issues</div>
+            <div className="space-y-2">
+              {productIssues.map((issue) => {
+                const config = ISSUE_UI_CONFIG[issue.id] ?? {
+                  label: issue.id,
+                  description: '',
+                };
+                const severityColors = {
+                  critical: 'border-red-200 bg-red-50 text-red-700',
+                  warning: 'border-yellow-200 bg-yellow-50 text-yellow-700',
+                  info: 'border-blue-200 bg-blue-50 text-blue-700',
+                };
+                return (
+                  <div
+                    key={issue.id}
+                    className={`rounded-md border px-3 py-2 ${severityColors[issue.severity]}`}
+                  >
+                    <div className="text-xs font-medium">{config.label}</div>
+                    {config.description && (
+                      <div className="mt-0.5 text-[10px] opacity-80">{config.description}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Coming Soon / Roadmap */}
         <div className="rounded-md border border-dashed border-gray-300 bg-gray-50 p-3">

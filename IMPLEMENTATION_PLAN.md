@@ -5687,7 +5687,50 @@ Also moved `ProductStatus` type and `getProductStatus()` function to the shared 
 
 ---
 
-These Phases 23–30 plus Phases UX-1, UX-1.1, and UX-2 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
+# PHASE UX-4 — Issues UI Integration
+
+**Frontend-only phase surfacing DEO issues across the web app.**
+
+### UX-4.1. Scope
+
+Connect the backend DEO Issues Engine (`GET /projects/:id/deo-issues`) to the frontend, displaying aggregated issue data in:
+
+1. **Project Overview** – Summary card with severity counts + full issues list modal
+2. **Products List** – Per-product issue badges with severity coloring
+3. **Product Optimization Workspace** – Detailed issues in DEO Insights panel
+
+### UX-4.2. Constraints
+
+- **Frontend-only**: Consumes existing Phase 3B `/projects/:id/deo-issues` endpoint
+- **No backend changes**: All changes in `apps/web`
+- **Graceful degradation**: Handles loading, error, and empty states
+- **Type-safe**: Uses shared `DeoIssue` and `DeoIssuesResponse` types from `@engineo/shared`
+
+### UX-4.3. Implementation Summary
+
+- Created `apps/web/src/components/issues/` directory with:
+  - `IssueBadge.tsx` – Compact severity-colored badge for product rows
+  - `IssuesSummaryCard.tsx` – Overview card with Critical/Warning/Info counts
+  - `IssuesList.tsx` – Expandable list with affected pages/products; includes `ISSUE_UI_CONFIG` for ID-to-label mapping
+- Added `deoIssues` method to `projectsApi` in `apps/web/src/lib/api.ts`
+- Updated Project Overview page with issues summary card and "View All Issues" modal
+- Updated `ProductRow` and `ProductTable` to display issue badges per product
+- Updated Products page to fetch and pass product issues
+- Updated `ProductDeoInsightsPanel` with DEO Issues section
+- Updated Product Optimization Workspace to fetch and display product-specific issues
+
+### UX-4.4. Acceptance Criteria
+
+- [ ] IssuesSummaryCard displays correctly on Project Overview with severity counts
+- [ ] "View All Issues" modal shows expandable IssuesList with affected pages/products
+- [ ] Products list shows IssueBadge on rows with issues, colored by highest severity
+- [ ] Product Optimization Workspace DEO Insights panel shows issues for current product
+- [ ] Loading, error, and empty states are handled gracefully across all integration points
+- [ ] No backend changes required; all data comes from existing `/projects/:id/deo-issues` endpoint
+
+---
+
+These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, and UX-4 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
 
 - Phases 12–17: Core feature sets (automation, content, performance, competitors, local, social).
 - Phases 18–22: Security, subscription management, monitoring, fairness & limits.
@@ -5695,6 +5738,8 @@ These Phases 23–30 plus Phases UX-1, UX-1.1, and UX-2 extend your IMPLEMENTATI
 - Phase UX-1: Targeted UX improvements to the Products page to improve day-to-day usability without backend changes.
 - Phase UX-1.1: Mobile responsive improvements for Products page and sidebar navigation.
 - Phase UX-2: Per-product optimization workspace with AI suggestions, manual editor, and DEO insights.
+- Phase UX-3: Project Overview page redesign with DEO score visualization and signals summary.
+- Phase UX-4: Issues UI integration surfacing DEO issues across Overview, Products, and Optimization Workspace.
 
 ---
 

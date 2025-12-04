@@ -1,11 +1,15 @@
 import { useState, type MouseEvent } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 
+import type { DeoIssueSeverity } from '@engineo/shared';
 import type { Product, ProductStatus } from '@/lib/products';
 import { ProductDetailPanel } from './ProductDetailPanel';
+import { IssueBadge } from '@/components/issues/IssueBadge';
 
 interface ProductRowProps {
   product: Product;
+  projectId: string;
   status: ProductStatus;
   isExpanded: boolean;
   onToggle: () => void;
@@ -15,10 +19,13 @@ interface ProductRowProps {
   isSyncing: boolean;
   isScanning: boolean;
   isOptimizing: boolean;
+  issueCount?: number;
+  maxIssueSeverity?: DeoIssueSeverity | null;
 }
 
 export function ProductRow({
   product,
+  projectId,
   status,
   isExpanded,
   onToggle,
@@ -28,6 +35,8 @@ export function ProductRow({
   isSyncing,
   isScanning,
   isOptimizing,
+  issueCount,
+  maxIssueSeverity,
 }: ProductRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -207,6 +216,9 @@ export function ProductRow({
               <span className="h-1.5 w-1.5 rounded-full bg-gray-300" />
               <span>Alt text</span>
             </span>
+            {issueCount && issueCount > 0 && (
+              <IssueBadge count={issueCount} severity={maxIssueSeverity} />
+            )}
           </div>
         </div>
 
@@ -334,7 +346,14 @@ export function ProductRow({
                 </svg>
               </button>
               {menuOpen && (
-                <div className="absolute right-0 z-20 mt-2 w-40 rounded-md border border-gray-200 bg-white py-1 text-sm text-gray-700 shadow-lg">
+                <div className="absolute right-0 z-20 mt-2 w-44 rounded-md border border-gray-200 bg-white py-1 text-sm text-gray-700 shadow-lg">
+                  <Link
+                    href={`/projects/${projectId}/products/${product.id}`}
+                    className="block w-full px-3 py-1.5 text-left font-medium text-emerald-600 hover:bg-gray-50"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Open Workspace
+                  </Link>
                   <button
                     type="button"
                     onClick={handleViewDetails}

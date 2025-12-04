@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 
+import type { DeoIssue } from '@engineo/shared';
 import type { Product, ProductStatus } from '@/lib/products';
 import { getProductStatus } from '@/lib/products';
 import { ProductRow } from './ProductRow';
@@ -8,6 +9,7 @@ type ProductFilter = 'all' | ProductStatus;
 
 interface ProductTableProps {
   products: Product[];
+  projectId: string;
   onScanProduct: (productId: string) => void;
   onSuggestMetadata: (productId: string) => void;
   onSyncProducts: () => void;
@@ -15,10 +17,12 @@ interface ProductTableProps {
   scanningId: string | null;
   suggestingId: string | null;
   loadingSuggestion: boolean;
+  productIssues?: DeoIssue[];
 }
 
 export function ProductTable({
   products,
+  projectId,
   onScanProduct,
   onSuggestMetadata,
   onSyncProducts,
@@ -26,6 +30,7 @@ export function ProductTable({
   scanningId,
   suggestingId,
   loadingSuggestion,
+  productIssues,
 }: ProductTableProps) {
   const [filter, setFilter] = useState<ProductFilter>('all');
   const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
@@ -55,6 +60,36 @@ export function ProductTable({
     }
     return products.filter((product) => getProductStatus(product) === filter);
   }, [products, filter]);
+
+  // Build a map of issues by product ID for quick lookup
+  const issuesByProductId = useMemo(() => {
+    const map = new Map<string, { count: number; maxSeverity: 'critical' | 'warning' | 'info' | null }>();
+    if (!productIssues) return map;
+
+    for (const issue of productIssues) {
+      for (const affectedProductId of issue.affectedProducts ?? []) {
+        const existing = map.get(affectedProductId);
+        const currentMax = existing?.maxSeverity ?? null;
+        let newMax: 'critical' | 'warning' | 'info' | null = currentMax;
+
+        // Determine highest severity (critical > warning > info)
+        if (issue.severity === 'critical') {
+          newMax = 'critical';
+        } else if (issue.severity === 'warning' && currentMax !== 'critical') {
+          newMax = 'warning';
+        } else if (issue.severity === 'info' && !currentMax) {
+          newMax = 'info';
+        }
+
+        map.set(affectedProductId, {
+          count: (existing?.count ?? 0) + 1,
+          maxSeverity: newMax,
+        });
+      }
+    }
+
+    return map;
+  }, [productIssues]);
 
   const handleToggleExpand = (productId: string) => {
     setExpandedProductId((current) => (current === productId ? null : productId));
@@ -108,11 +143,13 @@ export function ProductTable({
           {filteredProducts.map((product) => {
             const status = getProductStatus(product);
             const isExpanded = expandedProductId === product.id;
+            const productIssueData = issuesByProductId.get(product.id);
 
             return (
               <ProductRow
                 key={product.id}
                 product={product}
+                projectId={projectId}
                 status={status}
                 isExpanded={isExpanded}
                 onToggle={() => handleToggleExpand(product.id)}
@@ -122,6 +159,8 @@ export function ProductTable({
                 isSyncing={syncing}
                 isScanning={scanningId === product.id}
                 isOptimizing={loadingSuggestion && suggestingId === product.id}
+                issueCount={productIssueData?.count}
+                maxIssueSeverity={productIssueData?.maxSeverity}
               />
             );
           })}

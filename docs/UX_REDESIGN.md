@@ -362,3 +362,121 @@ Desktop (≥640px):
 - **Desktop/tablet unchanged**: Layouts remain visually identical on larger screens
 - **No new dependencies**: Uses Tailwind responsive utilities only
 
+---
+
+# Issues UI Integration (Phase UX-4)
+
+This phase surfaces DEO issues from the Phase 3B Issues Engine across the EngineO.ai web app, providing actionable visibility into issues affecting pages and products.
+
+## Purpose
+
+Connect the backend DEO Issues Engine (`GET /projects/:id/deo-issues`) to the frontend, displaying aggregated issue data in three key locations:
+
+1. **Project Overview** – Summary card + full issues list modal
+2. **Products List** – Per-product issue badges
+3. **Product Optimization Workspace** – Detailed issues in DEO Insights panel
+
+## Components Created
+
+### `apps/web/src/components/issues/`
+
+| Component | Description |
+|-----------|-------------|
+| `IssueBadge.tsx` | Compact badge showing issue count with severity-based coloring (critical=red, warning=orange, info=blue) |
+| `IssuesSummaryCard.tsx` | Summary card for Overview page with Critical/Warning/Info counts and "View All Issues" button |
+| `IssuesList.tsx` | Expandable list of issue categories with affected pages/products; maps issue IDs to friendly labels via `ISSUE_UI_CONFIG` |
+
+### Issue ID to Label Mapping
+
+The `ISSUE_UI_CONFIG` object in `IssuesList.tsx` provides user-friendly labels and descriptions:
+
+```typescript
+export const ISSUE_UI_CONFIG: Record<string, { label: string; description: string }> = {
+  'missing_meta_title': { label: 'Missing Meta Title', description: '...' },
+  'missing_meta_description': { label: 'Missing Meta Description', description: '...' },
+  'thin_content': { label: 'Thin Content', description: '...' },
+  // ... additional issue types
+};
+```
+
+## Integration Points
+
+### 1. Project Overview (`/projects/[id]/overview`)
+
+- **IssuesSummaryCard** in right column showing:
+  - Count by severity (Critical / Warning / Info)
+  - Loading skeleton while fetching
+  - Error state with retry
+  - Empty state when no issues
+- **"View All Issues"** button opens modal with full `IssuesList`
+- Data fetched via `projectsApi.deoIssues(projectId)`
+
+### 2. Products List (`/projects/[id]/products`)
+
+- **IssueBadge** on each `ProductRow` showing issue count for that product
+- Badge color reflects highest severity issue affecting the product
+- Issues filtered to `affectedProducts` containing the product ID
+- `ProductTable` receives `productIssues` prop and builds `issuesByProductId` map
+
+### 3. Product Optimization Workspace (`/projects/[id]/products/[productId]`)
+
+- **ProductDeoInsightsPanel** updated with new "DEO Issues" section
+- Shows issues specifically affecting the current product
+- Each issue displays with severity-based styling and description
+
+## API Integration
+
+Uses existing endpoint from Phase 3B:
+
+```typescript
+// apps/web/src/lib/api.ts
+export const projectsApi = {
+  // ... existing methods
+  deoIssues: (id: string) => fetchWithAuth(`/projects/${id}/deo-issues`),
+};
+```
+
+Response type:
+```typescript
+interface DeoIssuesResponse {
+  issues: DeoIssue[];
+}
+
+interface DeoIssue {
+  id: string;
+  severity: 'critical' | 'warning' | 'info';
+  count: number;
+  affectedPages?: { url: string; pageId: string }[];
+  affectedProducts?: { title: string; productId: string }[];
+}
+```
+
+## State Management
+
+Each page manages its own issues state:
+
+```typescript
+const [deoIssues, setDeoIssues] = useState<DeoIssue[]>([]);
+const [deoIssuesLoading, setDeoIssuesLoading] = useState(false);
+const [deoIssuesError, setDeoIssuesError] = useState<string | null>(null);
+```
+
+Issues are fetched alongside other page data using `Promise.all` for parallel loading.
+
+## Severity Color Scheme
+
+Consistent across all components:
+
+| Severity | Background | Border | Text |
+|----------|------------|--------|------|
+| Critical | `bg-red-50` | `border-red-200` | `text-red-700` |
+| Warning | `bg-yellow-50` | `border-yellow-200` | `text-yellow-700` |
+| Info | `bg-blue-50` | `border-blue-200` | `text-blue-700` |
+
+## Constraints
+
+- **Frontend-only**: Consumes existing `GET /projects/:id/deo-issues` endpoint
+- **No backend changes**: All changes in `apps/web`
+- **Graceful degradation**: Handles loading, error, and empty states
+- **Type-safe**: Uses shared `DeoIssue` and `DeoIssuesResponse` types from `@engineo/shared`
+

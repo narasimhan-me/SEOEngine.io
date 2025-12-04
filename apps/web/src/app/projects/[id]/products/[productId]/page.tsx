@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+import type { DeoIssue } from '@engineo/shared';
 import { isAuthenticated } from '@/lib/auth';
 import { projectsApi, productsApi, aiApi, shopifyApi } from '@/lib/api';
 import type { Product } from '@/lib/products';
@@ -31,6 +32,7 @@ export default function ProductOptimizationPage() {
   // Data states
   const [projectName, setProjectName] = useState<string | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
+  const [productIssues, setProductIssues] = useState<DeoIssue[]>([]);
 
   // Editor states
   const [editorTitle, setEditorTitle] = useState('');
@@ -50,10 +52,11 @@ export default function ProductOptimizationPage() {
       setLoading(true);
       setError('');
 
-      // Fetch project and products in parallel
-      const [projectData, productsData] = await Promise.all([
+      // Fetch project, products, and issues in parallel
+      const [projectData, productsData, issuesResponse] = await Promise.all([
         projectsApi.get(projectId),
         productsApi.list(projectId),
+        projectsApi.deoIssues(projectId).catch(() => ({ issues: [] })),
       ]);
 
       setProjectName(projectData.name);
@@ -68,6 +71,12 @@ export default function ProductOptimizationPage() {
       }
 
       setProduct(foundProduct);
+
+      // Filter issues to only those affecting this product
+      const issuesForProduct = (issuesResponse.issues ?? []).filter((issue: DeoIssue) =>
+        issue.affectedProducts?.includes(productId)
+      );
+      setProductIssues(issuesForProduct);
 
       // Initialize editor fields
       const title = foundProduct.seoTitle || foundProduct.title || '';
@@ -268,7 +277,7 @@ export default function ProductOptimizationPage() {
               />
             </div>
           }
-          insights={<ProductDeoInsightsPanel product={product} />}
+          insights={<ProductDeoInsightsPanel product={product} productIssues={productIssues} />}
         />
       )}
     </div>

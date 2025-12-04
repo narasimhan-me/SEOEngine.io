@@ -5,11 +5,18 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { isAuthenticated, removeToken, getToken } from '@/lib/auth';
 import { projectsApi, seoScanApi } from '@/lib/api';
-import type { DeoScoreLatestResponse, DeoScoreSignals } from '@engineo/shared';
+import type {
+  DeoScoreLatestResponse,
+  DeoScoreSignals,
+  DeoIssuesResponse,
+  DeoIssue,
+} from '@engineo/shared';
 import { DeoScoreCard } from '@/components/projects/DeoScoreCard';
 import { DeoComponentBreakdown } from '@/components/projects/DeoComponentBreakdown';
 import { DeoSignalsSummary } from '@/components/projects/DeoSignalsSummary';
 import { ProjectHealthCards } from '@/components/projects/ProjectHealthCards';
+import { IssuesSummaryCard } from '@/components/issues/IssuesSummaryCard';
+import { IssuesList } from '@/components/issues/IssuesList';
 
 interface IntegrationStatus {
   projectId: string;
@@ -110,6 +117,10 @@ export default function ProjectOverviewPage() {
   const [deoScoreRecomputing, setDeoScoreRecomputing] = useState(false);
   const [deoSignals, setDeoSignals] = useState<DeoScoreSignals | null>(null);
   const [deoSignalsLoading, setDeoSignalsLoading] = useState(false);
+  const [deoIssues, setDeoIssues] = useState<DeoIssuesResponse | null>(null);
+  const [deoIssuesLoading, setDeoIssuesLoading] = useState(false);
+  const [deoIssuesError, setDeoIssuesError] = useState<string | null>(null);
+  const [showIssuesPanel, setShowIssuesPanel] = useState(false);
 
   const fetchIntegrationStatus = useCallback(async () => {
     try {
@@ -188,6 +199,22 @@ export default function ProjectOverviewPage() {
     }
   }, [projectId]);
 
+  const fetchDeoIssues = useCallback(async () => {
+    try {
+      setDeoIssuesLoading(true);
+      setDeoIssuesError(null);
+      const data = await projectsApi.deoIssues(projectId);
+      setDeoIssues(data as DeoIssuesResponse);
+    } catch (err: unknown) {
+      console.error('Error fetching DEO issues:', err);
+      setDeoIssuesError(
+        err instanceof Error ? err.message : 'Failed to fetch DEO issues',
+      );
+    } finally {
+      setDeoIssuesLoading(false);
+    }
+  }, [projectId]);
+
   const handleRecomputeDeoScore = async () => {
     try {
       setDeoScoreRecomputing(true);
@@ -219,12 +246,23 @@ export default function ProjectOverviewPage() {
     fetchOverview();
     fetchDeoScore();
     fetchDeoSignals();
+    fetchDeoIssues();
 
     if (searchParams.get('shopify') === 'connected') {
       setSuccessMessage('Successfully connected to Shopify!');
       setTimeout(() => setSuccessMessage(''), 5000);
     }
-  }, [projectId, searchParams, router, fetchIntegrationStatus, fetchScanResults, fetchOverview, fetchDeoScore, fetchDeoSignals]);
+  }, [
+    projectId,
+    searchParams,
+    router,
+    fetchIntegrationStatus,
+    fetchScanResults,
+    fetchOverview,
+    fetchDeoScore,
+    fetchDeoSignals,
+    fetchDeoIssues,
+  ]);
 
   const handleConnectShopify = () => {
     if (!shopDomain) {
@@ -373,6 +411,12 @@ export default function ProjectOverviewPage() {
         <div className="space-y-4">
           <DeoSignalsSummary signals={deoSignals} loading={deoSignalsLoading} />
           <ProjectHealthCards signals={deoSignals} />
+          <IssuesSummaryCard
+            issues={(deoIssues?.issues as DeoIssue[]) ?? []}
+            loading={deoIssuesLoading}
+            error={deoIssuesError}
+            onViewAll={() => setShowIssuesPanel(true)}
+          />
         </div>
       </div>
 
@@ -565,6 +609,65 @@ export default function ProjectOverviewPage() {
           )}
         </div>
       </div>
+
+      {/* All Issues Modal */}
+      {showIssuesPanel && (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto"
+          aria-labelledby="issues-modal-title"
+          role="dialog"
+          aria-modal="true"
+        >
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+            onClick={() => setShowIssuesPanel(false)}
+          />
+          {/* Center container */}
+          <div className="flex min-h-full items-center justify-center p-4">
+            {/* Modal panel */}
+            <div
+              className="relative w-full max-w-4xl transform rounded-lg bg-white shadow-xl transition-all"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header - sticky */}
+              <div className="sticky top-0 z-10 flex items-start justify-between border-b bg-white px-6 py-4 rounded-t-lg">
+                <div>
+                  <h3 id="issues-modal-title" className="text-lg font-semibold text-gray-900">
+                    Issues identified in your project
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Based on the latest crawl, DEO signals, and product metadata.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowIssuesPanel(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+              {/* Content - scrollable */}
+              <div className="max-h-[calc(90vh-100px)] overflow-y-auto px-6 py-5">
+                <IssuesList issues={(deoIssues?.issues as DeoIssue[]) ?? []} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* AI Metadata Suggestion Modal */}
       {showSuggestionModal && currentSuggestion && (

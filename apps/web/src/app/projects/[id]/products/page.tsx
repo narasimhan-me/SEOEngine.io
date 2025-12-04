@@ -4,9 +4,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+import type { DeoIssue } from '@engineo/shared';
 import { ProductTable } from '@/components/products/ProductTable';
 import { isAuthenticated, getToken } from '@/lib/auth';
-import { productsApi, shopifyApi, seoScanApi, aiApi } from '@/lib/api';
+import { productsApi, projectsApi, shopifyApi, seoScanApi, aiApi } from '@/lib/api';
 import type { Product } from '@/lib/products';
 
 interface ProductMetadataSuggestion {
@@ -40,6 +41,7 @@ export default function ProductsPage() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [projectInfo, setProjectInfo] = useState<IntegrationStatus | null>(null);
+  const [productIssues, setProductIssues] = useState<DeoIssue[]>([]);
 
   // AI Suggestions state
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
@@ -86,6 +88,19 @@ export default function ProductsPage() {
     }
   }, [projectId]);
 
+  const fetchProductIssues = useCallback(async () => {
+    try {
+      const response = await projectsApi.deoIssues(projectId);
+      // Filter to only product-related issues
+      const issues = (response.issues ?? []).filter(
+        (issue: DeoIssue) => (issue.affectedProducts?.length ?? 0) > 0,
+      );
+      setProductIssues(issues);
+    } catch (err) {
+      console.error('Error fetching product issues:', err);
+    }
+  }, [projectId]);
+
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push('/login');
@@ -93,7 +108,8 @@ export default function ProductsPage() {
     }
     fetchProjectInfo();
     fetchProducts();
-  }, [projectId, router, fetchProducts, fetchProjectInfo]);
+    fetchProductIssues();
+  }, [projectId, router, fetchProducts, fetchProjectInfo, fetchProductIssues]);
 
   const handleSyncProducts = async () => {
     try {
@@ -278,6 +294,7 @@ export default function ProductsPage() {
         ) : (
           <ProductTable
             products={products}
+            projectId={projectId}
             onScanProduct={handleScanProduct}
             onSuggestMetadata={handleSuggestMetadata}
             onSyncProducts={handleSyncProducts}
@@ -285,6 +302,7 @@ export default function ProductsPage() {
             scanningId={scanningId}
             suggestingId={suggestingId}
             loadingSuggestion={loadingSuggestion}
+            productIssues={productIssues}
           />
         )}
       </div>

@@ -135,6 +135,8 @@ export const projectsApi = {
   deoSignalsDebug: (id: string) =>
     fetchWithAuth(`/projects/${id}/deo-signals/debug`),
 
+  deoIssues: (id: string) => fetchWithAuth(`/projects/${id}/deo-issues`),
+
   recomputeDeoScoreSync: (id: string) =>
     fetchWithAuth(`/projects/${id}/deo-score/recompute-sync`, {
       method: 'POST',
