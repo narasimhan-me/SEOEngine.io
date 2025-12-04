@@ -1,6 +1,7 @@
-import { useState, type MouseEvent } from 'react';
+import { useState, type KeyboardEvent, type MouseEvent } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 import type { DeoIssueSeverity } from '@engineo/shared';
 import type { Product, ProductStatus } from '@/lib/products';
@@ -40,8 +41,39 @@ export function ProductRow({
 }: ProductRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleRowClick = () => {
-    onToggle();
+  const router = useRouter();
+
+  const handleRowClick = (event: MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement | null;
+    if (
+      target &&
+      (target.closest('button') ||
+        target.closest('[data-no-row-click]') ||
+        target.closest('a'))
+    ) {
+      return;
+    }
+
+    router.push(`/projects/${projectId}/products/${product.id}`);
+  };
+
+  const handleRowKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    const target = event.target as HTMLElement | null;
+    if (
+      target &&
+      (target.closest('button') ||
+        target.closest('[data-no-row-click]') ||
+        target.closest('a'))
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    router.push(`/projects/${projectId}/products/${product.id}`);
   };
 
   const stopAnd = (event: MouseEvent, fn: () => void) => {
@@ -88,8 +120,11 @@ export function ProductRow({
   return (
     <div className="relative">
       <div
-        className="flex cursor-pointer flex-col gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 transition-shadow hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
+        className="flex cursor-pointer flex-col gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 transition-all hover:bg-gray-50 hover:shadow-sm active:bg-gray-100 sm:flex-row sm:items-center sm:justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
         onClick={handleRowClick}
+        onKeyDown={handleRowKeyDown}
+        role="button"
+        tabIndex={0}
       >
         {/* Header section – image + title + handle + status (mobile) */}
         <div className="flex min-w-0 flex-1 items-start gap-3">
@@ -126,12 +161,25 @@ export function ProductRow({
             <div className="mt-0.5 truncate text-xs text-gray-500">
               {product.handle ?? product.externalId}
             </div>
-            {/* Status chip - mobile only (shown under title) */}
-            <span
-              className={`mt-1.5 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium sm:hidden ${statusClasses}`}
-            >
-              {statusLabel}
-            </span>
+            {/* Status chip (mobile) + Open Workspace link */}
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium sm:hidden ${statusClasses}`}
+              >
+                {statusLabel}
+              </span>
+              <Link
+                href={`/projects/${projectId}/products/${product.id}`}
+                className="inline-flex items-center text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                data-no-row-click
+                onClick={(event) => event.stopPropagation()}
+              >
+                Open Workspace
+                <span aria-hidden="true" className="ml-0.5">
+                  &rarr;
+                </span>
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -146,6 +194,7 @@ export function ProductRow({
             </span>
             {/* Scan SEO button - desktop only */}
             <button
+              data-no-row-click
               onClick={(event) => stopAnd(event, onScan)}
               disabled={isScanning}
               className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
@@ -226,6 +275,7 @@ export function ProductRow({
         <div className="mt-2 flex flex-col gap-2 sm:ml-4 sm:mt-0 sm:flex-row sm:items-center sm:justify-end">
           {/* Optimize button - full width on mobile */}
           <button
+            data-no-row-click
             onClick={(event) => stopAnd(event, onOptimize)}
             disabled={isOptimizing}
             className="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-purple-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:py-1.5"
@@ -277,6 +327,7 @@ export function ProductRow({
           <div className="flex items-center justify-between gap-2 sm:justify-end">
             {/* Scan SEO button - mobile only */}
             <button
+              data-no-row-click
               onClick={(event) => stopAnd(event, onScan)}
               disabled={isScanning}
               className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50 sm:hidden"
@@ -328,6 +379,7 @@ export function ProductRow({
             <div className="relative">
               <button
                 type="button"
+                data-no-row-click
                 onClick={handleMenuToggle}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
               >
@@ -347,15 +399,9 @@ export function ProductRow({
               </button>
               {menuOpen && (
                 <div className="absolute right-0 z-20 mt-2 w-44 rounded-md border border-gray-200 bg-white py-1 text-sm text-gray-700 shadow-lg">
-                  <Link
-                    href={`/projects/${projectId}/products/${product.id}`}
-                    className="block w-full px-3 py-1.5 text-left font-medium text-emerald-600 hover:bg-gray-50"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    Open Workspace
-                  </Link>
                   <button
                     type="button"
+                    data-no-row-click
                     onClick={handleViewDetails}
                     className="block w-full px-3 py-1.5 text-left hover:bg-gray-50"
                   >
@@ -363,6 +409,7 @@ export function ProductRow({
                   </button>
                   <button
                     type="button"
+                    data-no-row-click
                     onClick={handleSync}
                     disabled={isSyncing}
                     className="block w-full px-3 py-1.5 text-left hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400"
@@ -372,6 +419,7 @@ export function ProductRow({
                   <button
                     type="button"
                     disabled
+                    data-no-row-click
                     className="block w-full cursor-not-allowed px-3 py-1.5 text-left text-gray-400"
                     title="Editing coming soon"
                   >
@@ -380,6 +428,7 @@ export function ProductRow({
                   <button
                     type="button"
                     disabled
+                    data-no-row-click
                     className="block w-full cursor-not-allowed px-3 py-1.5 text-left text-gray-400"
                     title="Remove coming soon"
                   >

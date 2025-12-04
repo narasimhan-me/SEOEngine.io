@@ -5730,6 +5730,62 @@ Connect the backend DEO Issues Engine (`GET /projects/:id/deo-issues`) to the fr
 
 ---
 
+# PHASE UX-5 — Row-Level Navigation + Workspace Access
+
+**Goal:** Make entering the Product Optimization Workspace intuitive, consistent, and fast by turning product rows into clear navigation affordances while keeping existing optimization flows intact.
+
+### UX-5.1. Scope
+
+- **App:** `apps/web` (Next.js, App Router).
+- **Routes:**
+  - Products list: `/projects/[id]/products`
+  - Product workspace (unchanged): `/projects/[id]/products/[productId]`
+- **Components:**
+  - `ProductRow` – row-level click/keyboard navigation and visible "Open Workspace" action.
+  - `ProductTable` – continues to own filters and expansion state, passes through handlers.
+  - `projects/[id]/products/page.tsx` – ensures routing and props remain consistent.
+- **Out of scope:**
+  - No backend changes or new endpoints.
+  - No changes to Product Optimization Workspace internals (UX-2).
+  - No changes to DEO Issues UI integration (UX-4).
+
+### UX-5.2. Constraints
+
+- Frontend-only phase; all changes live in `apps/web`.
+- No Prisma or API changes; continues to use existing product and workspace routes.
+- DEO v1 scoring, DEO Issues Engine, and crawl/DEO pipelines remain unchanged.
+- Issues badges, filters, and mobile responsiveness from UX-1/UX-1.1 must remain intact (no new horizontal scroll).
+
+### UX-5.3. Implementation Summary
+
+- Converted each product row card into a primary navigation surface:
+  - Row wrapper uses `onClick` + `useRouter` to navigate to `/projects/[projectId]/products/[productId]`.
+  - Keyboard navigation supported via `role="button"`, `tabIndex={0}`, and Enter/Space handling.
+  - Click/key events originating from buttons, menus, or elements marked with `data-no-row-click` do not trigger row navigation.
+- Added a visible "Open Workspace →" link near the product header:
+  - Renders under the title/handle as a small tertiary link.
+  - Uses `next/link` for direct navigation to the workspace.
+  - Styled as a blue text link with hover underline for discoverability.
+- Updated action semantics:
+  - Optimize button still triggers AI suggestion/optimization flows; it also effectively remains a workspace entry action.
+  - Overflow menu is reserved for secondary actions: "View details", "Sync", and future Edit/Remove actions.
+  - "Open Workspace" has been removed from the overflow menu in favor of the visible link.
+- Preserved existing detail panel behavior:
+  - "View details" in the overflow menu continues to toggle the expanded `ProductDetailPanel` below the row.
+  - Expansion state remains owned by `ProductTable` via `onToggle`.
+
+### UX-5.4. Acceptance Criteria
+
+- [ ] Clicking anywhere on a product row (excluding buttons, menus, and other elements marked to opt out) navigates to `/projects/[projectId]/products/[productId]`.
+- [ ] "Open Workspace" link is visible on both desktop and mobile near the product header and navigates directly to the workspace.
+- [ ] Optimize button continues to launch the existing optimization flow and does not accidentally trigger row-level navigation.
+- [ ] Overflow menu contains "View details", "Sync", and disabled "Edit"/"Remove" entries; none of these actions trigger row-level navigation.
+- [ ] On mobile, tapping the row opens the workspace, Optimize remains full-width, and "Open Workspace" appears cleanly in the stacked layout without introducing horizontal scroll.
+- [ ] DEO Issues badges, filters, and product counts remain accurate and unaffected by the new navigation behavior.
+- [ ] No backend or schema changes were required; all behavior is implemented in the frontend only.
+
+---
+
 These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, and UX-4 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
 
 - Phases 12–17: Core feature sets (automation, content, performance, competitors, local, social).
@@ -5740,6 +5796,7 @@ These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, and UX-4 extend your 
 - Phase UX-2: Per-product optimization workspace with AI suggestions, manual editor, and DEO insights.
 - Phase UX-3: Project Overview page redesign with DEO score visualization and signals summary.
 - Phase UX-4: Issues UI integration surfacing DEO issues across Overview, Products, and Optimization Workspace.
+ - Phase UX-5: Row-level navigation and workspace access improvements for the Products list.
 
 ---
 

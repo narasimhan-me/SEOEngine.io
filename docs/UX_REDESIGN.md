@@ -480,3 +480,99 @@ Consistent across all components:
 - **Graceful degradation**: Handles loading, error, and empty states
 - **Type-safe**: Uses shared `DeoIssue` and `DeoIssuesResponse` types from `@engineo/shared`
 
+---
+
+# Row-Level Navigation + Workspace Access (Phase UX-5)
+
+This phase upgrades the Products list UX so that opening the Product Optimization Workspace is intuitive and fast, without relying solely on the "Optimize" button or overflow menu.
+
+## Goals
+
+- Make each product card clearly clickable to open the workspace.
+- Expose a visible "Open Workspace" action near the product title.
+- Keep Optimize as a primary action, but no longer the only navigation path.
+- Preserve existing Issues UI and optimization flows.
+
+## Scope
+
+- **Files touched (frontend only):**
+  - `apps/web/src/components/products/ProductRow.tsx`
+  - `apps/web/src/components/products/ProductTable.tsx`
+  - `apps/web/src/app/projects/[id]/products/page.tsx`
+- **No backend changes:**
+  - No new endpoints or schema fields.
+  - No DEO scoring or Issues Engine changes.
+
+## Row Behavior
+
+### Clickable Row Card
+
+- Entire `ProductRow` card is now clickable and navigates to the Product Optimization Workspace:
+  - Route: `/projects/[projectId]/products/[productId]`.
+- Click handling rules:
+  - Clicks on buttons, menus, or elements marked with `data-no-row-click` do **not** trigger navigation.
+  - Row uses `role="button"`, `tabIndex={0}`, and keyboard handling (Enter/Space) for accessibility.
+- Visual feedback:
+  - Light hover background (`hover:bg-gray-50`) and shadow.
+  - Pressed/active state (`active:bg-gray-100`).
+
+### Visible "Open Workspace" Link
+
+- Under the product title/handle, `ProductRow` renders a small tertiary link:
+  - Label: `Open Workspace →`
+  - Styling: blue text with hover underline, consistent with other links.
+  - Uses `next/link` to navigate directly to the workspace route.
+- On mobile, the link appears in the stacked header section so it remains close to the primary content and above the full-width Optimize button.
+
+### Optimize Button Semantics
+
+- Optimize button still triggers the AI suggestions flow (existing behavior).
+- It also effectively serves as another way to reach the workspace, since the workspace hosts the optimization modal/editor.
+- Implementation-wise:
+  - `onOptimize` remains wired to AI suggestions and modal behavior.
+  - Row-level navigation is now independent of Optimize, so future phases can repurpose Optimize for richer flows without breaking navigation.
+
+### Overflow Menu
+
+- Overflow menu (`⋮`) contents:
+  - `View details` – toggles the expanded `ProductDetailPanel` below the row.
+  - `Sync` – invokes existing project-level sync handler.
+  - `Edit` – disabled placeholder (future).
+  - `Remove` – disabled placeholder (future).
+- **Open Workspace** is no longer inside the overflow menu; it is exposed as a visible link next to the header.
+- All overflow actions are marked with `data-no-row-click` so they never trigger row-level navigation.
+
+## Mobile Interaction
+
+- On small screens:
+  - Tapping anywhere on the row card (excluding buttons/menus) opens the workspace.
+  - Optimize button remains full-width at the bottom of the card.
+  - "Open Workspace" link appears near the product title in the stacked layout for clear discoverability.
+  - Overflow menu behavior is unchanged aside from the removal of "Open Workspace" from the menu.
+- These changes respect the existing UX-1.1 constraints:
+  - No new horizontal scroll.
+  - Tap targets remain large and non-overlapping.
+
+## Component Notes
+
+- `ProductRow.tsx`
+  - Adds row-level click and keyboard handlers using `next/navigation`’s `useRouter`.
+  - Adds the "Open Workspace" link under the product header.
+  - Updates hover/active styles for the row container.
+  - Tags interactive controls (Optimize, Scan SEO, overflow trigger, menu actions) with `data-no-row-click`.
+  - Keeps the expanded `ProductDetailPanel` behavior driven by the overflow "View details" action.
+
+- `ProductTable.tsx`
+  - Continues to own filter state and expansion state.
+  - Still passes `onToggle` to `ProductRow` for detail panel toggling via the overflow menu.
+  - Existing issue badge mapping and filter logic remain unchanged.
+
+- `projects/[id]/products/page.tsx`
+  - No structural changes beyond ensuring routing and imports continue to work with the updated row navigation.
+
+## Constraints & Non-Goals
+
+- Frontend-only phase; no API or Prisma changes.
+- Does not alter Product Optimization Workspace layout or logic (UX-2).
+- Does not modify DEO Issues UI integration (UX-4); issue badges and product-level issues remain intact.
+- Focused solely on navigation and interaction semantics for the Products list.
