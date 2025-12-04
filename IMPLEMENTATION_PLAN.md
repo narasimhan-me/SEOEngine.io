@@ -1880,6 +1880,38 @@ Wire this via:
 - `CrawlProcessor` worker bound to `crawl_queue`.
 - `CrawlModule` imported into `AppModule` and worker runtime.
 
+### 3.5. Auto DEO Recompute (Phase 3.2)
+
+Wire DEO score recomputation into the crawl pipeline so DEO scores stay fresh automatically:
+
+- After every crawl (scheduled or manual), collect DEO signals and recompute the score.
+- In production (`CrawlProcessor` worker): After `runFullProjectCrawl()`, call `DeoSignalsService.collectSignalsForProject()` then `DeoScoreService.computeAndPersistScoreFromSignals()`.
+- In local/dev: Same flow runs synchronously after each crawl in `CrawlSchedulerService` and `SeoScanService`.
+- Add `Project.lastDeoComputedAt` timestamp to track when DEO was last recomputed.
+- Store signals in `DeoScoreSnapshot.metadata` for debugging and historical analysis.
+
+**New Schema Field:**
+```prisma
+model Project {
+  // ...existing fields...
+  lastDeoComputedAt DateTime?
+}
+```
+
+**Pipeline Flow:**
+```
+Crawl → Update lastCrawledAt → Collect Signals → Compute Score → Create Snapshot → Update lastDeoComputedAt
+```
+
+**Files Modified:**
+- `crawl.processor.ts` - Add DEO recompute after crawl jobs
+- `crawl-scheduler.service.ts` - Add DEO recompute in sync mode
+- `seo-scan.service.ts` - Add DEO recompute after manual crawls (local/dev only)
+- `deo-score.service.ts` - Store signals in metadata, update lastDeoComputedAt
+- `schema.prisma` - Add lastDeoComputedAt field
+
+See `docs/CRAWL_PIPELINE.md` for detailed pipeline documentation.
+
 ---
 
 # PHASE 4 — Multi‑Engine AI Metadata Engine (SEO + AEO + Product + Video)

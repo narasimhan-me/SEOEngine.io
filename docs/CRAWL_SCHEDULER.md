@@ -69,10 +69,12 @@ For each job:
 - Updates `project.lastCrawledAt`.
 - Logs success or failure.
 
-### 5. Downstream effects (Phase 3.1)
+### 5. Downstream effects (Phase 3.2 Auto DEO Recompute)
 
 - New `CrawlResult` rows feed existing overview metrics and DEO signal collection.
-- No DEO recomputation is triggered automatically in this phase; Phase 3.2 will wire DEO score recompute on top of fresh crawls.
+- **Auto DEO Recompute**: After each crawl, the pipeline collects DEO signals and recomputes the DEO score automatically.
+- Both `project.lastCrawledAt` and `project.lastDeoComputedAt` are updated.
+- See `docs/CRAWL_PIPELINE.md` for full pipeline details.
 
 ## Redis Configuration
 

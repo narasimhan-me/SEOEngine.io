@@ -100,7 +100,9 @@ export class DeoScoreService {
         technicalScore: breakdown.technical ?? null,
         visibilityScore: breakdown.visibility ?? null,
         version: DEO_SCORE_VERSION,
-        metadata: {},
+        metadata: {
+          signals,
+        },
         computedAt: now,
       },
     });
@@ -110,6 +112,7 @@ export class DeoScoreService {
       data: {
         currentDeoScore: breakdown.overall,
         currentDeoScoreComputedAt: now,
+        lastDeoComputedAt: now,
       },
     });
 

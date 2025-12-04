@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { SeoScanService } from '../seo-scan/seo-scan.service';
+import { DeoScoreService, DeoSignalsService } from '../projects/deo-score.service';
 import { crawlQueue } from '../queues/queues';
 
 @Injectable()
@@ -11,6 +12,8 @@ export class CrawlSchedulerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly seoScanService: SeoScanService,
+    private readonly deoSignalsService: DeoSignalsService,
+    private readonly deoScoreService: DeoScoreService,
   ) {}
 
   private shouldUseQueue(): boolean {
@@ -44,6 +47,7 @@ export class CrawlSchedulerService {
         }
       } else {
         try {
+          const jobStartedAt = Date.now();
           const crawledAt = await this.seoScanService.runFullProjectCrawl(project.id);
 
           if (!crawledAt) {
@@ -59,6 +63,35 @@ export class CrawlSchedulerService {
               lastCrawledAt: crawledAt,
             },
           });
+
+          this.logger.log(
+            `[CrawlScheduler] Crawl complete for project ${project.id} at ${crawledAt.toISOString()}`,
+          );
+
+          const signalsStartedAt = Date.now();
+          const signals = await this.deoSignalsService.collectSignalsForProject(project.id);
+          this.logger.log(
+            `[CrawlScheduler] Signals computed for project ${project.id} in ${
+              Date.now() - signalsStartedAt
+            }ms`,
+          );
+
+          const recomputeStartedAt = Date.now();
+          const snapshot = await this.deoScoreService.computeAndPersistScoreFromSignals(
+            project.id,
+            signals,
+          );
+          this.logger.log(
+            `[CrawlScheduler] DEO recompute complete for project ${project.id} (snapshot ${
+              snapshot.id
+            }, overall=${snapshot.breakdown.overall}) in ${Date.now() - recomputeStartedAt}ms`,
+          );
+
+          this.logger.log(
+            `[CrawlScheduler] Crawl + DEO pipeline for project ${project.id} completed in ${
+              Date.now() - jobStartedAt
+            }ms`,
+          );
         } catch (error) {
           this.logger.error(
             `[CrawlScheduler] Failed to run sync crawl for project ${project.id}`,

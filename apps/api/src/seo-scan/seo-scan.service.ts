@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { DeoScoreService, DeoSignalsService } from '../projects/deo-score.service';
 import { IntegrationType } from '@prisma/client';
 import * as cheerio from 'cheerio';
 
@@ -16,7 +17,11 @@ export interface ScanResult {
 
 @Injectable()
 export class SeoScanService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly deoSignalsService: DeoSignalsService,
+    private readonly deoScoreService: DeoScoreService,
+  ) {}
 
   /**
    * Start a SEO scan for a project's domain
@@ -85,6 +90,29 @@ export class SeoScanService {
         lastCrawledAt: crawlResult.scannedAt,
       },
     });
+
+    // In local/dev mode, recompute DEO synchronously after the crawl
+    const isLocalDev = process.env.NODE_ENV !== 'production' || process.env.IS_LOCAL_DEV === 'true';
+    if (isLocalDev) {
+      const startedAt = Date.now();
+      try {
+        const signals = await this.deoSignalsService.collectSignalsForProject(projectId);
+        const snapshot = await this.deoScoreService.computeAndPersistScoreFromSignals(
+          projectId,
+          signals,
+        );
+        console.log(
+          `[SeoScanService] Local DEO recompute complete for project ${projectId} (snapshot ${
+            snapshot.id
+          }, overall=${snapshot.breakdown.overall}) in ${Date.now() - startedAt}ms`,
+        );
+      } catch (error) {
+        console.error(
+          `[SeoScanService] Failed to recompute DEO score after manual crawl for project ${projectId}`,
+          error,
+        );
+      }
+    }
 
     return crawlResult;
   }
@@ -362,6 +390,31 @@ export class SeoScanService {
         lastCrawledAt: crawlResult.scannedAt,
       },
     });
+
+    // In local/dev mode, recompute DEO synchronously after the product crawl
+    const isLocalDev = process.env.NODE_ENV !== 'production' || process.env.IS_LOCAL_DEV === 'true';
+    if (isLocalDev) {
+      const startedAt = Date.now();
+      try {
+        const signals = await this.deoSignalsService.collectSignalsForProject(product.projectId);
+        const snapshot = await this.deoScoreService.computeAndPersistScoreFromSignals(
+          product.projectId,
+          signals,
+        );
+        console.log(
+          `[SeoScanService] Local DEO recompute complete after product crawl for project ${
+            product.projectId
+          } (snapshot ${snapshot.id}, overall=${snapshot.breakdown.overall}) in ${
+            Date.now() - startedAt
+          }ms`,
+        );
+      } catch (error) {
+        console.error(
+          `[SeoScanService] Failed to recompute DEO score after product crawl for project ${product.projectId}`,
+          error,
+        );
+      }
+    }
 
     return {
       ...crawlResult,

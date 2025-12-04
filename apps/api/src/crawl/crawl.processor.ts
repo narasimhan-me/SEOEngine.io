@@ -3,6 +3,7 @@ import { Job, Worker } from 'bullmq';
 import { redisConfig } from '../config/redis.config';
 import { PrismaService } from '../prisma.service';
 import { SeoScanService } from '../seo-scan/seo-scan.service';
+import { DeoScoreService, DeoSignalsService } from '../projects/deo-score.service';
 
 interface CrawlJobPayload {
   projectId: string;
@@ -15,6 +16,8 @@ export class CrawlProcessor implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly prisma: PrismaService,
     private readonly seoScanService: SeoScanService,
+    private readonly deoSignalsService: DeoSignalsService,
+    private readonly deoScoreService: DeoScoreService,
   ) {}
 
   async onModuleInit() {
@@ -27,6 +30,7 @@ export class CrawlProcessor implements OnModuleInit, OnModuleDestroy {
       'crawl_queue',
       async (job: Job<CrawlJobPayload>): Promise<void> => {
         const { projectId } = job.data;
+        const jobStartedAt = Date.now();
 
         try {
           const crawledAt = await this.seoScanService.runFullProjectCrawl(projectId);
@@ -46,7 +50,32 @@ export class CrawlProcessor implements OnModuleInit, OnModuleDestroy {
           });
 
           console.log(
-            `[CrawlProcessor] Successfully crawled project ${projectId} at ${crawledAt.toISOString()}`,
+            `[CrawlProcessor] Crawl complete for project ${projectId} at ${crawledAt.toISOString()}`,
+          );
+
+          const signalsStartedAt = Date.now();
+          const signals = await this.deoSignalsService.collectSignalsForProject(projectId);
+          console.log(
+            `[CrawlProcessor] Signals computed for project ${projectId} in ${
+              Date.now() - signalsStartedAt
+            }ms`,
+          );
+
+          const recomputeStartedAt = Date.now();
+          const snapshot = await this.deoScoreService.computeAndPersistScoreFromSignals(
+            projectId,
+            signals,
+          );
+          console.log(
+            `[CrawlProcessor] DEO recompute complete for project ${projectId} (snapshot ${
+              snapshot.id
+            }, overall=${snapshot.breakdown.overall}) in ${Date.now() - recomputeStartedAt}ms`,
+          );
+
+          console.log(
+            `[CrawlProcessor] Crawl + DEO pipeline for project ${projectId} completed in ${
+              Date.now() - jobStartedAt
+            }ms`,
           );
         } catch (error) {
           console.error(

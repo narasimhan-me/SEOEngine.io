@@ -49,6 +49,7 @@ model Project {
   currentDeoScore            Int?
   currentDeoScoreComputedAt  DateTime?
   lastCrawledAt              DateTime?
+  lastDeoComputedAt          DateTime?
 
   integrations               Integration[]
   crawlResults               CrawlResult[]
