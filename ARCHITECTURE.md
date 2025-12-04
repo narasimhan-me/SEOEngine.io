@@ -187,7 +187,7 @@ graph TD
     C --> G[E-commerce Platforms]
     C --> H[Other Integrations]
 
-    E --> W[NestJS Worker Service (BullMQ)]
+    E --> W["NestJS Worker Service (BullMQ)"]
     W --> D
     W --> F
     W --> G
