@@ -162,78 +162,131 @@ export class DeoSignalsService {
     const totalCrawls = crawlResults.length;
     const totalProducts = products.length;
     const totalPages = totalCrawls;
+    const pageCount = totalCrawls;
+    const productCount = totalProducts;
+    const totalSurfaces = pageCount + productCount;
 
-    // ---------- Content signals ----------
+    // ---------- Content signals (pages + products) ----------
 
-    // contentCoverage: % of pages/products with both title and description-like fields
-    const totalItemsForContent = totalCrawls + totalProducts;
-    let coveredItems = 0;
+    // Coverage
+    let coveredPages = 0;
+    let coveredProducts = 0;
+
+    // Word-count aggregates for pages/products
+    let sumPageWords = 0;
+    let countPageWords = 0;
+    let sumProductWords = 0;
+    let countProductWords = 0;
 
     for (const cr of crawlResults) {
-      if (cr.title && cr.metaDescription) {
-        coveredItems++;
+      const hasTitle = !!cr.title;
+      const wordCount =
+        typeof cr.wordCount === 'number' && cr.wordCount > 0 ? cr.wordCount : 0;
+      if (hasTitle && wordCount > 0) {
+        coveredPages++;
+      }
+      if (wordCount > 0) {
+        sumPageWords += wordCount;
+        countPageWords++;
       }
     }
 
     for (const product of products) {
-      const titleSource = product.seoTitle ?? product.title;
-      const descriptionSource = product.seoDescription ?? product.description;
-      if (titleSource && descriptionSource) {
-        coveredItems++;
+      const titleSource = (product.seoTitle ?? product.title) ?? '';
+      const rawDescription = (product.seoDescription ?? product.description) ?? '';
+      const title = titleSource.toString().trim();
+      const description = rawDescription.toString().trim();
+      const descWordCount =
+        description.length > 0
+          ? description
+              .split(/\s+/)
+              .filter(Boolean).length
+          : 0;
+
+      const hasTitle = title.length > 0;
+      const hasDescription = descWordCount > 0;
+      if (hasTitle && hasDescription) {
+        coveredProducts++;
+      }
+      if (descWordCount > 0) {
+        sumProductWords += descWordCount;
+        countProductWords++;
       }
     }
 
-    const contentCoverage =
-      totalItemsForContent > 0 ? coveredItems / totalItemsForContent : 0;
+    const coveragePages =
+      pageCount > 0 ? coveredPages / pageCount : 0;
+    const coverageProducts =
+      productCount > 0 ? coveredProducts / productCount : 0;
 
-    // contentDepth: average word count across pages and product descriptions, normalized to 800 words
-    const wordCounts: number[] = [];
-
-    for (const cr of crawlResults) {
-      if (typeof cr.wordCount === 'number') {
-        wordCounts.push(cr.wordCount);
-      }
+    let contentCoverage = 0;
+    if (totalSurfaces > 0) {
+      contentCoverage =
+        (coveragePages * pageCount + coverageProducts * productCount) /
+        totalSurfaces;
     }
+    contentCoverage = Math.max(0, Math.min(1, contentCoverage));
 
-    for (const product of products) {
-      if (product.description) {
-        const count = product.description
-          .trim()
-          .split(/\s+/)
-          .filter(Boolean).length;
-        wordCounts.push(count);
-      }
+    // Depth
+    const avgPageWordCount =
+      countPageWords > 0 ? sumPageWords / countPageWords : 0;
+    const avgProductWordCount =
+      countProductWords > 0 ? sumProductWords / countProductWords : 0;
+
+    const contentDepthPages = Math.max(
+      0,
+      Math.min(1, avgPageWordCount / 800),
+    );
+    const contentDepthProducts = Math.max(
+      0,
+      Math.min(1, avgProductWordCount / 600),
+    );
+
+    let contentDepth = 0;
+    if (totalSurfaces > 0) {
+      contentDepth =
+        (contentDepthPages * pageCount +
+          contentDepthProducts * productCount) /
+        totalSurfaces;
     }
+    contentDepth = Math.max(0, Math.min(1, contentDepth));
 
-    const avgWordCount =
-      wordCounts.length > 0
-        ? wordCounts.reduce((sum: number, value: number) => sum + value, 0) / wordCounts.length
-        : 0;
-
-    const contentDepth = Math.max(0, Math.min(1, avgWordCount / 800));
-
-    // contentFreshness: average of 1 - age/90d across crawlResults.scannedAt and products.lastSyncedAt
-    const freshnessScores: number[] = [];
+    // Freshness
     const now = Date.now();
     const ninetyDaysMs = 90 * 24 * 60 * 60 * 1000;
 
+    const pageFreshnessScores: number[] = [];
     for (const cr of crawlResults) {
       const ageMs = now - cr.scannedAt.getTime();
       const ageRatio = Math.min(ageMs / ninetyDaysMs, 1);
-      freshnessScores.push(1 - ageRatio);
+      pageFreshnessScores.push(1 - ageRatio);
     }
 
+    const contentFreshnessPages =
+      pageFreshnessScores.length > 0
+        ? pageFreshnessScores.reduce((sum, v) => sum + v, 0) /
+          pageFreshnessScores.length
+        : 0;
+
+    let freshProducts = 0;
     for (const product of products) {
       const ageMs = now - product.lastSyncedAt.getTime();
-      const ageRatio = Math.min(ageMs / ninetyDaysMs, 1);
-      freshnessScores.push(1 - ageRatio);
+      if (ageMs <= ninetyDaysMs) {
+        freshProducts++;
+      }
     }
 
-    const contentFreshness =
-      freshnessScores.length > 0
-        ? freshnessScores.reduce((sum: number, value: number) => sum + value, 0) /
-          freshnessScores.length
-        : 0;
+    const contentFreshnessProducts =
+      productCount > 0 ? freshProducts / productCount : 0;
+
+    let contentFreshness = 0;
+    if (totalSurfaces > 0) {
+      contentFreshness =
+        (contentFreshnessPages * pageCount +
+          contentFreshnessProducts * productCount) /
+        totalSurfaces;
+    }
+    contentFreshness = Math.max(0, Math.min(1, contentFreshness));
 
     // ---------- Technical, entity & visibility helpers (Phase 2.4) ----------
 
@@ -247,6 +300,8 @@ export class DeoSignalsService {
 
     let entityHintPages = 0;
     let entityIssuePages = 0;
+    let entityHintProducts = 0;
+    let entityIssueProducts = 0;
 
     let internalLinkSamples = 0;
     let internalLinkSum = 0;
@@ -344,6 +399,42 @@ export class DeoSignalsService {
       }
     }
 
+    // Product-side entity issues / hints (Phase 2.5)
+    for (const product of products) {
+      const titleSource = (product.seoTitle ?? product.title) ?? '';
+      const rawDescription = (product.seoDescription ?? product.description) ?? '';
+      const title = titleSource.toString().trim();
+      const description = rawDescription.toString().trim();
+      const descWordCount =
+        description.length > 0
+          ? description
+              .split(/\s+/)
+              .filter(Boolean).length
+          : 0;
+
+      const hasTitle = title.length > 0;
+      const hasDescription = descWordCount > 0;
+
+      if (hasTitle && hasDescription) {
+        entityHintProducts++;
+      }
+
+      const isThinProduct = descWordCount > 0 && descWordCount < 80;
+      const hasEntityIssue =
+        !hasTitle || !hasDescription || isThinProduct;
+
+      if (hasEntityIssue) {
+        entityIssueProducts++;
+      }
+    }
+
+    // Combined average word count across pages + products for fallbacks
+    const combinedWordSamples = countPageWords + countProductWords;
+    const avgWordCount =
+      combinedWordSamples > 0
+        ? (sumPageWords + sumProductWords) / combinedWordSamples
+        : 0;
+
     // ---------- Technical signals (Phase 2.4) ----------
 
     // crawlHealth: fraction of pages that are healthy (2xx/3xx, no HTTP/FETCH error)
@@ -369,16 +460,18 @@ export class DeoSignalsService {
     // coreWebVitals: placeholder 0.5 until real CWV integration
     const coreWebVitals = 0.5;
 
-    // ---------- Entity signals (Phase 2.4 heuristic) ----------
+    // ---------- Entity signals (pages + products, heuristic v1) ----------
 
-    // entityHintCoverage: fraction of pages with title + H1
+    // entityHintCoverage: fraction of surfaces (pages + products) with title + H1 (pages) or title + description (products)
+    const entityHintTotal = entityHintPages + entityHintProducts;
     const entityHintCoverage =
-      totalPages > 0 ? entityHintPages / totalPages : 0;
+      totalSurfaces > 0 ? entityHintTotal / totalSurfaces : 0;
 
-    // entityStructureAccuracy: clamped inverse of entity structure issues
+    // entityStructureAccuracy: clamped inverse of entity structure issues across pages + products
+    const entityIssueTotal = entityIssuePages + entityIssueProducts;
     let entityStructureAccuracy: number;
-    if (totalPages > 0) {
-      const raw = 1 - entityIssuePages / totalPages;
+    if (totalSurfaces > 0) {
+      const raw = 1 - entityIssueTotal / totalSurfaces;
       entityStructureAccuracy = Math.min(0.9, Math.max(0.3, raw));
     } else {
       entityStructureAccuracy = 0.5;
@@ -394,10 +487,27 @@ export class DeoSignalsService {
       entityLinkageDensity = Math.max(0, Math.min(1, avgWordCount / 1200));
     }
 
-    // Maintain v1 component inputs using new heuristics
+    // Maintain v1 component inputs using combined page + product heuristics
     const entityCoverage = entityHintCoverage;
     const entityAccuracy = entityStructureAccuracy;
-    const entityLinkage = entityLinkageDensity;
+
+    const entityLinkagePages = Math.max(
+      0,
+      Math.min(1, avgPageWordCount / 1200),
+    );
+    const entityLinkageProducts = Math.max(
+      0,
+      Math.min(1, avgProductWordCount / 800),
+    );
+
+    let entityLinkage = 0;
+    if (totalSurfaces > 0) {
+      entityLinkage =
+        (entityLinkagePages * pageCount +
+          entityLinkageProducts * productCount) /
+        totalSurfaces;
+    }
+    entityLinkage = Math.max(0, Math.min(1, entityLinkage));
 
     // ---------- Visibility signals (Phase 2.4 heuristic) ----------
 

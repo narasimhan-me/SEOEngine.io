@@ -309,3 +309,76 @@ Phase 2.4 upgrades `DeoSignalsService` to compute real crawl-based signals using
 - Add signal freshness tracking and staleness detection.
 - Integrate external data sources (GSC, Analytics) for visibility signals.
 
+## Phase 2.5 – Product Signals (Heuristic v1)
+
+Phase 2.5 extends `DeoSignalsService` so that **Product** metadata contributes to the Content and Entities components alongside crawled pages. All signals remain normalized to the 0–1 range and continue to feed the v1 scoring engine via `DeoScoreSignals`.
+
+### Content Signals (Pages + Products)
+
+Content signals now combine pages and products using weighted blending based on surface counts:
+
+- **`contentCoverage`** – fraction of surfaces with title + description:
+  - Pages: `title` and word count > 0.
+  - Products: `(seoTitle ?? title)` and `(seoDescription ?? description)` present.
+  - Combined: `(coveragePages * pageCount + coverageProducts * productCount) / totalSurfaces`.
+
+- **`contentDepth`** – average word count normalized:
+  - Pages: `min(avgPageWordCount / 800, 1)`.
+  - Products: `min(avgProductWordCount / 600, 1)` (lower threshold for product descriptions).
+  - Combined: weighted blend by surface count.
+
+- **`contentFreshness`** – recency of content:
+  - Pages: `1 - min(age / 90 days, 1)` using `CrawlResult.scannedAt`.
+  - Products: fraction of products with `lastSyncedAt` within 90 days.
+  - Combined: weighted blend by surface count.
+
+### Entity Signals (Pages + Products)
+
+Entity signals now combine pages and products:
+
+- **`entityHintCoverage`** – fraction of surfaces with "entity hints":
+  - Pages: both `title` and `h1` present.
+  - Products: both `(seoTitle ?? title)` and `(seoDescription ?? description)` present.
+  - Combined: `entityHintTotal / totalSurfaces`.
+
+- **`entityStructureAccuracy`** – clamped inverse of entity structure issues:
+  - Pages: missing `title`, `metaDescription`, `h1`, or thin content.
+  - Products: missing title, missing description, or thin description (< 80 words).
+  - Combined: `clamp(1 - entityIssueTotal / totalSurfaces, 0.3, 0.9)`.
+
+- **`entityLinkage`** – weighted blend of linkage proxies:
+  - Pages: `min(avgPageWordCount / 1200, 1)`.
+  - Products: `min(avgProductWordCount / 800, 1)`.
+  - Combined: weighted blend by surface count.
+
+### Surface Definitions
+
+- **`totalSurfaces`** = `pageCount + productCount`.
+- **`pageCount`** = number of `CrawlResult` rows for the project.
+- **`productCount`** = number of `Product` rows for the project.
+
+All weighted blends use the formula:
+```
+combined = (pageMetric * pageCount + productMetric * productCount) / totalSurfaces
+```
+
+### Technical & Visibility Signals
+
+Technical and Visibility signals remain page-only in Phase 2.5:
+- `crawlHealth`, `indexability`, `htmlStructuralQuality`, `thinContentQuality`, `coreWebVitals` – derived from `CrawlResult` only.
+- `serpPresence`, `answerSurfacePresence`, `brandNavigationalStrength` – derived from `CrawlResult` only.
+
+Future phases may extend these to include product-specific metrics.
+
+### Worker Behavior
+
+- `DeoSignalsService.collectSignalsForProject(projectId)` now queries both `CrawlResult` and `Product` tables and computes combined signals.
+- `DeoScoreProcessor` continues to call `collectSignalsForProject` and pipe the result into `DeoScoreService.computeAndPersistScoreFromSignals`, preserving the v1 scoring engine and weights.
+- The debug endpoint `GET /projects/:projectId/deo-signals/debug` returns the enriched signals, now including product-influenced Content and Entity metrics.
+
+### Phase 2.5+ Plans
+
+- Add product-specific visibility signals (e.g., product page SEO readiness).
+- Integrate product image alt text coverage into Entity signals.
+- Add per-surface-type signal breakdown in debug endpoint.
+

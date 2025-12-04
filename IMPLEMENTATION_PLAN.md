@@ -2317,6 +2317,29 @@ Use this snapshot and denormalized score wherever DEO Score is displayed (dashbo
   - The debug endpoint `GET /projects/:id/deo-signals/debug` continues to expose the current normalized signals, now including the Phase 2.4 crawl-derived metrics.
   - Manually validated Phase 2.4 via local DEO score recomputes (using the sync recompute endpoint and frontend button) by toggling metadata, thin content, and navigational pages and confirming expected changes in signals and overall DEO score.
 
+**Phase 2.5 – Product Signals (Heuristic v1) (Completed)**
+
+- Extended `DeoSignalsService` so that **Product** metadata contributes to the Content and Entities components alongside crawled pages.
+
+- **Content signals now combine pages + products** using weighted blending based on surface counts (`totalSurfaces = pageCount + productCount`):
+  - `contentCoverage`: Pages (title + wordCount > 0) and Products (`(seoTitle ?? title)` + `(seoDescription ?? description)`) → weighted blend.
+  - `contentDepth`: Pages (`min(avgPageWordCount / 800, 1)`) and Products (`min(avgProductWordCount / 600, 1)`) → weighted blend.
+  - `contentFreshness`: Pages (age-based freshness from `scannedAt`) and Products (fraction within 90 days of `lastSyncedAt`) → weighted blend.
+
+- **Entity signals now combine pages + products**:
+  - `entityHintCoverage`: Pages (title + h1) and Products (title + description) → `entityHintTotal / totalSurfaces`.
+  - `entityStructureAccuracy`: Pages (missing title/meta/h1 or thin) and Products (missing title/description or thin < 80 words) → `clamp(1 - entityIssueTotal / totalSurfaces, 0.3, 0.9)`.
+  - `entityLinkage`: Pages (`min(avgPageWordCount / 1200, 1)`) and Products (`min(avgProductWordCount / 800, 1)`) → weighted blend.
+
+- Technical and Visibility signals remain page-only in Phase 2.5 (derived from `CrawlResult`).
+
+- Kept the DEO pipeline shape stable:
+  - `DeoSignalsService.collectSignalsForProject(projectId)` now queries both `CrawlResult` and `Product` tables and computes combined signals.
+  - `DeoScoreProcessor` continues to call `collectSignalsForProject` and pipe the result into `DeoScoreService.computeAndPersistScoreFromSignals`, preserving the v1 scoring engine and weights.
+  - The debug endpoint `GET /projects/:id/deo-signals/debug` returns the enriched signals, now including product-influenced Content and Entity metrics.
+
+- Updated `docs/deo-score-spec.md` with Phase 2.5 signal definitions, surface calculations, and weighted blending formulas.
+
 ---
 
 # PHASE 8 — Two-Factor Authentication (2FA)
