@@ -3250,6 +3250,72 @@ Backend now supports creation of Stripe Billing Portal sessions for subscription
 
 ---
 
+## Phase 1.4 – Subscription → Entitlements Sync (v1 — Launch)
+
+**Status:** Planned
+
+**Goal:**
+
+Ensure that Stripe subscription state (plan + status) is the single source of truth for user entitlements in EngineO.ai. When Stripe says "user is on Plan X and active", our entitlements model must reflect that within a few seconds via webhooks.
+
+**Scope (v1 – launch):**
+
+- Map Stripe subscription → internal entitlements model using the existing `ENTITLEMENTS_MATRIX` and plan IDs.
+- Update entitlements only via webhook-driven events (no cron, no polling).
+- Handle activation, upgrade/downgrade, and cancellation flows.
+- Ensure processing is idempotent and safe to re-run.
+
+**Implementation Steps:**
+
+1. **Identify event handler location**
+   - Reuse the existing Stripe webhook handler in the billing module (`billing.controller.ts` / `billing.service.ts`).
+   - Confirm where `customer.subscription.created|updated|deleted` events are currently parsed.
+
+2. **Plan & price mapping**
+   - Use the existing price/plan configuration (the same mapping used by Checkout Session creation) to map `stripe_price_id` → internal `planId`.
+   - If the event's price ID is unknown, log a warning and skip entitlements changes.
+
+3. **Entitlements write path**
+   - Reuse the existing entitlements persistence mechanism (e.g., user or account record with `currentPlan` / `entitlements`).
+   - Implement a single helper in the relevant service (e.g., `BillingService` or `EntitlementsService`):
+     - `applySubscriptionEntitlements(userId, planId, status)`
+   - Ensure this helper is purely additive (no side effects beyond entitlements/plan fields).
+
+4. **Webhook → entitlements wiring**
+   - On `customer.subscription.created` / `updated` / `deleted`:
+     - Resolve internal `userId` from Stripe customer metadata or stored mapping.
+     - Derive `planId` from the active price on the subscription (or `null` for cancellation).
+     - Derive an internal status: `active`, `past_due`, `canceled`, etc.
+     - Call `applySubscriptionEntitlements(userId, planId, status)` inside the webhook handler.
+
+5. **Idempotency & safety**
+   - Use the existing webhook idempotency mechanism (from Phase 1.1) so that multiple deliveries of the same event do not double-apply entitlements.
+   - If user or plan cannot be resolved, log structured warning and return 200 from the webhook (do not break Stripe retries).
+
+**Out-of-scope for v1 (defer to later phases):**
+
+- Historical entitlements backfill.
+- Complex multi-seat or team-level entitlements.
+- Pro-rated usage visuals in the dashboard.
+
+**Manual Testing (once implemented):**
+
+1. Create a test user and start a Checkout Session for a paid plan.
+2. Complete payment in Stripe's test mode.
+3. Verify:
+   - Webhook receives `customer.subscription.created` / `checkout.session.completed`.
+   - Internal entitlements record is updated to the correct `planId` and `status=active`.
+4. Switch the user to a different plan in Stripe; confirm entitlements update accordingly.
+5. Cancel the subscription in Stripe; confirm entitlements are downgraded/removed.
+
+**Launch Acceptance Criteria:**
+
+- For any Stripe subscription change in test mode, the matching user's entitlements are updated within webhook processing delay.
+- No duplicate entitlements updates occur on replayed events.
+- Unknown price IDs or unmapped customers are safely logged without crashing the webhook handler.
+
+---
+
 ## Future Phase: BILLING-2 — Stripe Webhook Robustness v2 (Post-Launch)
 
 **Scope:**
