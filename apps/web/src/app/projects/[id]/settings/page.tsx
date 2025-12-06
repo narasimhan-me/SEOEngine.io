@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
 import { projectsApi } from '@/lib/api';
 import { useUnsavedChanges } from '@/components/unsaved-changes/UnsavedChangesProvider';
+import FriendlyError from '@/components/ui/FriendlyError';
 
 type CrawlFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY';
 
@@ -163,10 +164,12 @@ export default function ProjectSettingsPage() {
 
   if (error && !status) {
     return (
-      <div>
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <FriendlyError
+          title="We couldn't load this page."
+          message="This is usually temporary (for example, right after a deploy). Check your connection and try again."
+          onRetry={fetchIntegrationStatus}
+        />
       </div>
     );
   }

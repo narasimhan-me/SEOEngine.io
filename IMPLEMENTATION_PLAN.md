@@ -1420,6 +1420,7 @@ Looking ahead in Phase 3:
 - Project Settings page UI (`/projects/:id/settings`) with toggle and frequency dropdown
 - Auto Crawl status badge on Project Overview page
 - Updated documentation in `docs/CRAWL_SCHEDULER.md`
+- Added global API error handling so that 401/403 responses from authenticated endpoints redirect users to the Login page with a return URL, and network/server failures surface a friendly, retryable "can't reach server" state instead of a bare load-error banner.
 
 If you'd like, next step I can:
 

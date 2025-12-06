@@ -1,4 +1,5 @@
 import { getToken } from './auth';
+import { redirectToSignIn } from './authNavigation';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -7,11 +8,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
  */
 export class ApiError extends Error {
   code?: string;
+  status?: number;
 
-  constructor(message: string, code?: string) {
+  constructor(message: string, code?: string, status?: number) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
+    this.status = status;
   }
 }
 
@@ -39,7 +42,7 @@ function buildApiError(response: Response, body: unknown): ApiError {
     message = getStatusMessage(response.status, response.statusText);
   }
 
-  return new ApiError(message, code);
+  return new ApiError(message, code, response.status);
 }
 
 /**
@@ -69,17 +72,37 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
     (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  try {
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
 
-  if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    throw buildApiError(response, body);
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      const error = buildApiError(response, body);
+
+      if (response.status === 401 || response.status === 403) {
+        if (typeof window !== 'undefined') {
+          const next = window.location.pathname + window.location.search;
+          redirectToSignIn(next);
+        }
+      }
+
+      throw error;
+    }
+
+    return response.json();
+  } catch (err: unknown) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
+
+    throw new ApiError(
+      'Network error. Please check your connection and try again.',
+      undefined,
+    );
   }
-
-  return response.json();
 }
 
 /**
@@ -92,17 +115,28 @@ async function fetchWithoutAuth(endpoint: string, options: RequestInit = {}) {
     ...options.headers,
   };
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  try {
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
 
-  if (!response.ok) {
-    const body = await response.json().catch(() => null);
-    throw buildApiError(response, body);
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw buildApiError(response, body);
+    }
+
+    return response.json();
+  } catch (err: unknown) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
+
+    throw new ApiError(
+      'Network error. Please check your connection and try again.',
+      undefined,
+    );
   }
-
-  return response.json();
 }
 
 export const authApi = {
