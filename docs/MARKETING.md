@@ -197,8 +197,100 @@ Implemented via `PricingFAQ` with common questions:
 
 ---
 
-## 4. Navigation
+## 4. Vertical Landing Pages — Websites / CMS Edition
 
-- Marketing navbar (`MarketingNavbar.tsx`) includes a **Shopify** link pointing to `/shopify`.
-- Shopify link is visible on desktop nav and in the mobile menu.
-- Homepage remains universal; Shopify-specific details live on the `/shopify` vertical page.
+**Route:** `/websites`
+**File:** `apps/web/src/app/(marketing)/websites/page.tsx`
+
+**Purpose:**
+
+- Speak directly to non-ecommerce website owners (WordPress, Webflow, static sites, documentation sites, blogs, SaaS marketing sites).
+- Reinforce that DEO is not just for product catalogs — it applies to every crawlable page.
+- Highlight Content Workspace, full-site crawling, and AI-powered metadata generation for blog/page content.
+
+**Sections:**
+
+### Websites Hero
+- **Heading:** "EngineO.ai for WordPress, Webflow, and Every Website."
+- **Subheading:** "Optimize all your pages, blogs, documentation, and landing pages for search & AI — automatically."
+- Copy explains full-site crawling, visibility issues detection, AI-powered fixes for titles/descriptions/metadata/content depth/entity structure.
+- Notes: "Works with any CMS. No plugins required."
+- **CTAs:** Start Free (`/signup`) and Try Demo (`/contact`).
+
+### Why DEO Matters for All Websites (not just ecommerce)
+- Explains that search is no longer the only discovery channel.
+- AI assistants, chatbots, and answer engines rely on: Structured content, Entities, Metadata, Crawlability, Semantic clarity.
+- EngineO.ai helps any website become discoverable across: Google, ChatGPT, Gemini, Perplexity, AI agents, Vertical search systems.
+- DEO is the new foundation of visibility.
+
+### Full-Site Crawling
+- EngineO.ai analyzes all URLs: Home page, About/Contact/Pricing, Blog index + blog posts, Documentation pages, Landing pages, Category/tag taxonomies, Custom routes.
+- No plugin or script required — just enter your domain.
+
+### Content Workspace (Non-Ecommerce Edition)
+A dedicated workspace for optimizing any page:
+- Extracted metadata (Title, H1, Description).
+- AI-generated suggestions.
+- Content depth analysis.
+- Entity + semantic structure insights.
+- Answer-surface readiness.
+- Crawl health indicators.
+- Per-page DEO issues.
+
+This is the equivalent of your Product Workspace — but built for all website types.
+
+### Issues Engine for Content Sites
+EngineO.ai detects the issues that most CMS sites struggle with:
+- Thin content.
+- Missing or duplicate metadata.
+- Weak H1/H2 structure.
+- Low entity coverage.
+- Weak internal linking.
+- Indexability problems.
+- Navigation gaps.
+- Dead or redirected URLs.
+
+Each issue links to the affected pages → workspace → fix.
+
+### AI-Powered Metadata Generation
+Generate optimized:
+- Titles.
+- Meta descriptions.
+- H1 headings.
+- Page summaries.
+- Entity-rich intros.
+
+AI suggestions are tuned for both search engines AND AI models.
+
+### Supported Platforms
+Works with every platform:
+
+**Website & blog CMS:**
+- WordPress, Webflow, Wix, Squarespace, Ghost, HubSpot CMS, Drupal, Blogger.
+
+**Modern headless frameworks:**
+- Next.js, Remix, Astro, Gatsby, Nuxt, SvelteKit, Custom frameworks.
+
+**Custom sites:**
+- Static sites, Server-rendered apps, Hybrid architectures.
+
+If your website is crawlable, EngineO.ai can analyze it and surface DEO insights.
+
+### Websites FAQ
+Answers:
+- Do I need a plugin for WordPress or Webflow? → No — EngineO.ai crawls your public site directly.
+- Can it optimize blog metadata? → Yes — blog posts are first-class in the Content Workspace.
+- Does it rewrite my actual page content? → No — it generates recommendations. You stay in control.
+- How often does it crawl my site? → Depending on your plan, daily, weekly, or custom schedule.
+
+### Final CTA
+- Copy: "Ready to make your website visible across search & AI?"
+- **CTAs:** Start Free (`/signup`) and Talk to the founder (`/contact`).
+
+---
+
+## 5. Navigation
+
+- Marketing navbar (`MarketingNavbar.tsx`) includes **Shopify** and **Websites** links.
+- Both vertical links are visible on desktop nav and in the mobile menu.
+- Homepage remains universal; vertical-specific details live on `/shopify` and `/websites` pages.

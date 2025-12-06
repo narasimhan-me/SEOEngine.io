@@ -6089,7 +6089,65 @@ Implement a dedicated pricing page that clearly communicates EngineO.ai's tiers,
 
 ---
 
-These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-Content-1, UX-Content-2, and MARKETING-1 through MARKETING-3 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
+## PHASE MARKETING-4 — Websites Vertical Landing Page (Completed)
+
+### Phase Summary
+
+Create a dedicated vertical landing page for WordPress, Webflow, and all non-ecommerce websites. This page speaks to website owners, bloggers, documentation sites, and SaaS marketing teams — reinforcing that DEO is not just for product catalogs, but for every crawlable page.
+
+### MARKETING-4.1 Scope
+
+- **Route:** `/websites`
+- **File:** `apps/web/src/app/(marketing)/websites/page.tsx`
+
+**Components created:**
+
+1. **WebsitesHero** (`apps/web/src/components/marketing/WebsitesHero.tsx`)
+   - Heading: "EngineO.ai for WordPress, Webflow, and Every Website."
+   - Subheading: "Optimize all your pages, blogs, documentation, and landing pages for search & AI — automatically."
+   - CTAs: Start Free (`/signup`) and Try Demo (`/contact`).
+
+2. **WebsitesFeatures** (`apps/web/src/components/marketing/WebsitesFeatures.tsx`)
+   - Why DEO matters for all websites (not just ecommerce).
+   - Full-site crawling coverage.
+   - Content Workspace (Non-Ecommerce Edition).
+   - Issues Engine for content sites.
+   - AI-powered metadata generation.
+
+3. **WebsitesPlatforms** (`apps/web/src/components/marketing/WebsitesPlatforms.tsx`)
+   - Website & blog CMS: WordPress, Webflow, Wix, Squarespace, Ghost, HubSpot CMS, Drupal, Blogger.
+   - Modern headless frameworks: Next.js, Remix, Astro, Gatsby, Nuxt, SvelteKit, Custom frameworks.
+   - Custom sites: Static sites, Server-rendered apps, Hybrid architectures.
+
+4. **WebsitesFAQ** (`apps/web/src/components/marketing/WebsitesFAQ.tsx`)
+   - Plugin requirements, blog metadata, content rewriting, crawl frequency.
+
+5. **WebsitesCTASection** (`apps/web/src/components/marketing/WebsitesCTASection.tsx`)
+   - Final CTA with dark slate background.
+   - CTAs: Start Free (`/signup`) and Talk to the founder (`/contact`).
+
+**Navigation update:**
+
+- Added "Websites" link to `MarketingNavbar.tsx` navigation array.
+- Visible on desktop nav and mobile menu.
+
+### MARKETING-4.2 Constraints
+
+- Frontend-only; no backend changes.
+- Uses existing Tailwind and marketing layout patterns.
+- Consistent with MARKETING-1, MARKETING-2, and MARKETING-3 styling.
+
+### MARKETING-4.3 Acceptance Criteria (Completed)
+
+- [x] `/websites` page renders with hero, features, platforms, FAQ, and final CTA.
+- [x] CTAs route correctly to `/signup` and `/contact`.
+- [x] Layout is mobile responsive and visually consistent with other marketing pages.
+- [x] MarketingNavbar includes "Websites" link in both desktop and mobile menus.
+- [x] `docs/MARKETING.md` updated with Websites vertical page documentation.
+
+---
+
+These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-Content-1, UX-Content-2, and MARKETING-1 through MARKETING-4 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
 
 - Phases 12–17: Core feature sets (automation, content, performance, competitors, local, social).
 - Phases 18–22: Security, subscription management, monitoring, fairness & limits.
@@ -6105,6 +6163,7 @@ These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-Conten
 - Phase MARKETING-1: Universal marketing homepage and DEO positioning across the public site.
 - Phase MARKETING-2: Dedicated Shopify landing page for ecommerce merchants.
 - Phase MARKETING-3: Pricing page with Free, Pro, and Business tiers mapped to DEO value.
+- Phase MARKETING-4: Websites vertical landing page for WordPress, Webflow, and all non-ecommerce sites.
 
 ---
 
