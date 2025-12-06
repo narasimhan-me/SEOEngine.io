@@ -5786,7 +5786,166 @@ Connect the backend DEO Issues Engine (`GET /projects/:id/deo-issues`) to the fr
 
 ---
 
-These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, and UX-4 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
+# PHASE UX-Content-1 — Content Pages Tab & List View
+
+**Goal:** Provide a dedicated Content tab and list view for all non-product URLs discovered by the crawler, with DEO status, issues, and crawl context similar to the Products list.
+
+### UX-Content-1.1. Scope
+
+- **App:** `apps/web` (Next.js, App Router).
+- **Primary route:** `/projects/[id]/content`.
+- **File:** `apps/web/src/app/projects/[id]/content/page.tsx`.
+- **Data sources:**
+  - New endpoint: `GET /projects/:id/crawl-pages` (non-product CrawlResult rows with pageType classification).
+  - Existing DEO issues endpoint: `GET /projects/:id/deo-issues`.
+
+### UX-Content-1.2. Requirements
+
+#### Content Tab in Sidebar
+
+- Ensure `ProjectSideNav` includes a Content nav item that points to `/projects/[id]/content`.
+- Navigation behavior matches other project tabs (Overview, Products, Issues & Fixes, Performance, etc.).
+
+#### Content Pages List
+
+Render a list of all non-product pages known to the crawler:
+
+- Collections (`/collections/*`).
+- Blogs & articles (`/blogs/*`, `/blog/*`).
+- Static pages (`/pages/*`, `/about`, `/contact`, `/faq`, `/support`, `/shipping`, etc.).
+- Home page (`/`).
+- Other non-product URLs (`misc`).
+
+For each row, display:
+
+- URL path (e.g., `/collections/summer`).
+- `pageType` chip (home, collection, blog, static, misc).
+- Status chip derived from metadata + crawl issues:
+  - **Indexed / Healthy** – 2xx status, title + meta description present, no critical issues.
+  - **Missing Metadata** – missing title and/or meta description.
+  - **Thin Content** – word count below a configurable threshold.
+  - **Error** – HTTP error or fetch error.
+- Issue badge summarizing how many DEO issues touch this page (uses `IssueBadge` component).
+- Last crawled timestamp (`scannedAt`) formatted for humans.
+- Optional AI indicator when suggestions have been generated for this page.
+
+#### Row Behavior & Navigation
+
+- Clicking the row navigates to `/projects/[projectId]/content/[pageId]` (UX-Content-2).
+- Buttons/links within the row opt out of row-level navigation using the same `data-no-row-click` pattern from UX-5.
+- Optionally expose a small inline link (`Open Workspace →`) under the path.
+
+#### Filtering & Sorting (MVP)
+
+- Optional type filter (All, Home, Collections, Blogs, Static, Misc).
+- Optional status filter (All, Healthy, Missing Metadata, Thin Content, Error).
+- Implementation is client-side only; no new backend filtering endpoints.
+
+### UX-Content-1.3. Backend Notes
+
+#### Endpoint: `GET /projects/:id/crawl-pages`
+
+- Lives in `ProjectsController` (e.g., `@Get(':id/crawl-pages')`).
+- Validates project ownership (reuses existing patterns).
+- Queries `CrawlResult` rows for the project excluding product URLs (`/products/*`).
+- Derives a `pageType` per row based on the URL:
+  - `/` → `home`
+  - `/collections/*` → `collection`
+  - `/blogs/*`, `/blog/*` → `blog`
+  - `/pages/*` or canonical paths like `/about`, `/contact`, `/faq`, `/support`, `/shipping` → `static`
+  - Everything else → `misc`
+- Returns normalized payload per page: `id`, `projectId`, `url`, `path`, `pageType`, `statusCode`, `title`, `metaDescription`, `h1`, `wordCount`, `issues`, `scannedAt`.
+- No Prisma schema changes are required.
+
+#### Frontend API Helper
+
+- Add `projectsApi.crawlPages(projectId: string)` → `GET /projects/:id/crawl-pages`.
+- Define a `ContentPage` interface in `apps/web/src/lib`.
+
+### UX-Content-1.4. Acceptance Criteria
+
+- [ ] Clicking Content in the project sidebar navigates to `/projects/[id]/content` without errors.
+- [ ] The Content list displays only non-product URLs (no `/products/*` entries).
+- [ ] Each row shows path, page type, DEO-style status chip, issue badge, and last crawled timestamp.
+- [ ] Rows correctly map DEO issues from `GET /projects/:id/deo-issues` to per-page issue counts and highest severity.
+- [ ] Clicking a row (outside of buttons/links) opens the corresponding Content Workspace at `/projects/[projectId]/content/[pageId]`.
+- [ ] No new crawl logic or DEO scoring changes were introduced.
+
+---
+
+# PHASE UX-Content-2 — Content Page Optimization Workspace
+
+**Goal:** Provide a dedicated workspace for optimizing individual content pages (non-product URLs) using AI metadata suggestions and DEO insights, mirroring the Product Optimization Workspace.
+
+### UX-Content-2.1. Scope
+
+- **App:** `apps/web` (Next.js, App Router).
+- **Route:** `/projects/[id]/content/[pageId]`.
+- **File:** `apps/web/src/app/projects/[id]/content/[pageId]/page.tsx`.
+- **Data sources:**
+  - `projectsApi.crawlPages(projectId)` to load the underlying `CrawlResult` for the given `pageId`.
+  - `projectsApi.deoIssues(projectId)` to derive page-specific DEO issues.
+  - Existing AI endpoint `POST /ai/metadata` via `aiApi.suggestMetadata(crawlResultId)`.
+
+### UX-Content-2.2. Requirements
+
+#### 3-Panel Layout (Mirrors UX-2)
+
+##### Left Panel – Page Overview
+
+- URL (full) and path.
+- Page type badge (home / collection / blog / static / misc).
+- Current title, H1, and meta description (read-only).
+- Word count and basic crawl health summary (status code, key issue flags).
+- Last crawled timestamp.
+- Screenshot placeholder area for a later phase.
+
+##### Center Panel – AI Suggestions + Editor
+
+- Uses `aiApi.suggestMetadata(crawlResultId)` to request AI metadata for the page.
+- Displays suggested title (X/60) and meta description (X/155).
+- Editable H1 field (initially defaulted from the suggestion or existing H1).
+- Optional summary / intro paragraph field.
+- Users can copy fields to clipboard, apply suggestions, or regenerate.
+- "Apply to CMS / Shopify" is copy-to-clipboard only for this phase.
+
+##### Right Panel – DEO Insights + Issues
+
+- Thin content status (word count vs thresholds).
+- Missing metadata indicators (title, meta description, H1).
+- Entity structure hint (presence of title + H1).
+- Answer-surface readiness (sufficient word count and heading presence).
+- Crawl health (HTTP errors / fetch errors / slow load time).
+- Design matches `ProductDeoInsightsPanel`.
+
+### UX-Content-2.3. Implementation Notes
+
+#### Backend
+
+- Reuse the crawl-pages endpoint added in UX-Content-1; no additional endpoints required.
+- Reuse the existing AI metadata endpoint (`POST /ai/metadata`); no new AI routes or DTOs.
+- Do not add new Prisma models or columns.
+
+#### Frontend
+
+- Introduce `ContentPage` type and utilities (e.g., `getContentStatus(page)`, `getPageTypeLabel(pageType)`) in `apps/web/src/lib`.
+- Add workspace page that validates auth, loads content page, fetches DEO issues, and calls AI when requested.
+- Keep styling and responsive behavior aligned with the Product Optimization Workspace (UX-2).
+
+### UX-Content-2.4. Acceptance Criteria
+
+- [ ] Navigating to `/projects/[id]/content/[pageId]` shows a 3-panel workspace with Page Overview, AI Suggestions, and DEO Insights.
+- [ ] Page Overview displays URL, page type, metadata fields, word count, and last crawled timestamp from the underlying `CrawlResult`.
+- [ ] AI Suggestions panel can successfully call `POST /ai/metadata`, display suggested title + meta description, and allow copying fields to clipboard.
+- [ ] Right panel displays per-page DEO insights derived from `GET /projects/:id/deo-issues` plus local heuristics.
+- [ ] Row clicks from the Content list (UX-Content-1) reliably open the correct workspace.
+- [ ] No new Prisma schema changes were introduced.
+- [ ] Mobile layout remains usable: panels stack vertically, no horizontal scrolling.
+- [ ] No backend or schema changes were required; all behavior is implemented in the frontend only.
+
+---
+
+These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-Content-1, and UX-Content-2 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
 
 - Phases 12–17: Core feature sets (automation, content, performance, competitors, local, social).
 - Phases 18–22: Security, subscription management, monitoring, fairness & limits.
@@ -5796,7 +5955,9 @@ These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, and UX-4 extend your 
 - Phase UX-2: Per-product optimization workspace with AI suggestions, manual editor, and DEO insights.
 - Phase UX-3: Project Overview page redesign with DEO score visualization and signals summary.
 - Phase UX-4: Issues UI integration surfacing DEO issues across Overview, Products, and Optimization Workspace.
- - Phase UX-5: Row-level navigation and workspace access improvements for the Products list.
+- Phase UX-5: Row-level navigation and workspace access improvements for the Products list.
+- Phase UX-Content-1: Content Pages tab and non-product content list built on CrawlResult data and DEO issues.
+- Phase UX-Content-2: Content optimization workspace for non-product pages with AI metadata suggestions and DEO insights.
 
 ---
 

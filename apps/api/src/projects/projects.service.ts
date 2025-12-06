@@ -272,4 +272,138 @@ export class ProjectsService {
     };
   }
 
+  /**
+   * Get non-product crawl pages for content optimization
+   */
+  async getCrawlPages(projectId: string, userId: string) {
+    // Validate project ownership
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    if (project.userId !== userId) {
+      throw new ForbiddenException('You do not have access to this project');
+    }
+
+    // Get all crawl results for the project
+    const crawlResults = await this.prisma.crawlResult.findMany({
+      where: { projectId },
+      select: {
+        id: true,
+        projectId: true,
+        url: true,
+        statusCode: true,
+        title: true,
+        metaDescription: true,
+        h1: true,
+        wordCount: true,
+        loadTimeMs: true,
+        issues: true,
+        scannedAt: true,
+      },
+      orderBy: { scannedAt: 'desc' },
+    });
+
+    // Static paths that should be classified as 'static'
+    const staticPaths = new Set([
+      '/about',
+      '/contact',
+      '/faq',
+      '/support',
+      '/shipping',
+      '/returns',
+      '/privacy',
+      '/terms',
+      '/privacy-policy',
+      '/terms-of-service',
+      '/refund-policy',
+    ]);
+
+    // Helper to determine pageType from URL path
+    const getPageType = (
+      path: string,
+    ): 'home' | 'collection' | 'blog' | 'static' | 'misc' => {
+      const normalizedPath = path.toLowerCase();
+
+      if (normalizedPath === '/' || normalizedPath === '') {
+        return 'home';
+      }
+      if (
+        normalizedPath.startsWith('/collections/') ||
+        normalizedPath.startsWith('/collections')
+      ) {
+        return 'collection';
+      }
+      if (
+        normalizedPath.startsWith('/blogs/') ||
+        normalizedPath.startsWith('/blog/') ||
+        normalizedPath === '/blog' ||
+        normalizedPath === '/blogs'
+      ) {
+        return 'blog';
+      }
+      if (
+        normalizedPath.startsWith('/pages/') ||
+        staticPaths.has(normalizedPath)
+      ) {
+        return 'static';
+      }
+
+      return 'misc';
+    };
+
+    // Filter out product URLs, deduplicate by URL (keep most recent), and transform results
+    // Since results are ordered by scannedAt desc, first occurrence of each URL is the most recent
+    const seenUrls = new Set<string>();
+    const contentPages = crawlResults
+      .filter((result) => {
+        // Skip if we've already seen this URL (keep only the most recent)
+        if (seenUrls.has(result.url)) {
+          return false;
+        }
+        seenUrls.add(result.url);
+
+        try {
+          const urlObj = new URL(result.url);
+          const path = urlObj.pathname.toLowerCase();
+          // Exclude product URLs (Shopify pattern: /products/*)
+          return !path.startsWith('/products/') && path !== '/products';
+        } catch {
+          // If URL parsing fails, include it as misc
+          return true;
+        }
+      })
+      .map((result) => {
+        let path = '/';
+        try {
+          const urlObj = new URL(result.url);
+          path = urlObj.pathname || '/';
+        } catch {
+          // If URL parsing fails, use the full URL as path
+          path = result.url;
+        }
+
+        return {
+          id: result.id,
+          projectId: result.projectId,
+          url: result.url,
+          path,
+          pageType: getPageType(path),
+          statusCode: result.statusCode,
+          title: result.title,
+          metaDescription: result.metaDescription,
+          h1: result.h1,
+          wordCount: result.wordCount,
+          loadTimeMs: result.loadTimeMs,
+          issues: result.issues as string[],
+          scannedAt: result.scannedAt.toISOString(),
+        };
+      });
+
+    return contentPages;
+  }
 }

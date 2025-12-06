@@ -161,6 +161,15 @@ export class ProjectsController {
   }
 
   /**
+   * GET /projects/:id/crawl-pages
+   * Returns non-product crawl pages for content optimization
+   */
+  @Get(':id/crawl-pages')
+  async getCrawlPages(@Request() req: any, @Param('id') projectId: string) {
+    return this.projectsService.getCrawlPages(projectId, req.user.id);
+  }
+
+  /**
    * POST /projects/:id/deo-score/recompute-sync
    * Synchronously recomputes DEO score (bypasses queue - for local testing)
    */

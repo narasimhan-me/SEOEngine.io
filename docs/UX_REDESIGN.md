@@ -576,3 +576,128 @@ This phase upgrades the Products list UX so that opening the Product Optimizatio
 - Does not alter Product Optimization Workspace layout or logic (UX-2).
 - Does not modify DEO Issues UI integration (UX-4); issue badges and product-level issues remain intact.
 - Focused solely on navigation and interaction semantics for the Products list.
+
+---
+
+# Content Pages Tab + Content Workspace (Phases UX-Content-1 & UX-Content-2)
+
+These phases introduce a first-class UX for all non-product content pages discovered by the crawler (collections, blogs, static pages, home, and landing pages), parallel to the existing Products list + Product Optimization Workspace.
+
+## Goals
+
+- Surface all non-product URLs discovered by the crawler in a dedicated Content area.
+- Attach DEO status, issues, and crawl health to each page.
+- Provide a per-page Content Optimization Workspace for metadata tuning with AI suggestions.
+- Keep the UX consistent with the Products list and Product Optimization Workspace so users can switch between products and content seamlessly.
+
+## Content Pages List (UX-Content-1)
+
+### Navigation
+
+- The existing Content entry in ProjectSideNav links to the new route: `/projects/[id]/content`.
+- Route file: `apps/web/src/app/projects/[id]/content/page.tsx`.
+
+### Data Source
+
+- Uses a new backend endpoint: `GET /projects/:id/crawl-pages`.
+- Endpoint returns all CrawlResult rows for the project excluding product URLs.
+- Each row includes a computed `pageType` field:
+  - `home` – `/`
+  - `collection` – `/collections/*`
+  - `blog` – `/blogs/*` or `/blog/*`
+  - `static` – `/pages/*` or canonical navigational paths like `/about`, `/contact`, `/faq`, `/support`, `/shipping`
+  - `misc` – any other non-product URL.
+
+### Row Layout
+
+Each content page is rendered as a compact card-style row:
+
+- **Left:** Page type pill + URL path (e.g. `/collections/summer`), with optional truncated title under the path.
+- **Middle:** Status chip derived from metadata and crawl issues (e.g. Indexed, Missing Metadata, Thin Content, Error).
+- **Right:** Issue badge (via `IssueBadge`) showing count + severity, last crawled timestamp, and an optional AI indicator when suggestions have been generated.
+
+- Entire row is clickable and navigates to the Content Workspace route: `/projects/[projectId]/content/[pageId]` (UX-Content-2).
+- Links and buttons inside the row (e.g. "Open Workspace →" text link) are marked to opt out of row-level click behavior, matching the Products list pattern.
+
+### DEO Issues Integration
+
+- The list view also consumes the existing `GET /projects/:id/deo-issues` endpoint.
+- For each page, the UI aggregates `DeoIssue.affectedPages` entries to compute:
+  - Issue count for that URL/path.
+  - Highest severity (critical / warning / info) to feed into `IssueBadge`.
+
+## Content Workspace (UX-Content-2)
+
+### Route & Layout
+
+- Route: `/projects/[id]/content/[pageId]` where `pageId` corresponds to the underlying `CrawlResult.id`.
+- File: `apps/web/src/app/projects/[id]/content/[pageId]/page.tsx`.
+- Uses a 3-panel layout mirroring the Product Optimization Workspace:
+
+### Left Panel – Page Overview
+
+- URL and path.
+- Page type (home / collection / blog / static / misc).
+- Title, H1, meta description (read-only view of current values).
+- Word count and basic crawl status.
+- Last crawled timestamp.
+- Screenshot placeholder area for a future phase.
+
+### Center Panel – AI Suggestions & Editor
+
+- Calls the existing AI metadata endpoint (via `aiApi.suggestMetadata(crawlResultId)`).
+- Surfaces:
+  - Suggested title.
+  - Suggested meta description.
+  - An editable H1 field (defaulted from the suggestion or existing H1).
+  - An optional summary / intro paragraph field (initially empty or derived from existing content when available).
+- Users can:
+  - Copy suggested fields to clipboard.
+  - Apply suggestions into the editable fields before using them in their CMS.
+  - Manually edit all fields even without AI suggestions.
+- "Apply to Shopify" is treated as a future enhancement for pages/collections; in this phase, the primary action is copy-to-clipboard.
+
+### Right Panel – DEO Insights & Issues
+
+- Consumes project-level deo-issues data and filters per page URL.
+- Shows:
+  - Thin content heuristics (word count thresholds).
+  - Missing metadata indicators (title / description / H1).
+  - Basic entity structure hints (presence of title + H1).
+  - Answer-surface readiness (word count + heading presence).
+  - Crawl health status (HTTP status and key crawl issues).
+- Uses the same visual language as `ProductDeoInsightsPanel` (chips, labels, and colored indicators).
+
+## Mobile Behavior
+
+### Content List
+
+- Rows stack vertically on small screens (`flex-col`) with:
+  - Path + page type on the first line.
+  - Status chip and issue badge on the second line.
+  - Last crawled and AI indicator on the third line.
+- No horizontal scrolling; long paths and titles are truncated with `truncate` + `min-w-0`.
+
+### Workspace
+
+- Panels stack vertically on mobile (Left → Center → Right).
+- Center panel remains scrollable with a sticky AI header (section title and actions pinned at the top) to keep the "Generate Suggestions" controls visible.
+- On desktop, the layout mirrors the 3-panel product workspace with sticky side panels where appropriate.
+
+## Constraints & Non-Goals
+
+### No Prisma schema changes
+
+- Reuses existing `CrawlResult` model; `pageType` classification is computed in the backend and returned via the crawl-pages endpoint.
+
+### Minimal backend additions
+
+- Adds `GET /projects/:id/crawl-pages` to expose non-product crawl results with `pageType`.
+- Does not change crawl logic, queues, or DEO scoring.
+
+### Out of scope for this phase
+
+- Direct editing or publishing of Shopify pages or blog posts.
+- Applying metadata back to Shopify Pages/Blog/Collections APIs (placeholder for a later phase).
+- Deep HTML editing or full content rewriting beyond basic metadata and summaries.
+- Performance metrics (CWV) visualizations inside the workspace.
