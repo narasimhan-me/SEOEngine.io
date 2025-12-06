@@ -113,7 +113,91 @@ Clarifies that DEO optimizes for both search engines and AI engines.
 
 ---
 
-## 3. Navigation
+## 3. Pricing Page
+
+**Route:** `/pricing`
+**File:** `apps/web/src/app/(marketing)/pricing/page.tsx`
+
+**Purpose:**
+
+- Present clear, simple pricing for EngineO.ai.
+- Align pricing with DEO value (projects, crawled pages, Issues Engine, workspaces, automation).
+- Provide obvious upgrade paths from Free → Pro → Business.
+
+**Sections:**
+
+### Pricing Hero
+- **Heading:** "Simple pricing for every website."
+- **Subheading:** "Choose a plan that grows with your business."
+- **CTAs:**
+  - Start Free → `/signup`
+  - Contact Sales → `/contact`
+
+### Three-tier pricing
+
+Plans implemented via `PricingTable`:
+
+**Free — $0/mo**
+- 1 project
+- 100 crawled pages
+- Weekly crawl
+- DEO Score (v1)
+- Critical issues only
+- Product Workspace (1 product)
+- Content Workspace (view-only)
+- 5 AI suggestions per month
+- CTA: Start Free (`/signup`)
+
+**Pro — $29/mo (Most Popular)**
+- 5 projects
+- 5,000 crawled pages
+- Daily crawl
+- Full Issues Engine
+- Full Product Workspace
+- Full Content Workspace
+- Unlimited AI suggestions
+- Shopify SEO sync
+- DEO Trends (coming soon)
+- Priority support
+- CTA: Get Pro (`/signup`)
+
+**Business — $99/mo**
+- 20 projects
+- 25,000 crawled pages
+- Hourly crawl scheduling (coming soon)
+- Team roles
+- API access
+- Audit exports
+- Dedicated account manager
+- CTA: Contact Sales (`/contact`)
+
+**Optional Enterprise**
+- Custom pricing
+- CTA: Book Demo (`/contact`)
+
+### Feature comparison table
+- One table row per key capability (projects, crawled pages, crawl frequency, Issues Engine, Product Workspace, Content Workspace, AI suggestions, Shopify SEO sync, DEO Trends, support level).
+- Columns: Free, Pro, Business.
+- Values match the bullets above.
+
+### Pricing FAQs
+
+Implemented via `PricingFAQ` with common questions:
+- Free plan behavior.
+- Impact on themes / site code.
+- Whether a developer is required.
+- How AI suggestions / usage works.
+- Cancellation and plan changes.
+- Discounts for agencies and annual billing.
+
+### Final CTA
+- Copy: "Ready to improve your visibility across search & AI? Start Free Today."
+- CTA button: Start Free (`/signup`).
+- Secondary CTA: Talk to Sales (`/contact`).
+
+---
+
+## 4. Navigation
 
 - Marketing navbar (`MarketingNavbar.tsx`) includes a **Shopify** link pointing to `/shopify`.
 - Shopify link is visible on desktop nav and in the mobile menu.

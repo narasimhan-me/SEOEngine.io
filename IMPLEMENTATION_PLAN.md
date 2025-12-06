@@ -5945,7 +5945,151 @@ For each row, display:
 
 ---
 
-These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-Content-1, and UX-Content-2 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
+## PHASE MARKETING-1 — Universal Homepage & Positioning (Completed)
+
+### Phase Summary
+
+Bring the public marketing homepage in line with EngineO.ai's DEO positioning, moving from a Shopify-centric SEO tool narrative to a universal Discovery Engine Optimization platform that works for ecommerce, SaaS, content sites, and blogs.
+
+### MARKETING-1.1 Scope
+
+- **Route:** `/`
+- **Files:**
+  - `apps/web/src/app/(marketing)/page.tsx`
+  - `apps/web/src/app/(marketing)/layout.tsx`
+  - `apps/web/src/components/marketing/MarketingNavbar.tsx`
+  - `apps/web/src/components/marketing/MarketingFooter.tsx`
+- Update the homepage hero and body copy to:
+  - Primary message: "Optimize any website for search & AI discovery."
+  - Clearly define DEO (SEO + AEO + PEO + VEO).
+  - Emphasize support for ecommerce, SaaS, content-driven sites, and blogs.
+- Add universal sections:
+  - DEO Components (Content, Entities, Technical, Visibility).
+  - Issues Engine overview.
+  - Product & Content Optimization Workspaces.
+  - Supported Platforms (ecommerce, CMS, headless/custom).
+  - "Who it's for" panel and final CTA.
+
+### MARKETING-1.2 Constraints
+
+- Frontend-only changes in `apps/web`.
+- No backend, pricing, or dashboard changes.
+- Content and component-level updates only; respect existing layout and Tailwind design language.
+
+### MARKETING-1.3 Acceptance Criteria (Completed)
+
+- [x] Homepage hero uses the new universal DEO copy (no Shopify-only framing).
+- [x] Homepage includes DEO components, Issues Engine, Workspaces, Supported Platforms, and "Who it's for" sections.
+- [x] CTAs route correctly to `/signup`, `/features`, and `/contact`.
+- [x] Design remains responsive and consistent with the existing marketing layout.
+
+---
+
+## PHASE MARKETING-2 — Dedicated Shopify Landing Page (Completed)
+
+### Phase Summary
+
+Create a high-conversion Shopify-specific landing page that speaks directly to Shopify merchants while keeping the universal homepage platform-agnostic.
+
+### MARKETING-2.1 Scope
+
+- **Route:** `/shopify`
+- **File:** `apps/web/src/app/(marketing)/shopify/page.tsx`
+- Add a dedicated vertical landing page containing:
+  - **Shopify Hero:**
+    - Heading: "EngineO.ai for Shopify".
+    - Subheading: "Optimize your products, collections, pages & blogs for search and AI — automatically."
+    - CTAs: Start Free (`/signup`) and Connect Your Store (`/login`).
+  - **Why Shopify Stores Need DEO (not SEO):**
+    - Explain multi-surface discovery: Google, TikTok, YouTube, ChatGPT, Shopping AI, retail AI engines.
+    - Emphasize DEO pillars: Content, Entities, Technical health, Visibility signals, Answer-surface readiness.
+  - **Deep Crawl of Your Shopify Store:**
+    - Coverage of products, collections, home, blogs, About/Contact/Policies, and SEO liquid pages.
+  - **Product Optimization Workspace (Shopify Edition):**
+    - Product-level DEO score, AI metadata, alt text + metadata analysis, thin content detection, missing metadata fixes, Shopify SEO sync, per-product issues, and collection-aware insights (later phase).
+  - **Content Workspace for collections and blogs:**
+    - Collection and blog optimization, home page insights, and landing page DEO.
+  - **Issues Engine for Shopify** and **Auto-Crawl + Auto-Recompute (Shopify Edition)**.
+  - **Supported Shopify themes / stacks** and **Shopify-specific FAQ**.
+- Update marketing navigation:
+  - Add "Shopify" link in `MarketingNavbar` pointing to `/shopify`.
+
+### MARKETING-2.2 Constraints
+
+- Frontend-only; no changes to Shopify integration code or dashboard flows.
+- Homepage remains universal; Shopify messaging stays confined to the `/shopify` route.
+- Reuse Tailwind layout patterns and marketing layout components.
+
+### MARKETING-2.3 Acceptance Criteria (Completed)
+
+- [x] `/shopify` renders with all defined Shopify sections (hero, DEO rationale, deep crawl, workspaces, Issues Engine, auto-crawl, supported stack, FAQ, final CTA).
+- [x] CTAs on the Shopify page route correctly to `/signup`, `/login`, and `/contact`.
+- [x] Marketing navbar includes a Shopify link, visible on desktop and mobile.
+- [x] Page is mobile responsive and visually consistent with the universal homepage.
+
+---
+
+## PHASE MARKETING-3 — Pricing Page (Completed)
+
+### Phase Summary
+
+Implement a dedicated pricing page that clearly communicates EngineO.ai's tiers, limits, and upgrade paths using Free, Pro, and Business plans, while aligning with DEO value rather than raw feature lists.
+
+### MARKETING-3.1 Scope
+
+- **Route:** `/pricing`
+- **File:** `apps/web/src/app/(marketing)/pricing/page.tsx`
+- **Components (marketing):**
+  - `PricingHero.tsx` — hero copy + primary CTAs.
+  - `PricingTable.tsx` — three-tier pricing cards + feature comparison table.
+  - `PricingFAQ.tsx` — pricing-related FAQ section.
+  - `PricingCTASection.tsx` — final CTA block.
+- **Pricing hero:**
+  - Heading: "Simple pricing for every website."
+  - Subheading: "Choose a plan that grows with your business."
+  - CTAs: Start Free (`/signup`), Contact Sales (`/contact`).
+- **Pricing tiers:**
+  - **Free — $0/mo**
+    - 1 project, 100 crawled pages, weekly crawl.
+    - DEO Score (v1), critical issues only.
+    - Product Workspace (1 product), Content Workspace (view-only).
+    - 5 AI suggestions per month.
+  - **Pro — $29/mo (Most Popular)**
+    - 5 projects, 5,000 crawled pages, daily crawl.
+    - Full Issues Engine, full Product & Content Workspaces.
+    - Unlimited AI suggestions, Shopify SEO sync.
+    - DEO Trends (coming soon), priority support.
+  - **Business — $99/mo**
+    - 20 projects, 25,000 crawled pages.
+    - Hourly crawl scheduling (coming soon).
+    - Team roles, API access, audit exports, dedicated account manager.
+- **Optional Enterprise row:**
+  - Custom pricing with "Book Demo" CTA.
+- **Feature comparison table:**
+  - Rows for projects, crawled pages, crawl frequency, Issues Engine scope, workspaces, AI suggestions, Shopify SEO sync, DEO Trends, and support.
+  - Columns for Free, Pro, and Business, with values matching tier bullets.
+- **Pricing FAQ:**
+  - Clarify free plan behavior, theme/code impact, developer needs, AI usage, cancellation, and agency/annual discounts.
+- **Final CTA:**
+  - Copy: "Ready to improve your visibility across search & AI? Start Free Today."
+  - Primary CTA: Start Free (`/signup`), secondary CTA: Talk to Sales (`/contact`).
+
+### MARKETING-3.2 Constraints
+
+- Frontend-only; no backend pricing, entitlement, or billing logic changes.
+- Does not wire into billing or subscription enforcement (those are handled in pricing/billing phases).
+- Uses existing Tailwind and marketing layout patterns; no major redesign.
+
+### MARKETING-3.3 Acceptance Criteria (Completed)
+
+- [x] `/pricing` page renders with hero, three-tier pricing, optional Enterprise row, comparison table, FAQ, and final CTA.
+- [x] CTAs route correctly to `/signup`, `/contact`, and other relevant entry points.
+- [x] Layout is mobile responsive and visually consistent with MARKETING-1 and MARKETING-2.
+- [x] Pricing content (tiers, bullets, and calls-to-action) matches the defined specification.
+
+---
+
+These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-Content-1, UX-Content-2, and MARKETING-1 through MARKETING-3 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
 
 - Phases 12–17: Core feature sets (automation, content, performance, competitors, local, social).
 - Phases 18–22: Security, subscription management, monitoring, fairness & limits.
@@ -5958,6 +6102,9 @@ These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-Conten
 - Phase UX-5: Row-level navigation and workspace access improvements for the Products list.
 - Phase UX-Content-1: Content Pages tab and non-product content list built on CrawlResult data and DEO issues.
 - Phase UX-Content-2: Content optimization workspace for non-product pages with AI metadata suggestions and DEO insights.
+- Phase MARKETING-1: Universal marketing homepage and DEO positioning across the public site.
+- Phase MARKETING-2: Dedicated Shopify landing page for ecommerce merchants.
+- Phase MARKETING-3: Pricing page with Free, Pro, and Business tiers mapped to DEO value.
 
 ---
 
