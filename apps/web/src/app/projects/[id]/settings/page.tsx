@@ -14,6 +14,9 @@ interface IntegrationStatus {
   crawlFrequency: CrawlFrequency;
   lastCrawledAt: string | null;
   lastDeoComputedAt: string | null;
+  autoSuggestMissingMetadata: boolean;
+  autoSuggestThinContent: boolean;
+  autoSuggestDailyCap: number;
   integrations: Array<{
     type: string;
     externalId: string;
@@ -80,6 +83,9 @@ export default function ProjectSettingsPage() {
   // Form state
   const [autoCrawlEnabled, setAutoCrawlEnabled] = useState(true);
   const [crawlFrequency, setCrawlFrequency] = useState<CrawlFrequency>('DAILY');
+  const [autoSuggestMissingMetadata, setAutoSuggestMissingMetadata] = useState(false);
+  const [autoSuggestThinContent, setAutoSuggestThinContent] = useState(false);
+  const [autoSuggestDailyCap, setAutoSuggestDailyCap] = useState(50);
 
   const fetchIntegrationStatus = useCallback(async () => {
     try {
@@ -89,6 +95,9 @@ export default function ProjectSettingsPage() {
       setStatus(data);
       setAutoCrawlEnabled(data.autoCrawlEnabled ?? true);
       setCrawlFrequency(data.crawlFrequency ?? 'DAILY');
+      setAutoSuggestMissingMetadata(data.autoSuggestMissingMetadata ?? false);
+      setAutoSuggestThinContent(data.autoSuggestThinContent ?? false);
+      setAutoSuggestDailyCap(data.autoSuggestDailyCap ?? 50);
     } catch (err: unknown) {
       console.error('Error fetching integration status:', err);
       setError(err instanceof Error ? err.message : 'Failed to load project settings');
@@ -112,6 +121,9 @@ export default function ProjectSettingsPage() {
       await projectsApi.update(projectId, {
         autoCrawlEnabled,
         crawlFrequency,
+        autoSuggestMissingMetadata,
+        autoSuggestThinContent,
+        autoSuggestDailyCap,
       });
       setSuccessMessage('Settings saved successfully');
       setTimeout(() => setSuccessMessage(''), 3000);
@@ -126,7 +138,11 @@ export default function ProjectSettingsPage() {
 
   const hasChanges =
     status &&
-    (autoCrawlEnabled !== status.autoCrawlEnabled || crawlFrequency !== status.crawlFrequency);
+    (autoCrawlEnabled !== status.autoCrawlEnabled ||
+      crawlFrequency !== status.crawlFrequency ||
+      autoSuggestMissingMetadata !== status.autoSuggestMissingMetadata ||
+      autoSuggestThinContent !== status.autoSuggestThinContent ||
+      autoSuggestDailyCap !== status.autoSuggestDailyCap);
 
   if (loading) {
     return (
@@ -314,6 +330,131 @@ export default function ProjectSettingsPage() {
                 'Save Changes'
               )}
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Automation Rules Section */}
+      <div className="rounded-lg bg-white p-6 shadow mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">AI Automation Rules</h2>
+        <p className="text-sm text-gray-600 mb-6">
+          Configure automatic AI suggestion generation after each crawl. Suggestions are created as
+          drafts and never auto-applied.
+        </p>
+
+        <div className="space-y-6">
+          {/* Missing Metadata Toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <label
+                htmlFor="autoSuggestMissingMetadata"
+                className="text-sm font-medium text-gray-900"
+              >
+                Suggest Missing Metadata
+              </label>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Generate AI suggestions for pages and products missing SEO titles or descriptions.
+              </p>
+            </div>
+            <button
+              id="autoSuggestMissingMetadata"
+              type="button"
+              role="switch"
+              aria-checked={autoSuggestMissingMetadata}
+              onClick={() => setAutoSuggestMissingMetadata(!autoSuggestMissingMetadata)}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                autoSuggestMissingMetadata ? 'bg-blue-600' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  autoSuggestMissingMetadata ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Thin Content Toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <label
+                htmlFor="autoSuggestThinContent"
+                className="text-sm font-medium text-gray-900"
+              >
+                Suggest for Thin Content
+              </label>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Generate AI suggestions for pages with less than 200 words or products with thin
+                descriptions.
+              </p>
+            </div>
+            <button
+              id="autoSuggestThinContent"
+              type="button"
+              role="switch"
+              aria-checked={autoSuggestThinContent}
+              onClick={() => setAutoSuggestThinContent(!autoSuggestThinContent)}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                autoSuggestThinContent ? 'bg-blue-600' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  autoSuggestThinContent ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Daily Cap */}
+          <div>
+            <label htmlFor="autoSuggestDailyCap" className="block text-sm font-medium text-gray-900">
+              Daily Suggestion Cap
+            </label>
+            <p className="text-sm text-gray-500 mt-0.5 mb-2">
+              Maximum number of new AI suggestions to generate per day.
+            </p>
+            <input
+              type="number"
+              id="autoSuggestDailyCap"
+              value={autoSuggestDailyCap}
+              onChange={(e) => setAutoSuggestDailyCap(Math.max(0, parseInt(e.target.value) || 0))}
+              min="0"
+              max="500"
+              disabled={!autoSuggestMissingMetadata && !autoSuggestThinContent}
+              className={`block w-full max-w-xs rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                !autoSuggestMissingMetadata && !autoSuggestThinContent
+                  ? 'opacity-50 cursor-not-allowed bg-gray-100'
+                  : ''
+              }`}
+            />
+          </div>
+
+          {/* Info box */}
+          <div className="rounded-md bg-blue-50 p-4 border border-blue-100">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-5 w-5 text-blue-400"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-blue-700">
+                  AI suggestions are generated as drafts after each crawl. You can review and apply
+                  them from the Products or Content pages. Suggestions are never auto-applied.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

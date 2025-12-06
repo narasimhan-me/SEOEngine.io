@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { DeoScoreService, DeoSignalsService } from '../projects/deo-score.service';
+import { AutomationService } from '../projects/automation.service';
 import { IntegrationType } from '@prisma/client';
 import * as cheerio from 'cheerio';
 
@@ -21,6 +22,7 @@ export class SeoScanService {
     private readonly prisma: PrismaService,
     private readonly deoSignalsService: DeoSignalsService,
     private readonly deoScoreService: DeoScoreService,
+    private readonly automationService: AutomationService,
   ) {}
 
   /**
@@ -105,6 +107,15 @@ export class SeoScanService {
           `[SeoScanService] Local DEO recompute complete for project ${projectId} (snapshot ${
             snapshot.id
           }, overall=${snapshot.breakdown.overall}) in ${Date.now() - startedAt}ms`,
+        );
+
+        // Run automation suggestions after successful crawl + DEO
+        const automationStartedAt = Date.now();
+        await this.automationService.scheduleSuggestionsForProject(projectId);
+        console.log(
+          `[SeoScanService] Automation suggestions scheduled for project ${projectId} in ${
+            Date.now() - automationStartedAt
+          }ms`,
         );
       } catch (error) {
         console.error(
@@ -406,6 +417,15 @@ export class SeoScanService {
             product.projectId
           } (snapshot ${snapshot.id}, overall=${snapshot.breakdown.overall}) in ${
             Date.now() - startedAt
+          }ms`,
+        );
+
+        // Run automation suggestions after successful crawl + DEO
+        const automationStartedAt = Date.now();
+        await this.automationService.scheduleSuggestionsForProject(product.projectId);
+        console.log(
+          `[SeoScanService] Automation suggestions scheduled for project ${product.projectId} in ${
+            Date.now() - automationStartedAt
           }ms`,
         );
       } catch (error) {

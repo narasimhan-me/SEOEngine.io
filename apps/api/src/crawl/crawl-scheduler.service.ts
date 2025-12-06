@@ -3,6 +3,7 @@ import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { SeoScanService } from '../seo-scan/seo-scan.service';
 import { DeoScoreService, DeoSignalsService } from '../projects/deo-score.service';
+import { AutomationService } from '../projects/automation.service';
 import { crawlQueue } from '../queues/queues';
 import { CrawlFrequency } from '@prisma/client';
 
@@ -17,6 +18,7 @@ export class CrawlSchedulerService {
     private readonly seoScanService: SeoScanService,
     private readonly deoSignalsService: DeoSignalsService,
     private readonly deoScoreService: DeoScoreService,
+    private readonly automationService: AutomationService,
   ) {}
 
   private shouldUseQueue(): boolean {
@@ -136,8 +138,17 @@ export class CrawlSchedulerService {
             }, overall=${snapshot.breakdown.overall}) in ${Date.now() - recomputeStartedAt}ms`,
           );
 
+          // Run automation suggestions after successful crawl + DEO
+          const automationStartedAt = Date.now();
+          await this.automationService.scheduleSuggestionsForProject(project.id);
           this.logger.log(
-            `[CrawlScheduler] Crawl + DEO pipeline for project ${project.id} completed in ${
+            `[CrawlScheduler] Automation suggestions scheduled for project ${project.id} in ${
+              Date.now() - automationStartedAt
+            }ms`,
+          );
+
+          this.logger.log(
+            `[CrawlScheduler] Crawl + DEO + Automation pipeline for project ${project.id} completed in ${
               Date.now() - jobStartedAt
             }ms`,
           );

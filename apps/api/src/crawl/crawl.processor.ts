@@ -4,6 +4,7 @@ import { redisConfig } from '../config/redis.config';
 import { PrismaService } from '../prisma.service';
 import { SeoScanService } from '../seo-scan/seo-scan.service';
 import { DeoScoreService, DeoSignalsService } from '../projects/deo-score.service';
+import { AutomationService } from '../projects/automation.service';
 
 interface CrawlJobPayload {
   projectId: string;
@@ -18,6 +19,7 @@ export class CrawlProcessor implements OnModuleInit, OnModuleDestroy {
     private readonly seoScanService: SeoScanService,
     private readonly deoSignalsService: DeoSignalsService,
     private readonly deoScoreService: DeoScoreService,
+    private readonly automationService: AutomationService,
   ) {}
 
   async onModuleInit() {
@@ -72,8 +74,17 @@ export class CrawlProcessor implements OnModuleInit, OnModuleDestroy {
             }, overall=${snapshot.breakdown.overall}) in ${Date.now() - recomputeStartedAt}ms`,
           );
 
+          // Run automation suggestions after successful crawl + DEO
+          const automationStartedAt = Date.now();
+          await this.automationService.scheduleSuggestionsForProject(projectId);
           console.log(
-            `[CrawlProcessor] Crawl + DEO pipeline for project ${projectId} completed in ${
+            `[CrawlProcessor] Automation suggestions scheduled for project ${projectId} in ${
+              Date.now() - automationStartedAt
+            }ms`,
+          );
+
+          console.log(
+            `[CrawlProcessor] Crawl + DEO + Automation pipeline for project ${projectId} completed in ${
               Date.now() - jobStartedAt
             }ms`,
           );

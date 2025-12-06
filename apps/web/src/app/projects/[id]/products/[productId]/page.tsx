@@ -16,6 +16,7 @@ import {
   ProductSeoEditor,
   ProductDeoInsightsPanel,
   type ProductMetadataSuggestion,
+  type AutomationSuggestion,
 } from '@/components/products/optimization';
 
 export default function ProductOptimizationPage() {
@@ -43,6 +44,7 @@ export default function ProductOptimizationPage() {
   // AI states
   const [suggestion, setSuggestion] = useState<ProductMetadataSuggestion | null>(null);
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
+  const [automationSuggestion, setAutomationSuggestion] = useState<AutomationSuggestion | null>(null);
 
   // Shopify apply state
   const [applyingToShopify, setApplyingToShopify] = useState(false);
@@ -52,11 +54,12 @@ export default function ProductOptimizationPage() {
       setLoading(true);
       setError('');
 
-      // Fetch project, products, and issues in parallel
-      const [projectData, productsData, issuesResponse] = await Promise.all([
+      // Fetch project, products, issues, and automation suggestions in parallel
+      const [projectData, productsData, issuesResponse, automationResponse] = await Promise.all([
         projectsApi.get(projectId),
         productsApi.list(projectId),
         projectsApi.deoIssues(projectId).catch(() => ({ issues: [] })),
+        projectsApi.automationSuggestions(projectId).catch(() => ({ suggestions: [] })),
       ]);
 
       setProjectName(projectData.name);
@@ -77,6 +80,12 @@ export default function ProductOptimizationPage() {
         issue.affectedProducts?.includes(productId)
       );
       setProductIssues(issuesForProduct);
+
+      // Find automation suggestion for this product (if any)
+      const productAutomationSuggestion = (automationResponse.suggestions ?? []).find(
+        (s: AutomationSuggestion) => s.targetType === 'product' && s.targetId === productId && !s.applied
+      );
+      setAutomationSuggestion(productAutomationSuggestion || null);
 
       // Initialize editor fields
       const title = foundProduct.seoTitle || foundProduct.title || '';
@@ -261,6 +270,7 @@ export default function ProductOptimizationPage() {
             <div className="space-y-6">
               <ProductAiSuggestionsPanel
                 suggestion={suggestion}
+                automationSuggestion={automationSuggestion}
                 loading={loadingSuggestion}
                 onGenerate={fetchSuggestion}
                 onApply={handleApplySuggestion}

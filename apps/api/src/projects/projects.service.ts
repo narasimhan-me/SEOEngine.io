@@ -12,6 +12,9 @@ export interface UpdateProjectDto {
   domain?: string;
   autoCrawlEnabled?: boolean;
   crawlFrequency?: CrawlFrequency;
+  autoSuggestMissingMetadata?: boolean;
+  autoSuggestThinContent?: boolean;
+  autoSuggestDailyCap?: number;
 }
 
 @Injectable()
@@ -81,6 +84,9 @@ export class ProjectsService {
         ...(dto.domain !== undefined && { domain: dto.domain }),
         ...(dto.autoCrawlEnabled !== undefined && { autoCrawlEnabled: dto.autoCrawlEnabled }),
         ...(dto.crawlFrequency !== undefined && { crawlFrequency: dto.crawlFrequency }),
+        ...(dto.autoSuggestMissingMetadata !== undefined && { autoSuggestMissingMetadata: dto.autoSuggestMissingMetadata }),
+        ...(dto.autoSuggestThinContent !== undefined && { autoSuggestThinContent: dto.autoSuggestThinContent }),
+        ...(dto.autoSuggestDailyCap !== undefined && { autoSuggestDailyCap: dto.autoSuggestDailyCap }),
       },
     });
   }
@@ -203,6 +209,10 @@ export class ProjectsService {
       crawlFrequency: project.crawlFrequency,
       lastCrawledAt: project.lastCrawledAt,
       lastDeoComputedAt: project.lastDeoComputedAt,
+      // Automation settings
+      autoSuggestMissingMetadata: project.autoSuggestMissingMetadata,
+      autoSuggestThinContent: project.autoSuggestThinContent,
+      autoSuggestDailyCap: project.autoSuggestDailyCap,
     };
   }
 

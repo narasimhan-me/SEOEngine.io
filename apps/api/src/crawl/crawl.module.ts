@@ -5,9 +5,10 @@ import { DeoScoreService, DeoSignalsService } from '../projects/deo-score.servic
 import { CrawlSchedulerService } from './crawl-scheduler.service';
 import { CrawlProcessor } from './crawl.processor';
 import { CrawlController } from './crawl.controller';
+import { ProjectsModule } from '../projects/projects.module';
 
 @Module({
-  imports: [SeoScanModule],
+  imports: [SeoScanModule, ProjectsModule],
   controllers: [CrawlController],
   providers: [CrawlSchedulerService, CrawlProcessor, PrismaService, DeoScoreService, DeoSignalsService],
 })

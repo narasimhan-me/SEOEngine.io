@@ -10,8 +10,21 @@ export interface ProductMetadataSuggestion {
   };
 }
 
+export interface AutomationSuggestion {
+  id: string;
+  targetType: 'product' | 'page';
+  targetId: string;
+  issueType: 'missing_metadata' | 'thin_content';
+  suggestedTitle: string | null;
+  suggestedDescription: string | null;
+  generatedAt: string;
+  source: string;
+  applied: boolean;
+}
+
 interface ProductAiSuggestionsPanelProps {
   suggestion: ProductMetadataSuggestion | null;
+  automationSuggestion?: AutomationSuggestion | null;
   loading: boolean;
   onGenerate: () => void;
   onApply: (values: { title?: string; description?: string }) => void;
@@ -19,6 +32,7 @@ interface ProductAiSuggestionsPanelProps {
 
 export function ProductAiSuggestionsPanel({
   suggestion,
+  automationSuggestion,
   loading,
   onGenerate,
   onApply,
@@ -28,6 +42,11 @@ export function ProductAiSuggestionsPanel({
     suggestion &&
     !suggestion.suggested.title.trim() &&
     !suggestion.suggested.description.trim();
+
+  // Check if we have a valid automation suggestion
+  const hasAutomationSuggestion =
+    automationSuggestion &&
+    (automationSuggestion.suggestedTitle || automationSuggestion.suggestedDescription);
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -74,8 +93,106 @@ export function ProductAiSuggestionsPanel({
         </div>
       )}
 
-      {/* No suggestion state */}
-      {!loading && !suggestion && (
+      {/* Automation suggestion available (show first if present) */}
+      {!loading && !suggestion && hasAutomationSuggestion && (
+        <div className="space-y-4">
+          {/* Badge indicating this is an automated suggestion */}
+          <div className="flex items-center gap-2 rounded-md bg-green-50 px-3 py-2">
+            <svg
+              className="h-4 w-4 text-green-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
+              />
+            </svg>
+            <span className="text-xs font-medium text-green-700">
+              Auto-generated suggestion ({automationSuggestion!.issueType === 'missing_metadata' ? 'Missing Metadata' : 'Thin Content'})
+            </span>
+          </div>
+
+          {/* Suggested title */}
+          {automationSuggestion!.suggestedTitle && (
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-xs font-medium uppercase text-green-700">
+                  Suggested Title
+                </span>
+                <span
+                  className={`text-xs ${automationSuggestion!.suggestedTitle.length > 60 ? 'text-red-500' : 'text-gray-500'}`}
+                >
+                  {automationSuggestion!.suggestedTitle.length}/60
+                </span>
+              </div>
+              <div className="rounded border border-green-200 bg-green-50 px-3 py-2">
+                <p className="text-sm text-gray-900">{automationSuggestion!.suggestedTitle}</p>
+              </div>
+              <button
+                onClick={() => onApply({ title: automationSuggestion!.suggestedTitle! })}
+                className="mt-2 text-xs font-medium text-green-600 hover:text-green-800"
+              >
+                Apply to editor
+              </button>
+            </div>
+          )}
+
+          {/* Suggested description */}
+          {automationSuggestion!.suggestedDescription && (
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-xs font-medium uppercase text-green-700">
+                  Suggested Description
+                </span>
+                <span
+                  className={`text-xs ${automationSuggestion!.suggestedDescription.length > 155 ? 'text-red-500' : 'text-gray-500'}`}
+                >
+                  {automationSuggestion!.suggestedDescription.length}/155
+                </span>
+              </div>
+              <div className="rounded border border-green-200 bg-green-50 px-3 py-2">
+                <p className="text-sm text-gray-900">{automationSuggestion!.suggestedDescription}</p>
+              </div>
+              <button
+                onClick={() => onApply({ description: automationSuggestion!.suggestedDescription! })}
+                className="mt-2 text-xs font-medium text-green-600 hover:text-green-800"
+              >
+                Apply to editor
+              </button>
+            </div>
+          )}
+
+          {/* Generate new button */}
+          <div className="border-t border-gray-100 pt-4">
+            <button
+              onClick={onGenerate}
+              className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+            >
+              <svg
+                className="mr-2 h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              Generate New Suggestions
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* No suggestion state (no automation suggestion either) */}
+      {!loading && !suggestion && !hasAutomationSuggestion && (
         <div className="flex flex-col items-center justify-center py-6">
           <p className="mb-4 text-center text-sm text-gray-500">
             Generate AI-powered SEO suggestions for this product&apos;s title and description.

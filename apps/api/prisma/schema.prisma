@@ -30,6 +30,16 @@ enum CrawlFrequency {
   MONTHLY
 }
 
+enum AutomationTargetType {
+  PRODUCT
+  PAGE
+}
+
+enum AutomationIssueType {
+  MISSING_METADATA
+  THIN_CONTENT
+}
+
 model User {
   id               String   @id @default(cuid())
   email            String   @unique
@@ -58,11 +68,15 @@ model Project {
   lastDeoComputedAt          DateTime?
   autoCrawlEnabled           Boolean            @default(true)
   crawlFrequency             CrawlFrequency     @default(DAILY)
+  autoSuggestMissingMetadata Boolean            @default(false)
+  autoSuggestThinContent     Boolean            @default(false)
+  autoSuggestDailyCap        Int                @default(50)
 
   integrations               Integration[]
   crawlResults               CrawlResult[]
   products                   Product[]
   deoScoreSnapshots          DeoScoreSnapshot[]
+  automationSuggestions      AutomationSuggestion[]
 }
 
 model Integration {
@@ -105,6 +119,23 @@ model CrawlResult {
   loadTimeMs      Int?
   issues          Json
   scannedAt       DateTime @default(now())
+}
+
+model AutomationSuggestion {
+  id                   String               @id @default(cuid())
+  project              Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId            String
+  targetType           AutomationTargetType
+  targetId             String
+  issueType            AutomationIssueType
+  suggestedTitle       String?
+  suggestedDescription String?
+  suggestedH1          String?
+  generatedAt          DateTime             @default(now())
+  source               String               @default("automation_v1")
+  applied              Boolean              @default(false)
+
+  @@unique([projectId, targetType, targetId, issueType])
 }
 
 model Subscription {

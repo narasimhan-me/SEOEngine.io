@@ -150,13 +150,23 @@ export const projectsApi = {
       body: JSON.stringify(data),
     }),
 
-  update: (id: string, data: { name?: string; domain?: string; autoCrawlEnabled?: boolean; crawlFrequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY' }) =>
+  update: (id: string, data: {
+    name?: string;
+    domain?: string;
+    autoCrawlEnabled?: boolean;
+    crawlFrequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+    autoSuggestMissingMetadata?: boolean;
+    autoSuggestThinContent?: boolean;
+    autoSuggestDailyCap?: number;
+  }) =>
     fetchWithAuth(`/projects/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
 
   integrationStatus: (id: string) => fetchWithAuth(`/projects/${id}/integration-status`),
+
+  automationSuggestions: (id: string) => fetchWithAuth(`/projects/${id}/automation-suggestions`),
 
   delete: (id: string) =>
     fetchWithAuth(`/projects/${id}`, {

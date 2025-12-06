@@ -15,6 +15,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ProjectsService, CreateProjectDto, UpdateProjectDto } from './projects.service';
 import { DeoScoreService, DeoSignalsService } from './deo-score.service';
 import { DeoIssuesService } from './deo-issues.service';
+import { AutomationService } from './automation.service';
 import {
   DeoScoreLatestResponse,
   DeoIssuesResponse,
@@ -31,6 +32,7 @@ export class ProjectsController {
     private readonly deoScoreService: DeoScoreService,
     private readonly deoSignalsService: DeoSignalsService,
     private readonly deoIssuesService: DeoIssuesService,
+    private readonly automationService: AutomationService,
   ) {}
 
   /**
@@ -213,5 +215,14 @@ export class ProjectsController {
         message: error instanceof Error ? error.message : 'Failed to compute DEO score',
       };
     }
+  }
+
+  /**
+   * GET /projects/:id/automation-suggestions
+   * Returns automation suggestions for a project
+   */
+  @Get(':id/automation-suggestions')
+  async getAutomationSuggestions(@Request() req: any, @Param('id') projectId: string) {
+    return this.automationService.getSuggestionsForProject(projectId, req.user.id);
   }
 }
