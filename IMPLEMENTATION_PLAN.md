@@ -5685,6 +5685,9 @@ Also moved `ProductStatus` type and `getProductStatus()` function to the shared 
   - **Integrations overview**, including Shopify connection status and product links.
 - Ensured responsive layout behavior so the overview remains usable on mobile and desktop.
 
+**UX Refinements (Post-Implementation):**
+- Layout refinement (v2): Project Overview now uses a strict two-section grid (2-column top at `lg`, 3-column bottom at `lg`) so DEO score, components, signals, issues, crawl, integration, and stats align cleanly across columns and rows.
+
 ### UX-3.4. Acceptance Criteria
 
 - [ ] Project Overview loads successfully for authenticated users and displays DEO score, component breakdown, and signals summary for projects with data.

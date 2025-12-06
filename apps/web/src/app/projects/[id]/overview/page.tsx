@@ -374,8 +374,8 @@ export default function ProjectOverviewPage() {
       )}
 
       {/* Top section: DEO Score + Components + Freshness */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="space-y-4">
+      <section className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="space-y-6">
           <DeoScoreCard
             score={deoScore?.latestScore ?? null}
             lastComputedAt={deoScore?.latestSnapshot?.computedAt ?? null}
@@ -428,7 +428,7 @@ export default function ProjectOverviewPage() {
           </div>
         </div>
         {/* Right column: Signals + Issues */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           <DeoSignalsSummary signals={deoSignals} loading={deoSignalsLoading} />
           <ProjectHealthCards signals={deoSignals} />
           <IssuesSummaryCard
@@ -438,21 +438,22 @@ export default function ProjectOverviewPage() {
             onViewAll={() => setShowIssuesPanel(true)}
           />
         </div>
-      </div>
+      </section>
 
       {/* Secondary section: Integrations + Crawl / Products overview */}
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+      <section className="mt-8 grid gap-6 lg:grid-cols-3">
+        {/* Column 1: Crawl & DEO Issues */}
+        <div className="space-y-6">
           {/* Crawl details entry point */}
           <div className="rounded-lg bg-white p-6 shadow">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Crawl & DEO Issues</h2>
                 <p className="mt-1 text-sm text-gray-600">
                   View full crawl results, per-page issues, and detailed SEO/DEO diagnostics.
                 </p>
               </div>
-              <div className="mt-4 flex items-center gap-2 sm:mt-0">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={handleRunScan}
                   disabled={scanning}
@@ -509,8 +510,10 @@ export default function ProjectOverviewPage() {
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Shopify Integration */}
+        {/* Column 2: Shopify Integration */}
+        <div className="space-y-6">
           <div className="rounded-lg bg-white p-6 shadow">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Shopify Integration</h2>
 
@@ -577,7 +580,7 @@ export default function ProjectOverviewPage() {
           </div>
         </div>
 
-        {/* Right column: Project Stats */}
+        {/* Column 3: Project stats, integrations, auto crawl */}
         <div className="space-y-6">
           <div className="rounded-lg bg-white p-6 shadow">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Project Stats</h2>
@@ -665,7 +668,7 @@ export default function ProjectOverviewPage() {
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* All Issues Modal */}
       {showIssuesPanel && (
