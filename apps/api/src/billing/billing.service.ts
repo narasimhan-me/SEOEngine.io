@@ -292,27 +292,35 @@ export class BillingService {
       throw new BadRequestException('Webhook signature verification failed');
     }
 
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session;
-        await this.handleCheckoutCompleted(session);
-        break;
+    console.log(`[Webhook] Processing event: ${event.type} (${event.id})`);
+
+    try {
+      switch (event.type) {
+        case 'checkout.session.completed': {
+          const session = event.data.object as Stripe.Checkout.Session;
+          await this.handleCheckoutCompleted(session);
+          break;
+        }
+        case 'customer.subscription.created':
+        case 'customer.subscription.updated': {
+          const subscription = event.data.object as Stripe.Subscription;
+          await this.handleSubscriptionUpdated(subscription, event.id);
+          break;
+        }
+        case 'customer.subscription.deleted': {
+          const subscription = event.data.object as Stripe.Subscription;
+          await this.handleSubscriptionDeleted(subscription, event.id);
+          break;
+        }
+        default:
+          console.log(`[Webhook] Unhandled event type: ${event.type}`);
       }
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated': {
-        const subscription = event.data.object as Stripe.Subscription;
-        await this.handleSubscriptionUpdated(subscription, event.id);
-        break;
-      }
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Stripe.Subscription;
-        await this.handleSubscriptionDeleted(subscription, event.id);
-        break;
-      }
-      default:
-        console.log(`Unhandled webhook event type: ${event.type}`);
+    } catch (error) {
+      console.error(`[Webhook] Error processing ${event.type}:`, error);
+      throw error;
     }
 
+    console.log(`[Webhook] Successfully processed event: ${event.type}`);
     return { received: true };
   }
 
@@ -320,15 +328,25 @@ export class BillingService {
     const userId = session.metadata?.userId;
     const planId = session.metadata?.planId;
 
+    console.log('[handleCheckoutCompleted] Processing checkout session:', {
+      sessionId: session.id,
+      userId,
+      planId,
+      subscription: session.subscription,
+      customer: session.customer,
+    });
+
     if (!userId || !planId) {
-      console.error('Missing userId or planId in checkout session metadata');
+      console.error('[handleCheckoutCompleted] Missing userId or planId in checkout session metadata');
       return;
     }
 
     const subscriptionId = session.subscription as string;
     const customerId = session.customer as string;
 
-    await this.prisma.subscription.upsert({
+    console.log('[handleCheckoutCompleted] Upserting subscription for userId:', userId, 'planId:', planId);
+
+    const result = await this.prisma.subscription.upsert({
       where: { userId },
       update: {
         plan: planId,
@@ -349,7 +367,10 @@ export class BillingService {
       },
     });
 
+    console.log('[handleCheckoutCompleted] Subscription upserted successfully:', result);
+
     await this.applySubscriptionEntitlements(userId, planId as PlanId, 'active');
+    console.log('[handleCheckoutCompleted] Entitlements applied for userId:', userId);
   }
 
   private async handleSubscriptionUpdated(

@@ -142,6 +142,9 @@ function BillingSettingsContent() {
   const effectivePlanId = summary?.plan ?? 'free';
   const effectiveStatus = summary?.status ?? 'active';
 
+  const currentPlan = plans.find((plan) => plan.id === effectivePlanId) || null;
+  const currentPrice = currentPlan?.price ?? 0;
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Breadcrumb */}
@@ -222,50 +225,68 @@ function BillingSettingsContent() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {plans.map((plan) => {
           const isCurrent = effectivePlanId === plan.id;
-          const isDowngrade = effectivePlanId !== 'free' && plan.id === 'free';
+          const isHigher = !isCurrent && plan.price > currentPrice;
+          const isLower = !isCurrent && plan.price < currentPrice;
+          const isDisabled = updating || isCurrent;
+
+          const buttonLabel = isCurrent
+            ? 'Current Plan'
+            : updating
+            ? 'Processing...'
+            : isHigher
+            ? 'Upgrade'
+            : isLower
+            ? 'Downgrade'
+            : 'Change Plan';
+
           return (
             <div
               key={plan.id}
-              className={`bg-white shadow rounded-lg p-6 border-2 ${
+              className={`bg-white shadow rounded-lg p-6 border-2 flex flex-col justify-between h-full ${
                 isCurrent ? 'border-blue-500' : 'border-transparent'
               }`}
             >
-              <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
-              <p className="text-3xl font-bold text-gray-900 mt-2">
-                {plan.price === 0 ? 'Free' : `${formatPrice(plan.price)}/mo`}
-              </p>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
+                <p className="text-3xl font-bold text-gray-900 mt-2">
+                  {plan.price === 0 ? 'Free' : `${formatPrice(plan.price)}/mo`}
+                </p>
 
-              <ul className="mt-4 space-y-2">
-                {plan.features.map((feature, idx) => (
-                  <li key={idx} className="text-sm text-gray-600 flex items-start gap-2">
-                    <span className="text-green-500">✓</span>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
+                <ul className="mt-4 space-y-2">
+                  {plan.features.map((feature, idx) => (
+                    <li key={idx} className="text-sm text-gray-600 flex items-start gap-2">
+                      <span className="text-green-500">✓</span>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
 
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <p className="text-xs text-gray-500">
-                  {formatLimit(plan.limits.projects)} projects
-                </p>
-                <p className="text-xs text-gray-500">
-                  {formatLimit(plan.limits.crawledPages)} crawled pages
-                </p>
-                <p className="text-xs text-gray-500">
-                  {formatLimit(plan.limits.automationSuggestionsPerDay)} suggestions/day
-                </p>
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-xs text-gray-500">
+                    {formatLimit(plan.limits.projects)} projects
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {formatLimit(plan.limits.crawledPages)} crawled pages
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {formatLimit(plan.limits.automationSuggestionsPerDay)} suggestions/day
+                  </p>
+                </div>
               </div>
 
               <button
-                onClick={() => isCurrent ? undefined : isDowngrade ? handleManageBilling() : handleUpgrade(plan.id)}
-                disabled={updating || isCurrent}
+                onClick={() => {
+                  if (isDisabled) return;
+                  handleUpgrade(plan.id);
+                }}
+                disabled={isDisabled}
                 className={`w-full mt-4 px-4 py-2 text-sm rounded-md disabled:opacity-50 ${
                   isCurrent
                     ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
               >
-                {isCurrent ? 'Current Plan' : updating ? 'Processing...' : isDowngrade ? 'Manage Billing' : 'Upgrade'}
+                {buttonLabel}
               </button>
             </div>
           );
