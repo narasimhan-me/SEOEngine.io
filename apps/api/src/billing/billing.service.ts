@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma.service';
 import { PLANS, getPlanById, Plan, PlanId } from './plans';
+import { EntitlementsService } from './entitlements.service';
 
 @Injectable()
 export class BillingService {
@@ -11,6 +12,7 @@ export class BillingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly entitlementsService: EntitlementsService,
   ) {
     const stripeSecretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (stripeSecretKey) {
@@ -44,6 +46,23 @@ export class BillingService {
     }
 
     return subscription;
+  }
+
+  /**
+   * Billing summary for settings page (plan, status, limits, usage)
+   */
+  async getBillingSummary(userId: string) {
+    const [subscription, entitlements] = await Promise.all([
+      this.getSubscription(userId),
+      this.entitlementsService.getEntitlementsSummary(userId),
+    ]);
+    return {
+      plan: entitlements.plan,
+      status: subscription.status ?? 'active',
+      limits: entitlements.limits,
+      usage: entitlements.usage,
+      currentPeriodEnd: subscription.currentPeriodEnd ?? null,
+    };
   }
 
   /**
@@ -302,6 +321,8 @@ export class BillingService {
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       },
     });
+
+    await this.applySubscriptionEntitlements(userId, planId as PlanId, 'active');
   }
 
   private async handleSubscriptionUpdated(
@@ -362,6 +383,8 @@ export class BillingService {
       where: { id: existingSub.id },
       data: updateData,
     });
+
+    await this.applySubscriptionEntitlements(existingSub.userId, mappedPlanId, status);
   }
 
   private async handleSubscriptionDeleted(
@@ -402,6 +425,27 @@ export class BillingService {
         currentPeriodEnd,
         lastStripeEventId: eventId,
       },
+    });
+
+    await this.applySubscriptionEntitlements(existingSub.userId, 'free', 'canceled');
+  }
+
+  private async applySubscriptionEntitlements(
+    userId: string,
+    planId: PlanId | null,
+    status: string,
+  ): Promise<void> {
+    const data: Record<string, unknown> = {
+      status,
+    };
+
+    if (planId) {
+      data.plan = planId;
+    }
+
+    await this.prisma.subscription.update({
+      where: { userId },
+      data,
     });
   }
 

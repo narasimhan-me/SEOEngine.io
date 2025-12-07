@@ -37,12 +37,25 @@ interface Entitlements {
   };
 }
 
+interface BillingSummary {
+  plan: string;
+  status: string;
+  limits: {
+    projects: number;
+    crawledPages: number;
+    automationSuggestionsPerDay: number;
+  };
+  usage: {
+    projects: number;
+  };
+  currentPeriodEnd?: string | null;
+}
+
 function BillingSettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [entitlements, setEntitlements] = useState<Entitlements | null>(null);
+  const [summary, setSummary] = useState<BillingSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -66,13 +79,12 @@ function BillingSettingsContent() {
 
   async function fetchData() {
     try {
-      const [plansData, summary] = await Promise.all([
+      const [plansData, summaryData] = await Promise.all([
         billingApi.getPlans(),
         billingApi.getSummary(),
       ]);
       setPlans(plansData);
-      setSubscription(summary.subscription ?? null);
-      setEntitlements(summary.entitlements ?? null);
+      setSummary(summaryData);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load billing data');
     } finally {
@@ -127,7 +139,8 @@ function BillingSettingsContent() {
     );
   }
 
-  const effectivePlanId = entitlements?.plan ?? subscription?.plan ?? 'free';
+  const effectivePlanId = summary?.plan ?? 'free';
+  const effectiveStatus = summary?.status ?? 'active';
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -162,38 +175,38 @@ function BillingSettingsContent() {
           </span>
           <span
             className={`px-2 py-1 text-xs font-medium rounded-full ${
-              subscription?.status === 'active'
+              effectiveStatus === 'active'
                 ? 'bg-green-100 text-green-800'
-                : subscription?.status === 'canceled'
+                : effectiveStatus === 'canceled'
                 ? 'bg-yellow-100 text-yellow-800'
                 : 'bg-gray-100 text-gray-800'
             }`}
           >
-            {subscription?.status || 'Active'}
+            {effectiveStatus}
           </span>
         </div>
 
         {/* Usage Summary */}
-        {entitlements && (
+        {summary && (
           <div className="mt-4 p-4 bg-gray-50 rounded-md">
             <h3 className="text-sm font-medium text-gray-700 mb-2">Usage</h3>
             <div className="text-sm text-gray-600">
               <p>
-                Projects: {entitlements.usage.projects} / {formatLimit(entitlements.limits.projects)}
+                Projects: {summary.usage.projects} / {formatLimit(summary.limits.projects)}
               </p>
             </div>
           </div>
         )}
 
-        {subscription?.currentPeriodEnd && (
+        {summary?.currentPeriodEnd && (
           <p className="text-sm text-gray-500 mt-4">
-            {subscription.status === 'canceled' ? 'Access until: ' : 'Next billing date: '}
-            {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+            {effectiveStatus === 'canceled' ? 'Access until: ' : 'Next billing date: '}
+            {new Date(summary.currentPeriodEnd).toLocaleDateString()}
           </p>
         )}
 
         {/* Manage Billing Button for paid plans */}
-        {effectivePlanId !== 'free' && subscription?.status === 'active' && (
+        {effectivePlanId !== 'free' && effectiveStatus === 'active' && (
           <button
             onClick={handleManageBilling}
             disabled={updating}
