@@ -320,6 +320,9 @@ export const billingApi = {
   /** Get current user's entitlements (plan limits and usage) */
   getEntitlements: () => fetchWithAuth('/billing/entitlements'),
 
+  /** Get combined billing summary (subscription + entitlements) */
+  getSummary: () => fetchWithAuth('/billing/summary'),
+
   /** Create a Stripe Checkout session for upgrading */
   createCheckoutSession: (planId: string) =>
     fetchWithAuth('/billing/create-checkout-session', {

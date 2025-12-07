@@ -4,7 +4,10 @@ import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import './config/stripe.config';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // Stripe requires raw body for webhook signature verification
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true,
+  });
 
   // Enable CORS
   const allowedOrigins = [

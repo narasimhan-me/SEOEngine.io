@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma.service';
-import { PLANS, getPlanById, Plan, STRIPE_PRICES, PlanId } from './plans';
+import { PLANS, getPlanById, Plan, PlanId } from './plans';
 
 @Injectable()
 export class BillingService {
@@ -59,7 +59,12 @@ export class BillingService {
       throw new BadRequestException('Cannot checkout for free plan');
     }
 
-    const priceId = STRIPE_PRICES[planId];
+    // Get price ID from environment variables via ConfigService
+    const priceId =
+      planId === 'pro'
+        ? this.configService.get<string>('STRIPE_PRICE_PRO')
+        : this.configService.get<string>('STRIPE_PRICE_BUSINESS');
+
     if (!priceId) {
       throw new BadRequestException(`Stripe price not configured for plan: ${planId}`);
     }
@@ -405,15 +410,16 @@ export class BillingService {
       return null;
     }
 
-    const entries = Object.entries(STRIPE_PRICES) as [
-      Exclude<PlanId, 'free'>,
-      string | undefined,
-    ][];
+    // Get price IDs from ConfigService
+    const proPriceId = this.configService.get<string>('STRIPE_PRICE_PRO');
+    const businessPriceId = this.configService.get<string>('STRIPE_PRICE_BUSINESS');
 
-    for (const [planId, configuredPriceId] of entries) {
-      if (configuredPriceId && configuredPriceId === priceId) {
-        return planId as PlanId;
-      }
+    if (proPriceId && proPriceId === priceId) {
+      return 'pro';
+    }
+
+    if (businessPriceId && businessPriceId === priceId) {
+      return 'business';
     }
 
     return null;

@@ -66,14 +66,13 @@ function BillingSettingsContent() {
 
   async function fetchData() {
     try {
-      const [plansData, subscriptionData, entitlementsData] = await Promise.all([
+      const [plansData, summary] = await Promise.all([
         billingApi.getPlans(),
-        billingApi.getSubscription(),
-        billingApi.getEntitlements(),
+        billingApi.getSummary(),
       ]);
       setPlans(plansData);
-      setSubscription(subscriptionData);
-      setEntitlements(entitlementsData);
+      setSubscription(summary.subscription ?? null);
+      setEntitlements(summary.entitlements ?? null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load billing data');
     } finally {
@@ -128,6 +127,8 @@ function BillingSettingsContent() {
     );
   }
 
+  const effectivePlanId = entitlements?.plan ?? subscription?.plan ?? 'free';
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Breadcrumb */}
@@ -157,7 +158,7 @@ function BillingSettingsContent() {
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Current Plan</h2>
         <div className="flex items-center gap-4">
           <span className="text-2xl font-bold text-gray-900 capitalize">
-            {subscription?.plan || 'Free'}
+            {effectivePlanId}
           </span>
           <span
             className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -192,7 +193,7 @@ function BillingSettingsContent() {
         )}
 
         {/* Manage Billing Button for paid plans */}
-        {subscription?.plan !== 'free' && subscription?.status === 'active' && (
+        {effectivePlanId !== 'free' && subscription?.status === 'active' && (
           <button
             onClick={handleManageBilling}
             disabled={updating}
@@ -207,8 +208,8 @@ function BillingSettingsContent() {
       <h2 className="text-xl font-semibold text-gray-900 mb-4">Available Plans</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {plans.map((plan) => {
-          const isCurrent = subscription?.plan === plan.id;
-          const isDowngrade = subscription?.plan !== 'free' && plan.id === 'free';
+          const isCurrent = effectivePlanId === plan.id;
+          const isDowngrade = effectivePlanId !== 'free' && plan.id === 'free';
           return (
             <div
               key={plan.id}

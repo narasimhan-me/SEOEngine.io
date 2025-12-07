@@ -38,6 +38,24 @@ export class BillingController {
   }
 
   /**
+   * Billing summary for settings page
+   * Combines subscription and entitlements for the current user.
+   */
+  @Get('summary')
+  @UseGuards(JwtAuthGuard)
+  async getSummary(@Request() req: any) {
+    const [subscription, entitlements] = await Promise.all([
+      this.billingService.getSubscription(req.user.id),
+      this.entitlementsService.getEntitlementsSummary(req.user.id),
+    ]);
+    return {
+      plan: entitlements.plan,
+      subscription,
+      entitlements,
+    };
+  }
+
+  /**
    * Create a Stripe Checkout session for upgrading
    */
   @Post('create-checkout-session')
