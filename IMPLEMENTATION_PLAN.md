@@ -3440,7 +3440,7 @@ When entitlements are exceeded, API returns:
 
 ---
 
-## Phase 1.6 – AI Collaboration Protocol v3.0 Update
+## Phase 1.6 – AI Collaboration Protocol v3.2 Update
 
 **Status:** Completed
 
@@ -3450,30 +3450,40 @@ Consolidate and modernize the AI collaboration protocol documentation to ensure 
 
 **Summary:**
 
-1. **ENGINEO_AI_INSTRUCTIONS.md** — Complete rewrite to v3.0 format:
+1. **ENGINEO_AI_INSTRUCTIONS.md** — Complete rewrite to v3.2 format:
    - Added Human Founder role as explicit first step in the workflow chain
-   - Reorganized sections for clarity: Roles → Supervision Protocol → Patch Batch Rules → Implementation Plan Workflow → Runtime Rules → Boot Prompts → Appendix
+   - Reorganized sections for clarity: Roles → Supervision Protocol → Patch Batch Rules → Implementation Plan Workflow → Runtime Rules → Boot Prompts → Versioning
    - Updated Patch Batch format to use unified diff style exclusively (deprecated v2 anchor-based format)
    - Added explicit "No-Speculation & Architecture Alignment" section
    - Added "Safety, Idempotency, and Unknown Areas" section
    - Expanded starter boot prompts for all three agents with complete text
-   - Added new Appendix section with common error conditions and entitlement patterns
+   - **v3.2 Key Rule:** Claude ALWAYS updates IMPLEMENTATION_PLAN.md and documentation after applying patches
+   - UEP and Supervisor no longer ask "Who should update the Implementation Plan?"
+   - Supervisor must end each patch output with directive to Claude
 
-2. **ENGINEO_AI_EXECUTIVE_AND_SUPERVISION_PROTOCOL.md** — Deprecated:
+2. **SESSION_STARTER.md** — New file created:
+   - Ready-to-paste boot prompts for fresh sessions
+   - Contains complete prompts for UEP, GPT-5.1 Supervisor, and Claude Implementer
+   - All prompts updated to v3.2 with documentation responsibility rules
+
+3. **ENGINEO_AI_EXECUTIVE_AND_SUPERVISION_PROTOCOL.md** — Deprecated:
    - Replaced full content with deprecation notice pointing to ENGINEO_AI_INSTRUCTIONS.md
    - All protocol rules now consolidated in a single canonical document
 
 **Files Modified:**
 
-- `docs/ENGINEO_AI_INSTRUCTIONS.md` — Complete v3.0 rewrite
+- `docs/ENGINEO_AI_INSTRUCTIONS.md` — Complete v3.2 rewrite
+- `docs/SESSION_STARTER.md` — New file with boot prompts
 - `docs/ENGINEO_AI_EXECUTIVE_AND_SUPERVISION_PROTOCOL.md` — Deprecated with redirect notice
 
 **Manual Verification:**
 
-1. Open `docs/ENGINEO_AI_INSTRUCTIONS.md` and verify all 9 sections are present
+1. Open `docs/ENGINEO_AI_INSTRUCTIONS.md` and verify all 8 sections are present (Purpose through Versioning)
 2. Confirm the document includes complete boot prompts for UEP, GPT-5.1, and Claude
-3. Open `docs/ENGINEO_AI_EXECUTIVE_AND_SUPERVISION_PROTOCOL.md` and verify it contains only the deprecation notice
-4. Verify both files are valid markdown
+3. Verify v3.2 rule is present: "Claude ALWAYS updates IMPLEMENTATION_PLAN.md"
+4. Open `docs/SESSION_STARTER.md` and verify it contains ready-to-paste boot prompts
+5. Open `docs/ENGINEO_AI_EXECUTIVE_AND_SUPERVISION_PROTOCOL.md` and verify it contains only the deprecation notice
+6. Verify all files are valid markdown
 
 ---
 
