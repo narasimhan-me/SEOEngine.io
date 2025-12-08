@@ -68,9 +68,14 @@ export class EntitlementsService {
     }
 
     if (summary.usage.projects >= summary.limits.projects) {
-      throw new ForbiddenException(
-        `Project limit reached. Your ${summary.plan} plan allows ${summary.limits.projects} project(s). Please upgrade to create more projects.`,
-      );
+      throw new ForbiddenException({
+        message: `Project limit reached. Your ${summary.plan} plan allows ${summary.limits.projects} project(s). Please upgrade to create more projects.`,
+        error: 'ENTITLEMENTS_LIMIT_REACHED',
+        code: 'ENTITLEMENTS_LIMIT_REACHED',
+        plan: summary.plan,
+        allowed: summary.limits.projects,
+        current: summary.usage.projects,
+      });
     }
   }
 }

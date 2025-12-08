@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { projectsApi } from '@/lib/api';
-import { isAuthenticated, removeToken } from '@/lib/auth';
+import { isAuthenticated, removeToken, getToken } from '@/lib/auth';
 
 interface Project {
   id: string;
@@ -57,7 +57,50 @@ export default function ProjectsPage() {
     setError('');
 
     try {
-      const created = await projectsApi.create(newProject);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${apiUrl}/projects`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify(newProject),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        if (body.code === 'ENTITLEMENTS_LIMIT_REACHED') {
+          const plan =
+            body && typeof body.plan === 'string' ? body.plan : 'current';
+          const allowed =
+            body && typeof body.allowed === 'number' ? body.allowed : undefined;
+
+          if (body && typeof body.message === 'string') {
+            setError(body.message);
+          } else if (allowed !== undefined) {
+            const plural = allowed === 1 ? 'project' : 'projects';
+            setError(
+              `You've reached the ${plan} plan limit (${allowed} ${plural}). Upgrade your plan to create more projects.`,
+            );
+          } else {
+            setError(
+              "You've reached your current plan's project limit. Upgrade your plan to create more projects.",
+            );
+          }
+
+          setShowCreateModal(false);
+          setCreating(false);
+          return;
+        }
+        if (res.status === 401) {
+          removeToken();
+          router.push('/login');
+          return;
+        }
+        throw new Error(body.message || 'Failed to create project');
+      }
+
+      const created = await res.json();
       setProjects([created, ...projects]);
       setShowCreateModal(false);
       setNewProject({ name: '', domain: '' });
