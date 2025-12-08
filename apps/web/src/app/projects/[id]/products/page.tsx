@@ -300,7 +300,11 @@ export default function ProductsPage() {
                 No crawl has been run yet
               </h3>
               <p className="mt-1 text-xs text-yellow-700">
-                DEO Score and issues may be empty on Products until you run your first crawl. Run a crawl from the Project Overview to surface insights.
+                DEO Score and issues may be empty until you run your first crawl. After crawling, product issues will be surfaced in the{' '}
+                <Link href={`/projects/${projectId}/issues`} className="font-medium underline hover:text-yellow-800">
+                  Issues Engine
+                </Link>{' '}
+                for faster diagnosis and AI-powered fixes.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
@@ -324,7 +328,30 @@ export default function ProductsPage() {
       {/* Header - responsive stacking */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-gray-900">Products</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">Products</h1>
+            {productIssues.length > 0 && (
+              <Link
+                href={`/projects/${projectId}/issues`}
+                className="inline-flex items-center rounded-md border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-700 hover:bg-orange-100"
+              >
+                <svg
+                  className="mr-1 h-3.5 w-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+                {productIssues.length} Issue{productIssues.length !== 1 ? 's' : ''}
+              </Link>
+            )}
+          </div>
           <p className="truncate text-gray-600">
             {projectInfo?.shopify.connected
               ? `Connected to ${projectInfo.shopify.shopDomain}`
@@ -365,8 +392,8 @@ export default function ProductsPage() {
             <h3 className="mt-2 text-sm font-medium text-gray-900">No products</h3>
             <p className="mt-1 text-sm text-gray-500">
               {projectInfo?.shopify.connected
-                ? 'Sync products and run your first crawl to see DEO insights and start optimizing.'
-                : 'Step 1: Connect your Shopify store, then come back to sync products and run your first crawl.'}
+                ? 'Sync products and run your first crawl to see DEO insights. Issues will be surfaced in the Issues Engine for AI-powered fixes.'
+                : 'Step 1: Connect your Shopify store, then sync products and run your first crawl to surface issues.'}
             </p>
             {!projectInfo?.shopify.connected && (
               <div className="mt-4">

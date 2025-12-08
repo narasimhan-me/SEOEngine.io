@@ -187,6 +187,29 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 ---
 
+### CP-009: Issue Engine Lite
+
+**Description:** Product-focused DEO issues with actionable fix buttons (AI fix, manual fix, sync fix) and severity filtering.
+
+| Field | Value |
+|-------|-------|
+| **Manual Testing Doc(s)** | `docs/testing/issue-engine-lite.md` |
+| **Automated Tests** | Planned |
+| **Last Verified (Manual)** | [YYYY-MM-DD] |
+| **Last Verified (Automated)** | N/A |
+| **Owner** | DEO Team |
+
+**Key Scenarios:**
+- [ ] Issues page displays all product issues with severity badges
+- [ ] Severity filtering (All/Critical/Warning/Info)
+- [ ] Fix with AI action routes to product workspace
+- [ ] Manual fix action routes to product page
+- [ ] Re-sync action triggers Shopify sync flow
+- [ ] Issue counts in Products page header
+- [ ] Re-scan button refreshes issues
+
+---
+
 ## Coverage Summary
 
 | Critical Path | Manual Docs | Auto Tests | Status |
@@ -199,6 +222,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | CP-006: Shopify Sync | ✅ | Planned | 🟡 Manual Only |
 | CP-007: AI Failover Logic | ✅ | Planned | 🟡 Manual Only |
 | CP-008: Frontend Global UX Feedback | ✅ | Planned | 🟡 Manual Only |
+| CP-009: Issue Engine Lite | ✅ | Planned | 🟡 Manual Only |
 
 **Legend:**
 - 🟢 Full Coverage (Manual + Automated)
@@ -234,3 +258,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | [Initial] | Created with 8 critical paths as part of v3.4 verification layer |
+| 1.1 | 2025-12-08 | Added CP-009: Issue Engine Lite (Phase UX-7) |

@@ -7061,7 +7061,78 @@ Create a long-form education page that establishes EngineO.ai as the category le
 
 ---
 
-These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-Content-1, UX-Content-2, and MARKETING-1 through MARKETING-6 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
+## PHASE UX-7 — Issue Engine Lite (Completed)
+
+### Phase Summary
+
+Enhance the Issues Engine with product-focused issue detection and actionable fix buttons. This phase surfaces 12 product-specific issue types with severity classification and routes users directly to appropriate fix flows (AI fix, manual fix, or sync).
+
+### UX-7.1 Scope
+
+**Backend Changes:**
+
+1. **packages/shared/src/deo-issues.ts:**
+   - Added `DeoIssueFixType` type: `'aiFix' | 'manualFix' | 'syncFix'`
+   - Extended `DeoIssue` interface with optional fields:
+     - `type?: string` — Stable issue identifier
+     - `fixType?: DeoIssueFixType` — How to resolve the issue
+     - `fixReady?: boolean` — Whether AI fix is available
+     - `primaryProductId?: string` — Main product for fix action
+
+2. **apps/api/src/projects/deo-issues.service.ts:**
+   - Added 12 product-focused issue builders:
+     - `buildMissingSeoTitleIssue()` — Critical, aiFix
+     - `buildMissingSeoDescriptionIssue()` — Critical, aiFix
+     - `buildWeakTitleIssue()` — Warning, aiFix
+     - `buildWeakDescriptionIssue()` — Warning, aiFix
+     - `buildMissingLongDescriptionIssue()` — Warning, manualFix
+     - `buildDuplicateProductContentIssue()` — Warning, manualFix
+     - `buildLowProductEntityCoverageIssue()` — Warning, aiFix
+     - `buildNotAnswerReadyIssue()` — Warning, aiFix
+     - `buildWeakIntentMatchIssue()` — Info, aiFix
+     - `buildMissingProductImageIssue()` — Critical, syncFix
+     - `buildMissingPriceIssue()` — Critical, syncFix
+     - `buildMissingCategoryIssue()` — Warning, manualFix
+
+**Frontend Changes:**
+
+1. **apps/web/src/components/issues/IssuesList.tsx:**
+   - Extended `ISSUE_UI_CONFIG` with all 12 Issue Engine Lite issue IDs
+
+2. **apps/web/src/app/projects/[id]/issues/page.tsx:**
+   - Complete rewrite with Issue Engine Lite UI:
+     - Summary header with project name and "Re-scan Issues" button
+     - Summary cards (Total, Critical, Warning, Info counts)
+     - Severity filter buttons (All, Critical, Warning, Info)
+     - Issue list with severity badges and fix action buttons
+     - Fix action variants: AI (purple), Sync (green), Manual/Default (gray)
+     - Empty states for no issues or filtered views
+
+3. **apps/web/src/app/projects/[id]/products/page.tsx:**
+   - Added issue count badge next to "Products" header linking to Issues page
+   - Updated pre-crawl banner to mention Issues Engine
+   - Updated empty state copy to mention Issues Engine
+
+### UX-7.2 Constraints
+
+- No new database tables; leverages existing Product and CrawlResult data
+- Issue detection runs on-demand when issues endpoint is called
+- Fix actions route to existing product workspace or sync flows
+
+### UX-7.3 Acceptance Criteria (Completed)
+
+- [x] `/projects/[id]/issues` renders Issue Engine Lite page
+- [x] 12 product-focused issue types detected and displayed
+- [x] Severity filtering (All/Critical/Warning/Info) works correctly
+- [x] Fix actions route to appropriate fix flows
+- [x] Products page shows issue count badge when issues exist
+- [x] Pre-crawl banner mentions Issues Engine
+- [x] `docs/testing/issue-engine-lite.md` created with manual testing scenarios
+- [x] `docs/testing/CRITICAL_PATH_MAP.md` updated with CP-009: Issue Engine Lite
+
+---
+
+These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-Content-1, UX-Content-2, and MARKETING-1 through MARKETING-6 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
 
 - Phases 12–17: Core feature sets (automation, content, performance, competitors, local, social).
 - Phases 18–22: Security, subscription management, monitoring, fairness & limits.
@@ -7073,6 +7144,7 @@ These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-Conten
 - Phase UX-4: Issues UI integration surfacing DEO issues across Overview, Products, and Optimization Workspace.
 - Phase UX-5: Row-level navigation and workspace access improvements for the Products list.
 - Phase UX-6: "First DEO Win" onboarding flow for new workspaces.
+- Phase UX-7: Issue Engine Lite with 12 product-focused issues, severity filtering, and actionable fix buttons.
 - Phase UX-Content-1: Content Pages tab and non-product content list built on CrawlResult data and DEO issues.
 - Phase UX-Content-2: Content optimization workspace for non-product pages with AI metadata suggestions and DEO insights.
 - Phase MARKETING-1: Universal marketing homepage and DEO positioning across the public site.

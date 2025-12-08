@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { DeoIssue } from '@engineo/shared';
 
 export const ISSUE_UI_CONFIG: Record<string, { label: string; description: string }> = {
+  // High-level DEO issues
   missing_metadata: {
     label: 'Missing Metadata',
     description:
@@ -43,6 +44,67 @@ export const ISSUE_UI_CONFIG: Record<string, { label: string; description: strin
     label: 'Shallow Product Content',
     description:
       'Many products have very short or missing descriptions, limiting their ability to rank and convert.',
+  },
+  // Issue Engine Lite: Product-focused issues
+  missing_seo_title: {
+    label: 'Missing SEO Title',
+    description:
+      'Products without an SEO title are harder for search engines and AI to understand and rank.',
+  },
+  missing_seo_description: {
+    label: 'Missing SEO Description',
+    description:
+      'Products without an SEO description miss rich snippet and click-through optimization.',
+  },
+  weak_title: {
+    label: 'Weak Product Title',
+    description:
+      'Product titles are too short or unoptimized, reducing search visibility.',
+  },
+  weak_description: {
+    label: 'Weak Product Description',
+    description:
+      'Short SEO descriptions limit search snippet quality and fail to convey value.',
+  },
+  missing_long_description: {
+    label: 'Missing Long Description',
+    description:
+      'Products lack detailed descriptions needed for rich search results and AI answers.',
+  },
+  duplicate_product_content: {
+    label: 'Duplicate Product Content',
+    description:
+      'Multiple products share identical descriptions, hurting rankings and confusing AI.',
+  },
+  low_product_entity_coverage: {
+    label: 'Low Entity Coverage in Product Content',
+    description:
+      'Products lack the metadata and content depth for strong entity signals.',
+  },
+  not_answer_ready: {
+    label: 'Not Answer-Ready',
+    description:
+      'Products lack sufficient content to be cited in AI-powered answer experiences.',
+  },
+  weak_intent_match: {
+    label: 'Weak Intent Match',
+    description:
+      'Product metadata may not align well with user search intent.',
+  },
+  missing_product_image: {
+    label: 'Missing Product Image',
+    description:
+      'Products without images have significantly lower engagement and conversion.',
+  },
+  missing_price: {
+    label: 'Missing Product Price',
+    description:
+      'Products without price data cannot appear in price-filtered results or shopping feeds.',
+  },
+  missing_category: {
+    label: 'Missing Product Category/Type',
+    description:
+      'Products without categories are harder to organize and surface in relevant contexts.',
   },
 };
 
