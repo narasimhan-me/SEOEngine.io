@@ -1,4 +1,4 @@
-# DEO Issues Engine (Phase 3B)
+# DEO Issues Engine (Phase 3B + UX-7 + UX-8)
 
 The DEO Issues Engine converts raw crawl + product data and aggregated DEO signals into a structured, human-readable issues list that merchants can act on.
 
@@ -7,9 +7,17 @@ It powers:
 - Project Overview → Issues summary
 - Product list → Issue badges
 - Product optimization workspace → Issue insights
+- Issues Engine page → Centralized issue management
+- AI-powered fix actions → One-click optimization
 - Future automation (e.g., "Fix all missing metadata")
 
-This phase is backend-only; UI integration is handled in later UX phases.
+## Evolution
+
+| Phase | Name | Scope |
+|-------|------|-------|
+| 3B | Issues Engine Core | Backend-only aggregated issues |
+| UX-7 | Issue Engine Lite | Product-focused issues with fix actions |
+| UX-8 | Issue Engine Full | Rich metadata, categories, and AI fix guidance |
 
 ## 1. Issue Model
 
@@ -17,6 +25,33 @@ Shared types (in `packages/shared/src/deo-issues.ts`):
 
 ```typescript
 export type DeoIssueSeverity = 'critical' | 'warning' | 'info';
+
+// Issue Engine Lite types (Phase UX-7)
+export type DeoIssueType =
+  | 'missing_seo_title'
+  | 'missing_seo_description'
+  | 'weak_title'
+  | 'weak_description'
+  | 'missing_long_description'
+  | 'duplicate_product_content'
+  | 'low_entity_coverage'
+  | 'not_answer_ready'
+  | 'weak_intent_match'
+  | 'missing_product_image'
+  | 'missing_price'
+  | 'missing_category';
+
+export type DeoIssueFixType = 'aiFix' | 'manualFix' | 'syncFix';
+
+// Issue Engine Full types (Phase UX-8)
+export type DeoIssueCategory =
+  | 'metadata'
+  | 'content_entity'
+  | 'answerability'
+  | 'technical'
+  | 'schema_visibility';
+
+export type DeoIssueFixCost = 'one_click' | 'manual' | 'advanced';
 
 export interface DeoIssue {
   id: string;
@@ -26,6 +61,23 @@ export interface DeoIssue {
   count: number;
   affectedPages?: string[];
   affectedProducts?: string[];
+
+  // === Issue Engine Lite fields (Phase UX-7) ===
+  type?: DeoIssueType;
+  fixType?: DeoIssueFixType;
+  fixReady?: boolean;
+  primaryProductId?: string;
+
+  // === Issue Engine Full fields (Phase UX-8) ===
+  category?: DeoIssueCategory;
+  confidence?: number;
+  deoComponentKey?: string;
+  deoImpactEstimate?: number;
+  whyItMatters?: string;
+  recommendedFix?: string;
+  aiFixable?: boolean;
+  fixCost?: DeoIssueFixCost;
+  dependencies?: string[];
 }
 
 export interface DeoIssuesResponse {
@@ -328,3 +380,111 @@ Phase 3B is complete when:
 3. Issue count values match raw `CrawlResult` and `Product` data for representative test projects.
 4. No new rows or columns are written as part of issue computation.
 5. No frontend changes are required; the API is ready for consumption by UX-4.
+
+---
+
+## 7. Issue Engine Lite (Phase UX-7)
+
+Issue Engine Lite extends the base issue model with product-focused issues and actionable fix buttons.
+
+### 7.1 Additional Issue Types
+
+| Issue ID | Type | Severity | Fix Type |
+|----------|------|----------|----------|
+| `missing_seo_title` | Metadata | Critical | aiFix |
+| `missing_seo_description` | Metadata | Critical | aiFix |
+| `weak_seo_title` | Content Quality | Warning | aiFix |
+| `weak_seo_description` | Content Quality | Warning | aiFix |
+| `missing_long_description` | Content Quality | Warning | manualFix |
+| `duplicate_product_content` | Content Quality | Warning | aiFix |
+| `low_entity_coverage` | AI Visibility | Warning | aiFix |
+| `not_answer_ready` | AI Visibility | Warning | aiFix |
+| `weak_intent_match` | AI Visibility | Info | aiFix |
+| `missing_product_image` | Structural | Critical | manualFix |
+| `missing_price` | Structural | Critical | syncFix |
+| `missing_category` | Structural | Warning | syncFix |
+
+### 7.2 Fix Action Types
+
+- **aiFix**: Routes to product workspace for AI-powered optimization
+- **manualFix**: Routes to product page for manual editing
+- **syncFix**: Triggers Shopify sync to refresh product data
+
+### 7.3 UI Components
+
+- Issues Engine page at `/projects/[id]/issues`
+- Severity filter buttons (All/Critical/Warning/Info)
+- Fix action buttons per issue
+- Issue badge in Products page header
+
+---
+
+## 8. Issue Engine Full (Phase UX-8)
+
+Issue Engine Full extends all issues with rich metadata for better context, prioritization, and AI fix guidance.
+
+### 8.1 Issue Categories
+
+| Category | Description | Example Issues |
+|----------|-------------|----------------|
+| `metadata` | SEO titles, descriptions, meta tags | missing_seo_title, weak_title |
+| `content_entity` | Content depth, entity coverage | thin_content, low_entity_coverage |
+| `answerability` | AI answer readiness | not_answer_ready, weak_intent_match |
+| `technical` | Crawl health, indexability | crawl_health_errors, indexability_problems |
+| `schema_visibility` | Entity signals, brand pages | brand_navigational_weakness |
+
+### 8.2 Fix Cost Levels
+
+| Fix Cost | Description | Time Estimate |
+|----------|-------------|---------------|
+| `one_click` | AI-fixable with single action | < 1 minute |
+| `manual` | Requires human content creation | 10-30 minutes |
+| `advanced` | Technical or structural changes | 30+ minutes |
+
+### 8.3 New Fields
+
+Each issue now includes:
+
+- **category**: Classification for filtering and grouping
+- **whyItMatters**: User-facing explanation of business impact
+- **recommendedFix**: Actionable guidance for resolution
+- **aiFixable**: Whether AI can fix this issue
+- **fixCost**: Estimated effort level
+
+### 8.4 Issue Enrichment by Category
+
+**Metadata Issues:**
+- category: `'metadata'`
+- aiFixable: `true` (for missing/weak titles and descriptions)
+- fixCost: `'one_click'`
+
+**Content/Entity Issues:**
+- category: `'content_entity'`
+- aiFixable: varies (some require manual content)
+- fixCost: `'manual'` or `'one_click'`
+
+**Answerability Issues:**
+- category: `'answerability'`
+- aiFixable: `true`
+- fixCost: `'one_click'`
+
+**Technical Issues:**
+- category: `'technical'`
+- aiFixable: `false`
+- fixCost: `'advanced'`
+
+**Schema/Visibility Issues:**
+- category: `'schema_visibility'`
+- aiFixable: varies
+- fixCost: `'manual'` or `'advanced'`
+
+### 8.5 Acceptance Criteria (Phase UX-8)
+
+1. All Phase 3B aggregated issues include `category`, `whyItMatters`, `recommendedFix`, `aiFixable`, and `fixCost` fields.
+2. All Issue Engine Lite product issues include the same enrichment fields.
+3. Categories align with the taxonomy defined in 8.1.
+4. `whyItMatters` provides clear business context for each issue.
+5. `recommendedFix` provides actionable guidance appropriate to the issue type.
+6. `aiFixable` accurately reflects whether AI optimization can resolve the issue.
+7. `fixCost` accurately reflects the effort level required.
+8. Backward compatibility maintained (all new fields are optional).

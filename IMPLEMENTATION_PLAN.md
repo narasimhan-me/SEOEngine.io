@@ -7132,7 +7132,119 @@ Enhance the Issues Engine with product-focused issue detection and actionable fi
 
 ---
 
-These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-Content-1, UX-Content-2, and MARKETING-1 through MARKETING-6 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
+## Phase UX-8 – Issue Engine Full (IE-2.0)
+
+**Status:** Complete
+
+**Goal:** Extend Issue Engine with rich metadata fields for better context, prioritization, and AI fix guidance across all issues.
+
+### UX-8.1 Overview
+
+Issue Engine Full (IE-2.0) enriches all existing issues (Phase 3B aggregated + Issue Engine Lite product-focused) with new metadata fields:
+
+- **category** — Issue classification for filtering and grouping
+- **whyItMatters** — User-facing explanation of business impact
+- **recommendedFix** — Actionable guidance for resolution
+- **aiFixable** — Whether AI can fix this issue
+- **fixCost** — Estimated effort level (one_click, manual, advanced)
+
+This is a backend-only enhancement; no UI changes are required in this phase. The enriched fields enable future UI improvements like category filtering, AI fix prioritization, and batch operations.
+
+### UX-8.2 Implementation Changes
+
+**Shared Types (packages/shared/src/deo-issues.ts):**
+
+```typescript
+// Issue Engine Full types (Phase UX-8)
+export type DeoIssueCategory =
+  | 'metadata'
+  | 'content_entity'
+  | 'answerability'
+  | 'technical'
+  | 'schema_visibility';
+
+export type DeoIssueFixCost = 'one_click' | 'manual' | 'advanced';
+
+// Extended DeoIssue interface with optional IE-2.0 fields:
+// - category?: DeoIssueCategory
+// - confidence?: number
+// - deoComponentKey?: string
+// - deoImpactEstimate?: number
+// - whyItMatters?: string
+// - recommendedFix?: string
+// - aiFixable?: boolean
+// - fixCost?: DeoIssueFixCost
+// - dependencies?: string[]
+```
+
+**Backend Changes (apps/api/src/projects/deo-issues.service.ts):**
+
+All issue builders now include Issue Engine Full metadata:
+
+| Issue ID | Category | aiFixable | fixCost |
+|----------|----------|-----------|---------|
+| missing_metadata | metadata | false | manual |
+| thin_content | content_entity | false | manual |
+| low_entity_coverage | schema_visibility | false | manual |
+| indexability_problems | technical | false | advanced |
+| answer_surface_weakness | answerability | false | manual |
+| brand_navigational_weakness | schema_visibility | false | advanced |
+| crawl_health_errors | technical | false | advanced |
+| product_content_depth | content_entity | false | manual |
+| missing_seo_title | metadata | true | one_click |
+| missing_seo_description | metadata | true | one_click |
+| weak_title | metadata | true | one_click |
+| weak_description | metadata | true | one_click |
+| missing_long_description | content_entity | false | manual |
+| duplicate_product_content | content_entity | true | one_click |
+| low_product_entity_coverage | schema_visibility | true | one_click |
+| not_answer_ready | answerability | true | one_click |
+| weak_intent_match | answerability | true | one_click |
+| missing_product_image | technical | false | manual |
+| missing_price | technical | false | one_click |
+| missing_category | schema_visibility | false | one_click |
+
+### UX-8.3 Issue Category Taxonomy
+
+| Category | Description | Example Issues |
+|----------|-------------|----------------|
+| metadata | SEO titles, descriptions, meta tags | missing_seo_title, weak_title |
+| content_entity | Content depth, entity coverage | thin_content, duplicate_product_content |
+| answerability | AI answer readiness | not_answer_ready, weak_intent_match |
+| technical | Crawl health, indexability | crawl_health_errors, indexability_problems |
+| schema_visibility | Entity signals, brand pages | brand_navigational_weakness, missing_category |
+
+### UX-8.4 Constraints
+
+- No new database tables; all enrichment is computed at runtime
+- All new fields are optional to maintain backward compatibility
+- No UI changes in this phase; frontend can adopt new fields in future phases
+- Issue detection logic unchanged; only return shape is enriched
+
+### UX-8.5 Acceptance Criteria (Completed)
+
+- [x] `DeoIssueCategory` and `DeoIssueFixCost` types added to shared package
+- [x] `DeoIssue` interface extended with Issue Engine Full fields
+- [x] All Phase 3B aggregated issues enriched with category, whyItMatters, recommendedFix, aiFixable, fixCost
+- [x] All Issue Engine Lite issues enriched with the same fields
+- [x] `docs/deo-issues-spec.md` updated with Issue Engine Full model
+- [x] Testing docs created:
+  - `docs/testing/issue-engine-full-metadata.md`
+  - `docs/testing/issue-engine-full-content-and-entities.md`
+  - `docs/testing/issue-engine-full-answerability.md`
+  - `docs/testing/issue-engine-full-crawl-derived.md`
+  - `docs/testing/issue-engine-full-schema-and-ai-visibility.md`
+  - `docs/testing/issue-engine-full-ai-fix-engine.md`
+  - `docs/testing/issue-engine-full-batch-fixes.md`
+- [x] `docs/manual-testing/phase-ux-8-issue-engine-full.md` created
+- [x] `docs/testing/CRITICAL_PATH_MAP.md` updated with CP-010
+- [x] `docs/testing/issue-engine-lite.md` updated with relationship to Full
+
+**Manual Testing:** `docs/manual-testing/phase-ux-8-issue-engine-full.md`, `docs/testing/issue-engine-full-*.md`
+
+---
+
+These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-8, UX-Content-1, UX-Content-2, and MARKETING-1 through MARKETING-6 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
 
 - Phases 12–17: Core feature sets (automation, content, performance, competitors, local, social).
 - Phases 18–22: Security, subscription management, monitoring, fairness & limits.
@@ -7145,6 +7257,7 @@ These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-
 - Phase UX-5: Row-level navigation and workspace access improvements for the Products list.
 - Phase UX-6: "First DEO Win" onboarding flow for new workspaces.
 - Phase UX-7: Issue Engine Lite with 12 product-focused issues, severity filtering, and actionable fix buttons.
+- Phase UX-8: Issue Engine Full (IE-2.0) with rich metadata, categories, whyItMatters, recommendedFix, aiFixable, and fixCost fields.
 - Phase UX-Content-1: Content Pages tab and non-product content list built on CrawlResult data and DEO issues.
 - Phase UX-Content-2: Content optimization workspace for non-product pages with AI metadata suggestions and DEO insights.
 - Phase MARKETING-1: Universal marketing homepage and DEO positioning across the public site.

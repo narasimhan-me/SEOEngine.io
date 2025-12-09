@@ -210,6 +210,29 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 ---
 
+### CP-010: Issue Engine Full (IE-2.0)
+
+**Description:** Rich metadata enrichment for all DEO issues with categories, business impact explanations, fix guidance, AI fixability indicators, and effort estimation.
+
+| Field | Value |
+|-------|-------|
+| **Manual Testing Doc(s)** | `docs/manual-testing/phase-ux-8-issue-engine-full.md`, `docs/testing/issue-engine-full-*.md` |
+| **Automated Tests** | Planned |
+| **Last Verified (Manual)** | 2025-12-08 |
+| **Last Verified (Automated)** | N/A |
+| **Owner** | DEO Team |
+
+**Key Scenarios:**
+- [ ] All issues include category field with valid taxonomy value
+- [ ] All issues include whyItMatters explanation
+- [ ] All issues include recommendedFix guidance
+- [ ] All issues include aiFixable boolean indicator
+- [ ] All issues include fixCost estimation (one_click/manual/advanced)
+- [ ] AI-fixable issues correctly identified (fixType: aiFix)
+- [ ] Backward compatibility maintained (all existing fields preserved)
+
+---
+
 ## Coverage Summary
 
 | Critical Path | Manual Docs | Auto Tests | Status |
@@ -223,6 +246,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | CP-007: AI Failover Logic | ✅ | Planned | 🟡 Manual Only |
 | CP-008: Frontend Global UX Feedback | ✅ | Planned | 🟡 Manual Only |
 | CP-009: Issue Engine Lite | ✅ | Planned | 🟡 Manual Only |
+| CP-010: Issue Engine Full | ✅ | Planned | 🟡 Manual Only |
 
 **Legend:**
 - 🟢 Full Coverage (Manual + Automated)
@@ -259,3 +283,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 |---------|------|---------|
 | 1.0 | [Initial] | Created with 8 critical paths as part of v3.4 verification layer |
 | 1.1 | 2025-12-08 | Added CP-009: Issue Engine Lite (Phase UX-7) |
+| 1.2 | 2025-12-08 | Added CP-010: Issue Engine Full (Phase UX-8) |

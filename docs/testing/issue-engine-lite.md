@@ -18,11 +18,34 @@
 
 - **Related phases/sections:**
   - Phase UX-7 (Issue Engine Lite)
+  - Phase UX-8 (Issue Engine Full) - extends Lite with rich metadata
 
 - **Related documentation:**
   - `packages/shared/src/deo-issues.ts` (DeoIssue type)
   - `apps/api/src/projects/deo-issues.service.ts` (Issue detection logic)
   - `apps/web/src/app/projects/[id]/issues/page.tsx` (Issues page UI)
+
+---
+
+## Relationship to Issue Engine Full (Phase UX-8)
+
+Issue Engine Lite (UX-7) provides the foundation for product-focused issues with fix actions. Issue Engine Full (UX-8) extends ALL issues (including Lite issues) with additional metadata:
+
+| Field | Lite (UX-7) | Full (UX-8) |
+|-------|-------------|-------------|
+| type | ✅ | ✅ |
+| fixType | ✅ | ✅ |
+| fixReady | ✅ | ✅ |
+| primaryProductId | ✅ | ✅ |
+| category | - | ✅ |
+| whyItMatters | - | ✅ |
+| recommendedFix | - | ✅ |
+| aiFixable | - | ✅ |
+| fixCost | - | ✅ |
+
+**Testing Note:** If testing Issue Engine Full fields, see:
+- `docs/manual-testing/phase-ux-8-issue-engine-full.md`
+- `docs/testing/issue-engine-full-*.md`
 
 ---
 
