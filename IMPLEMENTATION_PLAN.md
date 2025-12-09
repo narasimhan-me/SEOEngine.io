@@ -2575,6 +2575,45 @@ Use this snapshot and denormalized score wherever DEO Score is displayed (dashbo
 - The DEO worker (`DeoScoreProcessor`) continues to run successfully with the extended signals set and produces consistent v1 DEO scores for projects with and without products.
 - Documentation in `docs/deo-score-spec.md` accurately describes how pages and products are combined into the Content and Entity components.
 
+**Phase 2.6 – DEO Score v2 Explainability (Completed)**
+
+- Introduced DEO Score v2 as an **explainability layer** computed alongside v1, without replacing v1 as the canonical score.
+- v2 provides six human-readable components that map directly to existing DeoScoreSignals:
+  - **Entity Strength** (20%): Measures entity coverage, accuracy, hint coverage, structure accuracy, and linkage.
+  - **Intent Match** (20%): Measures content coverage, depth, SERP presence, answer surface, and navigational strength.
+  - **Answerability** (20%): Measures content depth, coverage, answer surface presence, and content quality.
+  - **AI Visibility** (20%): Measures SERP presence, answer surface, navigational strength, and indexability.
+  - **Content Completeness** (15%): Measures content coverage, depth, freshness, and entity coverage.
+  - **Technical Quality** (5%): Measures crawl health, indexability, HTML structure, content quality, and Core Web Vitals.
+
+- Shared package types and helpers:
+  - `DeoScoreV2Breakdown` type in `packages/shared/src/deo-score.ts`
+  - `DEO_SCORE_MODEL_V2`, `DEO_SCORE_WEIGHTS_V2`, `DeoScoreV2ComponentKey`, `DeoScoreV2Components` in `packages/shared/src/deo-score-config.ts`
+  - `computeDeoComponentsV2FromSignals`, `computeOverallDeoScoreV2`, `computeDeoScoreV2FromSignals` helpers in `packages/shared/src/deo-score-engine.ts`
+
+- Backend integration in `DeoScoreService.computeAndPersistScoreFromSignals`:
+  - Computes v2 breakdown from signals alongside v1
+  - Derives `topOpportunities` (3 lowest-scoring components by potential gain)
+  - Derives `topStrengths` (3 highest-scoring components)
+  - Stores structured metadata in DeoScoreSnapshot: `{ signals, v1: { modelVersion, breakdown }, v2: { modelVersion, breakdown, components, topOpportunities, topStrengths } }`
+
+- E2E test coverage: `apps/api/test/e2e/deo-score.e2e-spec.ts` asserts v2 metadata presence and structure.
+
+**Constraints:**
+
+- No Prisma schema changes; v2 data stored in existing `metadata` JSON field.
+- v1 remains the canonical score; API response shape unchanged.
+- No UI changes in this phase (v2 metadata-only).
+
+**Acceptance Criteria (met):**
+
+- v2 breakdown computed on every score recompute with all six components in range [0, 100].
+- `metadata.v2` structure present in DeoScoreSnapshot with `modelVersion`, `breakdown`, `components`, `topOpportunities`, and `topStrengths`.
+- E2E tests pass with v2 assertions.
+- Documentation updated in `docs/deo-score-spec.md` (v2 section) and testing docs.
+
+**Manual Testing:** `docs/manual-testing/phase-2.6-deo-score-v2-explainability.md`
+
 ---
 
 # PHASE 8 — Two-Factor Authentication (2FA)
@@ -7464,7 +7503,204 @@ Every automation follows a Trigger → Evaluate → Execute → Log lifecycle:
 
 ---
 
-These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-8, AE-1 (Answer Engine), AE-1 (Automation Engine), UX-Content-1, UX-Content-2, and MARKETING-1 through MARKETING-6 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
+## Phase AE-2 – Product Automations (Design & Test Scaffolding)
+
+**Status:** Complete
+
+**Goal:** Define Product Automation Library design specifications covering metadata, content, drift correction, and Shopify sync automations for products.
+
+### AE-2.1 Overview (Product Automations)
+
+Phase AE-2 introduces product-level automations that:
+
+1. **Automatically improve product metadata** when safe (titles, descriptions, alt text)
+2. **Automatically generate or enrich product content elements** (long descriptions, feature bullets)
+3. **Detect and correct metadata drift** (Shopify overwrites, manual regressions)
+4. **Orchestrate Shopify sync operations** for automated changes
+
+This phase is scoped to **product surfaces only**. Page-level and other surface automations are deferred to later phases.
+
+### AE-2.2 Product Automation Categories
+
+#### A. Metadata Automations (High Priority)
+
+**Automations:**
+- Auto-generate missing SEO Titles
+- Auto-generate missing SEO Descriptions
+- Auto-improve weak titles (short, generic, keyword-stuffed)
+- Auto-improve weak descriptions (thin, promotional-only)
+- Auto-generate alt text for product images (future AE-2.1.x)
+- Auto-populate missing product type / category when inferable
+
+**Automation Engine Mapping:**
+- `AUTO_GENERATE_METADATA_ON_NEW_PRODUCT`
+- `AUTO_GENERATE_METADATA_FOR_MISSING_METADATA`
+- `AUTO_GENERATE_METADATA_FOR_THIN_CONTENT`
+
+#### B. Content Automations (Medium Priority)
+
+**Automations:**
+- Auto-generate a long description when absent
+- Auto-expand thin descriptions (< 40–60 words)
+- Auto-enhance entity completeness (add missing factual details)
+- Auto-generate feature/benefit bullet lists
+
+#### C. Drift Correction Automations (High Trust)
+
+**Definition of "Drift":**
+- Shopify overwriting optimized metadata with original/inferior values
+- Manual edits that remove required fields or degrade quality
+- External tools reverting metadata changes
+
+**Modes by Plan:**
+| Plan | Drift Behavior |
+|------|----------------|
+| **Free** | Notify-only; do not auto-apply corrections |
+| **Pro** | Auto-correct when allowed by settings; notify on detection |
+| **Business** | Full auto-correct with detailed logging; proactive drift scanning |
+
+#### D. Shopify Sync Automations
+
+**Automations:**
+- Auto-sync metadata after automation-generated changes
+- Auto-sync Answer Blocks to Shopify metafields (in AE-5)
+- Auto-sync structured data via Shopify metafields
+- Attempt to repair missing Shopify fields when possible
+
+**Entitlements:**
+| Plan | Shopify Sync Capabilities |
+|------|---------------------------|
+| **Free** | No automated writes to Shopify; view-only/suggestions |
+| **Pro** | Limited auto-sync automations for metadata |
+| **Business** | Full sync automations for products, pages (later), answers, entities |
+
+### AE-2.3 Conditions & Safeguards
+
+**Data Safety:**
+- Never overwrite user-written content without reliable confidence, applicable rule, and recorded log entry
+
+**AI Safety:**
+- **No hallucinations:** If not enough product data is available, automations must skip rather than guess
+- All AI-generated content must trace back to source product data
+
+**Plan Limits:**
+| Plan | Automation Limits |
+|------|-------------------|
+| **Free** | Minimal automations (reactive metadata-only, small caps) |
+| **Pro** | Moderate daily caps; access to drift corrections for metadata |
+| **Business** | Higher or unlimited daily automation executions (subject to safety rules) |
+
+### AE-2.4 AE-2 Sub-Phases
+
+| Sub-Phase | Focus | Scope |
+|-----------|-------|-------|
+| **AE-2.1** | Metadata Automations | Titles, descriptions, weak content improvements, alt-text scaffolding, entity enrichers |
+| **AE-2.2** | Content Automations | Long descriptions, bullet lists, thin-content expansion |
+| **AE-2.3** | Drift Correction System | Detect mismatch → correct (when allowed) → log → notify |
+| **AE-2.4** | Shopify Sync Automations | Write-back and reconciliation actions, constrained by entitlements and safety |
+
+### AE-2.5 Constraints (Product Automations)
+
+- **No code implementation in AE-2:** This phase is design and test scaffolding only
+- **Implementation deferred:** Actual automation logic will be built in sub-phases AE-2.1 through AE-2.4
+- **Product-only scope:** Page automations are explicitly out of scope for AE-2
+- **No UI changes:** Automation Center UI deferred to AE-6
+
+### AE-2.6 Acceptance Criteria (Product Automations - Completed)
+
+- [x] `docs/AUTOMATION_ENGINE_SPEC.md` Section 8 added for Product Automations
+  - [x] 8.1 Goals defined
+  - [x] 8.2 Product Automation Categories (A-D) defined
+  - [x] 8.3 Conditions & Safeguards defined
+  - [x] 8.4 AE-2 Sub-Phases defined
+- [x] `docs/testing/automation-engine-product-automations.md` created
+- [x] `docs/manual-testing/phase-ae-2-product-automations.md` created
+- [x] `docs/testing/CRITICAL_PATH_MAP.md` CP-012 updated with AE-2 references
+- [x] `IMPLEMENTATION_PLAN.md` updated with Phase AE-2 section
+
+**Manual Testing:** `docs/manual-testing/phase-ae-2-product-automations.md`, `docs/testing/automation-engine-product-automations.md`
+
+---
+
+## Phase AE-2.1 – Metadata Product Automations (Implementation)
+
+**Status:** Complete
+
+**Overview:**
+
+Phase AE-2.1 implements the core metadata automation pipeline with plan-aware auto-apply behavior. This is the first implementation phase following the AE-2 design and specification work.
+
+### Key Features
+
+1. **Plan-Aware Auto-Apply:**
+   - Free plan users receive suggestions only (user must manually apply)
+   - Pro/Business plan users get auto-apply for missing metadata
+   - Thin content improvements always require review (all plans)
+
+2. **Schema Changes:**
+   - Added `appliedAt DateTime?` field to `AutomationSuggestion` model
+   - Tracks when automations were auto-applied for audit trail
+
+3. **Backend Implementation:**
+   - `EntitlementsService.canAutoApplyMetadataAutomations(userId)` helper
+   - `AutomationService.shouldAutoApplyMetadataForProject()` private helper
+   - Auto-apply logic in `createProductSuggestion` for MISSING_METADATA issues
+   - Only auto-fills empty fields (never overwrites existing content)
+
+4. **Frontend Implementation:**
+   - `ProductAiSuggestionsPanel` shows "Applied by Automation Engine" badge
+   - Product optimization page detects recent auto-applies (within 24 hours)
+   - One-time success toast: "Automation Engine improved this product's metadata automatically."
+   - New Automation Activity page at `/projects/[id]/automation/`
+
+5. **Safety Rules:**
+   - Only MISSING_METADATA qualifies for auto-apply
+   - Thin content always requires human review
+   - Existing content is never overwritten
+   - Full audit trail via `appliedAt` timestamp
+
+### Plan Behavior Matrix
+
+| Plan | Metadata Automation Behavior |
+|------|------------------------------|
+| **Free** | Suggestions only; user must manually apply |
+| **Pro** | Auto-apply for missing metadata; suggestions for thin content |
+| **Business** | Auto-apply for missing metadata; suggestions for thin content |
+
+### Files Modified
+
+**Backend:**
+- `apps/api/prisma/schema.prisma` – Added `appliedAt` field
+- `apps/api/src/billing/entitlements.service.ts` – Added `canAutoApplyMetadataAutomations`
+- `apps/api/src/projects/automation.service.ts` – Auto-apply logic
+
+**Frontend:**
+- `apps/web/src/components/products/optimization/ProductAiSuggestionsPanel.tsx` – Applied badge
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` – Auto-apply toast
+- `apps/web/src/app/projects/[id]/automation/page.tsx` – New Automation Activity page
+
+**Documentation:**
+- `docs/AUTOMATION_ENGINE_SPEC.md` – Section 8.5 for AE-2.1 implementation
+- `docs/manual-testing/phase-ae-2-product-automations.md` – AE-2.1 test scenarios
+
+### AE-2.1 Acceptance Criteria (Completed)
+
+- [x] Prisma schema updated with `appliedAt` field
+- [x] `canAutoApplyMetadataAutomations` helper in EntitlementsService
+- [x] Auto-apply logic in `AutomationService.createProductSuggestion`
+- [x] `getSuggestionsForProject` returns `appliedAt` field
+- [x] ProductAiSuggestionsPanel shows "Applied by Automation Engine" badge
+- [x] Product optimization page detects recent auto-apply and shows toast
+- [x] Automation Activity page implemented
+- [x] `docs/AUTOMATION_ENGINE_SPEC.md` Section 8.5 added
+- [x] `docs/manual-testing/phase-ae-2-product-automations.md` updated with AE-2.1 test scenarios
+- [x] `docs/testing/CRITICAL_PATH_MAP.md` updated with AE-2.1 key scenario
+
+**Manual Testing:** `docs/manual-testing/phase-ae-2-product-automations.md` (AE-2.1 Implementation Test Scenarios section)
+
+---
+
+These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-8, AE-1 (Answer Engine), AE-1 (Automation Engine), AE-2 (Product Automations), UX-Content-1, UX-Content-2, and MARKETING-1 through MARKETING-6 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
 
 - Phases 12–17: Core feature sets (automation, content, performance, competitors, local, social).
 - Phases 18–22: Security, subscription management, monitoring, fairness & limits.
@@ -7480,6 +7716,8 @@ These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-
 - Phase UX-8: Issue Engine Full (IE-2.0) with rich metadata, categories, whyItMatters, recommendedFix, aiFixable, and fixCost fields.
 - Phase AE-1 (Answer Engine): Answer Engine Foundations with Answer Block model, 10-question taxonomy, Answerability detection concepts, and no-hallucination rules.
 - Phase AE-1 (Automation Engine): Automation Engine foundations (framework, shared types, entitlements & architecture docs, critical-path registration), preparing for Automation Engine implementation in AE-2+.
+- Phase AE-2 (Product Automations): Product Automation Library design and test scaffolding covering metadata automations, content automations, drift correction, and Shopify sync automations for products.
+- Phase AE-2.1 (Metadata Product Automations): Implementation of plan-aware auto-apply for missing metadata (Pro/Business auto-apply, Free suggestions-only), appliedAt audit field, Automation Activity page, and frontend feedback.
 - Phase UX-Content-1: Content Pages tab and non-product content list built on CrawlResult data and DEO issues.
 - Phase UX-Content-2: Content optimization workspace for non-product pages with AI metadata suggestions and DEO insights.
 - Phase MARKETING-1: Universal marketing homepage and DEO positioning across the public site.

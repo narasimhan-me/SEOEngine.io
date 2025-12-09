@@ -276,6 +276,35 @@ export class AutomationService {
     return slotsLeft;
   }
 
+  /**
+   * Check if auto-apply is allowed for a given project and issue type.
+   * Returns true only when:
+   * - The plan allows auto-apply (Pro/Business)
+   * - The issue type is MISSING_METADATA (not THIN_CONTENT for AE-2.1)
+   */
+  private async shouldAutoApplyMetadataForProject(
+    projectId: string,
+    issueType: AutomationIssueType,
+  ): Promise<boolean> {
+    // Only auto-apply for MISSING_METADATA in AE-2.1
+    if (issueType !== AutomationIssueType.MISSING_METADATA) {
+      return false;
+    }
+
+    // Load project to get userId
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { userId: true },
+    });
+
+    if (!project) {
+      return false;
+    }
+
+    // Check entitlements
+    return this.entitlementsService.canAutoApplyMetadataAutomations(project.userId);
+  }
+
   private async createProductSuggestion(
     ctx: AutomationSuggestionJobContext,
   ): Promise<void> {
@@ -300,7 +329,8 @@ export class AutomationService {
       pageTextSnippet: descriptionText.slice(0, 800),
     });
 
-    await this.prisma.automationSuggestion.upsert({
+    // Upsert the suggestion first
+    const suggestion = await this.prisma.automationSuggestion.upsert({
       where: {
         projectId_targetType_targetId_issueType: {
           projectId: ctx.projectId,
@@ -315,6 +345,7 @@ export class AutomationService {
         generatedAt: new Date(),
         source: AUTOMATION_SOURCE,
         applied: false,
+        appliedAt: null,
       },
       create: {
         projectId: ctx.projectId,
@@ -326,8 +357,57 @@ export class AutomationService {
         suggestedH1: null,
         source: AUTOMATION_SOURCE,
         applied: false,
+        appliedAt: null,
       },
     });
+
+    // Check if we should auto-apply
+    const shouldAutoApply = await this.shouldAutoApplyMetadataForProject(
+      ctx.projectId,
+      ctx.issueType,
+    );
+
+    if (shouldAutoApply && ctx.issueType === AutomationIssueType.MISSING_METADATA) {
+      // Only auto-apply if the product's fields are currently empty
+      const titleIsMissing = !product.seoTitle || product.seoTitle.trim() === '';
+      const descriptionIsMissing = !product.seoDescription || product.seoDescription.trim() === '';
+
+      const suggestedTitleValid = metadata.title && metadata.title.trim() !== '';
+      const suggestedDescriptionValid = metadata.description && metadata.description.trim() !== '';
+
+      // Only apply if at least one field needs updating and we have valid suggestions
+      if ((titleIsMissing && suggestedTitleValid) || (descriptionIsMissing && suggestedDescriptionValid)) {
+        const updateData: { seoTitle?: string; seoDescription?: string; lastSyncedAt: Date } = {
+          lastSyncedAt: new Date(),
+        };
+
+        if (titleIsMissing && suggestedTitleValid) {
+          updateData.seoTitle = metadata.title;
+        }
+        if (descriptionIsMissing && suggestedDescriptionValid) {
+          updateData.seoDescription = metadata.description;
+        }
+
+        // Update the product
+        await this.prisma.product.update({
+          where: { id: ctx.targetId },
+          data: updateData,
+        });
+
+        // Mark the suggestion as applied
+        await this.prisma.automationSuggestion.update({
+          where: { id: suggestion.id },
+          data: {
+            applied: true,
+            appliedAt: new Date(),
+          },
+        });
+
+        this.logger.log(
+          `[Automation] Auto-applied metadata suggestion for product ${ctx.targetId} (missing_metadata)`,
+        );
+      }
+    }
   }
 
   private async createPageSuggestion(
@@ -421,6 +501,7 @@ export class AutomationService {
         generatedAt: s.generatedAt.toISOString(),
         source: s.source,
         applied: s.applied,
+        appliedAt: s.appliedAt?.toISOString() ?? null,
       })),
     };
   }

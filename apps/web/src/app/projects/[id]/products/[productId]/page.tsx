@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -52,6 +52,9 @@ export default function ProductOptimizationPage() {
   // Shopify apply state
   const [applyingToShopify, setApplyingToShopify] = useState(false);
 
+  // Track if we've shown the auto-apply toast (one-time per page load)
+  const autoApplyToastShown = useRef(false);
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -85,10 +88,29 @@ export default function ProductOptimizationPage() {
       setProductIssues(issuesForProduct);
 
       // Find automation suggestion for this product (if any)
+      // Prefer unapplied suggestions for the panel
       const productAutomationSuggestion = (automationResponse.suggestions ?? []).find(
         (s: AutomationSuggestion) => s.targetType === 'product' && s.targetId === productId && !s.applied
       );
       setAutomationSuggestion(productAutomationSuggestion || null);
+
+      // Check for recently auto-applied suggestion (within last 24 hours)
+      const recentAutoApplied = (automationResponse.suggestions ?? []).find(
+        (s: AutomationSuggestion) => {
+          if (s.targetType !== 'product' || s.targetId !== productId || !s.applied || !s.appliedAt) {
+            return false;
+          }
+          const appliedTime = new Date(s.appliedAt).getTime();
+          const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+          return appliedTime > twentyFourHoursAgo;
+        }
+      );
+
+      // Show one-time success toast for recent auto-apply
+      if (recentAutoApplied && !autoApplyToastShown.current) {
+        autoApplyToastShown.current = true;
+        feedback.showSuccess('Automation Engine improved this product\'s metadata automatically.');
+      }
 
       // Initialize editor fields
       const title = foundProduct.seoTitle || foundProduct.title || '';
@@ -104,7 +126,7 @@ export default function ProductOptimizationPage() {
     } finally {
       setLoading(false);
     }
-  }, [projectId, productId]);
+  }, [projectId, productId, feedback]);
 
   const fetchSuggestion = useCallback(async () => {
     if (!product) return;

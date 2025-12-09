@@ -136,6 +136,7 @@ model AutomationSuggestion {
   generatedAt          DateTime             @default(now())
   source               String               @default("automation_v1")
   applied              Boolean              @default(false)
+  appliedAt            DateTime?
 
   @@unique([projectId, targetType, targetId, issueType])
 }

@@ -6,6 +6,20 @@ export type DeoScoreBreakdown = {
   visibility?: number | null;
 };
 
+/**
+ * DEO Score v2 Breakdown - Explainable AI Visibility Index
+ * Six components with weights defined in deo-score-config.ts
+ */
+export type DeoScoreV2Breakdown = {
+  overall: number;
+  entityStrength: number;
+  intentMatch: number;
+  answerability: number;
+  aiVisibility: number;
+  contentCompleteness: number;
+  technicalQuality: number;
+};
+
 export type DeoScoreSnapshot = {
   id: string;
   projectId: string;

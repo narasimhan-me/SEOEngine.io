@@ -240,4 +240,21 @@ export class EntitlementsService {
       summary.limits.projects,
     );
   }
+
+  /**
+   * Check if a user's plan allows metadata automations to auto-apply.
+   * Returns false for Free tier, true for Pro and Business tiers.
+   * This is pure entitlements logic with no side effects.
+   */
+  async canAutoApplyMetadataAutomations(userId: string): Promise<boolean> {
+    const planId = await this.getUserPlan(userId);
+
+    // Free plan does not support auto-apply; only suggestions
+    if (planId === 'free') {
+      return false;
+    }
+
+    // Pro and Business (and any future advanced tiers) support auto-apply
+    return true;
+  }
 }

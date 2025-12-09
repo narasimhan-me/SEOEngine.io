@@ -104,13 +104,13 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 ### CP-005: DEO Score Compute
 
-**Description:** DEO score calculation pipeline including signal aggregation, weighting, score persistence, and snapshot history.
+**Description:** DEO score calculation pipeline including signal aggregation, weighting, score persistence, snapshot history, and v2 explainability layer.
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/deo-score-compute-pipeline.md`, `docs/testing/deo-score-snapshots.md` |
+| **Manual Testing Doc(s)** | `docs/testing/deo-score-compute-pipeline.md`, `docs/testing/deo-score-snapshots.md`, `docs/manual-testing/phase-2.6-deo-score-v2-explainability.md` |
 | **Automated Tests** | Planned |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
+| **Last Verified (Manual)** | 2025-12-08 |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | DEO Team |
 
@@ -119,7 +119,12 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] Score display in UI
 - [ ] Historical snapshot storage
 - [ ] Score change tracking
-- [ ] Score breakdown by category
+- [ ] Score breakdown by category (v1)
+- [ ] v2 explainability layer computed alongside v1
+- [ ] v2 six-component breakdown stored in metadata
+- [ ] Top opportunities derived from lowest v2 components
+- [ ] Top strengths derived from highest v2 components
+- [ ] v1 remains canonical score (v2 is metadata-only)
 
 ---
 
@@ -258,11 +263,11 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 ### CP-012: Automation Engine (Framework & Rules)
 
-**Description:** Automation Engine framework covering automation rule model, trigger/evaluation/execution/log lifecycle, and entitlements-aware automation behavior across DEO systems.
+**Description:** Automation Engine framework covering automation rule model, trigger/evaluation/execution/log lifecycle, and entitlements-aware automation behavior across DEO systems. Includes Product Automations (AE-2) for metadata, content, drift correction, and Shopify sync.
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/automation-engine.md`, `docs/manual-testing/phase-ae-1-automation-engine-foundations.md` |
+| **Manual Testing Doc(s)** | `docs/testing/automation-engine.md`, `docs/testing/automation-engine-product-automations.md`, `docs/manual-testing/phase-ae-1-automation-engine-foundations.md`, `docs/manual-testing/phase-ae-2-product-automations.md` |
 | **Automated Tests** | Planned |
 | **Last Verified (Manual)** | 2025-12-08 |
 | **Last Verified (Automated)** | N/A |
@@ -274,6 +279,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] Integration points with crawl pipeline and existing AutomationService documented
 - [ ] Non-destructive behavior defined for failed or skipped automations
 - [ ] Shared package builds successfully with Automation Engine types
+- [ ] Product Automations (AE-2): Metadata automation categories defined
+- [ ] Product Automations (AE-2): Content automation categories defined
+- [ ] Product Automations (AE-2): Drift correction system specified
+- [ ] Product Automations (AE-2): Shopify sync automations specified
+- [ ] Product Automations (AE-2): Safety and no-hallucination rules documented
+- [ ] AE-2.1: Auto-apply for missing metadata works for Pro/Business users
+- [ ] AE-2.1: Free users receive suggestions only (no auto-apply)
+- [ ] AE-2.1: appliedAt timestamp recorded when auto-apply occurs
+- [ ] AE-2.1: "Applied by Automation Engine" badge displays correctly
+- [ ] AE-2.1: Automation Activity page shows applied/pending suggestions
 
 ---
 
@@ -332,3 +347,5 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 1.2 | 2025-12-08 | Added CP-010: Issue Engine Full (Phase UX-8) |
 | 1.3 | 2025-12-08 | Added CP-011: Answer Engine (Phase AE-1) |
 | 1.4 | 2025-12-08 | Added CP-012: Automation Engine (Phase AE-1 Framework) |
+| 1.5 | 2025-12-08 | Added AE-2.1 key scenarios to CP-012 (Metadata Product Automations implementation) |
+| 1.6 | 2025-12-08 | Updated CP-005 with DEO Score v2 explainability scenarios (Phase 2.6) |

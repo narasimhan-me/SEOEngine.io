@@ -118,6 +118,47 @@
 
 ---
 
+### Scenario 5: Snapshot includes v2 explainability metadata
+
+**ID:** HP-005
+
+**Preconditions:**
+- Project with signals ready for scoring (Phase 2.6+)
+
+**Steps:**
+1. Trigger score computation
+2. Query snapshot from database
+3. Inspect `metadata` JSON field
+
+**Expected Results:**
+- **metadata.v1:** Contains `modelVersion` ("1.1.0") and `breakdown` (v1 components)
+- **metadata.v2:** Contains `modelVersion` ("v2") and `breakdown` (overall + 6 components)
+- **metadata.v2.components:** Object with `entityStrength`, `intentMatch`, `answerability`, `aiVisibility`, `contentCompleteness`, `technicalQuality` keys
+- **metadata.v2.topOpportunities:** Array of 3 objects with `key`, `score`, `potentialGain`
+- **metadata.v2.topStrengths:** Array of 3 objects with `key`, `score`
+- **metadata.signals:** Original signal values preserved
+
+---
+
+### Scenario 6: v2 metadata preserved across snapshot history
+
+**ID:** HP-006
+
+**Preconditions:**
+- Project with multiple v2-era snapshots
+
+**Steps:**
+1. Compute score multiple times
+2. Query snapshot history
+3. Verify each snapshot has v2 metadata
+
+**Expected Results:**
+- **All Snapshots:** Each snapshot contains `metadata.v2` structure
+- **Consistency:** v2 model version consistent across snapshots
+- **Independence:** Each snapshot's v2 breakdown reflects point-in-time signal values
+
+---
+
 ## Edge Cases
 
 ### EC-001: First snapshot for new project

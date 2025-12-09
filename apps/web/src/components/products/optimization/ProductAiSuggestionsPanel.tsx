@@ -20,6 +20,7 @@ export interface AutomationSuggestion {
   generatedAt: string;
   source: string;
   applied: boolean;
+  appliedAt?: string | null;
 }
 
 interface ProductAiSuggestionsPanelProps {
@@ -97,7 +98,7 @@ export function ProductAiSuggestionsPanel({
       {!loading && !suggestion && hasAutomationSuggestion && (
         <div className="space-y-4">
           {/* Badge indicating this is an automated suggestion */}
-          <div className="flex items-center gap-2 rounded-md bg-green-50 px-3 py-2">
+          <div className="flex flex-wrap items-center gap-2 rounded-md bg-green-50 px-3 py-2">
             <svg
               className="h-4 w-4 text-green-600"
               fill="none"
@@ -114,6 +115,14 @@ export function ProductAiSuggestionsPanel({
             <span className="text-xs font-medium text-green-700">
               Auto-generated suggestion ({automationSuggestion!.issueType === 'missing_metadata' ? 'Missing Metadata' : 'Thin Content'})
             </span>
+            {automationSuggestion!.applied && automationSuggestion!.appliedAt && (
+              <span className="ml-auto inline-flex items-center gap-1 rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                Applied by Automation Engine
+              </span>
+            )}
           </div>
 
           {/* Suggested title */}

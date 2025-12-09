@@ -6,8 +6,11 @@ import {
   DeoScoreLatestResponse,
   DeoScoreSignals,
   DeoScoreSnapshot as DeoScoreSnapshotDto,
+  DeoScoreV2Breakdown,
   computeDeoScoreFromSignals,
+  computeDeoScoreV2FromSignals,
 } from '@engineo/shared';
+import { DEO_SCORE_MODEL_V2 } from '@engineo/shared';
 
 @Injectable()
 export class DeoScoreService {
@@ -73,6 +76,7 @@ export class DeoScoreService {
    * Compute DEO score breakdown from normalized signals and persist as snapshot.
    *
    * This is the v1 scoring engine entry point, used by the recompute worker.
+   * Also computes v2 explainability metadata and stores it alongside v1.
    */
   async computeAndPersistScoreFromSignals(
     projectId: string,
@@ -88,21 +92,70 @@ export class DeoScoreService {
       throw new NotFoundException('Project not found');
     }
 
-    const breakdown = computeDeoScoreFromSignals(signals);
+    // Compute v1 breakdown (canonical score)
+    const v1Breakdown = computeDeoScoreFromSignals(signals);
+
+    // Compute v2 breakdown (explainability layer)
+    const v2Breakdown = computeDeoScoreV2FromSignals(signals);
+
+    // Derive v2 strengths and opportunities
+    const v2ComponentEntries = [
+      { key: 'entityStrength', score: v2Breakdown.entityStrength },
+      { key: 'intentMatch', score: v2Breakdown.intentMatch },
+      { key: 'answerability', score: v2Breakdown.answerability },
+      { key: 'aiVisibility', score: v2Breakdown.aiVisibility },
+      { key: 'contentCompleteness', score: v2Breakdown.contentCompleteness },
+      { key: 'technicalQuality', score: v2Breakdown.technicalQuality },
+    ].map((entry) => ({
+      ...entry,
+      potentialGain: 100 - entry.score,
+    }));
+
+    // Top opportunities: components with highest potential gain (lowest scores)
+    const topOpportunities = [...v2ComponentEntries]
+      .sort((a, b) => b.potentialGain - a.potentialGain)
+      .slice(0, 3);
+
+    // Top strengths: components with highest scores
+    const topStrengths = [...v2ComponentEntries]
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+
     const now = new Date();
+
+    // Build structured metadata with v1 and v2 explainability
+    const metadata = {
+      signals,
+      v1: {
+        modelVersion: DEO_SCORE_VERSION,
+        breakdown: v1Breakdown,
+      },
+      v2: {
+        modelVersion: DEO_SCORE_MODEL_V2,
+        breakdown: v2Breakdown,
+        components: {
+          entityStrength: v2Breakdown.entityStrength,
+          intentMatch: v2Breakdown.intentMatch,
+          answerability: v2Breakdown.answerability,
+          aiVisibility: v2Breakdown.aiVisibility,
+          contentCompleteness: v2Breakdown.contentCompleteness,
+          technicalQuality: v2Breakdown.technicalQuality,
+        },
+        topOpportunities,
+        topStrengths,
+      },
+    };
 
     const created = await prisma.deoScoreSnapshot.create({
       data: {
         projectId,
-        overallScore: breakdown.overall,
-        contentScore: breakdown.content ?? null,
-        entityScore: breakdown.entities ?? null,
-        technicalScore: breakdown.technical ?? null,
-        visibilityScore: breakdown.visibility ?? null,
+        overallScore: v1Breakdown.overall,
+        contentScore: v1Breakdown.content ?? null,
+        entityScore: v1Breakdown.entities ?? null,
+        technicalScore: v1Breakdown.technical ?? null,
+        visibilityScore: v1Breakdown.visibility ?? null,
         version: DEO_SCORE_VERSION,
-        metadata: {
-          signals,
-        },
+        metadata,
         computedAt: now,
       },
     });
@@ -110,7 +163,7 @@ export class DeoScoreService {
     await prisma.project.update({
       where: { id: projectId },
       data: {
-        currentDeoScore: breakdown.overall,
+        currentDeoScore: v1Breakdown.overall,
         currentDeoScoreComputedAt: now,
         lastDeoComputedAt: now,
       },
@@ -121,7 +174,7 @@ export class DeoScoreService {
       projectId,
       version: created.version,
       computedAt: created.computedAt.toISOString(),
-      breakdown,
+      breakdown: v1Breakdown,
       metadata: (created.metadata as Record<string, unknown> | null) ?? undefined,
     };
   }

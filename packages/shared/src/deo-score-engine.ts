@@ -1,9 +1,11 @@
 import {
   DEO_SCORE_VERSION,
   DEO_SCORE_WEIGHTS,
+  DEO_SCORE_WEIGHTS_V2,
   type DeoScoreComponents,
+  type DeoScoreV2Components,
 } from './deo-score-config';
-import { type DeoScoreBreakdown, type DeoScoreSignals } from './deo-score';
+import { type DeoScoreBreakdown, type DeoScoreSignals, type DeoScoreV2Breakdown } from './deo-score';
 
 /**
  * Normalize a 0–1 score into 0–100, with a safe fallback.
@@ -121,4 +123,123 @@ export function computeDeoScoreFromSignals(
 }
 
 export { DEO_SCORE_VERSION };
+
+// ============================================================================
+// DEO Score v2 Helpers – Explainable AI Visibility Index
+// ============================================================================
+
+/**
+ * Compute v2 component scores (0–100) from raw DEO signals.
+ * Maps existing signals to six v2 components using heuristic averages.
+ */
+export function computeDeoComponentsV2FromSignals(
+  signals: DeoScoreSignals,
+): DeoScoreV2Components {
+  // Entity Strength: how clearly the product/page defines what it is
+  const entityStrength = normalizeSignal(
+    averageNullable([
+      signals.entityCoverage,
+      signals.entityAccuracy,
+      signals.entityHintCoverage,
+      signals.entityStructureAccuracy,
+      signals.entityLinkage,
+      signals.entityLinkageDensity,
+    ]),
+  );
+
+  // Intent Match Quality: how well metadata/content align with user/buyer intent
+  const intentMatch = normalizeSignal(
+    averageNullable([
+      signals.contentCoverage,
+      signals.contentDepth,
+      signals.serpPresence,
+      signals.answerSurfacePresence,
+      signals.brandNavigationalStrength,
+    ]),
+  );
+
+  // Answerability: how easily an AI assistant can answer core buyer questions
+  const answerability = normalizeSignal(
+    averageNullable([
+      signals.contentDepth,
+      signals.contentCoverage,
+      signals.answerSurfacePresence,
+      signals.thinContentQuality,
+    ]),
+  );
+
+  // AI Visibility Factors: cleanliness and consistency of signals used by AI assistants
+  const aiVisibility = normalizeSignal(
+    averageNullable([
+      signals.serpPresence,
+      signals.answerSurfacePresence,
+      signals.brandNavigationalStrength,
+      signals.indexability,
+    ]),
+  );
+
+  // Content Completeness: presence of core content elements
+  const contentCompleteness = normalizeSignal(
+    averageNullable([
+      signals.contentCoverage,
+      signals.contentDepth,
+      signals.contentFreshness,
+      signals.entityCoverage,
+    ]),
+  );
+
+  // Technical Quality: basic technical health
+  const technicalQuality = normalizeSignal(
+    averageNullable([
+      signals.crawlHealth,
+      signals.indexability,
+      signals.htmlStructuralQuality,
+      signals.thinContentQuality,
+      signals.coreWebVitals,
+    ]),
+  );
+
+  return {
+    entityStrength,
+    intentMatch,
+    answerability,
+    aiVisibility,
+    contentCompleteness,
+    technicalQuality,
+  };
+}
+
+/**
+ * Compute the overall v2 DEO score (0–100) from v2 component scores.
+ */
+export function computeOverallDeoScoreV2(components: DeoScoreV2Components): number {
+  return Math.round(
+    components.entityStrength * DEO_SCORE_WEIGHTS_V2.entityStrength +
+      components.intentMatch * DEO_SCORE_WEIGHTS_V2.intentMatch +
+      components.answerability * DEO_SCORE_WEIGHTS_V2.answerability +
+      components.aiVisibility * DEO_SCORE_WEIGHTS_V2.aiVisibility +
+      components.contentCompleteness * DEO_SCORE_WEIGHTS_V2.contentCompleteness +
+      components.technicalQuality * DEO_SCORE_WEIGHTS_V2.technicalQuality,
+  );
+}
+
+/**
+ * Compute overall v2 DEO score and breakdown from signals.
+ */
+export function computeDeoScoreV2FromSignals(
+  signals: DeoScoreSignals,
+): DeoScoreV2Breakdown {
+  const components = computeDeoComponentsV2FromSignals(signals);
+  const overall = computeOverallDeoScoreV2(components);
+
+  return {
+    overall,
+    entityStrength: components.entityStrength,
+    intentMatch: components.intentMatch,
+    answerability: components.answerability,
+    aiVisibility: components.aiVisibility,
+    contentCompleteness: components.contentCompleteness,
+    technicalQuality: components.technicalQuality,
+  };
+}
 

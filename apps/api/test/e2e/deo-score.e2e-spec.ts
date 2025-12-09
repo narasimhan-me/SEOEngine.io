@@ -116,6 +116,48 @@ describe('DEO Score (e2e)', () => {
     expect(new Date(getRes.body.latestSnapshot.computedAt).getTime()).toBeGreaterThan(
       0,
     );
+
+    // Verify v2 explainability metadata is present
+    const metadata = getRes.body.latestSnapshot.metadata;
+    expect(metadata).toBeDefined();
+    expect(metadata).toHaveProperty('signals');
+
+    // v2 metadata assertions
+    expect(metadata).toHaveProperty('v2');
+    expect(metadata.v2).toHaveProperty('modelVersion', 'v2');
+    expect(metadata.v2).toHaveProperty('breakdown');
+    expect(metadata.v2.breakdown).toHaveProperty('overall');
+    expect(metadata.v2.breakdown.overall).toBeGreaterThanOrEqual(0);
+    expect(metadata.v2.breakdown.overall).toBeLessThanOrEqual(100);
+
+    // Verify all six v2 components are present and in range
+    const v2Components = [
+      'entityStrength',
+      'intentMatch',
+      'answerability',
+      'aiVisibility',
+      'contentCompleteness',
+      'technicalQuality',
+    ];
+    for (const component of v2Components) {
+      expect(metadata.v2.breakdown).toHaveProperty(component);
+      expect(metadata.v2.breakdown[component]).toBeGreaterThanOrEqual(0);
+      expect(metadata.v2.breakdown[component]).toBeLessThanOrEqual(100);
+    }
+
+    // Verify top opportunities and strengths are present
+    expect(metadata.v2).toHaveProperty('topOpportunities');
+    expect(Array.isArray(metadata.v2.topOpportunities)).toBe(true);
+    expect(metadata.v2.topOpportunities.length).toBeGreaterThanOrEqual(1);
+
+    expect(metadata.v2).toHaveProperty('topStrengths');
+    expect(Array.isArray(metadata.v2.topStrengths)).toBe(true);
+    expect(metadata.v2.topStrengths.length).toBeGreaterThanOrEqual(1);
+
+    // v1 metadata assertions (for backward compatibility)
+    expect(metadata).toHaveProperty('v1');
+    expect(metadata.v1).toHaveProperty('modelVersion', 'v1');
+    expect(metadata.v1).toHaveProperty('breakdown');
   });
 
   it('user cannot recompute DEO score for another user project', async () => {

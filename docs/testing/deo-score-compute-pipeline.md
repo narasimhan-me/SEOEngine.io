@@ -121,6 +121,45 @@
 
 ---
 
+### Scenario 5: DEO Score v2 explainability layer computed alongside v1
+
+**ID:** HP-005
+
+**Preconditions:**
+- Project with complete signals
+
+**Steps:**
+1. Trigger score computation
+2. Inspect snapshot metadata for v2 breakdown
+
+**Expected Results:**
+- **v1 Score:** Canonical score computed and persisted as `overall`
+- **v2 Breakdown:** Computed and stored in `metadata.v2.breakdown`
+- **v2 Components:** Six components present (entityStrength, intentMatch, answerability, aiVisibility, contentCompleteness, technicalQuality)
+- **Model Version:** `metadata.v2.modelVersion` equals "v2"
+- **Top Opportunities:** `metadata.v2.topOpportunities` array with 3 lowest-scoring components
+- **Top Strengths:** `metadata.v2.topStrengths` array with 3 highest-scoring components
+
+---
+
+### Scenario 6: v2 component scores in valid range
+
+**ID:** HP-006
+
+**Preconditions:**
+- Project with varying signal values
+
+**Steps:**
+1. Compute score for projects with different signal profiles
+2. Verify v2 component scores
+
+**Expected Results:**
+- **All Components:** Each v2 component score in range [0, 100]
+- **Overall v2:** Weighted sum of components in range [0, 100]
+- **Weights Applied:** entityStrength (0.2), intentMatch (0.2), answerability (0.2), aiVisibility (0.2), contentCompleteness (0.15), technicalQuality (0.05)
+
+---
+
 ## Edge Cases
 
 ### EC-001: Score computation with partial signals

@@ -382,3 +382,92 @@ Future phases may extend these to include product-specific metrics.
 - Integrate product image alt text coverage into Entity signals.
 - Add per-surface-type signal breakdown in debug endpoint.
 
+## DEO Score v2 – Explainable AI Visibility Index
+
+Phase 2.6 introduces DEO Score v2 as an explainability layer that provides richer insight into AI visibility factors. V2 is computed alongside v1 and stored in snapshot metadata—it does not replace v1 as the canonical score.
+
+### Components & Weights (v2 model)
+
+DEO Score v2 uses six components with weights defined in `DEO_SCORE_WEIGHTS_V2` (in `packages/shared/src/deo-score-config.ts`):
+
+| Component | Weight | Description |
+|-----------|--------|-------------|
+| **Entity Strength** | 20% | How clearly the product/page defines what it is (entity coverage, attributes, schema hints). |
+| **Intent Match Quality** | 20% | How well metadata/content align with user/buyer intent. |
+| **Answerability** | 20% | How easily an AI assistant can answer core buyer questions. |
+| **AI Visibility Factors** | 20% | Cleanliness and consistency of signals used by AI assistants. |
+| **Content Completeness** | 15% | Presence of core content elements (images, copy, price, availability, etc.). |
+| **Technical Quality** | 5% | Basic technical health (crawl, indexability, structural quality). |
+
+V1 weights remain unchanged at Content (30%), Entities (25%), Technical (25%), Visibility (20%).
+
+### Signals → v2 Component Mapping
+
+V2 reuses the normalized `DeoScoreSignals` inputs to derive each component using heuristic averages. The mapping is implemented in `computeDeoComponentsV2FromSignals`:
+
+| V2 Component | Input Signals |
+|--------------|---------------|
+| **Entity Strength** | entityCoverage, entityAccuracy, entityHintCoverage, entityStructureAccuracy, entityLinkage, entityLinkageDensity |
+| **Intent Match Quality** | contentCoverage, contentDepth, serpPresence, answerSurfacePresence, brandNavigationalStrength |
+| **Answerability** | contentDepth, contentCoverage, answerSurfacePresence, thinContentQuality |
+| **AI Visibility Factors** | serpPresence, answerSurfacePresence, brandNavigationalStrength, indexability |
+| **Content Completeness** | contentCoverage, contentDepth, contentFreshness, entityCoverage |
+| **Technical Quality** | crawlHealth, indexability, htmlStructuralQuality, thinContentQuality, coreWebVitals |
+
+V2 is an explanatory layer (not a new DB schema) and uses `normalizeSignal` to map all component values into 0–100.
+
+### Snapshot Storage & Versioning
+
+V2 explainability is stored inside `DeoScoreSnapshot.metadata`:
+
+```json
+{
+  "signals": { /* DeoScoreSignals */ },
+  "v1": {
+    "modelVersion": "v1",
+    "breakdown": { /* DeoScoreBreakdown */ }
+  },
+  "v2": {
+    "modelVersion": "v2",
+    "breakdown": { /* DeoScoreV2Breakdown */ },
+    "components": {
+      "entityStrength": 75,
+      "intentMatch": 68,
+      "answerability": 72,
+      "aiVisibility": 65,
+      "contentCompleteness": 70,
+      "technicalQuality": 80
+    },
+    "topOpportunities": [
+      { "key": "aiVisibility", "score": 65, "potentialGain": 35 },
+      { "key": "intentMatch", "score": 68, "potentialGain": 32 },
+      { "key": "contentCompleteness", "score": 70, "potentialGain": 30 }
+    ],
+    "topStrengths": [
+      { "key": "technicalQuality", "score": 80, "potentialGain": 20 },
+      { "key": "entityStrength", "score": 75, "potentialGain": 25 },
+      { "key": "answerability", "score": 72, "potentialGain": 28 }
+    ]
+  }
+}
+```
+
+Notes:
+- `DeoScoreSnapshot.version` remains tied to the v1 model (`DEO_SCORE_VERSION = "v1"`).
+- Older snapshots may lack `v1`/`v2` keys and only contain `signals`; consumers must handle this gracefully.
+
+### Backward Compatibility & API Behavior
+
+- `GET /projects/:projectId/deo-score` continues to return `DeoScoreLatestResponse` with `latestScore` based on v1 (`DeoScoreBreakdown`).
+- No new endpoints are added in Phase 2.6; v2 data is discoverable via `latestSnapshot.metadata`.
+- All existing v1 behavior and weightings remain unchanged.
+
+### Integration Points (Answer Engine & Issue Engine)
+
+V2 components connect to related systems:
+
+- **Answer Engine**: Answer Blocks and answerability detection will feed into the v2 `answerability`, `intentMatch`, and `entityStrength` components in future phases (see `docs/ANSWER_ENGINE_SPEC.md` and `docs/answers-overview.md`).
+- **Issue Engine**: Issue metadata (in `docs/deo-issues-spec.md`) will reference v2 components as impact fields (e.g., which component an issue primarily affects).
+
+Phase 2.6 only stores v2 component scores and explainability; dynamic score recalculation based on issue resolution remains a future phase.
+
