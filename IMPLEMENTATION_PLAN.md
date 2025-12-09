@@ -7244,7 +7244,128 @@ All issue builders now include Issue Engine Full metadata:
 
 ---
 
-These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-8, UX-Content-1, UX-Content-2, and MARKETING-1 through MARKETING-6 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
+## Phase AE-1 – Answer Engine Foundations (Model & Spec)
+
+**Status:** Complete
+
+**Goal:** Define the Answer Engine conceptual model, shared types, and specifications for Answer Blocks and Answerability detection.
+
+### AE-1.1 Overview
+
+The Answer Engine is a subsystem designed to:
+
+1. **Detect missing/weak answers** — Identify which key buyer/AI questions a product cannot yet answer well
+2. **Generate Answer Blocks** — Create structured, factual answers from existing product and page data
+3. **Improve Answerability** — Feed high-quality answer signals into DEO Score v2
+4. **Be AI-preferable** — Produce content that AI assistants prefer to cite and surface
+
+This phase establishes the foundational model and specifications; implementation phases (AE 1.1, AE 1.2) will add detection and generation logic.
+
+### AE-1.2 Implementation Changes
+
+**Shared Types (packages/shared/src/answer-engine.ts):**
+
+```typescript
+// Answer Block Question Categories (10 canonical questions)
+export type AnswerBlockQuestionId =
+  | 'what_is_it'
+  | 'who_is_it_for'
+  | 'why_choose_this'
+  | 'key_features'
+  | 'how_is_it_used'
+  | 'problems_it_solves'
+  | 'what_makes_it_different'
+  | 'whats_included'
+  | 'materials_and_specs'
+  | 'care_safety_instructions';
+
+// Source types for Answer Blocks
+export type AnswerBlockSourceType = 'generated' | 'userEdited' | 'legacy';
+
+// Answer Block interface
+export interface AnswerBlock {
+  id: string;
+  projectId: string;
+  productId?: string;
+  questionId: AnswerBlockQuestionId;
+  question: string;
+  answer: string;
+  confidence: number;
+  sourceType: AnswerBlockSourceType;
+  factsUsed: string[];
+  deoImpactEstimate?: AnswerBlockDeoImpact;
+  version: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Answerability Status interface
+export interface AnswerabilityStatus {
+  status: 'answer_ready' | 'partially_answer_ready' | 'needs_answers';
+  missingQuestions: AnswerBlockQuestionId[];
+  weakQuestions: AnswerBlockQuestionId[];
+  answerabilityScore?: number;
+}
+```
+
+### AE-1.3 Canonical Question Taxonomy
+
+| Question ID | Human-Readable Question | Purpose |
+|-------------|-------------------------|---------|
+| `what_is_it` | What is this? | Core product identification |
+| `who_is_it_for` | Who is it for? | Target audience/use case |
+| `why_choose_this` | Why choose this? | Value proposition |
+| `key_features` | What are the key features? | Feature highlights |
+| `how_is_it_used` | How is it used? | Usage instructions |
+| `problems_it_solves` | What problems does it solve? | Pain points addressed |
+| `what_makes_it_different` | What makes it different? | Differentiation |
+| `whats_included` | What's included? | Contents/components |
+| `materials_and_specs` | Materials / Specs | Technical details |
+| `care_safety_instructions` | Care / safety / instructions | Maintenance/safety |
+
+### AE-1.4 No-Hallucination Rule
+
+**Critical Requirement:** Answers may only use product/page data and known attributes.
+
+- Answers must be derived strictly from existing, verified data
+- When data is insufficient, the system must emit a "cannot answer" outcome
+- The Answer Engine must never fabricate or infer content that isn't supported by facts
+
+### AE-1.5 Integration Points
+
+**DEO Score v2:**
+- Answer Blocks feed into the Answerability component
+- `answerabilityScore` provides a 0-100 input signal
+- Missing/weak questions reduce the component score
+
+**Issue Engine:**
+- Missing/weak Answer Blocks surface as Answerability issues
+- Reserved issue ID patterns: `missing_answer_<questionId>`, `weak_answer_<questionId>`
+
+### AE-1.6 Constraints
+
+- No database schema changes in this phase (model definition only)
+- No API endpoints (deferred to AE 1.1)
+- No UI implementation (deferred to later phases)
+- Types must be stable for implementation phases
+
+### AE-1.7 Acceptance Criteria (Completed)
+
+- [x] `packages/shared/src/answer-engine.ts` created with all types
+- [x] `AnswerBlock`, `AnswerabilityStatus`, `AnswerBlockQuestionId`, `AnswerBlockSourceType` types defined
+- [x] Canonical 10-question taxonomy documented
+- [x] `docs/ANSWER_ENGINE_SPEC.md` created with full specification
+- [x] `docs/answers-overview.md` updated with Answer Blocks concept
+- [x] `docs/testing/answer-engine.md` created for system-level testing
+- [x] `docs/manual-testing/phase-ae-1-answer-engine-foundations.md` created
+- [x] `docs/testing/CRITICAL_PATH_MAP.md` updated with CP-011: Answer Engine
+- [x] Shared package builds successfully
+
+**Manual Testing:** `docs/manual-testing/phase-ae-1-answer-engine-foundations.md`, `docs/testing/answer-engine.md`
+
+---
+
+These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-8, AE-1, UX-Content-1, UX-Content-2, and MARKETING-1 through MARKETING-6 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
 
 - Phases 12–17: Core feature sets (automation, content, performance, competitors, local, social).
 - Phases 18–22: Security, subscription management, monitoring, fairness & limits.
@@ -7258,6 +7379,7 @@ These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-
 - Phase UX-6: "First DEO Win" onboarding flow for new workspaces.
 - Phase UX-7: Issue Engine Lite with 12 product-focused issues, severity filtering, and actionable fix buttons.
 - Phase UX-8: Issue Engine Full (IE-2.0) with rich metadata, categories, whyItMatters, recommendedFix, aiFixable, and fixCost fields.
+- Phase AE-1: Answer Engine Foundations with Answer Block model, 10-question taxonomy, Answerability detection concepts, and no-hallucination rules.
 - Phase UX-Content-1: Content Pages tab and non-product content list built on CrawlResult data and DEO issues.
 - Phase UX-Content-2: Content optimization workspace for non-product pages with AI metadata suggestions and DEO insights.
 - Phase MARKETING-1: Universal marketing homepage and DEO positioning across the public site.
