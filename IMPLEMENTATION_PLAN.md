@@ -8053,6 +8053,8 @@ Shopify Sync → New Product Detected → AutomationService Triggered
     - `apps/api/test/fixtures/shopify-product.fixtures.ts`
     - `apps/api/test/fixtures/automation-events.fixtures.ts`
   - Manual testing doc created: `docs/manual-testing/automation-engine-v1-shopify-answer-block-automations.md`.
+  - Unit tests implemented for Answer Block automation rule evaluation and Answer Block persistence (AE-1.3 / AUE-2).
+  - Integration tests implemented for end-to-end Shopify Answer Block automations (product_synced and issue_detected triggers).
 
 **Manual Testing:** `docs/manual-testing/automation-engine-v1-shopify-answer-block-automations.md`
 

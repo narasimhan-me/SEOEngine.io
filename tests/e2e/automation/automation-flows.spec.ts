@@ -21,7 +21,8 @@
 //    - WHEN they approve an automation from the Dashboard or Product Workspace,
 //    - THEN the UI shows a success state,
 //      Answer Blocks appear/are updated on the Product Workspace AEO tab,
-//      and the Automation Activity/Logs view reflects the run.
+//      and the Automation Activity/Logs view reflects the run, backed by
+//      AnswerBlockAutomationLog entries and persisted Answer Blocks from AE-1.3/AUE-2.
 //
 // 3) Product Workspace reflects updated Answer Blocks
 //    - GIVEN an automation that has run successfully,
