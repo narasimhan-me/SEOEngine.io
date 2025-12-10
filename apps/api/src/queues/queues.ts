@@ -19,6 +19,14 @@ export const crawlQueue: Queue | null =
       })
     : null;
 
+export const answerBlockAutomationQueue: Queue | null =
+  redisConfig.isEnabled && redisConfig.connection
+    ? new Queue('answer_block_automation_queue', {
+        connection: redisConfig.connection,
+        prefix: redisConfig.prefix,
+      })
+    : null;
+
 if (!redisConfig.isEnabled) {
   console.warn('[Queues] Redis not configured - queue functionality disabled');
 } else {

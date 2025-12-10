@@ -2,12 +2,14 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { PrismaService } from '../prisma.service';
 import { DeoSignalsService } from './deo-score.service';
 import { DeoIssue, DeoIssuesResponse, DeoScoreSignals } from '@engineo/shared';
+import { AutomationService } from './automation.service';
 
 @Injectable()
 export class DeoIssuesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly deoSignalsService: DeoSignalsService,
+    private readonly automationService: AutomationService,
   ) {}
 
   /**
@@ -117,11 +119,51 @@ export class DeoIssuesService {
       }
     }
 
+    // Fire-and-forget Answer Block automations for relevant answerability issues.
+    // This treats "not_answer_ready" and "weak_intent_match" as issue_detected triggers.
+    this.triggerAnswerBlockAutomationsForIssues(projectId, userId, issues).catch(
+      () => {
+        // Intentionally swallow errors here so DEO issues computation is never blocked
+        // by automation failures; logs and automation logs provide visibility.
+      },
+    );
+
     return {
       projectId,
       generatedAt: new Date().toISOString(),
       issues,
     };
+  }
+
+  private async triggerAnswerBlockAutomationsForIssues(
+    projectId: string,
+    userId: string,
+    issues: DeoIssue[],
+  ): Promise<void> {
+    const targetProductIds = new Set<string>();
+
+    for (const issue of issues) {
+      if (issue.id === 'not_answer_ready' || issue.id === 'weak_intent_match') {
+        const affectedProducts = issue.affectedProducts || [];
+        for (const productId of affectedProducts) {
+          if (typeof productId === 'string' && targetProductIds.size < 20) {
+            targetProductIds.add(productId);
+          }
+        }
+      }
+    }
+
+    if (!targetProductIds.size) {
+      return;
+    }
+
+    for (const productId of targetProductIds) {
+      await this.automationService
+        .triggerAnswerBlockAutomationForProduct(productId, userId, 'issue_detected')
+        .catch(() => {
+          // Swallow per-product automation errors; failures are logged via AutomationService
+        });
+    }
   }
 
   private buildMissingMetadataIssue(

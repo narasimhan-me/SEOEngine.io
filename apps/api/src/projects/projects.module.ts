@@ -10,9 +10,11 @@ import { AnswerEngineService } from './answer-engine.service';
 import { AiModule } from '../ai/ai.module';
 import { BillingModule } from '../billing/billing.module';
 import { SeoScanService } from '../seo-scan/seo-scan.service';
+import { ProductsModule } from '../products/products.module';
+import { AnswerBlockAutomationProcessor } from './answer-block-automation.processor';
 
 @Module({
-  imports: [forwardRef(() => AiModule), BillingModule],
+  imports: [forwardRef(() => AiModule), BillingModule, ProductsModule],
   controllers: [ProjectsController],
   providers: [
     ProjectsService,
@@ -24,6 +26,7 @@ import { SeoScanService } from '../seo-scan/seo-scan.service';
     AutomationService,
     AnswerEngineService,
     SeoScanService,
+    AnswerBlockAutomationProcessor,
   ],
   exports: [ProjectsService, DeoScoreService, AutomationService, AnswerEngineService],
 })

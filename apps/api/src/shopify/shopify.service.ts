@@ -241,6 +241,15 @@ export class ShopifyService {
               `[ShopifySync] Automation failed for new product ${newProduct.id}: ${err.message}`,
             );
           });
+
+        // Trigger Answer Block automation for new products (non-blocking)
+        this.automationService
+          .triggerAnswerBlockAutomationForProduct(newProduct.id, userId, 'product_synced')
+          .catch((err) => {
+            this.logger.warn(
+              `[ShopifySync] Answer Block automation failed for new product ${newProduct.id}: ${err.message}`,
+            );
+          });
       }
     }
 

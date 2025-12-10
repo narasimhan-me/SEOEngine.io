@@ -11,6 +11,8 @@ import {
 import { PrismaService } from '../prisma.service';
 import { AiService } from '../ai/ai.service';
 import { EntitlementsService } from '../billing/entitlements.service';
+import { answerBlockAutomationQueue } from '../queues/queues';
+import { PlanId } from '../billing/plans';
 
 const AUTOMATION_SOURCE = 'automation_v1';
 
@@ -652,5 +654,101 @@ export class AutomationService {
         appliedAt: s.appliedAt?.toISOString() ?? null,
       })),
     };
+  }
+
+  /**
+   * Trigger Answer Block automation for a product based on a trigger type.
+   * Enforces plan-level gating: Free plan does not run Answer Block automations.
+   * Avoids duplicate work by skipping when a successful automation log exists
+   * for the same product + trigger type.
+   * Enqueues a job onto answer_block_automation_queue for Pro/Business plans
+   * (Business may use higher priority).
+   */
+  async triggerAnswerBlockAutomationForProduct(
+    productId: string,
+    userId: string,
+    triggerType: 'product_synced' | 'issue_detected',
+  ): Promise<void> {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        project: true,
+      },
+    });
+
+    if (!product) {
+      this.logger.warn(
+        `[AnswerBlockAutomation] Product ${productId} not found; skipping trigger for ${triggerType}`,
+      );
+      return;
+    }
+
+    if (product.project.userId !== userId) {
+      throw new ForbiddenException('You do not have access to this product');
+    }
+
+    const planId: PlanId = await this.entitlementsService.getUserPlan(userId);
+
+    // Free plan: log and exit (no Answer Block automations for Free tier)
+    if (planId === 'free') {
+      await this.prisma.answerBlockAutomationLog.create({
+        data: {
+          projectId: product.projectId,
+          productId: product.id,
+          triggerType,
+          planId,
+          action: 'skip_plan_free',
+          status: 'skipped',
+        },
+      });
+      return;
+    }
+
+    // Idempotency: skip if a successful automation for this product + trigger
+    // already exists recently (no advanced time-window logic needed for v1).
+    const recentSuccess = await this.prisma.answerBlockAutomationLog.findFirst({
+      where: {
+        productId: product.id,
+        triggerType,
+        status: 'succeeded',
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (recentSuccess) {
+      this.logger.log(
+        `[AnswerBlockAutomation] Skipping duplicate automation for product ${productId} (trigger=${triggerType}) due to recent success`,
+      );
+      return;
+    }
+
+    if (!answerBlockAutomationQueue) {
+      this.logger.warn(
+        '[AnswerBlockAutomation] Queue not available (Redis disabled); skipping enqueue',
+      );
+      return;
+    }
+
+    const priority = planId === 'business' ? 1 : 5;
+
+    await answerBlockAutomationQueue.add(
+      'answer_block_automation',
+      {
+        projectId: product.projectId,
+        productId: product.id,
+        userId,
+        triggerType,
+        planId,
+      },
+      {
+        priority,
+      },
+    );
+
+    this.logger.log(
+      `[AnswerBlockAutomation] Enqueued job for product ${product.id} (project ${product.projectId}, trigger=${triggerType}, plan=${planId})`,
+    );
   }
 }
