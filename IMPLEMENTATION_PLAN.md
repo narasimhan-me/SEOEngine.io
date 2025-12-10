@@ -7990,6 +7990,72 @@ Shopify Sync → New Product Detected → AutomationService Triggered
 
 **Manual Testing:** `docs/manual-testing/phase-aue-1-automation-new-product-seo-title.md`
 
+## Phase AUE-2 – Shopify Answer Block Automations (Automation Engine v1)
+
+**Status:** Complete
+
+**Goal:** Implement Automation Engine v1 Shopify Answer Block automations that detect missing/weak Answer Blocks for products, trigger AEO-based generation/regeneration, persist results via AE-1.3, and log automation outcomes for v1 Shopify launch.
+
+### Scope
+
+- **Add an Answer Block automation worker:**
+  - `AnswerBlockAutomationProcessor` (BullMQ worker) consuming `answer_block_automation_queue` jobs with payload `{ projectId, productId, userId, triggerType, planId }`.
+  - For each job:
+    - Load product + project.
+    - Determine whether to generate missing or regenerate weak Answer Blocks based on existing `AnswerBlock` rows (confidence thresholds).
+    - Compute Answerability via `AnswerEngineService.computeAnswerabilityForProduct`.
+    - Call `AiService.generateProductAnswers` for AEO-based Answer Block generation.
+    - Persist results via `AnswerBlockService.createOrUpdateAnswerBlocks`.
+    - Log before/after Answer Blocks and status via `AnswerBlockAutomationLog`.
+
+- **Wire event-driven triggers:**
+  - `product_synced`:
+    - `ShopifyService.syncProducts` calls `AutomationService.triggerAnswerBlockAutomationForProduct(newProduct.id, userId, 'product_synced')` for newly created products (non-blocking).
+  - `issue_detected`:
+    - `DeoIssuesService.getIssuesForProject` identifies answerability-related issues (`not_answer_ready`, `weak_intent_match`) and calls `AutomationService.triggerAnswerBlockAutomationForProduct(productId, userId, 'issue_detected')` for affected products (fire-and-forget).
+
+- **Introduce an Automation Engine entrypoint:**
+  - `AutomationService.triggerAnswerBlockAutomationForProduct(productId, userId, triggerType)`:
+    - Validates ownership.
+    - Determines plan via `EntitlementsService.getUserPlan`.
+    - Skips Free tier with a logged `AnswerBlockAutomationLog` entry (`action: 'skip_plan_free'`, `status: 'skipped'`).
+    - Avoids duplicate work by skipping when a recent `status: 'succeeded'` log exists for the same product + triggerType.
+    - Enqueues `answer_block_automation` jobs onto `answer_block_automation_queue`, with higher priority for Business (`priority: 1`) and standard priority for Pro (`priority: 5`).
+
+- **Logging:**
+  - `AnswerBlockAutomationLog` Prisma model:
+    - Fields: `projectId`, `productId`, `triggerType`, `planId`, `action`, `beforeAnswerBlocks`, `afterAnswerBlocks`, `status`, `errorMessage?`, `modelUsed?`, `tokenEstimate?`, `createdAt`.
+    - Used for observability, idempotency checks, and manual debugging of Answer Block automations.
+
+### Acceptance Criteria (Completed)
+
+- [x] **Queue + worker:**
+  - `answer_block_automation_queue` created in `apps/api/src/queues/queues.ts`.
+  - `AnswerBlockAutomationProcessor` worker processes jobs and orchestrates AEO → persistence → logging, including success, skip, and error paths.
+
+- [x] **Entitlement gating:**
+  - Free plan users do not run Answer Block automations; logs record `skip_plan_free` with `status: 'skipped'`.
+  - Pro/Business plans can enqueue and run Answer Block automations, with Business receiving higher priority.
+
+- [x] **Event wiring:**
+  - `ShopifyService.syncProducts` triggers Answer Block automation for new products (`triggerType: 'product_synced'`).
+  - `DeoIssuesService.getIssuesForProject` triggers Answer Block automations for products affected by `not_answer_ready` and `weak_intent_match` issues (`triggerType: 'issue_detected'`), without blocking DEO issues computation.
+
+- [x] **Persistence + logging:**
+  - Answer Block automations use `AnswerBlockService` and `AnswerBlock` model introduced in AE-1.3 for persistence.
+  - `AnswerBlockAutomationLog` records before/after blocks, actions, statuses, and errors for each run.
+
+- [x] **Test scaffolding and fixtures:**
+  - Unit/integration/E2E scaffolding and fixtures for Shopify Answer Block automations are in place:
+    - `tests/unit/automation/automation-engine.rules.test.ts`
+    - `tests/integration/automation/automation-engine.shopify-answers.test.ts`
+    - `tests/e2e/automation/automation-flows.spec.ts`
+    - `apps/api/test/fixtures/shopify-product.fixtures.ts`
+    - `apps/api/test/fixtures/automation-events.fixtures.ts`
+  - Manual testing doc created: `docs/manual-testing/automation-engine-v1-shopify-answer-block-automations.md`.
+
+**Manual Testing:** `docs/manual-testing/automation-engine-v1-shopify-answer-block-automations.md`
+
 ---
 
 These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-8, AE-1 (Answer Engine), AE-1 (Automation Engine), AE-2 (Product Automations), UX-Content-1, UX-Content-2, and MARKETING-1 through MARKETING-6 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
