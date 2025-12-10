@@ -106,6 +106,26 @@ model Product {
   seoDescription String?
   imageUrls      Json?
   lastSyncedAt   DateTime @default(now())
+
+  answerBlocks AnswerBlock[]
+}
+
+model AnswerBlock {
+  id               String   @id @default(cuid())
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId        String
+  questionId       String
+  questionText     String
+  answerText       String
+  confidenceScore  Float
+  sourceType       String   @default("generated")
+  sourceFieldsUsed String[] @default([])
+  version          String   @default("ae_v1")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([productId, questionId])
+  @@index([productId])
 }
 
 model CrawlResult {

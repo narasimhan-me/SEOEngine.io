@@ -7,6 +7,7 @@
 // - docs/AUTOMATION_ENGINE_SPEC.md (Section 8.7 – Shopify Answer Block Automations)
 // - docs/ANSWER_ENGINE_SPEC.md (Phase AE-1.3 – Answer Block Persistence)
 // - IMPLEMENTATION_PLAN.md (Phase AE-1.3 and v1 Shopify-Only Launch Scope)
+// - docs/manual-testing/automation-engine-v1-shopify-answer-block-automations.md
 //
 // Fixtures referenced (from apps/api test helpers):
 // - apps/api/test/fixtures/shopify-product.fixtures.ts
@@ -14,14 +15,14 @@
 //
 // Planned integration scenarios (scaffolding only):
 //
-// 1) product_synced → Automation Engine → worker execution → logging
+// 1) Sync → AEO → persistence → logging
 //    - GIVEN a Shopify product sync event for a project with eligible products
 //      (missing or weak Answer Blocks, sufficient underlying metadata),
 //    - WHEN Automation Engine v1 processes a product_synced trigger created via
 //      makeProductSyncedEvent(shopifyProductMissingSeo, plan),
 //    - THEN an Answer Block automation job is enqueued,
 //      the worker executes it,
-//      Answer Blocks are created/updated in the persistence layer,
+//      Answer Blocks are created/updated in the persistence layer via AnswerBlockService,
 //      and an AutomationRun/AutomationSuggestion-style log entry is written.
 //
 // 2) issue_detected (missing/weak Answer Blocks) → AEO pipeline → persistence → logging
@@ -30,10 +31,16 @@
 //    - WHEN Automation Engine v1 processes issue_detected triggers created via
 //      makeIssueDetectedEvent(shopifyProductNoAnswerBlocks, issueFixture, plan),
 //    - THEN it invokes the Answer Engine pipeline (mocked) to generate/refine Answer Blocks,
-//      persists results via the AE-1.3 data layer (Prisma or equivalent),
+//      persists results via the AE-1.3 data layer (AnswerBlockService / Prisma),
 //      and records before/after snapshots in the automation logs.
 //
-// 3) Entitlement differences (Free vs Pro vs Business)
+// 3) Persistence → retrieval
+//    - GIVEN Answer Blocks persisted for a product via the Automation Engine or AEO,
+//    - WHEN the internal GET /products/:id/answer-blocks endpoint is called,
+//    - THEN the API returns the stored Answer Blocks in a stable, ordered representation
+//      suitable for use by the Product Workspace AEO tab.
+//
+// 4) Entitlement differences (Free vs Pro vs Business)
 //    - GIVEN workspaces on Free, Pro, and Business plans,
 //    - WHEN identical product_synced / issue_detected events are processed,
 //    - THEN:

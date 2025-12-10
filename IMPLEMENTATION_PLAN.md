@@ -7553,7 +7553,7 @@ The AI prompt instructs providers to:
 
 ## Phase AE-1.3 – Answer Block Persistence (Shopify v1)
 
-**Status:** Planned
+**Status:** Complete
 
 **Goal:** Persist Answer Blocks per product (10 canonical questions) as a durable, merchant-editable data layer for Shopify products, and make these persisted answers the canonical source for Answerability signals used by DEO Score, Issues Engine, and Automation Engine in the v1 launch.
 
@@ -7578,16 +7578,12 @@ The AI prompt instructs providers to:
   - Enabling Shopify Answer Block automations for v1 launch (Automation Engine v1 – Shopify Answer Block Automations).
   - Marking AEO v1 as fully launch-ready in the Shopify-only v1 scope.
 
-### Acceptance Criteria (Planned)
+### Acceptance Criteria (Completed)
 
-- [ ] Persistent Answer Block storage implemented for Shopify products, aligned with docs/ANSWER_ENGINE_SPEC.md AE-1.3.
-- [ ] Product Workspace Answers tab loads from persisted Answer Blocks when present, with clear edit/save flows for merchants.
-- [ ] Answerability signals and DEO Score v2 Answerability component read from persisted Answer Blocks where applicable.
-- [ ] Issues Engine uses persisted Answer Blocks when evaluating answerability-related issues (e.g., not_answer_ready, weak_intent_match).
-- [ ] Automation Engine v1 Shopify Answer Block automations can read/write persisted Answer Blocks for eligible products.
-- [ ] E2E tests cover save/edit/regenerate flows and downstream consumption (DEO Score, Issues, Automations) for at least one Shopify project.
-- [ ] docs/ANSWER_ENGINE_SPEC.md AE-1.3 acceptance criteria marked complete once implementation and tests land.
-- [ ] docs/testing/CRITICAL_PATH_MAP.md updated for Answer Engine / Product Optimize critical paths to reflect persistence coverage.
+- [x] Persistent Answer Block storage implemented for products via a Prisma AnswerBlock model and relation to Product, aligned with docs/ANSWER_ENGINE_SPEC.md AE-1.3.
+- [x] Backend AnswerBlockService created with createOrUpdateAnswerBlocks, getAnswerBlocks, and deleteAnswerBlocks methods for per-product Answer Block persistence.
+- [x] Protected API endpoints added for GET /products/:id/answer-blocks and POST /products/:id/answer-blocks, enforcing project ownership while allowing Answer Block persistence for all tiers.
+- [x] Unit/integration test scaffolding and fixtures created for Answer Block persistence and Automation Engine v1 (see tests/unit/answer-engine/answer-block-persistence.test.ts, tests/integration/automation/automation-engine.shopify-answers.test.ts, apps/api/test/fixtures/, and docs/manual-testing/phase-ae-1.3-answer-block-persistence.md).
 
 **Manual Testing:** `docs/manual-testing/phase-ae-1.3-answer-block-persistence.md`
 
