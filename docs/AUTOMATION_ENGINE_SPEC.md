@@ -725,6 +725,60 @@ File: `apps/api/test/e2e/automation-new-product-seo-title.e2e-spec.ts`
 
 ---
 
+## 8.7 Automation Engine v1 — Shopify Answer Block Automations (v1 Launch Requirement)
+
+For the EngineO.ai v1 Shopify-only launch, Automation Engine v1 must include Answer Block automations for Shopify products.
+
+### Scope
+
+- **Detect missing or weak Answer Blocks** per product using Answerability signals and Issues Engine outputs (e.g., `not_answer_ready`, `weak_intent_match`) as defined in `docs/ANSWER_ENGINE_SPEC.md` and `docs/deo-issues-spec.md`.
+- **Auto-generate or refresh Answer Blocks** via the existing AEO pipeline (AE-1.2) when sufficient product data is available, preserving all non-hallucination and data provenance rules.
+- **Log before/after Answer Block states** (or an equivalent structured summary) in `AutomationRun` / `AutomationSuggestion` records so changes remain auditable over time.
+
+### Tier Limits
+
+Enforce tier limits (see `docs/ENTITLEMENTS_MATRIX.md` and `docs/TOKEN_USAGE_MODEL.md`):
+
+| Plan | Answer Block Automation Behavior |
+|------|----------------------------------|
+| **Free** | No Answer Block automations (UI-triggered, ephemeral answers only) |
+| **Pro** | Full Answer Block automations within AI token and automation execution caps |
+| **Business** | Full Answer Block automations within AI token and automation execution caps |
+
+### Supported Triggers
+
+Support at least the following triggers:
+
+| Trigger | Description |
+|---------|-------------|
+| `product_synced` | New or updated Shopify products with eligible data |
+| `issue_detected` | Answerability-related issues raised by the Issues Engine for a product |
+
+### Critical Path Integration
+
+Treat Shopify Answer Block automations as part of the **Product Optimize / AI Systems critical path** for v1. When implemented, ensure `docs/testing/CRITICAL_PATH_MAP.md` and the v1 Shopify launch manual testing doc reflect coverage and verification status.
+
+### Manual Testing & Verification
+
+- Manual testing for Shopify Answer Block automations must be documented in `docs/manual-testing/automation-engine-v1-shopify-answer-block-automations.md` (clone of `docs/MANUAL_TESTING_TEMPLATE.md`), covering:
+  - Trigger behavior for `product_synced` and `issue_detected` events.
+  - Plan-aware behavior (Free vs Pro vs Business).
+  - Non-hallucination behavior and skip paths when data is insufficient or limits are reached.
+- The v1 Shopify-only launch scope section in `IMPLEMENTATION_PLAN.md` must include (or be updated with) a `Manual Testing:` bullet pointing to this document.
+
+### Acceptance Criteria (Section 8.7)
+
+- [ ] Answer Block automation triggers implemented (`product_synced`, `issue_detected`)
+- [ ] Answerability signals and Issues Engine outputs used to detect missing/weak Answer Blocks
+- [ ] AE-1.2 generation pipeline invoked for Answer Block auto-generation
+- [ ] Non-hallucination rules enforced (skip when data insufficient)
+- [ ] Before/after Answer Block states logged in automation records
+- [ ] Tier limits enforced (Free: no automations, Pro/Business: full)
+- [ ] Manual testing doc created: `docs/manual-testing/automation-engine-v1-shopify-answer-block-automations.md`
+- [ ] Critical path map updated when implementation complete
+
+---
+
 ## 9. Security & Safety
 
 ### Non-Destructive Behavior
@@ -771,3 +825,4 @@ File: `apps/api/test/e2e/automation-new-product-seo-title.e2e-spec.ts`
 | 1.1 | 2025-12-08 | Added Section 8: Product Automations (Phase AE-2) |
 | 1.2 | 2025-12-08 | Added Section 8.5: AE-2.1 Implementation (Metadata Product Automations) |
 | 1.3 | 2025-12-09 | Added Section 8.6: Phase AUE-1 (New Product SEO Title Auto-Generation) |
+| 1.4 | 2025-12-10 | Added Section 8.7: Automation Engine v1 Shopify Answer Block Automations (v1 Launch Requirement) |

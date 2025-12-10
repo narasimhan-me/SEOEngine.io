@@ -32,6 +32,7 @@ Planned stages:
 - **Test Phase 1 – API Integration & Basic E2E**
 - **Test Phase 2 – DEO Pipelines & Regression Coverage**
 - **Test Phase 3 – Performance, Load & Chaos** (later)
+- **Automation Engine v1** (including Shopify Answer Block automations) must be covered by unit (rule evaluation), integration (trigger → execution → logging), and E2E (Dashboard/Product Workspace automation flows) tests, with scaffolding created in `tests/unit/automation/`, `tests/integration/automation/`, and `tests/e2e/automation/` before full implementation.
 
 This section defines **Test Phase 0** in detail.
 
@@ -7550,6 +7551,46 @@ The AI prompt instructs providers to:
 
 **Manual Testing:** `docs/testing/answer-engine.md`, `docs/manual-testing/phase-ae-1.2-answer-engine-generation-and-ui.md`
 
+## Phase AE-1.3 – Answer Block Persistence (Shopify v1)
+
+**Status:** Planned
+
+**Goal:** Persist Answer Blocks per product (10 canonical questions) as a durable, merchant-editable data layer for Shopify products, and make these persisted answers the canonical source for Answerability signals used by DEO Score, Issues Engine, and Automation Engine in the v1 launch.
+
+### Scope
+
+- Implement a persistent Answer Block store for products (Prisma model or equivalent) keyed by at least projectId, productId, questionId, and a version/timestamp field, consistent with docs/ANSWER_ENGINE_SPEC.md Phase AE-1.3.
+- Wire Product Workspace → AEO / Answers tab so that:
+  - Answer Blocks generated via AE-1.2 can be saved and later edited by merchants.
+  - Reloading the product uses persisted Answer Blocks instead of ephemeral responses.
+- Ensure downstream systems read from persisted Answer Blocks:
+  - Answerability signals and Answerability score feeding DEO Score v2 explainability (see docs/deo-score-spec.md).
+  - Answerability/answer-related issues in the Issues Engine (e.g., not_answer_ready, weak_intent_match in docs/deo-issues-spec.md).
+  - Answer Block automations defined in docs/AUTOMATION_ENGINE_SPEC.md Section 8.7 for Shopify v1.
+- Limit initial implementation to Shopify products for v1; non-Shopify surfaces remain out of scope for this sub-phase.
+
+### Dependencies & Ordering
+
+- Depends on:
+  - Phase AE-1.1 (Answerability detection) and AE-1.2 (ephemeral answer generation) being complete.
+  - Core DEO Score v1/v2 plumbing and Issues Engine v1 (Lite) / Full specs.
+- Must be completed before:
+  - Enabling Shopify Answer Block automations for v1 launch (Automation Engine v1 – Shopify Answer Block Automations).
+  - Marking AEO v1 as fully launch-ready in the Shopify-only v1 scope.
+
+### Acceptance Criteria (Planned)
+
+- [ ] Persistent Answer Block storage implemented for Shopify products, aligned with docs/ANSWER_ENGINE_SPEC.md AE-1.3.
+- [ ] Product Workspace Answers tab loads from persisted Answer Blocks when present, with clear edit/save flows for merchants.
+- [ ] Answerability signals and DEO Score v2 Answerability component read from persisted Answer Blocks where applicable.
+- [ ] Issues Engine uses persisted Answer Blocks when evaluating answerability-related issues (e.g., not_answer_ready, weak_intent_match).
+- [ ] Automation Engine v1 Shopify Answer Block automations can read/write persisted Answer Blocks for eligible products.
+- [ ] E2E tests cover save/edit/regenerate flows and downstream consumption (DEO Score, Issues, Automations) for at least one Shopify project.
+- [ ] docs/ANSWER_ENGINE_SPEC.md AE-1.3 acceptance criteria marked complete once implementation and tests land.
+- [ ] docs/testing/CRITICAL_PATH_MAP.md updated for Answer Engine / Product Optimize critical paths to reflect persistence coverage.
+
+**Manual Testing:** `docs/manual-testing/phase-ae-1.3-answer-block-persistence.md`
+
 ---
 
 ## Phase AE-1 – Automation Engine Foundations (Framework & Spec)
@@ -7985,6 +8026,170 @@ These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-
 - System-level Manual Testing docs (Phase R1): Cross-cutting testing docs under `docs/testing/` for shared systems: `billing-and-limits.md` (Stripe, subscriptions, quotas), `ai-systems.md` (Gemini, usage tracking, errors), `frontend-ux-feedback-and-limits.md` (toasts, loading states, limit prompts).
 - System-level Manual Testing docs (Phase R2): DEO & Shopify systems coverage under `docs/testing/`: `deo-pipeline.md`, `signals-collection.md`, `deo-score-compute-pipeline.md`, `deo-score-snapshots.md`, `shopify-integration.md`, `product-sync.md`, `metadata-sync-seo-fields.md`, `sync-status-and-progress-feedback.md`.
 - System-level Manual Testing docs (Phase R3): UI, Marketing, Admin & Utilities coverage under `docs/testing/`: UI components (`navigation-and-layout-system.md`, `toast-and-inline-feedback-system.md`, `modal-and-dialog-behavior.md`, `pagination-and-tabs.md`, `search-and-filters-ui.md`), Marketing pages (`marketing-homepage.md`, `marketing-shopify-landing-page.md`, `marketing-pricing-page.md`, `marketing-features-pages.md`), Admin tools (`admin-panel.md`, `background-job-dashboard.md`, `rate-limit-observability.md`, `error-logging-and-monitoring.md`, `worker-health-indicators.md`), Utilities (`token-usage-tracking.md`, `entitlements-matrix.md`, `plan-definitions.md`, `datetime-utilities-and-reset-behaviors.md`, `thumbnail-fetchers.md`, `health-check-endpoints.md`, `project-deletion-and-workspace-cleanup.md`, `user-profile-and-account-settings.md`).
+
+---
+
+## EngineO.ai v1 – Shopify-Only Launch Scope
+
+**Status:** Complete (Specification)
+
+### Summary
+
+- v1 focuses on a single integration surface: **Shopify product catalogs**.
+- Scope includes DEO Score, Answer Engine (AEO v1), Issues Engine (Lite), Automation Engine v1, Dashboard UX, and Product Workspace UX for Shopify products only.
+- All non-Shopify integrations (other ecommerce platforms, CMSs, video, etc.) are explicitly out of scope for v1 and deferred to later phases.
+
+### AEO – Answer Engine v1
+
+- **Canonical question set:** 10 buyer/AI questions per product, as defined in `docs/ANSWER_ENGINE_SPEC.md` (AE 1.x).
+- **Persist Answer Blocks per product with:**
+  - Question id + human-readable question
+  - Factual answer text (80–120 words)
+  - Confidence score (0–1) and factsUsed provenance fields
+- **Integrations:**
+  - DEO Score v2 answerability component (see `docs/deo-score-spec.md`) uses Answerability signals derived from Answer Blocks and detection.
+  - Issues Engine surfaces missing/weak coverage via answerability-related issues (e.g., `not_answer_ready`, `weak_intent_match`) as defined in `docs/deo-issues-spec.md`.
+- **Entitlements for AEO v1 at launch:**
+  - **Free:** Answer Blocks enabled for 1 product (single Answer set).
+  - **Pro:** Answer Blocks for up to 2,000 products.
+  - **Business:** Answer Blocks for up to 10,000 products.
+
+### Automation Engine v1
+
+- **Scope limited to product-level automations for Shopify products:**
+  - **Immediate automations:** run directly after product sync or issue detection (e.g., missing metadata, missing answers).
+  - **Scheduled-light automations:** daily cadence for eligible projects (no complex multi-week scheduling yet).
+- **Supported v1 automation actions:**
+  - Metadata auto-fix for missing/weak titles and descriptions (existing suggestion engine + auto-apply behavior).
+  - Answer Block auto-generation for eligible products where sufficient data exists (hooks into AEO v1 pipeline).
+  - Execution logs per automation run (rule id, target product, before/after highlights, status).
+- **Test scaffolding for Automation Engine v1:**
+  - Create unit, integration, and E2E test scaffolding for Automation Engine v1 (including Shopify Answer Block automations) under `tests/unit/automation/`, `tests/integration/automation/`, and `tests/e2e/automation/` so future implementation work can wire real behavior into pre-defined scenarios.
+- **Entitlements at launch:**
+  - **Free:** basic metadata automation only (no Answer Block auto-generation; no scheduled/background rules).
+  - **Pro + Business:** full Automation Engine v1 scope for products (immediate + scheduled-light automations, metadata + answers) within per-plan product and execution caps.
+
+### DEO Score v1 – Answerability Component
+
+- DEO Score v1 remains the canonical overall score (0–100) per project and per product, backed by snapshots as defined in `docs/deo-score-spec.md`.
+- **Incorporate an Answerability component sourced from:**
+  - Answerability detection output (AnswerabilityStatus and answerability score) from the Answer Engine.
+  - Answer Block coverage across the 10 canonical questions.
+- **Weights:**
+  - Preserve v1 global weights (Content 30%, Entities 25%, Technical 25%, Visibility 20%) as defined in `docs/deo-score-spec.md`.
+  - Use DEO Score v2 explainability weights for the internal answerability component (20% of the v2 model) without changing the v1 aggregate formula.
+- **Snapshot expectations for v1 launch:**
+  - Store per-product DEO snapshots including Answerability-related metadata (signals + v2 breakdown) in `DeoScoreSnapshot.metadata`.
+  - Ensure Product Workspace always reads DEO + Answerability data from the latest snapshot (no ad-hoc recomputation in the UI).
+
+### Issues Engine v1 (Lite)
+
+- **Scope Issues Engine v1 (Lite) to Shopify product-level issues most relevant for launch:**
+  - Missing/weak Answer Blocks (mapped to answerability issues like `not_answer_ready` / `weak_intent_match`).
+  - Missing or weak metadata (titles, descriptions) and thin descriptions.
+  - Missing product image, missing alt text, missing price, missing category.
+  - Canonical DEO issues from `docs/deo-issues-spec.md` that can be evaluated from existing Product + CrawlResult data without new schema.
+- **UX expectations:**
+  - Product-level issue badges in Product Workspace.
+  - Issues summary cards in Dashboard highlighting counts by severity (critical/warning/info).
+  - Clear linkage from issues to Automation Engine actions (e.g., "Fix with AI" for AI-fixable issues).
+
+### Shopify Integration – v1 Product Surface
+
+- **v1 launch includes Shopify integration only:**
+  - **Product sync:** import up to the per-plan product limit into EngineO.ai (Product records linked to Shopify integration).
+  - **DEO Score:** compute DEO + Answerability signals for synced Shopify products.
+  - **Issues Engine (Lite):** compute issues for synced products only.
+  - **AEO v1:** Answerability detection + Answer Block generation for Shopify products.
+  - **Automation Engine v1:** product-level metadata + Answer Block automations for Shopify stores.
+- Other integrations (crawler-only websites, other ecommerce platforms, CMSs, video, etc.) remain supported where already implemented but are not part of the v1 go-to-market surface.
+
+### v1 UX Surfaces
+
+#### Dashboard Overview (v1)
+
+- **Primary overview widget:** DEO Score summary per Shopify project, including a simple Answerability indicator (e.g., "Answer-ready" / "Needs answers").
+- **Issues summary:**
+  - Counts by severity (critical, warning, info) and by key categories (metadata, answerability, technical).
+  - Quick links into Project Issues and Product Workspace filtered views.
+- **Automation overview:**
+  - Recent automation runs with status.
+  - Short summary of upcoming scheduled-light automations (per project) where applicable.
+
+#### Product Workspace Overview (v1)
+
+- **Per-product header:**
+  - DEO Score badge (with Answerability signal visible).
+  - Issue badges (counts by severity).
+- **Tabs/sections:**
+  - **AEO / Answers tab:** shows Answer Blocks, Answerability status, and coverage for the 10 canonical questions.
+  - **Automations tab:** shows automation history for the product (runs, status, before/after highlights) and upcoming rules that may run.
+- **AI suggestions:**
+  - Per-product suggestions for metadata and Answer Blocks, gated by daily AI usage limits and plan entitlements.
+  - Clear "Apply to Shopify" actions where suggestions can be synced back to Shopify.
+
+#### Automation Engine UX (v1)
+
+- **Approvals and controls:**
+  - Simple project-level toggles to enable/disable Automation Engine v1 rules for products (e.g., auto-apply metadata fixes vs. review-only).
+  - Basic per-rule "auto-apply" vs. "review" configuration for metadata and Answer Block automations (Pro/Business only).
+- **Logs:**
+  - Execution log view listing recent automation runs with timestamps, status, and targets.
+  - Ability to drill into a product from a given log entry.
+- **Upcoming automations:**
+  - Lightweight overview of next scheduled-light automations (e.g., "Daily metadata refresh for 200 products").
+
+### v1 Tier Limits (Launch)
+
+#### Free (Launch)
+
+- Up to 50 products per Shopify project.
+- AEO v1: Answer Blocks enabled for 1 product (single Answer set).
+- AI usage: up to 10 AI suggestions/day (shared across metadata and AEO features).
+- Automation Engine v1: basic metadata-only automations (no Answer Block automations, no scheduled-light rules).
+
+#### Pro ($29/mo)
+
+- Up to 2,000 products per Shopify project.
+- Full AEO v1 coverage for products within limit.
+- Automation Engine v1: immediate + scheduled-light product automations (metadata + Answer Blocks).
+
+#### Business ($99/mo)
+
+- Up to 10,000 products per Shopify project.
+- Full Automation Engine v1 (products) with higher execution caps.
+- API access enabled as per `docs/ENTITLEMENTS_MATRIX.md`.
+
+### v1 Launch Roadmap Alignment
+
+**Phases contributing to v1 launch** (non-exhaustive; see detailed sections for full scope):
+
+- **Shopify integration** (Phase 2.x: app setup, OAuth, product sync, apply-to-Shopify writer).
+- **DEO Score** (Phase 2.x–3.x: scoring pipeline, signals, snapshots, Answerability integration).
+- **Answer Engine** (Phases AE-1.x–AE-1.2: detection, Answer Block generation, UI integration).
+- **Issues Engine** (Phase 3B, UX-7, UX-8: backend Issues Engine + Lite/Full UX).
+- **Automation Engine** (Phases AE-1, AE-2, AUE-1: framework, product automations, Shopify metadata auto-apply).
+- **Dashboard** (Phase 7: core dashboard widgets and summaries).
+- **Product Workspace** (Phase UX-2 and related UX phases).
+- **Website launch** (Phases 0.5 and MARKETING-1/2: marketing site + Shopify landing page).
+- **Shopify App Store launch** (Phase 2.0 and Phase 11.x: Shopify app setup, listing readiness).
+
+### v1 Acceptance Criteria (Specification)
+
+- [x] v1 launch scope documented in IMPLEMENTATION_PLAN.md
+- [x] AEO v1 scope defined with entitlements
+- [x] Automation Engine v1 scope defined with entitlements
+- [x] DEO Score v1 Answerability component specified
+- [x] Issues Engine v1 (Lite) scope defined
+- [x] Shopify-only integration surface documented
+- [x] v1 UX surfaces (Dashboard, Product Workspace, Automation Engine) outlined
+- [x] v1 Tier Limits defined (Free, Pro, Business)
+- [x] Roadmap alignment to existing phases documented
+- [x] Manual testing doc created
+
+**Manual Testing:** `docs/manual-testing/v1-shopify-launch-scope.md`, `docs/manual-testing/phase-ae-1.3-answer-block-persistence.md`, `docs/manual-testing/automation-engine-v1-shopify-answer-block-automations.md`
+
+**Note:** This patch does not change critical path definitions, but v1 launch scenarios must be mapped to existing critical paths in `docs/testing/CRITICAL_PATH_MAP.md` (Shopify Sync, Product Optimize, DEO Score Compute, Automation, Dashboard) and verified per `docs/testing/RELEASE_VERIFICATION_GATE.md`.
 
 ---
 

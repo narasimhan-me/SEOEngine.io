@@ -499,6 +499,54 @@ Answer generation shares the daily AI limit with other AI features (`automationS
 
 ---
 
+## 13. Phase AE-1.3 – Answer Block Persistence
+
+Phase AE-1.3 introduces persistent Answer Blocks for products and is required for the EngineO.ai v1 Shopify-only launch:
+
+### Scope
+
+- **Store the 10 canonical Answer Blocks per product** in a durable backing store (Prisma model or equivalent), keyed by at least `projectId`, `productId`, `questionId`, and a version or timestamp field (`version`, `createdAt`/`updatedAt`).
+- **Allow merchants to edit existing Answer Blocks** and save changes, preserving provenance via `sourceType` and versioning or `updatedAt` semantics.
+- **Allow merchants (and future automations) to regenerate Answer Blocks** via the existing AE-1.2 generation pipeline while preserving non-hallucination guarantees from this spec.
+
+### Persisted Answer Blocks as Canonical Source
+
+Make persisted Answer Blocks the canonical source for:
+
+- **Answerability signals and answerabilityScore** used by DEO Score v2 explainability (see `docs/deo-score-spec.md`).
+- **Answerability and answer-related issues** in the Issues Engine (see `docs/deo-issues-spec.md`).
+- **Answer Block automations** in the Automation Engine (see `docs/AUTOMATION_ENGINE_SPEC.md`).
+
+### Scope Limitations
+
+- Initial implementation scoped to **Shopify products for v1**; other integrations remain future work.
+
+### Manual Testing & Verification
+
+- Manual testing for AE-1.3 must be documented in `docs/manual-testing/phase-ae-1.3-answer-block-persistence.md` (clone of `docs/MANUAL_TESTING_TEMPLATE.md`), covering:
+  - Creation, editing, and regeneration flows for Answer Blocks.
+  - Non-hallucination behavior when data is insufficient.
+  - Interactions with DEO Score, Issues Engine, and Automation Engine where applicable.
+- The Implementation Plan entry for AE-1.3 and the v1 Shopify-only launch scope section must include a `Manual Testing:` bullet pointing to this document.
+- When AE-1.3 is implemented, any critical path entries related to Answer Engine / Product Optimize in `docs/testing/CRITICAL_PATH_MAP.md` must be updated to reflect the new persistence behavior and its verification status.
+
+---
+
+## 14. Acceptance Criteria (Phase AE-1.3)
+
+- [ ] Prisma model for `AnswerBlock` created with fields: `id`, `projectId`, `productId`, `questionId`, `question`, `answer`, `confidence`, `sourceType`, `factsUsed`, `version`, `createdAt`, `updatedAt`
+- [ ] API endpoints for CRUD operations on Answer Blocks
+- [ ] Persisted Answer Blocks feed into Answerability detection
+- [ ] Users can edit and save Answer Blocks (sourceType: 'userEdited')
+- [ ] Users can regenerate Answer Blocks via AE-1.2 pipeline
+- [ ] Non-hallucination rules enforced during regeneration
+- [ ] DEO Score v2 Answerability component reads from persisted Answer Blocks
+- [ ] Issues Engine can surface missing/weak Answer Block issues
+- [ ] Manual testing doc created: `docs/manual-testing/phase-ae-1.3-answer-block-persistence.md`
+- [ ] Critical path map updated when implementation complete
+
+---
+
 ## Document History
 
 | Version | Date | Changes |
@@ -506,3 +554,4 @@ Answer generation shares the daily AI limit with other AI features (`automationS
 | 1.0 | 2025-12-08 | Initial Answer Engine specification (Phase AE 1.0) |
 | 1.1 | 2025-12-09 | Added Phase AE-1.1 Answerability detection implementation and /projects/:id/answerability API |
 | 1.2 | 2025-12-09 | Added Phase AE-1.2 Answer Generation & UI Integration with POST /ai/product-answers endpoint |
+| 1.3 | 2025-12-10 | Added Phase AE-1.3 Answer Block Persistence specification for v1 launch |
