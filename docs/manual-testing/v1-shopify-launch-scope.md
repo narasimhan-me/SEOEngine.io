@@ -197,7 +197,7 @@
 - Product with DEO score, issues, and automation suggestions
 
 **Steps:**
-1. Navigate to Product Workspace
+1. From the Products list, click **Optimize** (or **View details**) for a product to open Product Workspace
 2. Check header: DEO Score badge, Issue badges
 3. Switch to AEO / Answers tab
 4. Switch to Automations tab

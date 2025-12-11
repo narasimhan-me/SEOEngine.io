@@ -43,12 +43,35 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={classes}>{label}</span>;
 }
 
+function getActionLabel(log: AnswerBlockAutomationLog): string {
+  if (log.action === 'generate_missing') {
+    return 'Generated Answer Blocks';
+  }
+  if (log.action === 'regenerate_weak') {
+    return 'Regenerated weak Answer Blocks';
+  }
+  if (log.action === 'skip_plan_free') {
+    return 'Skipped (Free plan)';
+  }
+  if (log.action === 'skip_no_generated_answers') {
+    return 'Skipped (no generated answers)';
+  }
+  if (log.action === 'skip_no_action') {
+    return 'Skipped (no action needed)';
+  }
+  if (log.action === 'error') {
+    return 'Automation error';
+  }
+  return log.action;
+}
+
 export function ProductAutomationHistoryPanel({
   productId,
 }: ProductAutomationHistoryPanelProps) {
   const [logs, setLogs] = useState<AnswerBlockAutomationLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   const loadLogs = useCallback(async () => {
     if (!productId) return;
@@ -76,6 +99,16 @@ export function ProductAutomationHistoryPanel({
   useEffect(() => {
     loadLogs();
   }, [loadLogs]);
+
+  const hasLogs = logs.length > 0;
+  const sortedLogs = hasLogs
+    ? [...logs].sort((a, b) => {
+        const aTime = new Date(a.createdAt).getTime();
+        const bTime = new Date(b.createdAt).getTime();
+        return bTime - aTime;
+      })
+    : [];
+  const latestLog = hasLogs ? sortedLogs[0] : null;
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -158,67 +191,88 @@ export function ProductAutomationHistoryPanel({
         </div>
       )}
 
-      {!loading && logs.length > 0 && (
-        <div className="space-y-2 text-xs text-gray-700">
-          {logs.map((log) => (
-            <div
-              key={log.id}
-              className="flex items-start justify-between gap-3 border-b border-gray-100 pb-2 last:border-b-0 last:pb-0"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="text-[11px] text-gray-500">
-                  {formatDate(log.createdAt)}
-                </div>
-                <div className="mt-0.5 text-xs font-medium text-gray-900">
-                  {log.action === 'generate_missing'
-                    ? 'Generated Answer Blocks'
-                    : log.action === 'regenerate_weak'
-                      ? 'Regenerated weak Answer Blocks'
-                      : log.action === 'skip_plan_free'
-                        ? 'Skipped (Free plan)'
-                        : log.action === 'skip_no_generated_answers'
-                          ? 'Skipped (no generated answers)'
-                          : log.action === 'skip_no_action'
-                            ? 'Skipped (no action needed)'
-                            : log.action === 'error'
-                              ? 'Automation error'
-                              : log.action}
-                </div>
-                <div className="mt-0.5 text-[11px] text-gray-500">
-                  Trigger: <span className="font-mono">{log.triggerType}</span> · Plan:{' '}
-                  <span className="font-mono">{log.planId}</span>
-                </div>
-                {log.errorMessage && (
-                  <div className="mt-1 flex items-start gap-1 text-[11px] text-red-600">
-                    <svg
-                      className="mt-0.5 h-3 w-3 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a1 1 0 00.86 1.5h18.64a1 1 0 00.86-1.5L13.71 3.86a1 1 0 00-1.72 0z"
-                      />
-                    </svg>
-                    <span className="line-clamp-2">
-                      {log.errorMessage}
-                    </span>
-                  </div>
-                )}
+      {!loading && !error && logs.length > 0 && latestLog && (
+        <div className="space-y-3 text-xs text-gray-700">
+          <div className="rounded-md bg-slate-50 p-3">
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <div className="text-[11px] font-medium text-gray-900">
+                Last automation
               </div>
-              <div className="mt-1 flex flex-col items-end gap-1">
-                <StatusBadge status={log.status} />
-                {log.modelUsed && (
-                  <span className="text-[10px] text-gray-400">
-                    Model: {log.modelUsed}
-                  </span>
-                )}
-              </div>
+              <StatusBadge status={latestLog.status} />
             </div>
-          ))}
+            <div className="text-[11px] text-gray-500">
+              {formatDate(latestLog.createdAt)}
+            </div>
+            <div className="mt-0.5 text-xs font-medium text-gray-900">
+              {getActionLabel(latestLog)}
+            </div>
+            <div className="mt-0.5 text-[11px] text-gray-500">
+              Trigger:{' '}
+              <span className="font-mono">{latestLog.triggerType}</span> · Plan:{' '}
+              <span className="font-mono">{latestLog.planId}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setExpanded((prev) => !prev)}
+              className="mt-2 text-[11px] font-medium text-blue-600 hover:text-blue-700"
+            >
+              {expanded
+                ? 'Hide full history'
+                : `View full history (${logs.length})`}
+            </button>
+          </div>
+          {expanded && (
+            <div className="space-y-2 text-xs text-gray-700">
+              {sortedLogs.map((log) => (
+                <div
+                  key={log.id}
+                  className="flex items-start justify-between gap-3 border-b border-gray-100 pb-2 last:border-b-0 last:pb-0"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[11px] text-gray-500">
+                      {formatDate(log.createdAt)}
+                    </div>
+                    <div className="mt-0.5 text-xs font-medium text-gray-900">
+                      {getActionLabel(log)}
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-gray-500">
+                      Trigger:{' '}
+                      <span className="font-mono">{log.triggerType}</span> · Plan:{' '}
+                      <span className="font-mono">{log.planId}</span>
+                    </div>
+                    {log.errorMessage && (
+                      <div className="mt-1 flex items-start gap-1 text-[11px] text-red-600">
+                        <svg
+                          className="mt-0.5 h-3 w-3 flex-shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a1 1 0 00.86 1.5h18.64a1 1 0 00.86-1.5L13.71 3.86a1 1 0 00-1.72 0z"
+                          />
+                        </svg>
+                        <span className="line-clamp-2">
+                          {log.errorMessage}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-1 flex flex-col items-end gap-1">
+                    <StatusBadge status={log.status} />
+                    {log.modelUsed && (
+                      <span className="text-[10px] text-gray-400">
+                        Model: {log.modelUsed}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

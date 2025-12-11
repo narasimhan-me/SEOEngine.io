@@ -11,12 +11,9 @@ interface ProductTableProps {
   products: Product[];
   projectId: string;
   onScanProduct: (productId: string) => void;
-  onSuggestMetadata: (productId: string) => void;
   onSyncProducts: () => void;
   syncing: boolean;
   scanningId: string | null;
-  suggestingId: string | null;
-  loadingSuggestion: boolean;
   productIssues?: DeoIssue[];
 }
 
@@ -24,12 +21,9 @@ export function ProductTable({
   products,
   projectId,
   onScanProduct,
-  onSuggestMetadata,
   onSyncProducts,
   syncing,
   scanningId,
-  suggestingId,
-  loadingSuggestion,
   productIssues,
 }: ProductTableProps) {
   const [filter, setFilter] = useState<ProductFilter>('all');
@@ -154,11 +148,9 @@ export function ProductTable({
                 isExpanded={isExpanded}
                 onToggle={() => handleToggleExpand(product.id)}
                 onScan={() => onScanProduct(product.id)}
-                onOptimize={() => onSuggestMetadata(product.id)}
                 onSyncProject={onSyncProducts}
                 isSyncing={syncing}
                 isScanning={scanningId === product.id}
-                isOptimizing={loadingSuggestion && suggestingId === product.id}
                 issueCount={productIssueData?.count}
                 maxIssueSeverity={productIssueData?.maxSeverity}
               />

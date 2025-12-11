@@ -194,6 +194,129 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 
 ---
 
+### UX2-AUTO-HP-005: Automation History panel – collapsed-by-default behavior
+
+**Goal:** Verify that the Automation History panel displays a summary card for the latest run by default and allows expansion to view full history.
+
+**Steps:**
+1. Log in as a Pro or Business user.
+2. Navigate to a product that has multiple automation log entries (at least 3–5).
+3. Observe the Automation History (Answer Blocks) panel on initial load.
+4. Click the "View full history (X)" link.
+5. Observe the expanded list of all automation logs.
+6. Click the "Hide full history" link.
+
+**Expected Results:**
+- **On initial load (collapsed state):**
+  - A summary card with a slate-50 background is displayed.
+  - The card shows "Last automation" label with the most recent log's:
+    - Status badge (Succeeded/Failed/Skipped).
+    - Timestamp (formatted date/time).
+    - Action label (e.g., "Generated Answer Blocks", "Skipped (no action needed)").
+    - Trigger type and Plan ID.
+  - A blue "View full history (X)" link is visible below the summary.
+  - The full list of logs is NOT visible.
+- **After clicking "View full history":**
+  - The link text changes to "Hide full history".
+  - The full list of automation logs appears below the summary card.
+  - Logs are sorted by date (newest first).
+  - Each log entry displays: timestamp, action label, trigger, plan, status badge, and error message (if applicable).
+- **After clicking "Hide full history":**
+  - The expanded list collapses and is no longer visible.
+  - The link text returns to "View full history (X)".
+  - Only the summary card remains visible.
+
+---
+
+### UX2-AUTO-HP-006: Automation History panel – long history lists remain collapsed
+
+**Goal:** Ensure that products with many skip entries (e.g., daily skip_no_action logs) do not clutter the UI on initial load.
+
+**Steps:**
+1. Create or use a product with 10+ automation log entries, mostly skipped actions.
+2. Navigate to the Product Workspace for that product.
+3. Observe the Automation History panel.
+4. Verify the entry count in the "View full history (X)" link.
+5. Expand and confirm all entries are present.
+
+**Expected Results:**
+- **On initial load:**
+  - Only the latest log summary card is shown.
+  - The "View full history (X)" link displays the correct count (e.g., "View full history (12)").
+  - The panel does not show 10+ individual log rows cluttering the UI.
+- **After expansion:**
+  - All log entries are visible and scrollable.
+  - Performance remains acceptable (no lag or jank).
+
+---
+
+### UX2-LAYOUT-HP-007: Metadata-first layout and section ordering
+
+**Goal:** Confirm that the Product Workspace presents metadata as the first optimization surface, followed by Answers and Automations, and that the layout feels visually segmented.
+
+**Steps:**
+1. Log in as a Pro or Business user.
+2. Navigate to Projects → select a Shopify-connected project → Products → choose a product.
+3. Observe the main (center) column of the Product Optimization workspace.
+4. Verify the order of sections from top to bottom.
+5. Scroll through the page and note the separation between each section.
+
+**Expected Results:**
+- The Metadata section (AI suggestions + SEO editor) appears first.
+- The Answers section (ProductAnswersPanel + Answer Blocks panel) appears directly below Metadata.
+- The Automations section (collapsed-by-default Automation History panel) appears below Answers.
+- Visual spacing (margins, card padding) clearly separates each section without excessive vertical whitespace.
+
+---
+
+### UX2-DEO-HP-008: Collapsible DEO / SEO Insights panel
+
+**Goal:** Verify that the DEO / SEO Insights panel on the right is collapsed by default and can be expanded to reveal full issue details.
+
+**Steps:**
+1. With a product selected that has at least one DEO issue, open the Product Optimization workspace.
+2. Locate the DEO / SEO Insights panel in the right-hand column.
+3. Observe the default, collapsed state.
+4. Click "Expand issues & recommendations".
+5. Scroll within the Product Workspace, then click "Collapse issues & recommendations".
+
+**Expected Results:**
+- **Collapsed state:**
+  - Panel shows a summary card titled "DEO Score & Issues".
+  - Summary includes content depth (e.g., "0 words — Very short") and metadata completeness summaries (SEO Title/Description Present/Missing).
+  - Full Content Depth, Metadata Completeness, Thin Content warning, DEO Issues list, and Coming Soon blocks are hidden.
+- **Expanded state:**
+  - Full detail view is visible, matching the previous DEO / SEO Insights content (Content Depth, Metadata Completeness, Thin Content warning, Overall Status, DEO Issues list, Coming Soon).
+  - "Collapse issues & recommendations" control hides the detailed content and returns to the summary-only view.
+- Layout and typography remain consistent with other cards in the workspace.
+
+---
+
+### UX2-HEADER-HP-009: Sticky workspace header and "Jump to" anchors
+
+**Goal:** Ensure the sticky workspace header and Jump to bar behave correctly and improve navigation across sections.
+
+**Steps:**
+1. Open the Product Optimization workspace for a product with some metadata, Answer Blocks, automation history, and DEO issues.
+2. Scroll down the page so metadata, answers, and automations sections move out of the initial viewport.
+3. Observe the top of the viewport while scrolling.
+4. Use each Jump to link (Metadata, Answers, Automations, Issues) in turn.
+5. Use the Apply to Shopify button in the sticky header after editing metadata.
+
+**Expected Results:**
+- **Sticky header:**
+  - Remains visible at the top of the page while scrolling.
+  - Shows Back to Products link, product name, optimization status pill, and an Apply to Shopify button wired to the same behavior as the metadata editor's Apply action.
+- **Jump to bar:**
+  - Stays directly beneath the sticky header while scrolling.
+  - Clicking Metadata scrolls smoothly to the metadata section (AI suggestions + SEO editor).
+  - Clicking Answers scrolls smoothly to the Answers section (ephemeral answers + Answer Blocks).
+  - Clicking Automations scrolls smoothly to the Automation History panel.
+  - Clicking Issues scrolls smoothly to the DEO / SEO Insights panel in the right-hand column.
+- After applying metadata from the sticky header, success toast and confirmation behavior remain consistent with existing Apply to Shopify flows (no double-apply or regression).
+
+---
+
 ## Regression & Integration Checks
 
 - Confirm existing AE-1.2 ProductAnswersPanel behaviors are unchanged:

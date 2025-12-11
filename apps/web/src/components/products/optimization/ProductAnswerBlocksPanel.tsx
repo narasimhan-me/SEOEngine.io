@@ -2,9 +2,15 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ANSWER_QUESTION_LABELS, type AnswerBlockQuestionId } from '@engineo/shared';
+import {
+  ANSWER_QUESTION_LABELS as SHARED_ANSWER_QUESTION_LABELS,
+  type AnswerBlockQuestionId,
+} from '@engineo/shared';
 import { productsApi, ApiError } from '@/lib/api';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
+
+// Fallback in case shared package export is undefined (build/cache issue)
+const ANSWER_QUESTION_LABELS: Record<string, string> = SHARED_ANSWER_QUESTION_LABELS ?? {};
 
 interface PersistedAnswerBlock {
   id: string;

@@ -291,6 +291,16 @@ export default function ProductOptimizationPage() {
     []
   );
 
+  const scrollToSection = useCallback((sectionId: string) => {
+    if (typeof window === 'undefined') return;
+    const element = document.getElementById(sectionId);
+    if (!element) return;
+    const stickyOffset = 96;
+    const rect = element.getBoundingClientRect();
+    const offset = rect.top + window.scrollY - stickyOffset;
+    window.scrollTo({ top: offset, behavior: 'smooth' });
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push('/login');
@@ -336,48 +346,6 @@ export default function ProductOptimizationPage() {
         </ol>
       </nav>
 
-      {/* Back link */}
-      <div className="mb-4">
-        <Link
-          href={`/projects/${projectId}/products`}
-          className="text-blue-600 hover:text-blue-800"
-        >
-          ← Back to Products
-        </Link>
-      </div>
-
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Product Optimization Workspace</h1>
-        <p className="text-gray-600">
-          Optimize SEO metadata for {product?.title || 'this product'}
-        </p>
-      </div>
-
-      {/* Success message */}
-      {successMessage && (
-        <div className="mb-6 rounded border border-green-400 bg-green-100 p-4 text-green-700">
-          {successMessage}
-        </div>
-      )}
-
-      {/* Error message */}
-      {error && (
-        <div className="mb-6 rounded border border-red-400 bg-red-100 p-4 text-red-700">
-          <p>{error}</p>
-          {isAiLimitError && (
-            <p className="mt-2">
-              <Link
-                href="/settings/billing"
-                className="font-semibold text-red-800 underline hover:text-red-900"
-              >
-                Upgrade your plan to unlock more AI suggestions.
-              </Link>
-            </p>
-          )}
-        </div>
-      )}
-
       {/* Product not found */}
       {!product && !loading && (
         <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
@@ -393,42 +361,151 @@ export default function ProductOptimizationPage() {
 
       {/* Main content */}
       {product && (
-        <ProductOptimizationLayout
-          overview={<ProductOverviewPanel product={product} status={status} />}
-          center={
-            <div className="space-y-6">
-              <ProductAiSuggestionsPanel
-                suggestion={suggestion}
-                automationSuggestion={automationSuggestion}
-                loading={loadingSuggestion}
-                onGenerate={fetchSuggestion}
-                onApply={handleApplySuggestion}
-              />
-              <ProductAnswersPanel
-                response={answersResponse}
-                loading={loadingAnswers}
-                error={answersError}
-                onGenerate={fetchAnswers}
-              />
-              <ProductAnswerBlocksPanel
-                productId={product.id}
-                planId={planId}
-              />
-              <ProductAutomationHistoryPanel productId={product.id} />
-              <ProductSeoEditor
-                title={editorTitle}
-                description={editorDescription}
-                handle={product.handle ?? product.externalId}
-                onTitleChange={setEditorTitle}
-                onDescriptionChange={setEditorDescription}
-                onReset={handleReset}
-                onApplyToShopify={handleApplyToShopify}
-                applying={applyingToShopify}
-              />
+        <>
+          {/* Sticky workspace header + section anchors */}
+          <div className="sticky top-0 z-20 border-b border-gray-200 bg-white/90 backdrop-blur">
+            <div className="flex items-center justify-between gap-4 px-1 py-3 sm:px-2">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <Link
+                  href={`/projects/${projectId}/products`}
+                  className="text-xs font-medium text-blue-600 hover:text-blue-800"
+                >
+                  ← Back to Products
+                </Link>
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold text-gray-900">
+                    {product.title || 'Product'}
+                  </div>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                    <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-700">
+                      {status === 'optimized'
+                        ? 'Optimized'
+                        : status === 'needs-optimization'
+                          ? 'Needs optimization'
+                          : 'Missing key metadata'}
+                    </span>
+                    {product.lastOptimizedAt && (
+                      <span>
+                        Last optimized:{' '}
+                        {new Date(product.lastOptimizedAt).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleApplyToShopify}
+                disabled={applyingToShopify}
+                className="inline-flex items-center rounded border border-blue-600 bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {applyingToShopify ? 'Applying…' : 'Apply to Shopify'}
+              </button>
             </div>
-          }
-          insights={<ProductDeoInsightsPanel product={product} productIssues={productIssues} />}
-        />
+            <div className="flex items-center gap-3 border-t border-gray-100 px-1 py-2 text-xs text-gray-600 sm:px-2">
+              <span className="font-medium text-gray-700">Jump to:</span>
+              <button
+                type="button"
+                onClick={() => scrollToSection('metadata-section')}
+                className="rounded-full px-2 py-1 text-xs hover:bg-gray-100"
+              >
+                Metadata
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection('answers-section')}
+                className="rounded-full px-2 py-1 text-xs hover:bg-gray-100"
+              >
+                Answers
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection('automations-section')}
+                className="rounded-full px-2 py-1 text-xs hover:bg-gray-100"
+              >
+                Automations
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection('deo-issues-section')}
+                className="rounded-full px-2 py-1 text-xs hover:bg-gray-100"
+              >
+                Issues
+              </button>
+            </div>
+          </div>
+
+          {/* Success message */}
+          {successMessage && (
+            <div className="mb-6 mt-4 rounded border border-green-400 bg-green-100 p-4 text-green-700">
+              {successMessage}
+            </div>
+          )}
+
+          {/* Error message */}
+          {error && (
+            <div className="mb-6 rounded border border-red-400 bg-red-100 p-4 text-red-700">
+              <p>{error}</p>
+              {isAiLimitError && (
+                <p className="mt-2">
+                  <Link
+                    href="/settings/billing"
+                    className="font-semibold text-red-800 underline hover:text-red-900"
+                  >
+                    Upgrade your plan to unlock more AI suggestions.
+                  </Link>
+                </p>
+              )}
+            </div>
+          )}
+
+          <ProductOptimizationLayout
+            overview={<ProductOverviewPanel product={product} status={status} />}
+            center={
+              <div className="space-y-6">
+                <section id="metadata-section" aria-label="Metadata">
+                  <div className="space-y-6">
+                    <ProductAiSuggestionsPanel
+                      suggestion={suggestion}
+                      automationSuggestion={automationSuggestion}
+                      loading={loadingSuggestion}
+                      onGenerate={fetchSuggestion}
+                      onApply={handleApplySuggestion}
+                    />
+                    <ProductSeoEditor
+                      title={editorTitle}
+                      description={editorDescription}
+                      handle={product.handle ?? product.externalId}
+                      onTitleChange={setEditorTitle}
+                      onDescriptionChange={setEditorDescription}
+                      onReset={handleReset}
+                      onApplyToShopify={handleApplyToShopify}
+                      applying={applyingToShopify}
+                    />
+                  </div>
+                </section>
+                <section id="answers-section" aria-label="Answers">
+                  <div className="space-y-6">
+                    <ProductAnswersPanel
+                      response={answersResponse}
+                      loading={loadingAnswers}
+                      error={answersError}
+                      onGenerate={fetchAnswers}
+                    />
+                    <ProductAnswerBlocksPanel
+                      productId={product.id}
+                      planId={planId}
+                    />
+                  </div>
+                </section>
+                <section id="automations-section" aria-label="Automations">
+                  <ProductAutomationHistoryPanel productId={product.id} />
+                </section>
+              </div>
+            }
+            insights={<ProductDeoInsightsPanel product={product} productIssues={productIssues} />}
+          />
+        </>
       )}
     </div>
   );

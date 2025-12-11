@@ -12,23 +12,9 @@ import {
   projectsApi,
   shopifyApi,
   seoScanApi,
-  aiApi,
-  ApiError,
 } from '@/lib/api';
 import type { Product } from '@/lib/products';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
-
-interface ProductMetadataSuggestion {
-  productId: string;
-  current: {
-    title: string | null;
-    description: string | null;
-  };
-  suggested: {
-    title: string;
-    description: string;
-  };
-}
 
 interface IntegrationStatus {
   projectName: string;
@@ -59,17 +45,8 @@ export default function ProductsPage() {
   const [overview, setOverview] = useState<ProjectOverview | null>(null);
   const [showPreCrawlGuard, setShowPreCrawlGuard] = useState(true);
 
-  // AI Suggestions state
-  const [showSuggestionModal, setShowSuggestionModal] = useState(false);
-  const [currentSuggestion, setCurrentSuggestion] = useState<ProductMetadataSuggestion | null>(null);
-  const [loadingSuggestion, setLoadingSuggestion] = useState(false);
-  const [suggestingId, setSuggestingId] = useState<string | null>(null);
-
   // Scanning state
   const [scanningId, setScanningId] = useState<string | null>(null);
-
-  // Apply to Shopify state
-  const [applyingToShopify, setApplyingToShopify] = useState(false);
 
   const feedback = useFeedback();
 
@@ -176,90 +153,6 @@ export default function ProductsPage() {
       feedback.showError(message);
     } finally {
       setScanningId(null);
-    }
-  };
-
-  const handleSuggestMetadata = async (productId: string) => {
-    try {
-      setSuggestingId(productId);
-      setLoadingSuggestion(true);
-      const suggestion = await aiApi.suggestProductMetadata(productId);
-      setCurrentSuggestion(suggestion);
-      setShowSuggestionModal(true);
-    } catch (err: unknown) {
-      console.error('Error fetching AI suggestions:', err);
-
-      if (err instanceof ApiError && err.code === 'AI_DAILY_LIMIT_REACHED') {
-        const limitMessage =
-          "You've used all 5 AI suggestions for today on the Free plan. Your limit will reset tomorrow, or you can upgrade to keep optimizing.";
-        setError(limitMessage);
-        feedback.showLimit(limitMessage, '/settings/billing');
-      } else {
-        const message =
-          'AI suggestions are temporarily unavailable. Please try again later.';
-        setError(message);
-        feedback.showError(message);
-      }
-    } finally {
-      setLoadingSuggestion(false);
-      setSuggestingId(null);
-    }
-  };
-
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    const message = `${label} copied to clipboard!`;
-    setSuccessMessage(message);
-    feedback.showSuccess(message);
-    setTimeout(() => setSuccessMessage(''), 2000);
-  };
-
-  const handleApplyToShopify = async () => {
-    if (!currentSuggestion) return;
-
-    // Capture values before async operation to avoid closure issues
-    const targetProductId = currentSuggestion.productId;
-    const newSeoTitle = currentSuggestion.suggested.title;
-    const newSeoDescription = currentSuggestion.suggested.description;
-
-    try {
-      setApplyingToShopify(true);
-      setError('');
-
-      await shopifyApi.updateProductSeo(
-        targetProductId,
-        newSeoTitle,
-        newSeoDescription,
-      );
-
-      // Update local product state with captured values
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === targetProductId
-            ? {
-                ...p,
-                seoTitle: newSeoTitle,
-                seoDescription: newSeoDescription,
-              }
-            : p,
-        ),
-      );
-
-      const message = 'SEO updated in Shopify successfully!';
-      setSuccessMessage(message);
-      feedback.showSuccess(message);
-      setTimeout(() => setSuccessMessage(''), 5000);
-
-      // Close modal
-      setShowSuggestionModal(false);
-      setCurrentSuggestion(null);
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'Failed to update SEO in Shopify';
-      setError(message);
-      feedback.showError(message);
-    } finally {
-      setApplyingToShopify(false);
     }
   };
 
@@ -411,170 +304,13 @@ export default function ProductsPage() {
             products={products}
             projectId={projectId}
             onScanProduct={handleScanProduct}
-            onSuggestMetadata={handleSuggestMetadata}
             onSyncProducts={handleSyncProducts}
             syncing={syncing}
             scanningId={scanningId}
-            suggestingId={suggestingId}
-            loadingSuggestion={loadingSuggestion}
             productIssues={productIssues}
           />
         )}
       </div>
-
-      {/* AI Metadata Suggestion Modal */}
-      {showSuggestionModal && currentSuggestion && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">AI SEO Suggestions</h3>
-                  <p className="text-sm text-gray-500">Product metadata optimization</p>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowSuggestionModal(false);
-                    setCurrentSuggestion(null);
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Current Metadata */}
-              <div className="mb-6">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Current Metadata</h4>
-                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase">Title</label>
-                    <p className="text-sm text-gray-900 mt-1">
-                      {currentSuggestion.current.title || <span className="text-red-500 italic">Not set</span>}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase">Description</label>
-                    <p className="text-sm text-gray-900 mt-1">
-                      {currentSuggestion.current.description || <span className="text-red-500 italic">Not set</span>}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Suggested Metadata (Editable) */}
-              <div className="mb-6">
-                <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
-                  <svg className="w-4 h-4 mr-1.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
-                  AI Suggested Metadata
-                  <span className="ml-2 text-xs text-gray-500 font-normal">(editable)</span>
-                </h4>
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 space-y-4">
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="text-xs font-medium text-purple-700 uppercase">SEO Title</label>
-                      <span className={`text-xs ${currentSuggestion.suggested.title.length > 60 ? 'text-red-500' : 'text-gray-500'}`}>
-                        {currentSuggestion.suggested.title.length}/60 chars
-                      </span>
-                    </div>
-                    <input
-                      type="text"
-                      value={currentSuggestion.suggested.title}
-                      onChange={(e) => setCurrentSuggestion({
-                        ...currentSuggestion,
-                        suggested: {
-                          ...currentSuggestion.suggested,
-                          title: e.target.value,
-                        },
-                      })}
-                      className="w-full text-sm text-gray-900 bg-white rounded px-3 py-2 border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="Enter SEO title..."
-                    />
-                    <button
-                      onClick={() => copyToClipboard(currentSuggestion.suggested.title, 'Title')}
-                      className="mt-2 text-xs text-purple-600 hover:text-purple-800 flex items-center"
-                    >
-                      <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      Copy to clipboard
-                    </button>
-                  </div>
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="text-xs font-medium text-purple-700 uppercase">SEO Description</label>
-                      <span className={`text-xs ${currentSuggestion.suggested.description.length > 155 ? 'text-red-500' : 'text-gray-500'}`}>
-                        {currentSuggestion.suggested.description.length}/155 chars
-                      </span>
-                    </div>
-                    <textarea
-                      value={currentSuggestion.suggested.description}
-                      onChange={(e) => setCurrentSuggestion({
-                        ...currentSuggestion,
-                        suggested: {
-                          ...currentSuggestion.suggested,
-                          description: e.target.value,
-                        },
-                      })}
-                      rows={3}
-                      className="w-full text-sm text-gray-900 bg-white rounded px-3 py-2 border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                      placeholder="Enter SEO description..."
-                    />
-                    <button
-                      onClick={() => copyToClipboard(currentSuggestion.suggested.description, 'Description')}
-                      className="mt-2 text-xs text-purple-600 hover:text-purple-800 flex items-center"
-                    >
-                      <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      Copy to clipboard
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => {
-                    setShowSuggestionModal(false);
-                    setCurrentSuggestion(null);
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={handleApplyToShopify}
-                  disabled={applyingToShopify}
-                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {applyingToShopify ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Applying...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                      </svg>
-                      Apply to Shopify
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

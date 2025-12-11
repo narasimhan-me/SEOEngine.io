@@ -15,11 +15,9 @@ interface ProductRowProps {
   isExpanded: boolean;
   onToggle: () => void;
   onScan: () => void;
-  onOptimize: () => void;
   onSyncProject: () => void;
   isSyncing: boolean;
   isScanning: boolean;
-  isOptimizing: boolean;
   issueCount?: number;
   maxIssueSeverity?: DeoIssueSeverity | null;
 }
@@ -29,19 +27,23 @@ export function ProductRow({
   projectId,
   status,
   isExpanded,
-  onToggle,
+  onToggle: _onToggle,
   onScan,
-  onOptimize,
   onSyncProject,
   isSyncing,
   isScanning,
-  isOptimizing,
   issueCount,
   maxIssueSeverity,
 }: ProductRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const router = useRouter();
+
+  const workspacePath = `/projects/${projectId}/products/${product.id}`;
+
+  const openWorkspace = () => {
+    router.push(workspacePath);
+  };
 
   const handleRowClick = (event: MouseEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement | null;
@@ -54,7 +56,7 @@ export function ProductRow({
       return;
     }
 
-    router.push(`/projects/${projectId}/products/${product.id}`);
+    openWorkspace();
   };
 
   const handleRowKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -73,7 +75,7 @@ export function ProductRow({
     }
 
     event.preventDefault();
-    router.push(`/projects/${projectId}/products/${product.id}`);
+    openWorkspace();
   };
 
   const stopAnd = (event: MouseEvent, fn: () => void) => {
@@ -88,8 +90,8 @@ export function ProductRow({
 
   const handleViewDetails = (event: MouseEvent<HTMLButtonElement>) => {
     stopAnd(event, () => {
-      onToggle();
       setMenuOpen(false);
+      openWorkspace();
     });
   };
 
@@ -169,7 +171,7 @@ export function ProductRow({
                 {statusLabel}
               </span>
               <Link
-                href={`/projects/${projectId}/products/${product.id}`}
+                href={workspacePath}
                 className="inline-flex items-center text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
                 data-no-row-click
                 onClick={(event) => event.stopPropagation()}
@@ -276,51 +278,23 @@ export function ProductRow({
           {/* Optimize button - full width on mobile */}
           <button
             data-no-row-click
-            onClick={(event) => stopAnd(event, onOptimize)}
-            disabled={isOptimizing}
-            className="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-purple-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:py-1.5"
+            onClick={(event) => stopAnd(event, openWorkspace)}
+            className="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-purple-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 sm:w-auto sm:py-1.5"
           >
-            {isOptimizing ? (
-              <>
-                <svg
-                  className="mr-2 h-3.5 w-3.5 animate-spin text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Optimizing...
-              </>
-            ) : (
-              <>
-                <svg
-                  className="mr-2 h-3.5 w-3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                  />
-                </svg>
-                Optimize
-              </>
-            )}
+            <svg
+              className="mr-2 h-3.5 w-3.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+              />
+            </svg>
+            Optimize
           </button>
 
           {/* Secondary actions row - Scan SEO (mobile) + Overflow menu */}

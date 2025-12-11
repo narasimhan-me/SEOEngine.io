@@ -8186,12 +8186,17 @@ These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-
 - **Per-product header:**
   - DEO Score badge (with Answerability signal visible).
   - Issue badges (counts by severity).
-- **Tabs/sections:**
-  - **AEO / Answers tab:** shows Answer Blocks, Answerability status, and coverage for the 10 canonical questions.
-  - **Automations tab:** shows automation history for the product (runs, status, before/after highlights) and upcoming rules that may run.
+- **Sticky workspace header** with Back to Products link, product name, optimization status pill, and an "Apply to Shopify" action that remains visible while scrolling.
+- **Sections:**
+  - **Metadata section:** first optimization surface, combining AI suggestions and the metadata editor for SEO title/description (Suggest → Update → Apply to Shopify).
+  - **AEO / Answers section:** shows Answer Blocks, Answerability status, and coverage for the 10 canonical questions, including persisted Answer Blocks editing.
+  - **Automations section:** shows automation history for the product (runs, status, before/after highlights), with a collapsed-by-default "Last automation" summary card and a "View full history (X)" toggle so long log lists only appear when expanded.
+  - **Issues & DEO Insights section:** right-hand DEO / SEO Insights panel, collapsed by default to a "DEO Score & Issues" summary card with content depth and metadata completeness summaries, with an "Expand issues & recommendations" toggle to reveal full issue details and roadmap items.
 - **AI suggestions:**
   - Per-product suggestions for metadata and Answer Blocks, gated by daily AI usage limits and plan entitlements.
   - Clear "Apply to Shopify" actions where suggestions can be synced back to Shopify.
+- **Navigation:**
+  - Sticky "Jump to" anchor bar under the workspace header with links for Metadata, Answers, Automations, and Issues that smoothly scroll to the corresponding sections.
 
 #### Automation Engine UX (v1)
 
