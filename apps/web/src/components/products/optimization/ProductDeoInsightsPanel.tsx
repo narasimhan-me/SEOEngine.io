@@ -56,13 +56,21 @@ export function ProductDeoInsightsPanel({ product, productIssues }: ProductDeoIn
       className="rounded-lg border border-gray-200 bg-white p-4"
     >
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-gray-900">DEO / SEO Insights</h3>
+        <h3 className="text-base font-semibold text-gray-900">DEO / SEO Insights</h3>
         <button
           type="button"
           onClick={() => setExpanded((prev) => !prev)}
-          className="text-xs font-medium text-blue-600 hover:text-blue-700"
+          className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700"
         >
           {expanded ? 'Collapse issues & recommendations' : 'Expand issues & recommendations'}
+          <svg
+            className={`h-4 w-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
         </button>
       </div>
 

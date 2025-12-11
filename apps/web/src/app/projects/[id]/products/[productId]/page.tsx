@@ -363,7 +363,7 @@ export default function ProductOptimizationPage() {
       {product && (
         <>
           {/* Sticky workspace header + section anchors */}
-          <div className="sticky top-0 z-20 border-b border-gray-200 bg-white/90 backdrop-blur">
+          <div className="sticky top-0 z-20 border-b border-gray-200 bg-white/90 backdrop-blur shadow-sm">
             <div className="flex items-center justify-between gap-4 px-1 py-3 sm:px-2">
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 <Link
@@ -397,7 +397,7 @@ export default function ProductOptimizationPage() {
                 type="button"
                 onClick={handleApplyToShopify}
                 disabled={applyingToShopify}
-                className="inline-flex items-center rounded border border-blue-600 bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {applyingToShopify ? 'Applying…' : 'Apply to Shopify'}
               </button>
@@ -407,28 +407,28 @@ export default function ProductOptimizationPage() {
               <button
                 type="button"
                 onClick={() => scrollToSection('metadata-section')}
-                className="rounded-full px-2 py-1 text-xs hover:bg-gray-100"
+                className="rounded-full px-2 py-1 text-xs hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
               >
                 Metadata
               </button>
               <button
                 type="button"
                 onClick={() => scrollToSection('answers-section')}
-                className="rounded-full px-2 py-1 text-xs hover:bg-gray-100"
+                className="rounded-full px-2 py-1 text-xs hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
               >
                 Answers
               </button>
               <button
                 type="button"
                 onClick={() => scrollToSection('automations-section')}
-                className="rounded-full px-2 py-1 text-xs hover:bg-gray-100"
+                className="rounded-full px-2 py-1 text-xs hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
               >
                 Automations
               </button>
               <button
                 type="button"
                 onClick={() => scrollToSection('deo-issues-section')}
-                className="rounded-full px-2 py-1 text-xs hover:bg-gray-100"
+                className="rounded-full px-2 py-1 text-xs hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
               >
                 Issues
               </button>
@@ -462,8 +462,9 @@ export default function ProductOptimizationPage() {
           <ProductOptimizationLayout
             overview={<ProductOverviewPanel product={product} status={status} />}
             center={
-              <div className="space-y-6">
+              <div className="space-y-10">
                 <section id="metadata-section" aria-label="Metadata">
+                  <h2 className="mb-4 text-base font-semibold text-gray-900">Metadata</h2>
                   <div className="space-y-6">
                     <ProductAiSuggestionsPanel
                       suggestion={suggestion}
@@ -485,6 +486,7 @@ export default function ProductOptimizationPage() {
                   </div>
                 </section>
                 <section id="answers-section" aria-label="Answers">
+                  <h2 className="mb-4 text-base font-semibold text-gray-900">Answers (AEO)</h2>
                   <div className="space-y-6">
                     <ProductAnswersPanel
                       response={answersResponse}
@@ -499,6 +501,7 @@ export default function ProductOptimizationPage() {
                   </div>
                 </section>
                 <section id="automations-section" aria-label="Automations">
+                  <h2 className="mb-4 text-base font-semibold text-gray-900">Automations</h2>
                   <ProductAutomationHistoryPanel productId={product.id} />
                 </section>
               </div>

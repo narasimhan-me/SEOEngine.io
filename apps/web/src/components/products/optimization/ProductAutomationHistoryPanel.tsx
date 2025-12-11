@@ -214,11 +214,19 @@ export function ProductAutomationHistoryPanel({
             <button
               type="button"
               onClick={() => setExpanded((prev) => !prev)}
-              className="mt-2 text-[11px] font-medium text-blue-600 hover:text-blue-700"
+              className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-700"
             >
               {expanded
                 ? 'Hide full history'
                 : `View full history (${logs.length})`}
+              <svg
+                className={`h-3 w-3 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
           </div>
           {expanded && (
