@@ -13,9 +13,15 @@ import { SeoScanService } from '../seo-scan/seo-scan.service';
 import { ProductsModule } from '../products/products.module';
 import { AnswerBlockAutomationProcessor } from './answer-block-automation.processor';
 import { ProductAutomationController } from './product-automation.controller';
+import { ShopifyModule } from '../shopify/shopify.module';
 
 @Module({
-  imports: [forwardRef(() => AiModule), BillingModule, ProductsModule],
+  imports: [
+    forwardRef(() => AiModule),
+    BillingModule,
+    ProductsModule,
+    forwardRef(() => ShopifyModule),
+  ],
   controllers: [ProjectsController, ProductAutomationController],
   providers: [
     ProjectsService,

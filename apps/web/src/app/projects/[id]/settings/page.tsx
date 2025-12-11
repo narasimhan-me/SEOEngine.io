@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { isAuthenticated } from '@/lib/auth';
-import { projectsApi } from '@/lib/api';
+import { projectsApi, shopifyApi } from '@/lib/api';
 import { useUnsavedChanges } from '@/components/unsaved-changes/UnsavedChangesProvider';
 import FriendlyError from '@/components/ui/FriendlyError';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
@@ -20,6 +20,7 @@ interface IntegrationStatus {
   autoSuggestMissingMetadata: boolean;
   autoSuggestThinContent: boolean;
   autoSuggestDailyCap: number;
+  aeoSyncToShopifyMetafields: boolean;
   integrations: Array<{
     type: string;
     externalId: string;
@@ -80,6 +81,7 @@ export default function ProjectSettingsPage() {
   const [status, setStatus] = useState<IntegrationStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [settingUpMetafields, setSettingUpMetafields] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -89,6 +91,7 @@ export default function ProjectSettingsPage() {
   const [autoSuggestMissingMetadata, setAutoSuggestMissingMetadata] = useState(false);
   const [autoSuggestThinContent, setAutoSuggestThinContent] = useState(false);
   const [autoSuggestDailyCap, setAutoSuggestDailyCap] = useState(50);
+  const [aeoSyncToShopifyMetafields, setAeoSyncToShopifyMetafields] = useState(false);
 
   // Unsaved changes guard
   const { setHasUnsavedChanges } = useUnsavedChanges();
@@ -105,6 +108,7 @@ export default function ProjectSettingsPage() {
       setAutoSuggestMissingMetadata(data.autoSuggestMissingMetadata ?? false);
       setAutoSuggestThinContent(data.autoSuggestThinContent ?? false);
       setAutoSuggestDailyCap(data.autoSuggestDailyCap ?? 50);
+      setAeoSyncToShopifyMetafields(data.aeoSyncToShopifyMetafields ?? false);
     } catch (err: unknown) {
       console.error('Error fetching integration status:', err);
       setError(err instanceof Error ? err.message : 'Failed to load project settings');
@@ -131,6 +135,7 @@ export default function ProjectSettingsPage() {
         autoSuggestMissingMetadata,
         autoSuggestThinContent,
         autoSuggestDailyCap,
+        aeoSyncToShopifyMetafields,
       });
       const message = 'Settings saved successfully';
       setSuccessMessage(message);
@@ -148,13 +153,34 @@ export default function ProjectSettingsPage() {
     }
   };
 
+  const handleSetupMetafields = async () => {
+    try {
+      setSettingUpMetafields(true);
+      setError('');
+      const result = await shopifyApi.ensureMetafieldDefinitions(projectId);
+      const message = `Metafield definitions set up: ${result.created} created, ${result.existing} existing`;
+      setSuccessMessage(message);
+      feedback.showSuccess(message);
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (err: unknown) {
+      console.error('Error setting up metafields:', err);
+      const message =
+        err instanceof Error ? err.message : 'Failed to set up metafield definitions';
+      setError(message);
+      feedback.showError(message);
+    } finally {
+      setSettingUpMetafields(false);
+    }
+  };
+
   const hasChanges =
     status &&
     (autoCrawlEnabled !== status.autoCrawlEnabled ||
       crawlFrequency !== status.crawlFrequency ||
       autoSuggestMissingMetadata !== status.autoSuggestMissingMetadata ||
       autoSuggestThinContent !== status.autoSuggestThinContent ||
-      autoSuggestDailyCap !== status.autoSuggestDailyCap);
+      autoSuggestDailyCap !== status.autoSuggestDailyCap ||
+      aeoSyncToShopifyMetafields !== status.aeoSyncToShopifyMetafields);
 
   // Sync local hasChanges with global unsaved changes context
   useEffect(() => {
@@ -385,6 +411,40 @@ export default function ProjectSettingsPage() {
             </button>
           </div>
 
+          {/* Answer Block → Shopify metafields Toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <label
+                htmlFor="aeoSyncToShopifyMetafields"
+                className="text-sm font-medium text-gray-900"
+              >
+                Sync Answer Blocks to Shopify metafields
+              </label>
+              <p className="text-sm text-gray-500 mt-0.5">
+                When enabled, Answer Blocks can be synced to Shopify as metafields for each product.
+              </p>
+            </div>
+            <button
+              id="aeoSyncToShopifyMetafields"
+              type="button"
+              role="switch"
+              aria-checked={aeoSyncToShopifyMetafields}
+              onClick={() =>
+                setAeoSyncToShopifyMetafields(!aeoSyncToShopifyMetafields)
+              }
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                aeoSyncToShopifyMetafields ? 'bg-blue-600' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  aeoSyncToShopifyMetafields ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
           {/* Daily Cap */}
           <div>
             <label htmlFor="autoSuggestDailyCap" className="block text-sm font-medium text-gray-900">
@@ -444,30 +504,71 @@ export default function ProjectSettingsPage() {
             {status.integrations.map((integration) => (
               <div
                 key={integration.type}
-                className="flex items-center justify-between p-3 rounded-md bg-gray-50 border border-gray-200"
+                className="p-3 rounded-md bg-gray-50 border border-gray-200"
               >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
-                    <svg
-                      className="h-4 w-4 text-green-600"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
+                      <svg
+                        className="h-4 w-4 text-green-600"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{integration.type}</p>
+                      <p className="text-xs text-gray-500">{integration.externalId}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{integration.type}</p>
-                    <p className="text-xs text-gray-500">{integration.externalId}</p>
-                  </div>
+                  <span className="text-xs text-gray-500">
+                    Connected {new Date(integration.createdAt).toLocaleDateString()}
+                  </span>
                 </div>
-                <span className="text-xs text-gray-500">
-                  Connected {new Date(integration.createdAt).toLocaleDateString()}
-                </span>
+                {integration.type === 'SHOPIFY' && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    <button
+                      onClick={handleSetupMetafields}
+                      disabled={settingUpMetafields}
+                      className="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {settingUpMetafields ? (
+                        <>
+                          <svg
+                            className="animate-spin -ml-0.5 mr-1.5 h-3 w-3 text-blue-700"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            />
+                          </svg>
+                          Setting up...
+                        </>
+                      ) : (
+                        'Setup Answer Block Metafields'
+                      )}
+                    </button>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Creates metafield definitions in Shopify for Answer Block sync.
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>

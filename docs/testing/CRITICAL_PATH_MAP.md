@@ -134,7 +134,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/shopify-integration.md`, `docs/testing/product-sync.md`, `docs/testing/metadata-sync-seo-fields.md`, `docs/testing/sync-status-and-progress-feedback.md` |
+| **Manual Testing Doc(s)** | `docs/testing/shopify-integration.md`, `docs/testing/product-sync.md`, `docs/testing/metadata-sync-seo-fields.md`, `docs/testing/sync-status-and-progress-feedback.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md` |
 | **Automated Tests** | Planned |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
@@ -147,6 +147,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] Metadata push to Shopify
 - [ ] Sync error handling and retry
 - [ ] Disconnection flow
+- [ ] Answer Blocks synced to Shopify metafields when AEO-2 flag is enabled
 
 ---
 
@@ -244,7 +245,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/answer-engine.md`, `docs/manual-testing/phase-ae-1-answer-engine-foundations.md`, `docs/manual-testing/phase-ae-1.1-answer-engine-detection.md`, `docs/manual-testing/phase-ae-1.2-answer-engine-generation-and-ui.md`, `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md` |
+| **Manual Testing Doc(s)** | `docs/testing/answer-engine.md`, `docs/manual-testing/phase-ae-1-answer-engine-foundations.md`, `docs/manual-testing/phase-ae-1.1-answer-engine-detection.md`, `docs/manual-testing/phase-ae-1.2-answer-engine-generation-and-ui.md`, `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md` |
 | **Automated Tests** | `apps/api/test/e2e/answer-engine.e2e-spec.ts`, `apps/api/test/e2e/answer-generation.e2e-spec.ts` |
 | **Last Verified (Manual)** | 2025-12-09 |
 | **Last Verified (Automated)** | N/A |
@@ -269,6 +270,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] AE-1.2: Daily AI limit enforcement works for answer generation
 - [ ] AE-1.2: Answers include confidence scores and facts-used metadata
 - [ ] AE-1.3 / UX-2: Product Workspace AEO / Answers tab displays persisted Answer Blocks per product and supports user edits with plan-aware gating
+- [ ] AEO-2: Persisted Answer Blocks can be synced to Shopify metafields (namespace engineo) when enabled in project settings
 
 ---
 
@@ -278,7 +280,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/automation-engine.md`, `docs/testing/automation-engine-product-automations.md`, `docs/manual-testing/phase-ae-1-automation-engine-foundations.md`, `docs/manual-testing/phase-ae-2-product-automations.md`, `docs/manual-testing/phase-aue-1-automation-new-product-seo-title.md`, `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md` |
+| **Manual Testing Doc(s)** | `docs/testing/automation-engine.md`, `docs/testing/automation-engine-product-automations.md`, `docs/manual-testing/phase-ae-1-automation-engine-foundations.md`, `docs/manual-testing/phase-ae-2-product-automations.md`, `docs/manual-testing/phase-aue-1-automation-new-product-seo-title.md`, `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md` |
 | **Automated Tests** | `apps/api/test/e2e/automation-new-product-seo-title.e2e-spec.ts` |
 | **Last Verified (Manual)** | 2025-12-09 |
 | **Last Verified (Automated)** | N/A |
@@ -309,6 +311,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] AUE-1: Daily AI limit enforced; automation skips when limit reached
 - [ ] AUE-1: Automation failure doesn't block Shopify sync
 - [ ] AUE-2 / UX-2: Product Workspace Automation History panel surfaces per-product Answer Block automation runs (triggerType, action, status, errors)
+- [ ] AEO-2: After Answer Block automations succeed, answer_blocks_synced_to_shopify log entries reflect metafield sync success/failure when the project flag is enabled
 
 ---
 

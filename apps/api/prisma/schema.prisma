@@ -73,6 +73,8 @@ model Project {
   autoSuggestThinContent     Boolean            @default(false)
   autoSuggestDailyCap        Int                @default(50)
 
+  aeoSyncToShopifyMetafields Boolean            @default(false)
+
   integrations               Integration[]
   crawlResults               CrawlResult[]
   products                   Product[]

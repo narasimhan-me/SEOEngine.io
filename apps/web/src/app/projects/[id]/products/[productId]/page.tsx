@@ -487,6 +487,16 @@ export default function ProductOptimizationPage() {
                 </section>
                 <section id="answers-section" aria-label="Answers">
                   <h2 className="mb-4 text-base font-semibold text-gray-900">Answers (AEO)</h2>
+                  <p className="mb-2 text-xs text-gray-500">
+                    These answers can be synced to Shopify as metafields when enabled in{' '}
+                    <Link
+                      href={`/projects/${projectId}/settings`}
+                      className="underline hover:text-indigo-700"
+                    >
+                      Settings
+                    </Link>
+                    .
+                  </p>
                   <div className="space-y-6">
                     <ProductAnswersPanel
                       response={answersResponse}

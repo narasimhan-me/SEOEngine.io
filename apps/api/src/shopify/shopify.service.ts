@@ -5,6 +5,109 @@ import { IntegrationType } from '@prisma/client';
 import * as crypto from 'crypto';
 import { AutomationService } from '../projects/automation.service';
 
+const ANSWER_BLOCK_METAFIELD_DEFINITIONS: {
+  questionId: string;
+  key: string;
+  name: string;
+  description: string;
+}[] = [
+  {
+    questionId: 'what_is_it',
+    key: 'answer_what_is_it',
+    name: 'What is it?',
+    description: 'Answer Engine: what is this product?',
+  },
+  {
+    questionId: 'who_is_it_for',
+    key: 'answer_usage',
+    name: 'Who is it for?',
+    description:
+      'Answer Engine: who this product is for and primary usage context.',
+  },
+  {
+    questionId: 'why_choose_this',
+    key: 'answer_benefits',
+    name: 'Why choose this?',
+    description:
+      'Answer Engine: core benefits and reasons to choose this product.',
+  },
+  {
+    questionId: 'key_features',
+    key: 'answer_key_features',
+    name: 'Key features',
+    description: 'Answer Engine: key features of this product.',
+  },
+  {
+    questionId: 'how_is_it_used',
+    key: 'answer_how_it_works',
+    name: 'How it works / is used',
+    description: 'Answer Engine: how this product works or is used.',
+  },
+  {
+    questionId: 'problems_it_solves',
+    key: 'answer_faq',
+    name: 'Problems it solves / FAQ',
+    description:
+      'Answer Engine: common problems this product solves, framed as FAQs.',
+  },
+  {
+    questionId: 'what_makes_it_different',
+    key: 'answer_dimensions',
+    name: 'What makes it different',
+    description:
+      'Answer Engine: what differentiates this product, including key dimensions or specs.',
+  },
+  {
+    questionId: 'whats_included',
+    key: 'answer_warranty',
+    name: "What's included / warranty",
+    description:
+      'Answer Engine: what is included with the product and key warranty terms.',
+  },
+  {
+    questionId: 'materials_and_specs',
+    key: 'answer_materials',
+    name: 'Materials and specs',
+    description: 'Answer Engine: materials and key specifications.',
+  },
+  {
+    questionId: 'care_safety_instructions',
+    key: 'answer_care_instructions',
+    name: 'Care and instructions',
+    description:
+      'Answer Engine: care, safety, and usage instructions for the product.',
+  },
+];
+
+const ANSWER_BLOCK_METAFIELD_KEY_BY_QUESTION_ID: Record<string, string> =
+  ANSWER_BLOCK_METAFIELD_DEFINITIONS.reduce((acc, def) => {
+    acc[def.questionId] = def.key;
+    return acc;
+  }, {} as Record<string, string>);
+
+export function mapAnswerBlocksToMetafieldPayloads(
+  blocks: { questionId: string; answerText: string }[],
+): {
+  mappings: { key: string; value: string }[];
+  skippedUnknownQuestionIds: string[];
+} {
+  const mappings: { key: string; value: string }[] = [];
+  const skippedUnknownQuestionIds: string[] = [];
+  for (const block of blocks) {
+    const key = ANSWER_BLOCK_METAFIELD_KEY_BY_QUESTION_ID[block.questionId];
+    if (!key) {
+      skippedUnknownQuestionIds.push(block.questionId);
+      continue;
+    }
+    const value = (block.answerText ?? '').trim();
+    if (!value) {
+      continue;
+    }
+    mappings.push({ key, value });
+  }
+  return { mappings, skippedUnknownQuestionIds };
+}
+
 @Injectable()
 export class ShopifyService {
   private readonly logger = new Logger(ShopifyService.name);
@@ -13,6 +116,9 @@ export class ShopifyService {
   private readonly appUrl: string;
   private readonly scopes: string;
   private readonly stateStore = new Map<string, string>(); // In production, use Redis
+
+  private lastShopifyRequestAt = 0;
+  private readonly minShopifyIntervalMs = 500;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -24,6 +130,23 @@ export class ShopifyService {
     this.apiSecret = this.config.get<string>('SHOPIFY_API_SECRET');
     this.appUrl = this.config.get<string>('SHOPIFY_APP_URL');
     this.scopes = this.config.get<string>('SHOPIFY_SCOPES', 'read_products,write_products,read_themes');
+  }
+
+  private get isTestEnv(): boolean {
+    return process.env.NODE_ENV === 'test';
+  }
+
+  private async rateLimitedFetch(url: string, init: any): Promise<any> {
+    if (!this.isTestEnv && this.lastShopifyRequestAt > 0) {
+      const elapsed = Date.now() - this.lastShopifyRequestAt;
+      if (elapsed < this.minShopifyIntervalMs) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, this.minShopifyIntervalMs - elapsed),
+        );
+      }
+    }
+    this.lastShopifyRequestAt = Date.now();
+    return fetch(url, init);
   }
 
   /**
@@ -86,7 +209,7 @@ export class ShopifyService {
       code,
     };
 
-    const response = await fetch(url, {
+    const response = await this.rateLimitedFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -108,7 +231,7 @@ export class ShopifyService {
     accessToken: string,
     scope: string,
   ) {
-    return this.prisma.integration.upsert({
+    const integration = await this.prisma.integration.upsert({
       where: {
         projectId_type: {
           projectId,
@@ -135,6 +258,17 @@ export class ShopifyService {
         },
       },
     });
+
+    // Fire-and-forget ensure of Answer Block metafield definitions for this store.
+    this.ensureMetafieldDefinitions(projectId).catch((err) => {
+      this.logger.warn(
+        `[ShopifyMetafields] Failed to ensure metafield definitions for project ${projectId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    });
+
+    return integration;
   }
 
   /**
@@ -152,6 +286,130 @@ export class ShopifyService {
   }
 
   /**
+   * Ensure metafield definitions for Answer Blocks exist for this project/store.
+   * Uses Shopify Admin API metafield_definitions endpoint (namespace: engineo, owner_type: product).
+   */
+  private async ensureMetafieldDefinitionsForStore(
+    projectId: string,
+    shopDomain: string,
+    accessToken: string,
+  ): Promise<{ created: number; existing: number; errors: string[] }> {
+    const listUrl = `https://${shopDomain}/admin/api/2023-10/metafield_definitions.json?namespace=engineo&owner_type=product`;
+    const listResponse = await this.rateLimitedFetch(listUrl, {
+      method: 'GET',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!listResponse.ok) {
+      const errorText = await listResponse.text();
+      this.logger.warn(
+        `[ShopifyMetafields] Failed to list metafield definitions for project ${projectId} (${shopDomain}): ${errorText}`,
+      );
+      return { created: 0, existing: 0, errors: ['metafield_definitions_list_failed'] };
+    }
+
+    const payload = (await listResponse.json()) as {
+      metafield_definitions?: Array<{
+        id: number;
+        namespace: string;
+        key: string;
+        owner_type?: string;
+      }>;
+    };
+
+    const existingKeys = new Set(
+      (payload.metafield_definitions ?? [])
+        .filter(
+          (def) =>
+            def.namespace === 'engineo' &&
+            (def.owner_type === 'product' || !def.owner_type),
+        )
+        .map((def) => def.key),
+    );
+
+    let created = 0;
+    let existing = 0;
+    const errors: string[] = [];
+
+    for (const def of ANSWER_BLOCK_METAFIELD_DEFINITIONS) {
+      if (existingKeys.has(def.key)) {
+        existing++;
+        continue;
+      }
+
+      const createBody = {
+        metafield_definition: {
+          namespace: 'engineo',
+          key: def.key,
+          name: def.name,
+          description: def.description,
+          type: 'multi_line_text_field',
+          owner_type: 'product',
+        },
+      };
+
+      const createUrl = `https://${shopDomain}/admin/api/2023-10/metafield_definitions.json`;
+      const createResponse = await this.rateLimitedFetch(createUrl, {
+        method: 'POST',
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(createBody),
+      });
+
+      if (!createResponse.ok) {
+        const errorText = await createResponse.text();
+        this.logger.warn(
+          `[ShopifyMetafields] Failed to create metafield definition ${def.key} for project ${projectId}: ${errorText}`,
+        );
+        errors.push(`definition:${def.key}`);
+        continue;
+      }
+
+      created++;
+    }
+
+    return { created, existing, errors };
+  }
+
+  async ensureMetafieldDefinitions(projectId: string): Promise<{
+    projectId: string;
+    created: number;
+    existing: number;
+    errors: string[];
+  }> {
+    const integration = await this.getShopifyIntegration(projectId);
+    if (!integration || !integration.accessToken || !integration.externalId) {
+      this.logger.warn(
+        `[ShopifyMetafields] No Shopify integration found for project ${projectId}; skipping metafield definition ensure.`,
+      );
+      return {
+        projectId,
+        created: 0,
+        existing: 0,
+        errors: ['no_shopify_integration'],
+      };
+    }
+
+    const result = await this.ensureMetafieldDefinitionsForStore(
+      projectId,
+      integration.externalId,
+      integration.accessToken,
+    );
+
+    return {
+      projectId,
+      created: result.created,
+      existing: result.existing,
+      errors: result.errors,
+    };
+  }
+
+  /**
    * Check project ownership
    */
   async validateProjectOwnership(projectId: string, userId: string): Promise<boolean> {
@@ -162,6 +420,195 @@ export class ShopifyService {
       },
     });
     return !!project;
+  }
+
+  /**
+   * Sync persisted Answer Blocks for a product to Shopify metafields.
+   * Respects the engineo namespace and Answer Block → metafield key mapping.
+   */
+  async syncAnswerBlocksToShopify(
+    productId: string,
+  ): Promise<AnswerBlockMetafieldSyncResult> {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        project: true,
+      },
+    });
+
+    if (!product) {
+      this.logger.warn(
+        `[ShopifyMetafields] Product ${productId} not found; skipping metafield sync.`,
+      );
+      return {
+        productId,
+        shopDomain: null,
+        syncedCount: 0,
+        skippedUnknownQuestionIds: [],
+        errors: ['product_not_found'],
+        skippedReason: 'product_not_found',
+      };
+    }
+
+    const integration = await this.getShopifyIntegration(product.projectId);
+    if (!integration || !integration.accessToken || !integration.externalId) {
+      this.logger.warn(
+        `[ShopifyMetafields] No Shopify integration for project ${product.projectId}; skipping metafield sync for product ${productId}.`,
+      );
+      return {
+        productId,
+        shopDomain: null,
+        syncedCount: 0,
+        skippedUnknownQuestionIds: [],
+        errors: ['no_shopify_integration'],
+        skippedReason: 'no_shopify_integration',
+      };
+    }
+
+    const shopDomain = integration.externalId;
+    const accessToken = integration.accessToken;
+    const externalProductId = product.externalId;
+
+    const answerBlocks = await this.prisma.answerBlock.findMany({
+      where: { productId },
+      orderBy: { questionId: 'asc' },
+    });
+
+    if (!answerBlocks.length) {
+      this.logger.log(
+        `[ShopifyMetafields] No Answer Blocks to sync for product ${productId}.`,
+      );
+      return {
+        productId,
+        shopDomain,
+        syncedCount: 0,
+        skippedUnknownQuestionIds: [],
+        errors: [],
+        skippedReason: 'no_answer_blocks',
+      };
+    }
+
+    // Ensure metafield definitions exist for this project/store
+    await this.ensureMetafieldDefinitions(product.projectId);
+
+    const listUrl = `https://${shopDomain}/admin/api/2023-10/products/${externalProductId}/metafields.json?namespace=engineo`;
+    const listResponse = await this.rateLimitedFetch(listUrl, {
+      method: 'GET',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!listResponse.ok) {
+      const errorText = await listResponse.text();
+      this.logger.warn(
+        `[ShopifyMetafields] Failed to list metafields for product ${externalProductId} (${shopDomain}): ${errorText}`,
+      );
+      return {
+        productId,
+        shopDomain,
+        syncedCount: 0,
+        skippedUnknownQuestionIds: [],
+        errors: ['metafields_fetch_failed'],
+        skippedReason: 'metafields_fetch_failed',
+      };
+    }
+
+    const existingPayload = (await listResponse.json()) as {
+      metafields?: Array<{ id: number; key: string; namespace: string }>;
+    };
+
+    const existingByKey = new Map<string, { id: number }>();
+    for (const mf of existingPayload.metafields ?? []) {
+      if (mf.namespace === 'engineo') {
+        existingByKey.set(mf.key, { id: mf.id });
+      }
+    }
+
+    const { mappings, skippedUnknownQuestionIds } = mapAnswerBlocksToMetafieldPayloads(
+      answerBlocks.map((block: any) => ({
+        questionId: block.questionId,
+        answerText: block.answerText,
+      })),
+    );
+
+    let syncedCount = 0;
+    const errors: string[] = [];
+
+    for (const mapping of mappings) {
+      const existing = existingByKey.get(mapping.key);
+      try {
+        if (existing) {
+          const updateUrl = `https://${shopDomain}/admin/api/2023-10/metafields/${existing.id}.json`;
+          const updateBody = {
+            metafield: {
+              id: existing.id,
+              type: 'multi_line_text_field',
+              value: mapping.value,
+            },
+          };
+          const updateResponse = await this.rateLimitedFetch(updateUrl, {
+            method: 'PUT',
+            headers: {
+              'X-Shopify-Access-Token': accessToken,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(updateBody),
+          });
+          if (!updateResponse.ok) {
+            const errorText = await updateResponse.text();
+            this.logger.warn(
+              `[ShopifyMetafields] Failed to update metafield ${mapping.key} for product ${externalProductId}: ${errorText}`,
+            );
+            errors.push(`update:${mapping.key}`);
+            continue;
+          }
+        } else {
+          const createUrl = `https://${shopDomain}/admin/api/2023-10/products/${externalProductId}/metafields.json`;
+          const createBody = {
+            metafield: {
+              namespace: 'engineo',
+              key: mapping.key,
+              type: 'multi_line_text_field',
+              value: mapping.value,
+            },
+          };
+          const createResponse = await this.rateLimitedFetch(createUrl, {
+            method: 'POST',
+            headers: {
+              'X-Shopify-Access-Token': accessToken,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(createBody),
+          });
+          if (!createResponse.ok) {
+            const errorText = await createResponse.text();
+            this.logger.warn(
+              `[ShopifyMetafields] Failed to create metafield ${mapping.key} for product ${externalProductId}: ${errorText}`,
+            );
+            errors.push(`create:${mapping.key}`);
+            continue;
+          }
+        }
+        syncedCount++;
+      } catch (err) {
+        this.logger.warn(
+          `[ShopifyMetafields] Error syncing metafield ${mapping.key} for product ${externalProductId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        errors.push(`error:${mapping.key}`);
+      }
+    }
+
+    return {
+      productId,
+      shopDomain,
+      syncedCount,
+      skippedUnknownQuestionIds,
+      errors,
+    };
   }
 
   /**
@@ -297,7 +744,7 @@ export class ShopifyService {
       }
     `;
 
-    const response = await fetch(url, {
+    const response = await this.rateLimitedFetch(url, {
       method: 'POST',
       headers: {
         'X-Shopify-Access-Token': accessToken,
@@ -388,7 +835,7 @@ export class ShopifyService {
   ): Promise<ShopifyProduct | null> {
     const url = `https://${shopDomain}/admin/api/2023-10/products/${productId}.json`;
 
-    const response = await fetch(url, {
+    const response = await this.rateLimitedFetch(url, {
       method: 'GET',
       headers: {
         'X-Shopify-Access-Token': accessToken,
@@ -496,7 +943,7 @@ export class ShopifyService {
       },
     };
 
-    const response = await fetch(url, {
+    const response = await this.rateLimitedFetch(url, {
       method: 'PUT',
       headers: {
         'X-Shopify-Access-Token': accessToken,
@@ -511,6 +958,19 @@ export class ShopifyService {
       throw new BadRequestException('Failed to update product SEO in Shopify');
     }
   }
+}
+
+export interface AnswerBlockMetafieldSyncResult {
+  productId: string;
+  shopDomain: string | null;
+  syncedCount: number;
+  skippedUnknownQuestionIds: string[];
+  errors: string[];
+  skippedReason?:
+    | 'product_not_found'
+    | 'no_shopify_integration'
+    | 'no_answer_blocks'
+    | 'metafields_fetch_failed';
 }
 
 interface ShopifyProduct {

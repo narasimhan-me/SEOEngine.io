@@ -7,6 +7,7 @@ import { AnswerEngineService } from './answer-engine.service';
 import { AnswerBlockService } from '../products/answer-block.service';
 import { PlanId } from '../billing/plans';
 import { AnswerabilityStatus, AnswerBlock } from '@engineo/shared';
+import { ShopifyService } from '../shopify/shopify.service';
 
 interface AnswerBlockAutomationJobPayload {
   projectId: string;
@@ -26,6 +27,7 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
     private readonly aiService: AiService,
     private readonly answerEngineService: AnswerEngineService,
     private readonly answerBlockService: AnswerBlockService,
+    private readonly shopifyService: ShopifyService,
   ) {}
 
   async onModuleInit() {
@@ -177,6 +179,60 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
           this.logger.log(
             `[AnswerBlockAutomation] ${action} completed for product ${productId} (project ${projectId}, trigger=${triggerType})`,
           );
+
+          // Optionally sync Answer Blocks to Shopify metafields when the project-level
+          // flag is enabled and a Shopify integration is present.
+          if (product.project?.aeoSyncToShopifyMetafields) {
+            try {
+              const syncResult = await this.shopifyService.syncAnswerBlocksToShopify(
+                product.id,
+              );
+              await this.prisma.answerBlockAutomationLog.create({
+                data: {
+                  projectId,
+                  productId,
+                  triggerType,
+                  planId,
+                  action: 'answer_blocks_synced_to_shopify',
+                  status: syncResult.errors.length ? 'failed' : 'succeeded',
+                  errorMessage: syncResult.errors.length
+                    ? `Metafield sync errors: ${syncResult.errors.join(', ')}`
+                    : null,
+                  modelUsed: 'ae_v1',
+                },
+              });
+              if (syncResult.errors.length) {
+                this.logger.warn(
+                  `[AnswerBlockAutomation] Metafield sync had errors for product ${productId} (project ${projectId}): ${syncResult.errors.join(', ')}`,
+                );
+              } else {
+                this.logger.log(
+                  `[AnswerBlockAutomation] Answer Blocks synced to Shopify metafields for product ${productId} (project ${projectId})`,
+                );
+              }
+            } catch (syncError) {
+              this.logger.warn(
+                `[AnswerBlockAutomation] Failed to sync Answer Blocks to Shopify metafields for product ${productId} (project ${projectId}): ${
+                  syncError instanceof Error ? syncError.message : String(syncError)
+                }`,
+              );
+              await this.prisma.answerBlockAutomationLog.create({
+                data: {
+                  projectId,
+                  productId,
+                  triggerType,
+                  planId,
+                  action: 'answer_blocks_synced_to_shopify',
+                  status: 'failed',
+                  errorMessage:
+                    syncError instanceof Error
+                      ? syncError.message
+                      : String(syncError),
+                },
+              });
+              // Do not rethrow – metafield sync failures must not fail the core automation.
+            }
+          }
         } catch (error) {
           console.error(
             `[AnswerBlockAutomation] Failed to process job for product ${productId} (project ${projectId})`,

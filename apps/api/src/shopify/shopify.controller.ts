@@ -131,4 +131,30 @@ export class ShopifyController {
 
     return this.shopifyService.updateProductSeo(productId, seoTitle, seoDescription, req.user.id);
   }
+
+  /**
+   * POST /shopify/ensure-metafield-definitions?projectId=...
+   * Manually trigger creation of Answer Block metafield definitions in Shopify.
+   * Use this for stores connected before AEO-2 metafields sync was deployed.
+   */
+  @Post('ensure-metafield-definitions')
+  @UseGuards(JwtAuthGuard)
+  async ensureMetafieldDefinitions(
+    @Request() req: any,
+    @Query('projectId') projectId: string,
+  ) {
+    if (!projectId) {
+      throw new BadRequestException('Missing projectId parameter');
+    }
+
+    const isOwner = await this.shopifyService.validateProjectOwnership(
+      projectId,
+      req.user.id,
+    );
+    if (!isOwner) {
+      throw new UnauthorizedException('You do not own this project');
+    }
+
+    return this.shopifyService.ensureMetafieldDefinitions(projectId);
+  }
 }

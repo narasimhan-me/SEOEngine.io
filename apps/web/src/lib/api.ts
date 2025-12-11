@@ -198,6 +198,7 @@ export const projectsApi = {
     autoSuggestMissingMetadata?: boolean;
     autoSuggestThinContent?: boolean;
     autoSuggestDailyCap?: number;
+    aeoSyncToShopifyMetafields?: boolean;
   }) =>
     fetchWithAuth(`/projects/${id}`, {
       method: 'PUT',
@@ -301,6 +302,11 @@ export const shopifyApi = {
     fetchWithAuth('/shopify/update-product-seo', {
       method: 'POST',
       body: JSON.stringify({ productId, seoTitle, seoDescription }),
+    }),
+
+  ensureMetafieldDefinitions: (projectId: string) =>
+    fetchWithAuth(`/shopify/ensure-metafield-definitions?projectId=${projectId}`, {
+      method: 'POST',
     }),
 };
 

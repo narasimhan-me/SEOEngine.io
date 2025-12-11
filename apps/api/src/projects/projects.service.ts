@@ -15,6 +15,7 @@ export interface UpdateProjectDto {
   autoSuggestMissingMetadata?: boolean;
   autoSuggestThinContent?: boolean;
   autoSuggestDailyCap?: number;
+  aeoSyncToShopifyMetafields?: boolean;
 }
 
 @Injectable()
@@ -87,6 +88,9 @@ export class ProjectsService {
         ...(dto.autoSuggestMissingMetadata !== undefined && { autoSuggestMissingMetadata: dto.autoSuggestMissingMetadata }),
         ...(dto.autoSuggestThinContent !== undefined && { autoSuggestThinContent: dto.autoSuggestThinContent }),
         ...(dto.autoSuggestDailyCap !== undefined && { autoSuggestDailyCap: dto.autoSuggestDailyCap }),
+        ...(dto.aeoSyncToShopifyMetafields !== undefined && {
+          aeoSyncToShopifyMetafields: dto.aeoSyncToShopifyMetafields,
+        }),
       },
     });
   }
@@ -213,6 +217,7 @@ export class ProjectsService {
       autoSuggestMissingMetadata: project.autoSuggestMissingMetadata,
       autoSuggestThinContent: project.autoSuggestThinContent,
       autoSuggestDailyCap: project.autoSuggestDailyCap,
+      aeoSyncToShopifyMetafields: project.aeoSyncToShopifyMetafields ?? false,
     };
   }
 
