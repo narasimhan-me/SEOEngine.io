@@ -85,6 +85,15 @@ const ANSWER_BLOCK_METAFIELD_KEY_BY_QUESTION_ID: Record<string, string> =
     return acc;
   }, {} as Record<string, string>);
 
+interface ShopifyGraphqlError {
+  message: string;
+}
+
+interface ShopifyGraphqlEnvelope<T> {
+  data?: T;
+  errors?: ShopifyGraphqlError[];
+}
+
 export function mapAnswerBlocksToMetafieldPayloads(
   blocks: { questionId: string; answerText: string }[],
 ): {
@@ -147,6 +156,58 @@ export class ShopifyService {
     }
     this.lastShopifyRequestAt = Date.now();
     return fetch(url, init);
+  }
+
+  private async executeShopifyGraphql<T>(
+    shopDomain: string,
+    accessToken: string,
+    params: { query: string; variables?: any; operationName?: string },
+  ): Promise<T> {
+    const url = `https://${shopDomain}/admin/api/2024-01/graphql.json`;
+    const response = await this.rateLimitedFetch(url, {
+      method: 'POST',
+      headers: {
+        'X-Shopify-Access-Token': accessToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: params.query,
+        variables: params.variables ?? {},
+        operationName: params.operationName,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      this.logger.error(
+        `[ShopifyGraphQL] HTTP error for operation ${
+          params.operationName ?? 'unknown'
+        }: ${errorText}`,
+      );
+      throw new BadRequestException('Failed to call Shopify GraphQL Admin API');
+    }
+
+    const json = (await response.json()) as ShopifyGraphqlEnvelope<T>;
+
+    if (json.errors && json.errors.length) {
+      this.logger.error(
+        `[ShopifyGraphQL] GraphQL errors for operation ${
+          params.operationName ?? 'unknown'
+        }: ${JSON.stringify(json.errors)}`,
+      );
+      throw new BadRequestException('Failed to call Shopify GraphQL Admin API');
+    }
+
+    if (!json.data) {
+      this.logger.error(
+        `[ShopifyGraphQL] Missing data for operation ${
+          params.operationName ?? 'unknown'
+        }`,
+      );
+      throw new BadRequestException('Failed to call Shopify GraphQL Admin API');
+    }
+
+    return json.data;
   }
 
   /**
@@ -287,48 +348,64 @@ export class ShopifyService {
 
   /**
    * Ensure metafield definitions for Answer Blocks exist for this project/store.
-   * Uses Shopify Admin API metafield_definitions endpoint (namespace: engineo, owner_type: product).
+   * Uses Shopify GraphQL Admin API for metafield definitions (namespace: engineo, owner_type: PRODUCT).
    */
   private async ensureMetafieldDefinitionsForStore(
     projectId: string,
     shopDomain: string,
     accessToken: string,
   ): Promise<{ created: number; existing: number; errors: string[] }> {
-    const listUrl = `https://${shopDomain}/admin/api/2023-10/metafield_definitions.json?namespace=engineo&owner_type=product`;
-    const listResponse = await this.rateLimitedFetch(listUrl, {
-      method: 'GET',
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-        'Content-Type': 'application/json',
-      },
-    });
+    const query = `
+      query GetEngineoMetafieldDefinitions(
+        $ownerType: MetafieldOwnerType!
+        $namespace: String!
+        $first: Int!
+      ) {
+        metafieldDefinitions(ownerType: $ownerType, namespace: $namespace, first: $first) {
+          edges {
+            node {
+              id
+              key
+              namespace
+            }
+          }
+        }
+      }
+    `;
 
-    if (!listResponse.ok) {
-      const errorText = await listResponse.text();
+    let existingKeys: Set<string>;
+    try {
+      const data = await this.executeShopifyGraphql<{
+        metafieldDefinitions: {
+          edges: Array<{
+            node: {
+              id: string;
+              key: string;
+              namespace: string;
+            };
+          }>;
+        };
+      }>(shopDomain, accessToken, {
+        query,
+        variables: {
+          ownerType: 'PRODUCT',
+          namespace: 'engineo',
+          first: 50,
+        },
+        operationName: 'GetEngineoMetafieldDefinitions',
+      });
+
+      existingKeys = new Set(
+        (data.metafieldDefinitions?.edges ?? []).map((edge) => edge.node.key),
+      );
+    } catch (err) {
       this.logger.warn(
-        `[ShopifyMetafields] Failed to list metafield definitions for project ${projectId} (${shopDomain}): ${errorText}`,
+        `[ShopifyMetafields] Failed to list metafield definitions for project ${projectId} (${shopDomain}): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
       );
       return { created: 0, existing: 0, errors: ['metafield_definitions_list_failed'] };
     }
-
-    const payload = (await listResponse.json()) as {
-      metafield_definitions?: Array<{
-        id: number;
-        namespace: string;
-        key: string;
-        owner_type?: string;
-      }>;
-    };
-
-    const existingKeys = new Set(
-      (payload.metafield_definitions ?? [])
-        .filter(
-          (def) =>
-            def.namespace === 'engineo' &&
-            (def.owner_type === 'product' || !def.owner_type),
-        )
-        .map((def) => def.key),
-    );
 
     let created = 0;
     let existing = 0;
@@ -340,37 +417,66 @@ export class ShopifyService {
         continue;
       }
 
-      const createBody = {
-        metafield_definition: {
-          namespace: 'engineo',
-          key: def.key,
-          name: def.name,
-          description: def.description,
-          type: 'multi_line_text_field',
-          owner_type: 'product',
-        },
+      const mutation = `
+        mutation CreateEngineoMetafieldDefinition($definition: MetafieldDefinitionInput!) {
+          metafieldDefinitionCreate(definition: $definition) {
+            metafieldDefinition {
+              id
+              key
+              namespace
+            }
+            userErrors {
+              field
+              message
+            }
+          }
+        }
+      `;
+
+      const definitionInput = {
+        name: def.name,
+        namespace: 'engineo',
+        key: def.key,
+        type: 'multi_line_text_field',
+        ownerType: 'PRODUCT',
+        description: def.description,
       };
 
-      const createUrl = `https://${shopDomain}/admin/api/2023-10/metafield_definitions.json`;
-      const createResponse = await this.rateLimitedFetch(createUrl, {
-        method: 'POST',
-        headers: {
-          'X-Shopify-Access-Token': accessToken,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(createBody),
-      });
+      try {
+        const result = await this.executeShopifyGraphql<{
+          metafieldDefinitionCreate: {
+            metafieldDefinition: {
+              id: string;
+              key: string;
+              namespace: string;
+            } | null;
+            userErrors: Array<{ field?: string[] | null; message: string }>;
+          };
+        }>(shopDomain, accessToken, {
+          query: mutation,
+          variables: { definition: definitionInput },
+          operationName: 'CreateEngineoMetafieldDefinition',
+        });
 
-      if (!createResponse.ok) {
-        const errorText = await createResponse.text();
+        const userErrors = result.metafieldDefinitionCreate.userErrors ?? [];
+        if (userErrors.length > 0) {
+          this.logger.warn(
+            `[ShopifyMetafields] Failed to create metafield definition ${def.key} for project ${projectId}: ${userErrors
+              .map((e) => e.message)
+              .join('; ')}`,
+          );
+          errors.push(`definition:${def.key}`);
+          continue;
+        }
+        created++;
+      } catch (error) {
         this.logger.warn(
-          `[ShopifyMetafields] Failed to create metafield definition ${def.key} for project ${projectId}: ${errorText}`,
+          `[ShopifyMetafields] Error creating metafield definition ${def.key} for project ${projectId}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
         );
         errors.push(`definition:${def.key}`);
-        continue;
       }
-
-      created++;
     }
 
     return { created, existing, errors };
@@ -407,6 +513,59 @@ export class ShopifyService {
       existing: result.existing,
       errors: result.errors,
     };
+  }
+
+  /**
+   * Upsert metafields using GraphQL metafieldsSet mutation.
+   */
+  private async upsertMetafields(
+    shopDomain: string,
+    accessToken: string,
+    metafields: Array<{
+      ownerId: string;
+      namespace: string;
+      key: string;
+      type: string;
+      value: string;
+    }>,
+  ): Promise<string[]> {
+    if (!metafields.length) {
+      return [];
+    }
+
+    const mutation = `
+      mutation SetEngineoMetafields($metafields: [MetafieldsSetInput!]!) {
+        metafieldsSet(metafields: $metafields) {
+          metafields {
+            id
+            namespace
+            key
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+
+    const data = await this.executeShopifyGraphql<{
+      metafieldsSet: {
+        metafields: Array<{ id: string; namespace: string; key: string }>;
+        userErrors: Array<{ field?: string[] | null; message: string }>;
+      };
+    }>(shopDomain, accessToken, {
+      query: mutation,
+      variables: { metafields },
+      operationName: 'SetEngineoMetafields',
+    });
+
+    const userErrors = data.metafieldsSet?.userErrors ?? [];
+    if (!userErrors.length) {
+      return [];
+    }
+
+    return userErrors.map((e) => e.message);
   }
 
   /**
@@ -491,40 +650,7 @@ export class ShopifyService {
     // Ensure metafield definitions exist for this project/store
     await this.ensureMetafieldDefinitions(product.projectId);
 
-    const listUrl = `https://${shopDomain}/admin/api/2023-10/products/${externalProductId}/metafields.json?namespace=engineo`;
-    const listResponse = await this.rateLimitedFetch(listUrl, {
-      method: 'GET',
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!listResponse.ok) {
-      const errorText = await listResponse.text();
-      this.logger.warn(
-        `[ShopifyMetafields] Failed to list metafields for product ${externalProductId} (${shopDomain}): ${errorText}`,
-      );
-      return {
-        productId,
-        shopDomain,
-        syncedCount: 0,
-        skippedUnknownQuestionIds: [],
-        errors: ['metafields_fetch_failed'],
-        skippedReason: 'metafields_fetch_failed',
-      };
-    }
-
-    const existingPayload = (await listResponse.json()) as {
-      metafields?: Array<{ id: number; key: string; namespace: string }>;
-    };
-
-    const existingByKey = new Map<string, { id: number }>();
-    for (const mf of existingPayload.metafields ?? []) {
-      if (mf.namespace === 'engineo') {
-        existingByKey.set(mf.key, { id: mf.id });
-      }
-    }
+    const ownerId = `gid://shopify/Product/${externalProductId}`;
 
     const { mappings, skippedUnknownQuestionIds } = mapAnswerBlocksToMetafieldPayloads(
       answerBlocks.map((block: any) => ({
@@ -533,74 +659,39 @@ export class ShopifyService {
       })),
     );
 
-    let syncedCount = 0;
-    const errors: string[] = [];
-
-    for (const mapping of mappings) {
-      const existing = existingByKey.get(mapping.key);
-      try {
-        if (existing) {
-          const updateUrl = `https://${shopDomain}/admin/api/2023-10/metafields/${existing.id}.json`;
-          const updateBody = {
-            metafield: {
-              id: existing.id,
-              type: 'multi_line_text_field',
-              value: mapping.value,
-            },
-          };
-          const updateResponse = await this.rateLimitedFetch(updateUrl, {
-            method: 'PUT',
-            headers: {
-              'X-Shopify-Access-Token': accessToken,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(updateBody),
-          });
-          if (!updateResponse.ok) {
-            const errorText = await updateResponse.text();
-            this.logger.warn(
-              `[ShopifyMetafields] Failed to update metafield ${mapping.key} for product ${externalProductId}: ${errorText}`,
-            );
-            errors.push(`update:${mapping.key}`);
-            continue;
-          }
-        } else {
-          const createUrl = `https://${shopDomain}/admin/api/2023-10/products/${externalProductId}/metafields.json`;
-          const createBody = {
-            metafield: {
-              namespace: 'engineo',
-              key: mapping.key,
-              type: 'multi_line_text_field',
-              value: mapping.value,
-            },
-          };
-          const createResponse = await this.rateLimitedFetch(createUrl, {
-            method: 'POST',
-            headers: {
-              'X-Shopify-Access-Token': accessToken,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(createBody),
-          });
-          if (!createResponse.ok) {
-            const errorText = await createResponse.text();
-            this.logger.warn(
-              `[ShopifyMetafields] Failed to create metafield ${mapping.key} for product ${externalProductId}: ${errorText}`,
-            );
-            errors.push(`create:${mapping.key}`);
-            continue;
-          }
-        }
-        syncedCount++;
-      } catch (err) {
-        this.logger.warn(
-          `[ShopifyMetafields] Error syncing metafield ${mapping.key} for product ${externalProductId}: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
-        );
-        errors.push(`error:${mapping.key}`);
-      }
+    if (!mappings.length) {
+      this.logger.log(
+        `[ShopifyMetafields] No mapped Answer Blocks to sync for product ${productId}.`,
+      );
+      return {
+        productId,
+        shopDomain,
+        syncedCount: 0,
+        skippedUnknownQuestionIds,
+        errors: [],
+      };
     }
+
+    const metafieldsInput = mappings.map((mapping) => ({
+      ownerId,
+      namespace: 'engineo',
+      key: mapping.key,
+      type: 'multi_line_text_field',
+      value: mapping.value,
+    }));
+
+    const metafieldErrors = await this.upsertMetafields(
+      shopDomain,
+      accessToken,
+      metafieldsInput,
+    );
+
+    const errors: string[] = metafieldErrors.map(
+      (message) => `metafieldsSet:${message}`,
+    );
+
+    const syncedCount =
+      metafieldsInput.length && !errors.length ? metafieldsInput.length : 0;
 
     return {
       productId,
@@ -709,24 +800,29 @@ export class ShopifyService {
   }
 
   /**
-   * Fetch products from Shopify Admin GraphQL API
+   * Fetch products from Shopify Admin GraphQL API (paginated)
    * Uses GraphQL to retrieve SEO metafields which aren't returned by REST API
    */
   private async fetchShopifyProducts(
     shopDomain: string,
     accessToken: string,
   ): Promise<ShopifyProduct[]> {
-    const url = `https://${shopDomain}/admin/api/2024-01/graphql.json`;
-
     const query = `
-      query GetProducts($first: Int!) {
-        products(first: $first) {
+      query GetProducts($first: Int!, $after: String) {
+        products(first: $first, after: $after, sortKey: ID) {
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
           edges {
             node {
               id
               title
               handle
               descriptionHtml
+              status
+              productType
+              vendor
               seo {
                 title
                 description
@@ -734,7 +830,18 @@ export class ShopifyService {
               images(first: 10) {
                 edges {
                   node {
+                    id
+                    altText
                     url
+                  }
+                }
+              }
+              variants(first: 10) {
+                edges {
+                  node {
+                    id
+                    title
+                    price
                   }
                 }
               }
@@ -744,85 +851,98 @@ export class ShopifyService {
       }
     `;
 
-    const response = await this.rateLimitedFetch(url, {
-      method: 'POST',
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query,
-        variables: { first: 50 },
-      }),
-    });
+    const allProducts: ShopifyProduct[] = [];
+    let after: string | null = null;
+    const pageSize = 50;
+    let loggedSample = false;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Shopify GraphQL API error:', errorText);
-      throw new BadRequestException('Failed to fetch products from Shopify');
-    }
-
-    const data = await response.json() as {
-      data?: {
-        products?: {
+    do {
+      const data = await this.executeShopifyGraphql<{
+        products: {
+          pageInfo: {
+            hasNextPage: boolean;
+            endCursor: string | null;
+          };
           edges: Array<{
             node: {
               id: string;
               title: string;
-              handle?: string;
-              descriptionHtml?: string;
+              handle?: string | null;
+              descriptionHtml?: string | null;
+              status?: string | null;
+              productType?: string | null;
+              vendor?: string | null;
               seo?: {
-                title?: string;
-                description?: string;
-              };
+                title?: string | null;
+                description?: string | null;
+              } | null;
               images?: {
                 edges: Array<{
-                  node: { url: string };
+                  node: {
+                    id: string;
+                    altText?: string | null;
+                    url: string;
+                  };
                 }>;
-              };
+              } | null;
+              variants?: {
+                edges: Array<{
+                  node: {
+                    id: string;
+                    title?: string | null;
+                    price?: string | null;
+                  };
+                }>;
+              } | null;
             };
           }>;
         };
-      };
-      errors?: Array<{ message: string }>;
-    };
-
-    if (data.errors) {
-      console.error('Shopify GraphQL errors:', data.errors);
-      throw new BadRequestException('Failed to fetch products from Shopify');
-    }
-
-    const edges = data.data?.products?.edges || [];
-
-    // Log the first product's SEO data for debugging
-    if (edges.length > 0) {
-      const firstNode = edges[0].node;
-      console.log('[Shopify Sync] Sample product SEO data:', {
-        title: firstNode.title,
-        seo: firstNode.seo,
-        hasSeoTitle: !!firstNode.seo?.title,
-        hasSeoDescription: !!firstNode.seo?.description,
+      }>(shopDomain, accessToken, {
+        query,
+        variables: {
+          first: pageSize,
+          after,
+        },
+        operationName: 'GetProducts',
       });
-    }
 
-    // Transform GraphQL response to our ShopifyProduct interface
-    return edges.map((edge) => {
-      const node = edge.node;
-      // Extract numeric ID from GraphQL ID (e.g., "gid://shopify/Product/123" -> 123)
-      const numericId = parseInt(node.id.split('/').pop() || '0', 10);
+      const edges = data.products?.edges ?? [];
 
-      const product = {
-        id: numericId,
-        title: node.title,
-        handle: node.handle,
-        body_html: node.descriptionHtml,
-        metafields_global_title_tag: node.seo?.title || undefined,
-        metafields_global_description_tag: node.seo?.description || undefined,
-        images: node.images?.edges.map((imgEdge) => ({ src: imgEdge.node.url })),
-      };
+      if (!loggedSample && edges.length > 0) {
+        const firstNode = edges[0].node;
+        console.log('[Shopify Sync] Sample product SEO data:', {
+          title: firstNode.title,
+          seo: firstNode.seo,
+          hasSeoTitle: !!firstNode.seo?.title,
+          hasSeoDescription: !!firstNode.seo?.description,
+        });
+        loggedSample = true;
+      }
 
-      return product;
-    });
+      for (const edge of edges) {
+        const node = edge.node;
+        const numericId = parseInt(node.id.split('/').pop() || '0', 10);
+        const product: ShopifyProduct = {
+          id: numericId,
+          title: node.title,
+          handle: node.handle ?? undefined,
+          body_html: node.descriptionHtml ?? undefined,
+          metafields_global_title_tag: node.seo?.title || undefined,
+          metafields_global_description_tag: node.seo?.description || undefined,
+          images: node.images?.edges.map((imgEdge) => ({ src: imgEdge.node.url })) ?? [],
+          status: node.status ?? undefined,
+          productType: node.productType ?? undefined,
+          vendor: node.vendor ?? undefined,
+        };
+        allProducts.push(product);
+      }
+
+      const pageInfo = data.products?.pageInfo;
+      after =
+        pageInfo && pageInfo.hasNextPage ? pageInfo.endCursor ?? null : null;
+    } while (after);
+
+    return allProducts;
   }
 
   /**
@@ -920,8 +1040,8 @@ export class ShopifyService {
   }
 
   /**
-   * Update SEO fields for a product in Shopify via Admin API
-   * Uses metafields for SEO title and description
+   * Update SEO fields for a product in Shopify via GraphQL Admin API
+   * Uses productUpdate mutation to set seo.title and seo.description
    */
   private async updateShopifyProductSeo(
     shopDomain: string,
@@ -930,31 +1050,56 @@ export class ShopifyService {
     seoTitle: string,
     seoDescription: string,
   ): Promise<void> {
-    // Shopify REST API endpoint for updating a product
-    const url = `https://${shopDomain}/admin/api/2023-10/products/${externalProductId}.json`;
+    const mutation = `
+      mutation UpdateProductSeo($input: ProductInput!) {
+        productUpdate(input: $input) {
+          product {
+            id
+            seo {
+              title
+              description
+            }
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
 
-    // Update product with metafields_global_title_tag and metafields_global_description_tag
-    // These are Shopify's built-in SEO fields that appear in the product admin
-    const body = {
-      product: {
-        id: externalProductId,
-        metafields_global_title_tag: seoTitle,
-        metafields_global_description_tag: seoDescription,
+    const input = {
+      id: `gid://shopify/Product/${externalProductId}`,
+      seo: {
+        title: seoTitle,
+        description: seoDescription,
       },
     };
 
-    const response = await this.rateLimitedFetch(url, {
-      method: 'PUT',
-      headers: {
-        'X-Shopify-Access-Token': accessToken,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
+    const data = await this.executeShopifyGraphql<{
+      productUpdate: {
+        product: {
+          id: string;
+          seo?: {
+            title?: string | null;
+            description?: string | null;
+          };
+        } | null;
+        userErrors: Array<{ field?: string[] | null; message: string }>;
+      } | null;
+    }>(shopDomain, accessToken, {
+      query: mutation,
+      variables: { input },
+      operationName: 'UpdateProductSeo',
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Shopify API error updating product SEO:', errorText);
+    const userErrors = data.productUpdate?.userErrors ?? [];
+    if (userErrors.length > 0) {
+      this.logger.warn(
+        `[ShopifyGraphQL] productUpdate returned errors: ${userErrors
+          .map((e) => e.message)
+          .join('; ')}`,
+      );
       throw new BadRequestException('Failed to update product SEO in Shopify');
     }
   }
@@ -981,4 +1126,7 @@ interface ShopifyProduct {
   metafields_global_title_tag?: string;
   metafields_global_description_tag?: string;
   images?: Array<{ src: string }>;
+  status?: string;
+  productType?: string;
+  vendor?: string;
 }

@@ -8127,7 +8127,84 @@ Shopify Sync → New Product Detected → AutomationService Triggered
 
 ---
 
-These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-8, AE-1 (Answer Engine), AE-1 (Automation Engine), AE-2 (Product Automations), AEO-2 (Shopify Metafields Sync), UX-Content-1, UX-Content-2, and MARKETING-1 through MARKETING-6 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
+## Phase SHOP-API-1 – Shopify Product API Migration (REST → New GraphQL Product APIs)
+
+**Status:** Complete
+
+**Goal:** Migrate all Shopify product sync and product SEO update flows from deprecated REST Admin endpoints to the new GraphQL Admin product APIs, while preserving existing DEO, AEO, Issues Engine, and Automation Engine behavior.
+
+### Scope (SHOP-API-1)
+
+- **Product sync via GraphQL:**
+  - Replace REST `/admin/api/*/products.json` usage with a GraphQL `products` query called via the Shopify Admin GraphQL endpoint (`/admin/api/2024-01/graphql.json`).
+  - Implement cursor-based pagination (`pageInfo.hasNextPage`, `endCursor`) with a small delay between calls to respect Shopify rate limits.
+  - Retrieve and map the following fields into the existing Product model used by DEO/AEO:
+    - `id` (mapped from Product GID)
+    - `title`
+    - `descriptionHtml` → local description/body_html
+    - `seo { title, description }`
+    - `handle`
+    - `status`, `productType`, `vendor` (stored for future use)
+    - `images.edges[].node { id, altText, url }`
+    - `variants.edges[].node { id, title, price }` (available for downstream features)
+
+- **Product SEO updates via GraphQL:**
+  - Replace REST `PUT /admin/api/*/products/{id}.json` with a GraphQL `productUpdate` mutation that:
+    - Accepts a `ProductInput` containing the product GID and `seo { title, description }`.
+    - Returns updated SEO fields and any `userErrors`.
+  - Keep the public `/shopify/update-product-seo` endpoint and Product Workspace "Apply to Shopify" UX unchanged, swapping only the transport layer.
+  - Treat GraphQL `userErrors` as failures, surfacing friendly messages in the UI and logging details for debugging.
+
+- **Metafield helpers (GraphQL-based, AEO-2 compatible):**
+  - Implement GraphQL helpers for metafield operations:
+    - `metafieldDefinitions(ownerType: PRODUCT, namespace: "engineo")` + `metafieldDefinitionCreate` for Answer Block-related metafield definitions.
+    - `metafieldsSet` for Answer Block metafield upserts.
+  - Update existing Answer Block metafield sync logic to use these GraphQL helpers instead of REST `/metafields*.json`, without changing AEO-2 semantics.
+
+- **Product handle resolution via GraphQL:**
+  - Replace REST `GET /admin/api/*/products/{id}.json` in the SEO scan pipeline with a GraphQL `product(id: ...)` query that returns the product handle for building the public product URL.
+
+### Implementation & Tests
+
+- **Backend changes:**
+  - `apps/api/src/shopify/shopify.service.ts`:
+    - Added a shared `executeShopifyGraphql<T>()` helper built on the existing rate-limited fetch wrapper.
+    - Migrated product sync to use a paginated GraphQL `products` query, mapping responses into the existing `ShopifyProduct` DTO and local Product table.
+    - Migrated SEO updates to use a GraphQL `productUpdate` mutation for `/shopify/update-product-seo`, handling `userErrors` explicitly.
+    - Introduced GraphQL metafield helpers and wired Answer Block metafield sync to use `metafieldsSet`.
+  - `apps/api/src/seo-scan/seo-scan.service.ts`:
+    - Updated product handle retrieval to use a GraphQL `product(id: ...)` query instead of REST.
+
+- **Tests:**
+  - **Unit:**
+    - `tests/unit/shopify/shopify-graphql-products-mapping.test.ts` – verifies GraphQL products query mapping into internal ShopifyProduct DTOs.
+    - `tests/unit/shopify/shopify-graphql-seo-update.test.ts` – verifies `productUpdate` mutation payload construction and `userErrors` handling for SEO updates.
+  - **Integration (mocked Shopify GraphQL endpoint):**
+    - `tests/integration/shopify/shopify-graphql-api.integration.test.ts` – covers GraphQL-based product sync and SEO update flows end-to-end against a test database.
+    - `tests/integration/shopify-metafields/shopify-metafields-sync.integration.test.ts` – updated to exercise Answer Block metafield sync via GraphQL metafield definitions and `metafieldsSet`.
+
+- **Documentation & Manual Testing:**
+  - `SHOPIFY_INTEGRATION.md` updated to:
+    - Use GraphQL product queries for product sync examples.
+    - Use `productUpdate` for SEO update examples.
+    - Document GraphQL metafield operations (`metafieldDefinitions`, `metafieldDefinitionCreate`, `metafieldsSet`) as the primary path for AEO-related metafields.
+  - Manual testing guide created for this phase:
+    - `docs/manual-testing/phase-shop-api-1-graphql-migration.md`
+
+### Acceptance Criteria (Completed)
+
+- [x] All product sync flows use Shopify Admin GraphQL `products` queries (no REST `/products.json` calls).
+- [x] All product SEO update flows use Shopify Admin GraphQL `productUpdate` (no REST `PUT /products/{id}.json` calls).
+- [x] Metafield definitions and Answer Block metafield sync use GraphQL metafield APIs (`metafieldDefinitions`, `metafieldDefinitionCreate`, `metafieldsSet`) instead of REST `/metafields*.json`.
+- [x] Existing DEO, AEO, Issues Engine, and Automation Engine behaviors remain unchanged from the user perspective.
+- [x] Unit and integration tests for GraphQL mapping and error handling are in place and passing.
+- [x] Manual testing completed per `docs/manual-testing/phase-shop-api-1-graphql-migration.md`.
+
+**Manual Testing:** `docs/manual-testing/phase-shop-api-1-graphql-migration.md`
+
+---
+
+These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-8, AE-1 (Answer Engine), AE-1 (Automation Engine), AE-2 (Product Automations), AEO-2 (Shopify Metafields Sync), SHOP-API-1 (GraphQL Migration), UX-Content-1, UX-Content-2, and MARKETING-1 through MARKETING-6 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
 
 - Phases 12–17: Core feature sets (automation, content, performance, competitors, local, social).
 - Phases 18–22: Security, subscription management, monitoring, fairness & limits.

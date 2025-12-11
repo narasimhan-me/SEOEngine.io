@@ -1,5 +1,5 @@
 // Integration tests for Shopify Answer Block metafield sync (AEO-2).
-// Uses the shared test Prisma client and mocks Shopify Admin API via global.fetch.
+// Uses the shared test Prisma client and mocks Shopify GraphQL Admin API via global.fetch.
 
 import {
   cleanupTestDb,
@@ -80,60 +80,68 @@ describe('Shopify Answer Block metafields sync (integration)', () => {
     });
 
     const recordedDefinitionKeys: string[] = [];
-    const recordedMetafieldUpserts: Array<{ url: string; body: any }> = [];
+    const recordedMetafieldInputs: Array<any> = [];
 
     (global as any).fetch = jest.fn(
-      async (url: string, init: any): Promise<any> => {
-        if (
-          url.includes(
-            '/admin/api/2023-10/metafield_definitions.json?namespace=engineo&owner_type=product',
-          )
-        ) {
-          return {
-            ok: true,
-            json: async () => ({ metafield_definitions: [] }),
-            text: async () => '',
-          };
-        }
+      async (_url: string, init: any): Promise<any> => {
+        const body = JSON.parse((init?.body as string) ?? '{}');
+        const operationName = body.operationName as string | undefined;
 
-        if (url.endsWith('/admin/api/2023-10/metafield_definitions.json')) {
-          const body = JSON.parse(init.body as string);
-          recordedDefinitionKeys.push(body.metafield_definition.key);
+        if (operationName === 'GetEngineoMetafieldDefinitions') {
           return {
             ok: true,
             json: async () => ({
-              metafield_definition: { id: 1 },
+              data: {
+                metafieldDefinitions: {
+                  edges: [],
+                },
+              },
             }),
             text: async () => '',
           };
         }
 
-        if (
-          url.includes(
-            '/admin/api/2023-10/products/1111111111/metafields.json?namespace=engineo',
-          )
-        ) {
+        if (operationName === 'CreateEngineoMetafieldDefinition') {
+          const definition = body.variables.definition;
+          recordedDefinitionKeys.push(definition.key);
           return {
             ok: true,
-            json: async () => ({ metafields: [] }),
+            json: async () => ({
+              data: {
+                metafieldDefinitionCreate: {
+                  metafieldDefinition: {
+                    id: 'gid://shopify/MetafieldDefinition/1',
+                    key: definition.key,
+                    namespace: definition.namespace,
+                  },
+                  userErrors: [],
+                },
+              },
+            }),
             text: async () => '',
           };
         }
 
-        if (
-          url.includes('/admin/api/2023-10/products/1111111111/metafields.json') &&
-          !url.includes('?namespace=')
-        ) {
-          const body = JSON.parse(init.body as string);
-          recordedMetafieldUpserts.push({ url, body });
+        if (operationName === 'SetEngineoMetafields') {
+          const metafields = body.variables.metafields;
+          recordedMetafieldInputs.push(...metafields);
           return {
             ok: true,
-            json: async () => ({ metafield: { id: 999 } }),
+            json: async () => ({
+              data: {
+                metafieldsSet: {
+                  metafields: [],
+                  userErrors: [],
+                },
+              },
+            }),
             text: async () => '',
           };
         }
 
-        throw new Error(`Unexpected fetch URL in metafields sync test: ${url}`);
+        throw new Error(
+          `Unexpected GraphQL operation in metafields sync test: ${operationName}`,
+        );
       },
     );
 
@@ -166,15 +174,13 @@ describe('Shopify Answer Block metafields sync (integration)', () => {
     expect(result.syncedCount).toBeGreaterThanOrEqual(1);
     expect(result.errors).toEqual([]);
 
-    expect(recordedMetafieldUpserts.length).toBe(1);
-    const upsert = recordedMetafieldUpserts[0];
-    expect(upsert.url).toContain(
-      '/admin/api/2023-10/products/1111111111/metafields.json',
-    );
-    expect(upsert.body.metafield.namespace).toBe('engineo');
-    expect(upsert.body.metafield.type).toBe('multi_line_text_field');
-    expect(upsert.body.metafield.key).toBe('answer_what_is_it');
-    expect(upsert.body.metafield.value).toBe(
+    expect(recordedMetafieldInputs.length).toBeGreaterThanOrEqual(1);
+    const upsert = recordedMetafieldInputs[0];
+    expect(upsert.ownerId).toBe('gid://shopify/Product/1111111111');
+    expect(upsert.namespace).toBe('engineo');
+    expect(upsert.type).toBe('multi_line_text_field');
+    expect(upsert.key).toBe('answer_what_is_it');
+    expect(upsert.value).toBe(
       'This is a metafield-sync test answer.',
     );
   });

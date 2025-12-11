@@ -455,33 +455,72 @@ export class SeoScanService {
   }
 
   /**
-   * Fetch a single product from Shopify to get its handle
+   * Fetch a single product from Shopify to get its handle via GraphQL
    */
   private async fetchShopifyProductHandle(
     shopDomain: string,
     accessToken: string,
     productId: string,
   ): Promise<{ handle: string } | null> {
-    const url = `https://${shopDomain}/admin/api/2023-10/products/${productId}.json`;
+    const url = `https://${shopDomain}/admin/api/2024-01/graphql.json`;
+
+    const query = `
+      query GetProductHandle($id: ID!) {
+        product(id: $id) {
+          handle
+        }
+      }
+    `;
 
     try {
       const response = await fetch(url, {
-        method: 'GET',
+        method: 'POST',
         headers: {
           'X-Shopify-Access-Token': accessToken,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          query,
+          variables: {
+            id: `gid://shopify/Product/${productId}`,
+          },
+          operationName: 'GetProductHandle',
+        }),
       });
 
       if (!response.ok) {
-        console.error('Shopify API error fetching product:', await response.text());
+        console.error(
+          'Shopify GraphQL API error fetching product handle:',
+          await response.text(),
+        );
         return null;
       }
 
-      const data = (await response.json()) as { product: { handle: string } };
-      return data.product || null;
+      const data = (await response.json()) as {
+        data?: {
+          product?: {
+            handle?: string | null;
+          } | null;
+        };
+        errors?: Array<{ message: string }>;
+      };
+
+      if (data.errors && data.errors.length) {
+        console.error(
+          'Shopify GraphQL errors fetching product handle:',
+          data.errors,
+        );
+        return null;
+      }
+
+      const handle = data.data?.product?.handle;
+      if (!handle) {
+        return null;
+      }
+
+      return { handle };
     } catch (error) {
-      console.error('Error fetching Shopify product:', error);
+      console.error('Error fetching Shopify product via GraphQL:', error);
       return null;
     }
   }

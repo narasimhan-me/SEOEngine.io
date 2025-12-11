@@ -6,7 +6,7 @@ This document describes how EngineO.ai integrates with Shopify, including OAuth,
 
 ## 1. Overview
 
-EngineO.ai integrates with Shopify as a **public app** installed by merchants.  
+EngineO.ai integrates with Shopify as a **public app** installed by merchants.
 Once connected, it can:
 
 - Read product and collection data.
@@ -89,7 +89,7 @@ Endpoint: `GET /shopify/callback`
 
 ---
 
-## 5. Data Sync – Products
+## 5. Data Sync – Products (GraphQL)
 
 Endpoint: `POST /shopify/sync-products?projectId=...`
 
@@ -97,11 +97,57 @@ Endpoint: `POST /shopify/sync-products?projectId=...`
   - `shopDomain`
   - `accessToken`
 
-- Calls Shopify Admin API to fetch products (GraphQL or REST).
+- Calls Shopify Admin GraphQL API to fetch products.
 
-Example REST endpoint:
+Example GraphQL endpoint:
 
-- `GET https://{shopDomain}/admin/api/2023-10/products.json?limit=50`
+- `POST https://{shopDomain}/admin/api/2024-01/graphql.json`
+
+Example GraphQL query (paginated):
+
+```graphql
+query GetProducts($first: Int!, $after: String) {
+  products(first: $first, after: $after, sortKey: ID) {
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+    edges {
+      node {
+        id
+        title
+        handle
+        descriptionHtml
+        status
+        productType
+        vendor
+        seo {
+          title
+          description
+        }
+        images(first: 10) {
+          edges {
+            node {
+              id
+              altText
+              url
+            }
+          }
+        }
+        variants(first: 10) {
+          edges {
+            node {
+              id
+              title
+              price
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
 
 For each product:
 
@@ -109,15 +155,16 @@ For each product:
 
   - `id`
   - `title`
-  - `body_html` or `description`
-  - SEO title / description if present (e.g., `metafields` or `seo` fields)
-  - Image URLs
+  - `descriptionHtml` (mapped to local `description`/`body_html`)
+  - SEO title / description from `seo { title, description }`
+  - Image URLs from `images.edges[].node.url`
+  - (Optionally) `status`, `productType`, `vendor`, basic variant data for future use
 
 - Upsert into `Product` table by `shopifyId`.
 
 ---
 
-## 6. SEO Updates – Products
+## 6. SEO Updates – Products (GraphQL)
 
 Endpoint: `POST /shopify/update-product-seo`
 
@@ -135,44 +182,63 @@ Steps:
 
 1. Load `Product` by local `productId`.
 2. Load related `ShopifyStore`.
-3. Call Shopify Admin API to update product:
+3. Call Shopify Admin GraphQL API to update product SEO fields.
 
-For REST:
+Example GraphQL mutation:
 
-```http
-PUT https://{shopDomain}/admin/api/2023-10/products/{shopifyId}.json
-```
-
-With body including updated metafields or SEO fields, e.g.:
-
-```json
-{
-  "product": {
-    "id": 1234567890,
-    "title": "Existing title (or updated)",
-    "metafields": [
-      {
-        "namespace": "global",
-        "key": "seo_title",
-        "value": "SEO Title",
-        "type": "single_line_text_field"
-      },
-      {
-        "namespace": "global",
-        "key": "seo_description",
-        "value": "SEO Description",
-        "type": "multi_line_text_field"
+```graphql
+mutation UpdateProductSeo($input: ProductInput!) {
+  productUpdate(input: $input) {
+    product {
+      id
+      seo {
+        title
+        description
       }
-    ]
+    }
+    userErrors {
+      field
+      message
+    }
   }
 }
 ```
 
-4. On success, update local `Product` with new `seoTitle` and `seoDescription`.
+Example variables:
+
+```json
+{
+  "input": {
+    "id": "gid://shopify/Product/1234567890",
+    "seo": {
+      "title": "SEO Title",
+      "description": "SEO Description"
+    }
+  }
+}
+```
+
+4. On success, EngineO.ai updates the local `Product` row with the new `seoTitle` and `seoDescription`.
 
 ---
 
-## 7. Webhooks (Future)
+## 7. Metafields (GraphQL Preparation)
+
+EngineO.ai prepares for Answer Block metafield sync (AEO-2) by using Shopify's GraphQL metafield APIs:
+
+- **Metafield definitions (per product):**
+  - Uses `metafieldDefinitions(ownerType: PRODUCT, namespace: "engineo")` to list definitions.
+  - Uses `metafieldDefinitionCreate` to create definitions for Answer Block-related keys under the `engineo` namespace.
+
+- **Metafield values (per product):**
+  - Uses `metafields(ownerId: "gid://shopify/Product/...", namespace: "engineo")` to query existing values when needed.
+  - Uses `metafieldsSet` to upsert metafields for Answer Blocks and related AEO data.
+
+> Note: Previous REST-based metafield endpoints (`/metafields.json`, `/metafield_definitions.json`) are deprecated for product flows and have been replaced with GraphQL Admin APIs in EngineO.ai.
+
+---
+
+## 8. Webhooks (Future)
 
 To keep data in sync automatically, consider subscribing to webhooks:
 
@@ -189,12 +255,12 @@ Webhook handler endpoints (e.g. `/shopify/webhooks/products-update`) should:
 
 ---
 
-## 8. Embedded App (Future)
+## 9. Embedded App (Future)
 
 EngineO.ai can optionally be embedded inside Shopify Admin using:
 
 - Shopify App Bridge
-- Polaris (Shopify’s React component library)
+- Polaris (Shopify's React component library)
 
 The MVP can live as a standalone app; embedding is optional but improves UX.
 
