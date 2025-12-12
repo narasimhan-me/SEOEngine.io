@@ -24,6 +24,8 @@
   docs/AUTOMATION_ENGINE_SPEC.md
   SHOPIFY_INTEGRATION.md
   docs/manual-testing/automation-engine-v1-shopify-answer-block-automations.md
+  docs/manual-testing/phase-shop-api-1-graphql-migration.md (GraphQL migration reference)
+  docs/MANUAL_TESTING_TEMPLATE.md (canonical structure reference)
 
 ---
 

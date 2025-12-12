@@ -6,6 +6,17 @@ import * as dotenv from 'dotenv';
 // Load test environment variables
 dotenv.config({ path: '.env.test' });
 
+// Safety check: Refuse to run cleanup if not pointing to test database
+const dbUrl = process.env.DATABASE_URL || '';
+const isTestDatabase = dbUrl.includes('twilight-haze-38151345');
+if (!isTestDatabase) {
+  throw new Error(
+    `SAFETY CHECK FAILED: DATABASE_URL does not point to the test database (twilight-haze-38151345). ` +
+      `Refusing to run to prevent accidental data loss. ` +
+      `Current URL host: ${dbUrl.split('@')[1]?.split('/')[0] || 'unknown'}`,
+  );
+}
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });

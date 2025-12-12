@@ -222,17 +222,33 @@ Example variables:
 
 ---
 
-## 7. Metafields (GraphQL Preparation)
+## 7. Answer Block Metafield Sync (AEO-2)
 
-EngineO.ai prepares for Answer Block metafield sync (AEO-2) by using Shopify's GraphQL metafield APIs:
+EngineO.ai syncs Answer Blocks into Shopify metafields using Shopify's GraphQL metafield APIs:
 
-- **Metafield definitions (per product):**
-  - Uses `metafieldDefinitions(ownerType: PRODUCT, namespace: "engineo")` to list definitions.
-  - Uses `metafieldDefinitionCreate` to create definitions for Answer Block-related keys under the `engineo` namespace.
+- **Namespace and keys:**
+  - Namespace: `engineo`
+  - Keys (mapped from Answer Block question IDs):
+    - `answer_what_is_it`
+    - `answer_key_features`
+    - `answer_how_it_works`
+    - `answer_materials`
+    - `answer_benefits`
+    - `answer_dimensions`
+    - `answer_usage`
+    - `answer_warranty`
+    - `answer_faq`
+    - `answer_care_instructions`
+
+- **Metafield definitions (per store):**
+  - Uses `metafieldDefinitions(ownerType: PRODUCT, namespace: "engineo")` to list existing definitions.
+  - Uses `metafieldDefinitionCreate` to create definitions for Answer Block keys under the `engineo` namespace when missing.
+  - Definitions are created once per store and reused across all products.
 
 - **Metafield values (per product):**
-  - Uses `metafields(ownerId: "gid://shopify/Product/...", namespace: "engineo")` to query existing values when needed.
-  - Uses `metafieldsSet` to upsert metafields for Answer Blocks and related AEO data.
+  - Uses `metafieldsSet` to upsert metafields for each Answer Block.
+  - Each metafield contains the `answerText` from the corresponding Answer Block.
+  - Type: `multi_line_text_field` for all Answer Block metafields.
 
 > Note: Previous REST-based metafield endpoints (`/metafields.json`, `/metafield_definitions.json`) are deprecated for product flows and have been replaced with GraphQL Admin APIs in EngineO.ai.
 

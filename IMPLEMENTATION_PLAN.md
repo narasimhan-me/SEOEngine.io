@@ -8079,7 +8079,7 @@ Shopify Sync → New Product Detected → AutomationService Triggered
     - Skips unknown question IDs while recording them for observability.
   - `ShopifyService.syncAnswerBlocksToShopify(productId)`:
     - Fetches existing `engineo` metafields for the Shopify product.
-    - Upserts metafields for mapped keys via Shopify Admin API (`products/{productId}/metafields` and metafield update endpoints).
+    - Upserts metafields for mapped keys via the Shopify Admin GraphQL API using `metafieldsSet`, after ensuring the relevant `engineo` metafield definitions exist.
     - Returns a structured result (`syncedCount`, `skippedUnknownQuestionIds`, `errors`, and `skippedReason` for no-op cases).
 
 - **Automation Engine integration (AUE-2 link):**
