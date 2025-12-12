@@ -25,6 +25,8 @@ interface PersistedAnswerBlock {
 interface ProductAnswerBlocksPanelProps {
   productId: string;
   planId: string | null;
+  aeoSyncToShopifyMetafields?: boolean;
+  onBlocksLoaded?: (hasBlocks: boolean) => void;
 }
 
 function getConfidenceBadge(confidence: number) {
@@ -49,7 +51,12 @@ function getConfidenceBadge(confidence: number) {
   );
 }
 
-export function ProductAnswerBlocksPanel({ productId, planId }: ProductAnswerBlocksPanelProps) {
+export function ProductAnswerBlocksPanel({
+  productId,
+  planId,
+  aeoSyncToShopifyMetafields,
+  onBlocksLoaded,
+}: ProductAnswerBlocksPanelProps) {
   const feedback = useFeedback();
   const [blocks, setBlocks] = useState<PersistedAnswerBlock[]>([]);
   const [loading, setLoading] = useState(false);
@@ -79,6 +86,9 @@ export function ProductAnswerBlocksPanel({ productId, planId }: ProductAnswerBlo
           }))
         : [];
       setBlocks(items);
+      if (onBlocksLoaded) {
+        onBlocksLoaded(items.length > 0);
+      }
       setHasChanges(false);
     } catch (err: unknown) {
       // eslint-disable-next-line no-console
@@ -88,10 +98,13 @@ export function ProductAnswerBlocksPanel({ productId, planId }: ProductAnswerBlo
           ? err.message
           : 'Failed to load Answer Blocks. Please try again.';
       setError(message);
+      if (onBlocksLoaded) {
+        onBlocksLoaded(false);
+      }
     } finally {
       setLoading(false);
     }
-  }, [productId]);
+  }, [productId, onBlocksLoaded]);
 
   useEffect(() => {
     loadBlocks();
@@ -184,7 +197,7 @@ export function ProductAnswerBlocksPanel({ productId, planId }: ProductAnswerBlo
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <div className="mb-4 flex items-center justify-between gap-2">
+      <div className="mb-1 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <svg
             className="h-4 w-4 text-indigo-600"
@@ -199,13 +212,36 @@ export function ProductAnswerBlocksPanel({ productId, planId }: ProductAnswerBlo
               d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <h3 className="text-sm font-semibold text-gray-900">Answer Blocks (AEO)</h3>
+          <h3 className="text-sm font-semibold text-gray-900">
+            Answer Blocks (Canonical Answers)
+          </h3>
         </div>
         {planLabel && (
           <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
             {planLabel}
           </span>
         )}
+      </div>
+      <div className="mb-4 flex flex-col gap-2 text-xs text-gray-600 sm:flex-row sm:items-center sm:justify-between">
+        <p className="max-w-md">
+          Structured, persistent answers that AI engines can safely reuse. These are your source of
+          truth for Answer Engine Optimization (AEO).
+        </p>
+        <div className="flex flex-wrap items-center gap-1">
+          <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-emerald-700">
+            Canonical
+          </span>
+          {aeoSyncToShopifyMetafields && (
+            <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-blue-700">
+              Synced to Shopify
+            </span>
+          )}
+          {!isFreePlan && (
+            <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-indigo-700">
+              Automation-Enabled
+            </span>
+          )}
+        </div>
       </div>
 
       {isFreePlan && (
@@ -256,7 +292,8 @@ export function ProductAnswerBlocksPanel({ productId, planId }: ProductAnswerBlo
       {!loading && !error && blocks.length === 0 && (
         <div className="flex flex-col items-center justify-center py-6">
           <p className="mb-3 max-w-xs text-center text-sm text-gray-500">
-            No Answer Blocks have been created for this product yet.
+            No canonical answers yet. Review AI Answer previews to identify missing facts, then
+            generate Answer Blocks.
           </p>
           <button
             type="button"

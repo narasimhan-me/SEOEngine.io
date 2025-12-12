@@ -62,6 +62,10 @@ export default function ProductOptimizationPage() {
   const [answersResponse, setAnswersResponse] = useState<ProductAnswersResponse | null>(null);
   const [loadingAnswers, setLoadingAnswers] = useState(false);
   const [answersError, setAnswersError] = useState<string | null>(null);
+  const [hasAnswerBlocks, setHasAnswerBlocks] = useState(false);
+  const [showAiDiagnosticPreviews, setShowAiDiagnosticPreviews] = useState(false);
+
+  const [aeoSyncToShopifyMetafields, setAeoSyncToShopifyMetafields] = useState(false);
 
   // Track if we've shown the auto-apply toast (one-time per page load)
   const autoApplyToastShown = useRef(false);
@@ -71,15 +75,17 @@ export default function ProductOptimizationPage() {
       setLoading(true);
       setError('');
 
-      // Fetch project, products, issues, automation suggestions, and entitlements in parallel
+      // Fetch project, integrations, products, issues, automation suggestions, and entitlements in parallel
       const [
         projectData,
+        integrationStatus,
         productsData,
         issuesResponse,
         automationResponse,
         entitlements,
       ] = await Promise.all([
         projectsApi.get(projectId),
+        projectsApi.integrationStatus(projectId),
         productsApi.list(projectId),
         projectsApi.deoIssues(projectId).catch(() => ({ issues: [] })),
         projectsApi.automationSuggestions(projectId).catch(() => ({ suggestions: [] })),
@@ -87,6 +93,9 @@ export default function ProductOptimizationPage() {
       ]);
 
       setProjectName(projectData.name);
+      setAeoSyncToShopifyMetafields(
+        Boolean((integrationStatus as any)?.aeoSyncToShopifyMetafields),
+      );
       if (entitlements && typeof (entitlements as any).plan === 'string') {
         setPlanId((entitlements as any).plan as string);
       } else {
@@ -302,6 +311,11 @@ export default function ProductOptimizationPage() {
   }, []);
 
   useEffect(() => {
+    // Reset AI diagnostic preview visibility when navigating between products
+    setShowAiDiagnosticPreviews(false);
+  }, [productId]);
+
+  useEffect(() => {
     if (!isAuthenticated()) {
       router.push('/login');
       return;
@@ -488,25 +502,55 @@ export default function ProductOptimizationPage() {
                 <section id="answers-section" aria-label="Answers">
                   <h2 className="mb-4 text-base font-semibold text-gray-900">Answers (AEO)</h2>
                   <p className="mb-2 text-xs text-gray-500">
-                    These answers can be synced to Shopify as metafields when enabled in{' '}
+                    Answer Blocks are your canonical, persistent AEO answers. When enabled in{' '}
                     <Link
                       href={`/projects/${projectId}/settings`}
                       className="underline hover:text-indigo-700"
                     >
                       Settings
                     </Link>
-                    .
+                    , these canonical answers can be synced to Shopify as metafields.
                   </p>
+                  {hasAnswerBlocks && (
+                    <div className="mb-3 flex flex-col gap-2 rounded-md border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="max-w-md">
+                        <p className="font-medium text-gray-700">
+                          {showAiDiagnosticPreviews
+                            ? 'AI Answer previews are visible for diagnostics.'
+                            : 'AI Answer previews are hidden because canonical Answer Blocks already exist for this product.'}
+                        </p>
+                        <p className="mt-0.5">
+                          For advanced inspection only. Does not affect published content or DEO
+                          Score.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowAiDiagnosticPreviews((previous) => !previous)
+                        }
+                        className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+                      >
+                        {showAiDiagnosticPreviews
+                          ? 'Hide AI diagnostic previews'
+                          : 'Show AI diagnostic previews'}
+                      </button>
+                    </div>
+                  )}
                   <div className="space-y-6">
-                    <ProductAnswersPanel
-                      response={answersResponse}
-                      loading={loadingAnswers}
-                      error={answersError}
-                      onGenerate={fetchAnswers}
-                    />
+                    {(!hasAnswerBlocks || showAiDiagnosticPreviews) && (
+                      <ProductAnswersPanel
+                        response={answersResponse}
+                        loading={loadingAnswers}
+                        error={answersError}
+                        onGenerate={fetchAnswers}
+                      />
+                    )}
                     <ProductAnswerBlocksPanel
                       productId={product.id}
                       planId={planId}
+                      aeoSyncToShopifyMetafields={aeoSyncToShopifyMetafields}
+                      onBlocksLoaded={setHasAnswerBlocks}
                     />
                   </div>
                 </section>

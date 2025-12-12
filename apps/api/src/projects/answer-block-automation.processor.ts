@@ -36,6 +36,15 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
       return;
     }
 
+    const enableQueueProcessors =
+      process.env.ENABLE_QUEUE_PROCESSORS !== 'false';
+    if (!enableQueueProcessors) {
+      this.logger.warn(
+        '[AnswerBlockAutomationProcessor] ENABLE_QUEUE_PROCESSORS=false - worker disabled',
+      );
+      return;
+    }
+
     this.worker = new Worker<AnswerBlockAutomationJobPayload, void>(
       'answer_block_automation_queue',
       async (job: Job<AnswerBlockAutomationJobPayload>): Promise<void> => {

@@ -44,6 +44,17 @@ async function bootstrap() {
   // Use RENDER_EXTERNAL_URL if available (Render deployment), otherwise show localhost
   const baseUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
   console.log(`🚀 SEOEngine API is running on: ${baseUrl}`);
+
+  // Log runtime feature flags for observability (API runtime)
+  const runtimeFlags = {
+    NODE_ENV: process.env.NODE_ENV ?? 'undefined',
+    REDIS_PREFIX: process.env.REDIS_PREFIX ?? 'engineo',
+    ENABLE_CRON: process.env.ENABLE_CRON ?? 'undefined',
+    ENABLE_QUEUE_EVENTS: process.env.ENABLE_QUEUE_EVENTS ?? 'undefined',
+    ENABLE_QUEUE_SCHEDULERS: process.env.ENABLE_QUEUE_SCHEDULERS ?? 'undefined',
+  };
+  // eslint-disable-next-line no-console
+  console.log('[Runtime] api startup', runtimeFlags);
 }
 
 bootstrap();

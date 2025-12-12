@@ -18,6 +18,17 @@ async function bootstrap() {
 
   // eslint-disable-next-line no-console
   console.log('Worker application context initialized.');
+
+  // Log runtime feature flags for observability (worker runtime)
+  const runtimeFlags = {
+    NODE_ENV: process.env.NODE_ENV ?? 'undefined',
+    REDIS_PREFIX: process.env.REDIS_PREFIX ?? 'engineo',
+    ENABLE_CRON: process.env.ENABLE_CRON ?? 'undefined',
+    ENABLE_QUEUE_EVENTS: process.env.ENABLE_QUEUE_EVENTS ?? 'undefined',
+    ENABLE_QUEUE_SCHEDULERS: process.env.ENABLE_QUEUE_SCHEDULERS ?? 'undefined',
+  };
+  // eslint-disable-next-line no-console
+  console.log('[Runtime] worker startup', runtimeFlags);
 }
 
 bootstrap().catch((err) => {

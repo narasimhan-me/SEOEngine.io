@@ -8204,14 +8204,153 @@ Shopify Sync → New Product Detected → AutomationService Triggered
 
 ---
 
-These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-8, AE-1 (Answer Engine), AE-1 (Automation Engine), AE-2 (Product Automations), AEO-2 (Shopify Metafields Sync), SHOP-API-1 (GraphQL Migration), UX-Content-1, UX-Content-2, and MARKETING-1 through MARKETING-6 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
+## Phase UX-2 – Product Workspace AEO and Automation UI
+
+**Status:** Complete
+
+**Goal:** Enhance the Product Workspace AEO and Automation UI to clearly distinguish between diagnostic AI Answer previews and canonical Answer Blocks, add status badges for sync and automation states, and provide toggle visibility for AI previews when Answer Blocks exist.
+
+### Scope
+
+- **Clear distinction between AI Answer previews and canonical Answer Blocks:**
+  - **AI Answer Preview (Diagnostics Only)** panel:
+    - Header reads "AI Answer Preview (Diagnostics Only)"
+    - Status badges: "Preview" and "Not Canonical"
+    - Helper text explains: "These previews are temporary AI-generated drafts used to evaluate answerability and data coverage. They are not saved, not published, and not synced to Shopify."
+  - **Answer Blocks (Canonical Answers)** panel:
+    - Header reads "Answer Blocks (Canonical Answers)"
+    - Helper text explains: "Structured, persistent answers that AI engines can safely reuse. These are the source of truth for AEO."
+    - Empty state copy: "No canonical answers yet. Review AI Answer previews to identify missing facts, then generate Answer Blocks."
+
+- **Status badges on Answer Blocks panel:**
+  - **Canonical** – Always shown when Answer Blocks exist.
+  - **Automation-Enabled** – Shown for Pro/Business plans.
+  - **Synced to Shopify** – Shown when project has `aeoSyncToShopifyMetafields` flag enabled.
+
+- **Visibility toggle for AI previews:**
+  - When product has Answer Blocks, AI Answer previews are hidden by default.
+  - A helper box displays: "AI Answer previews are hidden because canonical Answer Blocks already exist for this product. For advanced inspection only. Does not affect published content or DEO Score."
+  - Toggle button "Show AI diagnostic previews" reveals the AI Answers panel.
+  - Toggle button changes to "Hide AI diagnostic previews" when AI previews are visible.
+  - When product has no Answer Blocks, AI previews are shown by default without toggle.
+
+- **Props and state management:**
+  - `ProductAnswerBlocksPanel` receives `aeoSyncToShopifyMetafields` and `onBlocksLoaded` props.
+  - Parent page tracks `hasAnswerBlocks` state via callback from child panel.
+  - `showAiDiagnosticPreviews` state controls visibility of AI Answer previews when Answer Blocks exist.
+
+### Implementation Changes
+
+**Frontend Changes:**
+
+1. **apps/web/src/app/projects/[id]/products/[productId]/page.tsx:**
+   - Added `hasAnswerBlocks` and `showAiDiagnosticPreviews` state.
+   - Passes `aeoSyncToShopifyMetafields` and `onBlocksLoaded` callback to `ProductAnswerBlocksPanel`.
+   - Conditionally renders `ProductAnswersPanel` based on Answer Blocks existence and toggle state.
+   - Added helper box with toggle button when Answer Blocks exist.
+
+2. **apps/web/src/components/products/optimization/ProductAnswersPanel.tsx:**
+   - Updated header to "AI Answer Preview (Diagnostics Only)".
+   - Added "Preview" and "Not Canonical" status badges.
+   - Added diagnostic disclaimer text explaining ephemeral nature.
+
+3. **apps/web/src/components/products/optimization/ProductAnswerBlocksPanel.tsx:**
+   - Updated header to "Answer Blocks (Canonical Answers)".
+   - Added `aeoSyncToShopifyMetafields` and `onBlocksLoaded` props.
+   - Added conditional status badges: "Canonical", "Synced to Shopify", "Automation-Enabled".
+   - Updated empty state copy to reference AI Answer previews.
+
+### Acceptance Criteria (Completed)
+
+- [x] AI Answer Preview panel displays "AI Answer Preview (Diagnostics Only)" header with "Preview" and "Not Canonical" badges.
+- [x] Answer Blocks panel displays "Answer Blocks (Canonical Answers)" header with appropriate status badges.
+- [x] "Canonical" badge always shown when Answer Blocks exist.
+- [x] "Synced to Shopify" badge shown when `aeoSyncToShopifyMetafields` is enabled.
+- [x] "Automation-Enabled" badge shown for Pro/Business plans.
+- [x] AI previews hidden by default when Answer Blocks exist.
+- [x] "Show AI diagnostic previews" toggle reveals AI Answers panel.
+- [x] Toggle state persists during session navigation within workspace.
+- [x] When no Answer Blocks exist, AI previews shown by default without toggle.
+- [x] Manual testing doc updated with scenario UX2-AEO-HP-004.
+
+**Manual Testing:** `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md`
+
+---
+
+## Phase INFRA-REDIS-1 – Redis Background Activity Flags
+
+**Status:** Complete
+
+**Goal:** Introduce environment feature flags to disable non-essential background Redis activity (cron + BullMQ workers) in staging while keeping production behavior unchanged, reducing Upstash Redis command usage in non-production environments.
+
+### Scope
+
+- **Runtime feature flags:**
+  - `ENABLE_CRON` – Controls whether the nightly crawl scheduler runs (`CrawlSchedulerService.scheduleProjectCrawls`). When `false`, cron ticks log a skip message and return early without enqueuing crawl jobs.
+  - `ENABLE_QUEUE_PROCESSORS` – Controls whether BullMQ worker instances are created in `onModuleInit()` for `DeoScoreProcessor`, `CrawlProcessor`, and `AnswerBlockAutomationProcessor`. When `false`, workers log a skip message and do not initialize, so jobs accumulate in queues until processors are re-enabled.
+  - `ENABLE_QUEUE_EVENTS` and `ENABLE_QUEUE_SCHEDULERS` – Reserved for future use; logged in runtime flags for observability.
+
+- **Startup logging:**
+  - API (`main.ts`) and worker (`worker-main.ts`) log a `[Runtime] api startup` / `[Runtime] worker startup` object with `NODE_ENV`, `REDIS_PREFIX`, and all `ENABLE_*` flags for observability.
+
+- **Cron guard:**
+  - `CrawlSchedulerService.scheduleProjectCrawls()` checks `ENABLE_CRON !== 'false'` at the start of each tick and logs cron flags for debugging.
+
+- **Worker guards:**
+  - Each BullMQ processor (`DeoScoreProcessor`, `CrawlProcessor`, `AnswerBlockAutomationProcessor`) checks `ENABLE_QUEUE_PROCESSORS !== 'false'` in `onModuleInit()` and skips worker creation when disabled.
+
+### Implementation Changes
+
+**Backend Changes:**
+
+1. **apps/api/src/main.ts:**
+   - Added runtime flags logging on API startup.
+
+2. **apps/api/src/worker-main.ts:**
+   - Added runtime flags logging on worker startup.
+
+3. **apps/api/src/crawl/crawl-scheduler.service.ts:**
+   - Added `ENABLE_CRON` check with logging at the start of `scheduleProjectCrawls()`.
+   - Added `cron tick: enqueued X jobs` log line for better observability.
+
+4. **apps/api/src/projects/deo-score.processor.ts:**
+   - Added `ENABLE_QUEUE_PROCESSORS` check in `onModuleInit()`.
+
+5. **apps/api/src/crawl/crawl.processor.ts:**
+   - Added `ENABLE_QUEUE_PROCESSORS` check in `onModuleInit()`.
+
+6. **apps/api/src/projects/answer-block-automation.processor.ts:**
+   - Added `ENABLE_QUEUE_PROCESSORS` check in `onModuleInit()`.
+
+**Documentation Changes:**
+
+1. **docs/REDIS_SETUP.md:**
+   - Added optional feature flags section with `ENABLE_CRON`, `ENABLE_QUEUE_PROCESSORS`, `ENABLE_QUEUE_EVENTS`, `ENABLE_QUEUE_SCHEDULERS`.
+   - Updated staging environment section to mention optional flag configuration.
+   - Updated prefix recommendations to include staging (`engineo_dev`, `engineo_test`, `engineo_staging`, `engineo_prod`).
+
+### Acceptance Criteria (Completed)
+
+- [x] API startup logs runtime flags including `ENABLE_CRON` and `ENABLE_QUEUE_PROCESSORS`.
+- [x] Worker startup logs runtime flags for observability.
+- [x] `CrawlSchedulerService.scheduleProjectCrawls()` respects `ENABLE_CRON=false` and logs skip message.
+- [x] `DeoScoreProcessor`, `CrawlProcessor`, `AnswerBlockAutomationProcessor` respect `ENABLE_QUEUE_PROCESSORS=false` and skip worker initialization.
+- [x] When flags are unset or `true`, production behavior remains unchanged (backward compatible).
+- [x] `docs/REDIS_SETUP.md` updated with feature flags documentation.
+- [x] Manual testing doc created for staging vs production scenarios.
+
+**Manual Testing:** `docs/manual-testing/redis-background-activity-flags.md`
+
+---
+
+These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-8, AE-1 (Answer Engine), AE-1 (Automation Engine), AE-2 (Product Automations), AEO-2 (Shopify Metafields Sync), SHOP-API-1 (GraphQL Migration), INFRA-REDIS-1 (Redis Background Activity Flags), UX-Content-1, UX-Content-2, and MARKETING-1 through MARKETING-6 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
 
 - Phases 12–17: Core feature sets (automation, content, performance, competitors, local, social).
 - Phases 18–22: Security, subscription management, monitoring, fairness & limits.
 - Phases 23–30: Advanced AI-powered features gated behind add-ons for sustainable growth.
 - Phase UX-1: Targeted UX improvements to the Products page to improve day-to-day usability without backend changes.
 - Phase UX-1.1: Mobile responsive improvements for Products page and sidebar navigation.
-- Phase UX-2: Per-product optimization workspace with AI suggestions, manual editor, and DEO insights.
+- Phase UX-2: Per-product optimization workspace with AI suggestions, manual editor, DEO insights, AEO/Automation UI with clear distinction between AI Answer previews and canonical Answer Blocks.
 - Phase UX-3: Project Overview page redesign with DEO score visualization and signals summary.
 - Phase UX-4: Issues UI integration surfacing DEO issues across Overview, Products, and Optimization Workspace.
 - Phase UX-5: Row-level navigation and workspace access improvements for the Products list.
@@ -8230,6 +8369,7 @@ These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-
 - Phase MARKETING-4: Websites vertical landing page for WordPress, Webflow, and all non-ecommerce sites.
 - Phase MARKETING-5: Full product tour/features page covering DEO Score, crawling, Issues Engine, Product and Content Workspaces, automation, and supported platforms.
 - Phase MARKETING-6: "What Is DEO?" education page establishing category leadership and explaining DEO concepts.
+- Phase INFRA-REDIS-1: Redis background activity flags (`ENABLE_CRON`, `ENABLE_QUEUE_PROCESSORS`) for staging vs production cost control.
 - Manual Testing docs: Canonical template at `docs/MANUAL_TESTING_TEMPLATE.md`, with per-phase manuals under `docs/manual-testing/`, kept up to date by Claude alongside each implemented phase.
 - System-level Manual Testing docs (Phase R1): Cross-cutting testing docs under `docs/testing/` for shared systems: `billing-and-limits.md` (Stripe, subscriptions, quotas), `ai-systems.md` (Gemini, usage tracking, errors), `frontend-ux-feedback-and-limits.md` (toasts, loading states, limit prompts).
 - System-level Manual Testing docs (Phase R2): DEO & Shopify systems coverage under `docs/testing/`: `deo-pipeline.md`, `signals-collection.md`, `deo-score-compute-pipeline.md`, `deo-score-snapshots.md`, `shopify-integration.md`, `product-sync.md`, `metadata-sync-seo-fields.md`, `sync-status-and-progress-feedback.md`.

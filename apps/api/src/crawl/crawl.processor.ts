@@ -28,6 +28,15 @@ export class CrawlProcessor implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    const enableQueueProcessors =
+      process.env.ENABLE_QUEUE_PROCESSORS !== 'false';
+    if (!enableQueueProcessors) {
+      console.warn(
+        '[CrawlProcessor] ENABLE_QUEUE_PROCESSORS=false - worker disabled',
+      );
+      return;
+    }
+
     this.worker = new Worker<CrawlJobPayload, void>(
       'crawl_queue',
       async (job: Job<CrawlJobPayload>): Promise<void> => {

@@ -140,6 +140,57 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 
 ---
 
+### UX2-AEO-HP-004: AI Answer previews vs canonical Answer Blocks
+
+**Goal:** Clarify the distinction between AI Answer previews (diagnostics only) and canonical Answer Blocks, and verify visibility behavior based on whether Answer Blocks exist.
+
+**Steps (product with no Answer Blocks):**
+1. Log in as a Pro or Business user.
+2. Navigate to a product that has no persisted Answer Blocks (newly synced product or one where Answer Blocks have been cleared).
+3. In the Product Optimization workspace, scroll to the Answers (AEO) section.
+4. Observe the AI Answers panel and Answer Blocks panel.
+
+**Expected Results (no Answer Blocks):**
+- The AI Answers card header reads **"AI Answer Preview (Diagnostics Only)"**.
+- Directly under the header, a short description explains:
+  - Temporary AI-generated drafts used to evaluate answerability and data coverage.
+  - These previews are not saved, not published, and not synced.
+- Status badges on the AI Answers header include:
+  - **Preview**
+  - **Not Canonical**
+- The Answer Blocks panel header reads **"Answer Blocks (Canonical Answers)"** with helper text describing:
+  - Structured, persistent answers that AI engines can safely reuse.
+  - These are the source of truth for AEO.
+- The Answer Blocks empty state copy reads:
+  - "No canonical answers yet. Review AI Answer previews to identify missing facts, then generate Answer Blocks."
+- No "Show AI diagnostic previews" toggle is visible when there are zero Answer Blocks; AI previews are shown by default.
+
+**Steps (product with existing Answer Blocks):**
+1. Log in as a Pro or Business user.
+2. Navigate to a product that has at least one persisted Answer Block.
+3. In the Answers (AEO) section, observe the top helper text and both panels.
+4. Verify the state of the AI Answer previews and the visibility toggle.
+
+**Expected Results (with Answer Blocks):**
+- Section helper text above the cards emphasizes that:
+  - Answer Blocks are canonical, persistent AEO answers.
+  - When enabled in Settings, these canonical answers can be synced to Shopify as metafields.
+- The Answer Blocks panel:
+  - Shows the **"Answer Blocks (Canonical Answers)"** title.
+  - Always shows a **Canonical** badge.
+  - Shows **Automation-Enabled** when the current plan is not Free (Pro/Business).
+  - Shows **Synced to Shopify** when the project has the Answer Block → Shopify metafields flag enabled.
+- By default, AI Answer previews are hidden when Answer Blocks exist:
+  - The AI Answers card is not visible initially.
+  - A helper box explains:
+    - "AI Answer previews are hidden because canonical Answer Blocks already exist for this product."
+    - "For advanced inspection only. Does not affect published content or DEO Score."
+  - A button labeled **"Show AI diagnostic previews"** is visible in this helper box.
+- Clicking **"Show AI diagnostic previews"**:
+  - Reveals the AI Answers card with the updated header, badges, and diagnostic-only description.
+  - Changes the toggle button label to **"Hide AI diagnostic previews"**.
+- Toggling back to hide previews restores the hidden-state message and hides the AI Answers card again, while Answer Blocks remain visible.
+
 ### UX2-AEO-LIM-001: Free plan gating for Answer Block automations
 
 **Goal:** Ensure Free plan users can view/edit Answer Blocks but cannot trigger Answer Block automations, and see clear upgrade messaging.

@@ -21,6 +21,15 @@ export class DeoScoreProcessor implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    const enableQueueProcessors =
+      process.env.ENABLE_QUEUE_PROCESSORS !== 'false';
+    if (!enableQueueProcessors) {
+      console.warn(
+        '[DeoScoreProcessor] ENABLE_QUEUE_PROCESSORS=false - worker disabled',
+      );
+      return;
+    }
+
     this.worker = new Worker<DeoScoreJobPayload, DeoScoreJobResult>(
       'deo_score_queue',
       async (job: Job<DeoScoreJobPayload>): Promise<DeoScoreJobResult> => {

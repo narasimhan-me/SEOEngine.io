@@ -177,10 +177,26 @@ export function ProductAnswersPanel({
               d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <h3 className="text-sm font-semibold text-gray-900">AI Answers</h3>
+          <h3 className="text-sm font-semibold text-gray-900">
+            AI Answer Preview (Diagnostics Only)
+          </h3>
         </div>
-        {response && getStatusBadge(response.answerabilityStatus.status)}
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex flex-wrap items-center justify-end gap-1">
+            <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-700">
+              Preview
+            </span>
+            <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-amber-800">
+              Not Canonical
+            </span>
+          </div>
+          {response && getStatusBadge(response.answerabilityStatus.status)}
+        </div>
       </div>
+      <p className="mb-3 text-xs text-gray-500">
+        Temporary AI-generated drafts used to evaluate answerability and data coverage. These
+        previews are not saved, not published, and not synced.
+      </p>
 
       {/* Error state */}
       {error && (

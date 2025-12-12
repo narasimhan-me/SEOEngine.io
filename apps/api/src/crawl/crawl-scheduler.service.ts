@@ -61,6 +61,21 @@ export class CrawlSchedulerService {
 
   @Cron('0 2 * * *')
   async scheduleProjectCrawls() {
+    const nodeEnv = process.env.NODE_ENV ?? 'undefined';
+    const redisPrefix = process.env.REDIS_PREFIX ?? 'engineo';
+    const enableCron = process.env.ENABLE_CRON !== 'false';
+
+    this.logger.log(
+      `[CrawlScheduler] Cron flags: NODE_ENV=${nodeEnv}, REDIS_PREFIX=${redisPrefix}, ENABLE_CRON=${enableCron ? 'true' : 'false'}`,
+    );
+
+    if (!enableCron) {
+      this.logger.log(
+        '[CrawlScheduler] Cron disabled via ENABLE_CRON=false; skipping crawl scheduling tick.',
+      );
+      return;
+    }
+
     const projects = await this.prisma.project.findMany({
       select: {
         id: true,
@@ -80,6 +95,10 @@ export class CrawlSchedulerService {
 
     this.logger.log(
       `[CrawlScheduler] Nightly crawl: ${projects.length} projects evaluated, ${dueProjects.length} due for crawl (mode=${mode})`,
+    );
+
+    this.logger.log(
+      `[CrawlScheduler] cron tick: enqueued ${dueProjects.length} jobs (mode=${mode})`,
     );
 
     if (dueProjects.length === 0) {

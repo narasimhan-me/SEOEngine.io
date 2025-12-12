@@ -46,6 +46,16 @@ REDIS_URL=redis://localhost:6379
 REDIS_PREFIX=engineo_test
 ```
 
+Optional feature flags for background activity (API/worker runtimes):
+
+```env
+# Cron + BullMQ feature flags (defaults are safe for local dev/production)
+ENABLE_CRON=true
+ENABLE_QUEUE_PROCESSORS=true
+ENABLE_QUEUE_EVENTS=false
+ENABLE_QUEUE_SCHEDULERS=false
+```
+
 `REDIS_PREFIX` namespaces keys so multiple environments can share the same Redis instance if needed.
 
 ---
@@ -110,7 +120,7 @@ Use this mapping in:
 | `NODE_ENV` | `production` |
 | `DATABASE_URL` | Your Neon connection string |
 | `REDIS_URL` | Upstash Redis URL (`UPSTASH_REDIS_URL`) |
-| `REDIS_PREFIX` | `engineo` |
+| `REDIS_PREFIX` | `engineo_prod` |
 
 5. Click **Create Background Worker**
 
@@ -124,7 +134,7 @@ Add Redis environment variables to your existing `engineo-api` Web Service:
 | Variable | Value |
 |----------|-------|
 | `REDIS_URL` | Upstash Redis URL (`UPSTASH_REDIS_URL`) |
-| `REDIS_PREFIX` | `engineo` |
+| `REDIS_PREFIX` | `engineo_prod` |
 
 3. Click **Save Changes** (triggers redeploy)
 
@@ -138,7 +148,8 @@ For a staging environment on the `develop` branch:
 - Create a staging Render Web Service and Background Worker (for example, `engineo-api-staging`, `engineo-worker-staging`) that:
   - Use `Branch: develop`
   - Point `REDIS_URL` to the staging Upstash database (or shared database)
-  - Set `REDIS_PREFIX` to a staging-specific prefix to avoid key collisions with production.
+  - Set `REDIS_PREFIX` to a staging-specific prefix to avoid key collisions with production (for example, `engineo_staging`).
+  - Optionally set `ENABLE_CRON=false` and/or `ENABLE_QUEUE_PROCESSORS=false` in staging to reduce background Redis activity when not actively testing cron/worker flows.
 
 ---
 
@@ -238,7 +249,7 @@ While not fully wired into `/health` yet, a future phase (R1+) can:
 
 ### Conflicting prefixes across environments
 
-Use different `REDIS_PREFIX` values for dev, test, and prod (e.g., `engineo`, `engineo_test`, `engineo_prod`).
+Use different `REDIS_PREFIX` values for dev, test, staging, and prod (for example, `engineo_dev`, `engineo_test`, `engineo_staging`, `engineo_prod`).
 
 ---
 
