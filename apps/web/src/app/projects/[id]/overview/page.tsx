@@ -157,8 +157,10 @@ export default function ProjectOverviewPage() {
   const [deoIssues, setDeoIssues] = useState<DeoIssuesResponse | null>(null);
   const [deoIssuesLoading, setDeoIssuesLoading] = useState(false);
   const [, setDeoIssuesError] = useState<string | null>(null);
+  const [syncingAeoToShopify, setSyncingAeoToShopify] = useState(false);
   const [showIssuesPanel, setShowIssuesPanel] = useState(false);
   const [showDeoBreakdown, setShowDeoBreakdown] = useState(false);
+  const [showDeoFreshness, setShowDeoFreshness] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [showFirstWinCard, setShowFirstWinCard] = useState(true);
 
@@ -412,6 +414,91 @@ export default function ProjectOverviewPage() {
       feedback.showError(message);
     } finally {
       setScanning(false);
+    }
+  };
+
+  const handleManualSyncAnswerBlocks = async () => {
+    if (!status?.shopify.connected) {
+      feedback.showInfo(
+        'Connect your Shopify store to sync Answer Blocks to Shopify metafields.',
+      );
+      return;
+    }
+
+    const candidateProduct =
+      topProductsToFix[0]?.product ?? products[0];
+
+    if (!candidateProduct) {
+      feedback.showInfo(
+        'No products are available to sync yet. Once products have Answer Blocks, they can be synced to Shopify metafields.',
+      );
+      return;
+    }
+
+    try {
+      setSyncingAeoToShopify(true);
+      setError('');
+      const result: any = await productsApi.syncAnswerBlocksToShopify(
+        candidateProduct.id,
+      );
+      if (!result) {
+        const message =
+          'Failed to sync Answer Blocks to Shopify. Please try again.';
+        setError(message);
+        feedback.showError(message);
+        return;
+      }
+      const statusResult = result.status as string | undefined;
+      const reason = result.reason as string | undefined;
+      const syncedCount = result.syncedCount as number | undefined;
+
+      if (statusResult === 'succeeded') {
+        const countMessage =
+          typeof syncedCount === 'number' && syncedCount > 0
+            ? `Synced ${syncedCount} Answer Block${
+                syncedCount === 1 ? '' : 's'
+              } to Shopify metafields.`
+            : 'Answer Blocks synced to Shopify metafields.';
+        feedback.showSuccess(countMessage);
+      } else if (statusResult === 'skipped') {
+        if (reason === 'sync_toggle_off') {
+          const message =
+            'Sync is disabled in Project Settings. Enable "Sync Answer Blocks to Shopify metafields" to allow manual sync.';
+          setError(message);
+          feedback.showInfo(message);
+        } else if (reason === 'plan_not_entitled') {
+          const message =
+            'Shopify Answer Block metafield sync is available on paid plans. Upgrade to enable Answer Block sync.';
+          setError(message);
+          feedback.showLimit(message, '/settings/billing');
+        } else if (reason === 'daily_cap_reached') {
+          const message =
+            'Daily sync limit reached for Answer Blocks. Try again tomorrow or upgrade your plan for higher limits.';
+          setError(message);
+          feedback.showLimit(message, '/settings/billing');
+        } else {
+          const message = 'Sync was skipped for this product.';
+          setError(message);
+          feedback.showInfo(message);
+        }
+      } else {
+        const message =
+          (Array.isArray(result.errors) && result.errors.length > 0
+            ? result.errors.join(', ')
+            : null) ||
+          'Failed to sync Answer Blocks to Shopify. Please try again.';
+        setError(message);
+        feedback.showError(message);
+      }
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Failed to sync Answer Blocks to Shopify. Please try again.';
+      setError(message);
+      feedback.showError(message);
+    } finally {
+      setSyncingAeoToShopify(false);
     }
   };
 
@@ -688,10 +775,15 @@ export default function ProjectOverviewPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => router.push(`/projects/${projectId}/products`)}
-                  className="inline-flex items-center rounded-md border border-blue-600 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                  onClick={handleManualSyncAnswerBlocks}
+                  disabled={syncingAeoToShopify}
+                  className={`inline-flex items-center rounded-md border px-3 py-1.5 text-xs font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                    syncingAeoToShopify
+                      ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400'
+                      : 'border-blue-600 bg-blue-50 text-blue-700 hover:bg-blue-100'
+                  }`}
                 >
-                  Sync now
+                  {syncingAeoToShopify ? 'Syncing…' : 'Sync now'}
                 </button>
               </div>
             </div>
@@ -790,7 +882,16 @@ export default function ProjectOverviewPage() {
                   changes.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowDeoFreshness((prev) => !prev)}
+                className="text-xs font-medium text-blue-600 hover:text-blue-800"
+              >
+                {showDeoFreshness ? 'Hide freshness controls' : 'Show freshness controls'}
+              </button>
+            </div>
+            {showDeoFreshness && (
+              <div className="mt-3 flex items-center gap-2">
                 <button
                   onClick={handleRecomputeDeoScore}
                   disabled={deoScoreRecomputing}
@@ -824,7 +925,7 @@ export default function ProjectOverviewPage() {
                   )}
                 </button>
               </div>
-            </div>
+            )}
           </div>
         </div>
         {/* Right column: Top blockers */}
@@ -885,7 +986,7 @@ export default function ProjectOverviewPage() {
             <div>
               <h2 className="text-sm font-semibold text-gray-900">Diagnostics & system details</h2>
               <p className="mt-1 text-xs text-gray-500">
-                Signals, integrations, crawl tools, and auto-crawl configuration.
+                Signals, integrations, crawl config, and system status.
               </p>
             </div>
             <button
@@ -965,12 +1066,6 @@ export default function ProjectOverviewPage() {
                           </>
                         )}
                       </button>
-                      <Link
-                        href={`/projects/${projectId}/issues`}
-                        className="inline-flex items-center rounded-md bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100"
-                      >
-                        View Crawl Details
-                      </Link>
                     </div>
                   </div>
                 </div>
@@ -1133,16 +1228,6 @@ export default function ProjectOverviewPage() {
                       <span className="text-sm text-gray-600">Total Crawls</span>
                       <span className="text-sm font-medium text-gray-900">
                         {overview?.crawlCount ?? 0}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Issues Found</span>
-                      <span
-                        className={`text-sm font-medium ${
-                          overview?.issueCount === 0 ? 'text-green-600' : 'text-orange-600'
-                        }`}
-                      >
-                        {overview?.issueCount ?? 0}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">

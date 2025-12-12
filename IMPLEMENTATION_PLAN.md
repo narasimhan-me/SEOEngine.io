@@ -8481,19 +8481,20 @@ Shopify Sync → New Product Detected → AutomationService Triggered
 
 ### Files Changed
 
-- `apps/web/src/app/projects/[id]/overview/page.tsx` – Updated the diagnostics section label and copy, restructured its inner layout into a true 2-column drawer (Evidence vs System), and muted diagnostics card styling while preserving all existing buttons and links.
-- `docs/manual-testing/phase-dashboard-v1-2-diagnostics-drawer.md` – New manual testing doc for Dashboard v1.2 diagnostics drawer behavior, redundancy checks, and regression coverage.
+- `apps/web/src/app/projects/[id]/overview/page.tsx` – Updated the diagnostics section label and copy, restructured its inner layout into a true 2-column drawer (Evidence vs System), muted diagnostics card styling, tightened issue/product redundancy, and wired the AEO Status “Sync now” button to the existing AEO-2 manual sync endpoint with loading and toast feedback.
+- `docs/manual-testing/phase-dashboard-v1-2-diagnostics-drawer.md` – Manual testing doc for Dashboard v1.2 diagnostics drawer behavior, redundancy checks, and regression coverage.
+- `docs/manual-testing/phase-dashboard-v1-2-ux-alignment.md` – Manual testing doc for Dashboard v1.2 UX alignment on Project Overview (primary section emphasis, diagnostics drawer behavior, redundancy cleanup, and AEO “Sync now” wiring).
 
 ### Acceptance Criteria
 
 - [x] “Diagnostics & system details” appears as a slim, collapsed row by default with the specified helper copy and “Show details” / “Hide details” toggle.
 - [x] Expanding the diagnostics drawer renders a 2-column layout on large screens, with Evidence content in the left column and System details (Shopify integration, Active Integrations, Auto Crawl, Project Stats) in the right column.
 - [x] All diagnostics cards are visually muted (smaller headers, softer borders/backgrounds, reduced emphasis) compared to primary dashboard action areas.
-- [x] The dashboard issues panel surfaces only “Top blockers” (maximum 3) with outcome-style descriptions and a single “View all issues” CTA.
+- [x] The dashboard issues panel surfaces only “Top blockers” (maximum 3) with outcome-style descriptions and a single “View all issues” CTA, with no duplicate issue counts or competing issue panels elsewhere on the dashboard.
 - [x] “Top Products to Fix” appears only once on the dashboard and remains limited to 3 products, using existing data and ranking logic.
-- [x] No backend services, APIs, or metrics were changed; this phase is strictly a layout and copy update.
+- [x] AEO Status card on the Project Overview page surfaces Shopify sync status and uses its “Sync now” button to invoke the existing AEO-2 manual sync behavior with clear success/skip/error toasts (including entitlement and toggle gating) without adding new backend endpoints or data sources.
 
-**Manual Testing:** `docs/manual-testing/phase-dashboard-v1-2-diagnostics-drawer.md`
+**Manual Testing:** `docs/manual-testing/phase-dashboard-v1-2-diagnostics-drawer.md`, `docs/manual-testing/phase-dashboard-v1-2-ux-alignment.md`
 
 ---
 
