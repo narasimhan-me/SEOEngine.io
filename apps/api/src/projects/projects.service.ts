@@ -265,6 +265,9 @@ export class ProjectsService {
     avgSeoScore: number | null;
     productCount: number;
     productsWithAppliedSeo: number;
+    productsWithAnswerBlocks: number;
+    lastAnswerBlockSyncStatus: string | null;
+    lastAnswerBlockSyncAt: Date | null;
   }> {
     // Validate project ownership
     const project = await this.prisma.project.findUnique({
@@ -315,12 +318,34 @@ export class ProjectsService {
       },
     });
 
+    const productsWithAnswerBlocks = await this.prisma.product.count({
+      where: {
+        projectId,
+        answerBlocks: {
+          some: {},
+        },
+      },
+    });
+
+    const lastAnswerBlockSync = await this.prisma.answerBlockAutomationLog.findFirst({
+      where: {
+        projectId,
+        action: 'answer_blocks_synced_to_shopify',
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
     return {
       crawlCount,
       issueCount,
       avgSeoScore,
       productCount,
       productsWithAppliedSeo,
+      productsWithAnswerBlocks,
+      lastAnswerBlockSyncStatus: lastAnswerBlockSync?.status ?? null,
+      lastAnswerBlockSyncAt: lastAnswerBlockSync?.createdAt ?? null,
     };
   }
 

@@ -28,6 +28,9 @@ interface ProjectOverview {
   crawlCount: number;
   productCount: number;
   productsWithAppliedSeo: number;
+  productsWithAnswerBlocks?: number;
+  lastAnswerBlockSyncStatus?: string | null;
+  lastAnswerBlockSyncAt?: string | null;
 }
 
 export default function ProductsPage() {

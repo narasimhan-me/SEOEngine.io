@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { isAuthenticated, removeToken, getToken } from '@/lib/auth';
-import { projectsApi, seoScanApi } from '@/lib/api';
+import { projectsApi, seoScanApi, productsApi } from '@/lib/api';
+import type { Product } from '@/lib/products';
 import type {
   DeoScoreLatestResponse,
   DeoScoreSignals,
@@ -63,6 +64,7 @@ interface IntegrationStatus {
   crawlFrequency?: CrawlFrequency;
   lastCrawledAt?: string | null;
   lastDeoComputedAt?: string | null;
+  aeoSyncToShopifyMetafields?: boolean;
 }
 
 function formatCrawlFrequency(frequency: CrawlFrequency): string {
@@ -111,6 +113,9 @@ interface ProjectOverview {
   avgSeoScore: number | null;
   productCount: number;
   productsWithAppliedSeo: number;
+  productsWithAnswerBlocks?: number;
+  lastAnswerBlockSyncStatus?: string | null;
+  lastAnswerBlockSyncAt?: string | null;
 }
 
 export default function ProjectOverviewPage() {
@@ -134,6 +139,7 @@ export default function ProjectOverviewPage() {
 
   // Project overview state
   const [overview, setOverview] = useState<ProjectOverview | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
   const [deoScore, setDeoScore] = useState<DeoScoreLatestResponse | null>(null);
   const [, setDeoScoreLoading] = useState(false);
   const [deoScoreRecomputing, setDeoScoreRecomputing] = useState(false);
@@ -197,6 +203,15 @@ export default function ProjectOverviewPage() {
       setOverview(data);
     } catch (err: unknown) {
       console.error('Error fetching project overview:', err);
+    }
+  }, [projectId]);
+
+  const fetchProducts = useCallback(async () => {
+    try {
+      const data = await productsApi.list(projectId);
+      setProducts(data as Product[]);
+    } catch (err: unknown) {
+      console.error('Error fetching products for project overview:', err);
     }
   }, [projectId]);
 
@@ -279,6 +294,7 @@ export default function ProjectOverviewPage() {
     fetchDeoScore();
     fetchDeoSignals();
     fetchDeoIssues();
+    fetchProducts();
 
     if (searchParams.get('shopify') === 'connected') {
       setSuccessMessage('Successfully connected to Shopify!');
@@ -294,6 +310,7 @@ export default function ProjectOverviewPage() {
     fetchDeoScore,
     fetchDeoSignals,
     fetchDeoIssues,
+    fetchProducts,
   ]);
 
   const handleConnectShopify = () => {
@@ -412,6 +429,74 @@ export default function ProjectOverviewPage() {
   const hasDeoScore = typeof deoScore?.latestScore?.overall === 'number';
 
   const hasOptimizedThreeProducts = (overview?.productsWithAppliedSeo ?? 0) >= 3;
+
+  const aeoSyncEnabled = status?.aeoSyncToShopifyMetafields ?? false;
+  const issuesForCards: DeoIssue[] =
+    ((deoIssues?.issues as DeoIssue[]) ?? []).slice(0, 5);
+  const topProductsToFix = (() => {
+    if (!deoIssues?.issues || !products.length) {
+      return [] as { product: Product; reasons: string[] }[];
+    }
+    const severityWeight: Record<string, number> = {
+      critical: 3,
+      warning: 2,
+      info: 1,
+    };
+    const scoreByProductId = new Map<
+      string,
+      { score: number; reasons: string[] }
+    >();
+
+    for (const issue of deoIssues.issues as DeoIssue[]) {
+      if (
+        !issue.primaryProductId &&
+        (!issue.affectedProducts || issue.affectedProducts.length === 0)
+      ) {
+        continue;
+      }
+      const isEasyWin =
+        issue.aiFixable === true ||
+        issue.fixType === 'aiFix' ||
+        issue.fixCost === 'one_click';
+      if (!isEasyWin) {
+        continue;
+      }
+      const productIds: string[] = issue.primaryProductId
+        ? [issue.primaryProductId]
+        : (issue.affectedProducts ?? []);
+      const weight = severityWeight[issue.severity] ?? 1;
+      for (const productId of productIds) {
+        if (!productId) continue;
+        const existing = scoreByProductId.get(productId) ?? {
+          score: 0,
+          reasons: [] as string[],
+        };
+        existing.score += weight;
+        if (existing.reasons.length < 2) {
+          existing.reasons.push(issue.title);
+        }
+        scoreByProductId.set(productId, existing);
+      }
+    }
+    const entries = Array.from(scoreByProductId.entries());
+    entries.sort((a, b) => {
+      if (b[1].score !== a[1].score) {
+        return b[1].score - a[1].score;
+      }
+      return a[0].localeCompare(b[0]);
+    });
+    const top = entries.slice(0, 3).map(([productId, meta]) => {
+      const product = products.find((p) => p.id === productId);
+      if (!product) return null;
+      return {
+        product,
+        reasons: meta.reasons,
+      };
+    });
+    return top.filter(
+      (entry): entry is { product: Product; reasons: string[] } => entry !== null,
+    );
+  })();
 
   // Checklist helper callbacks
   const handleChecklistConnectSource = () => {
@@ -592,12 +677,52 @@ export default function ProjectOverviewPage() {
         <div className="space-y-6">
           <DeoSignalsSummary signals={deoSignals} loading={deoSignalsLoading} />
           <ProjectHealthCards signals={deoSignals} />
-          <IssuesSummaryCard
-            issues={(deoIssues?.issues as DeoIssue[]) ?? []}
-            loading={deoIssuesLoading}
-            error={deoIssuesError}
-            onViewAll={() => setShowIssuesPanel(true)}
-          />
+          <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-900">Top Issues</h3>
+              <button
+                type="button"
+                onClick={() => setShowIssuesPanel(true)}
+                className="text-xs font-medium text-blue-600 hover:text-blue-800"
+              >
+                View all
+              </button>
+            </div>
+            {deoIssuesLoading ? (
+              <p className="text-xs text-gray-500">Loading issues…</p>
+            ) : issuesForCards.length === 0 ? (
+              <p className="text-xs text-gray-500">
+                No issues found yet. Run a crawl to surface DEO issues.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {issuesForCards.map((issue) => (
+                  <li
+                    key={issue.id}
+                    className="flex items-start justify-between gap-3"
+                  >
+                    <div className="min-w-0">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          router.push(`/projects/${projectId}/issues`)
+                        }
+                        className="truncate text-xs font-medium text-blue-700 hover:text-blue-900"
+                      >
+                        {issue.title}
+                      </button>
+                      <p className="mt-0.5 truncate text-[11px] text-gray-500">
+                        {issue.recommendedFix || issue.description}
+                      </p>
+                    </div>
+                    <span className="ml-2 flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-600">
+                      {issue.severity}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </section>
 
@@ -743,7 +868,7 @@ export default function ProjectOverviewPage() {
           </div>
         </div>
 
-        {/* Column 3: Project stats, integrations, auto crawl */}
+        {/* Column 3: Project stats, AEO status, integrations, auto crawl */}
         <div className="space-y-6">
           <div className="rounded-lg bg-white p-6 shadow">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Project Stats</h2>
@@ -774,6 +899,64 @@ export default function ProjectOverviewPage() {
                   </span>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* AEO Status */}
+          <div className="rounded-lg bg-white p-6 shadow">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">AEO Status</h2>
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide ${
+                  aeoSyncEnabled
+                    ? 'bg-green-50 text-green-700'
+                    : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                Shopify Sync {aeoSyncEnabled ? 'On' : 'Off'}
+              </span>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Products with Answer Blocks</span>
+                <span className="font-medium text-gray-900">
+                  {overview?.productsWithAnswerBlocks ?? 0}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Last Answer Blocks sync</span>
+                <span className="font-medium text-gray-900">
+                  {overview?.lastAnswerBlockSyncAt
+                    ? new Date(
+                        overview.lastAnswerBlockSyncAt as string,
+                      ).toLocaleString()
+                    : 'No sync yet'}
+                </span>
+              </div>
+              {overview?.lastAnswerBlockSyncStatus && (
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Last sync status</span>
+                  <span className="font-medium text-gray-900">
+                    {overview.lastAnswerBlockSyncStatus}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => router.push(`/projects/${projectId}/products`)}
+                className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100"
+              >
+                View Answer Blocks
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push(`/projects/${projectId}/products`)}
+                className="inline-flex items-center rounded-md border border-blue-600 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100"
+              >
+                Sync now
+              </button>
             </div>
           </div>
 
@@ -832,6 +1015,55 @@ export default function ProjectOverviewPage() {
           </div>
         </div>
       </section>
+
+      {/* Top Products to Fix */}
+      {topProductsToFix.length > 0 && (
+        <section className="mt-8">
+          <div className="rounded-lg bg-white p-6 shadow">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Top Products to Fix
+                </h2>
+                <p className="mt-1 text-xs text-gray-500">
+                  Products with the most AI-fixable, high-impact issues. Click a
+                  product to open its optimization workspace.
+                </p>
+              </div>
+            </div>
+            <ul className="space-y-3">
+              {topProductsToFix.map(({ product, reasons }) => (
+                <li
+                  key={product.id}
+                  className="flex items-start justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        router.push(
+                          `/projects/${projectId}/products/${product.id}`,
+                        )
+                      }
+                      className="truncate text-sm font-medium text-blue-700 hover:text-blue-900"
+                    >
+                      {product.title || product.externalId}
+                    </button>
+                    {reasons.length > 0 && (
+                      <p className="mt-0.5 truncate text-xs text-gray-500">
+                        {reasons.join('; ')}
+                      </p>
+                    )}
+                  </div>
+                  <span className="ml-2 flex-shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-medium text-orange-700">
+                    Needs fix
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
 
       {/* All Issues Modal */}
       {showIssuesPanel && (

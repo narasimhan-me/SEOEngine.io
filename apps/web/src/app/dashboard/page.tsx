@@ -19,6 +19,9 @@ interface ProjectOverview {
   avgSeoScore: number | null;
   productCount: number;
   productsWithAppliedSeo: number;
+  productsWithAnswerBlocks?: number;
+  lastAnswerBlockSyncStatus?: string | null;
+  lastAnswerBlockSyncAt?: string | null;
 }
 
 interface User {

@@ -8354,7 +8354,56 @@ Shopify Sync → New Product Detected → AutomationService Triggered
 
 ---
 
-These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-8, AE-1 (Answer Engine), AE-1 (Automation Engine), AE-2 (Product Automations), AEO-2 (Shopify Metafields Sync), SHOP-API-1 (GraphQL Migration), INFRA-REDIS-1 (Redis Background Activity Flags), UX-Content-1, UX-Content-2, and MARKETING-1 through MARKETING-6 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
+## Phase DASH-1 – Project Dashboard v1 (First DEO Win & AEO Status)
+
+**Status:** Complete
+
+**Goal:** Enhance the Project Overview dashboard to surface AEO (Answer Blocks) status, show top issues inline, display top products to fix, and improve the First DEO Win checklist UX.
+
+### Scope
+
+- **First DEO Win Checklist Improvements:**
+  - Updated step labels and descriptions to be more Shopify-focused and concise.
+  - Added "In progress" / "Not started" / "Completed" status labels for each step.
+  - CTAs updated ("Connect Shopify", "Run crawl", "Optimize products").
+
+- **Project Overview API Enhancements:**
+  - `getProjectOverview` in `ProjectsService` now returns:
+    - `productsWithAnswerBlocks`: Count of products with at least one Answer Block.
+    - `lastAnswerBlockSyncStatus`: Status of the most recent Shopify metafield sync.
+    - `lastAnswerBlockSyncAt`: Timestamp of the most recent Shopify metafield sync.
+
+- **Dashboard UI Additions:**
+  - **AEO Status Card:** Shows products with Answer Blocks, Shopify sync toggle status (On/Off), last sync timestamp and status, with CTAs to view Answer Blocks and sync now.
+  - **Top Issues Card:** Displays up to 5 DEO issues with severity badges and links to the Issues Engine.
+  - **Top Products to Fix Section:** Shows up to 3 products with AI-fixable, high-impact issues, ranked by severity weight, with clickable navigation to the product optimization workspace.
+
+- **Frontend Interface Updates:**
+  - `ProjectOverview` interface extended in dashboard, products, and overview pages to include new AEO fields.
+  - `IntegrationStatus` interface extended with `aeoSyncToShopifyMetafields` flag.
+  - Products fetched in overview page to support Top Products to Fix derivation.
+
+### Files Changed
+
+- `apps/web/src/components/projects/FirstDeoWinChecklist.tsx` – Updated labels, descriptions, CTAs, and added In progress status.
+- `apps/api/src/projects/projects.service.ts` – Extended `getProjectOverview` with AEO metrics.
+- `apps/web/src/app/dashboard/page.tsx` – Extended `ProjectOverview` interface.
+- `apps/web/src/app/projects/[id]/products/page.tsx` – Extended `ProjectOverview` interface.
+- `apps/web/src/app/projects/[id]/overview/page.tsx` – Added AEO Status card, Top Issues card, Top Products to Fix section, and supporting logic.
+
+### Acceptance Criteria
+
+- [x] First DEO Win checklist shows "In progress" for the first incomplete step and "Not started" for subsequent steps.
+- [x] AEO Status card displays products with Answer Blocks count, sync toggle status, and last sync timestamp/status.
+- [x] Top Issues card shows up to 5 issues with severity and links to Issues Engine.
+- [x] Top Products to Fix section shows up to 3 products ranked by AI-fixable issue severity, with clickable navigation.
+- [x] TypeScript compiles without errors for both API and web apps.
+
+**Manual Testing:** `docs/manual-testing/phase-dashboard-v1-first-deo-win.md`
+
+---
+
+These Phases 23–30 plus Phases UX-1, UX-1.1, UX-2, UX-3, UX-4, UX-5, UX-6, UX-7, UX-8, AE-1 (Answer Engine), AE-1 (Automation Engine), AE-2 (Product Automations), AEO-2 (Shopify Metafields Sync), SHOP-API-1 (GraphQL Migration), INFRA-REDIS-1 (Redis Background Activity Flags), DASH-1 (Dashboard v1), UX-Content-1, UX-Content-2, and MARKETING-1 through MARKETING-6 extend your IMPLEMENTATION_PLAN.md and keep your roadmap cohesive:
 
 - Phases 12–17: Core feature sets (automation, content, performance, competitors, local, social).
 - Phases 18–22: Security, subscription management, monitoring, fairness & limits.
