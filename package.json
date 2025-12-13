@@ -11,7 +11,12 @@
     "build:api": "pnpm --filter api build",
     "build": "pnpm build:web && pnpm build:api",
     "lint": "pnpm --filter \"./apps/*\" --filter \"./packages/*\" lint",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "test": "pnpm test:api",
+    "test:api": "pnpm --filter api test:api",
+    "test:web": "pnpm --filter web test",
+    "db:test:migrate": "pnpm --filter api db:test:migrate",
+    "db:test:reset": "pnpm --filter api db:test:reset"
   },
   "engines": {
     "node": ">=20.0.0",

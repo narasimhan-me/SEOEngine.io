@@ -2,8 +2,17 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import './config/stripe.config';
+import { assertTestEnv } from './config/test-env-guard';
 
 async function bootstrap() {
+  // In test mode, assert that we are connected to a safe test database
+  if (
+    process.env.NODE_ENV === 'test' ||
+    process.env.ENGINEO_ENV === 'test'
+  ) {
+    assertTestEnv('api-bootstrap');
+  }
+
   // Stripe requires raw body for webhook signature verification
   const app = await NestFactory.create(AppModule, {
     rawBody: true,

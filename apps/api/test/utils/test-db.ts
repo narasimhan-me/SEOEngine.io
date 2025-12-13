@@ -2,23 +2,16 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import * as dotenv from 'dotenv';
+import { getTestDatabaseUrl } from '../../src/config/test-env-guard';
 
-// Load test environment variables
+// Load test environment variables (from apps/api/.env.test)
 dotenv.config({ path: '.env.test' });
 
-// Safety check: Refuse to run cleanup if not pointing to test database
-const dbUrl = process.env.DATABASE_URL || '';
-const isTestDatabase = dbUrl.includes('twilight-haze-38151345');
-if (!isTestDatabase) {
-  throw new Error(
-    `SAFETY CHECK FAILED: DATABASE_URL does not point to the test database (twilight-haze-38151345). ` +
-      `Refusing to run to prevent accidental data loss. ` +
-      `Current URL host: ${dbUrl.split('@')[1]?.split('/')[0] || 'unknown'}`,
-  );
-}
+// Safety check: compute a safe test DATABASE_URL and refuse to run if it looks unsafe
+const dbUrl = getTestDatabaseUrl('prisma-test-db');
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: dbUrl,
 });
 
 const adapter = new PrismaPg(pool);

@@ -13,7 +13,9 @@
     "seed": "prisma db execute --file prisma/seed.sql",
     "seed:ts": "ts-node prisma/seed.ts",
     "test:api": "jest --config jest.config.ts",
-    "test:api:e2e": "jest --config jest.e2e.config.ts"
+    "test:api:e2e": "jest --config jest.e2e.config.ts",
+    "db:test:migrate": "ts-node scripts/db-test-migrate.ts",
+    "db:test:reset": "ts-node scripts/db-test-reset.ts"
   },
   "prisma": {
     "seed": "prisma db execute --file prisma/seed.sql"

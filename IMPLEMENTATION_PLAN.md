@@ -28,7 +28,8 @@ Each step should produce diffs and await approval before applying.
 The Test Track runs in parallel with feature phases (1.x, 2.x, etc.) to ensure EngineO.ai remains stable as DEO features expand.
 
 Planned stages:
-- **Test Phase 0 – Baseline Test Harness** (this phase)
+- **TEST-0 – Automated Testing Foundation (Backend + Frontend Ready)** (this phase, completed)
+- **Test Phase 0 – Baseline Test Harness** (original baseline, partially superseded by TEST-0)
 - **Test Phase 1 – API Integration & Basic E2E**
 - **Test Phase 2 – DEO Pipelines & Regression Coverage**
 - **Test Phase 3 – Performance, Load & Chaos** (later)
@@ -318,6 +319,106 @@ Should be completed before:
 - `apps/web` has Jest config + one passing component test  
 - `packages/shared` has Jest config + one passing util test  
 - Optional: `docs/testing.md` created
+
+---
+
+## TEST-0 – Automated Testing Foundation (Backend + Frontend Ready)
+
+### Phase Summary
+
+Establish a reliable, isolated automated testing foundation that:
+
+- Runs backend unit + integration tests against a real local Postgres test DB.
+- Provides a golden-path integration test for the Shopify product SEO update flow.
+- Scaffolds Playwright for frontend E2E readiness (smoke only).
+- Adds deterministic test data factories and DB reset helpers.
+- Prevents tests from ever touching production or managed databases.
+
+### Implementation Highlights
+
+- **Test environment guardrails**
+  - Added `apps/api/src/config/test-env-guard.ts` with `assertTestEnv()` and `getTestDatabaseUrl()` helpers.
+  - API bootstrap (`apps/api/src/main.ts`) asserts a safe test environment when running in test mode.
+  - Jest e2e setup (`apps/api/test/setup.ts`) and Prisma test DB utilities (`apps/api/test/utils/test-db.ts`) call the guard before connecting or resetting data.
+  - New scripts `apps/api/scripts/db-test-migrate.ts` and `db-test-reset.ts` run Prisma migrations/resets against the validated test DB.
+
+- **Test DB wiring**
+  - Root scripts:
+    - `pnpm db:test:migrate` → `pnpm --filter api db:test:migrate`
+    - `pnpm db:test:reset` → `pnpm --filter api db:test:reset`
+  - `apps/api/package.json`:
+    - `db:test:migrate` and `db:test:reset` wired to TypeScript helpers that:
+      - Load `apps/api/.env.test`.
+      - Assert `NODE_ENV/ENGINEO_ENV === "test"`.
+      - Assert `DATABASE_URL_TEST`/`DATABASE_URL` is local and non-prod.
+      - Execute Prisma `migrate deploy` / `migrate reset` against the test DB.
+
+- **Test data factories and seed helpers**
+  - New testkit module: `apps/api/src/testkit/index.ts` with:
+    - `createTestUser(prisma, { email?, plan? })`
+    - `createTestProject(prisma, { userId, name?, domain? })`
+    - `createTestShopifyStoreConnection(prisma, { projectId, shopDomain?, accessToken? })`
+    - `createTestProducts(prisma, { projectId, count, withSeo?, withIssues? })`
+    - `setTestUserPlan(prisma, { userId, plan })`
+    - `seedFirstDeoWinProjectReady(prisma, { userPlan })`
+  - Deterministic IDs/keys use `test_<label>_<timestamp>_<counter>` prefixes.
+
+- **Golden-path backend integration test (canary)**
+  - Added `apps/api/test/e2e/shopify-update-product-seo.e2e-spec.ts`:
+    - Bootstraps the Nest app via `createTestApp()`.
+    - Seeds a user + project + Shopify connection + products via `seedFirstDeoWinProjectReady()`.
+    - Issues `POST /shopify/update-product-seo` with a signed JWT for the seeded user.
+    - Asserts:
+      - API responds with the expected payload.
+      - The corresponding `Product` row gets updated `seoTitle` / `seoDescription`.
+      - `global.fetch` is mocked and invoked once with the `UpdateProductSeo` operation (no real Shopify network calls).
+
+- **Frontend Playwright scaffold**
+  - `apps/web/playwright.config.ts` configured with:
+    - Test dir `apps/web/tests`.
+    - Default base URL `http://localhost:3000` (overridable via `PLAYWRIGHT_BASE_URL`).
+    - Single Chromium project.
+  - `apps/web/tests/smoke-homepage.spec.ts`:
+    - Navigates to `/`.
+    - Asserts the marketing homepage hero heading is visible.
+  - `apps/web/package.json`:
+    - Dev dependency: `@playwright/test`.
+    - Script: `"test": "playwright test"`.
+  - Root script: `pnpm test:web` → `pnpm --filter web test`.
+
+- **Root test scripts**
+  - `pnpm test` → runs backend Jest suite via `pnpm test:api`.
+  - `pnpm test:api` → `pnpm --filter api test:api`.
+  - `pnpm test:web` → `pnpm --filter web test` (Playwright smoke).
+
+- **CI skeleton**
+  - New workflow: `.github/workflows/test.yml`:
+    - Triggers on PRs and pushes to `main`/`master`.
+    - Starts a Postgres 15 service (`engineo_test` DB).
+    - Sets test-mode env vars (including a local `DATABASE_URL` and `NODE_ENV/ENGINEO_ENV = test`).
+    - Runs `pnpm db:test:migrate`, `pnpm test`, and `pnpm test:web` (Playwright step marked `continue-on-error` for now).
+    - Fails fast if the test guard detects an unsafe DB URL.
+
+- **Docs and env examples**
+  - Created `docs/TESTING.md` with:
+    - Local setup instructions.
+    - Command reference (`pnpm test`, `test:api`, `test:web`, `db:test:migrate`, `db:test:reset`).
+    - Explanation of the test env guard, testkit, Shopify mocking, and CI behavior.
+  - Created `.env.test.example` at the repo root with:
+    - Local `DATABASE_URL_TEST` for `engineo_test` on localhost.
+    - Placeholder (non-secret) values for JWT, Redis, Shopify, AI, and Stripe.
+  - Manual testing doc:
+    - `docs/manual-testing/test-0-automated-testing-foundation.md` describing manual verification for:
+      - DB safety guard behavior.
+      - DB migrate/reset scripts.
+      - Backend Jest suite against the test DB.
+      - Golden-path Shopify SEO update test.
+      - Playwright smoke test and CI wiring.
+
+### Status
+
+- Status: **COMPLETE**
+- Manual Testing: `docs/manual-testing/test-0-automated-testing-foundation.md`
 
 ---
 
