@@ -4,6 +4,7 @@ import { DeoScoreService, DeoSignalsService } from '../projects/deo-score.servic
 import { AutomationService } from '../projects/automation.service';
 import { IntegrationType } from '@prisma/client';
 import * as cheerio from 'cheerio';
+import { isE2EMode } from '../config/test-env-guard';
 
 export interface ScanResult {
   url: string;
@@ -207,6 +208,21 @@ export class SeoScanService {
     const startTime = Date.now();
     let statusCode = 0;
     let html = '';
+
+    // In E2E mode, return a deterministic synthetic scan result without network.
+    if (isE2EMode()) {
+      const loadTimeMs = Date.now() - startTime;
+      return {
+        url,
+        statusCode: 200,
+        title: 'E2E Test Homepage',
+        metaDescription: 'E2E stubbed SEO scan (no external network).',
+        h1: 'E2E Test',
+        wordCount: 500,
+        loadTimeMs,
+        issues: [],
+      };
+    }
 
     try {
       const response = await fetch(url, {
@@ -462,6 +478,11 @@ export class SeoScanService {
     accessToken: string,
     productId: string,
   ): Promise<{ handle: string } | null> {
+    // In E2E mode, avoid calling Shopify; return a synthetic handle.
+    if (isE2EMode()) {
+      return { handle: `e2e-product-${productId}` };
+    }
+
     const url = `https://${shopDomain}/admin/api/2024-01/graphql.json`;
 
     const query = `

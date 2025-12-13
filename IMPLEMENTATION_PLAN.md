@@ -527,6 +527,79 @@ AEO-2 and Shopify-related tests rely solely on `global.fetch` mocks; no live net
 
 ---
 
+## TEST-2 – Frontend E2E (Playwright) for First DEO Win (Mock Shopify)
+
+### Phase Summary
+
+Add stable, deterministic Playwright E2E coverage for the First DEO Win journey:
+
+- Connect store ✅ (mocked, no live Shopify).
+- Run first crawl ✅ (stubbed SEO scan, deterministic).
+- Review DEO Score ✅.
+- Optimize 3 products ✅ (single-product workspace, preview → apply).
+
+Tests run against the local test DB, use mocked external integrations, and are wired into CI.
+
+### Implementation Highlights
+
+**E2E mode**
+
+- Introduced `isE2EMode()` in `apps/api/src/config/test-env-guard.ts`, driven by `ENGINEO_E2E=1`.
+- In E2E mode:
+  - API uses the test DB and existing safety guards.
+  - Shopify Admin API calls are stubbed in `ShopifyService` (no external network).
+  - SEO scans are stubbed in `SeoScanService` to avoid live HTTP fetches.
+
+**API E2E testkit endpoints**
+
+- `POST /testkit/e2e/seed-first-deo-win`:
+  - Seeds a Pro-plan user, a project, and 3 products with missing SEO fields (no integrations, no crawl results, no DEO snapshots).
+  - Returns `{ user, projectId, productIds, accessToken }`.
+
+- `POST /testkit/e2e/connect-shopify`:
+  - Adds a mocked Shopify integration for an existing project.
+
+Both endpoints are guarded to run only when `ENGINEO_E2E=1`.
+
+**Playwright configuration**
+
+- `apps/web/playwright.config.ts`:
+  - Configures a `webServer` that runs `pnpm dev` with:
+    - `NODE_ENV=test`, `ENGINEO_ENV=test`, `ENGINEO_E2E=1`.
+    - `NEXT_PUBLIC_API_URL` and `PLAYWRIGHT_API_URL` pointing at the test API port.
+  - Uses Chromium as the primary browser target.
+
+- Scripts:
+  - Root: `pnpm test:e2e` → `pnpm --filter web test:e2e`.
+  - `apps/web`: `test:e2e`, `test:e2e:ui`, `e2e:dev`.
+
+**E2E coverage**
+
+`apps/web/tests/first-deo-win.spec.ts`:
+
+- Happy-path flow for:
+  - Connect store (via E2E testkit endpoint).
+  - Run first crawl (using stubbed SEO scan).
+  - Review DEO Score.
+  - Optimize 3 products via the product workspace's single-item apply flow.
+
+- Contract test that the product workspace does not expose bulk apply CTAs.
+
+All Shopify-related calls invoked during the flow are served by `ShopifyService`'s E2E mock, not the real Shopify Admin API.
+
+**CI integration**
+
+- `.github/workflows/test.yml` extended to:
+  - Run `pnpm test:e2e` after backend and Playwright smoke tests.
+  - Share the same Postgres test DB and environment as TEST-0/TEST-1.
+
+### Status
+
+- Status: **PLANNED**
+- Manual Testing: `docs/manual-testing/test-2-playwright-first-deo-win.md`
+
+---
+
 ## Testing Track
 
 ### Phase T0 – Backend API Test Foundation (Completed)

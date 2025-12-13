@@ -288,3 +288,101 @@ TEST-1 builds on the TEST-0 foundation and adds higher-level backend integration
   - Metafield payloads reference the correct `ownerId` (`gid://shopify/Product/<externalId>`).
 - No live Shopify store or network connectivity is required.
 
+---
+
+## 11. TEST-2 – Frontend Playwright E2E (First DEO Win, Mock Shopify)
+
+TEST-2 adds stable, deterministic Playwright E2E coverage for the **First DEO Win** happy path:
+
+- Connect store ✅ (mocked)
+- Run first crawl ✅ (stubbed SEO scan, no network)
+- Review DEO score ✅
+- Optimize 3 products ✅ (single-item, preview → apply flow)
+
+All E2E tests run against the local test DB, use mocked Shopify calls, and require no external network.
+
+**Architecture:**
+
+- E2E mode is enabled via:
+  - `ENGINEO_E2E=1`
+  - `ENGINEO_ENV=test`
+  - `NODE_ENV=test`
+- In E2E mode:
+  - The API uses the test DB (guarded by `assertTestEnv()` / `getTestDatabaseUrl()`).
+  - Shopify Admin API calls are stubbed in `apps/api/src/shopify/shopify.service.ts` via `isE2EMode()`.
+  - SEO crawl uses deterministic, non-network stubs in `apps/api/src/seo-scan/seo-scan.service.ts`.
+
+**E2E testkit endpoints (API):**
+
+- `POST /testkit/e2e/seed-first-deo-win`
+  - Seeds:
+    - Pro-plan user
+    - Project (no integrations, no crawl results, no DEO snapshots)
+    - 3 products with missing SEO metadata
+  - Returns: `{ user, projectId, productIds, accessToken }`
+  - Only available when `ENGINEO_E2E=1`.
+
+- `POST /testkit/e2e/connect-shopify`
+  - Body: `{ projectId }`
+  - Creates a Shopify integration record for the project (mocked store/domain).
+  - Only available when `ENGINEO_E2E=1`.
+
+**Playwright configuration:**
+
+- Config: `apps/web/playwright.config.ts`
+  - `webServer` starts both web and API via `pnpm dev`.
+  - `env` includes:
+    - `NODE_ENV=test`, `ENGINEO_ENV=test`, `ENGINEO_E2E=1`
+    - `NEXT_PUBLIC_API_URL` and `PLAYWRIGHT_API_URL` pointing to the test API (`http://localhost:3001` by default).
+  - `use.baseURL` defaults to `http://localhost:3000`.
+
+**Commands:**
+
+- From repo root:
+
+  ```bash
+  # Run backend tests (TEST-0 + TEST-1)
+  pnpm test:api
+
+  # Run Playwright E2E (TEST-2)
+  pnpm test:e2e
+  ```
+
+- From apps/web:
+
+  ```bash
+  # E2E tests (same as root alias)
+  pnpm test:e2e
+
+  # Optional UI mode
+  pnpm test:e2e:ui
+  ```
+
+**What the E2E tests do:**
+
+`apps/web/tests/first-deo-win.spec.ts`:
+
+- Seeds an E2E project via `POST /testkit/e2e/seed-first-deo-win`.
+- Programmatically "logs in" by writing the seed JWT into localStorage (same key used by lib/auth).
+- Navigates to `/projects/{projectId}/overview` and verifies:
+  - Checklist initially shows "0 of 4 steps complete".
+  - Connects store via `POST /testkit/e2e/connect-shopify` and checks the checklist updates.
+  - Clicks "Run crawl" and waits for the "Run your first crawl" step to show "Completed".
+  - Clicks "View DEO Score" and waits for the "Review your DEO Score" step to show "Completed".
+  - Navigates to the product workspace for three seeded products, edits metadata, and clicks "Apply to Shopify".
+  - Verifies success toasts include "Applied to Shopify and saved in EngineO".
+  - Returns to the overview and asserts that First DEO Win is complete and the "Next DEO Win" card is visible.
+
+- The second test asserts:
+  - The product workspace does not expose bulk apply CTAs like "Apply to all" or "Bulk apply"; only single-item apply is available.
+
+**CI:**
+
+- `.github/workflows/test.yml`:
+  - Runs:
+    - `pnpm db:test:migrate`
+    - `pnpm test` (backend)
+    - `pnpm test:web` (smoke)
+    - `pnpm test:e2e` (TEST-2 E2E suite)
+  - All Shopify and crawl-related calls are stubbed; no external network is required.
+

@@ -83,3 +83,5 @@ jobs:
         run: pnpm test:web
         continue-on-error: true
 
+      - name: Run Playwright E2E (TEST-2 – First DEO Win)
+        run: pnpm test:e2e

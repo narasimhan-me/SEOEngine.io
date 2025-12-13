@@ -17,6 +17,7 @@ import { CaptchaModule } from './captcha/captcha.module';
 import { ContactModule } from './contact/contact.module';
 import { CrawlModule } from './crawl/crawl.module';
 import { RedisModule } from './infra/redis/redis.module';
+import { E2eTestkitController } from './testkit/e2e-testkit.controller';
 
 @Module({
   imports: [
@@ -42,7 +43,7 @@ import { RedisModule } from './infra/redis/redis.module';
     ContactModule,
     CrawlModule,
   ],
-  controllers: [],
+  controllers: [E2eTestkitController],
   providers: [],
 })
 export class AppModule {}

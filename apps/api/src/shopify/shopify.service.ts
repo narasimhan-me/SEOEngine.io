@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma.service';
 import { IntegrationType } from '@prisma/client';
 import * as crypto from 'crypto';
 import { AutomationService } from '../projects/automation.service';
+import { isE2EMode } from '../config/test-env-guard';
 
 const ANSWER_BLOCK_METAFIELD_DEFINITIONS: {
   questionId: string;
@@ -145,7 +146,110 @@ export class ShopifyService {
     return process.env.NODE_ENV === 'test';
   }
 
+  /**
+   * E2E-only Shopify mock: returns deterministic responses without network.
+   * Covers the operations used in TEST-2 flows:
+   * - UpdateProductSeo
+   * - GetEngineoMetafieldDefinitions
+   * - CreateEngineoMetafieldDefinition
+   * - SetEngineoMetafields
+   */
+  private async e2eMockShopifyFetch(url: string, init: any): Promise<any> {
+    try {
+      const body = init?.body ? JSON.parse(init.body as string) : {};
+      const operationName = body.operationName as string | undefined;
+
+      if (operationName === 'UpdateProductSeo') {
+        return {
+          ok: true,
+          json: async () => ({
+            data: {
+              productUpdate: {
+                product: {
+                  id: body.variables?.input?.id ?? 'gid://shopify/Product/0',
+                  seo: {
+                    title: body.variables?.input?.seo?.title ?? null,
+                    description: body.variables?.input?.seo?.description ?? null,
+                  },
+                },
+                userErrors: [],
+              },
+            },
+          }),
+          text: async () => '',
+        };
+      }
+
+      if (operationName === 'GetEngineoMetafieldDefinitions') {
+        return {
+          ok: true,
+          json: async () => ({
+            data: {
+              metafieldDefinitions: {
+                edges: [],
+              },
+            },
+          }),
+          text: async () => '',
+        };
+      }
+
+      if (operationName === 'CreateEngineoMetafieldDefinition') {
+        const definition = body.variables?.definition;
+        return {
+          ok: true,
+          json: async () => ({
+            data: {
+              metafieldDefinitionCreate: {
+                createdDefinition: {
+                  id: 'gid://shopify/MetafieldDefinition/1',
+                  key: definition?.key,
+                  namespace: definition?.namespace,
+                },
+                userErrors: [],
+              },
+            },
+          }),
+          text: async () => '',
+        };
+      }
+
+      if (operationName === 'SetEngineoMetafields') {
+        return {
+          ok: true,
+          json: async () => ({
+            data: {
+              metafieldsSet: {
+                metafields: [],
+                userErrors: [],
+              },
+            },
+          }),
+          text: async () => '',
+        };
+      }
+
+      // Fallback: generic success envelope.
+      return {
+        ok: true,
+        json: async () => ({ data: {} }),
+        text: async () => '',
+      };
+    } catch {
+      return {
+        ok: true,
+        json: async () => ({ data: {} }),
+        text: async () => '',
+      };
+    }
+  }
+
   private async rateLimitedFetch(url: string, init: any): Promise<any> {
+    if (isE2EMode()) {
+      // In E2E mode, never hit the real Shopify Admin API.
+      return this.e2eMockShopifyFetch(url, init);
+    }
+
     if (!this.isTestEnv && this.lastShopifyRequestAt > 0) {
       const elapsed = Date.now() - this.lastShopifyRequestAt;
       if (elapsed < this.minShopifyIntervalMs) {

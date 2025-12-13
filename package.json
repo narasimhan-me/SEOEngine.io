@@ -15,6 +15,8 @@
     "test": "pnpm test:api",
     "test:api": "pnpm --filter api test:api",
     "test:web": "pnpm --filter web test",
+    "test:e2e": "pnpm --filter web test:e2e",
+    "e2e:dev": "NODE_ENV=test ENGINEO_ENV=test ENGINEO_E2E=1 pnpm dev",
     "db:test:migrate": "pnpm --filter api db:test:migrate",
     "db:test:reset": "pnpm --filter api db:test:reset"
   },

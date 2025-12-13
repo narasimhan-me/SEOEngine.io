@@ -92,3 +92,12 @@ export function getTestDatabaseUrl(context: string = 'unknown'): string {
   return dbUrl;
 }
 
+/**
+ * Returns true when the API is running in E2E mode.
+ * In this mode we:
+ * - Allow /testkit/e2e/* endpoints.
+ * - Stub external calls (Shopify, SEO crawl) to avoid live network.
+ */
+export function isE2EMode(): boolean {
+  return process.env.ENGINEO_E2E === '1';
+}
