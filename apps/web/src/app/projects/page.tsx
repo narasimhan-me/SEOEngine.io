@@ -30,7 +30,14 @@ export default function ProjectsPage() {
       setProjects(data);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : '';
-      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+      // Check for auth failures or network errors that suggest invalid/missing auth
+      const isAuthOrNetworkError =
+        errorMessage.includes('401') ||
+        errorMessage.includes('Unauthorized') ||
+        errorMessage.toLowerCase().includes('load failed') ||
+        errorMessage.toLowerCase().includes('failed to fetch') ||
+        errorMessage.toLowerCase().includes('network');
+      if (isAuthOrNetworkError) {
         removeToken();
         router.push('/login');
         return;
@@ -107,7 +114,18 @@ export default function ProjectsPage() {
       // Navigate to the new project's overview
       router.push(`/projects/${created.id}/overview`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to create project');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create project';
+      // Handle network errors by redirecting to login
+      const isNetworkError =
+        errorMessage.toLowerCase().includes('load failed') ||
+        errorMessage.toLowerCase().includes('failed to fetch') ||
+        errorMessage.toLowerCase().includes('network');
+      if (isNetworkError) {
+        removeToken();
+        router.push('/login');
+        return;
+      }
+      setError(errorMessage);
     } finally {
       setCreating(false);
     }
