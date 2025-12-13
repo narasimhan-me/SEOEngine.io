@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 import type { DeoIssue } from '@engineo/shared';
@@ -28,6 +28,7 @@ import { useFeedback } from '@/components/feedback/FeedbackProvider';
 export default function ProductOptimizationPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const projectId = params.id as string;
   const productId = params.productId as string;
   const feedback = useFeedback();
@@ -269,8 +270,10 @@ export default function ProductOptimizationPage() {
       setInitialTitle(editorTitle);
       setInitialDescription(editorDescription);
 
-      setSuccessMessage('SEO updated in Shopify successfully!');
-      feedback.showSuccess('SEO updated in Shopify successfully!');
+      const message =
+        'SEO updated in Shopify successfully! Applied to Shopify and saved in EngineO.';
+      setSuccessMessage(message);
+      feedback.showSuccess(message);
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (err: unknown) {
       console.error('Error applying to Shopify:', err);
@@ -322,6 +325,18 @@ export default function ProductOptimizationPage() {
     }
     fetchData();
   }, [router, fetchData]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!product) return;
+    if (searchParams.get('focus') !== 'metadata') return;
+    const timeoutId = window.setTimeout(() => {
+      scrollToSection('metadata-section');
+    }, 200);
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [product, searchParams, scrollToSection]);
 
   if (loading) {
     return (

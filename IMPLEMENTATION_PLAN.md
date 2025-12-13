@@ -7656,6 +7656,67 @@ This phase introduces a "Next DEO Win" card on the Project Overview page that:
 
 ---
 
+## Phase AUTO-UX-NEXT-2 – Guided "Optimize 3 Products" First DEO Win (Completed)
+
+**Status:** Complete
+
+**Goal:** Guide users toward completing the "Optimize 3 key products" step of the First DEO Win checklist by showing a prioritized list of products missing SEO metadata directly on the Project Overview page, with deep-links that auto-scroll to the SEO metadata section.
+
+### AUTO-UX-NEXT-2 Overview
+
+This phase introduces a "First DEO Win: Optimize 3 products" card on the Project Overview page that:
+
+1. **Appears Before Checklist Completion** — Visible when fewer than 3 products have been optimized and the First DEO Win checklist is still active.
+2. **Shows Prioritized Suggestions** — Displays up to 3 products that need SEO optimization, prioritized by those appearing in "Top blockers".
+3. **Displays Missing Metadata Badges** — Each product shows badges indicating what's missing (SEO title, description, or both).
+4. **Deep-Links to Product Page** — "Optimize" buttons navigate to the Product page with `?focus=metadata` query param.
+5. **Auto-Scrolls to Metadata Section** — Product page detects the `focus=metadata` param and auto-scrolls to the SEO Metadata section.
+6. **Updated Success Message** — Apply to Shopify shows improved messaging confirming data saved in EngineO.
+
+### AUTO-UX-NEXT-2 Frontend Changes
+
+**Project Overview Page (apps/web/src/app/projects/[id]/overview/page.tsx):**
+
+- Added state:
+  - `optimizedProductsCount` — Derived from `overview?.productsWithAppliedSeo`.
+- Added computed value:
+  - `optimizeThreeSuggestions` — Filters products missing SEO metadata, prioritizes those in `topProductsToFix`, returns up to 3.
+- Added conditional rendering:
+  - "First DEO Win: Optimize 3 products" card appears when checklist is visible and fewer than 3 products optimized.
+  - Card shows amber/orange styling with star icon.
+  - Progress indicator shows "X of 3 products optimized".
+  - Each suggested product shows name, missing metadata badges, and "Optimize" button.
+  - "Optimize" buttons link to `/projects/[id]/products/[productId]?focus=metadata`.
+
+**Product Optimization Page (apps/web/src/app/projects/[id]/products/[productId]/page.tsx):**
+
+- Added imports:
+  - `useSearchParams` from `next/navigation`
+- Added hooks:
+  - `searchParams = useSearchParams()` — For reading query params.
+- Added useEffect for deep-link handling:
+  - Detects `searchParams.get('focus') === 'metadata'`.
+  - Calls `scrollToSection('metadata-section')` after 200ms delay (for DOM readiness).
+  - Cleanup clears timeout on unmount.
+- Updated success message:
+  - Changed from "SEO updated in Shopify successfully!" to "SEO updated in Shopify successfully! Applied to Shopify and saved in EngineO."
+
+### AUTO-UX-NEXT-2 Acceptance Criteria (Completed)
+
+- [x] "Optimize 3 products" card appears on Project Overview when checklist is active and fewer than 3 products optimized.
+- [x] Card shows up to 3 products missing SEO metadata with prioritization from "Top blockers".
+- [x] Each product displays badges for missing SEO title (orange) and/or missing description (blue).
+- [x] "Optimize" buttons navigate to product page with `?focus=metadata` query param.
+- [x] Product page auto-scrolls to SEO Metadata section when `focus=metadata` is present.
+- [x] Apply to Shopify shows updated success message confirming save in EngineO.
+- [x] Card hidden when all 4 First DEO Win steps are complete.
+- [x] Existing Product page functionality unchanged for direct navigation.
+- [x] Manual testing doc created.
+
+**Manual Testing:** `docs/manual-testing/phase-auto-ux-next-2-optimize-three-products.md`
+
+---
+
 ## Phase UX-8 – Issue Engine Full (IE-2.0)
 
 **Status:** Complete

@@ -597,6 +597,8 @@ export default function ProjectOverviewPage() {
 
   const hasOptimizedThreeProducts = (overview?.productsWithAppliedSeo ?? 0) >= 3;
 
+  const optimizedProductsCount = overview?.productsWithAppliedSeo ?? 0;
+
   const aeoSyncEnabled = status?.aeoSyncToShopifyMetafields ?? false;
   const issuesForCards: DeoIssue[] =
     ((deoIssues?.issues as DeoIssue[]) ?? []).slice(0, 3);
@@ -663,6 +665,28 @@ export default function ProjectOverviewPage() {
     return top.filter(
       (entry): entry is { product: Product; reasons: string[] } => entry !== null,
     );
+  })();
+
+  const optimizeThreeSuggestions = (() => {
+    if (!products.length) {
+      return [] as Product[];
+    }
+    const missingMetadata = products.filter((product) => {
+      const missingTitle = !product.seoTitle?.trim();
+      const missingDescription = !product.seoDescription?.trim();
+      return missingTitle || missingDescription;
+    });
+    if (missingMetadata.length === 0) {
+      return [] as Product[];
+    }
+    const prioritizedIds = new Set(
+      topProductsToFix.map(({ product }) => product.id),
+    );
+    const prioritized = [
+      ...missingMetadata.filter((product) => prioritizedIds.has(product.id)),
+      ...missingMetadata.filter((product) => !prioritizedIds.has(product.id)),
+    ];
+    return prioritized.slice(0, 3);
   })();
 
   // Checklist helper callbacks
@@ -931,6 +955,74 @@ export default function ProjectOverviewPage() {
           <p className="text-xs text-gray-600">
             Your biggest growth opportunities are Answer Readiness and Visibility.
           </p>
+          {/* First DEO Win: Optimize 3 products (guided quick win) */}
+          {!hasOptimizedThreeProducts && (
+            <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 shadow-sm">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-blue-900">
+                    First DEO Win: Optimize 3 products
+                  </h3>
+                  <p className="mt-1 text-xs text-blue-800">
+                    Preview and apply SEO improvements — one product at a time.
+                  </p>
+                  <p className="mt-2 text-[11px] font-medium text-blue-900">
+                    {Math.min(optimizedProductsCount, 3)} of 3 products optimized
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3">
+                {optimizeThreeSuggestions.length === 0 ? (
+                  <p className="text-xs text-blue-800">
+                    All products already have SEO titles and descriptions. Check back here after
+                    syncing new products.
+                  </p>
+                ) : (
+                  <ul className="space-y-3">
+                    {optimizeThreeSuggestions.map((product) => {
+                      const missingTitle = !product.seoTitle?.trim();
+                      const missingDescription = !product.seoDescription?.trim();
+                      return (
+                        <li
+                          key={product.id}
+                          className="flex items-start justify-between gap-3"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-blue-900">
+                              {product.title || product.externalId}
+                            </p>
+                            <div className="mt-1 flex flex-wrap gap-1.5">
+                              {missingTitle && (
+                                <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-800">
+                                  Missing SEO title
+                                </span>
+                              )}
+                              {missingDescription && (
+                                <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-800">
+                                  Missing SEO description
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              router.push(
+                                `/projects/${projectId}/products/${product.id}?focus=metadata`,
+                              )
+                            }
+                            className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                          >
+                            Optimize
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
           <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
