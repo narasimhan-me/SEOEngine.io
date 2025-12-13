@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { isAuthenticated, removeToken, getToken } from '@/lib/auth';
-import { projectsApi, seoScanApi, productsApi } from '@/lib/api';
+import { projectsApi, seoScanApi, productsApi, billingApi } from '@/lib/api';
 import type { Product } from '@/lib/products';
 import type {
   DeoScoreLatestResponse,
@@ -18,6 +18,7 @@ import { DeoSignalsSummary } from '@/components/projects/DeoSignalsSummary';
 import { ProjectHealthCards } from '@/components/projects/ProjectHealthCards';
 import { IssuesList } from '@/components/issues/IssuesList';
 import { FirstDeoWinChecklist } from '@/components/projects/FirstDeoWinChecklist';
+import { NextDeoWinCard } from '@/components/projects/NextDeoWinCard';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 
 type CrawlFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY';
@@ -166,6 +167,7 @@ export default function ProjectOverviewPage() {
   const [showFirstWinCard, setShowFirstWinCard] = useState(true);
   const [hasReviewedDeoScore, setHasReviewedDeoScore] = useState(false);
   const [connectingSource, setConnectingSource] = useState(false);
+  const [planId, setPlanId] = useState<string | null>(null);
 
   const feedback = useFeedback();
 
@@ -271,6 +273,18 @@ export default function ProjectOverviewPage() {
     }
   }, [projectId]);
 
+  const fetchPlanId = useCallback(async () => {
+    try {
+      const entitlements = await billingApi.getEntitlements();
+      if (entitlements && typeof (entitlements as { plan?: string }).plan === 'string') {
+        setPlanId((entitlements as { plan: string }).plan);
+      }
+    } catch (err: unknown) {
+      console.error('Error fetching plan:', err);
+      // Non-critical, leave planId as null
+    }
+  }, []);
+
   const handleRecomputeDeoScore = async () => {
     try {
       setDeoScoreRecomputing(true);
@@ -311,6 +325,7 @@ export default function ProjectOverviewPage() {
     fetchDeoSignals();
     fetchDeoIssues();
     fetchProducts();
+    fetchPlanId();
 
     if (searchParams.get('shopify') === 'connected') {
       setSuccessMessage('Successfully connected to Shopify!');
@@ -327,6 +342,7 @@ export default function ProjectOverviewPage() {
     fetchDeoSignals,
     fetchDeoIssues,
     fetchProducts,
+    fetchPlanId,
   ]);
 
   const handleConnectShopify = () => {
@@ -770,6 +786,11 @@ export default function ProjectOverviewPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Next DEO Win Card - shown when First DEO Win checklist is fully complete */}
+      {hasConnectedSource && hasRunCrawl && hasDeoScore && hasOptimizedThreeProducts && (
+        <NextDeoWinCard projectId={projectId} planId={planId} />
       )}
 
       {/* Primary Focus Section: What Matters Right Now */}

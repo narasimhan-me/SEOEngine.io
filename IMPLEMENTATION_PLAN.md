@@ -7584,6 +7584,78 @@ This phase tightens the onboarding feedback loop by:
 
 ---
 
+## Phase AUTO-UX-NEXT-1 – Next DEO Win: Automation Playbooks Entry (Completed)
+
+**Status:** Complete
+
+**Goal:** After users complete the First DEO Win checklist, guide them to a high-leverage "next DEO win" by promoting Automation Playbooks v1 (missing SEO titles/descriptions) from the Project Overview page, using a clear CTA and trust-building preview messaging.
+
+### AUTO-UX-NEXT-1 Overview
+
+This phase introduces a "Next DEO Win" card on the Project Overview page that:
+
+1. **Appears After First DEO Win Completion** — Only visible when all 4 checklist steps are complete (connect store, run crawl, review DEO score, optimize 3 products).
+2. **Promotes Automation Playbooks** — Guides users to bulk-fix missing SEO metadata using the existing Automation Playbooks v1 feature.
+3. **Shows Plan-Aware Messaging** — Free users see upgrade hints; Pro/Business users see full-access messaging.
+4. **Displays Affected Product Counts** — Fetches and shows counts of products missing SEO titles and descriptions.
+5. **Navigates with Context** — Clicking the CTA navigates to Playbooks with `source=next_deo_win`, which shows a congratulatory banner.
+
+### AUTO-UX-NEXT-1 Frontend Changes
+
+**New Component: NextDeoWinCard (apps/web/src/components/projects/NextDeoWinCard.tsx):**
+
+- Props:
+  - `projectId: string` — The current project ID.
+  - `planId?: string | null` — The user's current plan for messaging.
+- Behavior:
+  - Fetches automation playbook estimates for `missing_seo_title` and `missing_seo_description` in parallel.
+  - Displays affected product counts or fallback message on error.
+  - Shows plan-aware messaging based on `planId`.
+  - CTA button navigates to `/projects/[id]/automation/playbooks?source=next_deo_win`.
+
+**Project Overview Page (apps/web/src/app/projects/[id]/overview/page.tsx):**
+
+- Added imports:
+  - `billingApi` from `@/lib/api`
+  - `NextDeoWinCard` component
+- Added state:
+  - `planId` — Fetched via `billingApi.getEntitlements()` on page load.
+- Added `fetchPlanId()` callback and included in useEffect.
+- Added conditional rendering:
+  - Shows `NextDeoWinCard` when all 4 First DEO Win steps are complete.
+  - Card appears after the First DEO Win Status Ribbon and before "What Matters Right Now" section.
+
+**Automation Playbooks Page (apps/web/src/app/projects/[id]/automation/playbooks/page.tsx):**
+
+- Added `useSearchParams` import.
+- Added state:
+  - `source` — Read from `searchParams.get('source')`.
+  - `showNextDeoWinBanner` — Derived from `source === 'next_deo_win'`.
+  - `bannerDismissed` — Tracks whether user has dismissed the banner.
+- Added banner UI:
+  - Purple/violet styled banner with checkmark icon.
+  - Title: "Nice work on your first DEO win"
+  - Copy explains how to use Playbooks for bulk fixes.
+  - Dismissible via X button (session-only, local state).
+- Banner appears after page header, before automation tabs.
+
+### AUTO-UX-NEXT-1 Acceptance Criteria (Completed)
+
+- [x] "Next DEO win" card appears on Project Overview only when all 4 First DEO Win steps are complete.
+- [x] Card shows plan-aware messaging: Free plan users see upgrade hint; Pro/Business users see full-access messaging.
+- [x] Card fetches and displays affected product counts for missing SEO titles and descriptions.
+- [x] On estimate fetch error, card shows fallback message without blocking CTA.
+- [x] Clicking "Open Automation Playbooks" navigates to `/projects/[id]/automation/playbooks?source=next_deo_win`.
+- [x] Playbooks page shows congratulatory banner when `source=next_deo_win`.
+- [x] Banner is dismissible and does not reappear during the same session.
+- [x] No auto-apply behavior; user must still choose playbook → preview → estimate → apply.
+- [x] Existing Playbooks page functionality unchanged.
+- [x] Manual testing doc created.
+
+**Manual Testing:** `docs/manual-testing/phase-auto-ux-next-1-next-deo-win-automation-playbooks.md`
+
+---
+
 ## Phase UX-8 – Issue Engine Full (IE-2.0)
 
 **Status:** Complete

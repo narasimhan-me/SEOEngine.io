@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams, useRouter, usePathname } from 'next/navigation';
+import { useParams, useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 import type { DeoIssue } from '@engineo/shared';
@@ -72,8 +72,13 @@ export default function AutomationPlaybooksPage() {
   const router = useRouter();
   const params = useParams();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const projectId = params.id as string;
   const feedback = useFeedback();
+
+  const source = searchParams.get('source');
+  const showNextDeoWinBanner = source === 'next_deo_win';
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -406,6 +411,59 @@ export default function AutomationPlaybooksPage() {
           token estimates before you run anything.
         </p>
       </div>
+
+      {/* Next DEO Win Banner - shown when navigating from overview card */}
+      {showNextDeoWinBanner && !bannerDismissed && (
+        <div className="mb-6 rounded-lg border border-purple-200 bg-purple-50 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-5 w-5 text-purple-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-purple-900">
+                  Nice work on your first DEO win
+                </h3>
+                <p className="mt-1 text-xs text-purple-800">
+                  Next up, use Automation Playbooks to fix missing SEO titles and
+                  descriptions in bulk. Start with a preview — no changes are
+                  applied until you confirm.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setBannerDismissed(true)}
+              className="flex-shrink-0 text-purple-500 hover:text-purple-700"
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Automation tabs */}
       <div className="mb-6 border-b border-gray-200">
