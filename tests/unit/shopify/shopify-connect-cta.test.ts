@@ -78,6 +78,84 @@ describe('Shopify OAuth URL construction', () => {
   });
 });
 
+describe('selectShopifyDomain canonical logic', () => {
+  function selectShopifyDomain(
+    statusShopDomain?: string,
+    projectDomain?: string | null,
+    promptValue?: string | null,
+  ): string | null {
+    let domain =
+      (statusShopDomain ?? '') ||
+      (projectDomain ?? '');
+    if (!domain) {
+      domain = (promptValue ?? '').trim();
+    }
+    if (!domain) {
+      return null;
+    }
+    let formatted = domain.trim();
+    formatted = formatted.replace(/^https?:\/\//i, '').split('/')[0];
+    if (!formatted.includes('.myshopify.com')) {
+      formatted = `${formatted}.myshopify.com`;
+    }
+    return formatted;
+  }
+
+  it('prefers Shopify integration shopDomain when present', () => {
+    const domain = selectShopifyDomain(
+      'integration-store.myshopify.com',
+      'project-store.myshopify.com',
+      null,
+    );
+    expect(domain).toBe('integration-store.myshopify.com');
+  });
+
+  it('falls back to projectDomain when shopDomain is missing', () => {
+    const domain = selectShopifyDomain(
+      undefined,
+      'project-store.myshopify.com',
+      null,
+    );
+    expect(domain).toBe('project-store.myshopify.com');
+  });
+
+  it('normalizes projectDomain without myshopify suffix', () => {
+    const domain = selectShopifyDomain(
+      undefined,
+      'raw-project-store',
+      null,
+    );
+    expect(domain).toBe('raw-project-store.myshopify.com');
+  });
+
+  it('normalizes projectDomain with protocol and path', () => {
+    const domain = selectShopifyDomain(
+      undefined,
+      'https://my-store.myshopify.com/products',
+      null,
+    );
+    expect(domain).toBe('my-store.myshopify.com');
+  });
+
+  it('uses prompted domain when no stored domains are available', () => {
+    const domain = selectShopifyDomain(
+      undefined,
+      null,
+      'prompt-store',
+    );
+    expect(domain).toBe('prompt-store.myshopify.com');
+  });
+
+  it('returns null when no domain is available from any source', () => {
+    const domain = selectShopifyDomain(
+      undefined,
+      null,
+      '   ',
+    );
+    expect(domain).toBeNull();
+  });
+});
+
 describe('Connect source button state logic', () => {
   interface ConnectButtonState {
     disabled: boolean;

@@ -164,6 +164,7 @@ export default function ProjectOverviewPage() {
   const [showDeoFreshness, setShowDeoFreshness] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [showFirstWinCard, setShowFirstWinCard] = useState(true);
+  const [hasReviewedDeoScore, setHasReviewedDeoScore] = useState(false);
   const [connectingSource, setConnectingSource] = useState(false);
 
   const feedback = useFeedback();
@@ -343,6 +344,56 @@ export default function ProjectOverviewPage() {
     const token = getToken();
     const installUrl = `${API_URL}/shopify/install?shop=${formattedDomain}&projectId=${projectId}&token=${token}`;
     window.location.href = installUrl;
+  };
+
+  const startShopifyOAuth = () => {
+    setError('');
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const token = getToken();
+    if (!token) {
+      const message = "Couldn't start Shopify connection. Try again.";
+      setError(message);
+      feedback.showError(message);
+      return;
+    }
+    let domain =
+      (status?.shopify.shopDomain ?? '') || (status?.projectDomain ?? '');
+    if (!domain) {
+      const input = window.prompt(
+        'Enter your Shopify store domain (for example, my-store.myshopify.com or my-store)',
+      );
+      if (!input) {
+        const message = "Couldn't start Shopify connection. Try again.";
+        setError(message);
+        feedback.showError(message);
+        return;
+      }
+      domain = input.trim();
+    }
+    if (!domain) {
+      const message = "Couldn't start Shopify connection. Try again.";
+      setError(message);
+      feedback.showError(message);
+      return;
+    }
+    let formattedDomain = domain.trim();
+    formattedDomain = formattedDomain.replace(/^https?:\/\//i, '').split('/')[0];
+    if (!formattedDomain.includes('.myshopify.com')) {
+      formattedDomain = `${formattedDomain}.myshopify.com`;
+    }
+    setConnectingSource(true);
+    try {
+      const installUrl = `${API_URL}/shopify/install?shop=${encodeURIComponent(
+        formattedDomain,
+      )}&projectId=${projectId}&token=${token}`;
+      window.location.href = installUrl;
+    } catch (err) {
+      console.error('Error starting Shopify OAuth:', err);
+      setConnectingSource(false);
+      const message = "Couldn't start Shopify connection. Try again.";
+      setError(message);
+      feedback.showError(message);
+    }
   };
 
   const handleRunScan = async () => {
@@ -600,26 +651,18 @@ export default function ProjectOverviewPage() {
 
   // Checklist helper callbacks
   const handleChecklistConnectSource = () => {
-    // If we already know the store domain from the project, initiate OAuth immediately
-    const knownDomain = status?.shopify.shopDomain;
-    if (knownDomain) {
-      setConnectingSource(true);
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      const token = getToken();
-      const installUrl = `${API_URL}/shopify/install?shop=${knownDomain}&projectId=${projectId}&token=${token}`;
-      window.location.href = installUrl;
-      return;
-    }
-    // Fallback: scroll to Shopify integration section and focus the input
-    document.getElementById('shopify-integration')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    setTimeout(() => {
-      document.getElementById('shopDomain')?.focus();
-    }, 500);
+    // Always start OAuth directly - no scroll/focus behavior
+    startShopifyOAuth();
   };
 
   const handleChecklistViewScoreAndIssues = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setShowIssuesPanel(true);
+  };
+
+  const handleCloseIssuesPanel = () => {
+    setShowIssuesPanel(false);
+    setHasReviewedDeoScore(true);
   };
 
   const handleChecklistGoToProducts = () => {
@@ -683,6 +726,7 @@ export default function ProjectOverviewPage() {
           hasConnectedSource={!!hasConnectedSource}
           hasRunCrawl={!!hasRunCrawl}
           hasDeoScore={hasDeoScore}
+          hasReviewedDeoScore={hasReviewedDeoScore}
           hasOptimizedThreeProducts={hasOptimizedThreeProducts}
           storeDomain={status?.shopify.shopDomain}
           connectingSource={connectingSource}
@@ -1087,26 +1131,42 @@ export default function ProjectOverviewPage() {
               </div>
               {/* Right column: System (integrations, auto-crawl, stats) */}
               <div className="space-y-4">
-                <div id="shopify-integration" className="rounded-lg border border-gray-200 bg-white p-4">
-                  <h3 className="mb-4 text-sm font-semibold text-gray-900">Shopify Integration</h3>
-                  {status.shopify.connected ? (
+                {status.shopify.connected && (
+                  <div
+                    id="shopify-integration"
+                    className="rounded-lg border border-gray-200 bg-white p-4"
+                  >
+                    <h3 className="mb-4 text-sm font-semibold text-gray-900">
+                      Shopify Integration
+                    </h3>
                     <div className="rounded-lg border border-green-200 bg-green-50 p-4">
                       <div className="mb-2 flex items-center justify-between">
                         <div className="flex items-center">
-                          <svg className="mr-2 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                          <svg
+                            className="mr-2 h-5 w-5 text-green-500"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
                             <path
                               fillRule="evenodd"
                               d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                               clipRule="evenodd"
                             />
                           </svg>
-                          <span className="font-semibold text-green-800">Connected</span>
+                          <span className="font-semibold text-green-800">
+                            Connected
+                          </span>
                         </div>
                         <Link
                           href={`/projects/${projectId}/products`}
                           className="inline-flex items-center rounded-md border border-green-600 bg-white px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
                         >
-                          <svg className="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg
+                            className="mr-1.5 h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
@@ -1119,61 +1179,21 @@ export default function ProjectOverviewPage() {
                       </div>
                       <div className="space-y-1 text-sm text-gray-700">
                         <p>
-                          <span className="font-medium">Store:</span> {status.shopify.shopDomain}
+                          <span className="font-medium">Store:</span>{' '}
+                          {status.shopify.shopDomain}
                         </p>
                         {status.shopify.installedAt && (
                           <p>
                             <span className="font-medium">Connected:</span>{' '}
-                            {new Date(status.shopify.installedAt).toLocaleDateString()}
+                            {new Date(
+                              status.shopify.installedAt,
+                            ).toLocaleDateString()}
                           </p>
                         )}
                       </div>
                     </div>
-                  ) : (
-                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                      <p className="mb-4 text-sm text-gray-700">
-                        Connect your Shopify store to sync products and apply AI-generated SEO optimizations.
-                      </p>
-                      <div className="space-y-4">
-                        <div>
-                          <label
-                            htmlFor="shopDomain"
-                            className="mb-2 block text-sm font-medium text-gray-700"
-                          >
-                            Shopify Store Domain
-                          </label>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              id="shopDomain"
-                              value={shopDomain}
-                              onChange={(e) => setShopDomain(e.target.value)}
-                              placeholder="your-store"
-                              className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            <span className="flex items-center text-sm text-gray-600">
-                              .myshopify.com
-                            </span>
-                          </div>
-                        </div>
-                        <button
-                          onClick={handleConnectShopify}
-                          className="inline-flex items-center rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-                        >
-                          <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M13 10V3L4 14h7v7l9-11h-7z"
-                            />
-                          </svg>
-                          Connect Shopify Store
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
                 {status.integrations.length > 0 && (
                   <div className="rounded-lg border border-gray-200 bg-white p-4">
                     <h3 className="mb-4 text-sm font-semibold text-gray-900">Active Integrations</h3>
@@ -1284,7 +1304,7 @@ export default function ProjectOverviewPage() {
           {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-            onClick={() => setShowIssuesPanel(false)}
+            onClick={handleCloseIssuesPanel}
           />
           {/* Center container */}
           <div className="flex min-h-full items-center justify-center p-4">
@@ -1305,7 +1325,7 @@ export default function ProjectOverviewPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowIssuesPanel(false)}
+                  onClick={handleCloseIssuesPanel}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <svg

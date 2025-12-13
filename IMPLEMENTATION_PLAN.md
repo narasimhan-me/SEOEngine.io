@@ -7477,6 +7477,113 @@ The First DEO Win checklist shows a "Connect your store" step for users who have
 
 ---
 
+## Phase SHOP-UX-CTA-1.1 – Deduplicate Connect Shopify Actions (Direct OAuth, No Scroll) (Completed)
+
+**Status:** Complete
+
+**Goal:** Ensure the Project Overview "Connect Shopify" experience uses a single canonical CTA that always starts Shopify OAuth directly, without relying on scrolling into the Diagnostics drawer or competing buttons.
+
+### SHOP-UX-CTA-1.1 Overview
+
+Phase SHOP-UX-CTA-1.1 tightens the connect experience by:
+
+1. **Canonical OAuth Handler** — Introduces a single `startShopifyOAuth` handler on the Project Overview page used by the First DEO Win checklist for all Shopify connect actions.
+2. **Domain Source Precedence** — Uses the integration `shopDomain` when present, falls back to `projectDomain`, and otherwise prompts the user for a Shopify store domain before starting OAuth.
+3. **Direct OAuth Only** — Removes scroll/focus behavior to the Diagnostics Shopify Integration card; connect actions always start OAuth directly with the selected domain.
+4. **Safe UX States** — Maintains a `connectingSource` loading state that disables the CTA, shows a "Connecting…" label, and surfaces a toast when OAuth cannot be initiated.
+
+### SHOP-UX-CTA-1.1 Frontend Changes
+
+**Project Overview Page (apps/web/src/app/projects/[id]/overview/page.tsx):**
+
+- Added `startShopifyOAuth()` helper that:
+  - Reads `status.shopify.shopDomain` and `status.projectDomain` to determine the store domain.
+  - Prompts the user for a domain when neither value is set, then normalizes to `*.myshopify.com`.
+  - Builds the `/shopify/install` URL with `shop`, `projectId`, and `token` query parameters.
+  - Sets `connectingSource` to true during redirect and shows an error toast with "Couldn't start Shopify connection. Try again." if initiation fails.
+- Updated `handleChecklistConnectSource()` to call `startShopifyOAuth()` directly with no scroll or focus side effects.
+- Updated the Shopify Integration diagnostics card to render only when `status.shopify.connected === true`, removing the second primary "Connect Shopify Store" button when not connected.
+
+**FirstDeoWinChecklist Component (apps/web/src/components/projects/FirstDeoWinChecklist.tsx):**
+
+- Updated the connect step description copy to:
+  - "Connect your Shopify store to crawl products and apply optimizations."
+- Continues to:
+  - Render a personalized CTA label via `getConnectStoreCtaLabel(storeDomain)`.
+  - Switch the connect CTA label to "Connecting…" and disable the button when `connectingSource` is true.
+
+**Unit Tests (tests/unit/shopify/shopify-connect-cta.test.ts):**
+
+- Extended tests for Shopify connect helpers to cover:
+  - Domain precedence between `shopDomain` and `projectDomain`.
+  - Normalization of domains with or without `.myshopify.com` and with/without protocol.
+  - Failure behavior when no domain is available from any source.
+
+### SHOP-UX-CTA-1.1 Acceptance Criteria (Completed)
+
+- [x] Only one primary "Connect Shopify" CTA is visible on the Project Overview when not connected.
+- [x] First DEO Win "Connect your store" step always initiates Shopify OAuth directly (no scroll/focus to Diagnostics).
+- [x] Stored Shopify integration domain is used when available; otherwise `projectDomain` is used; otherwise a prompt collects the domain.
+- [x] Connect CTA uses `connectingSource` to disable the button and show a "Connecting…" label during redirect.
+- [x] If OAuth initiation fails, the button is re-enabled and a toast appears: "Couldn't start Shopify connection. Try again."
+- [x] Shopify Integration card inside Diagnostics is hidden when not connected to avoid duplicate CTAs.
+- [x] Unit tests exercise connect CTA label/disabled behavior and domain selection logic.
+- [x] Manual testing doc created.
+
+**Manual Testing:** `docs/manual-testing/phase-shop-ux-cta-1-1-dedup-connect-shopify.md`
+
+---
+
+## Phase SHOP-UX-CTA-2 – DEO Score Step Completion (Completed)
+
+**Status:** Complete
+
+**Goal:** Ensure that after a user views their DEO Score from the First DEO Win checklist, the "Review your DEO Score" step is marked complete when the DEO Score / issues banner is closed, and the checklist progress updates immediately.
+
+### SHOP-UX-CTA-2 Overview
+
+This phase tightens the onboarding feedback loop by:
+
+1. **Explicit Review Completion** — Tracking when a user has actually opened and closed the DEO Score / issues banner rather than inferring completion from data alone.
+2. **Live Progress Update** — Updating the First DEO Win checklist progress count to 3/4 steps complete as soon as the banner is closed.
+3. **Minimal Frontend-Only State** — Implementing the change entirely in frontend state without introducing new backend fields or APIs.
+
+### SHOP-UX-CTA-2 Frontend Changes
+
+**FirstDeoWinChecklist Component (apps/web/src/components/projects/FirstDeoWinChecklist.tsx):**
+
+- Extended props with:
+  - `hasReviewedDeoScore?: boolean` — Frontend flag indicating whether the user has completed the "Review your DEO Score" step.
+- Inside the component:
+  - Derived `deoScoreStepDone = hasReviewedDeoScore ?? hasDeoScore`.
+  - Updated the "Review your DEO Score" step to use `deoScoreStepDone` for its `done` state, so it only completes after the review flow is finished when the prop is provided.
+
+**Project Overview Page (apps/web/src/app/projects/[id]/overview/page.tsx):**
+
+- Added local state:
+  - `hasReviewedDeoScore` — Tracks whether the user has completed the DEO Score review in the current session.
+- Passed `hasReviewedDeoScore` into `FirstDeoWinChecklist` alongside existing step booleans.
+- Added `handleCloseIssuesPanel()` helper that:
+  - Sets `showIssuesPanel` to `false`.
+  - Sets `hasReviewedDeoScore` to `true`.
+- Updated the All Issues banner/modal to call `handleCloseIssuesPanel()` from:
+  - The backdrop click handler.
+  - The header "X" close button handler.
+- Kept the banner open/close triggers (View DEO Score from the checklist and View all issues from the Top blockers card) unchanged apart from reusing the shared close handler.
+
+### SHOP-UX-CTA-2 Acceptance Criteria (Completed)
+
+- [x] Clicking "View DEO Score" from the First DEO Win checklist opens the DEO Score / issues banner without immediately marking the step complete.
+- [x] Closing the banner via the "X" button or backdrop sets `hasReviewedDeoScore` to `true`.
+- [x] After closing the banner, the "Review your DEO Score" step shows as completed and the checklist text updates to "3 of 4 steps complete" (assuming the first two steps are already complete).
+- [x] Opening and closing the banner from the "View all issues" button also counts as completing the DEO Score review.
+- [x] No new backend fields or endpoints are required; backend-derived metrics remain unchanged.
+- [x] Manual testing doc created.
+
+**Manual Testing:** `docs/manual-testing/phase-shop-ux-cta-2-deo-score-completion.md`
+
+---
+
 ## Phase UX-8 – Issue Engine Full (IE-2.0)
 
 **Status:** Complete

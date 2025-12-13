@@ -18,6 +18,8 @@ interface FirstDeoWinChecklistProps {
   hasRunCrawl: boolean;
   hasDeoScore: boolean;
   hasOptimizedThreeProducts: boolean;
+  /** Whether the user has completed the "Review your DEO Score" step */
+  hasReviewedDeoScore?: boolean;
   /** The Shopify store domain (e.g. "my-store.myshopify.com") for personalized CTA */
   storeDomain?: string;
   /** True when the OAuth connection flow is in progress */
@@ -43,6 +45,7 @@ export function FirstDeoWinChecklist({
   hasRunCrawl,
   hasDeoScore,
   hasOptimizedThreeProducts,
+  hasReviewedDeoScore,
   storeDomain,
   connectingSource,
   onConnectSource,
@@ -50,12 +53,13 @@ export function FirstDeoWinChecklist({
   onViewScoreAndIssues,
   onGoToProducts,
 }: FirstDeoWinChecklistProps) {
+  const deoScoreStepDone = hasReviewedDeoScore ?? hasDeoScore;
   const steps: Step[] = [
     {
       id: 'connect_source',
       label: 'Connect your store',
       description:
-        'Connect your Shopify store so EngineO can crawl your catalog and products.',
+        'Connect your Shopify store to crawl products and apply optimizations.',
       done: hasConnectedSource,
       ctaLabel: getConnectStoreCtaLabel(storeDomain),
       onAction: onConnectSource,
@@ -74,7 +78,7 @@ export function FirstDeoWinChecklist({
       label: 'Review your DEO Score',
       description:
         'Review your DEO Score and top issues to understand your baseline.',
-      done: hasDeoScore,
+      done: deoScoreStepDone,
       ctaLabel: 'View DEO Score',
       onAction: onViewScoreAndIssues,
     },
