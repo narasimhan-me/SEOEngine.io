@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 import type { DeoIssue } from '@engineo/shared';
@@ -37,6 +37,9 @@ export default function ProductsPage() {
   const router = useRouter();
   const params = useParams();
   const projectId = params.id as string;
+
+  const searchParams = useSearchParams();
+  const fromPlaybookResults = searchParams.get('from') === 'playbook_results';
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -169,8 +172,20 @@ export default function ProductsPage() {
 
   return (
     <div className="overflow-x-hidden">
-      <div className="mb-4 text-sm">
-        <Link href={`/projects/${projectId}/overview`} className="text-blue-600 hover:text-blue-800">
+      <div className="mb-4 space-y-1 text-sm">
+        {fromPlaybookResults && (
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="block text-blue-600 hover:text-blue-800"
+          >
+            ← Back to Playbook results
+          </button>
+        )}
+        <Link
+          href={`/projects/${projectId}/overview`}
+          className="block text-blue-600 hover:text-blue-800"
+        >
           ← Back to Overview
         </Link>
       </div>

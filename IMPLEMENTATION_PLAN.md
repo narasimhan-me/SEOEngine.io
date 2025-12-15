@@ -8210,6 +8210,119 @@ Hardens the Automation Playbooks v1 feature with:
 
 ---
 
+## AUTO-PB-1.2 – Automation Playbooks UX Coherence & State Safety
+
+Status: Complete
+
+Goal: Evolve Automation Playbooks v1 from a technically working 3-step flow into a trust-first, state-machine–driven wizard that cannot be misused, with explicit eligibility gating, single primary actions per step, navigation safety, and stable post-apply results.
+
+### Phase Summary
+
+This phase introduces:
+
+- A single, explicit frontend state machine (PlaybookFlowState) that governs all Playbooks wizard behavior:
+  - ELIGIBILITY_EMPTY, PREVIEW_READY, PREVIEW_GENERATED, ESTIMATE_READY, APPLY_READY, APPLY_RUNNING, APPLY_COMPLETED, APPLY_STOPPED.
+- A new zero-eligibility guardrail (Step 0) that blocks the flow when no products qualify.
+- Hard-gated Step 1 → Step 2 → Step 3 transitions with exactly one primary action visible at each stage.
+- Navigation safety (warning on leave mid-flow) and state persistence across reload/back/forward using sessionStorage.
+- A post-apply results state with safe navigation to Products and back to Playbook results.
+
+### Frontend Changes – Playbooks Wizard
+
+**Automation Playbooks Page (apps/web/src/app/projects/[id]/automation/playbooks/page.tsx):**
+
+- Replaced `currentStep` with `flowState: PlaybookFlowState` as the wizard's single source of truth.
+- Eligibility gate (Step 0):
+  - When the selected playbook has zero affected products, the wizard enters ELIGIBILITY_EMPTY:
+    - Shows message: "No products currently qualify for this playbook."
+    - Hides/locks Estimate and Apply sections.
+    - Exposes a single primary CTA: "View products that need optimization" → /projects/[id]/products.
+- Step 1 – Preview (hard-gated):
+  - Initial state (PREVIEW_READY):
+    - "Generate preview" is the only primary (blue) CTA.
+    - Steps 2 and 3 are visible in the stepper but locked/greyed with "Generate preview first" tooling.
+  - On successful preview (PREVIEW_GENERATED):
+    - Preview label updated to: "Sample preview (up to 3 products)".
+    - Preview results persist in state.
+    - "Continue to Estimate" becomes the primary CTA; "Generate preview" becomes a secondary action.
+- Step 2 – Estimate (derived, not interactive):
+  - Estimate cards (Products to update, Estimated tokens, Plan & daily capacity) are derived from PlaybookEstimate.
+  - Removed the manual "Recalculate estimate" button; estimate refreshes automatically when needed.
+  - "Continue to Apply" is the only primary CTA; Apply is not available at this step.
+- Step 3 – Apply (explicit commitment & results):
+  - Pre-apply (APPLY_READY):
+    - Shows summary of what will be changed and a required confirmation checkbox.
+    - "Apply playbook" is the only primary CTA; disabled until the checkbox is checked and estimate.canProceed is true.
+  - While applying (APPLY_RUNNING):
+    - Apply button shows "Applying…" and is disabled.
+    - Inline notice clarifies that the playbook is running and may take time.
+  - Post-apply (APPLY_COMPLETED / APPLY_STOPPED):
+    - Adds a results banner:
+      - "Playbook run completed" or "Playbook stopped safely".
+    - Reuses AUTO-PB-1.1 summary and per-item results table.
+    - Enables post-apply CTAs only in this state:
+      - "View updated products" → `/projects/[id]/products?from=playbook_results&playbookId=...`
+      - "Sync to Shopify" (triggers sync API).
+      - "Return to Automation overview" (back to Automation Activity tab).
+- Removed misleading affordances:
+  - No enabled Apply button when totalAffectedProducts === 0 or estimate.canProceed is false.
+  - No "View updated products" / "Sync to Shopify" before a playbook run completes or stops safely.
+  - "Generate preview" is either responsive or disabled; no dead-primary buttons.
+
+**Navigation Safety & Persistence:**
+
+- Added `shouldWarnOnNavigate` so that when the wizard is mid-flow (PREVIEW_GENERATED, ESTIMATE_READY, APPLY_READY, APPLY_RUNNING):
+  - In-app navigation via breadcrumbs/tabs uses a `handleNavigate` helper that:
+    - Prompts: "You have an in-progress playbook preview. Leaving will discard it."
+    - Cancels navigation if the user chooses to stay.
+  - A `beforeunload` handler warns on browser close/refresh while work is in progress.
+- Persisted wizard state across reload/back/forward using sessionStorage, keyed by project + playbook:
+  - Stores flowState, preview samples, latest estimate, and last apply result.
+  - On mount, attempts to restore this state and rehydrate the wizard (including post-apply results).
+
+### Frontend Changes – Products Page (apps/web/src/app/projects/[id]/products/page.tsx)
+
+- Added detection of `?from=playbook_results` query param via useSearchParams.
+- When present, the Products page shows:
+  - A "← Back to Playbook results" control above the standard "← Back to Overview" link.
+  - Clicking it uses `router.back()` so the user returns to the Playbooks page with the completed run and results still visible.
+
+### Backend Testkit Changes (apps/api/src/testkit/e2e-testkit.controller.ts)
+
+- Added `POST /testkit/e2e/seed-playbook-no-eligible-products`:
+  - Seeds a Pro-plan user + project where all products already have complete SEO metadata (no missing SEO fields).
+  - Used to deterministically exercise the zero-eligibility UX state in E2E tests.
+
+### E2E Tests (TEST-2 Extension)
+
+**Playwright (apps/web/tests/first-deo-win.spec.ts):**
+
+- Added `seedPlaybookNoEligibleProductsProject()` helper to hit the new testkit endpoint.
+- Updated the preview label assertion to match the new text:
+  - `Sample preview (up to 3 products)`.
+- Added `AUTO-PB-1.2 – Playbooks UX Coherence (Playwright E2E)` describe block:
+  - Zero-eligibility guardrail: Verifies the "No products currently qualify for this playbook." message, hidden/locked Steps 2 and 3, and the single primary CTA "View products that need optimization" for projects with no eligible products.
+  - Wizard gating & navigation safety: Verifies:
+    - Step gating order (no Estimate/Apply CTAs before preview and estimate).
+    - Navigation warning dialog when attempting to leave mid-flow.
+    - Post-apply results persistence across reload.
+    - "View updated products" → Products → "← Back to Playbook results" round trip with results intact.
+
+### Manual Testing
+
+- Manual Testing: `docs/manual-testing/auto-pb-1-2-playbooks-ux-coherence.md`
+
+### Acceptance Criteria (Completed)
+
+- [x] User can never apply an Automation Playbook when no products qualify or when the estimate indicates it cannot proceed.
+- [x] At every point in the wizard, exactly one primary next action is available; other actions are disabled, hidden, or clearly secondary.
+- [x] Steps are hard-gated: Estimate only unlocks after preview exists; Apply only unlocks after a valid estimate; Apply button only unlocks after explicit confirmation.
+- [x] Leaving mid-flow triggers a warning before discarding state; browser reload/back/forward restore the wizard state or rehydrate from persisted data.
+- [x] Post-apply results remain visible after reload and after navigating to Products and returning via "Back to Playbook results".
+- [x] No misleading enabled buttons remain (no enabled Apply / View updated products / Sync to Shopify before a valid run completes).
+
+---
+
 ## Phase SHOP-UX-CTA-1 – Connect Shopify CTA Fix (Completed)
 
 **Status:** Complete

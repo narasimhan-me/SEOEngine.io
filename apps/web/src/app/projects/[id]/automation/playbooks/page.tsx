@@ -14,10 +14,7 @@ import {
   projectsApi,
   shopifyApi,
 } from '@/lib/api';
-import type {
-  AutomationPlaybookApplyResult,
-  AutomationPlaybookApplyItemResult,
-} from '@/lib/api';
+import type { AutomationPlaybookApplyResult } from '@/lib/api';
 import type { Product } from '@/lib/products';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 
@@ -54,6 +51,16 @@ interface PreviewSample {
   suggestedTitle: string;
   suggestedDescription: string;
 }
+
+type PlaybookFlowState =
+  | 'ELIGIBILITY_EMPTY'
+  | 'PREVIEW_READY'
+  | 'PREVIEW_GENERATED'
+  | 'ESTIMATE_READY'
+  | 'APPLY_READY'
+  | 'APPLY_RUNNING'
+  | 'APPLY_COMPLETED'
+  | 'APPLY_STOPPED';
 
 const PLAYBOOKS: PlaybookDefinition[] = [
   {
@@ -92,7 +99,7 @@ export default function AutomationPlaybooksPage() {
   const [issues, setIssues] = useState<DeoIssue[]>([]);
   const [selectedPlaybookId, setSelectedPlaybookId] =
     useState<PlaybookId | null>('missing_seo_title');
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+  const [flowState, setFlowState] = useState<PlaybookFlowState>('PREVIEW_READY');
   const [previewSamples, setPreviewSamples] = useState<PreviewSample[]>([]);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [estimate, setEstimate] = useState<PlaybookEstimate | null>(null);
@@ -185,9 +192,9 @@ export default function AutomationPlaybooksPage() {
   );
 
   const loadPreview = useCallback(
-    async (playbookId: PlaybookId) => {
+    async (playbookId: PlaybookId): Promise<boolean> => {
       const definition = PLAYBOOKS.find((pb) => pb.id === playbookId);
-      if (!definition) return;
+      if (!definition) return false;
       const candidates = products.filter((p) => {
         if (definition.field === 'seoTitle') {
           return !p.seoTitle || p.seoTitle.trim() === '';
@@ -197,21 +204,20 @@ export default function AutomationPlaybooksPage() {
       const sampleProducts = candidates.slice(0, 3);
       if (sampleProducts.length === 0) {
         setPreviewSamples([]);
-        return;
+        return false;
       }
+      const samples: PreviewSample[] = [];
       try {
         setLoadingPreview(true);
         setError('');
         setPreviewSamples([]);
-        const samples: PreviewSample[] = [];
         for (const product of sampleProducts) {
           try {
             const result = await aiApi.suggestProductMetadata(product.id);
             samples.push({
               productId: product.id,
               productTitle: product.title,
-              currentTitle:
-                product.seoTitle || product.title || '',
+              currentTitle: product.seoTitle || product.title || '',
               currentDescription:
                 product.seoDescription || product.description || '',
               suggestedTitle: result?.suggested?.title || '',
@@ -237,6 +243,7 @@ export default function AutomationPlaybooksPage() {
       } finally {
         setLoadingPreview(false);
       }
+      return samples.length > 0;
     },
     [products, feedback],
   );
@@ -251,32 +258,52 @@ export default function AutomationPlaybooksPage() {
 
   const handleSelectPlaybook = (playbookId: PlaybookId) => {
     setSelectedPlaybookId(playbookId);
-    setCurrentStep(1);
+    const summary = playbookSummaries.find((s) => s.id === playbookId);
+    if ((summary?.totalAffected ?? 0) === 0) {
+      setFlowState('ELIGIBILITY_EMPTY');
+    } else {
+      setFlowState('PREVIEW_READY');
+    }
     setPreviewSamples([]);
+    setEstimate(null);
     setApplyResult(null);
     setConfirmApply(false);
   };
 
   const handleGeneratePreview = async () => {
     if (!selectedPlaybookId) return;
-    await loadPreview(selectedPlaybookId);
+    const ok = await loadPreview(selectedPlaybookId);
+    if (ok) {
+      setFlowState('PREVIEW_GENERATED');
+    }
   };
 
   const handleNextStep = () => {
-    if (currentStep === 1) {
-      setCurrentStep(2);
-    } else if (currentStep === 2) {
-      setCurrentStep(3);
+    if (!estimate || !estimate.canProceed) {
+      return;
+    }
+    if (flowState === 'PREVIEW_GENERATED') {
+      setFlowState('ESTIMATE_READY');
+    } else if (flowState === 'ESTIMATE_READY') {
+      setFlowState('APPLY_READY');
+      if (typeof window !== 'undefined') {
+        const el = document.getElementById('automation-playbook-apply-step');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
     }
   };
 
   const handleApplyPlaybook = useCallback(async () => {
     if (!selectedPlaybookId) return;
     if (!estimate || !estimate.canProceed) return;
+    if (flowState !== 'APPLY_READY') return;
     try {
       setApplying(true);
       setError('');
       setApplyResult(null);
+      setFlowState('APPLY_RUNNING');
       const data = await projectsApi.applyAutomationPlaybook(
         projectId,
         selectedPlaybookId,
@@ -309,11 +336,17 @@ export default function AutomationPlaybooksPage() {
       } else {
         feedback.showInfo('No products were updated by this playbook.');
       }
+      if (data.stopped) {
+        setFlowState('APPLY_STOPPED');
+      } else {
+        setFlowState('APPLY_COMPLETED');
+      }
       // Refresh estimates and preview data after apply
       await fetchInitialData();
       await loadEstimate(selectedPlaybookId);
     } catch (err: unknown) {
       console.error('Error applying automation playbook:', err);
+      setFlowState('APPLY_READY');
       if (err instanceof ApiError) {
         setError(err.message);
         if (err.code === 'ENTITLEMENTS_LIMIT_REACHED') {
@@ -337,6 +370,7 @@ export default function AutomationPlaybooksPage() {
     fetchInitialData,
     loadEstimate,
     feedback,
+    flowState,
   ]);
 
   const handleSyncToShopify = useCallback(async () => {
@@ -354,14 +388,6 @@ export default function AutomationPlaybooksPage() {
     }
   }, [projectId, feedback]);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="text-gray-600">Loading automation playbooks...</div>
-      </div>
-    );
-  }
-
   const selectedDefinition = PLAYBOOKS.find(
     (pb) => pb.id === selectedPlaybookId,
   );
@@ -370,6 +396,151 @@ export default function AutomationPlaybooksPage() {
   );
   const planIsFree = planId === 'free';
   const estimateBlockingReasons = estimate?.reasons ?? [];
+  const totalAffectedProducts =
+    estimate?.totalAffectedProducts ?? selectedSummary?.totalAffected ?? 0;
+  const isEligibilityEmptyState = flowState === 'ELIGIBILITY_EMPTY';
+  const hasPreview = previewSamples.length > 0;
+  const step2Locked = isEligibilityEmptyState || !hasPreview;
+  const step3Locked =
+    isEligibilityEmptyState || !hasPreview || !estimate || !estimate.canProceed;
+
+  const activeStep = useMemo(() => {
+    if (
+      flowState === 'APPLY_READY' ||
+      flowState === 'APPLY_RUNNING' ||
+      flowState === 'APPLY_COMPLETED' ||
+      flowState === 'APPLY_STOPPED'
+    ) {
+      return 3 as const;
+    }
+    if (flowState === 'ESTIMATE_READY') {
+      return 2 as const;
+    }
+    return 1 as const;
+  }, [flowState]);
+
+  const shouldWarnOnNavigate =
+    flowState === 'PREVIEW_GENERATED' ||
+    flowState === 'ESTIMATE_READY' ||
+    flowState === 'APPLY_READY' ||
+    flowState === 'APPLY_RUNNING';
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (!shouldWarnOnNavigate) {
+      return;
+    }
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [shouldWarnOnNavigate]);
+
+  useEffect(() => {
+    if (!estimate) {
+      return;
+    }
+    if (
+      flowState === 'APPLY_RUNNING' ||
+      flowState === 'APPLY_COMPLETED' ||
+      flowState === 'APPLY_STOPPED'
+    ) {
+      return;
+    }
+    if (estimate.totalAffectedProducts === 0) {
+      setFlowState('ELIGIBILITY_EMPTY');
+    } else if (flowState === 'ELIGIBILITY_EMPTY') {
+      setFlowState('PREVIEW_READY');
+    }
+  }, [estimate, flowState]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (!selectedPlaybookId) {
+      return;
+    }
+    const key = `automationPlaybookState:${projectId}:${selectedPlaybookId}`;
+    try {
+      const stored = window.sessionStorage.getItem(key);
+      if (!stored) {
+        return;
+      }
+      const parsed = JSON.parse(stored) as {
+        flowState?: PlaybookFlowState;
+        previewSamples?: PreviewSample[];
+        estimate?: PlaybookEstimate | null;
+        applyResult?: AutomationPlaybookApplyResult | null;
+      };
+      if (parsed.flowState) {
+        setFlowState(parsed.flowState);
+      }
+      if (parsed.previewSamples) {
+        setPreviewSamples(parsed.previewSamples);
+      }
+      if (parsed.estimate) {
+        setEstimate(parsed.estimate);
+      }
+      if (parsed.applyResult) {
+        setApplyResult(parsed.applyResult);
+      }
+    } catch {
+      // ignore session restore errors
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, selectedPlaybookId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    if (!selectedPlaybookId) {
+      return;
+    }
+    const key = `automationPlaybookState:${projectId}:${selectedPlaybookId}`;
+    try {
+      const payload = JSON.stringify({
+        flowState,
+        previewSamples,
+        estimate,
+        applyResult,
+      });
+      window.sessionStorage.setItem(key, payload);
+    } catch {
+      // ignore persist errors
+    }
+  }, [projectId, selectedPlaybookId, flowState, previewSamples, estimate, applyResult]);
+
+  const handleNavigate = useCallback(
+    (href: string) => {
+      if (
+        shouldWarnOnNavigate &&
+        typeof window !== 'undefined' &&
+        !window.confirm(
+          'You have an in-progress playbook preview. Leaving will discard it.',
+        )
+      ) {
+        return;
+      }
+      router.push(href);
+    },
+    [router, shouldWarnOnNavigate],
+  );
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="text-gray-600">Loading automation playbooks...</div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -377,7 +548,14 @@ export default function AutomationPlaybooksPage() {
       <nav className="mb-4 text-sm">
         <ol className="flex flex-wrap items-center gap-2 text-gray-500">
           <li>
-            <Link href="/projects" className="hover:text-gray-700">
+            <Link
+              href="/projects"
+              onClick={(event) => {
+                event.preventDefault();
+                handleNavigate('/projects');
+              }}
+              className="hover:text-gray-700"
+            >
               Projects
             </Link>
           </li>
@@ -385,6 +563,10 @@ export default function AutomationPlaybooksPage() {
           <li>
             <Link
               href={`/projects/${projectId}/overview`}
+              onClick={(event) => {
+                event.preventDefault();
+                handleNavigate(`/projects/${projectId}/overview`);
+              }}
               className="hover:text-gray-700"
             >
               {projectName || 'Project'}
@@ -394,6 +576,10 @@ export default function AutomationPlaybooksPage() {
           <li>
             <Link
               href={`/projects/${projectId}/automation`}
+              onClick={(event) => {
+                event.preventDefault();
+                handleNavigate(`/projects/${projectId}/automation`);
+              }}
               className="hover:text-gray-700"
             >
               Automation
@@ -476,6 +662,10 @@ export default function AutomationPlaybooksPage() {
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
+            onClick={(event) => {
+              event.preventDefault();
+              handleNavigate(`/projects/${projectId}/automation`);
+            }}
           >
             Activity
           </Link>
@@ -562,7 +752,7 @@ export default function AutomationPlaybooksPage() {
             <div className="flex items-center gap-2">
               <span
                 className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                  currentStep === 1
+                  activeStep === 1
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-200 text-gray-700'
                 }`}
@@ -571,7 +761,7 @@ export default function AutomationPlaybooksPage() {
               </span>
               <span
                 className={
-                  currentStep === 1 ? 'font-semibold text-gray-900' : 'text-gray-600'
+                  activeStep === 1 ? 'font-semibold text-gray-900' : 'text-gray-600'
                 }
               >
                 Preview
@@ -581,16 +771,23 @@ export default function AutomationPlaybooksPage() {
             <div className="flex items-center gap-2">
               <span
                 className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                  currentStep === 2
+                  activeStep === 2
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700'
+                    : step2Locked
+                      ? 'bg-gray-200 text-gray-400'
+                      : 'bg-gray-200 text-gray-700'
                 }`}
+                title={step2Locked ? 'Generate preview first' : undefined}
               >
                 2
               </span>
               <span
                 className={
-                  currentStep === 2 ? 'font-semibold text-gray-900' : 'text-gray-600'
+                  activeStep === 2
+                    ? 'font-semibold text-gray-900'
+                    : step2Locked
+                      ? 'text-gray-400'
+                      : 'text-gray-600'
                 }
               >
                 Estimate
@@ -600,16 +797,23 @@ export default function AutomationPlaybooksPage() {
             <div className="flex items-center gap-2">
               <span
                 className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                  currentStep === 3
+                  activeStep === 3
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700'
+                    : step3Locked
+                      ? 'bg-gray-200 text-gray-400'
+                      : 'bg-gray-200 text-gray-700'
                 }`}
+                title={step3Locked ? 'Generate preview first' : undefined}
               >
                 3
               </span>
               <span
                 className={
-                  currentStep === 3 ? 'font-semibold text-gray-900' : 'text-gray-600'
+                  activeStep === 3
+                    ? 'font-semibold text-gray-900'
+                    : step3Locked
+                      ? 'text-gray-400'
+                      : 'text-gray-600'
                 }
               >
                 Apply
@@ -617,139 +821,194 @@ export default function AutomationPlaybooksPage() {
             </div>
           </div>
 
+          {(flowState === 'APPLY_COMPLETED' || flowState === 'APPLY_STOPPED') && (
+            <div className="rounded-lg border border-green-100 bg-green-50 p-3 text-sm text-green-800">
+              <p className="text-sm font-semibold text-green-900">
+                {flowState === 'APPLY_COMPLETED'
+                  ? 'Playbook run completed'
+                  : 'Playbook stopped safely'}
+              </p>
+              <p className="mt-1 text-xs">
+                Review the results below, then view updated products or sync changes to Shopify.
+              </p>
+            </div>
+          )}
+
           {/* Step 1: Preview */}
           <section className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <div>
-                <h2 className="text-sm font-semibold text-gray-900">
-                  Step 1 – Preview changes
-                </h2>
+            {isEligibilityEmptyState ? (
+              <div className="space-y-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-900">
+                    Step 0 – Eligibility
+                  </h2>
+                  <p className="text-xs text-gray-600">
+                    No products currently qualify for this playbook. When your
+                    products match this playbook&apos;s criteria, you&apos;ll be able
+                    to generate a preview and run an estimate.
+                  </p>
+                </div>
                 <p className="text-xs text-gray-600">
-                  Generate a preview for a few sample products. No changes are saved
-                  during this step.
+                  Use the Products view to find and optimize items that still need SEO
+                  improvements.
                 </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleNavigate(`/projects/${projectId}/products`)
+                  }
+                  className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  View products that need optimization
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={handleGeneratePreview}
-                disabled={loadingPreview || planIsFree}
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {loadingPreview ? 'Generating preview…' : 'Generate preview'}
-              </button>
-            </div>
-            <div className="mb-3 text-xs text-gray-500">
-              Total affected products:{' '}
-              <span className="font-semibold text-gray-900">
-                {selectedSummary?.totalAffected ?? 0}
-              </span>
-            </div>
-            {planIsFree && (
-              <p className="mb-3 text-xs text-amber-700">
-                Bulk Automation Playbooks are gated on the Free plan. Upgrade to Pro
-                to unlock bulk metadata fixes.
-              </p>
-            )}
-            {loadingPreview && (
-              <div className="rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-                Generating AI previews for sample products…
-              </div>
-            )}
-            {!loadingPreview && previewSamples.length === 0 && (
-              <div className="rounded-md border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-                No preview yet. Click &quot;Generate preview&quot; to see Before/After
-                examples for a few sample products.
-              </div>
-            )}
-            {!loadingPreview && previewSamples.length > 0 && (
-              <div className="mt-3 space-y-3">
-                <p className="text-xs font-medium text-gray-600">
-                  Sample preview (showing up to 3 products)
-                </p>
-                {previewSamples.map((sample) => (
-                  <div
-                    key={sample.productId}
-                    className="rounded-md border border-gray-200 bg-gray-50 p-3"
-                  >
-                    <div className="mb-1 flex items-center justify-between text-xs">
-                      <span className="font-semibold text-gray-900">
-                        {sample.productTitle}
-                      </span>
-                      <Link
-                        href={`/projects/${projectId}/products/${sample.productId}`}
-                        className="text-xs text-blue-600 hover:text-blue-800"
-                      >
-                        Open product →
-                      </Link>
-                    </div>
-                    <div className="grid gap-3 text-xs md:grid-cols-2">
-                      <div>
-                        <div className="mb-1 font-medium text-gray-700">
-                          Before ({selectedDefinition.field})
-                        </div>
-                        <div className="rounded border border-gray-200 bg-white p-2 text-gray-800">
-                          {selectedDefinition.field === 'seoTitle'
-                            ? sample.currentTitle || <span className="text-gray-400">Empty</span>
-                            : sample.currentDescription || (
-                                <span className="text-gray-400">Empty</span>
-                              )}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="mb-1 font-medium text-gray-700">
-                          After (AI suggestion)
-                        </div>
-                        <div className="rounded border border-gray-200 bg-white p-2 text-gray-800">
-                          {selectedDefinition.field === 'seoTitle'
-                            ? sample.suggestedTitle || (
-                                <span className="text-gray-400">No suggestion</span>
-                              )
-                            : sample.suggestedDescription || (
-                                <span className="text-gray-400">No suggestion</span>
-                              )}
-                        </div>
-                      </div>
-                    </div>
+            ) : (
+              <>
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div>
+                    <h2 className="text-sm font-semibold text-gray-900">
+                      Step 1 – Preview changes
+                    </h2>
+                    <p className="text-xs text-gray-600">
+                      Generate a preview for a few sample products. No changes are
+                      saved during this step.
+                    </p>
                   </div>
-                ))}
-              </div>
+                  <button
+                    type="button"
+                    onClick={handleGeneratePreview}
+                    disabled={loadingPreview || planIsFree}
+                    className={`inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-50 ${
+                      hasPreview
+                        ? 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                        : 'border border-transparent bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
+                  >
+                    {loadingPreview ? 'Generating preview…' : 'Generate preview'}
+                  </button>
+                </div>
+                <div className="mb-3 text-xs text-gray-500">
+                  Total affected products:{' '}
+                  <span className="font-semibold text-gray-900">
+                    {totalAffectedProducts}
+                  </span>
+                </div>
+                {planIsFree && (
+                  <p className="mb-3 text-xs text-amber-700">
+                    Bulk Automation Playbooks are gated on the Free plan. Upgrade to
+                    Pro to unlock bulk metadata fixes.
+                  </p>
+                )}
+                {loadingPreview && (
+                  <div className="rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                    Generating AI previews for sample products…
+                  </div>
+                )}
+                {!loadingPreview && !hasPreview && (
+                  <div className="rounded-md border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                    No preview yet. Click &quot;Generate preview&quot; to see
+                    Before/After examples for a few sample products.
+                  </div>
+                )}
+                {!loadingPreview && hasPreview && (
+                  <div className="mt-3 space-y-3">
+                    <p className="text-xs font-medium text-gray-600">
+                      Sample preview (up to 3 products)
+                    </p>
+                    {previewSamples.map((sample) => (
+                      <div
+                        key={sample.productId}
+                        className="rounded-md border border-gray-200 bg-gray-50 p-3"
+                      >
+                        <div className="mb-1 flex items-center justify-between text-xs">
+                          <span className="font-semibold text-gray-900">
+                            {sample.productTitle}
+                          </span>
+                          <Link
+                            href={`/projects/${projectId}/products/${sample.productId}`}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              handleNavigate(
+                                `/projects/${projectId}/products/${sample.productId}`,
+                              );
+                            }}
+                            className="text-xs text-blue-600 hover:text-blue-800"
+                          >
+                            Open product →
+                          </Link>
+                        </div>
+                        <div className="grid gap-3 text-xs md:grid-cols-2">
+                          <div>
+                            <div className="mb-1 font-medium text-gray-700">
+                              Before ({selectedDefinition.field})
+                            </div>
+                            <div className="rounded border border-gray-200 bg-white p-2 text-gray-800">
+                              {selectedDefinition.field === 'seoTitle'
+                                ? sample.currentTitle || (
+                                    <span className="text-gray-400">Empty</span>
+                                  )
+                                : sample.currentDescription || (
+                                    <span className="text-gray-400">Empty</span>
+                                  )}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="mb-1 font-medium text-gray-700">
+                              After (AI suggestion)
+                            </div>
+                            <div className="rounded border border-gray-200 bg-white p-2 text-gray-800">
+                              {selectedDefinition.field === 'seoTitle'
+                                ? sample.suggestedTitle || (
+                                    <span className="text-gray-400">No suggestion</span>
+                                  )
+                                : sample.suggestedDescription || (
+                                    <span className="text-gray-400">No suggestion</span>
+                                  )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-4 flex justify-end">
+                  {hasPreview && (
+                    <button
+                      type="button"
+                      onClick={handleNextStep}
+                      disabled={
+                        flowState !== 'PREVIEW_GENERATED' ||
+                        planIsFree ||
+                        !estimate ||
+                        !estimate.canProceed
+                      }
+                      className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Continue to Estimate
+                    </button>
+                  )}
+                </div>
+              </>
             )}
-            <div className="mt-4 flex justify-end">
-              <button
-                type="button"
-                onClick={handleNextStep}
-                disabled={
-                  currentStep !== 1 ||
-                  planIsFree ||
-                  (estimate !== null && !estimate.eligible)
-                }
-                className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Continue to Estimate
-              </button>
-            </div>
           </section>
 
           {/* Step 2: Estimate */}
-          <section className="rounded-lg border border-gray-200 bg-white p-4">
+          <section
+            className={`rounded-lg border border-gray-200 bg-white p-4 ${
+              step2Locked ? 'opacity-50' : ''
+            }`}
+          >
             <div className="mb-3 flex items-center justify-between gap-2">
               <div>
                 <h2 className="text-sm font-semibold text-gray-900">
                   Step 2 – Estimate impact & tokens
                 </h2>
                 <p className="text-xs text-gray-600">
-                  Review how many products will be updated and an approximate token
-                  cost before you apply.
+                  Estimate updates automatically from your latest preview. Review how
+                  many products will be updated and approximate token usage before you
+                  apply.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => selectedPlaybookId && loadEstimate(selectedPlaybookId)}
-                disabled={loadingEstimate}
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {loadingEstimate ? 'Refreshing…' : 'Recalculate estimate'}
-              </button>
             </div>
             {loadingEstimate && (
               <div className="rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
@@ -826,7 +1085,9 @@ export default function AutomationPlaybooksPage() {
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setCurrentStep(1)}
+                onClick={() =>
+                  setFlowState(hasPreview ? 'PREVIEW_GENERATED' : 'PREVIEW_READY')
+                }
                 className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
               >
                 Back to Preview
@@ -834,7 +1095,12 @@ export default function AutomationPlaybooksPage() {
               <button
                 type="button"
                 onClick={handleNextStep}
-                disabled={!estimate || !estimate.canProceed}
+                disabled={
+                  flowState !== 'ESTIMATE_READY' ||
+                  step2Locked ||
+                  !estimate ||
+                  !estimate.canProceed
+                }
                 className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Continue to Apply
@@ -843,7 +1109,10 @@ export default function AutomationPlaybooksPage() {
           </section>
 
           {/* Step 3: Apply */}
-          <section className="rounded-lg border border-gray-200 bg-white p-4">
+          <section
+            id="automation-playbook-apply-step"
+            className="rounded-lg border border-gray-200 bg-white p-4"
+          >
             <div className="mb-3">
               <h2 className="text-sm font-semibold text-gray-900">
                 Step 3 – Apply playbook
@@ -975,6 +1244,12 @@ export default function AutomationPlaybooksPage() {
                                   ) : (
                                     <Link
                                       href={`/projects/${projectId}/products/${item.productId}`}
+                                      onClick={(event) => {
+                                        event.preventDefault();
+                                        handleNavigate(
+                                          `/projects/${projectId}/products/${item.productId}`,
+                                        );
+                                      }}
                                       className="text-blue-600 hover:text-blue-800"
                                     >
                                       {product?.title || item.productId}
@@ -1008,37 +1283,56 @@ export default function AutomationPlaybooksPage() {
               </div>
             )}
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    router.push(`/projects/${projectId}/products`)
-                  }
-                  className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-                >
-                  View updated products
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSyncToShopify}
-                  className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-                >
-                  Sync to Shopify
-                </button>
+              <div className="flex flex-wrap gap-2">
+                {(flowState === 'APPLY_COMPLETED' ||
+                  flowState === 'APPLY_STOPPED') && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleNavigate(
+                          `/projects/${projectId}/products?from=playbook_results&playbookId=${selectedPlaybookId}`,
+                        )
+                      }
+                      className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      View updated products
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSyncToShopify}
+                      className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                    >
+                      Sync to Shopify
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleNavigate(`/projects/${projectId}/overview`)
+                      }
+                      className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                    >
+                      Return to Automation overview
+                    </button>
+                  </>
+                )}
               </div>
-              <button
-                type="button"
-                onClick={handleApplyPlaybook}
-                disabled={
-                  applying ||
-                  !estimate ||
-                  !estimate.canProceed ||
-                  !confirmApply
-                }
-                className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {applying ? 'Applying…' : 'Apply playbook'}
-              </button>
+              {flowState !== 'APPLY_COMPLETED' && flowState !== 'APPLY_STOPPED' && (
+                <button
+                  type="button"
+                  onClick={handleApplyPlaybook}
+                  disabled={
+                    flowState !== 'APPLY_READY' ||
+                    applying ||
+                    !estimate ||
+                    !estimate.canProceed ||
+                    !confirmApply
+                  }
+                  className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {applying ? 'Applying…' : 'Apply playbook'}
+                </button>
+              )}
             </div>
           </section>
         </div>

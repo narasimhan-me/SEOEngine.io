@@ -78,6 +78,48 @@ export class E2eTestkitController {
   }
 
   /**
+   * POST /testkit/e2e/seed-playbook-no-eligible-products
+   *
+   * Seed a Pro-plan user + project where all products already have complete SEO metadata.
+   * Used to verify Automation Playbooks zero-eligibility UX and gating.
+   *
+   * Returns:
+   * - user (id, email)
+   * - projectId
+   * - accessToken
+   */
+  @Post('seed-playbook-no-eligible-products')
+  async seedPlaybookNoEligibleProducts() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    await createTestProducts(this.prisma as any, {
+      projectId: project.id,
+      count: 3,
+      withSeo: true,
+      withIssues: false,
+    });
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+      projectId: project.id,
+      accessToken,
+    };
+  }
+
+  /**
    * POST /testkit/e2e/connect-shopify
    *
    * In E2E mode, creates a mocked Shopify integration for the project.

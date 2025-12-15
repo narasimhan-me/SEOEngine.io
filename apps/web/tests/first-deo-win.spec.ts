@@ -17,6 +17,22 @@ async function seedFirstDeoWinProject(request: any) {
   };
 }
 
+async function seedPlaybookNoEligibleProductsProject(request: any) {
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-playbook-no-eligible-products`,
+    {
+      data: {},
+    },
+  );
+  expect(res.ok()).toBeTruthy();
+  const body = await res.json();
+  return {
+    user: body.user as { id: string; email: string },
+    projectId: body.projectId as string,
+    accessToken: body.accessToken as string,
+  };
+}
+
 async function connectShopifyE2E(request: any, projectId: string) {
   const res = await request.post(`${API_BASE_URL}/testkit/e2e/connect-shopify`, {
     data: { projectId },
@@ -274,7 +290,136 @@ test.describe('AUTO-PB-1.1 – Automation Playbooks Hardening (Playwright E2E)',
 
     // Wait for preview to load and verify label
     await expect(
-      page.getByText(/Sample preview \(showing up to 3 products\)/i),
+      page.getByText(/Sample preview \(up to 3 products\)/i),
+    ).toBeVisible({ timeout: 30000 });
+  });
+});
+
+test.describe('AUTO-PB-1.2 – Playbooks UX Coherence (Playwright E2E)', () => {
+  test('Zero-eligibility state shows guardrail and disables wizard flow', async ({
+    page,
+    request,
+  }) => {
+    const { projectId, accessToken } =
+      await seedPlaybookNoEligibleProductsProject(request);
+
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('token', token);
+    }, accessToken);
+
+    await page.goto(`/projects/${projectId}/automation/playbooks`);
+
+    await page.getByText(/Fix missing SEO titles/i).click();
+
+    await expect(
+      page.getByText(/No products currently qualify for this playbook/i),
+    ).toBeVisible();
+
+    // Steps 2 and 3 should not be actionable
+    await expect(
+      page.getByText(/Step 2 – Estimate impact & tokens/i),
+    ).toHaveCount(0);
+    await expect(
+      page.getByText(/Step 3 – Apply playbook/i),
+    ).toHaveCount(0);
+
+    // Only primary CTA should be the eligibility CTA
+    const viewProductsButton = page.getByRole('button', {
+      name: /View products that need optimization/i,
+    });
+    await expect(viewProductsButton).toBeVisible();
+    await viewProductsButton.click();
+
+    await expect(page).toHaveURL(
+      new RegExp(`/projects/${projectId}/products`),
+    );
+  });
+
+  test('Wizard enforces step gating, navigation warning, and post-apply persistence', async ({
+    page,
+    request,
+  }) => {
+    const { projectId, accessToken } = await seedFirstDeoWinProject(request);
+    await connectShopifyE2E(request, projectId);
+
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('token', token);
+    }, accessToken);
+
+    await page.goto(`/projects/${projectId}/automation/playbooks`);
+
+    await page.getByText(/Fix missing SEO titles/i).click();
+
+    // Step 1: no Continue to Estimate before preview
+    await expect(
+      page.getByRole('button', { name: /Continue to Estimate/i }),
+    ).toHaveCount(0);
+
+    // Step 2 / 3 CTAs should not allow apply before preview
+    await expect(
+      page.getByRole('button', { name: /Continue to Apply/i }),
+    ).toBeDisabled();
+    await expect(
+      page.getByRole('button', { name: /Apply playbook/i }),
+    ).toBeDisabled();
+
+    // Generate preview → unlock Continue to Estimate
+    await page.getByRole('button', { name: /Generate preview/i }).click();
+    await expect(
+      page.getByText(/Sample preview \(up to 3 products\)/i),
+    ).toBeVisible({ timeout: 30000 });
+
+    const continueToEstimate = page.getByRole('button', {
+      name: /Continue to Estimate/i,
+    });
+    await expect(continueToEstimate).toBeEnabled();
+    await continueToEstimate.click();
+
+    // Continue to Apply should now be enabled
+    const continueToApply = page.getByRole('button', {
+      name: /Continue to Apply/i,
+    });
+    await expect(continueToApply).toBeEnabled();
+
+    // Navigation away while in-progress should prompt
+    const dialogPromise = page.waitForEvent('dialog');
+    await page.getByRole('link', { name: /^Projects$/ }).click();
+    const dialog = await dialogPromise;
+    expect(dialog.message()).toMatch(/in-progress playbook preview/i);
+    await dialog.dismiss();
+
+    // Still on Playbooks page
+    await expect(
+      page.getByText(/Step 1 – Preview changes/i),
+    ).toBeVisible();
+
+    // Continue to Apply and run the playbook
+    await continueToApply.click();
+    await page.getByRole('checkbox').check();
+    await page.getByRole('button', { name: /Apply playbook/i }).click();
+
+    await expect(
+      page.getByText(/Updated products:/i),
+    ).toBeVisible({ timeout: 30000 });
+
+    // Reload and verify results persist
+    await page.reload();
+    await expect(
+      page.getByText(/Updated products:/i),
+    ).toBeVisible({ timeout: 30000 });
+
+    // View updated products → Back to Playbook results works
+    await page.getByRole('button', { name: /View updated products/i }).click();
+    await expect(
+      page.getByText(/Back to Playbook results/i),
+    ).toBeVisible();
+    await page
+      .getByRole('button', { name: /Back to Playbook results/i })
+      .click();
+    await expect(
+      page.getByText(/Updated products:/i),
     ).toBeVisible({ timeout: 30000 });
   });
 });
