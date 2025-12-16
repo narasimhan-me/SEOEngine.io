@@ -167,9 +167,31 @@ Respond in JSON format only:
 
       const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
+      // eslint-disable-next-line no-console
+      console.log('[AI][Gemini] Raw response content:', {
+        hasContent: !!content,
+        contentLength: content.length,
+        contentPreview: content.substring(0, 500),
+      });
+
       return this.parseJsonResponse(content);
     } catch (error) {
       console.error('Gemini API error:', error);
+
+      // Check if this is a quota exhaustion error (429) and propagate it
+      // so the user gets a meaningful error message
+      const anyError = error as { status?: number; message?: string };
+      if (anyError.status === 429) {
+        const isQuotaExhausted =
+          anyError.message?.includes('quota') ||
+          anyError.message?.includes('RESOURCE_EXHAUSTED');
+        if (isQuotaExhausted) {
+          throw new Error(
+            'AI_QUOTA_EXHAUSTED: The AI service quota has been exceeded. Please wait a few minutes and try again, or contact support if this persists.',
+          );
+        }
+      }
+
       return this.getFallbackMetadata();
     }
   }
@@ -178,16 +200,28 @@ Respond in JSON format only:
     try {
       // Extract JSON from potential markdown code blocks
       const jsonMatch = content.match(/\{[\s\S]*\}/);
+      // eslint-disable-next-line no-console
+      console.log('[AI][Parse] JSON extraction:', {
+        hasMatch: !!jsonMatch,
+        matchedJson: jsonMatch?.[0]?.substring(0, 300),
+      });
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
+        // eslint-disable-next-line no-console
+        console.log('[AI][Parse] Parsed result:', {
+          title: parsed.title,
+          description: parsed.description,
+        });
         return {
           title: parsed.title || 'Suggested Title',
           description: parsed.description || 'Suggested meta description for this page.',
         };
       }
-    } catch {
-      console.error('Failed to parse AI response:', content);
+    } catch (err) {
+      console.error('Failed to parse AI response:', content, err);
     }
+    // eslint-disable-next-line no-console
+    console.log('[AI][Parse] Returning fallback metadata');
     return this.getFallbackMetadata();
   }
 

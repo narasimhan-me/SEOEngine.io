@@ -325,6 +325,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] AUTO-PB-1.1: Rate limit retry with bounded retries (up to 2)
 - [ ] AUTO-PB-1.1: Daily AI limit reached stops playbook with LIMIT_REACHED status
 - [ ] AUTO-PB-1.2: Playbooks wizard enforces eligibility gating, single primary actions, navigation safety, and post-apply results persistence (including Back to Playbook results from Products)
+- [ ] AUTO-PB-1.3 (Planned): Preview Persistence & Cross-Surface Drafts – persistent AI drafts survive navigation, reused across Playbooks and Product detail surfaces
 
 ---
 
@@ -392,3 +393,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 2.1 | 2025-12-13 | Added SHOP-UX-CTA-1 and SHOP-UX-CTA-1.1 Connect Shopify CTA improvements to CP-006 (Shopify Sync) |
 | 2.2 | 2025-12-14 | Added AUTO-PB-1 and AUTO-PB-1.1 Automation Playbooks scenarios to CP-012, added E2E tests and manual testing docs |
 | 2.3 | 2025-12-15 | Added AUTO-PB-1.2 UX coherence and navigation safety scenarios to CP-012, including new manual testing doc and Playwright coverage |
+| 2.4 | 2025-12-15 | Added AUTO-PB-1.3 (Planned) Preview Persistence & Cross-Surface Drafts scenario to CP-012 |

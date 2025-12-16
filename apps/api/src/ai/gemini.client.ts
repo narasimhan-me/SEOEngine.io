@@ -28,8 +28,9 @@ export const DEFAULT_GEMINI_MODEL_PRIORITY: string[] = [
   'gemini-2.5-flash',
   'gemini-2.5-pro',
   'gemini-2.0-flash',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro',
+  'gemini-2.0-flash-lite',
+  'gemini-2.0-flash-001',
+  'gemini-2.0-flash-lite-001',
 ];
 
 export function isRetryableGeminiError(err: unknown): boolean {
@@ -238,6 +239,19 @@ export class GeminiClient {
 
       const availableSet = new Set(this.availableModels);
       let chain = this.desiredModels.filter((m) => availableSet.has(m));
+
+      // Safe fallback models that should always be included even if not in the
+      // API's model list (they may not be advertised but still work reliably).
+      // Use versioned model names (e.g., gemini-2.0-flash-lite-001) as these
+      // tend to be more stable fallbacks when unversioned names hit rate limits.
+      const safeFallbacks = ['gemini-2.0-flash-lite-001', 'gemini-2.0-flash-001'];
+
+      // Ensure safe fallbacks are always at the end of the chain
+      for (const safeModel of safeFallbacks) {
+        if (!chain.includes(safeModel)) {
+          chain.push(safeModel);
+        }
+      }
 
       const safeDefault = 'gemini-1.5-flash';
       if (chain.length === 0) {

@@ -8323,6 +8323,150 @@ This phase introduces:
 
 ---
 
+## AUTO-PB-1.3 – Preview Persistence & Cross-Surface Drafts
+
+Status: Planned
+
+Goal: Convert Playbook previews from temporary UI output into persistent, reusable AI drafts that survive navigation and can be safely reused across Playbooks and Product detail surfaces.
+
+### Phase Summary
+
+This phase introduces a first-class "Preview Draft" concept for Automation Playbooks so that:
+
+- AI-generated SEO previews are persisted until explicitly applied or discarded.
+- Users can leave and return to the Playbooks flow without losing work.
+- Product detail pages respect Playbook drafts when opened from Playbooks.
+- Answer Block "View" actions deep-link to the canonical Answer Blocks surface instead of a generic Products list.
+
+Core principle (non-negotiable): If AI content is shown to a user, it must remain recoverable until the user explicitly discards it or applies it to Shopify.
+
+### Preview Draft Model (Conceptual)
+
+A Preview Draft represents AI-generated metadata suggestions for a specific product and field that have not yet been applied to Shopify.
+
+Each draft must track at minimum:
+
+- productId
+- field (seoTitle / seoDescription)
+- generatedContent
+- source = playbook_preview
+- createdAt
+- status: DRAFT (default), APPLIED, DISCARDED
+
+Implementation detail:
+
+- Persistence may use either a dedicated Prisma model or an existing drafts/notes mechanism, but it must be durable across sessions and aligned with DATABASE_SCHEMA.md.
+- All Playbooks-related usage must treat Preview Drafts as the single source of truth for preview content.
+
+### Backend Changes – Playbook Preview & Draft Persistence (apps/api)
+
+AutomationPlaybooksService (apps/api/src/projects/automation-playbooks.service.ts):
+
+- Update preview-generation logic so that:
+  - When "Generate preview" is called and no valid Preview Drafts exist for a product + field + source=playbook_preview, AI suggestions are generated once and immediately persisted as Preview Drafts.
+  - When valid DRAFT Preview Drafts already exist for the requested products/fields, preview responses are hydrated from persisted drafts instead of regenerating AI content.
+  - Regeneration behavior:
+    - A new "Regenerate preview" action overwrites existing DRAFT Preview Drafts for the requested scope, updates timestamps, and returns the new drafts.
+    - Previously applied or discarded drafts are not silently reused.
+- Ensure "Apply playbook" uses existing Preview Draft content instead of re-calling AI:
+  - Read from persisted drafts for the requested products/fields.
+  - Mark drafts as APPLIED when successfully written to Shopify/EngineO.
+  - Avoid any implicit re-generation during apply.
+
+Testkit & integration helpers:
+
+- Extend or add backend tests (e.g., in apps/api/test/e2e/automation-playbooks.e2e-spec.ts and/or apps/api/test/integration/automation-playbooks-preview-drafts.test.ts) to cover:
+  - Draft created on first preview call (DRAFT status, correct productId, field, source and timestamps).
+  - Draft reused on subsequent preview calls without additional AI invocations.
+  - "Apply playbook" reads from existing drafts and marks them APPLIED.
+  - "Regenerate preview" overwrites existing drafts and updates timestamps.
+
+### Frontend Changes – Playbooks Preview Flow (apps/web/src/app/projects/[id]/automation/playbooks/page.tsx)
+
+- Update the Playbooks wizard to treat Preview Drafts as first-class state:
+  - On "Generate preview":
+    - Call the updated backend preview endpoint and render from persisted drafts returned by the API.
+    - Disable or hide any UI that would suggest previews might be lost on navigation.
+  - When drafts already exist:
+    - Replace the single "Generate preview" primary CTA with an explicit "Regenerate preview" action that clearly communicates token usage.
+    - Ensure regeneration triggers a backend call that overwrites drafts rather than silently reusing stale state.
+- Align navigation warnings with persisted draft semantics:
+  - When preview drafts exist and the user attempts to leave the Playbooks flow, show:
+    - "You have saved preview drafts. No changes have been applied yet."
+  - Remove any copy that suggests drafts will be discarded simply by navigating away.
+- Ensure "Apply playbook" uses the current Preview Drafts as its source of truth:
+  - No extra AI regeneration during apply.
+  - After apply completes, update client-side draft status and remove "AI draft" indicators where appropriate.
+
+### Cross-Surface Draft Reuse – Product Detail Integration
+
+Product Optimization Page (apps/web/src/app/projects/[id]/products/[productId]/page.tsx):
+
+- When opened via an "Open product" / "View product" action from Playbooks preview or results:
+  - If a Preview Draft exists for that product/field:
+    - Pre-populate the SEO metadata editor with the draft content instead of fresh AI suggestions.
+    - Visually mark the field as "AI draft (not applied yet)" using distinct styling from applied content.
+    - Provide clear, mutually exclusive actions near the SEO editor:
+      - Apply to Shopify (consumes the draft and marks it APPLIED).
+      - Discard draft (marks draft DISCARDED and reverts to existing Shopify/EngineO values).
+      - Regenerate draft (invokes Playbooks/AI again, overwriting the existing draft and updating both Product detail and Playbooks preview).
+- Ensure that when the user navigates back to Playbooks from the Product detail page, the Playbooks preview still shows the same draft content (no implicit regeneration).
+
+### Answer Blocks & "View" Action Alignment
+
+Project Overview – AEO Status Card (apps/web/src/app/projects/[id]/overview/page.tsx):
+
+- Update the "View Answer Blocks" / "View" actions so that:
+  - When Answer Blocks have not yet been generated for the relevant context, clicking "View" shows an explanatory state and a clear CTA to generate Answer Blocks (rather than a generic Products list).
+  - When Answer Blocks exist:
+    - Deep-link to the canonical Answer Blocks surface for the relevant product/page (e.g., Product → Content → Answer Blocks or the existing AEO Answers workspace), with auto-scroll/highlight of the relevant block when feasible.
+    - Never route to a generic /projects/[id]/products listing as the final destination.
+
+### UX Copy & Education
+
+- In Playbook preview:
+  - Add copy near the preview panel:
+    - "Preview drafts are saved automatically. They won't affect your store until applied."
+- In Product detail (SEO metadata section when a draft is present):
+  - Add helper text:
+    - "This is an AI draft from Automation Playbooks. Review before applying."
+
+### Testing Requirements
+
+Backend / Integration Tests (apps/api):
+
+- Draft created on preview:
+  - First preview call for a product with missing SEO fields creates DRAFT Preview Draft records with correct productId, field, source, and status.
+- Draft reused on revisit:
+  - Subsequent preview calls reuse existing DRAFT Preview Drafts and do not increase AI invocation count.
+- Apply uses existing draft:
+  - "Apply playbook" reads from existing drafts and marks them APPLIED without re-generating AI content.
+- Regenerate overwrites draft:
+  - "Regenerate preview" replaces existing draft content, preserves invariants, and updates timestamps.
+
+E2E (TEST-2 Extension – apps/web/tests/first-deo-win.spec.ts):
+
+- Extend the existing Playwright suite with AUTO-PB-1.3 – Preview Persistence & Cross-Surface Drafts describe block covering:
+  - Generate preview → navigate to product detail → verify draft present and labeled as AI draft.
+  - From Product detail, apply or discard the draft and verify Playbooks preview reflects the updated draft status when navigating back.
+  - Preview → leave Playbooks (e.g., navigate to Overview) → return to Playbooks → verify preview drafts are still visible without regeneration.
+  - Verify "Regenerate preview" overwrites content and updates the UI accordingly.
+
+### Manual Testing
+
+- Manual Testing: docs/manual-testing/auto-pb-1-3-preview-persistence.md (to be created using docs/MANUAL_TESTING_TEMPLATE.md as the base).
+
+### Acceptance Criteria (Planned)
+
+- [ ] Preview content never disappears unexpectedly between navigation events; users can safely leave and return to Playbooks without losing drafts.
+- [ ] "Generate preview" only invokes AI when no valid DRAFT Preview Drafts exist for the requested scope; regeneration is explicit and clearly labeled.
+- [ ] "Apply playbook" uses existing Preview Drafts and never regenerates AI content implicitly.
+- [ ] Product detail pages pre-populate SEO fields with Playbook drafts when opened from Playbooks, with clear "AI draft (not applied yet)" labeling and explicit Apply/Discard/Regenerate actions.
+- [ ] Answer Block "View" actions deep-link to the canonical Answer Blocks surface or a clear explanatory state, never a generic Products list.
+- [ ] UX copy clearly communicates that previews are saved as drafts and do not affect the store until applied.
+
+---
+
 ## Phase SHOP-UX-CTA-1 – Connect Shopify CTA Fix (Completed)
 
 **Status:** Complete

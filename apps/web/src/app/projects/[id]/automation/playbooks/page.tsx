@@ -232,6 +232,16 @@ export default function AutomationPlaybooksPage() {
               feedback.showLimit(limitMessage, '/settings/billing');
               break;
             }
+            // Check for AI quota exhaustion (Gemini rate limits)
+            const errMessage =
+              err instanceof Error ? err.message : String(err);
+            if (errMessage.includes('AI_QUOTA_EXHAUSTED')) {
+              const quotaMessage =
+                'AI service quota exceeded. Please wait a few minutes and try again.';
+              setError(quotaMessage);
+              feedback.showError(quotaMessage);
+              break;
+            }
             const message =
               'AI suggestions are temporarily unavailable. Please try again later.';
             setError(message);
