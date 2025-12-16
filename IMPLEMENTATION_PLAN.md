@@ -8555,11 +8555,11 @@ E2E (TEST-2 Extension – apps/web/tests/first-deo-win.spec.ts):
 
 ## CNAB-1 – Contextual Next-Action Banners
 
-Status: Planned (Next)
+Status: Complete (2025-12-16)
 
 Goal: Introduce contextual "What should I do next?" banners across key DEO surfaces so users always see a clear, safe next action after completing a task, with copy that reflects the new Preview → Apply trust contract and other safety guarantees.
 
-This phase is UX-only and focuses on reinforcing predictability and intent-respecting behavior already enforced at the API layer. Banners should celebrate completion while steering users toward the most relevant, low-risk next step (e.g., review results, run a follow-up automation, or return to overview) instead of leaving them at a dead end.
+This phase is UX-only and focuses on reinforcing predictability and intent-respecting behavior already enforced at the API layer. Banners celebrate completion while steering users toward the most relevant, low-risk next step (e.g., review results, run a follow-up automation, or return to overview) instead of leaving them at a dead end.
 
 ### Scope
 
@@ -8577,6 +8577,67 @@ This phase is UX-only and focuses on reinforcing predictability and intent-respe
 - Playbooks page (apps/web/src/app/projects/[id]/automation/playbooks/page.tsx)
 - Products listing (apps/web/src/app/projects/[id]/products/page.tsx)
 - Product detail / optimization view (apps/web/src/app/projects/[id]/products/[productId]/page.tsx)
+
+### Implementation Details
+
+**Playbooks – Automation Playbooks page (apps/web/src/app/projects/[id]/automation/playbooks/page.tsx):**
+
+- Introduced a CNAB state machine derived from real playbook state and results:
+  - `NO_RUN_WITH_ISSUES`: At least one playbook has affected products, and no successful apply run has completed in this session.
+  - `DESCRIPTIONS_DONE_TITLES_REMAIN`: Descriptions playbook has just completed with updates; titles still have affected products.
+  - `TITLES_DONE_DESCRIPTIONS_REMAIN`: Titles playbook has just completed with updates; descriptions still have affected products.
+  - `ALL_DONE`: Both playbooks report 0 affected products.
+- Each CNAB state renders a single, explicit primary CTA plus an optional secondary CTA:
+  - `NO_RUN_WITH_ISSUES`:
+    - Primary: "Preview missing SEO descriptions" (selects missing_seo_description, triggers preview, and advances the wizard).
+    - Secondary: "How Automation Playbooks work" (navigates to the Automation overview).
+  - `DESCRIPTIONS_DONE_TITLES_REMAIN`:
+    - Primary: "Preview missing SEO titles" (selects missing_seo_title, triggers preview).
+    - Secondary: "View updated products" (navigates back to Products with from=playbook_results).
+  - `TITLES_DONE_DESCRIPTIONS_REMAIN`:
+    - Primary: "Preview missing SEO descriptions" (selects missing_seo_description, triggers preview).
+    - Secondary: "View updated products".
+  - `ALL_DONE`:
+    - Primary: "Sync changes to Shopify" (triggers shopifyApi.syncProducts(projectId)).
+    - Secondary: "Explore other optimizations" (navigates back to Project Overview).
+- Banners are dismissible via an explicit close (X) control and will also effectively transition as underlying state changes (e.g., after a successful apply run or when estimates show 0 remaining products).
+
+**Project Overview page (apps/web/src/app/projects/[id]/overview/page.tsx):**
+
+- Uses existing `NextDeoWinCard` component when:
+  - The project has a crawl and DEO score, and
+  - Products are missing SEO metadata (titles or descriptions).
+- Banner content:
+  - Headline: "Next DEO win: Fix missing SEO metadata"
+  - Body: Encourages fixing missing SEO metadata to improve discoverability.
+  - Primary CTA: "Open Automation Playbooks" (routes to Playbooks with a source query for context).
+
+**Products list page (apps/web/src/app/projects/[id]/products/page.tsx):**
+
+- Added a CNAB banner when product-level DEO issues exist:
+  - Headline: "Some products need optimization"
+  - Body: Explains that users can either review issues individually or fix them in bulk using Automation Playbooks.
+  - Primary CTA: Link to Automation Playbooks.
+  - Secondary CTA: Click on individual products below.
+
+**Product detail / optimization page (apps/web/src/app/projects/[id]/products/[productId]/page.tsx):**
+
+- Added a CNAB banner when AI drafts or unresolved issues are present for the current product:
+  - Headline: "Optimization suggestions available"
+  - Body: Reinforces that AI-generated drafts can be reviewed and applied when the user is ready.
+  - Primary CTA: Use the AI suggestions below to generate optimized titles and descriptions.
+
+### Manual Testing
+
+- Manual Testing: docs/manual-testing/cnab-1-contextual-next-action-banners.md
+
+### Acceptance Criteria
+
+- [x] Every covered surface shows exactly one CNAB when applicable, derived from real state.
+- [x] Each CNAB exposes exactly one primary CTA that clearly answers "What should I do next?".
+- [x] CNAB banners disappear or transition once the recommended action is taken or the underlying state changes (no stale guidance).
+- [x] No CNAB copy contradicts actual page state (e.g., no "all done" banner while issues remain).
+- [x] CNAB copy reflects Preview → Estimate → Apply safety guarantees and never suggests unsafe or unavailable actions.
 
 ---
 
