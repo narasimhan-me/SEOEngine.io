@@ -103,6 +103,7 @@ export default function AutomationPlaybooksPage() {
   const source = searchParams.get('source');
   const showNextDeoWinBanner = source === 'next_deo_win';
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [cnabDismissed, setCnabDismissed] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -205,12 +206,12 @@ export default function AutomationPlaybooksPage() {
 
     // Just finished descriptions, titles still need work
     if (hasCompletedDescriptionsRun && titlesAffected > 0) {
-      return 'TITLES_DONE_DESCRIPTIONS_REMAIN';
+      return 'DESCRIPTIONS_DONE_TITLES_REMAIN';
     }
 
     // Just finished titles, descriptions still need work
     if (hasCompletedTitlesRun && descriptionsAffected > 0) {
-      return 'DESCRIPTIONS_DONE_TITLES_REMAIN';
+      return 'TITLES_DONE_DESCRIPTIONS_REMAIN';
     }
 
     // Has issues but hasn't run any playbook successfully yet
@@ -722,103 +723,315 @@ export default function AutomationPlaybooksPage() {
         </div>
       )}
 
-      {/* CNAB-1: Contextual Next-Action Banner */}
-      {cnabState === 'DESCRIPTIONS_DONE_TITLES_REMAIN' && (
+      {/* CNAB-1: Contextual Next-Action Banners */}
+      {cnabState === 'NO_RUN_WITH_ISSUES' && !cnabDismissed && (
         <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0">
-              <svg
-                className="h-5 w-5 text-blue-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 7l5 5m0 0l-5 5m5-5H6"
-                />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-blue-900">
-                Great progress! Now fix missing SEO descriptions
-              </h3>
-              <p className="mt-1 text-xs text-blue-800">
-                You&apos;ve improved SEO titles. Select the &quot;Fix missing SEO
-                descriptions&quot; playbook to continue optimizing your catalog.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {cnabState === 'TITLES_DONE_DESCRIPTIONS_REMAIN' && (
-        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0">
-              <svg
-                className="h-5 w-5 text-blue-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 7l5 5m0 0l-5 5m5-5H6"
-                />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-blue-900">
-                Great progress! Now fix missing SEO titles
-              </h3>
-              <p className="mt-1 text-xs text-blue-800">
-                You&apos;ve improved SEO descriptions. Select the &quot;Fix missing
-                SEO titles&quot; playbook to continue optimizing your catalog.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {cnabState === 'ALL_DONE' && (
-        <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0">
-              <svg
-                className="h-5 w-5 text-green-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-green-900">
-                All products have SEO metadata
-              </h3>
-              <p className="mt-1 text-xs text-green-800">
-                No products are missing SEO titles or descriptions. Check back after
-                syncing new products, or visit the{' '}
-                <Link
-                  href={`/projects/${projectId}/overview`}
-                  className="font-medium underline hover:text-green-900"
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-5 w-5 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  Overview
-                </Link>{' '}
-                to see your DEO Score.
-              </p>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 7l5 5m0 0l-5 5m5-5H6"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-blue-900">
+                  Next step: Fix missing SEO metadata
+                </h3>
+                <p className="mt-1 text-xs text-blue-800">
+                  Use Automation Playbooks to safely generate missing SEO descriptions in bulk.
+                  Start with a preview — nothing is applied until you confirm.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setCnabDismissed(true);
+                      setSelectedPlaybookId('missing_seo_description');
+                      const ok = await loadPreview('missing_seo_description');
+                      if (ok) {
+                        setFlowState('PREVIEW_GENERATED');
+                      }
+                    }}
+                    className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  >
+                    Preview missing SEO descriptions
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCnabDismissed(true);
+                      handleNavigate(`/projects/${projectId}/automation`);
+                    }}
+                    className="inline-flex items-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
+                  >
+                    How Automation Playbooks work
+                  </button>
+                </div>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => setCnabDismissed(true)}
+              className="flex-shrink-0 text-blue-500 hover:text-blue-700"
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {cnabState === 'DESCRIPTIONS_DONE_TITLES_REMAIN' && !cnabDismissed && (
+        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-5 w-5 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 7l5 5m0 0l-5 5m5-5H6"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-blue-900">
+                  SEO descriptions updated — next, fix titles
+                </h3>
+                <p className="mt-1 text-xs text-blue-800">
+                  You&apos;ve improved SEO descriptions. Run the titles playbook using the same
+                  safe preview → estimate → apply flow.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setCnabDismissed(true);
+                      setSelectedPlaybookId('missing_seo_title');
+                      const ok = await loadPreview('missing_seo_title');
+                      if (ok) {
+                        setFlowState('PREVIEW_GENERATED');
+                      }
+                    }}
+                    className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  >
+                    Preview missing SEO titles
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCnabDismissed(true);
+                      handleNavigate(
+                        `/projects/${projectId}/products?from=playbook_results`,
+                      );
+                    }}
+                    className="inline-flex items-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
+                  >
+                    View updated products
+                  </button>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCnabDismissed(true)}
+              className="flex-shrink-0 text-blue-500 hover:text-blue-700"
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {cnabState === 'TITLES_DONE_DESCRIPTIONS_REMAIN' && !cnabDismissed && (
+        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-5 w-5 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 7l5 5m0 0l-5 5m5-5H6"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-blue-900">
+                  SEO titles updated — next, fix descriptions
+                </h3>
+                <p className="mt-1 text-xs text-blue-800">
+                  You&apos;ve improved SEO titles. Run the descriptions playbook using the same
+                  safe preview → estimate → apply flow.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setCnabDismissed(true);
+                      setSelectedPlaybookId('missing_seo_description');
+                      const ok = await loadPreview('missing_seo_description');
+                      if (ok) {
+                        setFlowState('PREVIEW_GENERATED');
+                      }
+                    }}
+                    className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  >
+                    Preview missing SEO descriptions
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCnabDismissed(true);
+                      handleNavigate(
+                        `/projects/${projectId}/products?from=playbook_results`,
+                      );
+                    }}
+                    className="inline-flex items-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
+                  >
+                    View updated products
+                  </button>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCnabDismissed(true)}
+              className="flex-shrink-0 text-blue-500 hover:text-blue-700"
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {cnabState === 'ALL_DONE' && !cnabDismissed && (
+        <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <svg
+                  className="h-5 w-5 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-green-900">
+                  SEO metadata is up to date
+                </h3>
+                <p className="mt-1 text-xs text-green-800">
+                  All eligible products have SEO titles and descriptions. You can sync
+                  changes to Shopify or explore other optimizations.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCnabDismissed(true);
+                      handleSyncToShopify();
+                    }}
+                    className="inline-flex items-center rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                  >
+                    Sync changes to Shopify
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCnabDismissed(true);
+                      handleNavigate(`/projects/${projectId}/overview`);
+                    }}
+                    className="inline-flex items-center rounded-md border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-green-700 shadow-sm hover:bg-green-50"
+                  >
+                    Explore other optimizations
+                  </button>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCnabDismissed(true)}
+              className="flex-shrink-0 text-green-500 hover:text-green-700"
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
           </div>
         </div>
       )}
