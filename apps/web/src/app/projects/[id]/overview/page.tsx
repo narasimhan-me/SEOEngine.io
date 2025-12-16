@@ -22,6 +22,7 @@ import { NextDeoWinCard } from '@/components/projects/NextDeoWinCard';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 
 type CrawlFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY';
+type DailyCrawlUiState = 'IDLE' | 'SETTING_UP' | 'ENABLED' | 'ERROR';
 
 interface IntegrationStatus {
   projectId: string;
@@ -168,6 +169,7 @@ export default function ProjectOverviewPage() {
   const [hasReviewedDeoScore, setHasReviewedDeoScore] = useState(false);
   const [connectingSource, setConnectingSource] = useState(false);
   const [planId, setPlanId] = useState<string | null>(null);
+  const [dailyCrawlUiState, setDailyCrawlUiState] = useState<DailyCrawlUiState>('IDLE');
 
   const feedback = useFeedback();
 
@@ -692,6 +694,32 @@ export default function ProjectOverviewPage() {
     router.push(`/projects/${projectId}/products`);
   };
 
+  const handleSetupDailyCrawls = async () => {
+    try {
+      setDailyCrawlUiState('SETTING_UP');
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const token = getToken();
+      const response = await fetch(`${API_URL}/projects/${projectId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ autoCrawlEnabled: true, crawlFrequency: 'DAILY' }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to enable daily crawls');
+      }
+      setDailyCrawlUiState('ENABLED');
+      feedback.showSuccess('Daily crawls enabled');
+      await fetchIntegrationStatus();
+    } catch (err) {
+      console.error('Error setting up daily crawls:', err);
+      setDailyCrawlUiState('ERROR');
+      feedback.showError('Failed to enable daily crawls');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -761,39 +789,79 @@ export default function ProjectOverviewPage() {
       )}
 
       {/* First DEO Win Status Ribbon */}
-      {hasRunCrawl && hasDeoScore && hasOptimizedThreeProducts && showFirstWinCard && (
-        <div className="mb-4 rounded-md border border-green-100 bg-green-50 px-3 py-2 text-xs text-green-800">
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1">
-              <p className="font-medium">
-                You&apos;ve completed your first DEO win. Your visibility is improving.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href={`/projects/${projectId}/settings`}
-                  className="inline-flex items-center text-[11px] font-medium text-green-700 hover:text-green-900"
-                >
-                  Set up daily crawls
-                </Link>
-                <Link
-                  href={`/projects/${projectId}/issues`}
-                  className="inline-flex items-center text-[11px] font-medium text-green-700 hover:text-green-900"
-                >
-                  View issues
-                </Link>
+      {hasRunCrawl && hasDeoScore && hasOptimizedThreeProducts && showFirstWinCard && (() => {
+        const autoCrawlEffectiveState: DailyCrawlUiState =
+          dailyCrawlUiState !== 'IDLE'
+            ? dailyCrawlUiState
+            : status?.autoCrawlEnabled && status?.crawlFrequency === 'DAILY'
+              ? 'ENABLED'
+              : 'IDLE';
+        return (
+          <div className="mb-4 rounded-md border border-green-100 bg-green-50 px-3 py-2 text-xs text-green-800">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="font-medium">
+                  You&apos;ve completed your first DEO win. Your visibility is improving.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  {autoCrawlEffectiveState === 'IDLE' && (
+                    <button
+                      type="button"
+                      onClick={handleSetupDailyCrawls}
+                      className="inline-flex items-center text-[11px] font-medium text-green-700 hover:text-green-900"
+                    >
+                      Set up daily crawls
+                    </button>
+                  )}
+                  {autoCrawlEffectiveState === 'SETTING_UP' && (
+                    <span className="inline-flex items-center text-[11px] font-medium text-green-600">
+                      <svg className="mr-1 h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Setting up daily crawls…
+                    </span>
+                  )}
+                  {autoCrawlEffectiveState === 'ENABLED' && (
+                    <span className="inline-flex items-center text-[11px] font-medium text-green-700">
+                      <svg className="mr-1 h-3 w-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      Daily crawls enabled
+                    </span>
+                  )}
+                  {autoCrawlEffectiveState === 'ERROR' && (
+                    <button
+                      type="button"
+                      onClick={handleSetupDailyCrawls}
+                      className="inline-flex items-center text-[11px] font-medium text-red-600 hover:text-red-800"
+                    >
+                      <svg className="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      Retry daily crawls setup
+                    </button>
+                  )}
+                  <Link
+                    href={`/projects/${projectId}/issues`}
+                    className="inline-flex items-center text-[11px] font-medium text-green-700 hover:text-green-900"
+                  >
+                    View issues
+                  </Link>
+                </div>
               </div>
+              <button
+                onClick={() => setShowFirstWinCard(false)}
+                className="mt-0.5 text-green-600 hover:text-green-800"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <button
-              onClick={() => setShowFirstWinCard(false)}
-              className="mt-0.5 text-green-600 hover:text-green-800"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Next DEO Win Card - shown when First DEO Win checklist is fully complete */}
       {hasConnectedSource && hasRunCrawl && hasDeoScore && hasOptimizedThreeProducts && (
@@ -1309,49 +1377,80 @@ export default function ProjectOverviewPage() {
                     </div>
                   </div>
                 )}
-                <div className="rounded-lg border border-gray-200 bg-white p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold text-gray-900">Auto Crawl</h3>
-                    <Link
-                      href={`/projects/${projectId}/settings`}
-                      className="text-xs text-blue-600 hover:text-blue-800"
-                    >
-                      Configure
-                    </Link>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      {status.autoCrawlEnabled !== false ? (
-                        <>
-                          <svg className="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path
-                              fillRule="evenodd"
-                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          <span className="text-sm text-gray-700">Enabled</span>
-                        </>
-                      ) : (
-                        <>
-                          <svg className="h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path
-                              fillRule="evenodd"
-                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          <span className="text-sm text-gray-500">Disabled</span>
-                        </>
-                      )}
+                {(() => {
+                  const autoCrawlEffectiveState: DailyCrawlUiState =
+                    dailyCrawlUiState !== 'IDLE'
+                      ? dailyCrawlUiState
+                      : status.autoCrawlEnabled && status.crawlFrequency === 'DAILY'
+                        ? 'ENABLED'
+                        : 'IDLE';
+                  return (
+                    <div className="rounded-lg border border-gray-200 bg-white p-4">
+                      <div className="mb-3 flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-gray-900">Auto Crawl</h3>
+                        <Link
+                          href={`/projects/${projectId}/settings`}
+                          className="text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          Configure
+                        </Link>
+                      </div>
+                      <div className="space-y-2">
+                        {autoCrawlEffectiveState === 'ENABLED' && (
+                          <div className="flex items-center gap-2">
+                            <svg className="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="text-sm text-gray-700">Enabled (Daily)</span>
+                          </div>
+                        )}
+                        {autoCrawlEffectiveState === 'SETTING_UP' && (
+                          <div className="flex items-center gap-2">
+                            <svg className="h-4 w-4 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                            <span className="text-sm text-blue-700">Setting up daily crawls…</span>
+                          </div>
+                        )}
+                        {autoCrawlEffectiveState === 'ERROR' && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <svg className="h-4 w-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                              </svg>
+                              <span className="text-sm text-red-700">Failed to enable</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleSetupDailyCrawls}
+                              className="text-xs font-medium text-blue-600 hover:text-blue-800"
+                            >
+                              Retry
+                            </button>
+                          </div>
+                        )}
+                        {autoCrawlEffectiveState === 'IDLE' && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <svg className="h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                              </svg>
+                              <span className="text-sm text-gray-500">Disabled</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleSetupDailyCrawls}
+                              className="text-xs font-medium text-blue-600 hover:text-blue-800"
+                            >
+                              Enable daily crawls
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    {status.autoCrawlEnabled !== false && status.crawlFrequency && (
-                      <p className="text-xs text-gray-500">
-                        Frequency: {formatCrawlFrequency(status.crawlFrequency)}
-                      </p>
-                    )}
-                  </div>
-                </div>
+                  );
+                })()}
                 <div className="rounded-lg border border-gray-200 bg-white p-4">
                   <h3 className="mb-4 text-sm font-semibold text-gray-900">Project Stats</h3>
                   <div className="space-y-4">
