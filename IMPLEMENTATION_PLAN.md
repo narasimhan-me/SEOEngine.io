@@ -8749,9 +8749,12 @@ This provides a safety net ensuring the "no AI at Apply" contract is enforced at
 
 ### Manual Testing
 
-- **Preview Persistence:** docs/manual-testing/auto-pb-1-3-preview-persistence.md (covers sessionStorage restoration and cross-navigation flows).
-- **Resume & Gating UX:** docs/manual-testing/auto-pb-1-3-ux-1-resume-and-gating.md (covers derived state, blocker panels, and resume scenarios).
-- **Contract Enforcement:** docs/manual-testing/test-auto-pb-1-3-contract-enforcement.md (covers 409 conflict scenarios, no-AI-at-Apply, UPDATED vs SKIPPED, and resume/apply-later flows).
+- **Canonical spec:** `docs/auto/auto-pb-1.3-preview-persistence.md` (DOC-AUTO-PB-1.3 – Preview Persistence & Draft Lifecycle).
+- **Manual testing:** `docs/manual-testing/DOC-AUTO-PB-1.3.md` (validates that current behavior matches the DOC-AUTO-PB-1.3 contract).
+- **Supporting docs:**
+  - `docs/manual-testing/auto-pb-1-3-scope-binding.md` (scopeId contract).
+  - `docs/manual-testing/auto-pb-1-3-ux-1-resume-and-gating.md` (derived-state gating + resume UX).
+  - `docs/manual-testing/test-auto-pb-1-3-contract-enforcement.md` (backend error and no-AI-at-Apply contracts).
 
 ### Acceptance Criteria (Planned)
 
@@ -8761,6 +8764,61 @@ This provides a safety net ensuring the "no AI at Apply" contract is enforced at
 - [ ] Product detail pages pre-populate SEO fields with Playbook drafts when opened from Playbooks, with clear "AI draft (not applied yet)" labeling and explicit Apply/Discard/Regenerate actions.
 - [ ] Answer Block "View" actions deep-link to the canonical Answer Blocks surface or a clear explanatory state, never a generic Products list.
 - [ ] UX copy clearly communicates that previews are saved as drafts and do not affect the store until applied.
+
+### DOC-AUTO-PB-1.3 – Preview Persistence & Draft Lifecycle
+
+Status: Complete (2025-12-17)
+
+Notes:
+
+- `docs/auto/auto-pb-1.3-preview-persistence.md` is the authoritative spec for Preview persistence and Draft lifecycle.
+- All future phases that touch Automation Playbook runs or AI usage must align with this document.
+- TEST-AUTO-PB-1.3, PB-RULES-1, TEST-PB-RULES-1, RUNS-1, and AI-USAGE-1 are expected to treat this spec as a dependency when defining their own contracts and tests.
+
+### TEST-PB-RULES-1 – Playbook Rules Contract Tests (Planned)
+
+Status: Planned
+
+Scope:
+
+- Extend tests to cover rules application, stale-preview UX, and rule-specific edge cases on top of AUTO-PB-1.3 draft semantics.
+
+Dependencies:
+
+- DOC-AUTO-PB-1.3 – Preview persistence & draft lifecycle (this doc).
+- PB-RULES-1 – Playbook Rules v1 spec and implementation.
+
+---
+
+### RUNS-1 – Automation Playbook Runs & History (Planned)
+
+Status: Planned
+
+Scope:
+
+- Introduce explicit run records (runId, status, timestamps, counts) for Automation Playbook executions.
+- Support async execution and run history.
+
+Dependencies:
+
+- DOC-AUTO-PB-1.3 – Draft lifecycle and Apply contract.
+- TEST-AUTO-PB-1.3 – Existing contract enforcement tests.
+
+---
+
+### AI-USAGE-1 – AI Usage Ledger & Reuse (Planned)
+
+Status: Planned
+
+Scope:
+
+- Track AI usage events at a finer granularity (preview, draft_generate, apply).
+- Expose usage metrics and reuse opportunities in UX.
+
+Dependencies:
+
+- DOC-AUTO-PB-1.3 – Defines when AI may run (Preview/Generate Draft) vs must not run (Apply with valid draft).
+- `docs/TOKEN_USAGE_MODEL.md` – token accounting model.
 
 ---
 
@@ -8865,6 +8923,11 @@ Goal: Add user-controlled, batch-level rules that shape AI drafts for Automation
 - No extra AI calls at Apply when drafts already exist (Apply must use stored drafts, not regenerate).
 - Rules must be visible, editable, and persisted for the preview session/draft context.
 - If scope changes (AUTO-PB-1.3 scope binding), rules/drafts must be invalidated safely with existing "scope changed" UX.
+
+**Dependencies:**
+
+- DOC-AUTO-PB-1.3 – Preview persistence and draft lifecycle must be respected when applying rules to drafts.
+- AUTO-PB-1.3 backend (scopeId + rulesHash + draftKey enforcement) must remain stable.
 
 ### Rule Pack v1 – Batch-Level Controls
 
