@@ -8775,18 +8775,45 @@ Notes:
 - All future phases that touch Automation Playbook runs or AI usage must align with this document.
 - TEST-AUTO-PB-1.3, PB-RULES-1, TEST-PB-RULES-1, RUNS-1, and AI-USAGE-1 are expected to treat this spec as a dependency when defining their own contracts and tests.
 
-### TEST-PB-RULES-1 – Playbook Rules Contract Tests (Planned)
+### TEST-PB-RULES-1 – Playbook Rules Contract Tests
 
-Status: Planned
+Status: Complete (2025-12-17)
 
 Scope:
 
-- Extend tests to cover rules application, stale-preview UX, and rule-specific edge cases on top of AUTO-PB-1.3 draft semantics.
+- Lock rules engine semantics: `normalizeRules`, `computeRulesHash`, `applyRulesToText`.
+- Lock rule evaluation order: Find/Replace → Prefix → Suffix → Max Length → Forbidden phrase detection.
+- Lock rulesHash determinism and semantic change detection.
+- Lock draft validity vs rulesHash (PLAYBOOK_RULES_CHANGED).
+- Lock draft validity vs scopeId (PLAYBOOK_SCOPE_INVALID).
+- Lock AI usage guarantees during Apply with valid drafts.
 
 Dependencies:
 
-- DOC-AUTO-PB-1.3 – Preview persistence & draft lifecycle (this doc).
+- DOC-AUTO-PB-1.3 – Preview persistence & draft lifecycle.
 - PB-RULES-1 – Playbook Rules v1 spec and implementation.
+- AUTO-PB-1.3 backend (scopeId + rulesHash + draftKey enforcement).
+- AUTO-PB-1.3-UX.1 – Resume, Explain Gating, and Derived State.
+
+#### Test Files
+
+- **Unit Tests:** `tests/unit/automation/playbook-rules.engine.test.ts`
+  - 38 tests covering `normalizeRules`, `applyRulesToText`, `computeRulesHash`, rule combination order, determinism, and edge cases.
+
+- **Integration Tests:** `tests/integration/automation/pb-rules-draft-hash.test.ts`
+  - rulesHash stability under identical rules.
+  - rulesHash change under semantic rule changes.
+  - 409 PLAYBOOK_RULES_CHANGED when applying with mismatched rulesHash.
+  - 409 PLAYBOOK_SCOPE_INVALID when scope changes after preview.
+  - Failure modes: forbidden phrase added, maxLength reduced, multiple rules changed.
+  - AI usage guarantees: Apply with valid draft does not call AI.
+
+- **E2E Tests:** (Planned) `apps/web/tests/pb-rules-stale-preview.spec.ts`
+  - Rules change → stale preview guardrail.
+  - Resume with stale preview from session.
+
+- **Manual Testing:** `docs/manual-testing/TEST-PB-RULES-1.md`
+  - TC-1 through TC-7 covering rules transforms, rulesHash determinism, draft validity, stale-preview UX, and UPDATED vs SKIPPED mapping.
 
 ---
 
@@ -8804,6 +8831,10 @@ Dependencies:
 - DOC-AUTO-PB-1.3 – Draft lifecycle and Apply contract.
 - TEST-AUTO-PB-1.3 – Existing contract enforcement tests.
 
+Prerequisite:
+
+- TEST-PB-RULES-1 – Rules semantics and stale-preview UX must remain green in CI.
+
 ---
 
 ### AI-USAGE-1 – AI Usage Ledger & Reuse (Planned)
@@ -8819,6 +8850,10 @@ Dependencies:
 
 - DOC-AUTO-PB-1.3 – Defines when AI may run (Preview/Generate Draft) vs must not run (Apply with valid draft).
 - `docs/TOKEN_USAGE_MODEL.md` – token accounting model.
+
+Prerequisite:
+
+- TEST-PB-RULES-1 – Rules semantics and stale-preview UX must remain green in CI.
 
 ---
 
