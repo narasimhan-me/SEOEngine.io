@@ -23,6 +23,19 @@ interface GeminiApiError extends Error {
   status?: number;
 }
 
+export interface AllModelsExhaustedError extends Error {
+  code: 'ALL_MODELS_EXHAUSTED';
+  triedModels: string[];
+  lastError?: unknown;
+}
+
+export function isAllModelsExhaustedError(err: unknown): err is AllModelsExhaustedError {
+  return (
+    err instanceof Error &&
+    (err as AllModelsExhaustedError).code === 'ALL_MODELS_EXHAUSTED'
+  );
+}
+
 export const DEFAULT_GEMINI_MODEL_PRIORITY: string[] = [
   'gemini-2.5-flash-lite',
   'gemini-2.5-flash',
@@ -180,7 +193,15 @@ export class GeminiClient {
       attempts: chain.length,
     });
 
-    throw lastError ?? new Error('[Gemini] All models in fallback chain failed.');
+    // Create a specific error for all models exhausted
+    const exhaustedError = new Error(
+      `[Gemini] All ${chain.length} models in fallback chain failed. Tried: ${chain.join(', ')}. Please try again later or contact support.`,
+    ) as AllModelsExhaustedError;
+    exhaustedError.code = 'ALL_MODELS_EXHAUSTED';
+    exhaustedError.triedModels = [...chain];
+    exhaustedError.lastError = lastError;
+
+    throw exhaustedError;
   }
 
   private async ensureInitialized(): Promise<void> {

@@ -52,6 +52,7 @@ interface PreviewSample {
   currentDescription: string;
   suggestedTitle: string;
   suggestedDescription: string;
+  ruleWarnings?: string[];
 }
 
 type PlaybookFlowState =
@@ -74,6 +75,31 @@ type PlaybooksCnabState =
   | 'TITLES_DONE_DESCRIPTIONS_REMAIN' // Ran titles playbook, descriptions still need work
   | 'ALL_DONE'                    // Both playbooks have 0 affected products
   | null;                         // No banner to show
+
+interface PlaybookRulesV1 {
+  enabled: boolean;
+  find: string;
+  replace: string;
+  caseSensitive: boolean;
+  prefix: string;
+  suffix: string;
+  maxLength?: number;
+  /**
+   * Newline-separated forbidden phrases. Parsed into an array when applying rules.
+   */
+  forbiddenPhrasesText: string;
+}
+
+const DEFAULT_RULES: PlaybookRulesV1 = {
+  enabled: false,
+  find: '',
+  replace: '',
+  caseSensitive: false,
+  prefix: '',
+  suffix: '',
+  maxLength: undefined,
+  forbiddenPhrasesText: '',
+};
 
 const PLAYBOOKS: PlaybookDefinition[] = [
   {
@@ -121,6 +147,12 @@ export default function AutomationPlaybooksPage() {
   const [applying, setApplying] = useState(false);
   const [applyResult, setApplyResult] = useState<AutomationPlaybookApplyResult | null>(null);
   const [confirmApply, setConfirmApply] = useState(false);
+
+  const [rules, setRules] = useState<PlaybookRulesV1>(() => ({
+    ...DEFAULT_RULES,
+  }));
+  const [rulesVersion, setRulesVersion] = useState(0);
+  const [previewRulesVersion, setPreviewRulesVersion] = useState<number | null>(null);
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -179,6 +211,17 @@ export default function AutomationPlaybooksPage() {
     });
   }, [issuesByType]);
 
+  const enabledRulesLabels: string[] = [];
+  if (rules.enabled) {
+    if (rules.find) enabledRulesLabels.push('Find/Replace');
+    if (rules.prefix) enabledRulesLabels.push('Prefix');
+    if (rules.suffix) enabledRulesLabels.push('Suffix');
+    if (rules.maxLength && rules.maxLength > 0) enabledRulesLabels.push('Max length');
+    if (rules.forbiddenPhrasesText.trim()) enabledRulesLabels.push('Forbidden phrases');
+  }
+  const rulesSummaryLabel =
+    enabledRulesLabels.length > 0 ? `Rules: ${enabledRulesLabels.join(', ')}` : 'Rules: None';
+
   /**
    * CNAB-1: Calculate contextual banner state based on playbook summaries.
    */
@@ -225,6 +268,28 @@ export default function AutomationPlaybooksPage() {
     return null;
   }, [playbookSummaries, selectedPlaybookId, applyResult, flowState]);
 
+  const markRulesEdited = () => {
+    setRules((previous) => ({
+      ...previous,
+      enabled: true,
+    }));
+    setRulesVersion((previous) => previous + 1);
+  };
+
+  const handleRulesChange = (patch: Partial<PlaybookRulesV1>) => {
+    setRules((previous) => {
+      const next: PlaybookRulesV1 = {
+        ...previous,
+        ...patch,
+      };
+      if (!previous.enabled && (patch.find || patch.replace || patch.prefix || patch.suffix || patch.maxLength || patch.forbiddenPhrasesText)) {
+        next.enabled = true;
+      }
+      return next;
+    });
+    setRulesVersion((previous) => previous + 1);
+  };
+
   const loadEstimate = useCallback(
     async (playbookId: PlaybookId) => {
       try {
@@ -255,6 +320,55 @@ export default function AutomationPlaybooksPage() {
     async (playbookId: PlaybookId): Promise<boolean> => {
       const definition = PLAYBOOKS.find((pb) => pb.id === playbookId);
       if (!definition) return false;
+
+      const normalizeForbidden = (text: string): string[] =>
+        text
+          .split('\n')
+          .map((entry) => entry.trim())
+          .filter(Boolean);
+
+      const forbiddenPhrases = rules.enabled
+        ? normalizeForbidden(rules.forbiddenPhrasesText)
+        : [];
+
+      const transformText = (value: string, warnings: string[]): string => {
+        let text = value || '';
+        if (!rules.enabled) {
+          return text;
+        }
+        const { find, replace, caseSensitive, prefix, suffix, maxLength } = rules;
+        if (find) {
+          try {
+            const escaped = find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(escaped, caseSensitive ? 'g' : 'gi');
+            text = text.replace(regex, replace);
+          } catch {
+            // If the pattern cannot be constructed, fall back to a simple split/join
+            text = text.split(find).join(replace);
+          }
+        }
+        if (prefix) {
+          text = `${prefix}${text}`;
+        }
+        if (suffix) {
+          text = `${text}${suffix}`;
+        }
+        if (typeof maxLength === 'number' && maxLength > 0 && text.length > maxLength) {
+          text = text.slice(0, maxLength);
+          warnings.push('trimmed_to_max_length');
+        }
+        if (forbiddenPhrases.length > 0) {
+          const lower = text.toLowerCase();
+          const hit = forbiddenPhrases.some((phrase) =>
+            lower.includes(phrase.toLowerCase()),
+          );
+          if (hit) {
+            warnings.push('forbidden_phrase_detected');
+          }
+        }
+        return text;
+      };
+
       const candidates = products.filter((p) => {
         if (definition.field === 'seoTitle') {
           return !p.seoTitle || p.seoTitle.trim() === '';
@@ -274,14 +388,28 @@ export default function AutomationPlaybooksPage() {
         for (const product of sampleProducts) {
           try {
             const result = await aiApi.suggestProductMetadata(product.id);
+            const ruleWarnings: string[] = [];
+            let suggestedTitle = result?.suggested?.title || '';
+            let suggestedDescription = result?.suggested?.description || '';
+            if (rules.enabled) {
+              if (definition.field === 'seoTitle') {
+                suggestedTitle = transformText(suggestedTitle, ruleWarnings);
+              } else {
+                suggestedDescription = transformText(
+                  suggestedDescription,
+                  ruleWarnings,
+                );
+              }
+            }
             samples.push({
               productId: product.id,
               productTitle: product.title,
               currentTitle: product.seoTitle || product.title || '',
               currentDescription:
                 product.seoDescription || product.description || '',
-              suggestedTitle: result?.suggested?.title || '',
-              suggestedDescription: result?.suggested?.description || '',
+              suggestedTitle,
+              suggestedDescription,
+              ruleWarnings: ruleWarnings.length > 0 ? ruleWarnings : undefined,
             });
           } catch (err: unknown) {
             console.error('Error generating preview suggestion:', err);
@@ -302,6 +430,14 @@ export default function AutomationPlaybooksPage() {
               feedback.showError(quotaMessage);
               break;
             }
+            // Check for all models exhausted (all AI models tried and failed)
+            if (errMessage.includes('AI_ALL_MODELS_EXHAUSTED')) {
+              const exhaustedMessage =
+                'All AI models are currently unavailable. The system tried multiple models but all are experiencing issues. Please wait a few minutes and try again.';
+              setError(exhaustedMessage);
+              feedback.showError(exhaustedMessage);
+              break;
+            }
             const message =
               'AI suggestions are temporarily unavailable. Please try again later.';
             setError(message);
@@ -310,12 +446,15 @@ export default function AutomationPlaybooksPage() {
           }
         }
         setPreviewSamples(samples);
+        if (samples.length > 0) {
+          setPreviewRulesVersion(rulesVersion);
+        }
       } finally {
         setLoadingPreview(false);
       }
       return samples.length > 0;
     },
-    [products, feedback],
+    [products, feedback, rules, rulesVersion],
   );
 
   useEffect(() => {
@@ -367,7 +506,15 @@ export default function AutomationPlaybooksPage() {
 
   const handleApplyPlaybook = useCallback(async () => {
     if (!selectedPlaybookId) return;
-    if (!estimate || !estimate.canProceed || !estimate.scopeId) return;
+    if (!estimate || !estimate.canProceed) return;
+    if (!estimate.scopeId) {
+      // scopeId is required but missing - fetch a fresh estimate
+      feedback.showError(
+        'Estimate is stale (missing scopeId). Please re-run the preview to refresh.',
+      );
+      setFlowState('PREVIEW_READY');
+      return;
+    }
     if (flowState !== 'APPLY_READY') return;
     try {
       setApplying(true);
@@ -471,6 +618,10 @@ export default function AutomationPlaybooksPage() {
     estimate?.totalAffectedProducts ?? selectedSummary?.totalAffected ?? 0;
   const isEligibilityEmptyState = flowState === 'ELIGIBILITY_EMPTY';
   const hasPreview = previewSamples.length > 0;
+  const previewStale =
+    hasPreview &&
+    previewRulesVersion !== null &&
+    previewRulesVersion !== rulesVersion;
   const step2Locked = isEligibilityEmptyState || !hasPreview;
   const step3Locked =
     isEligibilityEmptyState || !hasPreview || !estimate || !estimate.canProceed;
@@ -549,6 +700,9 @@ export default function AutomationPlaybooksPage() {
         previewSamples?: PreviewSample[];
         estimate?: PlaybookEstimate | null;
         applyResult?: AutomationPlaybookApplyResult | null;
+        rules?: PlaybookRulesV1;
+        rulesVersion?: number;
+        previewRulesVersion?: number | null;
       };
       if (parsed.flowState) {
         setFlowState(parsed.flowState);
@@ -556,11 +710,29 @@ export default function AutomationPlaybooksPage() {
       if (parsed.previewSamples) {
         setPreviewSamples(parsed.previewSamples);
       }
-      if (parsed.estimate) {
+      // Only restore estimate if it has a scopeId (required since AUTO-PB-1.3).
+      // Stale estimates from before scopeId was added will be re-fetched fresh.
+      if (parsed.estimate && parsed.estimate.scopeId) {
         setEstimate(parsed.estimate);
       }
       if (parsed.applyResult) {
         setApplyResult(parsed.applyResult);
+      }
+      if (parsed.rules) {
+        setRules({ ...DEFAULT_RULES, ...parsed.rules });
+      }
+      if (typeof parsed.rulesVersion === 'number') {
+        setRulesVersion(parsed.rulesVersion);
+      }
+      if (
+        typeof parsed.previewRulesVersion === 'number' ||
+        parsed.previewRulesVersion === null
+      ) {
+        setPreviewRulesVersion(
+          parsed.previewRulesVersion === undefined
+            ? null
+            : parsed.previewRulesVersion,
+        );
       }
     } catch {
       // ignore session restore errors
@@ -582,12 +754,25 @@ export default function AutomationPlaybooksPage() {
         previewSamples,
         estimate,
         applyResult,
+        rules,
+        rulesVersion,
+        previewRulesVersion,
       });
       window.sessionStorage.setItem(key, payload);
     } catch {
       // ignore persist errors
     }
-  }, [projectId, selectedPlaybookId, flowState, previewSamples, estimate, applyResult]);
+  }, [
+    projectId,
+    selectedPlaybookId,
+    flowState,
+    previewSamples,
+    estimate,
+    applyResult,
+    rules,
+    rulesVersion,
+    previewRulesVersion,
+  ]);
 
   const handleNavigate = useCallback(
     (href: string) => {
@@ -1271,6 +1456,149 @@ export default function AutomationPlaybooksPage() {
                     {loadingPreview ? 'Generating preview…' : 'Generate preview'}
                   </button>
                 </div>
+                <div className="mb-4 rounded-md border border-gray-200 bg-gray-50 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-xs font-semibold text-gray-900">
+                        Playbook rules
+                      </h3>
+                      <p className="mt-1 text-[11px] text-gray-600">
+                        Rules shape the AI drafts you preview and apply. Rules do not
+                        change Shopify until you Apply.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-gray-600">
+                        Use rules for this run
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setRules((previous) => ({
+                            ...previous,
+                            enabled: !previous.enabled,
+                          }))
+                        }
+                        className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                          rules.enabled ? 'bg-blue-600' : 'bg-gray-200'
+                        }`}
+                        aria-pressed={rules.enabled}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            rules.enabled ? 'translate-x-4' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-700">
+                        Find
+                      </label>
+                      <input
+                        type="text"
+                        value={rules.find}
+                        onChange={(event) => {
+                          handleRulesChange({ find: event.target.value });
+                          markRulesEdited();
+                        }}
+                        className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="e.g. AI"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-700">
+                        Replace
+                      </label>
+                      <input
+                        type="text"
+                        value={rules.replace}
+                        onChange={(event) => {
+                          handleRulesChange({ replace: event.target.value });
+                          markRulesEdited();
+                        }}
+                        className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="e.g. EngineO"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-3 grid gap-3 md:grid-cols-3">
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-700">
+                        Prefix
+                      </label>
+                      <input
+                        type="text"
+                        value={rules.prefix}
+                        onChange={(event) => {
+                          handleRulesChange({ prefix: event.target.value });
+                          markRulesEdited();
+                        }}
+                        className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="e.g. EngineO | "
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-700">
+                        Suffix
+                      </label>
+                      <input
+                        type="text"
+                        value={rules.suffix}
+                        onChange={(event) => {
+                          handleRulesChange({ suffix: event.target.value });
+                          markRulesEdited();
+                        }}
+                        className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="e.g. | Official Store"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-700">
+                        Max length
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={rules.maxLength ?? ''}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          handleRulesChange({
+                            maxLength: value ? Number(value) : undefined,
+                          });
+                          markRulesEdited();
+                        }}
+                        className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="e.g. 60"
+                      />
+                      <p className="mt-1 text-[11px] text-gray-500">
+                        Enforced by trimming the AI suggestion to this many characters.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <label className="block text-[11px] font-medium text-gray-700">
+                      Forbidden phrases (one per line)
+                    </label>
+                    <textarea
+                      value={rules.forbiddenPhrasesText}
+                      onChange={(event) => {
+                        handleRulesChange({
+                          forbiddenPhrasesText: event.target.value,
+                        });
+                        markRulesEdited();
+                      }}
+                      rows={3}
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder={'e.g.\nclick here\nbest ever'}
+                    />
+                    <p className="mt-1 text-[11px] text-gray-500">
+                      Forbidden phrases are highlighted in preview but not removed in v1.
+                    </p>
+                  </div>
+                </div>
                 <div className="mb-3 text-xs text-gray-500">
                   Total affected products:{' '}
                   <span className="font-semibold text-gray-900">
@@ -1351,8 +1679,46 @@ export default function AutomationPlaybooksPage() {
                             </div>
                           </div>
                         </div>
+                        {sample.ruleWarnings && sample.ruleWarnings.length > 0 && (
+                          <p className="mt-2 text-[11px] text-amber-700">
+                            Rules applied:{' '}
+                            {sample.ruleWarnings
+                              .map((warning) =>
+                                warning === 'trimmed_to_max_length'
+                                  ? 'Trimmed to max length'
+                                  : warning === 'forbidden_phrase_detected'
+                                    ? 'Forbidden phrase detected'
+                                    : warning,
+                              )
+                              .join(', ')}
+                            .
+                          </p>
+                        )}
                       </div>
                     ))}
+                  </div>
+                )}
+                {hasPreview && previewStale && (
+                  <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                    <p className="font-medium">
+                      Rules changed — regenerate preview to see updated suggestions.
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!selectedPlaybookId) return;
+                          const ok = await loadPreview(selectedPlaybookId);
+                          if (ok) {
+                            setFlowState('PREVIEW_GENERATED');
+                          }
+                        }}
+                        disabled={loadingPreview}
+                        className="inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Regenerate preview (uses AI)
+                      </button>
+                    </div>
                   </div>
                 )}
                 <div className="mt-4 flex justify-end">
@@ -1364,7 +1730,8 @@ export default function AutomationPlaybooksPage() {
                         flowState !== 'PREVIEW_GENERATED' ||
                         planIsFree ||
                         !estimate ||
-                        !estimate.canProceed
+                        !estimate.canProceed ||
+                        previewStale
                       }
                       className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
@@ -1464,6 +1831,7 @@ export default function AutomationPlaybooksPage() {
                     limits.
                   </p>
                 )}
+                <p className="mt-2 text-xs text-gray-500">{rulesSummaryLabel}</p>
               </div>
             )}
             <div className="mt-4 flex justify-end gap-2">
@@ -1507,6 +1875,20 @@ export default function AutomationPlaybooksPage() {
                 for the affected products.
               </p>
             </div>
+            {rules.enabled && (
+              <p className="mb-3 text-xs text-gray-600">
+                These drafts were generated using your Playbook rules.
+              </p>
+            )}
+            {rules.enabled &&
+              previewSamples.some(
+                (sample) => sample.ruleWarnings && sample.ruleWarnings.length > 0,
+              ) && (
+                <div className="mb-3 rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
+                  Some suggestions were trimmed or flagged to fit your rules. Review
+                  the preview before applying.
+                </div>
+              )}
             <div className="mb-3 rounded border border-gray-100 bg-gray-50 p-3 text-xs text-gray-700">
               <p>
                 This playbook will attempt to update up to{' '}

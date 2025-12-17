@@ -8641,6 +8641,127 @@ This phase is UX-only and focuses on reinforcing predictability and intent-respe
 
 ---
 
+## PB-RULES-1 – Playbook Rules v1 (Batch-Level Controls)
+
+Status: Planned
+
+Goal: Add user-controlled, batch-level rules that shape AI drafts for Automation Playbooks, without turning the UI into a spreadsheet editor. This improves trust and control, reduces "AI sameness", and sets up future "DEO Policies".
+
+### Trust Contract (Non‑negotiable)
+
+- No silent bulk actions – Apply still requires explicit confirmation.
+- Preview remains sample‑by‑default, but rules must clearly explain what they affect.
+- No extra AI calls at Apply when drafts already exist (Apply must use stored drafts, not regenerate).
+- Rules must be visible, editable, and persisted for the preview session/draft context.
+- If scope changes (AUTO-PB-1.3 scope binding), rules/drafts must be invalidated safely with existing "scope changed" UX.
+
+### Rule Pack v1 – Batch-Level Controls
+
+Applies to Automation Playbooks:
+
+- missing_seo_title
+- missing_seo_description
+
+PlaybookRulesV1 (conceptual shape):
+
+- enabled: boolean
+- findReplace?: { find: string; replace: string; caseSensitive?: boolean }
+- prefix?: string
+- suffix?: string
+- maxLength?: number (per-field limit, enforced by trimming)
+- forbiddenPhrases?: string[]
+- mode?: "warn" | "enforce" (v1 default: enforce for maxLength, warn for forbidden phrases)
+
+Rule behavior (v1):
+
+- Find/Replace – simple string replacement applied to AI drafts.
+- Prefix / Suffix – added around AI suggestions to meet brand/format rules.
+- Max length – enforced by trimming the final suggestion to the configured limit (prevents apply surprises).
+- Forbidden phrases – detected and surfaced as warnings in preview; v1 uses warn‑only semantics for phrase matches.
+
+### Frontend – Playbooks Rules UX (apps/web)
+
+Automation Playbooks wizard (apps/web/src/app/projects/[id]/automation/playbooks/page.tsx):
+
+- Step 1 includes a compact "Playbook rules" panel (below playbook card selection, above preview results):
+  - Toggle: "Use rules for this run" (auto‑enables once the user edits any rule field).
+  - Controls:
+    - Find + Replace (text inputs, optional case sensitivity).
+    - Prefix / Suffix (text inputs).
+    - Max length (numeric, with helper text explaining trimming behavior).
+    - Forbidden phrases (textarea, one phrase per line).
+  - Copy:
+    - "Rules shape the AI drafts you preview and apply."
+    - "Rules do not change Shopify until you Apply."
+- Preview generation applies rules to the AI suggestions for the active playbook field:
+  - Deterministic transform order:
+    1. Find/Replace
+    2. Prefix/Suffix
+    3. Max length trimming
+    4. Forbidden phrase detection (preview‑only warnings)
+  - Preview samples carry ruleWarnings (e.g., trimmed_to_max_length, forbidden_phrase_detected) and display inline "Rules applied: …" messages where relevant.
+- Rules editing and stale preview behavior:
+  - When rules change after a preview has been generated, the wizard:
+    - Shows an inline warning: "Rules changed — regenerate preview to see updated suggestions."
+    - Disables "Continue to Estimate" until preview is regenerated.
+    - Offers a single primary CTA: "Regenerate preview (uses AI)".
+  - Rules state (including enablement and field values) is persisted in sessionStorage as part of the playbook state bundle.
+
+Step 2 – Estimate (Rules transparency):
+
+- Adds a compact "Rules applied" line in the Estimate summary:
+  - Example: Rules: Find/Replace, Prefix, Max length.
+  - If no rules are enabled: Rules: None.
+
+Step 3 – Apply (Rules confirmation):
+
+- Adds confirmation copy when rules are enabled:
+  - "These drafts were generated using your Playbook rules."
+- If any preview sample carried rule warnings:
+  - Shows a yellow notice: "Some suggestions were trimmed or flagged to fit your rules. Review the preview before applying."
+
+### Backend – Preview & Apply (apps/api) – Design Contract
+
+Backend requirements for PB-RULES-1 (to be implemented alongside AUTO-PB-1.3 Preview Drafts):
+
+- Add PlaybookRulesV1 type and a deterministic rulesHash:
+  - rulesHash = sha256(stableJson(rules)).slice(0, 16).
+- Preview endpoint:
+  - POST /projects/:id/automation-playbooks/:playbookId/preview
+  - Body: { rules?: PlaybookRulesV1 }
+  - Behavior:
+    - Generates AI suggestions for affected products.
+    - Applies Rule Pack v1 transforms as per the frontend contract.
+    - Persists drafts (rawSuggestion, finalSuggestion, ruleWarnings, rulesHash, scopeId).
+    - Returns preview samples (final suggestions, ruleWarnings, rulesHash).
+- Estimate endpoint:
+  - Extended to include rulesHash so the client can bind rules → drafts → apply.
+- Apply endpoint:
+  - Continues to require scopeId (AUTO-PB-1.3).
+  - Uses persisted drafts when available (no extra AI calls for products with drafts).
+  - If a draft is missing for a product:
+    - Skips it with a clear reason (e.g., SKIPPED: no draft available).
+  - Validates:
+    - scopeId matches current scope (existing PLAYBOOK_SCOPE_INVALID behavior).
+    - rulesHash (when provided) matches the rules used to generate stored drafts; mismatch returns 409 PLAYBOOK_RULES_CHANGED with a safe UX message:
+      - "Rules changed since preview; regenerate preview."
+
+### Manual Testing
+
+- Manual Testing: docs/manual-testing/pb-rules-1-playbook-rules.md
+
+### Acceptance Criteria (Planned)
+
+- [ ] User can configure Rule Pack v1 in Step 1, and preview output visibly reflects rules.
+- [ ] Changing rules after preview invalidates the preview and blocks progress until the user regenerates the preview.
+- [ ] Rules state is persisted per project + playbook (within the preview/session context).
+- [ ] Apply does not call AI when drafts exist (uses stored drafts only) and returns SKIPPED results when drafts are missing.
+- [ ] Apply returns 409 PLAYBOOK_RULES_CHANGED when rulesHash does not match the stored draft session, with safe UX copy.
+- [ ] Scope binding (AUTO-PB-1.3) continues to work; scope changes still surface as PLAYBOOK_SCOPE_INVALID.
+- [ ] Manual testing doc covers rules editing, regenerate behavior, and the "rules changed" and "scope changed" flows.
+
+---
+
 ## Phase SHOP-UX-CTA-1 – Connect Shopify CTA Fix (Completed)
 
 **Status:** Complete

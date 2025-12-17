@@ -69,18 +69,7 @@ interface IntegrationStatus {
   aeoSyncToShopifyMetafields?: boolean;
 }
 
-function formatCrawlFrequency(frequency: CrawlFrequency): string {
-  switch (frequency) {
-    case 'DAILY':
-      return 'Daily';
-    case 'WEEKLY':
-      return 'Weekly';
-    case 'MONTHLY':
-      return 'Monthly';
-    default:
-      return frequency;
-  }
-}
+// Unused formatCrawlFrequency helper removed to fix lint warning
 
 interface CrawlResult {
   id: string;

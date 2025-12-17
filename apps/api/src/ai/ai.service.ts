@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GeminiClient, GeminiGenerateResponse } from './gemini.client';
+import {
+  GeminiClient,
+  GeminiGenerateResponse,
+  isAllModelsExhaustedError,
+} from './gemini.client';
 import {
   AnswerGenerationService,
   ProductForAnswerGeneration,
@@ -177,6 +181,13 @@ Respond in JSON format only:
       return this.parseJsonResponse(content);
     } catch (error) {
       console.error('Gemini API error:', error);
+
+      // Check if all models have been exhausted
+      if (isAllModelsExhaustedError(error)) {
+        throw new Error(
+          `AI_ALL_MODELS_EXHAUSTED: All AI models have been tried and all are currently unavailable. Tried ${error.triedModels.length} models: ${error.triedModels.join(', ')}. Please wait a few minutes and try again.`,
+        );
+      }
 
       // Check if this is a quota exhaustion error (429) and propagate it
       // so the user gets a meaningful error message
