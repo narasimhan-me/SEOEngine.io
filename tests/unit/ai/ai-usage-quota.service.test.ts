@@ -45,6 +45,9 @@ describe('AiUsageQuotaService', () => {
       draftGenerateRuns: 0,
       applyRuns: 0,
       applyAiRuns: 0,
+      // CACHE/REUSE v2
+      reusedRuns: 0,
+      aiRunsAvoided: 0,
     });
 
     process.env.AI_USAGE_MONTHLY_RUN_LIMIT_PRO = '';
@@ -73,6 +76,9 @@ describe('AiUsageQuotaService', () => {
       draftGenerateRuns: 0,
       applyRuns: 0,
       applyAiRuns: 0,
+      // CACHE/REUSE v2
+      reusedRuns: 0,
+      aiRunsAvoided: 0,
     });
 
     process.env.AI_USAGE_MONTHLY_RUN_LIMIT_PRO = '100';
@@ -102,6 +108,9 @@ describe('AiUsageQuotaService', () => {
       draftGenerateRuns: 0,
       applyRuns: 0,
       applyAiRuns: 0,
+      // CACHE/REUSE v2
+      reusedRuns: 0,
+      aiRunsAvoided: 0,
     });
 
     process.env.AI_USAGE_MONTHLY_RUN_LIMIT_PRO = '100';
@@ -131,6 +140,9 @@ describe('AiUsageQuotaService', () => {
       draftGenerateRuns: 0,
       applyRuns: 0,
       applyAiRuns: 0,
+      // CACHE/REUSE v2
+      reusedRuns: 0,
+      aiRunsAvoided: 0,
     });
 
     process.env.AI_USAGE_MONTHLY_RUN_LIMIT_PRO = '100';
@@ -161,6 +173,9 @@ describe('AiUsageQuotaService', () => {
       draftGenerateRuns: 0,
       applyRuns: 0,
       applyAiRuns: 0,
+      // CACHE/REUSE v2
+      reusedRuns: 0,
+      aiRunsAvoided: 0,
     });
 
     process.env.AI_USAGE_MONTHLY_RUN_LIMIT_PRO = '100';
@@ -191,6 +206,9 @@ describe('AiUsageQuotaService', () => {
       draftGenerateRuns: 0,
       applyRuns: 0,
       applyAiRuns: 0,
+      // CACHE/REUSE v2
+      reusedRuns: 0,
+      aiRunsAvoided: 0,
     });
 
     process.env.AI_USAGE_MONTHLY_RUN_LIMIT_PRO = '100';
@@ -219,6 +237,9 @@ describe('AiUsageQuotaService', () => {
       draftGenerateRuns: 2,
       applyRuns: 0,
       applyAiRuns: 0,
+      // CACHE/REUSE v2
+      reusedRuns: 0,
+      aiRunsAvoided: 0,
     });
 
     process.env.AI_USAGE_MONTHLY_RUN_LIMIT_PRO = '';

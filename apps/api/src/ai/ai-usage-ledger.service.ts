@@ -17,6 +17,9 @@ export interface AiUsageProjectSummary {
   draftGenerateRuns: number;
   applyRuns: number;
   applyAiRuns: number; // must always be 0 (contract)
+  // CACHE/REUSE v2: Reuse metrics
+  reusedRuns: number; // runs that reused AI work from a prior run
+  aiRunsAvoided: number; // same as reusedRuns (AI calls avoided due to reuse)
 }
 
 export interface AiUsageRunSummary {
@@ -27,6 +30,10 @@ export interface AiUsageRunSummary {
   scopeId: string | null;
   rulesHash: string | null;
   createdAt: Date;
+  // CACHE/REUSE v2: Reuse tracking
+  reused: boolean;
+  reusedFromRunId: string | null;
+  aiWorkKey: string | null;
 }
 
 export interface GetProjectSummaryOptions {
@@ -72,6 +79,7 @@ export class AiUsageLedgerService {
       select: {
         runType: true,
         aiUsed: true,
+        reused: true,
       },
     });
 
@@ -82,12 +90,18 @@ export class AiUsageLedgerService {
     let draftGenerateRuns = 0;
     let applyRuns = 0;
     let applyAiRuns = 0;
+    let reusedRuns = 0;
 
     for (const run of runs) {
       totalRuns++;
 
       if (run.aiUsed) {
         totalAiRuns++;
+      }
+
+      // CACHE/REUSE v2: Count reused runs
+      if (run.reused) {
+        reusedRuns++;
       }
 
       switch (run.runType) {
@@ -123,6 +137,9 @@ export class AiUsageLedgerService {
       draftGenerateRuns,
       applyRuns,
       applyAiRuns,
+      // CACHE/REUSE v2: Reuse metrics
+      reusedRuns,
+      aiRunsAvoided: reusedRuns, // Same value - AI calls avoided due to reuse
     };
   }
 
@@ -152,6 +169,10 @@ export class AiUsageLedgerService {
         scopeId: true,
         rulesHash: true,
         createdAt: true,
+        // CACHE/REUSE v2: Include reuse tracking fields
+        reused: true,
+        reusedFromRunId: true,
+        aiWorkKey: true,
       },
       orderBy: { createdAt: 'desc' },
       take: Math.min(limit, 100),
@@ -165,6 +186,10 @@ export class AiUsageLedgerService {
       scopeId: run.scopeId,
       rulesHash: run.rulesHash,
       createdAt: run.createdAt,
+      // CACHE/REUSE v2: Reuse tracking
+      reused: run.reused,
+      reusedFromRunId: run.reusedFromRunId,
+      aiWorkKey: run.aiWorkKey,
     }));
   }
 

@@ -302,8 +302,14 @@ model AutomationPlaybookRun {
   createdAt        DateTime                      @default(now())
   updatedAt        DateTime                      @updatedAt
 
+  // CACHE/REUSE v2: Deterministic reuse tracking
+  aiWorkKey        String?                       // SHA-256 hash of (playbookId, productIds, rules) for AI work deduplication
+  reused           Boolean                       @default(false)
+  reusedFromRunId  String?                       // references the run whose AI work was reused
+
   @@index([projectId, createdAt(sort: Desc)])
   @@index([projectId, playbookId, runType, createdAt(sort: Desc)])
   @@index([projectId, scopeId, runType, createdAt(sort: Desc)])
+  @@index([projectId, playbookId, runType, aiWorkKey])
   @@unique([projectId, playbookId, runType, scopeId, rulesHash, idempotencyKey])
 }

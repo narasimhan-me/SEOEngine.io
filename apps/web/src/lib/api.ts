@@ -239,6 +239,9 @@ export interface ProjectAiUsageSummary {
   draftGenerateRuns: number;
   applyRuns: number;
   applyAiRuns: number; // must be 0
+  // CACHE/REUSE v2: Reuse metrics
+  reusedRuns: number;
+  aiRunsAvoided: number;
 }
 
 export interface ProjectAiUsageRunSummary {
@@ -249,6 +252,10 @@ export interface ProjectAiUsageRunSummary {
   scopeId: string | null;
   rulesHash: string | null;
   createdAt: string;
+  // CACHE/REUSE v2: Reuse tracking
+  reused: boolean;
+  reusedFromRunId: string | null;
+  aiWorkKey: string | null;
 }
 
 // AI-USAGE v2: Quota evaluation types

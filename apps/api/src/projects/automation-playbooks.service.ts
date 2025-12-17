@@ -129,6 +129,8 @@ export interface PlaybookPreviewResponse {
   status: AutomationPlaybookDraftStatus;
   counts: PlaybookDraftCounts;
   samples: PlaybookPreviewSample[];
+  // CACHE/REUSE v2: Indicates whether AI was actually called during this request
+  aiCalled?: boolean;
 }
 
 export interface PlaybookDraftItem {
@@ -372,6 +374,8 @@ export class AutomationPlaybooksService {
     const samples: PlaybookPreviewSample[] = [];
     let draftGenerated = 0;
     let noSuggestionCount = 0;
+    // CACHE/REUSE v2: Track AI calls
+    let aiCalls = 0;
 
     // eslint-disable-next-line no-console
     console.log('[AutomationPlaybooks] draft.preview.started', {
@@ -397,6 +401,8 @@ export class AutomationPlaybooksService {
         currentDescription: descriptionText,
         pageTextSnippet: descriptionText.slice(0, 800),
       });
+      // CACHE/REUSE v2: Track AI call
+      aiCalls++;
 
       const ruleWarnings: string[] = [];
       let rawSuggestion = '';
@@ -503,6 +509,8 @@ export class AutomationPlaybooksService {
       status: draft.status as AutomationPlaybookDraftStatus,
       counts,
       samples,
+      // CACHE/REUSE v2: Indicates AI was called
+      aiCalled: aiCalls > 0,
     };
   }
 
@@ -520,6 +528,8 @@ export class AutomationPlaybooksService {
     draftId: string;
     status: AutomationPlaybookDraftStatus;
     counts: PlaybookDraftCounts;
+    // CACHE/REUSE v2: Indicates whether AI was actually called during this request
+    aiCalled?: boolean;
   }> {
     await this.ensureProjectOwnership(projectId, userId);
 
@@ -613,6 +623,8 @@ export class AutomationPlaybooksService {
     const allItems: PlaybookDraftItem[] = [];
     let draftGenerated = 0;
     let noSuggestionCount = 0;
+    // CACHE/REUSE v2: Track AI calls
+    let aiCalls = 0;
 
     // eslint-disable-next-line no-console
     console.log('[AutomationPlaybooks] draft.full_generate.started', {
@@ -652,6 +664,8 @@ export class AutomationPlaybooksService {
         currentDescription: descriptionText,
         pageTextSnippet: descriptionText.slice(0, 800),
       });
+      // CACHE/REUSE v2: Track AI call
+      aiCalls++;
 
       const ruleWarnings: string[] = [];
       let rawSuggestion = '';
@@ -731,6 +745,8 @@ export class AutomationPlaybooksService {
       draftId: updatedDraft.id,
       status: updatedDraft.status as AutomationPlaybookDraftStatus,
       counts,
+      // CACHE/REUSE v2: Indicates AI was called
+      aiCalled: aiCalls > 0,
     };
   }
 

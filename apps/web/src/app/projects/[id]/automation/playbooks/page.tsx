@@ -183,8 +183,10 @@ export default function AutomationPlaybooksPage() {
   const [aiUsageLoading, setAiUsageLoading] = useState(false);
 
   // AI-USAGE v2: Plan-aware quota evaluation state (used for predictive UX guard).
-  const [aiQuotaEvaluation, setAiQuotaEvaluation] = useState<AiUsageQuotaEvaluation | null>(null);
-  const [aiQuotaLoading, setAiQuotaLoading] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_aiQuotaEvaluation, setAiQuotaEvaluation] = useState<AiUsageQuotaEvaluation | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_aiQuotaLoading, setAiQuotaLoading] = useState(false);
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -1585,6 +1587,12 @@ export default function AutomationPlaybooksPage() {
               <p className="mt-1 text-xs text-purple-700">
                 Previews and drafts generated: {aiUsageSummary.previewRuns + aiUsageSummary.draftGenerateRuns}
               </p>
+              {/* CACHE/REUSE v2: Show AI runs avoided */}
+              {aiUsageSummary.aiRunsAvoided > 0 && (
+                <p className="mt-0.5 text-xs text-green-700">
+                  AI runs avoided (reused): {aiUsageSummary.aiRunsAvoided}
+                </p>
+              )}
               {aiUsageSummary.totalAiRuns > 0 && (
                 <p className="mt-0.5 text-xs text-purple-600">
                   Apply uses saved drafts only — no new AI runs.

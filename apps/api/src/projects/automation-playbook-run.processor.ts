@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Job, Worker } from 'bullmq';
+import * as crypto from 'crypto';
 import { redisConfig } from '../config/redis.config';
 import { PrismaService } from '../prisma.service';
 import {
@@ -59,6 +60,51 @@ export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDes
   }
 
   /**
+   * CACHE/REUSE v2: Compute a deterministic aiWorkKey for a given set of inputs.
+   * The key is a SHA-256 hash of (playbookId, sortedProductIds, rules).
+   */
+  computeAiWorkKey(
+    playbookId: string,
+    productIds: string[],
+    rules: PlaybookRulesV1 | undefined,
+  ): string {
+    const sortedProductIds = [...productIds].sort();
+    const rulesJson = rules ? JSON.stringify(rules) : '';
+    const payload = `${playbookId}:${sortedProductIds.join(',')}:${rulesJson}`;
+    return crypto.createHash('sha256').update(payload).digest('hex').slice(0, 16);
+  }
+
+  /**
+   * CACHE/REUSE v2: Find a prior run with the same aiWorkKey that can be reused.
+   * Returns the run if found and in a reusable state (SUCCEEDED), otherwise null.
+   */
+  async findReusableRun(
+    projectId: string,
+    playbookId: string,
+    runType: 'PREVIEW_GENERATE' | 'DRAFT_GENERATE',
+    aiWorkKey: string,
+  ): Promise<{ id: string; draftId: string | null } | null> {
+    const reusableRun = await this.prisma.automationPlaybookRun.findFirst({
+      where: {
+        projectId,
+        playbookId,
+        runType,
+        aiWorkKey,
+        status: 'SUCCEEDED',
+        aiUsed: true,
+        reused: false, // Only reuse from original AI runs, not from other reused runs
+      },
+      select: {
+        id: true,
+        draftId: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return reusableRun;
+  }
+
+  /**
    * Process a single run job. This method can also be called directly for inline
    * execution in development environments without Redis.
    */
@@ -100,12 +146,44 @@ export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDes
       let draftId: string | null = null;
       let resultRef: string | null = null;
       let aiUsed = false;
+      // CACHE/REUSE v2: Track reuse
+      let aiWorkKey: string | null = null;
+      let reused = false;
+      let reusedFromRunId: string | null = null;
 
       switch (run.runType) {
         case 'PREVIEW_GENERATE': {
           const rules = (meta.rules as PlaybookRulesV1) ?? undefined;
           const sampleSize = (meta.sampleSize as number) ?? 3;
+          const productIds = (meta.productIds as string[]) ?? [];
 
+          // CACHE/REUSE v2: Compute aiWorkKey for potential reuse
+          if (productIds.length > 0) {
+            aiWorkKey = this.computeAiWorkKey(playbookId, productIds, rules);
+
+            // Check for a prior run with the same aiWorkKey
+            const reusableRun = await this.findReusableRun(
+              run.projectId,
+              playbookId,
+              'PREVIEW_GENERATE',
+              aiWorkKey,
+            );
+
+            if (reusableRun) {
+              // Reuse the prior run's draft instead of calling AI
+              this.logger.log(
+                `[AutomationPlaybookRunProcessor] Run ${runId} reusing AI work from run ${reusableRun.id}`,
+              );
+              draftId = reusableRun.draftId;
+              resultRef = reusableRun.draftId;
+              aiUsed = false;
+              reused = true;
+              reusedFromRunId = reusableRun.id;
+              break;
+            }
+          }
+
+          // No reusable run found - perform fresh AI generation
           const previewResult = await this.automationPlaybooksService.previewPlaybook(
             run.createdByUserId,
             run.projectId,
@@ -116,11 +194,41 @@ export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDes
 
           draftId = previewResult.draftId;
           resultRef = previewResult.draftId;
-          aiUsed = true;
+          aiUsed = previewResult.aiCalled ?? true;
           break;
         }
 
         case 'DRAFT_GENERATE': {
+          const rules = (meta.rules as PlaybookRulesV1) ?? undefined;
+          const productIds = (meta.productIds as string[]) ?? [];
+
+          // CACHE/REUSE v2: Compute aiWorkKey for potential reuse
+          if (productIds.length > 0) {
+            aiWorkKey = this.computeAiWorkKey(playbookId, productIds, rules);
+
+            // Check for a prior run with the same aiWorkKey
+            const reusableRun = await this.findReusableRun(
+              run.projectId,
+              playbookId,
+              'DRAFT_GENERATE',
+              aiWorkKey,
+            );
+
+            if (reusableRun) {
+              // Reuse the prior run's draft instead of calling AI
+              this.logger.log(
+                `[AutomationPlaybookRunProcessor] Run ${runId} reusing AI work from run ${reusableRun.id}`,
+              );
+              draftId = reusableRun.draftId;
+              resultRef = reusableRun.draftId;
+              aiUsed = false;
+              reused = true;
+              reusedFromRunId = reusableRun.id;
+              break;
+            }
+          }
+
+          // No reusable run found - perform fresh AI generation
           const generateResult = await this.automationPlaybooksService.generateDraft(
             run.createdByUserId,
             run.projectId,
@@ -131,7 +239,7 @@ export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDes
 
           draftId = generateResult.draftId;
           resultRef = generateResult.draftId;
-          aiUsed = true;
+          aiUsed = generateResult.aiCalled ?? true;
           break;
         }
 
@@ -156,7 +264,7 @@ export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDes
           throw new Error(`Unknown runType: ${run.runType}`);
       }
 
-      // Mark as SUCCEEDED
+      // Mark as SUCCEEDED with CACHE/REUSE v2 fields
       await this.prisma.automationPlaybookRun.update({
         where: { id: runId },
         data: {
@@ -164,12 +272,15 @@ export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDes
           draftId,
           resultRef,
           aiUsed,
+          aiWorkKey,
+          reused,
+          reusedFromRunId,
           updatedAt: new Date(),
         },
       });
 
       this.logger.log(
-        `[AutomationPlaybookRunProcessor] Run ${runId} completed successfully (aiUsed=${aiUsed})`,
+        `[AutomationPlaybookRunProcessor] Run ${runId} completed successfully (aiUsed=${aiUsed}, reused=${reused})`,
       );
     } catch (error: unknown) {
       const errorObj = error as { code?: string; message?: string };

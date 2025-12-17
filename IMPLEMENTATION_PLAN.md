@@ -9099,6 +9099,74 @@ Dependencies:
 
 ---
 
+### CACHE/REUSE v2 – Deterministic Reuse for Preview/Draft Runs (Complete)
+
+**Status:** Complete (2025-12-17)
+
+**Goal:** Reduce AI cost by reusing identical AI work when inputs (playbookId, productIds, rules) are unchanged, and surface "AI runs avoided" trust signals to users.
+
+#### Problem Statement
+
+When users regenerate previews or drafts with the same inputs, the system was calling AI again even though the results would be identical. This wastes AI quota and increases latency.
+
+#### Solution: Deterministic AI Work Reuse
+
+1. **aiWorkKey Computation:** A deterministic SHA-256 hash is computed from (playbookId, sorted productIds, rules JSON).
+2. **Reuse Lookup:** Before calling AI, the processor checks for a prior SUCCEEDED run with the same aiWorkKey.
+3. **Reuse or Fresh:** If a reusable run exists, the new run copies its draft and sets `aiUsed=false`, `reused=true`, `reusedFromRunId=<original>`. Otherwise, AI is called fresh.
+4. **Ledger Metrics:** The AI usage ledger now tracks `reusedRuns` and `aiRunsAvoided`.
+5. **UI Trust Signal:** The Playbooks page shows "AI runs avoided (reused): N" in the usage summary chip when applicable.
+
+#### Implementation Details
+
+**Prisma Schema:**
+- Added `aiWorkKey String?` to AutomationPlaybookRun
+- Added `reused Boolean @default(false)` to AutomationPlaybookRun
+- Added `reusedFromRunId String?` to AutomationPlaybookRun
+- Added index on `[projectId, playbookId, runType, aiWorkKey]`
+
+**AutomationPlaybookRunProcessor:**
+- Added `computeAiWorkKey(playbookId, productIds, rules)` method
+- Added `findReusableRun(projectId, playbookId, runType, aiWorkKey)` method
+- Updated PREVIEW_GENERATE and DRAFT_GENERATE cases to check for reuse
+
+**AiUsageLedgerService:**
+- Added `reusedRuns` and `aiRunsAvoided` to `AiUsageProjectSummary`
+- Added `reused`, `reusedFromRunId`, `aiWorkKey` to `AiUsageRunSummary`
+- Updated `getProjectSummary()` to count reused runs
+- Updated `getProjectRunSummaries()` to include reuse fields
+
+**AutomationPlaybooksService:**
+- Added `aiCalled?: boolean` to `PlaybookPreviewResponse` and `generateDraft()` return type
+- Tracked AI calls with `aiCalls` counter in both methods
+
+**Frontend:**
+- Updated `ProjectAiUsageSummary` type with `reusedRuns` and `aiRunsAvoided`
+- Updated `ProjectAiUsageRunSummary` type with `reused`, `reusedFromRunId`, `aiWorkKey`
+- Added "AI runs avoided (reused): N" display to Playbooks page usage summary chip
+
+#### Key Contracts
+
+1. **aiWorkKey Determinism:** Same (playbookId, productIds, rules) always produces the same aiWorkKey.
+2. **Reuse Only from Original Runs:** Reused runs reference original AI runs (`reused=false`), not other reused runs.
+3. **Ledger Accuracy:** `aiRunsAvoided` always equals `reusedRuns`.
+4. **Quota Efficiency:** Reused runs don't count against quota since `aiUsed=false`.
+
+#### Tests Added
+
+**Unit Tests:**
+- `computeAiWorkKey` determinism tests in cache-reuse-v2.test.ts
+
+**Integration Tests:**
+- Ledger reuse metrics tests in cache-reuse-v2.test.ts
+- aiWorkKey consistency tests
+
+#### Manual Testing
+
+- See `docs/manual-testing/CACHE-REUSE-v2.md` for comprehensive manual testing scenarios.
+
+---
+
 ## CNAB-1 – Contextual Next-Action Banners
 
 Status: Complete (2025-12-16)

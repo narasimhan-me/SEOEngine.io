@@ -46,12 +46,14 @@ describe('AiUsageQuotaService (integration with AiUsageLedgerService)', () => {
         projectId: 'proj-1',
         runType: 'PREVIEW_GENERATE',
         aiUsed: true,
+        reused: false,
         createdAt: now,
       },
       {
         projectId: 'proj-1',
         runType: 'DRAFT_GENERATE',
         aiUsed: true,
+        reused: false,
         createdAt: now,
       },
     ];
@@ -90,6 +92,7 @@ describe('AiUsageQuotaService (integration with AiUsageLedgerService)', () => {
           projectId: 'proj-1',
           runType: 'PREVIEW_GENERATE',
           aiUsed: true,
+          reused: false,
           createdAt: previousMonth,
         },
       ];
@@ -117,6 +120,7 @@ describe('AiUsageQuotaService (integration with AiUsageLedgerService)', () => {
       projectId: 'proj-1',
       runType: 'PREVIEW_GENERATE',
       aiUsed: true,
+      reused: false,
       createdAt: now,
     }));
 
@@ -146,6 +150,7 @@ describe('AiUsageQuotaService (integration with AiUsageLedgerService)', () => {
       projectId: 'proj-1',
       runType: 'PREVIEW_GENERATE',
       aiUsed: true,
+      reused: false,
       createdAt: now,
     }));
 

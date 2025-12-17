@@ -29,6 +29,7 @@
   - [RUNS-1.md](./RUNS-1.md) - Async playbook runs
   - [TEST-PB-RULES-1.md](./TEST-PB-RULES-1.md) - Rules semantics
   - [AI-USAGE-v2.md](./AI-USAGE-v2.md) - Plan-aware quotas and predictive guards for Automation Playbooks
+  - [CACHE-REUSE-v2.md](./CACHE-REUSE-v2.md) - Deterministic AI work reuse and "AI runs avoided" metrics
 
 ---
 
