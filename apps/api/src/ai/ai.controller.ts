@@ -1,4 +1,14 @@
-import { Controller, Post, Body, UseGuards, Request, BadRequestException, Get, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  BadRequestException,
+  Get,
+  Param,
+  Query,
+} from '@nestjs/common';
 import { AiService } from './ai.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma.service';
@@ -6,8 +16,21 @@ import { EntitlementsService } from '../billing/entitlements.service';
 import { AnswerEngineService } from '../projects/answer-engine.service';
 import { ProductAnswersResponse } from '@engineo/shared';
 import { ProductIssueFixService } from './product-issue-fix.service';
-import { TokenUsageService, ESTIMATED_METADATA_TOKENS_PER_CALL } from './token-usage.service';
-import { AiUsageLedgerService, AiUsageProjectSummary, AiUsageRunSummary, AiUsageRunType } from './ai-usage-ledger.service';
+import {
+  TokenUsageService,
+  ESTIMATED_METADATA_TOKENS_PER_CALL,
+} from './token-usage.service';
+import {
+  AiUsageLedgerService,
+  AiUsageProjectSummary,
+  AiUsageRunSummary,
+  AiUsageRunType,
+} from './ai-usage-ledger.service';
+import {
+  AiUsageQuotaAction,
+  AiUsageQuotaEvaluation,
+  AiUsageQuotaService,
+} from './ai-usage-quota.service';
 
 class MetadataDto {
   crawlResultId: string;
@@ -34,6 +57,7 @@ export class AiController {
     private readonly productIssueFixService: ProductIssueFixService,
     private readonly tokenUsageService: TokenUsageService,
     private readonly aiUsageLedgerService: AiUsageLedgerService,
+    private readonly aiUsageQuotaService: AiUsageQuotaService,
   ) {}
 
   @Post('metadata')
@@ -429,6 +453,44 @@ export class AiController {
     return this.aiUsageLedgerService.getProjectRunSummaries(projectId, {
       runType: runType as AiUsageRunType | undefined,
       limit: limit ? Number(limit) : 20,
+    });
+  }
+
+  /**
+   * GET /ai/projects/:projectId/usage/quota
+   * Evaluate AI usage quota for a given action (PREVIEW_GENERATE, DRAFT_GENERATE).
+   * This endpoint is used by the frontend predictive guard to "predict before prevent":
+   * - Soft warnings when near the monthly quota
+   * - Hard blocking (when enabled) once the monthly limit is exceeded
+   */
+  @Get('projects/:projectId/usage/quota')
+  async evaluateProjectAiUsageQuota(
+    @Request() req: any,
+    @Param('projectId') projectId: string,
+    @Query('action') action?: string,
+  ): Promise<AiUsageQuotaEvaluation> {
+    const userId = req.user.id;
+
+    // Verify project ownership (same contract as other AI usage endpoints)
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new BadRequestException('Project not found');
+    }
+
+    if (project.userId !== userId) {
+      throw new BadRequestException('Access denied');
+    }
+
+    const normalizedAction: AiUsageQuotaAction =
+      (action as AiUsageQuotaAction) || 'PREVIEW_GENERATE';
+
+    return this.aiUsageQuotaService.evaluateQuotaForAction({
+      userId,
+      projectId,
+      action: normalizedAction,
     });
   }
 }

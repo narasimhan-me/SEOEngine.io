@@ -153,12 +153,32 @@ describe('AiUsageLedger Integration', () => {
       log: jest.fn().mockResolvedValue(undefined),
     };
 
+    // Quota service mock (AI-USAGE v2: always allow in this integration suite)
+    const quotaServiceMock = {
+      evaluateQuotaForAction: jest.fn().mockResolvedValue({
+        projectId: mockProject.id,
+        planId: 'pro',
+        action: 'PREVIEW_GENERATE',
+        policy: {
+          monthlyAiRunsLimit: null,
+          softThresholdPercent: 80,
+          hardEnforcementEnabled: false,
+        },
+        currentMonthAiRuns: 0,
+        remainingAiRuns: null,
+        currentUsagePercent: null,
+        status: 'allowed',
+        reason: 'unlimited',
+      }),
+    };
+
     // Create the real service instances with mocked dependencies
     playbooksService = new AutomationPlaybooksService(
       prismaMock,
       entitlementsMock as any,
       tokenUsageMock as any,
       aiServiceMock as any,
+      quotaServiceMock as any,
     );
 
     processor = new AutomationPlaybookRunProcessor(prismaMock, playbooksService);

@@ -9,6 +9,7 @@ import { AnswerGenerationService } from '../projects/answer-generation.service';
 import { ProductIssueFixService } from './product-issue-fix.service';
 import { TokenUsageService } from './token-usage.service';
 import { AiUsageLedgerService } from './ai-usage-ledger.service';
+import { AiUsageQuotaService } from './ai-usage-quota.service';
 
 @Module({
   imports: [BillingModule, forwardRef(() => ProjectsModule)],
@@ -21,7 +22,15 @@ import { AiUsageLedgerService } from './ai-usage-ledger.service';
     ProductIssueFixService,
     TokenUsageService,
     AiUsageLedgerService,
+    AiUsageQuotaService,
   ],
-  exports: [AiService, AnswerGenerationService, ProductIssueFixService, TokenUsageService, AiUsageLedgerService],
+  exports: [
+    AiService,
+    AnswerGenerationService,
+    ProductIssueFixService,
+    TokenUsageService,
+    AiUsageLedgerService,
+    AiUsageQuotaService,
+  ],
 })
 export class AiModule {}

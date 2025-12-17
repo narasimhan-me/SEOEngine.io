@@ -15,8 +15,9 @@ const prismaStub = {} as any;
 const entitlementsStub = {} as any;
 const tokenUsageStub = {} as any;
 const aiServiceStub = {} as any;
-const projectsServiceStub = {} as any;
-const productIssueFixServiceStub = {} as any;
+const aiUsageQuotaStub = {
+  evaluateQuotaForAction: jest.fn(),
+} as any;
 
 describe('Playbook Rules Engine', () => {
   let svc: AutomationPlaybooksService;
@@ -35,8 +36,7 @@ describe('Playbook Rules Engine', () => {
       entitlementsStub,
       tokenUsageStub,
       aiServiceStub,
-      projectsServiceStub,
-      productIssueFixServiceStub,
+      aiUsageQuotaStub,
     );
     applyRulesToText = (svc as any).applyRulesToText.bind(svc);
     computeRulesHash = (svc as any).computeRulesHash.bind(svc);

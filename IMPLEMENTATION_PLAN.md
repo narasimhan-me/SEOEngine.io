@@ -9008,6 +9008,97 @@ Prerequisite:
 
 ---
 
+### AI-USAGE v2 – Plan-Aware AI Quota Enforcement (Automation Playbooks)
+
+Status: Complete (2025-12-17)
+
+Scope:
+
+- Introduce a plan-aware, monthly AI quota model for Automation Playbooks based on the existing AI usage ledger.
+- Provide a predictive UX guard that:
+  - Warns users as they approach their monthly Automation Playbooks AI limit.
+  - Hard-blocks new AI work only when configured via plan policy (no silent blocking).
+- Preserve existing safety contracts:
+  - Apply remains AI-free and never subject to AI quotas.
+  - Draft reuse still works even when quota is fully exhausted.
+
+Dependencies:
+
+- AI-USAGE-1 – AI Usage Ledger & Reuse (ledger and visibility).
+- RUNS-1 – AutomationPlaybookRun model with aiUsed tracking.
+- AUTO-PB-1.3 – Scope binding and draft persistence.
+
+#### Implementation Details
+
+**Backend – Quota Model & Evaluation (`apps/api/src/ai/ai-usage-quota.service.ts`):**
+
+- Added `AiUsageQuotaService`:
+  - `AiUsageQuotaAction`: 'PREVIEW_GENERATE' | 'DRAFT_GENERATE'
+  - `AiUsageQuotaStatus`: 'allowed' | 'warning' | 'blocked'
+  - `AiUsageQuotaPolicy`: { monthlyAiRunsLimit: number | null; softThresholdPercent: number; hardEnforcementEnabled: boolean }
+  - `AiUsageQuotaEvaluation`: Project-level evaluation for the current calendar month.
+
+- Policies are config-driven (env-based) per plan:
+  - `AI_USAGE_MONTHLY_RUN_LIMIT_<PLAN>` (e.g., `AI_USAGE_MONTHLY_RUN_LIMIT_PRO`)
+  - `AI_USAGE_SOFT_THRESHOLD_PERCENT` (default 80)
+  - `AI_USAGE_HARD_ENFORCEMENT_<PLAN>` (e.g., `AI_USAGE_HARD_ENFORCEMENT_PRO`, default false)
+
+- `evaluateQuotaForAction({ userId, projectId, action })`:
+  - Resolves plan via `EntitlementsService.getUserPlan`.
+  - Retrieves current-month AI usage via `AiUsageLedgerService.getProjectSummary` (totalAiRuns).
+  - Computes: currentMonthAiRuns, remainingAiRuns, currentUsagePercent, status + reason.
+
+**Backend – API Endpoint (`apps/api/src/ai/ai.controller.ts`):**
+
+- Added `GET /ai/projects/:projectId/usage/quota?action=PREVIEW_GENERATE|DRAFT_GENERATE`:
+  - Verifies project ownership.
+  - Returns `AiUsageQuotaEvaluation` with status, reason, and policy details.
+
+**Backend – Hard Guard (`apps/api/src/projects/automation-playbooks.service.ts`):**
+
+- `previewPlaybook()` and `generateDraft()` now check quota before AI work:
+  - If `status === 'blocked'` and `hardEnforcementEnabled === true`, throw `AI_QUOTA_EXCEEDED` (HTTP 429).
+  - No AI provider calls occur when hard-blocked.
+
+**Frontend – API Client (`apps/web/src/lib/api.ts`):**
+
+- Added types: `AiUsageQuotaStatus`, `AiUsageQuotaPolicy`, `AiUsageQuotaEvaluation`
+- Added `aiApi.getProjectAiUsageQuota(projectId, { action })` method.
+
+**Frontend – Playbooks Page (`apps/web/src/app/projects/[id]/automation/playbooks/page.tsx`):**
+
+- Added `aiQuotaEvaluation` and `aiQuotaLoading` state.
+- `loadPreview()` now calls quota evaluation before AI work:
+  - Shows warning toast at soft threshold: "This will use AI. You're at X% of your monthly limit."
+  - Shows blocking message and returns early if `status === 'blocked'`.
+- Error handling catches `AI_QUOTA_EXCEEDED` from backend and shows appropriate message.
+
+#### Tests
+
+**Unit Tests (`tests/unit/ai/ai-usage-quota.service.test.ts`):**
+- 7 tests covering unlimited plans, soft threshold, hard blocking, default thresholds.
+
+**Integration Tests (`apps/api/test/integration/ai-usage-quota.test.ts`):**
+- 4 tests covering ledger-derived usage, monthly window, warning/blocking behavior.
+
+**E2E Tests (`apps/api/test/e2e/automation-playbooks.e2e-spec.ts`):**
+- 2 new tests in "AI-USAGE v2: Plan-aware AI Quotas" describe block:
+  - Soft warning at 80% allows preview (no hard block).
+  - Hard block at 100% with enforcement prevents preview (no AI calls).
+
+#### Key Contracts
+
+1. **Soft Threshold (Default 80%)**: Users see a warning but are not blocked.
+2. **Hard Block (Opt-in)**: When `hardEnforcementEnabled=true` and quota exceeded, preview/draft calls fail with `AI_QUOTA_EXCEEDED`.
+3. **Apply Unaffected**: Apply uses drafts only; never subject to AI quotas.
+4. **Calendar Month Reset**: Quota resets automatically via ledger time window (no cron).
+
+#### Manual Testing
+
+- See `docs/manual-testing/AI-USAGE-v2.md` for comprehensive manual testing scenarios.
+
+---
+
 ## CNAB-1 – Contextual Next-Action Banners
 
 Status: Complete (2025-12-16)

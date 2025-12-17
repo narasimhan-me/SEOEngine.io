@@ -251,6 +251,27 @@ export interface ProjectAiUsageRunSummary {
   createdAt: string;
 }
 
+// AI-USAGE v2: Quota evaluation types
+export type AiUsageQuotaStatus = 'allowed' | 'warning' | 'blocked';
+
+export interface AiUsageQuotaPolicy {
+  monthlyAiRunsLimit: number | null;
+  softThresholdPercent: number;
+  hardEnforcementEnabled: boolean;
+}
+
+export interface AiUsageQuotaEvaluation {
+  projectId: string;
+  planId: string;
+  action: 'PREVIEW_GENERATE' | 'DRAFT_GENERATE';
+  policy: AiUsageQuotaPolicy;
+  currentMonthAiRuns: number;
+  remainingAiRuns: number | null;
+  currentUsagePercent: number | null;
+  status: AiUsageQuotaStatus;
+  reason: 'unlimited' | 'below_soft_threshold' | 'soft_threshold_reached' | 'hard_limit_reached';
+}
+
 export const authApi = {
   signup: (data: { email: string; password: string; name?: string; captchaToken: string }) =>
     fetchWithoutAuth('/auth/signup', {
@@ -502,6 +523,19 @@ export const aiApi = {
     if (opts?.limit) params.set('limit', String(opts.limit));
     const qs = params.toString() ? `?${params.toString()}` : '';
     return fetchWithAuth(`/ai/projects/${projectId}/usage/runs${qs}`);
+  },
+
+  /**
+   * Evaluate AI usage quota for a project/action combination (AI-USAGE v2).
+   * Used by the Playbooks page to "predict before prevent" and show warnings/blocks.
+   */
+  getProjectAiUsageQuota: (
+    projectId: string,
+    params: { action: 'PREVIEW_GENERATE' | 'DRAFT_GENERATE' },
+  ): Promise<AiUsageQuotaEvaluation> => {
+    const search = new URLSearchParams({ action: params.action }).toString();
+    const qs = search ? `?${search}` : '';
+    return fetchWithAuth(`/ai/projects/${projectId}/usage/quota${qs}`);
   },
 };
 

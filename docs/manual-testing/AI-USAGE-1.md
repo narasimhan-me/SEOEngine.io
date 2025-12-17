@@ -28,6 +28,7 @@
   - [DOC-AUTO-PB-1.3.md](./DOC-AUTO-PB-1.3.md) - Draft lifecycle and Apply contract
   - [RUNS-1.md](./RUNS-1.md) - Async playbook runs
   - [TEST-PB-RULES-1.md](./TEST-PB-RULES-1.md) - Rules semantics
+  - [AI-USAGE-v2.md](./AI-USAGE-v2.md) - Plan-aware quotas and predictive guards for Automation Playbooks
 
 ---
 
@@ -235,9 +236,11 @@
 
 ## Limits
 
-### LIM-001: N/A for AI-USAGE-1
+### LIM-001: AI-USAGE-1 Scope vs AI-USAGE v2
 
-AI-USAGE-1 is read-only and informational. No quota blocking is implemented in this phase.
+AI-USAGE-1 is read-only and informational. It introduces the ledger and visibility but does not enforce quotas by itself.
+
+Plan-aware monthly quotas and predictive guards for Automation Playbooks are implemented in AI-USAGE v2 (see [AI-USAGE-v2.md](./AI-USAGE-v2.md)). AI-USAGE-1 remains the foundational "ledger + visibility" layer.
 
 ---
 

@@ -4,6 +4,8 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { PrismaService } from '../prisma.service';
@@ -14,6 +16,7 @@ import {
 } from '../ai/token-usage.service';
 import { AiService } from '../ai/ai.service';
 import { PlanId } from '../billing/plans';
+import { AiUsageQuotaService } from '../ai/ai-usage-quota.service';
 
 export type AutomationPlaybookId = 'missing_seo_title' | 'missing_seo_description';
 
@@ -143,6 +146,7 @@ export class AutomationPlaybooksService {
     private readonly entitlementsService: EntitlementsService,
     private readonly tokenUsageService: TokenUsageService,
     private readonly aiService: AiService,
+    private readonly aiUsageQuotaService: AiUsageQuotaService,
   ) {}
 
   private async ensureProjectOwnership(projectId: string, userId: string) {
@@ -327,6 +331,34 @@ export class AutomationPlaybooksService {
   ): Promise<PlaybookPreviewResponse> {
     await this.ensureProjectOwnership(projectId, userId);
 
+    // AI-USAGE v2: Plan-aware quota enforcement for preview generation.
+    // This check must run before any AI work is performed.
+    const quotaEvaluation = await this.aiUsageQuotaService.evaluateQuotaForAction({
+      userId,
+      projectId,
+      action: 'PREVIEW_GENERATE',
+    });
+
+    if (
+      quotaEvaluation.status === 'blocked' &&
+      quotaEvaluation.policy.hardEnforcementEnabled
+    ) {
+      // Hard block: no AI calls may occur when the plan-level quota is exceeded.
+      // Error code is deterministic for frontend handling.
+      throw new HttpException(
+        {
+          message:
+            'AI usage limit reached for Automation Playbooks. Upgrade your plan or wait until your monthly AI quota resets to run new previews.',
+          error: 'AI_QUOTA_EXCEEDED',
+          code: 'AI_QUOTA_EXCEEDED',
+          plan: quotaEvaluation.planId,
+          allowed: quotaEvaluation.policy.monthlyAiRunsLimit,
+          current: quotaEvaluation.currentMonthAiRuns,
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
     const affectedProductIds = await this.getAffectedProductIds(
       projectId,
       playbookId,
@@ -490,6 +522,32 @@ export class AutomationPlaybooksService {
     counts: PlaybookDraftCounts;
   }> {
     await this.ensureProjectOwnership(projectId, userId);
+
+    // AI-USAGE v2: Plan-aware quota enforcement for full draft generation.
+    // This check must run before any AI work is performed.
+    const quotaEvaluation = await this.aiUsageQuotaService.evaluateQuotaForAction({
+      userId,
+      projectId,
+      action: 'DRAFT_GENERATE',
+    });
+
+    if (
+      quotaEvaluation.status === 'blocked' &&
+      quotaEvaluation.policy.hardEnforcementEnabled
+    ) {
+      throw new HttpException(
+        {
+          message:
+            'AI usage limit reached for Automation Playbooks. Upgrade your plan or wait until your monthly AI quota resets to generate new drafts.',
+          error: 'AI_QUOTA_EXCEEDED',
+          code: 'AI_QUOTA_EXCEEDED',
+          plan: quotaEvaluation.planId,
+          allowed: quotaEvaluation.policy.monthlyAiRunsLimit,
+          current: quotaEvaluation.currentMonthAiRuns,
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
 
     const affectedProductIds = await this.getAffectedProductIds(
       projectId,

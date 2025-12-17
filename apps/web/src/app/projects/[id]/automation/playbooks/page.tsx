@@ -14,7 +14,11 @@ import {
   projectsApi,
   shopifyApi,
 } from '@/lib/api';
-import type { AutomationPlaybookApplyResult, ProjectAiUsageSummary } from '@/lib/api';
+import type {
+  AutomationPlaybookApplyResult,
+  ProjectAiUsageSummary,
+  AiUsageQuotaEvaluation,
+} from '@/lib/api';
 import type { Product } from '@/lib/products';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 
@@ -177,6 +181,10 @@ export default function AutomationPlaybooksPage() {
   // AI-USAGE-1: AI Usage Summary state
   const [aiUsageSummary, setAiUsageSummary] = useState<ProjectAiUsageSummary | null>(null);
   const [aiUsageLoading, setAiUsageLoading] = useState(false);
+
+  // AI-USAGE v2: Plan-aware quota evaluation state (used for predictive UX guard).
+  const [aiQuotaEvaluation, setAiQuotaEvaluation] = useState<AiUsageQuotaEvaluation | null>(null);
+  const [aiQuotaLoading, setAiQuotaLoading] = useState(false);
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -362,6 +370,37 @@ export default function AutomationPlaybooksPage() {
         setError('');
         setPreviewSamples([]);
 
+        // AI-USAGE v2: Predictive quota guard for preview generation.
+        // This runs before any AI work is triggered.
+        setAiQuotaLoading(true);
+        try {
+          const quota = await aiApi.getProjectAiUsageQuota(projectId, {
+            action: 'PREVIEW_GENERATE',
+          });
+          setAiQuotaEvaluation(quota);
+
+          if (quota.status === 'warning' && quota.currentUsagePercent !== null) {
+            // Soft warning: allow the action but inform the user before AI runs.
+            const percentRounded = Math.round(quota.currentUsagePercent);
+            feedback.showWarning(
+              `This will use AI. You're at ${percentRounded}% of your monthly Automation Playbooks limit.`,
+            );
+          }
+
+          if (quota.status === 'blocked' && quota.policy.hardEnforcementEnabled) {
+            const message =
+              'AI usage limit reached. Upgrade your plan or wait until your monthly AI quota resets to generate new previews.';
+            setError(message);
+            feedback.showLimit(message, '/settings/billing');
+            return false;
+          }
+        } catch {
+          // Quota evaluation failures must never silently block AI; fall back to existing behavior.
+          setAiQuotaEvaluation(null);
+        } finally {
+          setAiQuotaLoading(false);
+        }
+
         // Call the backend preview endpoint which:
         // 1. Computes scopeId and rulesHash
         // 2. Creates/updates a draft in the database
@@ -435,6 +474,13 @@ export default function AutomationPlaybooksPage() {
               "Daily AI limit reached. You've used all AI suggestions available on your plan. Your limit resets tomorrow, or upgrade to continue.";
             setError(limitMessage);
             feedback.showLimit(limitMessage, '/settings/billing');
+            return false;
+          }
+          if (err.code === 'AI_QUOTA_EXCEEDED') {
+            const quotaMessage =
+              'AI usage limit reached for Automation Playbooks. Upgrade your plan or wait until your monthly AI quota resets to generate new previews.';
+            setError(quotaMessage);
+            feedback.showLimit(quotaMessage, '/settings/billing');
             return false;
           }
           setError(err.message);

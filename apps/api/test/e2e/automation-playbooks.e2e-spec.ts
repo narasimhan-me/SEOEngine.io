@@ -1528,4 +1528,162 @@ describe('Automation Playbooks (e2e)', () => {
       expect(Array.isArray(runsRes.body)).toBe(true);
     });
   });
+
+  // ============================================================
+  // AI-USAGE v2: Plan-aware AI Quotas
+  // ============================================================
+
+  describe('AI-USAGE v2: Plan-aware AI Quotas', () => {
+    it('returns warning at soft threshold but still allows preview (no hard enforcement)', async () => {
+      const { token, userId } = await signupAndLogin(
+        server,
+        'ai-usage-quota-soft@example.com',
+        'testpassword123',
+      );
+      const projectId = await createProject(
+        server,
+        token,
+        'AI Quota Soft Project',
+        'ai-quota-soft.com',
+      );
+
+      await testPrisma.subscription.create({
+        data: {
+          userId,
+          stripeCustomerId: 'cus_test_quota_soft',
+          stripeSubscriptionId: 'sub_test_quota_soft',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      // Create a single product so preview has something to work with.
+      await createProduct(projectId, {
+        title: 'Product 1',
+        externalId: 'ext-quota-soft-1',
+        seoTitle: null,
+        seoDescription: 'Has description',
+      });
+
+      // Configure a small monthly limit for the Pro plan to hit soft threshold.
+      process.env.AI_USAGE_MONTHLY_RUN_LIMIT_PRO = '10';
+      process.env.AI_USAGE_SOFT_THRESHOLD_PERCENT = '80';
+      delete process.env.AI_USAGE_HARD_ENFORCEMENT_PRO;
+
+      // Seed ledger with 8 AI runs via AutomationPlaybookRun records.
+      const now = new Date();
+      for (let i = 0; i < 8; i += 1) {
+        await testPrisma.automationPlaybookRun.create({
+          data: {
+            projectId,
+            createdByUserId: userId,
+            playbookId: 'missing_seo_title',
+            runType: 'PREVIEW_GENERATE',
+            status: 'SUCCEEDED',
+            scopeId: `scope-soft-${i}`,
+            rulesHash: 'rules-soft',
+            aiUsed: true,
+            idempotencyKey: `soft-${i}`,
+            meta: {},
+            createdAt: now,
+            updatedAt: now,
+          },
+        });
+      }
+
+      // Quota evaluation should now report a warning at 80%.
+      const quotaRes = await request(server)
+        .get(`/ai/projects/${projectId}/usage/quota`)
+        .query({ action: 'PREVIEW_GENERATE' })
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(quotaRes.status).toBe(200);
+      expect(quotaRes.body.status).toBe('warning');
+      expect(quotaRes.body.reason).toBe('soft_threshold_reached');
+
+      // Preview should still be allowed (predict before prevent; warning only).
+      const previewRes = await request(server)
+        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ rules: { enabled: false }, sampleSize: 1 });
+
+      expect(previewRes.status).toBe(200);
+      // AI should have been called for the preview.
+      expect(aiServiceStub.generateMetadataCallCount).toBeGreaterThan(0);
+    });
+
+    it('blocks preview when hard enforcement enabled and monthly quota exceeded (no AI calls)', async () => {
+      const { token, userId } = await signupAndLogin(
+        server,
+        'ai-usage-quota-hard@example.com',
+        'testpassword123',
+      );
+      const projectId = await createProject(
+        server,
+        token,
+        'AI Quota Hard Project',
+        'ai-quota-hard.com',
+      );
+
+      await testPrisma.subscription.create({
+        data: {
+          userId,
+          stripeCustomerId: 'cus_test_quota_hard',
+          stripeSubscriptionId: 'sub_test_quota_hard',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      await createProduct(projectId, {
+        title: 'Product 1',
+        externalId: 'ext-quota-hard-1',
+        seoTitle: null,
+        seoDescription: 'Has description',
+      });
+
+      // Configure a tight monthly limit and enable hard enforcement.
+      process.env.AI_USAGE_MONTHLY_RUN_LIMIT_PRO = '5';
+      process.env.AI_USAGE_SOFT_THRESHOLD_PERCENT = '80';
+      process.env.AI_USAGE_HARD_ENFORCEMENT_PRO = 'true';
+
+      const now = new Date();
+      // Seed ledger to be at or above the hard limit already.
+      for (let i = 0; i < 5; i += 1) {
+        await testPrisma.automationPlaybookRun.create({
+          data: {
+            projectId,
+            createdByUserId: userId,
+            playbookId: 'missing_seo_title',
+            runType: 'PREVIEW_GENERATE',
+            status: 'SUCCEEDED',
+            scopeId: `scope-hard-${i}`,
+            rulesHash: 'rules-hard',
+            aiUsed: true,
+            idempotencyKey: `hard-${i}`,
+            meta: {},
+            createdAt: now,
+            updatedAt: now,
+          },
+        });
+      }
+
+      aiServiceStub.generateMetadataCallCount = 0;
+
+      const previewRes = await request(server)
+        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ rules: { enabled: false }, sampleSize: 1 });
+
+      expect(previewRes.status).toBe(HttpStatus.TOO_MANY_REQUESTS);
+      expect(previewRes.body).toHaveProperty('code', 'AI_QUOTA_EXCEEDED');
+
+      // Hard block means no AI calls occurred.
+      expect(aiServiceStub.generateMetadataCallCount).toBe(0);
+    });
+  });
 });
