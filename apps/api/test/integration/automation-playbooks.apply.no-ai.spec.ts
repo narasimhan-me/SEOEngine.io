@@ -7,7 +7,7 @@
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { AutomationPlaybooksService } from '../../src/projects/automation-playbooks.service';
-import { PrismaService } from '../../src/prisma/prisma.service';
+import { PrismaService } from '../../src/prisma.service';
 import { AiService } from '../../src/ai/ai.service';
 import { EntitlementsService } from '../../src/billing/entitlements.service';
 import { ProjectsService } from '../../src/projects/projects.service';

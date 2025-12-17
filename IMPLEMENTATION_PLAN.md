@@ -8676,18 +8676,26 @@ This section documents the automated tests that enforce the AUTO-PB-1.3 trust co
 
 #### E2E Tests (apps/api/test/e2e/automation-playbooks.e2e-spec.ts)
 
-Added a new `describe('AUTO-PB-1.3 Contract enforcement')` block with 4 tests:
+Added a new `describe('AUTO-PB-1.3 Contract enforcement')` block with 6 tests:
 
 1. **PLAYBOOK_RULES_CHANGED** – `returns 409 PLAYBOOK_RULES_CHANGED when rulesHash differs`
    - Creates a preview with specific rules, obtains `rulesHash`.
+   - Captures `productId` from preview samples.
+   - Resets AI call counter to 0 before apply attempt.
    - Attempts apply with a modified `rulesHash` (appended `_modified`).
    - Asserts HTTP 409 with `code: 'PLAYBOOK_RULES_CHANGED'`.
+   - **Strengthened:** Asserts AI was never called during the failed apply.
+   - **Strengthened:** Asserts product `seoTitle` remains `null` in DB (no mutation).
 
 2. **PLAYBOOK_DRAFT_NOT_FOUND** – `returns 409 PLAYBOOK_DRAFT_NOT_FOUND when no draft exists`
    - Obtains `scopeId` from estimate.
+   - Captures `productId` from estimate affected products.
    - Skips the preview step entirely (no draft created).
+   - Resets AI call counter to 0 before apply attempt.
    - Attempts apply with a fabricated `rulesHash`.
    - Asserts HTTP 409 with `code: 'PLAYBOOK_DRAFT_NOT_FOUND'`.
+   - **Strengthened:** Asserts AI was never called during the failed apply.
+   - **Strengthened:** Asserts product `seoTitle` remains `null` in DB (no mutation).
 
 3. **PLAYBOOK_SCOPE_INVALID** – `returns 409 PLAYBOOK_SCOPE_INVALID when scope changes between preview and apply`
    - Creates preview, obtains `scopeId` and `rulesHash`.
@@ -8697,9 +8705,28 @@ Added a new `describe('AUTO-PB-1.3 Contract enforcement')` block with 4 tests:
 
 4. **No-AI-at-Apply contract** – `apply uses draft suggestions without calling AI (no-AI-at-Apply contract)`
    - Creates preview and generates full draft.
+   - Captures `productId` from preview samples.
    - Resets `aiServiceStub.generateMetadataCallCount` to 0.
    - Executes apply.
    - Asserts `aiServiceStub.generateMetadataCallCount === 0` (AI was never called during apply).
+   - **Strengthened:** Asserts product `seoTitle` is updated in DB to match draft content.
+
+5. **UPDATED vs SKIPPED behavior** – `uses stored draft items for UPDATED vs SKIPPED` *(NEW)*
+   - Creates preview for a product, generating a draft with `title` content.
+   - Adds a second product to the project (no draft exists for it).
+   - Recalculates estimate to include both products in scope.
+   - Applies the playbook.
+   - Asserts first product: status = `UPDATED`, `seoTitle` populated from draft.
+   - Asserts second product: status = `SKIPPED`, `seoTitle` remains `null`.
+
+6. **Resume/Apply Later** – `supports resume/apply later` *(NEW)*
+   - Creates preview and generates draft.
+   - Captures `scopeId`, `rulesHash`, and draft content.
+   - Simulates session break (no additional AI calls between preview and apply).
+   - Resets AI call counter to 0.
+   - Applies the playbook using stored `scopeId` and `rulesHash`.
+   - Asserts AI call count remains 0 (no regeneration).
+   - Asserts product is updated with original draft content.
 
 #### Integration Test (apps/api/test/integration/automation-playbooks.apply.no-ai.spec.ts)
 
@@ -8715,12 +8742,16 @@ This provides a safety net ensuring the "no AI at Apply" contract is enforced at
 
 - Added `AiService` import to the E2E spec.
 - Created `AiServiceStub` class that tracks `generateMetadataCallCount`.
+- **Fixed:** `AiServiceStub.generateMetadata` now returns `{ title, description }` (matching actual `AiService` output shape, not `{ seoTitle, seoDescription }`).
 - Wired `AiServiceStub` into the test app via `.overrideProvider(AiService).useValue(aiServiceStub)`.
 - Added `aiServiceStub.generateMetadataCallCount = 0` reset in `beforeEach`.
+- Exposed `testPrisma` instance for direct DB assertions in tests.
 
 ### Manual Testing
 
-- Manual Testing: docs/manual-testing/auto-pb-1-3-preview-persistence.md (to be created using docs/MANUAL_TESTING_TEMPLATE.md as the base and expanded to cover scopeId binding and invalid-scope flows for estimate/apply).
+- **Preview Persistence:** docs/manual-testing/auto-pb-1-3-preview-persistence.md (covers sessionStorage restoration and cross-navigation flows).
+- **Resume & Gating UX:** docs/manual-testing/auto-pb-1-3-ux-1-resume-and-gating.md (covers derived state, blocker panels, and resume scenarios).
+- **Contract Enforcement:** docs/manual-testing/test-auto-pb-1-3-contract-enforcement.md (covers 409 conflict scenarios, no-AI-at-Apply, UPDATED vs SKIPPED, and resume/apply-later flows).
 
 ### Acceptance Criteria (Planned)
 

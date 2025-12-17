@@ -68,7 +68,7 @@ class AiServiceStub {
 
   async generateMetadata(..._args: any[]) {
     this.generateMetadataCallCount += 1;
-    return { seoTitle: 'Generated Title', seoDescription: 'Generated Desc' };
+    return { title: 'Generated Title', description: 'Generated Desc' };
   }
 }
 const aiServiceStub = new AiServiceStub();
@@ -929,7 +929,7 @@ describe('Automation Playbooks (e2e)', () => {
         },
       });
 
-      await createProduct(projectId, {
+      const productId = await createProduct(projectId, {
         title: 'Product 1',
         externalId: 'ext-1',
         seoTitle: null,
@@ -943,7 +943,7 @@ describe('Automation Playbooks (e2e)', () => {
         .set('Authorization', `Bearer ${token}`);
       const { scopeId } = estimateRes.body;
 
-      // Create a draft with different rules
+      // Create a draft with specific rules (establish baseline rulesHash)
       const previewRes = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
         .set('Authorization', `Bearer ${token}`)
@@ -951,15 +951,30 @@ describe('Automation Playbooks (e2e)', () => {
       expect(previewRes.status).toBe(200);
       const { rulesHash } = previewRes.body;
 
-      // Try to apply with a different rulesHash
-      const wrongRulesHash = rulesHash + '_modified';
+      // Reset AI call counter so we only measure Apply
+      aiServiceStub.generateMetadataCallCount = 0;
+
+      // Contract: PLAYBOOK_RULES_CHANGED – Apply with mismatched rulesHash
+      const wrongRulesHash = `${rulesHash}_modified`;
       const res = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/apply`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash: wrongRulesHash });
+        .send({
+          playbookId: 'missing_seo_title',
+          scopeId,
+          rulesHash: wrongRulesHash,
+        });
 
       expect(res.status).toBe(409);
       expect(res.body).toHaveProperty('code', 'PLAYBOOK_RULES_CHANGED');
+      // No AI calls during Apply
+      expect(aiServiceStub.generateMetadataCallCount).toBe(0);
+
+      // DB should be unchanged for the affected product
+      const product = await testPrisma.product.findUnique({
+        where: { id: productId },
+      });
+      expect(product?.seoTitle).toBeNull();
     });
 
     it('returns 409 PLAYBOOK_DRAFT_NOT_FOUND when no draft exists', async () => {
@@ -987,7 +1002,7 @@ describe('Automation Playbooks (e2e)', () => {
         },
       });
 
-      await createProduct(projectId, {
+      const productId = await createProduct(projectId, {
         title: 'Product 1',
         externalId: 'ext-1',
         seoTitle: null,
@@ -1001,8 +1016,10 @@ describe('Automation Playbooks (e2e)', () => {
         .set('Authorization', `Bearer ${token}`);
       const { scopeId } = estimateRes.body;
 
-      // Skip preview step entirely - no draft exists
-      // Attempt apply with fabricated rulesHash
+      // Reset AI call counter just in case
+      aiServiceStub.generateMetadataCallCount = 0;
+
+      // Contract: PLAYBOOK_DRAFT_NOT_FOUND – Apply with no draft for (projectId, playbookId, scopeId, rulesHash)
       const res = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/apply`)
         .set('Authorization', `Bearer ${token}`)
@@ -1014,6 +1031,14 @@ describe('Automation Playbooks (e2e)', () => {
 
       expect(res.status).toBe(409);
       expect(res.body).toHaveProperty('code', 'PLAYBOOK_DRAFT_NOT_FOUND');
+      // No AI calls during Apply
+      expect(aiServiceStub.generateMetadataCallCount).toBe(0);
+
+      // DB should be unchanged – product still has no SEO title
+      const product = await testPrisma.product.findUnique({
+        where: { id: productId },
+      });
+      expect(product?.seoTitle).toBeNull();
     });
 
     it('returns 409 PLAYBOOK_SCOPE_INVALID when scope changes between preview and apply', async () => {
@@ -1099,14 +1124,14 @@ describe('Automation Playbooks (e2e)', () => {
         },
       });
 
-      await createProduct(projectId, {
+      const productId = await createProduct(projectId, {
         title: 'Product 1',
         externalId: 'ext-1',
         seoTitle: null,
         seoDescription: 'Has description',
       });
 
-      // Generate preview first (this creates the draft)
+      // Generate preview first (this creates the draft and uses AI)
       const previewRes = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
         .set('Authorization', `Bearer ${token}`)
@@ -1114,24 +1139,243 @@ describe('Automation Playbooks (e2e)', () => {
       expect(previewRes.status).toBe(200);
       const { scopeId, rulesHash } = previewRes.body;
 
-      // Generate full draft
+      // Generate full draft (uses AI as well)
       await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`,
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ scopeId, rulesHash });
 
-      // Reset the AI call counter before apply
+      // Reset the AI call counter so we only measure Apply
       aiServiceStub.generateMetadataCallCount = 0;
 
-      // Apply should use the draft, not call AI
+      // Apply should use the stored draft, not call AI
       const applyRes = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/apply`)
         .set('Authorization', `Bearer ${token}`)
         .send({ playbookId: 'missing_seo_title', scopeId, rulesHash });
 
       expect(applyRes.status).toBe(200);
-      // The critical assertion: AI should NOT have been called during apply
       expect(aiServiceStub.generateMetadataCallCount).toBe(0);
+
+      // Product should now have a non-null SEO title from the draft
+      const product = await testPrisma.product.findUnique({
+        where: { id: productId },
+      });
+      expect(product?.seoTitle).not.toBeNull();
+    });
+
+    it('uses stored draft items for UPDATED vs SKIPPED without AI calls', async () => {
+      const { token, userId } = await signupAndLogin(
+        server,
+        'playbook-draft-updated-vs-skipped@example.com',
+        'testpassword123',
+      );
+      const projectId = await createProject(
+        server,
+        token,
+        'Draft UPDATED vs SKIPPED Project',
+        'draft-updated-vs-skipped.com',
+      );
+
+      await testPrisma.subscription.create({
+        data: {
+          userId,
+          stripeCustomerId: 'cus_test_draft_updated_skipped',
+          stripeSubscriptionId: 'sub_test_draft_updated_skipped',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      const productId1 = await createProduct(projectId, {
+        title: 'Product 1',
+        externalId: 'ext-1',
+        seoTitle: null,
+        seoDescription: 'Has description',
+      });
+      const productId2 = await createProduct(projectId, {
+        title: 'Product 2',
+        externalId: 'ext-2',
+        seoTitle: null,
+        seoDescription: 'Has description',
+      });
+      const productId3 = await createProduct(projectId, {
+        title: 'Product 3',
+        externalId: 'ext-3',
+        seoTitle: null,
+        seoDescription: 'Has description',
+      });
+
+      // Get estimate to compute scopeId and base rulesHash
+      const estimateRes = await request(server)
+        .get(`/projects/${projectId}/automation-playbooks/estimate`)
+        .query({ playbookId: 'missing_seo_title' })
+        .set('Authorization', `Bearer ${token}`);
+      expect(estimateRes.status).toBe(200);
+      const { scopeId, rulesHash } = estimateRes.body as {
+        scopeId: string;
+        rulesHash: string;
+      };
+
+      // Manually seed a READY draft with mixed suggestions:
+      // productId1: has suggestion → UPDATED
+      // productId2: empty suggestion → SKIPPED
+      // productId3: no draft item → SKIPPED
+      await testPrisma.automationPlaybookDraft.create({
+        data: {
+          projectId,
+          playbookId: 'missing_seo_title',
+          scopeId,
+          rulesHash,
+          status: 'READY',
+          sampleProductIds: [productId1, productId2],
+          draftItems: [
+            {
+              productId: productId1,
+              field: 'seoTitle',
+              rawSuggestion: 'Draft Title 1',
+              finalSuggestion: 'Draft Title 1',
+              ruleWarnings: [],
+            },
+            {
+              productId: productId2,
+              field: 'seoTitle',
+              rawSuggestion: 'Draft Title 2',
+              finalSuggestion: '',
+              ruleWarnings: [],
+            },
+          ],
+          counts: {
+            affectedTotal: 3,
+            draftGenerated: 1,
+            noSuggestionCount: 2,
+          },
+          rules: null,
+          createdByUserId: userId,
+        },
+      });
+
+      aiServiceStub.generateMetadataCallCount = 0;
+
+      const applyRes = await request(server)
+        .post(`/projects/${projectId}/automation-playbooks/apply`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash });
+
+      expect(applyRes.status).toBe(200);
+      expect(aiServiceStub.generateMetadataCallCount).toBe(0);
+
+      const body = applyRes.body as {
+        totalAffectedProducts: number;
+        updatedCount: number;
+        skippedCount: number;
+        results: Array<{ productId: string; status: string }>;
+      };
+
+      expect(body.totalAffectedProducts).toBe(3);
+      expect(body.updatedCount).toBe(1);
+      expect(body.skippedCount).toBe(2);
+
+      const statusesByProduct = new Map(
+        body.results.map((r: any) => [r.productId, r.status]),
+      );
+      expect(statusesByProduct.get(productId1)).toBe('UPDATED');
+      expect(statusesByProduct.get(productId2)).toBe('SKIPPED');
+      expect(statusesByProduct.get(productId3)).toBe('SKIPPED');
+
+      const p1 = await testPrisma.product.findUnique({ where: { id: productId1 } });
+      const p2 = await testPrisma.product.findUnique({ where: { id: productId2 } });
+      const p3 = await testPrisma.product.findUnique({ where: { id: productId3 } });
+
+      expect(p1?.seoTitle).toBe('Draft Title 1');
+      expect(p2?.seoTitle).toBeNull();
+      expect(p3?.seoTitle).toBeNull();
+    });
+
+    it('supports resume/apply later with existing draft and no AI calls on replay', async () => {
+      const { token, userId } = await signupAndLogin(
+        server,
+        'playbook-resume-apply@example.com',
+        'testpassword123',
+      );
+      const projectId = await createProject(
+        server,
+        token,
+        'Resume Apply Project',
+        'resume-apply.com',
+      );
+
+      await testPrisma.subscription.create({
+        data: {
+          userId,
+          stripeCustomerId: 'cus_test_resume_apply',
+          stripeSubscriptionId: 'sub_test_resume_apply',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      const productId = await createProduct(projectId, {
+        title: 'Product 1',
+        externalId: 'ext-1',
+        seoTitle: null,
+        seoDescription: 'Has description',
+      });
+
+      // Preview + full draft generation (acts as "initial session")
+      const previewRes = await request(server)
+        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ rules: { enabled: true, prefix: 'Buy ' }, sampleSize: 1 });
+      expect(previewRes.status).toBe(200);
+      const { scopeId, rulesHash } = previewRes.body as {
+        scopeId: string;
+        rulesHash: string;
+      };
+
+      await request(server)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`,
+        )
+        .set('Authorization', `Bearer ${token}`)
+        .send({ scopeId, rulesHash });
+
+      // First apply: simulate initial run, ensure no AI calls (Apply-only)
+      aiServiceStub.generateMetadataCallCount = 0;
+      const firstApplyRes = await request(server)
+        .post(`/projects/${projectId}/automation-playbooks/apply`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash });
+
+      expect(firstApplyRes.status).toBe(200);
+      expect(aiServiceStub.generateMetadataCallCount).toBe(0);
+
+      const afterFirst = await testPrisma.product.findUnique({
+        where: { id: productId },
+      });
+      const firstSeoTitle = afterFirst?.seoTitle;
+      expect(firstSeoTitle).not.toBeNull();
+
+      // Second apply: "resume" behavior – same draft, no AI calls, stable result
+      aiServiceStub.generateMetadataCallCount = 0;
+      const secondApplyRes = await request(server)
+        .post(`/projects/${projectId}/automation-playbooks/apply`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash });
+
+      expect(secondApplyRes.status).toBe(200);
+      expect(aiServiceStub.generateMetadataCallCount).toBe(0);
+
+      const afterSecond = await testPrisma.product.findUnique({
+        where: { id: productId },
+      });
+      expect(afterSecond?.seoTitle).toBe(firstSeoTitle);
     });
   });
 });
