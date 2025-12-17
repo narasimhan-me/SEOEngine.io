@@ -339,140 +339,120 @@ export default function AutomationPlaybooksPage() {
       const definition = PLAYBOOKS.find((pb) => pb.id === playbookId);
       if (!definition) return false;
 
-      const normalizeForbidden = (text: string): string[] =>
-        text
-          .split('\n')
-          .map((entry) => entry.trim())
-          .filter(Boolean);
-
-      const forbiddenPhrases = rules.enabled
-        ? normalizeForbidden(rules.forbiddenPhrasesText)
-        : [];
-
-      const transformText = (value: string, warnings: string[]): string => {
-        let text = value || '';
-        if (!rules.enabled) {
-          return text;
-        }
-        const { find, replace, caseSensitive, prefix, suffix, maxLength } = rules;
-        if (find) {
-          try {
-            const escaped = find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(escaped, caseSensitive ? 'g' : 'gi');
-            text = text.replace(regex, replace);
-          } catch {
-            // If the pattern cannot be constructed, fall back to a simple split/join
-            text = text.split(find).join(replace);
-          }
-        }
-        if (prefix) {
-          text = `${prefix}${text}`;
-        }
-        if (suffix) {
-          text = `${text}${suffix}`;
-        }
-        if (typeof maxLength === 'number' && maxLength > 0 && text.length > maxLength) {
-          text = text.slice(0, maxLength);
-          warnings.push('trimmed_to_max_length');
-        }
-        if (forbiddenPhrases.length > 0) {
-          const lower = text.toLowerCase();
-          const hit = forbiddenPhrases.some((phrase) =>
-            lower.includes(phrase.toLowerCase()),
-          );
-          if (hit) {
-            warnings.push('forbidden_phrase_detected');
-          }
-        }
-        return text;
-      };
-
-      const candidates = products.filter((p) => {
-        if (definition.field === 'seoTitle') {
-          return !p.seoTitle || p.seoTitle.trim() === '';
-        }
-        return !p.seoDescription || p.seoDescription.trim() === '';
-      });
-      const sampleProducts = candidates.slice(0, 3);
-      if (sampleProducts.length === 0) {
-        setPreviewSamples([]);
-        return false;
-      }
-      const samples: PreviewSample[] = [];
       try {
         setLoadingPreview(true);
         setError('');
         setPreviewSamples([]);
-        for (const product of sampleProducts) {
-          try {
-            const result = await aiApi.suggestProductMetadata(product.id);
-            const ruleWarnings: string[] = [];
-            let suggestedTitle = result?.suggested?.title || '';
-            let suggestedDescription = result?.suggested?.description || '';
-            if (rules.enabled) {
-              if (definition.field === 'seoTitle') {
-                suggestedTitle = transformText(suggestedTitle, ruleWarnings);
-              } else {
-                suggestedDescription = transformText(
-                  suggestedDescription,
-                  ruleWarnings,
-                );
-              }
-            }
-            samples.push({
-              productId: product.id,
-              productTitle: product.title,
-              currentTitle: product.seoTitle || product.title || '',
-              currentDescription:
-                product.seoDescription || product.description || '',
-              suggestedTitle,
-              suggestedDescription,
-              ruleWarnings: ruleWarnings.length > 0 ? ruleWarnings : undefined,
-            });
-          } catch (err: unknown) {
-            console.error('Error generating preview suggestion:', err);
-            if (err instanceof ApiError && err.code === 'AI_DAILY_LIMIT_REACHED') {
-              const limitMessage =
-                "Daily AI limit reached. You've used all AI suggestions available on your plan. Your limit resets tomorrow, or upgrade to continue.";
-              setError(limitMessage);
-              feedback.showLimit(limitMessage, '/settings/billing');
-              break;
-            }
-            // Check for AI quota exhaustion (Gemini rate limits)
-            const errMessage =
-              err instanceof Error ? err.message : String(err);
-            if (errMessage.includes('AI_QUOTA_EXHAUSTED')) {
-              const quotaMessage =
-                'AI service quota exceeded. Please wait a few minutes and try again.';
-              setError(quotaMessage);
-              feedback.showError(quotaMessage);
-              break;
-            }
-            // Check for all models exhausted (all AI models tried and failed)
-            if (errMessage.includes('AI_ALL_MODELS_EXHAUSTED')) {
-              const exhaustedMessage =
-                'All AI models are currently unavailable. The system tried multiple models but all are experiencing issues. Please wait a few minutes and try again.';
-              setError(exhaustedMessage);
-              feedback.showError(exhaustedMessage);
-              break;
-            }
-            const message =
-              'AI suggestions are temporarily unavailable. Please try again later.';
-            setError(message);
-            feedback.showError(message);
-            break;
-          }
-        }
+
+        // Call the backend preview endpoint which:
+        // 1. Computes scopeId and rulesHash
+        // 2. Creates/updates a draft in the database
+        // 3. Generates AI suggestions for sample products
+        // 4. Returns everything needed for the apply flow
+        const previewResult = await projectsApi.previewAutomationPlaybook(
+          projectId,
+          playbookId,
+          rules.enabled ? rules : undefined,
+          3, // sampleSize
+        ) as {
+          projectId: string;
+          playbookId: string;
+          scopeId: string;
+          rulesHash: string;
+          draftId: string;
+          status: string;
+          counts: {
+            totalAffected: number;
+            sampleGenerated: number;
+            noSuggestionCount: number;
+          };
+          samples: Array<{
+            productId: string;
+            productTitle: string;
+            field: 'seoTitle' | 'seoDescription';
+            currentTitle: string;
+            currentDescription: string;
+            rawSuggestion: string;
+            finalSuggestion: string;
+            ruleWarnings: string[];
+          }>;
+        };
+
+        // Convert backend samples to frontend PreviewSample format
+        const samples: PreviewSample[] = previewResult.samples.map((sample) => ({
+          productId: sample.productId,
+          productTitle: sample.productTitle,
+          currentTitle: sample.currentTitle,
+          currentDescription: sample.currentDescription,
+          suggestedTitle: sample.field === 'seoTitle' ? sample.finalSuggestion : '',
+          suggestedDescription: sample.field === 'seoDescription' ? sample.finalSuggestion : '',
+          ruleWarnings: sample.ruleWarnings.length > 0 ? sample.ruleWarnings : undefined,
+        }));
+
         setPreviewSamples(samples);
+
+        // Update estimate with scopeId and rulesHash from preview
+        if (estimate) {
+          setEstimate({
+            ...estimate,
+            scopeId: previewResult.scopeId,
+            rulesHash: previewResult.rulesHash,
+          });
+        } else {
+          // Fetch fresh estimate to get scopeId and rulesHash
+          await loadEstimate(playbookId);
+        }
+
         if (samples.length > 0) {
           setPreviewRulesVersion(rulesVersion);
         }
+
+        return samples.length > 0;
+      } catch (err: unknown) {
+        console.error('Error generating preview:', err);
+
+        if (err instanceof ApiError) {
+          if (err.code === 'AI_DAILY_LIMIT_REACHED') {
+            const limitMessage =
+              "Daily AI limit reached. You've used all AI suggestions available on your plan. Your limit resets tomorrow, or upgrade to continue.";
+            setError(limitMessage);
+            feedback.showLimit(limitMessage, '/settings/billing');
+            return false;
+          }
+          setError(err.message);
+          feedback.showError(err.message);
+          return false;
+        }
+
+        // Check for AI quota exhaustion (Gemini rate limits)
+        const errMessage = err instanceof Error ? err.message : String(err);
+        if (errMessage.includes('AI_QUOTA_EXHAUSTED')) {
+          const quotaMessage =
+            'AI service quota exceeded. Please wait a few minutes and try again.';
+          setError(quotaMessage);
+          feedback.showError(quotaMessage);
+          return false;
+        }
+
+        // Check for all models exhausted (all AI models tried and failed)
+        if (errMessage.includes('AI_ALL_MODELS_EXHAUSTED')) {
+          const exhaustedMessage =
+            'All AI models are currently unavailable. The system tried multiple models but all are experiencing issues. Please wait a few minutes and try again.';
+          setError(exhaustedMessage);
+          feedback.showError(exhaustedMessage);
+          return false;
+        }
+
+        const message =
+          'AI suggestions are temporarily unavailable. Please try again later.';
+        setError(message);
+        feedback.showError(message);
+        return false;
       } finally {
         setLoadingPreview(false);
       }
-      return samples.length > 0;
     },
-    [products, feedback, rules, rulesVersion],
+    [projectId, feedback, rules, rulesVersion, estimate, loadEstimate],
   );
 
   useEffect(() => {
@@ -714,8 +694,14 @@ export default function AutomationPlaybooksPage() {
       setFlowState('ELIGIBILITY_EMPTY');
     } else if (flowState === 'ELIGIBILITY_EMPTY') {
       setFlowState('PREVIEW_READY');
+    } else if (flowState === 'PREVIEW_READY' && previewSamples.length > 0) {
+      // If we have preview samples but flowState is still PREVIEW_READY,
+      // upgrade to PREVIEW_GENERATED to enable the Continue button.
+      // This handles the case where preview samples were restored from sessionStorage
+      // but the flowState wasn't properly upgraded.
+      setFlowState('PREVIEW_GENERATED');
     }
-  }, [estimate, flowState]);
+  }, [estimate, flowState, previewSamples.length]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -739,16 +725,42 @@ export default function AutomationPlaybooksPage() {
         rulesVersion?: number;
         previewRulesVersion?: number | null;
       };
+      // Restore flowState, but ensure it's PREVIEW_GENERATED if we have preview samples
       if (parsed.flowState) {
-        setFlowState(parsed.flowState);
+        // If we have preview samples, ensure flowState reflects that
+        if (parsed.previewSamples && parsed.previewSamples.length > 0) {
+          // Keep the restored flowState if it's past PREVIEW_GENERATED, otherwise set to PREVIEW_GENERATED
+          const advancedStates: PlaybookFlowState[] = [
+            'PREVIEW_GENERATED',
+            'ESTIMATE_READY',
+            'APPLY_READY',
+            'APPLY_RUNNING',
+            'APPLY_COMPLETED',
+            'APPLY_STOPPED',
+          ];
+          if (advancedStates.includes(parsed.flowState)) {
+            setFlowState(parsed.flowState);
+          } else {
+            setFlowState('PREVIEW_GENERATED');
+          }
+        } else {
+          setFlowState(parsed.flowState);
+        }
       }
       if (parsed.previewSamples) {
         setPreviewSamples(parsed.previewSamples);
       }
       // Only restore estimate if it has scopeId and rulesHash (required since AUTO-PB-1.3).
       // Stale estimates from before these fields were added will be re-fetched fresh.
-      if (parsed.estimate && parsed.estimate.scopeId && parsed.estimate.rulesHash) {
+      const hasValidEstimate = parsed.estimate && parsed.estimate.scopeId && parsed.estimate.rulesHash;
+      if (hasValidEstimate && parsed.estimate) {
         setEstimate(parsed.estimate);
+      } else if (parsed.previewSamples && parsed.previewSamples.length > 0) {
+        // If we have preview samples but no valid estimate, fetch a fresh estimate.
+        // This handles cases where the user generated a preview before AUTO-PB-1.3 added scopeId/rulesHash.
+        loadEstimate(selectedPlaybookId).catch(() => {
+          // handled via state
+        });
       }
       if (parsed.applyResult) {
         setApplyResult(parsed.applyResult);

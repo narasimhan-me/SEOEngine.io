@@ -3,6 +3,7 @@ import request from 'supertest';
 import { createTestApp } from '../utils/test-app';
 import { cleanupTestDb, disconnectTestDb, testPrisma } from '../utils/test-db';
 import { ProductIssueFixService } from '../../src/ai/product-issue-fix.service';
+import { AiService } from '../../src/ai/ai.service';
 
 class ProductIssueFixServiceStub {
   public mode:
@@ -57,6 +58,20 @@ class ProductIssueFixServiceStub {
 }
 
 const productIssueFixServiceStub = new ProductIssueFixServiceStub();
+
+/**
+ * Stub for AiService that tracks calls to generateMetadata.
+ * Used for AUTO-PB-1.3 contract enforcement: Apply must NOT call AI.
+ */
+class AiServiceStub {
+  public generateMetadataCallCount = 0;
+
+  async generateMetadata(..._args: any[]) {
+    this.generateMetadataCallCount += 1;
+    return { seoTitle: 'Generated Title', seoDescription: 'Generated Desc' };
+  }
+}
+const aiServiceStub = new AiServiceStub();
 
 async function signupAndLogin(
   server: any,
@@ -131,7 +146,9 @@ describe('Automation Playbooks (e2e)', () => {
     app = await createTestApp((builder) =>
       builder
         .overrideProvider(ProductIssueFixService)
-        .useValue(productIssueFixServiceStub),
+        .useValue(productIssueFixServiceStub)
+        .overrideProvider(AiService)
+        .useValue(aiServiceStub),
     );
     server = app.getHttpServer();
   });
@@ -146,6 +163,7 @@ describe('Automation Playbooks (e2e)', () => {
     await cleanupTestDb();
     productIssueFixServiceStub.mode = 'success';
     productIssueFixServiceStub.callCount = 0;
+    aiServiceStub.generateMetadataCallCount = 0;
   });
 
   describe('GET /projects/:id/automation-playbooks/estimate', () => {
@@ -877,6 +895,243 @@ describe('Automation Playbooks (e2e)', () => {
         .send({ playbookId: 'missing_seo_title' });
 
       expect(res.status).toBe(401);
+    });
+  });
+
+  /**
+   * AUTO-PB-1.3: Contract enforcement tests
+   * Apply must reject requests when rulesHash changes, draft is not found,
+   * or scope becomes invalid. These tests verify the 409 Conflict behavior.
+   */
+  describe('AUTO-PB-1.3 Contract enforcement', () => {
+    it('returns 409 PLAYBOOK_RULES_CHANGED when rulesHash differs', async () => {
+      const { token, userId } = await signupAndLogin(
+        server,
+        'playbook-rules-changed@example.com',
+        'testpassword123',
+      );
+      const projectId = await createProject(
+        server,
+        token,
+        'Rules Changed Project',
+        'rules-changed.com',
+      );
+
+      await testPrisma.subscription.create({
+        data: {
+          userId,
+          stripeCustomerId: 'cus_test_rules_changed',
+          stripeSubscriptionId: 'sub_test_rules_changed',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      await createProduct(projectId, {
+        title: 'Product 1',
+        externalId: 'ext-1',
+        seoTitle: null,
+        seoDescription: 'Has description',
+      });
+
+      // Get estimate to obtain scopeId
+      const estimateRes = await request(server)
+        .get(`/projects/${projectId}/automation-playbooks/estimate`)
+        .query({ playbookId: 'missing_seo_title' })
+        .set('Authorization', `Bearer ${token}`);
+      const { scopeId } = estimateRes.body;
+
+      // Create a draft with different rules
+      const previewRes = await request(server)
+        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ rules: { enabled: true, prefix: 'Buy ' }, sampleSize: 1 });
+      expect(previewRes.status).toBe(200);
+      const { rulesHash } = previewRes.body;
+
+      // Try to apply with a different rulesHash
+      const wrongRulesHash = rulesHash + '_modified';
+      const res = await request(server)
+        .post(`/projects/${projectId}/automation-playbooks/apply`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash: wrongRulesHash });
+
+      expect(res.status).toBe(409);
+      expect(res.body).toHaveProperty('code', 'PLAYBOOK_RULES_CHANGED');
+    });
+
+    it('returns 409 PLAYBOOK_DRAFT_NOT_FOUND when no draft exists', async () => {
+      const { token, userId } = await signupAndLogin(
+        server,
+        'playbook-no-draft@example.com',
+        'testpassword123',
+      );
+      const projectId = await createProject(
+        server,
+        token,
+        'No Draft Project',
+        'no-draft.com',
+      );
+
+      await testPrisma.subscription.create({
+        data: {
+          userId,
+          stripeCustomerId: 'cus_test_no_draft',
+          stripeSubscriptionId: 'sub_test_no_draft',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      await createProduct(projectId, {
+        title: 'Product 1',
+        externalId: 'ext-1',
+        seoTitle: null,
+        seoDescription: 'Has description',
+      });
+
+      // Get estimate to obtain scopeId
+      const estimateRes = await request(server)
+        .get(`/projects/${projectId}/automation-playbooks/estimate`)
+        .query({ playbookId: 'missing_seo_title' })
+        .set('Authorization', `Bearer ${token}`);
+      const { scopeId } = estimateRes.body;
+
+      // Skip preview step entirely - no draft exists
+      // Attempt apply with fabricated rulesHash
+      const res = await request(server)
+        .post(`/projects/${projectId}/automation-playbooks/apply`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          playbookId: 'missing_seo_title',
+          scopeId,
+          rulesHash: 'nonexistent_hash_12345',
+        });
+
+      expect(res.status).toBe(409);
+      expect(res.body).toHaveProperty('code', 'PLAYBOOK_DRAFT_NOT_FOUND');
+    });
+
+    it('returns 409 PLAYBOOK_SCOPE_INVALID when scope changes between preview and apply', async () => {
+      const { token, userId } = await signupAndLogin(
+        server,
+        'playbook-scope-invalid@example.com',
+        'testpassword123',
+      );
+      const projectId = await createProject(
+        server,
+        token,
+        'Scope Invalid Project',
+        'scope-invalid.com',
+      );
+
+      await testPrisma.subscription.create({
+        data: {
+          userId,
+          stripeCustomerId: 'cus_test_scope_invalid',
+          stripeSubscriptionId: 'sub_test_scope_invalid',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      await createProduct(projectId, {
+        title: 'Product 1',
+        externalId: 'ext-1',
+        seoTitle: null,
+        seoDescription: 'Has description',
+      });
+
+      // Get estimate and create preview
+      const previewRes = await request(server)
+        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ rules: { enabled: true, prefix: 'Shop ' }, sampleSize: 1 });
+      expect(previewRes.status).toBe(200);
+      const { scopeId, rulesHash } = previewRes.body;
+
+      // Add another product - changes the scope
+      await createProduct(projectId, {
+        title: 'Product 2',
+        externalId: 'ext-2',
+        seoTitle: null,
+        seoDescription: 'Has description',
+      });
+
+      // Try to apply with old scopeId
+      const res = await request(server)
+        .post(`/projects/${projectId}/automation-playbooks/apply`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash });
+
+      expect(res.status).toBe(409);
+      expect(res.body).toHaveProperty('code', 'PLAYBOOK_SCOPE_INVALID');
+    });
+
+    it('apply uses draft suggestions without calling AI (no-AI-at-Apply contract)', async () => {
+      const { token, userId } = await signupAndLogin(
+        server,
+        'playbook-no-ai-apply@example.com',
+        'testpassword123',
+      );
+      const projectId = await createProject(
+        server,
+        token,
+        'No AI Apply Project',
+        'no-ai-apply.com',
+      );
+
+      await testPrisma.subscription.create({
+        data: {
+          userId,
+          stripeCustomerId: 'cus_test_no_ai_apply',
+          stripeSubscriptionId: 'sub_test_no_ai_apply',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      await createProduct(projectId, {
+        title: 'Product 1',
+        externalId: 'ext-1',
+        seoTitle: null,
+        seoDescription: 'Has description',
+      });
+
+      // Generate preview first (this creates the draft)
+      const previewRes = await request(server)
+        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ rules: { enabled: true, prefix: 'Buy ' }, sampleSize: 1 });
+      expect(previewRes.status).toBe(200);
+      const { scopeId, rulesHash } = previewRes.body;
+
+      // Generate full draft
+      await request(server)
+        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ scopeId, rulesHash });
+
+      // Reset the AI call counter before apply
+      aiServiceStub.generateMetadataCallCount = 0;
+
+      // Apply should use the draft, not call AI
+      const applyRes = await request(server)
+        .post(`/projects/${projectId}/automation-playbooks/apply`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash });
+
+      expect(applyRes.status).toBe(200);
+      // The critical assertion: AI should NOT have been called during apply
+      expect(aiServiceStub.generateMetadataCallCount).toBe(0);
     });
   });
 });

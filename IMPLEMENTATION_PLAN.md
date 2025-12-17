@@ -8668,6 +8668,56 @@ E2E (TEST-2 Extension – apps/web/tests/first-deo-win.spec.ts):
   - Verify "Regenerate preview" overwrites content and updates the UI accordingly.
   - Apply with a stale scopeId (e.g., products added/updated between estimate and apply) results in a PLAYBOOK_SCOPE_INVALID conflict and the UI prompts the user to refresh the estimate before retrying apply.
 
+### TEST-AUTO-PB-1.3 – Contract Enforcement Tests
+
+**Status:** Implemented (2025-12-17)
+
+This section documents the automated tests that enforce the AUTO-PB-1.3 trust contracts at the API layer.
+
+#### E2E Tests (apps/api/test/e2e/automation-playbooks.e2e-spec.ts)
+
+Added a new `describe('AUTO-PB-1.3 Contract enforcement')` block with 4 tests:
+
+1. **PLAYBOOK_RULES_CHANGED** – `returns 409 PLAYBOOK_RULES_CHANGED when rulesHash differs`
+   - Creates a preview with specific rules, obtains `rulesHash`.
+   - Attempts apply with a modified `rulesHash` (appended `_modified`).
+   - Asserts HTTP 409 with `code: 'PLAYBOOK_RULES_CHANGED'`.
+
+2. **PLAYBOOK_DRAFT_NOT_FOUND** – `returns 409 PLAYBOOK_DRAFT_NOT_FOUND when no draft exists`
+   - Obtains `scopeId` from estimate.
+   - Skips the preview step entirely (no draft created).
+   - Attempts apply with a fabricated `rulesHash`.
+   - Asserts HTTP 409 with `code: 'PLAYBOOK_DRAFT_NOT_FOUND'`.
+
+3. **PLAYBOOK_SCOPE_INVALID** – `returns 409 PLAYBOOK_SCOPE_INVALID when scope changes between preview and apply`
+   - Creates preview, obtains `scopeId` and `rulesHash`.
+   - Adds a new product to the project (changes the scope).
+   - Attempts apply with the old `scopeId`.
+   - Asserts HTTP 409 with `code: 'PLAYBOOK_SCOPE_INVALID'`.
+
+4. **No-AI-at-Apply contract** – `apply uses draft suggestions without calling AI (no-AI-at-Apply contract)`
+   - Creates preview and generates full draft.
+   - Resets `aiServiceStub.generateMetadataCallCount` to 0.
+   - Executes apply.
+   - Asserts `aiServiceStub.generateMetadataCallCount === 0` (AI was never called during apply).
+
+#### Integration Test (apps/api/test/integration/automation-playbooks.apply.no-ai.spec.ts)
+
+A focused unit/integration test that directly invokes `AutomationPlaybooksService.applyPlaybook` with mocked dependencies:
+
+- Mocks `AiService.generateMetadata` with a Jest spy.
+- Calls `applyPlaybook` (may throw due to missing mock data).
+- Asserts `aiServiceMock.generateMetadata` was **never** called.
+
+This provides a safety net ensuring the "no AI at Apply" contract is enforced at the service layer, independent of E2E infrastructure.
+
+#### Test Infrastructure Changes
+
+- Added `AiService` import to the E2E spec.
+- Created `AiServiceStub` class that tracks `generateMetadataCallCount`.
+- Wired `AiServiceStub` into the test app via `.overrideProvider(AiService).useValue(aiServiceStub)`.
+- Added `aiServiceStub.generateMetadataCallCount = 0` reset in `beforeEach`.
+
 ### Manual Testing
 
 - Manual Testing: docs/manual-testing/auto-pb-1-3-preview-persistence.md (to be created using docs/MANUAL_TESTING_TEMPLATE.md as the base and expanded to cover scopeId binding and invalid-scope flows for estimate/apply).

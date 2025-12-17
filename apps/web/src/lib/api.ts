@@ -269,6 +269,30 @@ export const projectsApi = {
       )}`,
     ),
 
+  /**
+   * Preview an automation playbook - creates/updates a backend draft with sample suggestions.
+   * Returns scopeId, rulesHash, and sample preview items that can be used for the full apply flow.
+   */
+  previewAutomationPlaybook: (
+    id: string,
+    playbookId: AutomationPlaybookId,
+    rules?: {
+      enabled: boolean;
+      find: string;
+      replace: string;
+      caseSensitive: boolean;
+      prefix: string;
+      suffix: string;
+      maxLength?: number;
+      forbiddenPhrasesText: string;
+    },
+    sampleSize?: number,
+  ) =>
+    fetchWithAuth(`/projects/${id}/automation-playbooks/${playbookId}/preview`, {
+      method: 'POST',
+      body: JSON.stringify({ rules, sampleSize }),
+    }),
+
   applyAutomationPlaybook: (
     id: string,
     playbookId: AutomationPlaybookId,
