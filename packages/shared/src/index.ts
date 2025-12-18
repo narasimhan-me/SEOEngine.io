@@ -60,8 +60,36 @@ export * from './search-intent';
 // Competitive Positioning types (COMPETITORS-1)
 export * from './competitors';
 
-// Off-site Signals types (OFFSITE-1)
-export * from './offsite-signals';
+// Off-site Signals types (OFFSITE-1) - explicit named exports for better module resolution
+export {
+  // Constants
+  OFFSITE_SIGNAL_LABELS,
+  OFFSITE_SIGNAL_DESCRIPTIONS,
+  OFFSITE_SIGNAL_WEIGHTS,
+  OFFSITE_SIGNAL_TYPES,
+  OFFSITE_GAP_LABELS,
+  OFFSITE_FIX_DRAFT_LABELS,
+  // Helper functions
+  getOffsitePresenceStatusFromScore,
+  calculateOffsiteSeverity,
+  computeOffsiteFixWorkKey,
+  getGapTypeForMissingSignal,
+  // Types
+  type OffsiteSignalType,
+  type OffsitePresenceStatus,
+  type OffsiteGapType,
+  type OffsiteFixDraftType,
+  type OffsiteFixApplyTarget,
+  type ProjectOffsiteSignal,
+  type ProjectOffsiteCoverage,
+  type OffsiteGap,
+  type OffsiteFixDraft,
+  type OffsiteFixPreviewRequest,
+  type OffsiteFixPreviewResponse,
+  type OffsiteFixApplyRequest,
+  type OffsiteFixApplyResponse,
+  type ProjectOffsiteSignalsResponse,
+} from './offsite-signals';
 
 // Answer Engine types
 export * from './answer-engine';

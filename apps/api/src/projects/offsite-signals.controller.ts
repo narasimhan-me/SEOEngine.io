@@ -371,7 +371,7 @@ export class OffsiteSignalsController {
         signalType: this.toPrismaSignalType(dto.signalType),
         focusKey: dto.focusKey,
         draftType: this.toPrismaDraftType(dto.draftType),
-        draftPayload,
+        draftPayload: draftPayload as object,
         aiWorkKey,
         generatedWithAi: true,
         // Set expiration (7 days)
