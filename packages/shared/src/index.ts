@@ -57,6 +57,9 @@ export * from './deo-issues';
 // Search Intent types (SEARCH-INTENT-1)
 export * from './search-intent';
 
+// Competitive Positioning types (COMPETITORS-1)
+export * from './competitors';
+
 // Answer Engine types
 export * from './answer-engine';
 

@@ -88,7 +88,7 @@ export const DEO_PILLARS: DeoPillar[] = [
       'How your DEO signals compare to competitors, share of voice in search results, and competitive gap analysis.',
     whyItMatters:
       'Understanding your competitive landscape helps prioritize improvements that will have the greatest impact on your relative visibility and market share.',
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     id: 'offsite_signals',

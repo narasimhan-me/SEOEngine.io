@@ -181,13 +181,72 @@ Search & Intent issues include additional fields:
 
 For detailed documentation, see [SEARCH_INTENT_PILLAR.md](./SEARCH_INTENT_PILLAR.md).
 
+### Second Implementation: Competitive Positioning Pillar (COMPETITORS-1)
+
+The **Competitive Positioning** pillar is the second fully-implemented DEO vertical slice, following the patterns established by SEARCH-INTENT-1.
+
+#### Key Surfaces
+
+| Surface | Location | Description |
+|---------|----------|-------------|
+| DEO Overview Card | `/projects/[id]/deo` | Shows competitive score and products behind on high-impact areas |
+| Product Tab | `/projects/[id]/products/[productId]?focus=competitors` | Competitors panel in product workspace |
+| Pillar Workspace | `/projects/[id]/competitors` | Project-level Competitive Positioning overview |
+| Issues Filter | `/projects/[id]/issues?pillar=competitive_positioning` | Competitive issues filtered view |
+| Product Badge | Products list | "Ahead/On Par/Behind" status indicator |
+
+#### Competitive Gap Taxonomy
+
+Three types of competitive gaps:
+- **Intent Gap** — Missing intent coverage that competitors likely have
+- **Content Section Gap** — Missing comparison, buying guide, or "why choose us" sections
+- **Trust Signal Gap** — Missing FAQ, guarantees, or review coverage
+
+#### Ethical Boundaries
+
+Critical principles enforced throughout:
+- No scraping of competitor websites or content
+- No storage or exposure of raw competitor text
+- Coverage analysis uses "industry baseline" assumptions
+- All generated content uses only merchant's product data
+
+#### Integration with Search & Intent
+
+Competitive analysis reuses Search Intent coverage:
+- Intent gaps from SEARCH-INTENT-1 inform competitive intent gaps
+- Same intent taxonomy (transactional, comparative, etc.)
+- Severity calculation considers both intent importance and competitor count
+
+#### Draft-First Fix Flow
+
+Follows the same pattern as SEARCH-INTENT-1:
+1. **Preview** — Generate/retrieve cached competitive fix draft
+2. **Review** — User reviews positioning content in drawer
+3. **Apply** — Write draft to Answer Blocks or content sections
+
+#### CACHE/REUSE v2 Integration
+
+Uses `INTENT_FIX_PREVIEW` run type with enriched metadata:
+- `playbookId: 'competitive-positioning-fix'` distinguishes from search intent
+- Metadata includes `pillar: 'competitive_positioning'` and `gapType`
+- Same caching mechanics: deterministic `aiWorkKey` prevents duplicate AI calls
+
+#### Competitive Issues
+
+Competitive issues include additional fields:
+- `gapType` — intent_gap, content_section_gap, trust_signal_gap
+- `competitorCount` — How many competitors cover the area (1-3)
+- `intentType` — For intent gaps, the specific intent type
+- `recommendedAction` — "Add Answer Block", "Add comparison section"
+
+For detailed documentation, see [COMPETITORS_PILLAR.md](./COMPETITORS_PILLAR.md).
+
 ### Future Pillar Implementations
 
-The following pillars will follow the Search & Intent pattern:
+The following pillars will follow the Search & Intent and Competitors patterns:
 
 | Pillar | Phase | Status |
 |--------|-------|--------|
-| Competitive Positioning | COMPETITORS-1 | Planned |
 | Off-site Signals | OFFSITE-1 | Planned |
 | Local Discovery | LOCAL-1 | Planned |
 
@@ -207,13 +266,18 @@ Each implementation should include:
 | Pillar definitions | `packages/shared/src/deo-pillars.ts` |
 | Issue types | `packages/shared/src/deo-issues.ts` |
 | Search intent types | `packages/shared/src/search-intent.ts` |
+| Competitive types | `packages/shared/src/competitors.ts` |
 | Issue builders | `apps/api/src/projects/deo-issues.service.ts` |
 | Search intent service | `apps/api/src/projects/search-intent.service.ts` |
 | Search intent controller | `apps/api/src/projects/search-intent.controller.ts` |
+| Competitors service | `apps/api/src/projects/competitors.service.ts` |
+| Competitors controller | `apps/api/src/projects/competitors.controller.ts` |
 | Issues list | `apps/web/src/components/issues/IssuesList.tsx` |
 | Issue badge | `apps/web/src/components/issues/IssueBadge.tsx` |
 | Product row | `apps/web/src/components/products/ProductRow.tsx` |
 | Search intent panel | `apps/web/src/components/products/optimization/ProductSearchIntentPanel.tsx` |
+| Competitors panel | `apps/web/src/components/products/optimization/ProductCompetitorsPanel.tsx` |
 | DEO Overview | `apps/web/src/app/projects/[id]/deo/page.tsx` |
 | Issues page | `apps/web/src/app/projects/[id]/issues/page.tsx` |
 | Search intent workspace | `apps/web/src/app/projects/[id]/keywords/page.tsx` |
+| Competitors workspace | `apps/web/src/app/projects/[id]/competitors/page.tsx` |

@@ -16,6 +16,7 @@ import {
   ProductSeoEditor,
   ProductDeoInsightsPanel,
   ProductSearchIntentPanel,
+  ProductCompetitorsPanel,
   type ProductMetadataSuggestion,
   type AutomationSuggestion,
 } from '@/components/products/optimization';
@@ -359,6 +360,15 @@ export default function ProductOptimizationPage() {
         window.clearTimeout(timeoutId);
       };
     }
+
+    if (focus === 'competitors') {
+      const timeoutId = window.setTimeout(() => {
+        scrollToSection('competitors-section');
+      }, 200);
+      return () => {
+        window.clearTimeout(timeoutId);
+      };
+    }
   }, [product, searchParams, scrollToSection]);
 
   if (loading) {
@@ -476,6 +486,13 @@ export default function ProductOptimizationPage() {
                 className="rounded-full px-2 py-1 text-xs hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
               >
                 Search &amp; Intent
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection('competitors-section')}
+                className="rounded-full px-2 py-1 text-xs hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+              >
+                Competitors
               </button>
               <button
                 type="button"
@@ -641,6 +658,14 @@ export default function ProductOptimizationPage() {
                     High-value intents (transactional, comparative) have the most impact on conversions.
                   </p>
                   <ProductSearchIntentPanel productId={product.id} />
+                </section>
+                <section id="competitors-section" aria-label="Competitive Positioning">
+                  <h2 className="mb-4 text-base font-semibold text-gray-900">Competitive Positioning</h2>
+                  <p className="mb-3 text-xs text-gray-500">
+                    See how this product compares to typical competitors in your category.
+                    Address gaps in intent coverage, content sections, and trust signals.
+                  </p>
+                  <ProductCompetitorsPanel productId={product.id} />
                 </section>
                 <section id="automations-section" aria-label="Automations">
                   <h2 className="mb-4 text-base font-semibold text-gray-900">Automations</h2>

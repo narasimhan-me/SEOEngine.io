@@ -79,6 +79,7 @@ model User {
   aiUsageEvents AiUsageEvent[]
   automationPlaybookRuns AutomationPlaybookRun[]
   intentFixApplications ProductIntentFixApplication[]
+  competitiveFixApplications ProductCompetitiveFixApplication[]
 }
 
 model Project {
@@ -140,6 +141,12 @@ model Product {
   intentCoverages      ProductIntentCoverage[]
   intentFixDrafts      ProductIntentFixDraft[]
   intentFixApplications ProductIntentFixApplication[]
+
+  // COMPETITORS-1 relations
+  competitors                    ProductCompetitor[]
+  competitiveCoverage            ProductCompetitiveCoverage?
+  competitiveFixDrafts           ProductCompetitiveFixDraft[]
+  competitiveFixApplications     ProductCompetitiveFixApplication[]
 }
 
 model AnswerBlock {
@@ -406,6 +413,113 @@ model ProductIntentFixApplication {
   applyTarget     IntentFixApplyTarget
   notes           String?
   appliedAt       DateTime            @default(now())
+
+  @@index([productId, appliedAt(sort: Desc)])
+  @@index([appliedByUserId, appliedAt(sort: Desc)])
+}
+
+// =============================================================================
+// COMPETITORS-1: Competitive Positioning Models
+// =============================================================================
+
+// Competitive gap type enumeration
+enum CompetitorGapType {
+  INTENT_GAP
+  CONTENT_SECTION_GAP
+  TRUST_SIGNAL_GAP
+}
+
+// Competitive coverage status
+enum CompetitiveStatus {
+  AHEAD
+  ON_PAR
+  BEHIND
+}
+
+// Competitive fix draft type
+enum CompetitiveFixDraftType {
+  ANSWER_BLOCK
+  COMPARISON_COPY
+  POSITIONING_SECTION
+}
+
+// Competitive fix apply target
+enum CompetitiveFixApplyTarget {
+  ANSWER_BLOCK
+  CONTENT_SECTION
+  WHY_CHOOSE_SECTION
+}
+
+// Competitor references for a product (max 3 per product, enforced by app logic)
+model ProductCompetitor {
+  id          String   @id @default(cuid())
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId   String
+  displayName String
+  logoUrl     String?
+  homepageUrl String?
+  source      String   // 'heuristic_collection' | 'heuristic_category' | 'merchant_configured'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([productId])
+}
+
+// Per-product competitive coverage data
+model ProductCompetitiveCoverage {
+  id              String            @id @default(cuid())
+  product         Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId       String            @unique
+  coverageData    Json              // Full coverage areas as JSON
+  overallScore    Float             // 0-100 competitive score
+  areasWhereCompetitorsLead Int     // Count of areas where competitors lead
+  status          CompetitiveStatus // AHEAD, ON_PAR, BEHIND
+  computedAt      DateTime          @default(now())
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([productId, computedAt(sort: Desc)])
+}
+
+// Draft fixes for competitive gaps (preview-first pattern)
+model ProductCompetitiveFixDraft {
+  id                String                  @id @default(cuid())
+  product           Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId         String
+  gapType           CompetitorGapType
+  intentType        SearchIntentType?       // For intent gaps
+  areaId            String                  // Coverage area identifier
+  draftType         CompetitiveFixDraftType
+  draftPayload      Json                    // Answer Block or content structure
+  aiWorkKey         String                  // Deterministic key for CACHE/REUSE v2
+  reusedFromWorkKey String?                 // If reused, the original work key
+  generatedWithAi   Boolean                 @default(true)
+  expiresAt         DateTime?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  applications      ProductCompetitiveFixApplication[]
+
+  @@index([productId, gapType, areaId])
+  @@index([aiWorkKey])
+  @@index([productId, expiresAt])
+}
+
+// Audit log of applied competitive fixes
+model ProductCompetitiveFixApplication {
+  id              String                    @id @default(cuid())
+  product         Product                   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId       String
+  draft           ProductCompetitiveFixDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  draftId         String
+  appliedBy       User                      @relation(fields: [appliedByUserId], references: [id], onDelete: Cascade)
+  appliedByUserId String
+  gapType         CompetitorGapType
+  intentType      SearchIntentType?
+  areaId          String
+  applyTarget     CompetitiveFixApplyTarget
+  notes           String?
+  appliedAt       DateTime                  @default(now())
 
   @@index([productId, appliedAt(sort: Desc)])
   @@index([appliedByUserId, appliedAt(sort: Desc)])

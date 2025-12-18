@@ -1,5 +1,6 @@
 import type { DeoPillarId } from './deo-pillars';
 import type { SearchIntentType, IntentCoverageStatus } from './search-intent';
+import type { CompetitorGapType, CompetitiveCoverageAreaId } from './competitors';
 
 export type DeoIssueSeverity = 'critical' | 'warning' | 'info';
 
@@ -155,6 +156,26 @@ export interface DeoIssue {
    * Examples: "Add Answer Block", "Expand product description", "Add comparison section"
    */
   recommendedAction?: string;
+
+  // === Competitive Positioning Pillar fields (COMPETITORS-1) ===
+
+  /**
+   * For Competitive Positioning pillar issues: the type of competitive gap.
+   * Distinguishes intent gaps, content section gaps, and trust signal gaps.
+   */
+  gapType?: CompetitorGapType;
+
+  /**
+   * Number of competitors expected to cover this area (1-3).
+   * Higher count indicates more competitive pressure and higher severity.
+   */
+  competitorCount?: number;
+
+  /**
+   * Coverage area identifier for competitive gaps.
+   * Links to specific area being analyzed (e.g., 'comparison_section', 'transactional_intent').
+   */
+  competitiveAreaId?: CompetitiveCoverageAreaId;
 }
 
 export interface DeoIssuesResponse {

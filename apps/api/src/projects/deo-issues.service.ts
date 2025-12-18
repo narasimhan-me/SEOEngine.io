@@ -10,6 +10,7 @@ import {
 } from '@engineo/shared';
 import { AutomationService } from './automation.service';
 import { SearchIntentService } from './search-intent.service';
+import { CompetitorsService } from './competitors.service';
 
 @Injectable()
 export class DeoIssuesService {
@@ -18,6 +19,7 @@ export class DeoIssuesService {
     private readonly deoSignalsService: DeoSignalsService,
     private readonly automationService: AutomationService,
     private readonly searchIntentService: SearchIntentService,
+    private readonly competitorsService: CompetitorsService,
   ) {}
 
   /**
@@ -135,6 +137,16 @@ export class DeoIssuesService {
       // Log but don't fail the entire issues request
       // eslint-disable-next-line no-console
       console.error('[DeoIssuesService] Failed to build search intent issues:', error);
+    }
+
+    // COMPETITORS-1: Add Competitive Positioning pillar issues
+    try {
+      const competitiveIssues = await this.competitorsService.buildCompetitiveIssues(projectId);
+      issues.push(...competitiveIssues);
+    } catch (error) {
+      // Log but don't fail the entire issues request
+      // eslint-disable-next-line no-console
+      console.error('[DeoIssuesService] Failed to build competitive issues:', error);
     }
 
     // Fire-and-forget Answer Block automations for relevant answerability issues.

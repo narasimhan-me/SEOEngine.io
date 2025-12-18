@@ -714,6 +714,185 @@ export const searchIntentApi = {
     fetchWithAuth(`/projects/${projectId}/search-intent/summary`),
 };
 
+// ============================================================================
+// Competitive Positioning API (COMPETITORS-1)
+// ============================================================================
+
+export type CompetitorGapType = 'intent_gap' | 'content_section_gap' | 'trust_signal_gap';
+
+export type CompetitiveCoverageAreaId =
+  | 'transactional_intent'
+  | 'comparative_intent'
+  | 'problem_use_case_intent'
+  | 'trust_validation_intent'
+  | 'informational_intent'
+  | 'comparison_section'
+  | 'why_choose_section'
+  | 'buying_guide_section'
+  | 'feature_benefits_section'
+  | 'faq_coverage'
+  | 'reviews_section'
+  | 'guarantee_section';
+
+export type CompetitiveStatus = 'Ahead' | 'On par' | 'Behind';
+
+export type CompetitiveFixDraftType = 'answer_block' | 'comparison_copy' | 'positioning_section';
+
+export type CompetitiveFixApplyTarget = 'ANSWER_BLOCK' | 'CONTENT_SECTION' | 'WHY_CHOOSE_SECTION';
+
+export interface ProductCompetitorRef {
+  id: string;
+  displayName: string;
+  logoUrl?: string;
+  homepageUrl?: string;
+  source: 'heuristic_collection' | 'heuristic_category' | 'merchant_configured';
+}
+
+export interface CompetitiveCoverageArea {
+  areaId: CompetitiveCoverageAreaId;
+  gapType: CompetitorGapType;
+  intentType?: SearchIntentType;
+  merchantCovers: boolean;
+  oneCompetitorCovers: boolean;
+  twoOrMoreCompetitorsCovers: boolean;
+  severityWeight: number;
+  gapDescription?: string;
+  exampleScenario?: string;
+}
+
+export interface ProductCompetitiveCoverage {
+  productId: string;
+  competitors: ProductCompetitorRef[];
+  coverageAreas: CompetitiveCoverageArea[];
+  overallScore: number;
+  areasWhereCompetitorsLead: number;
+  status: CompetitiveStatus;
+  computedAt: string;
+}
+
+export interface CompetitiveFixGap {
+  id: string;
+  productId: string;
+  gapType: CompetitorGapType;
+  intentType?: SearchIntentType;
+  areaId: CompetitiveCoverageAreaId;
+  exampleScenario: string;
+  whyItMatters: string;
+  competitorCount: number;
+  recommendedAction: 'answer_block' | 'comparison_section' | 'description_expansion' | 'faq_section';
+  severity: 'critical' | 'warning' | 'info';
+  automationAvailable: boolean;
+}
+
+export interface CompetitiveFixDraft {
+  id: string;
+  productId: string;
+  gapType: CompetitorGapType;
+  intentType?: SearchIntentType;
+  areaId: CompetitiveCoverageAreaId;
+  draftType: CompetitiveFixDraftType;
+  draftPayload: {
+    question?: string;
+    answer?: string;
+    comparisonText?: string;
+    positioningContent?: string;
+    placementGuidance?: string;
+  };
+  aiWorkKey: string;
+  reusedFromWorkKey?: string;
+  generatedWithAi: boolean;
+  generatedAt: string;
+  expiresAt?: string;
+}
+
+export interface ProductCompetitiveResponse {
+  productId: string;
+  competitors: ProductCompetitorRef[];
+  coverage: ProductCompetitiveCoverage;
+  gaps: CompetitiveFixGap[];
+  openDrafts: CompetitiveFixDraft[];
+}
+
+export interface CompetitiveScorecard {
+  overallScore: number;
+  gapBreakdown: {
+    gapType: CompetitorGapType;
+    label: string;
+    productsWithGaps: number;
+    averageScore: number;
+  }[];
+  productsBehind: number;
+  productsOnPar: number;
+  productsAhead: number;
+  status: CompetitiveStatus;
+  totalProducts: number;
+  computedAt: string;
+}
+
+export interface CompetitiveFixPreviewResponse {
+  draft: CompetitiveFixDraft;
+  generatedWithAi: boolean;
+  aiUsage?: {
+    tokensUsed: number;
+    latencyMs: number;
+  };
+}
+
+export interface CompetitiveFixApplyResponse {
+  success: boolean;
+  updatedCoverage: ProductCompetitiveCoverage;
+  issuesResolved: boolean;
+  issuesResolvedCount: number;
+}
+
+export const competitorsApi = {
+  /**
+   * Get product competitive data including coverage, gaps, and open drafts.
+   */
+  getProductCompetitors: (productId: string): Promise<ProductCompetitiveResponse> =>
+    fetchWithAuth(`/products/${productId}/competitors`),
+
+  /**
+   * Preview a competitive fix - generates or retrieves a cached draft.
+   * Draft-first pattern: AI is only called if no cached draft exists.
+   */
+  previewCompetitiveFix: (
+    productId: string,
+    params: {
+      gapType: CompetitorGapType;
+      intentType?: SearchIntentType;
+      areaId: CompetitiveCoverageAreaId;
+      draftType: CompetitiveFixDraftType;
+    },
+  ): Promise<CompetitiveFixPreviewResponse> =>
+    fetchWithAuth(`/products/${productId}/competitors/preview`, {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+
+  /**
+   * Apply a competitive fix draft.
+   * No AI call - persists the draft content to appropriate storage.
+   */
+  applyCompetitiveFix: (
+    productId: string,
+    params: {
+      draftId: string;
+      applyTarget: CompetitiveFixApplyTarget;
+    },
+  ): Promise<CompetitiveFixApplyResponse> =>
+    fetchWithAuth(`/products/${productId}/competitors/apply`, {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+
+  /**
+   * Get project-level Competitive Positioning scorecard.
+   */
+  getProjectCompetitiveScorecard: (projectId: string): Promise<CompetitiveScorecard> =>
+    fetchWithAuth(`/projects/${projectId}/competitors/scorecard`),
+};
+
 export const shopifyApi = {
   syncProducts: (projectId: string) =>
     fetchWithAuth(`/shopify/sync-products?projectId=${projectId}`, {

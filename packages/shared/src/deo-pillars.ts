@@ -43,6 +43,7 @@ export interface DeoPillar {
  * - metadata_snippet_quality
  * - content_commerce_signals
  * - search_intent_fit (SEARCH-INTENT-1)
+ * - competitive_positioning (COMPETITORS-1)
  * - technical_indexability
  *
  * All other pillars are coming soon with placeholder functionality.
@@ -93,10 +94,10 @@ export const DEO_PILLARS: DeoPillar[] = [
     label: 'Competitive Positioning',
     shortName: 'Competitors',
     description:
-      'How your DEO signals compare to competitors, share of voice in search results, and competitive gap analysis.',
+      'Coverage gaps vs typical competitors in your category. Identifies missing intent coverage, content sections, and trust signals that similar products typically include. Uses ethical, heuristic-based analysis — no scraping or copying competitor content.',
     whyItMatters:
-      'Understanding your competitive landscape helps prioritize improvements that will have the greatest impact on your relative visibility and market share.',
-    comingSoon: true,
+      'Products that cover more search intents and include comprehensive content sections rank higher and convert better. Addressing gaps where competitors likely excel helps you compete on equal footing without copying their content.',
+    comingSoon: false,
   },
   {
     id: 'offsite_signals',

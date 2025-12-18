@@ -6,3 +6,4 @@ export { ProductDeoInsightsPanel } from './ProductDeoInsightsPanel';
 export { ProductAnswerBlocksPanel } from './ProductAnswerBlocksPanel';
 export { ProductAutomationHistoryPanel } from './ProductAutomationHistoryPanel';
 export { ProductSearchIntentPanel } from './ProductSearchIntentPanel';
+export { ProductCompetitorsPanel } from './ProductCompetitorsPanel';

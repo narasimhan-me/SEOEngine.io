@@ -11495,4 +11495,186 @@ This phase adds automated test coverage across all layers:
 
 ---
 
+## Phase COMPETITORS-1 – Competitive Coverage & Differentiation Gaps (Completed)
+
+**Status:** Complete
+
+**Goal:** Implement the Competitive Positioning pillar as the second fully-featured DEO vertical slice, enabling detection and resolution of coverage gaps relative to typical competitors in the category.
+
+**Dependency:** SEARCH-INTENT-1 (reuses intent taxonomy, scoring patterns, and draft-first fix flows)
+
+### COMPETITORS-1 Overview
+
+This phase introduces:
+
+1. **Competitive Gap Taxonomy** — Three gap types: intent gaps, content section gaps, trust/FAQ gaps.
+2. **Competitor Reference Model** — Up to 3 competitors per product (heuristic or merchant-configured).
+3. **Competitive Coverage Areas** — Combines Search Intent coverage with content section and trust signal analysis.
+4. **Per-Product Competitive Scorecard** — Score (0–100) and status classification (Ahead/On par/Behind).
+5. **Competitive Issues for DEO Engine** — New issue types with severity based on competitor count and intent importance.
+6. **Draft-First Fix Flows** — Preview/apply pattern with CACHE/REUSE v2 for Answer Blocks and comparison copy.
+
+**Ethical Boundaries (Critical):**
+- No scraping of competitor content, prices, or SERP data.
+- No storage or exposure of raw competitor text.
+- Coverage analysis uses "industry baseline" assumptions, not actual scraped data.
+- All generated content uses only merchant's own product data and generic category patterns.
+
+### COMPETITORS-1 Implementation Details
+
+**Shared Types (packages/shared/src/competitors.ts):**
+- `CompetitorGapType`: 'intent_gap' | 'content_section_gap' | 'trust_signal_gap'
+- `ProductCompetitorRef`: Competitor reference with displayName, logoUrl, homepageUrl, source
+- `ProductCompetitiveCoverage`: Per-product coverage with areas, score, and status
+- `CompetitiveScorecard`: Project-level aggregated competitive metrics
+- `CompetitiveFixGap`: Issue structure with gapType, intentType, competitorCount, recommendedAction
+- `CompetitiveFixDraft`: Draft structure with aiWorkKey for CACHE/REUSE v2
+- Helper functions for scoring and status classification
+
+**Database Schema (apps/api/prisma/schema.prisma):**
+- `CompetitorGapType` enum: COMPETITIVE_MISSING_INTENT, COMPETITIVE_MISSING_SECTION, COMPETITIVE_MISSING_TRUST_SIGNAL
+- `ProductCompetitor` model: Competitor references per product (max 3 enforced by app logic)
+- `ProductCompetitiveCoverage` model: Coverage data with JSON payload, score, status, timestamps
+- `ProductCompetitiveFixDraft` model: Draft storage with aiWorkKey, reuse fields, expiry
+- `ProductCompetitiveFixApplication` model: Audit log of applied fixes
+
+**Backend Service (apps/api/src/projects/competitors.service.ts):**
+- Competitor identification (v1): Heuristic or seeded configuration
+- Coverage analysis combining:
+  - Search Intent coverage (reused from SEARCH-INTENT-1)
+  - Content section detection (comparison, buying guide, "why choose this product")
+  - Trust signal detection (FAQ/Answer Blocks, satisfaction guarantees)
+- Competitive scoring with weighted importance
+- Status classification: Ahead (>70), On par (40-70), Behind (<40)
+- Issue generation with severity based on:
+  - Competitor count (2+ competitors = higher severity)
+  - Intent importance (transactional/comparative > informational)
+
+**Backend Controller (apps/api/src/projects/competitors.controller.ts):**
+- `GET /products/:productId/competitors` — Product competitive data, scorecard, gaps, drafts
+- `POST /products/:productId/competitors/preview` — Generate/reuse competitive fix draft
+- `POST /products/:productId/competitors/apply` — Apply draft without AI call
+- `GET /projects/:projectId/competitors/summary` — Project-level scorecard
+
+**AI Service Extensions (apps/api/src/ai/ai.service.ts):**
+- `generateCompetitiveAnswerBlock()`: Q&A positioning content
+- `generateComparisonSnippet()`: "Why choose this product" content
+- `generateCompetitiveGuidance()`: Placement recommendations
+- All methods use only merchant product data; no competitor text
+
+**AI Usage (apps/api/src/ai/ai-usage-ledger.service.ts):**
+- Reuses `INTENT_FIX_PREVIEW` run type with enriched metadata
+- `playbookId: 'competitive-positioning-fix'` distinguishes from search intent
+- Metadata includes `pillar: 'competitive_positioning'` and `gapType`
+
+**Frontend — Product Competitors Tab:**
+- `ProductCompetitorsPanel.tsx`: New component for product-level competitive analysis
+- Shows competitive score, status, competitor list (up to 3)
+- Gap cards with type badges, competitor count, recommended actions
+- Preview drawer with "AI used / No AI used (reused draft)" indicator
+- Apply button creates Answer Blocks or content sections
+
+**Frontend — Project Competitors Workspace:**
+- `apps/web/src/app/projects/[id]/competitors/page.tsx`: Full workspace
+- Project-level scorecard with score and status
+- Products table with competitive status and gap counts
+- "Ethical boundaries" explanatory section
+
+**Frontend — DEO Overview Integration:**
+- Competitive Positioning pillar card shows score and status
+- "X products behind on high-impact areas" summary
+- "View issues" links to Issues page with pillar filter
+
+**Frontend — Issues Engine Integration:**
+- Competitive issues render with gap type badges
+- `competitorCount` and `intentType` displayed where applicable
+- "Fix" link deep-links to product Competitors tab
+
+**Frontend — Products List:**
+- Compact "Ahead/On par/Behind" pill on ProductRow
+- Click deep-links to product Competitors tab
+
+### COMPETITORS-1 Files Created/Modified
+
+**New Files:**
+- `packages/shared/src/competitors.ts` — Shared competitive types
+- `apps/api/src/projects/competitors.service.ts` — Competitive analysis service
+- `apps/api/src/projects/competitors.controller.ts` — REST endpoints
+- `apps/web/src/components/products/optimization/ProductCompetitorsPanel.tsx` — Product tab component
+- `apps/web/src/app/projects/[id]/competitors/page.tsx` — Competitors workspace (replaced placeholder)
+- `docs/COMPETITORS_PILLAR.md` — Pillar reference documentation
+- `docs/manual-testing/COMPETITORS-1.md` — Manual testing checklist
+
+**Modified Files:**
+- `packages/shared/src/index.ts` — Re-export competitive types
+- `packages/shared/src/deo-issues.ts` — Add competitive issue fields
+- `packages/shared/src/deo-pillars.ts` — Set competitive_positioning.comingSoon = false
+- `apps/api/prisma/schema.prisma` — Add competitive models and enums
+- `apps/api/src/projects/projects.module.ts` — Register CompetitorsService and controller
+- `apps/api/src/projects/deo-issues.service.ts` — Include competitive issues
+- `apps/api/src/ai/ai.service.ts` — Add competitive content generation methods
+- `apps/api/src/ai/ai-usage-ledger.service.ts` — Extend metadata for competitive runs
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` — Add Competitors tab
+- `apps/web/src/app/projects/[id]/deo/page.tsx` — Update competitive pillar card
+- `apps/web/src/app/projects/[id]/issues/page.tsx` — Render competitive issues
+- `apps/web/src/components/products/ProductRow.tsx` — Add competitive status pill
+- `apps/web/src/lib/api.ts` — Add competitive API methods
+- `docs/DEO_INFORMATION_ARCHITECTURE.md` — Add COMPETITORS-1 to pillar slices
+
+### COMPETITORS-1 Test Coverage
+
+**Unit Tests:**
+- `tests/unit/competitors/competitors-shared.test.ts`:
+  - Competitive scoring helper functions
+  - Status classification (Ahead/On par/Behind thresholds)
+  - Severity calculation based on competitor count and intent importance
+
+- `tests/unit/competitors/competitors.service.test.ts`:
+  - Coverage scoring for various product states
+  - Issue generation with correct pillarId, gapType, competitorCount
+  - Status classification edge cases
+
+**Integration Tests:**
+- `tests/integration/automation/competitors-fix.integration.test.ts`:
+  - GET /projects/:id/deo-issues includes competitive issues
+  - Preview endpoint with CACHE/REUSE verification
+  - Apply endpoint resolves gaps and updates coverage
+  - Draft reuse prevents duplicate AI calls
+
+**E2E Tests:**
+- `tests/e2e/automation/competitors-flows.spec.ts`:
+  - Navigate to product Competitors tab via ?focus=competitors
+  - Verify scorecard and gap list render correctly
+  - Preview competitive fix with AI used indicator
+  - Apply fix and verify gap removal
+  - Confirm issues disappear from Issues page
+
+### COMPETITORS-1 Acceptance Criteria (Completed)
+
+- [x] Shared competitive types defined and exported
+- [x] Database schema with competitor and coverage models
+- [x] CompetitorsService with coverage analysis and issue generation
+- [x] REST endpoints for product and project-level competitive data
+- [x] Preview/apply flows with CACHE/REUSE v2 integration
+- [x] AI methods for competitive content generation (no competitor scraping)
+- [x] ProductCompetitorsPanel component with gap cards and fix flows
+- [x] Project Competitors workspace with scorecard and products table
+- [x] DEO Overview pillar card shows competitive score and status
+- [x] Issues Engine renders competitive issues with correct fields
+- [x] Products list shows compact competitive status pill
+- [x] Deep-linking works: ?focus=competitors navigates to tab
+- [x] Unit tests for shared helpers and service logic
+- [x] Integration tests for API endpoints and CACHE/REUSE
+- [x] E2E tests for complete competitive fix flows
+- [x] Documentation created (COMPETITORS_PILLAR.md, manual-testing/COMPETITORS-1.md)
+- [x] DEO_INFORMATION_ARCHITECTURE.md updated with COMPETITORS-1
+
+**Reference Documentation:**
+- `docs/COMPETITORS_PILLAR.md` — Pillar reference
+- `docs/manual-testing/COMPETITORS-1.md` — Manual testing checklist
+
+**Note:** COMPETITORS-1 is the second DEO pillar vertical slice, following the patterns established by SEARCH-INTENT-1. The draft-first preview/apply pattern, CACHE/REUSE v2 integration, and ethical content generation approach should be maintained for future pillar implementations (OFFSITE-1, LOCAL-1).
+
+---
+
 **Author:** Narasimhan Mahendrakumar
