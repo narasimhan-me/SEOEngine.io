@@ -32,6 +32,15 @@ export interface HealthResponse {
   status: 'ok' | 'error';
 }
 
+// DEO pillars - explicit named exports for better tree-shaking and module resolution
+export {
+  DEO_PILLARS,
+  getDeoPillarById,
+  getActiveDeoPillars,
+  type DeoPillarId,
+  type DeoPillar,
+} from './deo-pillars';
+
 // DEO Score types
 export * from './deo-score';
 
@@ -42,11 +51,8 @@ export * from './deo-jobs';
 export * from './deo-score-config';
 export * from './deo-score-engine';
 
-// DEO issues types
+// DEO issues types (depends on deo-pillars)
 export * from './deo-issues';
-
-// DEO pillars types
-export * from './deo-pillars';
 
 // Answer Engine types
 export * from './answer-engine';

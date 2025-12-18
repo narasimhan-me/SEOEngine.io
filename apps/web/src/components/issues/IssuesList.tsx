@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import type { DeoIssue, DeoPillarId } from '@engineo/shared';
-import { DEO_PILLARS } from '@engineo/shared';
+import type { DeoIssue } from '@engineo/shared';
+import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
 
 export const ISSUE_UI_CONFIG: Record<
   string,

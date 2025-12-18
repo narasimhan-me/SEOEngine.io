@@ -3,7 +3,8 @@
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { projectsApi } from '@/lib/api';
-import { DEO_PILLARS, type DeoIssue, type DeoPillarId } from '@engineo/shared';
+import type { DeoIssue } from '@engineo/shared';
+import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
 import { GuardedLink } from '@/components/navigation/GuardedLink';
 
 interface DeoIssuesResponse {

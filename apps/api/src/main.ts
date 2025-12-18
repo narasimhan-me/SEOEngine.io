@@ -1,3 +1,6 @@
+// Load environment variables BEFORE any other imports that depend on them
+import 'dotenv/config';
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';

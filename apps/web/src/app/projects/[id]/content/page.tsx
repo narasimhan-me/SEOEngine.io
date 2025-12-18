@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 import type { DeoIssue, DeoIssueSeverity } from '@engineo/shared';
-import { DEO_PILLARS } from '@engineo/shared';
+import { DEO_PILLARS } from '@/lib/deo-pillars';
 import { isAuthenticated } from '@/lib/auth';
 import { projectsApi } from '@/lib/api';
 import type { ContentPage, ContentStatus, PageType } from '@/lib/content';
