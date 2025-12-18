@@ -138,15 +138,82 @@ A product's **DEO health** considers all pillars:
 - Issue badge: "X DEO issues" with severity color
 - Both are always visible (not mutually exclusive)
 
+## Pillar Vertical Slices
+
+### Reference Implementation: Search & Intent Pillar (SEARCH-INTENT-1)
+
+The **Search & Intent Fit** pillar is the first fully-implemented DEO vertical slice, serving as the reference pattern for all future pillar implementations.
+
+#### Key Surfaces
+
+| Surface | Location | Description |
+|---------|----------|-------------|
+| DEO Overview Card | `/projects/[id]/deo` | Shows coverage score and missing high-value intents |
+| Product Tab | `/projects/[id]/products/[productId]?focus=search-intent` | Search & Intent panel in product workspace |
+| Pillar Workspace | `/projects/[id]/keywords` | Project-level Search & Intent overview |
+| Issues Filter | `/projects/[id]/issues?pillar=search_intent_fit` | Intent issues filtered view |
+| Product Badge | Products list | "Intent coverage: Good/Needs work" indicator |
+
+#### Draft-First Fix Flow
+
+All pillar-specific fixes follow the draft-first pattern:
+
+1. **Preview** — User clicks "Preview fix" on an issue
+2. **Generate** — AI generates a draft (Answer Block or content snippet)
+3. **Cache** — Draft is stored with deterministic `aiWorkKey`
+4. **Review** — User reviews draft in preview drawer
+5. **Apply** — Draft is written to storage (no AI call)
+
+#### CACHE/REUSE v2 Integration
+
+Preview requests use a deterministic key for caching:
+- Same product + intent + query + mode = same draft
+- Reused drafts show "No AI used (reused draft)"
+- AI quota only decremented on new generation
+
+#### Intent-Aware Issues
+
+Search & Intent issues include additional fields:
+- `intentType` — informational, comparative, transactional, etc.
+- `exampleQueries` — Specific queries showing the gap
+- `coverageStatus` — none, weak, partial, covered
+- `recommendedAction` — "Add Answer Block", "Expand description"
+
+For detailed documentation, see [SEARCH_INTENT_PILLAR.md](./SEARCH_INTENT_PILLAR.md).
+
+### Future Pillar Implementations
+
+The following pillars will follow the Search & Intent pattern:
+
+| Pillar | Phase | Status |
+|--------|-------|--------|
+| Competitive Positioning | COMPETITORS-1 | Planned |
+| Off-site Signals | OFFSITE-1 | Planned |
+| Local Discovery | LOCAL-1 | Planned |
+
+Each implementation should include:
+- Shared types in `packages/shared/src/{pillar}.ts`
+- Database models for coverage and drafts
+- Service with coverage computation and issue generation
+- Draft-first preview/apply endpoints
+- Product workspace tab with deep-linking
+- DEO Overview pillar card integration
+- Issues Engine pillar filter support
+
 ## Implementation Files
 
 | Component | File |
 |-----------|------|
 | Pillar definitions | `packages/shared/src/deo-pillars.ts` |
 | Issue types | `packages/shared/src/deo-issues.ts` |
+| Search intent types | `packages/shared/src/search-intent.ts` |
 | Issue builders | `apps/api/src/projects/deo-issues.service.ts` |
+| Search intent service | `apps/api/src/projects/search-intent.service.ts` |
+| Search intent controller | `apps/api/src/projects/search-intent.controller.ts` |
 | Issues list | `apps/web/src/components/issues/IssuesList.tsx` |
 | Issue badge | `apps/web/src/components/issues/IssueBadge.tsx` |
 | Product row | `apps/web/src/components/products/ProductRow.tsx` |
+| Search intent panel | `apps/web/src/components/products/optimization/ProductSearchIntentPanel.tsx` |
 | DEO Overview | `apps/web/src/app/projects/[id]/deo/page.tsx` |
 | Issues page | `apps/web/src/app/projects/[id]/issues/page.tsx` |
+| Search intent workspace | `apps/web/src/app/projects/[id]/keywords/page.tsx` |

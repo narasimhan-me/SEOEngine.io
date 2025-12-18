@@ -51,6 +51,7 @@ enum AutomationPlaybookRunType {
   PREVIEW_GENERATE
   DRAFT_GENERATE
   APPLY
+  INTENT_FIX_PREVIEW  // SEARCH-INTENT-1: Intent fix preview generation
 }
 
 enum AutomationPlaybookRunStatus {
@@ -77,6 +78,7 @@ model User {
   subscription Subscription?
   aiUsageEvents AiUsageEvent[]
   automationPlaybookRuns AutomationPlaybookRun[]
+  intentFixApplications ProductIntentFixApplication[]
 }
 
 model Project {
@@ -134,7 +136,10 @@ model Product {
   imageUrls      Json?
   lastSyncedAt   DateTime @default(now())
 
-  answerBlocks AnswerBlock[]
+  answerBlocks         AnswerBlock[]
+  intentCoverages      ProductIntentCoverage[]
+  intentFixDrafts      ProductIntentFixDraft[]
+  intentFixApplications ProductIntentFixApplication[]
 }
 
 model AnswerBlock {
@@ -312,4 +317,96 @@ model AutomationPlaybookRun {
   @@index([projectId, scopeId, runType, createdAt(sort: Desc)])
   @@index([projectId, playbookId, runType, aiWorkKey])
   @@unique([projectId, playbookId, runType, scopeId, rulesHash, idempotencyKey])
+}
+
+// ============================================================================
+// SEARCH-INTENT-1: Search & Intent Pillar Models
+// ============================================================================
+
+enum SearchIntentType {
+  INFORMATIONAL
+  COMPARATIVE
+  TRANSACTIONAL
+  PROBLEM_USE_CASE
+  TRUST_VALIDATION
+}
+
+enum IntentCoverageStatus {
+  NONE
+  WEAK
+  PARTIAL
+  COVERED
+}
+
+enum IntentFixDraftType {
+  ANSWER_BLOCK
+  CONTENT_SNIPPET
+  METADATA_GUIDANCE
+}
+
+enum IntentFixApplyTarget {
+  ANSWER_BLOCK
+  CONTENT_SNIPPET_SECTION
+}
+
+// Per-product intent coverage analysis
+model ProductIntentCoverage {
+  id              String              @id @default(cuid())
+  product         Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId       String
+  intentType      SearchIntentType
+  score           Float               // 0-100 coverage score
+  coverageStatus  IntentCoverageStatus
+  missingQueries  Json                // string[] of queries with no coverage
+  weakQueries     Json                // string[] of queries with weak coverage
+  coveredQueries  Json                // string[] of queries with strong coverage
+  expectedQueries Json                // string[] of all expected queries for this intent
+  computedAt      DateTime            @default(now())
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@unique([productId, intentType])
+  @@index([productId, computedAt(sort: Desc)])
+}
+
+// Draft fixes for intent coverage gaps (preview-first pattern)
+model ProductIntentFixDraft {
+  id               String              @id @default(cuid())
+  product          Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId        String
+  intentType       SearchIntentType
+  query            String              // The specific query this draft addresses
+  draftType        IntentFixDraftType
+  draftPayload     Json                // Answer Block structure or content snippet
+  aiWorkKey        String              // Deterministic key for CACHE/REUSE v2
+  reusedFromWorkKey String?            // If reused, the original work key
+  generatedWithAi  Boolean             @default(true)
+  expiresAt        DateTime?           // Optional TTL for draft expiry
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  applications     ProductIntentFixApplication[]
+
+  @@index([productId, intentType, query])
+  @@index([aiWorkKey])
+  @@index([productId, expiresAt])
+}
+
+// Audit log for applied intent fixes
+model ProductIntentFixApplication {
+  id              String              @id @default(cuid())
+  product         Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId       String
+  draft           ProductIntentFixDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  draftId         String
+  appliedBy       User                @relation(fields: [appliedByUserId], references: [id], onDelete: Cascade)
+  appliedByUserId String
+  intentType      SearchIntentType
+  query           String
+  applyTarget     IntentFixApplyTarget
+  notes           String?
+  appliedAt       DateTime            @default(now())
+
+  @@index([productId, appliedAt(sort: Desc)])
+  @@index([appliedByUserId, appliedAt(sort: Desc)])
 }

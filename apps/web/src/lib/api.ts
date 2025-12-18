@@ -576,6 +576,144 @@ export const productsApi = {
     }),
 };
 
+// =============================================================================
+// SEARCH-INTENT-1: Search & Intent API
+// =============================================================================
+
+export type SearchIntentType =
+  | 'informational'
+  | 'comparative'
+  | 'transactional'
+  | 'problem_use_case'
+  | 'trust_validation';
+
+export type IntentCoverageStatus = 'none' | 'weak' | 'partial' | 'covered';
+
+export type IntentFixDraftType = 'answer_block' | 'content_snippet' | 'metadata_guidance';
+
+export type IntentFixApplyTarget = 'ANSWER_BLOCK' | 'CONTENT_SNIPPET_SECTION';
+
+export interface ProductIntentCoverage {
+  productId: string;
+  intentType: SearchIntentType;
+  score: number;
+  coverageStatus: IntentCoverageStatus;
+  missingQueries: string[];
+  weakQueries: string[];
+  coveredQueries: string[];
+  expectedQueries: string[];
+  computedAt: string;
+}
+
+export interface IntentFixDraft {
+  id: string;
+  productId: string;
+  intentType: SearchIntentType;
+  query: string;
+  draftType: IntentFixDraftType;
+  draftPayload: {
+    question?: string;
+    answer?: string;
+    snippet?: string;
+    titleSuggestion?: string;
+    descriptionSuggestion?: string;
+  };
+  aiWorkKey: string;
+  reusedFromWorkKey?: string;
+  generatedWithAi: boolean;
+  generatedAt: string;
+  expiresAt?: string;
+}
+
+export interface ProductSearchIntentResponse {
+  productId: string;
+  coverage: ProductIntentCoverage[];
+  scorecard: {
+    overallScore: number;
+    status: 'Good' | 'Needs improvement';
+    missingHighValueIntents: number;
+  };
+  openDrafts: IntentFixDraft[];
+}
+
+export interface SearchIntentScorecard {
+  overallScore: number;
+  intentBreakdown: {
+    intentType: SearchIntentType;
+    label: string;
+    score: number;
+    status: IntentCoverageStatus;
+    productsWithGaps: number;
+  }[];
+  missingHighValueIntents: number;
+  status: 'Good' | 'Needs improvement';
+  totalProducts: number;
+  computedAt: string;
+}
+
+export interface IntentFixPreviewResponse {
+  draft: IntentFixDraft;
+  generatedWithAi: boolean;
+  aiUsage?: {
+    tokensUsed: number;
+    latencyMs: number;
+  };
+}
+
+export interface IntentFixApplyResponse {
+  success: boolean;
+  updatedCoverage: ProductIntentCoverage[];
+  issuesResolved: boolean;
+  issuesResolvedCount: number;
+}
+
+export const searchIntentApi = {
+  /**
+   * Get product search intent data including coverage, scorecard, and open drafts.
+   */
+  getProductSearchIntent: (productId: string): Promise<ProductSearchIntentResponse> =>
+    fetchWithAuth(`/products/${productId}/search-intent`),
+
+  /**
+   * Preview an intent fix - generates or retrieves a cached draft.
+   * Draft-first pattern: AI is only called if no cached draft exists.
+   */
+  previewIntentFix: (
+    productId: string,
+    params: {
+      intentType: SearchIntentType;
+      query: string;
+      fixType: IntentFixDraftType;
+    },
+  ): Promise<IntentFixPreviewResponse> =>
+    fetchWithAuth(`/products/${productId}/search-intent/preview`, {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+
+  /**
+   * Apply an intent fix draft.
+   * No AI call - persists the draft content to appropriate storage.
+   */
+  applyIntentFix: (
+    productId: string,
+    params: {
+      draftId: string;
+      applyTarget: IntentFixApplyTarget;
+    },
+  ): Promise<IntentFixApplyResponse> =>
+    fetchWithAuth(`/products/${productId}/search-intent/apply`, {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+
+  /**
+   * Get project-level Search & Intent scorecard.
+   */
+  getProjectSearchIntentSummary: (projectId: string): Promise<SearchIntentScorecard> =>
+    fetchWithAuth(`/projects/${projectId}/search-intent/summary`),
+};
+
 export const shopifyApi = {
   syncProducts: (projectId: string) =>
     fetchWithAuth(`/shopify/sync-products?projectId=${projectId}`, {

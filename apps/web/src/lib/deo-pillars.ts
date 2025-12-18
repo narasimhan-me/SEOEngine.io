@@ -75,10 +75,10 @@ export const DEO_PILLARS: DeoPillar[] = [
     label: 'Search & Intent Fit',
     shortName: 'Search & Intent',
     description:
-      'How well your content matches user search intent, query coverage, and Answer Block readiness for AI-powered answer engines.',
+      'Query coverage analysis, missing intent detection, and Answer Block readiness for AI-powered answer engines. Identifies gaps in transactional, comparative, and informational query coverage.',
     whyItMatters:
       'Matching search intent increases conversion and featured snippet eligibility. Answer Blocks ensure your products are ready to be cited by AI engines like ChatGPT, Perplexity, and Google AI Overviews.',
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     id: 'competitive_positioning',

@@ -54,6 +54,9 @@ export * from './deo-score-engine';
 // DEO issues types (depends on deo-pillars)
 export * from './deo-issues';
 
+// Search Intent types (SEARCH-INTENT-1)
+export * from './search-intent';
+
 // Answer Engine types
 export * from './answer-engine';
 

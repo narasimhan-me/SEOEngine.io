@@ -1,4 +1,5 @@
 import type { DeoPillarId } from './deo-pillars';
+import type { SearchIntentType, IntentCoverageStatus } from './search-intent';
 
 export type DeoIssueSeverity = 'critical' | 'warning' | 'info';
 
@@ -128,6 +129,32 @@ export interface DeoIssue {
    * To be wired up in later IE-2.x sub-phases.
    */
   dependencies?: string[];
+
+  // === Search & Intent Pillar fields (SEARCH-INTENT-1) ===
+
+  /**
+   * For Search & Intent pillar issues: the specific intent type
+   * this issue relates to (transactional, comparative, etc.).
+   */
+  intentType?: SearchIntentType;
+
+  /**
+   * Example queries that illustrate the missing or weak intent coverage.
+   * Helps users understand what search queries are not being addressed.
+   */
+  exampleQueries?: string[];
+
+  /**
+   * Current coverage status for the intent (none/weak/partial/covered).
+   * Used to communicate severity and progress.
+   */
+  coverageStatus?: IntentCoverageStatus;
+
+  /**
+   * Short, actionable recommendation for fixing this intent gap.
+   * Examples: "Add Answer Block", "Expand product description", "Add comparison section"
+   */
+  recommendedAction?: string;
 }
 
 export interface DeoIssuesResponse {

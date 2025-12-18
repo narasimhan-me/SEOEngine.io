@@ -15,6 +15,7 @@ import {
   ProductAiSuggestionsPanel,
   ProductSeoEditor,
   ProductDeoInsightsPanel,
+  ProductSearchIntentPanel,
   type ProductMetadataSuggestion,
   type AutomationSuggestion,
 } from '@/components/products/optimization';
@@ -349,6 +350,15 @@ export default function ProductOptimizationPage() {
         window.clearTimeout(timeoutId);
       };
     }
+
+    if (focus === 'search-intent') {
+      const timeoutId = window.setTimeout(() => {
+        scrollToSection('search-intent-section');
+      }, 200);
+      return () => {
+        window.clearTimeout(timeoutId);
+      };
+    }
   }, [product, searchParams, scrollToSection]);
 
   if (loading) {
@@ -459,6 +469,13 @@ export default function ProductOptimizationPage() {
                 className="rounded-full px-2 py-1 text-xs hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
               >
                 Answers
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToSection('search-intent-section')}
+                className="rounded-full px-2 py-1 text-xs hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+              >
+                Search &amp; Intent
               </button>
               <button
                 type="button"
@@ -616,6 +633,14 @@ export default function ProductOptimizationPage() {
                       onBlocksLoaded={setHasAnswerBlocks}
                     />
                   </div>
+                </section>
+                <section id="search-intent-section" aria-label="Search & Intent">
+                  <h2 className="mb-4 text-base font-semibold text-gray-900">Search & Intent</h2>
+                  <p className="mb-3 text-xs text-gray-500">
+                    Analyze how well this product covers common search intents.
+                    High-value intents (transactional, comparative) have the most impact on conversions.
+                  </p>
+                  <ProductSearchIntentPanel productId={product.id} />
                 </section>
                 <section id="automations-section" aria-label="Automations">
                   <h2 className="mb-4 text-base font-semibold text-gray-900">Automations</h2>

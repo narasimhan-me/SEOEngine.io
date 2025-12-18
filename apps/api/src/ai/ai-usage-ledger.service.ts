@@ -5,7 +5,11 @@ import { AutomationPlaybookRunStatus, AutomationPlaybookRunType } from '@prisma/
 // Re-export for consumers
 export { AutomationPlaybookRunStatus };
 
-export type AiUsageRunType = 'PREVIEW_GENERATE' | 'DRAFT_GENERATE' | 'APPLY';
+export type AiUsageRunType =
+  | 'PREVIEW_GENERATE'
+  | 'DRAFT_GENERATE'
+  | 'APPLY'
+  | 'INTENT_FIX_PREVIEW'; // SEARCH-INTENT-1
 
 export interface AiUsageProjectSummary {
   projectId: string;
@@ -106,6 +110,7 @@ export class AiUsageLedgerService {
 
       switch (run.runType) {
         case 'PREVIEW_GENERATE':
+        case 'INTENT_FIX_PREVIEW': // SEARCH-INTENT-1: Treat as preview
           previewRuns++;
           break;
         case 'DRAFT_GENERATE':
@@ -213,5 +218,86 @@ export class AiUsageLedgerService {
   // Helper: Get end of month
   private endOfMonth(date: Date): Date {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+  }
+
+  // ============================================================================
+  // AI Run Recording (SEARCH-INTENT-1)
+  // ============================================================================
+
+  /**
+   * Record an AI run in the ledger.
+   * This creates an AutomationPlaybookRun record for tracking AI usage.
+   */
+  async recordAiRun(params: {
+    projectId: string;
+    runType: AiUsageRunType;
+    productIds: string[];
+    productsProcessed: number;
+    productsSkipped: number;
+    draftsFresh: number;
+    draftsReused: number;
+    metadata?: Record<string, unknown>;
+  }): Promise<void> {
+    const {
+      projectId,
+      runType,
+      productIds,
+      productsProcessed,
+      productsSkipped,
+      draftsFresh,
+      draftsReused,
+      metadata,
+    } = params;
+
+    // Get the project to find the user
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { userId: true },
+    });
+
+    if (!project) {
+      this.logger.warn(`[AiUsageLedgerService] Project not found: ${projectId}`);
+      return;
+    }
+
+    // Generate deterministic keys for the run
+    const idempotencyKey = `${runType}:${productIds.join(',')}:${Date.now()}`;
+    const rulesHash = 'intent-fix'; // Simplified for intent fixes
+    const scopeId = productIds.length === 1 ? productIds[0] : 'batch';
+    const aiWorkKey = metadata?.aiWorkKey as string | undefined;
+
+    try {
+      await this.prisma.automationPlaybookRun.create({
+        data: {
+          projectId,
+          createdByUserId: project.userId,
+          playbookId: 'search-intent-fix', // Virtual playbook for intent fixes
+          runType: runType as AutomationPlaybookRunType,
+          status: 'SUCCEEDED',
+          scopeId,
+          rulesHash,
+          idempotencyKey,
+          aiUsed: draftsFresh > 0,
+          aiWorkKey,
+          reused: draftsReused > 0,
+          meta: {
+            productsProcessed,
+            productsSkipped,
+            draftsFresh,
+            draftsReused,
+            ...metadata,
+          },
+        },
+      });
+
+      this.logger.log(
+        `[AiUsageLedgerService] Recorded AI run: ${runType} for project ${projectId}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `[AiUsageLedgerService] Failed to record AI run: ${error}`,
+      );
+      // Don't throw - this is best-effort logging
+    }
   }
 }

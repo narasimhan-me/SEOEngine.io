@@ -17,6 +17,8 @@ import { ShopifyModule } from '../shopify/shopify.module';
 import { AutomationPlaybooksService } from './automation-playbooks.service';
 import { AutomationPlaybookRunProcessor } from './automation-playbook-run.processor';
 import { AutomationPlaybookRunsService } from './automation-playbook-runs.service';
+import { SearchIntentService } from './search-intent.service';
+import { SearchIntentController } from './search-intent.controller';
 
 @Module({
   imports: [
@@ -25,7 +27,7 @@ import { AutomationPlaybookRunsService } from './automation-playbook-runs.servic
     ProductsModule,
     forwardRef(() => ShopifyModule),
   ],
-  controllers: [ProjectsController, ProductAutomationController],
+  controllers: [ProjectsController, ProductAutomationController, SearchIntentController],
   providers: [
     ProjectsService,
     PrismaService,
@@ -40,7 +42,8 @@ import { AutomationPlaybookRunsService } from './automation-playbook-runs.servic
     AutomationPlaybooksService,
     AutomationPlaybookRunProcessor,
     AutomationPlaybookRunsService,
+    SearchIntentService,
   ],
-  exports: [ProjectsService, DeoScoreService, AutomationService, AnswerEngineService, AutomationPlaybookRunsService],
+  exports: [ProjectsService, DeoScoreService, AutomationService, AnswerEngineService, AutomationPlaybookRunsService, SearchIntentService],
 })
 export class ProjectsModule {}

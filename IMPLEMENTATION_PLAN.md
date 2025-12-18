@@ -11283,4 +11283,216 @@ This phase introduces:
 
 ---
 
+## Phase SEARCH-INTENT-1 – Query Coverage & Intent Gaps (Completed)
+
+**Status:** Complete
+
+**Goal:** Implement the Search & Intent pillar as the first fully-featured DEO vertical slice, enabling detection and resolution of missing/weak search intent coverage across products.
+
+### SEARCH-INTENT-1 Overview
+
+This phase introduces:
+
+1. **Shared Intent Taxonomy** — 5 intent types: informational, comparative, transactional, problem_use_case, trust_validation.
+2. **Query Template System** — Canonical set of query templates mapped to intent types with importance weights.
+3. **Per-Product Intent Coverage** — Coverage scoring and status (none/weak/partial/covered) per intent type.
+4. **Intent-Aware DEO Issues** — New issue types for missing/weak intents with example queries and recommended actions.
+5. **Draft-First Fix Flow** — Preview generates AI drafts (Answer Blocks or content snippets), Apply writes without AI.
+6. **CACHE/REUSE v2 Integration** — Deterministic `aiWorkKey` enables draft reuse and quota preservation.
+7. **Search & Intent Pillar Activation** — Pillar marked active with full UI integration.
+
+### SEARCH-INTENT-1 Implementation Details
+
+**Shared Types (packages/shared):**
+- Created `search-intent.ts` with `SearchIntentType` taxonomy and interfaces.
+- `IntentQueryTemplate` shape for query patterns with importance weights.
+- `ProductIntentCoverage` shape for per-product coverage data.
+- `SearchIntentScorecard` shape for project-level aggregation.
+- Default query templates covering transactional, comparative, and informational patterns.
+- Updated `deo-issues.ts` with optional intent-aware fields: `intentType`, `exampleQueries`, `coverageStatus`, `recommendedAction`.
+- Updated `deo-pillars.ts` to mark `search_intent_fit` as active (comingSoon = false).
+- Exported new types from `index.ts`.
+
+**Database Schema (apps/api/prisma):**
+- Added `SearchIntentType` enum (INFORMATIONAL, COMPARATIVE, TRANSACTIONAL, PROBLEM_USE_CASE, TRUST_VALIDATION).
+- Added `IntentCoverageStatus` enum (NONE, WEAK, PARTIAL, COVERED).
+- Created `ProductIntentCoverage` model with product FK, intent type, score, status, query arrays, computedAt.
+- Created `ProductIntentFixDraft` model with draft payload, aiWorkKey, reuse tracking, expiry.
+- Created `ProductIntentFixApplication` model for applied fix audit log.
+
+**Backend (apps/api):**
+- Created `search-intent.service.ts` with:
+  - Per-product coverage computation using heuristics (Answer Blocks, descriptions, SEO fields).
+  - Project-level scorecard aggregation with weighted scoring (transactional/comparative prioritized).
+  - Intent issue generation with pillarId, intentType, exampleQueries, recommendedAction.
+- Updated `deo-issues.service.ts` to include Search & Intent issues via `buildSearchIntentIssuesForProject`.
+- Updated `projects.module.ts` to register SearchIntentService.
+- Created `search-intent.controller.ts` with:
+  - `GET /products/:id/search-intent` — Per-product coverage and scorecard.
+  - `GET /projects/:id/search-intent/summary` — Project-level pillar summary.
+  - `POST /products/:id/search-intent/preview` — AI-powered draft generation with CACHE/REUSE v2.
+  - `POST /products/:id/search-intent/apply` — Draft application (no AI call).
+- Updated `products.controller.ts` with search intent endpoint.
+- Updated AI usage ledger and quota services with "search-intent-preview" work kind.
+
+**Frontend (apps/web):**
+- Updated `api.ts` with new client methods:
+  - `productsApi.searchIntent(productId)`
+  - `productsApi.previewSearchIntentFix(productId, payload)`
+  - `productsApi.applySearchIntentFix(productId, payload)`
+  - `projectsApi.searchIntentSummary(projectId)`
+- Created `ProductSearchIntentPanel.tsx` component with:
+  - Intent coverage score and per-intent-type breakdown.
+  - Missing high-value intents count.
+  - Issue cards with intent type badges, example queries, recommended actions.
+  - Preview drawer with "AI used" vs "No AI used (reused)" indicator.
+  - Apply button that writes draft without AI.
+- Updated product workspace (`products/[productId]/page.tsx`) with Search & Intent tab.
+- Updated `keywords/page.tsx` as Search & Intent workspace with:
+  - Project-level summary card.
+  - Products table with intent coverage scores and deep-links.
+- Updated `ProductRow.tsx` with Search & Intent micro-badge.
+- Updated `deo/page.tsx` DEO Overview with Search & Intent pillar card using summary API.
+- Updated `issues/page.tsx` Issues Engine with intent-specific issue rendering.
+
+**Documentation:**
+- Created `docs/SEARCH_INTENT_PILLAR.md` — Pillar reference and taxonomy.
+- Created `docs/manual-testing/SEARCH-INTENT-1.md` — Manual test script.
+- Updated `docs/DEO_INFORMATION_ARCHITECTURE.md` with Search & Intent as reference pillar.
+
+### SEARCH-INTENT-1 Acceptance Criteria (Completed)
+
+- [x] Shared intent taxonomy (5 types) defined in `search-intent.ts`.
+- [x] Query template system with importance weights.
+- [x] Database models for coverage, drafts, and applied fixes.
+- [x] SearchIntentService computes per-product and project-level coverage.
+- [x] Intent issues generated with pillarId, intentType, exampleQueries.
+- [x] Preview endpoint generates AI drafts with CACHE/REUSE v2.
+- [x] Apply endpoint writes drafts without AI calls.
+- [x] AI usage quotas enforced only on preview (not apply).
+- [x] Reuse events recorded when draft is reused.
+- [x] Search & Intent pillar marked active in DEO_PILLARS.
+- [x] ProductSearchIntentPanel shows coverage, issues, and fix flows.
+- [x] Product workspace has Search & Intent tab with deep-linking.
+- [x] Keywords page repurposed as Search & Intent workspace.
+- [x] ProductRow has Search & Intent micro-badge.
+- [x] DEO Overview shows Search & Intent pillar card.
+- [x] Issues Engine supports Search & Intent pillar filtering.
+- [x] Documentation created (SEARCH_INTENT_PILLAR.md, manual testing).
+
+**Manual Testing:** `docs/manual-testing/SEARCH-INTENT-1.md`
+
+**Note:** SEARCH-INTENT-1 is the reference pillar implementation for future vertical slices (COMPETITORS-1, OFFSITE-1, LOCAL-1). The draft-first preview/apply pattern and CACHE/REUSE v2 integration should be followed for all pillar-specific fix flows.
+
+---
+
+## Phase SEARCH-INTENT-1-TESTS – Test & Verification Completion (Completed)
+
+**Status:** Complete
+
+**Goal:** Add comprehensive test coverage for the Search & Intent pillar to ensure stability, prevent regressions, and validate the draft-first preview/apply pattern.
+
+### SEARCH-INTENT-1-TESTS Overview
+
+This phase adds automated test coverage across all layers:
+
+1. **Unit Tests — Shared Intent Model & Work Key** — Pure function tests for the shared search intent helpers.
+2. **Unit Tests — SearchIntentService Behavior** — Service-level coverage computation and scorecard logic.
+3. **Integration Tests — Preview, Apply, and Issue Resolution** — API-level tests for the full fix flow with CACHE/REUSE v2.
+4. **E2E Tests — Product Search & Intent UX** — Browser-level tests for the complete user journey.
+5. **Issues Engine & DEO Overview Sanity Checks** — Ensuring Search & Intent issues integrate cleanly.
+
+### SEARCH-INTENT-1-TESTS Implementation Details
+
+**Unit Tests — Shared Intent Model (tests/unit/search-intent/search-intent-shared.test.ts):**
+- `SEARCH_INTENT_TYPES` array order matches documented priority (transactional first).
+- `SEARCH_INTENT_WEIGHTS` confirms transactional (10) > comparative (9) > informational (5).
+- `getCoverageStatusFromScore`:
+  - 0-19 → 'none'
+  - 20-49 → 'weak'
+  - 50-79 → 'partial'
+  - 80-100 → 'covered'
+- `isHighValueIntent` returns true only for 'transactional' and 'comparative'.
+- `computeIntentFixWorkKey`:
+  - Same inputs → same key (deterministic).
+  - Any input change → different key.
+
+**Unit Tests — AI Usage Ledger (tests/unit/ai/ai-usage-ledger.service.test.ts):**
+- Mock `automationPlaybookRun` with `runType: 'INTENT_FIX_PREVIEW'`, `aiUsed: true`.
+- `getProjectSummary` counts toward `totalRuns` and `totalAiRuns`.
+- `INTENT_FIX_PREVIEW` increments `previewRuns` bucket.
+- No invariant violations logged for this new run type.
+
+**Unit Tests — SearchIntentService (tests/unit/search-intent/search-intent.service.test.ts):**
+- Product with no content/Answer Blocks:
+  - All intent types have status 'none'.
+  - `missingHighValueIntents > 0`.
+- Product with Answer Block covering transactional query:
+  - Transactional intent status is 'covered' or 'partial'.
+  - Not counted as missing high-value.
+- Mixed coverage scenario:
+  - Informational weak/partial, transactional/comparative covered.
+  - Overall status is 'Good'.
+- Scorecard `overallScore` reflects weighted importance.
+- Status toggles between 'Good' / 'Needs improvement' at threshold.
+
+**Integration Tests — Preview & Apply (tests/integration/automation/search-intent-fix.integration.test.ts):**
+- Preview + CACHE/REUSE:
+  - First call: `generatedWithAi = true`, draft created.
+  - Second call (same payload): same `aiWorkKey`/`draftId`, `generatedWithAi = false`.
+  - AI usage ledger has `runType: 'INTENT_FIX_PREVIEW'`, `draftsFresh = 1`, `draftsReused = 0`.
+- Apply + coverage update:
+  - `success = true` in response.
+  - `updatedCoverage` shows intent no longer 'none'.
+  - `issuesResolved = true` when gap is closed.
+  - `AnswerBlock` row created with expected question/answer.
+
+**E2E Tests — Product Search & Intent UX (tests/e2e/automation/search-intent-flows.spec.ts):**
+- Navigate to product workspace with `?focus=search-intent`.
+- Verify Search & Intent tab is selected.
+- Verify pillar summary shows score and missing high-value intents.
+- Verify issue card for missing/weak intent is visible.
+- Click "Preview fix":
+  - Draft appears (Answer Block or snippet).
+  - UI indicates AI used vs reuse.
+- Click "Apply":
+  - No additional AI spinner.
+  - After refresh, issue count decreases/disappears.
+  - Search & Intent badge improves.
+
+**Issues Engine Sanity (tests/integration/automation/issue-lite-ai-fix.integration.test.ts):**
+- `GET /projects/:id/deo-issues` returns:
+  - At least one issue with `pillarId = 'search_intent_fit'`.
+  - Issues include `intentType` and `exampleQueries` fields.
+
+**Frontend Tests (apps/web tests):**
+- Search & Intent pillar card is not marked "Coming soon".
+- Renders score and missing high-value intents when API returns data.
+- "View issues" link navigates to Issues page with pillar pre-filtered.
+
+### SEARCH-INTENT-1-TESTS Acceptance Criteria (Completed)
+
+- [x] Unit tests for shared search intent helpers (weights, status, workKey).
+- [x] Unit tests for AI usage ledger with INTENT_FIX_PREVIEW run type.
+- [x] Unit tests for SearchIntentService coverage computation and scorecard.
+- [x] Integration tests for preview endpoint with CACHE/REUSE v2 verification.
+- [x] Integration tests for apply endpoint with coverage update and issue resolution.
+- [x] Integration tests confirming Search & Intent issues in DEO issues response.
+- [x] E2E tests for complete product Search & Intent UX flow.
+- [x] Frontend tests for pillar card and deep-linking.
+- [x] All tests passing locally and in CI.
+- [x] Documentation updated with test references.
+
+**Test Files:**
+- `tests/unit/search-intent/search-intent-shared.test.ts`
+- `tests/unit/search-intent/search-intent.service.test.ts`
+- `tests/unit/ai/ai-usage-ledger.service.test.ts` (updated)
+- `tests/integration/automation/search-intent-fix.integration.test.ts`
+- `tests/integration/automation/issue-lite-ai-fix.integration.test.ts` (updated)
+- `tests/e2e/automation/search-intent-flows.spec.ts`
+
+**Note:** Failures in these tests are treated as blocking for SEARCH-INTENT-1 regressions. The test patterns established here (preview/apply integration, CACHE/REUSE verification, pillar UI coverage) should be followed for future pillar implementations.
+
+---
+
 **Author:** Narasimhan Mahendrakumar
