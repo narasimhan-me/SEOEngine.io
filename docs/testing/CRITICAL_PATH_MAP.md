@@ -130,12 +130,12 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 ### CP-006: Shopify Sync
 
-**Description:** Shopify integration including OAuth, product sync, metadata push, and sync status tracking.
+**Description:** Shopify integration including OAuth, product sync, metadata push, image alt text ingestion, and sync status tracking.
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/shopify-integration.md`, `docs/testing/product-sync.md`, `docs/testing/metadata-sync-seo-fields.md`, `docs/testing/sync-status-and-progress-feedback.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-shop-api-1-graphql-migration.md`, `docs/manual-testing/phase-shop-ux-cta-1-connect-shopify.md`, `docs/manual-testing/phase-shop-ux-cta-1-1-dedup-connect-shopify.md` |
-| **Automated Tests** | Planned |
+| **Manual Testing Doc(s)** | `docs/testing/shopify-integration.md`, `docs/testing/product-sync.md`, `docs/testing/metadata-sync-seo-fields.md`, `docs/testing/sync-status-and-progress-feedback.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-shop-api-1-graphql-migration.md`, `docs/manual-testing/phase-shop-ux-cta-1-connect-shopify.md`, `docs/manual-testing/phase-shop-ux-cta-1-1-dedup-connect-shopify.md`, `docs/manual-testing/MEDIA-1.md` |
+| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1) |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | Integrations Team |
@@ -150,6 +150,8 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] Answer Blocks synced to Shopify metafields when AEO-2 flag is enabled
 - [ ] Shopify product sync and SEO metadata push use Shopify Admin GraphQL APIs (SHOP-API-1)
 - [ ] First DEO Win checklist Connect CTA uses direct OAuth with personalized domain (SHOP-UX-CTA-1, SHOP-UX-CTA-1.1)
+- [ ] MEDIA-1: Product images with alt text are synced and stored in ProductImage records
+- [ ] MEDIA-1: Image sync does not break existing Product.imageUrls behavior
 
 ---
 
@@ -197,12 +199,12 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 ### CP-009: Issue Engine Lite
 
-**Description:** Product-focused DEO issues with actionable fix buttons (AI fix, manual fix, sync fix) and severity filtering.
+**Description:** Product-focused DEO issues with actionable fix buttons (AI fix, manual fix, sync fix) and severity filtering. Includes MEDIA pillar issues.
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/issue-engine-lite.md` |
-| **Automated Tests** | Planned |
+| **Manual Testing Doc(s)** | `docs/testing/issue-engine-lite.md`, `docs/manual-testing/MEDIA-1.md` |
+| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1) |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | DEO Team |
@@ -215,17 +217,19 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] Re-sync action triggers Shopify sync flow
 - [ ] Issue counts in Products page header
 - [ ] Re-scan button refreshes issues
+- [ ] MEDIA-1: MEDIA pillar issues appear with correct pillarId and imageCountAffected
+- [ ] MEDIA-1: missing_image_alt_text, generic_image_alt_text, insufficient_image_coverage, missing_media_context issues generated
 
 ---
 
 ### CP-010: Issue Engine Full (IE-2.0)
 
-**Description:** Rich metadata enrichment for all DEO issues with categories, business impact explanations, fix guidance, AI fixability indicators, and effort estimation.
+**Description:** Rich metadata enrichment for all DEO issues with categories, business impact explanations, fix guidance, AI fixability indicators, and effort estimation. Includes MEDIA pillar issue enrichment.
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/manual-testing/phase-ux-8-issue-engine-full.md`, `docs/testing/issue-engine-full-*.md` |
-| **Automated Tests** | Planned |
+| **Manual Testing Doc(s)** | `docs/manual-testing/phase-ux-8-issue-engine-full.md`, `docs/testing/issue-engine-full-*.md`, `docs/manual-testing/MEDIA-1.md` |
+| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1) |
 | **Last Verified (Manual)** | 2025-12-08 |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | DEO Team |
@@ -238,6 +242,9 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] All issues include fixCost estimation (one_click/manual/advanced)
 - [ ] AI-fixable issues correctly identified (fixType: aiFix)
 - [ ] Backward compatibility maintained (all existing fields preserved)
+- [ ] MEDIA-1: MEDIA issues include whyItMatters and recommendedFix aligned with accessibility/discovery framing
+- [ ] MEDIA-1: MEDIA issues include correct aiFixable and fixCost metadata
+- [ ] MEDIA-1: Issues resolve deterministically when alt text/captions are fixed
 
 ---
 
@@ -394,3 +401,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 2.2 | 2025-12-14 | Added AUTO-PB-1 and AUTO-PB-1.1 Automation Playbooks scenarios to CP-012, added E2E tests and manual testing docs |
 | 2.3 | 2025-12-15 | Added AUTO-PB-1.2 UX coherence and navigation safety scenarios to CP-012, including new manual testing doc and Playwright coverage |
 | 2.4 | 2025-12-15 | Added AUTO-PB-1.3 (Planned) Preview Persistence & Cross-Surface Drafts scenario to CP-012 |
+| 2.5 | 2025-12-18 | Added MEDIA-1 scenarios to CP-006 (Shopify Sync), CP-009 (Issue Engine Lite), CP-010 (Issue Engine Full) for Media & Accessibility pillar |

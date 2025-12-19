@@ -1217,4 +1217,155 @@ Respond in JSON format only:
       ],
     };
   }
+
+  // ============================================================================
+  // MEDIA-1: Media & Accessibility Draft Generation Methods
+  // ============================================================================
+
+  /**
+   * Generate descriptive alt text for a product image.
+   *
+   * DESIGN PRINCIPLES:
+   * - Uses only product metadata (title, description) — no heavy CV/vision pipeline
+   * - Generated alt text must NOT hallucinate content not visible in the image
+   * - Alt text should be descriptive, neutral, and accessibility-focused
+   * - No keyword stuffing
+   */
+  async generateImageAltText(input: {
+    productTitle: string;
+    productDescription: string;
+    currentAltText: string;
+    imagePosition: number;
+  }): Promise<{ altText: string }> {
+    const positionContext =
+      input.imagePosition === 0
+        ? 'main product image'
+        : `product image ${input.imagePosition + 1}`;
+
+    const prompt = `You are an accessibility specialist. Generate descriptive alt text for a product image.
+
+Product Title: ${input.productTitle}
+Product Description: ${input.productDescription || 'Not provided'}
+Current Alt Text: ${input.currentAltText || 'None'}
+Image Position: ${positionContext}
+
+Requirements:
+- Write descriptive alt text (max 125 characters) that helps visually impaired users understand the image
+- Focus on what would likely be VISIBLE in a product image: the product itself, its appearance, color, shape, context
+- For the main image, describe the product prominently
+- For secondary images, suggest possible alternate views (side view, detail shot, product in use)
+- DO NOT invent specific visual details you cannot know
+- DO NOT use phrases like "image of" or "picture of" — just describe the content
+- DO NOT keyword stuff or include promotional language
+- Keep language neutral and factual
+
+CRITICAL: You cannot see the image. Base your description on the product metadata and reasonable assumptions about typical product photography. Use phrases like "likely shows" or describe based on product type.
+
+Respond in JSON format only:
+{"altText": "Your descriptive alt text"}`;
+
+    try {
+      const data = await this.geminiClient.generateWithFallback({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.5,
+          maxOutputTokens: 150,
+        },
+      });
+
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        // Ensure alt text isn't too long
+        let altText = parsed.altText || `${input.productTitle} product view`;
+        if (altText.length > 125) {
+          altText = altText.substring(0, 122) + '...';
+        }
+        return { altText };
+      }
+    } catch (error) {
+      console.error('[AI] generateImageAltText error:', error);
+    }
+
+    // Fallback: simple product-based alt text
+    const fallback =
+      input.imagePosition === 0
+        ? `${input.productTitle}`
+        : `${input.productTitle} - view ${input.imagePosition + 1}`;
+    return { altText: fallback.substring(0, 125) };
+  }
+
+  /**
+   * Generate a caption for a product image.
+   *
+   * DESIGN PRINCIPLES:
+   * - Captions provide context about the image (what's shown, usage context)
+   * - Uses product metadata only — no vision inference
+   * - Captions should complement alt text, not duplicate it
+   */
+  async generateImageCaption(input: {
+    productTitle: string;
+    productDescription: string;
+    currentAltText: string;
+    imagePosition: number;
+  }): Promise<{ caption: string }> {
+    const positionContext =
+      input.imagePosition === 0
+        ? 'main product image'
+        : `product image ${input.imagePosition + 1}`;
+
+    const prompt = `You are a product content specialist. Generate a short caption for a product image.
+
+Product Title: ${input.productTitle}
+Product Description: ${input.productDescription || 'Not provided'}
+Current Alt Text: ${input.currentAltText || 'None'}
+Image Position: ${positionContext}
+
+Requirements:
+- Write a brief caption (1-2 sentences, max 150 characters)
+- Captions should provide CONTEXT (why this view matters, what to notice)
+- For the main image, highlight key product features or appeal
+- For secondary images, describe what angle or detail is shown
+- Be informative but concise
+- DO NOT repeat the alt text verbatim — complement it
+- DO NOT make claims you cannot verify from the product info
+
+CRITICAL: You cannot see the image. Base your caption on reasonable assumptions about the image position and product type.
+
+Respond in JSON format only:
+{"caption": "Your image caption"}`;
+
+    try {
+      const data = await this.geminiClient.generateWithFallback({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.6,
+          maxOutputTokens: 150,
+        },
+      });
+
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        let caption = parsed.caption || `${input.productTitle} shown in detail.`;
+        if (caption.length > 150) {
+          caption = caption.substring(0, 147) + '...';
+        }
+        return { caption };
+      }
+    } catch (error) {
+      console.error('[AI] generateImageCaption error:', error);
+    }
+
+    // Fallback
+    const fallback =
+      input.imagePosition === 0
+        ? `Featured view of ${input.productTitle}.`
+        : `Additional view of ${input.productTitle}.`;
+    return { caption: fallback.substring(0, 150) };
+  }
 }

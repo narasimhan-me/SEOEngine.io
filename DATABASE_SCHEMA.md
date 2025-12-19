@@ -172,12 +172,124 @@ model MetadataSuggestion {
 
 ---
 
+### 3.7 ProductImage (MEDIA-1)
+
+Per-product image records storing URL, alt text, and optional caption for each product image. Sourced from Shopify sync and MEDIA fix flows.
+
+```prisma
+model ProductImage {
+  id         String   @id @default(cuid())
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+  externalId String   // Shopify image ID (numeric or GID string)
+  src        String   // Image URL
+  altText    String?  // Current alt text
+  position   Int?     // Display order
+  caption    String?  // Optional caption
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([productId, externalId])
+  @@index([productId])
+}
+```
+
+**Notes:**
+- `ProductImage` is the canonical source for per-image alt text and captions.
+- `Product.imageUrls` remains as a convenience array of URLs for existing UI compatibility.
+- Images are synced from Shopify during product sync, preserving the Shopify image ID as `externalId`.
+
+---
+
+### 3.8 MediaFixDraftType Enum (MEDIA-1)
+
+```prisma
+enum MediaFixDraftType {
+  IMAGE_ALT_TEXT
+  IMAGE_CAPTION
+}
+```
+
+---
+
+### 3.9 MediaFixApplyTarget Enum (MEDIA-1)
+
+```prisma
+enum MediaFixApplyTarget {
+  IMAGE_ALT
+  CAPTION_FIELD
+}
+```
+
+---
+
+### 3.10 ProductMediaFixDraft (MEDIA-1)
+
+Draft fixes for media accessibility issues (preview-first pattern).
+
+```prisma
+model ProductMediaFixDraft {
+  id                String            @id @default(cuid())
+  product           Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId         String
+  imageId           String            // Image external ID or internal key
+  draftType         MediaFixDraftType
+  draftPayload      Json              // { altText?: string, caption?: string }
+  aiWorkKey         String            // Deterministic key for CACHE/REUSE v2
+  reusedFromWorkKey String?           // If reused, the original work key
+  generatedWithAi   Boolean           @default(true)
+  expiresAt         DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  applications      ProductMediaFixApplication[]
+
+  @@index([productId, imageId, draftType])
+  @@index([aiWorkKey])
+  @@index([productId, expiresAt])
+}
+```
+
+**Notes:**
+- Follows the same draft-first pattern as `ProductIntentFixDraft` and `ProductCompetitiveFixDraft`.
+- `aiWorkKey` enables CACHE/REUSE v2 for deduplicating AI work.
+- Drafts expire after a configurable TTL (default 7 days).
+
+---
+
+### 3.11 ProductMediaFixApplication (MEDIA-1)
+
+Audit log for applied media fixes (alt text and caption updates).
+
+```prisma
+model ProductMediaFixApplication {
+  id              String                @id @default(cuid())
+  product         Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId       String
+  draft           ProductMediaFixDraft  @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  draftId         String
+  appliedBy       User                  @relation(fields: [appliedByUserId], references: [id], onDelete: Cascade)
+  appliedByUserId String
+  imageId         String                // Image external ID (as stored in draft)
+  draftType       MediaFixDraftType
+  applyTarget     MediaFixApplyTarget
+  notes           String?
+  appliedAt       DateTime              @default(now())
+
+  @@index([productId, appliedAt(sort: Desc)])
+  @@index([appliedByUserId, appliedAt(sort: Desc)])
+}
+```
+
+---
+
 ## 4. Migrations
 
 Migration sequence:
 
 1. `init` – User + Project + ShopifyStore + Product + CrawlResult
 2. `add_integration_model` – Migrate from ShopifyStore to generic Integration model
+3. `add_media_accessibility` – ProductImage + MediaFixDraftType + MediaFixApplyTarget + ProductMediaFixDraft + ProductMediaFixApplication (MEDIA-1)
 
 ---
 

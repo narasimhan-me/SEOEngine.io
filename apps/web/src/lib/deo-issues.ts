@@ -356,6 +356,14 @@ export interface DeoIssue {
    * Distinguishes missing location content, unclear service area, etc.
    */
   localGapType?: LocalGapType;
+
+  // === Media & Accessibility Pillar fields (MEDIA-1) ===
+
+  /**
+   * For Media & Accessibility pillar issues: the number of images affected.
+   * Represents how many images are impacted across affected products.
+   */
+  imageCountAffected?: number;
 }
 
 export interface DeoIssuesResponse {

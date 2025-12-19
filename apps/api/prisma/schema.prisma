@@ -82,6 +82,7 @@ model User {
   competitiveFixApplications ProductCompetitiveFixApplication[]
   offsiteFixApplications ProjectOffsiteFixApplication[]
   localFixApplications ProjectLocalFixApplication[]
+  mediaFixApplications ProductMediaFixApplication[]
 }
 
 model Project {
@@ -162,6 +163,11 @@ model Product {
   competitiveCoverage            ProductCompetitiveCoverage?
   competitiveFixDrafts           ProductCompetitiveFixDraft[]
   competitiveFixApplications     ProductCompetitiveFixApplication[]
+
+  // MEDIA-1 relations
+  images                         ProductImage[]
+  mediaFixDrafts                 ProductMediaFixDraft[]
+  mediaFixApplications           ProductMediaFixApplication[]
 }
 
 model AnswerBlock {
@@ -798,5 +804,79 @@ model ProjectLocalFixApplication {
   appliedAt       DateTime             @default(now())
 
   @@index([projectId, appliedAt(sort: Desc)])
+  @@index([appliedByUserId, appliedAt(sort: Desc)])
+}
+
+// =============================================================================
+// MEDIA-1: Media & Accessibility Models
+// =============================================================================
+
+// Media fix draft type enumeration
+enum MediaFixDraftType {
+  IMAGE_ALT_TEXT
+  IMAGE_CAPTION
+}
+
+// Media fix apply target enumeration
+enum MediaFixApplyTarget {
+  IMAGE_ALT
+  CAPTION_FIELD
+}
+
+// Per-product image records (stores URL, alt text, caption per image)
+model ProductImage {
+  id         String   @id @default(cuid())
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+  externalId String   // Shopify image ID (numeric or GID string)
+  src        String   // Image URL
+  altText    String?  // Current alt text
+  position   Int?     // Display order
+  caption    String?  // Optional caption
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([productId, externalId])
+  @@index([productId])
+}
+
+// Media fix drafts (preview-first pattern)
+model ProductMediaFixDraft {
+  id                String            @id @default(cuid())
+  product           Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId         String
+  imageId           String            // Image external ID or internal key
+  draftType         MediaFixDraftType
+  draftPayload      Json              // { altText?: string, caption?: string }
+  aiWorkKey         String            // Deterministic key for CACHE/REUSE v2
+  reusedFromWorkKey String?           // If reused, the original work key
+  generatedWithAi   Boolean           @default(true)
+  expiresAt         DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  applications      ProductMediaFixApplication[]
+
+  @@index([productId, imageId, draftType])
+  @@index([aiWorkKey])
+  @@index([productId, expiresAt])
+}
+
+// Audit log of applied media fixes
+model ProductMediaFixApplication {
+  id              String                @id @default(cuid())
+  product         Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId       String
+  draft           ProductMediaFixDraft  @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  draftId         String
+  appliedBy       User                  @relation(fields: [appliedByUserId], references: [id], onDelete: Cascade)
+  appliedByUserId String
+  imageId         String                // Image external ID (as stored in draft)
+  draftType       MediaFixDraftType
+  applyTarget     MediaFixApplyTarget
+  notes           String?
+  appliedAt       DateTime              @default(now())
+
+  @@index([productId, appliedAt(sort: Desc)])
   @@index([appliedByUserId, appliedAt(sort: Desc)])
 }

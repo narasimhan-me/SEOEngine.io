@@ -131,3 +131,28 @@ export {
   type ProjectLocalDiscoveryResponse,
   type ProjectLocalConfig,
 } from './local-discovery';
+
+// Media & Accessibility types (MEDIA-1) - explicit named exports for better module resolution
+export {
+  // Constants
+  MEDIA_FIX_DRAFT_LABELS,
+  // Helper functions
+  classifyAltText,
+  getMediaAccessibilityStatusFromScore,
+  computeMediaScoreFromStats,
+  computeMediaFixWorkKey,
+  // Types
+  type MediaAltTextQuality,
+  type MediaAccessibilityStatus,
+  type ProductMediaStats,
+  type MediaAccessibilityScorecard,
+  type MediaFixDraftType,
+  type MediaFixApplyTarget,
+  type MediaFixDraft,
+  type MediaFixPreviewRequest,
+  type MediaFixPreviewResponse,
+  type MediaFixApplyRequest,
+  type MediaFixApplyResponse,
+  type ProjectMediaAccessibilityResponse,
+  type ProductImageView,
+} from './media-accessibility';

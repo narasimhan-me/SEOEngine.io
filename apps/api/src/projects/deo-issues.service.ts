@@ -13,6 +13,7 @@ import { SearchIntentService } from './search-intent.service';
 import { CompetitorsService } from './competitors.service';
 import { OffsiteSignalsService } from './offsite-signals.service';
 import { LocalDiscoveryService } from './local-discovery.service';
+import { MediaAccessibilityService } from './media-accessibility.service';
 
 @Injectable()
 export class DeoIssuesService {
@@ -24,6 +25,7 @@ export class DeoIssuesService {
     private readonly competitorsService: CompetitorsService,
     private readonly offsiteSignalsService: OffsiteSignalsService,
     private readonly localDiscoveryService: LocalDiscoveryService,
+    private readonly mediaAccessibilityService: MediaAccessibilityService,
   ) {}
 
   /**
@@ -172,6 +174,16 @@ export class DeoIssuesService {
       // Log but don't fail the entire issues request
       // eslint-disable-next-line no-console
       console.error('[DeoIssuesService] Failed to build local discovery issues:', error);
+    }
+
+    // MEDIA-1: Add Media & Accessibility pillar issues
+    try {
+      const mediaIssues = await this.mediaAccessibilityService.buildMediaIssuesForProject(projectId);
+      issues.push(...mediaIssues);
+    } catch (error) {
+      // Log but don't fail the entire issues request
+      // eslint-disable-next-line no-console
+      console.error('[DeoIssuesService] Failed to build media accessibility issues:', error);
     }
 
     // Fire-and-forget Answer Block automations for relevant answerability issues.

@@ -17,6 +17,15 @@ import type {
   LocalFixDraftType,
   ProjectLocalConfig,
 } from '@/lib/local-discovery';
+import type {
+  ProjectMediaAccessibilityResponse,
+  MediaAccessibilityScorecard,
+  MediaFixDraft,
+  MediaFixDraftType,
+  MediaFixApplyTarget,
+  ProductMediaStats,
+  ProductImageView,
+} from '@/lib/media-accessibility';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -77,6 +86,33 @@ interface LocalFixApplyResponse {
   updatedScorecard: LocalDiscoveryScorecard;
   issuesResolved: boolean;
   issuesAffectedCount: number;
+}
+
+// Media Accessibility API types (MEDIA-1)
+interface MediaFixPreviewRequest {
+  imageId: string;
+  draftType: MediaFixDraftType;
+}
+
+interface MediaFixPreviewResponse {
+  draft: MediaFixDraft;
+  generatedWithAi: boolean;
+  aiUsage?: {
+    tokensUsed: number;
+    latencyMs: number;
+  };
+}
+
+interface MediaFixApplyRequest {
+  draftId: string;
+  applyTarget: MediaFixApplyTarget;
+}
+
+interface MediaFixApplyResponse {
+  success: boolean;
+  updatedStats: ProductMediaStats;
+  issuesResolved: boolean;
+  issuesResolvedCount: number;
 }
 
 /**
@@ -586,6 +622,13 @@ export const projectsApi = {
       method: 'POST',
       body: JSON.stringify(params),
     }),
+
+  // MEDIA-1: Media & Accessibility endpoints
+  mediaAccessibility: (projectId: string): Promise<ProjectMediaAccessibilityResponse> =>
+    fetchWithAuth(`/projects/${projectId}/media`),
+
+  mediaScorecard: (projectId: string): Promise<MediaAccessibilityScorecard> =>
+    fetchWithAuth(`/projects/${projectId}/media/scorecard`),
 };
 
 export const integrationsApi = {
@@ -711,6 +754,32 @@ export const productsApi = {
   syncAnswerBlocksToShopify: (productId: string) =>
     fetchWithAuth(`/products/${productId}/answer-blocks/sync-to-shopify`, {
       method: 'POST',
+    }),
+
+  // MEDIA-1: Media & Accessibility endpoints
+  getMediaAccessibility: (productId: string): Promise<{
+    stats: ProductMediaStats;
+    images: ProductImageView[];
+    openDrafts: MediaFixDraft[];
+  }> =>
+    fetchWithAuth(`/products/${productId}/media`),
+
+  previewMediaFix: (
+    productId: string,
+    params: MediaFixPreviewRequest,
+  ): Promise<MediaFixPreviewResponse> =>
+    fetchWithAuth(`/products/${productId}/media/preview`, {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+
+  applyMediaFix: (
+    productId: string,
+    params: MediaFixApplyRequest,
+  ): Promise<MediaFixApplyResponse> =>
+    fetchWithAuth(`/products/${productId}/media/apply`, {
+      method: 'POST',
+      body: JSON.stringify(params),
     }),
 };
 

@@ -58,21 +58,39 @@ Covers on-page content quality, product descriptions, Answer Blocks, and content
 **ID:** `media_accessibility`
 **Short Name:** Media
 
-Covers image alt text, video transcripts, and accessibility compliance.
+Covers image alt text coverage, alt text quality classification, image presence, and contextual media usage.
 
-**Why it matters:** AI systems rely on alt text and transcripts to understand visual content. Accessible media is also surfaced more reliably.
+**Why it matters:** AI systems rely on alt text to understand visual content. Images with proper alt text improve accessibility, image search rankings, and AI-powered discovery. Missing or generic alt text creates invisible content.
+
+**Score model:** Weighted coverage where:
+- Good alt text = 100% credit
+- Generic alt text = 40% credit
+- Missing alt text = 0% credit (penalized more severely)
+
+**Status thresholds:**
+- ≥ 80: Strong
+- 40-79: Needs improvement
+- < 40: Weak
 
 **Key signals:**
-- Alt text coverage
-- Image quality and optimization
-- Video transcript availability
-- Accessibility score
+- Alt text coverage (any alt present)
+- Good alt text coverage (descriptive alt text)
+- Generic alt text count (product image, title only, etc.)
+- Missing alt text count
+- Image count per product
+- Contextual media (captions, descriptive alt)
 
-**Issue types:**
-- Missing alt text
-- Generic alt text
-- Unoptimized images
-- Missing video transcripts
+**Issue types (MEDIA-1):**
+- `missing_product_image` - Products without images
+- `missing_image_alt_text` - Images without alt text (high severity)
+- `generic_image_alt_text` - Images with generic alt text
+- `insufficient_image_coverage` - Products with only 0-1 images
+- `missing_media_context` - Images without captions or contextual descriptions
+
+**Alt text classification:**
+- **Missing**: Empty, whitespace, or null
+- **Generic**: "product image", "photo", product title only, very short (< 5 chars)
+- **Good**: Descriptive, image-specific, reflects visible content
 
 ---
 

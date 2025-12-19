@@ -65,10 +65,10 @@ export const DEO_PILLARS: DeoPillar[] = [
     label: 'Media & Accessibility',
     shortName: 'Media',
     description:
-      'Product images, alt text coverage, video presence, and accessibility attributes that enhance discoverability across visual and voice interfaces.',
+      'Product images, alt text coverage, and accessibility attributes that enhance discoverability across visual and voice interfaces. Tracks image alt text quality (missing, generic, good), image coverage, and contextual media usage.',
     whyItMatters:
-      'Images with proper alt text improve accessibility and visual search rankings. Missing media or poor accessibility can exclude you from image search, voice assistants, and accessibility-focused users.',
-    comingSoon: true,
+      'Images with proper alt text improve accessibility and visual/AI search rankings. Missing or generic alt text excludes you from image search, voice assistants, and AI-powered discovery experiences. Good alt text helps AI understand and recommend your products.',
+    comingSoon: false,
   },
   {
     id: 'search_intent_fit',

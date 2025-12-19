@@ -854,15 +854,18 @@ export class ShopifyService {
         description: product.body_html || null,
         seoTitle: product.metafields_global_title_tag || product.title || null,
         seoDescription: product.metafields_global_description_tag || null,
-        imageUrls: product.images?.map((img: { src: string }) => img.src) || [],
+        imageUrls: product.images?.map((img) => img.src) || [],
         lastSyncedAt: new Date(),
       };
+
+      let dbProductId: string;
 
       if (existingProduct) {
         await this.prisma.product.update({
           where: { id: existingProduct.id },
           data: productData,
         });
+        dbProductId = existingProduct.id;
         updated++;
       } else {
         const newProduct = await this.prisma.product.create({
@@ -872,6 +875,7 @@ export class ShopifyService {
             ...productData,
           },
         });
+        dbProductId = newProduct.id;
         created++;
 
         // Trigger automation for new products (non-blocking)
@@ -893,6 +897,9 @@ export class ShopifyService {
             );
           });
       }
+
+      // MEDIA-1: Upsert ProductImage records for image alt text sync
+      await this.syncProductImages(dbProductId, product.images || []);
     }
 
     return {
@@ -1033,7 +1040,13 @@ export class ShopifyService {
           body_html: node.descriptionHtml ?? undefined,
           metafields_global_title_tag: node.seo?.title || undefined,
           metafields_global_description_tag: node.seo?.description || undefined,
-          images: node.images?.edges.map((imgEdge) => ({ src: imgEdge.node.url })) ?? [],
+          // MEDIA-1: Preserve image ID, src, altText, and position for ProductImage sync
+          images: node.images?.edges.map((imgEdge, index) => ({
+            id: imgEdge.node.id,
+            src: imgEdge.node.url,
+            altText: imgEdge.node.altText ?? null,
+            position: index,
+          })) ?? [],
           status: node.status ?? undefined,
           productType: node.productType ?? undefined,
           vendor: node.vendor ?? undefined,
@@ -1144,6 +1157,66 @@ export class ShopifyService {
   }
 
   /**
+   * MEDIA-1: Sync ProductImage records from Shopify image data.
+   * Upserts images and removes any that no longer exist in Shopify.
+   */
+  private async syncProductImages(
+    productId: string,
+    images: ShopifyProductImage[],
+  ): Promise<void> {
+    // Get current external IDs from the incoming images
+    const incomingExternalIds = new Set<string>();
+
+    for (const img of images) {
+      // Extract numeric ID from GID (e.g., "gid://shopify/ProductImage/123" -> "123")
+      const externalId = img.id.includes('/')
+        ? img.id.split('/').pop() || img.id
+        : img.id;
+
+      incomingExternalIds.add(externalId);
+
+      // Upsert the ProductImage record
+      await this.prisma.productImage.upsert({
+        where: {
+          productId_externalId: {
+            productId,
+            externalId,
+          },
+        },
+        create: {
+          productId,
+          externalId,
+          src: img.src,
+          altText: img.altText ?? null,
+          position: img.position ?? null,
+        },
+        update: {
+          src: img.src,
+          altText: img.altText ?? null,
+          position: img.position ?? null,
+        },
+      });
+    }
+
+    // Remove any ProductImage rows whose externalId no longer appears in the latest Shopify data
+    if (incomingExternalIds.size > 0) {
+      await this.prisma.productImage.deleteMany({
+        where: {
+          productId,
+          externalId: {
+            notIn: Array.from(incomingExternalIds),
+          },
+        },
+      });
+    } else {
+      // If no images from Shopify, remove all ProductImage rows for this product
+      await this.prisma.productImage.deleteMany({
+        where: { productId },
+      });
+    }
+  }
+
+  /**
    * Update SEO fields for a product in Shopify via GraphQL Admin API
    * Uses productUpdate mutation to set seo.title and seo.description
    */
@@ -1222,6 +1295,13 @@ export interface AnswerBlockMetafieldSyncResult {
     | 'metafields_fetch_failed';
 }
 
+interface ShopifyProductImage {
+  id: string;
+  src: string;
+  altText?: string | null;
+  position?: number;
+}
+
 interface ShopifyProduct {
   id: number;
   title: string;
@@ -1229,7 +1309,7 @@ interface ShopifyProduct {
   handle?: string;
   metafields_global_title_tag?: string;
   metafields_global_description_tag?: string;
-  images?: Array<{ src: string }>;
+  images?: Array<ShopifyProductImage>;
   status?: string;
   productType?: string;
   vendor?: string;
