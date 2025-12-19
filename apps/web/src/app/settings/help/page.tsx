@@ -6,10 +6,12 @@ import { isAuthenticated } from '@/lib/auth';
 
 /**
  * [SELF-SERVICE-1] Help Hub (D7)
+ * [GTM-ONBOARD-1] First DEO Win restart entry point
  *
  * - Help center link
  * - Contact support entry point
  * - "Report an issue" with context guidance
+ * - "Get your first DEO win" onboarding restart
  */
 export default function HelpPage() {
   const router = useRouter();
@@ -118,6 +120,53 @@ export default function HelpPage() {
               >
                 Report Issue via Email
               </a>
+            </div>
+          </div>
+        </div>
+
+        {/* [GTM-ONBOARD-1] Get Your First DEO Win (Coming Soon) */}
+        <div className="bg-white shadow rounded-lg p-6 border-2 border-gray-200 opacity-75">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div className="ml-4 flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-lg font-semibold text-gray-900">Get Your First DEO Win</h2>
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                  Coming Soon
+                </span>
+              </div>
+              <p className="text-gray-600 mt-1 mb-4">
+                New to EngineO? Soon you&apos;ll be able to complete your first DEO fix in 5-10 minutes with our guided
+                onboarding. We&apos;ll help you identify your highest-impact opportunity and walk
+                you through fixing it step by step.
+              </p>
+
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <h3 className="text-sm font-medium text-gray-700 mb-2">How it will work:</h3>
+                <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
+                  <li>Connect your Shopify store (if not already connected)</li>
+                  <li>We&apos;ll identify your highest-impact DEO opportunity</li>
+                  <li>Preview the AI-powered fix (you control when AI runs)</li>
+                  <li>Apply your first fix and celebrate your win!</li>
+                </ol>
+              </div>
+
+              <a
+                href="/projects"
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Go to Projects
+                <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+              <p className="text-sm text-gray-500 mt-2">
+                The guided onboarding feature is under development. In the meantime, explore your projects to get started!
+              </p>
             </div>
           </div>
         </div>

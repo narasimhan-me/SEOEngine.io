@@ -399,6 +399,36 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 ---
 
+### CP-015: Guided Onboarding & First DEO Win
+
+**Description:** Trust-safe guided onboarding flow that helps new users complete their first DEO fix within 5-10 minutes. Uses derived state for issue recommendations, never triggers AI without explicit consent, and records canonical APPLY runs for completion tracking.
+
+**Implementation Status:** Docs Complete; Implementation Pending
+
+| Field | Value |
+|-------|-------|
+| **Manual Testing Doc(s)** | `docs/manual-testing/GTM-ONBOARD-1.md`, `docs/GTM_ONBOARDING.md` |
+| **Automated Tests** | Planned |
+| **Last Verified (Manual)** | N/A (Implementation Pending) |
+| **Last Verified (Automated)** | N/A |
+| **Owner** | Core Team |
+
+**Key Scenarios:**
+- [ ] Onboarding eligibility (Shopify connected + no APPLY run)
+- [ ] Issue selection ladder (Search & Intent > Media > Metadata)
+- [ ] Start/advance/skip persistence per user+project
+- [ ] Completion detection via AutomationPlaybookRun APPLY row
+- [ ] Banner visibility under /projects/[id]/* routes only
+- [ ] Session dismissal (sessionStorage) vs persistent skip
+- [ ] Deep-link focus without auto-AI (trust contract)
+- [ ] Preview requires explicit user click (no auto-preview)
+- [ ] Apply records canonical AutomationPlaybookRun (aiUsed=false)
+- [ ] Celebration copy varies (guided vs non-guided completion)
+- [ ] Analytics events emitted at correct points
+- [ ] Help Hub "Get your first DEO win" restart entry point
+
+---
+
 ## Coverage Summary
 
 | Critical Path | Manual Docs | Auto Tests | Status |
@@ -417,6 +447,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | CP-012: Automation Engine | ✅ | Planned | 🟡 Manual Only |
 | CP-013: Admin Operations | ✅ | ✅ | 🟢 Full Coverage |
 | CP-014: Self-Service Control Plane | ✅ | ✅ | 🟢 Full Coverage |
+| CP-015: Guided Onboarding | ✅ | Planned | 🟡 Manual Only (Impl Pending) |
 
 **Legend:**
 - 🟢 Full Coverage (Manual + Automated)
@@ -469,3 +500,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 2.5 | 2025-12-18 | Added MEDIA-1 scenarios to CP-006 (Shopify Sync), CP-009 (Issue Engine Lite), CP-010 (Issue Engine Full) for Media & Accessibility pillar |
 | 2.6 | 2025-12-19 | Added CP-013: Admin Operations Dashboard (ADMIN-OPS-1) with internal admin roles, impersonation, quota reset, and audit logging |
 | 2.7 | 2025-12-19 | Added CP-014: Customer Self-Service Control Plane (SELF-SERVICE-1) with profile, preferences, sessions, and role-based access; updated CP-001 and CP-002 with SELF-SERVICE-1 scenarios |
+| 2.8 | 2025-12-19 | Added CP-015: Guided Onboarding & First DEO Win (GTM-ONBOARD-1) - Docs Complete; Implementation Pending. Added manual testing guide and spec documentation. |
