@@ -239,6 +239,8 @@ expect.extend({
   },
 });
 
+// Type augmentation for Jest matchers
+export {};
 declare global {
   namespace jest {
     interface Matchers<R> {

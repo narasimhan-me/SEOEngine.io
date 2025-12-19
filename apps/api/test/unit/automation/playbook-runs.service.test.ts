@@ -7,7 +7,7 @@
  * - Status transitions via inline execution.
  * - Stale detection for known contract errors.
  */
-import { AutomationPlaybookRunsService } from '../../../src/projects/automation-playbook-runs.service';
+import { AutomationPlaybookRunsService, AutomationPlaybookRunType } from '../../../src/projects/automation-playbook-runs.service';
 import { AutomationPlaybookRunProcessor } from '../../../src/projects/automation-playbook-run.processor';
 
 // Mock the queue to simulate dev mode (no Redis)

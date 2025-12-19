@@ -6,7 +6,7 @@ import {
   disconnectTestDb,
   testPrisma,
 } from '../../utils/test-db';
-import { ShopifyService } from '../../src/shopify/shopify.service';
+import { ShopifyService } from '../../../src/shopify/shopify.service';
 
 describe('Shopify Answer Block metafields sync (integration)', () => {
   let originalFetch: any;

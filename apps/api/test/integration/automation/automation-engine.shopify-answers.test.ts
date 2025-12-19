@@ -22,8 +22,8 @@
 // NOTE: These tests directly invoke the processor's job handler logic rather than
 // going through the queue, since Redis is not configured in the test environment.
 
-import { AnswerBlockService } from '../../src/products/answer-block.service';
-import { AnswerEngineService } from '../../src/projects/answer-engine.service';
+import { AnswerBlockService } from '../../../src/products/answer-block.service';
+import { AnswerEngineService } from '../../../src/projects/answer-engine.service';
 import {
   cleanupTestDb,
   disconnectTestDb,
@@ -209,7 +209,7 @@ describe('Automation Engine v1 – Shopify Answer Block Automations (integration
     };
 
     answerBlockService = new AnswerBlockService(testPrisma as any);
-    answerEngineService = new AnswerEngineService();
+    answerEngineService = new AnswerEngineService(testPrisma as any);
   });
 
   afterAll(async () => {

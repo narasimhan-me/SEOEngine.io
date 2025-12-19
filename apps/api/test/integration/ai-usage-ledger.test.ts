@@ -12,7 +12,7 @@ import { AutomationPlaybooksService } from '../../src/projects/automation-playbo
 import { AiUsageLedgerService } from '../../src/ai/ai-usage-ledger.service';
 
 // Mock the queue for integration tests
-jest.mock('../../src/queues/queues', () => ({
+jest.mock('../../../src/queues/queues', () => ({
   playbookRunQueue: null,
 }));
 

@@ -11,7 +11,7 @@
  * NOTE: These tests require a test database to be configured.
  * They exercise the service layer directly without mocking Prisma.
  */
-import { OffsiteSignalsService } from '../../src/projects/offsite-signals.service';
+import { OffsiteSignalsService } from '../../../src/projects/offsite-signals.service';
 import {
   cleanupTestDb,
   disconnectTestDb,

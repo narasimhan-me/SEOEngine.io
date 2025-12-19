@@ -16,8 +16,8 @@ import {
   disconnectTestDb,
   testPrisma,
 } from '../../utils/test-db';
-import { ProductIssueFixService } from '../../src/ai/product-issue-fix.service';
-import { AiService } from '../../src/ai/ai.service';
+import { ProductIssueFixService } from '../../../src/ai/product-issue-fix.service';
+import { AiService } from '../../../src/ai/ai.service';
 
 /**
  * Stub for ProductIssueFixService
@@ -99,9 +99,6 @@ async function createProduct(
       projectId,
       title: data.title,
       externalId: data.externalId,
-      handle: `handle-${data.externalId}`,
-      vendor: 'Test Vendor',
-      productType: 'Test Type',
       seoTitle: data.seoTitle,
       seoDescription: data.seoDescription,
     },

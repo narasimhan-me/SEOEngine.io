@@ -1,5 +1,5 @@
-import { EntitlementsService } from '../../src/billing/entitlements.service';
-import { ProductIssueFixService } from '../../src/ai/product-issue-fix.service';
+import { EntitlementsService } from '../../../src/billing/entitlements.service';
+import { ProductIssueFixService } from '../../../src/ai/product-issue-fix.service';
 import {
   cleanupTestDb,
   disconnectTestDb,

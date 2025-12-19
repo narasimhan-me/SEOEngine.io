@@ -1,7 +1,7 @@
 // Integration tests for Shopify GraphQL product APIs (SHOP-API-1).
 // Verifies product sync and SEO update flows using mocked Shopify GraphQL Admin API.
 
-import { ShopifyService } from '../../src/shopify/shopify.service';
+import { ShopifyService } from '../../../src/shopify/shopify.service';
 import {
   cleanupTestDb,
   disconnectTestDb,

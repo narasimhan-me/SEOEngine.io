@@ -13,7 +13,7 @@
  * NOTE: These tests require a test database to be configured.
  * They exercise the service layer directly without mocking Prisma.
  */
-import { LocalDiscoveryService } from '../../src/projects/local-discovery.service';
+import { LocalDiscoveryService } from '../../../src/projects/local-discovery.service';
 import {
   cleanupTestDb,
   disconnectTestDb,
