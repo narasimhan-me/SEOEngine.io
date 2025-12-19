@@ -78,6 +78,7 @@ enum AutomationPlaybookRunType {
   DRAFT_GENERATE
   APPLY
   INTENT_FIX_PREVIEW  // SEARCH-INTENT-1: Intent fix preview generation
+  GEO_FIX_PREVIEW     // GEO-FOUNDATION-1: GEO fix preview generation
 }
 
 enum AutomationPlaybookRunStatus {
@@ -130,6 +131,7 @@ model User {
   offsiteFixApplications ProjectOffsiteFixApplication[]
   localFixApplications ProjectLocalFixApplication[]
   mediaFixApplications ProductMediaFixApplication[]
+  geoFixApplications ProductGeoFixApplication[]
 
   // [ADMIN-OPS-1] Admin audit log relations
   adminAuditLogsPerformed AdminAuditLog[] @relation("PerformedBy")
@@ -213,6 +215,10 @@ model Product {
   intentCoverages      ProductIntentCoverage[]
   intentFixDrafts      ProductIntentFixDraft[]
   intentFixApplications ProductIntentFixApplication[]
+
+  // GEO-FOUNDATION-1 relations
+  geoFixDrafts                   ProductGeoFixDraft[]
+  geoFixApplications             ProductGeoFixApplication[]
 
   // COMPETITORS-1 relations
   competitors                    ProductCompetitor[]
@@ -433,6 +439,24 @@ enum IntentFixApplyTarget {
   CONTENT_SNIPPET_SECTION
 }
 
+// =============================================================================
+// GEO-FOUNDATION-1: Answer Readiness & Citation Confidence (Draft-first fixes)
+// =============================================================================
+
+enum GeoIssueType {
+  MISSING_DIRECT_ANSWER
+  ANSWER_TOO_VAGUE
+  POOR_ANSWER_STRUCTURE
+  ANSWER_OVERLY_PROMOTIONAL
+  MISSING_EXAMPLES_OR_FACTS
+}
+
+enum GeoCitationConfidenceLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 // Per-product intent coverage analysis
 model ProductIntentCoverage {
   id              String              @id @default(cuid())
@@ -490,6 +514,51 @@ model ProductIntentFixApplication {
   applyTarget     IntentFixApplyTarget
   notes           String?
   appliedAt       DateTime            @default(now())
+
+  @@index([productId, appliedAt(sort: Desc)])
+  @@index([appliedByUserId, appliedAt(sort: Desc)])
+}
+
+// Draft fixes for GEO answer readiness issues (preview-first pattern)
+model ProductGeoFixDraft {
+  id                String                        @id @default(cuid())
+  product           Product                       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId         String
+  questionId        String
+  issueType         GeoIssueType
+  draftPayload      Json
+  aiWorkKey         String
+  reusedFromWorkKey String?
+  generatedWithAi   Boolean                       @default(true)
+  expiresAt         DateTime?
+  createdAt         DateTime                      @default(now())
+  updatedAt         DateTime                      @updatedAt
+
+  applications      ProductGeoFixApplication[]
+
+  @@index([productId, questionId, issueType])
+  @@index([aiWorkKey])
+  @@index([productId, expiresAt])
+}
+
+// Audit log for applied GEO fixes
+model ProductGeoFixApplication {
+  id                  String                      @id @default(cuid())
+  product             Product                     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId           String
+  draft               ProductGeoFixDraft          @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  draftId             String
+  appliedBy           User                        @relation(fields: [appliedByUserId], references: [id], onDelete: Cascade)
+  appliedByUserId     String
+  questionId          String
+  issueType           GeoIssueType
+  beforeConfidence    GeoCitationConfidenceLevel
+  afterConfidence     GeoCitationConfidenceLevel
+  beforeIssuesCount   Int
+  afterIssuesCount    Int
+  issuesResolvedCount Int
+  resolvedIssueTypes  String[]                    @default([])
+  appliedAt           DateTime                    @default(now())
 
   @@index([productId, appliedAt(sort: Desc)])
   @@index([appliedByUserId, appliedAt(sort: Desc)])

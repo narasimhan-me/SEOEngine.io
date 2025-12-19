@@ -469,6 +469,32 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 ---
 
+### CP-017: GEO Answer Readiness & Citation Confidence
+
+**Description:** GEO (Generative Engine Optimization) foundation layer providing explainable answer readiness signals (Clarity, Specificity, Structure, Context, Accessibility) and derived Citation Confidence (Low/Medium/High). Includes Preview/Apply flow for answer improvements.
+
+| Field | Value |
+|-------|-------|
+| **Manual Testing Doc(s)** | `docs/IMPLEMENTATION_PLAN.md` (GEO-FOUNDATION-1 section) |
+| **Automated Tests** | `packages/shared/src/geo-types.test.ts` |
+| **Last Verified (Manual)** | [YYYY-MM-DD] |
+| **Last Verified (Automated)** | N/A |
+| **Owner** | DEO Team |
+
+**Key Scenarios:**
+- [ ] GEO readiness signals evaluate Answer Blocks correctly
+- [ ] Citation Confidence derived from signals (High/Medium/Low)
+- [ ] GEO issues generated and integrated into Issue Engine
+- [ ] Preview endpoint generates AI improvements (respects quota)
+- [ ] Apply endpoint updates Answer Block (no AI usage)
+- [ ] Draft reuse via aiWorkKey prevents redundant AI calls
+- [ ] GEO_FIX_PREVIEW run type recorded in AI usage ledger
+- [ ] Promotional language detection flags overly-promotional answers
+- [ ] Product-level GEO evaluation aggregates Answer Unit signals
+- [ ] No ranking or citation guarantees (readiness signals only)
+
+---
+
 ## Coverage Summary
 
 | Critical Path | Manual Docs | Auto Tests | Status |
@@ -489,6 +515,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | CP-014: Self-Service Control Plane | ✅ | ✅ | 🟢 Full Coverage |
 | CP-015: Guided Onboarding | ✅ | Planned | 🟡 Manual Only (Impl Pending) |
 | CP-016: Project Insights | ✅ | Planned | 🟡 Manual Only |
+| CP-017: GEO Answer Readiness | ✅ | ✅ | 🟢 Full Coverage |
 
 **Legend:**
 - 🟢 Full Coverage (Manual + Automated)
@@ -545,3 +572,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 2.9 | 2025-12-19 | Added CP-016: Project Insights Dashboard (INSIGHTS-1) - Read-only derived insights with DEO progress, AI efficiency, issue resolution, and opportunity signals. |
 | 3.0 | 2025-12-19 | Added BILLING-GTM-1 scenarios to CP-002: env-driven AI quota, trust messaging, contextual upgrade prompts, and marketing alignment. Added manual testing doc and Playwright test file. |
 | 3.1 | 2025-12-19 | SECURITY: Added auth URL sanitization to CP-001. Middleware + client-side defense-in-depth prevents passwords in URL query params. Added manual testing doc and Playwright coverage. |
+| 3.2 | 2025-12-19 | Added CP-017: GEO Answer Readiness & Citation Confidence (GEO-FOUNDATION-1) - Explainable readiness signals, derived citation confidence, Preview/Apply flow for answer improvements. |

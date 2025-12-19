@@ -94,6 +94,9 @@ export {
 // Answer Engine types
 export * from './answer-engine';
 
+// GEO (GEO-FOUNDATION-1) types
+export * from './geo';
+
 // Automation Engine types
 export * from './automation-engine';
 

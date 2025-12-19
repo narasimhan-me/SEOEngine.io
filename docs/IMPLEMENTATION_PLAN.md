@@ -265,6 +265,55 @@ Public pricing and in-app upgrade flows that surface value first and enforce quo
 
 ---
 
+## Phase GEO-FOUNDATION-1: GEO Answer Readiness & Citation Confidence ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-19
+
+GEO (Generative Engine Optimization) foundation layer providing explainable answer readiness signals and citation confidence derived from Answer Units (v1: Answer Blocks).
+
+### Key Features
+
+1. **Readiness Signals**: Clarity, Specificity, Structure, Context, Accessibility
+2. **Citation Confidence**: Low/Medium/High derived from signals (no predictions/guarantees)
+3. **GEO Issues**: Missing direct answer, vague answer, poor structure, promotional language, missing examples
+4. **Preview/Apply Flow**: Draft-first pattern with AI quota tracking and reuse
+
+### Trust Invariants
+
+1. **No Ranking Guarantees**: Citation Confidence is a readiness signal, not a prediction
+2. **No Scraping**: GEO never simulates or scrapes AI engine outputs
+3. **Apply Never Uses AI**: GEO fixes follow the standard Preview (AI) → Apply (no AI) pattern
+4. **Explainable Signals**: Each signal includes a `why` explanation
+
+### Implementation Details
+
+- **Shared Types**: `packages/shared/src/geo.ts` - Core types and evaluation functions
+- **API Service**: `apps/api/src/projects/geo.service.ts` - Product GEO readiness evaluation
+- **API Controller**: `apps/api/src/projects/geo.controller.ts` - Preview/Apply endpoints
+- **Prisma Models**: `ProductGeoFixDraft`, `ProductGeoFixApplication`, `GeoIssueType`, `GeoCitationConfidenceLevel`
+- **AI Generation**: `generateGeoAnswerImprovement()` in `ai.service.ts`
+- **Issue Integration**: GEO issues added to `deo-issues.service.ts` via `buildGeoIssuesForProject()`
+- **Usage Tracking**: `GEO_FIX_PREVIEW` run type in AI usage ledger
+
+### API Endpoints
+
+- `GET /products/:productId/geo` - Get product GEO readiness signals
+- `POST /products/:productId/geo/preview` - Generate draft improvement (uses AI, respects quota)
+- `POST /products/:productId/geo/apply` - Apply draft to Answer Block (no AI)
+
+### Build Configuration
+
+- Updated `packages/shared/package.json` build script to clean dist before build
+- Updated `packages/shared/tsconfig.json` to exclude all test files from build output
+- Test files (`*.test.ts`, `*.spec.ts`) remain in source but are not compiled to dist
+
+### Related Documents
+
+- [GEO_FOUNDATION.md](./GEO_FOUNDATION.md) - Philosophy and architecture (TBD)
+
+---
+
 ## Document History
 
 | Version | Date | Changes |
@@ -274,3 +323,5 @@ Public pricing and in-app upgrade flows that surface value first and enforce quo
 | 1.2 | 2025-12-19 | Added INSIGHTS-1: Project Insights Dashboard (Complete) |
 | 1.3 | 2025-12-19 | Added BILLING-GTM-1: Pricing pages & trust-safe upgrade flows (Complete) |
 | 1.4 | 2025-12-19 | SECURITY HOTFIX: Sanitized auth query params to prevent password leakage in logs/history; added middleware + client-side defense-in-depth + Playwright coverage; added manual testing doc. |
+| 1.5 | 2025-12-19 | Added GEO-FOUNDATION-1: GEO Answer Readiness & Citation Confidence (Complete) |
+| 1.6 | 2025-12-19 | GEO-FOUNDATION-1: Updated shared package build configuration to exclude test files from dist output |

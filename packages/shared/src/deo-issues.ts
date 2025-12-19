@@ -9,6 +9,7 @@ import type {
   LocalSignalType,
   LocalGapType,
 } from './local-discovery';
+import type { GeoIssueType, GeoReadinessSignalType, GeoPillarContext } from './geo';
 
 export type DeoIssueSeverity = 'critical' | 'warning' | 'info';
 
@@ -234,6 +235,11 @@ export interface DeoIssue {
    * Represents how many images are impacted across affected products.
    */
   imageCountAffected?: number;
+
+  // === GEO (GEO-FOUNDATION-1) optional fields ===
+  geoIssueType?: GeoIssueType;
+  geoSignalType?: GeoReadinessSignalType;
+  geoPillarContext?: GeoPillarContext;
 }
 
 export interface DeoIssuesResponse {

@@ -8,6 +8,11 @@ import {
   DeoPillarId,
   DeoIssueActionability,
   PerformanceSignalType,
+  evaluateGeoProduct,
+  GEO_ISSUE_LABELS,
+  GEO_ISSUE_DESCRIPTIONS,
+  type GeoAnswerUnitInput,
+  type GeoIssueType,
 } from '@engineo/shared';
 import { AutomationService } from './automation.service';
 import { SearchIntentService } from './search-intent.service';
@@ -187,6 +192,15 @@ export class DeoIssuesService {
       if (issue) {
         issues.push(issue);
       }
+    }
+
+    // GEO-FOUNDATION-1: Add GEO answer readiness issues (derived from persisted Answer Blocks)
+    try {
+      const geoIssues = await this.buildGeoIssuesForProject(projectId, products);
+      issues.push(...geoIssues);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('[DeoIssuesService] Failed to build GEO issues:', error);
     }
 
     // SEARCH-INTENT-1: Add Search & Intent pillar issues
@@ -1556,6 +1570,88 @@ export class DeoIssuesService {
   /**
    * Weak Intent Match - Products whose metadata doesn't match likely search intent
    */
+  private async buildGeoIssuesForProject(projectId: string, products: any[]): Promise<DeoIssue[]> {
+    if (!Array.isArray(products) || products.length === 0) return [];
+
+    const productIds = products.map((p) => p.id);
+    const blocks = await (this.prisma as any).answerBlock.findMany({
+      where: { productId: { in: productIds } },
+      select: { id: true, productId: true, questionId: true, answerText: true, sourceFieldsUsed: true },
+    });
+
+    const byProduct = new Map<string, any[]>();
+    for (const b of blocks) {
+      const existing = byProduct.get(b.productId) ?? [];
+      existing.push(b);
+      byProduct.set(b.productId, existing);
+    }
+
+    const affectedByIssue = new Map<GeoIssueType, Set<string>>();
+    const geoIssueTypes: GeoIssueType[] = [
+      'missing_direct_answer',
+      'answer_too_vague',
+      'poor_answer_structure',
+      'answer_overly_promotional',
+      'missing_examples_or_facts',
+    ];
+    for (const t of geoIssueTypes) affectedByIssue.set(t, new Set());
+
+    for (const p of products) {
+      const productBlocks = byProduct.get(p.id) ?? [];
+      const units: GeoAnswerUnitInput[] = productBlocks.map((b) => ({
+        unitId: b.id,
+        questionId: b.questionId,
+        answer: b.answerText || '',
+        factsUsed: b.sourceFieldsUsed ?? [],
+        pillarContext: 'search_intent_fit',
+      }));
+      const evalResult = evaluateGeoProduct(units);
+      for (const issue of evalResult.issues) {
+        const set = affectedByIssue.get(issue.issueType as GeoIssueType);
+        if (set) set.add(p.id);
+      }
+    }
+
+    const results: DeoIssue[] = [];
+    for (const issueType of geoIssueTypes) {
+      const affectedSet = affectedByIssue.get(issueType) ?? new Set<string>();
+      if (affectedSet.size === 0) continue;
+      const ratio = affectedSet.size / products.length;
+      const severity = this.getSeverityForHigherIsWorse(ratio, { info: 0.1, warning: 0.25, critical: 0.5 });
+      if (!severity) continue;
+      results.push({
+        id: issueType,
+        type: issueType,
+        geoIssueType: issueType,
+        geoSignalType:
+          issueType === 'poor_answer_structure'
+            ? 'structure'
+            : issueType === 'missing_direct_answer' || issueType === 'answer_overly_promotional'
+              ? 'clarity'
+              : 'specificity',
+        geoPillarContext: 'search_intent_fit',
+        title: GEO_ISSUE_LABELS[issueType],
+        description: GEO_ISSUE_DESCRIPTIONS[issueType],
+        severity,
+        count: affectedSet.size,
+        affectedProducts: Array.from(affectedSet).slice(0, 20),
+        fixType: 'aiFix',
+        fixReady: true,
+        primaryProductId: Array.from(affectedSet)[0],
+        pillarId: 'search_intent_fit' as DeoPillarId,
+        actionability: 'automation' as any,
+        category: 'answerability',
+        whyItMatters:
+          'Clear, neutral, well-structured answers improve extractability for AI answer experiences (no citation guarantee).',
+        recommendedFix:
+          'Use Preview to generate a draft improvement for the Answer Block, then Apply (apply never uses AI).',
+        aiFixable: true,
+        fixCost: 'one_click',
+      });
+    }
+    return results;
+  }
+
   private buildWeakIntentMatchIssue(products: any[]): DeoIssue | null {
     if (products.length === 0) return null;
 

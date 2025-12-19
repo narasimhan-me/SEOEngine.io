@@ -9,7 +9,8 @@ export type AiUsageRunType =
   | 'PREVIEW_GENERATE'
   | 'DRAFT_GENERATE'
   | 'APPLY'
-  | 'INTENT_FIX_PREVIEW'; // SEARCH-INTENT-1
+  | 'INTENT_FIX_PREVIEW' // SEARCH-INTENT-1
+  | 'GEO_FIX_PREVIEW'; // GEO-FOUNDATION-1
 
 export interface AiUsageProjectSummary {
   projectId: string;
@@ -111,6 +112,7 @@ export class AiUsageLedgerService {
       switch (run.runType) {
         case 'PREVIEW_GENERATE':
         case 'INTENT_FIX_PREVIEW': // SEARCH-INTENT-1: Treat as preview
+        case 'GEO_FIX_PREVIEW': // GEO-FOUNDATION-1: Treat as preview
           previewRuns++;
           break;
         case 'DRAFT_GENERATE':
@@ -236,6 +238,8 @@ export class AiUsageLedgerService {
     productsSkipped: number;
     draftsFresh: number;
     draftsReused: number;
+    playbookId?: string;
+    rulesHash?: string;
     metadata?: Record<string, unknown>;
   }): Promise<void> {
     const {
@@ -262,7 +266,7 @@ export class AiUsageLedgerService {
 
     // Generate deterministic keys for the run
     const idempotencyKey = `${runType}:${productIds.join(',')}:${Date.now()}`;
-    const rulesHash = 'intent-fix'; // Simplified for intent fixes
+    const rulesHash = params.rulesHash ?? 'intent-fix'; // Simplified default
     const scopeId = productIds.length === 1 ? productIds[0] : 'batch';
     const aiWorkKey = metadata?.aiWorkKey as string | undefined;
 
@@ -271,7 +275,7 @@ export class AiUsageLedgerService {
         data: {
           projectId,
           createdByUserId: project.userId,
-          playbookId: 'search-intent-fix', // Virtual playbook for intent fixes
+          playbookId: params.playbookId ?? 'search-intent-fix', // Virtual playbook default
           runType: runType as AutomationPlaybookRunType,
           status: 'SUCCEEDED',
           scopeId,
