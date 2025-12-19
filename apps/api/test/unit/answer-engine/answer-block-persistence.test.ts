@@ -11,7 +11,7 @@
 // Service under test:
 // - apps/api/src/products/answer-block.service.ts (AnswerBlockService)
 
-import { AnswerBlockService } from '../../src/products/answer-block.service';
+import { AnswerBlockService } from '../../../src/products/answer-block.service';
 import {
   cleanupTestDb,
   disconnectTestDb,

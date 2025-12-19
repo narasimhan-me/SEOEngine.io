@@ -22,8 +22,8 @@ import {
   makeIssueDetectedEvent,
   TestPlanId,
 } from '../../fixtures/automation-events.fixtures';
-import { AutomationService } from '../../src/projects/automation.service';
-import { EntitlementsService } from '../../src/billing/entitlements.service';
+import { AutomationService } from '../../../src/projects/automation.service';
+import { EntitlementsService } from '../../../src/billing/entitlements.service';
 import {
   cleanupTestDb,
   disconnectTestDb,

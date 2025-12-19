@@ -10,7 +10,7 @@
  * - Signal management
  * - Config management
  */
-import { LocalDiscoveryService } from '../../src/projects/local-discovery.service';
+import { LocalDiscoveryService } from '../../../src/projects/local-discovery.service';
 import type { LocalDiscoveryScorecard, LocalSignalType } from '@engineo/shared';
 
 // Minimal mock factory for Prisma

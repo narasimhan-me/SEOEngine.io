@@ -8,7 +8,7 @@
  * - Type mapping helpers
  * - Signal management
  */
-import { OffsiteSignalsService } from '../../src/projects/offsite-signals.service';
+import { OffsiteSignalsService } from '../../../src/projects/offsite-signals.service';
 import type { ProjectOffsiteCoverage, OffsiteSignalType } from '@engineo/shared';
 
 // Minimal mock factory for Prisma

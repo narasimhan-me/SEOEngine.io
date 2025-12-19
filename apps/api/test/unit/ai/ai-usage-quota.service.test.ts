@@ -8,7 +8,7 @@
  * - At/above hard limit with hardEnforcementEnabled=true → status 'blocked'.
  * - Percent calculations and remaining runs are derived from ledger summary.
  */
-import { AiUsageQuotaService } from '../../src/ai/ai-usage-quota.service';
+import { AiUsageQuotaService } from '../../../src/ai/ai-usage-quota.service';
 
 describe('AiUsageQuotaService', () => {
   const entitlementsStub = {

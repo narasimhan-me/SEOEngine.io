@@ -1,7 +1,7 @@
 // Unit tests for ShopifyService.fetchShopifyProducts GraphQL mapping.
 // Verifies that GraphQL product nodes are mapped into the internal ShopifyProduct DTO shape.
 
-import { ShopifyService } from '../../src/shopify/shopify.service';
+import { ShopifyService } from '../../../src/shopify/shopify.service';
 
 describe('ShopifyService.fetchShopifyProducts (GraphQL mapping)', () => {
   let originalFetch: any;
@@ -98,6 +98,13 @@ describe('ShopifyService.fetchShopifyProducts (GraphQL mapping)', () => {
     expect(product.handle).toBe('test-product');
     expect(product.metafields_global_title_tag).toBe('SEO Title');
     expect(product.metafields_global_description_tag).toBe('SEO Description');
-    expect(product.images).toEqual([{ src: 'https://example.com/image.jpg' }]);
+    expect(product.images).toEqual([
+      {
+        id: 'gid://shopify/ProductImage/1',
+        src: 'https://example.com/image.jpg',
+        altText: 'Alt text',
+        position: 0,
+      },
+    ]);
   });
 });

@@ -8,7 +8,7 @@
  *
  * Rule evaluation order: Find/Replace → Prefix → Suffix → Max Length → Forbidden phrase detection
  */
-import { AutomationPlaybooksService } from '../../src/projects/automation-playbooks.service';
+import { AutomationPlaybooksService } from '../../../src/projects/automation-playbooks.service';
 
 // Minimal stubs for dependencies that are never used in these unit tests
 const prismaStub = {} as any;

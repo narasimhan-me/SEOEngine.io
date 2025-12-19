@@ -1,7 +1,7 @@
 // Unit tests for Answer Block → Shopify metafield mapping helpers (AEO-2).
 // Verifies mapping behavior, handling of unknown questionIds, and payload trimming.
 
-import { mapAnswerBlocksToMetafieldPayloads } from '../../src/shopify/shopify.service';
+import { mapAnswerBlocksToMetafieldPayloads } from '../../../src/shopify/shopify.service';
 import { ANSWER_QUESTION_IDS } from '@engineo/shared';
 
 describe('mapAnswerBlocksToMetafieldPayloads', () => {

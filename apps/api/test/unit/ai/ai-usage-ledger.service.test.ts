@@ -7,7 +7,7 @@
  * - Time window filtering works correctly
  * - Run summaries projection returns expected fields
  */
-import { AiUsageLedgerService } from '../../src/ai/ai-usage-ledger.service';
+import { AiUsageLedgerService } from '../../../src/ai/ai-usage-ledger.service';
 
 // Minimal mock factory
 const createPrismaMock = () => ({

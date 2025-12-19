@@ -2,7 +2,7 @@
 // Verifies mutation payload construction and user error handling for product SEO updates.
 
 import { BadRequestException } from '@nestjs/common';
-import { ShopifyService } from '../../src/shopify/shopify.service';
+import { ShopifyService } from '../../../src/shopify/shopify.service';
 
 describe('ShopifyService.updateProductSeo (GraphQL productUpdate)', () => {
   let originalFetch: any;
