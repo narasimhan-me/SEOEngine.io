@@ -15,6 +15,7 @@
     "test": "pnpm test:api",
     "test:api": "pnpm --filter api test:api",
     "test:unit": "pnpm --filter api test:unit",
+    "test:api:critical": "pnpm --filter api test:api:critical",
     "test:web": "pnpm --filter web test",
     "test:e2e": "pnpm --filter web test:e2e",
     "e2e:dev": "NODE_ENV=test ENGINEO_ENV=test ENGINEO_E2E=1 pnpm dev",
