@@ -1085,7 +1085,7 @@ export class DeoIssuesService {
    */
   private buildLowProductEntityCoverageIssue(
     products: any[],
-    signals: DeoScoreSignals | null,
+    _signals: DeoScoreSignals | null,
   ): DeoIssue | null {
     if (products.length === 0) return null;
 

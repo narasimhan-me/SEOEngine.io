@@ -465,7 +465,7 @@ export class CompetitorsService {
     }
 
     // Get or compute coverage
-    let coverageRow = await this.prisma.productCompetitiveCoverage.findUnique({
+    const coverageRow = await this.prisma.productCompetitiveCoverage.findUnique({
       where: { productId },
     });
 
