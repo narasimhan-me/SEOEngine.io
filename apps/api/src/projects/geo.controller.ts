@@ -25,6 +25,9 @@ import {
   type GeoCitationConfidenceLevel,
 } from '@engineo/shared';
 import { GeoIssueType as PrismaGeoIssueType, GeoCitationConfidenceLevel as PrismaGeoConfidence } from '@prisma/client';
+import { GovernanceService } from './governance.service';
+import { ApprovalsService } from './approvals.service';
+import { AuditEventsService } from './audit-events.service';
 
 class GeoFixPreviewDto {
   questionId: string;
@@ -73,6 +76,9 @@ export class GeoController {
     private readonly aiService: AiService,
     private readonly aiUsageQuotaService: AiUsageQuotaService,
     private readonly aiUsageLedgerService: AiUsageLedgerService,
+    private readonly governanceService: GovernanceService,
+    private readonly approvalsService: ApprovalsService,
+    private readonly auditEventsService: AuditEventsService,
   ) {}
 
   @Get('products/:productId/geo')
@@ -264,6 +270,30 @@ export class GeoController {
       throw new BadRequestException('Draft does not belong to this product');
     }
 
+    // [ENTERPRISE-GEO-1] Check approval requirement
+    const approvalRequired = await this.governanceService.isApprovalRequired(product.projectId);
+    let approvalId: string | undefined;
+
+    if (approvalRequired) {
+      const approvalStatus = await this.approvalsService.hasValidApproval(
+        product.projectId,
+        'GEO_FIX_APPLY',
+        dto.draftId,
+      );
+
+      if (!approvalStatus.valid) {
+        // Return structured error with approval status for UI
+        throw new BadRequestException({
+          code: 'APPROVAL_REQUIRED',
+          message: 'This action requires approval before it can be executed.',
+          approvalStatus: approvalStatus.status ?? 'none',
+          approvalId: approvalStatus.approvalId,
+        });
+      }
+
+      approvalId = approvalStatus.approvalId;
+    }
+
     const beforeGeo = await this.geoService.getProductGeoReadiness(productId, userId);
     const beforeIssueTypes = new Set(beforeGeo.issues.map((i) => `${i.issueType}:${i.questionId || ''}`));
 
@@ -323,6 +353,25 @@ export class GeoController {
         resolvedIssueTypes: resolved,
       },
     });
+
+    // [ENTERPRISE-GEO-1] Mark approval as consumed and log audit event
+    if (approvalId) {
+      await this.approvalsService.markConsumed(approvalId);
+    }
+
+    await this.auditEventsService.logApplyExecuted(
+      product.projectId,
+      userId,
+      'GEO_FIX_APPLY',
+      dto.draftId,
+      {
+        productId,
+        questionId,
+        issuesResolvedCount: resolved.length,
+        beforeConfidence: beforeLevel,
+        afterConfidence: afterLevel,
+      },
+    );
 
     return {
       success: true,

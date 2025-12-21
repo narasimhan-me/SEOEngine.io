@@ -88,7 +88,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/ai-systems.md`, `docs/testing/token-usage-tracking.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md` |
+| **Manual Testing Doc(s)** | `docs/testing/ai-systems.md`, `docs/testing/token-usage-tracking.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/PRODUCTS-LIST-2.0.md` |
 | **Automated Tests** | Planned |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
@@ -100,10 +100,13 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] Token usage tracking and display
 - [ ] Rate limit handling
 - [ ] Error recovery and user messaging
-- [ ] DEO-UX-REFRESH-1: Products list single primary CTA per row (no duplicate navigation)
-- [ ] DEO-UX-REFRESH-1: Products list issue-by-pillar summary chips
 - [ ] DEO-UX-REFRESH-1: AI CTA labeling "(uses AI)" on AI-triggering buttons only
 - [ ] DEO-UX-REFRESH-1: "Apply to Shopify" / "Apply Fix" never labeled with "(uses AI)"
+- [ ] PRODUCTS-LIST-2.0: Health pill per row (3 states: Healthy, Needs Attention, Critical - no numbers)
+- [ ] PRODUCTS-LIST-2.0: Recommended action per row (single, deterministic based on severity + pillar priority)
+- [ ] PRODUCTS-LIST-2.0: Progressive disclosure (details only on expand, no inline breakdowns by default)
+- [ ] PRODUCTS-LIST-2.0: No always-visible "Scan SEO"; "Rescan" only when data is stale
+- [ ] PRODUCTS-LIST-2.0: Command Bar with attention count and "Fix in bulk" CTA
 
 ---
 
@@ -516,6 +519,42 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 ---
 
+### CP-018: Enterprise Governance & Approvals
+
+**Description:** Enterprise-grade governance controls for GEO reports and content modifications. Includes per-project governance policies, approval workflows, passcode-protected share links, immutable audit logging, and content redaction.
+
+| Field | Value |
+|-------|-------|
+| **Manual Testing Doc(s)** | `docs/ENTERPRISE_GEO_GOVERNANCE.md`, `docs/manual-testing/ENTERPRISE-GEO-1.md`, `docs/IMPLEMENTATION_PLAN.md` |
+| **Automated Tests** | `apps/api/test/integration/enterprise-geo-1.test.ts`, `apps/web/tests/enterprise-geo-1.spec.ts` |
+| **Last Verified (Manual)** | [YYYY-MM-DD] |
+| **Last Verified (Automated)** | N/A |
+| **Owner** | Core Team |
+
+**Key Scenarios:**
+- [ ] Governance policy CRUD (GET/PUT /projects/:id/governance/policy)
+- [ ] Approval workflow: request → approve/reject → consume
+- [ ] Approval required check gates GEO fix apply and Answer Block sync
+- [ ] Share link creation with passcode (8-char A-Z 0-9)
+- [ ] Passcode shown only once at creation
+- [ ] Passcode verification via POST /share/geo-report/:token/verify
+- [ ] Wrong passcode returns error message
+- [ ] Share link expiry respects governance policy
+- [ ] Audience restriction enforcement (ANYONE_WITH_LINK vs PASSCODE)
+- [ ] Content redaction when allowCompetitorMentions is false
+- [ ] PII toggle always false (API rejects true, UI shows locked)
+- [ ] Audit events logged for all governance actions
+- [ ] Public share view is mutation-free (no DB writes)
+- [ ] Report assembly is read-only
+- [ ] Print/PDF rendering has no side effects
+
+**Hard Contracts:**
+- [ ] View/print is mutation-free: No DB writes during public share view GET/POST, report assembly, or printing
+- [ ] PII never allowed: API enforces allowPII=false, UI displays toggle as locked
+- [ ] Passcode shown once: Plaintext only at creation, audit stores only last4
+
+---
+
 ## Coverage Summary
 
 | Critical Path | Manual Docs | Auto Tests | Status |
@@ -537,6 +576,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | CP-015: Guided Onboarding | ✅ | Planned | 🟡 Manual Only (Impl Pending) |
 | CP-016: Project Insights | ✅ | ✅ | 🟢 Full Coverage |
 | CP-017: GEO Answer Readiness | ✅ | ✅ | 🟢 Full Coverage |
+| CP-018: Enterprise Governance | ✅ | ✅ | 🟢 Full Coverage |
 
 **Legend:**
 - 🟢 Full Coverage (Manual + Automated)
@@ -596,3 +636,5 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 3.2 | 2025-12-19 | Added CP-017: GEO Answer Readiness & Citation Confidence (GEO-FOUNDATION-1) - Explainable readiness signals, derived citation confidence, Preview/Apply flow for answer improvements. |
 | 3.3 | 2025-12-19 | GEO-INSIGHTS-2: Updated CP-016 and CP-017 with GEO Insights scenarios, added integration tests, upgraded CP-016 to Full Coverage. |
 | 3.4 | 2025-12-20 | DEO-UX-REFRESH-1: Updated CP-001 (login branding), CP-003 (products list CTA/chips, AI labeling), CP-009 (issues tab consistency), CP-017 (shared report branding, print quality). Added manual testing doc. |
+| 3.5 | 2025-12-21 | Added CP-018: Enterprise Governance & Approvals (ENTERPRISE-GEO-1) with governance policies, approval workflows, passcode-protected share links, audit logging, and content redaction. Added integration and E2E tests. |
+| 3.6 | 2025-12-21 | PRODUCTS-LIST-2.0: Updated CP-003 with decision-first Products list scenarios (Health pill, recommended action, progressive disclosure, Rescan gating, Command Bar). Replaced DEO-UX-REFRESH-1 product-list bullets. Added manual testing doc. |

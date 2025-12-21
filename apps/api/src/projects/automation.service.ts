@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -16,6 +17,9 @@ import { EntitlementsService } from '../billing/entitlements.service';
 import { answerBlockAutomationQueue } from '../queues/queues';
 import { PlanId } from '../billing/plans';
 import { ShopifyService } from '../shopify/shopify.service';
+import { GovernanceService } from './governance.service';
+import { ApprovalsService } from './approvals.service';
+import { AuditEventsService } from './audit-events.service';
 
 const AUTOMATION_SOURCE = 'automation_v1';
 
@@ -36,6 +40,9 @@ export class AutomationService {
     private readonly entitlementsService: EntitlementsService,
     @Inject(forwardRef(() => ShopifyService))
     private readonly shopifyService: ShopifyService,
+    private readonly governanceService: GovernanceService,
+    private readonly approvalsService: ApprovalsService,
+    private readonly auditEventsService: AuditEventsService,
   ) {}
 
   /**
@@ -923,6 +930,29 @@ export class AutomationService {
       };
     }
 
+    // [ENTERPRISE-GEO-1] Check approval requirement for ANSWER_BLOCK_SYNC
+    const approvalRequired = await this.governanceService.isApprovalRequired(product.projectId);
+    let approvalId: string | undefined;
+
+    if (approvalRequired) {
+      const approvalStatus = await this.approvalsService.hasValidApproval(
+        product.projectId,
+        'ANSWER_BLOCK_SYNC',
+        productId,
+      );
+
+      if (!approvalStatus.valid) {
+        throw new BadRequestException({
+          code: 'APPROVAL_REQUIRED',
+          message: 'This action requires approval before it can be executed.',
+          approvalStatus: approvalStatus.status ?? 'none',
+          approvalId: approvalStatus.approvalId,
+        });
+      }
+
+      approvalId = approvalStatus.approvalId;
+    }
+
     try {
       const syncResult = await this.shopifyService.syncAnswerBlocksToShopify(
         product.id,
@@ -949,6 +979,25 @@ export class AutomationService {
           modelUsed: 'ae_v1',
         },
       });
+
+      // [ENTERPRISE-GEO-1] Mark approval as consumed and log audit event on successful sync
+      if (approvalId) {
+        await this.approvalsService.markConsumed(approvalId);
+      }
+
+      await this.auditEventsService.logApplyExecuted(
+        product.projectId,
+        userId,
+        'ANSWER_BLOCK_SYNC',
+        productId,
+        {
+          productId,
+          syncedCount: syncResult.syncedCount,
+          errors: syncResult.errors,
+          status,
+        },
+      );
+
       return {
         productId: product.id,
         projectId: product.projectId,

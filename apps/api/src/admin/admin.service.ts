@@ -1156,6 +1156,94 @@ export class AdminService {
   }
 
   // ===========================================================================
+  // [D9] Governance Audit Events (ENTERPRISE-GEO-1)
+  // ===========================================================================
+
+  /**
+   * [ENTERPRISE-GEO-1] Get governance audit events with filters.
+   * Read-only access to project-level governance audit events.
+   */
+  async getGovernanceAuditEvents(filters: {
+    projectId?: string;
+    actorUserId?: string;
+    eventType?: string;
+    startDate?: Date;
+    endDate?: Date;
+    page?: number;
+    limit?: number;
+  }) {
+    const { projectId, actorUserId, eventType, startDate, endDate, page = 1, limit = 50 } = filters;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (projectId) where.projectId = projectId;
+    if (actorUserId) where.actorUserId = actorUserId;
+    if (eventType) where.eventType = eventType;
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = startDate;
+      if (endDate) where.createdAt.lte = endDate;
+    }
+
+    const [events, total] = await Promise.all([
+      this.prisma.governanceAuditEvent.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          createdAt: true,
+          eventType: true,
+          actorUserId: true,
+          resourceType: true,
+          resourceId: true,
+          metadata: true,
+          projectId: true,
+          project: {
+            select: { name: true },
+          },
+        },
+      }),
+      this.prisma.governanceAuditEvent.count({ where }),
+    ]);
+
+    // Enrich with actor email if available
+    const userIds = [...new Set(events.map((e) => e.actorUserId).filter(Boolean))];
+    const users = userIds.length > 0
+      ? await this.prisma.user.findMany({
+          where: { id: { in: userIds as string[] } },
+          select: { id: true, email: true },
+        })
+      : [];
+    const userMap = new Map(users.map((u) => [u.id, u.email]));
+
+    const enrichedEvents = events.map((event) => ({
+      id: event.id,
+      createdAt: event.createdAt,
+      eventType: event.eventType,
+      actorUserId: event.actorUserId,
+      actorEmail: event.actorUserId ? userMap.get(event.actorUserId) || null : null,
+      resourceType: event.resourceType,
+      resourceId: event.resourceId,
+      projectId: event.projectId,
+      projectName: event.project?.name || null,
+      // Redact any sensitive fields from metadata
+      metadata: event.metadata ? this.redactSensitiveFields(event.metadata as Record<string, unknown>) : null,
+    }));
+
+    return {
+      events: enrichedEvents,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  // ===========================================================================
   // Legacy/Stats
   // ===========================================================================
 

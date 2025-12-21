@@ -6,10 +6,24 @@
 
 ---
 
+> **NOTE: Products List Behavior Superseded**
+>
+> The Products list test scenarios in this document (Sections 1-2) have been **superseded by PRODUCTS-LIST-2.0**.
+> For canonical Products list manual test coverage, see [PRODUCTS-LIST-2.0.md](./PRODUCTS-LIST-2.0.md).
+>
+> The following Products list behaviors from this document are no longer current:
+> - Pillar chips and "+N more" in default row view
+> - Non-clickable rows (rows are now clickable for progressive disclosure)
+> - Metadata status filter/chips
+>
+> Product details tabs, GEO branding, and login branding coverage in this document remain valid.
+
+---
+
 ## Overview
 
 DEO-UX-REFRESH-1 improves UX across multiple surfaces:
-1. **Products List**: Single primary CTA per row, issue-by-pillar summary chips
+1. ~~**Products List**: Single primary CTA per row, issue-by-pillar summary chips~~ **(Superseded by PRODUCTS-LIST-2.0)**
 2. **Product Details**: Tab-based navigation replacing scroll anchors, prominent Issues surface
 3. **Shared GEO Reports**: Premium branding with print-friendly formatting
 4. **Login Page**: Premium branded styling while preserving security
@@ -37,33 +51,37 @@ DEO-UX-REFRESH-1 improves UX across multiple surfaces:
 
 ## Test Scenarios
 
-### 1. Products List Row Actions (No Duplicates)
+### 1. Products List Row Actions (No Duplicates) - **SUPERSEDED**
 
-**URL:** `/projects/:projectId/products`
+> **This section is superseded by [PRODUCTS-LIST-2.0.md](./PRODUCTS-LIST-2.0.md)**. Rows are now clickable for progressive disclosure. See PRODUCTS-LIST-2.0 for current behavior.
 
-| Step | Action | Expected Result |
-|------|--------|-----------------|
-| 1 | Navigate to Products list | Page loads with product rows |
-| 2 | Verify primary CTA | Each row has exactly ONE primary navigation CTA ("Open" or "View details") |
-| 3 | Verify no "Open Workspace" link | No "Open Workspace →" inline link visible |
-| 4 | Verify no "Optimize" button | No purple "Optimize" button visible |
-| 5 | Verify overflow menu | Menu does NOT contain "View details" item |
-| 6 | Click primary CTA | Navigates to `/projects/:id/products/:productId` |
-| 7 | Verify row is NOT clickable | Clicking non-button areas does NOT navigate |
+~~**URL:** `/projects/:projectId/products`~~
+
+~~| Step | Action | Expected Result |~~
+~~|------|--------|-----------------|~~
+~~| 1 | Navigate to Products list | Page loads with product rows |~~
+~~| 2 | Verify primary CTA | Each row has exactly ONE primary navigation CTA ("Open" or "View details") |~~
+~~| 3 | Verify no "Open Workspace" link | No "Open Workspace →" inline link visible |~~
+~~| 4 | Verify no "Optimize" button | No purple "Optimize" button visible |~~
+~~| 5 | Verify overflow menu | Menu does NOT contain "View details" item |~~
+~~| 6 | Click primary CTA | Navigates to `/projects/:id/products/:productId` |~~
+~~| 7 | Verify row is NOT clickable | Clicking non-button areas does NOT navigate |~~
 
 ---
 
-### 2. Products List Issue Summary Chips
+### 2. Products List Issue Summary Chips - **SUPERSEDED**
 
-**URL:** `/projects/:projectId/products`
+> **This section is superseded by [PRODUCTS-LIST-2.0.md](./PRODUCTS-LIST-2.0.md)**. Pillar chips are now only shown in expanded details, not in the default row view. See PRODUCTS-LIST-2.0 for current behavior.
 
-| Step | Action | Expected Result |
-|------|--------|-----------------|
-| 1 | Navigate to Products list with issues | Page loads with products that have DEO issues |
-| 2 | Verify pillar chips | Row shows chips like "Metadata 2", "Search & Intent 1" |
-| 3 | Verify chip cap | Max 3 pillar chips shown, with "+N more" for additional |
-| 4 | Verify total count | Total issue count matches sum of pillar issues |
-| 5 | Verify consistency | Issue count matches what product details will show |
+~~**URL:** `/projects/:projectId/products`~~
+
+~~| Step | Action | Expected Result |~~
+~~|------|--------|-----------------|~~
+~~| 1 | Navigate to Products list with issues | Page loads with products that have DEO issues |~~
+~~| 2 | Verify pillar chips | Row shows chips like "Metadata 2", "Search & Intent 1" |~~
+~~| 3 | Verify chip cap | Max 3 pillar chips shown, with "+N more" for additional |~~
+~~| 4 | Verify total count | Total issue count matches sum of pillar issues |~~
+~~| 5 | Verify consistency | Issue count matches what product details will show |~~
 
 ---
 
@@ -239,3 +257,4 @@ These invariants MUST be verified:
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2025-12-20 | Initial manual testing guide for DEO-UX-REFRESH-1 |
+| 1.1 | 2025-12-21 | Products list sections (1-2) marked superseded by PRODUCTS-LIST-2.0. Added superseded note at top. |

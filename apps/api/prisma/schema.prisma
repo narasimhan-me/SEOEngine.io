@@ -186,6 +186,11 @@ model Project {
 
   // [GEO-EXPORT-1] GEO report share links
   geoReportShareLinks        GeoReportShareLink[]
+
+  // [ENTERPRISE-GEO-1] Governance relations
+  governancePolicy           ProjectGovernancePolicy?
+  approvalRequests           ApprovalRequest[]
+  governanceAuditEvents      GovernanceAuditEvent[]
 }
 
 model Integration {
@@ -1139,8 +1144,15 @@ enum GeoReportShareLinkStatus {
   REVOKED
 }
 
-// [GEO-EXPORT-1] Shareable link for GEO reports
-// Public, time-bound (14-day default), revocable, "anyone with the link" access model
+// [ENTERPRISE-GEO-1] Share link audience access modes
+enum ShareLinkAudience {
+  ANYONE_WITH_LINK  // Default: no auth required
+  PASSCODE          // Requires system-generated passcode
+  ORG_ONLY          // Placeholder: requires org membership (future)
+}
+
+// [GEO-EXPORT-1 + ENTERPRISE-GEO-1] Shareable link for GEO reports
+// Public, time-bound (14-day default), revocable, with optional passcode protection
 model GeoReportShareLink {
   id          String                   @id @default(cuid())
   project     Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -1152,9 +1164,9 @@ model GeoReportShareLink {
   // Title/label for the share (optional)
   title       String?
 
-  // Time window: 14-day expiry by default
+  // Time window: 14-day default, can be reduced by governance policy
   createdAt   DateTime                 @default(now())
-  expiresAt   DateTime                 // Set to createdAt + 14 days
+  expiresAt   DateTime                 // Set to createdAt + configured days
 
   // Revocation support
   status      GeoReportShareLinkStatus @default(ACTIVE)
@@ -1166,7 +1178,132 @@ model GeoReportShareLink {
   // Who created this share link (for audit)
   createdByUserId String
 
+  // [ENTERPRISE-GEO-1] Export control fields
+  audience           ShareLinkAudience  @default(ANYONE_WITH_LINK)
+  passcodeHash       String?            // bcrypt hash of passcode (never store plaintext)
+  passcodeLast4      String?            // Last 4 chars for hint display (e.g., "****ABCD")
+  passcodeCreatedAt  DateTime?          // When passcode was set
+
   @@index([projectId, status])
   @@index([shareToken])
   @@index([expiresAt])
+}
+
+// =============================================================================
+// ENTERPRISE-GEO-1: Enterprise Governance, Approvals, Audit, Export Controls
+// =============================================================================
+
+// [ENTERPRISE-GEO-1] Approval request status
+enum ApprovalStatus {
+  DRAFT             // Not yet submitted for approval
+  PENDING_APPROVAL  // Awaiting decision
+  APPROVED          // Approved by authorized actor
+  REJECTED          // Rejected by authorized actor
+}
+
+// [ENTERPRISE-GEO-1] Resource types that can require approval
+enum ApprovalResourceType {
+  GEO_FIX_APPLY       // Applying a GEO fix draft
+  ANSWER_BLOCK_SYNC   // Syncing answer blocks to Shopify
+}
+
+// [ENTERPRISE-GEO-1] Audit event types for governance tracking
+enum GovernanceAuditEventType {
+  // Policy events
+  POLICY_CHANGED
+
+  // Approval workflow events
+  APPROVAL_REQUESTED
+  APPROVAL_APPROVED
+  APPROVAL_REJECTED
+
+  // Apply events (after approval)
+  APPLY_EXECUTED
+
+  // Share link events
+  SHARE_LINK_CREATED
+  SHARE_LINK_REVOKED
+}
+
+// [ENTERPRISE-GEO-1] Project-scoped governance policy (1:1 with Project)
+// Controls approval requirements, share link restrictions, and export controls
+model ProjectGovernancePolicy {
+  id        String   @id @default(cuid())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String   @unique
+
+  // Approval toggles (default off for backwards compatibility)
+  requireApprovalForApply Boolean @default(false)  // Require approval before GEO/AEO apply
+
+  // Share link restrictions
+  restrictShareLinks    Boolean @default(false)    // If true: force passcode + shorter expiry
+  shareLinkExpiryDays   Int     @default(14)       // Default expiry (max 14, reduced to 7 if restricted)
+  allowedExportAudience ShareLinkAudience @default(ANYONE_WITH_LINK)  // Default audience mode
+
+  // Export content controls (server-side enforcement)
+  allowCompetitorMentionsInExports Boolean @default(false)  // Scrub competitor names if false
+  allowPIIInExports                Boolean @default(false)  // Always false; scrub PII patterns
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// [ENTERPRISE-GEO-1] Approval workflow model
+// Tracks approval requests for governed resources
+model ApprovalRequest {
+  id        String   @id @default(cuid())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  // Resource being approved
+  resourceType ApprovalResourceType
+  resourceId   String                 // e.g., draftId for GEO_FIX_APPLY, productId for ANSWER_BLOCK_SYNC
+
+  // Workflow state
+  status ApprovalStatus @default(PENDING_APPROVAL)
+
+  // Actor tracking
+  requestedByUserId String             // User who submitted the request
+  requestedAt       DateTime @default(now())
+
+  // Decision tracking (null until decided)
+  decidedByUserId String?              // User who approved/rejected
+  decidedAt       DateTime?
+  decisionReason  String?              // Optional reason for approval/rejection
+
+  // Consumption tracking (prevents reusing approved requests)
+  consumed   Boolean   @default(false) // True after the approved action is executed
+  consumedAt DateTime?                 // When the approval was used
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId, resourceType, resourceId])
+  @@index([projectId, status])
+  @@index([requestedByUserId, createdAt(sort: Desc)])
+}
+
+// [ENTERPRISE-GEO-1] Immutable audit event log for governance actions
+// Append-only: no update or delete flows
+model GovernanceAuditEvent {
+  id        String   @id @default(cuid())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  // Who performed the action
+  actorUserId String
+
+  // What happened
+  eventType    GovernanceAuditEventType
+  resourceType String?                    // e.g., "GEO_FIX_APPLY", "SHARE_LINK", "POLICY"
+  resourceId   String?                    // ID of the affected resource
+
+  // Additional context (must never contain secrets/tokens)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt(sort: Desc)])
+  @@index([projectId, eventType, createdAt(sort: Desc)])
+  @@index([actorUserId, createdAt(sort: Desc)])
 }

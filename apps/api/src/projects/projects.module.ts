@@ -33,6 +33,10 @@ import { GeoController } from './geo.controller';
 import { GeoReportsService } from './geo-reports.service';
 import { GeoReportsController } from './geo-reports.controller';
 import { GeoReportsPublicController } from './geo-reports-public.controller';
+import { GovernanceService } from './governance.service';
+import { ApprovalsService } from './approvals.service';
+import { AuditEventsService } from './audit-events.service';
+import { GovernanceController } from './governance.controller';
 
 @Module({
   imports: [
@@ -41,7 +45,7 @@ import { GeoReportsPublicController } from './geo-reports-public.controller';
     ProductsModule,
     forwardRef(() => ShopifyModule),
   ],
-  controllers: [ProjectsController, ProductAutomationController, SearchIntentController, CompetitorsController, OffsiteSignalsController, LocalDiscoveryController, MediaAccessibilityController, GeoController, GeoReportsController, GeoReportsPublicController],
+  controllers: [ProjectsController, ProductAutomationController, SearchIntentController, CompetitorsController, OffsiteSignalsController, LocalDiscoveryController, MediaAccessibilityController, GeoController, GeoReportsController, GeoReportsPublicController, GovernanceController],
   providers: [
     ProjectsService,
     PrismaService,
@@ -64,7 +68,10 @@ import { GeoReportsPublicController } from './geo-reports-public.controller';
     MediaAccessibilityService,
     GeoService,
     GeoReportsService,
+    GovernanceService,
+    ApprovalsService,
+    AuditEventsService,
   ],
-  exports: [ProjectsService, DeoScoreService, AutomationService, AnswerEngineService, AutomationPlaybookRunsService, SearchIntentService, CompetitorsService, OffsiteSignalsService, LocalDiscoveryService, MediaAccessibilityService],
+  exports: [ProjectsService, DeoScoreService, AutomationService, AnswerEngineService, AutomationPlaybookRunsService, SearchIntentService, CompetitorsService, OffsiteSignalsService, LocalDiscoveryService, MediaAccessibilityService, GovernanceService, ApprovalsService, AuditEventsService],
 })
 export class ProjectsModule {}

@@ -285,4 +285,34 @@ export class AdminController {
       limit: limit ? parseInt(limit, 10) : 50,
     });
   }
+
+  // ===========================================================================
+  // [D9] Governance Audit Events (ENTERPRISE-GEO-1)
+  // ===========================================================================
+
+  /**
+   * GET /admin/governance-audit-events - Read-only access to governance audit events
+   * [ENTERPRISE-GEO-1] Internal visibility for governance-related actions.
+   */
+  @Get('governance-audit-events')
+  @RequireAdminCapability('read')
+  async getGovernanceAuditEvents(
+    @Query('projectId') projectId?: string,
+    @Query('actorUserId') actorUserId?: string,
+    @Query('eventType') eventType?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.adminService.getGovernanceAuditEvents({
+      projectId,
+      actorUserId,
+      eventType,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 50,
+    });
+  }
 }

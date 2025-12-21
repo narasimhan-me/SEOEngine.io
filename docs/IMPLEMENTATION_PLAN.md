@@ -314,6 +314,106 @@ GEO (Generative Engine Optimization) foundation layer providing explainable answ
 
 ---
 
+## Phase ENTERPRISE-GEO-1: Enterprise Governance & Approvals ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-21
+
+Enterprise-grade governance controls for GEO reports and content modifications.
+
+### Key Features
+
+1. **Governance Policy**: Per-project settings for approval requirements, share restrictions, expiry, content controls
+2. **Approval Workflow**: Request → approve/reject → consume pattern for GEO fixes and Answer Block sync
+3. **Passcode-Protected Share Links**: 8-char alphanumeric passcode, bcrypt hashed, shown once at creation
+4. **Audit Events**: Immutable log of all governance actions (policy updates, approvals, share links, applies)
+5. **Content Redaction**: Optional competitor mention redaction in exported reports
+
+### Hard Contracts
+
+1. **Mutation-Free Views**: Public share view, report assembly, and printing perform no DB writes
+2. **PII Never Allowed**: `allowPII` is always `false`; API rejects attempts to enable, UI shows locked toggle
+3. **Passcode Security**: Plaintext shown once, only `last4` stored for hints, full hash stored for verification
+
+### Implementation Details
+
+- **Governance Service**: `apps/api/src/projects/governance.service.ts` - Policy CRUD, settings retrieval
+- **Approvals Service**: `apps/api/src/projects/approvals.service.ts` - Approval lifecycle
+- **Audit Events Service**: `apps/api/src/projects/audit-events.service.ts` - Immutable event logging
+- **Governance Controller**: `apps/api/src/projects/governance.controller.ts` - REST endpoints
+- **GEO Reports Service**: `apps/api/src/projects/geo-reports.service.ts` - Passcode, expiry, redaction
+- **GEO Reports Public Controller**: `apps/api/src/projects/geo-reports-public.controller.ts` - Passcode verification
+- **Web UI**: `apps/web/src/components/governance/GovernanceSettingsSection.tsx` - Settings panel
+- **Share Page**: `apps/web/src/app/share/geo-report/[token]/page.tsx` - Passcode entry form
+
+### Trust Invariants
+
+1. **View/Print Mutation-Free**: No DB writes during report assembly, public share view GET/POST, or printing
+2. **PII Locked**: API enforces `allowPII: false`; UI displays toggle as locked/disabled
+3. **Passcode Shown Once**: Plaintext returned only at creation; audit stores only `last4`
+
+### Test Coverage
+
+- Backend: `apps/api/test/integration/enterprise-geo-1.test.ts`
+- E2E: `apps/web/tests/enterprise-geo-1.spec.ts`
+
+### Related Documents
+
+- [ENTERPRISE_GEO_GOVERNANCE.md](./ENTERPRISE_GEO_GOVERNANCE.md) - Full specification and contracts
+- [GEO_EXPORT.md](./GEO_EXPORT.md) - GEO report export/sharing
+- [API_SPEC.md](../API_SPEC.md) - API documentation
+
+---
+
+## Phase PRODUCTS-LIST-2.0: Decision-First Products List ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-21
+
+Frontend-only redesign of the Products list to be decision-first with Health pills, recommended actions, and progressive disclosure.
+
+### Key Features
+
+1. **Health Pill per Row**: 3 states (Healthy, Needs Attention, Critical) - no numbers
+2. **Recommended Action per Row**: Single, deterministic action based on severity + pillar priority
+3. **Progressive Disclosure**: Click row to expand; inline issue breakdowns only in expanded details
+4. **No Always-Visible Scan SEO**: "Rescan" only visible when data is stale
+5. **Command Bar**: Shows "{N} products need attention" and "Fix in bulk" CTA
+6. **Health Filter**: All, Critical, Needs Attention, Healthy (replaces metadata status filter)
+
+### Implementation Details
+
+- **page.tsx**: Removed optimization banner, removed issues badge, added `isDeoDataStale` computation
+- **ProductTable.tsx**: New Health filter model, Command Bar, enriched `issuesByProductId` with `healthState` and `recommendedAction`
+- **ProductRow.tsx**: Health pill, recommended action line, progressive disclosure (clickable row), "View details" primary action, conditional "Rescan"
+- **ProductDetailPanel.tsx**: Shows Handle/ID, Last synced, Meta title/description, Issues by category with deep links
+
+### Pillar Priority Order (for tie-breaking recommended action)
+
+1. metadata_snippet_quality
+2. search_intent_fit
+3. content_commerce_signals
+4. technical_indexability
+5. media_accessibility
+6. competitive_positioning
+7. offsite_signals
+8. local_discovery
+
+### Trust Invariants
+
+1. **Health Pills - No Numbers**: Health pill shows only text labels, never issue counts
+2. **Single Recommended Action**: Deterministically chosen via severity > pillar priority > issue.id
+3. **Progressive Disclosure**: Default row shows only essential info; details require expansion
+4. **Pre-Crawl Safety**: Products with crawlCount === 0 show "Healthy" without implying issues were checked
+
+### Related Documents
+
+- [PRODUCTS-LIST-2.0.md](./manual-testing/PRODUCTS-LIST-2.0.md) - Manual testing guide
+- [CRITICAL_PATH_MAP.md](./testing/CRITICAL_PATH_MAP.md) - CP-003 entry
+- [DEO_INFORMATION_ARCHITECTURE.md](./DEO_INFORMATION_ARCHITECTURE.md) - Updated UX contracts
+
+---
+
 ## Document History
 
 | Version | Date | Changes |
@@ -325,3 +425,5 @@ GEO (Generative Engine Optimization) foundation layer providing explainable answ
 | 1.4 | 2025-12-19 | SECURITY HOTFIX: Sanitized auth query params to prevent password leakage in logs/history; added middleware + client-side defense-in-depth + Playwright coverage; added manual testing doc. |
 | 1.5 | 2025-12-19 | Added GEO-FOUNDATION-1: GEO Answer Readiness & Citation Confidence (Complete) |
 | 1.6 | 2025-12-19 | GEO-FOUNDATION-1: Updated shared package build configuration to exclude test files from dist output |
+| 1.7 | 2025-12-21 | Added ENTERPRISE-GEO-1: Enterprise Governance & Approvals (Complete) |
+| 1.8 | 2025-12-21 | Added PRODUCTS-LIST-2.0: Decision-First Products List (Complete) - Health pills, recommended actions, progressive disclosure, Command Bar |

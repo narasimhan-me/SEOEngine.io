@@ -7,6 +7,7 @@ import { projectsApi, shopifyApi } from '@/lib/api';
 import { useUnsavedChanges } from '@/components/unsaved-changes/UnsavedChangesProvider';
 import FriendlyError from '@/components/ui/FriendlyError';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
+import { GovernanceSettingsSection } from '@/components/governance';
 
 type CrawlFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY';
 
@@ -496,8 +497,16 @@ export default function ProjectSettingsPage() {
         </div>
       </div>
 
+      {/* [ENTERPRISE-GEO-1] Governance Settings Section */}
+      <GovernanceSettingsSection
+        projectId={projectId}
+        onUnsavedChanges={(hasGovernanceChanges) => {
+          // Governance section manages its own save button
+        }}
+      />
+
       {/* Active Integrations Section */}
-      <div className="rounded-lg bg-white p-6 shadow">
+      <div className="rounded-lg bg-white p-6 shadow mt-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Active Integrations</h2>
         {status.integrations.length > 0 ? (
           <div className="space-y-3">

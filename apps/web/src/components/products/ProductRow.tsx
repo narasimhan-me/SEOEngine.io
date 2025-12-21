@@ -1,14 +1,14 @@
-import { useState, type MouseEvent } from 'react';
+import { type MouseEvent } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-import type { DeoIssueSeverity } from '@/lib/deo-issues';
 import type { DeoPillarId } from '@/lib/deo-pillars';
-import type { Product, ProductStatus } from '@/lib/products';
+import type { Product } from '@/lib/products';
+import type { HealthState } from './ProductTable';
 import { ProductDetailPanel } from './ProductDetailPanel';
 
 /**
- * [DEO-UX-REFRESH-1] Issue summary by pillar for display in products list
+ * Issue summary by pillar for display in expanded details
  */
 export interface PillarIssueSummary {
   pillarId: DeoPillarId;
@@ -19,98 +19,91 @@ export interface PillarIssueSummary {
 interface ProductRowProps {
   product: Product;
   projectId: string;
-  status: ProductStatus;
+  healthState: HealthState;
+  recommendedAction: string;
+  issuesByPillar?: PillarIssueSummary[];
+  showRescan: boolean;
   isExpanded: boolean;
   onToggle: () => void;
   onScan: () => void;
   onSyncProject: () => void;
   isSyncing: boolean;
   isScanning: boolean;
-  issueCount?: number;
-  maxIssueSeverity?: DeoIssueSeverity | null;
-  /** [DEO-UX-REFRESH-1] Issue breakdown by pillar */
-  issuesByPillar?: PillarIssueSummary[];
 }
 
 export function ProductRow({
   product,
   projectId,
-  status,
-  isExpanded,
-  onToggle: _onToggle,
-  onScan,
-  onSyncProject,
-  isSyncing,
-  isScanning,
-  issueCount: _issueCount, // [DEO-UX-REFRESH-1] Kept for API compat, replaced by pillar chips
-  maxIssueSeverity,
+  healthState,
+  recommendedAction,
   issuesByPillar,
+  showRescan,
+  isExpanded,
+  onToggle,
+  onScan,
+  isScanning,
 }: ProductRowProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
-
   const workspacePath = `/projects/${projectId}/products/${product.id}`;
 
-  // [DEO-UX-REFRESH-1] Row is no longer clickable - single primary CTA only
-
-  const handleMenuToggle = (event: MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    setMenuOpen((open) => !open);
+  // Handle row click for progressive disclosure (expand/collapse)
+  const handleRowClick = (event: MouseEvent<HTMLDivElement>) => {
+    // Don't toggle if clicking on interactive elements
+    const target = event.target as HTMLElement;
+    if (
+      target.closest('a') ||
+      target.closest('button') ||
+      target.closest('[data-no-row-click]')
+    ) {
+      return;
+    }
+    onToggle();
   };
 
-  const handleScan = (event: MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    onScan();
-    setMenuOpen(false);
+  // Handle keyboard navigation for accessibility
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onToggle();
+    }
   };
 
-  const handleSync = (event: MouseEvent<HTMLButtonElement>) => {
+  // Prevent buttons from triggering row toggle
+  const handleButtonClick = (event: MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
     event.stopPropagation();
-    onSyncProject();
-    setMenuOpen(false);
   };
 
-  // [DEO-UX-REFRESH-1] Prepare pillar chips (max 3 shown, rest collapsed)
-  const MAX_PILLAR_CHIPS = 3;
-  const visiblePillars = (issuesByPillar ?? []).slice(0, MAX_PILLAR_CHIPS);
-  const hiddenPillarCount = (issuesByPillar ?? []).length - MAX_PILLAR_CHIPS;
-
-  // Status labels explicitly reference metadata status (not overall DEO health)
-  const statusLabel =
-    status === 'optimized'
-      ? 'Metadata optimized'
-      : status === 'needs-optimization'
-        ? 'Metadata needs work'
-        : 'Metadata missing';
-
-  const statusClasses =
-    status === 'optimized'
-      ? 'bg-green-50 text-green-800 ring-1 ring-green-100'
-      : status === 'needs-optimization'
-        ? 'bg-yellow-50 text-yellow-800 ring-1 ring-yellow-100'
-        : 'bg-red-50 text-red-800 ring-1 ring-red-100';
-
-  const hasMetaTitle = !!product.seoTitle?.trim();
-  const hasMetaDescription = !!product.seoDescription?.trim();
+  // Health pill styling
+  const healthPillClasses = {
+    Healthy: 'bg-green-50 text-green-700 ring-1 ring-green-200',
+    'Needs Attention': 'bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200',
+    Critical: 'bg-red-50 text-red-700 ring-1 ring-red-200',
+  };
 
   return (
     <div className="relative">
-      {/* [DEO-UX-REFRESH-1] Row is NOT clickable - use the "Open" button as the single primary CTA */}
-      <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Header section – image + title + handle + status (mobile) */}
+      {/* Row container - clickable for progressive disclosure */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={handleRowClick}
+        onKeyDown={handleKeyDown}
+        className="flex cursor-pointer flex-col gap-4 rounded-lg border border-gray-200 bg-white px-4 py-4 transition-colors hover:bg-gray-50 active:bg-gray-100 sm:flex-row sm:items-center sm:justify-between"
+      >
+        {/* Left section - image + title + recommended action */}
         <div className="flex min-w-0 flex-1 items-start gap-3">
           {product.imageUrls && product.imageUrls.length > 0 ? (
             <Image
               src={product.imageUrls[0]}
               alt={product.title}
-              width={40}
-              height={40}
-              className="h-10 w-10 flex-shrink-0 rounded object-cover"
+              width={48}
+              height={48}
+              className="h-12 w-12 flex-shrink-0 rounded object-cover"
               unoptimized
             />
           ) : (
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded bg-gray-100">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded bg-gray-100">
               <svg
-                className="h-5 w-5 text-gray-400"
+                className="h-6 w-6 text-gray-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -125,42 +118,43 @@ export function ProductRow({
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <div className="line-clamp-2 text-sm font-medium text-gray-900 sm:line-clamp-1">
+            {/* Title line */}
+            <div className="line-clamp-1 text-sm font-medium text-gray-900">
               {product.title}
             </div>
-            <div className="mt-0.5 truncate text-xs text-gray-500">
-              {product.handle ?? product.externalId}
-            </div>
-            {/* [DEO-UX-REFRESH-1] Status chip (mobile only) - removed inline "Open Workspace" link */}
-            <div className="mt-1.5 flex flex-wrap items-center gap-2 sm:hidden">
-              <span
-                className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${statusClasses}`}
-              >
-                {statusLabel}
-              </span>
+            {/* Action line (recommended action) */}
+            <div className="mt-0.5 text-xs text-gray-500">
+              {recommendedAction}
             </div>
           </div>
         </div>
 
-        {/* Middle section – status (desktop) + micro indicators + pillar chips */}
-        <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <div className="hidden items-center gap-2 sm:flex">
-            {/* Status chip - desktop only */}
-            <span
-              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${statusClasses}`}
-            >
-              {statusLabel}
-            </span>
-            {/* Scan SEO button - desktop only */}
+        {/* Middle section - Health pill (visible on all sizes) */}
+        <div className="flex items-center gap-3 sm:justify-center">
+          <span
+            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${healthPillClasses[healthState]}`}
+          >
+            {healthState}
+          </span>
+        </div>
+
+        {/* Right section - Actions */}
+        <div className="flex items-center gap-2 sm:justify-end">
+          {/* Rescan button - only shown when stale */}
+          {showRescan && (
             <button
-              onClick={handleScan}
+              onClick={(e) => {
+                handleButtonClick(e);
+                onScan();
+              }}
               disabled={isScanning}
-              className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              data-no-row-click
             >
               {isScanning ? (
                 <>
                   <svg
-                    className="mr-1 h-3 w-3 animate-spin text-blue-700"
+                    className="mr-1.5 h-3.5 w-3.5 animate-spin text-gray-500"
                     fill="none"
                     viewBox="0 0 24 24"
                   >
@@ -178,12 +172,12 @@ export function ProductRow({
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Scanning...
+                  Rescanning...
                 </>
               ) : (
                 <>
                   <svg
-                    className="mr-1 h-3 w-3"
+                    className="mr-1.5 h-3.5 w-3.5 text-gray-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -192,187 +186,52 @@ export function ProductRow({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                     />
                   </svg>
-                  Scan SEO
+                  Rescan
                 </>
               )}
             </button>
-          </div>
+          )}
 
-          {/* Metadata indicators + [DEO-UX-REFRESH-1] Pillar issue chips */}
-          <div className="mt-1 flex flex-wrap gap-2 text-xs text-gray-500 sm:mt-0">
-            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1">
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${
-                  hasMetaTitle ? 'bg-green-500' : 'bg-red-400'
-                }`}
-              />
-              <span>Title</span>
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1">
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${
-                  hasMetaDescription ? 'bg-green-500' : 'bg-red-400'
-                }`}
-              />
-              <span>Description</span>
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-gray-300" />
-              <span>Alt text</span>
-            </span>
-
-            {/* [DEO-UX-REFRESH-1] Issue-by-pillar summary chips */}
-            {visiblePillars.length > 0 && (
-              <>
-                {visiblePillars.map((pillar) => (
-                  <Link
-                    key={pillar.pillarId}
-                    href={`${workspacePath}?tab=issues&pillar=${pillar.pillarId}`}
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${
-                      maxIssueSeverity === 'critical'
-                        ? 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
-                        : maxIssueSeverity === 'warning'
-                          ? 'bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100'
-                          : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
-                    }`}
-                  >
-                    <span>{pillar.label}</span>
-                    <span className="font-semibold">{pillar.count}</span>
-                  </Link>
-                ))}
-                {hiddenPillarCount > 0 && (
-                  <Link
-                    href={`${workspacePath}?tab=issues`}
-                    className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-200"
-                  >
-                    +{hiddenPillarCount} more
-                  </Link>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* [DEO-UX-REFRESH-1] Actions section - single primary CTA (Open button) */}
-        <div className="mt-2 flex flex-col gap-2 sm:ml-4 sm:mt-0 sm:flex-row sm:items-center sm:justify-end">
-          {/* [DEO-UX-REFRESH-1] Single primary CTA: "Open" button */}
+          {/* View details button - primary action */}
           <Link
             href={workspacePath}
-            className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto sm:py-1.5"
+            onClick={handleButtonClick}
+            className="inline-flex items-center rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800"
+            data-no-row-click
           >
-            Open
+            View details
           </Link>
 
-          {/* Secondary actions row - Scan SEO (mobile) + Overflow menu */}
-          <div className="flex items-center justify-between gap-2 sm:justify-end">
-            {/* Scan SEO button - mobile only */}
-            <button
-              onClick={handleScan}
-              disabled={isScanning}
-              className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50 sm:hidden"
+          {/* Expand indicator */}
+          <div className="flex h-8 w-8 items-center justify-center text-gray-400">
+            <svg
+              className={`h-5 w-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              {isScanning ? (
-                <>
-                  <svg
-                    className="mr-1 h-3 w-3 animate-spin text-blue-700"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Scanning...
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="mr-1 h-3 w-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                  Scan SEO
-                </>
-              )}
-            </button>
-
-            {/* Overflow menu - [DEO-UX-REFRESH-1] "View details" REMOVED */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={handleMenuToggle}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 7.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 7.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"
-                  />
-                </svg>
-              </button>
-              {menuOpen && (
-                <div className="absolute right-0 z-20 mt-2 w-44 rounded-md border border-gray-200 bg-white py-1 text-sm text-gray-700 shadow-lg">
-                  {/* [DEO-UX-REFRESH-1] Removed "View details" - single primary CTA only */}
-                  <button
-                    type="button"
-                    onClick={handleSync}
-                    disabled={isSyncing}
-                    className="block w-full px-3 py-1.5 text-left hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400"
-                  >
-                    {isSyncing ? 'Syncing…' : 'Sync'}
-                  </button>
-                  <button
-                    type="button"
-                    disabled
-                    className="block w-full cursor-not-allowed px-3 py-1.5 text-left text-gray-400"
-                    title="Editing coming soon"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    disabled
-                    className="block w-full cursor-not-allowed px-3 py-1.5 text-left text-gray-400"
-                    title="Remove coming soon"
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
-            </div>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
           </div>
         </div>
       </div>
 
-      {isExpanded && <ProductDetailPanel product={product} />}
+      {/* Expanded detail panel */}
+      {isExpanded && (
+        <ProductDetailPanel
+          product={product}
+          projectId={projectId}
+          issuesByPillar={issuesByPillar}
+        />
+      )}
     </div>
   );
 }

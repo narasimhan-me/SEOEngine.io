@@ -94,22 +94,33 @@
 
 ---
 
-### TC-005: Products Page - Metadata Status Labels
+### TC-005: Products Page - Metadata Status Labels - **SUPERSEDED**
 
-**Objective:** Verify status labels explicitly reference metadata
+> **This test case is superseded by [PRODUCTS-LIST-2.0.md](./PRODUCTS-LIST-2.0.md)**.
+>
+> The Products list no longer uses metadata status filters or labels in the default row view.
+> Instead, PRODUCTS-LIST-2.0 introduces:
+> - **Health filter**: All, Critical, Needs Attention, Healthy (based on issue presence/severity)
+> - **Health pill per row**: Healthy (green), Needs Attention (yellow), Critical (red) - no numbers
+> - **Recommended action per row**: Single deterministic action under the product title
+> - **Progressive disclosure**: Metadata status visible in expanded details, not default row
+>
+> See PRODUCTS-LIST-2.0.md for current test coverage.
 
-**Steps:**
-1. Navigate to Products page (`/projects/[id]/products`)
-2. Find products with different statuses
-3. Review filter controls
+~~**Objective:** Verify status labels explicitly reference metadata~~
 
-**Expected:**
-- [ ] Filter buttons say "Metadata OK", "Metadata needs work", "Metadata missing"
-- [ ] Status chips on product rows say:
-  - "Metadata optimized" (not just "optimized")
-  - "Metadata needs work"
-  - "Metadata missing"
-- [ ] Helper text mentions "Metadata status does not reflect DEO issues"
+~~**Steps:**~~
+~~1. Navigate to Products page (`/projects/[id]/products`)~~
+~~2. Find products with different statuses~~
+~~3. Review filter controls~~
+
+~~**Expected:**~~
+~~- [ ] Filter buttons say "Metadata OK", "Metadata needs work", "Metadata missing"~~
+~~- [ ] Status chips on product rows say:~~
+~~  - "Metadata optimized" (not just "optimized")~~
+~~  - "Metadata needs work"~~
+~~  - "Metadata missing"~~
+~~- [ ] Helper text mentions "Metadata status does not reflect DEO issues"~~
 
 ---
 

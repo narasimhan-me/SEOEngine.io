@@ -55,10 +55,14 @@ Master issue list with:
 - Deep links to product workspaces
 
 ### Products Page (`/projects/[id]/products`)
-Product catalog with:
-- **Metadata status** filter (separate from DEO health)
-- Issue badge on each row showing DEO issue count
-- Quick access to product workspace
+Product catalog with decision-first design (PRODUCTS-LIST-2.0):
+- **Health filter** (All, Critical, Needs Attention, Healthy) - derived from issue presence/severity
+- **Command Bar** with attention count and "Fix in bulk" CTA
+- **Health pill** per row (3 states: Healthy, Needs Attention, Critical - no numbers)
+- **Recommended action** per row (single, deterministic based on severity + pillar priority)
+- **Progressive disclosure**: Click row to expand; inline issue breakdowns only in expanded details
+- No always-visible "Scan SEO"; "Rescan" only when data is stale
+- Metadata status is no longer the primary list filter/signal; it belongs in expanded details and product workspace
 
 ### Product Workspace (`/projects/[id]/products/[productId]`)
 Individual product optimization with:
@@ -75,10 +79,14 @@ Individual product optimization with:
 - Clickable when `onClick` provided
 - Links to product workspace with `?focus=deo-issues`
 
-### ProductRow
-- Status labels say "Metadata optimized/needs work/missing"
-- Issue badge visible even when metadata is optimized
-- Clicking badge opens product workspace at DEO issues section
+### ProductRow (PRODUCTS-LIST-2.0)
+- **Health pill** (3 states): Healthy (green), Needs Attention (yellow), Critical (red) - no numbers
+- **Recommended action** shown as second line under product title
+- **Progressive disclosure**: Click row to expand/collapse details
+- No metadata status chips, no pillar chips, no overflow menu in default row
+- "View details" button navigates to product workspace
+- "Rescan" button only visible when data is stale (isDeoDataStale === true)
+- Expanded details show: Handle/ID, Last synced, Meta title/description, Issues by category with deep links
 
 ### ProductDeoInsightsPanel
 - Header says "Metadata & Content Status"

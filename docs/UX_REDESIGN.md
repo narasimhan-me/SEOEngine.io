@@ -1,5 +1,17 @@
 # Products Page UX Redesign (Phase UX-1)
 
+> **NOTE: Products List Behavior Updated by PRODUCTS-LIST-2.0**
+>
+> The Products list layout described in this document has been updated by **PRODUCTS-LIST-2.0** (2025-12-21).
+> Key changes:
+> - **Row Structure**: Now shows Health pill + Recommended action instead of status chip + metadata indicators + pillar chips
+> - **Filters**: Health filter (All/Critical/Needs Attention/Healthy) replaces metadata status filter
+> - **Progressive Disclosure**: Row is clickable to expand/collapse details; no overflow menu
+> - **No Scan SEO/Optimize buttons**: "Rescan" only visible when data is stale; "View details" is primary action
+> - **Command Bar**: Shows attention count and "Fix in bulk" CTA
+>
+> See `docs/manual-testing/PRODUCTS-LIST-2.0.md` for current behavior.
+
 This document captures the UX decisions and implementation notes for the Products page redesign in the web app (`apps/web`).
 
 The goal is to replace the wide, horizontally scrollable table with a compact, responsive row-card layout that is easier to scan and works well on all screen sizes.

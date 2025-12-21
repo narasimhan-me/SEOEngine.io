@@ -22,6 +22,8 @@ interface IntegrationStatus {
     connected: boolean;
     shopDomain?: string;
   };
+  crawlFrequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+  lastCrawledAt?: string | null;
 }
 
 interface ProjectOverview {
@@ -162,6 +164,25 @@ export default function ProductsPage() {
     }
   };
 
+  // Compute isDeoDataStale: true when crawlCount > 0 AND lastCrawledAt is missing/older than crawlFrequency interval
+  const isDeoDataStale = (() => {
+    if (!overview || overview.crawlCount === 0) return false;
+    if (!projectInfo?.lastCrawledAt) return true;
+
+    const lastCrawled = new Date(projectInfo.lastCrawledAt);
+    const now = new Date();
+    const daysDiff = (now.getTime() - lastCrawled.getTime()) / (1000 * 60 * 60 * 24);
+
+    const thresholds: Record<string, number> = {
+      DAILY: 1,
+      WEEKLY: 7,
+      MONTHLY: 30,
+    };
+    const threshold = thresholds[projectInfo.crawlFrequency ?? 'WEEKLY'] ?? 7;
+
+    return daysDiff > threshold;
+  })();
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -236,73 +257,11 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* CNAB-1: Products optimization banner */}
-      {productIssues.length > 0 && overview && overview.crawlCount > 0 && (
-        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0">
-              <svg
-                className="h-5 w-5 text-blue-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-semibold text-blue-900">
-                Some products need optimization
-              </h3>
-              <p className="mt-1 text-xs text-blue-800">
-                {productIssues.length} issue{productIssues.length !== 1 ? 's' : ''} found
-                across your products. Use{' '}
-                <Link
-                  href={`/projects/${projectId}/automation/playbooks`}
-                  className="font-medium underline hover:text-blue-900"
-                >
-                  Automation Playbooks
-                </Link>{' '}
-                to fix missing SEO metadata in bulk, or click on individual products below
-                to optimize them one by one.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Header - responsive stacking */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">Products</h1>
-            {productIssues.length > 0 && (
-              <Link
-                href={`/projects/${projectId}/issues`}
-                className="inline-flex items-center rounded-md border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-700 hover:bg-orange-100"
-              >
-                <svg
-                  className="mr-1 h-3.5 w-3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
-                {productIssues.length} Issue{productIssues.length !== 1 ? 's' : ''}
-              </Link>
-            )}
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Products</h1>
           <p className="truncate text-gray-600">
             {projectInfo?.shopify.connected
               ? `Connected to ${projectInfo.shopify.shopDomain}`
@@ -366,6 +325,7 @@ export default function ProductsPage() {
             syncing={syncing}
             scanningId={scanningId}
             productIssues={productIssues}
+            isDeoDataStale={isDeoDataStale}
           />
         )}
       </div>

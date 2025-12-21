@@ -7,6 +7,7 @@ import { publicApi, type GeoReportPublicShareViewResponse } from '@/lib/api';
 
 /**
  * [GEO-EXPORT-1] Public GEO Report Share View
+ * [ENTERPRISE-GEO-1] Now supports passcode-protected links
  *
  * Public page for viewing shared GEO reports.
  * No authentication required - uses share token for access.
@@ -23,6 +24,11 @@ export default function PublicGeoReportPage() {
   const [loading, setLoading] = useState(true);
   const [viewData, setViewData] = useState<GeoReportPublicShareViewResponse | null>(null);
 
+  // [ENTERPRISE-GEO-1] Passcode state
+  const [passcode, setPasscode] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [passcodeError, setPasscodeError] = useState('');
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -38,6 +44,30 @@ export default function PublicGeoReportPage() {
     };
     fetchData();
   }, [shareToken]);
+
+  // [ENTERPRISE-GEO-1] Handle passcode verification
+  const handlePasscodeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passcode.trim()) {
+      setPasscodeError('Please enter a passcode');
+      return;
+    }
+
+    try {
+      setVerifying(true);
+      setPasscodeError('');
+      const data = await publicApi.verifyAndGetGeoReportShareView(shareToken, passcode.trim());
+      setViewData(data);
+      if (data.status === 'passcode_invalid') {
+        setPasscodeError('Invalid passcode. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error verifying passcode:', err);
+      setPasscodeError('Failed to verify passcode');
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -57,6 +87,20 @@ export default function PublicGeoReportPage() {
 
   if (viewData.status === 'revoked') {
     return <ErrorState type="revoked" />;
+  }
+
+  // [ENTERPRISE-GEO-1] Handle passcode-protected links
+  if (viewData.status === 'passcode_required' || viewData.status === 'passcode_invalid') {
+    return (
+      <PasscodeForm
+        passcodeLast4={viewData.passcodeLast4}
+        passcode={passcode}
+        setPasscode={setPasscode}
+        onSubmit={handlePasscodeSubmit}
+        verifying={verifying}
+        error={passcodeError}
+      />
+    );
   }
 
   const report = viewData.report!;
@@ -322,6 +366,99 @@ function ErrorState({ type }: { type: 'not_found' | 'expired' | 'revoked' }) {
         <div className="mx-auto mb-4">{icon}</div>
         <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
         <p className="mt-2 text-gray-600 max-w-md">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * [ENTERPRISE-GEO-1] Passcode entry form for protected share links
+ */
+function PasscodeForm({
+  passcodeLast4,
+  passcode,
+  setPasscode,
+  onSubmit,
+  verifying,
+  error,
+}: {
+  passcodeLast4?: string;
+  passcode: string;
+  setPasscode: (value: string) => void;
+  onSubmit: (e: React.FormEvent) => void;
+  verifying: boolean;
+  error: string;
+}) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="w-full max-w-md mx-auto px-4">
+        <div className="bg-white rounded-lg shadow-lg p-8">
+          <div className="text-center mb-6">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+              <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-semibold text-gray-900">Protected Report</h1>
+            <p className="mt-2 text-gray-600">
+              This report is protected. Enter the passcode to view.
+            </p>
+            {passcodeLast4 && (
+              <p className="mt-1 text-sm text-gray-500">
+                Hint: ends with <span className="font-mono font-medium">{passcodeLast4}</span>
+              </p>
+            )}
+          </div>
+
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="passcode" className="sr-only">Passcode</label>
+              <input
+                type="text"
+                id="passcode"
+                value={passcode}
+                onChange={(e) => setPasscode(e.target.value.toUpperCase())}
+                placeholder="Enter 8-character passcode"
+                maxLength={8}
+                className="block w-full rounded-md border-gray-300 text-center text-lg font-mono tracking-widest shadow-sm focus:border-blue-500 focus:ring-blue-500 uppercase"
+                disabled={verifying}
+                autoFocus
+                autoComplete="off"
+              />
+            </div>
+
+            {error && (
+              <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-100">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={verifying || passcode.length < 8}
+              className="w-full flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {verifying ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Verifying...
+                </>
+              ) : (
+                'View Report'
+              )}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-xs text-gray-400">
+              Powered by{' '}
+              <span className="font-medium text-gray-600">EngineO.ai</span>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

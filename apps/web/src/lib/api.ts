@@ -174,13 +174,66 @@ export interface GeoReportShareLinkResponse {
   expiresAt: string;
   createdAt: string;
   status: 'ACTIVE' | 'EXPIRED' | 'REVOKED';
+  // [ENTERPRISE-GEO-1] Passcode and audience fields
+  audience: 'ANYONE_WITH_LINK' | 'PASSCODE' | 'ORG_ONLY';
+  passcodeLast4?: string | null;
+  passcodeCreatedAt?: string | null;
+}
+
+// [ENTERPRISE-GEO-1] Create share link response with one-time passcode
+export interface CreateGeoReportShareLinkResponse {
+  shareLink: GeoReportShareLinkResponse;
+  passcode?: string; // Only present if audience is PASSCODE - shown once
 }
 
 export interface GeoReportPublicShareViewResponse {
-  status: 'valid' | 'expired' | 'revoked' | 'not_found';
+  status: 'valid' | 'expired' | 'revoked' | 'not_found' | 'passcode_required' | 'passcode_invalid';
   report?: GeoReportData;
   expiresAt?: string;
   generatedAt?: string;
+  passcodeLast4?: string;
+}
+
+// [ENTERPRISE-GEO-1] Governance types
+export interface GovernancePolicyResponse {
+  projectId: string;
+  requireApprovalForApply: boolean;
+  restrictShareLinks: boolean;
+  shareLinkExpiryDays: number;
+  allowedExportAudience: 'ANYONE_WITH_LINK' | 'PASSCODE' | 'ORG_ONLY';
+  allowCompetitorMentionsInExports: boolean;
+  allowPIIInExports: boolean;
+  updatedAt: string;
+}
+
+export interface ApprovalRequestResponse {
+  id: string;
+  projectId: string;
+  resourceType: string;
+  resourceId: string;
+  status: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+  requestedAt: string;
+  decidedAt?: string;
+  decisionReason?: string;
+  consumed: boolean;
+  consumedAt?: string;
+}
+
+export interface AuditEventResponse {
+  id: string;
+  projectId: string;
+  actorUserId: string;
+  eventType: string;
+  resourceType?: string;
+  resourceId?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface AuditEventListResponse {
+  events: AuditEventResponse[];
+  nextCursor?: string;
+  hasMore: boolean;
 }
 
 /**
@@ -707,14 +760,16 @@ export const projectsApi = {
   assembleGeoReport: (projectId: string): Promise<GeoReportData> =>
     fetchWithAuth(`/projects/${projectId}/geo-reports/assemble`),
 
-  /** Create a shareable link for the GEO report */
+  /** Create a shareable link for the GEO report
+   * [ENTERPRISE-GEO-1] Now supports audience and passcode protection
+   */
   createGeoReportShareLink: (
     projectId: string,
-    title?: string,
-  ): Promise<GeoReportShareLinkResponse> =>
+    options?: { title?: string; audience?: 'ANYONE_WITH_LINK' | 'PASSCODE' },
+  ): Promise<CreateGeoReportShareLinkResponse> =>
     fetchWithAuth(`/projects/${projectId}/geo-reports/share-links`, {
       method: 'POST',
-      body: JSON.stringify({ title }),
+      body: JSON.stringify(options ?? {}),
     }),
 
   /** List all share links for a project */
@@ -729,6 +784,81 @@ export const projectsApi = {
     fetchWithAuth(`/projects/${projectId}/geo-reports/share-links/${linkId}`, {
       method: 'DELETE',
     }),
+
+  // [ENTERPRISE-GEO-1] Governance API
+  /** Get governance policy for a project */
+  getGovernancePolicy: (projectId: string): Promise<GovernancePolicyResponse> =>
+    fetchWithAuth(`/projects/${projectId}/governance/policy`),
+
+  /** Update governance policy for a project */
+  updateGovernancePolicy: (
+    projectId: string,
+    updates: Partial<{
+      requireApprovalForApply: boolean;
+      restrictShareLinks: boolean;
+      shareLinkExpiryDays: number;
+      allowedExportAudience: 'ANYONE_WITH_LINK' | 'PASSCODE' | 'ORG_ONLY';
+      allowCompetitorMentionsInExports: boolean;
+    }>,
+  ): Promise<GovernancePolicyResponse> =>
+    fetchWithAuth(`/projects/${projectId}/governance/policy`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    }),
+
+  /** Create an approval request */
+  createApprovalRequest: (
+    projectId: string,
+    params: { resourceType: 'GEO_FIX_APPLY' | 'ANSWER_BLOCK_SYNC'; resourceId: string },
+  ): Promise<ApprovalRequestResponse> =>
+    fetchWithAuth(`/projects/${projectId}/governance/approvals`, {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+
+  /** Approve an approval request */
+  approveRequest: (
+    projectId: string,
+    approvalId: string,
+    reason?: string,
+  ): Promise<ApprovalRequestResponse> =>
+    fetchWithAuth(`/projects/${projectId}/governance/approvals/${approvalId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  /** Reject an approval request */
+  rejectRequest: (
+    projectId: string,
+    approvalId: string,
+    reason?: string,
+  ): Promise<ApprovalRequestResponse> =>
+    fetchWithAuth(`/projects/${projectId}/governance/approvals/${approvalId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  /** List pending approval requests */
+  listApprovalRequests: (
+    projectId: string,
+    status?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED',
+  ): Promise<{ requests: ApprovalRequestResponse[] }> =>
+    fetchWithAuth(
+      `/projects/${projectId}/governance/approvals${status ? `?status=${status}` : ''}`,
+    ),
+
+  /** Get audit events for a project */
+  listAuditEvents: (
+    projectId: string,
+    options?: { cursor?: string; limit?: number; eventType?: string },
+  ): Promise<AuditEventListResponse> => {
+    const params = new URLSearchParams();
+    if (options?.cursor) params.set('cursor', options.cursor);
+    if (options?.limit) params.set('limit', String(options.limit));
+    if (options?.eventType) params.set('eventType', options.eventType);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return fetchWithAuth(`/projects/${projectId}/governance/audit-events${qs}`);
+  },
 };
 
 export const integrationsApi = {
@@ -1478,7 +1608,60 @@ export const adminApi = {
     const qs = params.toString() ? `?${params.toString()}` : '';
     return fetchWithAuth(`/admin/audit-log${qs}`);
   },
+
+  // ===========================================================================
+  // [D9] Governance Audit Events (ENTERPRISE-GEO-1)
+  // ===========================================================================
+
+  /**
+   * [ENTERPRISE-GEO-1] Get governance audit events with filters.
+   * Read-only access to project-level governance audit events.
+   */
+  getGovernanceAuditEvents: (filters?: {
+    projectId?: string;
+    actorUserId?: string;
+    eventType?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<GovernanceAuditEventsResponse> => {
+    const params = new URLSearchParams();
+    if (filters?.projectId) params.set('projectId', filters.projectId);
+    if (filters?.actorUserId) params.set('actorUserId', filters.actorUserId);
+    if (filters?.eventType) params.set('eventType', filters.eventType);
+    if (filters?.startDate) params.set('startDate', filters.startDate);
+    if (filters?.endDate) params.set('endDate', filters.endDate);
+    if (filters?.page) params.set('page', String(filters.page));
+    if (filters?.limit) params.set('limit', String(filters.limit));
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return fetchWithAuth(`/admin/governance-audit-events${qs}`);
+  },
 };
+
+/** [ENTERPRISE-GEO-1] Governance audit event response types */
+export interface GovernanceAuditEvent {
+  id: string;
+  createdAt: string;
+  eventType: string;
+  actorUserId: string | null;
+  actorEmail: string | null;
+  resourceType: string | null;
+  resourceId: string | null;
+  projectId: string;
+  projectName: string | null;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface GovernanceAuditEventsResponse {
+  events: GovernanceAuditEvent[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
 
 /**
  * Contact API - for public contact form
@@ -1618,6 +1801,22 @@ export const publicApi = {
     });
     if (!response.ok) {
       throw new Error('Failed to fetch share view');
+    }
+    return response.json();
+  },
+
+  /** [ENTERPRISE-GEO-1] Verify passcode and get protected share view */
+  verifyAndGetGeoReportShareView: async (
+    shareToken: string,
+    passcode: string,
+  ): Promise<GeoReportPublicShareViewResponse> => {
+    const response = await fetch(`${API_URL}/public/geo-reports/${shareToken}/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ passcode }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to verify passcode');
     }
     return response.json();
   },

@@ -6,18 +6,28 @@
 
 ---
 
-## Decision Locks (v1)
+## Decision Locks (v1 + ENTERPRISE-GEO-1)
 
-The following decisions are locked for v1 and must not be changed without explicit approval:
+The following decisions are locked and must not be changed without explicit approval:
 
 ### Share Link Model
 | Decision | Detail |
 |----------|--------|
-| **Access Model** | "Anyone with the link" – no authentication, no passcode in v1 |
-| **Time-bound** | 14-day expiry by default |
+| **Access Model** | Default: "Anyone with the link". When governance policy requires: passcode-protected (ENTERPRISE-GEO-1) |
+| **Time-bound** | Default 14-day expiry; customizable via governance policy `shareLinkExpiryDays` |
 | **Revocable** | Links can be revoked by the owner at any time |
 | **Non-discoverable** | URLs use random tokens, not indexed/crawlable |
 | **Read-only** | Shared reports are view-only snapshots |
+| **Mutation-free** | Public view, assembly, and print perform NO database writes (ENTERPRISE-GEO-1 hard contract) |
+
+### Passcode Protection (ENTERPRISE-GEO-1)
+| Decision | Detail |
+|----------|--------|
+| **Format** | 8 characters, uppercase A-Z + 0-9 |
+| **Shown Once** | Plaintext passcode displayed only at creation in a modal with acknowledgement |
+| **Storage** | bcrypt hash stored; only `last4` preserved for hints |
+| **Verification** | POST `/share/geo-report/:token/verify` with `{ passcode: "..." }` |
+| **Audit** | Creation logs `passcodeLast4`, never full passcode |
 
 ### Export-Safe Data
 | Requirement | Detail |
@@ -188,10 +198,13 @@ model GeoReportShareLink {
 ## Trust Contracts
 
 1. **Read-only**: Export and share operations never trigger AI or mutations
-2. **Time-bound**: Share links expire after 14 days
-3. **Revocable**: Owners can revoke links at any time
-4. **Export-safe**: No internal IDs, hrefs, or raw issue dumps in exports
-5. **Hedged Language**: All copy uses "may," "can help," "supports" – never guarantees
+2. **Mutation-free Views**: Public share view, report assembly, and printing perform NO database writes (ENTERPRISE-GEO-1 hard contract)
+3. **Time-bound**: Share links expire (default 14 days, customizable via governance policy)
+4. **Revocable**: Owners can revoke links at any time
+5. **Export-safe**: No internal IDs, hrefs, or raw issue dumps in exports
+6. **Hedged Language**: All copy uses "may," "can help," "supports" – never guarantees
+7. **PII Never Allowed**: PII export is always disabled; API rejects attempts to enable (ENTERPRISE-GEO-1)
+8. **Passcode Shown Once**: Plaintext passcode returned only at creation, never stored or recoverable
 
 ---
 
@@ -219,3 +232,4 @@ model GeoReportShareLink {
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2025-12-20 | Initial GEO Export documentation (GEO-EXPORT-1) |
+| 1.1 | 2025-12-21 | ENTERPRISE-GEO-1: Added passcode protection, mutation-free hard contract, governance policy integration |

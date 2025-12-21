@@ -503,4 +503,242 @@ Generate SEO title & description for a product.
 
 ---
 
+## 12. Enterprise Governance (ENTERPRISE-GEO-1)
+
+Enterprise-grade governance controls including approval workflows, audit logging, and export controls.
+
+### GET `/projects/:projectId/governance/policy` (auth required)
+
+Get governance policy for a project. Returns default values if no policy exists.
+
+**Response:**
+
+```json
+{
+  "projectId": "string",
+  "requireApprovalForApply": false,
+  "restrictShareLinks": false,
+  "shareLinkExpiryDays": 14,
+  "allowedExportAudience": "ANYONE_WITH_LINK",
+  "allowCompetitorMentionsInExports": false,
+  "allowPIIInExports": false,
+  "updatedAt": "2024-01-01T00:00:00.000Z"
+}
+```
+
+---
+
+### PUT `/projects/:projectId/governance/policy` (auth required)
+
+Update governance policy settings.
+
+**Body:**
+
+```json
+{
+  "requireApprovalForApply": true,
+  "restrictShareLinks": true,
+  "shareLinkExpiryDays": 7,
+  "allowedExportAudience": "PASSCODE",
+  "allowCompetitorMentionsInExports": false
+}
+```
+
+**Note:** `allowPIIInExports` is always false and cannot be changed.
+
+---
+
+### POST `/projects/:projectId/governance/approvals` (auth required)
+
+Create an approval request.
+
+**Body:**
+
+```json
+{
+  "resourceType": "GEO_FIX_APPLY" | "ANSWER_BLOCK_SYNC",
+  "resourceId": "string"
+}
+```
+
+**Response:** `201 Created` with the approval request object.
+
+---
+
+### POST `/projects/:projectId/governance/approvals/:approvalId/approve` (auth required)
+
+Approve an approval request.
+
+**Body:**
+
+```json
+{
+  "reason": "Optional reason for approval"
+}
+```
+
+---
+
+### POST `/projects/:projectId/governance/approvals/:approvalId/reject` (auth required)
+
+Reject an approval request.
+
+**Body:**
+
+```json
+{
+  "reason": "Optional reason for rejection"
+}
+```
+
+---
+
+### GET `/projects/:projectId/governance/approvals` (auth required)
+
+List approval requests for a project.
+
+**Query parameters:**
+- `status` (optional): Filter by status (`PENDING_APPROVAL`, `APPROVED`, `REJECTED`)
+
+---
+
+### GET `/projects/:projectId/governance/audit-events` (auth required)
+
+Get audit events for a project.
+
+**Query parameters:**
+- `cursor` (optional): Pagination cursor
+- `limit` (optional): Max results (default 50)
+- `eventType` (optional): Filter by event type
+
+**Event types:**
+- `POLICY_CHANGED`
+- `APPROVAL_REQUESTED`
+- `APPROVAL_APPROVED`
+- `APPROVAL_REJECTED`
+- `APPLY_EXECUTED`
+- `SHARE_LINK_CREATED`
+- `SHARE_LINK_REVOKED`
+
+---
+
+### POST `/projects/:projectId/geo-reports/share-links` (auth required)
+
+Create a share link with optional passcode protection.
+
+**Body:**
+
+```json
+{
+  "title": "Optional title",
+  "audience": "ANYONE_WITH_LINK" | "PASSCODE"
+}
+```
+
+**Response:**
+
+```json
+{
+  "shareLink": {
+    "id": "string",
+    "shareToken": "string",
+    "shareUrl": "https://...",
+    "audience": "PASSCODE",
+    "passcodeLast4": "AB12",
+    "expiresAt": "2024-01-14T00:00:00.000Z"
+  },
+  "passcode": "AB12XY34"  // Only shown once at creation
+}
+```
+
+---
+
+### POST `/public/geo-reports/:shareToken/verify` (public)
+
+Verify passcode for a protected share link.
+
+**Body:**
+
+```json
+{
+  "passcode": "AB12XY34"
+}
+```
+
+**Response:**
+
+```json
+{
+  "status": "valid",
+  "report": { ... },
+  "expiresAt": "2024-01-14T00:00:00.000Z"
+}
+```
+
+Or:
+
+```json
+{
+  "status": "passcode_invalid",
+  "passcodeLast4": "AB12"
+}
+```
+
+---
+
+## 10. Admin Endpoints (Internal)
+
+All admin endpoints require JWT authentication and internal admin role (SUPPORT_AGENT, OPS_ADMIN, or MANAGEMENT_CEO).
+
+### GET `/admin/governance-audit-events` (admin required)
+
+[ENTERPRISE-GEO-1] Read-only access to governance audit events across all projects.
+
+**Query parameters:**
+- `projectId` (optional): Filter by project ID
+- `actorUserId` (optional): Filter by actor user ID
+- `eventType` (optional): Filter by event type
+- `startDate` (optional): Filter from date (ISO 8601)
+- `endDate` (optional): Filter to date (ISO 8601)
+- `page` (optional): Page number (default 1)
+- `limit` (optional): Max results per page (default 50)
+
+**Response:**
+
+```json
+{
+  "events": [
+    {
+      "id": "string",
+      "createdAt": "2025-12-21T00:00:00.000Z",
+      "eventType": "POLICY_CHANGED",
+      "actorUserId": "string",
+      "actorEmail": "user@example.com",
+      "resourceType": "GOVERNANCE_POLICY",
+      "resourceId": "string",
+      "projectId": "string",
+      "projectName": "My Project",
+      "metadata": { ... }
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 50,
+    "total": 100,
+    "pages": 2
+  }
+}
+```
+
+**Event types:**
+- `POLICY_CHANGED`
+- `APPROVAL_REQUESTED`
+- `APPROVAL_APPROVED`
+- `APPROVAL_REJECTED`
+- `SHARE_LINK_CREATED`
+- `SHARE_LINK_REVOKED`
+- `APPLY_EXECUTED`
+
+---
+
 END OF API SPEC

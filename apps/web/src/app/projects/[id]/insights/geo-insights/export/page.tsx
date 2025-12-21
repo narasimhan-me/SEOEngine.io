@@ -13,6 +13,104 @@ import { projectsApi, type GeoReportData, type GeoReportShareLinkResponse } from
  * Provides print-friendly report view and share link management.
  * Decision Lock: "Attribution readiness" instead of "citation confidence"
  */
+
+/**
+ * [ENTERPRISE-GEO-1] Passcode Modal Component
+ * Shows the one-time passcode with acknowledgement requirement.
+ */
+function PasscodeModal({
+  passcode,
+  onClose,
+}: {
+  passcode: string;
+  onClose: () => void;
+}) {
+  const [acknowledged, setAcknowledged] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyPasscode = async () => {
+    try {
+      await navigator.clipboard.writeText(passcode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      alert('Failed to copy passcode');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+            <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Share Link Created</h3>
+            <p className="text-sm text-gray-500">This passcode protects your shared report</p>
+          </div>
+        </div>
+
+        <div className="bg-gray-50 rounded-lg p-4 mb-4">
+          <div className="text-xs text-gray-500 uppercase tracking-wide mb-2">Passcode</div>
+          <div className="flex items-center justify-between">
+            <code className="text-2xl font-mono font-bold text-gray-900 tracking-widest">{passcode}</code>
+            <button
+              onClick={handleCopyPasscode}
+              className="ml-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors"
+            >
+              {copied ? (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Copied
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Copy
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={acknowledged}
+              onChange={(e) => setAcknowledged(e.target.checked)}
+              className="mt-0.5 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-600">
+              I understand this passcode will not be shown again and cannot be recovered.
+              Anyone with this passcode can access the shared report.
+            </span>
+          </label>
+        </div>
+
+        <button
+          onClick={onClose}
+          disabled={!acknowledged}
+          className={`w-full py-2.5 px-4 rounded-md text-sm font-medium transition-colors ${
+            acknowledged
+              ? 'bg-blue-600 text-white hover:bg-blue-700'
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+          }`}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function GeoReportExportPage() {
   const router = useRouter();
   const params = useParams();
@@ -23,6 +121,8 @@ export default function GeoReportExportPage() {
   const [report, setReport] = useState<GeoReportData | null>(null);
   const [shareLinks, setShareLinks] = useState<GeoReportShareLinkResponse[]>([]);
   const [creatingLink, setCreatingLink] = useState(false);
+  // [ENTERPRISE-GEO-1] One-time passcode display state
+  const [passcodeToShow, setPasscodeToShow] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -56,14 +156,23 @@ export default function GeoReportExportPage() {
   const handleCreateShareLink = async () => {
     try {
       setCreatingLink(true);
-      const link = await projectsApi.createGeoReportShareLink(projectId);
-      setShareLinks((prev) => [link, ...prev]);
+      const response = await projectsApi.createGeoReportShareLink(projectId);
+      setShareLinks((prev) => [response.shareLink, ...prev]);
+      // [ENTERPRISE-GEO-1] If passcode was generated, show it in modal once
+      if (response.passcode) {
+        setPasscodeToShow(response.passcode);
+      }
     } catch (err) {
       console.error('Error creating share link:', err);
       alert(err instanceof Error ? err.message : 'Failed to create share link');
     } finally {
       setCreatingLink(false);
     }
+  };
+
+  const handleClosePasscodeModal = () => {
+    // Clear passcode from memory immediately
+    setPasscodeToShow(null);
   };
 
   const handleRevokeLink = async (linkId: string) => {
@@ -114,6 +223,11 @@ export default function GeoReportExportPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 print:bg-white">
+      {/* [ENTERPRISE-GEO-1] Passcode Modal - shown once after creating protected link */}
+      {passcodeToShow && (
+        <PasscodeModal passcode={passcodeToShow} onClose={handleClosePasscodeModal} />
+      )}
+
       {/* [DEO-UX-REFRESH-1] Header - hidden on print */}
       <div className="bg-white border-b border-gray-200 print:hidden">
         <div className="mx-auto max-w-5xl px-6 py-4">

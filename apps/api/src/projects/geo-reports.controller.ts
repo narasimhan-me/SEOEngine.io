@@ -37,14 +37,15 @@ export class GeoReportsController {
   /**
    * POST /projects/:projectId/geo-reports/share-links
    * Create a shareable link for the GEO report
+   * [ENTERPRISE-GEO-1] Now supports audience and passcode protection
    */
   @Post('share-links')
   async createShareLink(
     @Request() req: any,
     @Param('projectId') projectId: string,
-    @Body() body: { title?: string },
+    @Body() body: { title?: string; audience?: 'ANYONE_WITH_LINK' | 'PASSCODE' },
   ) {
-    return this.geoReportsService.createShareLink(projectId, req.user.id, body.title);
+    return this.geoReportsService.createShareLink(projectId, req.user.id, body);
   }
 
   /**
