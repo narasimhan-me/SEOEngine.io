@@ -496,6 +496,7 @@ export interface AutomationPlaybookDraft {
     draftGenerated: number;
     noSuggestionCount: number;
   };
+  rules?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt?: string;
   expiresAt?: string;
@@ -618,12 +619,23 @@ export const projectsApi = {
 
   automationSuggestions: (id: string) => fetchWithAuth(`/projects/${id}/automation-suggestions`),
 
-  automationPlaybookEstimate: (id: string, playbookId: AutomationPlaybookId) =>
-    fetchWithAuth(
+  automationPlaybookEstimate: (
+    id: string,
+    playbookId: AutomationPlaybookId,
+    scopeProductIds?: string[],
+  ) => {
+    if (scopeProductIds && scopeProductIds.length > 0) {
+      return fetchWithAuth(`/projects/${id}/automation-playbooks/estimate`, {
+        method: 'POST',
+        body: JSON.stringify({ playbookId, scopeProductIds }),
+      });
+    }
+    return fetchWithAuth(
       `/projects/${id}/automation-playbooks/estimate?playbookId=${encodeURIComponent(
         playbookId,
       )}`,
-    ),
+    );
+  },
 
   /**
    * Preview an automation playbook - creates/updates a backend draft with sample suggestions.
@@ -643,10 +655,11 @@ export const projectsApi = {
       forbiddenPhrasesText: string;
     },
     sampleSize?: number,
+    scopeProductIds?: string[],
   ) =>
     fetchWithAuth(`/projects/${id}/automation-playbooks/${playbookId}/preview`, {
       method: 'POST',
-      body: JSON.stringify({ rules, sampleSize }),
+      body: JSON.stringify({ rules, sampleSize, scopeProductIds }),
     }),
 
   applyAutomationPlaybook: (
@@ -654,12 +667,13 @@ export const projectsApi = {
     playbookId: AutomationPlaybookId,
     scopeId: string,
     rulesHash: string,
+    scopeProductIds?: string[],
   ): Promise<AutomationPlaybookApplyResult> =>
     fetchWithAuth(
       `/projects/${id}/automation-playbooks/apply`,
       {
         method: 'POST',
-        body: JSON.stringify({ playbookId, scopeId, rulesHash }),
+        body: JSON.stringify({ playbookId, scopeId, rulesHash, scopeProductIds }),
       },
     ),
 
@@ -728,12 +742,13 @@ export const projectsApi = {
     playbookId: AutomationPlaybookId,
     scopeId: string,
     rulesHash: string,
+    scopeProductIds?: string[],
   ): Promise<AutomationPlaybookDraftGenerateResult> =>
     fetchWithAuth(
       `/projects/${projectId}/automation-playbooks/${playbookId}/draft/generate`,
       {
         method: 'POST',
-        body: JSON.stringify({ scopeId, rulesHash }),
+        body: JSON.stringify({ scopeId, rulesHash, scopeProductIds }),
       },
     ),
 
@@ -747,6 +762,26 @@ export const projectsApi = {
   ): Promise<AutomationPlaybookDraft | null> =>
     fetchWithAuth(
       `/projects/${projectId}/automation-playbooks/${playbookId}/draft/latest`,
+    ),
+
+  setAutomationPlaybookEntryConfig: (
+    projectId: string,
+    playbookId: AutomationPlaybookId,
+    body: {
+      enabled: boolean;
+      trigger: 'manual_only';
+      scopeId: string;
+      rulesHash: string;
+      scopeProductIds?: string[];
+      intent?: string;
+    },
+  ) =>
+    fetchWithAuth(
+      `/projects/${projectId}/automation-playbooks/${playbookId}/config`,
+      {
+        method: 'POST',
+        body: JSON.stringify(body),
+      },
     ),
 
   delete: (id: string) =>

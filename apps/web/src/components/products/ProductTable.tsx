@@ -1,5 +1,6 @@
 import { useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 import type { DeoIssue } from '@/lib/deo-issues';
 import type { DeoPillarId } from '@/lib/deo-pillars';
@@ -199,6 +200,7 @@ export function ProductTable({
   productIssues,
   isDeoDataStale = false,
 }: ProductTableProps) {
+  const router = useRouter();
   const [healthFilter, setHealthFilter] = useState<HealthFilter>('All');
   const [sortOption, setSortOption] = useState<SortOption>('Impact');
   const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
@@ -372,6 +374,32 @@ export function ProductTable({
   const bulkMetadataCount = bulkMetadataEligible.length;
   const bulkMetadataMissingTitleCount = bulkMetadataEligible.filter((p) => p.missingTitle).length;
   const bulkMetadataMissingDescCount = bulkMetadataEligible.filter((p) => p.missingDescription).length;
+
+  const handleOpenAutomationEntryFromBulk = useCallback(() => {
+    const key = `automationEntryContext:${projectId}`;
+    const scopeKey = `automationEntryScope:${projectId}`;
+    try {
+      sessionStorage.setItem(
+        key,
+        JSON.stringify({
+          version: 1,
+          createdAt: new Date().toISOString(),
+          source: 'products_bulk',
+          intent: 'missing_metadata',
+          selectedProductIds: bulkMetadataEligible.map((p) => p.productId),
+        }),
+      );
+      sessionStorage.setItem(
+        scopeKey,
+        JSON.stringify({ productIds: bulkMetadataEligible.map((p) => p.productId) }),
+      );
+    } catch {
+      // ignore
+    }
+    router.push(
+      `/projects/${projectId}/automation/playbooks/entry?source=products_bulk&intent=missing_metadata`,
+    );
+  }, [projectId, bulkMetadataEligible, router]);
 
   // Handle bulk action selection (Step 1)
   const handleSelectBulkAction = useCallback((actionType: BulkActionType) => {
@@ -659,7 +687,7 @@ export function ProductTable({
               {showBulkActions && bulkMetadataCount > 0 && !bulkSelection && (
                 <button
                   type="button"
-                  onClick={() => handleSelectBulkAction('Fix missing metadata')}
+                  onClick={handleOpenAutomationEntryFromBulk}
                   className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
                 >
                   Fix missing metadata ({bulkMetadataCount} product{bulkMetadataCount !== 1 ? 's' : ''})

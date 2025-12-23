@@ -1044,12 +1044,21 @@ export default function AutomationPlaybooksPage() {
       </nav>
 
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Automation Playbooks</h1>
-        <p className="text-gray-600">
-          Safely apply AI-powered fixes to missing SEO metadata, with preview and
-          token estimates before you run anything.
-        </p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Automation Playbooks</h1>
+          <p className="text-gray-600">
+            Safely apply AI-powered fixes to missing SEO metadata, with preview and
+            token estimates before you run anything.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => router.push(`/projects/${projectId}/automation/playbooks/entry?source=playbooks_page`)}
+          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+        >
+          Create automation
+        </button>
       </div>
 
       {/* Next DEO Win Banner - shown when navigating from overview card */}

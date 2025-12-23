@@ -9623,6 +9623,51 @@ This phase introduces a "Next DEO Win" card on the Project Overview page that:
 
 ---
 
+## AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Contract)
+
+**Status:** Complete
+
+**Goal:** Add a trust-first Automation Entry screen for Automation Playbooks that makes scope + run timing explicit, enforces preview-first, and cleanly separates enablement from execution.
+
+### Overview
+
+- **Entry points (strict):**
+  1. Products page bulk context: "Fix missing metadata (N products)"
+  2. Product details single context: "Automate this fix"
+  3. Playbooks page intent-first: "Create automation"
+- **First impression (single-purpose screen):**
+  - Plain-English 1-sentence summary (no jargon; no AI hype)
+  - Scope visible before AI configuration
+  - "When should this run?" visible and explicit
+- **Preview-first (non-negotiable):**
+  - Sample preview for 1–3 products required before enablement
+  - Samples labeled: "Sample draft — not applied"
+- **Enablement is not execution:**
+  - Primary CTA: "Enable automation"
+  - Saves rules/scope/trigger configuration
+  - Does not generate full drafts
+  - Does not apply changes
+  - Never auto-applies
+- **v1 trigger support:**
+  - Manual trigger only is functional
+  - "On product creation" and "Scheduled review" are disabled unless already supported end-to-end (and still must never auto-apply)
+
+### Acceptance Criteria
+
+- [x] Bulk entry carries scope forward and shows the scoped product list before preview.
+- [x] Single-product entry scopes to exactly one product.
+- [x] Enablement requires preview and does not execute.
+- [x] Enablement persists server-side without introducing new Prisma models.
+- [x] Disable is always available and immediate.
+- [x] Copy present on entry screen:
+  - "Generates drafts only. Nothing is applied automatically."
+  - "Apply does not use AI when a valid draft exists."
+- [x] Playwright E2E test added for AUTOMATION-ENTRY-1: `automation-entry-1.spec.ts`.
+
+**Manual Testing:** `docs/manual-testing/AUTOMATION-ENTRY-1.md`
+
+---
+
 ## Phase AUTO-UX-NEXT-2 – Guided "Optimize 3 Products" First DEO Win (Completed)
 
 **Status:** Complete

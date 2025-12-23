@@ -28,6 +28,14 @@ export interface PlaybookDraftCounts {
   noSuggestionCount: number;
 }
 
+export interface AutomationEntryConfigV1 {
+  enabled: boolean;
+  trigger: 'manual_only';
+  scopeProductIds?: string[];
+  intent?: string;
+  updatedAt: string;
+}
+
 export interface PlaybookRulesV1 {
   enabled: boolean;
   findReplace?: {
@@ -180,6 +188,49 @@ export class AutomationPlaybooksService {
     };
   }
 
+  private async resolveAffectedProductIds(
+    projectId: string,
+    playbookId: AutomationPlaybookId,
+    scopeProductIds?: string[] | null,
+  ): Promise<string[]> {
+    if (!scopeProductIds || scopeProductIds.length === 0) {
+      return this.getAffectedProductIds(projectId, playbookId);
+    }
+    const uniqueScopeIds = Array.from(new Set(scopeProductIds)).filter(Boolean);
+    if (uniqueScopeIds.length === 0) {
+      return [];
+    }
+    const ownedCount = await this.prisma.product.count({
+      where: {
+        projectId,
+        id: { in: uniqueScopeIds },
+      },
+    });
+    if (ownedCount !== uniqueScopeIds.length) {
+      throw new BadRequestException(
+        'One or more scopeProductIds are invalid for this project',
+      );
+    }
+    const where =
+      playbookId === 'missing_seo_title'
+        ? {
+            projectId,
+            id: { in: uniqueScopeIds },
+            OR: [{ seoTitle: null }, { seoTitle: '' }],
+          }
+        : {
+            projectId,
+            id: { in: uniqueScopeIds },
+            OR: [{ seoDescription: null }, { seoDescription: '' }],
+          };
+    const products = await this.prisma.product.findMany({
+      where,
+      select: { id: true },
+      orderBy: { lastSyncedAt: 'desc' },
+    });
+    return products.map((p) => p.id);
+  }
+
   /**
    * Compute a deterministic scopeId from the set of affected product IDs.
    * The scopeId is a SHA-256 hash of the sorted product IDs joined by commas.
@@ -330,6 +381,7 @@ export class AutomationPlaybooksService {
     playbookId: AutomationPlaybookId,
     rules?: PlaybookRulesV1,
     sampleSize = 3,
+    scopeProductIds?: string[] | null,
   ): Promise<PlaybookPreviewResponse> {
     await this.ensureProjectOwnership(projectId, userId);
 
@@ -361,9 +413,10 @@ export class AutomationPlaybooksService {
       );
     }
 
-    const affectedProductIds = await this.getAffectedProductIds(
+    const affectedProductIds = await this.resolveAffectedProductIds(
       projectId,
       playbookId,
+      scopeProductIds,
     );
     const scopeId = this.computeScopeId(projectId, playbookId, affectedProductIds);
     const normalizedRules = this.normalizeRules(rules);
@@ -460,6 +513,26 @@ export class AutomationPlaybooksService {
       noSuggestionCount,
     };
 
+    const existingDraft = await this.prisma.automationPlaybookDraft.findUnique({
+      where: {
+        projectId_playbookId_scopeId_rulesHash: {
+          projectId,
+          playbookId,
+          scopeId,
+          rulesHash,
+        },
+      },
+      select: { rules: true },
+    });
+    const preservedAutomationEntryConfig =
+      (existingDraft?.rules as any)?.__automationEntryConfig ?? undefined;
+    const rulesToPersist: Record<string, unknown> = {
+      ...(normalizedRules as unknown as Record<string, unknown>),
+      ...(preservedAutomationEntryConfig
+        ? { __automationEntryConfig: preservedAutomationEntryConfig }
+        : {}),
+    };
+
     const draft = await this.prisma.automationPlaybookDraft.upsert({
       where: {
         projectId_playbookId_scopeId_rulesHash: {
@@ -478,7 +551,7 @@ export class AutomationPlaybooksService {
         sampleProductIds: sampleIds as unknown as any,
         draftItems: draftItems as unknown as any,
         counts: counts as unknown as any,
-        rules: normalizedRules as unknown as any,
+        rules: rulesToPersist as unknown as any,
         createdByUserId: userId,
       },
       update: {
@@ -486,7 +559,7 @@ export class AutomationPlaybooksService {
         sampleProductIds: sampleIds as unknown as any,
         draftItems: draftItems as unknown as any,
         counts: counts as unknown as any,
-        rules: normalizedRules as unknown as any,
+        rules: rulesToPersist as unknown as any,
       },
     });
 
@@ -520,6 +593,7 @@ export class AutomationPlaybooksService {
     playbookId: AutomationPlaybookId,
     scopeId: string,
     rulesHash: string,
+    scopeProductIds?: string[] | null,
   ): Promise<{
     projectId: string;
     playbookId: AutomationPlaybookId;
@@ -559,9 +633,10 @@ export class AutomationPlaybooksService {
       );
     }
 
-    const affectedProductIds = await this.getAffectedProductIds(
+    const affectedProductIds = await this.resolveAffectedProductIds(
       projectId,
       playbookId,
+      scopeProductIds,
     );
     const currentScopeId = this.computeScopeId(
       projectId,
@@ -764,6 +839,7 @@ export class AutomationPlaybooksService {
     counts: PlaybookDraftCounts | null;
     sampleProductIds: string[];
     draftItems: PlaybookDraftItem[];
+    rules?: Record<string, unknown> | null;
   } | null> {
     await this.ensureProjectOwnership(projectId, userId);
 
@@ -791,6 +867,7 @@ export class AutomationPlaybooksService {
         (draft.sampleProductIds as unknown as string[] | null) ?? ([] as string[]),
       draftItems:
         (draft.draftItems as unknown as PlaybookDraftItem[] | null) ?? ([] as PlaybookDraftItem[]),
+      rules: (draft.rules as unknown as Record<string, unknown> | null) ?? null,
     };
   }
 
@@ -798,12 +875,14 @@ export class AutomationPlaybooksService {
     userId: string,
     projectId: string,
     playbookId: AutomationPlaybookId,
+    scopeProductIds?: string[] | null,
   ): Promise<PlaybookEstimate> {
     await this.ensureProjectOwnership(projectId, userId);
 
-    const affectedProductIds = await this.getAffectedProductIds(
+    const affectedProductIds = await this.resolveAffectedProductIds(
       projectId,
       playbookId,
+      scopeProductIds,
     );
     const totalAffectedProducts = affectedProductIds.length;
     const scopeId = this.computeScopeId(
@@ -905,6 +984,7 @@ export class AutomationPlaybooksService {
     playbookId: AutomationPlaybookId,
     scopeId: string,
     rulesHash: string,
+    scopeProductIds?: string[] | null,
   ): Promise<PlaybookApplyResult> {
     const project = await this.ensureProjectOwnership(projectId, userId);
 
@@ -920,9 +1000,10 @@ export class AutomationPlaybooksService {
       });
     }
 
-    const affectedProductIds = await this.getAffectedProductIds(
+    const affectedProductIds = await this.resolveAffectedProductIds(
       projectId,
       playbookId,
+      scopeProductIds,
     );
     const currentScopeId = this.computeScopeId(
       projectId,
@@ -1128,6 +1209,81 @@ export class AutomationPlaybooksService {
       stoppedAtProductId: undefined,
       failureReason: undefined,
       results,
+    };
+  }
+
+  async setAutomationEntryConfig(
+    userId: string,
+    projectId: string,
+    playbookId: AutomationPlaybookId,
+    params: {
+      enabled: boolean;
+      trigger: 'manual_only';
+      scopeId: string;
+      rulesHash: string;
+      scopeProductIds?: string[] | null;
+      intent?: string;
+    },
+  ): Promise<{
+    projectId: string;
+    playbookId: AutomationPlaybookId;
+    enabled: boolean;
+    trigger: 'manual_only';
+    scopeId: string;
+    rulesHash: string;
+    updatedAt: string;
+  }> {
+    await this.ensureProjectOwnership(projectId, userId);
+
+    const draft = await this.prisma.automationPlaybookDraft.findUnique({
+      where: {
+        projectId_playbookId_scopeId_rulesHash: {
+          projectId,
+          playbookId,
+          scopeId: params.scopeId,
+          rulesHash: params.rulesHash,
+        },
+      },
+    });
+
+    if (!draft) {
+      throw new ConflictException({
+        message:
+          'No Automation Playbook draft was found for this scope. Generate a sample preview before enabling.',
+        error: 'PLAYBOOK_DRAFT_NOT_FOUND',
+        code: 'PLAYBOOK_DRAFT_NOT_FOUND',
+        scopeId: params.scopeId,
+      });
+    }
+
+    const updatedAt = new Date().toISOString();
+    const currentRules = (draft.rules as unknown as Record<string, unknown> | null) ?? {};
+    const nextRules = {
+      ...currentRules,
+      __automationEntryConfig: {
+        enabled: params.enabled,
+        trigger: 'manual_only',
+        scopeProductIds: params.scopeProductIds ?? undefined,
+        intent: params.intent ?? undefined,
+        updatedAt,
+      } satisfies AutomationEntryConfigV1,
+    };
+
+    await this.prisma.automationPlaybookDraft.update({
+      where: { id: draft.id },
+      data: {
+        rules: nextRules as unknown as any,
+      },
+    });
+
+    return {
+      projectId,
+      playbookId,
+      enabled: params.enabled,
+      trigger: 'manual_only',
+      scopeId: params.scopeId,
+      rulesHash: params.rulesHash,
+      updatedAt,
     };
   }
 }

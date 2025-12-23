@@ -327,6 +327,31 @@ export class ProjectsController {
   }
 
   /**
+   * POST /projects/:id/automation-playbooks/estimate
+   * Scoped estimate for an automation playbook (supports explicit scopeProductIds without URL length risk).
+   */
+  @Post(':id/automation-playbooks/estimate')
+  async estimateAutomationPlaybookScoped(
+    @Request() req: any,
+    @Param('id') projectId: string,
+    @Body()
+    body: {
+      playbookId: AutomationPlaybookId;
+      scopeProductIds?: string[];
+    },
+  ) {
+    if (!body?.playbookId) {
+      throw new BadRequestException('playbookId is required');
+    }
+    return this.automationPlaybooksService.estimatePlaybook(
+      req.user.id,
+      projectId,
+      body.playbookId,
+      body.scopeProductIds,
+    );
+  }
+
+  /**
    * POST /projects/:id/automation-playbooks/:playbookId/preview
    * Generate a preview draft for an automation playbook. Creates or updates a draft keyed by
    * (projectId, playbookId, scopeId, rulesHash) and returns sample suggestions plus draft metadata.
@@ -340,6 +365,7 @@ export class ProjectsController {
     body: {
       rules?: PlaybookRulesV1;
       sampleSize?: number;
+      scopeProductIds?: string[];
     },
   ) {
     return this.automationPlaybooksService.previewPlaybook(
@@ -348,6 +374,7 @@ export class ProjectsController {
       playbookId,
       body?.rules,
       body?.sampleSize,
+      body?.scopeProductIds,
     );
   }
 
@@ -365,6 +392,7 @@ export class ProjectsController {
     body: {
       scopeId: string;
       rulesHash: string;
+      scopeProductIds?: string[];
     },
   ) {
     if (!body?.scopeId) {
@@ -379,6 +407,7 @@ export class ProjectsController {
       playbookId,
       body.scopeId,
       body.rulesHash,
+      body?.scopeProductIds,
     );
   }
 
@@ -424,6 +453,7 @@ export class ProjectsController {
       playbookId: AutomationPlaybookId;
       scopeId: string;
       rulesHash: string;
+      scopeProductIds?: string[];
     },
   ) {
     if (!body?.playbookId) {
@@ -441,6 +471,7 @@ export class ProjectsController {
       body.playbookId,
       body.scopeId,
       body.rulesHash,
+      body?.scopeProductIds,
     );
   }
 
@@ -535,5 +566,54 @@ export class ProjectsController {
       runType,
       limit: parsedLimit,
     });
+  }
+
+  /**
+   * POST /projects/:id/automation-playbooks/:playbookId/config
+   * Persist enablement config for Automation Entry UX (no AI calls, no execution).
+   */
+  @Post(':id/automation-playbooks/:playbookId/config')
+  async setAutomationPlaybookEntryConfig(
+    @Request() req: any,
+    @Param('id') projectId: string,
+    @Param('playbookId') playbookId: AutomationPlaybookId,
+    @Body()
+    body: {
+      enabled: boolean;
+      trigger: 'manual_only';
+      scopeId: string;
+      rulesHash: string;
+      scopeProductIds?: string[];
+      intent?: string;
+    },
+  ) {
+    if (typeof body?.enabled !== 'boolean') {
+      throw new BadRequestException('enabled is required');
+    }
+    if (!body?.trigger) {
+      throw new BadRequestException('trigger is required');
+    }
+    if (!body?.scopeId) {
+      throw new BadRequestException('scopeId is required');
+    }
+    if (!body?.rulesHash) {
+      throw new BadRequestException('rulesHash is required');
+    }
+    if (body.trigger !== 'manual_only') {
+      throw new BadRequestException('Only manual_only trigger is supported');
+    }
+    return this.automationPlaybooksService.setAutomationEntryConfig(
+      req.user.id,
+      projectId,
+      playbookId,
+      {
+        enabled: body.enabled,
+        trigger: 'manual_only',
+        scopeId: body.scopeId,
+        rulesHash: body.rulesHash,
+        scopeProductIds: body.scopeProductIds,
+        intent: body.intent,
+      },
+    );
   }
 }

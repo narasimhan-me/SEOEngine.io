@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -219,6 +219,42 @@ export default function ProductOptimizationPage() {
     }
   }, [product, feedback]);
 
+  const recommendedAutomationIntent = useMemo(() => {
+    if (!product) return 'unknown';
+    const missingTitle = !product.seoTitle || !product.seoTitle.trim();
+    const missingDescription = !product.seoDescription || !product.seoDescription.trim();
+    if (missingTitle || missingDescription) return 'missing_metadata';
+    if (productIssues.some((i) => i.pillarId === 'search_intent_fit')) return 'search_intent';
+    if (productIssues.some((i) => i.pillarId === 'content_commerce_signals')) return 'content';
+    return 'unknown';
+  }, [product, productIssues]);
+
+  const handleAutomateThisFix = useCallback(() => {
+    if (!product) return;
+    const key = `automationEntryContext:${projectId}`;
+    const scopeKey = `automationEntryScope:${projectId}`;
+    try {
+      sessionStorage.setItem(
+        key,
+        JSON.stringify({
+          version: 1,
+          createdAt: new Date().toISOString(),
+          source: 'product_details',
+          intent: recommendedAutomationIntent,
+          selectedProductIds: [productId],
+        }),
+      );
+      sessionStorage.setItem(scopeKey, JSON.stringify({ productIds: [productId] }));
+    } catch {
+      // ignore
+    }
+    router.push(
+      `/projects/${projectId}/automation/playbooks/entry?source=product_details&intent=${encodeURIComponent(
+        recommendedAutomationIntent,
+      )}`,
+    );
+  }, [projectId, productId, product, router, recommendedAutomationIntent]);
+
   const fetchAnswers = useCallback(async () => {
     if (!product) return;
 
@@ -419,14 +455,23 @@ export default function ProductOptimizationPage() {
                   </div>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={handleApplyToShopify}
-                disabled={applyingToShopify}
-                className="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {applyingToShopify ? 'Applying…' : 'Apply to Shopify'}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleAutomateThisFix}
+                  className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                >
+                  Automate this fix
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplyToShopify}
+                  disabled={applyingToShopify}
+                  className="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {applyingToShopify ? 'Applying…' : 'Apply to Shopify'}
+                </button>
+              </div>
             </div>
             {/* [DEO-UX-REFRESH-1] Tab bar replacing "Jump to:" anchors */}
             <ProductDetailsTabs
