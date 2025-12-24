@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma.service';
 import { IntegrationType } from '@prisma/client';
 import * as crypto from 'crypto';
 import { AutomationService } from '../projects/automation.service';
+import { RoleResolutionService } from '../common/role-resolution.service';
 import { isE2EMode } from '../config/test-env-guard';
 
 const ANSWER_BLOCK_METAFIELD_DEFINITIONS: {
@@ -147,6 +148,7 @@ export class ShopifyService {
     private readonly config: ConfigService,
     @Inject(forwardRef(() => AutomationService))
     private readonly automationService: AutomationService,
+    private readonly roleResolution: RoleResolutionService,
   ) {
     this.apiKey = this.config.get<string>('SHOPIFY_API_KEY');
     this.apiSecret = this.config.get<string>('SHOPIFY_API_SECRET');
@@ -1113,6 +1115,7 @@ export class ShopifyService {
 
   /**
    * Update product SEO fields in Shopify and local database
+   * [ROLES-3 FIXUP-4] OWNER-only for apply/mutation operations
    */
   async updateProductSeo(
     productId: string,
@@ -1137,10 +1140,8 @@ export class ShopifyService {
       throw new BadRequestException('Product not found');
     }
 
-    // Validate ownership
-    if (product.project.userId !== userId) {
-      throw new BadRequestException('You do not have access to this product');
-    }
+    // [ROLES-3 FIXUP-4] OWNER-only for apply/mutation operations
+    await this.roleResolution.assertOwnerRole(product.projectId, userId);
 
     // Get Shopify integration
     const integration = await this.getShopifyIntegration(product.projectId);

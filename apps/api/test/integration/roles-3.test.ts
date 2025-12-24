@@ -659,4 +659,233 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
       }
     });
   });
+
+  // ============================================================================
+  // [ROLES-3 FIXUP-4] Extended Coverage for AI, Integrations, and SEO Scan
+  // ============================================================================
+
+  describe('[FIXUP-4] AI Usage Endpoints – All ProjectMembers Can View', () => {
+    it('All ProjectMembers can view AI usage summary', async () => {
+      const { owner, editor, viewer, project } = await seedMultiUserProject();
+
+      // OWNER
+      await request(server)
+        .get(`/ai/projects/${project.id}/usage/summary`)
+        .set(authHeader(owner.id))
+        .expect(200);
+
+      // EDITOR
+      await request(server)
+        .get(`/ai/projects/${project.id}/usage/summary`)
+        .set(authHeader(editor.id))
+        .expect(200);
+
+      // VIEWER
+      await request(server)
+        .get(`/ai/projects/${project.id}/usage/summary`)
+        .set(authHeader(viewer.id))
+        .expect(200);
+    });
+
+    it('Non-member is blocked from AI usage summary (403)', async () => {
+      const { nonMember, project } = await seedMultiUserProject();
+
+      await request(server)
+        .get(`/ai/projects/${project.id}/usage/summary`)
+        .set(authHeader(nonMember.id))
+        .expect(403);
+    });
+
+    it('All ProjectMembers can view AI usage runs', async () => {
+      const { owner, editor, viewer, project } = await seedMultiUserProject();
+
+      // OWNER
+      await request(server)
+        .get(`/ai/projects/${project.id}/usage/runs`)
+        .set(authHeader(owner.id))
+        .expect(200);
+
+      // EDITOR
+      await request(server)
+        .get(`/ai/projects/${project.id}/usage/runs`)
+        .set(authHeader(editor.id))
+        .expect(200);
+
+      // VIEWER
+      await request(server)
+        .get(`/ai/projects/${project.id}/usage/runs`)
+        .set(authHeader(viewer.id))
+        .expect(200);
+    });
+
+    it('All ProjectMembers can view AI usage quota', async () => {
+      const { owner, editor, viewer, project } = await seedMultiUserProject();
+
+      // OWNER
+      await request(server)
+        .get(`/ai/projects/${project.id}/usage/quota`)
+        .set(authHeader(owner.id))
+        .expect(200);
+
+      // EDITOR
+      await request(server)
+        .get(`/ai/projects/${project.id}/usage/quota`)
+        .set(authHeader(editor.id))
+        .expect(200);
+
+      // VIEWER
+      await request(server)
+        .get(`/ai/projects/${project.id}/usage/quota`)
+        .set(authHeader(viewer.id))
+        .expect(200);
+    });
+  });
+
+  describe('[FIXUP-4] Integrations Endpoints – Members View, OWNER Mutates', () => {
+    it('All ProjectMembers can view integrations list', async () => {
+      const { owner, editor, viewer, project } = await seedMultiUserProject();
+
+      // OWNER
+      const ownerRes = await request(server)
+        .get(`/integrations?projectId=${project.id}`)
+        .set(authHeader(owner.id))
+        .expect(200);
+      expect(ownerRes.body.integrations).toBeDefined();
+
+      // EDITOR
+      await request(server)
+        .get(`/integrations?projectId=${project.id}`)
+        .set(authHeader(editor.id))
+        .expect(200);
+
+      // VIEWER
+      await request(server)
+        .get(`/integrations?projectId=${project.id}`)
+        .set(authHeader(viewer.id))
+        .expect(200);
+    });
+
+    it('Non-member is blocked from viewing integrations (403)', async () => {
+      const { nonMember, project } = await seedMultiUserProject();
+
+      await request(server)
+        .get(`/integrations?projectId=${project.id}`)
+        .set(authHeader(nonMember.id))
+        .expect(403);
+    });
+
+    it('EDITOR cannot create integrations (403)', async () => {
+      const { editor, project } = await seedMultiUserProject();
+
+      await request(server)
+        .post('/integrations')
+        .set(authHeader(editor.id))
+        .send({
+          projectId: project.id,
+          type: 'CUSTOM_WEBSITE',
+          externalId: 'test.example.com',
+        })
+        .expect(403);
+    });
+
+    it('VIEWER cannot create integrations (403)', async () => {
+      const { viewer, project } = await seedMultiUserProject();
+
+      await request(server)
+        .post('/integrations')
+        .set(authHeader(viewer.id))
+        .send({
+          projectId: project.id,
+          type: 'CUSTOM_WEBSITE',
+          externalId: 'test.example.com',
+        })
+        .expect(403);
+    });
+
+    it('OWNER can create integrations', async () => {
+      const { owner, project } = await seedMultiUserProject();
+
+      const res = await request(server)
+        .post('/integrations')
+        .set(authHeader(owner.id))
+        .send({
+          projectId: project.id,
+          type: 'CUSTOM_WEBSITE',
+          externalId: 'test.example.com',
+        })
+        .expect(201);
+
+      expect(res.body).toHaveProperty('id');
+      expect(res.body.type).toBe('CUSTOM_WEBSITE');
+    });
+  });
+
+  describe('[FIXUP-4] SEO Scan Endpoints – Members View, OWNER Mutates', () => {
+    it('All ProjectMembers can view scan results', async () => {
+      const { owner, editor, viewer, project } = await seedMultiUserProject();
+
+      // Seed a crawl result for the project
+      await testPrisma.crawlResult.create({
+        data: {
+          projectId: project.id,
+          url: 'https://test.example.com/',
+          statusCode: 200,
+          title: 'Test Page',
+          metaDescription: 'Test description',
+          h1: 'Test H1',
+          wordCount: 500,
+          loadTimeMs: 1000,
+          issues: [],
+        },
+      });
+
+      // OWNER
+      const ownerRes = await request(server)
+        .get(`/seo-scan/results?projectId=${project.id}`)
+        .set(authHeader(owner.id))
+        .expect(200);
+      expect(Array.isArray(ownerRes.body)).toBe(true);
+
+      // EDITOR
+      await request(server)
+        .get(`/seo-scan/results?projectId=${project.id}`)
+        .set(authHeader(editor.id))
+        .expect(200);
+
+      // VIEWER
+      await request(server)
+        .get(`/seo-scan/results?projectId=${project.id}`)
+        .set(authHeader(viewer.id))
+        .expect(200);
+    });
+
+    it('Non-member is blocked from viewing scan results (403)', async () => {
+      const { nonMember, project } = await seedMultiUserProject();
+
+      await request(server)
+        .get(`/seo-scan/results?projectId=${project.id}`)
+        .set(authHeader(nonMember.id))
+        .expect(403);
+    });
+
+    it('EDITOR cannot start SEO scan (403)', async () => {
+      const { editor, project } = await seedMultiUserProject();
+
+      await request(server)
+        .post('/seo-scan/start')
+        .set(authHeader(editor.id))
+        .send({ projectId: project.id })
+        .expect(403);
+    });
+
+    it('VIEWER cannot start SEO scan (403)', async () => {
+      const { viewer, project } = await seedMultiUserProject();
+
+      await request(server)
+        .post('/seo-scan/start')
+        .set(authHeader(viewer.id))
+        .send({ projectId: project.id })
+        .expect(403);
+    });
+  });
 });

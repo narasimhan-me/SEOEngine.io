@@ -608,6 +608,13 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] ROLES-3 FIXUP-3 PATCH 4.6: Approval status prefetched when Step 3 visible (auto, no CTA click)
 - [ ] ROLES-3 FIXUP-3 PATCH 4.6: Switching playbooks clears stale approval state
 - [ ] ROLES-3 FIXUP-3 PATCH 4.6: Disabling approval requirement clears approval state
+- [ ] ROLES-3 FIXUP-4: AI usage endpoints (GET) accessible by all ProjectMembers
+- [ ] ROLES-3 FIXUP-4: AI draft generation requires OWNER or EDITOR (VIEWER blocked)
+- [ ] ROLES-3 FIXUP-4: Integrations GET accessible by all members, POST/PUT/DELETE OWNER-only
+- [ ] ROLES-3 FIXUP-4: SEO scan results accessible by all members, startScan OWNER-only
+- [ ] ROLES-3 FIXUP-4: Shopify SEO update OWNER-only
+- [ ] ROLES-3 FIXUP-4: Apply fix from issue OWNER-only
+- [ ] ROLES-3 FIXUP-4: Non-member blocked from all project-scoped endpoints (403)
 
 ---
 
@@ -704,3 +711,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 4.3 | 2025-12-23 | ROLES-3 FIXUP-2: Strict approval-chain matrix enforcement. Multi-user OWNER cannot create approval requests (must apply directly), accountRole ignored in multi-user projects (ProjectMember authoritative), isMultiUserProject in API response, Answer Block mutations OWNER-only, Members page "Add member" wording. Updated CP-019 scenarios. |
 | 4.4 | 2025-12-23 | ROLES-3 FIXUP-3: Frontend correction for strict approval-chain matrix. Removed ephemeral approvalRequested flag in favor of derived state from server-sourced pendingApproval object. EDITOR can NEVER apply even if approved—only requests approval. Multi-user OWNER cannot self-request (must wait for EDITOR). Single-user OWNER preserves ROLES-2 convenience (create + approve + apply). Button states and notices derive from pendingApproval?.status. Updated CP-019 with FIXUP-3 test scenarios. |
 | 4.5 | 2025-12-24 | ROLES-3 FIXUP-3 PATCH 4.6: Approval status prefetch and stale-state reset. Approval status auto-fetched when Step 3 visible (no CTA click needed). Stale approval cleared when switching playbooks or when policy changes. Includes stale-response guard for rapid playbook changes. Updated CP-019 verification scenario "UI derives from server state". |
+| 4.6 | 2025-12-24 | ROLES-3 FIXUP-4: Membership + Role Enforcement Beyond projects/*. Eliminated legacy project.userId ownership gates in AI controller, ProductIssueFixService, SEO scan, Integrations, and Shopify services. Replaced with RoleResolutionService assertions (assertProjectAccess, assertOwnerRole, assertCanGenerateDrafts). Added integration tests for AI usage, integrations, and SEO scan endpoints. Updated CP-019 with FIXUP-4 scenarios. |

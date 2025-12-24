@@ -513,3 +513,101 @@ Run the following scenarios to verify FIXUP-3:
    - Verify UI handles `PENDING_APPROVAL` (not `PENDING`)
    - Verify UI handles `APPROVED` with `consumed: false`
    - Verify UI handles `REJECTED` and `consumed: true` as "needs new request"
+
+---
+
+## ROLES-3 FIXUP-4: Membership + Role Enforcement Beyond projects/* (December 2025)
+
+This fixup eliminates legacy `project.userId` ownership gates in services outside `apps/api/src/projects/*`, replacing them with membership-aware access control using RoleResolutionService.
+
+### Key Changes
+
+**PATCH 1: AI Controller - Membership + Matrix Enforcement**
+- `ai.controller.ts`: Injected `RoleResolutionService`
+  - Draft generation endpoints use `assertCanGenerateDrafts()` (OWNER/EDITOR only)
+  - Usage/quota endpoints use `assertProjectAccess()` (any ProjectMember)
+  - Removed legacy `project.userId === userId` checks
+
+**PATCH 2: ProductIssueFixService - OWNER-only Apply**
+- `product-issue-fix.service.ts`: Injected `RoleResolutionService`
+  - `applyFix()` method uses `assertOwnerRole()` (OWNER-only for mutations)
+  - Replaced legacy ownership check
+
+**PATCH 3: SEO Scan Service - View vs Mutation Role Rules**
+- `seo-scan.service.ts`: Injected `RoleResolutionService`
+  - `startScan()` uses `assertOwnerRole()` (mutations are OWNER-only)
+  - `scanProductPage()` uses `assertOwnerRole()` (mutations are OWNER-only)
+  - `getResults()` uses `assertProjectAccess()` (any member can view)
+  - Removed legacy ownership check
+
+**PATCH 4: Integrations Controller - Members View, OWNER Mutates**
+- `integrations.controller.ts`: Injected `RoleResolutionService`
+  - GET endpoints use `assertProjectAccess()` (any member can view)
+  - POST/PUT/DELETE endpoints use `assertOwnerRole()` (OWNER-only)
+  - Removed `validateProjectOwnership()` helper method
+
+**PATCH 4.1: Integrations Module Wiring**
+- `integrations.module.ts`: Added `forwardRef(() => ProjectsModule)` import
+  - Enables RoleResolutionService injection via ProjectsModule exports
+
+**PATCH 5: Shopify SEO Update - OWNER-only**
+- `shopify.service.ts`: Injected `RoleResolutionService`
+  - `updateProductSeo()` uses `assertOwnerRole()` (OWNER-only for mutations)
+  - Replaced legacy ownership check
+
+**PATCH 6: Integration Tests - ROLES-3 Coverage**
+- `roles-3.test.ts`: Added FIXUP-4 test blocks
+  - AI Usage endpoints: all ProjectMembers can view, non-member blocked
+  - Integrations endpoints: all members can view, only OWNER can mutate
+  - SEO Scan endpoints: all members can view results, only OWNER can start scan
+
+### Role Resolution Method Summary
+
+| Method | Access Level | Use Case |
+|--------|--------------|----------|
+| `assertProjectAccess(projectId, userId)` | Any ProjectMember | Read/view operations |
+| `assertOwnerRole(projectId, userId)` | OWNER only | Mutations (apply, update, delete) |
+| `assertCanGenerateDrafts(projectId, userId)` | OWNER or EDITOR | AI draft generation |
+| `assertCanRequestApproval(projectId, userId)` | EDITOR only (multi-user) | Approval request creation |
+
+### Test Verification
+
+Run the following scenarios to verify FIXUP-4:
+
+1. **AI Usage - All members can view**:
+   - As VIEWER, call `GET /ai/usage?projectId=X` → Should succeed (200)
+   - As EDITOR, call `GET /ai/runs?projectId=X` → Should succeed (200)
+   - As non-member, call same endpoints → Should fail (403)
+
+2. **AI Draft Generation - OWNER/EDITOR only**:
+   - As VIEWER, call `POST /ai/generate-product-seo` → Should fail (403)
+   - As EDITOR, call same endpoint → Should succeed (200)
+   - As OWNER, call same endpoint → Should succeed (200)
+
+3. **Integrations - Members view, OWNER mutates**:
+   - As VIEWER, call `GET /integrations?projectId=X` → Should succeed (200)
+   - As EDITOR, call `POST /integrations` → Should fail (403)
+   - As OWNER, call `POST /integrations` → Should succeed (201)
+
+4. **SEO Scan - Members view, OWNER mutates**:
+   - As VIEWER, call `GET /seo-scan/:projectId/results` → Should succeed (200)
+   - As EDITOR, call `POST /seo-scan/:projectId/start` → Should fail (403)
+   - As OWNER, call `POST /seo-scan/:projectId/start` → Should succeed
+
+5. **Shopify SEO Update - OWNER only**:
+   - As EDITOR, call `PUT /shopify/products/:id/seo` → Should fail (403)
+   - As OWNER, call same endpoint → Should succeed (200)
+
+6. **Apply Fix From Issue - OWNER only**:
+   - As EDITOR, call `POST /ai/apply-fix-from-issue/:issueId` → Should fail (403)
+   - As OWNER, call same endpoint → Should succeed
+
+### Files Modified
+
+- `apps/api/src/ai/ai.controller.ts`
+- `apps/api/src/ai/product-issue-fix.service.ts`
+- `apps/api/src/seo-scan/seo-scan.service.ts`
+- `apps/api/src/integrations/integrations.controller.ts`
+- `apps/api/src/integrations/integrations.module.ts`
+- `apps/api/src/shopify/shopify.service.ts`
+- `apps/api/test/integration/roles-3.test.ts`

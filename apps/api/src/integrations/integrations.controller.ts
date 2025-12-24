@@ -9,7 +9,6 @@ import {
   Query,
   NotFoundException,
   BadRequestException,
-  ForbiddenException,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -17,38 +16,26 @@ import { IntegrationsService, CreateIntegrationDto, UpdateIntegrationDto } from 
 import { IntegrationType } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma.service';
+import { RoleResolutionService } from '../common/role-resolution.service';
 
+/**
+ * [ROLES-3 FIXUP-4] IntegrationsController with membership-aware access control:
+ * - GET endpoints: any ProjectMember can view (assertProjectAccess)
+ * - Mutating endpoints (POST, PUT, DELETE): OWNER-only (assertOwnerRole)
+ */
 @Controller('integrations')
 @UseGuards(JwtAuthGuard) // [SELF-SERVICE-1] All integration routes require authentication
 export class IntegrationsController {
   constructor(
     private readonly integrationsService: IntegrationsService,
     private readonly prisma: PrismaService,
+    private readonly roleResolution: RoleResolutionService,
   ) {}
-
-  /**
-   * [SELF-SERVICE-1] Validate that the authenticated user owns the project.
-   * Required for "Organization / Stores" self-service actions.
-   */
-  private async validateProjectOwnership(userId: string, projectId: string): Promise<void> {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      select: { userId: true },
-    });
-
-    if (!project) {
-      throw new NotFoundException('Project not found');
-    }
-
-    if (project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this project');
-    }
-  }
 
   /**
    * GET /integrations?projectId=xxx
    * List all integrations for a project
-   * [SELF-SERVICE-1] Requires authentication and project ownership
+   * [ROLES-3 FIXUP-4] Any ProjectMember can view (assertProjectAccess)
    */
   @Get()
   async listIntegrations(
@@ -59,7 +46,8 @@ export class IntegrationsController {
       throw new BadRequestException('projectId query parameter is required');
     }
 
-    await this.validateProjectOwnership(req.user.id, projectId);
+    // [ROLES-3 FIXUP-4] Any ProjectMember can view integrations
+    await this.roleResolution.assertProjectAccess(projectId, req.user.id);
 
     const integrations = await this.integrationsService.getProjectIntegrations(projectId);
     return {
@@ -79,7 +67,7 @@ export class IntegrationsController {
   /**
    * GET /integrations/:type?projectId=xxx
    * Get a specific integration by type
-   * [SELF-SERVICE-1] Requires authentication and project ownership
+   * [ROLES-3 FIXUP-4] Any ProjectMember can view (assertProjectAccess)
    */
   @Get(':type')
   async getIntegration(
@@ -91,7 +79,8 @@ export class IntegrationsController {
       throw new BadRequestException('projectId query parameter is required');
     }
 
-    await this.validateProjectOwnership(req.user.id, projectId);
+    // [ROLES-3 FIXUP-4] Any ProjectMember can view integrations
+    await this.roleResolution.assertProjectAccess(projectId, req.user.id);
 
     const integrationType = this.parseIntegrationType(type);
     const integration = await this.integrationsService.getIntegration(projectId, integrationType);
@@ -115,7 +104,7 @@ export class IntegrationsController {
   /**
    * POST /integrations
    * Create a new integration
-   * [SELF-SERVICE-1] Requires authentication and project ownership
+   * [ROLES-3 FIXUP-4] OWNER-only for mutations (assertOwnerRole)
    */
   @Post()
   async createIntegration(
@@ -132,7 +121,8 @@ export class IntegrationsController {
       throw new BadRequestException('projectId and type are required');
     }
 
-    await this.validateProjectOwnership(req.user.id, body.projectId);
+    // [ROLES-3 FIXUP-4] OWNER-only for mutations
+    await this.roleResolution.assertOwnerRole(body.projectId, req.user.id);
 
     const integrationType = this.parseIntegrationType(body.type);
 
@@ -158,7 +148,7 @@ export class IntegrationsController {
   /**
    * PUT /integrations/:type
    * Update an existing integration
-   * [SELF-SERVICE-1] Requires authentication and project ownership
+   * [ROLES-3 FIXUP-4] OWNER-only for mutations (assertOwnerRole)
    */
   @Put(':type')
   async updateIntegration(
@@ -171,7 +161,8 @@ export class IntegrationsController {
       throw new BadRequestException('projectId query parameter is required');
     }
 
-    await this.validateProjectOwnership(req.user.id, projectId);
+    // [ROLES-3 FIXUP-4] OWNER-only for mutations
+    await this.roleResolution.assertOwnerRole(projectId, req.user.id);
 
     const integrationType = this.parseIntegrationType(type);
     const integration = await this.integrationsService.updateIntegration(
@@ -192,7 +183,7 @@ export class IntegrationsController {
   /**
    * DELETE /integrations/:type?projectId=xxx
    * Remove an integration
-   * [SELF-SERVICE-1] Requires authentication and project ownership
+   * [ROLES-3 FIXUP-4] OWNER-only for mutations (assertOwnerRole)
    */
   @Delete(':type')
   async deleteIntegration(
@@ -204,7 +195,8 @@ export class IntegrationsController {
       throw new BadRequestException('projectId query parameter is required');
     }
 
-    await this.validateProjectOwnership(req.user.id, projectId);
+    // [ROLES-3 FIXUP-4] OWNER-only for mutations
+    await this.roleResolution.assertOwnerRole(projectId, req.user.id);
 
     const integrationType = this.parseIntegrationType(type);
     await this.integrationsService.deleteIntegration(projectId, integrationType);

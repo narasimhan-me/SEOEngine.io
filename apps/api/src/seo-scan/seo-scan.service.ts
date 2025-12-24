@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from '../prisma.service';
 import { DeoScoreService, DeoSignalsService } from '../projects/deo-score.service';
 import { AutomationService } from '../projects/automation.service';
+import { RoleResolutionService } from '../common/role-resolution.service';
 import { IntegrationType } from '@prisma/client';
 import * as cheerio from 'cheerio';
 import { isE2EMode } from '../config/test-env-guard';
@@ -17,6 +18,11 @@ export interface ScanResult {
   issues: string[];
 }
 
+/**
+ * [ROLES-3 FIXUP-4] SeoScanService with membership-aware access control:
+ * - Scan operations (mutations): OWNER-only (assertOwnerRole)
+ * - Read operations: any ProjectMember can view (assertProjectAccess)
+ */
 @Injectable()
 export class SeoScanService {
   constructor(
@@ -24,13 +30,18 @@ export class SeoScanService {
     private readonly deoSignalsService: DeoSignalsService,
     private readonly deoScoreService: DeoScoreService,
     private readonly automationService: AutomationService,
+    private readonly roleResolution: RoleResolutionService,
   ) {}
 
   /**
    * Start a SEO scan for a project's domain
+   * [ROLES-3 FIXUP-4] OWNER-only for scan mutations
    */
   async startScan(projectId: string, userId: string) {
-    // Validate project ownership and get integrations
+    // [ROLES-3 FIXUP-4] OWNER-only for scan mutations
+    await this.roleResolution.assertOwnerRole(projectId, userId);
+
+    // Get project with integrations
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: {
@@ -40,10 +51,6 @@ export class SeoScanService {
 
     if (!project) {
       throw new NotFoundException('Project not found');
-    }
-
-    if (project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this project');
     }
 
     // Determine which domain to scan
@@ -365,20 +372,11 @@ export class SeoScanService {
 
   /**
    * Get all scan results for a project
+   * [ROLES-3 FIXUP-4] Any ProjectMember can view (assertProjectAccess)
    */
   async getResults(projectId: string, userId: string) {
-    // Validate project ownership
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      throw new NotFoundException('Project not found');
-    }
-
-    if (project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this project');
-    }
+    // [ROLES-3 FIXUP-4] Any ProjectMember can view scan results
+    await this.roleResolution.assertProjectAccess(projectId, userId);
 
     const results = await this.prisma.crawlResult.findMany({
       where: { projectId },
@@ -414,6 +412,7 @@ export class SeoScanService {
 
   /**
    * Scan a single product page by product ID
+   * [ROLES-3 FIXUP-4] OWNER-only for scan mutations
    */
   async scanProductPage(productId: string, userId: string) {
     // Load product with project and integrations
@@ -432,9 +431,8 @@ export class SeoScanService {
       throw new NotFoundException('Product not found');
     }
 
-    if (product.project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this product');
-    }
+    // [ROLES-3 FIXUP-4] OWNER-only for scan mutations
+    await this.roleResolution.assertOwnerRole(product.projectId, userId);
 
     // Get Shopify integration for the project
     const shopifyIntegration = product.project.integrations.find(
