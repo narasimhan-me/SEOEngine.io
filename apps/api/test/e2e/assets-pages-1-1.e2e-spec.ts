@@ -68,7 +68,6 @@ async function createCrawlResult(
     url: string;
     title?: string | null;
     metaDescription?: string | null;
-    handle?: string | null;
   },
 ): Promise<string> {
   const result = await testPrisma.crawlResult.create({
@@ -79,12 +78,7 @@ async function createCrawlResult(
       metaDescription: data.metaDescription ?? null,
       statusCode: 200,
       loadTimeMs: 100,
-      pageSize: 5000,
-      isIndexable: true,
-      h1Text: null,
-      canonicalUrl: data.url,
-      handle: data.handle ?? null,
-      pageType: data.url.includes('/pages/') ? 'page' : data.url.includes('/collections/') ? 'collection' : 'product',
+      issues: [],
     },
   });
   return result.id;
@@ -142,19 +136,16 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
         url: 'https://pages-test.com/pages/about-us',
         title: null,
         metaDescription: 'About page description',
-        handle: 'about-us',
       });
       await createCrawlResult(projectId, {
         url: 'https://pages-test.com/pages/contact',
         title: '',
         metaDescription: 'Contact page description',
-        handle: 'contact',
       });
       await createCrawlResult(projectId, {
         url: 'https://pages-test.com/pages/faq',
         title: 'FAQ Page Title',
         metaDescription: 'FAQ page description',
-        handle: 'faq',
       });
 
       const res = await request(server)
@@ -192,19 +183,16 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
         url: 'https://collections-test.com/collections/summer-sale',
         title: 'Summer Sale',
         metaDescription: null,
-        handle: 'summer-sale',
       });
       await createCrawlResult(projectId, {
         url: 'https://collections-test.com/collections/winter-collection',
         title: 'Winter Collection',
         metaDescription: 'Winter collection description',
-        handle: 'winter-collection',
       });
       await createCrawlResult(projectId, {
         url: 'https://collections-test.com/collections/new-arrivals',
         title: 'New Arrivals',
         metaDescription: 'New arrivals description',
-        handle: 'new-arrivals',
       });
 
       const res = await request(server)
@@ -238,12 +226,10 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
       await createCrawlResult(projectId, {
         url: 'https://scope-diff.com/pages/about',
         title: null,
-        handle: 'about',
       });
       await createCrawlResult(projectId, {
         url: 'https://scope-diff.com/collections/sale',
         title: null,
-        handle: 'sale',
       });
 
       // Get estimate for PAGES
@@ -289,17 +275,14 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
       await createCrawlResult(projectId, {
         url: 'https://page-refs.com/pages/about-us',
         title: null,
-        handle: 'about-us',
       });
       await createCrawlResult(projectId, {
         url: 'https://page-refs.com/pages/contact',
         title: null,
-        handle: 'contact',
       });
       await createCrawlResult(projectId, {
         url: 'https://page-refs.com/pages/faq',
         title: null,
-        handle: 'faq',
       });
 
       const res = await request(server)
@@ -388,7 +371,6 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
         url: 'https://work-queue-pages.com/pages/about',
         title: null,
         metaDescription: 'Has description',
-        handle: 'about',
       });
 
       const res = await request(server)
@@ -428,7 +410,6 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
         url: 'https://work-queue-collections.com/collections/summer',
         title: null,
         metaDescription: 'Has description',
-        handle: 'summer',
       });
 
       const res = await request(server)
@@ -469,7 +450,6 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
       await createCrawlResult(projectId, {
         url: 'https://canonical-title.com/pages/test',
         title: null,
-        handle: 'test',
       });
 
       const res = await request(server)

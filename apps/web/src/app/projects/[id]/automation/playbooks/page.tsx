@@ -197,8 +197,8 @@ export default function AutomationPlaybooksPage() {
   // Initialize from URL param if valid, otherwise default to 'missing_seo_title'
   const [selectedPlaybookId, setSelectedPlaybookId] =
     useState<PlaybookId | null>(validUrlPlaybookId ?? 'missing_seo_title');
-  // [ASSETS-PAGES-1.1] Track current asset type from URL deep link
-  const [currentAssetType, setCurrentAssetType] = useState<AutomationAssetType>(validUrlAssetType);
+  // [ASSETS-PAGES-1.1] Track current asset type from URL deep link (read-only from URL params)
+  const [currentAssetType] = useState<AutomationAssetType>(validUrlAssetType);
   const [flowState, setFlowState] = useState<PlaybookFlowState>('PREVIEW_READY');
   const [previewSamples, setPreviewSamples] = useState<PreviewSample[]>([]);
   const [loadingPreview, setLoadingPreview] = useState(false);
