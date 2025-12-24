@@ -352,6 +352,7 @@ export class CompetitorsController {
     });
 
     // Record AI usage in ledger with competitive-specific metadata
+    // [ROLES-3-HARDEN-1] Include actorUserId for multi-user attribution
     await this.aiUsageLedgerService.recordAiRun({
       projectId: product.projectId,
       runType: 'INTENT_FIX_PREVIEW', // Reuse same run type per spec
@@ -360,6 +361,7 @@ export class CompetitorsController {
       productsSkipped: 0,
       draftsFresh: 1,
       draftsReused: 0,
+      actorUserId: userId,
       metadata: {
         playbookId: 'competitive-positioning-fix', // Distinguishes from search intent
         pillar: 'competitive_positioning',

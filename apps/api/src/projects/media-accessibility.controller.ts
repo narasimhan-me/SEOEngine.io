@@ -277,6 +277,7 @@ export class MediaAccessibilityController {
     });
 
     // Record AI usage in ledger
+    // [ROLES-3-HARDEN-1] Include actorUserId for multi-user attribution
     await this.aiUsageLedgerService.recordAiRun({
       projectId,
       runType: 'INTENT_FIX_PREVIEW', // Reuse existing type per spec
@@ -285,6 +286,7 @@ export class MediaAccessibilityController {
       productsSkipped: 0,
       draftsFresh: 1,
       draftsReused: 0,
+      actorUserId: userId,
       metadata: {
         playbookId: 'media-accessibility-fix',
         pillar: 'media_accessibility',

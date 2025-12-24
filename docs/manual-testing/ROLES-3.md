@@ -730,3 +730,90 @@ This update adds approval attribution display in the Playbooks page Step 3 (Appl
 - `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx`
 - `docs/testing/CRITICAL_PATH_MAP.md`
 - `docs/manual-testing/ROLES-3.md`
+
+---
+
+## ROLES-3-HARDEN-1: E2E Coverage + AI Attribution Fix (December 2025)
+
+This update adds Playwright E2E test coverage for ROLES-3 and fixes AI usage attribution to record the actual requesting user (not always the project owner).
+
+### Key Changes
+
+**PATCH 1: Playwright E2E Tests (roles-3.spec.ts)**
+- `apps/web/tests/roles-3.spec.ts`: New comprehensive E2E test file
+  - **Test A: EDITOR + OWNER Approval Workflow**
+    - Seeds OWNER project via `seed-first-deo-win`
+    - Adds EDITOR via `POST /projects/:id/members`
+    - Enables approval policy
+    - Tests EDITOR can view playbooks but cannot apply
+    - Tests EDITOR can request approval
+    - Tests OWNER can approve and apply
+    - Tests approval attribution visibility
+  - **Test B: VIEWER Read-Only Gating**
+    - Seeds VIEWER via `seed-self-service-viewer`
+    - Adds VIEWER to project
+    - Tests VIEWER role label visibility
+    - Tests apply button disabled for VIEWER
+    - Tests preview still accessible for VIEWER
+    - Tests VIEWER cannot request approval
+  - **Test C: Multi-User Project Detection**
+    - Tests single-user project has `isMultiUserProject: false`
+    - Tests adding member changes to `isMultiUserProject: true`
+
+**PATCH 2: Documentation Updates**
+- `docs/IMPLEMENTATION_PLAN.md`: Removed "(planned)" from roles-3.spec.ts
+- `docs/testing/CRITICAL_PATH_MAP.md`: Removed "(planned)" from CP-019 Auto Tests
+
+**PATCH 3: AI Usage Attribution Fix**
+- `apps/api/src/ai/ai-usage-ledger.service.ts`: Added `actorUserId` parameter to `recordAiRun()`
+  - If `actorUserId` provided, uses it for `createdByUserId` (multi-user attribution)
+  - Falls back to `project.userId` for backwards compatibility
+- Updated all controller call sites to pass `actorUserId: userId`:
+  - `search-intent.controller.ts`
+  - `geo.controller.ts`
+  - `media-accessibility.controller.ts`
+  - `competitors.controller.ts`
+  - `offsite-signals.controller.ts`
+  - `local-discovery.controller.ts`
+
+### Test Verification
+
+**Playwright E2E Tests (roles-3.spec.ts):**
+
+1. **EDITOR + OWNER workflow**:
+   - Run: `npx playwright test roles-3.spec.ts`
+   - Verify EDITOR can view but not apply
+   - Verify OWNER can approve and apply
+
+2. **VIEWER read-only gating**:
+   - Verify VIEWER sees role label
+   - Verify apply button disabled
+   - Verify preview accessible
+
+3. **Multi-user detection**:
+   - Verify API returns correct `isMultiUserProject` flag
+
+**AI Attribution Fix:**
+
+1. **Multi-user AI usage tracking**:
+   - As EDITOR in multi-user project, generate a draft (e.g., search intent fix)
+   - Check `AutomationPlaybookRun` table
+   - Verify `createdByUserId` is EDITOR's userId (not OWNER's)
+
+2. **Single-user backwards compatibility**:
+   - In single-user project, generate a draft
+   - Verify `createdByUserId` is OWNER's userId (legacy behavior preserved)
+
+### Files Modified
+
+- `apps/web/tests/roles-3.spec.ts` (new file)
+- `apps/api/src/ai/ai-usage-ledger.service.ts`
+- `apps/api/src/projects/search-intent.controller.ts`
+- `apps/api/src/projects/geo.controller.ts`
+- `apps/api/src/projects/media-accessibility.controller.ts`
+- `apps/api/src/projects/competitors.controller.ts`
+- `apps/api/src/projects/offsite-signals.controller.ts`
+- `apps/api/src/projects/local-discovery.controller.ts`
+- `docs/IMPLEMENTATION_PLAN.md`
+- `docs/testing/CRITICAL_PATH_MAP.md`
+- `docs/manual-testing/ROLES-3.md`

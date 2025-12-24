@@ -932,6 +932,7 @@ export default function AutomationPlaybooksPage() {
     flowState,
     governancePolicy,
     effectiveRole,
+    isMultiUserProject,
   ]);
 
   const handleSyncToShopify = useCallback(async () => {
@@ -974,10 +975,8 @@ export default function AutomationPlaybooksPage() {
 
   // [ROLES-3] Derived state for role-based access control
   const roleCapabilities = getRoleCapabilities(effectiveRole);
-  const readOnly = !roleCapabilities.canApply; // VIEWER or EDITOR => true (for Apply button)
   const canGenerateDrafts = roleCapabilities.canGenerateDrafts; // OWNER/EDITOR can generate, VIEWER cannot
   const approvalRequired = governancePolicy?.requireApprovalForApply ?? false;
-  const canApply = roleCapabilities.canApply && (!approvalRequired || !!pendingApproval?.status && pendingApproval.status === 'APPROVED');
 
   // [ROLES-3 PENDING-1] Helper to look up user display name from members list
   const getUserDisplayName = useCallback((userId: string): string => {

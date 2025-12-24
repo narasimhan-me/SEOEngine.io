@@ -411,6 +411,7 @@ export class LocalDiscoveryController {
     });
 
     // Record AI usage in ledger
+    // [ROLES-3-HARDEN-1] Include actorUserId for multi-user attribution
     await this.aiUsageLedgerService.recordAiRun({
       projectId,
       runType: 'INTENT_FIX_PREVIEW', // Reuse existing type per spec
@@ -419,6 +420,7 @@ export class LocalDiscoveryController {
       productsSkipped: 0,
       draftsFresh: 1,
       draftsReused: 0,
+      actorUserId: userId,
       metadata: {
         playbookId: 'local-discovery-fix',
         pillar: 'local_discovery',

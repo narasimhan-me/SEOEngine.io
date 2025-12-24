@@ -229,6 +229,9 @@ export class AiUsageLedgerService {
   /**
    * Record an AI run in the ledger.
    * This creates an AutomationPlaybookRun record for tracking AI usage.
+   *
+   * [ROLES-3-HARDEN-1] Added actorUserId parameter for multi-user attribution.
+   * If not provided, falls back to project.userId for backwards compatibility.
    */
   async recordAiRun(params: {
     projectId: string;
@@ -241,6 +244,8 @@ export class AiUsageLedgerService {
     playbookId?: string;
     rulesHash?: string;
     metadata?: Record<string, unknown>;
+    /** [ROLES-3-HARDEN-1] The user who triggered this AI run (for multi-user attribution) */
+    actorUserId?: string;
   }): Promise<void> {
     const {
       projectId,
@@ -251,17 +256,25 @@ export class AiUsageLedgerService {
       draftsFresh,
       draftsReused,
       metadata,
+      actorUserId,
     } = params;
 
-    // Get the project to find the user
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      select: { userId: true },
-    });
+    // [ROLES-3-HARDEN-1] Use actorUserId if provided, otherwise fall back to project.userId
+    let createdByUserId = actorUserId;
 
-    if (!project) {
-      this.logger.warn(`[AiUsageLedgerService] Project not found: ${projectId}`);
-      return;
+    if (!createdByUserId) {
+      // Get the project to find the user (legacy fallback for backwards compatibility)
+      const project = await this.prisma.project.findUnique({
+        where: { id: projectId },
+        select: { userId: true },
+      });
+
+      if (!project) {
+        this.logger.warn(`[AiUsageLedgerService] Project not found: ${projectId}`);
+        return;
+      }
+
+      createdByUserId = project.userId;
     }
 
     // Generate deterministic keys for the run
@@ -274,7 +287,7 @@ export class AiUsageLedgerService {
       await this.prisma.automationPlaybookRun.create({
         data: {
           projectId,
-          createdByUserId: project.userId,
+          createdByUserId, // [ROLES-3-HARDEN-1] Now uses actorUserId when provided
           playbookId: params.playbookId ?? 'search-intent-fix', // Virtual playbook default
           runType: runType as AutomationPlaybookRunType,
           status: 'SUCCEEDED',

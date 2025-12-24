@@ -212,6 +212,7 @@ export class GeoController {
       },
     });
 
+    // [ROLES-3-HARDEN-1] Include actorUserId for multi-user attribution
     await this.aiUsageLedgerService.recordAiRun({
       projectId: product.projectId,
       runType: 'GEO_FIX_PREVIEW',
@@ -222,6 +223,7 @@ export class GeoController {
       productsSkipped: 0,
       draftsFresh: 1,
       draftsReused: 0,
+      actorUserId: userId,
       metadata: {
         aiWorkKey,
         questionId: dto.questionId,

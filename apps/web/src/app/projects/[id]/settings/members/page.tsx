@@ -13,7 +13,6 @@ import {
 import type {
   ProjectMember,
   EffectiveProjectRole,
-  UserRoleResponse,
 } from '@/lib/api';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 

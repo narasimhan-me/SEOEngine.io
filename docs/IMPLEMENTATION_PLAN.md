@@ -587,7 +587,7 @@ True multi-user projects with explicit membership management, approval chains, a
 ### Test Coverage
 
 - Backend: `apps/api/test/integration/roles-3.test.ts`
-- Frontend: `apps/web/tests/roles-3.spec.ts` (planned)
+- Frontend: `apps/web/tests/roles-3.spec.ts`
 
 ### FIXUP History
 
