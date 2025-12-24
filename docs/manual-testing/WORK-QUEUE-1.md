@@ -22,9 +22,11 @@
 
 - **Related phases/sections in IMPLEMENTATION_PLAN.md:**
   - Phase WORK-QUEUE-1
+  - Phase ASSETS-PAGES-1 (scopeType filter extension)
 
 - **Related documentation:**
-  - API_SPEC.md (GET /projects/:id/work-queue)
+  - API_SPEC.md (GET /projects/:id/work-queue, scopeType param)
+  - ASSETS-PAGES-1.md (Pages/Collections visibility testing)
   - CRITICAL_PATH_MAP.md (CP-018, ENTERPRISE-GEO-1)
   - ENTERPRISE_GEO_GOVERNANCE.md
 
@@ -115,6 +117,29 @@
 **Expected Results:**
 - **UI:** Tab becomes active, URL updates with ?tab= param, cards filter correctly
 - **API:** Each request includes tab param and returns filtered results
+
+---
+
+### Scenario 3b: Scope Type Filtering Works Correctly [ASSETS-PAGES-1]
+
+**ID:** HP-003b
+
+**Preconditions:**
+- Project has bundles with different scopeTypes (PRODUCTS, PAGES, COLLECTIONS)
+
+**Steps:**
+1. Navigate to /projects/:id/work-queue?scopeType=PAGES
+2. Verify only PAGES bundles shown
+3. Navigate to /projects/:id/work-queue?scopeType=COLLECTIONS
+4. Verify only COLLECTIONS bundles shown
+5. Navigate to /projects/:id/work-queue?scopeType=PRODUCTS
+6. Verify only PRODUCTS bundles shown
+
+**Expected Results:**
+- **UI:** Only bundles matching scopeType filter are displayed
+- **URL:** scopeType param preserved in URL
+- **API:** GET /projects/:id/work-queue?scopeType=PAGES returns only PAGES bundles
+- **Network:** No POST/PUT/DELETE requests fired (filter is read-only)
 
 ---
 

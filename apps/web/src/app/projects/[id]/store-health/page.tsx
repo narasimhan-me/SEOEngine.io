@@ -57,10 +57,11 @@ export default function StoreHealthPage() {
       setWorkQueue(wqData);
       setInsights(insightsData);
       if (quotaData) {
+        // Map from AiUsageQuotaEvaluation fields to our internal representation
         setAiQuota({
-          used: quotaData.used ?? 0,
-          limit: quotaData.limit ?? null,
-          remaining: quotaData.remaining ?? null,
+          used: quotaData.currentMonthAiRuns ?? 0,
+          limit: quotaData.policy?.monthlyAiRunsLimit ?? null,
+          remaining: quotaData.remainingAiRuns ?? null,
         });
       }
     } catch (err: unknown) {

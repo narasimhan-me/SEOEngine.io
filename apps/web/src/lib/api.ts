@@ -1192,6 +1192,7 @@ export const projectsApi = {
   /**
    * Get derived Work Queue action bundles for a project.
    * [WORK-QUEUE-1] All bundles are derived at request time from existing persisted artifacts.
+   * [ASSETS-PAGES-1] Added scopeType filter for filtering by asset type.
    */
   workQueue: (
     projectId: string,
@@ -1199,6 +1200,7 @@ export const projectsApi = {
       tab?: 'Critical' | 'NeedsAttention' | 'PendingApproval' | 'DraftsReady' | 'AppliedRecently';
       bundleType?: 'ASSET_OPTIMIZATION' | 'AUTOMATION_RUN' | 'GEO_EXPORT';
       actionKey?: 'FIX_MISSING_METADATA' | 'RESOLVE_TECHNICAL_ISSUES' | 'IMPROVE_SEARCH_INTENT' | 'OPTIMIZE_CONTENT' | 'SHARE_LINK_GOVERNANCE';
+      scopeType?: 'PRODUCTS' | 'PAGES' | 'COLLECTIONS' | 'STORE_WIDE';
       bundleId?: string;
     },
   ): Promise<import('./work-queue').WorkQueueResponse> => {
@@ -1206,6 +1208,7 @@ export const projectsApi = {
     if (params?.tab) searchParams.set('tab', params.tab);
     if (params?.bundleType) searchParams.set('bundleType', params.bundleType);
     if (params?.actionKey) searchParams.set('actionKey', params.actionKey);
+    if (params?.scopeType) searchParams.set('scopeType', params.scopeType);
     if (params?.bundleId) searchParams.set('bundleId', params.bundleId);
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : '';
     return fetchWithAuth(`/projects/${projectId}/work-queue${qs}`);

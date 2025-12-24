@@ -18,7 +18,14 @@ import { AiService } from '../ai/ai.service';
 import { PlanId } from '../billing/plans';
 import { AiUsageQuotaService } from '../ai/ai-usage-quota.service';
 import { RoleResolutionService } from '../common/role-resolution.service';
+import type { AutomationAssetType, AssetRef } from '@engineo/shared';
+import { parseAssetRef } from '@engineo/shared';
 
+/**
+ * Canonical playbook IDs.
+ * [ASSETS-PAGES-1.1] Only two playbook IDs exist: missing_seo_title, missing_seo_description.
+ * Asset type differentiation (PRODUCTS, PAGES, COLLECTIONS) is done via the assetType parameter.
+ */
 export type AutomationPlaybookId = 'missing_seo_title' | 'missing_seo_description';
 
 export type AutomationPlaybookDraftStatus = 'READY' | 'PARTIAL' | 'FAILED' | 'EXPIRED';
@@ -186,6 +193,123 @@ export class AutomationPlaybooksService {
     }
     return project;
   }
+
+  // ===========================================================================
+  // [ASSETS-PAGES-1.1] Asset-scoped helpers
+  // ===========================================================================
+
+  /**
+   * Extract handle from URL path for pages and collections.
+   * e.g., /pages/about-us -> about-us, /collections/summer-sale -> summer-sale
+   */
+  private extractHandleFromUrl(url: string, assetType: 'PAGES' | 'COLLECTIONS'): string | null {
+    try {
+      const urlObj = new URL(url);
+      const path = urlObj.pathname.toLowerCase();
+      const prefix = assetType === 'PAGES' ? '/pages/' : '/collections/';
+      if (path.startsWith(prefix)) {
+        const handle = path.slice(prefix.length).replace(/\/$/, '');
+        return handle || null;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Resolve asset refs (page_handle:*, collection_handle:*) to CrawlResult records.
+   * Returns array of { id, url, handle } objects.
+   */
+  private async resolveAssetRefs(
+    projectId: string,
+    assetType: 'PAGES' | 'COLLECTIONS',
+    scopeAssetRefs?: AssetRef[] | null,
+  ): Promise<Array<{ id: string; url: string; handle: string; title: string | null; metaDescription: string | null }>> {
+    // Get all crawl results for the project
+    const crawlResults = await this.prisma.crawlResult.findMany({
+      where: { projectId },
+      select: {
+        id: true,
+        url: true,
+        title: true,
+        metaDescription: true,
+      },
+      orderBy: { scannedAt: 'desc' },
+    });
+
+    // Filter to only include the target asset type
+    const prefix = assetType === 'PAGES' ? '/pages/' : '/collections/';
+    const assetsWithHandles = crawlResults
+      .map((cr) => {
+        const handle = this.extractHandleFromUrl(cr.url, assetType);
+        return handle ? { ...cr, handle } : null;
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+
+    // If specific refs are provided, filter to those
+    if (scopeAssetRefs && scopeAssetRefs.length > 0) {
+      const refHandles = new Set<string>();
+      for (const ref of scopeAssetRefs) {
+        const parsed = parseAssetRef(ref);
+        if (parsed) {
+          refHandles.add(parsed.handle);
+        }
+      }
+      return assetsWithHandles.filter((asset) => refHandles.has(asset.handle));
+    }
+
+    return assetsWithHandles;
+  }
+
+  /**
+   * Get assets that need SEO fixes (missing title or description).
+   * For Pages/Collections, uses CrawlResult data.
+   *
+   * [ASSETS-PAGES-1.1] Uses canonical playbook IDs (missing_seo_title, missing_seo_description)
+   * with assetType parameter for asset type differentiation.
+   */
+  private async getAffectedAssets(
+    projectId: string,
+    playbookId: AutomationPlaybookId,
+    assetType: 'PAGES' | 'COLLECTIONS',
+    scopeAssetRefs?: AssetRef[] | null,
+  ): Promise<Array<{ id: string; url: string; handle: string; title: string | null; metaDescription: string | null }>> {
+    const allAssets = await this.resolveAssetRefs(projectId, assetType, scopeAssetRefs);
+
+    // Filter to assets needing fixes based on canonical playbook ID
+    const needsTitle = playbookId === 'missing_seo_title';
+
+    return allAssets.filter((asset) => {
+      if (needsTitle) {
+        return !asset.title || asset.title.trim() === '';
+      } else {
+        return !asset.metaDescription || asset.metaDescription.trim() === '';
+      }
+    });
+  }
+
+  /**
+   * Compute scopeId for asset-scoped playbooks.
+   * Uses handle-based refs for deterministic scope tracking.
+   *
+   * [ASSETS-PAGES-1.1] The scopeId now includes assetType to ensure unique scopes
+   * per asset type even when using the same canonical playbook ID.
+   */
+  private computeAssetScopeId(
+    projectId: string,
+    playbookId: AutomationPlaybookId,
+    assetType: 'PAGES' | 'COLLECTIONS',
+    handles: string[],
+  ): string {
+    const sorted = [...handles].sort();
+    const payload = `${projectId}:${playbookId}:${assetType}:${sorted.join(',')}`;
+    return createHash('sha256').update(payload).digest('hex').slice(0, 16);
+  }
+
+  // ===========================================================================
+  // Original product-scoped helpers
+  // ===========================================================================
 
   private getPlaybookWhere(
     projectId: string,
@@ -889,26 +1013,49 @@ export class AutomationPlaybooksService {
     };
   }
 
+  /**
+   * [ASSETS-PAGES-1.1] Estimate a playbook with optional asset type scoping.
+   *
+   * @param assetType - 'PRODUCTS' (default), 'PAGES', or 'COLLECTIONS'
+   * @param scopeAssetRefs - Handle-based refs for non-product assets (e.g., 'page_handle:about-us')
+   */
   async estimatePlaybook(
     userId: string,
     projectId: string,
     playbookId: AutomationPlaybookId,
     scopeProductIds?: string[] | null,
+    assetType?: AutomationAssetType,
+    scopeAssetRefs?: AssetRef[] | null,
   ): Promise<PlaybookEstimate> {
     // [ROLES-3] Any ProjectMember can view estimates
     await this.roleResolution.assertProjectAccess(projectId, userId);
 
-    const affectedProductIds = await this.resolveAffectedProductIds(
-      projectId,
-      playbookId,
-      scopeProductIds,
-    );
-    const totalAffectedProducts = affectedProductIds.length;
-    const scopeId = this.computeScopeId(
-      projectId,
-      playbookId,
-      affectedProductIds,
-    );
+    const effectiveAssetType = assetType ?? 'PRODUCTS';
+
+    // [ASSETS-PAGES-1.1] Branch based on asset type
+    let totalAffectedProducts: number;
+    let scopeId: string;
+
+    if (effectiveAssetType === 'PRODUCTS') {
+      const affectedProductIds = await this.resolveAffectedProductIds(
+        projectId,
+        playbookId,
+        scopeProductIds,
+      );
+      totalAffectedProducts = affectedProductIds.length;
+      scopeId = this.computeScopeId(projectId, playbookId, affectedProductIds);
+    } else {
+      // PAGES or COLLECTIONS
+      const affectedAssets = await this.getAffectedAssets(
+        projectId,
+        playbookId,
+        effectiveAssetType,
+        scopeAssetRefs,
+      );
+      totalAffectedProducts = affectedAssets.length;
+      const handles = affectedAssets.map((a) => a.handle);
+      scopeId = this.computeAssetScopeId(projectId, playbookId, effectiveAssetType, handles);
+    }
 
     let rulesHash = this.computeRulesHash(null);
     let draftStatus: AutomationPlaybookDraftStatus | undefined;

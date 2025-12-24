@@ -198,4 +198,12 @@ export {
   WORK_QUEUE_IMPACT_RANKS,
   WORK_QUEUE_STATE_PRIORITY,
   WORK_QUEUE_HEALTH_PRIORITY,
+  // ASSETS-PAGES-1.1: Asset-scoped automation playbook types
+  type AutomationAssetType,
+  type AssetRef,
+  parseAssetRef,
+  createAssetRef,
+  validateAssetRefsForType,
+  getPlaybookAssetType,
+  PLAYBOOK_ASSET_TYPES,
 } from './work-queue';

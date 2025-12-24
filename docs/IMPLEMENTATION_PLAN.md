@@ -832,6 +832,213 @@ Special routes:
 
 ---
 
+## Phase ASSETS-PAGES-1: Pages & Collections Visibility ✅ COMPLETE
+
+**Status:** Complete (Visibility-Only)
+**Date Completed:** 2025-12-24
+
+### Overview
+
+Pages & Collections diagnosis and surfacing only. This phase makes Pages and Collections diagnosable and actionable at the decision level, with Work Queue items visible but no execution paths.
+
+### Phase Intent
+
+**Visibility-Only**: Surfaces Pages and Collections health status and recommended actions through:
+- Asset navigation entries
+- Work Queue bundles with scope type filtering
+- Store Health card aggregation
+
+### Scope (Strict)
+
+**Included:**
+- [x] Assets nav entries for Pages + Collections
+- [x] Health → Action resolution (same ladder as Products/Work Queue)
+- [x] Work Queue inclusion for Pages/Collections bundles
+- [x] Store Health coverage via Work Queue derivation
+- [x] scopeType query parameter on GET /projects/:id/work-queue
+
+**Excluded (Deferred to ASSETS-PAGES-1.1):**
+- Automation playbooks for Pages/Collections
+- Draft generation for Pages/Collections
+- Apply-to-Shopify for Pages/Collections
+
+### Implementation Patches
+
+#### PATCH 1 — Contracts ✅
+- [x] Extended WorkQueueScopeType: PRODUCTS | PAGES | COLLECTIONS | STORE_WIDE
+- [x] Extended WorkQueueQueryParams with scopeType filter
+- [x] Updated buildWorkQueueUrl() to support scopeType
+
+#### PATCH 2 — Work Queue Derivation ✅
+- [x] Added classifyUrlPath() function to categorize URLs by asset type
+- [x] Created deriveIssueBundlesByScopeType() method
+- [x] Bundle IDs include scope type: `ASSET_OPTIMIZATION:{actionKey}:{scopeType}:{projectId}`
+- [x] Added scopeType filter to getWorkQueue() service method
+
+#### PATCH 3 — Frontend Asset Lists ✅
+- [x] Created /projects/[id]/assets/pages/page.tsx
+- [x] Created /projects/[id]/assets/collections/page.tsx
+- [x] Health derivation from crawl page data
+- [x] Bulk action routing to Work Queue with scope filters
+- [x] Added Pages and Collections to ProjectSideNav.tsx
+
+#### PATCH 4 — Work Queue UI ✅
+- [x] Added getScopeTypeLabel() helper for singular/plural labels
+- [x] Updated ActionBundleCard scope type display
+- [x] Updated getCTARoute() to route to asset pages
+- [x] Extended Work Queue page to support scopeType URL filter
+
+#### PATCH 5 — Store Health Extension ✅
+- [x] Cards automatically reflect Pages/Collections health via Work Queue
+
+#### PATCH 6 — API Documentation ✅
+- [x] Documented scopeType query param in API_SPEC.md
+- [x] Updated WORK-QUEUE-1.md with scopeType filter verification
+
+#### PATCH 7 — Testing + Documentation ✅
+- [x] Created docs/manual-testing/ASSETS-PAGES-1.md
+- [x] Updated IMPLEMENTATION_PLAN.md (this section)
+
+### Health Derivation Rules
+
+| Condition | Health | Action Key |
+|-----------|--------|------------|
+| Missing title or meta description | Critical | FIX_MISSING_METADATA |
+| HTTP status >= 400 | Critical | RESOLVE_TECHNICAL_ISSUES |
+| Word count < 300 | Needs Attention | OPTIMIZE_CONTENT |
+| All conditions pass | Healthy | None |
+
+### Completion Criteria
+
+- [x] Pages and Collections are diagnosable at the decision level
+- [x] Work Queue items exist for Pages/Collections scope types
+- [x] No execution paths (no Generate Drafts, no Apply buttons for Pages/Collections)
+- [x] Health status visible in Store Health cards
+
+### Deferral Note
+
+**Execution (drafts + apply) deferred to ASSETS-PAGES-1.1.** This phase intentionally excludes any mutation capabilities for Pages/Collections. The Work Queue bundles route to asset lists for visibility only.
+
+### Trust Invariants
+
+1. **No New Storage Tables**: Health derived from existing crawl data
+2. **Decision-First UX**: One health pill, one action per row (no score jargon)
+3. **Read-Only Asset Lists**: Pages/Collections lists do not trigger mutations
+4. **No Side Effects**: Navigation and clicks do not trigger POST/PUT/DELETE
+
+### URL Classification
+
+The classifyUrlPath() function categorizes URLs:
+- `/products/*` → PRODUCTS
+- `/collections/*` → COLLECTIONS
+- `/pages/*` → PAGES
+- Static paths (`/about`, `/contact`, `/faq`, etc.) → PAGES
+- Everything else → OTHER (excluded from scope type bundles)
+
+### Related Documents
+
+- [ASSETS-PAGES-1.md](./manual-testing/ASSETS-PAGES-1.md) - Manual testing guide
+- [WORK-QUEUE-1.md](./manual-testing/WORK-QUEUE-1.md) - Work Queue testing
+- [STORE-HEALTH-1.0.md](./manual-testing/STORE-HEALTH-1.0.md) - Store Health testing
+- [API_SPEC.md](../API_SPEC.md) - API documentation (scopeType param)
+
+### Follow-Up Phase
+
+See **Phase ASSETS-PAGES-1.1** for execution capabilities (draft generation + apply-to-Shopify).
+
+---
+
+## Phase ASSETS-PAGES-1.1: Pages & Collections Execution (Backend Complete)
+
+**Status:** Backend Complete, Frontend Deferred
+**Dependencies:** ASSETS-PAGES-1 (Complete)
+**Started:** 2025-12-24
+**Backend Completed:** 2025-12-24
+
+### Overview
+
+Execution layer for Pages and Collections: draft generation and apply-to-Shopify capabilities (metadata only: SEO title + SEO description). Extends the visibility-only ASSETS-PAGES-1 with full lifecycle support.
+
+### Authoritative Constraints
+
+1. **Canonical Playbook IDs ONLY**: `missing_seo_title`, `missing_seo_description` — no page/collection-specific variants
+2. **Metadata-Only Mutations**: SEO title + SEO description only for Pages/Collections
+3. **Handle-Only Apply**: `page_handle:<handle>`, `collection_handle:<handle>` format with no URL/title fallback lookups
+4. **Apply Never Uses AI**: AUTO-PB-1.3 invariant preserved
+5. **ROLES-2/ROLES-3 Gating**: EDITOR request → OWNER approve/apply
+
+### Scope
+
+#### PATCH 1 — Contract + API Surface ✅
+- [x] Added asset-scoped types to work-queue.ts: `AutomationAssetType`, `AssetRef`
+- [x] Added `parseAssetRef()`, `createAssetRef()`, `validateAssetRefsForType()` helpers
+- [x] Added `PLAYBOOK_ASSET_TYPES` mapping (canonical playbooks → supported asset types)
+- [x] Extended controller endpoints with `assetType` and `scopeAssetRefs` parameters:
+  - estimate, preview, draft/generate, apply
+- [x] Added validation: exactly one of (scopeProductIds) OR (scopeAssetRefs with non-PRODUCTS assetType)
+- [x] Added Automation Playbooks section to API_SPEC.md
+
+#### PATCH 2 — Service Generalization ✅
+- [x] Removed non-canonical playbook ID variants (page_seo_title_fix, etc.)
+- [x] Updated service to use canonical IDs (`missing_seo_title`, `missing_seo_description`) with assetType differentiation
+- [x] Asset-scoped helper methods preserved:
+  - `extractHandleFromUrl()` - extract handle from page/collection URLs
+  - `resolveAssetRefs()` - resolve refs to CrawlResult records
+  - `getAffectedAssets()` - get assets needing SEO fixes (uses canonical playbookId)
+  - `computeAssetScopeId()` - compute scope ID including assetType
+- [x] Extended `estimatePlaybook()` with assetType + scopeAssetRefs support
+- [x] Wired controller to pass assetType through to service
+
+#### PATCH 3 — Shopify Admin API Mutations ✅
+- [x] Implemented `updateShopifyPageSeo()` in shopify.service.ts (GraphQL pageUpdate mutation)
+- [x] Implemented `updateShopifyCollectionSeo()` in shopify.service.ts (GraphQL collectionUpdate mutation)
+- [x] Implemented `updatePageSeo()` public method with OWNER-only access
+- [x] Implemented `updateCollectionSeo()` public method with OWNER-only access
+- [x] Handle-based lookup: Uses `pageByHandle` and `collectionByHandle` queries
+- [x] Local CrawlResult sync: Updates title/metaDescription in local records
+- [ ] Extend previewPlaybook() for asset-scoped preview (deferred - needs AI prompt adaptation)
+- [ ] Extend generateDraft() for asset-scoped draft generation (deferred - needs AI prompt adaptation)
+- [ ] Extend applyPlaybook() for asset-scoped apply (wiring to Shopify mutations pending)
+
+#### PATCH 4 — Work Queue Lifecycle ✅
+- [x] Extended `deriveAutomationBundles()` to iterate over PRODUCTS, PAGES, COLLECTIONS
+- [x] Bundle ID format: `AUTOMATION_RUN:FIX_MISSING_METADATA:{playbookId}:{assetType}:{projectId}`
+- [x] Asset-type-specific labels: "Fix missing product/page/collection SEO titles/descriptions"
+- [x] Scope preview derivation from CrawlResult for PAGES/COLLECTIONS
+- [x] State transitions: NEW → DRAFTS_READY → PENDING_APPROVAL → APPROVED → APPLIED (shared logic)
+
+#### PATCH 5 — Frontend Execution Surfaces (Deferred)
+- [ ] Add "Generate Drafts" CTA for PAGES/COLLECTIONS bundles
+- [ ] Add "Apply Changes" CTA for PAGES/COLLECTIONS bundles
+- [ ] Bulk action routing from asset lists to execution flow
+- [ ] Progress indicators and completion states
+- **Note:** Deferred until AI prompt adaptation for Pages/Collections is complete
+
+#### PATCH 6 — Testing ✅
+- [x] Created ASSETS-PAGES-1.1.md manual testing doc
+- [ ] Add integration tests for asset-scoped automation (future)
+- [ ] Add E2E tests for draft generation and apply flows (future)
+
+#### PATCH 7 — Documentation ✅
+- [x] Verified and removed non-canonical playbook ID references from API_SPEC.md
+- [x] Document asset ref format in API_SPEC.md
+- [x] Update IMPLEMENTATION_PLAN.md version history
+- [ ] Update CP map with ASSETS-PAGES-1.1 critical paths (future)
+
+### Trust Invariants
+
+1. **Apply Never Uses AI**: Pages/Collections apply follows same pattern as Products
+2. **OWNER-Only Apply**: Only OWNER can apply changes to Pages/Collections
+3. **Approval Chain**: EDITOR must request approval before apply
+4. **Canonical IDs Only**: No playbook ID proliferation — assetType handles differentiation
+
+### Related Documents
+
+- [ASSETS-PAGES-1.md](./manual-testing/ASSETS-PAGES-1.md) - Visibility-only manual testing
+- Phase ASSETS-PAGES-1 - Visibility layer (prerequisite)
+
+---
+
 ## Document History
 
 | Version | Date | Changes |
@@ -859,3 +1066,10 @@ Special routes:
 | 3.0 | 2025-12-24 | ROLES-3 PENDING-2: Docs consistency fix - marked roles-3.spec.ts as (planned) in Test Coverage section to match reality (Playwright E2E not yet implemented). |
 | 3.1 | 2025-12-24 | ROLES-3-HARDEN-1: Implemented Playwright E2E coverage (apps/web/tests/roles-3.spec.ts) and AI usage actor attribution (actorUserId) support; updated CP-019 automated test references accordingly. |
 | 3.2 | 2025-12-24 | Added STORE-HEALTH-1.0: Store Optimization Home (Complete) - Decision-only 6-card page, Work Queue actionKey filter support, navigation updates, manual testing doc |
+| 3.3 | 2025-12-24 | Added ASSETS-PAGES-1: Pages & Collections as First-Class Assets (Complete) - Extended scope types, separate Work Queue bundles by asset type, dedicated asset list pages, decision-first UX, manual testing doc |
+| 3.4 | 2025-12-24 | ASSETS-PAGES-1 Close-Out: Redefined as visibility-only phase. Added explicit Excluded list, deferral note, and follow-up phase ASSETS-PAGES-1.1. Updated manual testing doc for visibility-only contract. Documented scopeType in API_SPEC.md and WORK-QUEUE-1.md. |
+| 3.5 | 2025-12-24 | ASSETS-PAGES-1.1 Started: PATCH 1 (Contract + API) complete - added asset-scoped types, parseAssetRef/createAssetRef helpers, extended controller endpoints with assetType/scopeAssetRefs params. Added Automation Playbooks section to API_SPEC.md. |
+| 3.6 | 2025-12-24 | ASSETS-PAGES-1.1 PATCH 2 Complete: Applied authoritative constraints - removed non-canonical playbook ID variants (page_seo_title_fix, etc.), updated service to use canonical IDs (missing_seo_title, missing_seo_description) with assetType differentiation. Extended estimatePlaybook() for asset-scoped estimates, wired controller to pass assetType through. Handle-only apply with deterministic blocking for unaddressable items. |
+| 3.7 | 2025-12-24 | ASSETS-PAGES-1.1 PATCH 3 Complete: Implemented Shopify Admin API mutations for Page/Collection SEO - updateShopifyPageSeo() (pageUpdate), updateShopifyCollectionSeo() (collectionUpdate), public methods updatePageSeo() and updateCollectionSeo() with OWNER-only access, handle-based lookup, local CrawlResult sync. |
+| 3.8 | 2025-12-24 | ASSETS-PAGES-1.1 PATCH 4 Complete: Extended Work Queue derivation for PAGES/COLLECTIONS automation bundles - iterates over all asset types, asset-specific bundle IDs, scope preview from CrawlResult, asset-type-specific labels. |
+| 3.9 | 2025-12-24 | ASSETS-PAGES-1.1 PATCH 6+7 Complete: Created ASSETS-PAGES-1.1.md manual testing doc, verified and removed non-canonical playbook ID references from API_SPEC.md. Phase ready for execution testing. |

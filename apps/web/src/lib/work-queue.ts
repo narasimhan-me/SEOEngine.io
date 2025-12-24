@@ -63,10 +63,13 @@ export type WorkQueueAiUsage =
 
 /**
  * Scope type for affected items.
+ * [ASSETS-PAGES-1] Extended to include PAGES and COLLECTIONS as first-class asset types.
  */
 export type WorkQueueScopeType =
-  | 'PRODUCTS'    // Affects specific products
-  | 'STORE_WIDE'; // Affects the entire store/project
+  | 'PRODUCTS'     // Affects specific products
+  | 'PAGES'        // Affects Shopify pages (/pages/*)
+  | 'COLLECTIONS'  // Affects Shopify collections (/collections/*)
+  | 'STORE_WIDE';  // Affects the entire store/project
 
 /**
  * Approval status for governance-gated actions.
@@ -192,11 +195,13 @@ export type WorkQueueTab =
 
 /**
  * Query parameters for GET /projects/:id/work-queue.
+ * [ASSETS-PAGES-1] Added scopeType filter for filtering by asset type.
  */
 export interface WorkQueueQueryParams {
   tab?: WorkQueueTab;
   bundleType?: WorkQueueBundleType;
   actionKey?: WorkQueueRecommendedActionKey;
+  scopeType?: WorkQueueScopeType;
   bundleId?: string;
 }
 
@@ -306,6 +311,7 @@ export const HEALTH_CARD_TO_WORK_QUEUE_MAP: Record<string, { actionKey: WorkQueu
 
 /**
  * Build Work Queue URL with filters.
+ * [ASSETS-PAGES-1] Added scopeType filter support.
  */
 export function buildWorkQueueUrl(
   projectId: string,
@@ -313,6 +319,7 @@ export function buildWorkQueueUrl(
     tab?: WorkQueueTab;
     bundleType?: WorkQueueBundleType;
     actionKey?: WorkQueueRecommendedActionKey;
+    scopeType?: WorkQueueScopeType;
     bundleId?: string;
   }
 ): string {
@@ -320,6 +327,7 @@ export function buildWorkQueueUrl(
   if (params?.tab) searchParams.set('tab', params.tab);
   if (params?.bundleType) searchParams.set('bundleType', params.bundleType);
   if (params?.actionKey) searchParams.set('actionKey', params.actionKey);
+  if (params?.scopeType) searchParams.set('scopeType', params.scopeType);
   if (params?.bundleId) searchParams.set('bundleId', params.bundleId);
 
   const query = searchParams.toString();

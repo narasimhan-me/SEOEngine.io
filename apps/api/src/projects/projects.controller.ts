@@ -45,7 +45,16 @@ import { GovernanceService } from './governance.service';
 import { ApprovalsService } from './approvals.service';
 import { RoleResolutionService } from '../common/role-resolution.service';
 import { WorkQueueService } from './work-queue.service';
-import type { WorkQueueTab, WorkQueueBundleType, WorkQueueRecommendedActionKey, WorkQueueResponse } from '@engineo/shared';
+import type {
+  WorkQueueTab,
+  WorkQueueBundleType,
+  WorkQueueRecommendedActionKey,
+  WorkQueueScopeType,
+  WorkQueueResponse,
+  AutomationAssetType,
+  AssetRef,
+} from '@engineo/shared';
+import { validateAssetRefsForType } from '@engineo/shared';
 
 @Controller('projects')
 @UseGuards(JwtAuthGuard)
@@ -340,6 +349,14 @@ export class ProjectsController {
   /**
    * POST /projects/:id/automation-playbooks/estimate
    * Scoped estimate for an automation playbook (supports explicit scopeProductIds without URL length risk).
+   *
+   * [ASSETS-PAGES-1.1] Extended with asset-scoped parameters:
+   * - assetType: 'PRODUCTS' | 'PAGES' | 'COLLECTIONS' (default: 'PRODUCTS')
+   * - scopeAssetRefs: Handle-based refs for non-product assets (e.g., 'page_handle:about-us')
+   *
+   * Validation:
+   * - Exactly one of (scopeProductIds) OR (scopeAssetRefs with non-PRODUCTS assetType) must be provided
+   * - scopeAssetRefs format must match assetType (page_handle:* for PAGES, collection_handle:* for COLLECTIONS)
    */
   @Post(':id/automation-playbooks/estimate')
   async estimateAutomationPlaybookScoped(
@@ -349,16 +366,51 @@ export class ProjectsController {
     body: {
       playbookId: AutomationPlaybookId;
       scopeProductIds?: string[];
+      /** [ASSETS-PAGES-1.1] Asset type for scoped playbook runs */
+      assetType?: AutomationAssetType;
+      /** [ASSETS-PAGES-1.1] Handle-based refs for non-product assets */
+      scopeAssetRefs?: AssetRef[];
     },
   ) {
     if (!body?.playbookId) {
       throw new BadRequestException('playbookId is required');
     }
+
+    // [ASSETS-PAGES-1.1] Validate asset scope parameters
+    const assetType = body.assetType ?? 'PRODUCTS';
+    const hasScopeProductIds = body.scopeProductIds && body.scopeProductIds.length > 0;
+    const hasScopeAssetRefs = body.scopeAssetRefs && body.scopeAssetRefs.length > 0;
+
+    if (assetType === 'PRODUCTS') {
+      // Products use scopeProductIds
+      if (hasScopeAssetRefs) {
+        throw new BadRequestException(
+          'scopeAssetRefs cannot be used with assetType PRODUCTS. Use scopeProductIds instead.',
+        );
+      }
+    } else {
+      // Pages/Collections use scopeAssetRefs
+      if (hasScopeProductIds) {
+        throw new BadRequestException(
+          `scopeProductIds cannot be used with assetType ${assetType}. Use scopeAssetRefs instead.`,
+        );
+      }
+      if (hasScopeAssetRefs) {
+        const validation = validateAssetRefsForType(assetType, body.scopeAssetRefs!);
+        if (!validation.valid) {
+          throw new BadRequestException(validation.errors.join('; '));
+        }
+      }
+    }
+
+    // [ASSETS-PAGES-1.1] Pass assetType and scopeAssetRefs to service
     return this.automationPlaybooksService.estimatePlaybook(
       req.user.id,
       projectId,
       body.playbookId,
       body.scopeProductIds,
+      assetType,
+      body.scopeAssetRefs,
     );
   }
 
@@ -366,6 +418,10 @@ export class ProjectsController {
    * POST /projects/:id/automation-playbooks/:playbookId/preview
    * Generate a preview draft for an automation playbook. Creates or updates a draft keyed by
    * (projectId, playbookId, scopeId, rulesHash) and returns sample suggestions plus draft metadata.
+   *
+   * [ASSETS-PAGES-1.1] Extended with asset-scoped parameters:
+   * - assetType: 'PRODUCTS' | 'PAGES' | 'COLLECTIONS' (default: 'PRODUCTS')
+   * - scopeAssetRefs: Handle-based refs for non-product assets
    */
   @Post(':id/automation-playbooks/:playbookId/preview')
   async previewAutomationPlaybook(
@@ -377,8 +433,44 @@ export class ProjectsController {
       rules?: PlaybookRulesV1;
       sampleSize?: number;
       scopeProductIds?: string[];
+      /** [ASSETS-PAGES-1.1] Asset type for scoped playbook runs */
+      assetType?: AutomationAssetType;
+      /** [ASSETS-PAGES-1.1] Handle-based refs for non-product assets */
+      scopeAssetRefs?: AssetRef[];
     },
   ) {
+    // [ASSETS-PAGES-1.1] Validate asset scope parameters
+    const assetType = body?.assetType ?? 'PRODUCTS';
+    const hasScopeProductIds = body?.scopeProductIds && body.scopeProductIds.length > 0;
+    const hasScopeAssetRefs = body?.scopeAssetRefs && body.scopeAssetRefs.length > 0;
+
+    if (assetType === 'PRODUCTS') {
+      if (hasScopeAssetRefs) {
+        throw new BadRequestException(
+          'scopeAssetRefs cannot be used with assetType PRODUCTS. Use scopeProductIds instead.',
+        );
+      }
+    } else {
+      if (hasScopeProductIds) {
+        throw new BadRequestException(
+          `scopeProductIds cannot be used with assetType ${assetType}. Use scopeAssetRefs instead.`,
+        );
+      }
+      if (hasScopeAssetRefs) {
+        const validation = validateAssetRefsForType(assetType, body.scopeAssetRefs!);
+        if (!validation.valid) {
+          throw new BadRequestException(validation.errors.join('; '));
+        }
+      }
+    }
+
+    // [ASSETS-PAGES-1.1] TODO: Service will be updated in PATCH 2 to accept assetType and scopeAssetRefs
+    if (assetType !== 'PRODUCTS') {
+      throw new BadRequestException(
+        `Asset type ${assetType} is not yet supported. Only PRODUCTS is currently available.`,
+      );
+    }
+
     return this.automationPlaybooksService.previewPlaybook(
       req.user.id,
       projectId,
@@ -393,6 +485,10 @@ export class ProjectsController {
    * POST /projects/:id/automation-playbooks/:playbookId/draft/generate
    * Generate a full draft for all affected products for a given scopeId + rulesHash combination.
    * This is the only endpoint that performs full AI generation for playbooks.
+   *
+   * [ASSETS-PAGES-1.1] Extended with asset-scoped parameters:
+   * - assetType: 'PRODUCTS' | 'PAGES' | 'COLLECTIONS' (default: 'PRODUCTS')
+   * - scopeAssetRefs: Handle-based refs for non-product assets
    */
   @Post(':id/automation-playbooks/:playbookId/draft/generate')
   async generateAutomationPlaybookDraft(
@@ -404,6 +500,10 @@ export class ProjectsController {
       scopeId: string;
       rulesHash: string;
       scopeProductIds?: string[];
+      /** [ASSETS-PAGES-1.1] Asset type for scoped playbook runs */
+      assetType?: AutomationAssetType;
+      /** [ASSETS-PAGES-1.1] Handle-based refs for non-product assets */
+      scopeAssetRefs?: AssetRef[];
     },
   ) {
     if (!body?.scopeId) {
@@ -412,6 +512,39 @@ export class ProjectsController {
     if (!body?.rulesHash) {
       throw new BadRequestException('rulesHash is required');
     }
+
+    // [ASSETS-PAGES-1.1] Validate asset scope parameters
+    const assetType = body?.assetType ?? 'PRODUCTS';
+    const hasScopeProductIds = body?.scopeProductIds && body.scopeProductIds.length > 0;
+    const hasScopeAssetRefs = body?.scopeAssetRefs && body.scopeAssetRefs.length > 0;
+
+    if (assetType === 'PRODUCTS') {
+      if (hasScopeAssetRefs) {
+        throw new BadRequestException(
+          'scopeAssetRefs cannot be used with assetType PRODUCTS. Use scopeProductIds instead.',
+        );
+      }
+    } else {
+      if (hasScopeProductIds) {
+        throw new BadRequestException(
+          `scopeProductIds cannot be used with assetType ${assetType}. Use scopeAssetRefs instead.`,
+        );
+      }
+      if (hasScopeAssetRefs) {
+        const validation = validateAssetRefsForType(assetType, body.scopeAssetRefs!);
+        if (!validation.valid) {
+          throw new BadRequestException(validation.errors.join('; '));
+        }
+      }
+    }
+
+    // [ASSETS-PAGES-1.1] TODO: Service will be updated in PATCH 2 to accept assetType and scopeAssetRefs
+    if (assetType !== 'PRODUCTS') {
+      throw new BadRequestException(
+        `Asset type ${assetType} is not yet supported. Only PRODUCTS is currently available.`,
+      );
+    }
+
     return this.automationPlaybooksService.generateDraft(
       req.user.id,
       projectId,
@@ -459,6 +592,12 @@ export class ProjectsController {
    * - OWNER-only: Only project owners can apply
    * - EDITOR must request approval before owner can apply
    * - If governance policy requires approval, returns APPROVAL_REQUIRED error
+   *
+   * [ASSETS-PAGES-1.1] Extended with asset-scoped parameters:
+   * - assetType: 'PRODUCTS' | 'PAGES' | 'COLLECTIONS' (default: 'PRODUCTS')
+   * - scopeAssetRefs: Handle-based refs for non-product assets
+   *
+   * CRITICAL INVARIANT: Apply never uses AI. All suggestions come from pre-generated drafts.
    */
   @Post(':id/automation-playbooks/apply')
   async applyAutomationPlaybook(
@@ -472,6 +611,10 @@ export class ProjectsController {
       scopeProductIds?: string[];
       /** [ROLES-2] Optional approval ID for governance-gated apply */
       approvalId?: string;
+      /** [ASSETS-PAGES-1.1] Asset type for scoped playbook runs */
+      assetType?: AutomationAssetType;
+      /** [ASSETS-PAGES-1.1] Handle-based refs for non-product assets */
+      scopeAssetRefs?: AssetRef[];
     },
   ) {
     if (!body?.playbookId) {
@@ -482,6 +625,38 @@ export class ProjectsController {
     }
     if (!body?.rulesHash) {
       throw new BadRequestException('rulesHash is required');
+    }
+
+    // [ASSETS-PAGES-1.1] Validate asset scope parameters
+    const assetType = body?.assetType ?? 'PRODUCTS';
+    const hasScopeProductIds = body?.scopeProductIds && body.scopeProductIds.length > 0;
+    const hasScopeAssetRefs = body?.scopeAssetRefs && body.scopeAssetRefs.length > 0;
+
+    if (assetType === 'PRODUCTS') {
+      if (hasScopeAssetRefs) {
+        throw new BadRequestException(
+          'scopeAssetRefs cannot be used with assetType PRODUCTS. Use scopeProductIds instead.',
+        );
+      }
+    } else {
+      if (hasScopeProductIds) {
+        throw new BadRequestException(
+          `scopeProductIds cannot be used with assetType ${assetType}. Use scopeAssetRefs instead.`,
+        );
+      }
+      if (hasScopeAssetRefs) {
+        const validation = validateAssetRefsForType(assetType, body.scopeAssetRefs!);
+        if (!validation.valid) {
+          throw new BadRequestException(validation.errors.join('; '));
+        }
+      }
+    }
+
+    // [ASSETS-PAGES-1.1] TODO: Service will be updated in PATCH 2 to accept assetType and scopeAssetRefs
+    if (assetType !== 'PRODUCTS') {
+      throw new BadRequestException(
+        `Asset type ${assetType} is not yet supported. Only PRODUCTS is currently available.`,
+      );
     }
 
     const userId = req.user.id as string;
@@ -826,6 +1001,7 @@ export class ProjectsController {
    * - tab?: 'Critical' | 'NeedsAttention' | 'PendingApproval' | 'DraftsReady' | 'AppliedRecently'
    * - bundleType?: 'ASSET_OPTIMIZATION' | 'AUTOMATION_RUN' | 'GEO_EXPORT'
    * - actionKey?: 'FIX_MISSING_METADATA' | 'RESOLVE_TECHNICAL_ISSUES' | 'IMPROVE_SEARCH_INTENT' | 'OPTIMIZE_CONTENT' | 'SHARE_LINK_GOVERNANCE'
+   * - scopeType?: 'PRODUCTS' | 'PAGES' | 'COLLECTIONS' | 'STORE_WIDE' [ASSETS-PAGES-1]
    * - bundleId?: string (for deep-link highlight)
    *
    * Auth: JWT guard
@@ -838,12 +1014,14 @@ export class ProjectsController {
     @Query('tab') tab?: WorkQueueTab,
     @Query('bundleType') bundleType?: WorkQueueBundleType,
     @Query('actionKey') actionKey?: WorkQueueRecommendedActionKey,
+    @Query('scopeType') scopeType?: WorkQueueScopeType,
     @Query('bundleId') bundleId?: string,
   ): Promise<WorkQueueResponse> {
     return this.workQueueService.getWorkQueue(projectId, req.user.id, {
       tab,
       bundleType,
       actionKey,
+      scopeType,
       bundleId,
     });
   }

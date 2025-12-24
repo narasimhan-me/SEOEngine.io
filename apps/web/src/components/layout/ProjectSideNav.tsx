@@ -8,12 +8,16 @@ import { useParams, usePathname } from 'next/navigation';
  * Order reflects the canonical pillar hierarchy while maintaining existing routes.
  *
  * [STORE-HEALTH-1.0] Store Health is the primary landing page for projects.
+ * [ASSETS-PAGES-1] Assets section groups Products, Pages, and Collections.
  */
 const navItems = [
   { label: 'Store Health', path: 'store-health' }, // [STORE-HEALTH-1.0] Primary landing
   { label: 'Work Queue', path: 'work-queue' }, // [WORK-QUEUE-1] Unified action bundle queue
   { label: 'Overview', path: 'overview' },
+  // [ASSETS-PAGES-1] Assets section
   { label: 'Products', path: 'products' },
+  { label: 'Pages', path: 'assets/pages' }, // [ASSETS-PAGES-1] Pages asset list
+  { label: 'Collections', path: 'assets/collections' }, // [ASSETS-PAGES-1] Collections asset list
   { label: 'Insights', path: 'insights' }, // [INSIGHTS-1] Read-only analytics
   { label: 'DEO Overview', path: 'deo' },
   { label: 'Metadata', path: 'metadata' },

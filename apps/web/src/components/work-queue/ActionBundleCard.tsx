@@ -104,10 +104,11 @@ export function ActionBundleCard({
       </h3>
 
       {/* Row 3: Scope line */}
+      {/* [ASSETS-PAGES-1] Updated to show correct scope type label */}
       <p className="mt-1 text-sm text-gray-600">
         Applies to{' '}
         <span className="font-medium">
-          {bundle.scopeCount} {bundle.scopeType === 'PRODUCTS' ? 'products' : 'store-wide'}
+          {bundle.scopeCount} {getScopeTypeLabel(bundle.scopeType, bundle.scopeCount)}
         </span>
         {bundle.scopePreviewList.length > 0 && (
           <>
@@ -242,6 +243,30 @@ function formatState(state: string): string {
 }
 
 /**
+ * [ASSETS-PAGES-1] Get scope type label for display.
+ */
+function getScopeTypeLabel(scopeType: string, count: number): string {
+  const singular: Record<string, string> = {
+    PRODUCTS: 'product',
+    PAGES: 'page',
+    COLLECTIONS: 'collection',
+    STORE_WIDE: 'store-wide',
+  };
+  const plural: Record<string, string> = {
+    PRODUCTS: 'products',
+    PAGES: 'pages',
+    COLLECTIONS: 'collections',
+    STORE_WIDE: 'store-wide',
+  };
+
+  if (scopeType === 'STORE_WIDE') {
+    return 'store-wide';
+  }
+
+  return count === 1 ? (singular[scopeType] || scopeType) : (plural[scopeType] || scopeType);
+}
+
+/**
  * Derive CTAs based on bundle state and viewer capabilities.
  */
 function deriveCtas(
@@ -349,10 +374,11 @@ function deriveCtas(
 }
 
 /**
- * Get CTA route based on bundle type and action.
+ * Get CTA route based on bundle type, scopeType, and action.
+ * [ASSETS-PAGES-1] Routes PAGES/COLLECTIONS bundles to their respective asset lists.
  */
 function getCTARoute(bundle: WorkQueueActionBundle, projectId: string): string {
-  const { bundleType, recommendedActionKey } = bundle;
+  const { bundleType, recommendedActionKey, scopeType } = bundle;
 
   if (bundleType === 'GEO_EXPORT') {
     return `/projects/${projectId}/insights?tab=geo`;
@@ -362,7 +388,35 @@ function getCTARoute(bundle: WorkQueueActionBundle, projectId: string): string {
     return `/projects/${projectId}/automation`;
   }
 
-  // Asset optimization - route to relevant pillar
+  // [ASSETS-PAGES-1] Route to asset-specific pages with filters
+  if (bundleType === 'ASSET_OPTIMIZATION') {
+    const actionKeyParam = recommendedActionKey ? `?actionKey=${recommendedActionKey}` : '';
+
+    switch (scopeType) {
+      case 'PAGES':
+        return `/projects/${projectId}/assets/pages${actionKeyParam}`;
+      case 'COLLECTIONS':
+        return `/projects/${projectId}/assets/collections${actionKeyParam}`;
+      case 'PRODUCTS':
+        // Route to products or relevant pillar
+        switch (recommendedActionKey) {
+          case 'FIX_MISSING_METADATA':
+            return `/projects/${projectId}/metadata`;
+          case 'RESOLVE_TECHNICAL_ISSUES':
+            return `/projects/${projectId}/performance`;
+          case 'IMPROVE_SEARCH_INTENT':
+            return `/projects/${projectId}/keywords`;
+          case 'OPTIMIZE_CONTENT':
+            return `/projects/${projectId}/content`;
+          default:
+            return `/projects/${projectId}/products`;
+        }
+      default:
+        return `/projects/${projectId}/deo`;
+    }
+  }
+
+  // Fallback - route to relevant pillar
   switch (recommendedActionKey) {
     case 'FIX_MISSING_METADATA':
       return `/projects/${projectId}/metadata`;

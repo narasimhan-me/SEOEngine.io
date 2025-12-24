@@ -503,6 +503,220 @@ Generate SEO title & description for a product.
 
 ---
 
+## 7. Automation Playbooks
+
+Bulk AI-powered SEO automation for products, pages, and collections.
+
+### GET `/projects/:id/automation-playbooks/estimate` (auth required)
+
+Estimate token usage and eligibility for a playbook.
+
+**Query parameters:**
+
+- `playbookId` (required): `missing_seo_title` | `missing_seo_description`
+
+**[ASSETS-PAGES-1.1] Canonical Playbook IDs Only:**
+- Only two playbook IDs exist: `missing_seo_title`, `missing_seo_description`
+- Asset type differentiation (PRODUCTS, PAGES, COLLECTIONS) is done via the `assetType` parameter in POST requests
+
+---
+
+### POST `/projects/:id/automation-playbooks/estimate` (auth required)
+
+Scoped estimate for a playbook with explicit asset targeting.
+
+**Body:**
+
+```json
+{
+  "playbookId": "missing_seo_title",
+  "scopeProductIds": ["product-id-1", "product-id-2"],
+  "assetType": "PRODUCTS",
+  "scopeAssetRefs": []
+}
+```
+
+**[ASSETS-PAGES-1.1] Asset-scoped parameters:**
+
+- `assetType` (optional): `PRODUCTS` | `PAGES` | `COLLECTIONS` (default: `PRODUCTS`)
+- `scopeAssetRefs` (optional): Handle-based refs for non-product assets
+
+**Asset reference format:**
+- Pages: `page_handle:<handle>` (e.g., `page_handle:about-us`)
+- Collections: `collection_handle:<handle>` (e.g., `collection_handle:summer-sale`)
+
+**Validation rules:**
+- `scopeProductIds` can only be used with `assetType: PRODUCTS`
+- `scopeAssetRefs` can only be used with `assetType: PAGES` or `COLLECTIONS`
+- Ref format must match asset type (page_handle:* for PAGES, collection_handle:* for COLLECTIONS)
+
+---
+
+### POST `/projects/:id/automation-playbooks/:playbookId/preview` (auth required)
+
+Generate preview drafts for sample assets.
+
+**Body:**
+
+```json
+{
+  "rules": { "enabled": true, "maxLength": 60 },
+  "sampleSize": 3,
+  "scopeProductIds": ["product-id"],
+  "assetType": "PRODUCTS",
+  "scopeAssetRefs": []
+}
+```
+
+**[ASSETS-PAGES-1.1] Supports same asset-scoped parameters as estimate.**
+
+**Response:**
+
+```json
+{
+  "projectId": "string",
+  "playbookId": "missing_seo_title",
+  "scopeId": "abc123",
+  "rulesHash": "def456",
+  "draftId": "draft-id",
+  "status": "PARTIAL",
+  "counts": {
+    "affectedTotal": 10,
+    "draftGenerated": 3,
+    "noSuggestionCount": 0
+  },
+  "samples": [
+    {
+      "productId": "product-id",
+      "field": "seoTitle",
+      "productTitle": "Product Name",
+      "currentTitle": "",
+      "currentDescription": "",
+      "rawSuggestion": "AI generated title",
+      "finalSuggestion": "AI generated title",
+      "ruleWarnings": []
+    }
+  ],
+  "aiCalled": true
+}
+```
+
+---
+
+### POST `/projects/:id/automation-playbooks/:playbookId/draft/generate` (auth required)
+
+Generate full drafts for all affected assets.
+
+**Body:**
+
+```json
+{
+  "scopeId": "abc123",
+  "rulesHash": "def456",
+  "scopeProductIds": ["product-id"],
+  "assetType": "PRODUCTS",
+  "scopeAssetRefs": []
+}
+```
+
+**[ASSETS-PAGES-1.1] Supports same asset-scoped parameters as estimate.**
+
+---
+
+### GET `/projects/:id/automation-playbooks/:playbookId/draft/latest` (auth required)
+
+Get the most recent draft for a playbook.
+
+---
+
+### POST `/projects/:id/automation-playbooks/apply` (auth required)
+
+Apply playbook drafts to Shopify.
+
+**CRITICAL INVARIANT:** Apply never uses AI. All suggestions come from pre-generated drafts.
+
+**Body:**
+
+```json
+{
+  "playbookId": "missing_seo_title",
+  "scopeId": "abc123",
+  "rulesHash": "def456",
+  "scopeProductIds": ["product-id"],
+  "approvalId": "optional-approval-id",
+  "assetType": "PRODUCTS",
+  "scopeAssetRefs": []
+}
+```
+
+**[ASSETS-PAGES-1.1] Supports same asset-scoped parameters as estimate.**
+
+**Access control [ROLES-3]:**
+- OWNER: Can apply directly
+- EDITOR: Must request approval first (returns `APPROVAL_REQUIRED` error)
+- VIEWER: Cannot apply (returns `403 Forbidden`)
+
+---
+
+## 11. Work Queue (WORK-QUEUE-1)
+
+Unified action bundle work queue that derives bundles from existing persisted artifacts.
+
+### GET `/projects/:projectId/work-queue` (auth required)
+
+Get prioritized action bundles for a project.
+
+**Query parameters:**
+
+- `tab` (optional): Filter by tab - `Critical` | `NeedsAttention` | `PendingApproval` | `DraftsReady` | `AppliedRecently`
+- `bundleType` (optional): Filter by bundle type - `ASSET_OPTIMIZATION` | `AUTOMATION_RUN` | `GEO_EXPORT`
+- `actionKey` (optional): Filter by recommended action - `FIX_MISSING_METADATA` | `RESOLVE_TECHNICAL_ISSUES` | `IMPROVE_SEARCH_INTENT` | `OPTIMIZE_CONTENT` | `SHARE_LINK_GOVERNANCE`
+- `scopeType` (optional): Filter by scope type - `PRODUCTS` | `PAGES` | `COLLECTIONS` | `STORE_WIDE` [ASSETS-PAGES-1]
+- `bundleId` (optional): Filter to specific bundle ID
+
+**Response:**
+
+```json
+{
+  "viewer": {
+    "role": "OWNER",
+    "capabilities": {
+      "canGenerateDrafts": true,
+      "canApply": true,
+      "canApprove": true,
+      "canRequestApproval": true
+    },
+    "isMultiUserProject": false
+  },
+  "items": [
+    {
+      "bundleId": "ASSET_OPTIMIZATION:FIX_MISSING_METADATA:PRODUCTS:project-id",
+      "bundleType": "ASSET_OPTIMIZATION",
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "updatedAt": "2025-01-01T00:00:00.000Z",
+      "scopeType": "PRODUCTS",
+      "scopeCount": 5,
+      "scopePreviewList": ["Product A", "Product B", "+3 more"],
+      "health": "CRITICAL",
+      "impactRank": 100,
+      "recommendedActionKey": "FIX_MISSING_METADATA",
+      "recommendedActionLabel": "Fix missing metadata",
+      "aiUsage": "NONE",
+      "aiDisclosureText": "No AI is used for this action.",
+      "state": "NEW"
+    }
+  ]
+}
+```
+
+**Notes:**
+- All bundles are derived at request time from existing persisted artifacts
+- No new storage tables are created
+- Sorting is deterministic: state priority → health priority → impact rank → updatedAt → bundleId
+- `scopeType` filter added in ASSETS-PAGES-1 for filtering by asset type (products, pages, collections)
+
+---
+
 ## 12. Enterprise Governance (ENTERPRISE-GEO-1)
 
 Enterprise-grade governance controls including approval workflows, audit logging, and export controls.

@@ -62,10 +62,13 @@ export type WorkQueueAiUsage =
 
 /**
  * Scope type for affected items.
+ * [ASSETS-PAGES-1] Extended to include PAGES and COLLECTIONS as first-class asset types.
  */
 export type WorkQueueScopeType =
-  | 'PRODUCTS'    // Affects specific products
-  | 'STORE_WIDE'; // Affects the entire store/project
+  | 'PRODUCTS'     // Affects specific products
+  | 'PAGES'        // Affects Shopify pages (/pages/*)
+  | 'COLLECTIONS'  // Affects Shopify collections (/collections/*)
+  | 'STORE_WIDE';  // Affects the entire store/project
 
 /**
  * Approval status for governance-gated actions.
@@ -191,11 +194,13 @@ export type WorkQueueTab =
 
 /**
  * Query parameters for GET /projects/:id/work-queue.
+ * [ASSETS-PAGES-1] Added scopeType filter for filtering by asset type.
  */
 export interface WorkQueueQueryParams {
   tab?: WorkQueueTab;
   bundleType?: WorkQueueBundleType;
   actionKey?: WorkQueueRecommendedActionKey;
+  scopeType?: WorkQueueScopeType;
   bundleId?: string;
 }
 
@@ -225,6 +230,104 @@ export interface WorkQueueResponse {
   viewer?: WorkQueueViewer;                  // Included for role-aware UI
   items: WorkQueueActionBundle[];
 }
+
+// =============================================================================
+// Asset-Scoped Automation Playbook Types (ASSETS-PAGES-1.1)
+// =============================================================================
+
+/**
+ * Asset type for asset-scoped automation playbooks.
+ * Determines which asset table to query and how to resolve scopeAssetRefs.
+ *
+ * [ASSETS-PAGES-1.1] Canonical playbook IDs (missing_seo_title, missing_seo_description)
+ * work across all asset types. The assetType parameter determines which assets to target.
+ */
+export type AutomationAssetType = 'PRODUCTS' | 'PAGES' | 'COLLECTIONS';
+
+/**
+ * Asset reference format for non-product assets.
+ * Uses handle-based refs to avoid exposing internal IDs.
+ *
+ * Format: `{type}_handle:{handle}`
+ * Examples:
+ *   - `page_handle:about-us`
+ *   - `collection_handle:summer-sale`
+ *
+ * Handle-only resolution: Apply is handle-based with no URL/title fallback lookups.
+ * Unaddressable items (no handle) are deterministically blocked.
+ */
+export type AssetRef = string;
+
+/**
+ * Parse an asset reference into its components.
+ * Returns null if the format is invalid.
+ */
+export function parseAssetRef(ref: AssetRef): { type: 'page' | 'collection'; handle: string } | null {
+  const pageMatch = ref.match(/^page_handle:(.+)$/);
+  if (pageMatch) {
+    return { type: 'page', handle: pageMatch[1] };
+  }
+  const collectionMatch = ref.match(/^collection_handle:(.+)$/);
+  if (collectionMatch) {
+    return { type: 'collection', handle: collectionMatch[1] };
+  }
+  return null;
+}
+
+/**
+ * Create an asset reference from type and handle.
+ */
+export function createAssetRef(type: 'page' | 'collection', handle: string): AssetRef {
+  return `${type}_handle:${handle}`;
+}
+
+/**
+ * Validate that asset references match the expected asset type.
+ */
+export function validateAssetRefsForType(
+  assetType: AutomationAssetType,
+  refs: AssetRef[],
+): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  if (assetType === 'PRODUCTS') {
+    // Products use scopeProductIds, not scopeAssetRefs
+    if (refs.length > 0) {
+      errors.push('Products should use scopeProductIds, not scopeAssetRefs');
+    }
+    return { valid: errors.length === 0, errors };
+  }
+
+  const expectedPrefix = assetType === 'PAGES' ? 'page_handle:' : 'collection_handle:';
+
+  for (const ref of refs) {
+    if (!ref.startsWith(expectedPrefix)) {
+      errors.push(`Invalid ref "${ref}" for assetType ${assetType}. Expected prefix "${expectedPrefix}"`);
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * [ASSETS-PAGES-1.1] Get the applicable asset type from assetType parameter.
+ * Used to resolve which asset table to query for a given playbook run.
+ *
+ * CANONICAL INVARIANT: Only two playbook IDs exist: missing_seo_title, missing_seo_description.
+ * Asset type differentiation is done via the assetType parameter, NOT via playbook ID variants.
+ */
+export function getPlaybookAssetType(assetType?: AutomationAssetType): AutomationAssetType {
+  return assetType ?? 'PRODUCTS';
+}
+
+/**
+ * Map of playbook IDs to the asset types they support.
+ * Both canonical playbooks support all asset types.
+ */
+export const PLAYBOOK_ASSET_TYPES: Record<string, AutomationAssetType[]> = {
+  missing_seo_title: ['PRODUCTS', 'PAGES', 'COLLECTIONS'],
+  missing_seo_description: ['PRODUCTS', 'PAGES', 'COLLECTIONS'],
+};
 
 // =============================================================================
 // Constants

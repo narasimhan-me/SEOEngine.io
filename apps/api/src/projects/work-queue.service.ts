@@ -39,7 +39,47 @@ import { ApprovalResourceType } from '@prisma/client';
  * - Issue-derived bundles (ASSET_OPTIMIZATION): DeoIssuesService
  * - Automation bundles (AUTOMATION_RUN): AutomationPlaybooksService + drafts
  * - GEO export bundle (GEO_EXPORT): GeoReportsService
+ *
+ * [ASSETS-PAGES-1] Issue-derived bundles now split by scopeType:
+ * - PRODUCTS: Product-level issues (existing)
+ * - PAGES: Page-level issues (/pages/*, static pages)
+ * - COLLECTIONS: Collection-level issues (/collections/*)
  */
+
+/**
+ * [ASSETS-PAGES-1] URL path classification for pages and collections.
+ * Reuses logic from projects.service.ts#getCrawlPages.
+ */
+type AssetPageType = 'product' | 'collection' | 'page' | 'other';
+
+function classifyUrlPath(url: string): AssetPageType {
+  try {
+    const urlObj = new URL(url);
+    const path = urlObj.pathname.toLowerCase();
+
+    if (path.startsWith('/products/') || path === '/products') {
+      return 'product';
+    }
+    if (path.startsWith('/collections/') || path === '/collections') {
+      return 'collection';
+    }
+    // /pages/* and other non-product, non-collection URLs are considered pages
+    if (path.startsWith('/pages/')) {
+      return 'page';
+    }
+    // Static paths that should be classified as pages
+    const staticPaths = new Set([
+      '/about', '/contact', '/faq', '/support', '/shipping', '/returns',
+      '/privacy', '/terms', '/privacy-policy', '/terms-of-service', '/refund-policy',
+    ]);
+    if (staticPaths.has(path)) {
+      return 'page';
+    }
+    return 'other';
+  } catch {
+    return 'other';
+  }
+}
 @Injectable()
 export class WorkQueueService {
   constructor(
@@ -56,6 +96,7 @@ export class WorkQueueService {
    * Get Work Queue items for a project.
    *
    * Derives bundles from existing artifacts and applies deterministic sorting.
+   * [ASSETS-PAGES-1] Added scopeType filter for filtering by asset type.
    */
   async getWorkQueue(
     projectId: string,
@@ -64,6 +105,7 @@ export class WorkQueueService {
       tab?: WorkQueueTab;
       bundleType?: WorkQueueBundleType;
       actionKey?: WorkQueueRecommendedActionKey;
+      scopeType?: WorkQueueScopeType;
       bundleId?: string;
     },
   ): Promise<WorkQueueResponse> {
@@ -123,6 +165,10 @@ export class WorkQueueService {
     if (params?.actionKey) {
       allBundles = allBundles.filter((b) => b.recommendedActionKey === params.actionKey);
     }
+    // [ASSETS-PAGES-1] Filter by scopeType
+    if (params?.scopeType) {
+      allBundles = allBundles.filter((b) => b.scopeType === params.scopeType);
+    }
     if (params?.bundleId) {
       allBundles = allBundles.filter((b) => b.bundleId === params.bundleId);
     }
@@ -148,6 +194,9 @@ export class WorkQueueService {
 
   /**
    * Derive issue-based bundles (ASSET_OPTIMIZATION) from DeoIssuesService.
+   *
+   * [ASSETS-PAGES-1] Now creates separate bundles for PRODUCTS, PAGES, and COLLECTIONS
+   * based on affectedProducts (product IDs) and affectedPages (URLs) classification.
    */
   private async deriveIssueBundles(
     projectId: string,
@@ -175,32 +224,15 @@ export class WorkQueueService {
       for (const [actionKey, issues] of Object.entries(groupedIssues)) {
         if (issues.length === 0) continue;
 
-        const health = this.deriveHealthFromSeverity(issues);
+        // [ASSETS-PAGES-1] Split issues by scope type (PRODUCTS, PAGES, COLLECTIONS)
+        const scopeBundles = this.deriveIssueBundlesByScopeType(
+          projectId,
+          actionKey as WorkQueueRecommendedActionKey,
+          issues,
+          stableTimestamp,
+        );
 
-        // Skip HEALTHY bundles (they'll be filtered anyway)
-        if (health === 'HEALTHY') continue;
-
-        // Derive scope from issues
-        const { scopeType, scopeCount, scopePreviewList } = this.deriveScopeFromIssues(issues);
-
-        const bundle: WorkQueueActionBundle = {
-          bundleId: `ASSET_OPTIMIZATION:${actionKey}:${projectId}`,
-          bundleType: 'ASSET_OPTIMIZATION',
-          createdAt: stableTimestamp,
-          updatedAt: stableTimestamp,
-          scopeType,
-          scopeCount,
-          scopePreviewList,
-          health,
-          impactRank: WORK_QUEUE_IMPACT_RANKS[actionKey as WorkQueueRecommendedActionKey],
-          recommendedActionKey: actionKey as WorkQueueRecommendedActionKey,
-          recommendedActionLabel: WORK_QUEUE_ACTION_LABELS[actionKey as WorkQueueRecommendedActionKey],
-          aiUsage: 'NONE',
-          aiDisclosureText: WORK_QUEUE_AI_DISCLOSURE_TEXT.NONE,
-          state: 'NEW', // Issue bundles are always NEW (no PREVIEWED persistence)
-        };
-
-        bundles.push(bundle);
+        bundles.push(...scopeBundles);
       }
     } catch (error) {
       // Log but don't fail the entire request
@@ -211,7 +243,191 @@ export class WorkQueueService {
   }
 
   /**
+   * [ASSETS-PAGES-1] Create separate bundles for each scope type from issues.
+   * Returns up to 3 bundles per actionKey: PRODUCTS, PAGES, COLLECTIONS.
+   */
+  private deriveIssueBundlesByScopeType(
+    projectId: string,
+    actionKey: WorkQueueRecommendedActionKey,
+    issues: DeoIssue[],
+    stableTimestamp: string,
+  ): WorkQueueActionBundle[] {
+    const bundles: WorkQueueActionBundle[] = [];
+
+    // Collect affected items by scope type
+    const productIds = new Set<string>();
+    const pageUrls = new Set<string>();
+    const collectionUrls = new Set<string>();
+
+    // Track issues by scope for health derivation
+    const productIssues: DeoIssue[] = [];
+    const pageIssues: DeoIssue[] = [];
+    const collectionIssues: DeoIssue[] = [];
+
+    for (const issue of issues) {
+      // Collect product IDs
+      if (issue.affectedProducts && issue.affectedProducts.length > 0) {
+        for (const productId of issue.affectedProducts) {
+          productIds.add(productId);
+        }
+        productIssues.push(issue);
+      }
+
+      // Collect and classify page URLs
+      if (issue.affectedPages && issue.affectedPages.length > 0) {
+        for (const pageUrl of issue.affectedPages) {
+          const pageType = classifyUrlPath(pageUrl);
+          if (pageType === 'collection') {
+            collectionUrls.add(pageUrl);
+            if (!collectionIssues.includes(issue)) {
+              collectionIssues.push(issue);
+            }
+          } else if (pageType === 'page') {
+            pageUrls.add(pageUrl);
+            if (!pageIssues.includes(issue)) {
+              pageIssues.push(issue);
+            }
+          }
+          // 'product' and 'other' types are handled by affectedProducts or ignored
+        }
+      }
+    }
+
+    // Create PRODUCTS bundle if there are affected products
+    if (productIds.size > 0) {
+      const health = this.deriveHealthFromSeverity(productIssues.length > 0 ? productIssues : issues);
+      if (health !== 'HEALTHY') {
+        const scopePreviewList = this.buildScopePreviewList(
+          Array.from(productIds).slice(0, 5).map(() => 'Product'),
+          productIds.size,
+        );
+
+        bundles.push({
+          bundleId: `ASSET_OPTIMIZATION:${actionKey}:PRODUCTS:${projectId}`,
+          bundleType: 'ASSET_OPTIMIZATION',
+          createdAt: stableTimestamp,
+          updatedAt: stableTimestamp,
+          scopeType: 'PRODUCTS',
+          scopeCount: productIds.size,
+          scopePreviewList,
+          health,
+          impactRank: WORK_QUEUE_IMPACT_RANKS[actionKey],
+          recommendedActionKey: actionKey,
+          recommendedActionLabel: WORK_QUEUE_ACTION_LABELS[actionKey],
+          aiUsage: 'NONE',
+          aiDisclosureText: WORK_QUEUE_AI_DISCLOSURE_TEXT.NONE,
+          state: 'NEW',
+        });
+      }
+    }
+
+    // Create PAGES bundle if there are affected pages
+    if (pageUrls.size > 0) {
+      const health = this.deriveHealthFromSeverity(pageIssues.length > 0 ? pageIssues : issues);
+      if (health !== 'HEALTHY') {
+        const pathPreviews = Array.from(pageUrls).slice(0, 5).map((url) => {
+          try {
+            return new URL(url).pathname;
+          } catch {
+            return url;
+          }
+        });
+        const scopePreviewList = this.buildScopePreviewList(pathPreviews, pageUrls.size);
+
+        bundles.push({
+          bundleId: `ASSET_OPTIMIZATION:${actionKey}:PAGES:${projectId}`,
+          bundleType: 'ASSET_OPTIMIZATION',
+          createdAt: stableTimestamp,
+          updatedAt: stableTimestamp,
+          scopeType: 'PAGES',
+          scopeCount: pageUrls.size,
+          scopePreviewList,
+          health,
+          impactRank: WORK_QUEUE_IMPACT_RANKS[actionKey],
+          recommendedActionKey: actionKey,
+          recommendedActionLabel: WORK_QUEUE_ACTION_LABELS[actionKey],
+          aiUsage: 'NONE',
+          aiDisclosureText: WORK_QUEUE_AI_DISCLOSURE_TEXT.NONE,
+          state: 'NEW',
+        });
+      }
+    }
+
+    // Create COLLECTIONS bundle if there are affected collections
+    if (collectionUrls.size > 0) {
+      const health = this.deriveHealthFromSeverity(collectionIssues.length > 0 ? collectionIssues : issues);
+      if (health !== 'HEALTHY') {
+        const pathPreviews = Array.from(collectionUrls).slice(0, 5).map((url) => {
+          try {
+            return new URL(url).pathname;
+          } catch {
+            return url;
+          }
+        });
+        const scopePreviewList = this.buildScopePreviewList(pathPreviews, collectionUrls.size);
+
+        bundles.push({
+          bundleId: `ASSET_OPTIMIZATION:${actionKey}:COLLECTIONS:${projectId}`,
+          bundleType: 'ASSET_OPTIMIZATION',
+          createdAt: stableTimestamp,
+          updatedAt: stableTimestamp,
+          scopeType: 'COLLECTIONS',
+          scopeCount: collectionUrls.size,
+          scopePreviewList,
+          health,
+          impactRank: WORK_QUEUE_IMPACT_RANKS[actionKey],
+          recommendedActionKey: actionKey,
+          recommendedActionLabel: WORK_QUEUE_ACTION_LABELS[actionKey],
+          aiUsage: 'NONE',
+          aiDisclosureText: WORK_QUEUE_AI_DISCLOSURE_TEXT.NONE,
+          state: 'NEW',
+        });
+      }
+    }
+
+    // Fallback: If no specific scope items found but issues exist, create STORE_WIDE bundle
+    if (bundles.length === 0 && issues.length > 0) {
+      const health = this.deriveHealthFromSeverity(issues);
+      if (health !== 'HEALTHY') {
+        bundles.push({
+          bundleId: `ASSET_OPTIMIZATION:${actionKey}:STORE_WIDE:${projectId}`,
+          bundleType: 'ASSET_OPTIMIZATION',
+          createdAt: stableTimestamp,
+          updatedAt: stableTimestamp,
+          scopeType: 'STORE_WIDE',
+          scopeCount: 1,
+          scopePreviewList: ['Store-wide'],
+          health,
+          impactRank: WORK_QUEUE_IMPACT_RANKS[actionKey],
+          recommendedActionKey: actionKey,
+          recommendedActionLabel: WORK_QUEUE_ACTION_LABELS[actionKey],
+          aiUsage: 'NONE',
+          aiDisclosureText: WORK_QUEUE_AI_DISCLOSURE_TEXT.NONE,
+          state: 'NEW',
+        });
+      }
+    }
+
+    return bundles;
+  }
+
+  /**
+   * [ASSETS-PAGES-1] Build scope preview list with "+N more" suffix.
+   */
+  private buildScopePreviewList(previews: string[], totalCount: number): string[] {
+    if (totalCount <= 5) {
+      return previews;
+    }
+    return [...previews.slice(0, 5), `+${totalCount - 5} more`];
+  }
+
+  /**
    * Derive automation bundles (AUTOMATION_RUN) from playbook estimates and drafts.
+   *
+   * [ASSETS-PAGES-1.1] Extended to derive bundles for all asset types:
+   * - PRODUCTS: Product-scoped playbooks (existing)
+   * - PAGES: Page-scoped playbooks (new)
+   * - COLLECTIONS: Collection-scoped playbooks (new)
    */
   private async deriveAutomationBundles(
     projectId: string,
@@ -221,224 +437,278 @@ export class WorkQueueService {
     const bundles: WorkQueueActionBundle[] = [];
     const playbookIds: AutomationPlaybookId[] = ['missing_seo_title', 'missing_seo_description'];
 
+    // [ASSETS-PAGES-1.1] Asset types to derive bundles for
+    type AssetTypeConfig = {
+      assetType: 'PRODUCTS' | 'PAGES' | 'COLLECTIONS';
+      scopeType: WorkQueueScopeType;
+      labelPrefix: string;
+    };
+
+    const assetConfigs: AssetTypeConfig[] = [
+      { assetType: 'PRODUCTS', scopeType: 'PRODUCTS', labelPrefix: 'product' },
+      { assetType: 'PAGES', scopeType: 'PAGES', labelPrefix: 'page' },
+      { assetType: 'COLLECTIONS', scopeType: 'COLLECTIONS', labelPrefix: 'collection' },
+    ];
+
     // Check if approval is required for this project
     const approvalRequired = await this.governanceService.isApprovalRequired(projectId);
 
-    for (const playbookId of playbookIds) {
-      try {
-        // Get estimate to check if playbook has affected products
-        const estimate = await this.automationPlaybooksService.estimatePlaybook(
-          userId,
-          projectId,
-          playbookId,
-        );
-
-        // Get latest draft for this playbook
-        const latestDraft = await this.automationPlaybooksService.getLatestDraft(
-          userId,
-          projectId,
-          playbookId,
-        );
-
-        // Include bundle if affected products > 0 OR has existing draft
-        if (estimate.totalAffectedProducts === 0 && !latestDraft) {
-          continue;
-        }
-
-        // Get draft timestamps directly from database if draft exists
-        let draftTimestamps: { createdAt: Date; updatedAt: Date } | null = null;
-        if (latestDraft) {
-          draftTimestamps = await this.prisma.automationPlaybookDraft.findUnique({
-            where: { id: latestDraft.draftId },
-            select: { createdAt: true, updatedAt: true },
-          });
-        }
-
-        // Derive state from draft status
-        let state: WorkQueueState = 'NEW';
-        let draftStatus: WorkQueueDraftStatus = 'NONE';
-        let draftCount = 0;
-        let draftCoverage = 0;
-
-        if (latestDraft) {
-          switch (latestDraft.status) {
-            case 'PARTIAL':
-              state = 'PREVIEWED';
-              draftStatus = 'PARTIAL';
-              break;
-            case 'READY':
-              state = 'DRAFTS_READY';
-              draftStatus = 'READY';
-              break;
-            case 'FAILED':
-              state = 'FAILED';
-              draftStatus = 'FAILED';
-              break;
-            case 'EXPIRED':
-              state = 'BLOCKED';
-              draftStatus = 'EXPIRED';
-              break;
-          }
-
-          if (latestDraft.counts) {
-            draftCount = latestDraft.counts.draftGenerated;
-            draftCoverage =
-              latestDraft.counts.affectedTotal > 0
-                ? Math.round((latestDraft.counts.draftGenerated / latestDraft.counts.affectedTotal) * 100)
-                : 0;
-          }
-        }
-
-        // Check for applied drafts (Applied Recently tab)
-        const appliedDraft = await this.prisma.automationPlaybookDraft.findFirst({
-          where: {
+    for (const assetConfig of assetConfigs) {
+      for (const playbookId of playbookIds) {
+        try {
+          // Get estimate to check if playbook has affected items
+          const estimate = await this.automationPlaybooksService.estimatePlaybook(
+            userId,
             projectId,
             playbookId,
-            appliedAt: { not: null },
-          },
-          orderBy: { appliedAt: 'desc' },
-          select: {
-            appliedAt: true,
-            appliedByUserId: true,
-            updatedAt: true,
-          },
-        });
-
-        if (appliedDraft?.appliedAt) {
-          // Check if applied within last 7 days for "Applied Recently" tab
-          const sevenDaysAgo = new Date();
-          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-          if (appliedDraft.appliedAt > sevenDaysAgo) {
-            state = 'APPLIED';
-          }
-        }
-
-        // Approval derivation
-        let approvalStatus: WorkQueueApprovalStatus = 'NOT_REQUESTED';
-        let requestedBy: string | undefined;
-        let requestedAt: string | undefined;
-        let approvedBy: string | null = null;
-        let approvedAt: string | null = null;
-
-        if (approvalRequired && latestDraft) {
-          const resourceId = `${playbookId}:${latestDraft.scopeId}`;
-          const approval = await this.approvalsService.hasValidApproval(
-            projectId,
-            'AUTOMATION_PLAYBOOK_APPLY' as ApprovalResourceType,
-            resourceId,
+            null, // scopeProductIds
+            assetConfig.assetType,
+            null, // scopeAssetRefs
           );
 
-          if (approval.status === 'PENDING_APPROVAL') {
-            state = 'PENDING_APPROVAL';
-            approvalStatus = 'PENDING';
+          // Get latest draft for this playbook (currently only for PRODUCTS)
+          // TODO: Extend getLatestDraft for asset-scoped drafts
+          let latestDraft = null;
+          if (assetConfig.assetType === 'PRODUCTS') {
+            latestDraft = await this.automationPlaybooksService.getLatestDraft(
+              userId,
+              projectId,
+              playbookId,
+            );
+          }
 
-            // Get approval details
-            const approvalRequest = await this.prisma.approvalRequest.findFirst({
+          // Include bundle if affected items > 0 OR has existing draft
+          if (estimate.totalAffectedProducts === 0 && !latestDraft) {
+            continue;
+          }
+
+          // Get draft timestamps directly from database if draft exists
+          let draftTimestamps: { createdAt: Date; updatedAt: Date } | null = null;
+          if (latestDraft) {
+            draftTimestamps = await this.prisma.automationPlaybookDraft.findUnique({
+              where: { id: latestDraft.draftId },
+              select: { createdAt: true, updatedAt: true },
+            });
+          }
+
+          // Derive state from draft status
+          let state: WorkQueueState = 'NEW';
+          let draftStatus: WorkQueueDraftStatus = 'NONE';
+          let draftCount = 0;
+          let draftCoverage = 0;
+
+          if (latestDraft) {
+            switch (latestDraft.status) {
+              case 'PARTIAL':
+                state = 'PREVIEWED';
+                draftStatus = 'PARTIAL';
+                break;
+              case 'READY':
+                state = 'DRAFTS_READY';
+                draftStatus = 'READY';
+                break;
+              case 'FAILED':
+                state = 'FAILED';
+                draftStatus = 'FAILED';
+                break;
+              case 'EXPIRED':
+                state = 'BLOCKED';
+                draftStatus = 'EXPIRED';
+                break;
+            }
+
+            if (latestDraft.counts) {
+              draftCount = latestDraft.counts.draftGenerated;
+              draftCoverage =
+                latestDraft.counts.affectedTotal > 0
+                  ? Math.round((latestDraft.counts.draftGenerated / latestDraft.counts.affectedTotal) * 100)
+                  : 0;
+            }
+          }
+
+          // Check for applied drafts (Applied Recently tab) - only for PRODUCTS currently
+          let appliedDraft = null;
+          if (assetConfig.assetType === 'PRODUCTS') {
+            appliedDraft = await this.prisma.automationPlaybookDraft.findFirst({
               where: {
                 projectId,
-                resourceType: 'AUTOMATION_PLAYBOOK_APPLY',
-                resourceId,
-                status: 'PENDING_APPROVAL',
+                playbookId,
+                appliedAt: { not: null },
               },
-              select: { requestedByUserId: true, requestedAt: true },
-            });
-            if (approvalRequest) {
-              requestedBy = approvalRequest.requestedByUserId;
-              requestedAt = approvalRequest.requestedAt.toISOString();
-            }
-          } else if (approval.valid && approval.approvalId) {
-            state = 'APPROVED';
-            approvalStatus = 'APPROVED';
-
-            // Get approval details
-            const approvalRequest = await this.prisma.approvalRequest.findFirst({
-              where: { id: approval.approvalId },
+              orderBy: { appliedAt: 'desc' },
               select: {
-                requestedByUserId: true,
-                requestedAt: true,
-                decidedByUserId: true,
-                decidedAt: true,
+                appliedAt: true,
+                appliedByUserId: true,
+                updatedAt: true,
               },
             });
-            if (approvalRequest) {
-              requestedBy = approvalRequest.requestedByUserId;
-              requestedAt = approvalRequest.requestedAt.toISOString();
-              approvedBy = approvalRequest.decidedByUserId;
-              approvedAt = approvalRequest.decidedAt?.toISOString() || null;
-            }
-          } else if (approval.status === 'REJECTED') {
-            approvalStatus = 'REJECTED';
-          }
-        }
 
-        // Get product names for scope preview
-        const affectedProducts = await this.prisma.product.findMany({
-          where: {
-            projectId,
-            OR:
-              playbookId === 'missing_seo_title'
-                ? [{ seoTitle: null }, { seoTitle: '' }]
-                : [{ seoDescription: null }, { seoDescription: '' }],
-          },
-          select: { id: true, title: true },
-          take: 6,
-        });
-
-        const scopePreviewList =
-          affectedProducts.length > 5
-            ? [
-                ...affectedProducts.slice(0, 5).map((p) => p.title),
-                `+${estimate.totalAffectedProducts - 5} more`,
-              ]
-            : affectedProducts.map((p) => p.title);
-
-        // Use draftTimestamps if available, else project.createdAt
-        const createdAt = draftTimestamps
-          ? draftTimestamps.createdAt.toISOString()
-          : project.createdAt.toISOString();
-        const updatedAt = appliedDraft?.appliedAt?.toISOString() ||
-          (draftTimestamps ? draftTimestamps.updatedAt.toISOString() : project.createdAt.toISOString());
-
-        const bundle: WorkQueueActionBundle = {
-          bundleId: `AUTOMATION_RUN:FIX_MISSING_METADATA:${playbookId}:${projectId}`,
-          bundleType: 'AUTOMATION_RUN',
-          createdAt,
-          updatedAt,
-          scopeType: 'PRODUCTS',
-          scopeCount: estimate.totalAffectedProducts,
-          scopePreviewList,
-          scopeQueryRef: latestDraft?.scopeId,
-          health: estimate.totalAffectedProducts > 10 ? 'CRITICAL' : 'NEEDS_ATTENTION',
-          impactRank: WORK_QUEUE_IMPACT_RANKS.FIX_MISSING_METADATA,
-          recommendedActionKey: 'FIX_MISSING_METADATA',
-          recommendedActionLabel: playbookId === 'missing_seo_title'
-            ? 'Fix missing SEO titles'
-            : 'Fix missing SEO descriptions',
-          aiUsage: 'DRAFTS_ONLY',
-          aiDisclosureText: WORK_QUEUE_AI_DISCLOSURE_TEXT.DRAFTS_ONLY,
-          state,
-          approval: approvalRequired
-            ? {
-                approvalRequired: true,
-                approvalStatus,
-                requestedBy,
-                requestedAt,
-                approvedBy,
-                approvedAt,
+            if (appliedDraft?.appliedAt) {
+              // Check if applied within last 7 days for "Applied Recently" tab
+              const sevenDaysAgo = new Date();
+              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+              if (appliedDraft.appliedAt > sevenDaysAgo) {
+                state = 'APPLIED';
               }
-            : undefined,
-          draft: {
-            draftStatus,
-            draftCount,
-            draftCoverage,
-            lastDraftRunId: latestDraft?.draftId,
-          },
-        };
+            }
+          }
 
-        bundles.push(bundle);
-      } catch (error) {
-        // Log but don't fail the entire request
-        console.error(`[WorkQueue] Failed to derive automation bundle for ${playbookId}:`, error);
+          // Approval derivation
+          let approvalStatus: WorkQueueApprovalStatus = 'NOT_REQUESTED';
+          let requestedBy: string | undefined;
+          let requestedAt: string | undefined;
+          let approvedBy: string | null = null;
+          let approvedAt: string | null = null;
+
+          if (approvalRequired && latestDraft) {
+            const resourceId = `${playbookId}:${latestDraft.scopeId}`;
+            const approval = await this.approvalsService.hasValidApproval(
+              projectId,
+              'AUTOMATION_PLAYBOOK_APPLY' as ApprovalResourceType,
+              resourceId,
+            );
+
+            if (approval.status === 'PENDING_APPROVAL') {
+              state = 'PENDING_APPROVAL';
+              approvalStatus = 'PENDING';
+
+              // Get approval details
+              const approvalRequest = await this.prisma.approvalRequest.findFirst({
+                where: {
+                  projectId,
+                  resourceType: 'AUTOMATION_PLAYBOOK_APPLY',
+                  resourceId,
+                  status: 'PENDING_APPROVAL',
+                },
+                select: { requestedByUserId: true, requestedAt: true },
+              });
+              if (approvalRequest) {
+                requestedBy = approvalRequest.requestedByUserId;
+                requestedAt = approvalRequest.requestedAt.toISOString();
+              }
+            } else if (approval.valid && approval.approvalId) {
+              state = 'APPROVED';
+              approvalStatus = 'APPROVED';
+
+              // Get approval details
+              const approvalRequest = await this.prisma.approvalRequest.findFirst({
+                where: { id: approval.approvalId },
+                select: {
+                  requestedByUserId: true,
+                  requestedAt: true,
+                  decidedByUserId: true,
+                  decidedAt: true,
+                },
+              });
+              if (approvalRequest) {
+                requestedBy = approvalRequest.requestedByUserId;
+                requestedAt = approvalRequest.requestedAt.toISOString();
+                approvedBy = approvalRequest.decidedByUserId;
+                approvedAt = approvalRequest.decidedAt?.toISOString() || null;
+              }
+            } else if (approval.status === 'REJECTED') {
+              approvalStatus = 'REJECTED';
+            }
+          }
+
+          // [ASSETS-PAGES-1.1] Get scope preview list based on asset type
+          let scopePreviewList: string[] = [];
+          if (assetConfig.assetType === 'PRODUCTS') {
+            const affectedProducts = await this.prisma.product.findMany({
+              where: {
+                projectId,
+                OR:
+                  playbookId === 'missing_seo_title'
+                    ? [{ seoTitle: null }, { seoTitle: '' }]
+                    : [{ seoDescription: null }, { seoDescription: '' }],
+              },
+              select: { id: true, title: true },
+              take: 6,
+            });
+            scopePreviewList =
+              affectedProducts.length > 5
+                ? [
+                    ...affectedProducts.slice(0, 5).map((p) => p.title),
+                    `+${estimate.totalAffectedProducts - 5} more`,
+                  ]
+                : affectedProducts.map((p) => p.title);
+          } else {
+            // For PAGES/COLLECTIONS, derive from CrawlResult URLs
+            const urlPrefix = assetConfig.assetType === 'PAGES' ? '/pages/' : '/collections/';
+            const affectedAssets = await this.prisma.crawlResult.findMany({
+              where: {
+                projectId,
+                url: { contains: urlPrefix },
+                OR:
+                  playbookId === 'missing_seo_title'
+                    ? [{ title: null }, { title: '' }]
+                    : [{ metaDescription: null }, { metaDescription: '' }],
+              },
+              select: { url: true, title: true },
+              take: 6,
+            });
+            const names = affectedAssets.map((a) => {
+              // Extract handle from URL as display name
+              const match = a.url.match(new RegExp(`${urlPrefix}([^/?#]+)`));
+              return match ? match[1].replace(/-/g, ' ') : a.title || a.url;
+            });
+            scopePreviewList =
+              names.length > 5
+                ? [...names.slice(0, 5), `+${estimate.totalAffectedProducts - 5} more`]
+                : names;
+          }
+
+          // Use draftTimestamps if available, else project.createdAt
+          const createdAt = draftTimestamps
+            ? draftTimestamps.createdAt.toISOString()
+            : project.createdAt.toISOString();
+          const updatedAt = appliedDraft?.appliedAt?.toISOString() ||
+            (draftTimestamps ? draftTimestamps.updatedAt.toISOString() : project.createdAt.toISOString());
+
+          // [ASSETS-PAGES-1.1] Bundle ID includes assetType for uniqueness
+          const bundleId = `AUTOMATION_RUN:FIX_MISSING_METADATA:${playbookId}:${assetConfig.assetType}:${projectId}`;
+
+          const bundle: WorkQueueActionBundle = {
+            bundleId,
+            bundleType: 'AUTOMATION_RUN',
+            createdAt,
+            updatedAt,
+            scopeType: assetConfig.scopeType,
+            scopeCount: estimate.totalAffectedProducts,
+            scopePreviewList,
+            scopeQueryRef: latestDraft?.scopeId,
+            health: estimate.totalAffectedProducts > 10 ? 'CRITICAL' : 'NEEDS_ATTENTION',
+            impactRank: WORK_QUEUE_IMPACT_RANKS.FIX_MISSING_METADATA,
+            recommendedActionKey: 'FIX_MISSING_METADATA',
+            recommendedActionLabel: playbookId === 'missing_seo_title'
+              ? `Fix missing ${assetConfig.labelPrefix} SEO titles`
+              : `Fix missing ${assetConfig.labelPrefix} SEO descriptions`,
+            aiUsage: 'DRAFTS_ONLY',
+            aiDisclosureText: WORK_QUEUE_AI_DISCLOSURE_TEXT.DRAFTS_ONLY,
+            state,
+            approval: approvalRequired
+              ? {
+                  approvalRequired: true,
+                  approvalStatus,
+                  requestedBy,
+                  requestedAt,
+                  approvedBy,
+                  approvedAt,
+                }
+              : undefined,
+            draft: {
+              draftStatus,
+              draftCount,
+              draftCoverage,
+              lastDraftRunId: latestDraft?.draftId,
+            },
+          };
+
+          bundles.push(bundle);
+        } catch (error) {
+          // Log but don't fail the entire request
+          console.error(`[WorkQueue] Failed to derive automation bundle for ${playbookId}:${assetConfig.assetType}:`, error);
+        }
       }
     }
 
@@ -554,39 +824,6 @@ export class WorkQueueService {
     if (hasCritical) return 'CRITICAL';
     if (hasWarning) return 'NEEDS_ATTENTION';
     return 'HEALTHY';
-  }
-
-  /**
-   * Derive scope from issues.
-   */
-  private deriveScopeFromIssues(issues: DeoIssue[]): {
-    scopeType: WorkQueueScopeType;
-    scopeCount: number;
-    scopePreviewList: string[];
-  } {
-    // Collect all affected products
-    const productIds = new Set<string>();
-    const productTitles: string[] = [];
-
-    for (const issue of issues) {
-      if (issue.affectedProducts && issue.affectedProducts.length > 0) {
-        for (const productId of issue.affectedProducts) {
-          productIds.add(productId);
-        }
-      }
-    }
-
-    const scopeCount = productIds.size;
-    const scopeType: WorkQueueScopeType = scopeCount > 0 ? 'PRODUCTS' : 'STORE_WIDE';
-
-    // For now, use generic preview since we don't have product titles readily available
-    // In production, you'd resolve product titles from the IDs
-    const scopePreviewList =
-      scopeCount > 5
-        ? [...Array(5).fill('Product'), `+${scopeCount - 5} more`]
-        : Array(Math.min(scopeCount, 5)).fill('Product');
-
-    return { scopeType, scopeCount: scopeCount || 1, scopePreviewList };
   }
 
   /**

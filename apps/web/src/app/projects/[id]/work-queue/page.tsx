@@ -8,6 +8,7 @@ import type {
   WorkQueueTab,
   WorkQueueBundleType,
   WorkQueueRecommendedActionKey,
+  WorkQueueScopeType,
 } from '@/lib/work-queue';
 import { ActionBundleCard } from '@/components/work-queue/ActionBundleCard';
 import { WorkQueueTabs } from '@/components/work-queue/WorkQueueTabs';
@@ -20,6 +21,8 @@ import { WorkQueueTabs } from '@/components/work-queue/WorkQueueTabs';
  *
  * [STORE-HEALTH-1.0] Supports actionKey and bundleType filters from URL
  * for click-through routing from Store Health page.
+ *
+ * [ASSETS-PAGES-1] Supports scopeType filter from URL for filtering by asset type.
  */
 export default function WorkQueuePage() {
   const params = useParams();
@@ -35,6 +38,7 @@ export default function WorkQueuePage() {
   const currentTab = (searchParams.get('tab') as WorkQueueTab) || undefined;
   const bundleType = (searchParams.get('bundleType') as WorkQueueBundleType) || undefined;
   const actionKey = (searchParams.get('actionKey') as WorkQueueRecommendedActionKey) || undefined;
+  const scopeType = (searchParams.get('scopeType') as WorkQueueScopeType) || undefined;
   const highlightBundleId = searchParams.get('bundleId') || undefined;
 
   const fetchWorkQueue = useCallback(async () => {
@@ -45,6 +49,7 @@ export default function WorkQueuePage() {
         tab: currentTab,
         bundleType,
         actionKey,
+        scopeType,
       });
       setResponse(data);
     } catch (err: unknown) {
@@ -53,18 +58,19 @@ export default function WorkQueuePage() {
     } finally {
       setLoading(false);
     }
-  }, [projectId, currentTab, bundleType, actionKey]);
+  }, [projectId, currentTab, bundleType, actionKey, scopeType]);
 
   useEffect(() => {
     fetchWorkQueue();
   }, [fetchWorkQueue]);
 
   const handleTabChange = (tab: WorkQueueTab | undefined) => {
-    // Preserve actionKey, bundleType, and bundleId when changing tabs
+    // Preserve actionKey, bundleType, scopeType, and bundleId when changing tabs
     const newParams = new URLSearchParams();
     if (tab) newParams.set('tab', tab);
     if (bundleType) newParams.set('bundleType', bundleType);
     if (actionKey) newParams.set('actionKey', actionKey);
+    if (scopeType) newParams.set('scopeType', scopeType);
     if (highlightBundleId) newParams.set('bundleId', highlightBundleId);
     const query = newParams.toString();
     router.push(`/projects/${projectId}/work-queue${query ? `?${query}` : ''}`);
