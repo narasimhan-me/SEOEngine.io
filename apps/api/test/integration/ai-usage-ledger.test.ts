@@ -404,4 +404,57 @@ describe('AiUsageLedger Integration', () => {
       }
     });
   });
+
+  /**
+   * [ROLES-3-HARDEN-1 FIXUP-1] recordAiRun actorUserId attribution tests
+   *
+   * Validates that the actorUserId parameter correctly sets createdByUserId:
+   * - Case A: When actorUserId is provided, createdByUserId equals actorUserId
+   * - Case B: When actorUserId is omitted, createdByUserId falls back to project.userId
+   */
+  describe('recordAiRun actorUserId attribution', () => {
+    it('Case A: When actorUserId is provided, createdByUserId equals actorUserId', async () => {
+      const editorUserId = 'user-editor-123';
+
+      // Clear any previous runs
+      createdRuns.length = 0;
+
+      // Call recordAiRun with explicit actorUserId
+      await ledgerService.recordAiRun({
+        projectId: mockProject.id,
+        runType: 'INTENT_FIX_PREVIEW',
+        productIds: ['prod-1'],
+        productsProcessed: 1,
+        productsSkipped: 0,
+        draftsFresh: 1,
+        draftsReused: 0,
+        actorUserId: editorUserId,
+      });
+
+      // Verify the created run has createdByUserId set to actorUserId
+      expect(createdRuns.length).toBe(1);
+      expect(createdRuns[0].createdByUserId).toBe(editorUserId);
+    });
+
+    it('Case B: When actorUserId is omitted, createdByUserId falls back to project.userId', async () => {
+      // Clear any previous runs
+      createdRuns.length = 0;
+
+      // Call recordAiRun without actorUserId (should fall back to mockProject.userId)
+      await ledgerService.recordAiRun({
+        projectId: mockProject.id,
+        runType: 'INTENT_FIX_PREVIEW',
+        productIds: ['prod-2'],
+        productsProcessed: 1,
+        productsSkipped: 0,
+        draftsFresh: 1,
+        draftsReused: 0,
+        // actorUserId intentionally omitted
+      });
+
+      // Verify the created run has createdByUserId set to project.userId (fallback)
+      expect(createdRuns.length).toBe(1);
+      expect(createdRuns[0].createdByUserId).toBe(mockProject.userId);
+    });
+  });
 });
