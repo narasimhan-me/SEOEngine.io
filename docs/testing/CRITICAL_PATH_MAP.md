@@ -568,6 +568,8 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] ROLES-2: "Approve and apply" button appears when approval required
 - [ ] ROLES-2: Governance settings copy includes Automation Playbooks
 - [ ] ROLES-2 FIXUP-2: APPROVAL_REQUIRED error surfaces correct message/code without auth redirect
+- [ ] ROLES-2 FIXUP-3: VIEWER apply denial returns 403 with message containing "Viewer role cannot apply"
+- [ ] ROLES-2 FIXUP-3: EDITOR apply denial returns 403 with message containing "Editor role cannot apply"
 
 ---
 
@@ -720,3 +722,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 4.5 | 2025-12-24 | ROLES-3 FIXUP-3 PATCH 4.6: Approval status prefetch and stale-state reset. Approval status auto-fetched when Step 3 visible (no CTA click needed). Stale approval cleared when switching playbooks or when policy changes. Includes stale-response guard for rapid playbook changes. Updated CP-019 verification scenario "UI derives from server state". |
 | 4.6 | 2025-12-24 | ROLES-3 FIXUP-4: Membership + Role Enforcement Beyond projects/*. Eliminated legacy project.userId ownership gates in AI controller, ProductIssueFixService, SEO scan, Integrations, and Shopify services. Replaced with RoleResolutionService assertions (assertProjectAccess, assertOwnerRole, assertCanGenerateDrafts). Added integration tests for AI usage, integrations, and SEO scan endpoints. Updated CP-019 with FIXUP-4 scenarios. |
 | 4.7 | 2025-12-24 | ROLES-3 FIXUP-5: Co-Owner Support for Shopify Actions. Shopify validateProjectOwnership uses RoleResolutionService (supports co-owners). Account disconnectStore uses assertOwnerRole for project-level check. Co-owner can perform install, sync-products, ensure-metafield-definitions, disconnect store. Added integration tests for multi-owner Shopify actions. Updated CP-006 and CP-019 with FIXUP-5 scenarios. |
+| 4.8 | 2025-12-24 | ROLES-2 FIXUP-3: Role-specific apply denial messages. VIEWER apply denial returns "Viewer role cannot apply automation playbooks. Preview and export remain available." EDITOR apply denial returns "Editor role cannot apply automation playbooks. Request approval from an owner." Aligns backend messages with test expectations and manual testing docs. Updated CP-018 with FIXUP-3 scenarios. |

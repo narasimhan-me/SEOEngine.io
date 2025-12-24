@@ -484,6 +484,7 @@ export class ProjectsController {
     const userId = req.user.id as string;
 
     // [ROLES-3] Role check: Only OWNER can apply
+    // [ROLES-2 FIXUP-3] Role-specific denial messages for test alignment
     const effectiveRole = await this.roleResolutionService.resolveEffectiveRole(
       projectId,
       userId,
@@ -491,8 +492,23 @@ export class ProjectsController {
     const capabilities = this.roleResolutionService.getCapabilities(effectiveRole);
 
     if (!capabilities.canApply) {
+      // [ROLES-2 FIXUP-3] Role-specific apply denial messages
+      if (effectiveRole === null) {
+        throw new ForbiddenException('You do not have access to this project');
+      }
+      if (effectiveRole === 'VIEWER') {
+        throw new ForbiddenException(
+          'Viewer role cannot apply automation playbooks. Preview and export remain available.',
+        );
+      }
+      if (effectiveRole === 'EDITOR') {
+        throw new ForbiddenException(
+          'Editor role cannot apply automation playbooks. Request approval from an owner.',
+        );
+      }
+      // Safety fallback for any unexpected role
       throw new ForbiddenException(
-        'Only project owners can apply automation playbooks. Editors must request approval.',
+        'Only project owners can apply automation playbooks.',
       );
     }
 

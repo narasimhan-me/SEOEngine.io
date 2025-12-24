@@ -95,8 +95,8 @@ ROLES-2 introduces role-based access control foundations for EngineO.ai, with a 
 - [ ] Role label shows "You are the Viewer"
 - [ ] Preview generation works normally
 - [ ] Apply button is disabled
-- [ ] Message shows "Viewer role cannot apply. Preview and export remain available."
-- [ ] API call to apply returns 403 with clear message
+- [ ] Message shows "Viewer role cannot apply automation playbooks. Preview and export remain available."
+- [ ] API call to apply returns 403 with message containing "Viewer role cannot apply"
 
 ### 5. Viewer Cannot Approve (Simulated)
 
