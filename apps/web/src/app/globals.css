@@ -16,7 +16,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 174 95% 45%;
+    --primary: 174 95% 35%;
     /* Darker Signal for Light Mode Readability */
     --primary-foreground: 228 15% 5%;
 
@@ -28,7 +28,7 @@
     --muted-foreground: 215.4 16.3% 35%;
     /* Slate 600/700 for better contrast */
 
-    --accent: 174 95% 45%;
+    --accent: 174 95% 35%;
     --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
@@ -36,14 +36,14 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 174 95% 45%;
+    --ring: 174 95% 35%;
 
     --radius: 0.3rem;
 
     /* Custom Palette Mapping */
     --obsidian: 0 0% 100%;
     --cockpit: 210 40% 96.1%;
-    --signal: 174 95% 45%;
+    --signal: 174 95% 35%;
   }
 
   .dark {

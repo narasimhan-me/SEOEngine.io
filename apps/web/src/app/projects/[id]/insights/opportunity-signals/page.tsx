@@ -72,8 +72,8 @@ export default function OpportunitySignalsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Opportunity Signals</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-2xl font-bold text-foreground">Opportunity Signals</h1>
+        <p className="text-muted-foreground mt-1">
           Discover opportunities to improve your DEO score.
         </p>
       </div>
@@ -83,18 +83,18 @@ export default function OpportunitySignalsPage() {
       {/* Next Best Action */}
       {overview.next && (
         <section className="mt-6">
-          <div className="rounded-lg border-2 border-green-200 bg-green-50 p-6">
+          <div className="rounded-lg border-2 border-green-500/30 bg-green-500/10 p-6">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-green-900 uppercase tracking-wide">
+                <h3 className="text-sm font-semibold text-green-500 uppercase tracking-wide">
                   Recommended Next Action
                 </h3>
-                <p className="mt-2 text-lg font-bold text-green-800">{overview.next.title}</p>
-                <p className="mt-1 text-sm text-green-700">{overview.next.why}</p>
+                <p className="mt-2 text-lg font-bold text-foreground">{overview.next.title}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{overview.next.why}</p>
               </div>
               <Link
                 href={overview.next.href}
-                className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700"
+                className="inline-flex items-center px-4 py-2 bg-green-600 dark:bg-green-500 text-white dark:text-black text-sm font-medium rounded-md hover:bg-green-700 dark:hover:bg-green-400 transition-colors"
               >
                 Take Action
                 <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -108,24 +108,24 @@ export default function OpportunitySignalsPage() {
 
       {/* Summary Stats */}
       <section className="mt-6 grid gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-green-100 bg-green-50 p-4 text-center">
-          <p className="text-3xl font-bold text-green-700">{highImpact.length}</p>
-          <p className="text-sm text-green-600">High Impact</p>
+        <div className="rounded-lg border border-green-500/20 bg-green-500/10 p-4 text-center">
+          <p className="text-3xl font-bold text-green-600 dark:text-green-500">{highImpact.length}</p>
+          <p className="text-sm text-green-600/80 dark:text-green-500/80">High Impact</p>
         </div>
-        <div className="rounded-lg border border-yellow-100 bg-yellow-50 p-4 text-center">
-          <p className="text-3xl font-bold text-yellow-700">{mediumImpact.length}</p>
-          <p className="text-sm text-yellow-600">Medium Impact</p>
+        <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-4 text-center">
+          <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-500">{mediumImpact.length}</p>
+          <p className="text-sm text-yellow-600/80 dark:text-yellow-500/80">Medium Impact</p>
         </div>
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-center">
-          <p className="text-3xl font-bold text-gray-600">{lowImpact.length}</p>
-          <p className="text-sm text-gray-500">Low Impact</p>
+        <div className="rounded-lg border border-border/10 bg-card p-4 text-center">
+          <p className="text-3xl font-bold text-muted-foreground">{lowImpact.length}</p>
+          <p className="text-sm text-muted-foreground/80">Low Impact</p>
         </div>
       </section>
 
       {/* High Impact Opportunities */}
       {highImpact.length > 0 && (
         <section className="mt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-green-500"></span>
             High Impact
           </h3>
@@ -140,7 +140,7 @@ export default function OpportunitySignalsPage() {
       {/* Medium Impact Opportunities */}
       {mediumImpact.length > 0 && (
         <section className="mt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-yellow-500"></span>
             Medium Impact
           </h3>
@@ -155,8 +155,8 @@ export default function OpportunitySignalsPage() {
       {/* Low Impact Opportunities */}
       {lowImpact.length > 0 && (
         <section className="mt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-gray-400"></span>
+          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-muted-foreground/30"></span>
             Low Impact
           </h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -171,11 +171,11 @@ export default function OpportunitySignalsPage() {
       {opportunities.length === 0 && (
         <section className="mt-6">
           <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="mx-auto h-12 w-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="mt-4 text-lg font-medium text-gray-900">Looking good!</p>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-4 text-lg font-medium text-foreground">Looking good!</p>
+            <p className="mt-2 text-sm text-muted-foreground">
               No major opportunities identified. Keep up the great work!
             </p>
           </div>
@@ -193,20 +193,19 @@ function OpportunityCard({ opportunity }: OpportunityCardProps) {
   return (
     <Link
       href={opportunity.href}
-      className="block rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300 hover:shadow-sm transition-all"
+      className="block rounded-lg border border-border/10 bg-card p-4 hover:border-signal/50 hover:shadow-sm transition-all"
     >
       <div className="flex items-start justify-between">
-        <h4 className="text-sm font-medium text-gray-900">{opportunity.title}</h4>
-        <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-medium ${
-          opportunity.fixType === 'automation' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
-        }`}>
+        <h4 className="text-sm font-medium text-foreground">{opportunity.title}</h4>
+        <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-medium ${opportunity.fixType === 'automation' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400' : 'bg-muted text-muted-foreground'
+          }`}>
           {opportunity.fixType}
         </span>
       </div>
-      <p className="mt-1 text-xs text-gray-500">{opportunity.why}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{opportunity.why}</p>
       <div className="mt-3 flex items-center justify-between">
-        <span className="text-[10px] text-gray-400 uppercase">{opportunity.pillarId}</span>
-        <span className="text-xs text-blue-600 font-medium">View &rarr;</span>
+        <span className="text-[10px] text-muted-foreground/60 uppercase">{opportunity.pillarId}</span>
+        <span className="text-xs text-signal font-medium">View &rarr;</span>
       </div>
     </Link>
   );

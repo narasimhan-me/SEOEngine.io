@@ -67,8 +67,8 @@ export default function DeoProgressPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">DEO Progress</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-2xl font-bold text-foreground">DEO Progress</h1>
+        <p className="text-muted-foreground mt-1">
           Track your DEO score improvements and component trends.
         </p>
       </div>
@@ -77,23 +77,22 @@ export default function DeoProgressPage() {
 
       {/* Current Score Summary */}
       <section className="mt-6">
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
+        <div className="rounded-lg border border-border/10 bg-card p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Current DEO Score</h2>
-              <p className="text-sm text-gray-500">
+              <h2 className="text-lg font-semibold text-foreground">Current DEO Score</h2>
+              <p className="text-sm text-muted-foreground">
                 Compared to {insights.window.days} days ago
               </p>
             </div>
             <div className="text-right">
-              <span className="text-4xl font-bold text-gray-900">
+              <span className="text-4xl font-bold text-foreground">
                 {overview.improved.deoScore.current}
               </span>
-              <span className={`ml-2 text-lg font-medium ${
-                overview.improved.deoScore.trend === 'up' ? 'text-green-600' :
-                overview.improved.deoScore.trend === 'down' ? 'text-red-600' :
-                'text-gray-500'
-              }`}>
+              <span className={`ml-2 text-lg font-medium ${overview.improved.deoScore.trend === 'up' ? 'text-green-500' :
+                  overview.improved.deoScore.trend === 'down' ? 'text-destructive' :
+                    'text-muted-foreground'
+                }`}>
                 {overview.improved.deoScore.trend === 'up' && '+'}
                 {overview.improved.deoScore.delta}
               </span>
@@ -104,8 +103,8 @@ export default function DeoProgressPage() {
 
       {/* Score Trend Chart */}
       <section className="mt-6">
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
-          <h3 className="text-sm font-semibold text-gray-900 mb-4">Score Trend</h3>
+        <div className="rounded-lg border border-border/10 bg-card p-6">
+          <h3 className="text-sm font-semibold text-foreground mb-4">Score Trend</h3>
           <Sparkline
             data={progress.deoScoreTrend.map(d => ({ x: d.date, y: d.score }))}
             height={200}
@@ -117,26 +116,25 @@ export default function DeoProgressPage() {
 
       {/* Component Deltas */}
       <section className="mt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Component Changes</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-4">Component Changes</h3>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {overview.improved.componentDeltas.map(comp => (
             <div
               key={comp.componentId}
-              className="rounded-lg border border-gray-200 bg-white p-4"
+              className="rounded-lg border border-border/10 bg-card p-4"
             >
-              <h4 className="text-sm font-medium text-gray-700">{comp.label}</h4>
+              <h4 className="text-sm font-medium text-foreground">{comp.label}</h4>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-xl font-bold text-gray-900">{comp.current}</span>
-                <span className={`text-sm font-medium ${
-                  comp.trend === 'up' ? 'text-green-600' :
-                  comp.trend === 'down' ? 'text-red-600' :
-                  'text-gray-500'
-                }`}>
+                <span className="text-xl font-bold text-foreground">{comp.current}</span>
+                <span className={`text-sm font-medium ${comp.trend === 'up' ? 'text-green-500' :
+                    comp.trend === 'down' ? 'text-destructive' :
+                      'text-muted-foreground'
+                  }`}>
                   {comp.trend === 'up' && '+'}
                   {comp.delta}
                 </span>
               </div>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Previous: {comp.previous}
               </p>
             </div>
@@ -146,8 +144,8 @@ export default function DeoProgressPage() {
 
       {/* Fixes Applied */}
       <section className="mt-6">
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
-          <h3 className="text-sm font-semibold text-gray-900 mb-4">Fixes Applied Over Time</h3>
+        <div className="rounded-lg border border-border/10 bg-card p-6">
+          <h3 className="text-sm font-semibold text-foreground mb-4">Fixes Applied Over Time</h3>
           <Sparkline
             data={progress.fixesAppliedTrend.map(d => ({ x: d.date, y: d.count }))}
             height={150}

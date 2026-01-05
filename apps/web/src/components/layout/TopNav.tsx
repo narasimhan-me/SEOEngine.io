@@ -1,7 +1,6 @@
 'use client';
 
 import { GuardedLink } from '@/components/navigation/GuardedLink';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { isAuthenticated, removeToken } from '@/lib/auth';
 import { usersApi } from '@/lib/api';

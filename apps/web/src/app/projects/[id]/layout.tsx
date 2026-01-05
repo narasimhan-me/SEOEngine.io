@@ -14,10 +14,10 @@ export default function ProjectLayout({
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Mobile top bar - visible only on small screens */}
       <div className="mb-4 flex items-center justify-between md:hidden">
-        <span className="text-sm font-medium text-gray-700">Project navigation</span>
+        <span className="text-sm font-medium text-foreground">Project navigation</span>
         <button
           onClick={() => setMobileNavOpen(true)}
-          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+          className="inline-flex items-center rounded-md border border-border bg-card px-3 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-accent"
         >
           <svg
             className="mr-1.5 h-4 w-4"
