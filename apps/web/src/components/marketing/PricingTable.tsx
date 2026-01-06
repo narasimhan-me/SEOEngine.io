@@ -165,46 +165,46 @@ const comparisonFeatures: {
 
 export function PricingTable() {
   return (
-    <section className="border-b border-slate-100 bg-white">
+    <section className="border-b border-border bg-background">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
         {/* Plan cards */}
         <div className="grid gap-8 md:grid-cols-3">
           {plans.map((plan) => (
             <div
               key={plan.id}
-              className={`flex flex-col rounded-2xl border bg-slate-50 p-6 ${
+              className={`flex flex-col rounded-2xl border bg-muted p-6 ${
                 plan.popular
-                  ? 'border-blue-500 shadow-sm shadow-blue-100'
-                  : 'border-slate-200'
+                  ? 'border-primary shadow-sm shadow-primary/10'
+                  : 'border-border'
               }`}
             >
               {plan.popular && (
-                <div className="mb-3 inline-flex w-fit rounded-full bg-blue-50 px-3 py-1 text-[11px] font-semibold text-blue-700">
+                <div className="mb-3 inline-flex w-fit rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary">
                   Most Popular
                 </div>
               )}
-              <h2 className="text-lg font-semibold text-slate-900">{plan.name}</h2>
-              <p className="mt-1 text-sm text-slate-600">{plan.tagline}</p>
+              <h2 className="text-lg font-semibold text-foreground">{plan.name}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
 
               <div className="mt-4 flex items-baseline gap-1">
-                <span className="text-3xl font-semibold text-slate-900">
+                <span className="text-3xl font-semibold text-foreground">
                   {plan.price}
                 </span>
-                <span className="text-xs text-slate-500">{plan.period}</span>
+                <span className="text-xs text-muted-foreground">{plan.period}</span>
               </div>
 
               <Link
                 href={plan.ctaHref}
                 className={`mt-5 inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold ${
                   plan.popular
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-slate-900 text-slate-50 hover:bg-slate-800'
+                    ? 'bg-primary text-white hover:bg-primary/90'
+                    : 'bg-primary text-primary-foreground hover:bg-primary/90'
                 }`}
               >
                 {plan.ctaLabel}
               </Link>
 
-              <ul className="mt-6 flex-1 space-y-1.5 text-sm text-slate-600">
+              <ul className="mt-6 flex-1 space-y-1.5 text-sm text-muted-foreground">
                 {plan.features.map((feature) => (
                   <li key={feature}>• {feature}</li>
                 ))}
@@ -214,33 +214,33 @@ export function PricingTable() {
         </div>
 
         {/* Feature comparison table */}
-        <div className="mt-12 overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50">
-          <table className="min-w-full text-left text-xs text-slate-700">
+        <div className="mt-12 overflow-x-auto rounded-2xl border border-border bg-muted">
+          <table className="min-w-full text-left text-xs text-muted-foreground">
             <thead>
               <tr>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500">
+                <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">
                   Features
                 </th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500">
+                <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">
                   Free
                 </th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500">
+                <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">
                   Pro
                 </th>
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500">
+                <th className="px-4 py-3 text-xs font-semibold text-muted-foreground">
                   Business
                 </th>
               </tr>
             </thead>
             <tbody>
               {comparisonFeatures.map((row) => (
-                <tr key={row.label} className="border-t border-slate-200">
-                  <td className="px-4 py-2 text-xs font-medium text-slate-900">
+                <tr key={row.label} className="border-t border-border">
+                  <td className="px-4 py-2 text-xs font-medium text-foreground">
                     {row.label}
                   </td>
-                  <td className="px-4 py-2 text-xs text-slate-700">{row.free}</td>
-                  <td className="px-4 py-2 text-xs text-slate-700">{row.pro}</td>
-                  <td className="px-4 py-2 text-xs text-slate-700">
+                  <td className="px-4 py-2 text-xs text-muted-foreground">{row.free}</td>
+                  <td className="px-4 py-2 text-xs text-muted-foreground">{row.pro}</td>
+                  <td className="px-4 py-2 text-xs text-muted-foreground">
                     {row.business}
                   </td>
                 </tr>

@@ -1320,7 +1320,7 @@ Enforces locked contract for navigation information architecture (IA) and termin
 - [x] Entry page: "Automation Entry" → "New Playbook"
 
 #### PATCH 9 — Playwright Coverage ✅
-- [x] Created `tests/e2e/nav-ia-consistency-1.spec.ts`
+- [x] Created `apps/web/tests/nav-ia-consistency-1.spec.ts`
 - [x] Marketing navbar assertions
 - [x] Portal top nav assertions
 - [x] Theme toggle presence

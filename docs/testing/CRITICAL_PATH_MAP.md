@@ -374,13 +374,13 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] AUTO-PB-1.1: Daily AI limit reached stops playbook with LIMIT_REACHED status
 - [ ] AUTO-PB-1.2: Playbooks wizard enforces eligibility gating, single primary actions, navigation safety, and post-apply results persistence (including Back to Playbook results from Products)
 - [ ] AUTO-PB-1.3 (Planned): Preview Persistence & Cross-Surface Drafts – persistent AI drafts survive navigation, reused across Playbooks and Product detail surfaces
-- [ ] AUTOMATION-ENTRY-1: Entry points limited to Products bulk, Product Details, and Playbooks "Create automation"
+- [ ] AUTOMATION-ENTRY-1: Entry points limited to Products bulk, Product Details, and Playbooks "Create playbook"
 - [ ] AUTOMATION-ENTRY-1: Scope visible before any AI configuration
 - [ ] AUTOMATION-ENTRY-1: Scrollable product list shown for scope verification
 - [ ] AUTOMATION-ENTRY-1: Sample preview required before enablement ("Sample draft — not applied")
 - [ ] AUTOMATION-ENTRY-1: Enable persists only (no immediate execution; no auto-apply)
 - [ ] AUTOMATION-ENTRY-1: Single-product entry scopes to exactly one product end-to-end
-- [ ] AUTOMATION-ENTRY-1: Disable automation always available and immediate
+- [ ] AUTOMATION-ENTRY-1: Disable playbook always available and immediate
 - [ ] AUTOMATION-ENTRY-1: Apply does not use AI when a valid draft exists (AUTO-PB-1.3 invariant)
 - [ ] ROLES-3: Multi-user projects do NOT auto-apply; owner approval required before apply
 
@@ -551,7 +551,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 ### CP-018: Project Roles & Approval Foundations (ROLES-2)
 
-**Description:** Role-based access control foundations with single-user emulation support. Extends approval workflow to Automation Playbooks apply with role-aware UI affordances.
+**Description:** Role-based access control foundations with single-user emulation support. Extends approval workflow to Playbooks apply with role-aware UI affordances.
 
 | Field | Value |
 |-------|-------|
@@ -571,7 +571,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] ROLES-2: No mutations on preview/export-only navigation
 - [ ] ROLES-2: Role visibility label shows on playbooks page
 - [ ] ROLES-2: "Approve and apply" button appears when approval required
-- [ ] ROLES-2: Governance settings copy includes Automation Playbooks
+- [ ] ROLES-2: Governance settings copy includes Playbooks
 - [ ] ROLES-2 FIXUP-2: APPROVAL_REQUIRED error surfaces correct message/code without auth redirect
 - [ ] ROLES-2 FIXUP-3: VIEWER apply denial returns 403 with message containing "Viewer role cannot apply"
 - [ ] ROLES-2 FIXUP-3: EDITOR apply denial returns 403 with message containing "Editor role cannot apply"
@@ -721,7 +721,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 3.6 | 2025-12-21 | PRODUCTS-LIST-2.0: Updated CP-003 with decision-first Products list scenarios (Health pill, recommended action, progressive disclosure, Rescan gating, Command Bar). Replaced DEO-UX-REFRESH-1 product-list bullets. Added manual testing doc. |
 | 3.7 | 2025-12-21 | PRODUCTS-LIST-2.0: Added Sort by impact scenario to CP-003 (authoritative ladder, deterministic, stable). |
 | 3.8 | 2025-12-21 | PRODUCTS-LIST-2.0: Added Bulk action confirmation scenario to CP-003 (3-step flow, AI disclosure, Apply uses no AI, partial failure handling). |
-| 3.9 | 2025-12-23 | ROLES-2: Added CP-018 for Project Roles & Approval Foundations. Single-user role emulation, approval gating on Automation Playbooks apply, role-aware UI. Added integration tests and Playwright coverage. |
+| 3.9 | 2025-12-23 | ROLES-2: Added CP-018 for Project Roles & Approval Foundations. Single-user role emulation, approval gating on Playbooks apply, role-aware UI. Added integration tests and Playwright coverage. |
 | 4.0 | 2025-12-23 | ROLES-2 FIXUP-1: Fixed approval gating correctness (hasValidApproval returns object), changed to BadRequestException for APPROVAL_REQUIRED, consume approval after successful apply. Updated integration tests (400 status), Playwright tests (real seed endpoints), frontend (resolve role from profile, approve-and-apply flow). |
 | 4.1 | 2025-12-23 | ROLES-3: Added CP-019 for True Multi-User Projects. ProjectMember model, OWNER-only apply enforcement, membership management API, multi-user auto-apply blocking. Updated CP-012 with multi-user auto-apply blocking scenario. |
 | 4.2 | 2025-12-23 | ROLES-2 FIXUP-2: Frontend structured error parsing for NestJS nested error payloads (e.g., BadRequestException with object message). Prevents "Bad Request" generic message, preserves error codes like APPROVAL_REQUIRED. Added key scenario to CP-018. |

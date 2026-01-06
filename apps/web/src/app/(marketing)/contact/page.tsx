@@ -36,7 +36,7 @@ export default function ContactPage() {
                 <br />
                 <a
                   href="mailto:support@engineo.ai"
-                  className="text-blue-700 hover:text-blue-800"
+                  className="text-primary hover:text-primary/80"
                 >
                   support@engineo.ai
                 </a>

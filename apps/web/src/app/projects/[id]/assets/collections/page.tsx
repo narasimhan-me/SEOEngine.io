@@ -11,7 +11,7 @@ import type { WorkQueueRecommendedActionKey } from '@/lib/work-queue';
  *
  * Displays Shopify collections (/collections/*) with health status and recommended actions.
  * Decision-first UX: one health pill, one action label per row.
- * Bulk actions route to Automation Playbooks.
+ * Bulk actions route to Playbooks.
  */
 
 interface CollectionAsset {

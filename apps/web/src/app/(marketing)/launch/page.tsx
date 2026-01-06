@@ -17,11 +17,11 @@ export default function MarketingLaunchPage() {
   return (
     <div className="bg-background">
       {/* Hero */}
-      <section className="border-b border-border bg-gradient-to-b from-blue-50/40 to-background">
+      <section className="border-b border-border bg-gradient-to-b from-primary/10 to-background">
         <div className="mx-auto flex max-w-6xl flex-col gap-12 px-4 py-16 sm:px-6 lg:flex-row lg:items-center lg:py-24 lg:px-8">
           <div className="flex-1 space-y-6">
-            <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-              <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               Discovery Engine Optimization (DEO) for modern brands
             </div>
 
@@ -38,7 +38,7 @@ export default function MarketingLaunchPage() {
             <div className="flex flex-wrap items-center gap-3">
               <Link
                 href="/signup"
-                className="rounded-full bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                className="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 Start free — no credit card
               </Link>
@@ -52,7 +52,7 @@ export default function MarketingLaunchPage() {
 
             <dl className="mt-6 grid gap-4 text-xs text-muted-foreground sm:grid-cols-2 sm:text-sm">
               <div className="flex items-center gap-2">
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 text-xs text-blue-600">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs text-primary">
                   🔍
                 </span>
                 <div>
@@ -61,7 +61,7 @@ export default function MarketingLaunchPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 text-xs text-blue-600">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs text-primary">
                   🤖
                 </span>
                 <div>
@@ -72,7 +72,7 @@ export default function MarketingLaunchPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 text-xs text-blue-600">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs text-primary">
                   🛒
                 </span>
                 <div>
@@ -81,7 +81,7 @@ export default function MarketingLaunchPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 text-xs text-blue-600">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs text-primary">
                   🚀
                 </span>
                 <div>
@@ -102,10 +102,10 @@ export default function MarketingLaunchPage() {
                 </span>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl bg-blue-50 p-3">
-                  <p className="text-[11px] font-medium text-blue-700">Store Health</p>
+                <div className="rounded-xl bg-primary/10 p-3">
+                  <p className="text-[11px] font-medium text-primary">Store Health</p>
                   <p className="mt-1 text-xl font-semibold text-foreground">82</p>
-                  <p className="mt-1 text-[11px] text-blue-800">+17 in last 30 days</p>
+                  <p className="mt-1 text-[11px] text-primary/80">+17 in last 30 days</p>
                 </div>
                 <div className="rounded-xl bg-muted p-3">
                   <p className="text-[11px] font-medium text-muted-foreground">Products optimized</p>
@@ -125,7 +125,7 @@ export default function MarketingLaunchPage() {
                     <p className="text-xs font-semibold text-foreground">Run full store audit</p>
                     <p className="text-[11px] text-muted-foreground">Scan products, pages &amp; blog posts.</p>
                   </div>
-                  <span className="rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold text-white">
+                  <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
                     Scan now
                   </span>
                 </div>
@@ -187,8 +187,8 @@ export default function MarketingLaunchPage() {
                 key={item.title}
                 className="relative rounded-2xl border border-border bg-background p-4 shadow-sm"
               >
-                <div className="mb-3 inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-[11px] font-medium text-blue-700">
-                  <span className="mr-1 h-1.5 w-1.5 rounded-full bg-blue-500" />
+                <div className="mb-3 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary">
+                  <span className="mr-1 h-1.5 w-1.5 rounded-full bg-primary" />
                   {item.step}
                 </div>
                 <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>

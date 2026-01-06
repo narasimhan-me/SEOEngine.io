@@ -1,19 +1,19 @@
 export function DeoWhySection() {
   return (
-    <section id="what-is-deo" className="border-b border-slate-100 bg-white">
+    <section id="what-is-deo" className="border-b border-border bg-background">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="max-w-3xl space-y-6">
-          <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
             Why traditional SEO is no longer enough
           </h2>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             Search has evolved beyond keywords and SERP rankings.
           </p>
           <div>
-            <p className="text-sm font-semibold text-slate-900">
+            <p className="text-sm font-semibold text-foreground">
               Websites today must be discoverable by:
             </p>
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
               <li>Google</li>
               <li>ChatGPT</li>
               <li>Gemini</li>
@@ -25,10 +25,10 @@ export function DeoWhySection() {
             </ul>
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-900">
+            <p className="text-sm font-semibold text-foreground">
               Search engines are now discovery engines &mdash; and they evaluate:
             </p>
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
               <li>Metadata completeness</li>
               <li>Entity relevance &amp; structure</li>
               <li>Page depth</li>
@@ -37,7 +37,7 @@ export function DeoWhySection() {
               <li>Answer-surface readiness</li>
             </ul>
           </div>
-          <div className="space-y-1 text-sm font-semibold text-slate-900">
+          <div className="space-y-1 text-sm font-semibold text-foreground">
             <p>SEO &ne; enough.</p>
             <p>DEO = visibility everywhere.</p>
           </div>

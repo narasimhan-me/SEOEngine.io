@@ -136,7 +136,7 @@ export function GovernanceSettingsSection({
               Require Approval for Apply Actions
             </label>
             <p className="text-sm text-gray-500 mt-0.5">
-              When enabled, GEO fixes, Answer Block syncs, and Automation Playbooks apply require approval before execution.
+              When enabled, GEO fixes, Answer Block syncs, and Playbooks apply require approval before execution.
             </p>
           </div>
           <button

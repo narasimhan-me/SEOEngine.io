@@ -1,6 +1,6 @@
-# AUTOMATION-ENTRY-1: Automation Playbook Entry UX — Manual Testing Guide
+# AUTOMATION-ENTRY-1: Playbook Entry UX — Manual Testing Guide
 
-**Feature:** Automation Playbook Entry UX (trust contract)
+**Feature:** Playbook Entry UX (trust contract)
 **Critical Path:** CP-012 (Automation Engine). Secondary surfaces: CP-003 (Products, Product Details).
 **Date:** [YYYY-MM-DD]
 
@@ -18,7 +18,7 @@
   - Users understand what the automation will do (plain-English summary).
   - Users can verify scope (scrollable product list) before generating previews.
   - Users cannot enable without seeing a sample preview.
-  - "Enable automation" persists configuration but does not execute anything immediately.
+  - "Enable playbook" persists configuration but does not execute anything immediately.
   - Users can disable instantly without lock-in.
 
 - **Related phases/sections in `IMPLEMENTATION_PLAN.md`:**
@@ -84,8 +84,8 @@
 ### HP-003 — Playbooks Page (Intent-First) → Entry Screen
 
 **Steps:**
-1. Open Automation Playbooks page.
-2. Click "Create automation".
+1. Open Playbooks page.
+2. Click "Create playbook".
 3. Confirm you land on the Automation Entry screen.
 
 **Expected Results:**
@@ -96,10 +96,10 @@
 ### HP-004 — Preview Requirement Is Enforced
 
 **Steps:**
-1. On the Entry screen, confirm "Enable automation" is disabled before preview.
+1. On the Entry screen, confirm "Enable playbook" is disabled before preview.
 2. Generate a sample preview.
 3. Verify preview samples are labeled exactly: "Sample draft — not applied".
-4. Verify "Enable automation" becomes enabled only after preview exists.
+4. Verify "Enable playbook" becomes enabled only after preview exists.
 
 **Expected Results:**
 - Preview-first is enforced; no enablement without preview.
@@ -109,7 +109,7 @@
 ### HP-005 — Enablement Is Not Execution
 
 **Steps:**
-1. On the Entry screen (after preview), click "Enable automation".
+1. On the Entry screen (after preview), click "Enable playbook".
 2. Confirm the post-enable confirmation appears.
 3. Confirm no full drafts are generated automatically.
 4. Confirm nothing is applied automatically.
@@ -124,7 +124,7 @@
 ### HP-006 — Disable Is Always Available
 
 **Steps:**
-1. After enabling, click "Disable automation".
+1. After enabling, click "Disable playbook".
 2. Confirm UI reflects disabled state immediately.
 3. Re-open Entry and confirm it remains disabled.
 
