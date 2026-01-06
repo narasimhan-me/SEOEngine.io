@@ -14,7 +14,7 @@ export function CTASection() {
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Link
               href="/signup"
-              className="rounded-full bg-background px-6 py-2.5 text-sm font-semibold text-foreground shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-background focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
+              className="rounded-md bg-background px-6 py-2.5 text-sm font-semibold text-foreground shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-background focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
             >
               Start Free
             </Link>

@@ -19,7 +19,7 @@ export function DeoHero() {
           <div className="mt-6">
             <a
               href="#what-is-deo"
-              className="inline-flex items-center rounded-full bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
+              className="inline-flex items-center rounded-md bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
             >
               What is DEO? &darr;
             </a>

@@ -38,7 +38,7 @@ export default function MarketingLaunchPage() {
             <div className="flex flex-wrap items-center gap-3">
               <Link
                 href="/signup"
-                className="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                className="rounded-md bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 Start free — no credit card
               </Link>
@@ -97,7 +97,7 @@ export default function MarketingLaunchPage() {
             <div className="mx-auto max-w-md rounded-2xl border border-border bg-background p-4 shadow-sm sm:p-6 lg:max-w-lg">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-foreground">DEO overview</h3>
-                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                   Live preview
                 </span>
               </div>
