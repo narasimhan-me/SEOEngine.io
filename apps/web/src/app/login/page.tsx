@@ -90,7 +90,7 @@ function LoginForm() {
         setShowCaptcha(true);
         setCaptchaToken(null);
       }
-      const message = err instanceof Error ? err.message : 'Login failed. Please check your credentials.';
+      const message = err instanceof Error ? err.message : 'Sign-in failed. Please check your credentials.';
       setError(message);
     } finally {
       setLoading(false);
@@ -201,7 +201,7 @@ function LoginForm() {
           <p className="text-sm text-gray-600">
             Don&apos;t have an account?{' '}
             <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign up
+              Create account
             </Link>
           </p>
         </div>

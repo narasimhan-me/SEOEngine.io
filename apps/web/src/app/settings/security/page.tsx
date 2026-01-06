@@ -241,7 +241,7 @@ export default function SecuritySettingsPage() {
               </span>
             </div>
             <p className="text-gray-600 mb-4">
-              Your account is protected with two-factor authentication. You will need to enter a code from your authenticator app when logging in.
+              Your account is protected with two-factor authentication. You will need to enter a code from your authenticator app when signing in.
             </p>
             <button
               onClick={handleDisable}

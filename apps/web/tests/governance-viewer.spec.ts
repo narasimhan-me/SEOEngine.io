@@ -25,7 +25,7 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     // Navigate to Governance page
@@ -47,7 +47,7 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     await page.goto(`/projects/${projectId}/settings/governance?tab=approvals`);
@@ -66,7 +66,7 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     await page.goto(`/projects/${projectId}/settings/governance?tab=approvals`);
@@ -86,7 +86,7 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     await page.goto(`/projects/${projectId}/settings/governance?tab=audit`);
@@ -107,7 +107,7 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     await page.goto(`/projects/${projectId}/settings/governance?tab=audit`);
@@ -126,7 +126,7 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     await page.goto(`/projects/${projectId}/settings/governance?tab=sharing`);
@@ -145,7 +145,7 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     await page.goto(`/projects/${projectId}/settings/governance?tab=sharing`);
@@ -167,7 +167,7 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     // Navigate to audit tab via URL
@@ -195,7 +195,7 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     await page.goto(`/projects/${projectId}/settings/governance`);

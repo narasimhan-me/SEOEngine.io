@@ -8,6 +8,7 @@ import { isAuthenticated } from '@/lib/auth';
 import { projectsApi } from '@/lib/api';
 import { getDeoPillarById } from '@/lib/deo-pillars';
 import type { DeoIssue, PerformanceSignalType } from '@/lib/deo-issues';
+import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
 
 // PERFORMANCE-1 signal types for filtering
 const PERFORMANCE_SIGNAL_TYPES: PerformanceSignalType[] = [
@@ -279,7 +280,7 @@ export default function TechnicalPerformancePage() {
           </li>
           <li>/</li>
           <li>
-            <Link href={`/projects/${projectId}/overview`} className="hover:text-gray-700">
+            <Link href={`/projects/${projectId}/store-health`} className="hover:text-gray-700">
               {projectName || 'Project'}
             </Link>
           </li>
@@ -296,6 +297,8 @@ export default function TechnicalPerformancePage() {
             'Monitor crawl health, indexability status, page weight, and discovery-critical performance signals.'}
         </p>
       </div>
+
+      <InsightsPillarsSubnav />
 
       {/* Why It Matters */}
       {pillar?.whyItMatters && (

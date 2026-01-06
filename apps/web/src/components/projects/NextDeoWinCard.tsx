@@ -95,7 +95,7 @@ export function NextDeoWinCard({ projectId, planId }: NextDeoWinCardProps) {
             Next DEO win: Fix missing SEO metadata
           </h3>
           <p className="mt-1 text-xs text-purple-800">
-            Use Automation Playbooks to fix missing SEO titles and descriptions in bulk,
+            Use Playbooks to fix missing SEO titles and descriptions in bulk,
             with preview and token-aware estimates before you apply changes.
           </p>
 
@@ -200,7 +200,7 @@ export function NextDeoWinCard({ projectId, planId }: NextDeoWinCardProps) {
               onClick={handleOpenPlaybooks}
               className="inline-flex items-center rounded-md bg-purple-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
             >
-              Open Automation Playbooks
+              Open Playbooks
             </button>
           </div>
         </div>

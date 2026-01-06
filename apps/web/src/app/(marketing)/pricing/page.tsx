@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function PricingPage() {
   return (
-    <div className="bg-white">
+    <div className="bg-background">
       <PricingHero />
       <PricingTable />
       <PricingFAQ />

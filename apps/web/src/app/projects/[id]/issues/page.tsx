@@ -364,13 +364,13 @@ export default function IssuesPage() {
 
   return (
     <div className="overflow-x-hidden">
-      {/* Back to Overview */}
+      {/* Back to Store Health */}
       <div className="mb-4 text-sm">
         <Link
-          href={`/projects/${projectId}/overview`}
+          href={`/projects/${projectId}/store-health`}
           className="text-blue-600 hover:text-blue-800"
         >
-          ← Back to Overview
+          ← Back to Store Health
         </Link>
       </div>
 

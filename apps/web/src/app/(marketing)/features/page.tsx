@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 export default function ProductTourPage() {
   return (
-    <div className="bg-white">
+    <div className="bg-background">
       <ProductTourHero />
       <ProductTourDEOSection />
       <ProductTourCrawlSection />

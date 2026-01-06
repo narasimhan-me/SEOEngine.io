@@ -15,6 +15,7 @@ import {
 } from '@/lib/api';
 import type { Product } from '@/lib/products';
 import { getDeoPillarById } from '@/lib/deo-pillars';
+import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
 
 // Gap type labels for display
 const GAP_TYPE_LABELS: Record<CompetitorGapType, string> = {
@@ -135,7 +136,7 @@ export default function CompetitorsWorkspacePage() {
           </li>
           <li>/</li>
           <li>
-            <Link href={`/projects/${projectId}/overview`} className="hover:text-gray-700">
+            <Link href={`/projects/${projectId}/store-health`} className="hover:text-gray-700">
               {projectName || 'Project'}
             </Link>
           </li>
@@ -152,6 +153,8 @@ export default function CompetitorsWorkspacePage() {
             'Analyze how your products compare to competitors across key coverage areas.'}
         </p>
       </div>
+
+      <InsightsPillarsSubnav />
 
       {/* Why It Matters */}
       {pillar?.whyItMatters && (

@@ -204,10 +204,10 @@ export default function ProductsPage() {
           </button>
         )}
         <Link
-          href={`/projects/${projectId}/overview`}
+          href={`/projects/${projectId}/store-health`}
           className="block text-blue-600 hover:text-blue-800"
         >
-          ← Back to Overview
+          ← Back to Store Health
         </Link>
       </div>
 
@@ -240,7 +240,7 @@ export default function ProductsPage() {
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
-                  onClick={() => router.push(`/projects/${projectId}/overview?focus=crawl`)}
+                  onClick={() => router.push(`/projects/${projectId}/store-health?focus=crawl`)}
                   className="inline-flex items-center rounded-md border border-transparent bg-yellow-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-yellow-700"
                 >
                   Run first crawl

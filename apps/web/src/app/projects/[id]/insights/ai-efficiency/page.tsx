@@ -7,6 +7,7 @@ import { isAuthenticated } from '@/lib/auth';
 import { projectsApi } from '@/lib/api';
 import type { ProjectInsightsResponse } from '@/lib/insights';
 import { InsightsSubnav } from '@/components/projects/InsightsSubnav';
+import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
 
 /**
  * [INSIGHTS-1] AI Efficiency Page
@@ -75,6 +76,7 @@ export default function AiEfficiencyPage() {
       </div>
 
       <InsightsSubnav projectId={projectId} activeTab="ai-efficiency" />
+      <InsightsPillarsSubnav />
 
       {/* Trust Banner */}
       <section className="mt-6">

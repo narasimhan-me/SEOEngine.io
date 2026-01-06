@@ -6,6 +6,7 @@ import { isAuthenticated } from '@/lib/auth';
 import { projectsApi } from '@/lib/api';
 import type { ProjectInsightsResponse } from '@/lib/insights';
 import { InsightsSubnav } from '@/components/projects/InsightsSubnav';
+import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
 import { Sparkline } from '@/components/projects/Sparkline';
 
 /**
@@ -74,6 +75,7 @@ export default function DeoProgressPage() {
       </div>
 
       <InsightsSubnav projectId={projectId} activeTab="deo-progress" />
+      <InsightsPillarsSubnav />
 
       {/* Current Score Summary */}
       <section className="mt-6">

@@ -589,7 +589,7 @@ export default function AutomationPlaybooksPage() {
           }
           if (err.code === 'AI_QUOTA_EXCEEDED') {
             const quotaMessage =
-              'AI usage limit reached for Automation Playbooks. Upgrade your plan or wait until your monthly AI quota resets to generate new previews.';
+              'AI usage limit reached for Playbooks. Upgrade your plan or wait until your monthly AI quota resets to generate new previews.';
             setError(quotaMessage);
             feedback.showLimit(quotaMessage, '/settings/billing');
             return false;
@@ -1307,7 +1307,7 @@ export default function AutomationPlaybooksPage() {
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="text-gray-600">Loading automation playbooks...</div>
+        <div className="text-gray-600">Loading playbooks...</div>
       </div>
     );
   }
@@ -1332,10 +1332,10 @@ export default function AutomationPlaybooksPage() {
           <li>/</li>
           <li>
             <Link
-              href={`/projects/${projectId}/overview`}
+              href={`/projects/${projectId}/store-health`}
               onClick={(event) => {
                 event.preventDefault();
-                handleNavigate(`/projects/${projectId}/overview`);
+                handleNavigate(`/projects/${projectId}/store-health`);
               }}
               className="hover:text-gray-700"
             >
@@ -1352,11 +1352,9 @@ export default function AutomationPlaybooksPage() {
               }}
               className="hover:text-gray-700"
             >
-              Automation
+              Playbooks
             </Link>
           </li>
-          <li>/</li>
-          <li className="text-gray-900">Playbooks</li>
         </ol>
       </nav>
 
@@ -1364,7 +1362,7 @@ export default function AutomationPlaybooksPage() {
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Automation Playbooks
+            Playbooks
             {/* [ASSETS-PAGES-1.1] Show asset type badge when not PRODUCTS */}
             {currentAssetType !== 'PRODUCTS' && (
               <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
@@ -1386,7 +1384,7 @@ export default function AutomationPlaybooksPage() {
           onClick={() => router.push(`/projects/${projectId}/automation/playbooks/entry?source=playbooks_page`)}
           className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
         >
-          Create automation
+          Create playbook
         </button>
       </div>
 
@@ -1532,7 +1530,7 @@ export default function AutomationPlaybooksPage() {
                   Nice work on your first DEO win
                 </h3>
                 <p className="mt-1 text-xs text-purple-800">
-                  Next up, use Automation Playbooks to fix missing SEO titles and
+                  Next up, use Playbooks to fix missing SEO titles and
                   descriptions in bulk. Start with a preview — no changes are
                   applied until you confirm.
                 </p>
@@ -1585,7 +1583,7 @@ export default function AutomationPlaybooksPage() {
                   Next step: Fix missing SEO metadata
                 </h3>
                 <p className="mt-1 text-xs text-blue-800">
-                  Use Automation Playbooks to safely generate missing SEO descriptions in bulk.
+                  Use Playbooks to safely generate missing SEO descriptions in bulk.
                   Start with a preview — nothing is applied until you confirm.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -1611,7 +1609,7 @@ export default function AutomationPlaybooksPage() {
                     }}
                     className="inline-flex items-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
                   >
-                    How Automation Playbooks work
+                    How Playbooks work
                   </button>
                 </div>
               </div>
@@ -1841,7 +1839,7 @@ export default function AutomationPlaybooksPage() {
                     type="button"
                     onClick={() => {
                       setCnabDismissed(true);
-                      handleNavigate(`/projects/${projectId}/overview`);
+                      handleNavigate(`/projects/${projectId}/store-health`);
                     }}
                     className="inline-flex items-center rounded-md border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-green-700 shadow-sm hover:bg-green-50"
                   >
@@ -2344,7 +2342,7 @@ export default function AutomationPlaybooksPage() {
                 </div>
                 {planIsFree && (
                   <p className="mb-3 text-xs text-amber-700">
-                    Bulk Automation Playbooks are gated on the Free plan. Upgrade to
+                    Bulk Playbooks are gated on the Free plan. Upgrade to
                     Pro to unlock bulk metadata fixes.
                   </p>
                 )}
@@ -2454,7 +2452,7 @@ export default function AutomationPlaybooksPage() {
                       )}
                       {continueBlockers.includes('plan_not_eligible') && (
                         <li>
-                          Your current plan doesn&apos;t support Automation Playbooks
+                          Your current plan doesn&apos;t support Playbooks
                           for bulk fixes.
                         </li>
                       )}
@@ -3078,11 +3076,11 @@ export default function AutomationPlaybooksPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        handleNavigate(`/projects/${projectId}/overview`)
+                        handleNavigate(`/projects/${projectId}/automation/playbooks`)
                       }
                       className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
                     >
-                      Return to Automation overview
+                      Return to Playbooks
                     </button>
                   </>
                 )}

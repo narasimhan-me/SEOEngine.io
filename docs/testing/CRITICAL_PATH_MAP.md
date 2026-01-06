@@ -23,8 +23,8 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/user-profile-and-account-settings.md`, `docs/manual-testing/SELF-SERVICE-1.md`, `docs/manual-testing/SECURITY-LOGIN-QUERY-PARAMS.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md` |
-| **Automated Tests** | `apps/api/test/integration/self-service-1.test.ts`, `apps/web/tests/auth-security.spec.ts` |
+| **Manual Testing Doc(s)** | `docs/testing/user-profile-and-account-settings.md`, `docs/manual-testing/SELF-SERVICE-1.md`, `docs/manual-testing/SECURITY-LOGIN-QUERY-PARAMS.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md` |
+| **Automated Tests** | `apps/api/test/integration/self-service-1.test.ts`, `apps/web/tests/auth-security.spec.ts`, `apps/web/tests/nav-ia-consistency-1.spec.ts` |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | Core Team |
@@ -47,6 +47,8 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] SECURITY: `next` param preserved for post-login redirect
 - [ ] DEO-UX-REFRESH-1: Login page branding (EngineO.ai logo, premium card styling)
 - [ ] DEO-UX-REFRESH-1: Login branding does not regress security sanitization
+- [ ] NAV-IA-CONSISTENCY-1: "Sign in" terminology (not "Log in")
+- [ ] NAV-IA-CONSISTENCY-1: "Create account" terminology (not "Sign up" on buttons)
 
 ---
 
@@ -212,12 +214,12 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 ### CP-008: Frontend Global UX Feedback
 
-**Description:** Global UI feedback systems including toast notifications, loading states, error displays, and inline validation.
+**Description:** Global UI feedback systems including toast notifications, loading states, error displays, inline validation, design tokens, and theme support.
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md` |
-| **Automated Tests** | Planned |
+| **Manual Testing Doc(s)** | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md` |
+| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts` |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | Frontend Team |
@@ -228,6 +230,9 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] Loading spinners during async operations
 - [ ] Inline validation feedback
 - [ ] Modal/dialog accessibility
+- [ ] NAV-IA-CONSISTENCY-1: Design tokens (bg-background, text-foreground, etc.)
+- [ ] NAV-IA-CONSISTENCY-1: Dark mode toggle with localStorage persistence
+- [ ] NAV-IA-CONSISTENCY-1: Token-based styling on marketing pages
 
 ---
 
@@ -641,7 +646,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | CP-005: DEO Score Compute | ✅ | Planned | 🟡 Manual Only |
 | CP-006: Shopify Sync | ✅ | Planned | 🟡 Manual Only |
 | CP-007: AI Failover Logic | ✅ | Planned | 🟡 Manual Only |
-| CP-008: Frontend Global UX Feedback | ✅ | Planned | 🟡 Manual Only |
+| CP-008: Frontend Global UX Feedback | ✅ | ✅ | 🟢 Full Coverage |
 | CP-009: Issue Engine Lite | ✅ | Planned | 🟡 Manual Only |
 | CP-010: Issue Engine Full | ✅ | Planned | 🟡 Manual Only |
 | CP-011: Answer Engine | ✅ | Planned | 🟡 Manual Only |
@@ -728,3 +733,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 4.8 | 2025-12-24 | ROLES-2 FIXUP-3: Role-specific apply denial messages. VIEWER apply denial returns "Viewer role cannot apply automation playbooks. Preview and export remain available." EDITOR apply denial returns "Editor role cannot apply automation playbooks. Request approval from an owner." Aligns backend messages with test expectations and manual testing docs. Updated CP-018 with FIXUP-3 scenarios. |
 | 4.9 | 2025-12-24 | ROLES-3 PENDING-1: Approval attribution UI + doc alignment. Playbooks Step 3 shows requester/approver identity + timestamp. Updated CP-019 Auto Tests field (roles-3.test.ts present), Coverage Summary to Full Coverage. Added attribution scenarios to CP-019. |
 | 5.0 | 2025-12-24 | ROLES-3-HARDEN-1: Added Playwright E2E tests (roles-3.spec.ts). Test A: EDITOR+OWNER approval workflow. Test B: VIEWER read-only gating. Test C: Multi-user project detection. Removed (planned) designation from CP-019 Auto Tests. |
+| 5.1 | 2026-01-06 | NAV-IA-CONSISTENCY-1: Updated CP-001 with auth terminology scenarios ("Sign in" not "Log in", "Create account" not "Sign up"). Updated CP-008 with design tokens, dark mode toggle, and token-based styling. Added nav-ia-consistency-1.spec.ts automated tests. Added manual testing doc. |

@@ -7,6 +7,7 @@ import { isAuthenticated } from '@/lib/auth';
 import { projectsApi } from '@/lib/api';
 import type { ProjectInsightsResponse } from '@/lib/insights';
 import { InsightsSubnav } from '@/components/projects/InsightsSubnav';
+import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
 
 /**
  * [INSIGHTS-1] Opportunity Signals Page
@@ -79,6 +80,7 @@ export default function OpportunitySignalsPage() {
       </div>
 
       <InsightsSubnav projectId={projectId} activeTab="opportunity-signals" />
+      <InsightsPillarsSubnav />
 
       {/* Next Best Action */}
       {overview.next && (

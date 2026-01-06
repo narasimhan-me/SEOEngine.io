@@ -35,7 +35,7 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
 
     test('Role label shows "Project Owner" on playbooks page', async ({ page }) => {
       await page.goto(`/projects/${seedData.projectId}/automation/playbooks`);
-      await page.waitForSelector('h1:has-text("Automation Playbooks")');
+      await page.waitForSelector('h1:has-text("Playbooks")');
 
       // Check for role label - should show "Project Owner" for OWNER role
       const roleLabel = page.getByText(/Project Owner/i);
@@ -59,12 +59,12 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
 
       // Navigate to playbooks
       await page.goto(`/projects/${seedData.projectId}/automation/playbooks`);
-      await page.waitForSelector('h1:has-text("Automation Playbooks")');
+      await page.waitForSelector('h1:has-text("Playbooks")');
 
       // The apply button should show "Approve and apply" when in the apply flow
       // We need to go through the preview/estimate flow first to reach Step 3
       // For now, verify the page loads without error
-      await expect(page.getByText('Automation Playbooks')).toBeVisible();
+      await expect(page.getByText('Playbooks')).toBeVisible();
     });
 
     test('Apply flow works without approval when policy is disabled', async ({ page }) => {
@@ -83,7 +83,7 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
       );
 
       await page.goto(`/projects/${seedData.projectId}/automation/playbooks`);
-      await page.waitForSelector('h1:has-text("Automation Playbooks")');
+      await page.waitForSelector('h1:has-text("Playbooks")');
 
       // The apply button should NOT say "Approve and apply" when policy is disabled
       // Instead it should just say "Apply playbook"
@@ -91,7 +91,7 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
       const applyButton = page.getByRole('button', { name: /Apply playbook/i });
       // Note: button might be disabled until preview/estimate is complete
       // Just verify the page structure is correct
-      await expect(page.getByText('Automation Playbooks')).toBeVisible();
+      await expect(page.getByText('Playbooks')).toBeVisible();
     });
   });
 
@@ -116,7 +116,7 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
 
     test('Role label shows "Viewer" for VIEWER role user', async ({ page }) => {
       await page.goto(`/projects/${seedData.projectId}/automation/playbooks`);
-      await page.waitForSelector('h1:has-text("Automation Playbooks")');
+      await page.waitForSelector('h1:has-text("Playbooks")');
 
       // Check for role label - should show "Viewer" for VIEWER role
       const roleLabel = page.getByText(/Viewer/i);
@@ -125,18 +125,18 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
 
     test('Apply button is disabled for VIEWER', async ({ page }) => {
       await page.goto(`/projects/${seedData.projectId}/automation/playbooks`);
-      await page.waitForSelector('h1:has-text("Automation Playbooks")');
+      await page.waitForSelector('h1:has-text("Playbooks")');
 
       // Look for disabled state on apply button or viewer-specific messaging
       const viewerMessage = page.getByText(/Viewer role cannot apply/i);
       // This message may appear when trying to apply, or button might just be disabled
       // Check that the page loads correctly for viewer
-      await expect(page.getByText('Automation Playbooks')).toBeVisible();
+      await expect(page.getByText('Playbooks')).toBeVisible();
     });
 
     test('Preview is still accessible for VIEWER', async ({ page }) => {
       await page.goto(`/projects/${seedData.projectId}/automation/playbooks`);
-      await page.waitForSelector('h1:has-text("Automation Playbooks")');
+      await page.waitForSelector('h1:has-text("Playbooks")');
 
       // Preview functionality should still work for VIEWER
       // The Generate Preview button should be accessible
@@ -191,7 +191,7 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
 
       // Navigate to playbooks (view-only)
       await page.goto(`/projects/${seedData.projectId}/automation/playbooks`);
-      await page.waitForSelector('h1:has-text("Automation Playbooks")');
+      await page.waitForSelector('h1:has-text("Playbooks")');
 
       // Wait a moment for any potential background requests
       await page.waitForTimeout(1000);
@@ -228,7 +228,7 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
 
       // Navigate to playbooks
       await page.goto(`/projects/${seedData.projectId}/automation/playbooks`);
-      await page.waitForSelector('h1:has-text("Automation Playbooks")');
+      await page.waitForSelector('h1:has-text("Playbooks")');
 
       // Navigate away to dashboard
       await page.goto(`/projects/${seedData.projectId}`);

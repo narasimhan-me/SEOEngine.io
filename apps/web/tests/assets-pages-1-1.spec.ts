@@ -38,7 +38,7 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     // Navigate to Playbooks page with PAGES assetType and scope
@@ -47,7 +47,7 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
 
     // Wait for page to load
     await expect(
-      page.getByRole('heading', { name: /Automation Playbooks/i }),
+      page.getByRole('heading', { name: /Playbooks/i }),
     ).toBeVisible({ timeout: 10000 });
 
     // Asset type badge should render ("Pages")
@@ -63,7 +63,7 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     // Navigate with scope refs
@@ -72,7 +72,7 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
 
     // Wait for page to load
     await expect(
-      page.getByRole('heading', { name: /Automation Playbooks/i }),
+      page.getByRole('heading', { name: /Playbooks/i }),
     ).toBeVisible({ timeout: 10000 });
 
     // Scope summary should render with handle names
@@ -90,7 +90,7 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     // Navigate with PAGES but NO scopeAssetRefs
@@ -99,7 +99,7 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
 
     // Wait for page to load
     await expect(
-      page.getByRole('heading', { name: /Automation Playbooks/i }),
+      page.getByRole('heading', { name: /Playbooks/i }),
     ).toBeVisible({ timeout: 10000 });
 
     // Missing scope block should be visible
@@ -122,7 +122,7 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     // Navigate with COLLECTIONS but NO scopeAssetRefs
@@ -131,7 +131,7 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
 
     // Wait for page to load
     await expect(
-      page.getByRole('heading', { name: /Automation Playbooks/i }),
+      page.getByRole('heading', { name: /Playbooks/i }),
     ).toBeVisible({ timeout: 10000 });
 
     // Missing scope block should be visible
@@ -149,7 +149,7 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     // Navigate with PRODUCTS (or no assetType) - should work without scope
@@ -158,7 +158,7 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
 
     // Wait for page to load
     await expect(
-      page.getByRole('heading', { name: /Automation Playbooks/i }),
+      page.getByRole('heading', { name: /Playbooks/i }),
     ).toBeVisible({ timeout: 10000 });
 
     // NO missing scope block should appear
@@ -178,7 +178,7 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     // Simulate a deep link that would come from Work Queue
@@ -187,7 +187,7 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
 
     // Wait for page to load
     await expect(
-      page.getByRole('heading', { name: /Automation Playbooks/i }),
+      page.getByRole('heading', { name: /Playbooks/i }),
     ).toBeVisible({ timeout: 10000 });
 
     // Verify URL params are preserved
@@ -209,7 +209,7 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     // Navigate with more than 3 scope refs
@@ -225,7 +225,7 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
 
     // Wait for page to load
     await expect(
-      page.getByRole('heading', { name: /Automation Playbooks/i }),
+      page.getByRole('heading', { name: /Playbooks/i }),
     ).toBeVisible({ timeout: 10000 });
 
     // Scope summary should show first 3 handles and "+N more"

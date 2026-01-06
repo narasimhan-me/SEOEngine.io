@@ -34,7 +34,7 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     // Navigate to Products page
@@ -59,7 +59,7 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
 
       // Entry page header should be visible
       await expect(
-        page.getByRole('heading', { name: /Create Automation/i }),
+        page.getByRole('heading', { name: /New Playbook/i }),
       ).toBeVisible();
     }
   });
@@ -74,7 +74,7 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     // Navigate to first product details
@@ -100,11 +100,11 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
 
     // Entry page should show the correct context
     await expect(
-      page.getByRole('heading', { name: /Create Automation/i }),
+      page.getByRole('heading', { name: /New Playbook/i }),
     ).toBeVisible();
   });
 
-  test('Entry from Playbooks page "Create automation" button', async ({
+  test('Entry from Playbooks page "Create playbook" button', async ({
     page,
     request,
   }) => {
@@ -113,7 +113,7 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     // Navigate to Playbooks page
@@ -121,12 +121,12 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
 
     // Wait for page to load
     await expect(
-      page.getByRole('heading', { name: /Automation Playbooks/i }),
+      page.getByRole('heading', { name: /Playbooks/i }),
     ).toBeVisible({ timeout: 10000 });
 
-    // Click "Create automation" button
+    // Click "Create playbook" button
     const createBtn = page.getByRole('button', {
-      name: /Create automation/i,
+      name: /Create playbook/i,
     });
     await expect(createBtn).toBeVisible();
     await createBtn.click();
@@ -143,7 +143,7 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     // Navigate directly to entry page
@@ -151,7 +151,7 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
 
     // Check for scope selection section
     await expect(
-      page.getByRole('heading', { name: /Create Automation/i }),
+      page.getByRole('heading', { name: /New Playbook/i }),
     ).toBeVisible();
 
     // Scope options should be visible
@@ -168,13 +168,13 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     await page.goto(`/projects/${projectId}/automation/playbooks/entry`);
 
     await expect(
-      page.getByRole('heading', { name: /Create Automation/i }),
+      page.getByRole('heading', { name: /New Playbook/i }),
     ).toBeVisible();
 
     // Trigger section should show manual-only option (MVP)
@@ -190,17 +190,17 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     await page.goto(`/projects/${projectId}/automation/playbooks/entry`);
 
     await expect(
-      page.getByRole('heading', { name: /Create Automation/i }),
+      page.getByRole('heading', { name: /New Playbook/i }),
     ).toBeVisible();
 
     // Enable button should be disabled before preview is generated
-    const enableBtn = page.getByRole('button', { name: /Enable automation/i });
+    const enableBtn = page.getByRole('button', { name: /Enable playbook/i });
     await expect(enableBtn).toBeDisabled();
 
     // Generate Preview button should be visible
@@ -217,13 +217,13 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     await page.goto(`/projects/${projectId}/automation/playbooks/entry`);
 
     await expect(
-      page.getByRole('heading', { name: /Create Automation/i }),
+      page.getByRole('heading', { name: /New Playbook/i }),
     ).toBeVisible();
 
     // Generate preview
@@ -235,7 +235,7 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
     await expect(page.getByText(/Preview/i)).toBeVisible({ timeout: 30000 });
 
     // Enable button should now be enabled
-    const enableBtn = page.getByRole('button', { name: /Enable automation/i });
+    const enableBtn = page.getByRole('button', { name: /Enable playbook/i });
     await expect(enableBtn).toBeEnabled({ timeout: 5000 });
   });
 });

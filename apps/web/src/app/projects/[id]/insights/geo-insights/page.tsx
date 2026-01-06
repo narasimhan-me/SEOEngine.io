@@ -8,6 +8,7 @@ import { isAuthenticated } from '@/lib/auth';
 import { projectsApi } from '@/lib/api';
 import type { ProjectInsightsResponse } from '@/lib/insights';
 import { InsightsSubnav } from '@/components/projects/InsightsSubnav';
+import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
 
 /**
  * [GEO-INSIGHTS-2] GEO Insights Page
@@ -78,7 +79,7 @@ export default function GeoInsightsPage() {
           </li>
           <li>/</li>
           <li>
-            <Link href={`/projects/${projectId}/overview`} className="hover:text-gray-700">
+            <Link href={`/projects/${projectId}/store-health`} className="hover:text-gray-700">
               Project
             </Link>
           </li>
@@ -109,6 +110,7 @@ export default function GeoInsightsPage() {
       </div>
 
       <InsightsSubnav projectId={projectId} activeTab="geo-insights" />
+      <InsightsPillarsSubnav />
 
       <div className="mt-6 space-y-8">
         {/* Overview Cards */}

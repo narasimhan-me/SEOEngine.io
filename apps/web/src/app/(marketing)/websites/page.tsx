@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function WebsitesPage() {
   return (
-    <div className="bg-white">
+    <div className="bg-background">
       <WebsitesHero />
       <WebsitesFeatures />
       <WebsitesPlatforms />

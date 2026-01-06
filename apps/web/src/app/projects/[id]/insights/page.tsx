@@ -7,6 +7,7 @@ import { isAuthenticated } from '@/lib/auth';
 import { projectsApi } from '@/lib/api';
 import type { ProjectInsightsResponse } from '@/lib/insights';
 import { InsightsSubnav } from '@/components/projects/InsightsSubnav';
+import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
 import { Sparkline } from '@/components/projects/Sparkline';
 
 /**
@@ -87,6 +88,7 @@ export default function InsightsPage() {
 
       {/* Subnav */}
       <InsightsSubnav projectId={projectId} activeTab="overview" />
+      <InsightsPillarsSubnav />
 
       {/* Overview Cards */}
       <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

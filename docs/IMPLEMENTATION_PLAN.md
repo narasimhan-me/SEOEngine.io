@@ -1225,6 +1225,122 @@ Governance Viewer is accessible at:
 
 ---
 
+## Phase NAV-IA-CONSISTENCY-1: Navigation IA Consistency & Terminology ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-06
+**Critical Paths:** CP-001 (Auth terminology), CP-008 (Design tokens & theme)
+
+### Overview
+
+Enforces locked contract for navigation information architecture (IA) and terminology across the application. Adds design tokens for theme support, normalizes authentication terminology, and ensures visual consistency between marketing and portal.
+
+### Key Changes
+
+#### Design Tokens & Theme
+- Added `darkMode: 'class'` to Tailwind config
+- Created CSS variables for token palette (light + dark modes)
+- Token colors: background, foreground, muted-foreground, primary, primary-foreground, signal, border
+- Theme toggle in TopNav with localStorage persistence
+
+#### Navigation IA Contract
+
+**TopNav (Authenticated):**
+- Removed top-level "Settings" link
+- Added theme toggle control
+- Account dropdown: Profile, Stores, Plan & Billing, AI Usage, Security, Preferences, Help & Support, Sign out
+- Removed "Admin Dashboard" from dropdown (Admin link remains conditional in main nav)
+
+**ProjectSideNav:**
+- Grouped sections: OPERATE, ASSETS, AUTOMATION, INSIGHTS, PROJECT
+- OPERATE: Store Health, Work Queue
+- ASSETS: Products, Pages, Collections
+- AUTOMATION: Playbooks (label only; route unchanged)
+- INSIGHTS: Insights (single item, active for all pillar routes)
+- PROJECT: Project Settings
+- Removed: Overview, Automation (old), Settings (old), Content, DEO Overview, pillar items
+
+**InsightsPillarsSubnav:**
+- New component for pillar navigation under Insights
+- Tabs: DEO, Search & Intent, Competitors, Off-site Signals, Local Discovery, Technical
+
+#### Terminology Normalization
+
+| Old Term | New Term |
+|----------|----------|
+| Log in | Sign in |
+| Sign up (button) | Create account |
+| Organization / Stores | Stores |
+| Overview (InsightsSubnav) | Summary |
+| Automation (UI label) | Playbooks |
+
+### Implementation Patches
+
+#### PATCH 1 — Design Tokens ✅
+- [x] Added `darkMode: 'class'` to `tailwind.config.ts`
+- [x] Extended Tailwind colors with token-backed names
+- [x] Created CSS variables in `globals.css` for light and dark modes
+
+#### PATCH 2 — Marketing Visual Consistency ✅
+- [x] Updated `layout.tsx` with `bg-background text-foreground`
+- [x] Updated `MarketingNavbar.tsx` with token-based colors, "Sign in" terminology
+- [x] Updated `MarketingFooter.tsx` with token-based colors
+- [x] Updated marketing homepage with token-based styling, "Store Health" terminology
+
+#### PATCH 3 — Auth Terminology ✅
+- [x] Login page: "Sign up" → "Create account" link, "Login failed" → "Sign-in failed"
+- [x] Signup page: "Sign up" → "Create account" button, "Signup failed" → "Create account failed"
+
+#### PATCH 4 — TopNav Contract ✅
+- [x] Removed top-level "Settings" link
+- [x] Added theme toggle with localStorage persistence
+- [x] Locked account dropdown labels and order
+- [x] Removed "Admin Dashboard" from dropdown
+- [x] Unauthenticated: "Sign up" → "Create account"
+- [x] Token-based styling
+
+#### PATCH 5 — ProjectSideNav Grouped IA ✅
+- [x] Implemented grouped sections with headings
+- [x] Active-state hardening for Insights on all pillar routes
+- [x] Removed forbidden labels (Overview, Automation, Settings, Content, DEO Overview)
+
+#### PATCH 6 — InsightsPillarsSubnav ✅
+- [x] Created `InsightsPillarsSubnav.tsx` component
+- [x] Tab navigation for all pillar routes
+
+#### PATCH 7 — Terminology Hardening ✅
+- [x] InsightsSubnav: "Overview" → "Summary"
+- [x] Settings organization page: "Organization / Stores" → "Stores"
+- [x] Settings hub card: "Organization / Stores" → "Stores"
+
+#### PATCH 8 — Automation → Playbooks ✅
+- [x] Automation page redirects to playbooks
+- [x] Playbooks page header: "Automation Playbooks" → "Playbooks"
+- [x] Breadcrumbs and button labels updated
+- [x] Entry page: "Automation Entry" → "New Playbook"
+
+#### PATCH 9 — Playwright Coverage ✅
+- [x] Created `tests/e2e/nav-ia-consistency-1.spec.ts`
+- [x] Marketing navbar assertions
+- [x] Portal top nav assertions
+- [x] Theme toggle presence
+- [x] Account dropdown labels
+- [x] Project sidebar group headings and item labels
+
+#### PATCH 10 — Documentation ✅
+- [x] Created `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`
+- [x] Created `docs/testing/NAV-IA-CONSISTENCY-1.md` (pointer)
+- [x] Updated `docs/IMPLEMENTATION_PLAN.md` (this section)
+- [x] Updated `docs/testing/CRITICAL_PATH_MAP.md`
+
+### Related Documents
+
+- [NAV-IA-CONSISTENCY-1.md](./manual-testing/NAV-IA-CONSISTENCY-1.md) - Manual testing guide
+- [DEO_INFORMATION_ARCHITECTURE.md](./DEO_INFORMATION_ARCHITECTURE.md) - IA foundations
+- [nav-ia-consistency-1.spec.ts](../apps/web/tests/nav-ia-consistency-1.spec.ts) - Playwright E2E tests
+
+---
+
 ## Document History
 
 | Version | Date | Changes |
@@ -1262,3 +1378,4 @@ Governance Viewer is accessible at:
 | 4.0 | 2025-12-24 | **ASSETS-PAGES-1.1 COMPLETE**: PATCH 5 (Frontend + E2E) - Work Queue CTA routing with asset-scoped deep links, Playbooks page assetType support, api.ts assetType/scopeAssetRefs, E2E tests in assets-pages-1-1.e2e-spec.ts. Phase marked complete. |
 | 4.1 | 2025-12-24 | **ASSETS-PAGES-1.1-UI-HARDEN COMPLETE**: Full API client param support for all operations, Playbooks UI missing-scope safety block, scope summary UI, Work Queue deep link with scopeAssetRefs, Playwright UI smoke tests (assets-pages-1-1.spec.ts). |
 | 4.2 | 2025-12-24 | **GOV-AUDIT-VIEWER-1 COMPLETE**: Read-only governance viewer with 3 tabs (Approvals, Audit Log, Sharing & Links), strict audit event allowlist filtering, cursor-based pagination, passcode security (never expose hash), universal read access for all project members. Added governance-viewer.service.ts, extended governance.controller.ts, created governance viewer UI page, E2E and Playwright tests. |
+| 4.3 | 2026-01-06 | **NAV-IA-CONSISTENCY-1 COMPLETE**: Navigation IA consistency and terminology normalization. Design tokens + dark mode, marketing/portal visual consistency, auth terminology ("Sign in" not "Log in", "Create account" not "Sign up"), TopNav contract (removed Settings, added theme toggle, locked dropdown labels), ProjectSideNav grouped sections (OPERATE/ASSETS/AUTOMATION/INSIGHTS/PROJECT), InsightsPillarsSubnav for pillar navigation, "Stores" not "Organization / Stores", "Playbooks" not "Automation". E2E tests in nav-ia-consistency-1.spec.ts. |

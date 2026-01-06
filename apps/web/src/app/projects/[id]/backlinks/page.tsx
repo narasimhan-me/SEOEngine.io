@@ -10,6 +10,7 @@ import type {
   OffsiteFixDraftType,
   OffsiteFixDraft,
 } from '@/lib/offsite-signals';
+import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
 
 /**
  * Off-site Signals Workspace (OFFSITE-1)
@@ -113,6 +114,8 @@ export default function BacklinksPage({
           Off-site signals help discovery engines and AI models understand your brand&apos;s authority and relevance.
         </p>
       </div>
+
+      <InsightsPillarsSubnav />
 
       {/* Ethical Boundaries Notice */}
       <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">

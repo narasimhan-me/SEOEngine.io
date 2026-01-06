@@ -147,7 +147,7 @@ export default function MediaAccessibilityPage() {
           </li>
           <li>/</li>
           <li>
-            <Link href={`/projects/${projectId}/overview`} className="hover:text-gray-700">
+            <Link href={`/projects/${projectId}/store-health`} className="hover:text-gray-700">
               {projectName || 'Project'}
             </Link>
           </li>

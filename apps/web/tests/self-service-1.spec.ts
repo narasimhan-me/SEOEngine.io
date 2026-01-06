@@ -48,7 +48,7 @@ async function seedSelfServiceViewer(request: any): Promise<SeedResponse> {
 async function loginWithToken(page: any, accessToken: string) {
   await page.goto('/login');
   await page.evaluate((token: string) => {
-    localStorage.setItem('token', token);
+    localStorage.setItem('engineo_token', token);
   }, accessToken);
 }
 

@@ -14,7 +14,7 @@ interface InsightsSubnavProps {
  */
 export function InsightsSubnav({ projectId, activeTab }: InsightsSubnavProps) {
   const tabs = [
-    { id: 'overview', label: 'Overview', href: `/projects/${projectId}/insights` },
+    { id: 'overview', label: 'Summary', href: `/projects/${projectId}/insights` },
     { id: 'deo-progress', label: 'DEO Progress', href: `/projects/${projectId}/insights/deo-progress` },
     { id: 'ai-efficiency', label: 'AI Efficiency', href: `/projects/${projectId}/insights/ai-efficiency` },
     { id: 'issue-resolution', label: 'Issue Resolution', href: `/projects/${projectId}/insights/issue-resolution` },

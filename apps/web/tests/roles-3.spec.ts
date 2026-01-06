@@ -82,14 +82,14 @@ test.describe('ROLES-3: Project Member Roles', () => {
 
       // Navigate to the OWNER's project playbooks page (EDITOR has access via membership)
       await page.goto(`/projects/${projectId}/automation/playbooks`);
-      await page.waitForSelector('h1:has-text("Automation Playbooks")');
+      await page.waitForSelector('h1:has-text("Playbooks")');
 
       // EDITOR should see role label indicating their role
       const roleLabel = page.getByText(/Project Editor|Editor/i);
       await expect(roleLabel).toBeVisible();
 
       // EDITOR can view the page
-      await expect(page.getByText('Automation Playbooks')).toBeVisible();
+      await expect(page.getByText('Playbooks')).toBeVisible();
     });
 
     test('EDITOR can request approval for playbook apply', async ({ page }) => {
@@ -101,7 +101,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
 
       // Navigate to playbooks
       await page.goto(`/projects/${projectId}/automation/playbooks`);
-      await page.waitForSelector('h1:has-text("Automation Playbooks")');
+      await page.waitForSelector('h1:has-text("Playbooks")');
 
       // EDITOR should be able to request approval
       // The "Request Approval" button should be visible for EDITOR with approval policy enabled
@@ -112,7 +112,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
 
       // Button may or may not be visible depending on workflow state
       // Just verify page loads correctly for EDITOR
-      await expect(page.getByText('Automation Playbooks')).toBeVisible();
+      await expect(page.getByText('Playbooks')).toBeVisible();
     });
 
     test('OWNER can approve and apply playbook', async ({ page }) => {
@@ -158,7 +158,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
 
       // Navigate to playbooks
       await page.goto(`/projects/${projectId}/automation/playbooks`);
-      await page.waitForSelector('h1:has-text("Automation Playbooks")');
+      await page.waitForSelector('h1:has-text("Playbooks")');
 
       // OWNER should see "Project Owner" role label
       const roleLabel = page.getByText(/Project Owner|Owner/i);
@@ -166,7 +166,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
 
       // OWNER should be able to apply (button not disabled)
       // The exact button state depends on whether preview/estimate is complete
-      await expect(page.getByText('Automation Playbooks')).toBeVisible();
+      await expect(page.getByText('Playbooks')).toBeVisible();
     });
 
     test('Approval attribution shows requester and approver', async ({ page }) => {
@@ -211,11 +211,11 @@ test.describe('ROLES-3: Project Member Roles', () => {
 
       // Navigate to playbooks
       await page.goto(`/projects/${projectId}/automation/playbooks`);
-      await page.waitForSelector('h1:has-text("Automation Playbooks")');
+      await page.waitForSelector('h1:has-text("Playbooks")');
 
       // Verify page loads - attribution panel would be visible if approval is pending
       // Note: Full attribution panel testing depends on Step 3 UI state
-      await expect(page.getByText('Automation Playbooks')).toBeVisible();
+      await expect(page.getByText('Playbooks')).toBeVisible();
     });
   });
 
@@ -269,7 +269,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
 
       // Navigate to OWNER's project playbooks page
       await page.goto(`/projects/${projectId}/automation/playbooks`);
-      await page.waitForSelector('h1:has-text("Automation Playbooks")');
+      await page.waitForSelector('h1:has-text("Playbooks")');
 
       // VIEWER should see "Viewer" role label
       const roleLabel = page.getByText(/Viewer/i);
@@ -287,7 +287,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
 
       // Navigate to playbooks
       await page.goto(`/projects/${projectId}/automation/playbooks`);
-      await page.waitForSelector('h1:has-text("Automation Playbooks")');
+      await page.waitForSelector('h1:has-text("Playbooks")');
 
       // VIEWER should not be able to apply
       // Check that either:
@@ -303,7 +303,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
       }
 
       // Page should still load correctly
-      await expect(page.getByText('Automation Playbooks')).toBeVisible();
+      await expect(page.getByText('Playbooks')).toBeVisible();
     });
 
     test('VIEWER can still access preview functionality', async ({ page }) => {
@@ -315,11 +315,11 @@ test.describe('ROLES-3: Project Member Roles', () => {
 
       // Navigate to playbooks
       await page.goto(`/projects/${projectId}/automation/playbooks`);
-      await page.waitForSelector('h1:has-text("Automation Playbooks")');
+      await page.waitForSelector('h1:has-text("Playbooks")');
 
       // VIEWER should still see preview/export sections
       // These should not be gated for VIEWER
-      await expect(page.getByText('Automation Playbooks')).toBeVisible();
+      await expect(page.getByText('Playbooks')).toBeVisible();
 
       // Preview section should be accessible
       const previewSection = page.getByText(/Preview|Generate Preview/i);
@@ -349,7 +349,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
 
       // Navigate to playbooks
       await page.goto(`/projects/${projectId}/automation/playbooks`);
-      await page.waitForSelector('h1:has-text("Automation Playbooks")');
+      await page.waitForSelector('h1:has-text("Playbooks")');
 
       // VIEWER should not see "Request Approval" button
       // (only EDITOR should see this option)
@@ -359,7 +359,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
       await expect(requestButton).toHaveCount(0);
 
       // Page should load correctly
-      await expect(page.getByText('Automation Playbooks')).toBeVisible();
+      await expect(page.getByText('Playbooks')).toBeVisible();
     });
   });
 

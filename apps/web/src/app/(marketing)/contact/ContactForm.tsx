@@ -69,7 +69,7 @@ export function ContactForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-6">
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-border bg-muted p-6">
       {error && (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
@@ -80,7 +80,7 @@ export function ContactForm() {
         <div>
           <label
             htmlFor="name"
-            className="block text-xs font-medium uppercase tracking-wide text-slate-700"
+            className="block text-xs font-medium uppercase tracking-wide text-muted-foreground"
           >
             Name *
           </label>
@@ -90,14 +90,14 @@ export function ContactForm() {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none ring-0 placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
             placeholder="Jane Doe"
           />
         </div>
         <div>
           <label
             htmlFor="email"
-            className="block text-xs font-medium uppercase tracking-wide text-slate-700"
+            className="block text-xs font-medium uppercase tracking-wide text-muted-foreground"
           >
             Email *
           </label>
@@ -108,7 +108,7 @@ export function ContactForm() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none ring-0 placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
             placeholder="you@company.com"
           />
         </div>
@@ -117,7 +117,7 @@ export function ContactForm() {
       <div>
         <label
           htmlFor="company"
-          className="block text-xs font-medium uppercase tracking-wide text-slate-700"
+          className="block text-xs font-medium uppercase tracking-wide text-muted-foreground"
         >
           Company
         </label>
@@ -126,7 +126,7 @@ export function ContactForm() {
           name="company"
           value={company}
           onChange={(e) => setCompany(e.target.value)}
-          className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none ring-0 placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
           placeholder="Store or agency name"
         />
       </div>
@@ -134,7 +134,7 @@ export function ContactForm() {
       <div>
         <label
           htmlFor="message"
-          className="block text-xs font-medium uppercase tracking-wide text-slate-700"
+          className="block text-xs font-medium uppercase tracking-wide text-muted-foreground"
         >
           Message *
         </label>
@@ -145,7 +145,7 @@ export function ContactForm() {
           required
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          className="mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none ring-0 placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none ring-0 placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
           placeholder="Tell us about your store, your goals, or how we can help."
         />
       </div>

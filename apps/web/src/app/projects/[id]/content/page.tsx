@@ -211,7 +211,7 @@ export default function ContentListPage() {
         <div>
           <div className="flex items-center gap-2">
             <Link
-              href={`/projects/${projectId}/overview`}
+              href={`/projects/${projectId}/store-health`}
               className="text-sm text-gray-500 hover:text-gray-700"
             >
               {projectName}
@@ -315,10 +315,10 @@ export default function ContentListPage() {
             <p className="mt-1 text-sm text-gray-500">
               Run a crawl from the{' '}
               <Link
-                href={`/projects/${projectId}/overview`}
+                href={`/projects/${projectId}/store-health`}
                 className="font-medium text-purple-600 hover:text-purple-700"
               >
-                project overview
+                Store Health
               </Link>{' '}
               to discover content pages.
             </p>

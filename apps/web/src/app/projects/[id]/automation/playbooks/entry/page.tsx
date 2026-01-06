@@ -305,7 +305,7 @@ export default function AutomationPlaybooksEntryPage() {
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="text-gray-600">Loading automation entry…</div>
+        <div className="text-gray-600">Loading playbook…</div>
       </div>
     );
   }
@@ -316,16 +316,16 @@ export default function AutomationPlaybooksEntryPage() {
         <ol className="flex flex-wrap items-center gap-2 text-gray-500">
           <li>
             <Link href={`/projects/${projectId}/automation/playbooks`} className="hover:text-gray-700">
-              Automation Playbooks
+              Playbooks
             </Link>
           </li>
           <li>/</li>
-          <li className="text-gray-900">Entry</li>
+          <li className="text-gray-900">New Playbook</li>
         </ol>
       </nav>
       <div className="mb-6 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-gray-900">Automation Entry</h1>
+          <h1 className="text-2xl font-bold text-gray-900">New Playbook</h1>
           <p className="mt-1 text-gray-600">{intentSummary}</p>
         </div>
         <Link
@@ -522,12 +522,12 @@ export default function AutomationPlaybooksEntryPage() {
               disabled={!canEnable}
               className="inline-flex items-center rounded-md bg-gray-900 px-3 py-2 text-xs font-medium text-white hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {enableLoading ? 'Enabling…' : 'Enable automation'}
+              {enableLoading ? 'Enabling…' : 'Enable playbook'}
             </button>
           </div>
           {enabled && (
             <div className="mt-4 rounded-md border border-green-200 bg-green-50 p-3">
-              <div className="text-sm font-semibold text-green-900">Automation enabled</div>
+              <div className="text-sm font-semibold text-green-900">Playbook enabled</div>
               <div className="mt-1 text-xs text-green-800">Drafts will be generated when conditions are met.</div>
               {enabledAt && (
                 <div className="mt-1 text-[11px] text-green-700">
@@ -540,7 +540,7 @@ export default function AutomationPlaybooksEntryPage() {
                   onClick={handleViewAutomation}
                   className="inline-flex items-center rounded-md bg-white px-3 py-1.5 text-xs font-medium text-green-800 shadow-sm ring-1 ring-green-200 hover:bg-green-50"
                 >
-                  View automation
+                  View playbook
                 </button>
                 <button
                   type="button"
@@ -548,7 +548,7 @@ export default function AutomationPlaybooksEntryPage() {
                   disabled={enableLoading}
                   className="inline-flex items-center rounded-md bg-white px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm ring-1 ring-red-200 hover:bg-red-50 disabled:opacity-50"
                 >
-                  Disable automation
+                  Disable playbook
                 </button>
               </div>
             </div>

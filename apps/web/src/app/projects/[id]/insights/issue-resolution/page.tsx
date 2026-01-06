@@ -7,6 +7,7 @@ import { isAuthenticated } from '@/lib/auth';
 import { projectsApi } from '@/lib/api';
 import type { ProjectInsightsResponse } from '@/lib/insights';
 import { InsightsSubnav } from '@/components/projects/InsightsSubnav';
+import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
 
 /**
  * [INSIGHTS-1] Issue Resolution Page
@@ -74,6 +75,7 @@ export default function IssueResolutionPage() {
       </div>
 
       <InsightsSubnav projectId={projectId} activeTab="issue-resolution" />
+      <InsightsPillarsSubnav />
 
       {/* Summary Stats */}
       <section className="mt-6 grid gap-4 sm:grid-cols-4">

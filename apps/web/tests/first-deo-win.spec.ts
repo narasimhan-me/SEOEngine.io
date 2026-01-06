@@ -52,7 +52,7 @@ test.describe('TEST-2 – First DEO Win (Playwright E2E)', () => {
     // Programmatic login: set token in localStorage.
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     // Navigate to Project Overview.
@@ -141,7 +141,7 @@ test.describe('TEST-2 – First DEO Win (Playwright E2E)', () => {
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     const productId = productIds[0];
@@ -164,7 +164,7 @@ test.describe('TEST-2 – First DEO Win (Playwright E2E)', () => {
   });
 });
 
-test.describe('AUTO-PB-1.1 – Automation Playbooks Hardening (Playwright E2E)', () => {
+test.describe('AUTO-PB-1.1 – Playbooks Hardening (Playwright E2E)', () => {
   test('Playbooks page shows per-item results after apply', async ({
     page,
     request,
@@ -176,7 +176,7 @@ test.describe('AUTO-PB-1.1 – Automation Playbooks Hardening (Playwright E2E)',
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     await page.goto(`/projects/${projectId}/automation/playbooks`);
@@ -257,7 +257,7 @@ test.describe('AUTO-PB-1.1 – Automation Playbooks Hardening (Playwright E2E)',
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     await page.goto(`/projects/${projectId}/automation/playbooks`);
@@ -277,7 +277,7 @@ test.describe('AUTO-PB-1.1 – Automation Playbooks Hardening (Playwright E2E)',
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     await page.goto(`/projects/${projectId}/automation/playbooks`);
@@ -305,7 +305,7 @@ test.describe('AUTO-PB-1.2 – Playbooks UX Coherence (Playwright E2E)', () => {
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     await page.goto(`/projects/${projectId}/automation/playbooks`);
@@ -345,7 +345,7 @@ test.describe('AUTO-PB-1.2 – Playbooks UX Coherence (Playwright E2E)', () => {
 
     await page.goto('/login');
     await page.evaluate((token) => {
-      localStorage.setItem('token', token);
+      localStorage.setItem('engineo_token', token);
     }, accessToken);
 
     await page.goto(`/projects/${projectId}/automation/playbooks`);
