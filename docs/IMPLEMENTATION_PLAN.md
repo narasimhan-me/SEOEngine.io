@@ -76,6 +76,10 @@ Pricing pages and upgrade flows with Stripe integration for subscription managem
 - apps/web/src/app/pricing/
 - apps/web/src/app/billing/
 
+### Test Coverage
+
+- **Smoke Test:** `apps/web/tests/billing-gtm-1.smoke.spec.ts`
+
 ---
 
 ### Phase AUTO-PB-1: Automation Playbooks ✅ COMPLETE
@@ -97,6 +101,15 @@ Automation playbook system for DEO fixes with preview/apply workflow.
 - apps/api/src/automation/
 - apps/web/src/app/projects/[id]/playbooks/
 
+### Related Documents
+
+- **Canonical Manual Testing:** `docs/manual-testing/phase-automation-1-playbooks.md`
+- Secondary references:
+  - `docs/manual-testing/auto-pb-1-1-playbooks-hardening.md`
+  - `docs/manual-testing/auto-pb-1-2-playbooks-ux-coherence.md`
+  - `docs/manual-testing/auto-pb-1-3-scope-binding.md`
+  - `docs/manual-testing/auto-pb-1-3-ux-1-resume-and-gating.md`
+
 ---
 
 ### Phase INSIGHTS-1: Project Insights Dashboard ✅ COMPLETE
@@ -113,6 +126,11 @@ Project-level insights dashboard with DEO metrics and issue tracking.
 3. **Action Recommendations**: Prioritized fix suggestions
 4. **Performance Metrics**: Load times and API performance
 
+### Test Coverage
+
+- **Smoke Test:** `apps/web/tests/insights-1.smoke.spec.ts`
+- **Manual Testing:** `docs/manual-testing/INSIGHTS-1.md`
+
 ---
 
 ### Phase MEDIA-1: Media & Accessibility Pillar ✅ COMPLETE
@@ -127,6 +145,10 @@ Media accessibility pillar for image alt text and media optimization.
 1. **Alt Text Analysis**: Missing/poor alt text detection
 2. **Image Optimization**: Size and format recommendations
 3. **Accessibility Score**: WCAG compliance indicators
+
+### Test Coverage
+
+- **Smoke Test:** `apps/web/tests/media-1.smoke.spec.ts`
 
 ---
 
@@ -225,6 +247,10 @@ Decision-first products list with health pills and recommended actions.
 1. **Health Pills**: Visual status indicators per product
 2. **Recommended Actions**: Prioritized fix suggestions
 3. **Command Bar**: Quick actions and navigation
+
+### Test Coverage
+
+- **Smoke Test:** `apps/web/tests/products-list-2-0.smoke.spec.ts`
 
 ---
 
@@ -526,3 +552,5 @@ These invariants MUST be preserved during implementation:
 | 5.1 | 2026-01-07 | **IMPLEMENTATION-PLAN-RECONCILIATION-1 FIXUP-2**: Self-reference consistency — updated internal checklist items that referenced `IMPLEMENTATION_PLAN.md` to reference `docs/IMPLEMENTATION_PLAN.md` (not the deprecated root stub) for self-referential "updated plan" checklist items and version-history task text. |
 | 5.2 | 2026-01-07 | **IMPLEMENTATION-PLAN-ORDERING-CLEANUP-1**: Major restructuring — added 4 top-level sections (Completed Phases/In Progress/Planned or Pending/Deferred or Explicitly Excluded), reordered completed phases under subheadings (Foundations/Core Platform/Governance & Roles/Execution Surfaces), added ENTERPRISE-GEO-1 clarifying note, standardized phase header status formatting, moved Document History to bottom. |
 | 5.3 | 2026-01-07 | **IMPLEMENTATION-PLAN-ORDERING-CLEANUP-1 FIXUP-1**: Heading-level compliance — demoted all `## Phase` headers to `### Phase` to ensure exactly 4 top-level sections (Completed Phases/In Progress/Planned or Pending/Deferred or Explicitly Excluded). |
+| 5.4 | 2026-01-07 | **COVERAGE-AND-PLAN-ALIGNMENT-1**: Added smoke tests for INSIGHTS-1, PRODUCTS-LIST-2.0, BILLING-GTM-1, MEDIA-1; added test coverage sections to phase entries; added AUTO-PB-1 canonical doc reference. |
+| 5.5 | 2026-01-07 | **COVERAGE-AND-PLAN-ALIGNMENT-1 FIXUP-1**: Smoke tests tightened to "one test per phase"; Billing smoke route corrected to `/settings/billing`; Media smoke corrected to `/projects/{projectId}/media`; AUTO-PB-1 canonical manual testing doc link corrected to `phase-automation-1-playbooks.md`. |
