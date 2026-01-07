@@ -12803,3 +12803,94 @@ This phase hardens UX trust by ensuring deterministic routing, visible context, 
 - [x] IMPLEMENTATION_PLAN.md updated
 
 **Manual Testing:** `docs/manual-testing/TRUST-ROUTING-1.md`
+
+---
+
+## Phase DRAFT-CLARITY-AND-ACTION-TRUST-1 – UX Trust Hardening (Draft Lifecycle + Action Semantics) ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-07
+
+This phase hardens UX trust by establishing a clear 3-state draft lifecycle for SEO metadata, clarifying action semantics (Generate/Preview uses AI, Apply never uses AI), and improving transparency across automation history, GEO education, and issue displays.
+
+### DRAFT-CLARITY-AND-ACTION-TRUST-1 Trust Guarantees (Locked)
+
+1. **Draft Lifecycle Contract:** Metadata edits follow a 3-state lifecycle: `unsaved` → `saved` → `applied`. Apply is disabled until a draft is saved. Apply never calls AI.
+2. **Action Semantics Contract:** "Generate" and "Preview" use AI. "Add to draft" stages content. "Apply" pushes saved drafts to Shopify without AI. Button labels and inline guidance make this explicit.
+3. **No Internal ID Leakage:** Users never see raw issue IDs like `missing_seo_title`. All displays use human-readable labels from `ISSUE_UI_CONFIG` or fallback to `issue.title ?? 'Issue detected'`.
+4. **GEO Inline Education:** Collapsible explainers clarify "What is GEO?" and "What is Citation Confidence?" with hedged, non-guarantee language.
+5. **Automation History Transparency:** Filters (Status, Initiator) help users understand what ran. Human-readable explanations clarify why automations were skipped.
+
+### DRAFT-CLARITY-AND-ACTION-TRUST-1 Files Modified
+
+| File | Changes |
+|------|---------|
+| `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` | Added 3-state draft lifecycle, sessionStorage persistence, navigation protection, `handleSaveDraft`, `canApplyToShopify` gating |
+| `apps/web/src/components/products/optimization/ProductAiSuggestionsPanel.tsx` | Renamed "Apply to editor" → "Add to draft", added inline guidance explaining draft workflow |
+| `apps/web/src/components/products/optimization/ProductSeoEditor.tsx` | Added draft state props, Save draft button, Apply button gating with tooltip |
+| `apps/web/src/app/projects/[id]/issues/page.tsx` | Added draft lifecycle for issue fixes, Apply uses Shopify API directly (not AI) |
+| `apps/web/src/components/products/optimization/ProductAnswerBlocksPanel.tsx` | Removed questionId display, renamed buttons, added inline guidance |
+| `apps/web/src/components/content/ContentDeoInsightsPanel.tsx` | Fixed fallback label to use `issue.title ?? 'Issue detected'` |
+| `apps/web/src/components/products/optimization/ProductDeoInsightsPanel.tsx` | Fixed fallback label to use `issue.title ?? 'Issue detected'` |
+| `apps/web/src/components/products/optimization/ProductGeoPanel.tsx` | Added CollapsibleExplainer, "What is GEO?", "What is Citation Confidence?" sections |
+| `apps/web/src/components/products/optimization/ProductAutomationHistoryPanel.tsx` | Added Status/Initiator filters, human-readable skip explanations, what/why/affected labels |
+
+### DRAFT-CLARITY-AND-ACTION-TRUST-1 Files Created
+
+| File | Description |
+|------|-------------|
+| `tests/e2e/draft-clarity-and-action-trust-1.spec.ts` | Playwright E2E smoke tests for draft lifecycle, action semantics, and trust behaviors |
+| `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md` | Manual testing documentation |
+
+### DRAFT-CLARITY-AND-ACTION-TRUST-1 Draft Lifecycle States
+
+| State | Banner Text | Apply Button | Trigger |
+|-------|-------------|--------------|---------|
+| `unsaved` | "Draft — not applied" | Disabled | Any edit to SEO fields |
+| `saved` | "Draft saved — not applied" | Enabled | Click "Save draft" |
+| `applied` | "Applied to Shopify on {timestamp}" | Hidden/Disabled | Successful Apply |
+
+### DRAFT-CLARITY-AND-ACTION-TRUST-1 Action Semantics Matrix
+
+| Action | Uses AI | Mutates Shopify | Label |
+|--------|---------|-----------------|-------|
+| Generate Suggestions | Yes | No | "Generate Suggestions" |
+| Add to Draft | No | No | "Add to draft" |
+| Save Draft | No | No | "Save draft" |
+| Apply to Shopify | No | Yes | "Apply to Shopify" |
+| Run Answer Block Generation | Yes | No | "Run Answer Block generation" |
+| Sync Answers to Shopify | No | Yes | "Sync answers to Shopify" |
+
+### DRAFT-CLARITY-AND-ACTION-TRUST-1 Verification Artifacts
+
+| Artifact | Location |
+|----------|----------|
+| E2E Smoke Tests | [tests/e2e/draft-clarity-and-action-trust-1.spec.ts](tests/e2e/draft-clarity-and-action-trust-1.spec.ts) |
+| Manual Testing | [docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md](docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md) |
+| Critical Path Map | [docs/testing/CRITICAL_PATH_MAP.md](docs/testing/CRITICAL_PATH_MAP.md) (CP-003, CP-006, CP-008) |
+
+### DRAFT-CLARITY-AND-ACTION-TRUST-1 Acceptance Criteria (Completed)
+
+- [x] PATCH 1: Product metadata follows 3-state draft lifecycle (unsaved → saved → applied)
+- [x] PATCH 1: Apply button disabled until draft is saved
+- [x] PATCH 1: Apply uses saved draft values directly (no AI call)
+- [x] PATCH 1: Draft persists via sessionStorage across tab navigation
+- [x] PATCH 1: Navigation blocking confirmation for unsaved changes
+- [x] PATCH 2: Issues page Apply uses Shopify API directly (not AI)
+- [x] PATCH 3: "Apply to editor" renamed to "Add to draft"
+- [x] PATCH 3: Inline guidance explains Generate uses AI, Apply does not
+- [x] PATCH 3: Answer Block buttons use clear semantics (generation vs sync)
+- [x] PATCH 4: Issue tiles route to deterministic fix locations
+- [x] PATCH 5: No internal issue IDs displayed (uses ISSUE_UI_CONFIG labels)
+- [x] PATCH 6: GEO explainer "What is GEO?" with collapsible content
+- [x] PATCH 6: GEO explainer "What is Citation Confidence?" with hedged language
+- [x] PATCH 7: Automation history Status filter (all/succeeded/skipped/failed)
+- [x] PATCH 7: Automation history Initiator filter (all/manual/automation)
+- [x] PATCH 7: Human-readable skip explanations (plan, no generated answers, etc.)
+- [x] PATCH 7: What ran / Why ran / What affected labels
+- [x] PATCH 8: Playwright E2E smoke tests created
+- [x] PATCH 9: Manual testing documentation created
+- [x] PATCH 9: IMPLEMENTATION_PLAN.md updated
+- [x] PATCH 9: CRITICAL_PATH_MAP.md updated (CP-003, CP-006, CP-008)
+
+**Manual Testing:** `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`

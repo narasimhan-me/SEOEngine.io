@@ -30,6 +30,19 @@ import {
   ProductAutomationHistoryPanel,
 } from '@/components/products/optimization';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
+import { useUnsavedChanges } from '@/components/unsaved-changes/UnsavedChangesProvider';
+
+// [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft state types
+type MetadataDraftState = 'unsaved' | 'saved' | 'applied';
+
+interface MetadataDraft {
+  title: string;
+  description: string;
+  savedAt?: string;
+}
+
+// Session storage key for metadata drafts
+const getMetadataDraftKey = (productId: string) => `metadataDraft:${productId}`;
 
 // [TRUST-ROUTING-1] Preview sample interface matching playbooks session storage
 interface PlaybookPreviewSample {
@@ -117,6 +130,104 @@ export default function ProductOptimizationPage() {
 
   // Track if we've shown the auto-apply toast (one-time per page load)
   const autoApplyToastShown = useRef(false);
+
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft lifecycle state
+  const { setHasUnsavedChanges } = useUnsavedChanges();
+  const [savedDraft, setSavedDraft] = useState<MetadataDraft | null>(null);
+  const [appliedAt, setAppliedAt] = useState<string | null>(null);
+  const [seoEditorHighlighted, setSeoEditorHighlighted] = useState(false);
+  const seoEditorRef = useRef<HTMLDivElement>(null);
+
+  // Compute draft state based on editor values vs saved/applied baseline
+  const draftState = useMemo((): MetadataDraftState => {
+    // If we have a saved draft and current editor matches saved draft (no edits since save)
+    if (savedDraft) {
+      const editorMatchesSaved =
+        editorTitle === savedDraft.title && editorDescription === savedDraft.description;
+      if (editorMatchesSaved) {
+        return 'saved';
+      }
+      // Editor differs from saved draft - unsaved changes
+      return 'unsaved';
+    }
+    // No saved draft - check if editor differs from initial/applied values
+    const hasEditorChanges =
+      editorTitle !== initialTitle || editorDescription !== initialDescription;
+    if (hasEditorChanges) {
+      return 'unsaved';
+    }
+    // No changes from baseline - could be applied state or initial
+    if (appliedAt) {
+      return 'applied';
+    }
+    return 'applied'; // Default to applied when no changes
+  }, [savedDraft, editorTitle, editorDescription, initialTitle, initialDescription, appliedAt]);
+
+  // Determine if Apply button should be enabled (only when saved draft exists and no unsaved edits)
+  const canApplyToShopify = useMemo(() => {
+    return draftState === 'saved' && savedDraft !== null;
+  }, [draftState, savedDraft]);
+
+  // Sync unsaved changes with global provider
+  useEffect(() => {
+    setHasUnsavedChanges(draftState === 'unsaved');
+  }, [draftState, setHasUnsavedChanges]);
+
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Load saved draft from session storage on mount
+  useEffect(() => {
+    if (!productId) return;
+    try {
+      const stored = sessionStorage.getItem(getMetadataDraftKey(productId));
+      if (stored) {
+        const draft = JSON.parse(stored) as MetadataDraft;
+        setSavedDraft(draft);
+        // Restore editor to saved draft values
+        setEditorTitle(draft.title);
+        setEditorDescription(draft.description);
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }, [productId]);
+
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Save draft handler
+  const handleSaveDraft = useCallback(() => {
+    const draft: MetadataDraft = {
+      title: editorTitle,
+      description: editorDescription,
+      savedAt: new Date().toISOString(),
+    };
+    setSavedDraft(draft);
+    try {
+      sessionStorage.setItem(getMetadataDraftKey(productId), JSON.stringify(draft));
+    } catch {
+      // Ignore storage errors
+    }
+    feedback.showSuccess('Draft saved. You can now apply it to Shopify.');
+  }, [editorTitle, editorDescription, productId, feedback]);
+
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Auto-scroll and highlight SEO editor
+  const scrollToAndHighlightSeoEditor = useCallback(() => {
+    if (seoEditorRef.current) {
+      seoEditorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setSeoEditorHighlighted(true);
+      setTimeout(() => setSeoEditorHighlighted(false), 2000);
+    }
+  }, []);
+
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Navigation protection for local router.push
+  const navigateWithUnsavedCheck = useCallback(
+    (href: string) => {
+      if (draftState === 'unsaved') {
+        const confirmed = window.confirm(
+          'You have unsaved changes. Are you sure you want to leave this page?'
+        );
+        if (!confirmed) return;
+      }
+      router.push(href);
+    },
+    [draftState, router]
+  );
 
   const fetchData = useCallback(async () => {
     try {
@@ -220,6 +331,9 @@ export default function ProductOptimizationPage() {
       setSuggestion(result);
 
       feedback.showSuccess('AI suggestion generated for this product.');
+
+      // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Scroll to SEO editor after generation
+      setTimeout(() => scrollToAndHighlightSeoEditor(), 100);
     } catch (err: unknown) {
       console.error('Error fetching AI suggestion:', err);
 
@@ -256,7 +370,7 @@ export default function ProductOptimizationPage() {
     } finally {
       setLoadingSuggestion(false);
     }
-  }, [product, feedback]);
+  }, [product, feedback, scrollToAndHighlightSeoEditor]);
 
   const recommendedAutomationIntent = useMemo(() => {
     if (!product) return 'unknown';
@@ -287,12 +401,13 @@ export default function ProductOptimizationPage() {
     } catch {
       // ignore
     }
-    router.push(
+    // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Use navigation protection
+    navigateWithUnsavedCheck(
       `/projects/${projectId}/automation/playbooks/entry?source=product_details&intent=${encodeURIComponent(
         recommendedAutomationIntent,
       )}`,
     );
-  }, [projectId, productId, product, router, recommendedAutomationIntent]);
+  }, [projectId, productId, product, navigateWithUnsavedCheck, recommendedAutomationIntent]);
 
   const fetchAnswers = useCallback(async () => {
     if (!product) return;
@@ -331,27 +446,52 @@ export default function ProductOptimizationPage() {
   const handleApplyToShopify = useCallback(async () => {
     if (!product) return;
 
+    // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Apply ONLY saved draft values, never auto-save
+    if (!savedDraft) {
+      feedback.showError('Please save your draft before applying to Shopify.');
+      return;
+    }
+
+    // Use saved draft values, not current editor values
+    const applyTitle = savedDraft.title;
+    const applyDescription = savedDraft.description;
+
     try {
       setApplyingToShopify(true);
       setError('');
 
-      await shopifyApi.updateProductSeo(product.id, editorTitle, editorDescription);
+      await shopifyApi.updateProductSeo(product.id, applyTitle, applyDescription);
 
-      // Update local product state
+      const applyTimestamp = new Date().toISOString();
+
+      // Update local product state with saved draft values
       setProduct((prev) =>
         prev
           ? {
               ...prev,
-              seoTitle: editorTitle,
-              seoDescription: editorDescription,
-              lastOptimizedAt: new Date().toISOString(),
+              seoTitle: applyTitle,
+              seoDescription: applyDescription,
+              lastOptimizedAt: applyTimestamp,
             }
           : prev
       );
 
-      // Update initial values to match new values
-      setInitialTitle(editorTitle);
-      setInitialDescription(editorDescription);
+      // Update initial values to match applied values
+      setInitialTitle(applyTitle);
+      setInitialDescription(applyDescription);
+
+      // Update editor to match applied values
+      setEditorTitle(applyTitle);
+      setEditorDescription(applyDescription);
+
+      // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Clear saved draft and set applied timestamp
+      setSavedDraft(null);
+      setAppliedAt(applyTimestamp);
+      try {
+        sessionStorage.removeItem(getMetadataDraftKey(productId));
+      } catch {
+        // Ignore storage errors
+      }
 
       const message =
         'SEO updated in Shopify successfully! Applied to Shopify and saved in EngineO.';
@@ -367,7 +507,7 @@ export default function ProductOptimizationPage() {
     } finally {
       setApplyingToShopify(false);
     }
-  }, [product, editorTitle, editorDescription, feedback]);
+  }, [product, savedDraft, productId, feedback]);
 
   const handleReset = useCallback(() => {
     setEditorTitle(initialTitle);
@@ -382,8 +522,10 @@ export default function ProductOptimizationPage() {
       if (values.description !== undefined) {
         setEditorDescription(values.description);
       }
+      // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Auto-scroll and highlight SEO editor after adding to draft
+      setTimeout(() => scrollToAndHighlightSeoEditor(), 100);
     },
-    []
+    [scrollToAndHighlightSeoEditor]
   );
 
   // [DEO-UX-REFRESH-1] Scroll removed - now using tab-based navigation
@@ -776,6 +918,39 @@ export default function ProductOptimizationPage() {
                 {activeTab === 'metadata' && (
                   <section aria-label="Metadata">
                     <h2 className="mb-4 text-base font-semibold text-gray-900">Metadata</h2>
+                    {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft state banner */}
+                    <div
+                      data-testid="draft-state-banner"
+                      className={`mb-4 rounded-md border px-4 py-3 text-sm ${
+                        draftState === 'unsaved'
+                          ? 'border-yellow-200 bg-yellow-50 text-yellow-800'
+                          : draftState === 'saved'
+                            ? 'border-blue-200 bg-blue-50 text-blue-800'
+                            : 'border-green-200 bg-green-50 text-green-800'
+                      }`}
+                    >
+                      {draftState === 'unsaved' && (
+                        <span className="font-medium">Draft — not applied</span>
+                      )}
+                      {draftState === 'saved' && (
+                        <span className="font-medium">Draft saved — not applied</span>
+                      )}
+                      {draftState === 'applied' && (
+                        <span className="font-medium">
+                          Applied to Shopify on{' '}
+                          {appliedAt
+                            ? new Date(appliedAt).toLocaleString()
+                            : product?.lastOptimizedAt
+                              ? new Date(product.lastOptimizedAt).toLocaleString()
+                              : product?.lastSyncedAt
+                                ? `${new Date(product.lastSyncedAt).toLocaleString()} (as of last sync)`
+                                : 'unknown date'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="mb-3 rounded-md border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs text-indigo-800">
+                      Generate drafts, review, then apply to Shopify.
+                    </div>
                     <div className="space-y-6">
                       <ProductAiSuggestionsPanel
                         suggestion={suggestion}
@@ -784,16 +959,29 @@ export default function ProductOptimizationPage() {
                         onGenerate={fetchSuggestion}
                         onApply={handleApplySuggestion}
                       />
-                      <ProductSeoEditor
-                        title={editorTitle}
-                        description={editorDescription}
-                        handle={product.handle ?? product.externalId}
-                        onTitleChange={setEditorTitle}
-                        onDescriptionChange={setEditorDescription}
-                        onReset={handleReset}
-                        onApplyToShopify={handleApplyToShopify}
-                        applying={applyingToShopify}
-                      />
+                      <div
+                        ref={seoEditorRef}
+                        data-testid="seo-editor-anchor"
+                        className={`rounded-md transition-all duration-300 ${
+                          seoEditorHighlighted
+                            ? 'ring-2 ring-indigo-400 ring-offset-2'
+                            : ''
+                        }`}
+                      >
+                        <ProductSeoEditor
+                          title={editorTitle}
+                          description={editorDescription}
+                          handle={product.handle ?? product.externalId}
+                          onTitleChange={setEditorTitle}
+                          onDescriptionChange={setEditorDescription}
+                          onReset={handleReset}
+                          onApplyToShopify={handleApplyToShopify}
+                          applying={applyingToShopify}
+                          draftState={draftState}
+                          canApply={canApplyToShopify}
+                          onSaveDraft={handleSaveDraft}
+                        />
+                      </div>
                     </div>
                   </section>
                 )}

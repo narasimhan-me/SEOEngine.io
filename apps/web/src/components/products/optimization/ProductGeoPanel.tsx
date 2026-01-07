@@ -12,6 +12,41 @@ import type {
 import { getQuestionLabel, getConfidenceBadgeClass } from '@/lib/geo';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 
+// [DRAFT-CLARITY-AND-ACTION-TRUST-1] Collapsible explainer component
+function CollapsibleExplainer({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="rounded-md border border-gray-200 bg-gray-50">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex w-full items-center justify-between px-3 py-2 text-left text-xs font-medium text-gray-700 hover:bg-gray-100"
+      >
+        <span>{title}</span>
+        <svg
+          className={`h-4 w-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {isOpen && (
+        <div className="border-t border-gray-200 px-3 py-2 text-xs text-gray-600">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface ProductGeoPanelProps {
   productId: string;
 }
@@ -149,6 +184,30 @@ export function ProductGeoPanel({ productId }: ProductGeoPanelProps) {
 
   return (
     <div className="space-y-6">
+      {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] GEO/AEO Inline Education */}
+      <div className="space-y-2">
+        <CollapsibleExplainer title="What is GEO?">
+          <p>
+            Generative Engine Optimization measures how well your content can be understood,
+            cited, and reused by AI answer engines.
+          </p>
+        </CollapsibleExplainer>
+        <CollapsibleExplainer title="What is Citation Confidence?">
+          <p className="mb-2">
+            Citation Confidence indicates how likely AI engines are to cite your content as a trustworthy source.
+            This is an estimate, not a guarantee.
+          </p>
+          <p className="font-medium mb-1">Ways to improve Citation Confidence:</p>
+          <ul className="list-disc list-inside space-y-0.5">
+            <li>Provide clear, factual answers to common questions</li>
+            <li>Use structured data and semantic markup</li>
+            <li>Keep content up-to-date and accurate</li>
+            <li>Include authoritative sources and citations</li>
+            <li>Ensure content is well-organized and scannable</li>
+          </ul>
+        </CollapsibleExplainer>
+      </div>
+
       {/* Citation Confidence Badge */}
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <div className="flex items-center justify-between">

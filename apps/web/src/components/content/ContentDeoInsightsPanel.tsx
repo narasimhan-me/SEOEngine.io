@@ -182,9 +182,10 @@ export function ContentDeoInsightsPanel({
             </div>
             <div className="space-y-2">
               {pageIssues.map((issue) => {
+                // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Use human-readable label, never show internal ID
                 const config = ISSUE_UI_CONFIG[issue.id] ?? {
-                  label: issue.id,
-                  description: '',
+                  label: issue.title ?? 'Issue detected',
+                  description: issue.description ?? '',
                 };
                 const severityColors = {
                   critical: 'border-red-200 bg-red-50 text-red-700',

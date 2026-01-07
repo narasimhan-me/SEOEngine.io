@@ -68,6 +68,16 @@ export function ProductAiSuggestionsPanel({
         <h3 className="text-sm font-semibold text-gray-900">AI SEO Suggestions</h3>
       </div>
 
+      {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Inline guidance */}
+      <div className="mb-4 rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+        <p className="font-medium text-gray-700 mb-1">How this works:</p>
+        <ul className="list-disc list-inside space-y-0.5">
+          <li>Generating creates a draft (uses AI)</li>
+          <li>Draft must be saved before you can Apply</li>
+          <li>Apply never uses AI and does not auto-save</li>
+        </ul>
+      </div>
+
       {/* Loading state */}
       {loading && (
         <div className="flex flex-col items-center justify-center py-8">
@@ -145,7 +155,7 @@ export function ProductAiSuggestionsPanel({
                 onClick={() => onApply({ title: automationSuggestion!.suggestedTitle! })}
                 className="mt-2 text-xs font-medium text-green-600 hover:text-green-800"
               >
-                Apply to editor
+                Add to draft
               </button>
             </div>
           )}
@@ -170,7 +180,7 @@ export function ProductAiSuggestionsPanel({
                 onClick={() => onApply({ description: automationSuggestion!.suggestedDescription! })}
                 className="mt-2 text-xs font-medium text-green-600 hover:text-green-800"
               >
-                Apply to editor
+                Add to draft
               </button>
             </div>
           )}
@@ -294,7 +304,7 @@ export function ProductAiSuggestionsPanel({
               onClick={() => onApply({ title: suggestion.suggested.title })}
               className="mt-2 text-xs font-medium text-purple-600 hover:text-purple-800"
             >
-              Apply to editor
+              Add to draft
             </button>
           </div>
 
@@ -317,7 +327,7 @@ export function ProductAiSuggestionsPanel({
               onClick={() => onApply({ description: suggestion.suggested.description })}
               className="mt-2 text-xs font-medium text-purple-600 hover:text-purple-800"
             >
-              Apply to editor
+              Add to draft
             </button>
           </div>
 

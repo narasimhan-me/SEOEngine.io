@@ -446,9 +446,7 @@ export function ProductAnswerBlocksPanel({
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       {getConfidenceBadge(block.confidenceScore)}
-                      <span className="text-[11px] uppercase tracking-wide text-gray-400">
-                        {block.questionId}
-                      </span>
+                      {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Removed questionId display (internal ID) */}
                     </div>
                   </div>
                   <textarea
@@ -504,20 +502,28 @@ export function ProductAnswerBlocksPanel({
                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                   />
                 </svg>
-                {isFreePlan ? 'Automation gated by plan' : 'Run Answer Block automation'}
+                {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Renamed to "Run Answer Block generation" */}
+                {isFreePlan ? 'Generation gated by plan' : 'Run Answer Block generation'}
               </button>
               <button
                 type="button"
                 onClick={handleManualSyncToShopify}
                 disabled={syncingToShopify}
+                title="Syncs Answer Blocks to Shopify metafields. Does not change metadata or product content."
                 className={`inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
                   syncingToShopify
                     ? 'cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400'
                     : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                {syncingToShopify ? 'Syncing…' : 'Sync now'}
+                {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Renamed to "Sync answers to Shopify" */}
+                {syncingToShopify ? 'Syncing…' : 'Sync answers to Shopify'}
               </button>
+            </div>
+            {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Inline guidance for actions */}
+            <div className="mt-2 text-[11px] text-gray-500 space-y-1">
+              <p><strong>Generation:</strong> Creates or improves missing/weak Answer Blocks in EngineO. Syncs to Shopify only if enabled in Settings.</p>
+              <p><strong>Sync:</strong> Sends Answer Blocks to Shopify metafields. Does not change metadata or product content.</p>
             </div>
           </div>
         </div>

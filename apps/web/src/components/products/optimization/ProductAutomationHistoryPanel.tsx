@@ -18,6 +18,72 @@ interface ProductAutomationHistoryPanelProps {
   productId: string;
 }
 
+// [DRAFT-CLARITY-AND-ACTION-TRUST-1] Filter types
+type StatusFilter = 'all' | 'succeeded' | 'skipped' | 'failed';
+type InitiatorFilter = 'all' | 'manual' | 'automation';
+
+// [DRAFT-CLARITY-AND-ACTION-TRUST-1] Human-readable skip reason mapping
+function getSkipReasonExplanation(action: string, errorMessage?: string | null): string | null {
+  if (action === 'skip_plan_free') {
+    return 'Skipped because the Free plan does not include Answer Block automation.';
+  }
+  if (action === 'skip_no_generated_answers') {
+    return 'Skipped because there were no AI-generated answers to process.';
+  }
+  if (action === 'skip_no_action') {
+    return 'Skipped because no action was needed (Answer Blocks were already up to date).';
+  }
+  if (action === 'skip_sync_toggle_off') {
+    return 'Skipped because Shopify sync is disabled in Project Settings.';
+  }
+  if (action === 'error' && errorMessage) {
+    return `Failed: ${errorMessage}`;
+  }
+  if (action.startsWith('skip_')) {
+    return `Skipped: ${action.replace('skip_', '').replace(/_/g, ' ')}`;
+  }
+  return null;
+}
+
+// [DRAFT-CLARITY-AND-ACTION-TRUST-1] Human-readable "what ran" description
+function getWhatRanLabel(log: AnswerBlockAutomationLog): string {
+  if (log.action === 'generate_missing') {
+    return 'Generated missing Answer Blocks';
+  }
+  if (log.action === 'regenerate_weak') {
+    return 'Regenerated weak Answer Blocks';
+  }
+  if (log.action.startsWith('skip_')) {
+    return 'Answer Block automation';
+  }
+  if (log.action === 'error') {
+    return 'Answer Block automation';
+  }
+  return 'Answer Block automation';
+}
+
+// [DRAFT-CLARITY-AND-ACTION-TRUST-1] Human-readable "why ran/skipped" description
+function getWhyRanLabel(log: AnswerBlockAutomationLog): string {
+  const triggerMap: Record<string, string> = {
+    manual: 'Manually triggered',
+    issue_detected: 'Triggered by issue detection',
+    scheduled: 'Scheduled automation',
+    product_sync: 'Triggered by product sync',
+    answer_block_save: 'Triggered by Answer Block save',
+  };
+  return triggerMap[log.triggerType] ?? `Trigger: ${log.triggerType}`;
+}
+
+// [DRAFT-CLARITY-AND-ACTION-TRUST-1] Human-readable "what was affected"
+function getWhatAffectedLabel(log: AnswerBlockAutomationLog): string {
+  if (log.status === 'succeeded') {
+    if (log.action === 'generate_missing' || log.action === 'regenerate_weak') {
+      return 'Answer Blocks in EngineO (synced to Shopify if enabled in Settings)';
+    }
+  }
+  return 'Answer Blocks in EngineO';
+}
+
 function formatDate(value: string) {
   if (!value) return '';
   try {
@@ -72,6 +138,9 @@ export function ProductAutomationHistoryPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Filter state
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [initiatorFilter, setInitiatorFilter] = useState<InitiatorFilter>('all');
 
   const loadLogs = useCallback(async () => {
     if (!productId) return;
@@ -101,14 +170,34 @@ export function ProductAutomationHistoryPanel({
   }, [loadLogs]);
 
   const hasLogs = logs.length > 0;
-  const sortedLogs = hasLogs
-    ? [...logs].sort((a, b) => {
+
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Apply filters to logs
+  const filteredLogs = logs.filter((log) => {
+    // Status filter
+    if (statusFilter !== 'all') {
+      const normalizedStatus = log.status.toLowerCase();
+      const isSkipped = log.action.startsWith('skip_');
+      if (statusFilter === 'succeeded' && normalizedStatus !== 'succeeded') return false;
+      if (statusFilter === 'failed' && normalizedStatus !== 'failed') return false;
+      if (statusFilter === 'skipped' && !isSkipped) return false;
+    }
+    // Initiator filter
+    if (initiatorFilter !== 'all') {
+      const isManual = log.triggerType === 'manual';
+      if (initiatorFilter === 'manual' && !isManual) return false;
+      if (initiatorFilter === 'automation' && isManual) return false;
+    }
+    return true;
+  });
+
+  const sortedLogs = filteredLogs.length > 0
+    ? [...filteredLogs].sort((a, b) => {
         const aTime = new Date(a.createdAt).getTime();
         const bTime = new Date(b.createdAt).getTime();
         return bTime - aTime;
       })
     : [];
-  const latestLog = hasLogs ? sortedLogs[0] : null;
+  const latestLog = hasLogs ? [...logs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] : null;
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -203,14 +292,25 @@ export function ProductAutomationHistoryPanel({
             <div className="text-[11px] text-gray-500">
               {formatDate(latestLog.createdAt)}
             </div>
-            <div className="mt-0.5 text-xs font-medium text-gray-900">
-              {getActionLabel(latestLog)}
+            {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Human-readable what/why/affected */}
+            <div className="mt-1 text-xs font-medium text-gray-900">
+              {getWhatRanLabel(latestLog)}
             </div>
             <div className="mt-0.5 text-[11px] text-gray-500">
-              Trigger:{' '}
-              <span className="font-mono">{latestLog.triggerType}</span> · Plan:{' '}
-              <span className="font-mono">{latestLog.planId}</span>
+              {getWhyRanLabel(latestLog)}
             </div>
+            <div className="mt-0.5 text-[11px] text-gray-500">
+              Affected: {getWhatAffectedLabel(latestLog)}
+            </div>
+            {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Skip/fail explanation */}
+            {getSkipReasonExplanation(latestLog.action, latestLog.errorMessage) && (
+              <div
+                data-testid="skipped-row-explanation"
+                className="mt-1 rounded bg-yellow-50 px-2 py-1 text-[11px] text-yellow-800"
+              >
+                {getSkipReasonExplanation(latestLog.action, latestLog.errorMessage)}
+              </div>
+            )}
             <button
               type="button"
               onClick={() => setExpanded((prev) => !prev)}
@@ -230,55 +330,82 @@ export function ProductAutomationHistoryPanel({
             </button>
           </div>
           {expanded && (
-            <div className="space-y-2 text-xs text-gray-700">
-              {sortedLogs.map((log) => (
-                <div
-                  key={log.id}
-                  className="flex items-start justify-between gap-3 border-b border-gray-100 pb-2 last:border-b-0 last:pb-0"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[11px] text-gray-500">
-                      {formatDate(log.createdAt)}
-                    </div>
-                    <div className="mt-0.5 text-xs font-medium text-gray-900">
-                      {getActionLabel(log)}
-                    </div>
-                    <div className="mt-0.5 text-[11px] text-gray-500">
-                      Trigger:{' '}
-                      <span className="font-mono">{log.triggerType}</span> · Plan:{' '}
-                      <span className="font-mono">{log.planId}</span>
-                    </div>
-                    {log.errorMessage && (
-                      <div className="mt-1 flex items-start gap-1 text-[11px] text-red-600">
-                        <svg
-                          className="mt-0.5 h-3 w-3 flex-shrink-0"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a1 1 0 00.86 1.5h18.64a1 1 0 00.86-1.5L13.71 3.86a1 1 0 00-1.72 0z"
-                          />
-                        </svg>
-                        <span className="line-clamp-2">
-                          {log.errorMessage}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-1 flex flex-col items-end gap-1">
-                    <StatusBadge status={log.status} />
-                    {log.modelUsed && (
-                      <span className="text-[10px] text-gray-400">
-                        Model: {log.modelUsed}
-                      </span>
-                    )}
-                  </div>
+            <div className="space-y-3 text-xs text-gray-700">
+              {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Filters */}
+              <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 pb-3">
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] text-gray-500">Status:</span>
+                  <select
+                    data-testid="automation-status-filter"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                    className="rounded border border-gray-200 px-2 py-0.5 text-[11px] text-gray-700"
+                  >
+                    <option value="all">All</option>
+                    <option value="succeeded">Succeeded</option>
+                    <option value="skipped">Skipped</option>
+                    <option value="failed">Failed</option>
+                  </select>
                 </div>
-              ))}
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] text-gray-500">Initiator:</span>
+                  <select
+                    data-testid="automation-initiator-filter"
+                    value={initiatorFilter}
+                    onChange={(e) => setInitiatorFilter(e.target.value as InitiatorFilter)}
+                    className="rounded border border-gray-200 px-2 py-0.5 text-[11px] text-gray-700"
+                  >
+                    <option value="all">All</option>
+                    <option value="manual">Manual</option>
+                    <option value="automation">Automation</option>
+                  </select>
+                </div>
+              </div>
+              {sortedLogs.length === 0 ? (
+                <div className="py-2 text-center text-[11px] text-gray-500">
+                  No runs match the current filters.
+                </div>
+              ) : (
+                sortedLogs.map((log) => (
+                  <div
+                    key={log.id}
+                    className="flex items-start justify-between gap-3 border-b border-gray-100 pb-2 last:border-b-0 last:pb-0"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] text-gray-500">
+                        {formatDate(log.createdAt)}
+                      </div>
+                      {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Human-readable what/why/affected */}
+                      <div className="mt-0.5 text-xs font-medium text-gray-900">
+                        {getWhatRanLabel(log)}
+                      </div>
+                      <div className="mt-0.5 text-[11px] text-gray-500">
+                        {getWhyRanLabel(log)}
+                      </div>
+                      <div className="mt-0.5 text-[11px] text-gray-500">
+                        Affected: {getWhatAffectedLabel(log)}
+                      </div>
+                      {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Skip/fail explanation */}
+                      {getSkipReasonExplanation(log.action, log.errorMessage) && (
+                        <div
+                          data-testid="skipped-row-explanation"
+                          className="mt-1 rounded bg-yellow-50 px-2 py-1 text-[11px] text-yellow-800"
+                        >
+                          {getSkipReasonExplanation(log.action, log.errorMessage)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-1 flex flex-col items-end gap-1">
+                      <StatusBadge status={log.status} />
+                      {log.modelUsed && (
+                        <span className="text-[10px] text-gray-400">
+                          Model: {log.modelUsed}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
         </div>

@@ -8,11 +8,22 @@ import type { DeoIssue, DeoIssueFixType } from '@/lib/deo-issues';
 import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
 import { ISSUE_UI_CONFIG } from '@/components/issues/IssuesList';
 import { isAuthenticated, getToken } from '@/lib/auth';
-import { ApiError, aiApi, projectsApi } from '@/lib/api';
+import { ApiError, aiApi, projectsApi, shopifyApi } from '@/lib/api';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 
 type SeverityFilter = 'all' | 'critical' | 'warning' | 'info';
 type PillarFilter = 'all' | DeoPillarId;
+
+// [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft state for issue fix preview
+type IssueDraftState = 'unsaved' | 'saved' | 'applied';
+
+interface IssueDraft {
+  issueId: string;
+  productId: string;
+  fieldLabel: 'SEO title' | 'SEO description';
+  value: string;
+  savedAt?: string;
+}
 
 export default function IssuesPage() {
   const router = useRouter();
@@ -40,6 +51,25 @@ export default function IssuesPage() {
   const [previewCurrentValue, setPreviewCurrentValue] = useState<string | null>(null);
   const [previewValue, setPreviewValue] = useState<string | null>(null);
   const previewPanelRef = useRef<HTMLDivElement | null>(null);
+
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft lifecycle state
+  const [savedDraft, setSavedDraft] = useState<IssueDraft | null>(null);
+  const [appliedAt, setAppliedAt] = useState<string | null>(null);
+  const [previewProductId, setPreviewProductId] = useState<string | null>(null);
+
+  // Compute draft state based on preview and saved draft
+  const getDraftState = useCallback((): IssueDraftState => {
+    if (appliedAt && !savedDraft && !previewValue) {
+      return 'applied';
+    }
+    if (savedDraft && previewIssueId === savedDraft.issueId && previewValue === savedDraft.value) {
+      return 'saved';
+    }
+    if (previewValue) {
+      return 'unsaved';
+    }
+    return 'applied';
+  }, [appliedAt, savedDraft, previewIssueId, previewValue]);
 
   const feedback = useFeedback();
 
@@ -255,6 +285,16 @@ export default function IssuesPage() {
       setPreviewFieldLabel(fieldLabel);
       setPreviewCurrentValue(currentValue);
       setPreviewValue(previewText);
+      // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Store productId and clear any old saved draft
+      setPreviewProductId(primaryProductId);
+      setSavedDraft(null);
+      setAppliedAt(null);
+      // Scroll preview panel into view
+      setTimeout(() => {
+        if (previewPanelRef.current) {
+          previewPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
     } catch (err: unknown) {
       console.error('Error generating AI preview for issue:', err);
 
@@ -273,66 +313,67 @@ export default function IssuesPage() {
     }
   };
 
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Save draft handler
+  const handleSaveDraft = useCallback((issue: DeoIssue) => {
+    if (!previewValue || !previewFieldLabel || !previewProductId || previewIssueId !== issue.id) {
+      return;
+    }
+    const draft: IssueDraft = {
+      issueId: issue.id,
+      productId: previewProductId,
+      fieldLabel: previewFieldLabel,
+      value: previewValue,
+      savedAt: new Date().toISOString(),
+    };
+    setSavedDraft(draft);
+    feedback.showSuccess('Draft saved. You can now apply it to Shopify.');
+  }, [previewValue, previewFieldLabel, previewProductId, previewIssueId, feedback]);
+
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Updated to apply saved draft only, no AI call
   const handleApplyFixFromPreview = async (issue: DeoIssue) => {
-    const primaryProductId = issue.primaryProductId;
-    const issueType = (issue.type as string | undefined) || issue.id;
-
-    if (!primaryProductId) {
-      feedback.showError('Cannot run AI fix: no primary product found for this issue.');
+    // Must have a saved draft to apply
+    if (!savedDraft || savedDraft.issueId !== issue.id) {
+      feedback.showError('Please save your draft before applying to Shopify.');
       return;
     }
 
-    if (!previewValue || !previewFieldLabel || !previewProductName || previewIssueId !== issue.id) {
-      return;
-    }
+    const { productId, fieldLabel, value } = savedDraft;
 
     try {
       setFixingIssueId(issue.id);
 
-      const result: any = await aiApi.fixIssueLite(
-        primaryProductId,
-        issueType as 'missing_seo_title' | 'missing_seo_description',
-      );
+      // Apply saved draft values directly to Shopify (no AI call)
+      if (fieldLabel === 'SEO title') {
+        // Apply title only, preserve current description
+        await shopifyApi.updateProductSeo(productId, value, previewCurrentValue ?? '');
+      } else {
+        // Apply description only, preserve current title
+        await shopifyApi.updateProductSeo(productId, previewCurrentValue ?? '', value);
+      }
 
-      const fieldLabel = previewFieldLabel;
+      const applyTimestamp = new Date().toISOString();
       const productName = previewProductName;
       const remainingCount = Math.max((issue.count ?? 1) - 1, 0);
 
-      if (result && result.updated) {
-        const message = `${fieldLabel} applied to '${productName}'. ${remainingCount} remaining.`;
-        feedback.showSuccess(message);
-        setPreviewIssueId(null);
-        await fetchIssues();
-      } else if (result && result.reason === 'already_has_value') {
-        feedback.showInfo(
-          `No changes applied: the ${fieldLabel} is already set for this product.`,
-        );
-        setPreviewIssueId(null);
-        await fetchIssues();
-      } else if (result && result.reason === 'no_suggestion') {
-        feedback.showInfo(
-          `AI could not generate a usable ${fieldLabel} for this product.`,
-        );
-      } else {
-        feedback.showInfo(`No changes applied to the ${fieldLabel}.`);
-      }
-    } catch (err: unknown) {
-      console.error('Error applying AI fix for issue:', err);
+      const message = `${fieldLabel} applied to '${productName}'. ${remainingCount} remaining.`;
+      feedback.showSuccess(message);
 
-      if (err instanceof ApiError && err.code === 'AI_DAILY_LIMIT_REACHED') {
-        const limitMessage =
-          'Token limit reached. Upgrade to continue fixing products.';
-        feedback.showLimit(limitMessage, '/settings/billing');
-        return;
-      }
+      // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Clear draft and set applied state
+      setSavedDraft(null);
+      setAppliedAt(applyTimestamp);
+      setPreviewIssueId(null);
+      setPreviewValue(null);
+      await fetchIssues();
+    } catch (err: unknown) {
+      console.error('Error applying fix to Shopify:', err);
 
       if (err instanceof ApiError && err.code === 'ENTITLEMENTS_LIMIT_REACHED') {
-        const message = 'Upgrade to fix additional products with AI.';
+        const message = 'Upgrade to apply fixes to Shopify.';
         feedback.showLimit(message, '/settings/billing');
         return;
       }
 
-      feedback.showError('Failed to run AI fix. Please try again.');
+      feedback.showError('Failed to apply fix to Shopify. Please try again.');
     } finally {
       setFixingIssueId(null);
     }
@@ -345,6 +386,9 @@ export default function IssuesPage() {
     setPreviewFieldLabel(null);
     setPreviewCurrentValue(null);
     setPreviewValue(null);
+    // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Clear draft state on cancel
+    setSavedDraft(null);
+    setPreviewProductId(null);
 
     const button = document.getElementById(
       `issue-fix-next-${issue.id}`,
@@ -614,6 +658,7 @@ export default function IssuesPage() {
                       <div
                         ref={previewPanelRef}
                         tabIndex={-1}
+                        data-testid="issue-preview-draft-panel"
                         className="mt-3 rounded-md border border-purple-100 bg-purple-50 p-3 text-xs text-gray-800 focus:outline-none"
                       >
                         {previewLoading ? (
@@ -622,6 +667,23 @@ export default function IssuesPage() {
                           <p className="text-xs text-red-600">{previewError}</p>
                         ) : previewValue ? (
                           <>
+                            {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft state banner */}
+                            <div
+                              data-testid="issue-draft-state-banner"
+                              className={`mb-2 rounded px-2 py-1 text-[11px] font-medium ${
+                                getDraftState() === 'unsaved'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : getDraftState() === 'saved'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-green-100 text-green-800'
+                              }`}
+                            >
+                              {getDraftState() === 'unsaved' && 'Draft — not applied'}
+                              {getDraftState() === 'saved' && 'Draft saved — not applied'}
+                              {getDraftState() === 'applied' && (
+                                <>Applied to Shopify on {appliedAt ? new Date(appliedAt).toLocaleString() : 'unknown date'}</>
+                              )}
+                            </div>
                             <p className="text-xs font-semibold">
                               {previewProductName || 'Selected product'}
                             </p>
@@ -651,16 +713,37 @@ export default function IssuesPage() {
                               </div>
                             </div>
                             <div className="mt-3 flex flex-wrap gap-2">
+                              {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Save draft button */}
+                              {getDraftState() === 'unsaved' && (
+                                <button
+                                  type="button"
+                                  data-testid="issue-save-draft-button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSaveDraft(issue);
+                                  }}
+                                  className="inline-flex items-center rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-100"
+                                >
+                                  Save draft
+                                </button>
+                              )}
+                              {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Apply to Shopify button - disabled unless draft is saved */}
                               <button
                                 type="button"
+                                data-testid="issue-apply-to-shopify-button"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleApplyFixFromPreview(issue);
                                 }}
-                                disabled={fixingIssueId === issue.id}
-                                className="inline-flex items-center rounded-md border border-purple-600 bg-purple-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                disabled={fixingIssueId === issue.id || getDraftState() !== 'saved'}
+                                title={
+                                  getDraftState() !== 'saved'
+                                    ? 'Save your draft first before applying to Shopify'
+                                    : 'Applies saved draft only. Does not use AI.'
+                                }
+                                className="inline-flex items-center rounded-md border border-green-600 bg-green-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
                               >
-                                {fixingIssueId === issue.id ? 'Applying…' : 'Apply fix'}
+                                {fixingIssueId === issue.id ? 'Applying…' : 'Apply to Shopify'}
                               </button>
                               <button
                                 type="button"

@@ -90,8 +90,8 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/ai-systems.md`, `docs/testing/token-usage-tracking.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/PRODUCTS-LIST-2.0.md` |
-| **Automated Tests** | Planned |
+| **Manual Testing Doc(s)** | `docs/testing/ai-systems.md`, `docs/testing/token-usage-tracking.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/PRODUCTS-LIST-2.0.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md` |
+| **Automated Tests** | `tests/e2e/draft-clarity-and-action-trust-1.spec.ts` |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | AI Team |
@@ -111,6 +111,11 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] PRODUCTS-LIST-2.0: Command Bar with attention count and "Fix in bulk" CTA
 - [ ] PRODUCTS-LIST-2.0: Sort by impact uses fixed ladder (Critical: missing metadata > blocking technical > combined; Needs Attention: intent > content > metadata), deterministic and stable across reloads
 - [ ] PRODUCTS-LIST-2.0: Bulk action confirmation (3-step flow) — scope listed, AI disclosure on Generate drafts, Apply updates disabled until drafts exist, Apply uses no AI, partial failures handled with retry
+- [ ] DRAFT-CLARITY-AND-ACTION-TRUST-1: 3-state draft lifecycle (unsaved → saved → applied)
+- [ ] DRAFT-CLARITY-AND-ACTION-TRUST-1: Apply button disabled until draft is saved
+- [ ] DRAFT-CLARITY-AND-ACTION-TRUST-1: Apply never calls AI (uses saved draft values directly)
+- [ ] DRAFT-CLARITY-AND-ACTION-TRUST-1: "Add to draft" semantics (not "Apply to editor")
+- [ ] DRAFT-CLARITY-AND-ACTION-TRUST-1: Inline guidance explains Generate uses AI, Apply does not
 
 ---
 
@@ -167,8 +172,8 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/shopify-integration.md`, `docs/testing/product-sync.md`, `docs/testing/metadata-sync-seo-fields.md`, `docs/testing/sync-status-and-progress-feedback.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-shop-api-1-graphql-migration.md`, `docs/manual-testing/phase-shop-ux-cta-1-connect-shopify.md`, `docs/manual-testing/phase-shop-ux-cta-1-1-dedup-connect-shopify.md`, `docs/manual-testing/MEDIA-1.md` |
-| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1) |
+| **Manual Testing Doc(s)** | `docs/testing/shopify-integration.md`, `docs/testing/product-sync.md`, `docs/testing/metadata-sync-seo-fields.md`, `docs/testing/sync-status-and-progress-feedback.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-shop-api-1-graphql-migration.md`, `docs/manual-testing/phase-shop-ux-cta-1-connect-shopify.md`, `docs/manual-testing/phase-shop-ux-cta-1-1-dedup-connect-shopify.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md` |
+| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `tests/e2e/draft-clarity-and-action-trust-1.spec.ts` |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | Integrations Team |
@@ -188,6 +193,8 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] ROLES-3 FIXUP-5: Shopify OWNER-only actions accept any project OWNER member (co-owner), not only Project.userId
 - [ ] ROLES-3 FIXUP-5: Co-owner can perform sync-products, ensure-metafield-definitions, install
 - [ ] ROLES-3 FIXUP-5: Co-owner can disconnect store (with account OWNER + project OWNER)
+- [ ] DRAFT-CLARITY-AND-ACTION-TRUST-1: Apply to Shopify uses saved draft values (not AI)
+- [ ] DRAFT-CLARITY-AND-ACTION-TRUST-1: Issues page Apply uses Shopify API directly
 
 ---
 
@@ -218,8 +225,8 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md` |
-| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts` |
+| **Manual Testing Doc(s)** | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md` |
+| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `tests/e2e/draft-clarity-and-action-trust-1.spec.ts` |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | Frontend Team |
@@ -233,6 +240,12 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] NAV-IA-CONSISTENCY-1: Design tokens (bg-background, text-foreground, etc.)
 - [ ] NAV-IA-CONSISTENCY-1: Dark mode toggle with localStorage persistence
 - [ ] NAV-IA-CONSISTENCY-1: Token-based styling on marketing pages
+- [ ] DRAFT-CLARITY-AND-ACTION-TRUST-1: Draft state banner shows 3 states (unsaved, saved, applied)
+- [ ] DRAFT-CLARITY-AND-ACTION-TRUST-1: Unsaved changes navigation blocking dialog
+- [ ] DRAFT-CLARITY-AND-ACTION-TRUST-1: GEO collapsible explainers (What is GEO?, What is Citation Confidence?)
+- [ ] DRAFT-CLARITY-AND-ACTION-TRUST-1: Automation history filters (Status, Initiator)
+- [ ] DRAFT-CLARITY-AND-ACTION-TRUST-1: Human-readable skip reason explanations
+- [ ] DRAFT-CLARITY-AND-ACTION-TRUST-1: No internal ID leakage in issue displays
 
 ---
 
@@ -734,3 +747,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 4.9 | 2025-12-24 | ROLES-3 PENDING-1: Approval attribution UI + doc alignment. Playbooks Step 3 shows requester/approver identity + timestamp. Updated CP-019 Auto Tests field (roles-3.test.ts present), Coverage Summary to Full Coverage. Added attribution scenarios to CP-019. |
 | 5.0 | 2025-12-24 | ROLES-3-HARDEN-1: Added Playwright E2E tests (roles-3.spec.ts). Test A: EDITOR+OWNER approval workflow. Test B: VIEWER read-only gating. Test C: Multi-user project detection. Removed (planned) designation from CP-019 Auto Tests. |
 | 5.1 | 2026-01-06 | NAV-IA-CONSISTENCY-1: Updated CP-001 with auth terminology scenarios ("Sign in" not "Log in", "Create account" not "Sign up"). Updated CP-008 with design tokens, dark mode toggle, and token-based styling. Added nav-ia-consistency-1.spec.ts automated tests. Added manual testing doc. |
+| 5.2 | 2026-01-07 | DRAFT-CLARITY-AND-ACTION-TRUST-1: Updated CP-003 with 3-state draft lifecycle, Apply button gating, and inline guidance scenarios. Updated CP-006 with Apply uses saved draft (not AI) scenarios. Updated CP-008 with draft state banner, navigation blocking, GEO explainers, automation history filters, skip explanations, and internal ID leakage prevention scenarios. Added draft-clarity-and-action-trust-1.spec.ts E2E tests. Added manual testing doc. |
