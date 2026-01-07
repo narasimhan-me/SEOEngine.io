@@ -173,7 +173,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | Field | Value |
 |-------|-------|
 | **Manual Testing Doc(s)** | `docs/testing/shopify-integration.md`, `docs/testing/product-sync.md`, `docs/testing/metadata-sync-seo-fields.md`, `docs/testing/sync-status-and-progress-feedback.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-shop-api-1-graphql-migration.md`, `docs/manual-testing/phase-shop-ux-cta-1-connect-shopify.md`, `docs/manual-testing/phase-shop-ux-cta-1-1-dedup-connect-shopify.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md` |
-| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `tests/e2e/draft-clarity-and-action-trust-1.spec.ts` |
+| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts` |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | Integrations Team |
@@ -226,7 +226,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | Field | Value |
 |-------|-------|
 | **Manual Testing Doc(s)** | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md` |
-| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `tests/e2e/draft-clarity-and-action-trust-1.spec.ts` |
+| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts` |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | Frontend Team |

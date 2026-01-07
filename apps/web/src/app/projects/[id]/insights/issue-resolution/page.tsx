@@ -8,6 +8,14 @@ import { projectsApi } from '@/lib/api';
 import type { ProjectInsightsResponse } from '@/lib/insights';
 import { InsightsSubnav } from '@/components/projects/InsightsSubnav';
 import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
+import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
+
+// [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Get human-readable pillar label
+function getPillarLabel(pillarId: string | undefined): string {
+  if (!pillarId) return 'Unknown';
+  const pillar = DEO_PILLARS.find(p => p.id === pillarId);
+  return pillar?.shortName ?? pillar?.label ?? 'Unknown';
+}
 
 /**
  * [INSIGHTS-1] Issue Resolution Page
@@ -151,15 +159,20 @@ export default function IssueResolutionPage() {
         ) : (
           <div className="rounded-lg border border-gray-200 bg-white divide-y divide-gray-100">
             {issueResolution.topRecent.map(issue => (
-              <div key={issue.issueId} className="p-4 flex items-center justify-between">
+              // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Clickable row with human pillar label
+              <Link
+                key={issue.issueId}
+                href={`/projects/${projectId}/issues${issue.pillarId ? `?pillar=${issue.pillarId}` : ''}`}
+                className="p-4 flex items-center justify-between hover:bg-blue-50/50 transition-colors"
+              >
                 <div>
                   <p className="text-sm font-medium text-gray-900">{issue.title}</p>
-                  <p className="text-xs text-gray-500">{issue.pillarId}</p>
+                  <p className="text-xs text-gray-500">{getPillarLabel(issue.pillarId)}</p>
                 </div>
                 <p className="text-xs text-gray-400">
                   {new Date(issue.resolvedAt).toLocaleDateString()}
                 </p>
-              </div>
+              </Link>
             ))}
           </div>
         )}
@@ -173,10 +186,15 @@ export default function IssueResolutionPage() {
         ) : (
           <div className="rounded-lg border border-gray-200 bg-white divide-y divide-gray-100">
             {issueResolution.openHighImpact.map(issue => (
-              <div key={issue.issueId} className="p-4 flex items-center justify-between">
+              // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Clickable row with human pillar label
+              <Link
+                key={issue.issueId}
+                href={`/projects/${projectId}/issues${issue.pillarId ? `?pillar=${issue.pillarId}` : ''}${issue.severity ? `&severity=${issue.severity}` : ''}`}
+                className="p-4 flex items-center justify-between hover:bg-blue-50/50 transition-colors"
+              >
                 <div>
                   <p className="text-sm font-medium text-gray-900">{issue.title}</p>
-                  <p className="text-xs text-gray-500">{issue.pillarId}</p>
+                  <p className="text-xs text-gray-500">{getPillarLabel(issue.pillarId)}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className={`text-xs px-2 py-0.5 rounded-full ${
@@ -188,7 +206,7 @@ export default function IssueResolutionPage() {
                   </span>
                   <span className="text-xs text-gray-500">{issue.affectedCount} affected</span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

@@ -12908,3 +12908,26 @@ This fixup batch addresses post-implementation verification corrections:
 4. **PATCH 4:** Added projectId prop to IssuesList for deterministic routing, made issue cards clickable with deep-links, removed internal product ID leakage in affected items display.
 5. **PATCH 5:** Wired ProductAnswerBlocksPanel `hasChanges` into `UnsavedChangesProvider`, fixed automation history initiator mapping (`manual_sync` → Manual), fixed skipped detection using `status='skipped'`.
 6. **PATCH 6:** Updated documentation test path references from `tests/e2e/` to `apps/web/tests/`.
+
+### DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2 (Remaining UX + Docs Consistency)
+
+**Status:** Complete
+**Date:** 2026-01-07
+
+This fixup batch addresses remaining UX improvements and documentation consistency:
+
+1. **PATCH 1:** Overview page updates:
+   - Renamed "Sync now" → "Sync answers to Shopify" with inline guidance: "Does not change metadata or product content."
+   - Made Top Blockers issue titles actionable with deterministic deep-links to fix locations (pillar → tab mapping)
+   - Added `projectId` prop to IssuesList in modal for deep-linking
+2. **PATCH 2:** AI Suggestions Panel corrected inline guidance to accurately reflect behavior:
+   - "Generate creates suggestions (uses AI)"
+   - "Click 'Add to draft' to stage changes (not applied)"
+   - "Save draft enables Apply; Apply uses saved drafts only and does not auto-save or use AI"
+3. **PATCH 3:** Product Issues Panel made issue rows clickable with deep-links using pillar → tab mapping
+4. **PATCH 4:** Insights Issue Resolution page:
+   - Made "Recently Resolved" and "High-Impact Open Issues" rows clickable with links to Issues page filtered by pillar
+   - Replaced raw `pillarId` strings with human-readable labels using `DEO_PILLARS` mapping
+5. **PATCH 5:** Documentation fixes:
+   - Fixed remaining `tests/e2e/` references in CRITICAL_PATH_MAP.md (CP-006, CP-008)
+   - Fixed Playwright command path in DRAFT-CLARITY-AND-ACTION-TRUST-1.md

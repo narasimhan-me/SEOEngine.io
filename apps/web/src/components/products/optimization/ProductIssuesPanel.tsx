@@ -122,7 +122,7 @@ export function ProductIssuesPanel({
             </div>
             <div className="divide-y divide-gray-100">
               {group.issues.map((issue) => (
-                <IssueRow key={issue.id} issue={issue} />
+                <IssueRow key={issue.id} issue={issue} projectId={projectId} productId={productId} />
               ))}
             </div>
           </div>
@@ -180,10 +180,26 @@ function FixNextBadge({
   );
 }
 
+// [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Pillar to tab mapping for deterministic routing
+const PILLAR_TO_TAB_MAP: Record<DeoPillarId, string> = {
+  metadata_snippet_quality: 'metadata',
+  content_commerce_signals: 'answers',
+  search_intent_fit: 'search-intent',
+  competitive_positioning: 'competitors',
+  offsite_signals: 'metadata',
+  media_accessibility: 'metadata',
+  local_discovery: 'metadata',
+  technical_indexability: 'metadata',
+};
+
 function IssueRow({
   issue,
+  projectId,
+  productId,
 }: {
   issue: DeoIssue;
+  projectId: string;
+  productId: string;
 }) {
   const severityColors = {
     critical: 'bg-red-100 text-red-800 border-red-200',
@@ -191,8 +207,16 @@ function IssueRow({
     info: 'bg-blue-100 text-blue-800 border-blue-200',
   };
 
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Deep-link to the fix tab
+  const pillarId = issue.pillarId as DeoPillarId | undefined;
+  const targetTab = pillarId ? PILLAR_TO_TAB_MAP[pillarId] ?? 'metadata' : 'metadata';
+  const href = `/projects/${projectId}/products/${productId}?tab=${targetTab}&from=product_issues&issueId=${issue.id}`;
+
   return (
-    <div className="px-4 py-3 flex items-start gap-3">
+    <Link
+      href={href}
+      className="px-4 py-3 flex items-start gap-3 hover:bg-blue-50/50 transition-colors cursor-pointer"
+    >
       <span
         className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
           severityColors[issue.severity] ?? severityColors.info
@@ -217,6 +241,6 @@ function IssueRow({
           AI fixable
         </span>
       )}
-    </div>
+    </Link>
   );
 }

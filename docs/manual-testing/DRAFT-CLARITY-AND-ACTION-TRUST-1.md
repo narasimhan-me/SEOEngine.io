@@ -347,7 +347,7 @@
 
 ### Follow-up verification:
 
-- [ ] Playwright tests pass: `pnpm test:e2e tests/e2e/draft-clarity-and-action-trust-1.spec.ts`
+- [ ] Playwright tests pass: `pnpm test:e2e apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`
 
 ---
 

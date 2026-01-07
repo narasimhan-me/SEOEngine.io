@@ -11,6 +11,7 @@ import type {
   DeoScoreSignals,
   DeoIssue,
 } from '@/lib/deo-issues';
+import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
 
 interface DeoIssuesResponse {
   projectId: string;
@@ -122,6 +123,42 @@ function formatIssueOutcome(issue: DeoIssue): string {
     return issue.description;
   }
   return issue.title;
+}
+
+// [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Pillar to tab mapping for deterministic routing
+const PILLAR_TO_TAB_MAP: Record<DeoPillarId, string> = {
+  metadata_snippet_quality: 'metadata',
+  content_commerce_signals: 'answers',
+  search_intent_fit: 'search-intent',
+  competitive_positioning: 'competitors',
+  offsite_signals: 'metadata',
+  media_accessibility: 'metadata',
+  local_discovery: 'metadata',
+  technical_indexability: 'metadata',
+};
+
+// [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Get deterministic deep-link for an issue
+function getIssueDeepLink(issue: DeoIssue, projectId: string): string {
+  const pillarId = issue.pillarId as DeoPillarId | undefined;
+  const tab = pillarId ? PILLAR_TO_TAB_MAP[pillarId] ?? 'metadata' : 'metadata';
+
+  // If issue has a primary product, link to that product's tab
+  if (issue.primaryProductId) {
+    return `/projects/${projectId}/products/${issue.primaryProductId}?tab=${tab}&from=overview&issueId=${issue.id}`;
+  }
+
+  // If issue has affected products, link to first product
+  if (issue.affectedProducts && issue.affectedProducts.length > 0) {
+    return `/projects/${projectId}/products/${issue.affectedProducts[0]}?tab=${tab}&from=overview&issueId=${issue.id}`;
+  }
+
+  // Fall back to issues page filtered by pillar
+  if (pillarId) {
+    return `/projects/${projectId}/issues?pillar=${pillarId}`;
+  }
+
+  // Default to issues page
+  return `/projects/${projectId}/issues`;
 }
 
 export default function ProjectOverviewPage() {
@@ -920,7 +957,7 @@ export default function ProjectOverviewPage() {
                   </div>
                 )}
               </div>
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => router.push(`/projects/${projectId}/products`)}
@@ -938,8 +975,10 @@ export default function ProjectOverviewPage() {
                       : 'border-blue-600 bg-blue-50 text-blue-700 hover:bg-blue-100'
                   }`}
                 >
-                  {syncingAeoToShopify ? 'Syncing…' : 'Sync now'}
+                  {syncingAeoToShopify ? 'Syncing…' : 'Sync answers to Shopify'}
                 </button>
+                {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Inline guidance */}
+                <span className="text-[10px] text-gray-500">Does not change metadata or product content.</span>
               </div>
             </div>
             {/* Top Products to Fix (primary action area) */}
@@ -1177,15 +1216,13 @@ export default function ProjectOverviewPage() {
                     className="flex items-start justify-between gap-3"
                   >
                     <div className="min-w-0">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          router.push(`/projects/${projectId}/issues`)
-                        }
+                      {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Deep-link to fix location */}
+                      <Link
+                        href={getIssueDeepLink(issue, projectId)}
                         className="truncate text-xs font-medium text-blue-700 hover:text-blue-900"
                       >
                         {issue.title}
-                      </button>
+                      </Link>
                       <p className="mt-0.5 truncate text-[11px] text-gray-500">
                         {formatIssueOutcome(issue)}
                       </p>
@@ -1539,7 +1576,8 @@ export default function ProjectOverviewPage() {
               </div>
               {/* Content - scrollable */}
               <div className="max-h-[calc(90vh-100px)] overflow-y-auto px-6 py-5">
-                <IssuesList issues={(deoIssues?.issues as DeoIssue[]) ?? []} />
+                {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Pass projectId for deep-linking */}
+                <IssuesList issues={(deoIssues?.issues as DeoIssue[]) ?? []} projectId={projectId} />
               </div>
             </div>
           </div>

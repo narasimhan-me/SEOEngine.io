@@ -68,13 +68,13 @@ export function ProductAiSuggestionsPanel({
         <h3 className="text-sm font-semibold text-gray-900">AI SEO Suggestions</h3>
       </div>
 
-      {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Inline guidance */}
+      {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Corrected inline guidance */}
       <div className="mb-4 rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-600">
         <p className="font-medium text-gray-700 mb-1">How this works:</p>
         <ul className="list-disc list-inside space-y-0.5">
-          <li>Generating creates a draft (uses AI)</li>
-          <li>Draft must be saved before you can Apply</li>
-          <li>Apply never uses AI and does not auto-save</li>
+          <li>Generate creates suggestions (uses AI)</li>
+          <li>Click &quot;Add to draft&quot; to stage changes (not applied)</li>
+          <li>Save draft enables Apply; Apply uses saved drafts only and does not auto-save or use AI</li>
         </ul>
       </div>
 
