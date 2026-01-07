@@ -155,30 +155,33 @@ The following refinements were made in FIXUP-2:
 
 ---
 
-### Scenario 3: Context Routing Validation (from=issues&issueId=... on Product + Work Queue)
+### Scenario 3: Context Routing Validation (issueId Triggers Banner on Product + Work Queue)
 
 **ID:** HP-003
 
 **Preconditions:**
 - Project has issues
 
-**Steps:**
-1. Manually navigate to: `/projects/{projectId}/products/{productId}?from=issues&issueId={validIssueId}&tab=metadata`
+**Note:** [FIXUP-3] The issue-fix context banner triggers when `issueId` is present in the URL. The `from` parameter is optional and preserves navigation origin context but is NOT required for banner visibility.
+
+**Steps (Product):**
+1. Manually navigate to: `/projects/{projectId}/products/{productId}?issueId={validIssueId}&tab=metadata`
 2. Observe the page
 
 **Expected Results:**
 - **UI:**
-  - Issue fix context banner visible
+  - Issue fix context banner visible (triggered by `issueId` presence)
   - Banner text: "You're here to fix: {Issue title}"
   - "Back to Issues" link present
+- **Optional:** Adding `from=issues` or `from=overview` preserves origin context but doesn't affect banner visibility
 
 **Steps (Work Queue):**
-1. Manually navigate to: `/projects/{projectId}/work-queue?from=issues&issueId={issueId}`
+1. Manually navigate to: `/projects/{projectId}/work-queue?issueId={issueId}`
 2. Observe the page
 
 **Expected Results:**
 - **UI:**
-  - `data-testid="work-queue-issue-fix-context-banner"` visible
+  - `data-testid="work-queue-issue-fix-context-banner"` visible (triggered by `issueId` alone)
   - Banner text: "You're here to fix: {Issue title}"
   - "Back to Issues" link present
 

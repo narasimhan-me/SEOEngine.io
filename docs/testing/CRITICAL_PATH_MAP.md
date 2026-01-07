@@ -249,7 +249,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] ISSUE-TO-FIX-PATH-1: Issue click lands on visible fix surface with context banner
 - [ ] ISSUE-TO-FIX-PATH-1: Issue counts reflect ONLY actionable issues (badge == rows)
 - [ ] ISSUE-TO-FIX-PATH-1: Orphan issues display "Informational — no action required" badge
-- [ ] ISSUE-TO-FIX-PATH-1: Work Queue shows issue fix context banner when from=issues
+- [ ] ISSUE-TO-FIX-PATH-1: Work Queue shows issue fix context banner when issueId is present
 - [ ] ISSUE-TO-FIX-PATH-1: No internal ID leakage via getSafeIssueTitle/Description
 - [ ] ISSUE-TO-FIX-PATH-1 FIXUP-1: Issue-fix mode triggers on issueId alone (not from=issues)
 - [ ] ISSUE-TO-FIX-PATH-1 FIXUP-1: Overview Top blockers shows actionable issues only

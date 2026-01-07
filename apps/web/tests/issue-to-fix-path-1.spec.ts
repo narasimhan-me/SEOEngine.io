@@ -296,11 +296,15 @@ test.describe('ISSUE-TO-FIX-PATH-1: Orphan issues are not actionable', () => {
     }
   });
 
-  test('Work Queue issue fix banner shows when from=issues', async ({ page, request }) => {
+  /**
+   * [ISSUE-TO-FIX-PATH-1 FIXUP-3] Work Queue banner triggers on issueId alone.
+   * The `from` parameter is optional context; banner visibility depends only on issueId presence.
+   */
+  test('Work Queue issue fix banner shows when issueId is present (no from required)', async ({ page, request }) => {
     const { projectId } = await authenticatePage(page, request);
 
-    // Navigate to Work Queue with issue context
-    await page.goto(`/projects/${projectId}/work-queue?from=issues&issueId=missing_seo_title`);
+    // [ISSUE-TO-FIX-PATH-1 FIXUP-3] Navigate to Work Queue with issueId only (no from=issues)
+    await page.goto(`/projects/${projectId}/work-queue?issueId=missing_seo_title`);
 
     // Wait for page to load
     await page.waitForLoadState('networkidle');
@@ -308,7 +312,7 @@ test.describe('ISSUE-TO-FIX-PATH-1: Orphan issues are not actionable', () => {
     // Check for issue-fix-context-banner
     const fixBanner = page.getByTestId('work-queue-issue-fix-context-banner');
 
-    // Banner should be visible when from=issues and issueId present
+    // [ISSUE-TO-FIX-PATH-1 FIXUP-3] Banner should be visible when issueId is present (from is optional)
     await expect(fixBanner).toBeVisible();
 
     // Verify banner shows "You're here to fix:"
