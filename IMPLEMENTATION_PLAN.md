@@ -12998,3 +12998,33 @@ This fixup batch addresses stale global unsaved-state prevention to avoid double
 - `apps/web/src/app/projects/[id]/issues/page.tsx` (unsaved state cleanup)
 - `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts` (regression test)
 - `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md` (manual testing updates)
+
+---
+
+## Phase ISSUE-TO-FIX-PATH-1: Trust-Critical UX Hardening for Issue→Fix Path ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-07
+**Critical Paths:** CP-008 (Issue-to-Fix-Path)
+
+### Locked Contract
+
+Every surfaced issue is fixable now; actionable iff deterministic fix href exists; context banner + highlight on arrival; no internal IDs in UX; no dead-click affordances.
+
+### Single Sources of Truth
+
+- `apps/web/src/lib/issue-to-fix-path.ts` — Fix path routing logic, safe title/description helpers
+- `apps/web/src/lib/issue-ui-config.ts` — Issue UI configuration (human-readable labels)
+
+### Verification Artifacts
+
+- `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md` — Manual testing guide
+- `apps/web/tests/issue-to-fix-path-1.spec.ts` — Playwright E2E tests
+- `docs/testing/CRITICAL_PATH_MAP.md` — CP-008 coverage scenarios
+
+### FIXUP Summary
+
+- **FIXUP-1:** Circular import removal + actionable-only surfaces (Overview, DEO, Issues page counts) + issueId triggers fix-mode (from optional)
+- **FIXUP-2:** Href-based Issues page actionability (`buildIssueFixHref !== null`) + ID leakage hardening via `getSafeIssueTitle`/`getSafeIssueDescription` + dead-click regression test
+- **FIXUP-3:** Alignment-only — Work Queue banner triggers on issueId (from optional), docs/tests/CP-008 wording aligned
+- **FIXUP-4:** Docs continuity — Added FIXUP summary to docs/IMPLEMENTATION_PLAN.md phase section, changelog rows for FIXUP-2/FIXUP-3, CRITICAL_PATH_MAP version history
