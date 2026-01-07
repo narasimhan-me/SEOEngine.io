@@ -91,7 +91,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | Field | Value |
 |-------|-------|
 | **Manual Testing Doc(s)** | `docs/testing/ai-systems.md`, `docs/testing/token-usage-tracking.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/PRODUCTS-LIST-2.0.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md` |
-| **Automated Tests** | `tests/e2e/draft-clarity-and-action-trust-1.spec.ts` |
+| **Automated Tests** | `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts` |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | AI Team |

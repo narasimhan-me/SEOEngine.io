@@ -23,7 +23,42 @@ type StatusFilter = 'all' | 'succeeded' | 'skipped' | 'failed';
 type InitiatorFilter = 'all' | 'manual' | 'automation';
 
 // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Human-readable skip reason mapping
-function getSkipReasonExplanation(action: string, errorMessage?: string | null): string | null {
+function getSkipReasonExplanation(
+  action: string,
+  status: string,
+  errorMessage?: string | null
+): string | null {
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Check status='skipped' first
+  if (status === 'skipped') {
+    // Check error message for specific skip reasons (from sync logs)
+    if (errorMessage === 'sync_toggle_off') {
+      return 'Skipped because Shopify sync is disabled in Project Settings.';
+    }
+    if (errorMessage === 'plan_not_entitled') {
+      return 'Skipped because your plan does not include this feature.';
+    }
+    if (errorMessage === 'daily_cap_reached') {
+      return 'Skipped because the daily sync limit has been reached.';
+    }
+    // Check action for specific skip reasons (from automation logs)
+    if (action === 'skip_plan_free') {
+      return 'Skipped because the Free plan does not include Answer Block automation.';
+    }
+    if (action === 'skip_no_generated_answers') {
+      return 'Skipped because there were no AI-generated answers to process.';
+    }
+    if (action === 'skip_no_action') {
+      return 'Skipped because no action was needed (Answer Blocks were already up to date).';
+    }
+    if (action === 'skip_sync_toggle_off') {
+      return 'Skipped because Shopify sync is disabled in Project Settings.';
+    }
+    if (action.startsWith('skip_')) {
+      return `Skipped: ${action.replace('skip_', '').replace(/_/g, ' ')}`;
+    }
+    return 'Skipped (see details).';
+  }
+  // Legacy action-based skip detection
   if (action === 'skip_plan_free') {
     return 'Skipped because the Free plan does not include Answer Block automation.';
   }
@@ -37,6 +72,9 @@ function getSkipReasonExplanation(action: string, errorMessage?: string | null):
     return 'Skipped because Shopify sync is disabled in Project Settings.';
   }
   if (action === 'error' && errorMessage) {
+    return `Failed: ${errorMessage}`;
+  }
+  if (status === 'failed' && errorMessage) {
     return `Failed: ${errorMessage}`;
   }
   if (action.startsWith('skip_')) {
@@ -171,19 +209,21 @@ export function ProductAutomationHistoryPanel({
 
   const hasLogs = logs.length > 0;
 
-  // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Apply filters to logs
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Apply filters to logs
   const filteredLogs = logs.filter((log) => {
     // Status filter
     if (statusFilter !== 'all') {
       const normalizedStatus = log.status.toLowerCase();
-      const isSkipped = log.action.startsWith('skip_');
+      // [FIXUP-1] Use status='skipped' as primary check, with action fallback
+      const isSkipped = normalizedStatus === 'skipped' || log.action.startsWith('skip_');
       if (statusFilter === 'succeeded' && normalizedStatus !== 'succeeded') return false;
       if (statusFilter === 'failed' && normalizedStatus !== 'failed') return false;
       if (statusFilter === 'skipped' && !isSkipped) return false;
     }
     // Initiator filter
     if (initiatorFilter !== 'all') {
-      const isManual = log.triggerType === 'manual';
+      // [FIXUP-1] Treat 'manual' and 'manual_sync' as manual triggers
+      const isManual = log.triggerType === 'manual' || log.triggerType === 'manual_sync';
       if (initiatorFilter === 'manual' && !isManual) return false;
       if (initiatorFilter === 'automation' && isManual) return false;
     }
@@ -303,12 +343,12 @@ export function ProductAutomationHistoryPanel({
               Affected: {getWhatAffectedLabel(latestLog)}
             </div>
             {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Skip/fail explanation */}
-            {getSkipReasonExplanation(latestLog.action, latestLog.errorMessage) && (
+            {getSkipReasonExplanation(latestLog.action, latestLog.status, latestLog.errorMessage) && (
               <div
                 data-testid="skipped-row-explanation"
                 className="mt-1 rounded bg-yellow-50 px-2 py-1 text-[11px] text-yellow-800"
               >
-                {getSkipReasonExplanation(latestLog.action, latestLog.errorMessage)}
+                {getSkipReasonExplanation(latestLog.action, latestLog.status, latestLog.errorMessage)}
               </div>
             )}
             <button
@@ -386,12 +426,12 @@ export function ProductAutomationHistoryPanel({
                         Affected: {getWhatAffectedLabel(log)}
                       </div>
                       {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Skip/fail explanation */}
-                      {getSkipReasonExplanation(log.action, log.errorMessage) && (
+                      {getSkipReasonExplanation(log.action, log.status, log.errorMessage) && (
                         <div
                           data-testid="skipped-row-explanation"
                           className="mt-1 rounded bg-yellow-50 px-2 py-1 text-[11px] text-yellow-800"
                         >
-                          {getSkipReasonExplanation(log.action, log.errorMessage)}
+                          {getSkipReasonExplanation(log.action, log.status, log.errorMessage)}
                         </div>
                       )}
                     </div>

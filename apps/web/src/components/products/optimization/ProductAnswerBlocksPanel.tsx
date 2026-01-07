@@ -8,6 +8,7 @@ import {
 } from '@/lib/answer-engine';
 import { productsApi, ApiError } from '@/lib/api';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
+import { useUnsavedChanges } from '@/components/unsaved-changes/UnsavedChangesProvider';
 
 interface PersistedAnswerBlock {
   id: string;
@@ -55,6 +56,8 @@ export function ProductAnswerBlocksPanel({
   onBlocksLoaded,
 }: ProductAnswerBlocksPanelProps) {
   const feedback = useFeedback();
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Wire into global unsaved changes provider
+  const { setHasUnsavedChanges } = useUnsavedChanges();
   const [blocks, setBlocks] = useState<PersistedAnswerBlock[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -64,6 +67,12 @@ export function ProductAnswerBlocksPanel({
   const [hasChanges, setHasChanges] = useState(false);
 
   const isFreePlan = planId === 'free';
+
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Sync hasChanges with global provider
+  useEffect(() => {
+    setHasUnsavedChanges(hasChanges);
+    return () => setHasUnsavedChanges(false); // Clean up on unmount
+  }, [hasChanges, setHasUnsavedChanges]);
 
   const loadBlocks = useCallback(async () => {
     if (!productId) return;

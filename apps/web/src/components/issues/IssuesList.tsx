@@ -1,8 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import type { DeoIssue } from '@/lib/deo-issues';
 import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
+
+// [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Pillar to tab mapping for deterministic routing
+const PILLAR_TO_TAB_MAP: Record<DeoPillarId, string> = {
+  metadata_snippet_quality: 'metadata',
+  content_commerce_signals: 'answers',
+  search_intent_fit: 'search-intent',
+  technical_indexability: 'metadata',
+  offsite_signals: 'metadata',
+  media_accessibility: 'metadata',
+};
 
 export const ISSUE_UI_CONFIG: Record<
   string,
@@ -180,9 +192,11 @@ interface IssuesListProps {
   issues: DeoIssue[];
   /** When true, group issues by pillar in canonical DEO_PILLARS order */
   groupByPillar?: boolean;
+  /** [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Project ID for deterministic routing */
+  projectId?: string;
 }
 
-export function IssuesList({ issues, groupByPillar = false }: IssuesListProps) {
+export function IssuesList({ issues, groupByPillar = false, projectId }: IssuesListProps) {
   const [expandedIssueId, setExpandedIssueId] = useState<string | null>(null);
 
   // Non-grouped view: show "No issues detected" if empty
@@ -240,6 +254,7 @@ export function IssuesList({ issues, groupByPillar = false }: IssuesListProps) {
                           current === issue.id ? null : issue.id,
                         )
                       }
+                      projectId={projectId}
                     />
                   ))}
                 </div>
@@ -268,6 +283,7 @@ export function IssuesList({ issues, groupByPillar = false }: IssuesListProps) {
               current === issue.id ? null : issue.id,
             )
           }
+          projectId={projectId}
         />
       ))}
     </div>
@@ -278,9 +294,36 @@ interface IssueCardProps {
   issue: DeoIssue;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  /** [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Project ID for deterministic routing */
+  projectId?: string;
 }
 
-function IssueCard({ issue, isExpanded, onToggleExpand }: IssueCardProps) {
+// [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Get deterministic deep-link for an issue
+function getIssueDeepLink(issue: DeoIssue, projectId: string): string {
+  const pillarId = getIssuePillarId(issue);
+  const tab = pillarId ? PILLAR_TO_TAB_MAP[pillarId] : 'metadata';
+
+  // If issue has a primary product, link to that product's tab
+  if (issue.primaryProductId) {
+    return `/projects/${projectId}/products/${issue.primaryProductId}?tab=${tab}&from=issues&issueId=${issue.id}`;
+  }
+
+  // If issue has affected products, link to first product
+  if (issue.affectedProducts && issue.affectedProducts.length > 0) {
+    return `/projects/${projectId}/products/${issue.affectedProducts[0]}?tab=${tab}&from=issues&issueId=${issue.id}`;
+  }
+
+  // Fall back to issues page filtered by pillar
+  if (pillarId) {
+    return `/projects/${projectId}/issues?pillar=${pillarId}`;
+  }
+
+  // Default to issues page
+  return `/projects/${projectId}/issues`;
+}
+
+function IssueCard({ issue, isExpanded, onToggleExpand, projectId }: IssueCardProps) {
+  const router = useRouter();
   const uiConfig = ISSUE_UI_CONFIG[issue.id] ?? {
     label: issue.title,
     description: issue.description,
@@ -292,8 +335,27 @@ function IssueCard({ issue, isExpanded, onToggleExpand }: IssueCardProps) {
     (issue.affectedPages?.length ?? 0) + (issue.affectedProducts?.length ?? 0) >
     0;
 
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Handle card click for deep linking
+  const handleCardClick = () => {
+    if (projectId) {
+      router.push(getIssueDeepLink(issue, projectId));
+    }
+  };
+
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Get counts for affected items display
+  const affectedProductCount = issue.affectedProducts?.length ?? 0;
+  const affectedPageCount = issue.affectedPages?.length ?? 0;
+
   return (
-    <div className="rounded-md border border-gray-200 bg-white p-3 text-sm text-gray-700">
+    <div
+      role={projectId ? 'button' : undefined}
+      tabIndex={projectId ? 0 : undefined}
+      onClick={projectId ? handleCardClick : undefined}
+      onKeyDown={projectId ? (e) => { if (e.key === 'Enter' || e.key === ' ') handleCardClick(); } : undefined}
+      className={`rounded-md border border-gray-200 bg-white p-3 text-sm text-gray-700 ${
+        projectId ? 'cursor-pointer hover:border-blue-300 hover:bg-blue-50/50 transition-colors' : ''
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -311,7 +373,7 @@ function IssueCard({ issue, isExpanded, onToggleExpand }: IssueCardProps) {
         <div className="mt-2">
           <button
             type="button"
-            onClick={onToggleExpand}
+            onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
             className="text-xs font-medium text-blue-600 hover:text-blue-800"
           >
             {isExpanded ? 'Hide affected items' : 'Show affected items'}
@@ -321,7 +383,7 @@ function IssueCard({ issue, isExpanded, onToggleExpand }: IssueCardProps) {
               {issue.affectedPages && issue.affectedPages.length > 0 && (
                 <div className="mb-2">
                   <div className="mb-1 font-semibold">
-                    Pages ({issue.affectedPages.length})
+                    Pages ({affectedPageCount})
                   </div>
                   <ul className="space-y-0.5">
                     {issue.affectedPages.map((url) => (
@@ -334,16 +396,24 @@ function IssueCard({ issue, isExpanded, onToggleExpand }: IssueCardProps) {
               )}
               {issue.affectedProducts && issue.affectedProducts.length > 0 && (
                 <div>
+                  {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Remove internal ID leakage - show count and link instead */}
                   <div className="mb-1 font-semibold">
-                    Products ({issue.affectedProducts.length})
+                    Products ({affectedProductCount})
                   </div>
-                  <ul className="space-y-0.5">
-                    {issue.affectedProducts.map((id) => (
-                      <li key={id} className="truncate">
-                        Product ID: {id}
-                      </li>
-                    ))}
-                  </ul>
+                  {projectId ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">{affectedProductCount} product{affectedProductCount !== 1 ? 's' : ''} affected</span>
+                      <Link
+                        href={`/projects/${projectId}/products`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        View affected →
+                      </Link>
+                    </div>
+                  ) : (
+                    <span className="text-gray-500">{affectedProductCount} product{affectedProductCount !== 1 ? 's' : ''} affected</span>
+                  )}
                 </div>
               )}
             </div>

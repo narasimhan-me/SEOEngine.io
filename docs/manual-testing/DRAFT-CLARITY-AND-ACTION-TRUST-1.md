@@ -21,7 +21,7 @@
 
 - **Related documentation:**
   - `docs/testing/CRITICAL_PATH_MAP.md` (CP-003, CP-006, CP-008)
-  - `tests/e2e/draft-clarity-and-action-trust-1.spec.ts`
+  - `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`
 
 ---
 

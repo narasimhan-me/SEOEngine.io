@@ -173,6 +173,9 @@ export default function ProductOptimizationPage() {
     setHasUnsavedChanges(draftState === 'unsaved');
   }, [draftState, setHasUnsavedChanges]);
 
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Track if we've restored a saved draft (to prevent fetchData overwrite)
+  const savedDraftRestoredRef = useRef(false);
+
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Load saved draft from session storage on mount
   useEffect(() => {
     if (!productId) return;
@@ -181,6 +184,7 @@ export default function ProductOptimizationPage() {
       if (stored) {
         const draft = JSON.parse(stored) as MetadataDraft;
         setSavedDraft(draft);
+        savedDraftRestoredRef.current = true;
         // Restore editor to saved draft values
         setEditorTitle(draft.title);
         setEditorDescription(draft.description);
@@ -307,10 +311,14 @@ export default function ProductOptimizationPage() {
       const title = foundProduct.seoTitle || foundProduct.title || '';
       const description = foundProduct.seoDescription || foundProduct.description || '';
 
-      setEditorTitle(title);
-      setEditorDescription(description);
+      // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Only set editor values if no saved draft was restored
+      // This prevents fetchData from overwriting restored draft values
       setInitialTitle(title);
       setInitialDescription(description);
+      if (!savedDraftRestoredRef.current) {
+        setEditorTitle(title);
+        setEditorDescription(description);
+      }
     } catch (err: unknown) {
       console.error('Error fetching data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load product data');
@@ -728,6 +736,23 @@ export default function ProductOptimizationPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Compact header draft state indicator */}
+                <span
+                  data-testid="header-draft-state-indicator"
+                  className={`hidden sm:inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                    draftState === 'unsaved'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : draftState === 'saved'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-green-100 text-green-800'
+                  }`}
+                >
+                  {draftState === 'unsaved' && 'Draft — not applied'}
+                  {draftState === 'saved' && 'Draft saved — not applied'}
+                  {draftState === 'applied' && (
+                    <>Applied to Shopify on {appliedAt ? new Date(appliedAt).toLocaleDateString() : product?.lastOptimizedAt ? new Date(product.lastOptimizedAt).toLocaleDateString() : '—'}</>
+                  )}
+                </span>
                 <button
                   type="button"
                   onClick={handleAutomateThisFix}
@@ -735,10 +760,17 @@ export default function ProductOptimizationPage() {
                 >
                   Automate this fix
                 </button>
+                {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Header Apply button - disabled unless draft is saved */}
                 <button
                   type="button"
+                  data-testid="header-apply-to-shopify-button"
                   onClick={handleApplyToShopify}
-                  disabled={applyingToShopify}
+                  disabled={applyingToShopify || !canApplyToShopify}
+                  title={
+                    !canApplyToShopify
+                      ? 'Save draft first; Apply uses saved drafts only and never auto-saves.'
+                      : 'Apply saved draft to Shopify'
+                  }
                   className="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {applyingToShopify ? 'Applying…' : 'Apply to Shopify'}
@@ -877,8 +909,7 @@ export default function ProductOptimizationPage() {
                     {productIssues.length > 0
                       ? `${productIssues.length} issue${productIssues.length !== 1 ? 's' : ''} detected for this product. `
                       : 'This product has missing or incomplete SEO metadata. '}
-                    Use the AI suggestions below to generate optimized titles and descriptions,
-                    then apply them to Shopify with one click.
+                    Generate drafts, review, then apply to Shopify.
                   </p>
                 </div>
               </div>

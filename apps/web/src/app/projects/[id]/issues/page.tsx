@@ -48,7 +48,9 @@ export default function IssuesPage() {
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewProductName, setPreviewProductName] = useState<string | null>(null);
   const [previewFieldLabel, setPreviewFieldLabel] = useState<'SEO title' | 'SEO description' | null>(null);
-  const [previewCurrentValue, setPreviewCurrentValue] = useState<string | null>(null);
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Store both current title and description for field preservation
+  const [previewCurrentTitle, setPreviewCurrentTitle] = useState<string | null>(null);
+  const [previewCurrentDescription, setPreviewCurrentDescription] = useState<string | null>(null);
   const [previewValue, setPreviewValue] = useState<string | null>(null);
   const previewPanelRef = useRef<HTMLDivElement | null>(null);
 
@@ -59,7 +61,9 @@ export default function IssuesPage() {
 
   // Compute draft state based on preview and saved draft
   const getDraftState = useCallback((): IssueDraftState => {
-    if (appliedAt && !savedDraft && !previewValue) {
+    // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Check applied state first
+    // If we have appliedAt and no savedDraft, we're in applied state (even if previewValue still exists)
+    if (appliedAt && !savedDraft) {
       return 'applied';
     }
     if (savedDraft && previewIssueId === savedDraft.issueId && previewValue === savedDraft.value) {
@@ -266,10 +270,6 @@ export default function IssuesPage() {
 
       const productName =
         result?.current?.title || `Product ${primaryProductId}`;
-      const currentValue =
-        issueType === 'missing_seo_title'
-          ? currentTitle || null
-          : currentDescription || null;
       const previewText =
         issueType === 'missing_seo_title'
           ? suggestedTitle || ''
@@ -283,7 +283,9 @@ export default function IssuesPage() {
 
       setPreviewProductName(productName);
       setPreviewFieldLabel(fieldLabel);
-      setPreviewCurrentValue(currentValue);
+      // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Store both current values for field preservation
+      setPreviewCurrentTitle(currentTitle || '');
+      setPreviewCurrentDescription(currentDescription || '');
       setPreviewValue(previewText);
       // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Store productId and clear any old saved draft
       setPreviewProductId(primaryProductId);
@@ -342,13 +344,14 @@ export default function IssuesPage() {
     try {
       setFixingIssueId(issue.id);
 
-      // Apply saved draft values directly to Shopify (no AI call)
+      // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Apply saved draft values directly to Shopify (no AI call)
+      // Use stored current values to preserve the other field correctly
       if (fieldLabel === 'SEO title') {
         // Apply title only, preserve current description
-        await shopifyApi.updateProductSeo(productId, value, previewCurrentValue ?? '');
+        await shopifyApi.updateProductSeo(productId, value, previewCurrentDescription ?? '');
       } else {
         // Apply description only, preserve current title
-        await shopifyApi.updateProductSeo(productId, previewCurrentValue ?? '', value);
+        await shopifyApi.updateProductSeo(productId, previewCurrentTitle ?? '', value);
       }
 
       const applyTimestamp = new Date().toISOString();
@@ -358,11 +361,11 @@ export default function IssuesPage() {
       const message = `${fieldLabel} applied to '${productName}'. ${remainingCount} remaining.`;
       feedback.showSuccess(message);
 
-      // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Clear draft and set applied state
+      // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Keep preview panel visible with applied state
+      // Clear draft but keep previewValue to show applied state
       setSavedDraft(null);
       setAppliedAt(applyTimestamp);
-      setPreviewIssueId(null);
-      setPreviewValue(null);
+      // Don't clear previewIssueId or previewValue - keep panel visible showing applied state
       await fetchIssues();
     } catch (err: unknown) {
       console.error('Error applying fix to Shopify:', err);
@@ -384,11 +387,14 @@ export default function IssuesPage() {
     setPreviewError(null);
     setPreviewProductName(null);
     setPreviewFieldLabel(null);
-    setPreviewCurrentValue(null);
+    // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Clear both current value states
+    setPreviewCurrentTitle(null);
+    setPreviewCurrentDescription(null);
     setPreviewValue(null);
     // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Clear draft state on cancel
     setSavedDraft(null);
     setPreviewProductId(null);
+    setAppliedAt(null);
 
     const button = document.getElementById(
       `issue-fix-next-${issue.id}`,
@@ -696,10 +702,19 @@ export default function IssuesPage() {
                                   Current value
                                 </p>
                                 <p className="mt-1 rounded bg-white px-2 py-1 text-[11px] text-gray-700">
-                                  {previewCurrentValue && previewCurrentValue.trim().length > 0 ? (
-                                    previewCurrentValue
+                                  {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Show correct current value for the field being edited */}
+                                  {previewFieldLabel === 'SEO title' ? (
+                                    previewCurrentTitle && previewCurrentTitle.trim().length > 0 ? (
+                                      previewCurrentTitle
+                                    ) : (
+                                      <span className="italic text-gray-500">Missing</span>
+                                    )
                                   ) : (
-                                    <span className="italic text-gray-500">Missing</span>
+                                    previewCurrentDescription && previewCurrentDescription.trim().length > 0 ? (
+                                      previewCurrentDescription
+                                    ) : (
+                                      <span className="italic text-gray-500">Missing</span>
+                                    )
                                   )}
                                 </p>
                               </div>

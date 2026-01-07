@@ -12839,7 +12839,7 @@ This phase hardens UX trust by establishing a clear 3-state draft lifecycle for 
 
 | File | Description |
 |------|-------------|
-| `tests/e2e/draft-clarity-and-action-trust-1.spec.ts` | Playwright E2E smoke tests for draft lifecycle, action semantics, and trust behaviors |
+| `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts` | Playwright E2E smoke tests for draft lifecycle, action semantics, and trust behaviors |
 | `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md` | Manual testing documentation |
 
 ### DRAFT-CLARITY-AND-ACTION-TRUST-1 Draft Lifecycle States
@@ -12865,7 +12865,7 @@ This phase hardens UX trust by establishing a clear 3-state draft lifecycle for 
 
 | Artifact | Location |
 |----------|----------|
-| E2E Smoke Tests | [tests/e2e/draft-clarity-and-action-trust-1.spec.ts](tests/e2e/draft-clarity-and-action-trust-1.spec.ts) |
+| E2E Smoke Tests | [apps/web/tests/draft-clarity-and-action-trust-1.spec.ts](apps/web/tests/draft-clarity-and-action-trust-1.spec.ts) |
 | Manual Testing | [docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md](docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md) |
 | Critical Path Map | [docs/testing/CRITICAL_PATH_MAP.md](docs/testing/CRITICAL_PATH_MAP.md) (CP-003, CP-006, CP-008) |
 
@@ -12894,3 +12894,17 @@ This phase hardens UX trust by establishing a clear 3-state draft lifecycle for 
 - [x] PATCH 9: CRITICAL_PATH_MAP.md updated (CP-003, CP-006, CP-008)
 
 **Manual Testing:** `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`
+
+### DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1 (Post-Implementation Corrections)
+
+**Status:** Complete
+**Date:** 2026-01-07
+
+This fixup batch addresses post-implementation verification corrections:
+
+1. **PATCH 1:** Moved Playwright test suite to correct location (`apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`) with correct seeding pattern using `/testkit/e2e/seed-first-deo-win` and `engineo_token` localStorage key.
+2. **PATCH 2:** Fixed draft persistence bug (saved drafts not overwritten by fetchData), added header Apply button gating, added compact header draft state indicator.
+3. **PATCH 3:** Fixed Issues page field preservation (store both current title and description), kept applied-state banner visible after Apply.
+4. **PATCH 4:** Added projectId prop to IssuesList for deterministic routing, made issue cards clickable with deep-links, removed internal product ID leakage in affected items display.
+5. **PATCH 5:** Wired ProductAnswerBlocksPanel `hasChanges` into `UnsavedChangesProvider`, fixed automation history initiator mapping (`manual_sync` → Manual), fixed skipped detection using `status='skipped'`.
+6. **PATCH 6:** Updated documentation test path references from `tests/e2e/` to `apps/web/tests/`.
