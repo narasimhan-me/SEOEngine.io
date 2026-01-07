@@ -6,7 +6,356 @@ This document tracks all implementation phases and their completion status.
 
 ---
 
-## Phase GTM-ONBOARD-1: Guided Onboarding & First DEO Win 📄 DOCS COMPLETE
+## Completed Phases (Chronological)
+
+### Foundations
+
+*None recorded as standalone phases.*
+
+### Core Platform
+
+### Phase SELF-SERVICE-1: Customer Self-Service Control Plane ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-18
+
+Customer-facing login portal with session management, authentication, and Shopify store connection.
+
+### Key Features
+
+1. **Login/Registration Flow**: Email-based with password reset
+2. **Session Management**: JWT tokens with refresh
+3. **Stores Dashboard**: View connected Shopify stores
+4. **Shopify OAuth**: Connect stores via OAuth flow
+
+### Core Files
+
+- apps/api/src/auth/
+- apps/web/src/app/(auth)/
+- apps/web/src/lib/auth.ts
+
+---
+
+### Phase ADMIN-OPS-1: Admin Operations Dashboard ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-18
+
+Internal admin dashboard for operations, user management, and system monitoring.
+
+### Key Features
+
+1. **User Management**: View all users, projects, subscriptions
+2. **Project Viewer**: Inspect project state and crawl data
+3. **System Health**: Monitor API health and background jobs
+
+### Core Files
+
+- apps/api/src/admin/
+- apps/web/src/app/admin/
+
+---
+
+### Phase BILLING-GTM-1: Pricing pages & trust-safe upgrade flows ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-19
+
+Pricing pages and upgrade flows with Stripe integration for subscription management.
+
+### Key Features
+
+1. **Pricing Page**: Public pricing page with plan comparison
+2. **Checkout Flow**: Stripe Checkout for plan upgrades
+3. **Billing Portal**: Customer portal for subscription management
+4. **Webhook Handling**: Stripe webhook processing
+
+### Core Files
+
+- apps/api/src/billing/
+- apps/web/src/app/pricing/
+- apps/web/src/app/billing/
+
+---
+
+### Phase AUTO-PB-1: Automation Playbooks ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-19
+
+Automation playbook system for DEO fixes with preview/apply workflow.
+
+### Key Features
+
+1. **Playbook Registry**: Available automation types
+2. **Preview/Apply Flow**: 3-step confirmation flow
+3. **Draft Persistence**: Cross-surface draft reuse
+4. **Apply Execution**: Shopify API mutations
+
+### Core Files
+
+- apps/api/src/automation/
+- apps/web/src/app/projects/[id]/playbooks/
+
+---
+
+### Phase INSIGHTS-1: Project Insights Dashboard ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-19
+
+Project-level insights dashboard with DEO metrics and issue tracking.
+
+### Key Features
+
+1. **DEO Score Overview**: Current score with trend
+2. **Issue Breakdown**: By pillar and severity
+3. **Action Recommendations**: Prioritized fix suggestions
+4. **Performance Metrics**: Load times and API performance
+
+---
+
+### Phase MEDIA-1: Media & Accessibility Pillar ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-19
+
+Media accessibility pillar for image alt text and media optimization.
+
+### Key Features
+
+1. **Alt Text Analysis**: Missing/poor alt text detection
+2. **Image Optimization**: Size and format recommendations
+3. **Accessibility Score**: WCAG compliance indicators
+
+---
+
+### Phase GEO-FOUNDATION-1: GEO Answer Readiness & Citation Confidence ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-19
+
+Foundation for GEO (Generative Engine Optimization) analysis.
+
+### Key Features
+
+1. **Answer Readiness Score**: Content structure analysis
+2. **Citation Confidence**: Source credibility signals
+3. **GEO Reports**: Per-product answer optimization reports
+
+---
+
+### Governance & Roles
+
+### Phase ROLES-2: Project Roles & Approval Foundations ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-23
+
+Role-based access control foundations with OWNER/EDITOR/VIEWER matrix.
+
+### Key Features
+
+1. **Role Resolution**: accountRole → projectRole resolution
+2. **Capability Matrix**: Per-role action permissions
+3. **Apply Restrictions**: VIEWER cannot apply, EDITOR needs approval
+
+---
+
+### Phase ROLES-3: True Multi-User Projects & Approval Chains ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-23
+
+Multi-user project support with approval workflows.
+
+### Key Features
+
+1. **ProjectMember Model**: Multiple users per project
+2. **Approval Workflow**: Request → approve → execute pattern
+3. **Co-Owner Support**: Multiple OWNERs can approve
+
+---
+
+### Phase ENTERPRISE-GEO-1: Enterprise Governance & Approvals ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-21
+
+Enterprise-grade governance controls for GEO reports and content modifications.
+
+> **Note:** Initially shipped with single-user approval gating. Enforcement was later hardened across all project surfaces by ROLES-2 and ROLES-3.
+
+### Key Features
+
+1. **Governance Policy**: Per-project settings for approval requirements, share restrictions, expiry, content controls
+2. **Approval Workflow**: Request → approve/reject → consume pattern for GEO fixes and Answer Block sync
+3. **Passcode-Protected Share Links**: 8-char alphanumeric passcode, bcrypt hashed, shown once at creation
+4. **Audit Events**: Immutable log of all governance actions (policy updates, approvals, share links, applies)
+5. **Content Redaction**: Optional competitor mention redaction in exported reports
+
+---
+
+### Phase GOV-AUDIT-VIEWER-1: Audit & Approvals Viewer ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-24
+
+Read-only governance viewer with tabs for approvals, audit log, and sharing.
+
+### Key Features
+
+1. **Approvals Tab**: Pending and historical approval requests
+2. **Audit Log Tab**: Filtered event history
+3. **Sharing Tab**: Share link management
+
+---
+
+### Execution Surfaces
+
+### Phase PRODUCTS-LIST-2.0: Decision-First Products List ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-21
+
+Decision-first products list with health pills and recommended actions.
+
+### Key Features
+
+1. **Health Pills**: Visual status indicators per product
+2. **Recommended Actions**: Prioritized fix suggestions
+3. **Command Bar**: Quick actions and navigation
+
+---
+
+### Phase WORK-QUEUE-1: Unified Action Bundle Work Queue ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-24
+
+Unified work queue with action bundles derived from issues and recommendations.
+
+### Key Features
+
+1. **Action Bundles**: Grouped recommendations by type
+2. **Tab-Based Filtering**: Critical/Needs Attention/Pending/Drafts/Applied
+3. **Bundle CTAs**: Direct routing to fix surfaces
+
+---
+
+### Phase STORE-HEALTH-1.0: Store Optimization Home ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-24
+
+Store-level optimization home page with 6 decision-cards.
+
+### Key Features
+
+1. **6 Decision Cards**: Products, Pages, Collections, SEO, Content, Performance
+2. **Health Indicators**: Per-card status and counts
+3. **Work Queue Routing**: Direct links to filtered work queue
+
+---
+
+### Phase ASSETS-PAGES-1: Pages & Collections Visibility ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-24
+
+Pages and collections visibility as first-class assets.
+
+### Key Features
+
+1. **Asset Lists**: Dedicated pages/collections list pages
+2. **Work Queue Integration**: Asset-scoped bundles
+
+---
+
+### Phase ASSETS-PAGES-1.1: Pages & Collections Execution ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-24
+
+Full execution support for pages and collections SEO fixes.
+
+### Key Features
+
+1. **Asset-Scoped Playbooks**: SEO fixes for pages/collections
+2. **Shopify Mutations**: Page/collection SEO updates
+
+---
+
+### Phase ASSETS-PAGES-1.1-UI-HARDEN: End-to-End Shippable UI ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2025-12-24
+
+UI hardening for asset-scoped playbook execution.
+
+### Key Features
+
+1. **Scope Safety Block**: Prevents apply with missing scope
+2. **Scope Summary UI**: Visual scope confirmation
+3. **Deep Link Support**: Work queue to playbooks routing
+
+---
+
+### Phase NAV-IA-CONSISTENCY-1: Navigation IA Consistency & Terminology ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-06
+
+Navigation information architecture consistency and terminology normalization.
+
+### Key Features
+
+1. **Design Tokens**: Color palette and dark mode
+2. **Terminology**: Consistent naming across UI
+3. **Navigation Structure**: OPERATE/ASSETS/AUTOMATION/INSIGHTS groups
+
+---
+
+### Phase TRUST-ROUTING-1: UX Trust Hardening (Deterministic Routing + Context Preservation) ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-06
+
+Trust hardening for deterministic routing and context preservation.
+
+### Key Features
+
+1. **Context Propagation**: from/playbookId/returnTo params
+2. **Preview Mode**: Draft comparison and expiry handling
+3. **Filter Context**: Visible filter state in Work Queue
+
+---
+
+### Phase ISSUE-TO-FIX-PATH-1: Trust-Critical UX Hardening for Issue→Fix Path ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-07
+
+Trust-critical UX hardening for issue→fix path navigation.
+
+### Key Features
+
+1. **Fix Path Routing**: Single source of truth (issue-to-fix-path.ts)
+2. **Orphan Suppression**: Non-actionable issues not clickable
+3. **Context Banners**: "You're here to fix:" arrival messaging
+4. **ID Leakage Prevention**: Safe title helpers for UI display
+
+---
+
+## In Progress
+
+*None.*
+
+---
+
+## Planned / Pending
+
+### Phase GTM-ONBOARD-1: Guided Onboarding & First DEO Win 📄 DOCS COMPLETE — IMPLEMENTATION PENDING
 
 **Status:** Docs Complete; Implementation Pending
 **Activation Milestone:** Project-scoped banner only
@@ -123,1491 +472,13 @@ These invariants MUST be preserved during implementation:
 
 ---
 
-## Phase SELF-SERVICE-1: Customer Self-Service Control Plane ✅ COMPLETE
+## Deferred / Explicitly Excluded
 
-**Status:** Complete
-**Date Completed:** 2025-12-19
-
-Customer-facing self-service management of accounts, profiles, preferences, and billing.
-
-### Related Documents
-
-- [SELF_SERVICE.md](./SELF_SERVICE.md) - Architecture and API documentation
-- [SELF-SERVICE-1.md](./manual-testing/SELF-SERVICE-1.md) - Manual testing guide
-- [CRITICAL_PATH_MAP.md](./testing/CRITICAL_PATH_MAP.md) - CP-014 entry
+*None at this time.*
 
 ---
 
-## Phase ADMIN-OPS-1: Admin Operations Dashboard ✅ COMPLETE
-
-**Status:** Complete
-**Date Completed:** 2025-12-19
-
-Internal-only operational control plane for Support Agents, Ops Admins, and Management/CEO.
-
-### Related Documents
-
-- [ADMIN_OPS.md](./ADMIN_OPS.md) - Architecture and role definitions
-- [ADMIN-OPS-1.md](./manual-testing/ADMIN-OPS-1.md) - Manual testing guide
-- [CRITICAL_PATH_MAP.md](./testing/CRITICAL_PATH_MAP.md) - CP-013 entry
-
----
-
-## Phase INSIGHTS-1: Project Insights Dashboard ✅ COMPLETE
-
-**Status:** Complete
-**Date Completed:** 2025-12-19
-
-Read-only derived insights dashboard showing DEO progress, AI efficiency metrics, issue resolution, and opportunity signals.
-
-### Key Features
-
-1. **Overview Cards**: DEO score improvements, AI runs saved, issues resolved, next opportunity
-2. **DEO Progress**: Score trends, component deltas, fixes applied over time
-3. **AI Efficiency**: Reuse rates, quota status, trust invariant display ("Apply never uses AI")
-4. **Issue Resolution**: By-pillar breakdown, high-impact open issues, recently resolved
-5. **Opportunity Signals**: Prioritized opportunities by impact level
-
-### Trust Invariants
-
-1. **Read-Only Only**: Insights endpoint never triggers AI or mutations
-2. **Cached Data**: Uses `*ReadOnly` service methods that don't recompute
-3. **Trust Display**: Shows "Apply never uses AI" prominently in AI Efficiency page
-4. **No Side Effects**: Page views cannot trigger automations or AI calls
-
-### Implementation Details
-
-- API: `GET /projects/:id/insights` → `ProjectInsightsService.getProjectInsights()`
-- Service: `project-insights.service.ts` with aggregation from existing data
-- Read-only methods added to:
-  - `deo-issues.service.ts` (`getIssuesForProjectReadOnly`)
-  - `offsite-signals.service.ts` (`buildOffsiteIssuesForProjectReadOnly`)
-  - `local-discovery.service.ts` (`buildLocalIssuesForProjectReadOnly`)
-- E2E seed: `POST /testkit/e2e/seed-insights-1`
-
-### Web UI
-
-- Main page: `/projects/[id]/insights`
-- Subpages: `deo-progress`, `ai-efficiency`, `issue-resolution`, `opportunity-signals`
-- Components: `InsightsSubnav.tsx`, `Sparkline.tsx`
-- Navigation: Added to `ProjectSideNav.tsx`
-
-### Related Documents
-
-- [INSIGHTS-1.md](./manual-testing/INSIGHTS-1.md) - Manual testing guide
-- [CRITICAL_PATH_MAP.md](./testing/CRITICAL_PATH_MAP.md) - CP-016 entry
-
----
-
-## Phase MEDIA-1: Media & Accessibility Pillar ✅ COMPLETE
-
-**Status:** Complete
-**Date Completed:** 2025-12-18
-
-Media accessibility pillar with image alt text ingestion, issue detection, and AI-powered fixes.
-
-### Related Documents
-
-- [MEDIA_PILLAR.md](./MEDIA_PILLAR.md) - Pillar specification
-- [MEDIA-1.md](./manual-testing/MEDIA-1.md) - Manual testing guide
-
----
-
-## Phase AUTO-PB-1: Automation Playbooks ✅ COMPLETE
-
-**Status:** Complete
-**Date Completed:** 2025-12-15
-
-Automation Playbooks v1 with preview → estimate → apply flow.
-
-### Related Documents
-
-- [phase-automation-1-playbooks.md](./manual-testing/phase-automation-1-playbooks.md) - Manual testing guide
-- [auto-pb-1-1-playbooks-hardening.md](./manual-testing/auto-pb-1-1-playbooks-hardening.md) - Hardening guide
-- [auto-pb-1-2-playbooks-ux-coherence.md](./manual-testing/auto-pb-1-2-playbooks-ux-coherence.md) - UX coherence guide
-
----
-
-## Upcoming Phases
-
-### Phase AUTO-PB-1.3: Preview Persistence & Cross-Surface Drafts (Planned)
-
-Persistent AI drafts that survive navigation and can be reused across Playbooks and Product detail surfaces.
-
----
-
-## Phase BILLING-GTM-1: Pricing pages & trust-safe upgrade flows ✅ COMPLETE
-
-**Status:** Complete
-**Date Completed:** 2025-12-19
-
-Public pricing and in-app upgrade flows that surface value first and enforce quotas via Predict → Warn → Enforce, Stripe-first.
-
-### Key Behaviors
-
-1. **Value before price**: Users see progress and savings before upgrade CTAs
-2. **Predict → Warn → Enforce**: Warnings precede limits; no surprise blocks
-3. **Stripe is source of truth**: EngineO.ai never handles card data
-4. **Apply remains AI-free**: Billing does not change Apply semantics
-
-### Implementation Details
-
-- Env-driven AI quota: `AI_USAGE_MONTHLY_RUN_LIMIT_<PLAN>`
-- Fixed billing page to show `aiUsedRuns` (not `totalRuns`)
-- Added trust messaging: "APPLY never uses AI", "Reuse saves AI runs"
-- Contextual upgrade prompts on Insights pages when quota >=80%
-- Marketing pricing aligned with backend limits (removed mismatched claims)
-- Self-serve CTAs on all plans (removed enterprise/sales references)
-
-### Related Documents
-
-- [BILLING_GTM.md](./BILLING_GTM.md) - Architecture documentation
-- [BILLING-GTM-1.md](./manual-testing/BILLING-GTM-1.md) - Manual testing guide
-- [CRITICAL_PATH_MAP.md](./testing/CRITICAL_PATH_MAP.md) - CP-002 entry
-
----
-
-## Phase GEO-FOUNDATION-1: GEO Answer Readiness & Citation Confidence ✅ COMPLETE
-
-**Status:** Complete
-**Date Completed:** 2025-12-19
-
-GEO (Generative Engine Optimization) foundation layer providing explainable answer readiness signals and citation confidence derived from Answer Units (v1: Answer Blocks).
-
-### Key Features
-
-1. **Readiness Signals**: Clarity, Specificity, Structure, Context, Accessibility
-2. **Citation Confidence**: Low/Medium/High derived from signals (no predictions/guarantees)
-3. **GEO Issues**: Missing direct answer, vague answer, poor structure, promotional language, missing examples
-4. **Preview/Apply Flow**: Draft-first pattern with AI quota tracking and reuse
-
-### Trust Invariants
-
-1. **No Ranking Guarantees**: Citation Confidence is a readiness signal, not a prediction
-2. **No Scraping**: GEO never simulates or scrapes AI engine outputs
-3. **Apply Never Uses AI**: GEO fixes follow the standard Preview (AI) → Apply (no AI) pattern
-4. **Explainable Signals**: Each signal includes a `why` explanation
-
-### Implementation Details
-
-- **Shared Types**: `packages/shared/src/geo.ts` - Core types and evaluation functions
-- **API Service**: `apps/api/src/projects/geo.service.ts` - Product GEO readiness evaluation
-- **API Controller**: `apps/api/src/projects/geo.controller.ts` - Preview/Apply endpoints
-- **Prisma Models**: `ProductGeoFixDraft`, `ProductGeoFixApplication`, `GeoIssueType`, `GeoCitationConfidenceLevel`
-- **AI Generation**: `generateGeoAnswerImprovement()` in `ai.service.ts`
-- **Issue Integration**: GEO issues added to `deo-issues.service.ts` via `buildGeoIssuesForProject()`
-- **Usage Tracking**: `GEO_FIX_PREVIEW` run type in AI usage ledger
-
-### API Endpoints
-
-- `GET /products/:productId/geo` - Get product GEO readiness signals
-- `POST /products/:productId/geo/preview` - Generate draft improvement (uses AI, respects quota)
-- `POST /products/:productId/geo/apply` - Apply draft to Answer Block (no AI)
-
-### Build Configuration
-
-- Updated `packages/shared/package.json` build script to clean dist before build
-- Updated `packages/shared/tsconfig.json` to exclude all test files from build output
-- Test files (`*.test.ts`, `*.spec.ts`) remain in source but are not compiled to dist
-
-### Related Documents
-
-- [GEO_FOUNDATION.md](./GEO_FOUNDATION.md) - Philosophy and architecture (TBD)
-
----
-
-## Phase ENTERPRISE-GEO-1: Enterprise Governance & Approvals ✅ COMPLETE
-
-**Status:** Complete
-**Date Completed:** 2025-12-21
-
-Enterprise-grade governance controls for GEO reports and content modifications.
-
-### Key Features
-
-1. **Governance Policy**: Per-project settings for approval requirements, share restrictions, expiry, content controls
-2. **Approval Workflow**: Request → approve/reject → consume pattern for GEO fixes and Answer Block sync
-3. **Passcode-Protected Share Links**: 8-char alphanumeric passcode, bcrypt hashed, shown once at creation
-4. **Audit Events**: Immutable log of all governance actions (policy updates, approvals, share links, applies)
-5. **Content Redaction**: Optional competitor mention redaction in exported reports
-
-### Hard Contracts
-
-1. **Mutation-Free Views**: Public share view, report assembly, and printing perform no DB writes
-2. **PII Never Allowed**: `allowPII` is always `false`; API rejects attempts to enable, UI shows locked toggle
-3. **Passcode Security**: Plaintext shown once, only `last4` stored for hints, full hash stored for verification
-
-### Implementation Details
-
-- **Governance Service**: `apps/api/src/projects/governance.service.ts` - Policy CRUD, settings retrieval
-- **Approvals Service**: `apps/api/src/projects/approvals.service.ts` - Approval lifecycle
-- **Audit Events Service**: `apps/api/src/projects/audit-events.service.ts` - Immutable event logging
-- **Governance Controller**: `apps/api/src/projects/governance.controller.ts` - REST endpoints
-- **GEO Reports Service**: `apps/api/src/projects/geo-reports.service.ts` - Passcode, expiry, redaction
-- **GEO Reports Public Controller**: `apps/api/src/projects/geo-reports-public.controller.ts` - Passcode verification
-- **Web UI**: `apps/web/src/components/governance/GovernanceSettingsSection.tsx` - Settings panel
-- **Share Page**: `apps/web/src/app/share/geo-report/[token]/page.tsx` - Passcode entry form
-
-### Trust Invariants
-
-1. **View/Print Mutation-Free**: No DB writes during report assembly, public share view GET/POST, or printing
-2. **PII Locked**: API enforces `allowPII: false`; UI displays toggle as locked/disabled
-3. **Passcode Shown Once**: Plaintext returned only at creation; audit stores only `last4`
-
-### Test Coverage
-
-- Backend: `apps/api/test/integration/enterprise-geo-1.test.ts`
-- E2E: `apps/web/tests/enterprise-geo-1.spec.ts`
-
-### Related Documents
-
-- [ENTERPRISE_GEO_GOVERNANCE.md](./ENTERPRISE_GEO_GOVERNANCE.md) - Full specification and contracts
-- [GEO_EXPORT.md](./GEO_EXPORT.md) - GEO report export/sharing (v1.1 with ENTERPRISE-GEO-1 updates)
-- [ENTERPRISE-GEO-1.md](./manual-testing/ENTERPRISE-GEO-1.md) - Manual testing guide
-- [GEO-EXPORT-1.md](./manual-testing/GEO-EXPORT-1.md) - GEO export manual testing guide
-- [ADMIN-OPS-1.md](./manual-testing/ADMIN-OPS-1.md) - Admin Operations manual testing guide (governance audit visibility)
-- [CRITICAL_PATH_MAP.md](./testing/CRITICAL_PATH_MAP.md) - CP-016 and CP-017 entries (enterprise governance scenarios)
-- [API_SPEC.md](../API_SPEC.md) - API documentation
-
----
-
-## Phase PRODUCTS-LIST-2.0: Decision-First Products List ✅ COMPLETE
-
-**Status:** Complete
-**Date Completed:** 2025-12-21
-
-Frontend-only redesign of the Products list to be decision-first with Health pills, recommended actions, and progressive disclosure.
-
-### Key Features
-
-1. **Health Pill per Row**: 3 states (Healthy, Needs Attention, Critical) - no numbers
-2. **Recommended Action per Row**: Single, deterministic action based on severity + pillar priority
-3. **Progressive Disclosure**: Click row to expand; inline issue breakdowns only in expanded details
-4. **No Always-Visible Scan SEO**: "Rescan" only visible when data is stale
-5. **Command Bar**: Shows "{N} products need attention" and "Fix in bulk" CTA
-6. **Health Filter**: All, Critical, Needs Attention, Healthy (replaces metadata status filter)
-7. **Sort by Impact**: Authoritative ladder with deterministic ordering and action-aligned clustering
-8. **Bulk-Action Confirmation UX**: 3-step, draft-first flow with scope transparency, AI disclosure, and no one-click apply
-
-### Implementation Details
-
-- **page.tsx**: Removed optimization banner, removed issues badge, added `isDeoDataStale` computation
-- **ProductTable.tsx**: New Health filter model, Command Bar, enriched `issuesByProductId` with `healthState`, `recommendedAction`, and `impactCounts`; implements authoritative Sort by impact ladder; bulk action modal with 3-step flow (selection → preview/generate → apply)
-- **ProductRow.tsx**: Health pill, recommended action line, progressive disclosure (clickable row), "View details" primary action, conditional "Rescan"
-- **ProductDetailPanel.tsx**: Shows Handle/ID, Last synced, Meta title/description, Issues by category with deep links
-- **api.ts**: Added `generateAutomationPlaybookDraft()` and `getLatestAutomationPlaybookDraft()` for draft lifecycle support
-- **Playbooks page.tsx**: Added `playbookId` URL param support for deep-linking from bulk action "Review changes"
-
-### Sort by Impact Ladder
-
-**Primary Groups (in order):**
-1. Critical
-2. Needs Attention
-3. Healthy
-
-**Within Critical:**
-1. Missing required metadata (missing_seo_title, missing_seo_description)
-2. Blocking technical issues (technical pillar + critical severity)
-3. Combined metadata + search intent issues
-4. Other
-
-**Within Needs Attention:**
-1. Search & Intent issues
-2. Content issues
-3. Suboptimal metadata
-4. Other
-
-**Secondary sort:** Higher category-specific count first, then recommended action ascending, then title, then stable id
-
-### Pillar Priority Order (for tie-breaking recommended action)
-
-1. metadata_snippet_quality
-2. search_intent_fit
-3. content_commerce_signals
-4. technical_indexability
-5. media_accessibility
-6. competitive_positioning
-7. offsite_signals
-8. local_discovery
-
-### Trust Invariants
-
-1. **Health Pills - No Numbers**: Health pill shows only text labels, never issue counts
-2. **Single Recommended Action**: Deterministically chosen via severity > pillar priority > issue.id
-3. **Progressive Disclosure**: Default row shows only essential info; details require expansion
-4. **Pre-Crawl Safety**: Products with crawlCount === 0 show "Healthy" without implying issues were checked
-5. **Sort by Impact - Deterministic**: Uses only Health + Recommended Action + existing issue category counts + existing severity flags; no traffic/revenue/AI scoring
-6. **Sort by Impact - Stable**: Order is consistent across reloads (no jitter)
-7. **No Silent Bulk Apply**: Bulk apply requires explicit user confirmation; no one-click apply
-8. **AI Used Only on Generate Drafts**: Draft generation uses AI (with explicit disclosure); Apply does not use AI
-9. **Scope Transparency**: Bulk action modal shows full product list and affected fields before any action
-
-### Related Documents
-
-- [PRODUCTS-LIST-2.0.md](./manual-testing/PRODUCTS-LIST-2.0.md) - Manual testing guide
-- [CRITICAL_PATH_MAP.md](./testing/CRITICAL_PATH_MAP.md) - CP-003 entry
-- [DEO_INFORMATION_ARCHITECTURE.md](./DEO_INFORMATION_ARCHITECTURE.md) - Updated UX contracts
-
----
-
-## Phase ROLES-2: Project Roles & Approval Foundations ✅ COMPLETE
-
-**Status:** Complete
-**Date Completed:** 2025-12-22
-
-Project-level role emulation and approval workflow foundations for single-user projects.
-
-### Key Features
-
-1. **Role Emulation via accountRole**: Project-level role setting (OWNER/EDITOR/VIEWER) for single-user projects
-2. **Capability Matrix**: Role-based permissions for view, draft generation, approval requests, and apply actions
-3. **Approval Workflow**: EDITOR requests approval, OWNER approves/rejects, approval expires after consumption
-4. **Frontend Role-Aware UI**: Buttons and CTAs adapt to user's effective role
-
-### Hard Contracts
-
-1. **OWNER-Only Apply**: Only users with OWNER role can execute apply actions
-2. **EDITOR Approval Chain**: EDITOR cannot apply directly; must request approval from OWNER
-3. **VIEWER Read-Only**: VIEWER can view data and export but cannot generate drafts or request approval
-4. **Apply Never Uses AI**: Apply actions consume zero AI quota regardless of role
-
-### ROLES-2 Capability Matrix
-
-| Capability | OWNER | EDITOR | VIEWER |
-|------------|-------|--------|--------|
-| View project data | ✅ | ✅ | ✅ |
-| Generate drafts (AI) | ✅ | ✅ | ❌ |
-| Request approval | ✅ | ✅ | ❌ |
-| Apply changes | ✅ | ❌ | ❌ |
-| Export/share reports | ✅ | ✅ | ✅ |
-| Modify settings | ✅ | ❌ | ❌ |
-
-### FIXUP-3 Corrections Applied
-
-Role-specific apply denial messages now align with test expectations:
-- **VIEWER denied**: "Viewer role cannot apply automation playbooks. Preview and export remain available."
-- **EDITOR denied**: "Editor role cannot apply automation playbooks. Request approval from an owner."
-- **No access**: "You do not have access to this project"
-
-These messages are enforced in `projects.controller.ts` and verified by `roles-2.test.ts`.
-
-### Related Documents
-
-- [ROLES-2.md](./manual-testing/ROLES-2.md) - Manual testing guide
-- [CRITICAL_PATH_MAP.md](./testing/CRITICAL_PATH_MAP.md) - CP-018 entry
-
----
-
-## Phase ROLES-3: True Multi-User Projects & Approval Chains ✅ COMPLETE
-
-**Status:** Complete
-**Date Completed:** 2025-12-23
-
-True multi-user projects with explicit membership management, approval chains, and enforcement of the OWNER-only apply invariant.
-
-### Key Features
-
-1. **ProjectMember Model**: Real project memberships with OWNER/EDITOR/VIEWER roles
-2. **Membership Management API**: OWNER-only add/remove/role-change endpoints
-3. **Role Resolution Service**: ProjectMember as source of truth (with legacy fallback)
-4. **Locked Capability Matrix**: EDITOR cannot apply; must request approval; VIEWER read-only
-5. **Approval Chain Enforcement**: EDITOR requests approval, OWNER approves and applies
-6. **Multi-User Auto-Apply Blocking**: Multi-user projects do NOT auto-apply (preserves CP-012)
-7. **Audit Trail**: PROJECT_MEMBER_ADDED/REMOVED/ROLE_CHANGED events
-
-### Hard Contracts
-
-1. **OWNER-Only Apply**: Only project owners can execute apply actions
-2. **Minimum One Owner**: Projects must always have at least one OWNER
-3. **No Silent Auto-Apply for Multi-User**: Multi-user projects block auto-apply; require OWNER approval
-4. **Backward Compatibility**: Single-user projects preserve ROLES-2 behavior
-
-### Implementation Details
-
-#### Database / Prisma
-
-- **New Enum**: `ProjectMemberRole` (OWNER, EDITOR, VIEWER)
-- **New Model**: `ProjectMember` with projectId, userId, role, createdAt
-  - Unique constraint on (projectId, userId)
-  - Cascade deletion when project is deleted
-  - Indexes for list-by-project, resolve-role, list-by-user
-- **Extended Enum**: `GovernanceAuditEventType` with PROJECT_MEMBER_* events
-- **Migration**: `20251223_roles_3_project_members` with backfill for existing projects
-
-#### Backend Services
-
-- **role-resolution.service.ts**: Updated to use ProjectMember as source of truth
-  - `resolveEffectiveRole()`: ProjectMember first, legacy fallback second
-  - `assertProjectAccess()`, `assertOwnerRole()`, `assertCanRequestApproval()`
-  - `isMultiUserProject()`: Checks if project has 2+ members
-  - `getCapabilities()`: Returns capability matrix for role
-- **projects.service.ts**: Multi-user access support
-  - `getProjectsForUser()`: Includes projects where user is a member
-  - `getProject()`: Membership check, returns memberRole
-  - `listMembers()`, `addMember()`, `changeMemberRole()`, `removeMember()`
-  - Audit logging for all membership changes
-- **automation.service.ts**: Multi-user auto-apply blocking
-  - `shouldAutoApplyMetadataForProject()`: Returns false for multi-user projects
-  - `runNewProductSeoTitleAutomation()`: Checks isMultiUserProject before auto-apply
-
-#### API Endpoints (projects.controller.ts)
-
-- `GET /projects/:id/members` - List members (all members can view)
-- `POST /projects/:id/members` - Add member (OWNER-only)
-- `PUT /projects/:id/members/:memberId` - Change role (OWNER-only)
-- `DELETE /projects/:id/members/:memberId` - Remove member (OWNER-only)
-- `GET /projects/:id/role` - Get current user's role + capabilities
-- Updated apply endpoint: OWNER-only enforcement
-
-#### Frontend (api.ts)
-
-- Updated `RoleCapabilities` interface with `canGenerateDrafts`, `canManageMembers`, `canExport`
-- Updated `getRoleCapabilities()`: EDITOR cannot apply
-- New types: `ProjectMember`, `UserRoleResponse`
-- New API methods: `getUserRole()`, `listMembers()`, `addMember()`, `changeMemberRole()`, `removeMember()`
-
-### Capability Matrix
-
-| Capability | OWNER | EDITOR | VIEWER |
-|------------|-------|--------|--------|
-| View data | Yes | Yes | Yes |
-| Generate drafts | Yes | Yes | No |
-| Request approval | Yes | Yes | No |
-| Approve actions | Yes | No | No |
-| Apply changes | Yes | No | No |
-| Modify settings | Yes | No | No |
-| Manage members | Yes | No | No |
-| Export/view reports | Yes | Yes | Yes |
-
-### Critical Paths
-
-- **CP-001 (Auth & Authorization)**: Project membership + role enforcement is real
-- **CP-012 (Automation Engine)**: Multi-user projects do NOT auto-apply
-- **CP-018 (ROLES-2)**: Single-user projects preserve existing behavior
-- **CP-019 (ROLES-3)**: True multi-user project flows
-
-### Test Coverage
-
-- Backend: `apps/api/test/integration/roles-3.test.ts`
-- Frontend: `apps/web/tests/roles-3.spec.ts`
-
-### FIXUP History
-
-#### FIXUP-1: End-to-End Multi-User Support
-- Membership-aware access for governance services (approvals, policies, audit events)
-- Role resolution fixes for assertCanGenerateDrafts()
-- Draft generation blocking for VIEWER
-- Frontend role-based UI with Members management page
-
-#### FIXUP-2: Strict Matrix Enforcement
-- Multi-user OWNER cannot create approval requests (must apply directly)
-- Role simulation correctness: accountRole ignored in multi-user projects
-- isMultiUserProject in API response
-- OWNER-only for Answer Block mutations
-- Members page "Add member" wording
-
-#### FIXUP-3: Frontend Approval-Chain Correction
-- Removed ephemeral approvalRequested flag
-- Derived state from server-sourced pendingApproval object
-- EDITOR can NEVER apply, even if approval status is APPROVED
-- Button states and CTA copy derived from server truth
-- Approval status prefetch when Step 3 visible
-- Stale-state reset when switching playbooks
-
-#### FIXUP-4: Membership Enforcement Beyond projects/*
-- Eliminated legacy project.userId ownership gates in:
-  - AI controller (assertCanGenerateDrafts for drafts, assertProjectAccess for usage)
-  - ProductIssueFixService (assertOwnerRole for apply)
-  - SEO scan service (assertOwnerRole for mutations, assertProjectAccess for view)
-  - Integrations controller (assertProjectAccess for GET, assertOwnerRole for mutations)
-  - Shopify service (assertOwnerRole for updateProductSeo)
-- Added integration tests for AI usage, integrations, and SEO scan endpoints
-
-#### FIXUP-5: Co-Owner Support for Shopify Actions
-- Shopify validateProjectOwnership uses RoleResolutionService (supports co-owners)
-- Account disconnectStore uses assertOwnerRole for project-level check
-- Co-owner can perform: install, sync-products, ensure-metafield-definitions
-- Added integration tests for multi-owner Shopify actions
-
-### Related Documents
-
-- [ROLES-3.md](./manual-testing/ROLES-3.md) - Manual testing guide
-- [ROLES-2.md](./manual-testing/ROLES-2.md) - Role foundations (single-user emulation)
-- [ENTERPRISE-GEO-1.md](./manual-testing/ENTERPRISE-GEO-1.md) - Approval workflow foundations
-- [CRITICAL_PATH_MAP.md](./testing/CRITICAL_PATH_MAP.md) - CP-019 entry
-
----
-
-## Phase WORK-QUEUE-1: Unified Action Bundle Work Queue COMPLETE
-
-**Status:** Complete
-**Date Completed:** 2025-12-24
-
-### Overview
-
-Unified Work Queue page that derives action bundles from existing persisted artifacts without introducing new storage tables. Provides a single prioritized list of actions organized by health and state.
-
-### Schema Summary
-
-**Action Bundle Core Fields:**
-- `bundleId`: Deterministic ID (e.g., `{bundleType}:{recommendedActionKey}:{scopeId}`)
-- `bundleType`: ASSET_OPTIMIZATION | AUTOMATION_RUN | GEO_EXPORT
-- `state`: NEW | PREVIEWED | DRAFTS_READY | PENDING_APPROVAL | APPROVED | APPLIED | FAILED | BLOCKED
-- `health`: CRITICAL | NEEDS_ATTENTION | HEALTHY
-- `recommendedActionKey`: FIX_MISSING_METADATA | RESOLVE_TECHNICAL_ISSUES | IMPROVE_SEARCH_INTENT | OPTIMIZE_CONTENT | SHARE_LINK_GOVERNANCE
-- `aiUsage`: NONE | DRAFTS_ONLY
-- `scopeType`: PRODUCTS | STORE_WIDE
-- `scopeCount`, `scopePreviewList`: Affected items summary
-
-**Subschemas:**
-- `approval?`: { approvalRequired, approvalStatus, requestedBy/At, approvedBy/At }
-- `draft?`: { draftStatus, draftCount, draftCoverage, lastDraftRunId }
-- `geoExport?`: { mutationFreeView, shareLinkStatus, passcodeShownOnce }
-
-### Derivation Sources
-
-1. **Issue-derived bundles (ASSET_OPTIMIZATION)**: DeoIssuesService.getIssuesForProjectReadOnly()
-   - Groups issues by recommendedActionKey
-   - Maps severity to health (critical → CRITICAL, warning → NEEDS_ATTENTION)
-   - aiUsage = NONE
-
-2. **Automation bundles (AUTOMATION_RUN)**: AutomationPlaybooksService + drafts
-   - Includes playbooks with totalAffectedProducts > 0 OR existing draft
-   - Draft status → state mapping (PARTIAL → PREVIEWED, READY → DRAFTS_READY)
-   - Approval status from governance + ApprovalRequest
-   - aiUsage = DRAFTS_ONLY
-
-3. **GEO export bundle (GEO_EXPORT)**: GeoReportsService.listShareLinks()
-   - Single bundle per project for share link governance
-   - mutationFreeView = true (viewing doesn't trigger mutations)
-   - aiUsage = NONE
-
-### Deterministic Sorting Rules
-
-1. **State priority**: PENDING_APPROVAL (100) → APPROVED (150) → DRAFTS_READY (200) → FAILED (300) → BLOCKED (350) → NEW (400) → PREVIEWED (450) → APPLIED (900)
-2. **Health priority**: CRITICAL (100) → NEEDS_ATTENTION (200) → HEALTHY (300)
-3. **Impact rank**: FIX_MISSING_METADATA (100) → RESOLVE_TECHNICAL_ISSUES (200) → IMPROVE_SEARCH_INTENT (300) → OPTIMIZE_CONTENT (400) → SHARE_LINK_GOVERNANCE (500)
-4. **updatedAt**: Most recent first
-5. **bundleId**: Stable tie-breaker
-
-### Implementation Patches (All Complete)
-
-#### PATCH 1 — Shared Contract
-- [x] Created `packages/shared/src/work-queue.ts` with types/enums
-- [x] Exported from `packages/shared/src/index.ts`
-- [x] Created `apps/web/src/lib/work-queue.ts` mirror
-
-#### PATCH 2 — Backend
-- [x] Added `GET /projects/:id/work-queue` endpoint
-- [x] Created `work-queue.service.ts` with derivation logic
-- [x] Registered `WorkQueueService` in `projects.module.ts`
-- [x] Added `appliedAt`, `appliedByUserId` to `AutomationPlaybookDraft` schema
-- [x] Created Prisma migration
-- [x] Updated `automation-playbooks.service.ts` to set applied fields after successful apply
-
-#### PATCH 3 — Frontend
-- [x] Created `/projects/[id]/work-queue/page.tsx`
-- [x] Created `ActionBundleCard.tsx` with fixed layout
-- [x] Created `WorkQueueTabs.tsx` for tab navigation
-- [x] Updated `ProjectSideNav.tsx` with Work Queue item
-- [x] Updated `ProjectHealthCards.tsx` with routing to Work Queue
-- [x] Added `projectsApi.workQueue()` client method
-
-#### PATCH 4 — Testing
-- [x] Created `apps/api/test/integration/work-queue-1.test.ts`
-- [x] Created `tests/e2e/work-queue/work-queue.spec.ts` (Playwright scaffolding)
-
-#### PATCH 5 — Documentation
-- [x] Created `docs/manual-testing/WORK-QUEUE-1.md`
-- [x] Updated `docs/IMPLEMENTATION_PLAN.md` (this section)
-
-### Critical Path Impact
-
-- **CP-018 (ROLES-2 approvals)**: Approval status reflected in Work Queue bundles
-- **ENTERPRISE-GEO-1 (GEO export)**: GEO bundle routes to export page, mutation-free view
-
-### Related Documents
-
-- [WORK-QUEUE-1.md](./manual-testing/WORK-QUEUE-1.md) - Manual testing guide
-- packages/shared/src/work-queue.ts - Type definitions
-- apps/api/test/integration/work-queue-1.test.ts - Integration tests
-- tests/e2e/work-queue/work-queue.spec.ts - E2E test scaffolding
-
----
-
-## Phase STORE-HEALTH-1.0: Store Optimization Home COMPLETE
-
-**Status:** Complete
-**Date Completed:** 2025-12-24
-
-### Overview
-
-Calm, executive Store Health page that answers "what's wrong + what first" and routes all actions into Work Queue. Decision-only surface - no preview/generate/apply triggered from this page.
-
-### Key Constraints
-
-- **Decision-only surface**: No new engines, no new scoring, no mutations from this page
-- **No new backend models/tables**: All data derived from existing sources
-- **Click-through only**: All actions route to Work Queue with pre-filters
-
-### The 6 Cards (Fixed Order)
-
-1. **Discoverability (DEO)** - Derived from FIX_MISSING_METADATA + RESOLVE_TECHNICAL_ISSUES bundles
-2. **Generative Visibility (GEO/AEO)** - Derived from projectsApi.insights() geoInsights block
-3. **Content Quality** - Derived from OPTIMIZE_CONTENT bundles
-4. **Technical Readiness** - Derived from RESOLVE_TECHNICAL_ISSUES bundles
-5. **Trust & Compliance** - Derived from IMPROVE_SEARCH_INTENT + SHARE_LINK_GOVERNANCE bundles
-6. **AI Usage & Quota** - Derived from aiApi.getProjectAiUsageQuota()
-
-### Card Rendering Rules
-
-Each card MUST render:
-- One health pill only: Healthy | Needs Attention | Critical
-- One plain-language summary sentence (no jargon, no SEO promises)
-- Exactly one primary action label (verb-first)
-
-Prohibited on cards:
-- Counts, charts, percentages, scores
-- "SEO score" language
-- Banners or promotional content
-
-### Health Resolution
-
-Card health = worst applicable state across relevant underlying sources:
-- Critical > Needs Attention > Healthy
-- Derived from Work Queue bundle health values
-
-### Click-Through Routing
-
-Clicking a card routes to Work Queue with pre-filters only:
-- `actionKey` when applicable
-- `bundleType` when applicable
-- `tab` when applicable
-
-Special routes:
-- Generative Visibility → `/projects/:id/insights?tab=geo`
-- AI Usage & Quota → `/settings/ai-usage`
-
-### Implementation Patches (All Complete)
-
-#### PATCH 1 — Work Queue actionKey Filter Support
-- [x] Extended GET /projects/:id/work-queue to accept `actionKey` query param
-- [x] Updated work-queue.service.ts to filter by recommendedActionKey
-- [x] Extended WorkQueueQueryParams in shared types
-- [x] Updated buildWorkQueueUrl() to support bundleType
-- [x] Extended projectsApi.workQueue() with actionKey param
-- [x] Work Queue page reads and preserves actionKey, bundleType in URL
-
-#### PATCH 2 — Store Health Page
-- [x] Created `/projects/[id]/store-health/page.tsx`
-- [x] Renders exactly 6 cards in fixed order
-- [x] Derives health from Work Queue bundles + GEO insights + AI quota
-- [x] Click-through routing with no side effects
-
-#### PATCH 3 — Navigation + Default Landing
-- [x] Updated ProjectSideNav.tsx: Store Health is first nav item
-- [x] Updated project [id]/page.tsx: redirects to /store-health
-- [x] Updated projects/page.tsx: new project creation routes to /store-health
-
-#### PATCH 4 — Manual Testing
-- [x] Created docs/manual-testing/STORE-HEALTH-1.0.md
-
-#### PATCH 5 — Documentation
-- [x] Updated `docs/IMPLEMENTATION_PLAN.md` (this section)
-
-### Derivation Sources
-
-| Card | Source | Health Logic |
-|------|--------|--------------|
-| Discoverability | Work Queue bundles (FIX_MISSING_METADATA, RESOLVE_TECHNICAL_ISSUES) | Worst bundle health |
-| Generative Visibility | projectsApi.insights() geoInsights.overview.productsAnswerReadyPercent | <50% Critical, <80% Needs Attention, else Healthy |
-| Content Quality | Work Queue bundles (OPTIMIZE_CONTENT) | Worst bundle health |
-| Technical Readiness | Work Queue bundles (RESOLVE_TECHNICAL_ISSUES) | Worst bundle health |
-| Trust & Compliance | Work Queue bundles (IMPROVE_SEARCH_INTENT, SHARE_LINK_GOVERNANCE) | Worst bundle health |
-| AI Usage & Quota | aiApi.getProjectAiUsageQuota() | >=90% Critical, >=70% Needs Attention, else Healthy |
-
-### Related Documents
-
-- [STORE-HEALTH-1.0.md](./manual-testing/STORE-HEALTH-1.0.md) - Manual testing guide
-- [WORK-QUEUE-1.md](./manual-testing/WORK-QUEUE-1.md) - Work Queue testing (click-through target)
-- apps/web/src/app/projects/[id]/store-health/page.tsx - Implementation
-
----
-
-## Phase ASSETS-PAGES-1: Pages & Collections Visibility ✅ COMPLETE
-
-**Status:** Complete (Visibility-Only)
-**Date Completed:** 2025-12-24
-
-### Overview
-
-Pages & Collections diagnosis and surfacing only. This phase makes Pages and Collections diagnosable and actionable at the decision level, with Work Queue items visible but no execution paths.
-
-### Phase Intent
-
-**Visibility-Only**: Surfaces Pages and Collections health status and recommended actions through:
-- Asset navigation entries
-- Work Queue bundles with scope type filtering
-- Store Health card aggregation
-
-### Scope (Strict)
-
-**Included:**
-- [x] Assets nav entries for Pages + Collections
-- [x] Health → Action resolution (same ladder as Products/Work Queue)
-- [x] Work Queue inclusion for Pages/Collections bundles
-- [x] Store Health coverage via Work Queue derivation
-- [x] scopeType query parameter on GET /projects/:id/work-queue
-
-**Excluded (Deferred to ASSETS-PAGES-1.1):**
-- Automation playbooks for Pages/Collections
-- Draft generation for Pages/Collections
-- Apply-to-Shopify for Pages/Collections
-
-### Implementation Patches
-
-#### PATCH 1 — Contracts ✅
-- [x] Extended WorkQueueScopeType: PRODUCTS | PAGES | COLLECTIONS | STORE_WIDE
-- [x] Extended WorkQueueQueryParams with scopeType filter
-- [x] Updated buildWorkQueueUrl() to support scopeType
-
-#### PATCH 2 — Work Queue Derivation ✅
-- [x] Added classifyUrlPath() function to categorize URLs by asset type
-- [x] Created deriveIssueBundlesByScopeType() method
-- [x] Bundle IDs include scope type: `ASSET_OPTIMIZATION:{actionKey}:{scopeType}:{projectId}`
-- [x] Added scopeType filter to getWorkQueue() service method
-
-#### PATCH 3 — Frontend Asset Lists ✅
-- [x] Created /projects/[id]/assets/pages/page.tsx
-- [x] Created /projects/[id]/assets/collections/page.tsx
-- [x] Health derivation from crawl page data
-- [x] Bulk action routing to Work Queue with scope filters
-- [x] Added Pages and Collections to ProjectSideNav.tsx
-
-#### PATCH 4 — Work Queue UI ✅
-- [x] Added getScopeTypeLabel() helper for singular/plural labels
-- [x] Updated ActionBundleCard scope type display
-- [x] Updated getCTARoute() to route to asset pages
-- [x] Extended Work Queue page to support scopeType URL filter
-
-#### PATCH 5 — Store Health Extension ✅
-- [x] Cards automatically reflect Pages/Collections health via Work Queue
-
-#### PATCH 6 — API Documentation ✅
-- [x] Documented scopeType query param in API_SPEC.md
-- [x] Updated WORK-QUEUE-1.md with scopeType filter verification
-
-#### PATCH 7 — Testing + Documentation ✅
-- [x] Created docs/manual-testing/ASSETS-PAGES-1.md
-- [x] Updated `docs/IMPLEMENTATION_PLAN.md` (this section)
-
-### Health Derivation Rules
-
-| Condition | Health | Action Key |
-|-----------|--------|------------|
-| Missing title or meta description | Critical | FIX_MISSING_METADATA |
-| HTTP status >= 400 | Critical | RESOLVE_TECHNICAL_ISSUES |
-| Word count < 300 | Needs Attention | OPTIMIZE_CONTENT |
-| All conditions pass | Healthy | None |
-
-### Completion Criteria
-
-- [x] Pages and Collections are diagnosable at the decision level
-- [x] Work Queue items exist for Pages/Collections scope types
-- [x] No execution paths (no Generate Drafts, no Apply buttons for Pages/Collections)
-- [x] Health status visible in Store Health cards
-
-### Deferral Note
-
-**Execution (drafts + apply) deferred to ASSETS-PAGES-1.1.** This phase intentionally excludes any mutation capabilities for Pages/Collections. The Work Queue bundles route to asset lists for visibility only.
-
-### Trust Invariants
-
-1. **No New Storage Tables**: Health derived from existing crawl data
-2. **Decision-First UX**: One health pill, one action per row (no score jargon)
-3. **Read-Only Asset Lists**: Pages/Collections lists do not trigger mutations
-4. **No Side Effects**: Navigation and clicks do not trigger POST/PUT/DELETE
-
-### URL Classification
-
-The classifyUrlPath() function categorizes URLs:
-- `/products/*` → PRODUCTS
-- `/collections/*` → COLLECTIONS
-- `/pages/*` → PAGES
-- Static paths (`/about`, `/contact`, `/faq`, etc.) → PAGES
-- Everything else → OTHER (excluded from scope type bundles)
-
-### Related Documents
-
-- [ASSETS-PAGES-1.md](./manual-testing/ASSETS-PAGES-1.md) - Manual testing guide
-- [WORK-QUEUE-1.md](./manual-testing/WORK-QUEUE-1.md) - Work Queue testing
-- [STORE-HEALTH-1.0.md](./manual-testing/STORE-HEALTH-1.0.md) - Store Health testing
-- [API_SPEC.md](../API_SPEC.md) - API documentation (scopeType param)
-
-### Follow-Up Phase
-
-See **Phase ASSETS-PAGES-1.1** for execution capabilities (draft generation + apply-to-Shopify).
-
----
-
-## Phase ASSETS-PAGES-1.1: Pages & Collections Execution ✅ COMPLETE
-
-**Status:** Complete
-**Dependencies:** ASSETS-PAGES-1 (Complete)
-**Started:** 2025-12-24
-**Completed:** 2025-12-24
-
-### Overview
-
-Execution layer for Pages and Collections: draft generation and apply-to-Shopify capabilities (metadata only: SEO title + SEO description). Extends the visibility-only ASSETS-PAGES-1 with full lifecycle support.
-
-### Authoritative Constraints
-
-1. **Canonical Playbook IDs ONLY**: `missing_seo_title`, `missing_seo_description` — no page/collection-specific variants
-2. **Metadata-Only Mutations**: SEO title + SEO description only for Pages/Collections
-3. **Handle-Only Apply**: `page_handle:<handle>`, `collection_handle:<handle>` format with no URL/title fallback lookups
-4. **Apply Never Uses AI**: AUTO-PB-1.3 invariant preserved
-5. **ROLES-2/ROLES-3 Gating**: EDITOR request → OWNER approve/apply
-
-### Scope
-
-#### PATCH 1 — Contract + API Surface ✅
-- [x] Added asset-scoped types to work-queue.ts: `AutomationAssetType`, `AssetRef`
-- [x] Added `parseAssetRef()`, `createAssetRef()`, `validateAssetRefsForType()` helpers
-- [x] Added `PLAYBOOK_ASSET_TYPES` mapping (canonical playbooks → supported asset types)
-- [x] Extended controller endpoints with `assetType` and `scopeAssetRefs` parameters:
-  - estimate, preview, draft/generate, apply
-- [x] Added validation: exactly one of (scopeProductIds) OR (scopeAssetRefs with non-PRODUCTS assetType)
-- [x] Added Automation Playbooks section to API_SPEC.md
-
-#### PATCH 2 — Service Generalization ✅
-- [x] Removed non-canonical playbook ID variants (page_seo_title_fix, etc.)
-- [x] Updated service to use canonical IDs (`missing_seo_title`, `missing_seo_description`) with assetType differentiation
-- [x] Asset-scoped helper methods preserved:
-  - `extractHandleFromUrl()` - extract handle from page/collection URLs
-  - `resolveAssetRefs()` - resolve refs to CrawlResult records
-  - `getAffectedAssets()` - get assets needing SEO fixes (uses canonical playbookId)
-  - `computeAssetScopeId()` - compute scope ID including assetType
-- [x] Extended `estimatePlaybook()` with assetType + scopeAssetRefs support
-- [x] Wired controller to pass assetType through to service
-
-#### PATCH 3 — Shopify Admin API Mutations ✅
-- [x] Implemented `updateShopifyPageSeo()` in shopify.service.ts (GraphQL pageUpdate mutation)
-- [x] Implemented `updateShopifyCollectionSeo()` in shopify.service.ts (GraphQL collectionUpdate mutation)
-- [x] Implemented `updatePageSeo()` public method with OWNER-only access
-- [x] Implemented `updateCollectionSeo()` public method with OWNER-only access
-- [x] Handle-based lookup: Uses `pageByHandle` and `collectionByHandle` queries
-- [x] Local CrawlResult sync: Updates title/metaDescription in local records
-- [ ] Extend previewPlaybook() for asset-scoped preview (deferred - needs AI prompt adaptation)
-- [ ] Extend generateDraft() for asset-scoped draft generation (deferred - needs AI prompt adaptation)
-- [ ] Extend applyPlaybook() for asset-scoped apply (wiring to Shopify mutations pending)
-
-#### PATCH 4 — Work Queue Lifecycle ✅
-- [x] Extended `deriveAutomationBundles()` to iterate over PRODUCTS, PAGES, COLLECTIONS
-- [x] Bundle ID format: `AUTOMATION_RUN:FIX_MISSING_METADATA:{playbookId}:{assetType}:{projectId}`
-- [x] Asset-type-specific labels: "Fix missing product/page/collection SEO titles/descriptions"
-- [x] Scope preview derivation from CrawlResult for PAGES/COLLECTIONS
-- [x] State transitions: NEW → DRAFTS_READY → PENDING_APPROVAL → APPROVED → APPLIED (shared logic)
-
-#### PATCH 5 — Frontend Execution Surfaces ✅
-- [x] PATCH 5.1: Work Queue CTA routing - ActionBundleCard.tsx routes AUTOMATION_RUN bundles with asset-scoped deep links (?playbookId=&assetType=)
-- [x] PATCH 5.2: Playbooks page.tsx accepts assetType from URL params, shows asset type badge, passes to estimate
-- [x] PATCH 5.3: api.ts updated with assetType/scopeAssetRefs support in automationPlaybookEstimate()
-- [x] PATCH 5.4: Created assets-pages-1-1.e2e-spec.ts E2E tests
-- [x] PATCH 5.5: Updated documentation and marked phase complete
-- **Note:** AI prompt adaptation for Pages/Collections draft generation deferred to future phase
-
-#### PATCH 6 — Testing ✅
-- [x] Created ASSETS-PAGES-1.1.md manual testing doc
-- [x] Created assets-pages-1-1.e2e-spec.ts E2E tests for:
-  - Estimate with assetType (PAGES, COLLECTIONS)
-  - Different scopeId for same playbookId with different assetType
-  - scopeAssetRefs validation (page_handle/collection_handle)
-  - Work Queue bundle generation with scopeType
-  - Canonical playbook ID enforcement
-
-#### PATCH 7 — Documentation ✅
-- [x] Verified and removed non-canonical playbook ID references from API_SPEC.md
-- [x] Document asset ref format in API_SPEC.md
-- [x] Update `docs/IMPLEMENTATION_PLAN.md` version history
-- [x] Updated ASSETS-PAGES-1.1.md manual testing doc with frontend scenarios
-
-### Trust Invariants
-
-1. **Apply Never Uses AI**: Pages/Collections apply follows same pattern as Products
-2. **OWNER-Only Apply**: Only OWNER can apply changes to Pages/Collections
-3. **Approval Chain**: EDITOR must request approval before apply
-4. **Canonical IDs Only**: No playbook ID proliferation — assetType handles differentiation
-
-### Related Documents
-
-- [ASSETS-PAGES-1.md](./manual-testing/ASSETS-PAGES-1.md) - Visibility-only manual testing
-- [ASSETS-PAGES-1.1.md](./manual-testing/ASSETS-PAGES-1.1.md) - Execution manual testing
-- [assets-pages-1-1.e2e-spec.ts](../apps/api/test/e2e/assets-pages-1-1.e2e-spec.ts) - E2E tests
-- Phase ASSETS-PAGES-1 - Visibility layer (prerequisite)
-
----
-
-## Phase ASSETS-PAGES-1.1-UI-HARDEN: End-to-End Shippable UI ✅ COMPLETE
-
-**Status:** Complete
-**Dependencies:** ASSETS-PAGES-1.1 (Complete)
-**Started:** 2025-12-24
-**Completed:** 2025-12-24
-
-### Overview
-
-UI hardening for Pages/Collections playbook execution. Ensures the frontend properly handles asset-scoped deep links, blocks operations when scope is missing, and provides a complete end-to-end flow for PAGES/COLLECTIONS asset types.
-
-### Authoritative Constraints
-
-1. **Deterministic Safety Block**: PAGES/COLLECTIONS without scopeAssetRefs must be blocked (no silent project-wide scoping)
-2. **Canonical Playbook IDs ONLY**: Only `missing_seo_title` and `missing_seo_description` allowed
-3. **XOR Scope Enforcement**: PRODUCTS uses scopeProductIds, PAGES/COLLECTIONS uses scopeAssetRefs
-4. **Handle-Only Refs**: `page_handle:<handle>`, `collection_handle:<handle>` format required
-
-### Implementation Patches
-
-#### PATCH 1 — API Client Full Param Support ✅
-- [x] Extended `previewAutomationPlaybook()` with assetType + scopeAssetRefs params
-- [x] Extended `applyAutomationPlaybook()` with assetType + scopeAssetRefs params
-- [x] Extended `generateAutomationPlaybookDraft()` with assetType + scopeAssetRefs params
-- [x] XOR enforcement: PRODUCTS uses scopeProductIds, PAGES/COLLECTIONS uses scopeAssetRefs
-
-#### PATCH 2 — Playbooks UI Hardening ✅
-- [x] Parse and retain URL params: playbookId, assetType, scopeAssetRefs (comma-separated)
-- [x] Missing scope safety block: red banner with exact message when PAGES/COLLECTIONS lacks scopeAssetRefs
-- [x] Scope summary UI: asset type badge + first 3 handles + "+N more"
-- [x] Pass assetType and scopeAssetRefs through loadEstimate(), loadPreview(), handleApplyPlaybook()
-
-#### PATCH 3 — Work Queue Deep Link Completeness ✅
-- [x] `extractScopeAssetRefs()`: extract handle refs from scopeQueryRef or bundleId
-- [x] `hasMissingScope()`: check if PAGES/COLLECTIONS bundle lacks deterministic refs
-- [x] `getCTARoute()`: include scopeAssetRefs in deep link for PAGES/COLLECTIONS
-- [x] `deriveCtas()`: disable actions for bundles with missing scope
-
-#### PATCH 4 — Playwright UI Smoke Test ✅
-- [x] Created `apps/web/tests/assets-pages-1-1.spec.ts`
-- [x] Test: Asset type badge renders for assetType=PAGES
-- [x] Test: Scope summary renders with handle refs
-- [x] Test: Missing scope block for PAGES without scopeAssetRefs
-- [x] Test: Missing scope block for COLLECTIONS without scopeAssetRefs
-- [x] Test: PRODUCTS works without scopeAssetRefs (backwards compatibility)
-- [x] Test: Deep link preserves all params including scopeAssetRefs
-- [x] Test: "+N more" shown for >3 scope refs
-
-#### PATCH 5 — Documentation ✅
-- [x] Added ASSETS-PAGES-1.1-UI-HARDEN phase to IMPLEMENTATION_PLAN.md
-- [x] Updated ASSETS-PAGES-1.1.md with UI execution verification scenarios
-- [x] Linked to Playwright test file
-
-### Trust Invariants
-
-1. **No Silent Broad Scoping**: PAGES/COLLECTIONS without scope refs cannot proceed
-2. **Deterministic Deep Links**: Work Queue CTA includes all params needed for scoped execution
-3. **Backwards Compatible**: PRODUCTS flow unchanged (no scopeAssetRefs required)
-4. **Scope Visibility**: User sees scope summary before any mutation
-
-### Related Documents
-
-- [ASSETS-PAGES-1.1.md](./manual-testing/ASSETS-PAGES-1.1.md) - Manual testing guide
-- [assets-pages-1-1.spec.ts](../apps/web/tests/assets-pages-1-1.spec.ts) - Playwright UI smoke tests
-- Phase ASSETS-PAGES-1.1 - Execution layer (prerequisite)
-
----
-
-## Phase GOV-AUDIT-VIEWER-1: Audit & Approvals Viewer ✅ COMPLETE
-
-**Status:** Complete
-**Dependencies:** ENTERPRISE-GEO-1 (Complete)
-**Started:** 2025-12-24
-**Completed:** 2025-12-24
-
-### Overview
-
-Read-only governance viewer providing project members visibility into approval requests, audit events, and share link activity. Part of the Enterprise Trust Surface.
-
-### Key Features
-
-1. **Three-Tab UI**: Approvals, Audit Log, Sharing & Links
-2. **Cursor-Based Pagination**: Stable ordering (timestamp DESC, id DESC)
-3. **Strict Audit Allowlist**: Only approval and share-link lifecycle events visible
-4. **Passcode Security**: Never returns full passcode, only passcodeLast4
-5. **Role-Safe Read Access**: Any project member (VIEWER, EDITOR, OWNER) can view
-
-### Authoritative Constraints
-
-1. **Read-Only Only**: All endpoints are GET; no mutations from viewer
-2. **Allowlist-Filtered Audit Events**: Only these event types are returned:
-   - APPROVAL_REQUESTED
-   - APPROVAL_APPROVED
-   - APPROVAL_REJECTED
-   - SHARE_LINK_CREATED
-   - SHARE_LINK_REVOKED
-   - SHARE_LINK_EXPIRED
-3. **Server-Side Filtering**: Allowlist enforced on server, not client
-4. **Deterministic Ordering**: timestamp DESC, id DESC for stable pagination
-5. **Data Minimization**: Passcode hash never exposed; only passcodeLast4
-
-### Implementation Patches
-
-#### PATCH 1 — Shared Governance Contract ✅
-- [x] Created `packages/shared/src/governance.ts` with DTOs
-- [x] Defined `ALLOWED_AUDIT_EVENT_TYPES` authoritative allowlist
-- [x] Added cursor pagination helpers: `buildPaginationCursor()`, `parsePaginationCursor()`
-- [x] Added type guards: `isAllowedAuditEventType()`
-- [x] Exported from `packages/shared/src/index.ts`
-
-#### PATCH 2 — API Read Endpoints ✅
-- [x] Created `apps/api/src/projects/governance-viewer.service.ts`
-  - `listApprovals()`: Cursor pagination, user name resolution, deep-link fields
-  - `listAuditEvents()`: STRICT allowlist filtering, cursor pagination
-  - `listShareLinks()`: Status derivation, NEVER returns passcode
-- [x] Extended `apps/api/src/projects/governance.controller.ts` with viewer endpoints:
-  - `GET /projects/:projectId/governance/viewer/approvals`
-  - `GET /projects/:projectId/governance/viewer/audit-events`
-  - `GET /projects/:projectId/governance/viewer/share-links`
-- [x] Registered `GovernanceViewerService` in `projects.module.ts`
-- [x] Added API client methods to `apps/web/src/lib/api.ts`
-
-#### PATCH 3 — Governance UI ✅
-- [x] Created `/projects/[id]/settings/governance/page.tsx`
-- [x] Three tabs: Approvals, Audit Log, Sharing & Links
-- [x] Status filter buttons for each tab
-- [x] Detail drawers for each item type
-- [x] Badge components for status, event type, audience
-- [x] URL-based tab navigation
-
-#### PATCH 4 — Testing ✅
-- [x] Created `apps/api/test/e2e/governance-viewer.e2e-spec.ts`
-  - Approvals: empty, pagination, user names
-  - Audit events: allowlist filtering, type filter
-  - Share links: passcode security, status derivation, status filter
-  - Access control tests
-- [x] Created `apps/web/tests/governance-viewer.spec.ts` (Playwright smoke)
-  - Tab navigation
-  - Empty states
-  - Filter buttons
-  - URL-based tab control
-
-#### PATCH 5 — Documentation ✅
-- [x] Created `docs/manual-testing/GOV-AUDIT-VIEWER-1.md`
-- [x] Updated `docs/IMPLEMENTATION_PLAN.md` (this section)
-- [x] Updated `API_SPEC.md` with Governance Viewer endpoints
-
-### Entry Point / Route
-
-Governance Viewer is accessible at:
-- `/projects/{id}/settings/governance` - Main page
-- `/projects/{id}/settings/governance?tab=approvals` - Approvals tab
-- `/projects/{id}/settings/governance?tab=audit` - Audit Log tab
-- `/projects/{id}/settings/governance?tab=sharing` - Sharing & Links tab
-
-### Trust Invariants
-
-1. **Mutation-Free Viewer**: No POST/PUT/DELETE from viewer endpoints
-2. **Allowlist Enforcement**: Server-side filtering, not client-only
-3. **Passcode Protection**: Hash never exposed; last4 only for display
-4. **Universal Read Access**: All project members can view governance data
-
-### API Endpoints
-
-| Endpoint | Query Params | Description |
-|----------|--------------|-------------|
-| `GET /viewer/approvals` | status, cursor, limit | List approvals (pending/history) |
-| `GET /viewer/audit-events` | types, actor, from, to, cursor, limit | List allowlist-filtered events |
-| `GET /viewer/share-links` | status, cursor, limit | List share links with derived status |
-
-### Related Documents
-
-- [GOV-AUDIT-VIEWER-1.md](./manual-testing/GOV-AUDIT-VIEWER-1.md) - Manual testing guide
-- [ENTERPRISE-GEO-1.md](./manual-testing/ENTERPRISE-GEO-1.md) - Governance foundations
-- [governance-viewer.e2e-spec.ts](../apps/api/test/e2e/governance-viewer.e2e-spec.ts) - API E2E tests
-- [governance-viewer.spec.ts](../apps/web/tests/governance-viewer.spec.ts) - Playwright smoke tests
-
----
-
-## Phase NAV-IA-CONSISTENCY-1: Navigation IA Consistency & Terminology ✅ COMPLETE
-
-**Status:** Complete
-**Date Completed:** 2026-01-06
-**Critical Paths:** CP-001 (Auth terminology), CP-008 (Design tokens & theme)
-
-### Overview
-
-Enforces locked contract for navigation information architecture (IA) and terminology across the application. Adds design tokens for theme support, normalizes authentication terminology, and ensures visual consistency between marketing and portal.
-
-### Key Changes
-
-#### Design Tokens & Theme
-- Added `darkMode: 'class'` to Tailwind config
-- Created CSS variables for token palette (light + dark modes)
-- Token colors: background, foreground, muted-foreground, primary, primary-foreground, signal, border
-- Theme toggle in TopNav with localStorage persistence
-
-#### Navigation IA Contract
-
-**TopNav (Authenticated):**
-- Removed top-level "Settings" link
-- Added theme toggle control
-- Account dropdown: Profile, Stores, Plan & Billing, AI Usage, Security, Preferences, Help & Support, Sign out
-- Removed "Admin Dashboard" from dropdown (Admin link remains conditional in main nav)
-
-**ProjectSideNav:**
-- Grouped sections: OPERATE, ASSETS, AUTOMATION, INSIGHTS, PROJECT
-- OPERATE: Store Health, Work Queue
-- ASSETS: Products, Pages, Collections
-- AUTOMATION: Playbooks (label only; route unchanged)
-- INSIGHTS: Insights (single item, active for all pillar routes)
-- PROJECT: Project Settings
-- Removed: Overview, Automation (old), Settings (old), Content, DEO Overview, pillar items
-
-**InsightsPillarsSubnav:**
-- New component for pillar navigation under Insights
-- Tabs: DEO, Search & Intent, Competitors, Off-site Signals, Local Discovery, Technical
-
-#### Terminology Normalization
-
-| Old Term | New Term |
-|----------|----------|
-| Log in | Sign in |
-| Sign up (button) | Create account |
-| Organization / Stores | Stores |
-| Overview (InsightsSubnav) | Summary |
-| Automation (UI label) | Playbooks |
-
-### Implementation Patches
-
-#### PATCH 1 — Design Tokens ✅
-- [x] Added `darkMode: 'class'` to `tailwind.config.ts`
-- [x] Extended Tailwind colors with token-backed names
-- [x] Created CSS variables in `globals.css` for light and dark modes
-
-#### PATCH 2 — Marketing Visual Consistency ✅
-- [x] Updated `layout.tsx` with `bg-background text-foreground`
-- [x] Updated `MarketingNavbar.tsx` with token-based colors, "Sign in" terminology
-- [x] Updated `MarketingFooter.tsx` with token-based colors
-- [x] Updated marketing homepage with token-based styling, "Store Health" terminology
-
-#### PATCH 3 — Auth Terminology ✅
-- [x] Login page: "Sign up" → "Create account" link, "Login failed" → "Sign-in failed"
-- [x] Signup page: "Sign up" → "Create account" button, "Signup failed" → "Create account failed"
-
-#### PATCH 4 — TopNav Contract ✅
-- [x] Removed top-level "Settings" link
-- [x] Added theme toggle with localStorage persistence
-- [x] Locked account dropdown labels and order
-- [x] Removed "Admin Dashboard" from dropdown
-- [x] Unauthenticated: "Sign up" → "Create account"
-- [x] Token-based styling
-
-#### PATCH 5 — ProjectSideNav Grouped IA ✅
-- [x] Implemented grouped sections with headings
-- [x] Active-state hardening for Insights on all pillar routes
-- [x] Removed forbidden labels (Overview, Automation, Settings, Content, DEO Overview)
-
-#### PATCH 6 — InsightsPillarsSubnav ✅
-- [x] Created `InsightsPillarsSubnav.tsx` component
-- [x] Tab navigation for all pillar routes
-
-#### PATCH 7 — Terminology Hardening ✅
-- [x] InsightsSubnav: "Overview" → "Summary"
-- [x] Settings organization page: "Organization / Stores" → "Stores"
-- [x] Settings hub card: "Organization / Stores" → "Stores"
-
-#### PATCH 8 — Automation → Playbooks ✅
-- [x] Automation page redirects to playbooks
-- [x] Playbooks page header: "Automation Playbooks" → "Playbooks"
-- [x] Breadcrumbs and button labels updated
-- [x] Entry page: "Automation Entry" → "New Playbook"
-
-#### PATCH 9 — Playwright Coverage ✅
-- [x] Created `apps/web/tests/nav-ia-consistency-1.spec.ts`
-- [x] Marketing navbar assertions
-- [x] Portal top nav assertions
-- [x] Theme toggle presence
-- [x] Account dropdown labels
-- [x] Project sidebar group headings and item labels
-
-#### PATCH 10 — Documentation ✅
-- [x] Created `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`
-- [x] Created `docs/testing/NAV-IA-CONSISTENCY-1.md` (pointer)
-- [x] Updated `docs/IMPLEMENTATION_PLAN.md` (this section)
-- [x] Updated `docs/testing/CRITICAL_PATH_MAP.md`
-
-### Related Documents
-
-- [NAV-IA-CONSISTENCY-1.md](./manual-testing/NAV-IA-CONSISTENCY-1.md) - Manual testing guide
-- [DEO_INFORMATION_ARCHITECTURE.md](./DEO_INFORMATION_ARCHITECTURE.md) - IA foundations
-- [nav-ia-consistency-1.spec.ts](../apps/web/tests/nav-ia-consistency-1.spec.ts) - Playwright E2E tests
-- [Repo-root pointer](../manual-testing/NAV-IA-CONSISTENCY-1.md) - Quick access from repo root
-
----
-
-## Phase TRUST-ROUTING-1: UX Trust Hardening (Deterministic Routing + Context Preservation) ✅ COMPLETE
-
-**Status:** Complete
-**Date Completed:** 2026-01-06
-**Critical Paths:** CP-019 (Trust Routing), CP-003 (Products List), CP-016 (Insights)
-
-### Overview
-
-Comprehensive UX trust hardening focused on deterministic routing and context preservation. Addresses trust breaks where navigation loses context, CTAs land on placeholder/empty pages, or filter state becomes invisible.
-
-### Key Trust Guarantees
-
-1. **Preview Context Propagation**: Playbooks preview state survives round-trip navigation to Product page and back
-2. **Visible Filter Context**: Work Queue always shows why the user is there when routed from Store Health
-3. **CTA Safety**: "View Issues" CTAs never route to placeholder/empty pillar pages
-4. **Single Primary Navigation**: Insights has one primary strip; pillar navigation is secondary (dropdown)
-
-### Implementation Summary
-
-#### PATCH 1 — Playbooks Preview Context Propagation + Product Preview Mode
-
-**Playbooks page changes:**
-- Preview sample "Open product" links now include context params: `from=playbook_preview`, `playbookId`, `returnTo` (URL-encoded path back)
-- Apply Results table product links include: `from=playbook_results`, `playbookId`, `returnTo`
-- `returnTo` is deterministic and restores full playbook context (playbookId, assetType, scopeAssetRefs)
-
-**Product page changes:**
-- Reads `from`, `playbookId`, `returnTo` from URL query params
-- Validates `returnTo` defensively (must start with `/projects/${projectId}/automation/playbooks`)
-- Preview Mode UX (when `from=playbook_preview`):
-  - Loads preview sample from session storage (`automationPlaybookState:${projectId}:${playbookId}`)
-  - Shows "Previewing draft (not applied)" banner with Draft vs Current comparison
-  - If sample not found: Shows "Preview expired — regenerate" banner with CTA
-- Context-aware back links:
-  - `from=playbook_preview` → "← Back to preview"
-  - `from=playbook_results` → "← Back to results"
-  - Default → "← Back to Products"
-- Breadcrumbs preserve context (Products breadcrumb routes to returnTo when in playbook context)
-
-**ProductDetailsTabs changes:**
-- Tab links preserve all existing query params (from, playbookId, returnTo)
-- Only sets/overrides `tab=<tabId>` to maintain preview context across tab navigation
-
-#### PATCH 2 — Store Health → Work Queue Deep Linking
-
-**work-queue.ts changes:**
-- Extended `buildWorkQueueUrl()` to support:
-  - `from?: string` - serialized as `from=...`
-  - `actionKeys?: WorkQueueRecommendedActionKey[]` - serialized as `actionKeys=KEY1,KEY2`
-
-**Store Health page changes:**
-- Fixed GEO routing: `/insights?tab=geo` → `/insights/geo-insights`
-- Discoverability routes with multi-key context: `actionKeys=FIX_MISSING_METADATA,RESOLVE_TECHNICAL_ISSUES&from=store_health`
-- Trust & Compliance routes with multi-key context: `actionKeys=IMPROVE_SEARCH_INTENT,SHARE_LINK_GOVERNANCE&from=store_health`
-- All Work Queue CTAs include `from=store_health`
-
-**Work Queue page changes:**
-- Parses `actionKeys` (comma-separated) for multi-key filtering
-- Client-side filtering when multiple action keys present (API doesn't support multi-key)
-- Filter Context Banner (data-testid="work-queue-filter-context"):
-  - "Showing:" label with "Store Health → Work Queue" chip
-  - Active filter labels
-  - Count explainability: "X action bundles affecting Y items"
-- Clear filters CTA (data-testid="work-queue-clear-filters")
-
-#### PATCH 3 — CTA Safety Enforcement
-
-**ActionBundleCard changes:**
-- Fixed GEO deep link: `/insights?tab=geo` → `/insights/geo-insights`
-- ASSET_OPTIMIZATION "View Issues" destinations rerouted to Issues Engine:
-  - `/metadata` → `/issues?pillar=metadata_snippet_quality`
-  - `/performance` → `/issues?pillar=technical_indexability`
-  - `/keywords` → `/issues?pillar=search_intent_fit`
-  - `/content` → `/issues?pillar=content_commerce_signals`
-  - Default → `/issues`
-
-**Forbidden CTA Destinations:**
-- Never route to `/projects/${projectId}/metadata`
-- Never route to pillar placeholder pages without issue lists
-
-#### PATCH 4 — Insights Navigation Simplification
-
-**InsightsSubnav changes:**
-- Added `data-testid="insights-subnav"` for testability
-
-**InsightsPillarsSubnav changes:**
-- Converted from horizontal tab strip to dropdown selector
-- `data-testid="insights-pillar-filter"` (replaces old `data-testid="insights-pillars-subnav"`)
-- Ensures Insights has only one primary navigation strip
-
-### Test Coverage
-
-**Playwright E2E:** `apps/web/tests/trust-routing-1.spec.ts`
-
-Tests:
-1. Playbooks preview survives navigation to Product and back
-2. Store Health CTA lands on Work Queue with visible filter context
-3. "View Issues" never routes to placeholder/empty pages
-4. Insights renders with only one primary navigation strip
-
-### Files Changed
-
-**Frontend:**
-- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` - Preview context links
-- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` - Preview Mode UX
-- `apps/web/src/components/products/optimization/ProductDetailsTabs.tsx` - Context preservation
-- `apps/web/src/app/projects/[id]/store-health/page.tsx` - Multi-key routing
-- `apps/web/src/app/projects/[id]/work-queue/page.tsx` - Filter context UI
-- `apps/web/src/lib/work-queue.ts` - Extended buildWorkQueueUrl
-- `apps/web/src/components/work-queue/ActionBundleCard.tsx` - CTA safety routing
-- `apps/web/src/components/projects/InsightsSubnav.tsx` - Test hook
-- `apps/web/src/components/projects/InsightsPillarsSubnav.tsx` - Dropdown conversion
-
-**Tests:**
-- `apps/web/tests/trust-routing-1.spec.ts` - Playwright E2E tests
-
-**Documentation:**
-- `docs/IMPLEMENTATION_PLAN.md` - This section
-- `docs/manual-testing/TRUST-ROUTING-1.md` - Manual testing guide
-
-### Related Documents
-
-- [TRUST-ROUTING-1.md](./manual-testing/TRUST-ROUTING-1.md) - Manual testing guide
-- [trust-routing-1.spec.ts](../apps/web/tests/trust-routing-1.spec.ts) - Playwright E2E tests
-- [NAV-IA-CONSISTENCY-1.md](./manual-testing/NAV-IA-CONSISTENCY-1.md) - Navigation IA context
-- [WORK-QUEUE-1.md](./manual-testing/WORK-QUEUE-1.md) - Work Queue foundations
-
----
-
-## Phase ISSUE-TO-FIX-PATH-1: Trust-Critical UX Hardening for Issue→Fix Path ✅ COMPLETE
-
-**Status:** Complete
-**Date Completed:** 2026-01-07
-**Critical Paths:** CP-008 (Issue-to-Fix-Path)
-
-### Overview
-
-Formalizes the Issue→Fix Path contract ensuring users are NEVER stranded on placeholder pages when clicking issue CTAs. Creates a single source of truth for issue routing, ensures orphan issues (no deterministic fix destination) are marked as informational not actionable, and provides context banners when navigating from issues to fix surfaces.
-
-### Key Trust Guarantees
-
-1. **Issue Click Always Lands on Visible Fix**: Clicking any issue CTA lands on a visible fix surface (Product workspace tab) with context banner
-2. **Actionable Count Parity**: Issue counts reflect ONLY actionable issues (badge matches row count)
-3. **Orphan Issue Suppression**: Orphan issues (no deterministic fix destination) display "Informational — no action required" badge and are not clickable
-4. **No Internal ID Leakage**: Issue titles/descriptions never expose internal IDs to users
-5. **Context Preservation**: "You're here to fix: {Issue title}" banner with "Back to Issues" link
-
-### Implementation Summary
-
-#### PATCH 1 — Create issue-to-fix-path.ts (Single Source of Truth)
-
-- Created `apps/web/src/lib/issue-to-fix-path.ts`
-- `IssueFixSurface` enum: `ProductMetadata`, `ProductAnswers`, `ProductSearchIntent`, `ProductMedia`, `WorkQueue`, `External`
-- `IssueFixPath` interface with fixSurface, ctaLabel, routeTarget, highlightTarget, isActionableNow
-- `ISSUE_FIX_PATH_MAP`: Mapping from issue IDs to fix paths
-- Helper functions: `getIssueFixPathForProduct()`, `getIssueFixPathForProject()`, `buildIssueFixHref()`, `getSafeIssueTitle()`, `getSafeIssueDescription()`, `isIssueActionable()`, `getActionableIssues()`, `getActionableIssuesForProduct()`
-
-#### PATCH 2 — Update IssuesList.tsx (No-Orphan Rule + Sanitize Labels)
-
-- Imported helpers from issue-to-fix-path.ts
-- IssueCard uses `isIssueActionable()`, `buildIssueFixHref()`, `getSafeIssueTitle()`, `getSafeIssueDescription()`
-- Added test hooks: `data-testid="issue-card-actionable"` and `data-testid="issue-card-informational"`
-- Added "Informational — no action required" badge for orphan issues
-
-#### PATCH 3 — Update Product page.tsx (from + issueId + Highlight)
-
-- Added URL params: `issueIdParam`, `highlightParam`
-- Added `issueFixContext` state for banner display
-- Added Issue Fix Context Banner with `data-testid="issue-fix-context-banner"`
-- Shows "You're here to fix: {Issue title}" with "Back to Issues" link
-- Auto-scrolls to target tab section anchor on load
-
-#### PATCH 4 — Update ProductIssuesPanel.tsx and ProductDetailsTabs.tsx
-
-- Filter issues to actionable only using `getActionableIssuesForProduct()`
-- Updated FixNextBadge to use `buildIssueFixHref()` and `getSafeIssueTitle()`
-- Added test hooks: `data-testid="product-issues-actionable-count"`, `data-testid="product-issue-row-actionable"`, `data-testid="product-issues-tab-count"`
-- Empty state changed to "No actionable issues"
-
-#### PATCH 5 — Update Project Issues page.tsx (Deterministic Fix CTAs)
-
-- Updated `getFixAction()` to check `isIssueActionable()` and use `buildIssueFixHref()`
-- Split issue card rendering: actionable as button, orphans as div with informational badge
-- Added test hooks: `data-testid="issue-card-actionable"`, `data-testid="issue-card-informational"`
-
-#### PATCH 6 — Update Work Queue page.tsx (from + issueId Banner)
-
-- Added Issue Fix Context Banner with `data-testid="work-queue-issue-fix-context-banner"`
-- Shows "You're here to fix: {Issue title}" when `from=issues&issueId=...`
-- "Back to Issues" link for navigation
-- Auto-scrolls to first bundle on load
-
-#### PATCH 7 — Create Playwright Tests
-
-- Created `apps/web/tests/issue-to-fix-path-1.spec.ts`
-- Test: "Issue click lands on visible fix (product)" - verifies context banner and back link
-- Test: "Issue counts equal actionable issues" - verifies badge matches row count
-- Test: "Orphan issues are not actionable" - verifies informational cards have no button role
-
-#### PATCH 8 — Update Documentation
-
-- Created `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md` - Manual testing guide
-- Updated `docs/testing/CRITICAL_PATH_MAP.md` - Added CP-008 scenarios and test coverage
-- Updated `docs/IMPLEMENTATION_PLAN.md` - This section
-
-### Test Coverage
-
-**Playwright E2E:** `apps/web/tests/issue-to-fix-path-1.spec.ts`
-
-Tests:
-1. From Overview "Top blockers" click lands on product with fix banner
-2. Issue fix banner includes Back to Issues link
-3. Product workspace Issues tab badge matches actionable row count
-4. Actionable count header matches rendered rows
-5. Informational issues have no link/button navigation affordance
-6. Actionable issues are clickable
-7. Work Queue issue fix banner shows when issueId is present (from optional)
-
-### Files Changed
-
-**Frontend:**
-- `apps/web/src/lib/issue-to-fix-path.ts` (NEW) - Single source of truth
-- `apps/web/src/components/issues/IssuesList.tsx` - Orphan suppression
-- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` - Context banner
-- `apps/web/src/components/products/optimization/ProductIssuesPanel.tsx` - Actionable filtering
-- `apps/web/src/components/products/optimization/ProductDetailsTabs.tsx` - Tab count test hook
-- `apps/web/src/app/projects/[id]/issues/page.tsx` - Deterministic fix CTAs
-- `apps/web/src/app/projects/[id]/work-queue/page.tsx` - Issue fix context banner
-
-**Tests:**
-- `apps/web/tests/issue-to-fix-path-1.spec.ts` (NEW) - Playwright E2E tests
-
-**Documentation:**
-- `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md` (NEW) - Manual testing guide
-- `docs/testing/CRITICAL_PATH_MAP.md` - CP-008 coverage update
-- `docs/IMPLEMENTATION_PLAN.md` - This section
-
-### Related Documents
-
-- [ISSUE-TO-FIX-PATH-1.md](./manual-testing/ISSUE-TO-FIX-PATH-1.md) - Manual testing guide
-- [issue-to-fix-path-1.spec.ts](../apps/web/tests/issue-to-fix-path-1.spec.ts) - Playwright E2E tests
-- [TRUST-ROUTING-1.md](./manual-testing/TRUST-ROUTING-1.md) - Related trust routing hardening
-- [DRAFT-CLARITY-AND-ACTION-TRUST-1.md](./manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md) - Related trust UX
-
-### FIXUP Summary
-
-**Locked Contract:** Every surfaced issue is fixable now; actionable iff deterministic fix href exists; context banner + highlight on arrival; no internal IDs in UX.
-
-**Single Sources of Truth:**
-- `apps/web/src/lib/issue-to-fix-path.ts` - Fix path routing logic
-- `apps/web/src/lib/issue-ui-config.ts` - Issue UI configuration
-
-**Verification Artifacts:**
-- `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md` - Manual testing guide
-- `apps/web/tests/issue-to-fix-path-1.spec.ts` - Playwright E2E tests
-
-**FIXUP Changelog:**
-- **FIXUP-1**: Circular import fix + actionable-only surfaces + issueId triggers fix-mode (not requiring from=issues)
-- **FIXUP-2**: Href-based actionability on Issues page + ID leakage hardening via safe title helpers + dead-click regression test
-- **FIXUP-3**: Doc/test alignment for Work Queue banner (issueId triggers; from optional) and CP-008 wording correction
-
----
-
-## Document History
+### Document History
 
 | Version | Date | Changes |
 |---------|------|---------|
@@ -1653,3 +524,5 @@ Tests:
 | 4.9 | 2026-01-07 | **ISSUE-TO-FIX-PATH-1 FIXUP-3**: Alignment-only update — Work Queue banner test + manual testing updated to reflect issue-fix mode triggers on issueId alone (from optional); CP-008 wording updated accordingly. |
 | 5.0 | 2026-01-07 | **IMPLEMENTATION-PLAN-RECONCILIATION-1**: Root `IMPLEMENTATION_PLAN.md` deprecated to stub-only; `docs/IMPLEMENTATION_PLAN.md` is now the authoritative single source of truth. Core governance docs updated (ENGINEO_AI_INSTRUCTIONS.md, SESSION_STARTER.md, MANUAL_TESTING_TEMPLATE.md, MANUAL_TESTING_WORKFLOW.md, DEPLOYMENT.md, RENDER_DEPLOYMENT.md, CRAWL_PIPELINE.md, auto-pb-1.3-preview-persistence.md, README.md, ISSUE-TO-FIX-PATH-1.md) to reference the authoritative location. |
 | 5.1 | 2026-01-07 | **IMPLEMENTATION-PLAN-RECONCILIATION-1 FIXUP-2**: Self-reference consistency — updated internal checklist items that referenced `IMPLEMENTATION_PLAN.md` to reference `docs/IMPLEMENTATION_PLAN.md` (not the deprecated root stub) for self-referential "updated plan" checklist items and version-history task text. |
+| 5.2 | 2026-01-07 | **IMPLEMENTATION-PLAN-ORDERING-CLEANUP-1**: Major restructuring — added 4 top-level sections (Completed Phases/In Progress/Planned or Pending/Deferred or Explicitly Excluded), reordered completed phases under subheadings (Foundations/Core Platform/Governance & Roles/Execution Surfaces), added ENTERPRISE-GEO-1 clarifying note, standardized phase header status formatting, moved Document History to bottom. |
+| 5.3 | 2026-01-07 | **IMPLEMENTATION-PLAN-ORDERING-CLEANUP-1 FIXUP-1**: Heading-level compliance — demoted all `## Phase` headers to `### Phase` to ensure exactly 4 top-level sections (Completed Phases/In Progress/Planned or Pending/Deferred or Explicitly Excluded). |
