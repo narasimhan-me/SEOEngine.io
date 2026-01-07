@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 
 import type { DeoIssue, DeoIssueFixType } from '@/lib/deo-issues';
 import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
@@ -10,6 +9,8 @@ import { ISSUE_UI_CONFIG } from '@/components/issues/IssuesList';
 import { isAuthenticated, getToken } from '@/lib/auth';
 import { ApiError, aiApi, projectsApi, shopifyApi } from '@/lib/api';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
+import { useUnsavedChanges } from '@/components/unsaved-changes/UnsavedChangesProvider';
+import { GuardedLink } from '@/components/navigation/GuardedLink';
 
 type SeverityFilter = 'all' | 'critical' | 'warning' | 'info';
 type PillarFilter = 'all' | DeoPillarId;
@@ -23,6 +24,48 @@ interface IssueDraft {
   fieldLabel: 'SEO title' | 'SEO description';
   value: string;
   savedAt?: string;
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Store current values for field preservation on Apply
+  currentTitle?: string;
+  currentDescription?: string;
+}
+
+// [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] SessionStorage key for issue drafts
+function getIssueDraftKey(projectId: string, issueId: string, productId: string, fieldLabel: string): string {
+  return `issue_draft:${projectId}:${issueId}:${productId}:${fieldLabel}`;
+}
+
+// [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Load saved draft from sessionStorage
+function loadIssueDraft(projectId: string, issueId: string, productId: string, fieldLabel: string): IssueDraft | null {
+  try {
+    const key = getIssueDraftKey(projectId, issueId, productId, fieldLabel);
+    const stored = sessionStorage.getItem(key);
+    if (stored) {
+      return JSON.parse(stored) as IssueDraft;
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return null;
+}
+
+// [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Save draft to sessionStorage
+function saveIssueDraftToStorage(projectId: string, draft: IssueDraft): void {
+  try {
+    const key = getIssueDraftKey(projectId, draft.issueId, draft.productId, draft.fieldLabel);
+    sessionStorage.setItem(key, JSON.stringify(draft));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+// [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Delete draft from sessionStorage
+function deleteIssueDraftFromStorage(projectId: string, issueId: string, productId: string, fieldLabel: string): void {
+  try {
+    const key = getIssueDraftKey(projectId, issueId, productId, fieldLabel);
+    sessionStorage.removeItem(key);
+  } catch {
+    // Ignore storage errors
+  }
 }
 
 export default function IssuesPage() {
@@ -76,6 +119,21 @@ export default function IssuesPage() {
   }, [appliedAt, savedDraft, previewIssueId, previewValue]);
 
   const feedback = useFeedback();
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Wire into global unsaved changes provider
+  const { setHasUnsavedChanges } = useUnsavedChanges();
+
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Sync unsaved draft state with global provider
+  useEffect(() => {
+    const draftState = getDraftState();
+    setHasUnsavedChanges(draftState === 'unsaved');
+  }, [getDraftState, setHasUnsavedChanges]);
+
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-4] Clear global unsaved state on unmount to prevent stale state
+  useEffect(() => {
+    return () => {
+      setHasUnsavedChanges(false);
+    };
+  }, [setHasUnsavedChanges]);
 
   const fetchIssues = useCallback(async () => {
     try {
@@ -227,15 +285,37 @@ export default function IssuesPage() {
     return null;
   };
 
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Gate button navigation with unsaved confirmation
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-4] Clear local unsaved state on confirmed leave to prevent double prompt
   const handleIssueClick = (issue: DeoIssue) => {
     const primaryProductId = issue.primaryProductId;
     if (primaryProductId) {
+      const draftState = getDraftState();
+      if (draftState === 'unsaved') {
+        const confirmed = window.confirm('You have unsaved changes. Are you sure you want to leave?');
+        if (!confirmed) {
+          return;
+        }
+        // User confirmed leaving - discard unsaved preview state (not sessionStorage saved drafts)
+        setPreviewIssueId(null);
+        setPreviewValue(null);
+        setPreviewFieldLabel(null);
+        setPreviewProductId(null);
+        setPreviewCurrentTitle(null);
+        setPreviewCurrentDescription(null);
+        setPreviewError(null);
+        setSavedDraft(null);
+        setAppliedAt(null);
+        // Immediately clear global unsaved state to prevent double prompt
+        setHasUnsavedChanges(false);
+      }
       router.push(
         `/projects/${projectId}/products/${primaryProductId}?from=issues&issueId=${issue.id}`,
       );
     }
   };
 
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Check for stored draft and restore if found
   const handleOpenPreview = async (issue: DeoIssue) => {
     const primaryProductId = issue.primaryProductId;
     const issueType = (issue.type as string | undefined) || issue.id;
@@ -253,6 +333,33 @@ export default function IssuesPage() {
       return;
     }
 
+    const fieldLabel =
+      issueType === 'missing_seo_title' ? 'SEO title' : 'SEO description';
+
+    // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Check sessionStorage for existing draft
+    const storedDraft = loadIssueDraft(projectId, issue.id, primaryProductId, fieldLabel);
+    if (storedDraft) {
+      // Restore draft from sessionStorage without calling AI
+      setPreviewIssueId(issue.id);
+      setPreviewLoading(false);
+      setPreviewError(null);
+      setPreviewProductName(storedDraft.currentTitle || `Product ${primaryProductId}`);
+      setPreviewFieldLabel(storedDraft.fieldLabel);
+      setPreviewCurrentTitle(storedDraft.currentTitle ?? '');
+      setPreviewCurrentDescription(storedDraft.currentDescription ?? '');
+      setPreviewValue(storedDraft.value);
+      setPreviewProductId(primaryProductId);
+      setSavedDraft(storedDraft);
+      setAppliedAt(null);
+      // Scroll preview panel into view
+      setTimeout(() => {
+        if (previewPanelRef.current) {
+          previewPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+      return;
+    }
+
     try {
       setPreviewIssueId(issue.id);
       setPreviewLoading(true);
@@ -261,8 +368,6 @@ export default function IssuesPage() {
 
       const result: any = await aiApi.suggestProductMetadata(primaryProductId);
 
-      const fieldLabel =
-        issueType === 'missing_seo_title' ? 'SEO title' : 'SEO description';
       const currentTitle = result?.current?.title ?? '';
       const currentDescription = result?.current?.description ?? '';
       const suggestedTitle = result?.suggested?.title ?? '';
@@ -316,6 +421,7 @@ export default function IssuesPage() {
   };
 
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Save draft handler
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Persist draft to sessionStorage
   const handleSaveDraft = useCallback((issue: DeoIssue) => {
     if (!previewValue || !previewFieldLabel || !previewProductId || previewIssueId !== issue.id) {
       return;
@@ -326,12 +432,18 @@ export default function IssuesPage() {
       fieldLabel: previewFieldLabel,
       value: previewValue,
       savedAt: new Date().toISOString(),
+      // Store current values for field preservation on Apply
+      currentTitle: previewCurrentTitle ?? undefined,
+      currentDescription: previewCurrentDescription ?? undefined,
     };
     setSavedDraft(draft);
+    // Persist to sessionStorage for cross-navigation persistence
+    saveIssueDraftToStorage(projectId, draft);
     feedback.showSuccess('Draft saved. You can now apply it to Shopify.');
-  }, [previewValue, previewFieldLabel, previewProductId, previewIssueId, feedback]);
+  }, [previewValue, previewFieldLabel, previewProductId, previewIssueId, previewCurrentTitle, previewCurrentDescription, projectId, feedback]);
 
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Updated to apply saved draft only, no AI call
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Delete stored draft from sessionStorage on success
   const handleApplyFixFromPreview = async (issue: DeoIssue) => {
     // Must have a saved draft to apply
     if (!savedDraft || savedDraft.issueId !== issue.id) {
@@ -365,6 +477,8 @@ export default function IssuesPage() {
       // Clear draft but keep previewValue to show applied state
       setSavedDraft(null);
       setAppliedAt(applyTimestamp);
+      // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Delete from sessionStorage on successful apply
+      deleteIssueDraftFromStorage(projectId, issue.id, productId, fieldLabel);
       // Don't clear previewIssueId or previewValue - keep panel visible showing applied state
       await fetchIssues();
     } catch (err: unknown) {
@@ -415,13 +529,14 @@ export default function IssuesPage() {
   return (
     <div className="overflow-x-hidden">
       {/* Back to Store Health */}
+      {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Use GuardedLink for unsaved changes blocking */}
       <div className="mb-4 text-sm">
-        <Link
+        <GuardedLink
           href={`/projects/${projectId}/store-health`}
           className="text-blue-600 hover:text-blue-800"
         >
           ← Back to Store Health
-        </Link>
+        </GuardedLink>
       </div>
 
       {/* Error Banner */}
@@ -817,8 +932,9 @@ export default function IssuesPage() {
                     </button>
                   )}
 
+                  {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Use GuardedLink for unsaved changes blocking */}
                   {fixAction && fixAction.kind === 'link' && (
-                    <Link
+                    <GuardedLink
                       href={fixAction.href}
                       className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ${
                         fixAction.variant === 'ai'
@@ -859,7 +975,7 @@ export default function IssuesPage() {
                         </svg>
                       )}
                       {fixAction.label}
-                    </Link>
+                    </GuardedLink>
                   )}
                 </div>
               </div>

@@ -12931,3 +12931,70 @@ This fixup batch addresses remaining UX improvements and documentation consisten
 5. **PATCH 5:** Documentation fixes:
    - Fixed remaining `tests/e2e/` references in CRITICAL_PATH_MAP.md (CP-006, CP-008)
    - Fixed Playwright command path in DRAFT-CLARITY-AND-ACTION-TRUST-1.md
+
+### DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3 (Supervisor Verification Corrections)
+
+**Status:** Complete
+**Date:** 2026-01-07
+
+This fixup batch addresses supervisor verification corrections for Playwright tests and session persistence:
+
+1. **PATCH 1:** Playwright test corrections:
+   - Fixed inline guidance text expectation to match actual UI: `'Generate creates suggestions (uses AI)'`
+   - Added 3 new E2E smoke tests:
+     - **Session Persistence:** Saved draft persists across navigation (session)
+     - **Issue Deep-Link Routing:** Issue tiles route to fix location
+     - **Generated Content Visibility:** Generated content is immediately visible after Generate
+
+2. **PATCH 2:** Issues page session persistence + navigation blocking:
+   - Extended `IssueDraft` interface with `currentTitle` and `currentDescription` for field preservation
+   - Added sessionStorage helper functions: `getIssueDraftKey`, `loadIssueDraft`, `saveIssueDraftToStorage`, `deleteIssueDraftFromStorage`
+   - Wired `UnsavedChangesProvider` for global unsaved state tracking
+   - Updated `handleSaveDraft` to persist drafts to sessionStorage
+   - Updated `handleOpenPreview` to restore saved drafts from sessionStorage (skips AI call)
+   - Updated `handleApplyFixFromPreview` to delete sessionStorage draft on success
+   - Replaced `Link` with `GuardedLink` for navigation blocking with confirmation
+   - Added unsaved confirmation to `handleIssueClick` button navigation
+
+3. **PATCH 3:** Manual testing documentation corrections:
+   - Updated HP-004 inline guidance text to match actual UI
+   - Updated HP-002 to describe saved draft persistence (not unsaved)
+   - Updated HP-007 with full Issues page session persistence flow
+
+4. **PATCH 4:** Implementation Plan update with FIXUP-3 subsection
+
+**Files Modified:**
+- `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts` (Playwright tests)
+- `apps/web/src/app/projects/[id]/issues/page.tsx` (session persistence)
+- `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md` (manual testing corrections)
+
+### DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-4 (Unsaved-State Reset + Regression)
+
+**Status:** Complete
+**Date:** 2026-01-07
+
+This fixup batch addresses stale global unsaved-state prevention to avoid double confirmation prompts:
+
+1. **PATCH 1:** Issues page unsaved state cleanup:
+   - In `handleIssueClick`: when user confirms leaving with unsaved changes, explicitly clear all local preview state (previewIssueId, previewValue, previewFieldLabel, previewProductId, previewCurrentTitle, previewCurrentDescription, previewError, savedDraft, appliedAt) before navigation
+   - Immediately call `setHasUnsavedChanges(false)` after confirmed leave to prevent double prompt
+   - Added component unmount cleanup effect that always clears global unsaved state
+   - Does NOT delete sessionStorage saved drafts (only discards unsaved preview state)
+
+2. **PATCH 2:** Playwright regression test:
+   - Added new test: "No additional confirmation dialog after confirming leave from Issues page"
+   - Opens Issues page, triggers unsaved preview via "Fix next", clicks issue title (button navigation), accepts confirmation, navigates on destination page
+   - Asserts no additional confirmation dialog appears (dialogCount <= 1)
+
+3. **PATCH 3:** Manual testing documentation:
+   - Updated HP-003 with additional step to verify no double prompt after confirmed leave
+   - Updated HP-007 with FIXUP-4 additional test for Issues page leave scenario
+
+4. **PATCH 4:** Implementation Plan update with FIXUP-4 subsection
+
+**UX Trust Impact:** This is a UX trust hardening correction (no feature expansion). Impacts CP-008 navigation/dialog behavior coverage by ensuring confirmation dialogs are not shown repeatedly after user has already acknowledged and dismissed them.
+
+**Files Modified:**
+- `apps/web/src/app/projects/[id]/issues/page.tsx` (unsaved state cleanup)
+- `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts` (regression test)
+- `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md` (manual testing updates)

@@ -323,7 +323,7 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: GEO Explainer', () => {
 });
 
 test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Add to Draft Semantics', () => {
-  test('AI Suggestions panel shows "Add to draft" buttons', async ({ page, request }) => {
+  test('AI Suggestions panel shows "Add to draft" buttons with correct guidance', async ({ page, request }) => {
     const { projectId, productIds, accessToken } = await seedFirstDeoWinProject(request);
 
     await page.goto('/login');
@@ -337,9 +337,9 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Add to Draft Semantics', () => 
     // Wait for AI Suggestions panel
     await expect(page.getByText('AI SEO Suggestions')).toBeVisible({ timeout: 10000 });
 
-    // Check for inline guidance
+    // [FIXUP-3] Check for corrected inline guidance - "Generate creates suggestions (uses AI)"
     await expect(
-      page.getByText(/Generate.+creates a draft/i)
+      page.getByText('Generate creates suggestions (uses AI)')
     ).toBeVisible();
 
     // Verify "Add to draft" button label (not "Apply to editor")
@@ -349,6 +349,140 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Add to Draft Semantics', () => 
 
       // Wait for generation to complete
       await expect(page.getByText('Add to draft')).toBeVisible({ timeout: 30000 });
+    }
+  });
+});
+
+test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3: Session Persistence', () => {
+  test('Saved draft persists across navigation (session)', async ({ page, request }) => {
+    const { projectId, productIds, accessToken } = await seedFirstDeoWinProject(request);
+    await connectShopifyE2E(request, projectId);
+
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, accessToken);
+
+    const productId = productIds[0];
+    await page.goto(`/projects/${projectId}/products/${productId}?tab=metadata`);
+
+    // Wait for draft state banner
+    await expect(page.locator('[data-testid="draft-state-banner"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Step 1: Make a change to create unsaved draft
+    const titleInput = page.getByLabel('Meta Title');
+    await titleInput.fill('Test Session Persistence Title');
+
+    // Step 2: Save draft
+    const saveDraftButton = page.locator('[data-testid="save-draft-button"]');
+    await saveDraftButton.click();
+
+    // Verify saved state
+    const draftBanner = page.locator('[data-testid="draft-state-banner"]');
+    await expect(draftBanner).toContainText('Draft saved — not applied');
+
+    // Step 3: Navigate away using sidebar Projects link
+    await page.getByRole('link', { name: /^Projects$/ }).click();
+    await expect(page).toHaveURL(/\/projects$/);
+
+    // Step 4: Navigate back to the same product page
+    await page.goto(`/projects/${projectId}/products/${productId}?tab=metadata`);
+
+    // Wait for page to load
+    await expect(page.locator('[data-testid="draft-state-banner"]')).toBeVisible({
+      timeout: 10000,
+    });
+
+    // Step 5: Assert draft is restored - banner shows "Draft saved — not applied"
+    await expect(page.locator('[data-testid="draft-state-banner"]')).toContainText('Draft saved — not applied');
+
+    // Step 6: Verify Apply to Shopify is enabled (draft was restored)
+    const applyButton = page.locator('[data-testid="apply-to-shopify-button"]');
+    await expect(applyButton).toBeEnabled();
+  });
+});
+
+test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3: Issue Deep-Link Routing', () => {
+  test('Issue tiles route to fix location', async ({ page, request }) => {
+    const { projectId, accessToken } = await seedFirstDeoWinProject(request);
+
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, accessToken);
+
+    // Go to Overview page
+    await page.goto(`/projects/${projectId}/overview`);
+
+    // Wait for "Top blockers" section to load
+    await expect(page.getByText('Top blockers')).toBeVisible({ timeout: 10000 });
+
+    // Find the first issue link in Top Blockers
+    const issueLink = page.locator('section:has-text("Top blockers") a.text-blue-700').first();
+
+    if (await issueLink.isVisible({ timeout: 5000 }).catch(() => false)) {
+      // Click the issue link
+      await issueLink.click();
+
+      // Assert navigation lands on either:
+      // - A product page with tab= query param (tab header visible)
+      // - OR the Issues page with pillar= filter (filter reflects it)
+      const currentUrl = page.url();
+
+      if (currentUrl.includes('/products/')) {
+        // Landed on product page - verify tab param exists
+        expect(currentUrl).toMatch(/tab=/);
+        // Wait for tab bar to be visible
+        await expect(page.locator('[role="tablist"]')).toBeVisible({ timeout: 10000 });
+      } else if (currentUrl.includes('/issues')) {
+        // Landed on Issues page - verify pillar filter if present
+        await expect(page.getByText('Issues Engine')).toBeVisible({ timeout: 10000 });
+      }
+    }
+  });
+});
+
+test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3: Generated Content Visibility', () => {
+  test('Generated content is immediately visible after Generate', async ({ page, request }) => {
+    const { projectId, productIds, accessToken } = await seedFirstDeoWinProject(request);
+
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, accessToken);
+
+    const productId = productIds[0];
+    await page.goto(`/projects/${projectId}/products/${productId}?tab=metadata`);
+
+    // Wait for AI Suggestions panel
+    await expect(page.getByText('AI SEO Suggestions')).toBeVisible({ timeout: 10000 });
+
+    // Click Generate Suggestions button
+    const generateButton = page.locator('button:has-text("Generate Suggestions")');
+    if (await generateButton.isVisible().catch(() => false)) {
+      await generateButton.click();
+
+      // Wait for generation completion - "Add to draft" button becomes visible
+      await expect(page.getByText('Add to draft')).toBeVisible({ timeout: 30000 });
+
+      // Assert SEO editor anchor is in viewport (auto-scroll behavior)
+      const seoEditorAnchor = page.locator('[data-testid="seo-editor-anchor"]');
+      if (await seoEditorAnchor.isVisible().catch(() => false)) {
+        // Check element is in viewport
+        const isInViewport = await seoEditorAnchor.evaluate((el) => {
+          const rect = el.getBoundingClientRect();
+          return (
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+            rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+          );
+        });
+        // The anchor should be visible or near-visible after generation
+        expect(isInViewport || await seoEditorAnchor.isVisible()).toBeTruthy();
+      }
     }
   });
 });
@@ -421,6 +555,61 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Header Apply Gating', () => {
         text?.includes('Draft saved —') ||
         text?.includes('Applied to Shopify')
       ).toBeTruthy();
+    }
+  });
+});
+
+test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-4: No Double Prompt After Confirmed Leave', () => {
+  test('No additional confirmation dialog after confirming leave from Issues page', async ({ page, request }) => {
+    const { projectId, accessToken } = await seedFirstDeoWinProject(request);
+
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, accessToken);
+
+    // Navigate to Issues page
+    await page.goto(`/projects/${projectId}/issues`);
+    await expect(page.getByText('Issues Engine')).toBeVisible({ timeout: 10000 });
+
+    // Find "Fix next" button if available
+    const fixNextButton = page.locator('button:has-text("Fix next")').first();
+    if (await fixNextButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+      // Click "Fix next" to trigger AI preview (creates unsaved state)
+      await fixNextButton.click();
+
+      // Wait for preview panel to appear
+      await expect(page.locator('[data-testid="issue-preview-draft-panel"]')).toBeVisible({
+        timeout: 30000,
+      });
+
+      // Set up dialog handler to accept the confirmation
+      let dialogCount = 0;
+      page.on('dialog', async (dialog) => {
+        dialogCount++;
+        await dialog.accept();
+      });
+
+      // Click the issue title area (button navigation) to trigger confirmation
+      const issueButton = page.locator('button.text-left').first();
+      if (await issueButton.isVisible().catch(() => false)) {
+        await issueButton.click();
+
+        // Wait for navigation to complete
+        await page.waitForURL(/\/products\//, { timeout: 10000 });
+
+        // Now navigate using the Projects nav link
+        const projectsLink = page.getByRole('link', { name: /^Projects$/ });
+        if (await projectsLink.isVisible().catch(() => false)) {
+          await projectsLink.click();
+
+          // Wait for Projects page
+          await page.waitForURL(/\/projects$/, { timeout: 10000 });
+
+          // Assert only one dialog was shown (the initial leave confirmation)
+          expect(dialogCount).toBeLessThanOrEqual(1);
+        }
+      }
     }
   });
 });

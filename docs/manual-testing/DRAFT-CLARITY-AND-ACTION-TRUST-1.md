@@ -71,27 +71,30 @@
 
 ---
 
-### Scenario 2: Draft Persistence Across Navigation
+### Scenario 2: Saved Draft Persistence Across Navigation (FIXUP-3)
 
 **ID:** HP-002
 
 **Preconditions:**
-- Have unsaved changes in SEO editor
+- Have saved draft in SEO editor
 
 **Steps:**
-1. Make changes to SEO title (creating unsaved draft)
-2. Navigate to Overview tab
-3. Navigate back to Metadata tab
-4. Observe draft state is preserved
+1. Make changes to SEO title
+2. Click "Save draft" (state transitions to "saved")
+3. Navigate away from the page (e.g., click "Back to Store Health" link)
+4. Return to the same product optimization page
+5. Observe draft state is preserved
 
 **Expected Results:**
-- **UI:** SEO title shows the modified value
-- **UI:** Draft banner shows correct state
-- **Storage:** sessionStorage contains draft values
+- **UI:** SEO title shows the saved draft value
+- **UI:** Draft banner shows "Draft saved — not applied"
+- **UI:** Apply button is enabled (draft was already saved)
+- **Storage:** sessionStorage contains draft values (check key format: `seo_draft:{projectId}:{productId}`)
+- **Note:** Unsaved drafts do NOT persist (only saved drafts are stored in sessionStorage)
 
 ---
 
-### Scenario 3: Unsaved Changes Navigation Blocking
+### Scenario 3: Unsaved Changes Navigation Blocking (FIXUP-4)
 
 **ID:** HP-003
 
@@ -102,11 +105,14 @@
 1. Make changes to SEO title (creating unsaved draft)
 2. Click on a link to navigate to another page (e.g., Projects list)
 3. Browser shows confirmation dialog
+4. Accept the dialog to navigate away
+5. On the destination page, click another navigation link (e.g., sidebar link)
 
 **Expected Results:**
 - **UI:** Dialog message contains "unsaved changes"
 - **UI:** Dismissing dialog keeps user on current page
 - **UI:** Accepting dialog allows navigation
+- **UI (FIXUP-4):** After accepting and navigating away, subsequent navigation on the destination page does NOT show another "unsaved changes" prompt (no double prompt)
 
 ---
 
@@ -125,7 +131,7 @@
 5. Click "Add to draft" on a suggestion
 
 **Expected Results:**
-- **UI:** Guidance text shows: "Generating creates a draft (uses AI)", "Draft must be saved before you can Apply", "Apply never uses AI and does not auto-save"
+- **UI:** Guidance text shows: "Generate creates suggestions (uses AI)", "Click 'Add to draft' to stage changes (not applied)", "Save draft enables Apply; Apply uses saved drafts only and does not auto-save or use AI"
 - **UI:** Buttons labeled "Add to draft" (not "Apply to editor")
 - **UI:** After clicking "Add to draft", SEO editor scrolls into view and shows the value
 
@@ -179,7 +185,7 @@
 
 ---
 
-### Scenario 7: Issues Page Draft Lifecycle
+### Scenario 7: Issues Page Draft Lifecycle (FIXUP-3 + FIXUP-4)
 
 **ID:** HP-007
 
@@ -190,17 +196,31 @@
 1. Navigate to `/projects/{projectId}/issues`
 2. Click "Fix next" on an AI-fixable issue
 3. Wait for preview to load
-4. Observe draft state banner
+4. Observe draft state banner shows "Draft — not applied"
 5. Verify Apply button is disabled
 6. Click "Save draft" button
-7. Observe state transitions to "saved"
+7. Observe state transitions to "Draft saved — not applied"
 8. Verify Apply button is now enabled
+9. Navigate away from the page (e.g., click "Back to Store Health")
+10. Return to Issues page and click "Fix next" on the same issue
+11. Observe that saved draft is restored without calling AI
 
 **Expected Results:**
 - **UI:** Draft state banner shows "Draft — not applied" initially
 - **UI:** Apply button disabled until draft is saved
+- **UI:** After save, banner shows "Draft saved — not applied"
 - **UI:** After save, Apply button becomes enabled
+- **Storage:** sessionStorage contains draft values (key format: `issue_draft:{projectId}:{issueId}:{productId}:{fieldLabel}`)
+- **UI:** Returning to the same issue restores the saved draft (no AI call made)
 - **API:** Apply calls Shopify directly (not AI) when clicked
+- **API:** After successful apply, sessionStorage draft is deleted
+
+**FIXUP-4 Additional Test (Unsaved State Leave):**
+1. On Issues page, click "Fix next" to trigger unsaved preview
+2. Click the issue title (button navigation) to trigger confirmation dialog
+3. Accept the confirmation dialog
+4. On the destination product page, click a sidebar nav link (e.g., "Projects")
+5. **Expected:** No additional "unsaved changes" prompt appears (confirm leave once, no follow-up prompts)
 
 ---
 
