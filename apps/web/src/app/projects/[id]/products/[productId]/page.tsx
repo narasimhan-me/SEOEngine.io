@@ -110,7 +110,8 @@ export default function ProductOptimizationPage() {
     highlightTarget?: string;
   } | null>(null);
   const issueFixRouteHandledRef = useRef(false);
-  const [issueHighlightActive, setIssueHighlightActive] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_issueHighlightActive, setIssueHighlightActive] = useState(false);
 
   // [DEO-UX-REFRESH-1] Tab state from URL
   const activeTab = useActiveProductTab();
@@ -990,7 +991,7 @@ export default function ProductOptimizationPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-semibold text-indigo-900">
-                    You're here to fix: {issueFixContext.issueTitle}
+                    You&apos;re here to fix: {issueFixContext.issueTitle}
                   </h3>
                   <p className="mt-1 text-xs text-indigo-800">
                     Make your changes below. Save draft when ready, then apply to Shopify.

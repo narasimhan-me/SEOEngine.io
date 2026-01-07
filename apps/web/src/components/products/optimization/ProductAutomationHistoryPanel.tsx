@@ -147,7 +147,8 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={classes}>{label}</span>;
 }
 
-function getActionLabel(log: AnswerBlockAutomationLog): string {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _getActionLabel(log: AnswerBlockAutomationLog): string {
   if (log.action === 'generate_missing') {
     return 'Generated Answer Blocks';
   }

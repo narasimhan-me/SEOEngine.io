@@ -48,7 +48,8 @@ export default function InsightsPillarsSubnav() {
   };
 
   const currentPillar = getCurrentPillar();
-  const currentLabel = pillarOptions.find((o) => o.path === currentPillar)?.label || 'Select pillar';
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _currentLabel = pillarOptions.find((o) => o.path === currentPillar)?.label || 'Select pillar';
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedPath = e.target.value;

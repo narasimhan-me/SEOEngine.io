@@ -216,7 +216,7 @@ export default function WorkQueuePage() {
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-sm font-semibold text-indigo-900">
-                You're here to fix: {issueTitle}
+                You&apos;re here to fix: {issueTitle}
               </h3>
               <p className="mt-1 text-xs text-indigo-800">
                 Review the action bundles below to address this issue.
