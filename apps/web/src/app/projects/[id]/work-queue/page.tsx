@@ -14,7 +14,6 @@ import type {
 import { WORK_QUEUE_ACTION_LABELS } from '@/lib/work-queue';
 import { ActionBundleCard } from '@/components/work-queue/ActionBundleCard';
 import { WorkQueueTabs } from '@/components/work-queue/WorkQueueTabs';
-import { getSafeIssueTitle } from '@/lib/issue-to-fix-path';
 // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Import from lib module
 import { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
 

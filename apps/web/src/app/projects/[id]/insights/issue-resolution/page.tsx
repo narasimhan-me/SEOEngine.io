@@ -8,7 +8,7 @@ import { projectsApi } from '@/lib/api';
 import type { ProjectInsightsResponse } from '@/lib/insights';
 import { InsightsSubnav } from '@/components/projects/InsightsSubnav';
 import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
-import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
+import { DEO_PILLARS } from '@/lib/deo-pillars';
 // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Import safe title helper to prevent internal ID leakage
 import { getSafeInsightsIssueTitle } from '@/lib/issue-to-fix-path';
 

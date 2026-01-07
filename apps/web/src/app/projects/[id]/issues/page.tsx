@@ -5,7 +5,6 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 
 import type { DeoIssue, DeoIssueFixType } from '@/lib/deo-issues';
 import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
-// [ISSUE-TO-FIX-PATH-1 FIXUP-2] Removed unused ISSUE_UI_CONFIG import
 import { isAuthenticated, getToken } from '@/lib/auth';
 import { ApiError, aiApi, projectsApi, shopifyApi } from '@/lib/api';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';

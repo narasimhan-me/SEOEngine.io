@@ -1558,7 +1558,7 @@ Tests:
 4. Actionable count header matches rendered rows
 5. Informational issues have no link/button navigation affordance
 6. Actionable issues are clickable
-7. Work Queue issue fix banner shows when from=issues
+7. Work Queue issue fix banner shows when issueId is present (from optional)
 
 ### Files Changed
 
@@ -1585,6 +1585,23 @@ Tests:
 - [issue-to-fix-path-1.spec.ts](../apps/web/tests/issue-to-fix-path-1.spec.ts) - Playwright E2E tests
 - [TRUST-ROUTING-1.md](./manual-testing/TRUST-ROUTING-1.md) - Related trust routing hardening
 - [DRAFT-CLARITY-AND-ACTION-TRUST-1.md](./manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md) - Related trust UX
+
+### FIXUP Summary
+
+**Locked Contract:** Every surfaced issue is fixable now; actionable iff deterministic fix href exists; context banner + highlight on arrival; no internal IDs in UX.
+
+**Single Sources of Truth:**
+- `apps/web/src/lib/issue-to-fix-path.ts` - Fix path routing logic
+- `apps/web/src/lib/issue-ui-config.ts` - Issue UI configuration
+
+**Verification Artifacts:**
+- `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md` - Manual testing guide
+- `apps/web/tests/issue-to-fix-path-1.spec.ts` - Playwright E2E tests
+
+**FIXUP Changelog:**
+- **FIXUP-1**: Circular import fix + actionable-only surfaces + issueId triggers fix-mode (not requiring from=issues)
+- **FIXUP-2**: Href-based actionability on Issues page + ID leakage hardening via safe title helpers + dead-click regression test
+- **FIXUP-3**: Doc/test alignment for Work Queue banner (issueId triggers; from optional) and CP-008 wording correction
 
 ---
 
@@ -1631,3 +1648,4 @@ Tests:
 | 4.6 | 2026-01-07 | **ISSUE-TO-FIX-PATH-1 COMPLETE**: Trust-Critical UX Hardening for Issue→Fix Path - Single source of truth (issue-to-fix-path.ts), orphan issue suppression, actionable count parity, context banners ("You're here to fix:"), no internal ID leakage. E2E tests in issue-to-fix-path-1.spec.ts. |
 | 4.7 | 2026-01-07 | **ISSUE-TO-FIX-PATH-1 FIXUP-1**: Circular import fix + remaining orphan/dead-end surface cleanup - Moved ISSUE_UI_CONFIG to lib/issue-ui-config.ts, issue-fix mode triggers on issueId alone (not requiring from=issues), Overview Top blockers uses actionable-only with from=overview, DEO page pillar scorecards use actionable issues only, Project Issues page counts actionable-only, Playwright test uses /overview route. |
 | 4.8 | 2026-01-07 | **ISSUE-TO-FIX-PATH-1 FIXUP-2**: Trust hardening (dead-click prevention + ID leakage) - Href-based actionability on Issues page (buildIssueFixHref !== null), handleIssueClick accepts pre-validated href, internal ID leakage prevention via getSafeIssueTitle/Description in Overview/Performance/Insights panels, new getSafeInsightsIssueTitle helper for insights-style data, dead-click Playwright regression test. |
+| 4.9 | 2026-01-07 | **ISSUE-TO-FIX-PATH-1 FIXUP-3**: Alignment-only update — Work Queue banner test + manual testing updated to reflect issue-fix mode triggers on issueId alone (from optional); CP-008 wording updated accordingly. |

@@ -7,11 +7,9 @@ import type { DeoPillarId } from '@/lib/deo-pillars';
 import { DEO_PILLARS } from '@/lib/deo-pillars';
 import {
   buildIssueFixHref,
-  getIssueFixPathForProduct,
   getSafeIssueTitle,
   getSafeIssueDescription,
   getActionableIssuesForProduct,
-  isIssueActionableInProduct,
 } from '@/lib/issue-to-fix-path';
 
 interface ProductIssuesPanelProps {

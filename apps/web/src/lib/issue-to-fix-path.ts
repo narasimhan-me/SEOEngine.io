@@ -81,7 +81,8 @@ export interface IssueFixPath {
  * Maps DEO pillar IDs to their primary fix surface.
  * This determines where users land when clicking an issue.
  */
-const PILLAR_TO_FIX_SURFACE: Record<DeoPillarId, IssueFixSurface> = {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _PILLAR_TO_FIX_SURFACE: Record<DeoPillarId, IssueFixSurface> = {
   metadata_snippet_quality: IssueFixSurface.PRODUCT_METADATA,
   content_commerce_signals: IssueFixSurface.PRODUCT_ANSWERS,
   search_intent_fit: IssueFixSurface.PRODUCT_SEARCH_INTENT,
@@ -95,7 +96,8 @@ const PILLAR_TO_FIX_SURFACE: Record<DeoPillarId, IssueFixSurface> = {
 /**
  * Maps DEO pillar IDs to the highlight target (testid) on arrival.
  */
-const PILLAR_TO_HIGHLIGHT: Partial<Record<DeoPillarId, string>> = {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _PILLAR_TO_HIGHLIGHT: Partial<Record<DeoPillarId, string>> = {
   metadata_snippet_quality: 'seo-editor-anchor',
   content_commerce_signals: 'answers-tab-anchor',
   search_intent_fit: 'search-intent-tab-anchor',
@@ -288,7 +290,8 @@ function getIssueKey(issue: DeoIssue): string {
 /**
  * Gets the pillar ID for an issue, preferring backend-provided pillarId.
  */
-function getIssuePillarId(issue: DeoIssue): DeoPillarId | undefined {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _getIssuePillarId(issue: DeoIssue): DeoPillarId | undefined {
   if (issue.pillarId) {
     return issue.pillarId;
   }
