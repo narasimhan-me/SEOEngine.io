@@ -16,6 +16,13 @@ import { ActionBundleCard } from '@/components/work-queue/ActionBundleCard';
 import { WorkQueueTabs } from '@/components/work-queue/WorkQueueTabs';
 // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Import from lib module
 import { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
+// [ISSUE-FIX-NAV-AND-ANCHORS-1] Import navigation utilities
+import {
+  getValidatedReturnTo,
+  buildBackLink,
+  type FromContext,
+} from '@/lib/issue-fix-navigation';
+import { getIssueFixConfig } from '@/lib/issue-to-fix-path';
 
 /**
  * [WORK-QUEUE-1] Work Queue Page
@@ -53,9 +60,29 @@ export default function WorkQueuePage() {
   const scopeType = (searchParams.get('scopeType') as WorkQueueScopeType) || undefined;
   const highlightBundleId = searchParams.get('bundleId') || undefined;
   // [TRUST-ROUTING-1] Read from context param
-  const fromContext = searchParams.get('from');
+  const fromContext = searchParams.get('from') as FromContext | null;
   // [ISSUE-TO-FIX-PATH-1] Read issueId from search params
   const issueIdParam = searchParams.get('issueId');
+  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Read returnTo navigation context
+  const returnToParam = searchParams.get('returnTo');
+  const returnLabelParam = searchParams.get('returnLabel');
+  const fixAnchorParam = searchParams.get('fixAnchor');
+
+  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Validate returnTo context
+  const validatedNavContext = useMemo(() => {
+    return getValidatedReturnTo(projectId, searchParams);
+  }, [projectId, searchParams]);
+
+  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Build back link for issue fix mode
+  const issueFixBackLink = useMemo(() => {
+    return buildBackLink({
+      projectId,
+      returnTo: validatedNavContext.returnTo,
+      returnLabel: validatedNavContext.returnLabel || returnLabelParam || undefined,
+      from: validatedNavContext.from || (fromContext as FromContext | undefined),
+      fallback: 'issues',
+    });
+  }, [projectId, validatedNavContext, returnLabelParam, fromContext]);
 
   const fetchWorkQueue = useCallback(async () => {
     setLoading(true);
@@ -111,13 +138,15 @@ export default function WorkQueuePage() {
   const isIssueFixMode = !!issueIdParam;
 
   // [ISSUE-TO-FIX-PATH-1] Get safe issue title for display
-  const issueTitle = useMemo(() => {
-    if (!issueIdParam) return null;
+  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Also get nextActionLabel from fix config
+  const { issueTitle, nextActionLabel } = useMemo(() => {
+    if (!issueIdParam) return { issueTitle: null, nextActionLabel: undefined };
     // Try to get title from ISSUE_UI_CONFIG
     const uiConfig = ISSUE_UI_CONFIG[issueIdParam];
-    if (uiConfig?.label) return uiConfig.label;
-    // Fallback
-    return 'Issue detected';
+    const fixConfig = getIssueFixConfig(issueIdParam);
+    const title = uiConfig?.label || 'Issue detected';
+    const nextAction = fixConfig?.nextActionLabel;
+    return { issueTitle: title, nextActionLabel: nextAction };
   }, [issueIdParam]);
 
   // [TRUST-ROUTING-1] Build filter labels for display
@@ -193,12 +222,14 @@ export default function WorkQueuePage() {
       </div>
 
       {/* [ISSUE-TO-FIX-PATH-1] Issue Fix Context Banner */}
+      {/* [ISSUE-FIX-NAV-AND-ANCHORS-1] Enhanced with returnTo-aware back link and fix anchor */}
       {isIssueFixMode && issueTitle && !loading && (
         <div
           data-testid="work-queue-issue-fix-context-banner"
           className="rounded-lg border border-indigo-200 bg-indigo-50 p-4"
         >
-          <div className="flex items-start gap-3">
+          {/* [ISSUE-FIX-NAV-AND-ANCHORS-1] Stable fix anchor wrapper */}
+          <div data-testid="work-queue-fix-anchor" className="flex items-start gap-3">
             <div className="flex-shrink-0">
               <svg
                 className="h-5 w-5 text-indigo-600"
@@ -218,15 +249,23 @@ export default function WorkQueuePage() {
               <h3 className="text-sm font-semibold text-indigo-900">
                 You&apos;re here to fix: {issueTitle}
               </h3>
+              {nextActionLabel && (
+                <p
+                  data-testid="issue-fix-next-action-callout"
+                  className="mt-1 text-xs text-indigo-800"
+                >
+                  To fix this issue: {nextActionLabel}
+                </p>
+              )}
               <p className="mt-1 text-xs text-indigo-800">
                 Review the action bundles below to address this issue.
               </p>
               <div className="mt-3">
                 <Link
-                  href={`/projects/${projectId}/issues`}
+                  href={issueFixBackLink.href}
                   className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-700"
                 >
-                  ← Back to Issues
+                  ← {issueFixBackLink.label}
                 </Link>
               </div>
             </div>

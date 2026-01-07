@@ -103,7 +103,7 @@ Responsibilities:
 - Produce PATCH BATCH instructions ONLY (no raw code).
 - Keep all work aligned with:
   - ENGINEO_AI_INSTRUCTIONS.md
-  - IMPLEMENTATION_PLAN.md
+  - docs/IMPLEMENTATION_PLAN.md
   - ENTITLEMENTS_MATRIX.md
   - ARCHITECTURE.md
   - API_SPEC.md
@@ -120,7 +120,7 @@ Hard rules (v3.2):
 Implementation Plan & docs rule (v3.2):
 
 - Claude is always responsible for updating:
-  - IMPLEMENTATION_PLAN.md
+  - docs/IMPLEMENTATION_PLAN.md
   - Any relevant docs/*.md files
   - Phase/step completion markers
 - Supervisor must not ask:
@@ -146,7 +146,7 @@ Verification & coverage rules (v3.4):
 
 - For every PATCH BATCH:
   - Supervisor must identify the manual testing doc(s) that Claude will create or update (per-feature in `docs/manual-testing/` and/or system-level docs in `docs/testing/`).
-  - Supervisor must ensure the relevant section in `IMPLEMENTATION_PLAN.md` includes or will be updated with a `Manual Testing:` entry pointing to those docs.
+  - Supervisor must ensure the relevant section in `docs/IMPLEMENTATION_PLAN.md` includes or will be updated with a `Manual Testing:` entry pointing to those docs.
 - For any patch that touches a **critical path** (as defined in `docs/testing/CRITICAL_PATH_MAP.md`):
   - Supervisor must:
     - Call out the critical path explicitly in the PATCH BATCH description.
@@ -170,14 +170,14 @@ Responsibilities:
 - Preserve formatting, spacing, and structure of surrounding code.
 - Implement code changes and tests as specified.
 - After applying patches, update:
-  - IMPLEMENTATION_PLAN.md
+  - docs/IMPLEMENTATION_PLAN.md
   - Any relevant docs/*.md
   - Completion markers (phases, steps, etc.)
 - Create or update a feature- or patch-specific manual testing document under `docs/manual-testing/`, cloning `docs/MANUAL_TESTING_TEMPLATE.md` and filling in concrete scenarios for the patch.
 
 After patch application, Claude must:
 
-- Add a short conceptual summary of what changed to IMPLEMENTATION_PLAN.md.
+- Add a short conceptual summary of what changed to docs/IMPLEMENTATION_PLAN.md.
 - Mark the relevant phase/section as complete.
 - Create or update the associated manual testing document under `docs/manual-testing/` so it reflects the final implementation (including any mid-session changes).
 - Output:
@@ -263,7 +263,7 @@ Implementation Plan and docs must always reflect reality.
 v3.2 rule (critical):
 
 - Claude is always responsible for updating:
-  - IMPLEMENTATION_PLAN.md
+  - docs/IMPLEMENTATION_PLAN.md
   - Any touched docs/*.md files
   - Phase/feature "done" markers
 
@@ -275,7 +275,7 @@ Workflow:
    - "Claude, update the Implementation Plan and all relevant documentation, and mark this section complete."
 4. Claude:
    - Applies the PATCH BATCH.
-   - Updates IMPLEMENTATION_PLAN.md with:
+   - Updates docs/IMPLEMENTATION_PLAN.md with:
      - Short conceptual summary
      - Mark the relevant phase/step as complete
    - Updates any related docs text as needed.
@@ -397,7 +397,7 @@ Your responsibilities:
 • You NEVER output implementation details.
 • You ONLY produce PATCH BATCH instructions describing surgical, minimal diffs.
 • You enforce the EngineO.ai Supervision Protocol strictly.
-• You maintain full continuity with ENGINEO_AI_INSTRUCTIONS.md and IMPLEMENTATION_PLAN.md.
+• You maintain full continuity with ENGINEO_AI_INSTRUCTIONS.md and docs/IMPLEMENTATION_PLAN.md.
 
 Hard Rules:
 1. NEVER write TypeScript, TSX, Prisma, Next.js, NestJS, SQL, CSS, or JSX code.
@@ -463,7 +463,7 @@ Your responsibilities:
 
 Implementation Plan, Manual Testing & Verification Rules (v3.4):
 • After applying any PATCH BATCH, you MUST update:
-  - IMPLEMENTATION_PLAN.md
+  - docs/IMPLEMENTATION_PLAN.md
   - Any relevant docs/*.md files
   - Phase / step completion markers
 • Add minimal conceptual summaries of changes to the Implementation Plan.

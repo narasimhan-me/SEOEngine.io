@@ -54,7 +54,7 @@ pnpm build
 
 ## Documentation
 
-- [Implementation Plan](./IMPLEMENTATION_PLAN.md)
+- [Implementation Plan](./docs/IMPLEMENTATION_PLAN.md)
 - [Architecture](./ARCHITECTURE.md)
 - [API Specification](./API_SPEC.md)
 - [Database Schema](./DATABASE_SCHEMA.md)

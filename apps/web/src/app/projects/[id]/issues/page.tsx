@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigation';
+import Link from 'next/link';
 
 import type { DeoIssue, DeoIssueFixType } from '@/lib/deo-issues';
 import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
@@ -16,6 +17,13 @@ import {
   getSafeIssueTitle,
   getSafeIssueDescription,
 } from '@/lib/issue-to-fix-path';
+// [ISSUE-FIX-NAV-AND-ANCHORS-1] Import navigation utilities for returnTo chain
+import {
+  getValidatedReturnTo,
+  buildBackLink,
+  getCurrentPathWithQuery,
+  type FromContext,
+} from '@/lib/issue-fix-navigation';
 
 type SeverityFilter = 'all' | 'critical' | 'warning' | 'info';
 type PillarFilter = 'all' | DeoPillarId;
@@ -77,10 +85,35 @@ export default function IssuesPage() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const projectId = params.id as string;
 
   // Read pillar filter from URL query param (?pillar=metadata_snippet_quality)
   const pillarParam = searchParams.get('pillar') as DeoPillarId | null;
+
+  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Read and validate returnTo context from URL
+  const validatedNavContext = useMemo(() => {
+    return getValidatedReturnTo(projectId, searchParams);
+  }, [projectId, searchParams]);
+
+  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Build primary back link when coming from another context
+  const primaryBackLink = useMemo(() => {
+    if (validatedNavContext.returnTo || validatedNavContext.from) {
+      return buildBackLink({
+        projectId,
+        returnTo: validatedNavContext.returnTo,
+        returnLabel: validatedNavContext.returnLabel,
+        from: validatedNavContext.from,
+        fallback: 'store_health',
+      });
+    }
+    return null;
+  }, [projectId, validatedNavContext]);
+
+  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Get current path for passing as returnTo to child navigation
+  const currentIssuesPath = useMemo(() => {
+    return getCurrentPathWithQuery(pathname, searchParams);
+  }, [pathname, searchParams]);
 
   const [issues, setIssues] = useState<DeoIssue[]>([]);
   const [loading, setLoading] = useState(true);
@@ -543,14 +576,14 @@ export default function IssuesPage() {
 
   return (
     <div className="overflow-x-hidden">
-      {/* Back to Store Health */}
+      {/* [ISSUE-FIX-NAV-AND-ANCHORS-1] ReturnTo-aware back link */}
       {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Use GuardedLink for unsaved changes blocking */}
       <div className="mb-4 text-sm">
         <GuardedLink
-          href={`/projects/${projectId}/store-health`}
+          href={primaryBackLink?.href || `/projects/${projectId}/store-health`}
           className="text-blue-600 hover:text-blue-800"
         >
-          ← Back to Store Health
+          ← {primaryBackLink?.label || 'Back to Store Health'}
         </GuardedLink>
       </div>
 

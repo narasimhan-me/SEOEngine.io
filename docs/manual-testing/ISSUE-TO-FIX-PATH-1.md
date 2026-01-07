@@ -18,13 +18,12 @@
   - Orphan issues display "Informational — no action required" badge
   - No internal IDs leaked in issue titles/descriptions
 
-- **Related phases/sections in IMPLEMENTATION_PLAN.md:**
+- **Related phases/sections in docs/IMPLEMENTATION_PLAN.md:**
   - ISSUE-TO-FIX-PATH-1 (Trust-Critical UX Hardening)
 
 - **Related documentation:**
   - `apps/web/src/lib/issue-to-fix-path.ts` - Single source of truth
   - `apps/web/src/lib/issue-ui-config.ts` - Issue UI configuration (FIXUP-1: moved from component)
-  - `apps/web/tests/issue-to-fix-path-1.spec.ts` - Playwright E2E tests
 
 ---
 
@@ -80,11 +79,6 @@ The following refinements were made in FIXUP-2:
    - Works with insights-style issue data (`{ issueId, title }` format)
    - Same internal-ID detection logic as `getSafeIssueTitle()`
    - Falls back to "Issue detected" if title looks like internal ID
-
-5. **Enhanced Playwright test for dead-click regression**
-   - Tests multiple actionable cards (up to 3) to verify no dead-clicks
-   - Asserts URL change after click
-   - Validates landing on valid destination (products or work queue)
 
 ---
 
@@ -302,7 +296,7 @@ N/A - This feature is about routing, not quotas.
 
 ### Follow-up verification:
 
-- [ ] Run Playwright tests: `npx playwright test issue-to-fix-path-1.spec.ts`
+- [ ] Re-run HP-001 through HP-005 on a second project to confirm consistency
 
 ---
 

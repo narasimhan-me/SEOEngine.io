@@ -14,7 +14,19 @@ import {
   getSafeIssueTitle,
   FIX_SURFACE_TO_TAB,
   getActionableIssuesForProduct,
+  getIssueFixConfig,
 } from '@/lib/issue-to-fix-path';
+// [ISSUE-FIX-NAV-AND-ANCHORS-1] Import navigation and anchor utilities
+import {
+  getValidatedReturnTo,
+  buildBackLink,
+  type FromContext,
+} from '@/lib/issue-fix-navigation';
+import {
+  scrollToFixAnchor,
+  getArrivalCalloutContent,
+  injectHighlightStyles,
+} from '@/lib/issue-fix-anchors';
 import {
   ProductOptimizationLayout,
   ProductOverviewPanel,
@@ -70,16 +82,29 @@ export default function ProductOptimizationPage() {
   const feedback = useFeedback();
 
   // [TRUST-ROUTING-1] Read playbook context from URL query params
-  const fromContext = searchParams.get('from');
+  const fromContext = searchParams.get('from') as FromContext | null;
   const playbookIdParam = searchParams.get('playbookId');
   const returnToParam = searchParams.get('returnTo');
+  const returnLabelParam = searchParams.get('returnLabel');
 
   // [ISSUE-TO-FIX-PATH-1] Read issue context from URL query params
   const issueIdParam = searchParams.get('issueId');
   const highlightParam = searchParams.get('highlight');
+  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Read fix anchor from URL
+  const fixAnchorParam = searchParams.get('fixAnchor');
 
-  // [TRUST-ROUTING-1] Validate returnTo defensively - only allow playbooks paths
+  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Validate returnTo using centralized validation
+  const validatedNavContext = useMemo(() => {
+    return getValidatedReturnTo(projectId, searchParams);
+  }, [projectId, searchParams]);
+
+  // [TRUST-ROUTING-1] Backward compat: Validate returnTo for playbook paths
   const validatedReturnTo = useMemo(() => {
+    // First try the new validation
+    if (validatedNavContext.returnTo) {
+      return validatedNavContext.returnTo;
+    }
+    // Fallback to legacy playbook-only validation
     if (!returnToParam) return null;
     const decoded = decodeURIComponent(returnToParam);
     // Only allow navigation to playbooks path for this project
@@ -90,7 +115,18 @@ export default function ProductOptimizationPage() {
     return playbookIdParam
       ? `/projects/${projectId}/automation/playbooks?playbookId=${playbookIdParam}`
       : null;
-  }, [returnToParam, projectId, playbookIdParam]);
+  }, [validatedNavContext.returnTo, returnToParam, projectId, playbookIdParam]);
+
+  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Build the back link for issue fix mode
+  const issueFixBackLink = useMemo(() => {
+    return buildBackLink({
+      projectId,
+      returnTo: validatedNavContext.returnTo,
+      returnLabel: validatedNavContext.returnLabel || returnLabelParam || undefined,
+      from: validatedNavContext.from || (fromContext as FromContext | undefined),
+      fallback: 'issues',
+    });
+  }, [projectId, validatedNavContext, returnLabelParam, fromContext]);
 
   // [TRUST-ROUTING-1] Determine preview/results mode
   const isPreviewMode = fromContext === 'playbook_preview' && !!playbookIdParam;
@@ -104,14 +140,24 @@ export default function ProductOptimizationPage() {
   const [previewExpired, setPreviewExpired] = useState(false);
 
   // [ISSUE-TO-FIX-PATH-1] Issue fix context state
+  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Extended with nextActionLabel and anchor result
   const [issueFixContext, setIssueFixContext] = useState<{
     issueId: string;
     issueTitle: string;
     highlightTarget?: string;
+    nextActionLabel?: string;
+    fixAnchorTestId?: string;
+    anchorFound?: boolean;
+    issuePresentOnSurface?: boolean;
   } | null>(null);
   const issueFixRouteHandledRef = useRef(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_issueHighlightActive, setIssueHighlightActive] = useState(false);
+
+  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Inject highlight styles on mount
+  useEffect(() => {
+    injectHighlightStyles();
+  }, []);
 
   // [DEO-UX-REFRESH-1] Tab state from URL
   const activeTab = useActiveProductTab();
@@ -626,23 +672,34 @@ export default function ProductOptimizationPage() {
 
     // Find the matching issue from productIssues
     const matchingIssue = productIssues.find((i) => i.id === issueIdParam);
-    if (!matchingIssue) {
-      return;
-    }
+    const issuePresentOnSurface = !!matchingIssue;
 
-    // Get the fix path for this issue
-    const fixPath = getIssueFixPathForProduct(matchingIssue);
-    if (!fixPath) {
-      // Issue is not actionable in product workspace
-      return;
-    }
+    // Get the fix path for this issue (from issue itself or from URL param)
+    const fixPath = matchingIssue ? getIssueFixPathForProduct(matchingIssue) : null;
 
-    // Set the fix context for the banner
+    // [ISSUE-FIX-NAV-AND-ANCHORS-1] Get fix config for nextActionLabel even if issue not found
+    const fixConfig = getIssueFixConfig(issueIdParam);
+
+    // Determine the anchor to use (URL param > fix path > config)
+    const fixAnchorTestId = fixAnchorParam || fixPath?.fixAnchorTestId || fixConfig?.fixAnchorTestId;
+    const nextActionLabel = fixPath?.nextActionLabel || fixConfig?.nextActionLabel;
+
+    // Set the fix context for the banner (even if issue not found - shows "already compliant")
     setIssueFixContext({
-      issueId: matchingIssue.id,
-      issueTitle: getSafeIssueTitle(matchingIssue),
-      highlightTarget: highlightParam || fixPath.highlightTarget,
+      issueId: issueIdParam,
+      issueTitle: matchingIssue ? getSafeIssueTitle(matchingIssue) : (fixConfig?.ctaLabel || 'Issue'),
+      highlightTarget: highlightParam || fixPath?.highlightTarget,
+      nextActionLabel,
+      fixAnchorTestId,
+      issuePresentOnSurface,
+      anchorFound: false, // Will be updated after scroll attempt
     });
+
+    // If issue not found on this product, we still show the banner but with "already compliant" message
+    if (!matchingIssue || !fixPath) {
+      issueFixRouteHandledRef.current = true;
+      return;
+    }
 
     // Check if we need to route to a different tab
     const expectedTab = FIX_SURFACE_TO_TAB[fixPath.fixSurface];
@@ -658,20 +715,20 @@ export default function ProductOptimizationPage() {
     // Already on correct tab - scroll and highlight
     issueFixRouteHandledRef.current = true;
 
-    // Apply highlight after a brief delay to ensure DOM is ready
+    // [ISSUE-FIX-NAV-AND-ANCHORS-1] Use centralized scroll/highlight utility
     setTimeout(() => {
-      const targetSelector = highlightParam || fixPath.highlightTarget;
-      if (targetSelector) {
-        const targetElement = document.querySelector(`[data-testid="${targetSelector}"]`);
-        if (targetElement) {
-          targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const targetAnchor = fixAnchorTestId || highlightParam || fixPath.highlightTarget;
+      if (targetAnchor) {
+        const result = scrollToFixAnchor({ fixAnchorTestId: targetAnchor });
+        // Update anchor found status
+        setIssueFixContext((prev) => prev ? { ...prev, anchorFound: result.found } : null);
+        if (result.found) {
           setIssueHighlightActive(true);
-          // Remove highlight after 2 seconds
           setTimeout(() => setIssueHighlightActive(false), 2000);
         }
       }
     }, 200);
-  }, [isIssueFixMode, issueIdParam, highlightParam, productIssues, activeTab, loading, router]);
+  }, [isIssueFixMode, issueIdParam, highlightParam, fixAnchorParam, productIssues, activeTab, loading, router]);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -968,46 +1025,62 @@ export default function ProductOptimizationPage() {
           )}
 
           {/* [ISSUE-TO-FIX-PATH-1] Issue Fix Context Banner */}
-          {isIssueFixMode && issueFixContext && (
-            <div
-              data-testid="issue-fix-context-banner"
-              className="mb-6 mt-4 rounded-lg border border-indigo-200 bg-indigo-50 p-4"
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="h-5 w-5 text-indigo-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-                    />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-indigo-900">
-                    You&apos;re here to fix: {issueFixContext.issueTitle}
-                  </h3>
-                  <p className="mt-1 text-xs text-indigo-800">
-                    Make your changes below. Save draft when ready, then apply to Shopify.
-                  </p>
-                  <div className="mt-3">
-                    <Link
-                      href={`/projects/${projectId}/issues`}
-                      className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-700"
+          {/* [ISSUE-FIX-NAV-AND-ANCHORS-1] Enhanced with callout content + returnTo back link */}
+          {isIssueFixMode && issueFixContext && (() => {
+            const calloutContent = getArrivalCalloutContent({
+              issueTitle: issueFixContext.issueTitle,
+              nextActionLabel: issueFixContext.nextActionLabel,
+              foundAnchor: issueFixContext.anchorFound ?? false,
+              issuePresentOnSurface: issueFixContext.issuePresentOnSurface ?? true,
+            });
+            return (
+              <div
+                data-testid="issue-fix-context-banner"
+                className={`mb-6 mt-4 rounded-lg border p-4 ${calloutContent.containerClass}`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      ← Back to Issues
-                    </Link>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                      />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold">
+                      {calloutContent.primaryMessage}
+                    </h3>
+                    {calloutContent.secondaryMessage && (
+                      <p
+                        data-testid="issue-fix-next-action-callout"
+                        className="mt-1 text-xs opacity-90"
+                      >
+                        {calloutContent.secondaryMessage}
+                      </p>
+                    )}
+                    {calloutContent.showBackLink && (
+                      <div className="mt-3">
+                        <Link
+                          href={issueFixBackLink.href}
+                          className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-700"
+                        >
+                          ← {issueFixBackLink.label}
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* CNAB-1: Product optimization banner */}
           {(productIssues.length > 0 || status === 'missing-metadata' || status === 'needs-optimization') && (
