@@ -132,7 +132,7 @@ This table enumerates core backend states and the UX contract.
 | S8      | Draft READY/PARTIAL, valid, but estimate cannot proceed (plan/limits/scope=0)      | Step 2 explains reasons (plan_not_eligible, ai_daily_limit_reached, etc.); Step 1 "Why you can't continue" panel. | View plans, Adjust scope, Try again tomorrow (for limits), View products                         | The most relevant of: View plans / Adjust scope |
 | S9      | Draft READY, valid; Apply already run once                                         | Second Apply sees same draft and scope; idempotent outcome (no further AI).                                      | Apply again (writes same data again or returns "no changes")                                     | None required; Apply remains safe               |
 
-The **Error & State → UX Mapping Table** in `IMPLEMENTATION_PLAN.md` (AUTO-PB-1.3) refines S3–S7 into concrete banners/panels and copy.
+The **Error & State → UX Mapping Table** in `docs/IMPLEMENTATION_PLAN.md` (AUTO-PB-1.3) refines S3–S7 into concrete banners/panels and copy.
 
 ## 4. Persistence Rules (Navigation + Refresh)
 
@@ -397,7 +397,7 @@ These events are **not required** by AUTO-PB-1.3 but are the target for AI-USAGE
 ## 10. Cross-References
 
 - Implementation Plan:
-  - `IMPLEMENTATION_PLAN.md` – sections:
+  - `docs/IMPLEMENTATION_PLAN.md` – sections:
     - AUTO-PB-1.3 – Preview Persistence & Cross-Surface Drafts.
     - AUTO-PB-1.3 — Error & State → UX Mapping Table.
     - TEST-AUTO-PB-1.3 – Contract Enforcement Tests.

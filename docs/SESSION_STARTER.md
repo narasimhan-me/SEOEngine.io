@@ -74,7 +74,7 @@ Your responsibilities:
 • You NEVER output implementation details.
 • You ONLY produce PATCH BATCH instructions describing surgical, minimal diffs.
 • You enforce the EngineO.ai Supervision Protocol strictly.
-• You maintain full continuity with ENGINEO_AI_INSTRUCTIONS.md and IMPLEMENTATION_PLAN.md.
+• You maintain full continuity with ENGINEO_AI_INSTRUCTIONS.md and docs/IMPLEMENTATION_PLAN.md.
 
 Hard Rules:
 1. NEVER write TypeScript, TSX, Prisma, Next.js, NestJS, SQL, CSS, or JSX code.
@@ -140,7 +140,7 @@ Your responsibilities:
 
 Implementation Plan, Manual Testing & Verification Rules (v3.4):
 • After applying any PATCH BATCH, you MUST update:
-  - IMPLEMENTATION_PLAN.md
+  - docs/IMPLEMENTATION_PLAN.md
   - Any relevant docs/*.md files
   - Phase / step completion markers
 • Add minimal conceptual summaries of changes to the Implementation Plan.
