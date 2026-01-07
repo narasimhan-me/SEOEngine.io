@@ -149,7 +149,7 @@ export default function StoreHealthPage() {
     : 'AI usage tracking is available.';
   const aiAction = 'View AI usage';
 
-  // Build cards array
+  // [TRUST-ROUTING-1] Build cards array with deterministic multi-key routing
   const cards: HealthCard[] = [
     {
       id: 'discoverability',
@@ -157,7 +157,11 @@ export default function StoreHealthPage() {
       health: deoHealth,
       summary: deoSummary,
       actionLabel: deoAction,
-      onClick: () => router.push(buildWorkQueueUrl(projectId, { actionKey: 'FIX_MISSING_METADATA' })),
+      // [TRUST-ROUTING-1] Route with both FIX_MISSING_METADATA and RESOLVE_TECHNICAL_ISSUES
+      onClick: () => router.push(buildWorkQueueUrl(projectId, {
+        actionKeys: ['FIX_MISSING_METADATA', 'RESOLVE_TECHNICAL_ISSUES'],
+        from: 'store_health',
+      })),
     },
     {
       id: 'generative-visibility',
@@ -165,7 +169,8 @@ export default function StoreHealthPage() {
       health: geoHealth,
       summary: geoSummary,
       actionLabel: geoAction,
-      onClick: () => router.push(`/projects/${projectId}/insights?tab=geo`),
+      // [TRUST-ROUTING-1] Fixed: route to /insights/geo-insights instead of ?tab=geo
+      onClick: () => router.push(`/projects/${projectId}/insights/geo-insights`),
     },
     {
       id: 'content-quality',
@@ -173,7 +178,10 @@ export default function StoreHealthPage() {
       health: contentHealth,
       summary: contentSummary,
       actionLabel: contentAction,
-      onClick: () => router.push(buildWorkQueueUrl(projectId, { actionKey: 'OPTIMIZE_CONTENT' })),
+      onClick: () => router.push(buildWorkQueueUrl(projectId, {
+        actionKey: 'OPTIMIZE_CONTENT',
+        from: 'store_health',
+      })),
     },
     {
       id: 'technical-readiness',
@@ -181,7 +189,10 @@ export default function StoreHealthPage() {
       health: technicalHealth,
       summary: technicalSummary,
       actionLabel: technicalAction,
-      onClick: () => router.push(buildWorkQueueUrl(projectId, { actionKey: 'RESOLVE_TECHNICAL_ISSUES' })),
+      onClick: () => router.push(buildWorkQueueUrl(projectId, {
+        actionKey: 'RESOLVE_TECHNICAL_ISSUES',
+        from: 'store_health',
+      })),
     },
     {
       id: 'trust-compliance',
@@ -189,7 +200,11 @@ export default function StoreHealthPage() {
       health: trustHealth,
       summary: trustSummary,
       actionLabel: trustAction,
-      onClick: () => router.push(buildWorkQueueUrl(projectId, { actionKey: 'IMPROVE_SEARCH_INTENT' })),
+      // [TRUST-ROUTING-1] Route with both IMPROVE_SEARCH_INTENT and SHARE_LINK_GOVERNANCE
+      onClick: () => router.push(buildWorkQueueUrl(projectId, {
+        actionKeys: ['IMPROVE_SEARCH_INTENT', 'SHARE_LINK_GOVERNANCE'],
+        from: 'store_health',
+      })),
     },
     {
       id: 'ai-usage',

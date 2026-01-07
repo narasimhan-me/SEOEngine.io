@@ -23,7 +23,7 @@ export function InsightsSubnav({ projectId, activeTab }: InsightsSubnavProps) {
   ] as const;
 
   return (
-    <nav className="border-b border-gray-200">
+    <nav className="border-b border-gray-200" data-testid="insights-subnav">
       <div className="-mb-px flex space-x-6">
         {tabs.map(tab => (
           <Link

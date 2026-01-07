@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 import type { DeoIssue } from '@/lib/deo-issues';
@@ -31,12 +31,51 @@ import {
 } from '@/components/products/optimization';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 
+// [TRUST-ROUTING-1] Preview sample interface matching playbooks session storage
+interface PlaybookPreviewSample {
+  productId: string;
+  productTitle: string;
+  currentTitle: string;
+  currentDescription: string;
+  suggestedTitle: string;
+  suggestedDescription: string;
+  ruleWarnings?: string[];
+}
+
 export default function ProductOptimizationPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const projectId = params.id as string;
   const productId = params.productId as string;
   const feedback = useFeedback();
+
+  // [TRUST-ROUTING-1] Read playbook context from URL query params
+  const fromContext = searchParams.get('from');
+  const playbookIdParam = searchParams.get('playbookId');
+  const returnToParam = searchParams.get('returnTo');
+
+  // [TRUST-ROUTING-1] Validate returnTo defensively - only allow playbooks paths
+  const validatedReturnTo = useMemo(() => {
+    if (!returnToParam) return null;
+    const decoded = decodeURIComponent(returnToParam);
+    // Only allow navigation to playbooks path for this project
+    if (decoded.startsWith(`/projects/${projectId}/automation/playbooks`)) {
+      return decoded;
+    }
+    // Fallback to safe default
+    return playbookIdParam
+      ? `/projects/${projectId}/automation/playbooks?playbookId=${playbookIdParam}`
+      : null;
+  }, [returnToParam, projectId, playbookIdParam]);
+
+  // [TRUST-ROUTING-1] Determine preview/results mode
+  const isPreviewMode = fromContext === 'playbook_preview' && !!playbookIdParam;
+  const isResultsMode = fromContext === 'playbook_results' && !!playbookIdParam;
+
+  // [TRUST-ROUTING-1] Preview sample state from session storage
+  const [previewSample, setPreviewSample] = useState<PlaybookPreviewSample | null>(null);
+  const [previewExpired, setPreviewExpired] = useState(false);
 
   // [DEO-UX-REFRESH-1] Tab state from URL
   const activeTab = useActiveProductTab();
@@ -354,6 +393,52 @@ export default function ProductOptimizationPage() {
     setShowAiDiagnosticPreviews(false);
   }, [productId]);
 
+  // [TRUST-ROUTING-1] Load preview sample from session storage when in preview mode
+  useEffect(() => {
+    if (!isPreviewMode || !playbookIdParam) {
+      setPreviewSample(null);
+      setPreviewExpired(false);
+      return;
+    }
+
+    try {
+      const key = `automationPlaybookState:${projectId}:${playbookIdParam}`;
+      const stored = window.sessionStorage.getItem(key);
+
+      if (!stored) {
+        setPreviewExpired(true);
+        setPreviewSample(null);
+        return;
+      }
+
+      const parsed = JSON.parse(stored) as {
+        previewSamples?: PlaybookPreviewSample[];
+      };
+
+      if (!parsed.previewSamples || parsed.previewSamples.length === 0) {
+        setPreviewExpired(true);
+        setPreviewSample(null);
+        return;
+      }
+
+      // Find matching sample for this product
+      const matchingSample = parsed.previewSamples.find(
+        (s) => s.productId === productId
+      );
+
+      if (matchingSample) {
+        setPreviewSample(matchingSample);
+        setPreviewExpired(false);
+      } else {
+        setPreviewExpired(true);
+        setPreviewSample(null);
+      }
+    } catch {
+      setPreviewExpired(true);
+      setPreviewSample(null);
+    }
+  }, [isPreviewMode, playbookIdParam, projectId, productId]);
+
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push('/login');
@@ -389,10 +474,21 @@ export default function ProductOptimizationPage() {
             </Link>
           </li>
           <li>/</li>
+          {/* [TRUST-ROUTING-1] Context-aware Products breadcrumb */}
           <li>
-            <Link href={`/projects/${projectId}/products`} className="hover:text-gray-700">
-              Products
-            </Link>
+            {isPreviewMode && validatedReturnTo ? (
+              <Link href={validatedReturnTo} className="hover:text-gray-700">
+                Preview
+              </Link>
+            ) : isResultsMode && validatedReturnTo ? (
+              <Link href={validatedReturnTo} className="hover:text-gray-700">
+                Results
+              </Link>
+            ) : (
+              <Link href={`/projects/${projectId}/products`} className="hover:text-gray-700">
+                Products
+              </Link>
+            )}
           </li>
           <li>/</li>
           <li className="text-gray-900">{product?.title || 'Product'}</li>
@@ -403,12 +499,29 @@ export default function ProductOptimizationPage() {
       {!product && !loading && (
         <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
           <p className="text-gray-600">Product not found.</p>
-          <Link
-            href={`/projects/${projectId}/products`}
-            className="mt-4 inline-block text-blue-600 hover:text-blue-800"
-          >
-            ← Back to Products
-          </Link>
+          {/* [TRUST-ROUTING-1] Context-aware back link */}
+          {isPreviewMode && validatedReturnTo ? (
+            <Link
+              href={validatedReturnTo}
+              className="mt-4 inline-block text-blue-600 hover:text-blue-800"
+            >
+              ← Back to preview
+            </Link>
+          ) : isResultsMode && validatedReturnTo ? (
+            <Link
+              href={validatedReturnTo}
+              className="mt-4 inline-block text-blue-600 hover:text-blue-800"
+            >
+              ← Back to results
+            </Link>
+          ) : (
+            <Link
+              href={`/projects/${projectId}/products`}
+              className="mt-4 inline-block text-blue-600 hover:text-blue-800"
+            >
+              ← Back to Products
+            </Link>
+          )}
         </div>
       )}
 
@@ -419,12 +532,29 @@ export default function ProductOptimizationPage() {
           <div className="sticky top-0 z-20 bg-white/90 backdrop-blur shadow-sm">
             <div className="flex items-center justify-between gap-4 px-1 py-3 sm:px-2">
               <div className="flex min-w-0 flex-1 items-center gap-3">
-                <Link
-                  href={`/projects/${projectId}/products`}
-                  className="text-xs font-medium text-blue-600 hover:text-blue-800"
-                >
-                  ← Back to Products
-                </Link>
+                {/* [TRUST-ROUTING-1] Context-aware back link in sticky header */}
+                {isPreviewMode && validatedReturnTo ? (
+                  <Link
+                    href={validatedReturnTo}
+                    className="text-xs font-medium text-blue-600 hover:text-blue-800"
+                  >
+                    ← Back to preview
+                  </Link>
+                ) : isResultsMode && validatedReturnTo ? (
+                  <Link
+                    href={validatedReturnTo}
+                    className="text-xs font-medium text-blue-600 hover:text-blue-800"
+                  >
+                    ← Back to results
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/projects/${projectId}/products`}
+                    className="text-xs font-medium text-blue-600 hover:text-blue-800"
+                  >
+                    ← Back to Products
+                  </Link>
+                )}
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-gray-900">
                     {product.title || 'Product'}
@@ -481,6 +611,102 @@ export default function ProductOptimizationPage() {
               issueCount={productIssues.length}
             />
           </div>
+
+          {/* [TRUST-ROUTING-1] Preview Mode Banner - shown when from=playbook_preview */}
+          {isPreviewMode && previewSample && !previewExpired && (
+            <div className="mb-6 mt-4 rounded-lg border border-purple-200 bg-purple-50 p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="h-5 w-5 text-purple-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-semibold text-purple-900">
+                    Previewing draft (not applied)
+                  </h3>
+                  <p className="mt-1 text-xs text-purple-800">
+                    This is a preview from the Playbooks workflow. Changes have not been applied yet.
+                  </p>
+                  {/* Draft vs Current comparison */}
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <div className="rounded border border-purple-200 bg-white p-2">
+                      <div className="text-xs font-medium text-purple-700 mb-1">Current</div>
+                      <div className="text-xs text-gray-700">
+                        {playbookIdParam === 'missing_seo_title'
+                          ? previewSample.currentTitle || <span className="text-gray-400">Empty</span>
+                          : previewSample.currentDescription || <span className="text-gray-400">Empty</span>}
+                      </div>
+                    </div>
+                    <div className="rounded border border-purple-200 bg-white p-2">
+                      <div className="text-xs font-medium text-purple-700 mb-1">Draft (suggested)</div>
+                      <div className="text-xs text-gray-700">
+                        {playbookIdParam === 'missing_seo_title'
+                          ? previewSample.suggestedTitle || <span className="text-gray-400">No suggestion</span>
+                          : previewSample.suggestedDescription || <span className="text-gray-400">No suggestion</span>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* [TRUST-ROUTING-1] Preview Expired Banner */}
+          {isPreviewMode && previewExpired && (
+            <div className="mb-6 mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="h-5 w-5 text-amber-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-semibold text-amber-900">
+                    Preview expired — regenerate
+                  </h3>
+                  <p className="mt-1 text-xs text-amber-800">
+                    The preview session has expired or this product was not in the sample set.
+                    Return to Playbooks to regenerate the preview.
+                  </p>
+                  <div className="mt-3">
+                    <Link
+                      href={validatedReturnTo || `/projects/${projectId}/automation/playbooks?playbookId=${playbookIdParam}`}
+                      className="inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700"
+                    >
+                      ← Back to preview
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* CNAB-1: Product optimization banner */}
           {(productIssues.length > 0 || status === 'missing-metadata' || status === 'needs-optimization') && (

@@ -452,8 +452,9 @@ function hasMissingScope(bundle: WorkQueueActionBundle): boolean {
 function getCTARoute(bundle: WorkQueueActionBundle, projectId: string): string {
   const { bundleType, recommendedActionKey, scopeType } = bundle;
 
+  // [TRUST-ROUTING-1] Fixed: route to /insights/geo-insights instead of ?tab=geo
   if (bundleType === 'GEO_EXPORT') {
-    return `/projects/${projectId}/insights?tab=geo`;
+    return `/projects/${projectId}/insights/geo-insights`;
   }
 
   // [ASSETS-PAGES-1.1] Route AUTOMATION_RUN bundles to playbooks with asset-scoped deep link
@@ -480,6 +481,7 @@ function getCTARoute(bundle: WorkQueueActionBundle, projectId: string): string {
   }
 
   // [ASSETS-PAGES-1] Route to asset-specific pages with filters
+  // [TRUST-ROUTING-1] CTA Safety: Route to Issues Engine instead of placeholder/empty pages
   if (bundleType === 'ASSET_OPTIMIZATION') {
     const actionKeyParam = recommendedActionKey ? `?actionKey=${recommendedActionKey}` : '';
 
@@ -489,35 +491,35 @@ function getCTARoute(bundle: WorkQueueActionBundle, projectId: string): string {
       case 'COLLECTIONS':
         return `/projects/${projectId}/assets/collections${actionKeyParam}`;
       case 'PRODUCTS':
-        // Route to products or relevant pillar
+        // [TRUST-ROUTING-1] Route to Issues Engine with pillar filter instead of placeholder pages
         switch (recommendedActionKey) {
           case 'FIX_MISSING_METADATA':
-            return `/projects/${projectId}/metadata`;
+            return `/projects/${projectId}/issues?pillar=metadata_snippet_quality`;
           case 'RESOLVE_TECHNICAL_ISSUES':
-            return `/projects/${projectId}/performance`;
+            return `/projects/${projectId}/issues?pillar=technical_indexability`;
           case 'IMPROVE_SEARCH_INTENT':
-            return `/projects/${projectId}/keywords`;
+            return `/projects/${projectId}/issues?pillar=search_intent_fit`;
           case 'OPTIMIZE_CONTENT':
-            return `/projects/${projectId}/content`;
+            return `/projects/${projectId}/issues?pillar=content_commerce_signals`;
           default:
-            return `/projects/${projectId}/products`;
+            return `/projects/${projectId}/issues`;
         }
       default:
-        return `/projects/${projectId}/deo`;
+        return `/projects/${projectId}/issues`;
     }
   }
 
-  // Fallback - route to relevant pillar
+  // [TRUST-ROUTING-1] Fallback - route to Issues Engine with pillar filter
   switch (recommendedActionKey) {
     case 'FIX_MISSING_METADATA':
-      return `/projects/${projectId}/metadata`;
+      return `/projects/${projectId}/issues?pillar=metadata_snippet_quality`;
     case 'RESOLVE_TECHNICAL_ISSUES':
-      return `/projects/${projectId}/performance`;
+      return `/projects/${projectId}/issues?pillar=technical_indexability`;
     case 'IMPROVE_SEARCH_INTENT':
-      return `/projects/${projectId}/keywords`;
+      return `/projects/${projectId}/issues?pillar=search_intent_fit`;
     case 'OPTIMIZE_CONTENT':
-      return `/projects/${projectId}/content`;
+      return `/projects/${projectId}/issues?pillar=content_commerce_signals`;
     default:
-      return `/projects/${projectId}/deo`;
+      return `/projects/${projectId}/issues`;
   }
 }

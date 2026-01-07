@@ -2378,18 +2378,23 @@ export default function AutomationPlaybooksPage() {
                           <span className="font-semibold text-gray-900">
                             {sample.productTitle}
                           </span>
-                          <Link
-                            href={`/projects/${projectId}/products/${sample.productId}`}
-                            onClick={(event) => {
-                              event.preventDefault();
-                              handleNavigate(
-                                `/projects/${projectId}/products/${sample.productId}`,
-                              );
-                            }}
-                            className="text-xs text-blue-600 hover:text-blue-800"
-                          >
-                            Open product →
-                          </Link>
+                          {(() => {
+                            // [TRUST-ROUTING-1] Build preview context URL for product deep link
+                            const returnToPath = `/projects/${projectId}/automation/playbooks?playbookId=${selectedPlaybookId}${currentAssetType !== 'PRODUCTS' ? `&assetType=${currentAssetType}` : ''}${currentScopeAssetRefs.length > 0 ? `&scopeAssetRefs=${encodeURIComponent(currentScopeAssetRefs.join(','))}` : ''}`;
+                            const previewContextUrl = `/projects/${projectId}/products/${sample.productId}?from=playbook_preview&playbookId=${selectedPlaybookId}&returnTo=${encodeURIComponent(returnToPath)}`;
+                            return (
+                              <Link
+                                href={previewContextUrl}
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  handleNavigate(previewContextUrl);
+                                }}
+                                className="text-xs text-blue-600 hover:text-blue-800"
+                              >
+                                Open product →
+                              </Link>
+                            );
+                          })()}
                         </div>
                         <div className="grid gap-3 text-xs md:grid-cols-2">
                           <div>
@@ -3010,18 +3015,23 @@ export default function AutomationPlaybooksPage() {
                                   {item.productId === 'LIMIT_REACHED' ? (
                                     <span className="text-gray-500">—</span>
                                   ) : (
-                                    <Link
-                                      href={`/projects/${projectId}/products/${item.productId}`}
-                                      onClick={(event) => {
-                                        event.preventDefault();
-                                        handleNavigate(
-                                          `/projects/${projectId}/products/${item.productId}`,
-                                        );
-                                      }}
-                                      className="text-blue-600 hover:text-blue-800"
-                                    >
-                                      {product?.title || item.productId}
-                                    </Link>
+                                    (() => {
+                                      // [TRUST-ROUTING-1] Build results context URL for product deep link
+                                      const returnToPath = `/projects/${projectId}/automation/playbooks?playbookId=${selectedPlaybookId}${currentAssetType !== 'PRODUCTS' ? `&assetType=${currentAssetType}` : ''}${currentScopeAssetRefs.length > 0 ? `&scopeAssetRefs=${encodeURIComponent(currentScopeAssetRefs.join(','))}` : ''}`;
+                                      const resultsContextUrl = `/projects/${projectId}/products/${item.productId}?from=playbook_results&playbookId=${selectedPlaybookId}&returnTo=${encodeURIComponent(returnToPath)}`;
+                                      return (
+                                        <Link
+                                          href={resultsContextUrl}
+                                          onClick={(event) => {
+                                            event.preventDefault();
+                                            handleNavigate(resultsContextUrl);
+                                          }}
+                                          className="text-blue-600 hover:text-blue-800"
+                                        >
+                                          {product?.title || item.productId}
+                                        </Link>
+                                      );
+                                    })()
                                   )}
                                 </td>
                                 <td className="px-3 py-1.5">

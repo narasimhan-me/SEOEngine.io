@@ -12766,3 +12766,40 @@ This phase introduces role-based access control foundations with single-user emu
 - [x] CRITICAL_PATH_MAP.md updated
 
 **Manual Testing:** `docs/manual-testing/ROLES-2.md`
+
+---
+
+## Phase TRUST-ROUTING-1 – UX Trust Hardening (Deterministic Routing + Context Preservation) ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-06
+
+This phase hardens UX trust by ensuring deterministic routing, visible context, and safe CTA destinations so "what I clicked is exactly what I see next."
+
+### TRUST-ROUTING-1 Trust Guarantees (Locked)
+
+1. Preview context survives navigation to Product and back (Preview Mode + explicit "Back to preview/results")
+2. Store Health routes to Work Queue with visible filter context and explainable counts (no generic/unfiltered landings)
+3. "View Issues" CTAs never route to empty/placeholder pages
+4. Insights has one primary navigation strip; pillars are secondary filters (dropdown)
+
+### TRUST-ROUTING-1 Verification Artifacts
+
+| Artifact | Location |
+|----------|----------|
+| E2E Smoke Tests | [apps/web/tests/trust-routing-1.spec.ts](apps/web/tests/trust-routing-1.spec.ts) |
+| Manual Testing (Pointer) | [manual-testing/TRUST-ROUTING-1.md](manual-testing/TRUST-ROUTING-1.md) |
+| Manual Testing (Full) | [docs/manual-testing/TRUST-ROUTING-1.md](docs/manual-testing/TRUST-ROUTING-1.md) |
+| Detailed Phase Notes (Docs Plan) | [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) |
+
+### TRUST-ROUTING-1 Acceptance Criteria (Completed)
+
+- [x] Preview context propagation + Product Preview Mode UX (including explicit expiry messaging)
+- [x] Store Health → Work Queue deep linking with visible filter context + clear filters
+- [x] CTA safety enforcement (no placeholder/empty destinations via UI)
+- [x] Insights navigation simplified to one primary strip
+- [x] Playwright smoke coverage added
+- [x] Manual testing documentation created
+- [x] IMPLEMENTATION_PLAN.md updated
+
+**Manual Testing:** `docs/manual-testing/TRUST-ROUTING-1.md`

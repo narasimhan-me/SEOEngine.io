@@ -1342,6 +1342,135 @@ Enforces locked contract for navigation information architecture (IA) and termin
 
 ---
 
+## Phase TRUST-ROUTING-1: UX Trust Hardening (Deterministic Routing + Context Preservation) ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-06
+**Critical Paths:** CP-019 (Trust Routing), CP-003 (Products List), CP-016 (Insights)
+
+### Overview
+
+Comprehensive UX trust hardening focused on deterministic routing and context preservation. Addresses trust breaks where navigation loses context, CTAs land on placeholder/empty pages, or filter state becomes invisible.
+
+### Key Trust Guarantees
+
+1. **Preview Context Propagation**: Playbooks preview state survives round-trip navigation to Product page and back
+2. **Visible Filter Context**: Work Queue always shows why the user is there when routed from Store Health
+3. **CTA Safety**: "View Issues" CTAs never route to placeholder/empty pillar pages
+4. **Single Primary Navigation**: Insights has one primary strip; pillar navigation is secondary (dropdown)
+
+### Implementation Summary
+
+#### PATCH 1 — Playbooks Preview Context Propagation + Product Preview Mode
+
+**Playbooks page changes:**
+- Preview sample "Open product" links now include context params: `from=playbook_preview`, `playbookId`, `returnTo` (URL-encoded path back)
+- Apply Results table product links include: `from=playbook_results`, `playbookId`, `returnTo`
+- `returnTo` is deterministic and restores full playbook context (playbookId, assetType, scopeAssetRefs)
+
+**Product page changes:**
+- Reads `from`, `playbookId`, `returnTo` from URL query params
+- Validates `returnTo` defensively (must start with `/projects/${projectId}/automation/playbooks`)
+- Preview Mode UX (when `from=playbook_preview`):
+  - Loads preview sample from session storage (`automationPlaybookState:${projectId}:${playbookId}`)
+  - Shows "Previewing draft (not applied)" banner with Draft vs Current comparison
+  - If sample not found: Shows "Preview expired — regenerate" banner with CTA
+- Context-aware back links:
+  - `from=playbook_preview` → "← Back to preview"
+  - `from=playbook_results` → "← Back to results"
+  - Default → "← Back to Products"
+- Breadcrumbs preserve context (Products breadcrumb routes to returnTo when in playbook context)
+
+**ProductDetailsTabs changes:**
+- Tab links preserve all existing query params (from, playbookId, returnTo)
+- Only sets/overrides `tab=<tabId>` to maintain preview context across tab navigation
+
+#### PATCH 2 — Store Health → Work Queue Deep Linking
+
+**work-queue.ts changes:**
+- Extended `buildWorkQueueUrl()` to support:
+  - `from?: string` - serialized as `from=...`
+  - `actionKeys?: WorkQueueRecommendedActionKey[]` - serialized as `actionKeys=KEY1,KEY2`
+
+**Store Health page changes:**
+- Fixed GEO routing: `/insights?tab=geo` → `/insights/geo-insights`
+- Discoverability routes with multi-key context: `actionKeys=FIX_MISSING_METADATA,RESOLVE_TECHNICAL_ISSUES&from=store_health`
+- Trust & Compliance routes with multi-key context: `actionKeys=IMPROVE_SEARCH_INTENT,SHARE_LINK_GOVERNANCE&from=store_health`
+- All Work Queue CTAs include `from=store_health`
+
+**Work Queue page changes:**
+- Parses `actionKeys` (comma-separated) for multi-key filtering
+- Client-side filtering when multiple action keys present (API doesn't support multi-key)
+- Filter Context Banner (data-testid="work-queue-filter-context"):
+  - "Showing:" label with "Store Health → Work Queue" chip
+  - Active filter labels
+  - Count explainability: "X action bundles affecting Y items"
+- Clear filters CTA (data-testid="work-queue-clear-filters")
+
+#### PATCH 3 — CTA Safety Enforcement
+
+**ActionBundleCard changes:**
+- Fixed GEO deep link: `/insights?tab=geo` → `/insights/geo-insights`
+- ASSET_OPTIMIZATION "View Issues" destinations rerouted to Issues Engine:
+  - `/metadata` → `/issues?pillar=metadata_snippet_quality`
+  - `/performance` → `/issues?pillar=technical_indexability`
+  - `/keywords` → `/issues?pillar=search_intent_fit`
+  - `/content` → `/issues?pillar=content_commerce_signals`
+  - Default → `/issues`
+
+**Forbidden CTA Destinations:**
+- Never route to `/projects/${projectId}/metadata`
+- Never route to pillar placeholder pages without issue lists
+
+#### PATCH 4 — Insights Navigation Simplification
+
+**InsightsSubnav changes:**
+- Added `data-testid="insights-subnav"` for testability
+
+**InsightsPillarsSubnav changes:**
+- Converted from horizontal tab strip to dropdown selector
+- `data-testid="insights-pillar-filter"` (replaces old `data-testid="insights-pillars-subnav"`)
+- Ensures Insights has only one primary navigation strip
+
+### Test Coverage
+
+**Playwright E2E:** `apps/web/tests/trust-routing-1.spec.ts`
+
+Tests:
+1. Playbooks preview survives navigation to Product and back
+2. Store Health CTA lands on Work Queue with visible filter context
+3. "View Issues" never routes to placeholder/empty pages
+4. Insights renders with only one primary navigation strip
+
+### Files Changed
+
+**Frontend:**
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` - Preview context links
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` - Preview Mode UX
+- `apps/web/src/components/products/optimization/ProductDetailsTabs.tsx` - Context preservation
+- `apps/web/src/app/projects/[id]/store-health/page.tsx` - Multi-key routing
+- `apps/web/src/app/projects/[id]/work-queue/page.tsx` - Filter context UI
+- `apps/web/src/lib/work-queue.ts` - Extended buildWorkQueueUrl
+- `apps/web/src/components/work-queue/ActionBundleCard.tsx` - CTA safety routing
+- `apps/web/src/components/projects/InsightsSubnav.tsx` - Test hook
+- `apps/web/src/components/projects/InsightsPillarsSubnav.tsx` - Dropdown conversion
+
+**Tests:**
+- `apps/web/tests/trust-routing-1.spec.ts` - Playwright E2E tests
+
+**Documentation:**
+- `docs/IMPLEMENTATION_PLAN.md` - This section
+- `docs/manual-testing/TRUST-ROUTING-1.md` - Manual testing guide
+
+### Related Documents
+
+- [TRUST-ROUTING-1.md](./manual-testing/TRUST-ROUTING-1.md) - Manual testing guide
+- [trust-routing-1.spec.ts](../apps/web/tests/trust-routing-1.spec.ts) - Playwright E2E tests
+- [NAV-IA-CONSISTENCY-1.md](./manual-testing/NAV-IA-CONSISTENCY-1.md) - Navigation IA context
+- [WORK-QUEUE-1.md](./manual-testing/WORK-QUEUE-1.md) - Work Queue foundations
+
+---
+
 ## Document History
 
 | Version | Date | Changes |
@@ -1381,3 +1510,4 @@ Enforces locked contract for navigation information architecture (IA) and termin
 | 4.2 | 2025-12-24 | **GOV-AUDIT-VIEWER-1 COMPLETE**: Read-only governance viewer with 3 tabs (Approvals, Audit Log, Sharing & Links), strict audit event allowlist filtering, cursor-based pagination, passcode security (never expose hash), universal read access for all project members. Added governance-viewer.service.ts, extended governance.controller.ts, created governance viewer UI page, E2E and Playwright tests. |
 | 4.3 | 2026-01-06 | **NAV-IA-CONSISTENCY-1 COMPLETE**: Navigation IA consistency and terminology normalization. Design tokens + dark mode, marketing/portal visual consistency, auth terminology ("Sign in" not "Log in", "Create account" not "Sign up"), TopNav contract (removed Settings, added theme toggle, locked dropdown labels), ProjectSideNav grouped sections (OPERATE/ASSETS/AUTOMATION/INSIGHTS/PROJECT), InsightsPillarsSubnav for pillar navigation, "Stores" not "Organization / Stores", "Playbooks" not "Automation". E2E tests in nav-ia-consistency-1.spec.ts. |
 | 4.4 | 2026-01-06 | **NAV-IA-CONSISTENCY-1 FINAL CLEANUP**: Removed coming-soon styling exception (all pages now use token palette), aligned marketing button radius (rounded-full → rounded-md for portal consistency), fixed text-white → text-primary-foreground, fixed ring-white → ring-background, added repo-root manual-testing pointer. |
+| 4.5 | 2026-01-06 | **TRUST-ROUTING-1 COMPLETE**: UX Trust Hardening - Playbooks preview context propagation (from/playbookId/returnTo params), Product Preview Mode UX (banner + draft comparison + expiry handling), Store Health → Work Queue multi-key routing with visible filter context, CTA safety enforcement (issues routes instead of placeholder pages), Insights nav simplification (single primary strip, pillar dropdown). E2E tests in trust-routing-1.spec.ts. |

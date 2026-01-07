@@ -312,6 +312,7 @@ export const HEALTH_CARD_TO_WORK_QUEUE_MAP: Record<string, { actionKey: WorkQueu
 /**
  * Build Work Queue URL with filters.
  * [ASSETS-PAGES-1] Added scopeType filter support.
+ * [TRUST-ROUTING-1] Added from and actionKeys (multi-key) support.
  */
 export function buildWorkQueueUrl(
   projectId: string,
@@ -319,16 +320,25 @@ export function buildWorkQueueUrl(
     tab?: WorkQueueTab;
     bundleType?: WorkQueueBundleType;
     actionKey?: WorkQueueRecommendedActionKey;
+    actionKeys?: WorkQueueRecommendedActionKey[];
     scopeType?: WorkQueueScopeType;
     bundleId?: string;
+    from?: string;
   }
 ): string {
   const searchParams = new URLSearchParams();
   if (params?.tab) searchParams.set('tab', params.tab);
   if (params?.bundleType) searchParams.set('bundleType', params.bundleType);
-  if (params?.actionKey) searchParams.set('actionKey', params.actionKey);
+  // [TRUST-ROUTING-1] Support multi-key filtering with actionKeys param
+  if (params?.actionKeys && params.actionKeys.length > 0) {
+    searchParams.set('actionKeys', params.actionKeys.join(','));
+  } else if (params?.actionKey) {
+    searchParams.set('actionKey', params.actionKey);
+  }
   if (params?.scopeType) searchParams.set('scopeType', params.scopeType);
   if (params?.bundleId) searchParams.set('bundleId', params.bundleId);
+  // [TRUST-ROUTING-1] Add from context for filter context display
+  if (params?.from) searchParams.set('from', params.from);
 
   const query = searchParams.toString();
   return `/projects/${projectId}/work-queue${query ? `?${query}` : ''}`;

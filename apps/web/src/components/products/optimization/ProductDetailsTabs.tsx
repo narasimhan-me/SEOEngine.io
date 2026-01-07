@@ -47,6 +47,9 @@ interface ProductDetailsTabsProps {
  * Replaces the "Jump to:" scroll anchors with a real tab bar.
  * Uses URL query param `?tab=<name>` for state persistence.
  * Styled consistently with InsightsSubnav (border + active underline).
+ *
+ * [TRUST-ROUTING-1] Preserves preview context (from, playbookId, returnTo)
+ * across tab navigation to maintain back link behavior.
  */
 export function ProductDetailsTabs({
   projectId,
@@ -55,6 +58,16 @@ export function ProductDetailsTabs({
   issueCount = 0,
 }: ProductDetailsTabsProps) {
   const basePath = `/projects/${projectId}/products/${productId}`;
+  const searchParams = useSearchParams();
+
+  // [TRUST-ROUTING-1] Build URL that preserves existing query params, only changing tab
+  const buildTabUrl = (tabId: ProductDetailsTabId): string => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tabId);
+    // Remove any focus param when explicitly setting tab
+    params.delete('focus');
+    return `${basePath}?${params.toString()}`;
+  };
 
   return (
     <nav className="border-b border-gray-200">
@@ -62,7 +75,7 @@ export function ProductDetailsTabs({
         {PRODUCT_DETAILS_TABS.map((tab) => (
           <Link
             key={tab.id}
-            href={`${basePath}?tab=${tab.id}`}
+            href={buildTabUrl(tab.id)}
             className={`whitespace-nowrap py-3 px-1 text-sm font-medium border-b-2 transition-colors ${
               activeTab === tab.id
                 ? 'border-blue-500 text-blue-600'
