@@ -5,6 +5,14 @@ import Link from 'next/link';
 import type { DeoIssue } from '@/lib/deo-issues';
 import type { DeoPillarId } from '@/lib/deo-pillars';
 import { DEO_PILLARS } from '@/lib/deo-pillars';
+import {
+  buildIssueFixHref,
+  getIssueFixPathForProduct,
+  getSafeIssueTitle,
+  getSafeIssueDescription,
+  getActionableIssuesForProduct,
+  isIssueActionableInProduct,
+} from '@/lib/issue-to-fix-path';
 
 interface ProductIssuesPanelProps {
   productId: string;
@@ -20,20 +28,25 @@ interface IssuesByPillar {
 
 /**
  * [DEO-UX-REFRESH-1] Product Issues Panel
+ * [ISSUE-TO-FIX-PATH-1] Updated to filter to actionable issues only
  *
  * Displays DEO issues grouped by pillar with "Fix next" guidance.
  * Shows the highest-severity issue as the recommended next fix.
+ * ONLY shows issues that are actionable in the product workspace.
  */
 export function ProductIssuesPanel({
   productId,
   projectId,
   issues,
 }: ProductIssuesPanelProps) {
+  // [ISSUE-TO-FIX-PATH-1] Filter to actionable issues only
+  const actionableIssues = getActionableIssuesForProduct(issues);
+
   // Group issues by pillar
   const issuesByPillar: IssuesByPillar[] = [];
   const pillarMap = new Map<DeoPillarId, DeoIssue[]>();
 
-  for (const issue of issues) {
+  for (const issue of actionableIssues) {
     const pillarId = issue.pillarId as DeoPillarId | undefined;
     if (pillarId) {
       const existing = pillarMap.get(pillarId) || [];
@@ -54,15 +67,16 @@ export function ProductIssuesPanel({
     }
   }
 
-  // Find highest severity issue across all for "Fix next" guidance
+  // Find highest severity actionable issue for "Fix next" guidance
   const severityOrder = { critical: 0, warning: 1, info: 2 };
-  const sortedIssues = [...issues].sort(
+  const sortedIssues = [...actionableIssues].sort(
     (a, b) =>
       (severityOrder[a.severity] ?? 3) - (severityOrder[b.severity] ?? 3)
   );
   const fixNextIssue = sortedIssues[0] ?? null;
 
-  if (issues.length === 0) {
+  // [ISSUE-TO-FIX-PATH-1] No actionable issues - show appropriate message
+  if (actionableIssues.length === 0) {
     return (
       <div className="rounded-lg border border-gray-200 bg-white p-6 text-center">
         <div className="mx-auto mb-3 h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
@@ -80,9 +94,9 @@ export function ProductIssuesPanel({
             />
           </svg>
         </div>
-        <h3 className="text-sm font-medium text-gray-900">No issues found</h3>
+        <h3 className="text-sm font-medium text-gray-900">No actionable issues</h3>
         <p className="mt-1 text-xs text-gray-500">
-          This product has no detected DEO issues. Great work!
+          This product has no DEO issues that can be fixed in this workspace.
         </p>
       </div>
     );
@@ -93,8 +107,11 @@ export function ProductIssuesPanel({
       {/* Summary header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">
-            {issues.length} DEO {issues.length === 1 ? 'issue' : 'issues'}
+          <h3
+            className="text-sm font-semibold text-gray-900"
+            data-testid="product-issues-actionable-count"
+          >
+            {actionableIssues.length} actionable {actionableIssues.length === 1 ? 'issue' : 'issues'}
           </h3>
           <p className="mt-0.5 text-xs text-gray-500">
             Grouped by pillar for easier prioritization
@@ -141,21 +158,12 @@ function FixNextBadge({
   projectId: string;
   productId: string;
 }) {
-  // Determine which tab to navigate to for fixing
-  const tabForPillar: Record<string, string> = {
-    metadata_snippet_quality: 'metadata',
-    content_commerce_signals: 'metadata',
-    media_accessibility: 'metadata',
-    search_intent_fit: 'search-intent',
-    competitive_positioning: 'competitors',
-    offsite_signals: 'metadata',
-    local_discovery: 'metadata',
-    technical_indexability: 'metadata',
-  };
+  // [ISSUE-TO-FIX-PATH-1] Use buildIssueFixHref for deterministic routing
+  const href = buildIssueFixHref({ projectId, issue, primaryProductId: productId });
+  const safeTitle = getSafeIssueTitle(issue);
 
-  const pillarId = issue.pillarId ?? 'metadata_snippet_quality';
-  const targetTab = tabForPillar[pillarId] ?? 'metadata';
-  const href = `/projects/${projectId}/products/${productId}?tab=${targetTab}`;
+  // If no fix href (shouldn't happen for actionable issues), don't render
+  if (!href) return null;
 
   return (
     <Link
@@ -175,22 +183,10 @@ function FixNextBadge({
           d="M13 10V3L4 14h7v7l9-11h-7z"
         />
       </svg>
-      Fix next: {issue.title.slice(0, 30)}{issue.title.length > 30 ? '...' : ''}
+      Fix next: {safeTitle.slice(0, 30)}{safeTitle.length > 30 ? '...' : ''}
     </Link>
   );
 }
-
-// [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Pillar to tab mapping for deterministic routing
-const PILLAR_TO_TAB_MAP: Record<DeoPillarId, string> = {
-  metadata_snippet_quality: 'metadata',
-  content_commerce_signals: 'answers',
-  search_intent_fit: 'search-intent',
-  competitive_positioning: 'competitors',
-  offsite_signals: 'metadata',
-  media_accessibility: 'metadata',
-  local_discovery: 'metadata',
-  technical_indexability: 'metadata',
-};
 
 function IssueRow({
   issue,
@@ -207,14 +203,34 @@ function IssueRow({
     info: 'bg-blue-100 text-blue-800 border-blue-200',
   };
 
-  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Deep-link to the fix tab
-  const pillarId = issue.pillarId as DeoPillarId | undefined;
-  const targetTab = pillarId ? PILLAR_TO_TAB_MAP[pillarId] ?? 'metadata' : 'metadata';
-  const href = `/projects/${projectId}/products/${productId}?tab=${targetTab}&from=product_issues&issueId=${issue.id}`;
+  // [ISSUE-TO-FIX-PATH-1] Use buildIssueFixHref for deterministic routing
+  const href = buildIssueFixHref({ projectId, issue, primaryProductId: productId });
+  const safeTitle = getSafeIssueTitle(issue);
+  const safeDescription = getSafeIssueDescription(issue);
+
+  // Shouldn't happen for actionable issues, but handle gracefully
+  if (!href) {
+    return (
+      <div className="px-4 py-3 flex items-start gap-3">
+        <span
+          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
+            severityColors[issue.severity] ?? severityColors.info
+          }`}
+        >
+          {issue.severity}
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-900">{safeTitle}</p>
+          <p className="mt-0.5 text-xs text-gray-600 line-clamp-2">{safeDescription}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Link
       href={href}
+      data-testid="product-issue-row-actionable"
       className="px-4 py-3 flex items-start gap-3 hover:bg-blue-50/50 transition-colors cursor-pointer"
     >
       <span
@@ -225,9 +241,9 @@ function IssueRow({
         {issue.severity}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900">{issue.title}</p>
+        <p className="text-sm font-medium text-gray-900">{safeTitle}</p>
         <p className="mt-0.5 text-xs text-gray-600 line-clamp-2">
-          {issue.whyItMatters || issue.description}
+          {issue.whyItMatters || safeDescription}
         </p>
         {issue.recommendedFix && (
           <p className="mt-1 text-xs text-gray-500">

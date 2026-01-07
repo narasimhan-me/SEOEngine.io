@@ -1471,6 +1471,123 @@ Tests:
 
 ---
 
+## Phase ISSUE-TO-FIX-PATH-1: Trust-Critical UX Hardening for Issue→Fix Path ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-07
+**Critical Paths:** CP-008 (Issue-to-Fix-Path)
+
+### Overview
+
+Formalizes the Issue→Fix Path contract ensuring users are NEVER stranded on placeholder pages when clicking issue CTAs. Creates a single source of truth for issue routing, ensures orphan issues (no deterministic fix destination) are marked as informational not actionable, and provides context banners when navigating from issues to fix surfaces.
+
+### Key Trust Guarantees
+
+1. **Issue Click Always Lands on Visible Fix**: Clicking any issue CTA lands on a visible fix surface (Product workspace tab) with context banner
+2. **Actionable Count Parity**: Issue counts reflect ONLY actionable issues (badge matches row count)
+3. **Orphan Issue Suppression**: Orphan issues (no deterministic fix destination) display "Informational — no action required" badge and are not clickable
+4. **No Internal ID Leakage**: Issue titles/descriptions never expose internal IDs to users
+5. **Context Preservation**: "You're here to fix: {Issue title}" banner with "Back to Issues" link
+
+### Implementation Summary
+
+#### PATCH 1 — Create issue-to-fix-path.ts (Single Source of Truth)
+
+- Created `apps/web/src/lib/issue-to-fix-path.ts`
+- `IssueFixSurface` enum: `ProductMetadata`, `ProductAnswers`, `ProductSearchIntent`, `ProductMedia`, `WorkQueue`, `External`
+- `IssueFixPath` interface with fixSurface, ctaLabel, routeTarget, highlightTarget, isActionableNow
+- `ISSUE_FIX_PATH_MAP`: Mapping from issue IDs to fix paths
+- Helper functions: `getIssueFixPathForProduct()`, `getIssueFixPathForProject()`, `buildIssueFixHref()`, `getSafeIssueTitle()`, `getSafeIssueDescription()`, `isIssueActionable()`, `getActionableIssues()`, `getActionableIssuesForProduct()`
+
+#### PATCH 2 — Update IssuesList.tsx (No-Orphan Rule + Sanitize Labels)
+
+- Imported helpers from issue-to-fix-path.ts
+- IssueCard uses `isIssueActionable()`, `buildIssueFixHref()`, `getSafeIssueTitle()`, `getSafeIssueDescription()`
+- Added test hooks: `data-testid="issue-card-actionable"` and `data-testid="issue-card-informational"`
+- Added "Informational — no action required" badge for orphan issues
+
+#### PATCH 3 — Update Product page.tsx (from + issueId + Highlight)
+
+- Added URL params: `issueIdParam`, `highlightParam`
+- Added `issueFixContext` state for banner display
+- Added Issue Fix Context Banner with `data-testid="issue-fix-context-banner"`
+- Shows "You're here to fix: {Issue title}" with "Back to Issues" link
+- Auto-scrolls to target tab section anchor on load
+
+#### PATCH 4 — Update ProductIssuesPanel.tsx and ProductDetailsTabs.tsx
+
+- Filter issues to actionable only using `getActionableIssuesForProduct()`
+- Updated FixNextBadge to use `buildIssueFixHref()` and `getSafeIssueTitle()`
+- Added test hooks: `data-testid="product-issues-actionable-count"`, `data-testid="product-issue-row-actionable"`, `data-testid="product-issues-tab-count"`
+- Empty state changed to "No actionable issues"
+
+#### PATCH 5 — Update Project Issues page.tsx (Deterministic Fix CTAs)
+
+- Updated `getFixAction()` to check `isIssueActionable()` and use `buildIssueFixHref()`
+- Split issue card rendering: actionable as button, orphans as div with informational badge
+- Added test hooks: `data-testid="issue-card-actionable"`, `data-testid="issue-card-informational"`
+
+#### PATCH 6 — Update Work Queue page.tsx (from + issueId Banner)
+
+- Added Issue Fix Context Banner with `data-testid="work-queue-issue-fix-context-banner"`
+- Shows "You're here to fix: {Issue title}" when `from=issues&issueId=...`
+- "Back to Issues" link for navigation
+- Auto-scrolls to first bundle on load
+
+#### PATCH 7 — Create Playwright Tests
+
+- Created `apps/web/tests/issue-to-fix-path-1.spec.ts`
+- Test: "Issue click lands on visible fix (product)" - verifies context banner and back link
+- Test: "Issue counts equal actionable issues" - verifies badge matches row count
+- Test: "Orphan issues are not actionable" - verifies informational cards have no button role
+
+#### PATCH 8 — Update Documentation
+
+- Created `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md` - Manual testing guide
+- Updated `docs/testing/CRITICAL_PATH_MAP.md` - Added CP-008 scenarios and test coverage
+- Updated `docs/IMPLEMENTATION_PLAN.md` - This section
+
+### Test Coverage
+
+**Playwright E2E:** `apps/web/tests/issue-to-fix-path-1.spec.ts`
+
+Tests:
+1. From Overview "Top blockers" click lands on product with fix banner
+2. Issue fix banner includes Back to Issues link
+3. Product workspace Issues tab badge matches actionable row count
+4. Actionable count header matches rendered rows
+5. Informational issues have no link/button navigation affordance
+6. Actionable issues are clickable
+7. Work Queue issue fix banner shows when from=issues
+
+### Files Changed
+
+**Frontend:**
+- `apps/web/src/lib/issue-to-fix-path.ts` (NEW) - Single source of truth
+- `apps/web/src/components/issues/IssuesList.tsx` - Orphan suppression
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` - Context banner
+- `apps/web/src/components/products/optimization/ProductIssuesPanel.tsx` - Actionable filtering
+- `apps/web/src/components/products/optimization/ProductDetailsTabs.tsx` - Tab count test hook
+- `apps/web/src/app/projects/[id]/issues/page.tsx` - Deterministic fix CTAs
+- `apps/web/src/app/projects/[id]/work-queue/page.tsx` - Issue fix context banner
+
+**Tests:**
+- `apps/web/tests/issue-to-fix-path-1.spec.ts` (NEW) - Playwright E2E tests
+
+**Documentation:**
+- `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md` (NEW) - Manual testing guide
+- `docs/testing/CRITICAL_PATH_MAP.md` - CP-008 coverage update
+- `docs/IMPLEMENTATION_PLAN.md` - This section
+
+### Related Documents
+
+- [ISSUE-TO-FIX-PATH-1.md](./manual-testing/ISSUE-TO-FIX-PATH-1.md) - Manual testing guide
+- [issue-to-fix-path-1.spec.ts](../apps/web/tests/issue-to-fix-path-1.spec.ts) - Playwright E2E tests
+- [TRUST-ROUTING-1.md](./manual-testing/TRUST-ROUTING-1.md) - Related trust routing hardening
+- [DRAFT-CLARITY-AND-ACTION-TRUST-1.md](./manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md) - Related trust UX
+
+---
+
 ## Document History
 
 | Version | Date | Changes |
@@ -1511,3 +1628,4 @@ Tests:
 | 4.3 | 2026-01-06 | **NAV-IA-CONSISTENCY-1 COMPLETE**: Navigation IA consistency and terminology normalization. Design tokens + dark mode, marketing/portal visual consistency, auth terminology ("Sign in" not "Log in", "Create account" not "Sign up"), TopNav contract (removed Settings, added theme toggle, locked dropdown labels), ProjectSideNav grouped sections (OPERATE/ASSETS/AUTOMATION/INSIGHTS/PROJECT), InsightsPillarsSubnav for pillar navigation, "Stores" not "Organization / Stores", "Playbooks" not "Automation". E2E tests in nav-ia-consistency-1.spec.ts. |
 | 4.4 | 2026-01-06 | **NAV-IA-CONSISTENCY-1 FINAL CLEANUP**: Removed coming-soon styling exception (all pages now use token palette), aligned marketing button radius (rounded-full → rounded-md for portal consistency), fixed text-white → text-primary-foreground, fixed ring-white → ring-background, added repo-root manual-testing pointer. |
 | 4.5 | 2026-01-06 | **TRUST-ROUTING-1 COMPLETE**: UX Trust Hardening - Playbooks preview context propagation (from/playbookId/returnTo params), Product Preview Mode UX (banner + draft comparison + expiry handling), Store Health → Work Queue multi-key routing with visible filter context, CTA safety enforcement (issues routes instead of placeholder pages), Insights nav simplification (single primary strip, pillar dropdown). E2E tests in trust-routing-1.spec.ts. |
+| 4.6 | 2026-01-07 | **ISSUE-TO-FIX-PATH-1 COMPLETE**: Trust-Critical UX Hardening for Issue→Fix Path - Single source of truth (issue-to-fix-path.ts), orphan issue suppression, actionable count parity, context banners ("You're here to fix:"), no internal ID leakage. E2E tests in issue-to-fix-path-1.spec.ts. |

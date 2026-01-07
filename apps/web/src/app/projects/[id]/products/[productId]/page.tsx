@@ -10,6 +10,12 @@ import { projectsApi, productsApi, aiApi, shopifyApi, ApiError, billingApi } fro
 import type { Product } from '@/lib/products';
 import { getProductStatus } from '@/lib/products';
 import {
+  getIssueFixPathForProduct,
+  getSafeIssueTitle,
+  FIX_SURFACE_TO_TAB,
+  getActionableIssuesForProduct,
+} from '@/lib/issue-to-fix-path';
+import {
   ProductOptimizationLayout,
   ProductOverviewPanel,
   ProductAiSuggestionsPanel,
@@ -68,6 +74,10 @@ export default function ProductOptimizationPage() {
   const playbookIdParam = searchParams.get('playbookId');
   const returnToParam = searchParams.get('returnTo');
 
+  // [ISSUE-TO-FIX-PATH-1] Read issue context from URL query params
+  const issueIdParam = searchParams.get('issueId');
+  const highlightParam = searchParams.get('highlight');
+
   // [TRUST-ROUTING-1] Validate returnTo defensively - only allow playbooks paths
   const validatedReturnTo = useMemo(() => {
     if (!returnToParam) return null;
@@ -86,9 +96,21 @@ export default function ProductOptimizationPage() {
   const isPreviewMode = fromContext === 'playbook_preview' && !!playbookIdParam;
   const isResultsMode = fromContext === 'playbook_results' && !!playbookIdParam;
 
+  // [ISSUE-TO-FIX-PATH-1] Determine issue fix mode
+  const isIssueFixMode = fromContext === 'issues' && !!issueIdParam;
+
   // [TRUST-ROUTING-1] Preview sample state from session storage
   const [previewSample, setPreviewSample] = useState<PlaybookPreviewSample | null>(null);
   const [previewExpired, setPreviewExpired] = useState(false);
+
+  // [ISSUE-TO-FIX-PATH-1] Issue fix context state
+  const [issueFixContext, setIssueFixContext] = useState<{
+    issueId: string;
+    issueTitle: string;
+    highlightTarget?: string;
+  } | null>(null);
+  const issueFixRouteHandledRef = useRef(false);
+  const [issueHighlightActive, setIssueHighlightActive] = useState(false);
 
   // [DEO-UX-REFRESH-1] Tab state from URL
   const activeTab = useActiveProductTab();
@@ -390,6 +412,11 @@ export default function ProductOptimizationPage() {
     return 'unknown';
   }, [product, productIssues]);
 
+  // [ISSUE-TO-FIX-PATH-1] Count only actionable-in-product issues for tab badge
+  const actionableIssueCount = useMemo(() => {
+    return getActionableIssuesForProduct(productIssues).length;
+  }, [productIssues]);
+
   const handleAutomateThisFix = useCallback(() => {
     if (!product) return;
     const key = `automationEntryContext:${projectId}`;
@@ -589,6 +616,62 @@ export default function ProductOptimizationPage() {
     }
   }, [isPreviewMode, playbookIdParam, projectId, productId]);
 
+  // [ISSUE-TO-FIX-PATH-1] Handle issue fix routing and highlighting on initial load
+  useEffect(() => {
+    // Skip if not in issue fix mode or already handled
+    if (!isIssueFixMode || issueFixRouteHandledRef.current || loading) {
+      return;
+    }
+
+    // Find the matching issue from productIssues
+    const matchingIssue = productIssues.find((i) => i.id === issueIdParam);
+    if (!matchingIssue) {
+      return;
+    }
+
+    // Get the fix path for this issue
+    const fixPath = getIssueFixPathForProduct(matchingIssue);
+    if (!fixPath) {
+      // Issue is not actionable in product workspace
+      return;
+    }
+
+    // Set the fix context for the banner
+    setIssueFixContext({
+      issueId: matchingIssue.id,
+      issueTitle: getSafeIssueTitle(matchingIssue),
+      highlightTarget: highlightParam || fixPath.highlightTarget,
+    });
+
+    // Check if we need to route to a different tab
+    const expectedTab = FIX_SURFACE_TO_TAB[fixPath.fixSurface];
+    if (expectedTab && activeTab !== expectedTab) {
+      // Route to the correct tab while preserving query params
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', expectedTab);
+      router.replace(url.pathname + url.search);
+      issueFixRouteHandledRef.current = true;
+      return;
+    }
+
+    // Already on correct tab - scroll and highlight
+    issueFixRouteHandledRef.current = true;
+
+    // Apply highlight after a brief delay to ensure DOM is ready
+    setTimeout(() => {
+      const targetSelector = highlightParam || fixPath.highlightTarget;
+      if (targetSelector) {
+        const targetElement = document.querySelector(`[data-testid="${targetSelector}"]`);
+        if (targetElement) {
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setIssueHighlightActive(true);
+          // Remove highlight after 2 seconds
+          setTimeout(() => setIssueHighlightActive(false), 2000);
+        }
+      }
+    }, 200);
+  }, [isIssueFixMode, issueIdParam, highlightParam, productIssues, activeTab, loading, router]);
+
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push('/login');
@@ -778,11 +861,12 @@ export default function ProductOptimizationPage() {
               </div>
             </div>
             {/* [DEO-UX-REFRESH-1] Tab bar replacing "Jump to:" anchors */}
+            {/* [ISSUE-TO-FIX-PATH-1] Pass actionable issue count, not total */}
             <ProductDetailsTabs
               projectId={projectId}
               productId={productId}
               activeTab={activeTab}
-              issueCount={productIssues.length}
+              issueCount={actionableIssueCount}
             />
           </div>
 
@@ -875,6 +959,48 @@ export default function ProductOptimizationPage() {
                       className="inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700"
                     >
                       ← Back to preview
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* [ISSUE-TO-FIX-PATH-1] Issue Fix Context Banner */}
+          {isIssueFixMode && issueFixContext && (
+            <div
+              data-testid="issue-fix-context-banner"
+              className="mb-6 mt-4 rounded-lg border border-indigo-200 bg-indigo-50 p-4"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="h-5 w-5 text-indigo-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                    />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-semibold text-indigo-900">
+                    You're here to fix: {issueFixContext.issueTitle}
+                  </h3>
+                  <p className="mt-1 text-xs text-indigo-800">
+                    Make your changes below. Save draft when ready, then apply to Shopify.
+                  </p>
+                  <div className="mt-3">
+                    <Link
+                      href={`/projects/${projectId}/issues`}
+                      className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-700"
+                    >
+                      ← Back to Issues
                     </Link>
                   </div>
                 </div>
@@ -1019,7 +1145,7 @@ export default function ProductOptimizationPage() {
 
                 {/* Answers Tab */}
                 {activeTab === 'answers' && (
-                  <section aria-label="Answers">
+                  <section aria-label="Answers" data-testid="answers-tab-anchor">
                     <h2 className="mb-4 text-base font-semibold text-gray-900">Answers (AEO)</h2>
                     <p className="mb-2 text-xs text-gray-500">
                       Answer Blocks are your canonical, persistent AEO answers. When enabled in{' '}
@@ -1078,7 +1204,7 @@ export default function ProductOptimizationPage() {
 
                 {/* Search & Intent Tab */}
                 {activeTab === 'search-intent' && (
-                  <section aria-label="Search & Intent">
+                  <section aria-label="Search & Intent" data-testid="search-intent-tab-anchor">
                     <h2 className="mb-4 text-base font-semibold text-gray-900">Search & Intent</h2>
                     <p className="mb-3 text-xs text-gray-500">
                       Analyze how well this product covers common search intents.
@@ -1090,7 +1216,7 @@ export default function ProductOptimizationPage() {
 
                 {/* Competitors Tab */}
                 {activeTab === 'competitors' && (
-                  <section aria-label="Competitive Positioning">
+                  <section aria-label="Competitive Positioning" data-testid="competitors-tab-anchor">
                     <h2 className="mb-4 text-base font-semibold text-gray-900">Competitive Positioning</h2>
                     <p className="mb-3 text-xs text-gray-500">
                       See how this product compares to typical competitors in your category.
@@ -1102,7 +1228,7 @@ export default function ProductOptimizationPage() {
 
                 {/* GEO Tab */}
                 {activeTab === 'geo' && (
-                  <section aria-label="GEO Readiness">
+                  <section aria-label="GEO Readiness" data-testid="geo-tab-anchor">
                     <h2 className="mb-4 text-base font-semibold text-gray-900">GEO Readiness</h2>
                     <p className="mb-3 text-xs text-gray-500">
                       Evaluate how AI-engine-ready your product content is. GEO readiness signals

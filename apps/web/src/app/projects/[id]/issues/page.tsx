@@ -11,6 +11,12 @@ import { ApiError, aiApi, projectsApi, shopifyApi } from '@/lib/api';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { useUnsavedChanges } from '@/components/unsaved-changes/UnsavedChangesProvider';
 import { GuardedLink } from '@/components/navigation/GuardedLink';
+import {
+  buildIssueFixHref,
+  isIssueActionable,
+  getSafeIssueTitle,
+  getSafeIssueDescription,
+} from '@/lib/issue-to-fix-path';
 
 type SeverityFilter = 'all' | 'critical' | 'warning' | 'info';
 type PillarFilter = 'all' | DeoPillarId;
@@ -232,13 +238,17 @@ export default function IssuesPage() {
     router.replace(newUrl, { scroll: false });
   };
 
+  // [ISSUE-TO-FIX-PATH-1] Updated to use buildIssueFixHref for deterministic routing
   const getFixAction = (issue: DeoIssue) => {
     const fixType = issue.fixType as DeoIssueFixType | undefined;
     const fixReady = issue.fixReady ?? false;
     const primaryProductId = issue.primaryProductId;
     const issueType = (issue.type as string | undefined) || issue.id;
 
-    if (fixType === 'aiFix' && fixReady && primaryProductId) {
+    // [ISSUE-TO-FIX-PATH-1] Check if issue is actionable first
+    const actionable = isIssueActionable(issue);
+
+    if (fixType === 'aiFix' && fixReady && primaryProductId && actionable) {
       const supportsInlineFix =
         issueType === 'missing_seo_title' || issueType === 'missing_seo_description';
       if (supportsInlineFix) {
@@ -246,21 +256,29 @@ export default function IssuesPage() {
           kind: 'ai-fix-now' as const,
         };
       }
-      return {
-        kind: 'link' as const,
-        label: 'Fix with AI',
-        href: `/projects/${projectId}/products/${primaryProductId}?from=issues&issueId=${issue.id}`,
-        variant: 'ai' as const,
-      };
+      // [ISSUE-TO-FIX-PATH-1] Use buildIssueFixHref for deterministic routing
+      const href = buildIssueFixHref({ projectId, issue });
+      if (href) {
+        return {
+          kind: 'link' as const,
+          label: 'Fix with AI',
+          href,
+          variant: 'ai' as const,
+        };
+      }
     }
 
-    if (fixType === 'manualFix' && primaryProductId) {
-      return {
-        kind: 'link' as const,
-        label: 'Open',
-        href: `/projects/${projectId}/products/${primaryProductId}?from=issues`,
-        variant: 'manual' as const,
-      };
+    if (fixType === 'manualFix' && primaryProductId && actionable) {
+      // [ISSUE-TO-FIX-PATH-1] Use buildIssueFixHref for deterministic routing
+      const href = buildIssueFixHref({ projectId, issue });
+      if (href) {
+        return {
+          kind: 'link' as const,
+          label: 'Open',
+          href,
+          variant: 'manual' as const,
+        };
+      }
     }
 
     if (fixType === 'syncFix') {
@@ -272,47 +290,57 @@ export default function IssuesPage() {
       };
     }
 
-    // Default: go to products page
-    if (issue.affectedProducts && issue.affectedProducts.length > 0) {
-      return {
-        kind: 'link' as const,
-        label: 'View affected',
-        href: `/projects/${projectId}/products`,
-        variant: 'default' as const,
-      };
+    // [ISSUE-TO-FIX-PATH-1] For actionable issues with affected products, route via buildIssueFixHref
+    if (actionable && issue.affectedProducts && issue.affectedProducts.length > 0) {
+      const href = buildIssueFixHref({ projectId, issue });
+      if (href) {
+        return {
+          kind: 'link' as const,
+          label: 'View affected',
+          href,
+          variant: 'default' as const,
+        };
+      }
     }
 
+    // [ISSUE-TO-FIX-PATH-1] Orphan issues - no fix action
     return null;
   };
 
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Gate button navigation with unsaved confirmation
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-4] Clear local unsaved state on confirmed leave to prevent double prompt
+  // [ISSUE-TO-FIX-PATH-1] Only navigate for actionable issues with valid fix path
   const handleIssueClick = (issue: DeoIssue) => {
-    const primaryProductId = issue.primaryProductId;
-    if (primaryProductId) {
-      const draftState = getDraftState();
-      if (draftState === 'unsaved') {
-        const confirmed = window.confirm('You have unsaved changes. Are you sure you want to leave?');
-        if (!confirmed) {
-          return;
-        }
-        // User confirmed leaving - discard unsaved preview state (not sessionStorage saved drafts)
-        setPreviewIssueId(null);
-        setPreviewValue(null);
-        setPreviewFieldLabel(null);
-        setPreviewProductId(null);
-        setPreviewCurrentTitle(null);
-        setPreviewCurrentDescription(null);
-        setPreviewError(null);
-        setSavedDraft(null);
-        setAppliedAt(null);
-        // Immediately clear global unsaved state to prevent double prompt
-        setHasUnsavedChanges(false);
-      }
-      router.push(
-        `/projects/${projectId}/products/${primaryProductId}?from=issues&issueId=${issue.id}`,
-      );
+    // [ISSUE-TO-FIX-PATH-1] Only navigate if issue is actionable
+    if (!isIssueActionable(issue)) {
+      return;
     }
+
+    const href = buildIssueFixHref({ projectId, issue });
+    if (!href) {
+      return;
+    }
+
+    const draftState = getDraftState();
+    if (draftState === 'unsaved') {
+      const confirmed = window.confirm('You have unsaved changes. Are you sure you want to leave?');
+      if (!confirmed) {
+        return;
+      }
+      // User confirmed leaving - discard unsaved preview state (not sessionStorage saved drafts)
+      setPreviewIssueId(null);
+      setPreviewValue(null);
+      setPreviewFieldLabel(null);
+      setPreviewProductId(null);
+      setPreviewCurrentTitle(null);
+      setPreviewCurrentDescription(null);
+      setPreviewError(null);
+      setSavedDraft(null);
+      setAppliedAt(null);
+      // Immediately clear global unsaved state to prevent double prompt
+      setHasUnsavedChanges(false);
+    }
+    router.push(href);
   };
 
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Check for stored draft and restore if found
@@ -733,49 +761,84 @@ export default function IssuesPage() {
       ) : (
         <div className="space-y-3">
           {filteredIssues.map((issue) => {
-            const uiConfig = ISSUE_UI_CONFIG[issue.id] ?? {
-              label: issue.title,
-              description: issue.description,
-            };
+            // [ISSUE-TO-FIX-PATH-1] Use safe title/description helpers
+            const safeTitle = getSafeIssueTitle(issue);
+            const safeDescription = getSafeIssueDescription(issue);
             const fixAction = getFixAction(issue);
+            const actionable = isIssueActionable(issue);
 
             return (
               <div
                 key={issue.id}
+                // [ISSUE-TO-FIX-PATH-1] Test hooks for actionable vs informational cards
+                data-testid={actionable ? 'issue-card-actionable' : 'issue-card-informational'}
                 className="rounded-lg border border-gray-200 bg-white p-4"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <button
-                    type="button"
-                    onClick={() => handleIssueClick(issue)}
-                    className="flex-1 text-left"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-900">
-                        {uiConfig.label}
-                      </span>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                          issue.severity === 'critical'
-                            ? 'border border-red-200 bg-red-50 text-red-700'
-                            : issue.severity === 'warning'
-                              ? 'border border-orange-200 bg-orange-50 text-orange-700'
-                              : 'border border-blue-200 bg-blue-50 text-blue-700'
-                        }`}
-                      >
-                        {issue.severity.charAt(0).toUpperCase() + issue.severity.slice(1)}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm text-gray-600">{uiConfig.description}</p>
-                    {issue.fixType === 'aiFix' && (
+                  {/* [ISSUE-TO-FIX-PATH-1] Only render as button if actionable */}
+                  {actionable ? (
+                    <button
+                      type="button"
+                      onClick={() => handleIssueClick(issue)}
+                      className="flex-1 text-left"
+                    >
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-gray-900">
+                          {safeTitle}
+                        </span>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                            issue.severity === 'critical'
+                              ? 'border border-red-200 bg-red-50 text-red-700'
+                              : issue.severity === 'warning'
+                                ? 'border border-orange-200 bg-orange-50 text-orange-700'
+                                : 'border border-blue-200 bg-blue-50 text-blue-700'
+                          }`}
+                        >
+                          {issue.severity.charAt(0).toUpperCase() + issue.severity.slice(1)}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-gray-600">{safeDescription}</p>
+                      {issue.fixType === 'aiFix' && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          Fixes one affected product at a time for safe review.
+                        </p>
+                      )}
                       <p className="mt-1 text-xs text-gray-500">
-                        Fixes one affected product at a time for safe review.
+                        {issue.count} {issue.count === 1 ? 'item' : 'items'} affected
                       </p>
-                    )}
-                    <p className="mt-1 text-xs text-gray-500">
-                      {issue.count} {issue.count === 1 ? 'item' : 'items'} affected
-                    </p>
-                    {previewIssueId === issue.id && (
+                    </button>
+                  ) : (
+                    <div className="flex-1 text-left">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-gray-900">
+                          {safeTitle}
+                        </span>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                            issue.severity === 'critical'
+                              ? 'border border-red-200 bg-red-50 text-red-700'
+                              : issue.severity === 'warning'
+                                ? 'border border-orange-200 bg-orange-50 text-orange-700'
+                                : 'border border-blue-200 bg-blue-50 text-blue-700'
+                          }`}
+                        >
+                          {issue.severity.charAt(0).toUpperCase() + issue.severity.slice(1)}
+                        </span>
+                        {/* [ISSUE-TO-FIX-PATH-1] Informational badge for orphan issues */}
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 border border-gray-200">
+                          Informational — no action required
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-gray-600">{safeDescription}</p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {issue.count} {issue.count === 1 ? 'item' : 'items'} affected
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Preview panel for actionable issues */}
+                  {actionable && previewIssueId === issue.id && (
                       <div
                         ref={previewPanelRef}
                         tabIndex={-1}

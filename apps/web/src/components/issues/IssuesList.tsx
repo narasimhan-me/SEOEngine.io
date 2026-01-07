@@ -5,16 +5,13 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { DeoIssue } from '@/lib/deo-issues';
 import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
-
-// [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Pillar to tab mapping for deterministic routing
-const PILLAR_TO_TAB_MAP: Record<DeoPillarId, string> = {
-  metadata_snippet_quality: 'metadata',
-  content_commerce_signals: 'answers',
-  search_intent_fit: 'search-intent',
-  technical_indexability: 'metadata',
-  offsite_signals: 'metadata',
-  media_accessibility: 'metadata',
-};
+import {
+  buildIssueFixHref,
+  getIssueFixPathForProject,
+  getSafeIssueTitle,
+  getSafeIssueDescription,
+  isIssueActionable,
+} from '@/lib/issue-to-fix-path';
 
 export const ISSUE_UI_CONFIG: Record<
   string,
@@ -324,21 +321,24 @@ function getIssueDeepLink(issue: DeoIssue, projectId: string): string {
 
 function IssueCard({ issue, isExpanded, onToggleExpand, projectId }: IssueCardProps) {
   const router = useRouter();
-  const uiConfig = ISSUE_UI_CONFIG[issue.id] ?? {
-    label: issue.title,
-    description: issue.description,
-    pillarId: issue.pillarId,
-  };
+
+  // [ISSUE-TO-FIX-PATH-1] Use centralized safe title/description helpers
+  const safeTitle = getSafeIssueTitle(issue);
+  const safeDescription = getSafeIssueDescription(issue);
+
+  // [ISSUE-TO-FIX-PATH-1] Check if issue is actionable
+  const actionable = projectId ? isIssueActionable(issue) : false;
+  const fixHref = projectId ? buildIssueFixHref({ projectId, issue }) : null;
 
   const severityBadge = getSeverityBadge(issue.severity);
   const hasAffectedItems =
     (issue.affectedPages?.length ?? 0) + (issue.affectedProducts?.length ?? 0) >
     0;
 
-  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Handle card click for deep linking
+  // [ISSUE-TO-FIX-PATH-1] Handle card click - only for actionable issues
   const handleCardClick = () => {
-    if (projectId) {
-      router.push(getIssueDeepLink(issue, projectId));
+    if (projectId && actionable && fixHref) {
+      router.push(fixHref);
     }
   };
 
@@ -348,21 +348,29 @@ function IssueCard({ issue, isExpanded, onToggleExpand, projectId }: IssueCardPr
 
   return (
     <div
-      role={projectId ? 'button' : undefined}
-      tabIndex={projectId ? 0 : undefined}
-      onClick={projectId ? handleCardClick : undefined}
-      onKeyDown={projectId ? (e) => { if (e.key === 'Enter' || e.key === ' ') handleCardClick(); } : undefined}
+      // [ISSUE-TO-FIX-PATH-1] Test hooks for actionable vs informational cards
+      data-testid={actionable ? 'issue-card-actionable' : 'issue-card-informational'}
+      role={actionable ? 'button' : undefined}
+      tabIndex={actionable ? 0 : undefined}
+      onClick={actionable ? handleCardClick : undefined}
+      onKeyDown={actionable ? (e) => { if (e.key === 'Enter' || e.key === ' ') handleCardClick(); } : undefined}
       className={`rounded-md border border-gray-200 bg-white p-3 text-sm text-gray-700 ${
-        projectId ? 'cursor-pointer hover:border-blue-300 hover:bg-blue-50/50 transition-colors' : ''
+        actionable ? 'cursor-pointer hover:border-blue-300 hover:bg-blue-50/50 transition-colors' : ''
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold">{uiConfig.label}</span>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold">{safeTitle}</span>
             <span className={severityBadge.className}>{severityBadge.label}</span>
+            {/* [ISSUE-TO-FIX-PATH-1] Informational badge for orphan issues */}
+            {!actionable && (
+              <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 border border-gray-200">
+                Informational — no action required
+              </span>
+            )}
           </div>
-          <p className="mt-1 text-xs text-gray-500">{uiConfig.description}</p>
+          <p className="mt-1 text-xs text-gray-500">{safeDescription}</p>
           <p className="mt-1 text-xs text-gray-500">
             {issue.count} pages/products affected.
           </p>
@@ -396,7 +404,7 @@ function IssueCard({ issue, isExpanded, onToggleExpand, projectId }: IssueCardPr
               )}
               {issue.affectedProducts && issue.affectedProducts.length > 0 && (
                 <div>
-                  {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Remove internal ID leakage - show count and link instead */}
+                  {/* [ISSUE-TO-FIX-PATH-1] Remove internal ID leakage - show count and link instead */}
                   <div className="mb-1 font-semibold">
                     Products ({affectedProductCount})
                   </div>

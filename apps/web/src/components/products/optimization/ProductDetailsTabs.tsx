@@ -84,9 +84,12 @@ export function ProductDetailsTabs({
           >
             <span className="hidden sm:inline">{tab.label}</span>
             <span className="sm:hidden">{tab.shortLabel || tab.label}</span>
-            {/* Show issue count badge on Issues tab */}
+            {/* [ISSUE-TO-FIX-PATH-1] Show issue count badge on Issues tab */}
             {tab.id === 'issues' && issueCount > 0 && (
-              <span className="ml-1.5 inline-flex items-center rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">
+              <span
+                data-testid="product-issues-tab-count"
+                className="ml-1.5 inline-flex items-center rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700"
+              >
                 {issueCount}
               </span>
             )}

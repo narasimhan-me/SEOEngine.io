@@ -2,6 +2,7 @@
 
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import { projectsApi } from '@/lib/api';
 import type {
   WorkQueueResponse,
@@ -13,6 +14,8 @@ import type {
 import { WORK_QUEUE_ACTION_LABELS } from '@/lib/work-queue';
 import { ActionBundleCard } from '@/components/work-queue/ActionBundleCard';
 import { WorkQueueTabs } from '@/components/work-queue/WorkQueueTabs';
+import { getSafeIssueTitle } from '@/lib/issue-to-fix-path';
+import { ISSUE_UI_CONFIG } from '@/components/issues/IssuesList';
 
 /**
  * [WORK-QUEUE-1] Work Queue Page
@@ -51,6 +54,8 @@ export default function WorkQueuePage() {
   const highlightBundleId = searchParams.get('bundleId') || undefined;
   // [TRUST-ROUTING-1] Read from context param
   const fromContext = searchParams.get('from');
+  // [ISSUE-TO-FIX-PATH-1] Read issueId from search params
+  const issueIdParam = searchParams.get('issueId');
 
   const fetchWorkQueue = useCallback(async () => {
     setLoading(true);
@@ -101,6 +106,35 @@ export default function WorkQueuePage() {
 
   // [TRUST-ROUTING-1] Check if any filter context is active
   const hasFilterContext = fromContext === 'store_health' || actionKeys.length > 0 || !!actionKey;
+
+  // [ISSUE-TO-FIX-PATH-1] Check if in issue fix mode
+  const isIssueFixMode = fromContext === 'issues' && !!issueIdParam;
+
+  // [ISSUE-TO-FIX-PATH-1] Get safe issue title for display
+  const issueTitle = useMemo(() => {
+    if (!issueIdParam) return null;
+    // Try to get title from ISSUE_UI_CONFIG
+    const uiConfig = ISSUE_UI_CONFIG[issueIdParam];
+    if (uiConfig?.label) return uiConfig.label;
+    // Fallback
+    return 'Issue detected';
+  }, [issueIdParam]);
+
+  // [ISSUE-TO-FIX-PATH-1] Scroll to first bundle and apply highlight on initial load
+  useEffect(() => {
+    if (!isIssueFixMode || loading) return;
+
+    // Auto-scroll to first bundle card or highlighted bundle
+    setTimeout(() => {
+      const targetId = highlightBundleId || items[0]?.bundleId;
+      if (targetId) {
+        const element = document.querySelector(`[data-bundle-id="${targetId}"]`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }, 200);
+  }, [isIssueFixMode, loading, highlightBundleId, items]);
 
   // [TRUST-ROUTING-1] Build filter labels for display
   const filterLabels: string[] = useMemo(() => {
@@ -157,6 +191,48 @@ export default function WorkQueuePage() {
           </div>
         )}
       </div>
+
+      {/* [ISSUE-TO-FIX-PATH-1] Issue Fix Context Banner */}
+      {isIssueFixMode && issueTitle && !loading && (
+        <div
+          data-testid="work-queue-issue-fix-context-banner"
+          className="rounded-lg border border-indigo-200 bg-indigo-50 p-4"
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-indigo-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-semibold text-indigo-900">
+                You're here to fix: {issueTitle}
+              </h3>
+              <p className="mt-1 text-xs text-indigo-800">
+                Review the action bundles below to address this issue.
+              </p>
+              <div className="mt-3">
+                <Link
+                  href={`/projects/${projectId}/issues`}
+                  className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-700"
+                >
+                  ← Back to Issues
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* [TRUST-ROUTING-1] Filter Context Banner */}
       {hasFilterContext && !loading && (
@@ -265,14 +341,15 @@ export default function WorkQueuePage() {
       {!loading && !error && items.length > 0 && (
         <div className="space-y-4">
           {items.map((bundle) => (
-            <ActionBundleCard
-              key={bundle.bundleId}
-              bundle={bundle}
-              projectId={projectId}
-              viewer={response?.viewer}
-              isHighlighted={bundle.bundleId === highlightBundleId}
-              onRefresh={fetchWorkQueue}
-            />
+            <div key={bundle.bundleId} data-bundle-id={bundle.bundleId}>
+              <ActionBundleCard
+                bundle={bundle}
+                projectId={projectId}
+                viewer={response?.viewer}
+                isHighlighted={bundle.bundleId === highlightBundleId}
+                onRefresh={fetchWorkQueue}
+              />
+            </div>
           ))}
         </div>
       )}
