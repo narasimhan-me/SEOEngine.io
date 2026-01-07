@@ -719,7 +719,7 @@ Unified Work Queue page that derives action bundles from existing persisted arti
 
 #### PATCH 5 — Documentation
 - [x] Created `docs/manual-testing/WORK-QUEUE-1.md`
-- [x] Updated IMPLEMENTATION_PLAN.md (this section)
+- [x] Updated `docs/IMPLEMENTATION_PLAN.md` (this section)
 
 ### Critical Path Impact
 
@@ -813,7 +813,7 @@ Special routes:
 - [x] Created docs/manual-testing/STORE-HEALTH-1.0.md
 
 #### PATCH 5 — Documentation
-- [x] Updated IMPLEMENTATION_PLAN.md (this section)
+- [x] Updated `docs/IMPLEMENTATION_PLAN.md` (this section)
 
 ### Derivation Sources
 
@@ -899,7 +899,7 @@ Pages & Collections diagnosis and surfacing only. This phase makes Pages and Col
 
 #### PATCH 7 — Testing + Documentation ✅
 - [x] Created docs/manual-testing/ASSETS-PAGES-1.md
-- [x] Updated IMPLEMENTATION_PLAN.md (this section)
+- [x] Updated `docs/IMPLEMENTATION_PLAN.md` (this section)
 
 ### Health Derivation Rules
 
@@ -1029,7 +1029,7 @@ Execution layer for Pages and Collections: draft generation and apply-to-Shopify
 #### PATCH 7 — Documentation ✅
 - [x] Verified and removed non-canonical playbook ID references from API_SPEC.md
 - [x] Document asset ref format in API_SPEC.md
-- [x] Update IMPLEMENTATION_PLAN.md version history
+- [x] Update `docs/IMPLEMENTATION_PLAN.md` version history
 - [x] Updated ASSETS-PAGES-1.1.md manual testing doc with frontend scenarios
 
 ### Trust Invariants
@@ -1652,3 +1652,4 @@ Tests:
 | 4.8 | 2026-01-07 | **ISSUE-TO-FIX-PATH-1 FIXUP-2**: Trust hardening (dead-click prevention + ID leakage) - Href-based actionability on Issues page (buildIssueFixHref !== null), handleIssueClick accepts pre-validated href, internal ID leakage prevention via getSafeIssueTitle/Description in Overview/Performance/Insights panels, new getSafeInsightsIssueTitle helper for insights-style data, dead-click Playwright regression test. |
 | 4.9 | 2026-01-07 | **ISSUE-TO-FIX-PATH-1 FIXUP-3**: Alignment-only update — Work Queue banner test + manual testing updated to reflect issue-fix mode triggers on issueId alone (from optional); CP-008 wording updated accordingly. |
 | 5.0 | 2026-01-07 | **IMPLEMENTATION-PLAN-RECONCILIATION-1**: Root `IMPLEMENTATION_PLAN.md` deprecated to stub-only; `docs/IMPLEMENTATION_PLAN.md` is now the authoritative single source of truth. Core governance docs updated (ENGINEO_AI_INSTRUCTIONS.md, SESSION_STARTER.md, MANUAL_TESTING_TEMPLATE.md, MANUAL_TESTING_WORKFLOW.md, DEPLOYMENT.md, RENDER_DEPLOYMENT.md, CRAWL_PIPELINE.md, auto-pb-1.3-preview-persistence.md, README.md, ISSUE-TO-FIX-PATH-1.md) to reference the authoritative location. |
+| 5.1 | 2026-01-07 | **IMPLEMENTATION-PLAN-RECONCILIATION-1 FIXUP-2**: Self-reference consistency — updated internal checklist items that referenced `IMPLEMENTATION_PLAN.md` to reference `docs/IMPLEMENTATION_PLAN.md` (not the deprecated root stub) for self-referential "updated plan" checklist items and version-history task text. |
