@@ -487,6 +487,37 @@ export function getSafeIssueDescription(issue: DeoIssue): string {
 }
 
 /**
+ * [ISSUE-TO-FIX-PATH-1 FIXUP-2] Returns a safe title for insights-style issue data.
+ * Works with objects that have `issueId` and `title` (from ProjectInsightsResponse).
+ *
+ * @param issue - Object with issueId and optional title
+ * @returns Human-readable title, falling back to "Issue detected"
+ */
+export function getSafeInsightsIssueTitle(issue: { issueId: string; title?: string }): string {
+  // First, check ISSUE_UI_CONFIG using issueId
+  const uiConfig = ISSUE_UI_CONFIG[issue.issueId];
+  if (uiConfig?.label) {
+    return uiConfig.label;
+  }
+
+  // Check if title looks like an internal ID (snake_case, UUIDs, etc.)
+  if (issue.title) {
+    const looksInternal =
+      /^[a-z_]+$/.test(issue.title) || // snake_case
+      /^[0-9a-f-]{36}$/i.test(issue.title) || // UUID
+      issue.title.includes('_id') ||
+      issue.title.length < 5;
+
+    if (!looksInternal) {
+      return issue.title;
+    }
+  }
+
+  // Fallback
+  return 'Issue detected';
+}
+
+/**
  * Checks if an issue is actionable (has a deterministic fix path).
  *
  * @param issue - The DEO issue

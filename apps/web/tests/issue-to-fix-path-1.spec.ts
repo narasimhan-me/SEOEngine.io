@@ -241,6 +241,61 @@ test.describe('ISSUE-TO-FIX-PATH-1: Orphan issues are not actionable', () => {
     }
   });
 
+  /**
+   * [ISSUE-TO-FIX-PATH-1 FIXUP-2] Dead-click regression test
+   *
+   * Trust invariant: If something looks clickable (has button affordance),
+   * clicking it MUST result in navigation. No dead-ends allowed.
+   */
+  test('Clicking actionable issue card ALWAYS navigates (no dead-click)', async ({ page, request }) => {
+    const { projectId } = await authenticatePage(page, request);
+
+    // Navigate to project-level Issues page
+    await page.goto(`/projects/${projectId}/issues`);
+
+    // Wait for page to load
+    await page.waitForLoadState('networkidle');
+
+    // Get all actionable issue cards
+    const actionableCards = page.getByTestId('issue-card-actionable');
+    const cardCount = await actionableCards.count();
+
+    // Test up to first 3 actionable cards to verify no dead-clicks
+    const cardsToTest = Math.min(cardCount, 3);
+
+    for (let i = 0; i < cardsToTest; i++) {
+      // Navigate fresh to issues page for each test
+      await page.goto(`/projects/${projectId}/issues`);
+      await page.waitForLoadState('networkidle');
+
+      const card = page.getByTestId('issue-card-actionable').nth(i);
+      const button = card.locator('button').first();
+
+      if (await button.isVisible()) {
+        const initialUrl = page.url();
+
+        // Click the actionable card
+        await button.click();
+
+        // Wait for navigation
+        await page.waitForLoadState('networkidle');
+
+        // CRITICAL: URL MUST have changed - no dead-clicks allowed
+        const newUrl = page.url();
+        expect(newUrl).not.toBe(initialUrl);
+
+        // Page must load without error
+        await expect(page.locator('body')).toBeVisible();
+
+        // Should land on a product page or work queue with issueId
+        const landedOnValidDestination =
+          newUrl.includes('/products/') ||
+          newUrl.includes('/work-queue');
+        expect(landedOnValidDestination).toBe(true);
+      }
+    }
+  });
+
   test('Work Queue issue fix banner shows when from=issues', async ({ page, request }) => {
     const { projectId } = await authenticatePage(page, request);
 

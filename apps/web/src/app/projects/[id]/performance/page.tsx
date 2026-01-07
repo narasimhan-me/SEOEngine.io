@@ -9,6 +9,8 @@ import { projectsApi } from '@/lib/api';
 import { getDeoPillarById } from '@/lib/deo-pillars';
 import type { DeoIssue, PerformanceSignalType } from '@/lib/deo-issues';
 import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
+// [ISSUE-TO-FIX-PATH-1 FIXUP-2] Import safe title/description helpers to prevent internal ID leakage
+import { getSafeIssueTitle, getSafeIssueDescription } from '@/lib/issue-to-fix-path';
 
 // PERFORMANCE-1 signal types for filtering
 const PERFORMANCE_SIGNAL_TYPES: PerformanceSignalType[] = [
@@ -424,7 +426,8 @@ export default function TechnicalPerformancePage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold">{issue.title}</span>
+                      {/* [ISSUE-TO-FIX-PATH-1 FIXUP-2] Use safe title to prevent internal ID leakage */}
+                      <span className="font-semibold">{getSafeIssueTitle(issue)}</span>
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                           issue.severity === 'critical'
@@ -441,7 +444,8 @@ export default function TechnicalPerformancePage() {
                             : 'Info'}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">{issue.description}</p>
+                    {/* [ISSUE-TO-FIX-PATH-1 FIXUP-2] Use safe description to prevent internal ID leakage */}
+                    <p className="mt-1 text-xs text-gray-500">{getSafeIssueDescription(issue)}</p>
                     <p className="mt-1 text-xs text-gray-500">
                       {issue.count} page{issue.count !== 1 ? 's' : ''} affected
                     </p>

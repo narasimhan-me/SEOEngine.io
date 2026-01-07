@@ -618,7 +618,8 @@ export default function ProjectOverviewPage() {
         };
         existing.score += weight;
         if (existing.reasons.length < 2) {
-          existing.reasons.push(issue.title);
+          // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Use safe title to prevent internal ID leakage
+          existing.reasons.push(getSafeIssueTitle(issue));
         }
         scoreByProductId.set(productId, existing);
       }

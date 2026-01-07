@@ -5,15 +5,15 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 
 import type { DeoIssue, DeoIssueFixType } from '@/lib/deo-issues';
 import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
-import { ISSUE_UI_CONFIG } from '@/components/issues/IssuesList';
+// [ISSUE-TO-FIX-PATH-1 FIXUP-2] Removed unused ISSUE_UI_CONFIG import
 import { isAuthenticated, getToken } from '@/lib/auth';
 import { ApiError, aiApi, projectsApi, shopifyApi } from '@/lib/api';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { useUnsavedChanges } from '@/components/unsaved-changes/UnsavedChangesProvider';
 import { GuardedLink } from '@/components/navigation/GuardedLink';
+// [ISSUE-TO-FIX-PATH-1 FIXUP-2] Removed isIssueActionable - using href-based actionability instead
 import {
   buildIssueFixHref,
-  isIssueActionable,
   getSafeIssueTitle,
   getSafeIssueDescription,
 } from '@/lib/issue-to-fix-path';
@@ -207,11 +207,11 @@ export default function IssuesPage() {
   };
 
   // Compute counts by severity
-  // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Count only ACTIONABLE issues by severity
-  // Orphan/informational issues should not inflate severity counts
-  const criticalCount = issues.filter((i) => i.severity === 'critical' && isIssueActionable(i)).length;
-  const warningCount = issues.filter((i) => i.severity === 'warning' && isIssueActionable(i)).length;
-  const infoCount = issues.filter((i) => i.severity === 'info' && isIssueActionable(i)).length;
+  // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Count only ACTIONABLE issues by severity using href-based check
+  // Actionable = buildIssueFixHref returns non-null (eliminates dead-click risk)
+  const criticalCount = issues.filter((i) => i.severity === 'critical' && buildIssueFixHref({ projectId, issue: i, from: 'issues' }) !== null).length;
+  const warningCount = issues.filter((i) => i.severity === 'warning' && buildIssueFixHref({ projectId, issue: i, from: 'issues' }) !== null).length;
+  const infoCount = issues.filter((i) => i.severity === 'info' && buildIssueFixHref({ projectId, issue: i, from: 'issues' }) !== null).length;
 
   // Filter issues by severity and pillar
   const filteredIssues = issues.filter((issue) => {
@@ -240,47 +240,41 @@ export default function IssuesPage() {
     router.replace(newUrl, { scroll: false });
   };
 
-  // [ISSUE-TO-FIX-PATH-1] Updated to use buildIssueFixHref for deterministic routing
+  // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Updated to use href-based actionability
   const getFixAction = (issue: DeoIssue) => {
     const fixType = issue.fixType as DeoIssueFixType | undefined;
     const fixReady = issue.fixReady ?? false;
     const primaryProductId = issue.primaryProductId;
     const issueType = (issue.type as string | undefined) || issue.id;
 
-    // [ISSUE-TO-FIX-PATH-1] Check if issue is actionable first
-    const actionable = isIssueActionable(issue);
+    // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Check if issue has a valid fix href (href-based actionability)
+    const fixHref = buildIssueFixHref({ projectId, issue, from: 'issues' });
 
-    if (fixType === 'aiFix' && fixReady && primaryProductId && actionable) {
+    // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Reuse fixHref computed above - no dead-click risk
+    if (fixType === 'aiFix' && fixReady && primaryProductId && fixHref) {
       const supportsInlineFix =
         issueType === 'missing_seo_title' || issueType === 'missing_seo_description';
       if (supportsInlineFix) {
         return {
           kind: 'ai-fix-now' as const,
+          fixHref, // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Include href for navigation guarantee
         };
       }
-      // [ISSUE-TO-FIX-PATH-1] Use buildIssueFixHref for deterministic routing
-      const href = buildIssueFixHref({ projectId, issue });
-      if (href) {
-        return {
-          kind: 'link' as const,
-          label: 'Fix with AI',
-          href,
-          variant: 'ai' as const,
-        };
-      }
+      return {
+        kind: 'link' as const,
+        label: 'Fix with AI',
+        href: fixHref,
+        variant: 'ai' as const,
+      };
     }
 
-    if (fixType === 'manualFix' && primaryProductId && actionable) {
-      // [ISSUE-TO-FIX-PATH-1] Use buildIssueFixHref for deterministic routing
-      const href = buildIssueFixHref({ projectId, issue });
-      if (href) {
-        return {
-          kind: 'link' as const,
-          label: 'Open',
-          href,
-          variant: 'manual' as const,
-        };
-      }
+    if (fixType === 'manualFix' && primaryProductId && fixHref) {
+      return {
+        kind: 'link' as const,
+        label: 'Open',
+        href: fixHref,
+        variant: 'manual' as const,
+      };
     }
 
     if (fixType === 'syncFix') {
@@ -292,37 +286,25 @@ export default function IssuesPage() {
       };
     }
 
-    // [ISSUE-TO-FIX-PATH-1] For actionable issues with affected products, route via buildIssueFixHref
-    if (actionable && issue.affectedProducts && issue.affectedProducts.length > 0) {
-      const href = buildIssueFixHref({ projectId, issue });
-      if (href) {
-        return {
-          kind: 'link' as const,
-          label: 'View affected',
-          href,
-          variant: 'default' as const,
-        };
-      }
+    // [ISSUE-TO-FIX-PATH-1 FIXUP-2] For actionable issues with affected products, use pre-computed fixHref
+    if (fixHref && issue.affectedProducts && issue.affectedProducts.length > 0) {
+      return {
+        kind: 'link' as const,
+        label: 'View affected',
+        href: fixHref,
+        variant: 'default' as const,
+      };
     }
 
-    // [ISSUE-TO-FIX-PATH-1] Orphan issues - no fix action
+    // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Orphan issues (no fixHref) - no fix action
     return null;
   };
 
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Gate button navigation with unsaved confirmation
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-4] Clear local unsaved state on confirmed leave to prevent double prompt
-  // [ISSUE-TO-FIX-PATH-1] Only navigate for actionable issues with valid fix path
-  const handleIssueClick = (issue: DeoIssue) => {
-    // [ISSUE-TO-FIX-PATH-1] Only navigate if issue is actionable
-    if (!isIssueActionable(issue)) {
-      return;
-    }
-
-    const href = buildIssueFixHref({ projectId, issue });
-    if (!href) {
-      return;
-    }
-
+  // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Accept href as argument - no recomputation, guarantees navigation if clickable
+  const handleIssueClick = (href: string) => {
+    // [ISSUE-TO-FIX-PATH-1 FIXUP-2] href is pre-validated - if we're here, navigation is guaranteed
     const draftState = getDraftState();
     if (draftState === 'unsaved') {
       const confirmed = window.confirm('You have unsaved changes. Are you sure you want to leave?');
@@ -359,7 +341,11 @@ export default function IssuesPage() {
       issueType !== 'missing_seo_title' &&
       issueType !== 'missing_seo_description'
     ) {
-      handleIssueClick(issue);
+      // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Compute href for navigation
+      const href = buildIssueFixHref({ projectId, issue, from: 'issues' });
+      if (href) {
+        handleIssueClick(href);
+      }
       return;
     }
 
@@ -767,21 +753,23 @@ export default function IssuesPage() {
             const safeTitle = getSafeIssueTitle(issue);
             const safeDescription = getSafeIssueDescription(issue);
             const fixAction = getFixAction(issue);
-            const actionable = isIssueActionable(issue);
+            // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Compute href once, use for actionability check AND navigation
+            const fixHref = buildIssueFixHref({ projectId, issue, from: 'issues' });
+            const actionable = fixHref !== null;
 
             return (
               <div
                 key={issue.id}
-                // [ISSUE-TO-FIX-PATH-1] Test hooks for actionable vs informational cards
+                // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Test hooks use href-based actionability
                 data-testid={actionable ? 'issue-card-actionable' : 'issue-card-informational'}
                 className="rounded-lg border border-gray-200 bg-white p-4"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  {/* [ISSUE-TO-FIX-PATH-1] Only render as button if actionable */}
-                  {actionable ? (
+                  {/* [ISSUE-TO-FIX-PATH-1 FIXUP-2] Only render as button if href exists (eliminates dead-click) */}
+                  {fixHref ? (
                     <button
                       type="button"
-                      onClick={() => handleIssueClick(issue)}
+                      onClick={() => handleIssueClick(fixHref)}
                       className="flex-1 text-left"
                     >
                       <div className="flex items-center gap-2 flex-wrap">

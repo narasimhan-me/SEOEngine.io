@@ -56,6 +56,38 @@ The following refinements were made in FIXUP-1:
 
 ---
 
+## FIXUP-2 Updates (Trust Hardening: Dead-Click Prevention + ID Leakage)
+
+The following refinements were made in FIXUP-2:
+
+1. **Href-based actionability on Project Issues page**
+   - Actionability is now determined by `buildIssueFixHref() !== null` instead of `isIssueActionable()`
+   - Single computation pattern: `fixHref` is computed once and reused for both actionability check and navigation
+   - Trust invariant: If `fixHref` is truthy, clicking MUST navigate (no dead-ends)
+
+2. **`handleIssueClick(href: string)` accepts pre-validated href**
+   - No re-computation inside handler
+   - Guaranteed navigation on click
+
+3. **Internal ID leakage prevention**
+   - Overview "Top Products to Fix" reasons now use `getSafeIssueTitle(issue)` instead of `issue.title`
+   - Performance page issues list uses `getSafeIssueTitle()` and `getSafeIssueDescription()`
+   - ContentDeoInsightsPanel and ProductDeoInsightsPanel use safe helpers in fallback
+   - Insights page "High-Impact Open Issues" uses `getSafeInsightsIssueTitle()`
+   - Issue Resolution page uses `getSafeInsightsIssueTitle()` for both recent and high-impact lists
+
+4. **New helper: `getSafeInsightsIssueTitle()`**
+   - Works with insights-style issue data (`{ issueId, title }` format)
+   - Same internal-ID detection logic as `getSafeIssueTitle()`
+   - Falls back to "Issue detected" if title looks like internal ID
+
+5. **Enhanced Playwright test for dead-click regression**
+   - Tests multiple actionable cards (up to 3) to verify no dead-clicks
+   - Asserts URL change after click
+   - Validates landing on valid destination (products or work queue)
+
+---
+
 ## Preconditions
 
 - **Environment requirements:**

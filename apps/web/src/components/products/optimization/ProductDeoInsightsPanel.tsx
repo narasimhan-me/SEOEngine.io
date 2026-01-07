@@ -4,6 +4,8 @@ import type { Product } from '@/lib/products';
 import { getProductStatus } from '@/lib/products';
 // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Import from lib module
 import { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
+// [ISSUE-TO-FIX-PATH-1 FIXUP-2] Import safe title/description helpers to prevent internal ID leakage
+import { getSafeIssueTitle, getSafeIssueDescription } from '@/lib/issue-to-fix-path';
 
 interface ProductDeoInsightsPanelProps {
   product: Product;
@@ -194,9 +196,10 @@ export function ProductDeoInsightsPanel({ product, productIssues }: ProductDeoIn
                 <div className="space-y-2">
                   {productIssues.map((issue) => {
                     // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Use human-readable label, never show internal ID
+                    // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Use safe helpers to prevent internal ID leakage in fallback
                     const config = ISSUE_UI_CONFIG[issue.id] ?? {
-                      label: issue.title ?? 'Issue detected',
-                      description: issue.description ?? '',
+                      label: getSafeIssueTitle(issue),
+                      description: getSafeIssueDescription(issue),
                     };
                     const severityColors = {
                       critical: 'border-red-200 bg-red-50 text-red-700',

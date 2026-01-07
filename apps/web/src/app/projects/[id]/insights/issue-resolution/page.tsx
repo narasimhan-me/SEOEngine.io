@@ -9,6 +9,8 @@ import type { ProjectInsightsResponse } from '@/lib/insights';
 import { InsightsSubnav } from '@/components/projects/InsightsSubnav';
 import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
 import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
+// [ISSUE-TO-FIX-PATH-1 FIXUP-2] Import safe title helper to prevent internal ID leakage
+import { getSafeInsightsIssueTitle } from '@/lib/issue-to-fix-path';
 
 // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Get human-readable pillar label
 function getPillarLabel(pillarId: string | undefined): string {
@@ -166,7 +168,8 @@ export default function IssueResolutionPage() {
                 className="p-4 flex items-center justify-between hover:bg-blue-50/50 transition-colors"
               >
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{issue.title}</p>
+                  {/* [ISSUE-TO-FIX-PATH-1 FIXUP-2] Use safe title to prevent internal ID leakage */}
+                  <p className="text-sm font-medium text-gray-900">{getSafeInsightsIssueTitle(issue)}</p>
                   <p className="text-xs text-gray-500">{getPillarLabel(issue.pillarId)}</p>
                 </div>
                 <p className="text-xs text-gray-400">
@@ -193,7 +196,8 @@ export default function IssueResolutionPage() {
                 className="p-4 flex items-center justify-between hover:bg-blue-50/50 transition-colors"
               >
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{issue.title}</p>
+                  {/* [ISSUE-TO-FIX-PATH-1 FIXUP-2] Use safe title to prevent internal ID leakage */}
+                  <p className="text-sm font-medium text-gray-900">{getSafeInsightsIssueTitle(issue)}</p>
                   <p className="text-xs text-gray-500">{getPillarLabel(issue.pillarId)}</p>
                 </div>
                 <div className="flex items-center gap-3">

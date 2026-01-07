@@ -9,6 +9,8 @@ import type { ProjectInsightsResponse } from '@/lib/insights';
 import { InsightsSubnav } from '@/components/projects/InsightsSubnav';
 import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
 import { Sparkline } from '@/components/projects/Sparkline';
+// [ISSUE-TO-FIX-PATH-1 FIXUP-2] Import safe title helper to prevent internal ID leakage
+import { getSafeInsightsIssueTitle } from '@/lib/issue-to-fix-path';
 
 /**
  * [INSIGHTS-1] Project Insights Dashboard
@@ -297,8 +299,9 @@ export default function InsightsPage() {
               <ul className="space-y-2">
                 {issueResolution.openHighImpact.slice(0, 5).map(issue => (
                   <li key={issue.issueId} className="flex items-center justify-between">
+                    {/* [ISSUE-TO-FIX-PATH-1 FIXUP-2] Use safe title to prevent internal ID leakage */}
                     <span className="text-sm text-gray-700 truncate max-w-[200px]">
-                      {issue.title}
+                      {getSafeInsightsIssueTitle(issue)}
                     </span>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
                       issue.severity === 'critical' ? 'bg-red-100 text-red-700' :
