@@ -14,7 +14,8 @@
 
 import type { DeoIssue } from '@/lib/deo-issues';
 import type { DeoPillarId } from '@/lib/deo-pillars';
-import { ISSUE_UI_CONFIG } from '@/components/issues/IssuesList';
+// [ISSUE-TO-FIX-PATH-1 FIXUP-1] Import from lib module to avoid circular dependency
+import { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
 
 // =============================================================================
 // Fix Surface Enum (Locked Contract)
@@ -367,17 +368,21 @@ export function getIssueFixPathForProject(issue: DeoIssue): IssueFixPath | null 
  * Builds the fully-qualified route for navigating from issues to a fix destination.
  * Includes from, issueId, and highlight parameters.
  *
+ * [ISSUE-TO-FIX-PATH-1 FIXUP-1] Added optional `from` parameter to preserve navigation origin.
+ *
  * @param projectId - The project ID
  * @param issue - The DEO issue
  * @param primaryProductId - Optional product ID (uses issue.primaryProductId if not provided)
+ * @param from - Optional origin context (e.g., 'issues', 'overview', 'deo', 'product_issues')
  * @returns The full route path, or null if no route exists
  */
 export function buildIssueFixHref(params: {
   projectId: string;
   issue: DeoIssue;
   primaryProductId?: string;
+  from?: string;
 }): string | null {
-  const { projectId, issue, primaryProductId } = params;
+  const { projectId, issue, primaryProductId, from = 'issues' } = params;
   const fixPath = getIssueFixPathForProject(issue);
 
   // No fix path = no href
@@ -400,7 +405,7 @@ export function buildIssueFixHref(params: {
       const tab = FIX_SURFACE_TO_TAB[fixPath.fixSurface] || 'metadata';
       const queryParams = new URLSearchParams();
       queryParams.set('tab', tab);
-      queryParams.set('from', 'issues');
+      queryParams.set('from', from);
       queryParams.set('issueId', issue.id);
       if (fixPath.highlightTarget) {
         queryParams.set('highlight', fixPath.highlightTarget);
@@ -411,7 +416,7 @@ export function buildIssueFixHref(params: {
     const tab = FIX_SURFACE_TO_TAB[fixPath.fixSurface] || 'metadata';
     const queryParams = new URLSearchParams();
     queryParams.set('tab', tab);
-    queryParams.set('from', 'issues');
+    queryParams.set('from', from);
     queryParams.set('issueId', issue.id);
     if (fixPath.highlightTarget) {
       queryParams.set('highlight', fixPath.highlightTarget);
@@ -421,7 +426,7 @@ export function buildIssueFixHref(params: {
 
   // Work Queue destination
   if (fixPath.fixSurface === IssueFixSurface.WORK_QUEUE) {
-    return `/projects/${projectId}/work-queue?from=issues&issueId=${issue.id}`;
+    return `/projects/${projectId}/work-queue?from=${from}&issueId=${issue.id}`;
   }
 
   return null;

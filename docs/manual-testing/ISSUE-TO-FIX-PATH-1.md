@@ -23,7 +23,36 @@
 
 - **Related documentation:**
   - `apps/web/src/lib/issue-to-fix-path.ts` - Single source of truth
+  - `apps/web/src/lib/issue-ui-config.ts` - Issue UI configuration (FIXUP-1: moved from component)
   - `apps/web/tests/issue-to-fix-path-1.spec.ts` - Playwright E2E tests
+
+---
+
+## FIXUP-1 Updates (Circular Import + Orphan/Dead-End Fix)
+
+The following refinements were made in FIXUP-1:
+
+1. **ISSUE_UI_CONFIG moved to lib module** (`/lib/issue-ui-config.ts`)
+   - Eliminates circular import between `issue-to-fix-path.ts` and `IssuesList.tsx`
+   - Re-exported from `IssuesList.tsx` for backward compatibility
+
+2. **Issue-fix mode triggers on `issueId` alone**
+   - No longer requires `from=issues` query param
+   - Product and Work Queue pages show fix context banner when `issueId` is present
+
+3. **Overview Top blockers shows actionable issues only**
+   - Uses `buildIssueFixHref({ projectId, issue, from: 'overview' })` for routing
+   - Non-actionable issues excluded from display
+
+4. **DEO page uses actionable issues only**
+   - "Top Recommended Actions" and pillar scorecards count actionable issues only
+   - Pillar status badges reflect actionable issue severity
+
+5. **Project Issues page counts actionable-only**
+   - Severity counts (Critical, Warning, Info) filter by actionable status
+
+6. **`buildIssueFixHref` accepts `from` parameter**
+   - Origin context preserved in URL: `from=overview`, `from=deo`, `from=issues`
 
 ---
 
@@ -54,9 +83,9 @@
 - Issues visible on Overview page "Top blockers" section
 
 **Steps:**
-1. Navigate to project Overview page (`/projects/{projectId}`)
+1. Navigate to project Overview page (`/projects/{projectId}/overview`)
 2. Locate the "Top blockers" or issue summary section
-3. Click on an issue link
+3. Click on an issue link (only actionable issues are shown)
 
 **Expected Results:**
 - **UI:**
@@ -65,7 +94,7 @@
   - Banner shows "You're here to fix: {Issue title}"
   - "Back to Issues" link present in banner
   - Highlight target (if applicable) scrolled into view
-- **URL:** Contains `from=issues&issueId={issueId}&tab={correctTab}`
+- **URL:** Contains `from=overview&issueId={issueId}&tab={correctTab}` (FIXUP-1: origin preserved)
 
 ---
 

@@ -1,13 +1,15 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { projectsApi } from '@/lib/api';
 import type { DeoIssue } from '@/lib/deo-issues';
 import type { ProjectOffsiteCoverage } from '@/lib/offsite-signals';
 import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
 import { GuardedLink } from '@/components/navigation/GuardedLink';
 import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
+// [ISSUE-TO-FIX-PATH-1 FIXUP-1] Import deterministic routing helpers
+import { buildIssueFixHref, getSafeIssueTitle } from '@/lib/issue-to-fix-path';
 
 interface DeoIssuesResponse {
   projectId: string;
@@ -53,20 +55,37 @@ export default function DeoOverviewPage() {
     fetchData();
   }, [projectId]);
 
-  // Group issues by pillar
-  const issuesByPillar = new Map<DeoPillarId, DeoIssue[]>();
-  if (deoIssues?.issues) {
+  // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Group ACTIONABLE issues by pillar only
+  // Non-actionable (orphan/external) issues should not drive pillar status badges or counts
+  const actionableIssuesByPillar = useMemo(() => {
+    const map = new Map<DeoPillarId, DeoIssue[]>();
+    if (!deoIssues?.issues) return map;
     for (const issue of deoIssues.issues) {
       const pillarId = issue.pillarId;
-      if (pillarId) {
-        const existing = issuesByPillar.get(pillarId) ?? [];
+      if (pillarId && buildIssueFixHref({ projectId, issue, from: 'deo' }) !== null) {
+        const existing = map.get(pillarId) ?? [];
         existing.push(issue);
-        issuesByPillar.set(pillarId, existing);
+        map.set(pillarId, existing);
       }
     }
-  }
+    return map;
+  }, [deoIssues?.issues, projectId]);
 
-  const totalIssues = deoIssues?.issues?.length ?? 0;
+  // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Total actionable issues count for header
+  const totalActionableIssues = useMemo(() => {
+    if (!deoIssues?.issues) return 0;
+    return deoIssues.issues.filter((issue) =>
+      buildIssueFixHref({ projectId, issue, from: 'deo' }) !== null
+    ).length;
+  }, [deoIssues?.issues, projectId]);
+
+  // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Flat list of actionable issues for Top Recommended Actions
+  const actionableIssuesList = useMemo(() => {
+    if (!deoIssues?.issues) return [];
+    return deoIssues.issues.filter((issue) =>
+      buildIssueFixHref({ projectId, issue, from: 'deo' }) !== null
+    );
+  }, [deoIssues?.issues, projectId]);
 
   if (loading) {
     return (
@@ -112,8 +131,8 @@ export default function DeoOverviewPage() {
             <div className="text-xs text-gray-500">DEO Score</div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-gray-900">{totalIssues}</div>
-            <div className="text-xs text-gray-500">DEO Issues</div>
+            <div className="text-2xl font-bold text-gray-900">{totalActionableIssues}</div>
+            <div className="text-xs text-gray-500">Actionable Issues</div>
           </div>
           {deoIssues?.generatedAt && (
             <div className="text-xs text-gray-400">
@@ -122,35 +141,40 @@ export default function DeoOverviewPage() {
           )}
         </div>
 
-        {/* Top 3 Recommended Actions */}
-        {totalIssues > 0 && (
+        {/* [ISSUE-TO-FIX-PATH-1 FIXUP-1] Top 3 Recommended Actions (actionable only) */}
+        {actionableIssuesList.length > 0 && (
           <div className="mt-4 border-t border-gray-100 pt-4">
             <h3 className="text-xs font-semibold text-gray-700">
               Top Recommended Actions
             </h3>
             <ul className="mt-2 space-y-2">
-              {deoIssues?.issues?.slice(0, 3).map((issue) => (
-                <li key={issue.id} className="text-sm text-gray-600">
-                  <span className="font-medium">{issue.title}</span>
-                  {issue.affectedProducts && issue.affectedProducts.length > 0 && (
-                    <GuardedLink
-                      href={`/projects/${projectId}/products/${issue.affectedProducts[0]}?focus=metadata`}
-                      className="ml-2 text-blue-600 hover:underline"
-                    >
-                      Fix now
-                    </GuardedLink>
-                  )}
-                </li>
-              ))}
+              {actionableIssuesList.slice(0, 3).map((issue) => {
+                const href = buildIssueFixHref({ projectId, issue, from: 'deo' });
+                const safeTitle = getSafeIssueTitle(issue);
+                return (
+                  <li key={issue.id} className="text-sm text-gray-600">
+                    <span className="font-medium">{safeTitle}</span>
+                    {href && (
+                      <GuardedLink
+                        href={href}
+                        className="ml-2 text-blue-600 hover:underline"
+                      >
+                        Fix now
+                      </GuardedLink>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
       </div>
 
       {/* Pillar Scorecards Grid */}
+      {/* [ISSUE-TO-FIX-PATH-1 FIXUP-1] Use actionable issues only for pillar status/counts */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {DEO_PILLARS.map((pillar) => {
-          const pillarIssues = issuesByPillar.get(pillar.id) ?? [];
+          const pillarIssues = actionableIssuesByPillar.get(pillar.id) ?? [];
           const issueCount = pillarIssues.length;
           const hasCritical = pillarIssues.some((i) => i.severity === 'critical');
           const hasWarning = pillarIssues.some((i) => i.severity === 'warning');

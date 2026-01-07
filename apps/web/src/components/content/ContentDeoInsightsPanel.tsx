@@ -1,7 +1,8 @@
 import type { DeoIssue } from '@/lib/deo-issues';
 import type { ContentPage, ContentStatus } from '@/lib/content';
 import { getPageTypeLabel } from '@/lib/content';
-import { ISSUE_UI_CONFIG } from '@/components/issues/IssuesList';
+// [ISSUE-TO-FIX-PATH-1 FIXUP-1] Import from lib module
+import { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
 
 interface ContentDeoInsightsPanelProps {
   page: ContentPage;

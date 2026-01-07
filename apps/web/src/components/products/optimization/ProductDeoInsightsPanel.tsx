@@ -2,7 +2,8 @@ import { useState } from 'react';
 import type { DeoIssue } from '@/lib/deo-issues';
 import type { Product } from '@/lib/products';
 import { getProductStatus } from '@/lib/products';
-import { ISSUE_UI_CONFIG } from '@/components/issues/IssuesList';
+// [ISSUE-TO-FIX-PATH-1 FIXUP-1] Import from lib module
+import { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
 
 interface ProductDeoInsightsPanelProps {
   product: Product;

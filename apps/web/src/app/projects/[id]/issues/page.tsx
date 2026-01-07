@@ -207,9 +207,11 @@ export default function IssuesPage() {
   };
 
   // Compute counts by severity
-  const criticalCount = issues.filter((i) => i.severity === 'critical').length;
-  const warningCount = issues.filter((i) => i.severity === 'warning').length;
-  const infoCount = issues.filter((i) => i.severity === 'info').length;
+  // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Count only ACTIONABLE issues by severity
+  // Orphan/informational issues should not inflate severity counts
+  const criticalCount = issues.filter((i) => i.severity === 'critical' && isIssueActionable(i)).length;
+  const warningCount = issues.filter((i) => i.severity === 'warning' && isIssueActionable(i)).length;
+  const infoCount = issues.filter((i) => i.severity === 'info' && isIssueActionable(i)).length;
 
   // Filter issues by severity and pillar
   const filteredIssues = issues.filter((issue) => {
@@ -953,7 +955,6 @@ export default function IssuesPage() {
                         ) : null}
                       </div>
                     )}
-                  </button>
 
                   {fixAction && fixAction.kind === 'ai-fix-now' && (
                     <button

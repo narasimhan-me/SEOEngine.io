@@ -11,7 +11,8 @@ import type {
   DeoScoreSignals,
   DeoIssue,
 } from '@/lib/deo-issues';
-import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
+// [ISSUE-TO-FIX-PATH-1 FIXUP-1] Import deterministic routing helpers
+import { buildIssueFixHref, getSafeIssueTitle, getSafeIssueDescription } from '@/lib/issue-to-fix-path';
 
 interface DeoIssuesResponse {
   projectId: string;
@@ -115,51 +116,8 @@ interface ProjectOverview {
   lastAnswerBlockSyncAt?: string | null;
 }
 
-function formatIssueOutcome(issue: DeoIssue): string {
-  if (issue.recommendedFix && issue.recommendedFix.trim().length > 0) {
-    return issue.recommendedFix;
-  }
-  if (issue.description && issue.description.trim().length > 0) {
-    return issue.description;
-  }
-  return issue.title;
-}
-
-// [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Pillar to tab mapping for deterministic routing
-const PILLAR_TO_TAB_MAP: Record<DeoPillarId, string> = {
-  metadata_snippet_quality: 'metadata',
-  content_commerce_signals: 'answers',
-  search_intent_fit: 'search-intent',
-  competitive_positioning: 'competitors',
-  offsite_signals: 'metadata',
-  media_accessibility: 'metadata',
-  local_discovery: 'metadata',
-  technical_indexability: 'metadata',
-};
-
-// [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Get deterministic deep-link for an issue
-function getIssueDeepLink(issue: DeoIssue, projectId: string): string {
-  const pillarId = issue.pillarId as DeoPillarId | undefined;
-  const tab = pillarId ? PILLAR_TO_TAB_MAP[pillarId] ?? 'metadata' : 'metadata';
-
-  // If issue has a primary product, link to that product's tab
-  if (issue.primaryProductId) {
-    return `/projects/${projectId}/products/${issue.primaryProductId}?tab=${tab}&from=overview&issueId=${issue.id}`;
-  }
-
-  // If issue has affected products, link to first product
-  if (issue.affectedProducts && issue.affectedProducts.length > 0) {
-    return `/projects/${projectId}/products/${issue.affectedProducts[0]}?tab=${tab}&from=overview&issueId=${issue.id}`;
-  }
-
-  // Fall back to issues page filtered by pillar
-  if (pillarId) {
-    return `/projects/${projectId}/issues?pillar=${pillarId}`;
-  }
-
-  // Default to issues page
-  return `/projects/${projectId}/issues`;
-}
+// [ISSUE-TO-FIX-PATH-1 FIXUP-1] Legacy formatIssueOutcome, PILLAR_TO_TAB_MAP, and getIssueDeepLink removed
+// Now uses buildIssueFixHref from @/lib/issue-to-fix-path for deterministic routing
 
 export default function ProjectOverviewPage() {
   const router = useRouter();
@@ -616,8 +574,10 @@ export default function ProjectOverviewPage() {
   const optimizedProductsCount = overview?.productsWithAppliedSeo ?? 0;
 
   const aeoSyncEnabled = status?.aeoSyncToShopifyMetafields ?? false;
-  const issuesForCards: DeoIssue[] =
-    ((deoIssues?.issues as DeoIssue[]) ?? []).slice(0, 3);
+  // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Filter to actionable issues only (have deterministic fix path)
+  const issuesForCards: DeoIssue[] = ((deoIssues?.issues as DeoIssue[]) ?? [])
+    .filter((issue) => buildIssueFixHref({ projectId, issue, from: 'overview' }) !== null)
+    .slice(0, 3);
   const topProductsToFix = (() => {
     if (!deoIssues?.issues || !products.length) {
       return [] as { product: Product; reasons: string[] }[];
@@ -1210,28 +1170,34 @@ export default function ProjectOverviewPage() {
               </p>
             ) : (
               <ul className="space-y-2">
-                {issuesForCards.map((issue) => (
-                  <li
-                    key={issue.id}
-                    className="flex items-start justify-between gap-3"
-                  >
-                    <div className="min-w-0">
-                      {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Deep-link to fix location */}
-                      <Link
-                        href={getIssueDeepLink(issue, projectId)}
-                        className="truncate text-xs font-medium text-blue-700 hover:text-blue-900"
-                      >
-                        {issue.title}
-                      </Link>
-                      <p className="mt-0.5 truncate text-[11px] text-gray-500">
-                        {formatIssueOutcome(issue)}
-                      </p>
-                    </div>
-                    <span className="ml-2 flex-shrink-0 rounded-full bg-gray-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-600">
-                      {issue.severity}
-                    </span>
-                  </li>
-                ))}
+                {issuesForCards.map((issue) => {
+                  // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Use deterministic routing with safe titles
+                  const href = buildIssueFixHref({ projectId, issue, from: 'overview' });
+                  const safeTitle = getSafeIssueTitle(issue);
+                  const safeDescription = getSafeIssueDescription(issue);
+                  return (
+                    <li
+                      key={issue.id}
+                      className="flex items-start justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        {/* [ISSUE-TO-FIX-PATH-1 FIXUP-1] Deterministic deep-link to fix location */}
+                        <Link
+                          href={href || `/projects/${projectId}/issues`}
+                          className="truncate text-xs font-medium text-blue-700 hover:text-blue-900"
+                        >
+                          {safeTitle}
+                        </Link>
+                        <p className="mt-0.5 truncate text-[11px] text-gray-500">
+                          {safeDescription}
+                        </p>
+                      </div>
+                      <span className="ml-2 flex-shrink-0 rounded-full bg-gray-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-600">
+                        {issue.severity}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>

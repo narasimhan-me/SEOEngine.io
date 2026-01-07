@@ -96,8 +96,8 @@ export default function ProductOptimizationPage() {
   const isPreviewMode = fromContext === 'playbook_preview' && !!playbookIdParam;
   const isResultsMode = fromContext === 'playbook_results' && !!playbookIdParam;
 
-  // [ISSUE-TO-FIX-PATH-1] Determine issue fix mode
-  const isIssueFixMode = fromContext === 'issues' && !!issueIdParam;
+  // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Determine issue fix mode - triggers on issueId alone, not requiring from=issues
+  const isIssueFixMode = !!issueIdParam;
 
   // [TRUST-ROUTING-1] Preview sample state from session storage
   const [previewSample, setPreviewSample] = useState<PlaybookPreviewSample | null>(null);

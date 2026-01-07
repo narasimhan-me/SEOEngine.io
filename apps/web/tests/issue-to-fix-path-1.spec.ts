@@ -50,8 +50,8 @@ test.describe('ISSUE-TO-FIX-PATH-1: Issue click lands on visible fix (product)',
   test('From Overview "Top blockers" click lands on product with fix banner', async ({ page, request }) => {
     const { projectId, productIds } = await authenticatePage(page, request);
 
-    // Navigate to Overview page (main project dashboard)
-    await page.goto(`/projects/${projectId}`);
+    // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Navigate to Overview page explicitly
+    await page.goto(`/projects/${projectId}/overview`);
 
     // Wait for page to load
     await page.waitForLoadState('networkidle');

@@ -15,7 +15,8 @@ import { WORK_QUEUE_ACTION_LABELS } from '@/lib/work-queue';
 import { ActionBundleCard } from '@/components/work-queue/ActionBundleCard';
 import { WorkQueueTabs } from '@/components/work-queue/WorkQueueTabs';
 import { getSafeIssueTitle } from '@/lib/issue-to-fix-path';
-import { ISSUE_UI_CONFIG } from '@/components/issues/IssuesList';
+// [ISSUE-TO-FIX-PATH-1 FIXUP-1] Import from lib module
+import { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
 
 /**
  * [WORK-QUEUE-1] Work Queue Page
@@ -107,8 +108,8 @@ export default function WorkQueuePage() {
   // [TRUST-ROUTING-1] Check if any filter context is active
   const hasFilterContext = fromContext === 'store_health' || actionKeys.length > 0 || !!actionKey;
 
-  // [ISSUE-TO-FIX-PATH-1] Check if in issue fix mode
-  const isIssueFixMode = fromContext === 'issues' && !!issueIdParam;
+  // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Trigger issue fix mode on issueId only (not requiring from=issues)
+  const isIssueFixMode = !!issueIdParam;
 
   // [ISSUE-TO-FIX-PATH-1] Get safe issue title for display
   const issueTitle = useMemo(() => {
@@ -119,22 +120,6 @@ export default function WorkQueuePage() {
     // Fallback
     return 'Issue detected';
   }, [issueIdParam]);
-
-  // [ISSUE-TO-FIX-PATH-1] Scroll to first bundle and apply highlight on initial load
-  useEffect(() => {
-    if (!isIssueFixMode || loading) return;
-
-    // Auto-scroll to first bundle card or highlighted bundle
-    setTimeout(() => {
-      const targetId = highlightBundleId || items[0]?.bundleId;
-      if (targetId) {
-        const element = document.querySelector(`[data-bundle-id="${targetId}"]`);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }
-    }, 200);
-  }, [isIssueFixMode, loading, highlightBundleId, items]);
 
   // [TRUST-ROUTING-1] Build filter labels for display
   const filterLabels: string[] = useMemo(() => {
@@ -170,6 +155,22 @@ export default function WorkQueuePage() {
   const totalAffectedItems = useMemo(() => {
     return items.reduce((sum, bundle) => sum + bundle.scopeCount, 0);
   }, [items]);
+
+  // [ISSUE-TO-FIX-PATH-1] Scroll to first bundle and apply highlight on initial load
+  useEffect(() => {
+    if (!isIssueFixMode || loading) return;
+
+    // Auto-scroll to first bundle card or highlighted bundle
+    setTimeout(() => {
+      const targetId = highlightBundleId || items[0]?.bundleId;
+      if (targetId) {
+        const element = document.querySelector(`[data-bundle-id="${targetId}"]`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }, 200);
+  }, [isIssueFixMode, loading, highlightBundleId, items]);
 
   return (
     <div className="space-y-6">

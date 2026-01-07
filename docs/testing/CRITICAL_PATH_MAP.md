@@ -251,6 +251,11 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] ISSUE-TO-FIX-PATH-1: Orphan issues display "Informational — no action required" badge
 - [ ] ISSUE-TO-FIX-PATH-1: Work Queue shows issue fix context banner when from=issues
 - [ ] ISSUE-TO-FIX-PATH-1: No internal ID leakage via getSafeIssueTitle/Description
+- [ ] ISSUE-TO-FIX-PATH-1 FIXUP-1: Issue-fix mode triggers on issueId alone (not from=issues)
+- [ ] ISSUE-TO-FIX-PATH-1 FIXUP-1: Overview Top blockers shows actionable issues only
+- [ ] ISSUE-TO-FIX-PATH-1 FIXUP-1: DEO page pillar scorecards use actionable issues only
+- [ ] ISSUE-TO-FIX-PATH-1 FIXUP-1: Project Issues page severity counts are actionable-only
+- [ ] ISSUE-TO-FIX-PATH-1 FIXUP-1: Origin preserved in buildIssueFixHref (from=overview/deo/issues)
 
 ---
 
@@ -754,3 +759,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 5.1 | 2026-01-06 | NAV-IA-CONSISTENCY-1: Updated CP-001 with auth terminology scenarios ("Sign in" not "Log in", "Create account" not "Sign up"). Updated CP-008 with design tokens, dark mode toggle, and token-based styling. Added nav-ia-consistency-1.spec.ts automated tests. Added manual testing doc. |
 | 5.2 | 2026-01-07 | DRAFT-CLARITY-AND-ACTION-TRUST-1: Updated CP-003 with 3-state draft lifecycle, Apply button gating, and inline guidance scenarios. Updated CP-006 with Apply uses saved draft (not AI) scenarios. Updated CP-008 with draft state banner, navigation blocking, GEO explainers, automation history filters, skip explanations, and internal ID leakage prevention scenarios. Added draft-clarity-and-action-trust-1.spec.ts E2E tests. Added manual testing doc. |
 | 5.3 | 2026-01-07 | ISSUE-TO-FIX-PATH-1: Updated CP-008 with trust-safe issue routing scenarios (issue click lands on visible fix with context banner, actionable count parity, orphan suppression, Work Queue context banner). Added issue-to-fix-path-1.spec.ts E2E tests. Added manual testing doc. |
+| 5.4 | 2026-01-07 | ISSUE-TO-FIX-PATH-1 FIXUP-1: Added CP-008 scenarios for circular import fix + orphan/dead-end cleanup. Issue-fix mode triggers on issueId alone, Overview/DEO use actionable-only, Project Issues severity counts are actionable-only, buildIssueFixHref preserves origin (from=overview/deo/issues). Updated ISSUE-TO-FIX-PATH-1.md manual testing doc. |
