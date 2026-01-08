@@ -196,6 +196,16 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
 - ✅ **PATCH 10.3:** Updated `CRITICAL_PATH_MAP.md` with COUNT-INTEGRITY-1 references in CP-008 and CP-009
 - ✅ **PATCH 10.4:** Updated status tracking to reflect PATCH 10 completion
 
+### ✅ PATCH ERR-001 - Counts-Summary Graceful Degradation (COMPLETE)
+- ✅ **Added countsSummaryWarning state:** Non-blocking warning state (string | null) for counts-summary API failures
+- ✅ **Updated fetchIssues():** Uses `Promise.allSettled()` to load issues list even when counts-summary fails
+- ✅ **Warning banner:** Yellow warning banner displays "Issue counts unavailable. Displaying issues list without summary statistics." with Retry button
+- ✅ **Summary card counts:** Total Issues, Critical, Warning, Info cards show "—" when countsSummary is null (not misleading 0)
+- ✅ **Pillar badge counts:** Pillar filter buttons hide count badges when countsSummary unavailable (no misleading counts)
+- ✅ **Severity badge counts:** Severity filter buttons hide count badges when countsSummary unavailable (no misleading counts)
+- ✅ **Non-blocking:** Issues list displays normally regardless of counts-summary availability
+- ✅ **Documentation:** Updated COUNT-INTEGRITY-1.md Scenario 10 (ERR-001) with exact expected behavior
+
 ## Core Contracts Established
 
 ### IssueCountsSummary Contract

@@ -276,7 +276,7 @@
 
 **ID:** ERR-001
 
-**Status:** ✅ **Ready for Testing** (PATCH 6 complete)
+**Status:** ✅ **Ready for Testing** (PATCH ERR-001 complete)
 
 **Preconditions:**
 - Simulate API error for `/projects/{projectId}/issues/counts-summary`
@@ -287,9 +287,13 @@
 3. Observe error handling behavior
 
 **Expected Results:**
-- **Graceful Degradation:** Issues list still loads from deoIssuesReadOnly endpoint
-- **Error Message:** User sees informative error message about count unavailability
-- **Fallback:** Summary cards show "—" or fallback to counting issues client-side with warning
+- **Graceful Degradation:** Issues list still loads from deoIssuesReadOnly endpoint (non-blocking failure)
+- **Warning Banner:** Yellow warning banner displays: "Issue counts unavailable. Displaying issues list without summary statistics." with Retry button
+- **Summary Cards:** Total Issues card shows "—" instead of misleading 0
+- **Badge Counts:** Critical, Warning, Info severity cards show "—" instead of misleading 0
+- **Pillar Badges:** Pillar filter buttons hide count badges (no misleading counts)
+- **Severity Filter Badges:** Severity filter buttons hide count badges (no misleading counts)
+- **Issues List:** Issues list displays normally (unaffected by counts-summary failure)
 
 ---
 

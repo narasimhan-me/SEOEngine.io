@@ -124,6 +124,8 @@ export default function IssuesPage() {
 
   const [issues, setIssues] = useState<DeoIssue[]>([]);
   const [countsSummary, setCountsSummary] = useState<IssueCountsSummary | null>(null);
+  // [COUNT-INTEGRITY-1 PATCH ERR-001] Graceful degradation for counts-summary API failures
+  const [countsSummaryWarning, setCountsSummaryWarning] = useState<string | null>(null);
 
   // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] Derive effective mode (with viewer/no-actionable detection)
   const hasActionableIssues = (countsSummary?.actionableGroupsTotal ?? 0) > 0;
@@ -200,15 +202,31 @@ export default function IssuesPage() {
     try {
       setLoading(true);
       setError('');
-      // [COUNT-INTEGRITY-1 PATCH 6] Use read-only endpoint + parallel counts summary fetch
-      const [issuesResponse, countsSummaryResponse] = await Promise.all([
+      setCountsSummaryWarning(null);
+      // [COUNT-INTEGRITY-1 PATCH ERR-001] Graceful degradation: always load issues even if counts-summary fails
+      const results = await Promise.allSettled([
         projectsApi.deoIssuesReadOnly(projectId),
         projectsApi.issueCountsSummary(projectId),
       ]);
-      setIssues(issuesResponse.issues ?? []);
-      setCountsSummary(countsSummaryResponse);
+
+      // Handle issues response
+      if (results[0].status === 'fulfilled') {
+        setIssues(results[0].value.issues ?? []);
+      } else {
+        console.error('Error fetching issues:', results[0].reason);
+        setError(results[0].reason instanceof Error ? results[0].reason.message : 'Failed to load issues');
+      }
+
+      // Handle counts-summary response (non-blocking)
+      if (results[1].status === 'fulfilled') {
+        setCountsSummary(results[1].value);
+      } else {
+        console.warn('Counts summary unavailable:', results[1].reason);
+        setCountsSummary(null);
+        setCountsSummaryWarning('Issue counts unavailable. Displaying issues list without summary statistics.');
+      }
     } catch (err: unknown) {
-      console.error('Error fetching issues:', err);
+      console.error('Unexpected error fetching issues:', err);
       setError(err instanceof Error ? err.message : 'Failed to load issues');
     } finally {
       setLoading(false);
@@ -282,16 +300,23 @@ export default function IssuesPage() {
   };
 
   // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] Use countsSummary for severity badge counts (mode-aware)
+  // [COUNT-INTEGRITY-1 PATCH ERR-001] When countsSummary is null (API failure), counts are unavailable (not 0)
   // Use actionableGroups in actionable mode, detectedGroups in detected mode
-  const criticalCount = effectiveMode === 'actionable'
-    ? (countsSummary?.bySeverity?.critical?.actionableGroups ?? 0)
-    : (countsSummary?.bySeverity?.critical?.detectedGroups ?? 0);
-  const warningCount = effectiveMode === 'actionable'
-    ? (countsSummary?.bySeverity?.warning?.actionableGroups ?? 0)
-    : (countsSummary?.bySeverity?.warning?.detectedGroups ?? 0);
-  const infoCount = effectiveMode === 'actionable'
-    ? (countsSummary?.bySeverity?.info?.actionableGroups ?? 0)
-    : (countsSummary?.bySeverity?.info?.detectedGroups ?? 0);
+  const criticalCount = countsSummary
+    ? (effectiveMode === 'actionable'
+        ? (countsSummary.bySeverity?.critical?.actionableGroups ?? 0)
+        : (countsSummary.bySeverity?.critical?.detectedGroups ?? 0))
+    : null;
+  const warningCount = countsSummary
+    ? (effectiveMode === 'actionable'
+        ? (countsSummary.bySeverity?.warning?.actionableGroups ?? 0)
+        : (countsSummary.bySeverity?.warning?.detectedGroups ?? 0))
+    : null;
+  const infoCount = countsSummary
+    ? (effectiveMode === 'actionable'
+        ? (countsSummary.bySeverity?.info?.actionableGroups ?? 0)
+        : (countsSummary.bySeverity?.info?.detectedGroups ?? 0))
+    : null;
 
   // [COUNT-INTEGRITY-1 PATCH 6] Filter issues: mode → actionKey → scopeType → UI filters
   const filteredIssues = issues.filter((issue) => {
@@ -695,6 +720,26 @@ export default function IssuesPage() {
         </div>
       )}
 
+      {/* [COUNT-INTEGRITY-1 PATCH ERR-001] Counts-summary warning banner (non-blocking) */}
+      {countsSummaryWarning && !error && (
+        <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4" data-testid="counts-summary-warning-banner">
+          <div className="flex items-start gap-3">
+            <svg className="h-5 w-5 flex-shrink-0 text-yellow-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm text-yellow-800">{countsSummaryWarning}</p>
+            </div>
+            <button
+              onClick={fetchIssues}
+              className="text-sm font-medium text-yellow-700 hover:text-yellow-800 underline"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Issue Summary Header */}
       <div className="mb-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -757,23 +802,26 @@ export default function IssuesPage() {
         <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="rounded-lg border border-gray-200 bg-white p-4">
             {/* [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] Use countsSummary total (mode-aware) */}
+            {/* [COUNT-INTEGRITY-1 PATCH ERR-001] Show — when countsSummary unavailable (not misleading 0) */}
             <div className="text-2xl font-bold text-gray-900">
-              {effectiveMode === 'actionable'
-                ? (countsSummary?.actionableGroupsTotal ?? issues.length)
-                : (countsSummary?.detectedGroupsTotal ?? issues.length)}
+              {countsSummary
+                ? (effectiveMode === 'actionable'
+                    ? (countsSummary.actionableGroupsTotal ?? 0)
+                    : (countsSummary.detectedGroupsTotal ?? 0))
+                : '—'}
             </div>
             <div className="text-sm text-gray-600">Total Issues</div>
           </div>
           <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-            <div className="text-2xl font-bold text-red-700">{criticalCount}</div>
+            <div className="text-2xl font-bold text-red-700">{criticalCount !== null ? criticalCount : '—'}</div>
             <div className="text-sm text-red-600">Critical</div>
           </div>
           <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
-            <div className="text-2xl font-bold text-orange-700">{warningCount}</div>
+            <div className="text-2xl font-bold text-orange-700">{warningCount !== null ? warningCount : '—'}</div>
             <div className="text-sm text-orange-600">Warning</div>
           </div>
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <div className="text-2xl font-bold text-blue-700">{infoCount}</div>
+            <div className="text-2xl font-bold text-blue-700">{infoCount !== null ? infoCount : '—'}</div>
             <div className="text-sm text-blue-600">Info</div>
           </div>
         </div>
@@ -841,10 +889,13 @@ export default function IssuesPage() {
             </button>
             {DEO_PILLARS.filter((p) => !p.comingSoon).map((pillar) => {
               // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Use countsSummary for pillar badge counts (single source of truth)
+              // [COUNT-INTEGRITY-1 PATCH ERR-001] Handle null countsSummary (hide badge when unavailable)
               const pillarCounts = countsSummary?.byPillar[pillar.id];
-              const pillarIssueCount = effectiveMode === 'actionable'
-                ? (pillarCounts?.actionableGroups ?? 0)
-                : (pillarCounts?.detectedGroups ?? 0);
+              const pillarIssueCount = countsSummary
+                ? (effectiveMode === 'actionable'
+                    ? (pillarCounts?.actionableGroups ?? 0)
+                    : (pillarCounts?.detectedGroups ?? 0))
+                : null;
               return (
                 <button
                   key={pillar.id}
@@ -856,7 +907,7 @@ export default function IssuesPage() {
                   }`}
                 >
                   {pillar.shortName}
-                  {pillarIssueCount > 0 && (
+                  {pillarIssueCount !== null && pillarIssueCount > 0 && (
                     <span className="ml-1 text-xs opacity-75">({pillarIssueCount})</span>
                   )}
                 </button>
@@ -918,10 +969,12 @@ export default function IssuesPage() {
                 }`}
               >
                 {filter === 'all' ? 'All severities' : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                {/* [COUNT-INTEGRITY-1 PATCH ERR-001] Hide badge count when unavailable (not misleading 0) */}
                 {filter !== 'all' && (
-                  <span className="ml-1">
-                    ({filter === 'critical' ? criticalCount : filter === 'warning' ? warningCount : infoCount})
-                  </span>
+                  (() => {
+                    const count = filter === 'critical' ? criticalCount : filter === 'warning' ? warningCount : infoCount;
+                    return count !== null ? <span className="ml-1">({count})</span> : null;
+                  })()
                 )}
               </button>
             ))}
