@@ -120,8 +120,10 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
   - Replaced hardcoded `scopeCount: 1` with actual actionable issue-group count
   - Replaced hardcoded `scopePreviewList: ['Store-wide']` with issue titles
   - Added `scopeDetectedCount` field (was missing)
-- ✅ **PATCH 4.1.3:** Fixed `buildScopePreviewList()` to use actual preview count instead of hardcoded 5
-  - Prevents math errors when `previews.length < 5` but `totalCount > 5`
+- ✅ **PATCH 4.1.3:** Fixed `buildScopePreviewList()` to clamp to top 5 displayed items and compute suffix from visible count
+  - Always returns max 5 base items (never returns more than 5 preview items)
+  - Computes "+N more" from displayed count (not input length)
+  - Ensures helper is input-safe for any caller (even if caller passes >5 previews)
 
 ### ✅ PATCH 5 - Work Queue Card UI & Routing (COMPLETE)
 - ✅ **PATCH 5.1:** Updated scope line for ASSET_OPTIMIZATION bundles:

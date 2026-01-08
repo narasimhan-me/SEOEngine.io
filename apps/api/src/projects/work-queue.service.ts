@@ -434,14 +434,15 @@ export class WorkQueueService {
 
   /**
    * [ASSETS-PAGES-1] Build scope preview list with "+N more" suffix.
-   * [COUNT-INTEGRITY-1 PATCH 4.1] Fixed to use actual preview count, not hardcoded 5.
+   * [COUNT-INTEGRITY-1 PATCH 4.1.3b] Clamp to top 5 displayed items and compute suffix from visible count.
    */
   private buildScopePreviewList(previews: string[], totalCount: number): string[] {
-    const previewCount = previews.length;
-    if (totalCount <= previewCount) {
-      return previews;
+    const visiblePreviews = previews.slice(0, 5);
+    const visibleCount = visiblePreviews.length;
+    if (totalCount <= visibleCount) {
+      return visiblePreviews;
     }
-    return [...previews.slice(0, 5), `+${totalCount - previewCount} more`];
+    return [...visiblePreviews, `+${totalCount - visibleCount} more`];
   }
 
   /**
