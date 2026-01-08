@@ -837,6 +837,9 @@ export const projectsApi = {
 
   deoIssues: (id: string) => fetchWithAuth(`/projects/${id}/deo-issues`),
 
+  // COUNT-INTEGRITY-1: Canonical server-side counts summary
+  issueCountsSummary: (id: string) => fetchWithAuth(`/projects/${id}/issues/counts-summary`),
+
   crawlPages: (id: string) => fetchWithAuth(`/projects/${id}/crawl-pages`),
 
   recomputeDeoScoreSync: (id: string) =>

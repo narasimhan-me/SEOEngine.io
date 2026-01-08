@@ -378,7 +378,175 @@ Trust-critical UX hardening for issue→fix path navigation.
 
 ## In Progress
 
-*None.*
+### Phase COUNT-INTEGRITY-1: Count Integrity Trust Hardening 🔄 IN PROGRESS
+
+**Status:** Core Infrastructure Complete; UI Updates Pending
+**Start Date:** 2026-01-08
+
+### Overview
+
+Establishes count integrity as a core trust contract across the product by:
+1. Defining "detected" vs "actionable" as server-derived, role-aware semantics
+2. Implementing `IssueCountsSummary` as single source of truth for all badge/tab counts
+3. Enforcing click integrity: Work Queue card counts match Issues page filtered list rows
+4. Preventing UI recomputation drift through canonical backend aggregation
+
+### Core Contracts
+
+**Detected vs Actionable:**
+- **Detected:** Issue exists in the system (always true if returned in issues array)
+- **Actionable:** Issue has an in-app fix surface AND user's role allows taking action
+  - Must be in `IN_APP_ACTIONABLE_ISSUE_KEYS` OR have `fixReady && fixType`
+  - Must NOT be `actionability: 'informational'`
+  - User must have at least one of: `canGenerateDrafts`, `canRequestApproval`, `canApply`
+
+**Asset Type Distribution:**
+- Every issue MUST include `assetTypeCounts: { products, pages, collections }`
+- Sum must equal `issue.count` for integrity (no truncation via preview arrays)
+- URL classification: `/collections/*` → collections, else pages (product URLs treated as pages to avoid double-counting)
+
+**UI Semantics:**
+- Pillar/severity badges show actionable count by default with detected as secondary
+- "Informational" issues (technical view-only) are detected but not clickable
+- Work Queue → Issues routing preserves `actionKey + scopeType + mode` for click integrity
+
+### ✅ Completed (Core Infrastructure)
+
+1. **Type Definitions:**
+   - Added `IssueAssetTypeKey`, `IssueAssetTypeCounts`, `IssueCountsSummary` to shared & web types
+   - Added `assetTypeCounts` and `isActionableNow` fields to `DeoIssue`
+
+2. **Backend Service:**
+   - Implemented `getIssueCountsSummaryForProject()` - server-side counts aggregation
+   - Added `getAssetTypeFromUrl()` helper for URL classification
+   - Added `IN_APP_ACTIONABLE_ISSUE_KEYS` set defining fix surfaces
+   - Implemented issue decoration in `computeIssuesForProject()`:
+     - Sets `isActionableNow` based on fix surface + role capabilities
+     - Provides `assetTypeCounts` fallback when not explicitly set
+   - Updated issue builders with `assetTypeCounts`:
+     - `buildMissingMetadataIssue` ✅
+     - `buildThinContentIssue` ✅
+     - `buildLowEntityCoverageIssue` ✅
+     - `buildMissingLongDescriptionIssue` ✅ (also changed to `fixType: 'aiFix'`)
+
+3. **API Endpoints:**
+   - Added `GET /projects/:id/issues/counts-summary` returning `IssueCountsSummary`
+
+4. **Web API Client:**
+   - Added `projectsApi.issueCountsSummary(id)` method
+
+5. **Pillar Updates:**
+   - Media & Accessibility pillar now ACTIVE (`comingSoon: false`)
+   - Updated pillar descriptions to emphasize AI/visual search
+
+### ⚠️ Pending Work
+
+**PATCH 1 Completion - Remaining Issue Builders:**
+- [ ] Add `assetTypeCounts` to 7 technical issue builders:
+  - `buildIndexabilityIssue` → change actionability to `'informational'`
+  - `buildIndexabilityConflictIssue` → change to `'informational'`
+  - `buildCrawlHealthErrorsIssue` → change to `'informational'`
+  - `buildRenderBlockingResourcesIssue` → change to `'informational'`
+  - `buildSlowInitialResponseIssue` → change to `'informational'`
+  - `buildExcessivePageWeightIssue` → change to `'informational'`
+  - `buildMobileRenderingRiskIssue` → change to `'informational'`
+
+**PATCH 1 - Actionability Gating Refinement:**
+- [ ] Add check for `issue.actionability !== 'informational'` in decoration block
+- [ ] Change capability check from `capabilities.canView` to require at least one of:
+  - `capabilities.canGenerateDrafts` OR
+  - `capabilities.canRequestApproval` OR
+  - `capabilities.canApply`
+
+**PATCH 1 - Asset Type Fallback Allocation:**
+- [ ] Replace mixed-case collapse with sum-preserving allocation
+- [ ] Use URL classification for pages array to split pages/collections
+- [ ] Ensure `products + pages + collections === issue.count`
+
+**PATCH 1 - IssueCountsSummary Group Counts:**
+- [ ] Fix `byAssetType` group counting (currently only tracking instances)
+- [ ] When `assetTypeCounts[type] > 0`, increment `detectedGroups` and (if actionable) `actionableGroups`
+
+**PATCH 2 - Read-Only Issues Endpoint:**
+- [ ] Add `GET /projects/:id/deo-issues/read-only` to controller
+- [ ] Add `projectsApi.deoIssuesReadOnly(id)` to web client
+
+**PATCH 3 - Work Queue Bundle Types:**
+- [ ] Add `scopeDetectedCount?` field to `WorkQueueActionBundle`
+- [ ] Update field comments for clarity (groups vs instances)
+
+**PATCH 4 - Work Queue Derivation:**
+- [ ] Update `deriveIssueBundlesByScopeType()` to use `assetTypeCounts` for counts
+- [ ] Set `scopeCount` = actionable issue-groups, `scopeDetectedCount` = detected issue-groups
+- [ ] Stop using truncated preview arrays (size < 20) for authoritative counts
+
+**PATCH 6 - Issues Engine UI (Critical Path):**
+- [ ] Switch to `projectsApi.deoIssuesReadOnly()` instead of mutating version
+- [ ] Fetch and consume `IssueCountsSummary` for all badge counts
+- [ ] Add `mode` (actionable/detected) query param with toggle UI
+- [ ] Implement `actionKey` and `scopeType` filters from Work Queue routing
+- [ ] Replace href-based actionability with `issue.isActionableNow` check
+- [ ] Render informational issues as non-clickable with "Informational — no action required"
+- [ ] Hide or recompute pillar/severity badges when extra filters active (avoid misleading totals)
+
+**PATCH 7 - Work Queue Card UI:**
+- [ ] Update scope line: "N actionable issues affecting <scope>"
+- [ ] Show detected count when differs: "N actionable (M detected)"
+- [ ] Route ASSET_OPTIMIZATION bundles to Issues page with `actionKey + scopeType + mode` params
+
+**PATCH 8 - Work Queue & Store Health Pages:**
+- [ ] Replace "items/products" with "issues" in Work Queue filter banner
+- [ ] Update Store Health summaries to use "issues" language
+- [ ] Show detected vs actionable when counts differ
+
+**PATCH 9 - Playwright Tests:**
+- [ ] Create `count-integrity-1.spec.ts` with:
+  - Store Health → Work Queue count integrity test
+  - Work Queue bundle → Issues click integrity test
+  - Issues pillar/severity badge integrity test
+  - Technical pillar actionability regression test
+
+**PATCH 10 - Documentation:**
+- [ ] Create `docs/manual-testing/COUNT-INTEGRITY-1.md` (clone from template)
+- [ ] Update `docs/CRITICAL_PATH_MAP.md` with new test references
+- [ ] Add smoke test expectations documentation
+
+### Core Files Modified
+
+**Backend:**
+- `apps/api/src/projects/deo-issues.service.ts` - Core aggregation and decoration logic
+- `apps/api/src/projects/projects.controller.ts` - New counts endpoint
+- `apps/api/src/projects/work-queue.service.ts` - Bundle derivation (pending update)
+- `packages/shared/src/deo-issues.ts` - Type definitions
+- `packages/shared/src/deo-pillars.ts` - Media pillar activation
+
+**Frontend:**
+- `apps/web/src/lib/deo-issues.ts` - Type definitions
+- `apps/web/src/lib/api.ts` - API client methods
+- `apps/web/src/app/projects/[id]/issues/page.tsx` - Issues Engine UI (pending)
+- `apps/web/src/components/work-queue/ActionBundleCard.tsx` - Card UI (pending)
+- `apps/web/src/app/projects/[id]/work-queue/page.tsx` - Filter banner (pending)
+- `apps/web/src/app/projects/[id]/store-health/page.tsx` - Summaries (pending)
+
+### Testing Requirements
+
+**Manual Testing Scenarios:**
+1. Store Health count → Work Queue filtered total matches
+2. Work Queue bundle count → Issues filtered list row count matches
+3. Pillar/severity badge → rendered list count matches
+4. Technical pillar shows "Informational" with no click action
+5. VIEWER role: detected count visible, actionable = 0, no dead-click risk
+
+**Automated Coverage:**
+- Playwright E2E: Click integrity chain (Store Health → Work Queue → Issues)
+- Role matrix: VIEWER/EDITOR/OWNER actionability rendering
+- Filter context preservation across navigation
+
+### Related Documents
+
+- **Status Tracking:** `COUNT-INTEGRITY-1-STATUS.md` (detailed implementation checklist)
+- **Manual Testing:** `docs/manual-testing/COUNT-INTEGRITY-1.md` (pending creation)
+- **Critical Path:** `docs/CRITICAL_PATH_MAP.md` (pending update)
 
 ---
 

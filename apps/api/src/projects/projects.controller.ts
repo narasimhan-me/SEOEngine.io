@@ -28,6 +28,7 @@ import {
   DeoScoreJobPayload,
   DeoScoreSignals,
   ProjectAnswerabilityResponse,
+  IssueCountsSummary,
 } from '@engineo/shared';
 import { deoScoreQueue, crawlQueue } from '../queues/queues';
 import { AnswerEngineService } from './answer-engine.service';
@@ -168,6 +169,18 @@ export class ProjectsController {
     @Param('id') projectId: string,
   ): Promise<DeoIssuesResponse> {
     return this.deoIssuesService.getIssuesForProject(projectId, req.user.id);
+  }
+
+  /**
+   * GET /projects/:id/issues/counts-summary
+   * COUNT-INTEGRITY-1: Canonical server-side counts summary.
+   */
+  @Get(':id/issues/counts-summary')
+  async getIssueCountsSummary(
+    @Request() req: any,
+    @Param('id') projectId: string,
+  ): Promise<IssueCountsSummary> {
+    return this.deoIssuesService.getIssueCountsSummaryForProject(projectId, req.user.id);
   }
 
   /**

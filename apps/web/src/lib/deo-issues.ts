@@ -187,6 +187,14 @@ export type DeoIssueCategory =
  */
 export type DeoIssueFixCost = 'one_click' | 'manual' | 'advanced';
 
+export type IssueAssetTypeKey = 'products' | 'pages' | 'collections';
+
+export interface IssueAssetTypeCounts {
+  products: number;
+  pages: number;
+  collections: number;
+}
+
 export interface DeoIssue {
   id: string;
   title: string;
@@ -211,6 +219,16 @@ export interface DeoIssue {
    * Always set by backend builders in DEO-IA-1 and later phases.
    */
   actionability?: DeoIssueActionability;
+
+  /**
+   * COUNT-INTEGRITY-1: Canonical distribution of issue instances by asset type.
+   */
+  assetTypeCounts?: IssueAssetTypeCounts;
+
+  /**
+   * COUNT-INTEGRITY-1: Derived, role-aware actionability for the current viewer.
+   */
+  isActionableNow?: boolean;
 
   // === Issue Engine Lite fields (Phase UX-7) ===
   /** Stable issue type identifier (e.g., 'missing_seo_title', 'weak_description') */
@@ -380,4 +398,24 @@ export interface DeoIssuesResponse {
   projectId: string;
   generatedAt: string; // ISO timestamp
   issues: DeoIssue[];
+}
+
+export interface IssueCountsBucket {
+  detectedGroups: number;
+  actionableGroups: number;
+  detectedInstances: number;
+  actionableInstances: number;
+}
+
+export interface IssueCountsSummary {
+  projectId: string;
+  generatedAt: string; // ISO timestamp
+  detectedTotal: number;
+  actionableTotal: number;
+  detectedGroupsTotal: number;
+  actionableGroupsTotal: number;
+  byPillar: Record<DeoPillarId, IssueCountsBucket>;
+  bySeverity: Record<DeoIssueSeverity, IssueCountsBucket>;
+  byAssetType: Record<IssueAssetTypeKey, IssueCountsBucket>;
+  byIssueType: Record<string, IssueCountsBucket>;
 }

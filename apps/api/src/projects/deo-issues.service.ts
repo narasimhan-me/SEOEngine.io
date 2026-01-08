@@ -7,6 +7,9 @@ import {
   DeoScoreSignals,
   DeoPillarId,
   DeoIssueActionability,
+  type IssueAssetTypeCounts,
+  type IssueCountsSummary,
+  DEO_PILLARS,
   PerformanceSignalType,
   evaluateGeoProduct,
   GEO_ISSUE_LABELS,
@@ -21,6 +24,44 @@ import { OffsiteSignalsService } from './offsite-signals.service';
 import { LocalDiscoveryService } from './local-discovery.service';
 import { MediaAccessibilityService } from './media-accessibility.service';
 import { RoleResolutionService } from '../common/role-resolution.service';
+
+type IssueAssetTypeKey = 'products' | 'pages' | 'collections';
+
+function getAssetTypeFromUrl(url: string): IssueAssetTypeKey {
+  try {
+    const urlObj = new URL(url);
+    const path = urlObj.pathname.toLowerCase();
+    if (path.startsWith('/collections/') || path === '/collections') return 'collections';
+    if (path.startsWith('/products/') || path === '/products') return 'products';
+    return 'pages';
+  } catch {
+    return 'pages';
+  }
+}
+
+const IN_APP_ACTIONABLE_ISSUE_KEYS = new Set<string>([
+  'missing_seo_title',
+  'missing_seo_description',
+  'weak_title',
+  'weak_description',
+  'missing_metadata',
+  'missing_long_description',
+  'thin_content',
+  'low_entity_coverage',
+  'duplicate_product_content',
+  'low_product_entity_coverage',
+  'product_content_depth',
+  'answer_surface_weakness',
+  'not_answer_ready',
+  'weak_intent_match',
+  'indexability_problems',
+  'crawl_health_errors',
+  'render_blocking_resources',
+  'indexability_conflict',
+  'slow_initial_response',
+  'excessive_page_weight',
+  'mobile_rendering_risk',
+]);
 
 /**
  * [ROLES-3 FIXUP-3] DEO Issues Service
@@ -55,6 +96,134 @@ export class DeoIssuesService {
    */
   async getIssuesForProjectReadOnly(projectId: string, userId: string): Promise<DeoIssuesResponse> {
     return this.computeIssuesForProject(projectId, userId, { mode: 'readOnly' });
+  }
+
+  /**
+   * COUNT-INTEGRITY-1: Server-side single source of truth for counts.
+   */
+  async getIssueCountsSummaryForProject(projectId: string, userId: string): Promise<IssueCountsSummary> {
+    const response = await this.getIssuesForProjectReadOnly(projectId, userId);
+    const issues = response.issues ?? [];
+
+    const makeBucket = () => ({
+      detectedGroups: 0,
+      actionableGroups: 0,
+      detectedInstances: 0,
+      actionableInstances: 0,
+    });
+
+    const byPillar: IssueCountsSummary['byPillar'] = Object.fromEntries(
+      DEO_PILLARS.map((p) => [p.id, makeBucket()]),
+    ) as IssueCountsSummary['byPillar'];
+
+    const bySeverity: IssueCountsSummary['bySeverity'] = {
+      critical: makeBucket(),
+      warning: makeBucket(),
+      info: makeBucket(),
+    };
+
+    const byAssetType: IssueCountsSummary['byAssetType'] = {
+      products: makeBucket(),
+      pages: makeBucket(),
+      collections: makeBucket(),
+    };
+
+    const byIssueType: IssueCountsSummary['byIssueType'] = {};
+
+    let detectedTotal = 0;
+    let actionableTotal = 0;
+    let detectedGroupsTotal = 0;
+    let actionableGroupsTotal = 0;
+
+    for (const issue of issues) {
+      const issueKey = (issue.type as string | undefined) || issue.id;
+      const instances = typeof issue.count === 'number' ? issue.count : 0;
+      const isActionable = issue.isActionableNow === true;
+
+      detectedGroupsTotal += 1;
+      detectedTotal += instances;
+      if (isActionable) {
+        actionableGroupsTotal += 1;
+        actionableTotal += instances;
+      }
+
+      if (!byIssueType[issueKey]) {
+        byIssueType[issueKey] = makeBucket();
+      }
+      byIssueType[issueKey].detectedGroups += 1;
+      byIssueType[issueKey].detectedInstances += instances;
+      if (isActionable) {
+        byIssueType[issueKey].actionableGroups += 1;
+        byIssueType[issueKey].actionableInstances += instances;
+      }
+
+      if (issue.pillarId && byPillar[issue.pillarId]) {
+        byPillar[issue.pillarId].detectedGroups += 1;
+        byPillar[issue.pillarId].detectedInstances += instances;
+        if (isActionable) {
+          byPillar[issue.pillarId].actionableGroups += 1;
+          byPillar[issue.pillarId].actionableInstances += instances;
+        }
+      }
+
+      if (bySeverity[issue.severity]) {
+        bySeverity[issue.severity].detectedGroups += 1;
+        bySeverity[issue.severity].detectedInstances += instances;
+        if (isActionable) {
+          bySeverity[issue.severity].actionableGroups += 1;
+          bySeverity[issue.severity].actionableInstances += instances;
+        }
+      }
+
+      const atc: IssueAssetTypeCounts | undefined = issue.assetTypeCounts;
+      const productsInstances = atc?.products ?? 0;
+      const pagesInstances = atc?.pages ?? 0;
+      const collectionsInstances = atc?.collections ?? 0;
+
+      // Track group counts (issue types per asset type)
+      if (productsInstances > 0) {
+        byAssetType.products.detectedGroups += 1;
+        if (isActionable) {
+          byAssetType.products.actionableGroups += 1;
+        }
+      }
+      if (pagesInstances > 0) {
+        byAssetType.pages.detectedGroups += 1;
+        if (isActionable) {
+          byAssetType.pages.actionableGroups += 1;
+        }
+      }
+      if (collectionsInstances > 0) {
+        byAssetType.collections.detectedGroups += 1;
+        if (isActionable) {
+          byAssetType.collections.actionableGroups += 1;
+        }
+      }
+
+      // Track instance counts
+      byAssetType.products.detectedInstances += productsInstances;
+      byAssetType.pages.detectedInstances += pagesInstances;
+      byAssetType.collections.detectedInstances += collectionsInstances;
+
+      if (isActionable) {
+        byAssetType.products.actionableInstances += productsInstances;
+        byAssetType.pages.actionableInstances += pagesInstances;
+        byAssetType.collections.actionableInstances += collectionsInstances;
+      }
+    }
+
+    return {
+      projectId,
+      generatedAt: response.generatedAt,
+      detectedTotal,
+      actionableTotal,
+      detectedGroupsTotal,
+      actionableGroupsTotal,
+      byPillar,
+      bySeverity,
+      byAssetType,
+      byIssueType,
+    };
   }
 
   /**
@@ -265,11 +434,81 @@ export class DeoIssuesService {
       console.error('[DeoIssuesService] Failed to build media accessibility issues:', error);
     }
 
+    // COUNT-INTEGRITY-1: Add derived actionability + asset-type distribution on every issue.
+    const effectiveRole = await this.roleResolution.resolveEffectiveRole(projectId, userId);
+    const capabilities = this.roleResolution.getCapabilities(effectiveRole);
+
+    const decoratedIssues: DeoIssue[] = issues.map((issue) => {
+      const issueKey = (issue.type as string | undefined) || issue.id;
+      const isInAppActionable = IN_APP_ACTIONABLE_ISSUE_KEYS.has(issueKey) || (issue.fixReady === true && !!issue.fixType);
+      const isNotInformational = issue.actionability !== 'informational';
+      const canTakeAction = capabilities.canGenerateDrafts || capabilities.canRequestApproval || capabilities.canApply;
+      const isActionableNow = isInAppActionable && isNotInformational && canTakeAction;
+
+      const assetTypeCounts: IssueAssetTypeCounts =
+        issue.assetTypeCounts ??
+        (() => {
+          const count = typeof issue.count === 'number' ? issue.count : 0;
+          const hasProducts = !!issue.affectedProducts?.length;
+          const hasPages = !!issue.affectedPages?.length;
+
+          if (!hasProducts && !hasPages) {
+            return { products: 0, pages: 0, collections: 0 };
+          }
+
+          if (hasProducts && !hasPages) {
+            return { products: count, pages: 0, collections: 0 };
+          }
+
+          if (!hasProducts && hasPages) {
+            // Classify pages array to split pages vs collections
+            let pages = 0;
+            let collections = 0;
+            for (const url of issue.affectedPages ?? []) {
+              const bucket = getAssetTypeFromUrl(url);
+              if (bucket === 'collections') collections++;
+              else pages++;
+            }
+            const pagesRatio = pages / (pages + collections || 1);
+            const collectionsRatio = collections / (pages + collections || 1);
+            return {
+              products: 0,
+              pages: Math.round(count * pagesRatio),
+              collections: Math.round(count * collectionsRatio)
+            };
+          }
+
+          // Both products and pages: allocate proportionally
+          const productsHint = Math.min(count, issue.affectedProducts?.length ?? 0);
+          const remainder = count - productsHint;
+          let pages = 0;
+          let collections = 0;
+          for (const url of issue.affectedPages ?? []) {
+            const bucket = getAssetTypeFromUrl(url);
+            if (bucket === 'collections') collections++;
+            else pages++;
+          }
+          const pagesRatio = pages / (pages + collections || 1);
+          const collectionsRatio = collections / (pages + collections || 1);
+          return {
+            products: productsHint,
+            pages: Math.round(remainder * pagesRatio),
+            collections: Math.round(remainder * collectionsRatio),
+          };
+        })();
+
+      return {
+        ...issue,
+        isActionableNow,
+        assetTypeCounts,
+      };
+    });
+
     // Fire-and-forget Answer Block automations for relevant answerability issues.
     // This treats "not_answer_ready" and "weak_intent_match" as issue_detected triggers.
     // [INSIGHTS-1] Only trigger automations in 'full' mode, never in 'readOnly' mode
     if (opts.mode === 'full') {
-      this.triggerAnswerBlockAutomationsForIssues(projectId, userId, issues).catch(
+      this.triggerAnswerBlockAutomationsForIssues(projectId, userId, decoratedIssues).catch(
         () => {
           // Intentionally swallow errors here so DEO issues computation is never blocked
           // by automation failures; logs and automation logs provide visibility.
@@ -280,7 +519,7 @@ export class DeoIssuesService {
     return {
       projectId,
       generatedAt: new Date().toISOString(),
-      issues,
+      issues: decoratedIssues,
     };
   }
 
@@ -328,6 +567,8 @@ export class DeoIssuesService {
     let missingDescriptions = 0;
     let missingProductMetadata = 0;
     let surfacesWithMissing = 0;
+    let missingPages = 0;
+    let missingCollections = 0;
     const affectedPages: string[] = [];
     const affectedProducts: string[] = [];
 
@@ -346,6 +587,13 @@ export class DeoIssuesService {
 
       if (missingAny) {
         surfacesWithMissing++;
+        const bucket = getAssetTypeFromUrl(cr.url);
+        if (bucket === 'collections') {
+          missingCollections++;
+        } else {
+          // Treat product URLs as pages for this combined issue to avoid double-counting vs Product table.
+          missingPages++;
+        }
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
@@ -374,9 +622,9 @@ export class DeoIssuesService {
       critical: 0.1,
     });
 
-    const totalMissing = missingTitles + missingDescriptions + missingProductMetadata;
+    const detectedInstances = surfacesWithMissing + missingProductMetadata;
 
-    if (!severity || totalMissing === 0) {
+    if (!severity || detectedInstances === 0) {
       return null;
     }
 
@@ -386,12 +634,17 @@ export class DeoIssuesService {
       description:
         'Some pages or products are missing SEO titles or meta descriptions, which reduces visibility and click-through rates.',
       severity,
-      count: totalMissing,
+      count: detectedInstances,
       affectedPages,
       affectedProducts,
       // DEO-IA-1: Pillar assignment
       pillarId: 'metadata_snippet_quality' as DeoPillarId,
       actionability: 'manual' as DeoIssueActionability,
+      assetTypeCounts: {
+        products: missingProductMetadata,
+        pages: missingPages,
+        collections: missingCollections,
+      },
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
       category: 'metadata',
       whyItMatters:
@@ -414,6 +667,8 @@ export class DeoIssuesService {
 
     let thinPages = 0;
     let thinProducts = 0;
+    let thinCollections = 0;
+    let thinNonCollectionPages = 0;
     const affectedPages: string[] = [];
     const affectedProducts: string[] = [];
 
@@ -421,6 +676,13 @@ export class DeoIssuesService {
       const wordCount = typeof cr.wordCount === 'number' ? cr.wordCount : 0;
       if (wordCount > 0 && wordCount < 150) {
         thinPages++;
+        const bucket = getAssetTypeFromUrl(cr.url);
+        if (bucket === 'collections') {
+          thinCollections++;
+        } else {
+          // Treat product URLs as pages for this combined issue to avoid double-counting vs Product table.
+          thinNonCollectionPages++;
+        }
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
@@ -462,6 +724,11 @@ export class DeoIssuesService {
       // DEO-IA-1: Pillar assignment
       pillarId: 'content_commerce_signals' as DeoPillarId,
       actionability: 'manual' as DeoIssueActionability,
+      assetTypeCounts: {
+        products: thinProducts,
+        pages: thinNonCollectionPages,
+        collections: thinCollections,
+      },
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
       category: 'content_entity',
       whyItMatters:
@@ -484,6 +751,9 @@ export class DeoIssuesService {
     }
 
     let entityIssueSurfaces = 0;
+    let entityCollections = 0;
+    let entityPages = 0;
+    let entityProducts = 0;
     const affectedPages: string[] = [];
     const affectedProducts: string[] = [];
 
@@ -491,6 +761,13 @@ export class DeoIssuesService {
       const hasEntityHint = !!cr.title && !!cr.h1;
       if (!hasEntityHint) {
         entityIssueSurfaces++;
+        const bucket = getAssetTypeFromUrl(cr.url);
+        if (bucket === 'collections') {
+          entityCollections++;
+        } else {
+          // Treat product URLs as pages for this combined issue to avoid double-counting vs Product table.
+          entityPages++;
+        }
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
@@ -507,6 +784,7 @@ export class DeoIssuesService {
 
       if (!hasEntityHint) {
         entityIssueSurfaces++;
+        entityProducts++;
         if (affectedProducts.length < 20) {
           affectedProducts.push(product.id);
         }
@@ -533,22 +811,25 @@ export class DeoIssuesService {
 
     return {
       id: 'low_entity_coverage',
-      title: 'Low entity and schema coverage',
+      title: 'Weak entity coverage',
       description:
-        'Key entities are not well modeled across pages and products (missing H1, SEO metadata, or sufficiently detailed descriptions).',
+        'Some pages or products are missing a clear entity framing (title + H1 / metadata), which weakens discovery performance.',
       severity,
       count: entityIssueSurfaces,
       affectedPages,
       affectedProducts,
-      // DEO-IA-1: Pillar assignment (ties to entity/content structure)
       pillarId: 'content_commerce_signals' as DeoPillarId,
       actionability: 'manual' as DeoIssueActionability,
-      // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
-      category: 'schema_visibility',
+      assetTypeCounts: {
+        products: entityProducts,
+        pages: entityPages,
+        collections: entityCollections,
+      },
+      category: 'content_entity',
       whyItMatters:
-        'Without clear entity signals, search engines and AI systems cannot properly understand what your pages are about, reducing your visibility in entity-based search features.',
+        'Discovery engines need clear entity signals to understand what your pages and products represent. Missing entity hints reduce relevance and answerability.',
       recommendedFix:
-        'Add structured headings (H1), comprehensive SEO metadata, and detailed descriptions that clearly define the entities on each page.',
+        'Ensure every page and product has a clear title and H1, and that product descriptions include key attributes and entity terms.',
       aiFixable: false,
       fixCost: 'manual',
     };
@@ -563,6 +844,9 @@ export class DeoIssuesService {
     }
 
     let issueCount = 0;
+    let issueProducts = 0;
+    let issuePages = 0;
+    let issueCollections = 0;
     const affectedPages: string[] = [];
 
     for (const cr of crawlResults) {
@@ -578,6 +862,10 @@ export class DeoIssuesService {
 
       if (hasHttpError || isErrorStatus || missingHtmlBasics || hasNoindex) {
         issueCount++;
+        const bucket = getAssetTypeFromUrl(cr.url);
+        if (bucket === 'products') issueProducts++;
+        else if (bucket === 'collections') issueCollections++;
+        else issuePages++;
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
@@ -597,21 +885,22 @@ export class DeoIssuesService {
 
     return {
       id: 'indexability_problems',
-      title: 'Indexability and crawl issues',
+      title: 'Indexability problems',
       description:
-        'Some pages have crawl errors or are missing critical HTML elements, making them difficult for search engines to index correctly.',
+        'Some pages may not be indexable due to robots/noindex settings or crawl constraints.',
       severity,
       count: issueCount,
       affectedPages,
       // DEO-IA-1: Pillar assignment
       pillarId: 'technical_indexability' as DeoPillarId,
-      actionability: 'manual' as DeoIssueActionability,
+      actionability: 'informational' as DeoIssueActionability,
+      assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issueCollections },
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
       category: 'technical',
       whyItMatters:
-        'Pages that cannot be crawled or indexed are invisible to search engines and AI systems, representing lost traffic and revenue opportunities.',
+        'If a page is not indexable, it cannot appear in search results or be referenced by AI discovery systems.',
       recommendedFix:
-        'Fix HTTP errors, add missing HTML elements (title, meta description, H1), and remove noindex directives from pages that should be indexed.',
+        'Review robots/noindex settings and ensure important pages are accessible to search engines.',
       aiFixable: false,
       fixCost: 'advanced',
     };
@@ -626,6 +915,9 @@ export class DeoIssuesService {
     }
 
     let conflictCount = 0;
+    let conflictProducts = 0;
+    let conflictPages = 0;
+    let conflictCollections = 0;
     const affectedPages: string[] = [];
 
     for (const cr of crawlResults) {
@@ -638,6 +930,10 @@ export class DeoIssuesService {
 
       if (hasNoindex || hasCanonicalConflict) {
         conflictCount++;
+        const bucket = getAssetTypeFromUrl(cr.url);
+        if (bucket === 'products') conflictProducts++;
+        else if (bucket === 'collections') conflictCollections++;
+        else conflictPages++;
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
@@ -662,19 +958,20 @@ export class DeoIssuesService {
     return {
       id: 'indexability_conflict',
       type: 'indexability_conflict',
-      title: 'Indexability conflicts (noindex/canonical)',
+      title: 'Indexability conflicts',
       description:
-        'Some pages send mixed signals about whether they should be indexed, via noindex directives or canonical URLs pointing away from your store.',
+        'Some pages have conflicting indexability signals (e.g., sitemap includes but robots/noindex blocks).',
       severity,
       count: conflictCount,
       affectedPages,
       pillarId: 'technical_indexability' as DeoPillarId,
-      actionability: 'manual' as DeoIssueActionability,
+      actionability: 'informational' as DeoIssueActionability,
+      assetTypeCounts: { products: conflictProducts, pages: conflictPages, collections: conflictCollections },
       category: 'technical',
       whyItMatters:
-        'Conflicting indexability signals can cause important pages to be dropped from search results or treated as duplicates, reducing overall visibility.',
+        'Conflicting indexability signals waste crawl budget and can prevent key pages from ranking.',
       recommendedFix:
-        'Review robots meta tags, X-Robots-Tag headers, and canonical URLs for the affected pages. Remove unintended noindex directives and ensure canonical URLs point to the correct version of each page.',
+        'Align sitemap and robots/noindex settings so important pages are consistently indexable.',
       aiFixable: false,
       fixCost: 'advanced',
       signalType: 'indexability_risk' as PerformanceSignalType,
@@ -801,6 +1098,8 @@ export class DeoIssuesService {
     }
 
     let errorCount = 0;
+    let issuePages = 0;
+    let issueCollections = 0;
     const affectedPages: string[] = [];
 
     for (const cr of crawlResults) {
@@ -811,6 +1110,12 @@ export class DeoIssuesService {
 
       if (hasHttpError || isErrorStatus) {
         errorCount++;
+        const bucket = getAssetTypeFromUrl(cr.url);
+        if (bucket === 'collections') {
+          issueCollections++;
+        } else {
+          issuePages++;
+        }
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
@@ -838,7 +1143,13 @@ export class DeoIssuesService {
       affectedPages,
       // DEO-IA-1: Pillar assignment
       pillarId: 'technical_indexability' as DeoPillarId,
-      actionability: 'manual' as DeoIssueActionability,
+      actionability: 'informational' as DeoIssueActionability,
+      // COUNT-INTEGRITY-1: Asset type distribution
+      assetTypeCounts: {
+        products: 0,
+        pages: issuePages,
+        collections: issueCollections,
+      },
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
       category: 'technical',
       whyItMatters:
@@ -858,12 +1169,20 @@ export class DeoIssuesService {
     }
 
     let blockingPages = 0;
+    let issuePages = 0;
+    let issueCollections = 0;
     const affectedPages: string[] = [];
 
     for (const cr of crawlResults) {
       const issues = (cr.issues as string[]) ?? [];
       if (issues.includes('RENDER_BLOCKING_RESOURCES')) {
         blockingPages++;
+        const bucket = getAssetTypeFromUrl(cr.url);
+        if (bucket === 'collections') {
+          issueCollections++;
+        } else {
+          issuePages++;
+        }
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
@@ -896,7 +1215,13 @@ export class DeoIssuesService {
       count: blockingPages,
       affectedPages,
       pillarId: 'technical_indexability' as DeoPillarId,
-      actionability: 'manual' as DeoIssueActionability,
+      actionability: 'informational' as DeoIssueActionability,
+      // COUNT-INTEGRITY-1: Asset type distribution
+      assetTypeCounts: {
+        products: 0,
+        pages: issuePages,
+        collections: issueCollections,
+      },
       category: 'technical',
       whyItMatters:
         'Render-blocking resources slow down initial rendering, which makes it harder for discovery engines and real users on slower connections to reach your content.',
@@ -914,6 +1239,8 @@ export class DeoIssuesService {
     }
 
     let slowPages = 0;
+    let issuePages = 0;
+    let issueCollections = 0;
     const affectedPages: string[] = [];
 
     for (const cr of crawlResults) {
@@ -926,6 +1253,12 @@ export class DeoIssuesService {
 
       if (isSlow) {
         slowPages++;
+        const bucket = getAssetTypeFromUrl(cr.url);
+        if (bucket === 'collections') {
+          issueCollections++;
+        } else {
+          issuePages++;
+        }
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
@@ -957,7 +1290,13 @@ export class DeoIssuesService {
       count: slowPages,
       affectedPages,
       pillarId: 'technical_indexability' as DeoPillarId,
-      actionability: 'manual' as DeoIssueActionability,
+      actionability: 'informational' as DeoIssueActionability,
+      // COUNT-INTEGRITY-1: Asset type distribution
+      assetTypeCounts: {
+        products: 0,
+        pages: issuePages,
+        collections: issueCollections,
+      },
       category: 'technical',
       whyItMatters:
         'Slow initial responses reduce how much of your site discovery engines can crawl and increase the chance that users abandon before your content appears.',
@@ -975,6 +1314,8 @@ export class DeoIssuesService {
     }
 
     let heavyPages = 0;
+    let issuePages = 0;
+    let issueCollections = 0;
     const affectedPages: string[] = [];
 
     for (const cr of crawlResults) {
@@ -984,6 +1325,12 @@ export class DeoIssuesService {
         issues.includes('LARGE_HTML')
       ) {
         heavyPages++;
+        const bucket = getAssetTypeFromUrl(cr.url);
+        if (bucket === 'collections') {
+          issueCollections++;
+        } else {
+          issuePages++;
+        }
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
@@ -1015,7 +1362,13 @@ export class DeoIssuesService {
       count: heavyPages,
       affectedPages,
       pillarId: 'technical_indexability' as DeoPillarId,
-      actionability: 'manual' as DeoIssueActionability,
+      actionability: 'informational' as DeoIssueActionability,
+      // COUNT-INTEGRITY-1: Asset type distribution
+      assetTypeCounts: {
+        products: 0,
+        pages: issuePages,
+        collections: issueCollections,
+      },
       category: 'technical',
       whyItMatters:
         'Very heavy pages consume more crawl budget and are more likely to time out on slower connections, reducing how much of your catalog can be reliably discovered.',
@@ -1035,6 +1388,8 @@ export class DeoIssuesService {
     }
 
     let mobileRiskPages = 0;
+    let issuePages = 0;
+    let issueCollections = 0;
     const affectedPages: string[] = [];
 
     for (const cr of crawlResults) {
@@ -1044,6 +1399,12 @@ export class DeoIssuesService {
         issues.includes('POTENTIAL_MOBILE_LAYOUT_ISSUE')
       ) {
         mobileRiskPages++;
+        const bucket = getAssetTypeFromUrl(cr.url);
+        if (bucket === 'collections') {
+          issueCollections++;
+        } else {
+          issuePages++;
+        }
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
@@ -1075,7 +1436,13 @@ export class DeoIssuesService {
       count: mobileRiskPages,
       affectedPages,
       pillarId: 'technical_indexability' as DeoPillarId,
-      actionability: 'manual' as DeoIssueActionability,
+      actionability: 'informational' as DeoIssueActionability,
+      // COUNT-INTEGRITY-1: Asset type distribution
+      assetTypeCounts: {
+        products: 0,
+        pages: issuePages,
+        collections: issueCollections,
+      },
       category: 'technical',
       whyItMatters:
         'Poor mobile rendering hurts engagement on mobile devices and makes it harder for mobile-first discovery engines to trust and surface your content.',
@@ -1378,8 +1745,8 @@ export class DeoIssuesService {
       severity,
       count: affected.length,
       affectedProducts: affected.slice(0, 20).map((p) => p.id),
-      fixType: 'manualFix',
-      fixReady: false,
+      fixType: 'aiFix',
+      fixReady: true,
       primaryProductId: affected[0]?.id,
       // DEO-IA-1: Pillar assignment
       pillarId: 'content_commerce_signals' as DeoPillarId,
@@ -1390,8 +1757,8 @@ export class DeoIssuesService {
         'Long descriptions provide the depth needed for AI systems to understand your products and recommend them in answer experiences.',
       recommendedFix:
         'Write comprehensive product descriptions covering features, specifications, use cases, and benefits. Consider adding FAQs and care instructions.',
-      aiFixable: false,
-      fixCost: 'manual',
+      aiFixable: true,
+      fixCost: 'one_click',
     };
   }
 
