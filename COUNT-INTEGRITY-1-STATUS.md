@@ -156,17 +156,39 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
 - ✅ **FIXUP 5:** Prevented pillar param from auto-applying when click-integrity filters (actionKey/scopeType) are present
 - ✅ **FIXUP 6:** Updated clear-filters banner to also delete pillar param
 
+### ✅ PATCH 6 FIXUP-2 - Issues Engine Final Corrections (COMPLETE)
+- ✅ **FIXUP-2.1:** Fixed default mode logic to default to 'detected' when `actionableGroupsTotal === 0` and `detectedGroupsTotal > 0`
+- ✅ **FIXUP-2.2:** Added URL normalization to force `mode=detected` when URL requests actionable but none exist
+- ✅ **FIXUP-2.3:** Made severity badges mode-aware (use `detectedGroups` in detected mode, `actionableGroups` in actionable mode)
+- ✅ **FIXUP-2.4:** Made Total Issues count mode-aware (use `actionableGroupsTotal` or `detectedGroupsTotal` based on mode)
+- ✅ **FIXUP-2.5:** Made empty state text mode-aware ("No actionable issues" vs "No issues detected")
+- ✅ **FIXUP-2.6:** Disabled actionable mode button when no actionable issues exist
+
 ### ✅ PATCH 7 - Store Health & Work Queue Updates (COMPLETE)
 - ✅ **Store Health:** Added `issueCountsSummary()` fetch for click-integrity counts
 - ✅ **Store Health:** Updated Discoverability and Technical Readiness summaries to use "issues" language (not "items")
-- ✅ **Work Queue:** Added `allBundlesAreAssetOptimization` logic to distinguish "issues" vs "items" in filter banner
-- ✅ **Work Queue:** Filter banner now shows "N issues" for ASSET_OPTIMIZATION bundles, "N items" for others
+
+### ✅ PATCH 7 FIXUP - Store Health Count Semantics (COMPLETE)
+- ✅ **Discoverability:** Uses detected/actionable count semantics, shows "Informational — no action required" when actionable === 0
+- ✅ **Technical Readiness:** Avoids "0 technical issues" drift by showing detected counts when informational issues exist
+
+### ✅ PATCH 7.1 FIXUP - Work Queue Mixed Bundle Banner (COMPLETE)
+- ✅ **Split totals:** Replaced single `totalAffectedItems` with three separate totals (ASSET_OPTIMIZATION actionable/detected issues, non-ASSET_OPTIMIZATION items)
+- ✅ **Mixed-bundle semantics:** Banner correctly shows "N actionable issues (X detected) and Y items" when both bundle types present
+- ✅ **Test hooks:** Added `data-testid="action-bundle-card"` to ActionBundleCard wrapper div
 
 ### ✅ PATCH 9 - Playwright Tests (COMPLETE)
 - ✅ Created `apps/web/tests/count-integrity-1.spec.ts` with 3 smoke tests:
   - **Test 1:** Work Queue → Issues click integrity (OWNER seed) - card count matches filtered list count
   - **Test 2:** Technical issues are informational (OWNER seed) - informational badge, not clickable, visible in detected mode
   - **Test 3:** Viewer role sees detected-only counts (VIEWER seed) - no actionable issues, mode forced to detected
+
+### ✅ PATCH 9 FIXUP-2 - Playwright Test Corrections (COMPLETE)
+- ✅ **Seed endpoints:** Changed to `/testkit/e2e/seed-first-deo-win` (OWNER) and `/testkit/e2e/seed-self-service-viewer` (VIEWER)
+- ✅ **Card selection:** Uses `getByTestId('action-bundle-card')` and filters for "View Issues" link with actionable count > 0
+- ✅ **CTA click:** Clicks `getByRole('link', { name: 'View Issues' })` instead of button
+- ✅ **Issues banner:** Uses correct testid `filter-context-banner` instead of `work-queue-filter-context`
+- ✅ **Informational check:** Verifies no interactive buttons/links inside informational cards (stronger dead-click prevention)
 
 ### ✅ PATCH 10 - Documentation (COMPLETE)
 - ✅ **PATCH 10.1:** Checked `IMPLEMENTATION_PLAN.md` CRITICAL_PATH_MAP references (already correct, no changes needed)
@@ -221,10 +243,14 @@ interface IssueCountsSummary {
 9. ✅ ~~Update documentation (PATCH 10)~~ - COMPLETE
 10. ✅ ~~Update Issues Engine UI to consume IssueCountsSummary (PATCH 6)~~ - COMPLETE
 11. ✅ ~~Apply PATCH 6 FIXUP corrections (6 fixes)~~ - COMPLETE
-12. ✅ ~~Update Store Health pages (PATCH 7)~~ - COMPLETE
-13. ✅ ~~Create Playwright regression tests (PATCH 9)~~ - COMPLETE
+12. ✅ ~~Apply PATCH 6 FIXUP-2 final corrections (6 fixes)~~ - COMPLETE
+13. ✅ ~~Update Store Health pages (PATCH 7)~~ - COMPLETE
+14. ✅ ~~Apply PATCH 7 FIXUP Store Health count semantics~~ - COMPLETE
+15. ✅ ~~Apply PATCH 7.1 FIXUP Work Queue mixed bundle banner~~ - COMPLETE
+16. ✅ ~~Create Playwright regression tests (PATCH 9)~~ - COMPLETE
+17. ✅ ~~Apply PATCH 9 FIXUP-2 Playwright test corrections~~ - COMPLETE
 
-**All implementation work complete. Phase ready for manual testing and production deployment.**
+**✅ ALL IMPLEMENTATION AND FIXUP WORK COMPLETE. Phase ready for manual testing and production deployment.**
 
 ## Notes
 - Media & Accessibility pillar is now ACTIVE (`comingSoon: false`)

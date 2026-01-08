@@ -180,13 +180,29 @@ export default function WorkQueuePage() {
 
   // [TRUST-ROUTING-1] Calculate bundle counts for explainability
   const totalBundleCount = items.length;
-  const totalAffectedItems = useMemo(() => {
-    return items.reduce((sum, bundle) => sum + bundle.scopeCount, 0);
-  }, [items]);
 
-  // [COUNT-INTEGRITY-1 PATCH 7] Determine if all bundles are ASSET_OPTIMIZATION (show "issues" vs "items")
-  const allBundlesAreAssetOptimization = useMemo(() => {
-    return items.length > 0 && items.every(bundle => bundle.bundleType === 'ASSET_OPTIMIZATION');
+  // [COUNT-INTEGRITY-1 PATCH 7.1 FIXUP] Split issues vs items totals for mixed-bundle banner
+  const bundleCounts = useMemo(() => {
+    let assetOptActionableIssues = 0;
+    let assetOptDetectedIssues = 0;
+    let nonAssetOptItems = 0;
+
+    for (const bundle of items) {
+      if (bundle.bundleType === 'ASSET_OPTIMIZATION') {
+        assetOptActionableIssues += bundle.scopeCount;
+        assetOptDetectedIssues += (bundle.scopeDetectedCount ?? bundle.scopeCount);
+      } else {
+        nonAssetOptItems += bundle.scopeCount;
+      }
+    }
+
+    return {
+      assetOptActionableIssues,
+      assetOptDetectedIssues,
+      nonAssetOptItems,
+      hasAssetOpt: assetOptActionableIssues > 0 || assetOptDetectedIssues > 0,
+      hasNonAssetOpt: nonAssetOptItems > 0,
+    };
   }, [items]);
 
   // [ISSUE-TO-FIX-PATH-1] Scroll to first bundle and apply highlight on initial load
@@ -306,13 +322,31 @@ export default function WorkQueuePage() {
                   ))}
                 </div>
               )}
-              {/* [TRUST-ROUTING-1] Count explainability */}
-              {/* [COUNT-INTEGRITY-1 PATCH 7] Use "issues" for ASSET_OPTIMIZATION, "items" for others */}
+              {/* [COUNT-INTEGRITY-1 PATCH 7.1 FIXUP] Mixed-bundle semantics (issues + items split) */}
               <p className="mt-2 text-xs text-blue-700">
                 {totalBundleCount} action bundle{totalBundleCount !== 1 ? 's' : ''} affecting{' '}
-                {totalAffectedItems} {allBundlesAreAssetOptimization
-                  ? (totalAffectedItems === 1 ? 'issue' : 'issues')
-                  : (totalAffectedItems === 1 ? 'item' : 'items')}
+                {bundleCounts.hasAssetOpt && !bundleCounts.hasNonAssetOpt ? (
+                  // Only ASSET_OPTIMIZATION bundles
+                  <>
+                    {bundleCounts.assetOptActionableIssues} actionable {bundleCounts.assetOptActionableIssues === 1 ? 'issue' : 'issues'}
+                    {bundleCounts.assetOptDetectedIssues !== bundleCounts.assetOptActionableIssues && (
+                      <span className="text-blue-600"> ({bundleCounts.assetOptDetectedIssues} detected)</span>
+                    )}
+                  </>
+                ) : bundleCounts.hasNonAssetOpt && !bundleCounts.hasAssetOpt ? (
+                  // Only non-ASSET_OPTIMIZATION bundles
+                  <>{bundleCounts.nonAssetOptItems} {bundleCounts.nonAssetOptItems === 1 ? 'item' : 'items'}</>
+                ) : (
+                  // Mixed bundles
+                  <>
+                    {bundleCounts.assetOptActionableIssues} actionable {bundleCounts.assetOptActionableIssues === 1 ? 'issue' : 'issues'}
+                    {bundleCounts.assetOptDetectedIssues !== bundleCounts.assetOptActionableIssues && (
+                      <span className="text-blue-600"> ({bundleCounts.assetOptDetectedIssues} detected)</span>
+                    )}
+                    {' and '}
+                    {bundleCounts.nonAssetOptItems} {bundleCounts.nonAssetOptItems === 1 ? 'item' : 'items'}
+                  </>
+                )}
               </p>
             </div>
             <button

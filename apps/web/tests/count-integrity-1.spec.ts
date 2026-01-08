@@ -16,10 +16,10 @@ const API_BASE_URL =
 
 /**
  * Seed user and project for OWNER role tests.
- * [PATCH 9 FIXUP] Uses /testkit/e2e/seed-shopify-project-full-scan (correct endpoint).
+ * [PATCH 9 FIXUP-2] Uses /testkit/e2e/seed-first-deo-win (correct endpoint from e2e-testkit.controller.ts).
  */
 async function seedTestProjectOwner(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-shopify-project-full-scan`, {
+  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
     data: {},
   });
   expect(res.ok()).toBeTruthy();
@@ -34,11 +34,11 @@ async function seedTestProjectOwner(request: any) {
 
 /**
  * Seed user and project for VIEWER role tests.
- * [PATCH 9 FIXUP] Uses /testkit/e2e/seed-shopify-project-full-scan then adds VIEWER role.
+ * [PATCH 9 FIXUP-2] Uses /testkit/e2e/seed-self-service-viewer (correct endpoint from e2e-testkit.controller.ts).
  */
 async function seedTestProjectViewer(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-shopify-project-full-scan`, {
-    data: { role: 'VIEWER' },
+  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-self-service-viewer`, {
+    data: {},
   });
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
@@ -71,7 +71,7 @@ test.describe('COUNT-INTEGRITY-1: Work Queue → Issues click integrity', () => 
     await page.goto(`/projects/${projectId}/work-queue`);
     await page.waitForLoadState('networkidle');
 
-    // Find first ASSET_OPTIMIZATION bundle (has scopeCount and routes to Issues)
+    // [PATCH 9 FIXUP-2] Find first ASSET_OPTIMIZATION bundle with actionable issues
     const bundleCards = page.getByTestId('action-bundle-card');
     const bundleCount = await bundleCards.count();
 
@@ -81,17 +81,34 @@ test.describe('COUNT-INTEGRITY-1: Work Queue → Issues click integrity', () => 
       return;
     }
 
-    // Click the first bundle card
-    const firstCard = bundleCards.first();
+    // Find a card that contains "View Issues" link and has actionable count > 0
+    let selectedCard = null;
+    let expectedCount = 0;
 
-    // Extract scopeCount from card text (e.g., "5 actionable issues affecting products")
-    const cardText = await firstCard.textContent();
-    const scopeCountMatch = cardText?.match(/(\d+)\s+actionable\s+issue/);
-    const expectedCount = scopeCountMatch ? parseInt(scopeCountMatch[1], 10) : 0;
+    for (let i = 0; i < bundleCount; i++) {
+      const card = bundleCards.nth(i);
+      const cardText = await card.textContent();
+      const viewIssuesLink = card.getByRole('link', { name: 'View Issues' });
+      const hasViewIssues = await viewIssuesLink.count() > 0;
+      const scopeCountMatch = cardText?.match(/(\d+)\s+actionable\s+issue/);
+      const scopeCount = scopeCountMatch ? parseInt(scopeCountMatch[1], 10) : 0;
 
-    // Click the card's primary CTA
-    const ctaButton = firstCard.getByRole('button', { name: /Fix next|View all/i }).first();
-    await ctaButton.click();
+      if (hasViewIssues && scopeCount > 0) {
+        selectedCard = card;
+        expectedCount = scopeCount;
+        break;
+      }
+    }
+
+    if (!selectedCard) {
+      // No ASSET_OPTIMIZATION bundles with actionable issues - skip test
+      test.skip();
+      return;
+    }
+
+    // [PATCH 9 FIXUP-2] Click the "View Issues" link
+    const viewIssuesLink = selectedCard.getByRole('link', { name: 'View Issues' });
+    await viewIssuesLink.click();
 
     // Verify we landed on Issues page with click-integrity filters
     await expect(page.url()).toContain('/issues');
@@ -107,11 +124,10 @@ test.describe('COUNT-INTEGRITY-1: Work Queue → Issues click integrity', () => 
     // [COUNT-INTEGRITY-1] Click integrity: card count MUST match Issues list count
     expect(actualCount).toBe(expectedCount);
 
-    // Verify click-integrity filter banner is present
-    const filterBanner = page.getByTestId('work-queue-filter-context');
-    if (await filterBanner.isVisible()) {
-      await expect(filterBanner).toContainText('Filtered from Work Queue');
-    }
+    // [PATCH 9 FIXUP-2] Verify click-integrity filter banner is present (use correct testid)
+    const filterBanner = page.getByTestId('filter-context-banner');
+    await expect(filterBanner).toBeVisible();
+    await expect(filterBanner).toContainText('Filtered from Work Queue');
   });
 });
 
@@ -149,9 +165,13 @@ test.describe('COUNT-INTEGRITY-1: Technical issues are informational', () => {
     const firstCard = informationalCards.first();
     await expect(firstCard).toContainText('Informational');
 
-    // [PATCH 9 FIXUP] Verify card is NOT a clickable button (use wrapper, not search for nested button)
-    const cardTagName = await firstCard.evaluate((el) => el.tagName.toLowerCase());
-    expect(cardTagName).not.toBe('button');
+    // [PATCH 9 FIXUP-2] Verify card contains no interactive CTA buttons/links (stronger check)
+    const cardButtons = firstCard.locator('button');
+    const cardLinks = firstCard.locator('a');
+    const buttonCount = await cardButtons.count();
+    const linkCount = await cardLinks.count();
+    expect(buttonCount).toBe(0);
+    expect(linkCount).toBe(0);
 
     // Verify informational cards remain visible in detected mode
     const detectedInformationalCards = page.getByTestId('issue-card-informational');

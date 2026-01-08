@@ -62,6 +62,8 @@ export function ActionBundleCard({
 
   return (
     <div
+      data-testid="action-bundle-card"
+      data-bundle-id={bundle.bundleId}
       className={`rounded-lg border bg-white p-4 shadow-sm transition-all ${
         isHighlighted
           ? 'border-blue-400 ring-2 ring-blue-200'
