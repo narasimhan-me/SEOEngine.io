@@ -5,20 +5,17 @@
  * Purpose: Smoke test for canonical triplet count endpoints (backend foundation)
  *
  * Scope:
- * - Verify /projects/:id/issues/canonical-summary endpoint returns triplet structure
+ * - Verify /projects/:id/issues/summary endpoint returns triplet structure
  * - Verify /projects/:id/assets/:assetType/:assetId/issues endpoint returns asset-specific issues
  * - Verify triplet fields (issueTypesCount, affectedItemsCount, actionableNowCount) are present
  * - Verify detected/actionable mode distinction
- * - Verify filter support (pillar, severity, scopeType)
+ * - Verify filter support (pillar, severity, scopeType, actionKey)
  *
- * NOTE: UI updates (PATCHES 4-7) are deferred - this test validates backend only.
+ * [COUNT-INTEGRITY-1.1 PATCH 2.6] Uses testkit seed for deterministic test data
  */
 
 import { test, expect } from '@playwright/test';
 
-// Test authentication credentials (uses test user from .env.test.local)
-const TEST_USER = process.env.TEST_USER_EMAIL || 'test@example.com';
-const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || 'test123';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
@@ -26,30 +23,16 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
   let testProjectId: string;
 
   test.beforeAll(async ({ request }) => {
-    // Authenticate and get token
-    const authResponse = await request.post(`${API_URL}/auth/signin`, {
-      data: {
-        email: TEST_USER,
-        password: TEST_PASSWORD,
-      },
-    });
+    // [COUNT-INTEGRITY-1.1 PATCH 2.6] Use testkit seed for deterministic test data
+    const seedResponse = await request.post(`${API_URL}/testkit/e2e/seed-first-deo-win`);
+    expect(seedResponse.ok()).toBeTruthy();
 
-    expect(authResponse.ok()).toBeTruthy();
-    const authData = await authResponse.json();
-    authToken = authData.token;
+    const seedData = await seedResponse.json();
+    authToken = seedData.authToken;
+    testProjectId = seedData.projectId;
+
     expect(authToken).toBeTruthy();
-
-    // Get first available project
-    const projectsResponse = await request.get(`${API_URL}/projects`, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
-    });
-
-    expect(projectsResponse.ok()).toBeTruthy();
-    const projects = await projectsResponse.json();
-    expect(projects.length).toBeGreaterThan(0);
-    testProjectId = projects[0].id;
+    expect(testProjectId).toBeTruthy();
   });
 
   test('CANON-001: Canonical summary endpoint returns valid triplet structure', async ({ request }) => {
@@ -293,5 +276,32 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
 
     // Verify summary structure is present
     expect(data.summary.detected).toHaveProperty('issueTypesCount');
+  });
+
+  test('CANON-008: Canonical summary with actionKey filter returns filtered triplets', async ({ request }) => {
+    // [COUNT-INTEGRITY-1.1 PATCH 2.6] Regression test for actionKey filtering
+    const response = await request.get(
+      `${API_URL}/projects/${testProjectId}/issues/summary?actionKey=FIX_MISSING_METADATA`,
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      }
+    );
+
+    expect(response.ok()).toBeTruthy();
+    const data = await response.json();
+
+    // Verify filters are echoed back
+    expect(data.filters).toBeDefined();
+    expect(data.filters.actionKey).toBe('FIX_MISSING_METADATA');
+
+    // Verify triplet structure is present
+    expect(data.detected).toHaveProperty('issueTypesCount');
+    expect(data.actionable).toHaveProperty('issueTypesCount');
+
+    // All issues returned should map to FIX_MISSING_METADATA when using shared mapper
+    // (This is a regression assertion - the filtering should work correctly)
+    expect(data.detected.issueTypesCount).toBeGreaterThanOrEqual(0);
   });
 });

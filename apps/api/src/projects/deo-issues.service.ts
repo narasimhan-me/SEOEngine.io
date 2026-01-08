@@ -19,6 +19,8 @@ import {
   GEO_ISSUE_DESCRIPTIONS,
   type GeoAnswerUnitInput,
   type GeoIssueType,
+  // [COUNT-INTEGRITY-1.1 PATCH 2.4] Shared Issue→ActionKey mapper
+  getWorkQueueRecommendedActionKeyForIssue,
 } from '@engineo/shared';
 import { AutomationService } from './automation.service';
 import { SearchIntentService } from './search-intent.service';
@@ -253,12 +255,13 @@ export class DeoIssuesService {
     if (filters) {
       const { actionKey, actionKeys, scopeType, pillar, pillars, severity } = filters;
 
-      // Filter by actionKey(s) - not yet implemented in backend, placeholder for future
+      // [COUNT-INTEGRITY-1.1 PATCH 2.4] Filter by actionKey(s) using shared mapper
       const actionKeysToFilter = actionKeys || (actionKey ? [actionKey] : undefined);
       if (actionKeysToFilter && actionKeysToFilter.length > 0) {
-        // Placeholder: backend doesn't yet have actionKey on issues, so no filtering
-        // When actionKey is added to issues, uncomment:
-        // issues = issues.filter((issue) => actionKeysToFilter.includes(issue.actionKey));
+        issues = issues.filter((issue) => {
+          const issueActionKey = getWorkQueueRecommendedActionKeyForIssue(issue);
+          return actionKeysToFilter.includes(issueActionKey);
+        });
       }
 
       // Filter by scopeType (asset type)
@@ -413,6 +416,18 @@ export class DeoIssuesService {
     const response = await this.getIssuesForProjectReadOnly(projectId, userId);
     let issues = response.issues ?? [];
 
+    // [COUNT-INTEGRITY-1.1 PATCH 2.5] Resolve page/collection IDs to URLs for filtering
+    let resolvedAssetIdentifier = assetId;
+    if (assetType === 'pages' || assetType === 'collections') {
+      const crawlResult = await this.prisma.crawlResult.findUnique({
+        where: { id: assetId },
+        select: { url: true },
+      });
+      if (crawlResult) {
+        resolvedAssetIdentifier = crawlResult.url;
+      }
+    }
+
     // Filter to only issues affecting this specific asset
     issues = issues.filter((issue) => {
       const atc = issue.assetTypeCounts;
@@ -420,20 +435,25 @@ export class DeoIssuesService {
         return false;
       }
 
-      // For products: check affectedProducts
+      // [COUNT-INTEGRITY-1.1 PATCH 2.5] For products: strict membership check (no store-wide false positives)
       if (assetType === 'products') {
         const affected = issue.affectedProducts ?? [];
-        return affected.length === 0 || affected.includes(assetId);
+        return affected.includes(assetId);
       }
 
-      // For pages: check affectedPages
+      // [COUNT-INTEGRITY-1.1 PATCH 2.5] For pages: check using resolved URL
       if (assetType === 'pages') {
         const affected = issue.affectedPages ?? [];
-        return affected.length === 0 || affected.includes(assetId);
+        return affected.includes(resolvedAssetIdentifier);
       }
 
-      // For collections: no specific ID filtering yet (store-wide)
-      return true;
+      // [COUNT-INTEGRITY-1.1 PATCH 2.5] For collections: check using resolved URL (no unconditional true)
+      if (assetType === 'collections') {
+        const affected = issue.affectedPages ?? []; // Collections use affectedPages field
+        return affected.includes(resolvedAssetIdentifier);
+      }
+
+      return false;
     });
 
     // Apply optional filters
