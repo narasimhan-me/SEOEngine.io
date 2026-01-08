@@ -149,7 +149,8 @@ export interface WorkQueueActionBundle {
 
   // --- Scope ---
   scopeType: WorkQueueScopeType;
-  scopeCount: number;                        // Number of affected items
+  scopeCount: number;                        // For ASSET_OPTIMIZATION: actionable issue-group count; for other types: affected item count
+  scopeDetectedCount?: number;               // COUNT-INTEGRITY-1: For ASSET_OPTIMIZATION: detected issue-group count (may exceed scopeCount)
   scopePreviewList: string[];                // Top 5 item names + "+N more" if applicable
   scopeQueryRef?: string;                    // Optional reference for scope resolution (e.g., scopeId)
 

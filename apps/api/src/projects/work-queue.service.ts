@@ -244,6 +244,7 @@ export class WorkQueueService {
 
   /**
    * [ASSETS-PAGES-1] Create separate bundles for each scope type from issues.
+   * [COUNT-INTEGRITY-1 PATCH 4] Uses issue-group counts from assetTypeCounts, not asset set sizes.
    * Returns up to 3 bundles per actionKey: PRODUCTS, PAGES, COLLECTIONS.
    */
   private deriveIssueBundlesByScopeType(
@@ -254,53 +255,54 @@ export class WorkQueueService {
   ): WorkQueueActionBundle[] {
     const bundles: WorkQueueActionBundle[] = [];
 
-    // Collect affected items by scope type
-    const productIds = new Set<string>();
-    const pageUrls = new Set<string>();
-    const collectionUrls = new Set<string>();
-
-    // Track issues by scope for health derivation
-    const productIssues: DeoIssue[] = [];
-    const pageIssues: DeoIssue[] = [];
-    const collectionIssues: DeoIssue[] = [];
+    // [COUNT-INTEGRITY-1] Compute issue-group counts per scope using assetTypeCounts
+    const productDetectedIssues: DeoIssue[] = [];
+    const productActionableIssues: DeoIssue[] = [];
+    const pageDetectedIssues: DeoIssue[] = [];
+    const pageActionableIssues: DeoIssue[] = [];
+    const collectionDetectedIssues: DeoIssue[] = [];
+    const collectionActionableIssues: DeoIssue[] = [];
 
     for (const issue of issues) {
-      // Collect product IDs
-      if (issue.affectedProducts && issue.affectedProducts.length > 0) {
-        for (const productId of issue.affectedProducts) {
-          productIds.add(productId);
+      const assetCounts = issue.assetTypeCounts;
+      if (!assetCounts) continue;
+
+      // Products scope
+      if (assetCounts.products > 0) {
+        productDetectedIssues.push(issue);
+        if (issue.isActionableNow === true) {
+          productActionableIssues.push(issue);
         }
-        productIssues.push(issue);
       }
 
-      // Collect and classify page URLs
-      if (issue.affectedPages && issue.affectedPages.length > 0) {
-        for (const pageUrl of issue.affectedPages) {
-          const pageType = classifyUrlPath(pageUrl);
-          if (pageType === 'collection') {
-            collectionUrls.add(pageUrl);
-            if (!collectionIssues.includes(issue)) {
-              collectionIssues.push(issue);
-            }
-          } else if (pageType === 'page') {
-            pageUrls.add(pageUrl);
-            if (!pageIssues.includes(issue)) {
-              pageIssues.push(issue);
-            }
-          }
-          // 'product' and 'other' types are handled by affectedProducts or ignored
+      // Pages scope
+      if (assetCounts.pages > 0) {
+        pageDetectedIssues.push(issue);
+        if (issue.isActionableNow === true) {
+          pageActionableIssues.push(issue);
+        }
+      }
+
+      // Collections scope
+      if (assetCounts.collections > 0) {
+        collectionDetectedIssues.push(issue);
+        if (issue.isActionableNow === true) {
+          collectionActionableIssues.push(issue);
         }
       }
     }
 
-    // Create PRODUCTS bundle if there are affected products
-    if (productIds.size > 0) {
-      const health = this.deriveHealthFromSeverity(productIssues.length > 0 ? productIssues : issues);
+    // Create PRODUCTS bundle if there are detected issue groups
+    if (productDetectedIssues.length > 0) {
+      const scopeDetectedCount = productDetectedIssues.length;
+      const scopeCount = productActionableIssues.length;
+      const health = this.deriveHealthFromSeverity(productDetectedIssues);
+
       if (health !== 'HEALTHY') {
-        const scopePreviewList = this.buildScopePreviewList(
-          Array.from(productIds).slice(0, 5).map(() => 'Product'),
-          productIds.size,
-        );
+        // Build preview list from issue titles (prefer actionable, fallback to detected)
+        const previewIssues = scopeCount > 0 ? productActionableIssues : productDetectedIssues;
+        const issueTitles = previewIssues.slice(0, 5).map((issue) => issue.title);
+        const scopePreviewList = this.buildScopePreviewList(issueTitles, scopeDetectedCount);
 
         bundles.push({
           bundleId: `ASSET_OPTIMIZATION:${actionKey}:PRODUCTS:${projectId}`,
@@ -308,7 +310,8 @@ export class WorkQueueService {
           createdAt: stableTimestamp,
           updatedAt: stableTimestamp,
           scopeType: 'PRODUCTS',
-          scopeCount: productIds.size,
+          scopeCount,
+          scopeDetectedCount,
           scopePreviewList,
           health,
           impactRank: WORK_QUEUE_IMPACT_RANKS[actionKey],
@@ -321,18 +324,17 @@ export class WorkQueueService {
       }
     }
 
-    // Create PAGES bundle if there are affected pages
-    if (pageUrls.size > 0) {
-      const health = this.deriveHealthFromSeverity(pageIssues.length > 0 ? pageIssues : issues);
+    // Create PAGES bundle if there are detected issue groups
+    if (pageDetectedIssues.length > 0) {
+      const scopeDetectedCount = pageDetectedIssues.length;
+      const scopeCount = pageActionableIssues.length;
+      const health = this.deriveHealthFromSeverity(pageDetectedIssues);
+
       if (health !== 'HEALTHY') {
-        const pathPreviews = Array.from(pageUrls).slice(0, 5).map((url) => {
-          try {
-            return new URL(url).pathname;
-          } catch {
-            return url;
-          }
-        });
-        const scopePreviewList = this.buildScopePreviewList(pathPreviews, pageUrls.size);
+        // Build preview list from issue titles (prefer actionable, fallback to detected)
+        const previewIssues = scopeCount > 0 ? pageActionableIssues : pageDetectedIssues;
+        const issueTitles = previewIssues.slice(0, 5).map((issue) => issue.title);
+        const scopePreviewList = this.buildScopePreviewList(issueTitles, scopeDetectedCount);
 
         bundles.push({
           bundleId: `ASSET_OPTIMIZATION:${actionKey}:PAGES:${projectId}`,
@@ -340,7 +342,8 @@ export class WorkQueueService {
           createdAt: stableTimestamp,
           updatedAt: stableTimestamp,
           scopeType: 'PAGES',
-          scopeCount: pageUrls.size,
+          scopeCount,
+          scopeDetectedCount,
           scopePreviewList,
           health,
           impactRank: WORK_QUEUE_IMPACT_RANKS[actionKey],
@@ -353,18 +356,17 @@ export class WorkQueueService {
       }
     }
 
-    // Create COLLECTIONS bundle if there are affected collections
-    if (collectionUrls.size > 0) {
-      const health = this.deriveHealthFromSeverity(collectionIssues.length > 0 ? collectionIssues : issues);
+    // Create COLLECTIONS bundle if there are detected issue groups
+    if (collectionDetectedIssues.length > 0) {
+      const scopeDetectedCount = collectionDetectedIssues.length;
+      const scopeCount = collectionActionableIssues.length;
+      const health = this.deriveHealthFromSeverity(collectionDetectedIssues);
+
       if (health !== 'HEALTHY') {
-        const pathPreviews = Array.from(collectionUrls).slice(0, 5).map((url) => {
-          try {
-            return new URL(url).pathname;
-          } catch {
-            return url;
-          }
-        });
-        const scopePreviewList = this.buildScopePreviewList(pathPreviews, collectionUrls.size);
+        // Build preview list from issue titles (prefer actionable, fallback to detected)
+        const previewIssues = scopeCount > 0 ? collectionActionableIssues : collectionDetectedIssues;
+        const issueTitles = previewIssues.slice(0, 5).map((issue) => issue.title);
+        const scopePreviewList = this.buildScopePreviewList(issueTitles, scopeDetectedCount);
 
         bundles.push({
           bundleId: `ASSET_OPTIMIZATION:${actionKey}:COLLECTIONS:${projectId}`,
@@ -372,7 +374,8 @@ export class WorkQueueService {
           createdAt: stableTimestamp,
           updatedAt: stableTimestamp,
           scopeType: 'COLLECTIONS',
-          scopeCount: collectionUrls.size,
+          scopeCount,
+          scopeDetectedCount,
           scopePreviewList,
           health,
           impactRank: WORK_QUEUE_IMPACT_RANKS[actionKey],

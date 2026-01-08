@@ -105,19 +105,60 @@ export function ActionBundleCard({
 
       {/* Row 3: Scope line */}
       {/* [ASSETS-PAGES-1] Updated to show correct scope type label */}
+      {/* [COUNT-INTEGRITY-1 PATCH 5.1] Issue-group count semantics for ASSET_OPTIMIZATION */}
       <p className="mt-1 text-sm text-gray-600">
-        Applies to{' '}
-        <span className="font-medium">
-          {bundle.scopeCount} {getScopeTypeLabel(bundle.scopeType, bundle.scopeCount)}
-        </span>
-        {bundle.scopePreviewList.length > 0 && (
+        {bundle.bundleType === 'ASSET_OPTIMIZATION' ? (
           <>
-            :{' '}
-            <span className="text-gray-500">
-              {bundle.scopePreviewList.slice(0, 5).join(', ')}
-              {bundle.scopePreviewList.length > 5 &&
-                ` ${bundle.scopePreviewList[bundle.scopePreviewList.length - 1]}`}
+            {bundle.scopeCount > 0 ? (
+              <>
+                <span className="font-medium">
+                  {bundle.scopeCount} actionable issue{bundle.scopeCount !== 1 ? 's' : ''}
+                </span>{' '}
+                affecting {getScopeTypeLabel(bundle.scopeType, bundle.scopeCount)}
+                {bundle.scopeDetectedCount != null && bundle.scopeDetectedCount !== bundle.scopeCount && (
+                  <span className="text-gray-500">
+                    {' '}
+                    ({bundle.scopeDetectedCount} detected)
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                <span className="text-gray-500">Informational — no action required</span>
+                {' · '}
+                <span className="font-medium">
+                  {bundle.scopeDetectedCount ?? 0} detected issue{(bundle.scopeDetectedCount ?? 0) !== 1 ? 's' : ''}
+                </span>{' '}
+                affecting {getScopeTypeLabel(bundle.scopeType, bundle.scopeDetectedCount ?? 0)}
+              </>
+            )}
+            {bundle.scopePreviewList.length > 0 && (
+              <>
+                :{' '}
+                <span className="text-gray-500">
+                  {bundle.scopePreviewList.slice(0, 5).join(', ')}
+                  {bundle.scopePreviewList.length > 5 &&
+                    ` ${bundle.scopePreviewList[bundle.scopePreviewList.length - 1]}`}
+                </span>
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            Applies to{' '}
+            <span className="font-medium">
+              {bundle.scopeCount} {getScopeTypeLabel(bundle.scopeType, bundle.scopeCount)}
             </span>
+            {bundle.scopePreviewList.length > 0 && (
+              <>
+                :{' '}
+                <span className="text-gray-500">
+                  {bundle.scopePreviewList.slice(0, 5).join(', ')}
+                  {bundle.scopePreviewList.length > 5 &&
+                    ` ${bundle.scopePreviewList[bundle.scopePreviewList.length - 1]}`}
+                </span>
+              </>
+            )}
           </>
         )}
       </p>
@@ -480,33 +521,36 @@ function getCTARoute(bundle: WorkQueueActionBundle, projectId: string): string {
     return `/projects/${projectId}/automation/playbooks?${params.toString()}`;
   }
 
-  // [ASSETS-PAGES-1] Route to asset-specific pages with filters
-  // [TRUST-ROUTING-1] CTA Safety: Route to Issues Engine instead of placeholder/empty pages
+  // [COUNT-INTEGRITY-1 PATCH 5.2] All ASSET_OPTIMIZATION bundles route to Issues with click-integrity filters
   if (bundleType === 'ASSET_OPTIMIZATION') {
-    const actionKeyParam = recommendedActionKey ? `?actionKey=${recommendedActionKey}` : '';
+    const params = new URLSearchParams();
 
-    switch (scopeType) {
-      case 'PAGES':
-        return `/projects/${projectId}/assets/pages${actionKeyParam}`;
-      case 'COLLECTIONS':
-        return `/projects/${projectId}/assets/collections${actionKeyParam}`;
-      case 'PRODUCTS':
-        // [TRUST-ROUTING-1] Route to Issues Engine with pillar filter instead of placeholder pages
-        switch (recommendedActionKey) {
-          case 'FIX_MISSING_METADATA':
-            return `/projects/${projectId}/issues?pillar=metadata_snippet_quality`;
-          case 'RESOLVE_TECHNICAL_ISSUES':
-            return `/projects/${projectId}/issues?pillar=technical_indexability`;
-          case 'IMPROVE_SEARCH_INTENT':
-            return `/projects/${projectId}/issues?pillar=search_intent_fit`;
-          case 'OPTIMIZE_CONTENT':
-            return `/projects/${projectId}/issues?pillar=content_commerce_signals`;
-          default:
-            return `/projects/${projectId}/issues`;
-        }
-      default:
-        return `/projects/${projectId}/issues`;
+    // Always include actionKey and scopeType for filtering
+    if (recommendedActionKey) {
+      params.set('actionKey', recommendedActionKey);
     }
+    params.set('scopeType', scopeType);
+
+    // Set mode based on whether bundle has actionable issues
+    params.set('mode', bundle.scopeCount > 0 ? 'actionable' : 'detected');
+
+    // Include pillar fallback for stable behavior (same mapping as before)
+    switch (recommendedActionKey) {
+      case 'FIX_MISSING_METADATA':
+        params.set('pillar', 'metadata_snippet_quality');
+        break;
+      case 'RESOLVE_TECHNICAL_ISSUES':
+        params.set('pillar', 'technical_indexability');
+        break;
+      case 'IMPROVE_SEARCH_INTENT':
+        params.set('pillar', 'search_intent_fit');
+        break;
+      case 'OPTIMIZE_CONTENT':
+        params.set('pillar', 'content_commerce_signals');
+        break;
+    }
+
+    return `/projects/${projectId}/issues?${params.toString()}`;
   }
 
   // [TRUST-ROUTING-1] Fallback - route to Issues Engine with pillar filter

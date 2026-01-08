@@ -98,14 +98,31 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
 - ✅ Added `projectsApi.deoIssuesReadOnly(id)` to web API client
 - ✅ Endpoint uses `getIssuesForProjectReadOnly()` (no side effects, no automation triggers)
 
-### PATCH 3 - Work Queue Bundle Types
-- ⚠️ **TODO:** Add `scopeDetectedCount?` field to `WorkQueueActionBundle` in shared/web types
-- ⚠️ **TODO:** Update field comments for clarity
+### ✅ PATCH 3 - Work Queue Bundle Types (COMPLETE)
+- ✅ Added `scopeDetectedCount?` field to `WorkQueueActionBundle` in shared/web types
+- ✅ Updated field comments for clarity:
+  - `scopeCount`: For ASSET_OPTIMIZATION: actionable issue-group count; for other types: affected item count
+  - `scopeDetectedCount`: COUNT-INTEGRITY-1: For ASSET_OPTIMIZATION: detected issue-group count (may exceed scopeCount)
 
-### PATCH 4 - Work Queue Derivation
-- ⚠️ **TODO:** Update `deriveIssueBundlesByScopeType()` to use `assetTypeCounts` for counts
-- ⚠️ **TODO:** Set `scopeCount` = actionable issues, `scopeDetectedCount` = detected issues
-- ⚠️ **TODO:** Stop using truncated preview arrays for counts
+### ✅ PATCH 4 - Work Queue Derivation (COMPLETE)
+- ✅ Updated `deriveIssueBundlesByScopeType()` to use `assetTypeCounts` for counts
+- ✅ Set `scopeCount` = actionable issue-group count, `scopeDetectedCount` = detected issue-group count
+- ✅ Stopped using asset set sizes (`productIds.size`, etc.) for counts
+- ✅ Switched `scopePreviewList` to issue titles for ASSET_OPTIMIZATION bundles
+- ✅ Preview list prefers actionable issue titles; uses detected titles if scopeCount === 0
+- ✅ Create bundle when `scopeDetectedCount > 0` (even if no actionable issues)
+
+### ✅ PATCH 5 - Work Queue Card UI & Routing (COMPLETE)
+- ✅ **PATCH 5.1:** Updated scope line for ASSET_OPTIMIZATION bundles:
+  - Shows "N actionable issues affecting <scope>" when scopeCount > 0
+  - Shows detected count in parentheses when detected != actionable
+  - Shows "Informational — no action required · N detected issues affecting <scope>" when scopeCount === 0
+  - Preview list shows issue titles (from PATCH 4)
+- ✅ **PATCH 5.2:** All ASSET_OPTIMIZATION bundles route to Issues page with click-integrity filters:
+  - Always includes `actionKey` and `scopeType` query params
+  - Sets `mode=actionable` when scopeCount > 0, else `mode=detected`
+  - Includes pillar fallback for stable behavior
+  - Routes PRODUCTS, PAGES, COLLECTIONS, and STORE_WIDE all to Issues page (not asset lists)
 
 ### PATCH 6 - Issues Engine UI
 - ⚠️ **TODO:** Use `projectsApi.deoIssuesReadOnly()` instead of mutating version
@@ -177,10 +194,10 @@ interface IssueCountsSummary {
 3. ✅ ~~Fix `IssueCountsSummary.byAssetType` group counting~~ - COMPLETE
 4. ✅ ~~Add read-only issues endpoint (PATCH 2)~~ - COMPLETE
 5. ✅ ~~Fix assetTypeCounts fallback sum-preserving (PATCH 1.1)~~ - COMPLETE
-6. ⚠️ Update Work Queue types and derivation (PATCH 3-5)
-7. ⚠️ Update Issues Engine UI to consume IssueCountsSummary (PATCH 6)
-8. ⚠️ Update Work Queue Card UI (PATCH 7)
-9. ⚠️ Update Store Health pages (PATCH 8)
+6. ✅ ~~Update Work Queue types and derivation (PATCH 3-4)~~ - COMPLETE
+7. ✅ ~~Update Work Queue Card UI and routing (PATCH 5)~~ - COMPLETE
+8. ⚠️ Update Issues Engine UI to consume IssueCountsSummary (PATCH 6)
+9. ⚠️ Update Store Health pages (PATCH 7-8)
 10. ⚠️ Create Playwright regression tests (PATCH 9)
 11. ⚠️ Update documentation (PATCH 10)
 
