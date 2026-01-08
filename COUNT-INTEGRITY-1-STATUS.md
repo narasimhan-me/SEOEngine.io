@@ -206,6 +206,14 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
 - ✅ **Non-blocking:** Issues list displays normally regardless of counts-summary availability
 - ✅ **Documentation:** Updated COUNT-INTEGRITY-1.md Scenario 10 (ERR-001) with exact expected behavior
 
+### ✅ PATCH ERR-001.1 - Mode Fallback When countsSummary Unavailable (COMPLETE)
+- ✅ **hasActionableIssues fallback:** When `countsSummary === null`, falls back to `issues.some((i) => i.isActionableNow === true)` instead of defaulting to false
+- ✅ **hasDetectedIssues fallback:** When `countsSummary === null`, falls back to `issues.length > 0` instead of defaulting to false
+- ✅ **effectiveMode correctness:** Now correctly defaults to 'detected' when counts unavailable and only informational issues exist (VIEWER/informational-only cases)
+- ✅ **No client recomputation:** Fallback uses already-fetched issues list, no count aggregation performed client-side
+- ✅ **ERR-001 contract preserved:** "Issues list displays normally (unaffected by counts-summary failure)" now fully honored
+- ✅ **Documentation cleanup:** Removed stale "blocked scenarios" line from COUNT-INTEGRITY-1.md Test Sign-Off
+
 ## Core Contracts Established
 
 ### IssueCountsSummary Contract

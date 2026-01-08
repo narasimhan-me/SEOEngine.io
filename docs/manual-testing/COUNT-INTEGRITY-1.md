@@ -1,7 +1,7 @@
 # COUNT-INTEGRITY-1: Count Integrity Trust Hardening Manual Testing Guide
 
 **Phase:** COUNT-INTEGRITY-1
-**Status:** PATCH 1-6 + 10 Complete, PATCH 7 + 9 Pending
+**Status:** ✅ ALL PATCHES COMPLETE (PATCH 1-10 + ERR-001 + ERR-001.1)
 **Date:** 2026-01-08
 
 ## Overview
@@ -22,7 +22,7 @@
 - **Related documentation:**
   - `COUNT-INTEGRITY-1-STATUS.md`
   - `docs/testing/CRITICAL_PATH_MAP.md` (CP-008, CP-009)
-  - `apps/web/tests/count-integrity-1.spec.ts` (Planned - PATCH 9)
+  - `apps/web/tests/count-integrity-1.spec.ts` ✅
 
 ---
 
@@ -413,7 +413,6 @@
 - [ ] All regression checks (REG-001 to REG-002) pass
 - [ ] Performance checks (PERF-001) pass
 - [ ] Accessibility checks (A11Y-001) pass
-- [ ] Blocked scenarios (HP-002, HP-004, HP-005, ERR-001) documented for PATCH 6-9
 
 ---
 
