@@ -201,11 +201,11 @@ export class ProjectsController {
   }
 
   /**
-   * GET /projects/:id/issues/canonical-summary
+   * GET /projects/:id/issues/summary
    * COUNT-INTEGRITY-1.1: Canonical triplet counts with explicit UX labels.
    * Query params: actionKey, actionKeys[], scopeType, pillar, pillars[], severity
    */
-  @Get(':id/issues/canonical-summary')
+  @Get(':id/issues/summary')
   async getCanonicalIssueCountsSummary(
     @Request() req: any,
     @Param('id') projectId: string,
@@ -232,6 +232,35 @@ export class ProjectsController {
       pillars: pillarsArray,
       severity,
     });
+  }
+
+  /**
+   * GET /projects/:id/issues/canonical-summary (DEPRECATED)
+   * Backward compatibility alias for /projects/:id/issues/summary
+   * @deprecated Use /projects/:id/issues/summary instead
+   */
+  @Get(':id/issues/canonical-summary')
+  async getCanonicalIssueCountsSummaryDeprecated(
+    @Request() req: any,
+    @Param('id') projectId: string,
+    @Query('actionKey') actionKey?: string,
+    @Query('actionKeys') actionKeys?: string | string[],
+    @Query('scopeType') scopeType?: IssueAssetTypeKey,
+    @Query('pillar') pillar?: DeoPillarId,
+    @Query('pillars') pillars?: string | string[],
+    @Query('severity') severity?: 'critical' | 'warning' | 'info',
+  ): Promise<CanonicalIssueCountsSummary> {
+    // Delegate to canonical endpoint
+    return this.getCanonicalIssueCountsSummary(
+      req,
+      projectId,
+      actionKey,
+      actionKeys,
+      scopeType,
+      pillar,
+      pillars,
+      severity,
+    );
   }
 
   /**

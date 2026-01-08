@@ -864,7 +864,7 @@ export const projectsApi = {
     if (filters?.severity) params.append('severity', filters.severity);
 
     const queryString = params.toString();
-    const url = `/projects/${id}/issues/canonical-summary${queryString ? `?${queryString}` : ''}`;
+    const url = `/projects/${id}/issues/summary${queryString ? `?${queryString}` : ''}`;
     return fetchWithAuth(url);
   },
 

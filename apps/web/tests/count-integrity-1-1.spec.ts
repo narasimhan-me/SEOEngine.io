@@ -53,7 +53,7 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
   });
 
   test('CANON-001: Canonical summary endpoint returns valid triplet structure', async ({ request }) => {
-    const response = await request.get(`${API_URL}/projects/${testProjectId}/issues/canonical-summary`, {
+    const response = await request.get(`${API_URL}/projects/${testProjectId}/issues/summary`, {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
@@ -94,7 +94,7 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
 
   test('CANON-002: Canonical summary with pillar filter returns filtered triplets', async ({ request }) => {
     const response = await request.get(
-      `${API_URL}/projects/${testProjectId}/issues/canonical-summary?pillar=metadata_snippet_quality`,
+      `${API_URL}/projects/${testProjectId}/issues/summary?pillar=metadata_snippet_quality`,
       {
         headers: {
           Authorization: `Bearer ${authToken}`,
@@ -116,7 +116,7 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
 
   test('CANON-003: Canonical summary with severity filter returns filtered triplets', async ({ request }) => {
     const response = await request.get(
-      `${API_URL}/projects/${testProjectId}/issues/canonical-summary?severity=critical`,
+      `${API_URL}/projects/${testProjectId}/issues/summary?severity=critical`,
       {
         headers: {
           Authorization: `Bearer ${authToken}`,
@@ -137,7 +137,7 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
   });
 
   test('CANON-004: Canonical summary byPillar breakdown includes all pillars', async ({ request }) => {
-    const response = await request.get(`${API_URL}/projects/${testProjectId}/issues/canonical-summary`, {
+    const response = await request.get(`${API_URL}/projects/${testProjectId}/issues/summary`, {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
@@ -170,7 +170,7 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
   });
 
   test('CANON-005: Canonical summary bySeverity breakdown includes all severities', async ({ request }) => {
-    const response = await request.get(`${API_URL}/projects/${testProjectId}/issues/canonical-summary`, {
+    const response = await request.get(`${API_URL}/projects/${testProjectId}/issues/summary`, {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
