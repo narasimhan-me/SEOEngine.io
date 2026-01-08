@@ -9,6 +9,9 @@ import {
   DeoIssueActionability,
   type IssueAssetTypeCounts,
   type IssueCountsSummary,
+  type CanonicalCountTriplet,
+  type CanonicalIssueCountsSummary,
+  type AssetIssuesResponse,
   DEO_PILLARS,
   PerformanceSignalType,
   evaluateGeoProduct,
@@ -223,6 +226,284 @@ export class DeoIssuesService {
       bySeverity,
       byAssetType,
       byIssueType,
+    };
+  }
+
+  /**
+   * COUNT-INTEGRITY-1.1: Canonical triplet counts summary with explicit UX labels.
+   * Computes issueTypesCount, affectedItemsCount, actionableNowCount for detected/actionable modes.
+   * Supports optional filters: actionKey(s), scopeType, pillar(s), severity.
+   */
+  async getCanonicalIssueCountsSummary(
+    projectId: string,
+    userId: string,
+    filters?: {
+      actionKey?: string;
+      actionKeys?: string[];
+      scopeType?: IssueAssetTypeKey;
+      pillar?: DeoPillarId;
+      pillars?: DeoPillarId[];
+      severity?: 'critical' | 'warning' | 'info';
+    },
+  ): Promise<CanonicalIssueCountsSummary> {
+    const response = await this.getIssuesForProjectReadOnly(projectId, userId);
+    let issues = response.issues ?? [];
+
+    // Apply filters
+    if (filters) {
+      const { actionKey, actionKeys, scopeType, pillar, pillars, severity } = filters;
+
+      // Filter by actionKey(s) - not yet implemented in backend, placeholder for future
+      const actionKeysToFilter = actionKeys || (actionKey ? [actionKey] : undefined);
+      if (actionKeysToFilter && actionKeysToFilter.length > 0) {
+        // Placeholder: backend doesn't yet have actionKey on issues, so no filtering
+        // When actionKey is added to issues, uncomment:
+        // issues = issues.filter((issue) => actionKeysToFilter.includes(issue.actionKey));
+      }
+
+      // Filter by scopeType (asset type)
+      if (scopeType) {
+        issues = issues.filter((issue) => {
+          const atc = issue.assetTypeCounts;
+          return atc && atc[scopeType] > 0;
+        });
+      }
+
+      // Filter by pillar(s)
+      const pillarsToFilter = pillars || (pillar ? [pillar] : undefined);
+      if (pillarsToFilter && pillarsToFilter.length > 0) {
+        issues = issues.filter((issue) => issue.pillarId && pillarsToFilter.includes(issue.pillarId));
+      }
+
+      // Filter by severity
+      if (severity) {
+        issues = issues.filter((issue) => issue.severity === severity);
+      }
+    }
+
+    // Helper to compute triplet for a set of issues
+    const computeTriplet = (issueSubset: DeoIssue[], onlyActionable: boolean): CanonicalCountTriplet => {
+      const filteredIssues = onlyActionable
+        ? issueSubset.filter((i) => i.isActionableNow === true)
+        : issueSubset;
+
+      const issueTypesCount = filteredIssues.length;
+
+      // Dedupe unique assets (UEP decision: use composite keys like "products:123")
+      const uniqueAssets = new Set<string>();
+      let actionableAssetsSet = new Set<string>();
+
+      for (const issue of filteredIssues) {
+        const atc = issue.assetTypeCounts;
+        const isActionable = issue.isActionableNow === true;
+
+        // For products
+        if (atc?.products && atc.products > 0) {
+          const productsAffected = issue.affectedProducts ?? [];
+          if (productsAffected.length > 0) {
+            for (const productId of productsAffected) {
+              const key = `products:${productId}`;
+              uniqueAssets.add(key);
+              if (isActionable) {
+                actionableAssetsSet.add(key);
+              }
+            }
+          } else {
+            // Store-wide issue: use pseudo-key
+            const key = 'products:__store_wide__';
+            uniqueAssets.add(key);
+            if (isActionable) {
+              actionableAssetsSet.add(key);
+            }
+          }
+        }
+
+        // For pages
+        if (atc?.pages && atc.pages > 0) {
+          const pagesAffected = issue.affectedPages ?? [];
+          if (pagesAffected.length > 0) {
+            for (const pageUrl of pagesAffected) {
+              const key = `pages:${pageUrl}`;
+              uniqueAssets.add(key);
+              if (isActionable) {
+                actionableAssetsSet.add(key);
+              }
+            }
+          } else {
+            const key = 'pages:__store_wide__';
+            uniqueAssets.add(key);
+            if (isActionable) {
+              actionableAssetsSet.add(key);
+            }
+          }
+        }
+
+        // For collections (no affectedCollections field yet, use pseudo-key if count > 0)
+        if (atc?.collections && atc.collections > 0) {
+          const key = 'collections:__store_wide__';
+          uniqueAssets.add(key);
+          if (isActionable) {
+            actionableAssetsSet.add(key);
+          }
+        }
+      }
+
+      const affectedItemsCount = uniqueAssets.size;
+      const actionableNowCount = onlyActionable ? actionableAssetsSet.size : actionableAssetsSet.size;
+
+      return {
+        issueTypesCount,
+        affectedItemsCount,
+        actionableNowCount: onlyActionable ? actionableNowCount : actionableAssetsSet.size,
+      };
+    };
+
+    // Compute top-level detected and actionable triplets
+    const detected = computeTriplet(issues, false);
+    const actionable = computeTriplet(issues, true);
+
+    // Compute byPillar breakdown
+    const byPillar: CanonicalIssueCountsSummary['byPillar'] = {} as any;
+    for (const p of DEO_PILLARS) {
+      const pillarIssues = issues.filter((i) => i.pillarId === p.id);
+      byPillar[p.id] = {
+        detected: computeTriplet(pillarIssues, false),
+        actionable: computeTriplet(pillarIssues, true),
+      };
+    }
+
+    // Compute bySeverity breakdown
+    const severities: Array<'critical' | 'warning' | 'info'> = ['critical', 'warning', 'info'];
+    const bySeverity: CanonicalIssueCountsSummary['bySeverity'] = {} as any;
+    for (const sev of severities) {
+      const sevIssues = issues.filter((i) => i.severity === sev);
+      bySeverity[sev] = {
+        detected: computeTriplet(sevIssues, false),
+        actionable: computeTriplet(sevIssues, true),
+      };
+    }
+
+    return {
+      projectId,
+      generatedAt: response.generatedAt,
+      filters: filters || undefined,
+      detected,
+      actionable,
+      byPillar,
+      bySeverity,
+    };
+  }
+
+  /**
+   * COUNT-INTEGRITY-1.1: Asset-specific issues endpoint.
+   * Returns filtered issue list + canonical triplet summary for a specific asset.
+   * Supports optional filters: pillar(s), severity.
+   */
+  async getAssetIssues(
+    projectId: string,
+    userId: string,
+    assetType: IssueAssetTypeKey,
+    assetId: string,
+    filters?: {
+      pillar?: DeoPillarId;
+      pillars?: DeoPillarId[];
+      severity?: 'critical' | 'warning' | 'info';
+    },
+  ): Promise<AssetIssuesResponse> {
+    const response = await this.getIssuesForProjectReadOnly(projectId, userId);
+    let issues = response.issues ?? [];
+
+    // Filter to only issues affecting this specific asset
+    issues = issues.filter((issue) => {
+      const atc = issue.assetTypeCounts;
+      if (!atc || atc[assetType] === 0) {
+        return false;
+      }
+
+      // For products: check affectedProducts
+      if (assetType === 'products') {
+        const affected = issue.affectedProducts ?? [];
+        return affected.length === 0 || affected.includes(assetId);
+      }
+
+      // For pages: check affectedPages
+      if (assetType === 'pages') {
+        const affected = issue.affectedPages ?? [];
+        return affected.length === 0 || affected.includes(assetId);
+      }
+
+      // For collections: no specific ID filtering yet (store-wide)
+      return true;
+    });
+
+    // Apply optional filters
+    if (filters) {
+      const { pillar, pillars, severity } = filters;
+
+      const pillarsToFilter = pillars || (pillar ? [pillar] : undefined);
+      if (pillarsToFilter && pillarsToFilter.length > 0) {
+        issues = issues.filter((issue) => issue.pillarId && pillarsToFilter.includes(issue.pillarId));
+      }
+
+      if (severity) {
+        issues = issues.filter((issue) => issue.severity === severity);
+      }
+    }
+
+    // Compute canonical triplet summary for this asset's issues
+    const computeTriplet = (issueSubset: DeoIssue[], onlyActionable: boolean): CanonicalCountTriplet => {
+      const filteredIssues = onlyActionable
+        ? issueSubset.filter((i) => i.isActionableNow === true)
+        : issueSubset;
+
+      const issueTypesCount = filteredIssues.length;
+      // For asset-specific view, affectedItemsCount is always 1 (this asset)
+      const affectedItemsCount = filteredIssues.length > 0 ? 1 : 0;
+      const actionableNowCount = onlyActionable && filteredIssues.length > 0 ? 1 : 0;
+
+      return {
+        issueTypesCount,
+        affectedItemsCount,
+        actionableNowCount,
+      };
+    };
+
+    const detected = computeTriplet(issues, false);
+    const actionable = computeTriplet(issues, true);
+
+    // Compute byPillar breakdown
+    const byPillar: AssetIssuesResponse['summary']['byPillar'] = {} as any;
+    for (const p of DEO_PILLARS) {
+      const pillarIssues = issues.filter((i) => i.pillarId === p.id);
+      byPillar[p.id] = {
+        detected: computeTriplet(pillarIssues, false),
+        actionable: computeTriplet(pillarIssues, true),
+      };
+    }
+
+    // Compute bySeverity breakdown
+    const severities: Array<'critical' | 'warning' | 'info'> = ['critical', 'warning', 'info'];
+    const bySeverity: AssetIssuesResponse['summary']['bySeverity'] = {} as any;
+    for (const sev of severities) {
+      const sevIssues = issues.filter((i) => i.severity === sev);
+      bySeverity[sev] = {
+        detected: computeTriplet(sevIssues, false),
+        actionable: computeTriplet(sevIssues, true),
+      };
+    }
+
+    return {
+      projectId,
+      assetType,
+      assetId,
+      generatedAt: response.generatedAt,
+      issues,
+      summary: {
+        detected,
+        actionable,
+        byPillar,
+        bySeverity,
+      },
     };
   }
 

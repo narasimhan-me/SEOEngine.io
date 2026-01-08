@@ -843,6 +843,52 @@ export const projectsApi = {
   // COUNT-INTEGRITY-1: Canonical server-side counts summary
   issueCountsSummary: (id: string) => fetchWithAuth(`/projects/${id}/issues/counts-summary`),
 
+  // COUNT-INTEGRITY-1.1: Canonical triplet counts summary with explicit labels
+  canonicalIssueCountsSummary: (
+    id: string,
+    filters?: {
+      actionKey?: string;
+      actionKeys?: string[];
+      scopeType?: 'products' | 'pages' | 'collections';
+      pillar?: string;
+      pillars?: string[];
+      severity?: 'critical' | 'warning' | 'info';
+    }
+  ) => {
+    const params = new URLSearchParams();
+    if (filters?.actionKey) params.append('actionKey', filters.actionKey);
+    if (filters?.actionKeys) filters.actionKeys.forEach(k => params.append('actionKeys', k));
+    if (filters?.scopeType) params.append('scopeType', filters.scopeType);
+    if (filters?.pillar) params.append('pillar', filters.pillar);
+    if (filters?.pillars) filters.pillars.forEach(p => params.append('pillars', p));
+    if (filters?.severity) params.append('severity', filters.severity);
+
+    const queryString = params.toString();
+    const url = `/projects/${id}/issues/canonical-summary${queryString ? `?${queryString}` : ''}`;
+    return fetchWithAuth(url);
+  },
+
+  // COUNT-INTEGRITY-1.1: Asset-specific issues with canonical triplet summary
+  assetIssues: (
+    id: string,
+    assetType: 'products' | 'pages' | 'collections',
+    assetId: string,
+    filters?: {
+      pillar?: string;
+      pillars?: string[];
+      severity?: 'critical' | 'warning' | 'info';
+    }
+  ) => {
+    const params = new URLSearchParams();
+    if (filters?.pillar) params.append('pillar', filters.pillar);
+    if (filters?.pillars) filters.pillars.forEach(p => params.append('pillars', p));
+    if (filters?.severity) params.append('severity', filters.severity);
+
+    const queryString = params.toString();
+    const url = `/projects/${id}/assets/${assetType}/${assetId}/issues${queryString ? `?${queryString}` : ''}`;
+    return fetchWithAuth(url);
+  },
+
   crawlPages: (id: string) => fetchWithAuth(`/projects/${id}/crawl-pages`),
 
   recomputeDeoScoreSync: (id: string) =>

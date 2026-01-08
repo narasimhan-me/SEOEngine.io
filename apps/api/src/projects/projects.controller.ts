@@ -29,6 +29,10 @@ import {
   DeoScoreSignals,
   ProjectAnswerabilityResponse,
   IssueCountsSummary,
+  CanonicalIssueCountsSummary,
+  AssetIssuesResponse,
+  type IssueAssetTypeKey,
+  type DeoPillarId,
 } from '@engineo/shared';
 import { deoScoreQueue, crawlQueue } from '../queues/queues';
 import { AnswerEngineService } from './answer-engine.service';
@@ -194,6 +198,69 @@ export class ProjectsController {
     @Param('id') projectId: string,
   ): Promise<IssueCountsSummary> {
     return this.deoIssuesService.getIssueCountsSummaryForProject(projectId, req.user.id);
+  }
+
+  /**
+   * GET /projects/:id/issues/canonical-summary
+   * COUNT-INTEGRITY-1.1: Canonical triplet counts with explicit UX labels.
+   * Query params: actionKey, actionKeys[], scopeType, pillar, pillars[], severity
+   */
+  @Get(':id/issues/canonical-summary')
+  async getCanonicalIssueCountsSummary(
+    @Request() req: any,
+    @Param('id') projectId: string,
+    @Query('actionKey') actionKey?: string,
+    @Query('actionKeys') actionKeys?: string | string[],
+    @Query('scopeType') scopeType?: IssueAssetTypeKey,
+    @Query('pillar') pillar?: DeoPillarId,
+    @Query('pillars') pillars?: string | string[],
+    @Query('severity') severity?: 'critical' | 'warning' | 'info',
+  ): Promise<CanonicalIssueCountsSummary> {
+    // Normalize array query params
+    const actionKeysArray = Array.isArray(actionKeys) ? actionKeys : actionKeys ? [actionKeys] : undefined;
+    const pillarsArray = Array.isArray(pillars)
+      ? pillars as DeoPillarId[]
+      : pillars
+      ? [pillars as DeoPillarId]
+      : undefined;
+
+    return this.deoIssuesService.getCanonicalIssueCountsSummary(projectId, req.user.id, {
+      actionKey,
+      actionKeys: actionKeysArray,
+      scopeType,
+      pillar,
+      pillars: pillarsArray,
+      severity,
+    });
+  }
+
+  /**
+   * GET /projects/:id/assets/:assetType/:assetId/issues
+   * COUNT-INTEGRITY-1.1: Asset-specific issues with canonical triplet summary.
+   * Query params: pillar, pillars[], severity
+   */
+  @Get(':id/assets/:assetType/:assetId/issues')
+  async getAssetIssues(
+    @Request() req: any,
+    @Param('id') projectId: string,
+    @Param('assetType') assetType: IssueAssetTypeKey,
+    @Param('assetId') assetId: string,
+    @Query('pillar') pillar?: DeoPillarId,
+    @Query('pillars') pillars?: string | string[],
+    @Query('severity') severity?: 'critical' | 'warning' | 'info',
+  ): Promise<AssetIssuesResponse> {
+    // Normalize array query params
+    const pillarsArray = Array.isArray(pillars)
+      ? pillars as DeoPillarId[]
+      : pillars
+      ? [pillars as DeoPillarId]
+      : undefined;
+
+    return this.deoIssuesService.getAssetIssues(projectId, req.user.id, assetType, assetId, {
+      pillar,
+      pillars: pillarsArray,
+      severity,
+    });
   }
 
   /**

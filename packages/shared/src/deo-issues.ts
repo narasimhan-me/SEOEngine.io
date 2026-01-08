@@ -268,6 +268,11 @@ export interface DeoIssuesResponse {
   issues: DeoIssue[];
 }
 
+/**
+ * COUNT-INTEGRITY-1 (legacy v1 groups/instances): Bucket with detected/actionable groups and instances.
+ * Groups = issue types aggregated across assets (issue rows)
+ * Instances = (issueType + assetId) occurrences
+ */
 export interface IssueCountsBucket {
   detectedGroups: number;
   actionableGroups: number;
@@ -276,7 +281,7 @@ export interface IssueCountsBucket {
 }
 
 /**
- * COUNT-INTEGRITY-1: Single source of truth for issue counts across the product.
+ * COUNT-INTEGRITY-1 (legacy v1 groups/instances): Single source of truth for issue counts across the product.
  * "Groups" = issue types aggregated across assets (issue rows)
  * "Instances" = (issueType + assetId) occurrences
  */
@@ -291,4 +296,84 @@ export interface IssueCountsSummary {
   bySeverity: Record<DeoIssueSeverity, IssueCountsBucket>;
   byAssetType: Record<IssueAssetTypeKey, IssueCountsBucket>;
   byIssueType: Record<string, IssueCountsBucket>;
+}
+
+/**
+ * COUNT-INTEGRITY-1.1: Canonical triplet count contract with explicit labeled semantics.
+ * All three counts MUST be displayed with their explicit labels in UI:
+ * - issueTypesCount → "Issue types" or "N issue types"
+ * - affectedItemsCount → "Items affected" or "N items affected"
+ * - actionableNowCount → "Actionable now" or "N actionable now"
+ */
+export interface CanonicalCountTriplet {
+  issueTypesCount: number;
+  affectedItemsCount: number;
+  actionableNowCount: number;
+}
+
+/**
+ * COUNT-INTEGRITY-1.1: Canonical summary response with triplet counts for detected/actionable modes.
+ * Replaces mixed v1 "groups/instances" semantics with explicit UX-labeled counts.
+ * Backend computes deduped unique assets; UI displays only (no client-side recomputation).
+ */
+export interface CanonicalIssueCountsSummary {
+  projectId: string;
+  generatedAt: string; // ISO timestamp
+
+  // Echoed filters for cache key validation
+  filters?: {
+    actionKey?: string;
+    actionKeys?: string[];
+    scopeType?: IssueAssetTypeKey;
+    pillar?: DeoPillarId;
+    pillars?: DeoPillarId[];
+    severity?: DeoIssueSeverity;
+  };
+
+  // Triplet counts for detected mode (all issues including informational)
+  detected: CanonicalCountTriplet;
+
+  // Triplet counts for actionable mode (only isActionableNow=true issues)
+  actionable: CanonicalCountTriplet;
+
+  // Breakdown by pillar (for pillar filter badges)
+  byPillar: Record<DeoPillarId, {
+    detected: CanonicalCountTriplet;
+    actionable: CanonicalCountTriplet;
+  }>;
+
+  // Breakdown by severity (for severity filter badges)
+  bySeverity: Record<DeoIssueSeverity, {
+    detected: CanonicalCountTriplet;
+    actionable: CanonicalCountTriplet;
+  }>;
+}
+
+/**
+ * COUNT-INTEGRITY-1.1: Response for asset-specific issues endpoint.
+ * Returns filtered issue list + canonical triplet summary for a specific asset.
+ * Used by asset detail pages (products, pages, collections).
+ */
+export interface AssetIssuesResponse {
+  projectId: string;
+  assetType: IssueAssetTypeKey;
+  assetId: string;
+  generatedAt: string; // ISO timestamp
+
+  // Filtered issue list (respects pillar/severity/actionability filters)
+  issues: DeoIssue[];
+
+  // Canonical triplet summary for this asset's issues
+  summary: {
+    detected: CanonicalCountTriplet;
+    actionable: CanonicalCountTriplet;
+    byPillar: Record<DeoPillarId, {
+      detected: CanonicalCountTriplet;
+      actionable: CanonicalCountTriplet;
+    }>;
+    bySeverity: Record<DeoIssueSeverity, {
+      detected: CanonicalCountTriplet;
+      actionable: CanonicalCountTriplet;
+    }>;
+  };
 }
