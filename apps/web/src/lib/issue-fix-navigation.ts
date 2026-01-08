@@ -28,7 +28,9 @@ export type FromContext =
   | 'collections'
   | 'overview'
   | 'deo'
-  | 'product_issues';
+  | 'product_issues'
+  | 'playbook_preview'
+  | 'playbook_results';
 
 /**
  * Human-readable labels for navigation origins.
@@ -43,6 +45,8 @@ export const FROM_CONTEXT_LABELS: Record<FromContext, string> = {
   overview: 'Overview',
   deo: 'DEO Overview',
   product_issues: 'Product Issues',
+  playbook_preview: 'Playbook Preview',
+  playbook_results: 'Playbook Results',
 };
 
 /**
@@ -58,6 +62,8 @@ export const FROM_CONTEXT_ROUTES: Record<FromContext, (projectId: string) => str
   overview: (projectId) => `/projects/${projectId}/overview`,
   deo: (projectId) => `/projects/${projectId}/deo`,
   product_issues: (projectId) => `/projects/${projectId}/issues`,
+  playbook_preview: (projectId) => `/projects/${projectId}/automation/playbooks`,
+  playbook_results: (projectId) => `/projects/${projectId}/automation/playbooks`,
 };
 
 // =============================================================================
