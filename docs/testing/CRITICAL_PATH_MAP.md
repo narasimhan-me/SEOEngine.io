@@ -225,8 +225,8 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md` |
-| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/web/tests/issue-to-fix-path-1.spec.ts`, `apps/web/tests/count-integrity-1.spec.ts` ✅ |
+| **Manual Testing Doc(s)** | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md` |
+| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/web/tests/issue-to-fix-path-1.spec.ts`, `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/zero-affected-suppression-1.spec.ts` ✅ |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | Frontend Team |
@@ -260,6 +260,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] COUNT-INTEGRITY-1: Work Queue ASSET_OPTIMIZATION bundles route to Issues page with actionKey, scopeType, mode, pillar query params
 - [ ] COUNT-INTEGRITY-1: Work Queue card shows detected count in parentheses when different from actionable (e.g., "3 actionable (5 detected)")
 - [ ] COUNT-INTEGRITY-1: Work Queue card shows "Informational — no action required" when scopeCount = 0
+- [ ] ZERO-AFFECTED-SUPPRESSION-1: Work Queue suppresses automation/playbook tiles when eligible count is 0 (no dead-end CTAs)
 - [ ] COUNT-INTEGRITY-1: Issues page URL contract preserved (actionKey + scopeType + mode + pillar)
 - [ ] COUNT-INTEGRITY-1: Preview list shows issue titles (not asset titles) for ASSET_OPTIMIZATION bundles
 - [ ] COUNT-INTEGRITY-1: scopeCount = actionable issue-group count, scopeDetectedCount = detected issue-group count
@@ -366,8 +367,8 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/automation-engine.md`, `docs/testing/automation-engine-product-automations.md`, `docs/manual-testing/phase-ae-1-automation-engine-foundations.md`, `docs/manual-testing/phase-ae-2-product-automations.md`, `docs/manual-testing/phase-aue-1-automation-new-product-seo-title.md`, `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-automation-1-playbooks.md`, `docs/manual-testing/auto-pb-1-1-playbooks-hardening.md`, `docs/manual-testing/auto-pb-1-2-playbooks-ux-coherence.md`, `docs/manual-testing/AUTOMATION-ENTRY-1.md` |
-| **Automated Tests** | `apps/api/test/e2e/automation-new-product-seo-title.e2e-spec.ts`, `apps/api/test/e2e/automation-playbooks.e2e-spec.ts`, `apps/web/tests/first-deo-win.spec.ts`, `apps/web/tests/automation-entry-1.spec.ts` |
+| **Manual Testing Doc(s)** | `docs/testing/automation-engine.md`, `docs/testing/automation-engine-product-automations.md`, `docs/manual-testing/phase-ae-1-automation-engine-foundations.md`, `docs/manual-testing/phase-ae-2-product-automations.md`, `docs/manual-testing/phase-aue-1-automation-new-product-seo-title.md`, `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-automation-1-playbooks.md`, `docs/manual-testing/auto-pb-1-1-playbooks-hardening.md`, `docs/manual-testing/auto-pb-1-2-playbooks-ux-coherence.md`, `docs/manual-testing/AUTOMATION-ENTRY-1.md`, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md` |
+| **Automated Tests** | `apps/api/test/e2e/automation-new-product-seo-title.e2e-spec.ts`, `apps/api/test/e2e/automation-playbooks.e2e-spec.ts`, `apps/web/tests/first-deo-win.spec.ts`, `apps/web/tests/automation-entry-1.spec.ts`, `apps/web/tests/zero-affected-suppression-1.spec.ts` ✅ |
 | **Last Verified (Manual)** | 2025-12-14 |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | DEO Team |
@@ -409,6 +410,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] AUTO-PB-1.1: Rate limit retry with bounded retries (up to 2)
 - [ ] AUTO-PB-1.1: Daily AI limit reached stops playbook with LIMIT_REACHED status
 - [ ] AUTO-PB-1.2: Playbooks wizard enforces eligibility gating, single primary actions, navigation safety, and post-apply results persistence (including Back to Playbook results from Products)
+- [ ] ZERO-AFFECTED-SUPPRESSION-1: Playbooks 0-eligible state hides stepper + Apply CTAs and shows calm empty state
 - [ ] AUTO-PB-1.3 (Planned): Preview Persistence & Cross-Surface Drafts – persistent AI drafts survive navigation, reused across Playbooks and Product detail surfaces
 - [ ] AUTOMATION-ENTRY-1: Entry points limited to Products bulk, Product Details, and Playbooks "Create playbook"
 - [ ] AUTOMATION-ENTRY-1: Scope visible before any AI configuration

@@ -120,6 +120,55 @@ export class E2eTestkitController {
   }
 
   /**
+   * POST /testkit/e2e/seed-work-queue-zero-eligible-draft
+   * Seed a Pro-plan user + project where products have complete SEO metadata (eligibleCount = 0),
+   * but an existing AutomationPlaybookDraft exists (simulating a stale/broken Work Queue tile scenario).
+   * Used to verify ZERO-AFFECTED-SUPPRESSION-1 Work Queue suppression (no dead-end CTAs).
+   */
+  @Post('seed-work-queue-zero-eligible-draft')
+  async seedWorkQueueZeroEligibleDraft() {
+    this.ensureE2eMode();
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+    const products = await createTestProducts(this.prisma as any, {
+      projectId: project.id,
+      count: 3,
+      withSeo: true,
+      withIssues: false,
+    });
+    await this.prisma.automationPlaybookDraft.create({
+      data: {
+        projectId: project.id,
+        playbookId: 'missing_seo_title',
+        scopeId: 'test-scope-id',
+        rulesHash: 'test-rules-hash',
+        status: 'READY',
+        createdByUserId: user.id,
+        sampleProductIds: products.map((p) => p.id) as unknown as any,
+        draftItems: [] as unknown as any,
+        counts: {
+          affectedTotal: products.length,
+          draftGenerated: products.length,
+          noSuggestionCount: 0,
+        } as unknown as any,
+        rules: { enabled: false } as unknown as any,
+      },
+    });
+    const accessToken = this.jwtService.sign({ sub: user.id });
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+      projectId: project.id,
+      accessToken,
+    };
+  }
+  /**
    * POST /testkit/e2e/connect-shopify
    *
    * In E2E mode, creates a mocked Shopify integration for the project.

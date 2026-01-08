@@ -1965,9 +1965,40 @@ export default function AutomationPlaybooksPage() {
       )}
 
       {selectedDefinition && (
-        <div className="space-y-6">
+        isEligibilityEmptyState ? (
+          <div
+            className="rounded-lg border border-gray-200 bg-white p-6"
+            data-testid="playbook-zero-eligible-empty-state"
+          >
+            <h2 className="text-lg font-semibold text-gray-900">No eligible items right now</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              No eligible items right now. This playbook only applies to products missing SEO{' '}
+              {selectedDefinition.field === 'seoTitle' ? 'titles' : 'descriptions'} in the current scope.
+            </p>
+            <p className="mt-2 text-sm text-gray-600">
+              Common reasons: products are already optimized, the selected scope is out of date, or Shopify data hasn&apos;t been synced recently.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => handleNavigate(`/projects/${projectId}/products`)}
+                className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                View products that need optimization
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSyncToShopify()}
+                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+              >
+                Sync from Shopify
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
           {/* Stepper */}
-          <div className="flex items-center gap-4 text-sm">
+          <div data-testid="playbooks-stepper" className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-2">
               <span
                 className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
@@ -2078,35 +2109,8 @@ export default function AutomationPlaybooksPage() {
 
           {/* Step 1: Preview */}
           <section className="rounded-lg border border-gray-200 bg-white p-4">
-            {isEligibilityEmptyState ? (
-              <div className="space-y-3">
-                <div>
-                  <h2 className="text-sm font-semibold text-gray-900">
-                    Step 0 – Eligibility
-                  </h2>
-                  <p className="text-xs text-gray-600">
-                    No products currently qualify for this playbook. When your
-                    products match this playbook&apos;s criteria, you&apos;ll be able
-                    to generate a preview and run an estimate.
-                  </p>
-                </div>
-                <p className="text-xs text-gray-600">
-                  Use the Products view to find and optimize items that still need SEO
-                  improvements.
-                </p>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleNavigate(`/projects/${projectId}/products`)
-                  }
-                  className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  View products that need optimization
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="mb-3 flex items-center justify-between gap-2">
+            <>
+              <div className="mb-3 flex items-center justify-between gap-2">
                   <div>
                     <h2 className="text-sm font-semibold text-gray-900">
                       Step 1 – Preview changes
@@ -2472,7 +2476,7 @@ export default function AutomationPlaybooksPage() {
                               : estimateBlockingReasons.includes(
                                     'no_affected_products',
                                   )
-                                ? "No products currently match this playbook's criteria."
+                                ? "No eligible items right now."
                                 : estimateBlockingReasons.includes('plan_not_eligible')
                                   ? 'This playbook requires a Pro or Business plan. Upgrade to unlock bulk automations.'
                                   : 'This playbook cannot run with the current estimate. Adjust your setup to continue.'}
@@ -2540,8 +2544,7 @@ export default function AutomationPlaybooksPage() {
                     </button>
                   )}
                 </div>
-              </>
-            )}
+            </>
           </section>
 
           {/* Step 2: Estimate */}
@@ -2608,7 +2611,7 @@ export default function AutomationPlaybooksPage() {
                       </li>
                     )}
                     {estimateBlockingReasons.includes('no_affected_products') && (
-                      <li>No products currently match this playbook&apos;s criteria.</li>
+                      <li>No eligible items right now.</li>
                     )}
                     {estimateBlockingReasons.includes('ai_daily_limit_reached') && (
                       <li>
@@ -3252,7 +3255,8 @@ export default function AutomationPlaybooksPage() {
               )}
             </div>
           </section>
-        </div>
+          </div>
+        )
       )}
     </div>
   );

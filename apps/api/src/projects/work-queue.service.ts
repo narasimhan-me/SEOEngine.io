@@ -505,6 +505,8 @@ export class WorkQueueService {
           if (estimate.totalAffectedProducts === 0 && !latestDraft) {
             continue;
           }
+          // ZERO-AFFECTED-SUPPRESSION-1: Eligibility gating is applied after state derivation
+          // so Applied Recently bundles can still surface even when eligibility is now 0.
 
           // Get draft timestamps directly from database if draft exists
           let draftTimestamps: { createdAt: Date; updatedAt: Date } | null = null;
@@ -635,6 +637,12 @@ export class WorkQueueService {
             }
           }
 
+          // [ASSETS-PAGES-1.1] Get scope preview list based on asset type
+          // ZERO-AFFECTED-SUPPRESSION-1: 0 eligible = no action surfaces.
+          // Suppress non-applied automation bundles when nothing is eligible.
+          if (estimate.totalAffectedProducts === 0 && state !== 'APPLIED') {
+            continue;
+          }
           // [ASSETS-PAGES-1.1] Get scope preview list based on asset type
           let scopePreviewList: string[] = [];
           if (assetConfig.assetType === 'PRODUCTS') {

@@ -147,18 +147,24 @@ export function ActionBundleCard({
           </>
         ) : (
           <>
-            Applies to{' '}
-            <span className="font-medium">
-              {bundle.scopeCount} {getScopeTypeLabel(bundle.scopeType, bundle.scopeCount)}
-            </span>
-            {bundle.scopePreviewList.length > 0 && (
+            {bundle.scopeCount === 0 ? (
+              <span className="text-gray-500">No eligible items right now — nothing to fix right now</span>
+            ) : (
               <>
-                :{' '}
-                <span className="text-gray-500">
-                  {bundle.scopePreviewList.slice(0, 5).join(', ')}
-                  {bundle.scopePreviewList.length > 5 &&
-                    ` ${bundle.scopePreviewList[bundle.scopePreviewList.length - 1]}`}
+                Applies to{' '}
+                <span className="font-medium">
+                  {bundle.scopeCount} {getScopeTypeLabel(bundle.scopeType, bundle.scopeCount)}
                 </span>
+                {bundle.scopePreviewList.length > 0 && (
+                  <>
+                    :{' '}
+                    <span className="text-gray-500">
+                      {bundle.scopePreviewList.slice(0, 5).join(', ')}
+                      {bundle.scopePreviewList.length > 5 &&
+                        ` ${bundle.scopePreviewList[bundle.scopePreviewList.length - 1]}`}
+                    </span>
+                  </>
+                )}
               </>
             )}
           </>
@@ -345,6 +351,14 @@ function deriveCtas(
     };
   }
 
+  // ZERO-AFFECTED-SUPPRESSION-1: 0 eligible = no action surfaces (except Applied Recently history).
+  if (bundleType === 'AUTOMATION_RUN' && bundle.scopeCount === 0 && state !== 'APPLIED') {
+    return {
+      primaryCta: null,
+      secondaryCta: null,
+      disabledReason: 'No eligible items right now — nothing to fix right now',
+    };
+  }
   // State-driven CTAs
   switch (state) {
     case 'NEW':

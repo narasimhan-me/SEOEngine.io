@@ -376,7 +376,47 @@ Trust-critical UX hardening for issue→fix path navigation.
 
 ---
 
-## In Progress
+## Completed Phases (Chronological)
+
+### Trust Hardening
+
+### Phase ZERO-AFFECTED-SUPPRESSION-1: Zero-Eligible Action Surface Suppression (Trust Hardening) ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-08
+
+Trust principle: "If the system shows an action, the user must be able to take that action meaningfully."
+
+Core contract (locked): 0 eligible = no action surfaces.
+- Work Queue: suppress AUTOMATION_RUN tiles with scopeCount === 0 from actionable tabs; no dead-end CTAs.
+- Playbooks: when eligibility is 0, hide Preview/Estimate/Apply stepper + Apply semantics and show a calm empty state.
+- Copy: use "No eligible items right now" consistently (avoid "Applies to 0…" / "0 affected").
+
+### Key Features
+
+1. **Work Queue Suppression**: Automation bundles with 0 eligible items suppressed from actionable tabs (except Applied Recently history)
+2. **Playbooks Empty State**: Calm empty state replaces stepper when eligibility is 0
+3. **Consistent Copy**: "No eligible items right now" across all surfaces
+4. **CTA Gating**: No dead-end action CTAs for 0-eligible automation actions
+
+### Core Files
+
+**Backend:**
+- apps/api/src/projects/work-queue.service.ts
+- apps/api/src/testkit/e2e-testkit.controller.ts
+
+**Frontend:**
+- apps/web/src/components/work-queue/ActionBundleCard.tsx
+- apps/web/src/app/projects/[id]/automation/playbooks/page.tsx
+
+### Test Coverage
+- **Automated Tests:** zero-affected-suppression-1.spec.ts
+- **Manual Testing:** ZERO-AFFECTED-SUPPRESSION-1.md
+
+### Critical Paths
+- CRITICAL_PATH_MAP.md (CP-008, CP-012)
+
+---
 
 ### Phase COUNT-INTEGRITY-1: Count Integrity Trust Hardening ✅ COMPLETE
 
@@ -578,6 +618,12 @@ Establishes count integrity as a core trust contract across the product by:
 
 ---
 
+## In Progress
+
+*None at this time.*
+
+---
+
 ## Planned / Pending
 
 ### Phase GTM-ONBOARD-1: Guided Onboarding & First DEO Win 📄 DOCS COMPLETE — IMPLEMENTATION PENDING
@@ -755,3 +801,4 @@ These invariants MUST be preserved during implementation:
 | 5.5 | 2026-01-07 | **COVERAGE-AND-PLAN-ALIGNMENT-1 FIXUP-1**: Smoke tests tightened to "one test per phase"; Billing smoke route corrected to `/settings/billing`; Media smoke corrected to `/projects/{projectId}/media`; AUTO-PB-1 canonical manual testing doc link corrected to `phase-automation-1-playbooks.md`. |
 | 5.6 | 2026-01-07 | **COVERAGE-AND-PLAN-ALIGNMENT-1 FIXUP-2**: MEDIA-1 smoke test tightened to avoid false positives by keying "scorecard present" to the "Media Accessibility Score" section heading (not generic text like "Accessibility"). |
 | 5.7 | 2026-01-07 | **COVERAGE-AND-PLAN-ALIGNMENT-1 FIXUP-3**: BILLING-GTM-1 core file paths corrected to real locations (`(marketing)/pricing/`, `settings/billing/`); AUTO-PB-1 core file path corrected to `/automation/playbooks/`; added missing manual testing links for BILLING-GTM-1, PRODUCTS-LIST-2.0, MEDIA-1. Documentation-only; no product/test behavior changes. |
+| 5.8 | 2026-01-08 | **ZERO-AFFECTED-SUPPRESSION-1 COMPLETE**: Zero-eligible action surface suppression (trust hardening). Work Queue suppresses AUTOMATION_RUN tiles with scopeCount === 0 from actionable tabs (except Applied Recently history). Playbooks shows calm empty state when eligibility is 0 (hides stepper + Apply CTAs). Consistent copy: "No eligible items right now". Added zero-affected-suppression-1.spec.ts E2E tests and ZERO-AFFECTED-SUPPRESSION-1.md manual testing doc. Updated CP-008 and CP-012. |
