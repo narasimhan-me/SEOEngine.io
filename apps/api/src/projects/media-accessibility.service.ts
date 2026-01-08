@@ -332,6 +332,9 @@ export class MediaAccessibilityService {
     let totalImagesWithGenericAlt = 0;
     let totalProductsWithOnlyOneImage = 0;
     let totalProductsWithNoContextualMedia = 0;
+    // [COUNT-INTEGRITY-1.1 PATCH 2.1] True product counters (not capped by sample arrays)
+    let trueProductCountWithMissingAlt = 0;
+    let trueProductCountWithGenericAlt = 0;
     const productsWithMissingAlt: string[] = [];
     const productsWithGenericAlt: string[] = [];
     const productsWithInsufficientCoverage: string[] = [];
@@ -342,6 +345,8 @@ export class MediaAccessibilityService {
 
       if (stats.imagesWithoutAlt > 0) {
         totalImagesWithoutAlt += stats.imagesWithoutAlt;
+        // [COUNT-INTEGRITY-1.1 PATCH 2.1] Increment true counter regardless of cap
+        trueProductCountWithMissingAlt++;
         if (productsWithMissingAlt.length < 20) {
           productsWithMissingAlt.push(product.id);
         }
@@ -349,6 +354,8 @@ export class MediaAccessibilityService {
 
       if (stats.imagesWithGenericAlt > 0) {
         totalImagesWithGenericAlt += stats.imagesWithGenericAlt;
+        // [COUNT-INTEGRITY-1.1 PATCH 2.1] Increment true counter regardless of cap
+        trueProductCountWithGenericAlt++;
         if (productsWithGenericAlt.length < 20) {
           productsWithGenericAlt.push(product.id);
         }
@@ -384,9 +391,11 @@ export class MediaAccessibilityService {
         id: `missing_image_alt_text_${projectId}`,
         type: 'missing_image_alt_text',
         title: 'Missing Image Alt Text',
-        description: `${totalImagesWithoutAlt} image${totalImagesWithoutAlt > 1 ? 's' : ''} across ${productsWithMissingAlt.length} product${productsWithMissingAlt.length > 1 ? 's' : ''} are missing alt text. This hurts accessibility and image/AI discovery.`,
+        // [COUNT-INTEGRITY-1.1 PATCH 2.1] Use true product count (not capped sample length)
+        description: `${totalImagesWithoutAlt} image${totalImagesWithoutAlt > 1 ? 's' : ''} across ${trueProductCountWithMissingAlt} product${trueProductCountWithMissingAlt > 1 ? 's' : ''} are missing alt text. This hurts accessibility and image/AI discovery.`,
         severity,
-        count: productsWithMissingAlt.length,
+        // [COUNT-INTEGRITY-1.1 PATCH 2.1] Use true product count (not capped sample length)
+        count: trueProductCountWithMissingAlt,
         affectedProducts: productsWithMissingAlt,
         primaryProductId: productsWithMissingAlt[0],
         pillarId: 'media_accessibility',
@@ -407,9 +416,11 @@ export class MediaAccessibilityService {
         id: `generic_image_alt_text_${projectId}`,
         type: 'generic_image_alt_text',
         title: 'Generic Image Alt Text',
-        description: `${totalImagesWithGenericAlt} image${totalImagesWithGenericAlt > 1 ? 's' : ''} across ${productsWithGenericAlt.length} product${productsWithGenericAlt.length > 1 ? 's' : ''} have generic or unhelpful alt text like "product image" or just the product name.`,
+        // [COUNT-INTEGRITY-1.1 PATCH 2.1] Use true product count (not capped sample length)
+        description: `${totalImagesWithGenericAlt} image${totalImagesWithGenericAlt > 1 ? 's' : ''} across ${trueProductCountWithGenericAlt} product${trueProductCountWithGenericAlt > 1 ? 's' : ''} have generic or unhelpful alt text like "product image" or just the product name.`,
         severity: 'warning',
-        count: productsWithGenericAlt.length,
+        // [COUNT-INTEGRITY-1.1 PATCH 2.1] Use true product count (not capped sample length)
+        count: trueProductCountWithGenericAlt,
         affectedProducts: productsWithGenericAlt,
         primaryProductId: productsWithGenericAlt[0],
         pillarId: 'media_accessibility',

@@ -25,6 +25,8 @@ import {
   WORK_QUEUE_IMPACT_RANKS,
   WORK_QUEUE_STATE_PRIORITY,
   WORK_QUEUE_HEALTH_PRIORITY,
+  // [COUNT-INTEGRITY-1.1 PATCH 2.3] Shared Issue→ActionKey mapper
+  getWorkQueueRecommendedActionKeyForIssue,
 } from '@engineo/shared';
 import type { DeoIssue, DeoIssueSeverity } from '@engineo/shared';
 import { ApprovalResourceType } from '@prisma/client';
@@ -805,6 +807,8 @@ export class WorkQueueService {
 
   /**
    * Group issues by recommended action key.
+   * [COUNT-INTEGRITY-1.1 PATCH 2.3] Now uses shared getWorkQueueRecommendedActionKeyForIssue
+   * to ensure deterministic mapping consistency with canonical summary filtering.
    */
   private groupIssuesByAction(issues: DeoIssue[]): Record<string, DeoIssue[]> {
     const groups: Record<string, DeoIssue[]> = {
@@ -815,22 +819,9 @@ export class WorkQueueService {
     };
 
     for (const issue of issues) {
-      // Map issue types to action keys based on pillarId and category
-      if (issue.pillarId === 'metadata_snippet_quality' || issue.type?.includes('metadata')) {
-        groups.FIX_MISSING_METADATA.push(issue);
-      } else if (issue.pillarId === 'technical_indexability' || issue.category === 'technical') {
-        groups.RESOLVE_TECHNICAL_ISSUES.push(issue);
-      } else if (issue.pillarId === 'search_intent_fit' || issue.intentType) {
-        groups.IMPROVE_SEARCH_INTENT.push(issue);
-      } else if (
-        issue.pillarId === 'content_commerce_signals' ||
-        issue.category === 'content_entity'
-      ) {
-        groups.OPTIMIZE_CONTENT.push(issue);
-      } else {
-        // Default to content optimization
-        groups.OPTIMIZE_CONTENT.push(issue);
-      }
+      // [COUNT-INTEGRITY-1.1 PATCH 2.3] Use shared mapper (single source of truth)
+      const actionKey = getWorkQueueRecommendedActionKeyForIssue(issue);
+      groups[actionKey].push(issue);
     }
 
     return groups;

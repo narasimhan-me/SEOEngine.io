@@ -389,3 +389,47 @@ export const WORK_QUEUE_HEALTH_PRIORITY: Record<WorkQueueHealth, number> = {
   NEEDS_ATTENTION: 200,
   HEALTHY: 300,
 } as const;
+
+// =============================================================================
+// [COUNT-INTEGRITY-1.1 PATCH 2.2] Shared Issue→ActionKey Mapper
+// =============================================================================
+
+/**
+ * Deterministic mapping from DeoIssue to WorkQueueRecommendedActionKey.
+ * Single source of truth shared by Work Queue derivation and canonical summary filtering.
+ *
+ * Mapping logic:
+ * - metadata_snippet_quality pillar OR metadata type → FIX_MISSING_METADATA
+ * - technical_indexability pillar OR technical category → RESOLVE_TECHNICAL_ISSUES
+ * - search_intent_fit pillar OR intentType present → IMPROVE_SEARCH_INTENT
+ * - content_commerce_signals pillar OR content_entity category → OPTIMIZE_CONTENT
+ * - Default fallback → OPTIMIZE_CONTENT
+ *
+ * @param issue - DeoIssue to classify
+ * @returns WorkQueueRecommendedActionKey for this issue
+ */
+export function getWorkQueueRecommendedActionKeyForIssue(
+  issue: {
+    pillarId?: string;
+    type?: string;
+    category?: string;
+    intentType?: string;
+  }
+): WorkQueueRecommendedActionKey {
+  // Map issue types to action keys based on pillarId and category
+  if (issue.pillarId === 'metadata_snippet_quality' || issue.type?.includes('metadata')) {
+    return 'FIX_MISSING_METADATA';
+  } else if (issue.pillarId === 'technical_indexability' || issue.category === 'technical') {
+    return 'RESOLVE_TECHNICAL_ISSUES';
+  } else if (issue.pillarId === 'search_intent_fit' || issue.intentType) {
+    return 'IMPROVE_SEARCH_INTENT';
+  } else if (
+    issue.pillarId === 'content_commerce_signals' ||
+    issue.category === 'content_entity'
+  ) {
+    return 'OPTIMIZE_CONTENT';
+  } else {
+    // Default to content optimization
+    return 'OPTIMIZE_CONTENT';
+  }
+}

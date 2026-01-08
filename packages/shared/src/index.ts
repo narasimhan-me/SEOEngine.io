@@ -240,4 +240,6 @@ export {
   validateAssetRefsForType,
   getPlaybookAssetType,
   PLAYBOOK_ASSET_TYPES,
+  // [COUNT-INTEGRITY-1.1 PATCH 2.2] Shared Issue→ActionKey mapper
+  getWorkQueueRecommendedActionKeyForIssue,
 } from './work-queue';
