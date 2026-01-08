@@ -225,8 +225,8 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md` |
-| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/web/tests/issue-to-fix-path-1.spec.ts`, `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/zero-affected-suppression-1.spec.ts` ✅ |
+| **Manual Testing Doc(s)** | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.1.md` ⚠️, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md` |
+| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/web/tests/issue-to-fix-path-1.spec.ts`, `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/count-integrity-1-1.spec.ts` ⚠️ (backend API only), `apps/web/tests/zero-affected-suppression-1.spec.ts` ✅ |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | Frontend Team |
@@ -264,6 +264,11 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] COUNT-INTEGRITY-1: Issues page URL contract preserved (actionKey + scopeType + mode + pillar)
 - [ ] COUNT-INTEGRITY-1: Preview list shows issue titles (not asset titles) for ASSET_OPTIMIZATION bundles
 - [ ] COUNT-INTEGRITY-1: scopeCount = actionable issue-group count, scopeDetectedCount = detected issue-group count
+- [ ] COUNT-INTEGRITY-1.1: Backend filtering deterministic (actionKey uses shared mapper, asset endpoint project-scoped) ⚠️ **BACKEND FILTERING ONLY - DEDUP + UI + SMOKE TEST PENDING**
+- [ ] COUNT-INTEGRITY-1.1: Canonical triplet endpoints (`/summary`) return triplet structure with all filters working
+- [ ] COUNT-INTEGRITY-1.1: **PENDING:** UI displays labeled triplet counts ("Issue types", "Items affected", "Actionable now") — NOT YET IMPLEMENTED
+- [ ] COUNT-INTEGRITY-1.1: **PENDING:** Required single cross-surface UI smoke test (Store Health → Work Queue → Issues → Asset Detail) — NOT YET IMPLEMENTED
+- [ ] COUNT-INTEGRITY-1.1: **LIMITATION:** affectedItemsCount accuracy only when issues affect ≤20 items (Gap 3 deduplication refactor pending)
 
 ---
 
@@ -273,8 +278,8 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/issue-engine-lite.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md` |
-| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `apps/web/tests/count-integrity-1.spec.ts` ✅ |
+| **Manual Testing Doc(s)** | `docs/testing/issue-engine-lite.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.1.md` ⚠️ |
+| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/count-integrity-1-1.spec.ts` ⚠️ (backend API only) |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | DEO Team |
@@ -297,6 +302,9 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] COUNT-INTEGRITY-1: VIEWER role sees all issues as detected (actionableCount = 0)
 - [ ] COUNT-INTEGRITY-1: Role-based actionability based on canGenerateDrafts OR canRequestApproval OR canApply
 - [ ] COUNT-INTEGRITY-1: issue.isActionableNow determines clickability (not href-based check)
+- [ ] COUNT-INTEGRITY-1.1: Backend canonical triplet endpoints functional (filtering works) ⚠️ **BACKEND FILTERING ONLY - UI MIGRATION PENDING**
+- [ ] COUNT-INTEGRITY-1.1: **PENDING:** Issues Engine displays labeled triplets ("Issue types", "Items affected", "Actionable now") — NOT YET IMPLEMENTED
+- [ ] COUNT-INTEGRITY-1.1: **LIMITATION:** affectedItemsCount accuracy only when issues affect ≤20 items (Gap 3 pending)
 
 ---
 

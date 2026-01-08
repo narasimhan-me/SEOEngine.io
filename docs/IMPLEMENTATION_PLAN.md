@@ -620,7 +620,42 @@ Establishes count integrity as a core trust contract across the product by:
 
 ## In Progress
 
-*None at this time.*
+### Phase COUNT-INTEGRITY-1.1: Canonical Triplet Counts + Explicit Labels ⚠️ BACKEND FILTERING COMPLETE — DEDUP + UI PENDING
+
+**Status:** Backend Filtering Complete (PATCH 0 + BATCH 2 + FIXUPS); Deduplication Accuracy + UI Migration + Required UI Smoke Test Pending
+**Date Started:** 2026-01-08
+
+#### Overview
+
+COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCount, affectedItemsCount, actionableNowCount) with explicit UX labels to replace mixed v1 "groups/instances" semantics. Backend filtering is complete; deduplication accuracy (Gap 3), UI migration (Gap 6), and required cross-surface UI smoke test (Gap 7) remain pending.
+
+#### Completed Patches
+
+- ✅ **PATCH 0:** Endpoint naming fixed (`/summary` primary, `/canonical-summary` alias)
+- ✅ **PATCH 1-3:** Canonical triplet types + backend endpoints + web client (initial delivery)
+- ✅ **PATCH 2.1:** Media issues count bug fixed (true counts, not capped sample length)
+- ✅ **PATCH 2.2:** Shared issue→actionKey mapper created in packages/shared
+- ✅ **PATCH 2.3:** Work Queue refactored to use shared mapper
+- ✅ **PATCH 2.4:** Real actionKey filtering implemented in canonical summary
+- ✅ **PATCH 2.5-FIXUP-1:** Asset-specific endpoint bugs fixed (ID→URL, project-scoped, deterministic empty)
+- ✅ **PATCH 2.6-FIXUP-1:** Deterministic Playwright backend API tests (8 tests, accessToken corrected)
+- ✅ **PATCH 2.7-FIXUP-1:** Documentation truthfulness updated (reflects incomplete status)
+
+#### Pending Work (BLOCKING UEP CONTRACT)
+
+- ⚠️ **Gap 3:** Asset deduplication refactor (affectedItemsCount wrong when >20 items) — **8-12 hours**
+- ⚠️ **Gap 6:** UI migration (Issues Engine, Store Health, Work Queue, Asset Details with labeled triplets) — **18-25 hours**
+- ⚠️ **Gap 7:** Required single cross-surface UI smoke test (UEP spec violation - current tests are backend API only) — **2-3 hours**
+
+**Total Remaining Effort:** 28-40 hours
+
+#### Manual Testing
+
+- `docs/manual-testing/COUNT-INTEGRITY-1.1.md` (backend filtering complete; notes dedup + UI + smoke test pending)
+
+#### Automated Tests
+
+- `apps/web/tests/count-integrity-1-1.spec.ts` (8 backend API tests; required UI smoke test missing)
 
 ---
 
