@@ -1,7 +1,7 @@
 # COUNT-INTEGRITY-1 Implementation Status
 
 **Phase:** COUNT-INTEGRITY-1: Count Integrity Trust Hardening
-**Status:** PATCH 1-5 + 10 COMPLETE (Backend + Work Queue + Documentation Complete, Issues Engine UI Pending)
+**Status:** PATCH 1-6 + 10 COMPLETE (Backend + Work Queue + Issues Engine UI Complete, Store Health + Playwright Tests Pending)
 **Date:** 2026-01-08
 **Last Updated:** 2026-01-08
 
@@ -137,13 +137,16 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
   - Includes pillar fallback for stable behavior
   - Routes PRODUCTS, PAGES, COLLECTIONS, and STORE_WIDE all to Issues page (not asset lists)
 
-### PATCH 6 - Issues Engine UI
-- ⚠️ **TODO:** Use `projectsApi.deoIssuesReadOnly()` instead of mutating version
-- ⚠️ **TODO:** Fetch and use `IssueCountsSummary` for all badge counts
-- ⚠️ **TODO:** Add `mode` (actionable/detected) query param and toggle
-- ⚠️ **TODO:** Filter by `actionKey` and `scopeType` from Work Queue routing
-- ⚠️ **TODO:** Use `issue.isActionableNow` for actionability instead of href-based check
-- ⚠️ **TODO:** Render informational issues as non-clickable
+### ✅ PATCH 6 - Issues Engine UI (COMPLETE)
+- ✅ **PATCH 6.1:** Switched to `projectsApi.deoIssuesReadOnly()` with parallel `issueCountsSummary()` fetch
+- ✅ **PATCH 6.2:** Added `IssueCountsSummary` state and used for severity badge counts (single source of truth)
+- ✅ **PATCH 6.3:** Added URL query param parsing: `mode`, `actionKey`, `scopeType`
+- ✅ **PATCH 6.4:** Implemented filtering pipeline: mode → actionKey → scopeType → UI filters
+- ✅ **PATCH 6.5:** Added mode toggle UI (Actionable/Detected buttons)
+- ✅ **PATCH 6.6:** Added click-integrity filter context banner when navigating from Work Queue
+- ✅ **PATCH 6.7:** Updated actionability logic to use `issue.isActionableNow` (server-computed, role-aware)
+- ✅ **PATCH 6.8:** Added test hooks (`data-testid` attributes) for Playwright tests
+- ✅ **PATCH 6.9:** Fixed TypeScript type error in actionKey filtering logic
 
 ### PATCH 7 - Store Health Pages
 - ⚠️ **TODO:** Update Store Health summaries to use "issues" language
@@ -207,7 +210,7 @@ interface IssueCountsSummary {
 7. ✅ ~~Fix Work Queue preview math and STORE_WIDE semantics (PATCH 4.1)~~ - COMPLETE
 8. ✅ ~~Update Work Queue Card UI and routing (PATCH 5)~~ - COMPLETE
 9. ✅ ~~Update documentation (PATCH 10)~~ - COMPLETE
-10. ⚠️ Update Issues Engine UI to consume IssueCountsSummary (PATCH 6)
+10. ✅ ~~Update Issues Engine UI to consume IssueCountsSummary (PATCH 6)~~ - COMPLETE
 11. ⚠️ Update Store Health pages (PATCH 7)
 12. ⚠️ Create Playwright regression tests (PATCH 9)
 

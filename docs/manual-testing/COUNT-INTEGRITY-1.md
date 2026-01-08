@@ -1,7 +1,7 @@
 # COUNT-INTEGRITY-1: Count Integrity Trust Hardening Manual Testing Guide
 
 **Phase:** COUNT-INTEGRITY-1
-**Status:** PATCH 1-5 + 4.1 Complete, PATCH 6-9 Pending
+**Status:** PATCH 1-6 + 10 Complete, PATCH 7 + 9 Pending
 **Date:** 2026-01-08
 
 ## Overview
@@ -74,11 +74,11 @@
 
 ---
 
-### Scenario 2: Detected vs Actionable Mode Toggle (Blocked until PATCH 6)
+### Scenario 2: Detected vs Actionable Mode Toggle
 
 **ID:** HP-002
 
-**Status:** ⚠️ **Blocked until PATCH 6** (Issues Engine UI not yet updated)
+**Status:** ✅ **Ready for Testing** (PATCH 6 complete)
 
 **Preconditions:**
 - Navigate to Issues page from Work Queue with mixed detected/actionable counts
@@ -124,11 +124,11 @@
 
 ---
 
-### Scenario 4: IssueCountsSummary Powers Summary Cards (Blocked until PATCH 6)
+### Scenario 4: IssueCountsSummary Powers Summary Cards
 
 **ID:** HP-004
 
-**Status:** ⚠️ **Blocked until PATCH 6** (Issues Engine UI not yet updated)
+**Status:** ✅ **Ready for Testing** (PATCH 6 complete)
 
 **Preconditions:**
 - Navigate to Issues page with no filters applied
@@ -149,11 +149,11 @@
 
 ---
 
-### Scenario 5: Scope Type Filtering (scopeType Query Param) (Blocked until PATCH 6)
+### Scenario 5: Scope Type Filtering (scopeType Query Param)
 
 **ID:** HP-005
 
-**Status:** ⚠️ **Blocked until PATCH 6** (Issues Engine UI not yet updated)
+**Status:** ✅ **Ready for Testing** (PATCH 6 complete)
 
 **Preconditions:**
 - Navigate to Issues page via Work Queue PRODUCTS bundle
@@ -271,11 +271,11 @@
 
 ## Test Scenarios (Error Conditions)
 
-### Scenario 10: API Error Handling (Counts Summary Fetch Fails) (Blocked until PATCH 6)
+### Scenario 10: API Error Handling (Counts Summary Fetch Fails)
 
 **ID:** ERR-001
 
-**Status:** ⚠️ **Blocked until PATCH 6** (Issues Engine UI not yet updated)
+**Status:** ✅ **Ready for Testing** (PATCH 6 complete)
 
 **Preconditions:**
 - Simulate API error for `/projects/{projectId}/issues/counts-summary`
@@ -414,7 +414,7 @@
 
 ## Notes
 
-- **PATCH 1-5 Complete:** Backend, Work Queue types, Work Queue derivation, Work Queue Card UI complete and testable
-- **PATCH 6-9 Pending:** Issues Engine UI, Store Health updates, Playwright tests not yet implemented
-- **Blocked Scenarios:** Scenarios marked "Blocked until PATCH X" cannot be tested until those patches are implemented
+- **PATCH 1-6 + 10 Complete:** Backend, Work Queue, Issues Engine UI, and Documentation complete and ready for testing
+- **PATCH 7 + 9 Pending:** Store Health updates and Playwright tests not yet implemented
+- **Ready for Testing:** Scenarios HP-002, HP-004, HP-005, and ERR-001 are now testable (PATCH 6 complete)
 - **Critical Path:** This testing guide covers CP-008 (Work Queue → Issues integrity) and CP-009 (Role-based actionability)

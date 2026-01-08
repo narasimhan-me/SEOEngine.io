@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 
-import type { DeoIssue, DeoIssueFixType } from '@/lib/deo-issues';
+import type { DeoIssue, DeoIssueFixType, IssueCountsSummary } from '@/lib/deo-issues';
 import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
 import { isAuthenticated, getToken } from '@/lib/auth';
 import { ApiError, aiApi, projectsApi, shopifyApi } from '@/lib/api';
@@ -91,6 +91,11 @@ export default function IssuesPage() {
   // Read pillar filter from URL query param (?pillar=metadata_snippet_quality)
   const pillarParam = searchParams.get('pillar') as DeoPillarId | null;
 
+  // [COUNT-INTEGRITY-1 PATCH 6] Read click-integrity filter params from Work Queue routing
+  const modeParam = searchParams.get('mode') as 'actionable' | 'detected' | null;
+  const actionKeyParam = searchParams.get('actionKey');
+  const scopeTypeParam = searchParams.get('scopeType') as 'PRODUCTS' | 'PAGES' | 'COLLECTIONS' | 'STORE_WIDE' | null;
+
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Read and validate returnTo context from URL
   const validatedNavContext = useMemo(() => {
     return getValidatedReturnTo(projectId, searchParams);
@@ -116,6 +121,7 @@ export default function IssuesPage() {
   }, [pathname, searchParams]);
 
   const [issues, setIssues] = useState<DeoIssue[]>([]);
+  const [countsSummary, setCountsSummary] = useState<IssueCountsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [projectName, setProjectName] = useState<string | null>(null);
@@ -177,8 +183,13 @@ export default function IssuesPage() {
     try {
       setLoading(true);
       setError('');
-      const response = await projectsApi.deoIssues(projectId);
-      setIssues(response.issues ?? []);
+      // [COUNT-INTEGRITY-1 PATCH 6] Use read-only endpoint + parallel counts summary fetch
+      const [issuesResponse, countsSummaryResponse] = await Promise.all([
+        projectsApi.deoIssuesReadOnly(projectId),
+        projectsApi.issueCountsSummary(projectId),
+      ]);
+      setIssues(issuesResponse.issues ?? []);
+      setCountsSummary(countsSummaryResponse);
     } catch (err: unknown) {
       console.error('Error fetching issues:', err);
       setError(err instanceof Error ? err.message : 'Failed to load issues');
@@ -238,23 +249,57 @@ export default function IssuesPage() {
     }
   };
 
-  // Compute counts by severity
-  // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Count only ACTIONABLE issues by severity using href-based check
-  // Actionable = buildIssueFixHref returns non-null (eliminates dead-click risk)
-  const criticalCount = issues.filter((i) => i.severity === 'critical' && buildIssueFixHref({ projectId, issue: i, from: 'issues' }) !== null).length;
-  const warningCount = issues.filter((i) => i.severity === 'warning' && buildIssueFixHref({ projectId, issue: i, from: 'issues' }) !== null).length;
-  const infoCount = issues.filter((i) => i.severity === 'info' && buildIssueFixHref({ projectId, issue: i, from: 'issues' }) !== null).length;
+  // [COUNT-INTEGRITY-1 PATCH 6] Use countsSummary for severity badge counts (single source of truth)
+  // Use actionableGroups (issue types) not actionableInstances (issue-asset pairs)
+  const criticalCount = countsSummary?.bySeverity?.critical?.actionableGroups ?? 0;
+  const warningCount = countsSummary?.bySeverity?.warning?.actionableGroups ?? 0;
+  const infoCount = countsSummary?.bySeverity?.info?.actionableGroups ?? 0;
 
-  // Filter issues by severity and pillar
+  // [COUNT-INTEGRITY-1 PATCH 6] Filter issues: mode → actionKey → scopeType → UI filters
   const filteredIssues = issues.filter((issue) => {
-    // Severity filter
+    // 1. Mode filter (actionable vs detected)
+    if (modeParam === 'actionable' && !issue.isActionableNow) {
+      return false;
+    }
+    // Note: mode=detected shows all issues (no filter needed)
+
+    // 2. Action key filter (from Work Queue routing)
+    if (actionKeyParam) {
+      // Replicate groupIssuesByAction logic from work-queue.service.ts
+      let matchesActionKey = false;
+      if (actionKeyParam === 'FIX_MISSING_METADATA') {
+        matchesActionKey = issue.pillarId === 'metadata_snippet_quality' || (issue.type?.includes('metadata') ?? false);
+      } else if (actionKeyParam === 'RESOLVE_TECHNICAL_ISSUES') {
+        matchesActionKey = issue.pillarId === 'technical_indexability' || issue.category === 'technical';
+      } else if (actionKeyParam === 'IMPROVE_SEARCH_INTENT') {
+        matchesActionKey = issue.pillarId === 'search_intent_fit' || Boolean(issue.intentType);
+      } else if (actionKeyParam === 'OPTIMIZE_CONTENT') {
+        matchesActionKey = issue.pillarId === 'content_commerce_signals' || issue.category === 'content_entity';
+      }
+      if (!matchesActionKey) {
+        return false;
+      }
+    }
+
+    // 3. Scope type filter (PRODUCTS/PAGES/COLLECTIONS/STORE_WIDE)
+    if (scopeTypeParam && scopeTypeParam !== 'STORE_WIDE') {
+      const assetTypeKey = scopeTypeParam.toLowerCase() as 'products' | 'pages' | 'collections';
+      if (!issue.assetTypeCounts || issue.assetTypeCounts[assetTypeKey] === 0) {
+        return false;
+      }
+    }
+    // Note: STORE_WIDE shows all issues (no filter needed)
+
+    // 4. Severity filter (existing UI filter)
     if (severityFilter !== 'all' && issue.severity !== severityFilter) {
       return false;
     }
-    // Pillar filter
+
+    // 5. Pillar filter (existing UI filter)
     if (pillarFilter !== 'all' && issue.pillarId !== pillarFilter) {
       return false;
     }
+
     return true;
   });
 
@@ -681,6 +726,46 @@ export default function IssuesPage() {
         </div>
       </div>
 
+      {/* [COUNT-INTEGRITY-1 PATCH 6] Click-integrity filter context banner */}
+      {(actionKeyParam || scopeTypeParam) && (
+        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4" data-testid="filter-context-banner">
+          <div className="flex items-start gap-3">
+            <svg className="h-5 w-5 flex-shrink-0 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-blue-900">Filtered from Work Queue</h3>
+              <div className="mt-1 text-sm text-blue-800">
+                {actionKeyParam && (
+                  <span>
+                    Action: <span className="font-medium">{actionKeyParam.replace(/_/g, ' ')}</span>
+                  </span>
+                )}
+                {actionKeyParam && scopeTypeParam && <span className="mx-2">•</span>}
+                {scopeTypeParam && (
+                  <span>
+                    Scope: <span className="font-medium">{scopeTypeParam === 'STORE_WIDE' ? 'Store-wide' : scopeTypeParam.toLowerCase()}</span>
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  params.delete('actionKey');
+                  params.delete('scopeType');
+                  params.delete('mode');
+                  const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+                  router.replace(newUrl, { scroll: false });
+                }}
+                className="mt-2 text-sm font-medium text-blue-700 hover:text-blue-800 underline"
+              >
+                Clear filters
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Filters Section */}
       <div className="mb-6 space-y-4">
         {/* Pillar Filter */}
@@ -718,6 +803,34 @@ export default function IssuesPage() {
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        {/* [COUNT-INTEGRITY-1 PATCH 6] Mode Toggle (Actionable/Detected) */}
+        <div>
+          <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
+            Issue Mode
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {(['actionable', 'detected'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  params.set('mode', mode);
+                  const newUrl = `?${params.toString()}`;
+                  router.replace(newUrl, { scroll: false });
+                }}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  (modeParam || 'actionable') === mode
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+                data-testid={`mode-toggle-${mode}`}
+              >
+                {mode === 'actionable' ? 'Actionable' : 'Detected'}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -785,14 +898,15 @@ export default function IssuesPage() {
             const safeTitle = getSafeIssueTitle(issue);
             const safeDescription = getSafeIssueDescription(issue);
             const fixAction = getFixAction(issue);
-            // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Compute href once, use for actionability check AND navigation
-            const fixHref = buildIssueFixHref({ projectId, issue, from: 'issues' });
-            const actionable = fixHref !== null;
+            // [COUNT-INTEGRITY-1 PATCH 6] Use server-computed isActionableNow for role-aware actionability
+            const actionable = issue.isActionableNow ?? false;
+            // Still compute fixHref for navigation (only used if actionable)
+            const fixHref = actionable ? buildIssueFixHref({ projectId, issue, from: 'issues' }) : null;
 
             return (
               <div
                 key={issue.id}
-                // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Test hooks use href-based actionability
+                // [COUNT-INTEGRITY-1 PATCH 6] Test hooks use isActionableNow
                 data-testid={actionable ? 'issue-card-actionable' : 'issue-card-informational'}
                 className="rounded-lg border border-gray-200 bg-white p-4"
               >
@@ -985,6 +1099,7 @@ export default function IssuesPage() {
                         handleOpenPreview(issue);
                       }}
                       disabled={fixingIssueId === issue.id}
+                      data-testid="issue-fix-next-button"
                       className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-purple-500 bg-purple-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {fixingIssueId === issue.id ? (
