@@ -44,7 +44,8 @@ export default function StoreHealthPage() {
   const [workQueue, setWorkQueue] = useState<WorkQueueResponse | null>(null);
   const [insights, setInsights] = useState<ProjectInsightsResponse | null>(null);
   const [aiQuota, setAiQuota] = useState<{ used: number; limit: number | null; remaining: number | null } | null>(null);
-  // [COUNT-INTEGRITY-1 PATCH 7] Add countsSummary for click-integrity counts
+  // [COUNT-INTEGRITY-1 PATCH 7] Add countsSummary for click-integrity counts (unused for now, reserved for future features)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [countsSummary, setCountsSummary] = useState<IssueCountsSummary | null>(null);
 
   const fetchData = useCallback(async () => {

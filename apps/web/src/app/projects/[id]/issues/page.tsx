@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 
 import type { DeoIssue, DeoIssueFixType, IssueCountsSummary } from '@/lib/deo-issues';
 import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
@@ -21,8 +20,6 @@ import {
 import {
   getValidatedReturnTo,
   buildBackLink,
-  getCurrentPathWithQuery,
-  type FromContext,
 } from '@/lib/issue-fix-navigation';
 
 type SeverityFilter = 'all' | 'critical' | 'warning' | 'info';
@@ -85,7 +82,6 @@ export default function IssuesPage() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
-  const pathname = usePathname();
   const projectId = params.id as string;
 
   // Read pillar filter from URL query param (?pillar=metadata_snippet_quality)
@@ -118,9 +114,10 @@ export default function IssuesPage() {
   }, [projectId, validatedNavContext]);
 
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Get current path for passing as returnTo to child navigation
-  const currentIssuesPath = useMemo(() => {
-    return getCurrentPathWithQuery(pathname, searchParams);
-  }, [pathname, searchParams]);
+  // Commented out for now - unused but kept for future navigation context
+  // const currentIssuesPath = useMemo(() => {
+  //   return getCurrentPathWithQuery(pathname, searchParams);
+  // }, [pathname, searchParams]);
 
   const [issues, setIssues] = useState<DeoIssue[]>([]);
   const [countsSummary, setCountsSummary] = useState<IssueCountsSummary | null>(null);
@@ -128,8 +125,13 @@ export default function IssuesPage() {
   const [countsSummaryWarning, setCountsSummaryWarning] = useState<string | null>(null);
 
   // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] Derive effective mode (with viewer/no-actionable detection)
-  const hasActionableIssues = (countsSummary?.actionableGroupsTotal ?? 0) > 0;
-  const hasDetectedIssues = (countsSummary?.detectedGroupsTotal ?? 0) > 0;
+  // [COUNT-INTEGRITY-1 PATCH ERR-001.1] Fallback to issues list when countsSummary unavailable
+  const hasActionableIssues = countsSummary
+    ? (countsSummary.actionableGroupsTotal ?? 0) > 0
+    : issues.some((i) => i.isActionableNow === true);
+  const hasDetectedIssues = countsSummary
+    ? (countsSummary.detectedGroupsTotal ?? 0) > 0
+    : issues.length > 0;
   const effectiveMode: 'actionable' | 'detected' =
     modeParam === 'detected'
       ? 'detected'

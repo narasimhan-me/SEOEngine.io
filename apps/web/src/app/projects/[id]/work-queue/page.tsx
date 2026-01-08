@@ -63,9 +63,11 @@ export default function WorkQueuePage() {
   const fromContext = searchParams.get('from') as FromContext | null;
   // [ISSUE-TO-FIX-PATH-1] Read issueId from search params
   const issueIdParam = searchParams.get('issueId');
-  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Read returnTo navigation context
+  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Read returnTo navigation context (unused, reserved for future features)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const returnToParam = searchParams.get('returnTo');
   const returnLabelParam = searchParams.get('returnLabel');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const fixAnchorParam = searchParams.get('fixAnchor');
 
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Validate returnTo context
