@@ -1,7 +1,7 @@
 # COUNT-INTEGRITY-1: Count Integrity Trust Hardening Manual Testing Guide
 
 **Phase:** COUNT-INTEGRITY-1
-**Status:** PATCH 1-5 Complete, PATCH 6-9 Pending
+**Status:** PATCH 1-5 + 4.1 Complete, PATCH 6-9 Pending
 **Date:** 2026-01-08
 
 ## Overview
@@ -74,8 +74,7 @@
 
 ---
 
-###
- Scenario 2: Detected vs Actionable Mode Toggle (Blocked until PATCH 6)
+### Scenario 2: Detected vs Actionable Mode Toggle (Blocked until PATCH 6)
 
 **ID:** HP-002
 
