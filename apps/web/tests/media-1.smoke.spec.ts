@@ -50,7 +50,8 @@ test.describe('MEDIA-1 – Media Page Smoke Test', () => {
     ).toBeVisible();
 
     // Assert: Either scorecard section renders OR empty-state message renders
-    const hasScorecard = await page.getByText(/Score|Accessibility|Alt Text/i).isVisible().catch(() => false);
+    // hasScorecard keys off the specific "Media Accessibility Score" section heading (not generic "Accessibility")
+    const hasScorecard = await page.getByText(/Media Accessibility Score/i).isVisible().catch(() => false);
     const hasEmptyState = await page.getByText(/No Media Data Available/i).isVisible().catch(() => false);
 
     expect(hasScorecard || hasEmptyState).toBeTruthy();

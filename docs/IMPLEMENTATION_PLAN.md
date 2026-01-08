@@ -73,12 +73,13 @@ Pricing pages and upgrade flows with Stripe integration for subscription managem
 ### Core Files
 
 - apps/api/src/billing/
-- apps/web/src/app/pricing/
-- apps/web/src/app/billing/
+- apps/web/src/app/(marketing)/pricing/
+- apps/web/src/app/settings/billing/
 
 ### Test Coverage
 
 - **Smoke Test:** `apps/web/tests/billing-gtm-1.smoke.spec.ts`
+- **Manual Testing:** `docs/manual-testing/BILLING-GTM-1.md`
 
 ---
 
@@ -99,7 +100,7 @@ Automation playbook system for DEO fixes with preview/apply workflow.
 ### Core Files
 
 - apps/api/src/automation/
-- apps/web/src/app/projects/[id]/playbooks/
+- apps/web/src/app/projects/[id]/automation/playbooks/
 
 ### Related Documents
 
@@ -149,6 +150,7 @@ Media accessibility pillar for image alt text and media optimization.
 ### Test Coverage
 
 - **Smoke Test:** `apps/web/tests/media-1.smoke.spec.ts`
+- **Manual Testing:** `docs/manual-testing/MEDIA-1.md`
 
 ---
 
@@ -251,6 +253,7 @@ Decision-first products list with health pills and recommended actions.
 ### Test Coverage
 
 - **Smoke Test:** `apps/web/tests/products-list-2-0.smoke.spec.ts`
+- **Manual Testing:** `docs/manual-testing/PRODUCTS-LIST-2.0.md`
 
 ---
 
@@ -554,3 +557,5 @@ These invariants MUST be preserved during implementation:
 | 5.3 | 2026-01-07 | **IMPLEMENTATION-PLAN-ORDERING-CLEANUP-1 FIXUP-1**: Heading-level compliance — demoted all `## Phase` headers to `### Phase` to ensure exactly 4 top-level sections (Completed Phases/In Progress/Planned or Pending/Deferred or Explicitly Excluded). |
 | 5.4 | 2026-01-07 | **COVERAGE-AND-PLAN-ALIGNMENT-1**: Added smoke tests for INSIGHTS-1, PRODUCTS-LIST-2.0, BILLING-GTM-1, MEDIA-1; added test coverage sections to phase entries; added AUTO-PB-1 canonical doc reference. |
 | 5.5 | 2026-01-07 | **COVERAGE-AND-PLAN-ALIGNMENT-1 FIXUP-1**: Smoke tests tightened to "one test per phase"; Billing smoke route corrected to `/settings/billing`; Media smoke corrected to `/projects/{projectId}/media`; AUTO-PB-1 canonical manual testing doc link corrected to `phase-automation-1-playbooks.md`. |
+| 5.6 | 2026-01-07 | **COVERAGE-AND-PLAN-ALIGNMENT-1 FIXUP-2**: MEDIA-1 smoke test tightened to avoid false positives by keying "scorecard present" to the "Media Accessibility Score" section heading (not generic text like "Accessibility"). |
+| 5.7 | 2026-01-07 | **COVERAGE-AND-PLAN-ALIGNMENT-1 FIXUP-3**: BILLING-GTM-1 core file paths corrected to real locations (`(marketing)/pricing/`, `settings/billing/`); AUTO-PB-1 core file path corrected to `/automation/playbooks/`; added missing manual testing links for BILLING-GTM-1, PRODUCTS-LIST-2.0, MEDIA-1. Documentation-only; no product/test behavior changes. |
