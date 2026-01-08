@@ -683,7 +683,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | CP-006: Shopify Sync | ✅ | Planned | 🟡 Manual Only |
 | CP-007: AI Failover Logic | ✅ | Planned | 🟡 Manual Only |
 | CP-008: Frontend Global UX Feedback | ✅ | ✅ | 🟢 Full Coverage |
-| CP-009: Issue Engine Lite | ✅ | Planned | 🟡 Manual Only |
+| CP-009: Issue Engine Lite | ✅ | ✅ | 🟢 Full Coverage |
 | CP-010: Issue Engine Full | ✅ | Planned | 🟡 Manual Only |
 | CP-011: Answer Engine | ✅ | Planned | 🟡 Manual Only |
 | CP-012: Automation Engine | ✅ | Planned | 🟡 Manual Only |

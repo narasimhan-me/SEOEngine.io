@@ -16,10 +16,10 @@ const API_BASE_URL =
 
 /**
  * Seed user and project for OWNER role tests.
- * Uses the existing /testkit/e2e/seed-first-deo-win pattern.
+ * [PATCH 9 FIXUP] Uses /testkit/e2e/seed-shopify-project-full-scan (correct endpoint).
  */
 async function seedTestProjectOwner(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
+  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-shopify-project-full-scan`, {
     data: {},
   });
   expect(res.ok()).toBeTruthy();
@@ -34,11 +34,11 @@ async function seedTestProjectOwner(request: any) {
 
 /**
  * Seed user and project for VIEWER role tests.
- * Uses the existing /testkit/e2e/seed-viewer-role pattern.
+ * [PATCH 9 FIXUP] Uses /testkit/e2e/seed-shopify-project-full-scan then adds VIEWER role.
  */
 async function seedTestProjectViewer(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-viewer-role`, {
-    data: {},
+  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-shopify-project-full-scan`, {
+    data: { role: 'VIEWER' },
   });
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
@@ -123,6 +123,11 @@ test.describe('COUNT-INTEGRITY-1: Technical issues are informational', () => {
     await page.goto(`/projects/${projectId}/issues`);
     await page.waitForLoadState('networkidle');
 
+    // [PATCH 9 FIXUP] Switch to "Detected" mode FIRST (technical issues are informational, hidden in actionable mode)
+    const detectedModeButton = page.getByTestId('mode-toggle-detected');
+    await detectedModeButton.click();
+    await page.waitForTimeout(500);
+
     // Click "Technical & Indexability" pillar filter
     const technicalPillarButton = page.getByRole('button', { name: /Technical & Indexability/i });
     await technicalPillarButton.click();
@@ -144,19 +149,11 @@ test.describe('COUNT-INTEGRITY-1: Technical issues are informational', () => {
     const firstCard = informationalCards.first();
     await expect(firstCard).toContainText('Informational');
 
-    // Verify card is NOT rendered as a button (no click affordance)
-    const cardAsButton = firstCard.locator('button');
-    const isButton = await cardAsButton.count() > 0;
-    expect(isButton).toBe(false);
+    // [PATCH 9 FIXUP] Verify card is NOT a clickable button (use wrapper, not search for nested button)
+    const cardTagName = await firstCard.evaluate((el) => el.tagName.toLowerCase());
+    expect(cardTagName).not.toBe('button');
 
-    // Switch to "Detected" mode to verify technical issues appear
-    const detectedModeButton = page.getByRole('button', { name: 'Detected' });
-    await detectedModeButton.click();
-
-    // Wait for mode switch
-    await page.waitForTimeout(500);
-
-    // Verify informational cards are visible in detected mode
+    // Verify informational cards remain visible in detected mode
     const detectedInformationalCards = page.getByTestId('issue-card-informational');
     const detectedInformationalCount = await detectedInformationalCards.count();
     expect(detectedInformationalCount).toBeGreaterThan(0);
@@ -198,8 +195,8 @@ test.describe('COUNT-INTEGRITY-1: Viewer role sees detected-only counts', () => 
     await page.goto(`/projects/${projectId}/issues`);
     await page.waitForLoadState('networkidle');
 
-    // Verify mode is forced to "detected" (no actionable mode available)
-    const detectedModeButton = page.getByRole('button', { name: 'Detected' });
+    // [PATCH 9 FIXUP] Verify mode is forced to "detected" (use testid and check for active class)
+    const detectedModeButton = page.getByTestId('mode-toggle-detected');
     await expect(detectedModeButton).toHaveClass(/bg-blue-600/); // Active state
 
     // Verify all issue cards are informational

@@ -110,11 +110,12 @@
 
 **Steps:**
 1. Navigate to `/projects/{projectId}/issues`
-2. Filter by pillar: "Technical & Indexability"
-3. Locate technical issues: "Indexability problems", "Crawl health and errors", etc.
-4. Observe issue cards have "Informational — no action required" badge
-5. Attempt to click the issue card
-6. Observe no click affordance (not a button, just static text)
+2. Switch to "Detected" mode (technical issues are informational, hidden in actionable mode)
+3. Filter by pillar: "Technical & Indexability"
+4. Locate technical issues: "Indexability problems", "Crawl health and errors", etc.
+5. Observe issue cards have "Informational — no action required" badge
+6. Attempt to click the issue card
+7. Observe no click affordance (not a button, just static text)
 
 **Expected Results:**
 - **Informational Badge:** Technical issues show gray "Informational" badge

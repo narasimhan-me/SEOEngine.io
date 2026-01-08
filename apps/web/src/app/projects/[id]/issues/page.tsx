@@ -96,8 +96,7 @@ export default function IssuesPage() {
   const actionKeyParam = searchParams.get('actionKey');
   const scopeTypeParam = searchParams.get('scopeType') as 'PRODUCTS' | 'PAGES' | 'COLLECTIONS' | 'STORE_WIDE' | null;
 
-  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Derive effective mode (default to actionable)
-  const effectiveMode: 'actionable' | 'detected' = modeParam === 'detected' ? 'detected' : 'actionable';
+  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] effectiveMode will be computed after countsSummary state is available
 
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Read and validate returnTo context from URL
   const validatedNavContext = useMemo(() => {
@@ -125,6 +124,17 @@ export default function IssuesPage() {
 
   const [issues, setIssues] = useState<DeoIssue[]>([]);
   const [countsSummary, setCountsSummary] = useState<IssueCountsSummary | null>(null);
+
+  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] Derive effective mode (with viewer/no-actionable detection)
+  const hasActionableIssues = (countsSummary?.actionableGroupsTotal ?? 0) > 0;
+  const hasDetectedIssues = (countsSummary?.detectedGroupsTotal ?? 0) > 0;
+  const effectiveMode: 'actionable' | 'detected' =
+    modeParam === 'detected'
+      ? 'detected'
+      : (!hasActionableIssues && hasDetectedIssues)
+        ? 'detected'  // Force detected when no actionable but detected exist
+        : 'actionable';
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [projectName, setProjectName] = useState<string | null>(null);
@@ -233,10 +243,25 @@ export default function IssuesPage() {
     fetchProjectInfo();
   }, [projectId, router, fetchIssues, fetchProjectInfo]);
 
-  // Sync pillarFilter state when URL param changes
+  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] Sync pillarFilter state when URL param changes (respect click-integrity filters)
   useEffect(() => {
-    setPillarFilter(pillarParam ?? 'all');
-  }, [pillarParam]);
+    if (hasClickIntegrityFilters) {
+      // When click-integrity filters present, force pillar to 'all' (don't sync from URL)
+      setPillarFilter('all');
+    } else {
+      setPillarFilter(pillarParam ?? 'all');
+    }
+  }, [pillarParam, hasClickIntegrityFilters]);
+
+  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] URL normalization: force mode=detected when no actionable issues
+  useEffect(() => {
+    if (modeParam === 'actionable' && !hasActionableIssues && hasDetectedIssues) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('mode', 'detected');
+      const newUrl = `?${params.toString()}`;
+      router.replace(newUrl, { scroll: false });
+    }
+  }, [modeParam, hasActionableIssues, hasDetectedIssues, searchParams, router]);
 
   useEffect(() => {
     if (previewIssueId && previewPanelRef.current) {
@@ -256,11 +281,17 @@ export default function IssuesPage() {
     }
   };
 
-  // [COUNT-INTEGRITY-1 PATCH 6] Use countsSummary for severity badge counts (single source of truth)
-  // Use actionableGroups (issue types) not actionableInstances (issue-asset pairs)
-  const criticalCount = countsSummary?.bySeverity?.critical?.actionableGroups ?? 0;
-  const warningCount = countsSummary?.bySeverity?.warning?.actionableGroups ?? 0;
-  const infoCount = countsSummary?.bySeverity?.info?.actionableGroups ?? 0;
+  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] Use countsSummary for severity badge counts (mode-aware)
+  // Use actionableGroups in actionable mode, detectedGroups in detected mode
+  const criticalCount = effectiveMode === 'actionable'
+    ? (countsSummary?.bySeverity?.critical?.actionableGroups ?? 0)
+    : (countsSummary?.bySeverity?.critical?.detectedGroups ?? 0);
+  const warningCount = effectiveMode === 'actionable'
+    ? (countsSummary?.bySeverity?.warning?.actionableGroups ?? 0)
+    : (countsSummary?.bySeverity?.warning?.detectedGroups ?? 0);
+  const infoCount = effectiveMode === 'actionable'
+    ? (countsSummary?.bySeverity?.info?.actionableGroups ?? 0)
+    : (countsSummary?.bySeverity?.info?.detectedGroups ?? 0);
 
   // [COUNT-INTEGRITY-1 PATCH 6] Filter issues: mode → actionKey → scopeType → UI filters
   const filteredIssues = issues.filter((issue) => {
@@ -725,7 +756,12 @@ export default function IssuesPage() {
         {/* Summary Cards */}
         <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="text-2xl font-bold text-gray-900">{issues.length}</div>
+            {/* [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] Use countsSummary total (mode-aware) */}
+            <div className="text-2xl font-bold text-gray-900">
+              {effectiveMode === 'actionable'
+                ? (countsSummary?.actionableGroupsTotal ?? issues.length)
+                : (countsSummary?.detectedGroupsTotal ?? issues.length)}
+            </div>
             <div className="text-sm text-gray-600">Total Issues</div>
           </div>
           <div className="rounded-lg border border-red-200 bg-red-50 p-4">
@@ -835,25 +871,33 @@ export default function IssuesPage() {
             Issue Mode
           </label>
           <div className="flex flex-wrap gap-2">
-            {(['actionable', 'detected'] as const).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => {
-                  const params = new URLSearchParams(searchParams.toString());
-                  params.set('mode', mode);
-                  const newUrl = `?${params.toString()}`;
-                  router.replace(newUrl, { scroll: false });
-                }}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  effectiveMode === mode
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-                data-testid={`mode-toggle-${mode}`}
-              >
-                {mode === 'actionable' ? 'Actionable' : 'Detected'}
-              </button>
-            ))}
+            {(['actionable', 'detected'] as const).map((mode) => {
+              // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] Disable actionable button when no actionable issues
+              const isDisabled = mode === 'actionable' && !hasActionableIssues;
+              return (
+                <button
+                  key={mode}
+                  onClick={() => {
+                    if (isDisabled) return;
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.set('mode', mode);
+                    const newUrl = `?${params.toString()}`;
+                    router.replace(newUrl, { scroll: false });
+                  }}
+                  disabled={isDisabled}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    effectiveMode === mode
+                      ? 'bg-blue-600 text-white'
+                      : isDisabled
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  data-testid={`mode-toggle-${mode}`}
+                >
+                  {mode === 'actionable' ? 'Actionable' : 'Detected'}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -901,12 +945,13 @@ export default function IssuesPage() {
               d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
+          {/* [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] Mode-aware empty state text */}
           <h3 className="mt-2 text-sm font-medium text-green-800">
             {severityFilter === 'all' && pillarFilter === 'all'
-              ? 'No issues detected'
+              ? (effectiveMode === 'actionable' ? 'No actionable issues' : 'No issues detected')
               : pillarFilter !== 'all'
-                ? `No issues for ${DEO_PILLARS.find((p) => p.id === pillarFilter)?.shortName ?? pillarFilter}`
-                : `No ${severityFilter} issues`}
+                ? `No ${effectiveMode === 'actionable' ? 'actionable ' : ''}issues for ${DEO_PILLARS.find((p) => p.id === pillarFilter)?.shortName ?? pillarFilter}`
+                : `No ${effectiveMode === 'actionable' ? 'actionable ' : ''}${severityFilter} issues`}
           </h3>
           <p className="mt-1 text-sm text-green-700">
             {severityFilter === 'all' && pillarFilter === 'all'
