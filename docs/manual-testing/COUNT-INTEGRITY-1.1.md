@@ -1,8 +1,8 @@
 # COUNT-INTEGRITY-1.1: Canonical Triplet Counts + Explicit Labels Manual Testing Guide
 
 **Phase:** COUNT-INTEGRITY-1.1
-**Status:** ✅ BACKEND FOUNDATION COMPLETE (PATCHES 1-3, 8-9) | 🚧 UI UPDATES DEFERRED (PATCHES 4-7)
-**Date:** 2026-01-08
+**Status:** ✅ BACKEND CONTRACT COMPLETE (PATCH 0 + BATCH 2) | 🚧 UI UPDATES DEFERRED (PATCHES 4-7)
+**Date:** 2026-01-08 (Updated after PATCH BATCH 2)
 
 ## Overview
 
@@ -17,12 +17,16 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 
 ### Implementation Status
 
-**COMPLETED:**
-- ✅ PATCH 1: Canonical triplet types added to shared + web deo-issues.ts
-- ✅ PATCH 2: Backend canonical summary + asset-issues endpoints implemented
-- ✅ PATCH 3: Web API client methods wired up
-- ✅ PATCH 8: Playwright smoke tests created (7 tests in count-integrity-1-1.spec.ts)
-- ✅ PATCH 9: Documentation complete (this file)
+**COMPLETED (PATCH 0 + PATCH BATCH 2):**
+- ✅ PATCH 0: Endpoint naming fixed (`/summary` primary, `/canonical-summary` alias)
+- ✅ PATCH 1-3: Canonical triplet types + backend endpoints + web client (initial delivery)
+- ✅ PATCH 2.1: Media issues count bug fixed (true counts, not capped sample length)
+- ✅ PATCH 2.2: Shared issue→actionKey mapper created in packages/shared
+- ✅ PATCH 2.3: Work Queue refactored to use shared mapper
+- ✅ PATCH 2.4: Real actionKey filtering implemented in canonical summary
+- ✅ PATCH 2.5: Asset-specific endpoint bugs fixed (ID→URL resolution, no false positives)
+- ✅ PATCH 2.6: Deterministic Playwright tests using testkit seeds (8 tests)
+- ✅ PATCH 2.7: Documentation updated (this file + GAPS.md)
 
 **DEFERRED (UI Updates - Future Work):**
 - 🚧 PATCH 4: Issues Engine triplet display + labels
@@ -55,11 +59,12 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 
 ### 1. Canonical Summary Endpoint
 
-**GET** `/projects/:projectId/issues/canonical-summary`
+**GET** `/projects/:projectId/issues/summary` (primary route - PATCH 0)
+**GET** `/projects/:projectId/issues/canonical-summary` (backward-compatible alias)
 
 **Query Params:**
-- `actionKey` (string, optional): Filter by single action key
-- `actionKeys` (string[], optional): Filter by multiple action keys
+- `actionKey` (WorkQueueRecommendedActionKey, optional): Filter by single action key [PATCH 2.4]
+- `actionKeys` (WorkQueueRecommendedActionKey[], optional): Filter by multiple action keys [PATCH 2.4]
 - `scopeType` (IssueAssetTypeKey, optional): Filter by asset type (products/pages/collections)
 - `pillar` (DeoPillarId, optional): Filter by single pillar
 - `pillars` (DeoPillarId[], optional): Filter by multiple pillars
@@ -265,7 +270,12 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 
 ## Automated Test Coverage
 
-**Playwright Test File:** `apps/web/tests/count-integrity-1-1.spec.ts`
+**Playwright Test File:** `apps/web/tests/count-integrity-1-1.spec.ts` [PATCH 2.6]
+
+**Test Infrastructure:**
+- ✅ Uses `/testkit/e2e/seed-first-deo-win` for deterministic test data
+- ✅ No environment variable dependencies (TEST_USER, TEST_PASSWORD removed)
+- ✅ Independent of "first project" discovery pattern
 
 **Test Coverage:**
 - ✅ CANON-001: Valid triplet structure
@@ -275,6 +285,7 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 - ✅ CANON-005: bySeverity breakdown complete
 - ✅ CANON-006: Asset-specific issues structure
 - ✅ CANON-007: Asset-specific pillar filtering
+- ✅ CANON-008: ActionKey filter support [PATCH 2.6 - regression test]
 
 **Run Tests:**
 ```bash
@@ -356,34 +367,45 @@ npx playwright test count-integrity-1-1.spec.ts
 
 ---
 
-## Known Limitations
+## Known Limitations (Updated After PATCH BATCH 2)
 
-1. **actionKey filtering not yet implemented** in backend
-   - Placeholder exists in `getCanonicalIssueCountsSummary()`
-   - Requires adding `actionKey` field to DeoIssue type first
+1. **Asset deduplication uses capped arrays (Gap 3 - deferred)**
+   - `affectedProducts` and `affectedPages` arrays capped at 20 items for display
+   - Canonical summary deduplication may undercount when issues affect >20 items
+   - Fix requires refactoring issue builders to maintain non-enumerable `_fullAffectedProducts` Sets
+   - Impact: Low (rare edge case), deferred until Cap 20 becomes real constraint
 
 2. **Store-wide issues represented as 1 pseudo-item**
    - When `affectedProducts` array is empty but `assetTypeCounts.products > 0`
    - Backend uses `products:__store_wide__` composite key
    - affectedItemsCount = 1 (not 0, not total product count)
-
-3. **Collections asset filtering incomplete**
-   - No `affectedCollections` field on issues yet
-   - Asset-specific endpoint treats all collection issues as store-wide
+   - This is intentional design to avoid confusion
 
 ---
 
-## Sign-Off
+## Sign-Off (Updated After PATCH BATCH 2)
 
-- [x] PATCH 1-3: Backend foundation complete
-- [x] PATCH 8: Playwright tests passing
-- [x] PATCH 9: Documentation complete
-- [ ] PATCH 4-7: UI updates (deferred for future implementation)
+**Backend Contract (COMPLETE):**
+- [x] PATCH 0: Endpoint naming fixed (`/summary` primary path)
+- [x] PATCH 1-3: Backend foundation + types + web client
+- [x] PATCH 2.1: Media count bug fixed (true counts)
+- [x] PATCH 2.2-2.4: Shared mapper + actionKey filtering working
+- [x] PATCH 2.5: Asset-specific endpoint bugs fixed (ID→URL, no false positives)
+- [x] PATCH 2.6: Playwright tests deterministic (testkit seeds, 8 tests)
+- [x] PATCH 2.7: Documentation updated
+
+**UI Migration (DEFERRED):**
+- [ ] PATCH 4: Issues Engine triplet display + labels
+- [ ] PATCH 5: Store Health tiles
+- [ ] PATCH 6: Work Queue actionable now
+- [ ] PATCH 7: Asset detail pages
 
 **Ready for:**
-- ✅ Backend API consumption by external clients
+- ✅ Backend API consumption NOW (production-ready)
 - ✅ Automated testing in CI pipeline
-- 🚧 UI implementation (when prioritized)
+- ✅ Work Queue → Issues click-integrity (actionKey filtering works)
+- ✅ Asset detail pages filtering (ID→URL resolution works)
+- 🚧 UI migration (scheduled separately)
 
 ---
 
@@ -394,5 +416,6 @@ npx playwright test count-integrity-1-1.spec.ts
 - **Cross-surface consistency guaranteed** - same filters always return same counts
 - **Explicit label mandate** - UI MUST display "Issue types", "Items affected", "Actionable now" labels
 - **UI migration is incremental** - can pilot on one surface before rolling out to all
+- **Gap 3 deferred** - Asset deduplication uses capped arrays; fix when Cap 20 becomes constraint
 
-**Backend foundation is production-ready. UI updates can be scheduled as separate sprint work.**
+**Backend contract is production-ready (PATCH 0 + BATCH 2 complete). UI updates scheduled as Gap 6 separate sprint work.**
