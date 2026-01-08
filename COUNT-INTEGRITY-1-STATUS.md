@@ -112,6 +112,17 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
 - ✅ Preview list prefers actionable issue titles; uses detected titles if scopeCount === 0
 - ✅ Create bundle when `scopeDetectedCount > 0` (even if no actionable issues)
 
+### ✅ PATCH 4.1 - Work Queue Preview Math Hotfix (COMPLETE)
+- ✅ **PATCH 4.1.1:** Fixed PRODUCTS/PAGES/COLLECTIONS preview "+N more" to match actionable vs detected semantics
+  - When scopeCount > 0, "+N more" is based on scopeCount (actionable issue-group count)
+  - When scopeCount === 0, "+N more" is based on scopeDetectedCount (detected issue-group count)
+- ✅ **PATCH 4.1.2:** Fixed STORE_WIDE bundle to use real scopeCount/scopeDetectedCount and issue titles
+  - Replaced hardcoded `scopeCount: 1` with actual actionable issue-group count
+  - Replaced hardcoded `scopePreviewList: ['Store-wide']` with issue titles
+  - Added `scopeDetectedCount` field (was missing)
+- ✅ **PATCH 4.1.3:** Fixed `buildScopePreviewList()` to use actual preview count instead of hardcoded 5
+  - Prevents math errors when `previews.length < 5` but `totalCount > 5`
+
 ### ✅ PATCH 5 - Work Queue Card UI & Routing (COMPLETE)
 - ✅ **PATCH 5.1:** Updated scope line for ASSET_OPTIMIZATION bundles:
   - Shows "N actionable issues affecting <scope>" when scopeCount > 0
@@ -132,14 +143,9 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
 - ⚠️ **TODO:** Use `issue.isActionableNow` for actionability instead of href-based check
 - ⚠️ **TODO:** Render informational issues as non-clickable
 
-### PATCH 7 - Work Queue Card UI
-- ⚠️ **TODO:** Update scope line copy to show issue-group semantics
-- ⚠️ **TODO:** Show detected count when different from actionable
-- ⚠️ **TODO:** Route ASSET_OPTIMIZATION bundles to Issues page with filters (not assets lists)
-
-### PATCH 8 - Work Queue & Store Health Pages
-- ⚠️ **TODO:** Update filter banner language ("issues" not "items")
+### PATCH 7 - Store Health Pages
 - ⚠️ **TODO:** Update Store Health summaries to use "issues" language
+- ⚠️ **TODO:** Show detected vs actionable when counts differ
 
 ### PATCH 9 - Playwright Tests
 - ⚠️ **TODO:** Create `count-integrity-1.spec.ts` with:
@@ -196,11 +202,12 @@ interface IssueCountsSummary {
 4. ✅ ~~Add read-only issues endpoint (PATCH 2)~~ - COMPLETE
 5. ✅ ~~Fix assetTypeCounts fallback sum-preserving (PATCH 1.1)~~ - COMPLETE
 6. ✅ ~~Update Work Queue types and derivation (PATCH 3-4)~~ - COMPLETE
-7. ✅ ~~Update Work Queue Card UI and routing (PATCH 5)~~ - COMPLETE
-8. ✅ ~~Update documentation (PATCH 10)~~ - COMPLETE
-9. ⚠️ Update Issues Engine UI to consume IssueCountsSummary (PATCH 6)
-10. ⚠️ Update Store Health pages (PATCH 7-8)
-11. ⚠️ Create Playwright regression tests (PATCH 9)
+7. ✅ ~~Fix Work Queue preview math and STORE_WIDE semantics (PATCH 4.1)~~ - COMPLETE
+8. ✅ ~~Update Work Queue Card UI and routing (PATCH 5)~~ - COMPLETE
+9. ✅ ~~Update documentation (PATCH 10)~~ - COMPLETE
+10. ⚠️ Update Issues Engine UI to consume IssueCountsSummary (PATCH 6)
+11. ⚠️ Update Store Health pages (PATCH 7)
+12. ⚠️ Create Playwright regression tests (PATCH 9)
 
 ## Notes
 - Media & Accessibility pillar is now ACTIVE (`comingSoon: false`)

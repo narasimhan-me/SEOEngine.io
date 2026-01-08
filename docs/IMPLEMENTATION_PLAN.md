@@ -477,6 +477,17 @@ Establishes count integrity as a core trust contract across the product by:
 - ✅ Preview list prefers actionable issue titles; uses detected titles if scopeCount === 0
 - ✅ Create bundle when `scopeDetectedCount > 0` (even if no actionable issues)
 
+**✅ PATCH 4.1 - Work Queue Preview Math Hotfix (COMPLETE):**
+- ✅ **PATCH 4.1.1:** Fixed PRODUCTS/PAGES/COLLECTIONS preview "+N more" to match actionable vs detected semantics
+  - When scopeCount > 0, "+N more" is based on scopeCount (actionable issue-group count)
+  - When scopeCount === 0, "+N more" is based on scopeDetectedCount (detected issue-group count)
+- ✅ **PATCH 4.1.2:** Fixed STORE_WIDE bundle to use real scopeCount/scopeDetectedCount and issue titles
+  - Replaced hardcoded `scopeCount: 1` with actual actionable issue-group count
+  - Replaced hardcoded `scopePreviewList: ['Store-wide']` with issue titles
+  - Added `scopeDetectedCount` field (was missing)
+- ✅ **PATCH 4.1.3:** Fixed `buildScopePreviewList()` to use actual preview count instead of hardcoded 5
+  - Prevents math errors when `previews.length < 5` but `totalCount > 5`
+
 **PATCH 6 - Issues Engine UI (Critical Path):**
 - [ ] Switch to `projectsApi.deoIssuesReadOnly()` instead of mutating version
 - [ ] Fetch and consume `IssueCountsSummary` for all badge counts

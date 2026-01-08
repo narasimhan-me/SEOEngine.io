@@ -299,10 +299,12 @@ export class WorkQueueService {
       const health = this.deriveHealthFromSeverity(productDetectedIssues);
 
       if (health !== 'HEALTHY') {
-        // Build preview list from issue titles (prefer actionable, fallback to detected)
+        // [COUNT-INTEGRITY-1 PATCH 4.1] Build preview list from issue titles (prefer actionable, fallback to detected)
+        // The "+N more" total must match the set being previewed (actionable or detected)
         const previewIssues = scopeCount > 0 ? productActionableIssues : productDetectedIssues;
+        const previewTotal = scopeCount > 0 ? scopeCount : scopeDetectedCount;
         const issueTitles = previewIssues.slice(0, 5).map((issue) => issue.title);
-        const scopePreviewList = this.buildScopePreviewList(issueTitles, scopeDetectedCount);
+        const scopePreviewList = this.buildScopePreviewList(issueTitles, previewTotal);
 
         bundles.push({
           bundleId: `ASSET_OPTIMIZATION:${actionKey}:PRODUCTS:${projectId}`,
@@ -331,10 +333,12 @@ export class WorkQueueService {
       const health = this.deriveHealthFromSeverity(pageDetectedIssues);
 
       if (health !== 'HEALTHY') {
-        // Build preview list from issue titles (prefer actionable, fallback to detected)
+        // [COUNT-INTEGRITY-1 PATCH 4.1] Build preview list from issue titles (prefer actionable, fallback to detected)
+        // The "+N more" total must match the set being previewed (actionable or detected)
         const previewIssues = scopeCount > 0 ? pageActionableIssues : pageDetectedIssues;
+        const previewTotal = scopeCount > 0 ? scopeCount : scopeDetectedCount;
         const issueTitles = previewIssues.slice(0, 5).map((issue) => issue.title);
-        const scopePreviewList = this.buildScopePreviewList(issueTitles, scopeDetectedCount);
+        const scopePreviewList = this.buildScopePreviewList(issueTitles, previewTotal);
 
         bundles.push({
           bundleId: `ASSET_OPTIMIZATION:${actionKey}:PAGES:${projectId}`,
@@ -363,10 +367,12 @@ export class WorkQueueService {
       const health = this.deriveHealthFromSeverity(collectionDetectedIssues);
 
       if (health !== 'HEALTHY') {
-        // Build preview list from issue titles (prefer actionable, fallback to detected)
+        // [COUNT-INTEGRITY-1 PATCH 4.1] Build preview list from issue titles (prefer actionable, fallback to detected)
+        // The "+N more" total must match the set being previewed (actionable or detected)
         const previewIssues = scopeCount > 0 ? collectionActionableIssues : collectionDetectedIssues;
+        const previewTotal = scopeCount > 0 ? scopeCount : scopeDetectedCount;
         const issueTitles = previewIssues.slice(0, 5).map((issue) => issue.title);
-        const scopePreviewList = this.buildScopePreviewList(issueTitles, scopeDetectedCount);
+        const scopePreviewList = this.buildScopePreviewList(issueTitles, previewTotal);
 
         bundles.push({
           bundleId: `ASSET_OPTIMIZATION:${actionKey}:COLLECTIONS:${projectId}`,
@@ -388,18 +394,30 @@ export class WorkQueueService {
       }
     }
 
-    // Fallback: If no specific scope items found but issues exist, create STORE_WIDE bundle
+    // [COUNT-INTEGRITY-1 PATCH 4.1] Fallback: If no specific scope items found but issues exist, create STORE_WIDE bundle
     if (bundles.length === 0 && issues.length > 0) {
       const health = this.deriveHealthFromSeverity(issues);
       if (health !== 'HEALTHY') {
+        // Count detected and actionable issue groups (same semantics as other scopes)
+        const actionableIssues = issues.filter((issue) => issue.isActionableNow === true);
+        const scopeDetectedCount = issues.length;
+        const scopeCount = actionableIssues.length;
+
+        // Build preview list from issue titles (prefer actionable, fallback to detected)
+        const previewIssues = scopeCount > 0 ? actionableIssues : issues;
+        const previewTotal = scopeCount > 0 ? scopeCount : scopeDetectedCount;
+        const issueTitles = previewIssues.slice(0, 5).map((issue) => issue.title);
+        const scopePreviewList = this.buildScopePreviewList(issueTitles, previewTotal);
+
         bundles.push({
           bundleId: `ASSET_OPTIMIZATION:${actionKey}:STORE_WIDE:${projectId}`,
           bundleType: 'ASSET_OPTIMIZATION',
           createdAt: stableTimestamp,
           updatedAt: stableTimestamp,
           scopeType: 'STORE_WIDE',
-          scopeCount: 1,
-          scopePreviewList: ['Store-wide'],
+          scopeCount,
+          scopeDetectedCount,
+          scopePreviewList,
           health,
           impactRank: WORK_QUEUE_IMPACT_RANKS[actionKey],
           recommendedActionKey: actionKey,
@@ -416,12 +434,14 @@ export class WorkQueueService {
 
   /**
    * [ASSETS-PAGES-1] Build scope preview list with "+N more" suffix.
+   * [COUNT-INTEGRITY-1 PATCH 4.1] Fixed to use actual preview count, not hardcoded 5.
    */
   private buildScopePreviewList(previews: string[], totalCount: number): string[] {
-    if (totalCount <= 5) {
+    const previewCount = previews.length;
+    if (totalCount <= previewCount) {
       return previews;
     }
-    return [...previews.slice(0, 5), `+${totalCount - 5} more`];
+    return [...previews.slice(0, 5), `+${totalCount - previewCount} more`];
   }
 
   /**

@@ -69,6 +69,7 @@
 - **Click Integrity:** Issue count on Work Queue card EXACTLY matches the number of rows on Issues page
 - **URL Contract:** Issues page URL includes `actionKey`, `scopeType`, `mode=actionable`, and `pillar` params
 - **Preview Accuracy:** Issue titles in preview list match the titles of issues shown on Issues page
+- **Preview Math (PATCH 4.1):** When card shows "N actionable issues affecting products", the "+X more" suffix (if present) must equal N - (number of issue titles shown in preview)
 - **No Drift:** Count remains consistent if you navigate back and forth
 
 ---
