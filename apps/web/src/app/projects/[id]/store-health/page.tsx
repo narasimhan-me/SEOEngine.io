@@ -6,6 +6,7 @@ import { projectsApi, aiApi } from '@/lib/api';
 import type { WorkQueueResponse, WorkQueueActionBundle } from '@/lib/work-queue';
 import { buildWorkQueueUrl } from '@/lib/work-queue';
 import type { ProjectInsightsResponse } from '@/lib/insights';
+import type { IssueCountsSummary } from '@/lib/deo-issues';
 
 /**
  * [STORE-HEALTH-1.0] Store Health Page
@@ -43,19 +44,23 @@ export default function StoreHealthPage() {
   const [workQueue, setWorkQueue] = useState<WorkQueueResponse | null>(null);
   const [insights, setInsights] = useState<ProjectInsightsResponse | null>(null);
   const [aiQuota, setAiQuota] = useState<{ used: number; limit: number | null; remaining: number | null } | null>(null);
+  // [COUNT-INTEGRITY-1 PATCH 7] Add countsSummary for click-integrity counts
+  const [countsSummary, setCountsSummary] = useState<IssueCountsSummary | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch all data sources in parallel
-      const [wqData, insightsData, quotaData] = await Promise.all([
+      // [COUNT-INTEGRITY-1 PATCH 7] Fetch countsSummary for click-integrity counts
+      const [wqData, insightsData, quotaData, countsData] = await Promise.all([
         projectsApi.workQueue(projectId),
         projectsApi.insights(projectId).catch(() => null),
         aiApi.getProjectAiUsageQuota(projectId, { action: 'DRAFT_GENERATE' }).catch(() => null),
+        projectsApi.issueCountsSummary(projectId).catch(() => null),
       ]);
       setWorkQueue(wqData);
       setInsights(insightsData);
+      setCountsSummary(countsData);
       if (quotaData) {
         // Map from AiUsageQuotaEvaluation fields to our internal representation
         setAiQuota({
@@ -99,8 +104,10 @@ export default function StoreHealthPage() {
            b.recommendedActionKey === 'RESOLVE_TECHNICAL_ISSUES'
   );
   const deoHealth = getWorstHealth(deoBundles);
+  // [COUNT-INTEGRITY-1 PATCH 7] Use "issues" language (not "items")
+  const deoIssueCount = deoBundles.reduce((sum, b) => sum + b.scopeCount, 0);
   const deoSummary = deoBundles.length > 0
-    ? `${deoBundles.reduce((sum, b) => sum + b.scopeCount, 0)} items need attention across metadata and technical issues.`
+    ? `${deoIssueCount} ${deoIssueCount === 1 ? 'issue' : 'issues'} need attention across metadata and technical optimization.`
     : 'Your store is discoverable with no outstanding issues.';
   const deoAction = getActionLabel(deoBundles, 'View discoverability');
 
@@ -123,8 +130,10 @@ export default function StoreHealthPage() {
   // 4. Technical Readiness - RESOLVE_TECHNICAL_ISSUES
   const technicalBundles = items.filter((b) => b.recommendedActionKey === 'RESOLVE_TECHNICAL_ISSUES');
   const technicalHealth = getWorstHealth(technicalBundles);
+  // [COUNT-INTEGRITY-1 PATCH 7] Use "issues" language consistently
+  const technicalIssueCount = technicalBundles.reduce((sum, b) => sum + b.scopeCount, 0);
   const technicalSummary = technicalBundles.length > 0
-    ? `${technicalBundles.reduce((sum, b) => sum + b.scopeCount, 0)} technical issues affecting your store.`
+    ? `${technicalIssueCount} technical ${technicalIssueCount === 1 ? 'issue' : 'issues'} affecting your store.`
     : 'No technical issues detected.';
   const technicalAction = getActionLabel(technicalBundles, 'View technical status');
 

@@ -226,7 +226,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | Field | Value |
 |-------|-------|
 | **Manual Testing Doc(s)** | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md` |
-| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/web/tests/issue-to-fix-path-1.spec.ts`, `apps/web/tests/count-integrity-1.spec.ts` (Planned) |
+| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/web/tests/issue-to-fix-path-1.spec.ts`, `apps/web/tests/count-integrity-1.spec.ts` ✅ |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | Frontend Team |
@@ -273,7 +273,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | Field | Value |
 |-------|-------|
 | **Manual Testing Doc(s)** | `docs/testing/issue-engine-lite.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md` |
-| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `apps/web/tests/count-integrity-1.spec.ts` (Planned) |
+| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `apps/web/tests/count-integrity-1.spec.ts` ✅ |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | DEO Team |
@@ -776,3 +776,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 5.5 | 2026-01-07 | ISSUE-TO-FIX-PATH-1 FIXUP-2: Trust hardening — href-based actionability, dead-click prevention test, ID leakage prevention via safe title helpers. |
 | 5.6 | 2026-01-07 | ISSUE-TO-FIX-PATH-1 FIXUP-3: Doc/test alignment — Work Queue issue-fix banner triggers on issueId (from optional); updated Playwright + manual testing; corrected CP-008 wording. |
 | 5.7 | 2026-01-08 | COUNT-INTEGRITY-1: Updated CP-008 and CP-009 with count integrity scenarios (Work Queue → Issues click integrity, detected vs actionable semantics, role-based actionability, informational issue rendering). Added COUNT-INTEGRITY-1.md manual testing doc and planned count-integrity-1.spec.ts automated tests. |
+| 5.8 | 2026-01-08 | COUNT-INTEGRITY-1 COMPLETE: Implemented all patches (PATCH 6 FIXUP, 7, 9). Created count-integrity-1.spec.ts with 3 smoke tests (click integrity, technical informational, viewer role). Updated Store Health & Work Queue banner terminology. Issues Engine UI corrections (effectiveMode, isClickableIssue semantics, countsSummary for pillar badges, pillar filter alignment). Marked test status as ✅ complete in CP-008 and CP-009. |

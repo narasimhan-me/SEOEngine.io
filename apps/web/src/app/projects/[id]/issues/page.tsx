@@ -96,6 +96,9 @@ export default function IssuesPage() {
   const actionKeyParam = searchParams.get('actionKey');
   const scopeTypeParam = searchParams.get('scopeType') as 'PRODUCTS' | 'PAGES' | 'COLLECTIONS' | 'STORE_WIDE' | null;
 
+  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Derive effective mode (default to actionable)
+  const effectiveMode: 'actionable' | 'detected' = modeParam === 'detected' ? 'detected' : 'actionable';
+
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Read and validate returnTo context from URL
   const validatedNavContext = useMemo(() => {
     return getValidatedReturnTo(projectId, searchParams);
@@ -126,7 +129,11 @@ export default function IssuesPage() {
   const [error, setError] = useState('');
   const [projectName, setProjectName] = useState<string | null>(null);
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all');
-  const [pillarFilter, setPillarFilter] = useState<PillarFilter>(pillarParam ?? 'all');
+  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Don't auto-apply pillar param when click-integrity filters present
+  const hasClickIntegrityFilters = !!(actionKeyParam || scopeTypeParam);
+  const [pillarFilter, setPillarFilter] = useState<PillarFilter>(
+    hasClickIntegrityFilters ? 'all' : (pillarParam ?? 'all')
+  );
   const [rescanning, setRescanning] = useState(false);
   const [fixingIssueId, setFixingIssueId] = useState<string | null>(null);
 
@@ -257,8 +264,8 @@ export default function IssuesPage() {
 
   // [COUNT-INTEGRITY-1 PATCH 6] Filter issues: mode → actionKey → scopeType → UI filters
   const filteredIssues = issues.filter((issue) => {
-    // 1. Mode filter (actionable vs detected)
-    if (modeParam === 'actionable' && !issue.isActionableNow) {
+    // 1. Mode filter (actionable vs detected) - use effectiveMode for correct default
+    if (effectiveMode === 'actionable' && !issue.isActionableNow) {
       return false;
     }
     // Note: mode=detected shows all issues (no filter needed)
@@ -319,6 +326,11 @@ export default function IssuesPage() {
 
   // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Updated to use href-based actionability
   const getFixAction = (issue: DeoIssue) => {
+    // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Gate all fix CTAs on isActionableNow
+    if (!issue.isActionableNow) {
+      return null;
+    }
+
     const fixType = issue.fixType as DeoIssueFixType | undefined;
     const fixReady = issue.fixReady ?? false;
     const primaryProductId = issue.primaryProductId;
@@ -326,6 +338,11 @@ export default function IssuesPage() {
 
     // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Check if issue has a valid fix href (href-based actionability)
     const fixHref = buildIssueFixHref({ projectId, issue, from: 'issues' });
+
+    // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Return null if no valid href (prevents "Fix next" without destination)
+    if (!fixHref) {
+      return null;
+    }
 
     // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Reuse fixHref computed above - no dead-click risk
     if (fixType === 'aiFix' && fixReady && primaryProductId && fixHref) {
@@ -754,6 +771,8 @@ export default function IssuesPage() {
                   params.delete('actionKey');
                   params.delete('scopeType');
                   params.delete('mode');
+                  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Also clear pillar param (Work Queue may supply it)
+                  params.delete('pillar');
                   const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
                   router.replace(newUrl, { scroll: false });
                 }}
@@ -785,7 +804,11 @@ export default function IssuesPage() {
               All pillars
             </button>
             {DEO_PILLARS.filter((p) => !p.comingSoon).map((pillar) => {
-              const pillarIssueCount = issues.filter((i) => i.pillarId === pillar.id).length;
+              // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Use countsSummary for pillar badge counts (single source of truth)
+              const pillarCounts = countsSummary?.byPillar[pillar.id];
+              const pillarIssueCount = effectiveMode === 'actionable'
+                ? (pillarCounts?.actionableGroups ?? 0)
+                : (pillarCounts?.detectedGroups ?? 0);
               return (
                 <button
                   key={pillar.id}
@@ -822,7 +845,7 @@ export default function IssuesPage() {
                   router.replace(newUrl, { scroll: false });
                 }}
                 className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                  (modeParam || 'actionable') === mode
+                  effectiveMode === mode
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
@@ -897,22 +920,22 @@ export default function IssuesPage() {
             // [ISSUE-TO-FIX-PATH-1] Use safe title/description helpers
             const safeTitle = getSafeIssueTitle(issue);
             const safeDescription = getSafeIssueDescription(issue);
+
+            // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Compute fixHref unconditionally, then define isClickableIssue
+            const fixHref = buildIssueFixHref({ projectId, issue, from: 'issues' });
+            const isClickableIssue = (issue.isActionableNow === true) && (fixHref !== null);
             const fixAction = getFixAction(issue);
-            // [COUNT-INTEGRITY-1 PATCH 6] Use server-computed isActionableNow for role-aware actionability
-            const actionable = issue.isActionableNow ?? false;
-            // Still compute fixHref for navigation (only used if actionable)
-            const fixHref = actionable ? buildIssueFixHref({ projectId, issue, from: 'issues' }) : null;
 
             return (
               <div
                 key={issue.id}
-                // [COUNT-INTEGRITY-1 PATCH 6] Test hooks use isActionableNow
-                data-testid={actionable ? 'issue-card-actionable' : 'issue-card-informational'}
+                // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Test hooks use isClickableIssue (both isActionableNow AND fixHref)
+                data-testid={isClickableIssue ? 'issue-card-actionable' : 'issue-card-informational'}
                 className="rounded-lg border border-gray-200 bg-white p-4"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  {/* [ISSUE-TO-FIX-PATH-1 FIXUP-2] Only render as button if href exists (eliminates dead-click) */}
-                  {fixHref ? (
+                  {/* [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Only render as button if isClickableIssue */}
+                  {isClickableIssue ? (
                     <button
                       type="button"
                       onClick={() => handleIssueClick(fixHref)}
@@ -974,7 +997,7 @@ export default function IssuesPage() {
                   )}
 
                   {/* Preview panel for actionable issues */}
-                  {actionable && previewIssueId === issue.id && (
+                  {isClickableIssue && previewIssueId === issue.id && (
                       <div
                         ref={previewPanelRef}
                         tabIndex={-1}

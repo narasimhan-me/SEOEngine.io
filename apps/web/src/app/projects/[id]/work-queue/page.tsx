@@ -184,6 +184,11 @@ export default function WorkQueuePage() {
     return items.reduce((sum, bundle) => sum + bundle.scopeCount, 0);
   }, [items]);
 
+  // [COUNT-INTEGRITY-1 PATCH 7] Determine if all bundles are ASSET_OPTIMIZATION (show "issues" vs "items")
+  const allBundlesAreAssetOptimization = useMemo(() => {
+    return items.length > 0 && items.every(bundle => bundle.bundleType === 'ASSET_OPTIMIZATION');
+  }, [items]);
+
   // [ISSUE-TO-FIX-PATH-1] Scroll to first bundle and apply highlight on initial load
   useEffect(() => {
     if (!isIssueFixMode || loading) return;
@@ -302,9 +307,12 @@ export default function WorkQueuePage() {
                 </div>
               )}
               {/* [TRUST-ROUTING-1] Count explainability */}
+              {/* [COUNT-INTEGRITY-1 PATCH 7] Use "issues" for ASSET_OPTIMIZATION, "items" for others */}
               <p className="mt-2 text-xs text-blue-700">
                 {totalBundleCount} action bundle{totalBundleCount !== 1 ? 's' : ''} affecting{' '}
-                {totalAffectedItems} item{totalAffectedItems !== 1 ? 's' : ''}
+                {totalAffectedItems} {allBundlesAreAssetOptimization
+                  ? (totalAffectedItems === 1 ? 'issue' : 'issues')
+                  : (totalAffectedItems === 1 ? 'item' : 'items')}
               </p>
             </div>
             <button

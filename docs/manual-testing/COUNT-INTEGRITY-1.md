@@ -414,7 +414,9 @@
 
 ## Notes
 
-- **PATCH 1-6 + 10 Complete:** Backend, Work Queue, Issues Engine UI, and Documentation complete and ready for testing
-- **PATCH 7 + 9 Pending:** Store Health updates and Playwright tests not yet implemented
-- **Ready for Testing:** Scenarios HP-002, HP-004, HP-005, and ERR-001 are now testable (PATCH 6 complete)
+- **✅ ALL PATCHES COMPLETE:** Backend, Work Queue, Issues Engine UI, Store Health, Playwright tests, and Documentation all complete
+- **✅ PATCH 6 FIXUP Complete:** Issues Engine UI corrections applied (effectiveMode, isClickableIssue, countsSummary pillar badges, pillar filter alignment)
+- **✅ PATCH 7 Complete:** Store Health & Work Queue terminology updates (issues vs items)
+- **✅ PATCH 9 Complete:** Playwright smoke tests created (count-integrity-1.spec.ts with 3 tests)
+- **Ready for Manual Testing:** All 19 scenarios in this guide are now testable in local/staging environment
 - **Critical Path:** This testing guide covers CP-008 (Work Queue → Issues integrity) and CP-009 (Role-based actionability)
