@@ -172,6 +172,19 @@ export class ProjectsController {
   }
 
   /**
+   * GET /projects/:id/deo-issues/read-only
+   * COUNT-INTEGRITY-1: Read-only issues endpoint (no side effects, no automation triggers).
+   * Used by insights dashboard and counts summary.
+   */
+  @Get(':id/deo-issues/read-only')
+  async getDeoIssuesReadOnly(
+    @Request() req: any,
+    @Param('id') projectId: string,
+  ): Promise<DeoIssuesResponse> {
+    return this.deoIssuesService.getIssuesForProjectReadOnly(projectId, req.user.id);
+  }
+
+  /**
    * GET /projects/:id/issues/counts-summary
    * COUNT-INTEGRITY-1: Canonical server-side counts summary.
    */

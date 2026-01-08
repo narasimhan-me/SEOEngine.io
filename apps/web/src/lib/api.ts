@@ -837,6 +837,9 @@ export const projectsApi = {
 
   deoIssues: (id: string) => fetchWithAuth(`/projects/${id}/deo-issues`),
 
+  // COUNT-INTEGRITY-1: Read-only issues endpoint (no side effects)
+  deoIssuesReadOnly: (id: string) => fetchWithAuth(`/projects/${id}/deo-issues/read-only`),
+
   // COUNT-INTEGRITY-1: Canonical server-side counts summary
   issueCountsSummary: (id: string) => fetchWithAuth(`/projects/${id}/issues/counts-summary`),
 

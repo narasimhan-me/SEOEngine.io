@@ -380,8 +380,9 @@ Trust-critical UX hardening for issue→fix path navigation.
 
 ### Phase COUNT-INTEGRITY-1: Count Integrity Trust Hardening 🔄 IN PROGRESS
 
-**Status:** Core Infrastructure Complete; UI Updates Pending
+**Status:** Backend Complete (PATCH 1+2); Frontend Integration Pending
 **Start Date:** 2026-01-08
+**Last Updated:** 2026-01-08
 
 ### Overview
 
@@ -421,19 +422,29 @@ Establishes count integrity as a core trust contract across the product by:
    - Added `getAssetTypeFromUrl()` helper for URL classification
    - Added `IN_APP_ACTIONABLE_ISSUE_KEYS` set defining fix surfaces
    - Implemented issue decoration in `computeIssuesForProject()`:
-     - Sets `isActionableNow` based on fix surface + role capabilities
-     - Provides `assetTypeCounts` fallback when not explicitly set
-   - Updated issue builders with `assetTypeCounts`:
+     - Sets `isActionableNow` based on fix surface + role capabilities + not informational
+     - Capability check requires: canGenerateDrafts OR canRequestApproval OR canApply
+     - Provides sum-preserving `assetTypeCounts` fallback when not explicitly set (PATCH 1.1)
+   - Updated ALL issue builders with `assetTypeCounts`:
      - `buildMissingMetadataIssue` ✅
      - `buildThinContentIssue` ✅
      - `buildLowEntityCoverageIssue` ✅
      - `buildMissingLongDescriptionIssue` ✅ (also changed to `fixType: 'aiFix'`)
+     - `buildIndexabilityIssue` ✅ (actionability: 'informational')
+     - `buildIndexabilityConflictIssue` ✅ (actionability: 'informational')
+     - `buildCrawlHealthIssue` ✅ (actionability: 'informational')
+     - `buildRenderBlockingResourcesIssue` ✅ (actionability: 'informational')
+     - `buildSlowInitialResponseIssue` ✅ (actionability: 'informational')
+     - `buildExcessivePageWeightIssue` ✅ (actionability: 'informational')
+     - `buildMobileRenderingRiskIssue` ✅ (actionability: 'informational')
 
 3. **API Endpoints:**
    - Added `GET /projects/:id/issues/counts-summary` returning `IssueCountsSummary`
+   - Added `GET /projects/:id/deo-issues/read-only` (no side effects, used by dashboard)
 
 4. **Web API Client:**
    - Added `projectsApi.issueCountsSummary(id)` method
+   - Added `projectsApi.deoIssuesReadOnly(id)` method
 
 5. **Pillar Updates:**
    - Media & Accessibility pillar now ACTIVE (`comingSoon: false`)
@@ -441,35 +452,16 @@ Establishes count integrity as a core trust contract across the product by:
 
 ### ⚠️ Pending Work
 
-**PATCH 1 Completion - Remaining Issue Builders:**
-- [ ] Add `assetTypeCounts` to 7 technical issue builders:
-  - `buildIndexabilityIssue` → change actionability to `'informational'`
-  - `buildIndexabilityConflictIssue` → change to `'informational'`
-  - `buildCrawlHealthErrorsIssue` → change to `'informational'`
-  - `buildRenderBlockingResourcesIssue` → change to `'informational'`
-  - `buildSlowInitialResponseIssue` → change to `'informational'`
-  - `buildExcessivePageWeightIssue` → change to `'informational'`
-  - `buildMobileRenderingRiskIssue` → change to `'informational'`
+**✅ PATCH 1 - Backend Issue Builders & Gating (COMPLETE):**
+- ✅ Added `assetTypeCounts` to all 7 technical issue builders (all marked 'informational')
+- ✅ Added check for `issue.actionability !== 'informational'` in decoration block
+- ✅ Changed capability check to require: canGenerateDrafts OR canRequestApproval OR canApply
+- ✅ Implemented sum-preserving `assetTypeCounts` fallback allocation (PATCH 1.1)
+- ✅ Fixed `byAssetType` group counting to track issue types per asset type
 
-**PATCH 1 - Actionability Gating Refinement:**
-- [ ] Add check for `issue.actionability !== 'informational'` in decoration block
-- [ ] Change capability check from `capabilities.canView` to require at least one of:
-  - `capabilities.canGenerateDrafts` OR
-  - `capabilities.canRequestApproval` OR
-  - `capabilities.canApply`
-
-**PATCH 1 - Asset Type Fallback Allocation:**
-- [ ] Replace mixed-case collapse with sum-preserving allocation
-- [ ] Use URL classification for pages array to split pages/collections
-- [ ] Ensure `products + pages + collections === issue.count`
-
-**PATCH 1 - IssueCountsSummary Group Counts:**
-- [ ] Fix `byAssetType` group counting (currently only tracking instances)
-- [ ] When `assetTypeCounts[type] > 0`, increment `detectedGroups` and (if actionable) `actionableGroups`
-
-**PATCH 2 - Read-Only Issues Endpoint:**
-- [ ] Add `GET /projects/:id/deo-issues/read-only` to controller
-- [ ] Add `projectsApi.deoIssuesReadOnly(id)` to web client
+**✅ PATCH 2 - Read-Only Issues Endpoint (COMPLETE):**
+- ✅ Added `GET /projects/:id/deo-issues/read-only` to controller
+- ✅ Added `projectsApi.deoIssuesReadOnly(id)` to web client
 
 **PATCH 3 - Work Queue Bundle Types:**
 - [ ] Add `scopeDetectedCount?` field to `WorkQueueActionBundle`

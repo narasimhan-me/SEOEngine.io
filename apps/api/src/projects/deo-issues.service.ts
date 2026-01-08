@@ -469,12 +469,18 @@ export class DeoIssuesService {
               if (bucket === 'collections') collections++;
               else pages++;
             }
-            const pagesRatio = pages / (pages + collections || 1);
-            const collectionsRatio = collections / (pages + collections || 1);
+            // Guard: if no URLs classified, assign all to pages
+            if (pages === 0 && collections === 0) {
+              return { products: 0, pages: count, collections: 0 };
+            }
+            // Sum-preserving: round pages, assign remainder to collections
+            const pagesRatio = pages / (pages + collections);
+            const pagesAssigned = Math.round(count * pagesRatio);
+            const collectionsAssigned = count - pagesAssigned;
             return {
               products: 0,
-              pages: Math.round(count * pagesRatio),
-              collections: Math.round(count * collectionsRatio)
+              pages: pagesAssigned,
+              collections: collectionsAssigned,
             };
           }
 
@@ -488,12 +494,18 @@ export class DeoIssuesService {
             if (bucket === 'collections') collections++;
             else pages++;
           }
-          const pagesRatio = pages / (pages + collections || 1);
-          const collectionsRatio = collections / (pages + collections || 1);
+          // Guard: if no URLs classified, assign all remainder to pages
+          if (pages === 0 && collections === 0) {
+            return { products: productsHint, pages: remainder, collections: 0 };
+          }
+          // Sum-preserving: round pages, assign remainder to collections
+          const pagesRatio = pages / (pages + collections);
+          const pagesAssigned = Math.round(remainder * pagesRatio);
+          const collectionsAssigned = remainder - pagesAssigned;
           return {
             products: productsHint,
-            pages: Math.round(remainder * pagesRatio),
-            collections: Math.round(remainder * collectionsRatio),
+            pages: pagesAssigned,
+            collections: collectionsAssigned,
           };
         })();
 

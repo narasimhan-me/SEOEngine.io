@@ -1,7 +1,7 @@
 # COUNT-INTEGRITY-1 Implementation Status
 
 **Phase:** COUNT-INTEGRITY-1: Count Integrity Trust Hardening
-**Status:** PATCH 1 COMPLETE (Backend Infrastructure Ready)
+**Status:** PATCH 1 + 2 COMPLETE (Backend Complete, Ready for Frontend Integration)
 **Date:** 2026-01-08
 **Last Updated:** 2026-01-08
 
@@ -30,10 +30,17 @@
 
 ### 3. API Endpoints
 - ✅ Added `GET /projects/:id/issues/counts-summary` endpoint in `projects.controller.ts`
+- ✅ Added `GET /projects/:id/deo-issues/read-only` endpoint in `projects.controller.ts`
 - ✅ Added `IssueCountsSummary` import to controller
 
 ### 4. Web API Client
 - ✅ Added `projectsApi.issueCountsSummary(id)` method to `apps/web/src/lib/api.ts`
+- ✅ Added `projectsApi.deoIssuesReadOnly(id)` method to `apps/web/src/lib/api.ts`
+
+### 5. Backend Refinements (PATCH 1.1)
+- ✅ Fixed `assetTypeCounts` fallback to guarantee sum-preserving allocation
+- ✅ Eliminated rounding drift: compute one value with Math.round(), assign remainder to other
+- ✅ Added guards for edge case where no URLs are classified (assigns all to pages)
 
 ## 🔄 REMAINING Work (Critical Path)
 
@@ -79,15 +86,17 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
 - ✅ Replaced mixed-case collapse with sum-preserving allocation
 - ✅ Use URL classification for pages array to split pages/collections
 - ✅ Ensured `products + pages + collections === issue.count`
+- ✅ **PATCH 1.1:** Fixed rounding drift by computing one value, assigning remainder to other (no Math.round on both)
 
 ### ✅ PATCH 1 - IssueCountsSummary.byAssetType Group Counts (COMPLETE)
 - ✅ When `issue.assetTypeCounts[assetType] > 0`, increment:
   - `byAssetType[assetType].detectedGroups += 1`
   - If actionable: `byAssetType[assetType].actionableGroups += 1`
 
-### PATCH 2 - Read-Only Issues Endpoint
-- ⚠️ **TODO:** Add `GET /projects/:id/deo-issues/read-only` to controller
-- ⚠️ **TODO:** Add `projectsApi.deoIssuesReadOnly(id)` to web API client
+### ✅ PATCH 2 - Read-Only Issues Endpoint (COMPLETE)
+- ✅ Added `GET /projects/:id/deo-issues/read-only` to controller
+- ✅ Added `projectsApi.deoIssuesReadOnly(id)` to web API client
+- ✅ Endpoint uses `getIssuesForProjectReadOnly()` (no side effects, no automation triggers)
 
 ### PATCH 3 - Work Queue Bundle Types
 - ⚠️ **TODO:** Add `scopeDetectedCount?` field to `WorkQueueActionBundle` in shared/web types
@@ -166,13 +175,14 @@ interface IssueCountsSummary {
 1. ✅ ~~Complete remaining issue builder `assetTypeCounts` additions (7 methods)~~ - COMPLETE
 2. ✅ ~~Refine actionability gating logic (3 checks)~~ - COMPLETE
 3. ✅ ~~Fix `IssueCountsSummary.byAssetType` group counting~~ - COMPLETE
-4. ⚠️ Add read-only issues endpoint (PATCH 2)
-5. ⚠️ Update Work Queue types and derivation (PATCH 3-5)
-6. ⚠️ Update Issues Engine UI to consume IssueCountsSummary (PATCH 6)
-7. ⚠️ Update Work Queue Card UI (PATCH 7)
-8. ⚠️ Update Store Health pages (PATCH 8)
-9. ⚠️ Create Playwright regression tests (PATCH 9)
-10. ⚠️ Update documentation (PATCH 10)
+4. ✅ ~~Add read-only issues endpoint (PATCH 2)~~ - COMPLETE
+5. ✅ ~~Fix assetTypeCounts fallback sum-preserving (PATCH 1.1)~~ - COMPLETE
+6. ⚠️ Update Work Queue types and derivation (PATCH 3-5)
+7. ⚠️ Update Issues Engine UI to consume IssueCountsSummary (PATCH 6)
+8. ⚠️ Update Work Queue Card UI (PATCH 7)
+9. ⚠️ Update Store Health pages (PATCH 8)
+10. ⚠️ Create Playwright regression tests (PATCH 9)
+11. ⚠️ Update documentation (PATCH 10)
 
 ## Notes
 - Media & Accessibility pillar is now ACTIVE (`comingSoon: false`)
