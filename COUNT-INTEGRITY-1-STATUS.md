@@ -1,7 +1,7 @@
 # COUNT-INTEGRITY-1 Implementation Status
 
 **Phase:** COUNT-INTEGRITY-1: Count Integrity Trust Hardening
-**Status:** PATCH 1 + 2 COMPLETE (Backend Complete, Ready for Frontend Integration)
+**Status:** PATCH 1-5 + 10 COMPLETE (Backend + Work Queue + Documentation Complete, Issues Engine UI Pending)
 **Date:** 2026-01-08
 **Last Updated:** 2026-01-08
 
@@ -148,10 +148,11 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
   - Issues pillar/severity integrity
   - Technical pillar regression checks
 
-### PATCH 10 - Documentation
-- ⚠️ **TODO:** Update `IMPLEMENTATION_PLAN.md` with COUNT-INTEGRITY-1 phase
-- ⚠️ **TODO:** Create `COUNT-INTEGRITY-1.md` manual testing doc
-- ⚠️ **TODO:** Update `CRITICAL_PATH_MAP.md` with new test references
+### ✅ PATCH 10 - Documentation (COMPLETE)
+- ✅ **PATCH 10.1:** Checked `IMPLEMENTATION_PLAN.md` CRITICAL_PATH_MAP references (already correct, no changes needed)
+- ✅ **PATCH 10.2:** Created `docs/manual-testing/COUNT-INTEGRITY-1.md` manual testing guide with 19 scenarios
+- ✅ **PATCH 10.3:** Updated `CRITICAL_PATH_MAP.md` with COUNT-INTEGRITY-1 references in CP-008 and CP-009
+- ✅ **PATCH 10.4:** Updated status tracking to reflect PATCH 10 completion
 
 ## Core Contracts Established
 
@@ -196,10 +197,10 @@ interface IssueCountsSummary {
 5. ✅ ~~Fix assetTypeCounts fallback sum-preserving (PATCH 1.1)~~ - COMPLETE
 6. ✅ ~~Update Work Queue types and derivation (PATCH 3-4)~~ - COMPLETE
 7. ✅ ~~Update Work Queue Card UI and routing (PATCH 5)~~ - COMPLETE
-8. ⚠️ Update Issues Engine UI to consume IssueCountsSummary (PATCH 6)
-9. ⚠️ Update Store Health pages (PATCH 7-8)
-10. ⚠️ Create Playwright regression tests (PATCH 9)
-11. ⚠️ Update documentation (PATCH 10)
+8. ✅ ~~Update documentation (PATCH 10)~~ - COMPLETE
+9. ⚠️ Update Issues Engine UI to consume IssueCountsSummary (PATCH 6)
+10. ⚠️ Update Store Health pages (PATCH 7-8)
+11. ⚠️ Create Playwright regression tests (PATCH 9)
 
 ## Notes
 - Media & Accessibility pillar is now ACTIVE (`comingSoon: false`)

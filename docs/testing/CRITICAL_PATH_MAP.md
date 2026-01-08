@@ -221,12 +221,12 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 ### CP-008: Frontend Global UX Feedback
 
-**Description:** Global UI feedback systems including toast notifications, loading states, error displays, inline validation, design tokens, theme support, and trust-safe issue routing.
+**Description:** Global UI feedback systems including toast notifications, loading states, error displays, inline validation, design tokens, theme support, trust-safe issue routing, and count integrity between Work Queue and Issues page.
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md` |
-| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/web/tests/issue-to-fix-path-1.spec.ts` |
+| **Manual Testing Doc(s)** | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md` |
+| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/web/tests/issue-to-fix-path-1.spec.ts`, `apps/web/tests/count-integrity-1.spec.ts` (Planned) |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | Frontend Team |
@@ -256,17 +256,24 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] ISSUE-TO-FIX-PATH-1 FIXUP-1: DEO page pillar scorecards use actionable issues only
 - [ ] ISSUE-TO-FIX-PATH-1 FIXUP-1: Project Issues page severity counts are actionable-only
 - [ ] ISSUE-TO-FIX-PATH-1 FIXUP-1: Origin preserved in buildIssueFixHref (from=overview/deo/issues)
+- [ ] COUNT-INTEGRITY-1: Work Queue card counts EXACTLY match Issues page filtered list counts (click integrity)
+- [ ] COUNT-INTEGRITY-1: Work Queue ASSET_OPTIMIZATION bundles route to Issues page with actionKey, scopeType, mode, pillar query params
+- [ ] COUNT-INTEGRITY-1: Work Queue card shows detected count in parentheses when different from actionable (e.g., "3 actionable (5 detected)")
+- [ ] COUNT-INTEGRITY-1: Work Queue card shows "Informational — no action required" when scopeCount = 0
+- [ ] COUNT-INTEGRITY-1: Issues page URL contract preserved (actionKey + scopeType + mode + pillar)
+- [ ] COUNT-INTEGRITY-1: Preview list shows issue titles (not asset titles) for ASSET_OPTIMIZATION bundles
+- [ ] COUNT-INTEGRITY-1: scopeCount = actionable issue-group count, scopeDetectedCount = detected issue-group count
 
 ---
 
 ### CP-009: Issue Engine Lite
 
-**Description:** Product-focused DEO issues with actionable fix buttons (AI fix, manual fix, sync fix) and severity filtering. Includes MEDIA pillar issues.
+**Description:** Product-focused DEO issues with actionable fix buttons (AI fix, manual fix, sync fix) and severity filtering. Includes MEDIA pillar issues and role-based actionability semantics.
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/issue-engine-lite.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md` |
-| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1) |
+| **Manual Testing Doc(s)** | `docs/testing/issue-engine-lite.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md` |
+| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `apps/web/tests/count-integrity-1.spec.ts` (Planned) |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | DEO Team |
@@ -283,6 +290,12 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] MEDIA-1: missing_image_alt_text, generic_image_alt_text, insufficient_image_coverage, missing_media_context issues generated
 - [ ] DEO-UX-REFRESH-1: Product details Issues tab shows issue count consistent with products list
 - [ ] DEO-UX-REFRESH-1: Issues grouped by pillar with "Fix next" guidance
+- [ ] COUNT-INTEGRITY-1: Technical issues appear as "detected" with "Informational — no action required" badge
+- [ ] COUNT-INTEGRITY-1: Technical issues are NOT clickable (no dead-click risk)
+- [ ] COUNT-INTEGRITY-1: Detected vs actionable semantics consistent across all UI surfaces
+- [ ] COUNT-INTEGRITY-1: VIEWER role sees all issues as detected (actionableCount = 0)
+- [ ] COUNT-INTEGRITY-1: Role-based actionability based on canGenerateDrafts OR canRequestApproval OR canApply
+- [ ] COUNT-INTEGRITY-1: issue.isActionableNow determines clickability (not href-based check)
 
 ---
 
@@ -762,3 +775,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 5.4 | 2026-01-07 | ISSUE-TO-FIX-PATH-1 FIXUP-1: Added CP-008 scenarios for circular import fix + orphan/dead-end cleanup. Issue-fix mode triggers on issueId alone, Overview/DEO use actionable-only, Project Issues severity counts are actionable-only, buildIssueFixHref preserves origin (from=overview/deo/issues). Updated ISSUE-TO-FIX-PATH-1.md manual testing doc. |
 | 5.5 | 2026-01-07 | ISSUE-TO-FIX-PATH-1 FIXUP-2: Trust hardening — href-based actionability, dead-click prevention test, ID leakage prevention via safe title helpers. |
 | 5.6 | 2026-01-07 | ISSUE-TO-FIX-PATH-1 FIXUP-3: Doc/test alignment — Work Queue issue-fix banner triggers on issueId (from optional); updated Playwright + manual testing; corrected CP-008 wording. |
+| 5.7 | 2026-01-08 | COUNT-INTEGRITY-1: Updated CP-008 and CP-009 with count integrity scenarios (Work Queue → Issues click integrity, detected vs actionable semantics, role-based actionability, informational issue rendering). Added COUNT-INTEGRITY-1.md manual testing doc and planned count-integrity-1.spec.ts automated tests. |

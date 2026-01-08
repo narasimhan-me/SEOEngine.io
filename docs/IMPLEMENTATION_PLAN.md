@@ -380,7 +380,7 @@ Trust-critical UX hardening for issue→fix path navigation.
 
 ### Phase COUNT-INTEGRITY-1: Count Integrity Trust Hardening 🔄 IN PROGRESS
 
-**Status:** Backend Complete (PATCH 1+2); Frontend Integration Pending
+**Status:** Backend + Work Queue + Docs Complete; Issues Engine UI Pending
 **Start Date:** 2026-01-08
 **Last Updated:** 2026-01-08
 
@@ -463,14 +463,19 @@ Establishes count integrity as a core trust contract across the product by:
 - ✅ Added `GET /projects/:id/deo-issues/read-only` to controller
 - ✅ Added `projectsApi.deoIssuesReadOnly(id)` to web client
 
-**PATCH 3 - Work Queue Bundle Types:**
-- [ ] Add `scopeDetectedCount?` field to `WorkQueueActionBundle`
-- [ ] Update field comments for clarity (groups vs instances)
+**✅ PATCH 3 - Work Queue Bundle Types (COMPLETE):**
+- ✅ Added `scopeDetectedCount?` field to `WorkQueueActionBundle`
+- ✅ Updated field comments for clarity:
+  - `scopeCount`: For ASSET_OPTIMIZATION: actionable issue-group count; for other types: affected item count
+  - `scopeDetectedCount`: For ASSET_OPTIMIZATION: detected issue-group count (may exceed scopeCount)
 
-**PATCH 4 - Work Queue Derivation:**
-- [ ] Update `deriveIssueBundlesByScopeType()` to use `assetTypeCounts` for counts
-- [ ] Set `scopeCount` = actionable issue-groups, `scopeDetectedCount` = detected issue-groups
-- [ ] Stop using truncated preview arrays (size < 20) for authoritative counts
+**✅ PATCH 4 - Work Queue Derivation (COMPLETE):**
+- ✅ Updated `deriveIssueBundlesByScopeType()` to use `assetTypeCounts` for counts
+- ✅ Set `scopeCount` = actionable issue-group count, `scopeDetectedCount` = detected issue-group count
+- ✅ Stopped using asset set sizes (`productIds.size`, etc.) for counts
+- ✅ Switched `scopePreviewList` to issue titles for ASSET_OPTIMIZATION bundles
+- ✅ Preview list prefers actionable issue titles; uses detected titles if scopeCount === 0
+- ✅ Create bundle when `scopeDetectedCount > 0` (even if no actionable issues)
 
 **PATCH 6 - Issues Engine UI (Critical Path):**
 - [ ] Switch to `projectsApi.deoIssuesReadOnly()` instead of mutating version
@@ -481,34 +486,41 @@ Establishes count integrity as a core trust contract across the product by:
 - [ ] Render informational issues as non-clickable with "Informational — no action required"
 - [ ] Hide or recompute pillar/severity badges when extra filters active (avoid misleading totals)
 
-**PATCH 7 - Work Queue Card UI:**
-- [ ] Update scope line: "N actionable issues affecting <scope>"
-- [ ] Show detected count when differs: "N actionable (M detected)"
-- [ ] Route ASSET_OPTIMIZATION bundles to Issues page with `actionKey + scopeType + mode` params
+**✅ PATCH 5 - Work Queue Card UI & Routing (COMPLETE):**
+- ✅ **PATCH 5.1:** Updated scope line for ASSET_OPTIMIZATION bundles:
+  - Shows "N actionable issues affecting <scope>" when scopeCount > 0
+  - Shows detected count in parentheses when detected != actionable
+  - Shows "Informational — no action required · N detected issues affecting <scope>" when scopeCount === 0
+  - Preview list shows issue titles (from PATCH 4)
+- ✅ **PATCH 5.2:** All ASSET_OPTIMIZATION bundles route to Issues page with click-integrity filters:
+  - Always includes `actionKey` and `scopeType` query params
+  - Sets `mode=actionable` when scopeCount > 0, else `mode=detected`
+  - Includes pillar fallback for stable behavior
+  - Routes PRODUCTS, PAGES, COLLECTIONS, and STORE_WIDE all to Issues page (not asset lists)
 
-**PATCH 8 - Work Queue & Store Health Pages:**
-- [ ] Replace "items/products" with "issues" in Work Queue filter banner
+**PATCH 7 - Store Health Pages (Pending):**
 - [ ] Update Store Health summaries to use "issues" language
 - [ ] Show detected vs actionable when counts differ
 
-**PATCH 9 - Playwright Tests:**
+**PATCH 9 - Playwright Tests (Pending):**
 - [ ] Create `count-integrity-1.spec.ts` with:
   - Store Health → Work Queue count integrity test
   - Work Queue bundle → Issues click integrity test
   - Issues pillar/severity badge integrity test
   - Technical pillar actionability regression test
 
-**PATCH 10 - Documentation:**
-- [ ] Create `docs/manual-testing/COUNT-INTEGRITY-1.md` (clone from template)
-- [ ] Update `docs/CRITICAL_PATH_MAP.md` with new test references
-- [ ] Add smoke test expectations documentation
+**✅ PATCH 10 - Documentation (COMPLETE):**
+- ✅ **PATCH 10.1:** Checked `IMPLEMENTATION_PLAN.md` CRITICAL_PATH_MAP references (already correct, no changes needed)
+- ✅ **PATCH 10.2:** Created `docs/manual-testing/COUNT-INTEGRITY-1.md` manual testing guide with 19 scenarios
+- ✅ **PATCH 10.3:** Updated `docs/testing/CRITICAL_PATH_MAP.md` with COUNT-INTEGRITY-1 references in CP-008 and CP-009
+- ✅ **PATCH 10.4:** Updated status tracking to reflect PATCH 10 completion
 
 ### Core Files Modified
 
 **Backend:**
 - `apps/api/src/projects/deo-issues.service.ts` - Core aggregation and decoration logic
 - `apps/api/src/projects/projects.controller.ts` - New counts endpoint
-- `apps/api/src/projects/work-queue.service.ts` - Bundle derivation (pending update)
+- `apps/api/src/projects/work-queue.service.ts` - Bundle derivation ✅
 - `packages/shared/src/deo-issues.ts` - Type definitions
 - `packages/shared/src/deo-pillars.ts` - Media pillar activation
 
@@ -516,7 +528,7 @@ Establishes count integrity as a core trust contract across the product by:
 - `apps/web/src/lib/deo-issues.ts` - Type definitions
 - `apps/web/src/lib/api.ts` - API client methods
 - `apps/web/src/app/projects/[id]/issues/page.tsx` - Issues Engine UI (pending)
-- `apps/web/src/components/work-queue/ActionBundleCard.tsx` - Card UI (pending)
+- `apps/web/src/components/work-queue/ActionBundleCard.tsx` - Card UI & routing ✅
 - `apps/web/src/app/projects/[id]/work-queue/page.tsx` - Filter banner (pending)
 - `apps/web/src/app/projects/[id]/store-health/page.tsx` - Summaries (pending)
 
@@ -537,8 +549,8 @@ Establishes count integrity as a core trust contract across the product by:
 ### Related Documents
 
 - **Status Tracking:** `COUNT-INTEGRITY-1-STATUS.md` (detailed implementation checklist)
-- **Manual Testing:** `docs/manual-testing/COUNT-INTEGRITY-1.md` (pending creation)
-- **Critical Path:** `docs/CRITICAL_PATH_MAP.md` (pending update)
+- **Manual Testing:** `docs/manual-testing/COUNT-INTEGRITY-1.md` ✅ (created)
+- **Critical Path:** `docs/testing/CRITICAL_PATH_MAP.md` ✅ (updated)
 
 ---
 
