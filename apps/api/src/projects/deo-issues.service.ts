@@ -416,16 +416,32 @@ export class DeoIssuesService {
     const response = await this.getIssuesForProjectReadOnly(projectId, userId);
     let issues = response.issues ?? [];
 
-    // [COUNT-INTEGRITY-1.1 PATCH 2.5] Resolve page/collection IDs to URLs for filtering
+    // [COUNT-INTEGRITY-1.1 PATCH 2.5-FIXUP-1] Resolve page/collection IDs to URLs (scoped to project)
     let resolvedAssetIdentifier = assetId;
     if (assetType === 'pages' || assetType === 'collections') {
-      const crawlResult = await this.prisma.crawlResult.findUnique({
-        where: { id: assetId },
+      const crawlResult = await this.prisma.crawlResult.findFirst({
+        where: { id: assetId, projectId },
         select: { url: true },
       });
-      if (crawlResult) {
-        resolvedAssetIdentifier = crawlResult.url;
+
+      if (!crawlResult) {
+        // [PATCH 2.5-FIXUP-1] Asset not found or not in this project → return empty deterministically
+        return {
+          projectId,
+          assetType,
+          assetId,
+          generatedAt: new Date().toISOString(),
+          issues: [],
+          summary: {
+            detected: { issueTypesCount: 0, affectedItemsCount: 0, actionableNowCount: 0 },
+            actionable: { issueTypesCount: 0, affectedItemsCount: 0, actionableNowCount: 0 },
+            byPillar: {} as any,
+            bySeverity: {} as any,
+          },
+        };
       }
+
+      resolvedAssetIdentifier = crawlResult.url;
     }
 
     // Filter to only issues affecting this specific asset

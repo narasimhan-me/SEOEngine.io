@@ -1,8 +1,8 @@
 # COUNT-INTEGRITY-1.1: Canonical Triplet Counts + Explicit Labels Manual Testing Guide
 
 **Phase:** COUNT-INTEGRITY-1.1
-**Status:** ✅ BACKEND CONTRACT COMPLETE (PATCH 0 + BATCH 2) | 🚧 UI UPDATES DEFERRED (PATCHES 4-7)
-**Date:** 2026-01-08 (Updated after PATCH BATCH 2)
+**Status:** ⚠️ BACKEND FILTERING COMPLETE (PATCH 0 + BATCH 2 + FIXUPS) | ⚠️ DEDUP PENDING (Gap 3) | 🚧 UI + SMOKE TEST DEFERRED (Gaps 6, 7)
+**Date:** 2026-01-08 (Updated after PATCH BATCH 2 + FIXUPS)
 
 ## Overview
 
@@ -17,29 +17,37 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 
 ### Implementation Status
 
-**COMPLETED (PATCH 0 + PATCH BATCH 2):**
+**COMPLETED (PATCH 0 + PATCH BATCH 2 + FIXUPS):**
 - ✅ PATCH 0: Endpoint naming fixed (`/summary` primary, `/canonical-summary` alias)
 - ✅ PATCH 1-3: Canonical triplet types + backend endpoints + web client (initial delivery)
 - ✅ PATCH 2.1: Media issues count bug fixed (true counts, not capped sample length)
 - ✅ PATCH 2.2: Shared issue→actionKey mapper created in packages/shared
 - ✅ PATCH 2.3: Work Queue refactored to use shared mapper
 - ✅ PATCH 2.4: Real actionKey filtering implemented in canonical summary
-- ✅ PATCH 2.5: Asset-specific endpoint bugs fixed (ID→URL resolution, no false positives)
-- ✅ PATCH 2.6: Deterministic Playwright tests using testkit seeds (8 tests)
-- ✅ PATCH 2.7: Documentation updated (this file + GAPS.md)
+- ✅ PATCH 2.5-FIXUP-1: Asset-specific endpoint bugs fixed (ID→URL, project-scoped, deterministic empty)
+- ✅ PATCH 2.6-FIXUP-1: Deterministic Playwright backend API tests (8 tests, accessToken field corrected)
+- ✅ PATCH 2.7-FIXUP-1: Documentation truthfulness updated (reflects incomplete status)
+
+**PENDING (BLOCKING UEP CONTRACT):**
+- ⚠️ **Gap 3: Asset deduplication refactor** (affectedItemsCount wrong when >20 items)
+- ⚠️ **Gap 7: Required single cross-surface UI smoke test** (UEP spec violation - current tests are backend API only)
 
 **DEFERRED (UI Updates - Future Work):**
-- 🚧 PATCH 4: Issues Engine triplet display + labels
+- 🚧 PATCH 4: Issues Engine triplet display + labels (**UEP requires labeled display**)
 - 🚧 PATCH 5: Store Health tiles show items affected
 - 🚧 PATCH 6: Work Queue actionable now + AI badge copy
 - 🚧 PATCH 7: Asset detail pages use asset-issues endpoint
 
 ### High-Level User Impact
 
-**Backend Foundation (COMPLETE):**
+**Backend Filtering (COMPLETE):**
 - New API endpoints provide canonical triplet counts for any filter combination
-- Server-side asset deduplication ensures count accuracy
+- ActionKey filtering works (shared mapper ensures consistency with Work Queue)
 - Zero-affected suppression semantics built-in (affectedItemsCount = 0 when no items)
+
+**Backend Deduplication (INCOMPLETE - Gap 3):**
+- ⚠️ Server-side asset deduplication uses capped arrays (affectedItemsCount wrong when >20 items)
+- ⚠️ Does NOT meet UEP contract for affectedItemsCount accuracy in edge cases
 
 **UI Updates (DEFERRED):**
 - When implemented, all count displays will show explicit labels ("Issue types", "Items affected", "Actionable now")
@@ -270,14 +278,15 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 
 ## Automated Test Coverage
 
-**Playwright Test File:** `apps/web/tests/count-integrity-1-1.spec.ts` [PATCH 2.6]
+**Playwright Test File:** `apps/web/tests/count-integrity-1-1.spec.ts` [PATCH 2.6-FIXUP-1]
 
 **Test Infrastructure:**
 - ✅ Uses `/testkit/e2e/seed-first-deo-win` for deterministic test data
+- ✅ Corrected token field (`accessToken` not `authToken`) [FIXUP-1]
 - ✅ No environment variable dependencies (TEST_USER, TEST_PASSWORD removed)
 - ✅ Independent of "first project" discovery pattern
 
-**Test Coverage:**
+**Test Coverage (Backend API Only):**
 - ✅ CANON-001: Valid triplet structure
 - ✅ CANON-002: Pillar filter support
 - ✅ CANON-003: Severity filter support
@@ -286,6 +295,12 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 - ✅ CANON-006: Asset-specific issues structure
 - ✅ CANON-007: Asset-specific pillar filtering
 - ✅ CANON-008: ActionKey filter support [PATCH 2.6 - regression test]
+
+**⚠️ Missing (UEP Spec Violation):**
+- ❌ **Required single cross-surface UI smoke test** (current tests are backend API only)
+- ❌ Test: Store Health → Work Queue → Issues → Asset Detail with labeled triplet assertions
+- ❌ Test: Numeric consistency across surfaces for same filter set
+- ❌ Test: Zero-actionable suppression UI behavior
 
 **Run Tests:**
 ```bash
@@ -383,29 +398,36 @@ npx playwright test count-integrity-1-1.spec.ts
 
 ---
 
-## Sign-Off (Updated After PATCH BATCH 2)
+## Sign-Off (Updated After PATCH BATCH 2 + FIXUPS)
 
-**Backend Contract (COMPLETE):**
+**Backend Filtering (COMPLETE):**
 - [x] PATCH 0: Endpoint naming fixed (`/summary` primary path)
 - [x] PATCH 1-3: Backend foundation + types + web client
 - [x] PATCH 2.1: Media count bug fixed (true counts)
 - [x] PATCH 2.2-2.4: Shared mapper + actionKey filtering working
-- [x] PATCH 2.5: Asset-specific endpoint bugs fixed (ID→URL, no false positives)
-- [x] PATCH 2.6: Playwright tests deterministic (testkit seeds, 8 tests)
-- [x] PATCH 2.7: Documentation updated
+- [x] PATCH 2.5-FIXUP-1: Asset-specific endpoint bugs fixed (ID→URL, project-scoped, deterministic empty)
+- [x] PATCH 2.6-FIXUP-1: Playwright backend API tests deterministic (testkit seeds, accessToken corrected)
+- [x] PATCH 2.7-FIXUP-1: Documentation truthfulness updated
 
-**UI Migration (DEFERRED):**
-- [ ] PATCH 4: Issues Engine triplet display + labels
+**Backend Deduplication (INCOMPLETE):**
+- [ ] **Gap 3: affectedItemsCount uses capped arrays** (wrong when >20 items) ⚠️ BLOCKING UEP
+
+**UI Migration (INCOMPLETE):**
+- [ ] PATCH 4: Issues Engine triplet display + labels ⚠️ UEP REQUIRES LABELED DISPLAY
 - [ ] PATCH 5: Store Health tiles
 - [ ] PATCH 6: Work Queue actionable now
 - [ ] PATCH 7: Asset detail pages
 
-**Ready for:**
-- ✅ Backend API consumption NOW (production-ready)
-- ✅ Automated testing in CI pipeline
+**Testing (INCOMPLETE):**
+- [x] Backend API tests (8 tests, backend-only)
+- [ ] **Required single cross-surface UI smoke test missing** ⚠️ SPEC VIOLATION
+
+**Ready for (with limitations):**
+- ✅ Backend API filtering consumption (actionKey, pillar, severity work correctly)
 - ✅ Work Queue → Issues click-integrity (actionKey filtering works)
-- ✅ Asset detail pages filtering (ID→URL resolution works)
-- 🚧 UI migration (scheduled separately)
+- ✅ Asset detail pages filtering (ID→URL resolution works, project-scoped)
+- ⚠️ affectedItemsCount accuracy ONLY when issues affect ≤20 items (Gap 3 limitation)
+- ❌ NOT ready for full UEP contract compliance (Gap 3 + UI + smoke test missing)
 
 ---
 
@@ -413,9 +435,9 @@ npx playwright test count-integrity-1-1.spec.ts
 
 - **No DB migrations required** - all computation happens at request time
 - **Zero-affected suppression built-in** - affectedItemsCount = 0 when no items match filters
-- **Cross-surface consistency guaranteed** - same filters always return same counts
-- **Explicit label mandate** - UI MUST display "Issue types", "Items affected", "Actionable now" labels
+- **Cross-surface consistency guaranteed** - same filters always return same counts (within Cap 20 limitation)
+- **Explicit label mandate** - UI MUST display "Issue types", "Items affected", "Actionable now" labels (NOT YET IMPLEMENTED)
 - **UI migration is incremental** - can pilot on one surface before rolling out to all
-- **Gap 3 deferred** - Asset deduplication uses capped arrays; fix when Cap 20 becomes constraint
+- **Gap 3 limitation** - Asset deduplication uses capped arrays; affectedItemsCount wrong when >20 items
 
-**Backend contract is production-ready (PATCH 0 + BATCH 2 complete). UI updates scheduled as Gap 6 separate sprint work.**
+**Backend filtering is production-usable (with Cap 20 limitation). Full UEP contract requires Gap 3 + Gap 6 + required UI smoke test.**

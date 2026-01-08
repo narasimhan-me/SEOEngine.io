@@ -1,28 +1,28 @@
 # COUNT-INTEGRITY-1.1: Implementation Gaps Analysis
 
-**Status:** 🔄 **BACKEND COMPLETE - UI MIGRATION PENDING**
-**Date:** 2026-01-08 (Updated after PATCH BATCH 2)
-**Severity:** MEDIUM - Backend contract correct, UI migration remains
+**Status:** ⚠️ **BACKEND FILTERS COMPLETE - DEDUP + UI + TESTS PENDING**
+**Date:** 2026-01-08 (Updated after PATCH BATCH 2 + FIXUPS)
+**Severity:** MEDIUM - Backend filtering correct; deduplication accuracy + UI migration + required UI smoke test remain
 
 ---
 
 ## Executive Summary
 
-**PATCH BATCH 2 (2026-01-08) has resolved all backend correctness gaps.** The canonical triplet endpoints now satisfy UEP contract requirements for filtering, deduplication, and deterministic testing.
+**PATCH BATCH 2 + FIXUPS have resolved backend filtering correctness gaps** (actionKey, asset endpoint, media counts), but **Gap 3 (true deduplication beyond capped arrays) remains pending**, making the backend **not yet fully UEP-contract-compliant** for affectedItemsCount accuracy.
 
 **Current State:**
 - ✅ Type definitions exist (CanonicalCountTriplet, CanonicalIssueCountsSummary, AssetIssuesResponse)
 - ✅ Endpoint uses correct path (`/summary` + `/canonical-summary` alias) [PATCH 0]
 - ✅ ActionKey filtering implemented using shared mapper [PATCH 2.2, 2.4]
 - ✅ Media issues use true counts (not capped sample length) [PATCH 2.1]
-- ✅ Asset-specific endpoint page/collection ID→URL resolution [PATCH 2.5]
+- ✅ Asset-specific endpoint page/collection ID→URL resolution (project-scoped) [PATCH 2.5-FIXUP-1]
 - ✅ Asset filtering removes store-wide false positives [PATCH 2.5]
-- ✅ Deterministic Playwright tests use testkit seeds [PATCH 2.6]
-- ⚠️ Asset deduplication still uses capped arrays (Gap 3 - deferred)
-- ❌ No UI migration (Issues Engine, Store Health, Work Queue, Asset Details)
-- ❌ No UI smoke test (backend tests only)
+- ✅ Deterministic Playwright backend API tests use testkit seeds [PATCH 2.6-FIXUP-1]
+- ⚠️ **Gap 3: Asset deduplication uses capped arrays** (affectedItemsCount wrong when >20 items) **BLOCKING UEP CONTRACT**
+- ❌ No UI migration (Issues Engine, Store Health, Work Queue, Asset Details) - **UEP REQUIRES LABELED DISPLAY**
+- ❌ No required single cross-surface UI smoke test (current tests are backend API only) - **SPEC VIOLATION**
 
-**Remaining Effort:** 20-30 hours (UI migration + Gap 3 deduplication refactor)
+**Remaining Effort:** 28-40 hours (Gap 3: 8-12h + UI migration: 18-25h + UI smoke test: 2-3h)
 
 ---
 
@@ -142,9 +142,14 @@ count: trueProductCountWithMissingAlt, // True count
 - ✅ Collections now use resolved URL matching (same as pages)
 
 **Files Changed:**
-- [apps/api/src/projects/deo-issues.service.ts:419-457](apps/api/src/projects/deo-issues.service.ts#L419-L457)
+- [apps/api/src/projects/deo-issues.service.ts:419-470](apps/api/src/projects/deo-issues.service.ts#L419-L470)
 
-**Impact:** Asset detail pages now show only issues that actually affect the specific asset.
+**PATCH 2.5-FIXUP-1 (2026-01-08):**
+- ✅ Scoped crawlResult lookup to projectId (no cross-project leakage)
+- ✅ Deterministic empty response when asset not found or not in project
+- ✅ Uses `findFirst` with `{ id: assetId, projectId }` filter
+
+**Impact:** Asset detail pages now show only issues that actually affect the specific asset within the correct project scope.
 
 ---
 
@@ -339,32 +344,45 @@ If labeled counts are needed in UI but Gap 3 can wait:
 
 ---
 
-## Sign-Off (Updated After PATCH BATCH 2)
+## Sign-Off (Updated After PATCH BATCH 2 + FIXUPS)
 
-**Backend Implementation:**
-- [x] Meets UEP contract requirements for filtering and endpoints
-- [x] Backend endpoints correct (PATCH 0, 2.1-2.6)
-- [x] ActionKey filtering works (shared mapper pattern)
-- [x] Asset-specific filtering correct (ID→URL resolution)
-- [x] Testing adequate (deterministic Playwright tests)
-- [x] Documentation accurate
+**Backend Filtering (COMPLETE):**
+- [x] Endpoint naming correct (`/summary` primary + alias) [PATCH 0]
+- [x] ActionKey filtering works (shared mapper pattern) [PATCH 2.2-2.4]
+- [x] Asset-specific filtering correct (ID→URL, project-scoped) [PATCH 2.5-FIXUP-1]
+- [x] Media count bug fixed (true counts) [PATCH 2.1]
+- [x] Backend API tests deterministic (testkit seeds) [PATCH 2.6-FIXUP-1]
 
-**Remaining Work:**
-- [ ] UI migration complete (Gap 6 - PATCHES 4-7)
-- [ ] Full asset deduplication (Gap 3 - deferred)
-- [ ] UI smoke test (deferred with UI migration)
+**Backend Deduplication (INCOMPLETE - Gap 3):**
+- [ ] **affectedItemsCount uses capped arrays (wrong when >20 items)** ⚠️ BLOCKING UEP CONTRACT
+- [ ] Non-enumerable `_fullAffectedProducts` Sets not implemented
+- [ ] Store-wide pseudo-key logic incomplete
 
-**Backend Status:** ✅ PRODUCTION-READY
+**UI Migration (INCOMPLETE - Gap 6):**
+- [ ] **No labeled triplet display** (UEP mandates explicit labels) ⚠️ SPEC VIOLATION
+- [ ] Issues Engine still uses v1 counts (not canonical triplets)
+- [ ] Store Health/Work Queue/Asset Details not migrated
+
+**Testing (INCOMPLETE - Gap 7 Partial):**
+- [x] Backend API tests exist (8 tests in count-integrity-1-1.spec.ts)
+- [ ] **Required single cross-surface UI smoke test missing** ⚠️ SPEC VIOLATION
+
+**Backend Status:** ⚠️ **FILTERING READY - DEDUP + UI + TESTS PENDING**
+
+**Truth Check:**
+- ❌ Backend is NOT "contract complete" (Gap 3 blocks affectedItemsCount accuracy)
+- ❌ COUNT-INTEGRITY-1.1 is NOT "backend foundation complete" (dedup + required UI smoke test missing)
+- ✅ Backend filtering endpoints are production-usable (with known limitation: affectedItemsCount capped at 20)
 
 **Recommended Action:**
-- ✅ Keep PATCH 0 + PATCH BATCH 2 commits
-- ✅ Mark COUNT-INTEGRITY-1.1 backend as complete in IMPLEMENTATION_PLAN.md
-- 🔄 Schedule Gap 6 (UI Migration) as separate sprint work
-- ⏸️ Defer Gap 3 (asset deduplication) until Cap 20 constraint becomes real
+- ✅ Keep PATCH 0 + PATCH BATCH 2 + FIXUPS commits (filtering correct, known dedup limitation)
+- ⚠️ Mark COUNT-INTEGRITY-1.1 as "Backend Filtering Complete (Dedup Pending)" in IMPLEMENTATION_PLAN.md
+- 🔄 Schedule Gap 3 (deduplication refactor) when Cap 20 becomes real constraint
+- 🔄 Schedule Gap 6 (UI Migration + required UI smoke test) as separate sprint work
 
 ---
 
-**Last Updated:** 2026-01-08 (After PATCH BATCH 2)
+**Last Updated:** 2026-01-08 (After PATCH BATCH 2 + FIXUPS)
 **Prepared By:** Claude Sonnet 4.5
-**Backend Complete:** PATCH 0 + PATCH BATCH 2 (Gaps 1, 2, 4, 5, 7, 8)
-**Remaining:** Gap 3 (deferred), Gap 6 (UI migration)
+**Backend Filtering Complete:** PATCH 0 + PATCH BATCH 2 + FIXUPS (Gaps 1, 2, 4, 5-partial, 7-partial, 8)
+**Remaining (BLOCKING UEP):** Gap 3 (dedup accuracy), Gap 6 (UI migration), Gap 7 (required UI smoke test)

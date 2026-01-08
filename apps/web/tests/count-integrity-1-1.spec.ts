@@ -19,26 +19,27 @@ import { test, expect } from '@playwright/test';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
-  let authToken: string;
+  let accessToken: string;
   let testProjectId: string;
 
   test.beforeAll(async ({ request }) => {
-    // [COUNT-INTEGRITY-1.1 PATCH 2.6] Use testkit seed for deterministic test data
+    // [COUNT-INTEGRITY-1.1 PATCH 2.6-FIXUP-1] Use testkit seed for deterministic test data
     const seedResponse = await request.post(`${API_URL}/testkit/e2e/seed-first-deo-win`);
     expect(seedResponse.ok()).toBeTruthy();
 
     const seedData = await seedResponse.json();
-    authToken = seedData.authToken;
+    // [PATCH 2.6-FIXUP-1] Seed endpoint returns accessToken (not authToken)
+    accessToken = seedData.accessToken;
     testProjectId = seedData.projectId;
 
-    expect(authToken).toBeTruthy();
+    expect(accessToken).toBeTruthy();
     expect(testProjectId).toBeTruthy();
   });
 
   test('CANON-001: Canonical summary endpoint returns valid triplet structure', async ({ request }) => {
     const response = await request.get(`${API_URL}/projects/${testProjectId}/issues/summary`, {
       headers: {
-        Authorization: `Bearer ${authToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
@@ -80,7 +81,7 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
       `${API_URL}/projects/${testProjectId}/issues/summary?pillar=metadata_snippet_quality`,
       {
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Authorization: `Bearer ${accessToken}`,
         },
       }
     );
@@ -102,7 +103,7 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
       `${API_URL}/projects/${testProjectId}/issues/summary?severity=critical`,
       {
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Authorization: `Bearer ${accessToken}`,
         },
       }
     );
@@ -122,7 +123,7 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
   test('CANON-004: Canonical summary byPillar breakdown includes all pillars', async ({ request }) => {
     const response = await request.get(`${API_URL}/projects/${testProjectId}/issues/summary`, {
       headers: {
-        Authorization: `Bearer ${authToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
@@ -155,7 +156,7 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
   test('CANON-005: Canonical summary bySeverity breakdown includes all severities', async ({ request }) => {
     const response = await request.get(`${API_URL}/projects/${testProjectId}/issues/summary`, {
       headers: {
-        Authorization: `Bearer ${authToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
@@ -178,7 +179,7 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
     // First, get a product ID from the products endpoint
     const productsResponse = await request.get(`${API_URL}/projects/${testProjectId}/products`, {
       headers: {
-        Authorization: `Bearer ${authToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
@@ -198,7 +199,7 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
       `${API_URL}/projects/${testProjectId}/assets/products/${testProductId}/issues`,
       {
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Authorization: `Bearer ${accessToken}`,
         },
       }
     );
@@ -240,7 +241,7 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
     // First, get a product ID
     const productsResponse = await request.get(`${API_URL}/projects/${testProjectId}/products`, {
       headers: {
-        Authorization: `Bearer ${authToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
     });
 
@@ -259,7 +260,7 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
       `${API_URL}/projects/${testProjectId}/assets/products/${testProductId}/issues?pillar=metadata_snippet_quality`,
       {
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Authorization: `Bearer ${accessToken}`,
         },
       }
     );
@@ -284,7 +285,7 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
       `${API_URL}/projects/${testProjectId}/issues/summary?actionKey=FIX_MISSING_METADATA`,
       {
         headers: {
-          Authorization: `Bearer ${authToken}`,
+          Authorization: `Bearer ${accessToken}`,
         },
       }
     );
