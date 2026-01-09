@@ -339,6 +339,9 @@ export class MediaAccessibilityService {
     const productsWithGenericAlt: string[] = [];
     const productsWithInsufficientCoverage: string[] = [];
     const productsWithMissingContext: string[] = [];
+    // [COUNT-INTEGRITY-1.1 PATCH 3.5] Full affected product IDs (no cap)
+    const allProductsWithMissingAlt: string[] = [];
+    const allProductsWithGenericAlt: string[] = [];
 
     for (const product of products) {
       const stats = await this.computeProductMediaStats(product.id, product.title);
@@ -350,6 +353,8 @@ export class MediaAccessibilityService {
         if (productsWithMissingAlt.length < 20) {
           productsWithMissingAlt.push(product.id);
         }
+        // [COUNT-INTEGRITY-1.1 PATCH 3.5] Always track full keys
+        allProductsWithMissingAlt.push(product.id);
       }
 
       if (stats.imagesWithGenericAlt > 0) {
@@ -359,6 +364,8 @@ export class MediaAccessibilityService {
         if (productsWithGenericAlt.length < 20) {
           productsWithGenericAlt.push(product.id);
         }
+        // [COUNT-INTEGRITY-1.1 PATCH 3.5] Always track full keys
+        allProductsWithGenericAlt.push(product.id);
       }
 
       // Insufficient image coverage: 0 or 1 image (excluding products already covered by missing_product_image)
@@ -387,7 +394,7 @@ export class MediaAccessibilityService {
           ? 'warning'
           : 'info';
 
-      issues.push({
+      const issue: any = {
         id: `missing_image_alt_text_${projectId}`,
         type: 'missing_image_alt_text',
         title: 'Missing Image Alt Text',
@@ -407,12 +414,16 @@ export class MediaAccessibilityService {
           'Images without alt text are invisible to screen readers and search engines. AI assistants cannot describe or reference these images, reducing discoverability.',
         recommendedFix:
           'Use the MEDIA preview/apply flow to generate and add descriptive alt text for each image. Focus on describing what is visible in the image.',
-      });
+      };
+
+      // [COUNT-INTEGRITY-1.1 PATCH 3.5] Store full product IDs for deo-issues service to attach keys
+      (issue as any).__tempFullProductIds = allProductsWithMissingAlt;
+      issues.push(issue);
     }
 
     // Issue: generic_image_alt_text
     if (totalImagesWithGenericAlt > 0) {
-      issues.push({
+      const issue: any = {
         id: `generic_image_alt_text_${projectId}`,
         type: 'generic_image_alt_text',
         title: 'Generic Image Alt Text',
@@ -432,7 +443,11 @@ export class MediaAccessibilityService {
           'Generic alt text like "product image" provides no meaningful information to users or search engines. Descriptive alt text improves accessibility and image search rankings.',
         recommendedFix:
           'Rewrite generic alt text to describe what is actually visible in each image. Include product details, colors, materials, or context shown.',
-      });
+      };
+
+      // [COUNT-INTEGRITY-1.1 PATCH 3.5] Store full product IDs for deo-issues service to attach keys
+      (issue as any).__tempFullProductIds = allProductsWithGenericAlt;
+      issues.push(issue);
     }
 
     // Issue: insufficient_image_coverage

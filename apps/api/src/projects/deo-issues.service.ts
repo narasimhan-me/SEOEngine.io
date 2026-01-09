@@ -69,6 +69,78 @@ const IN_APP_ACTIONABLE_ISSUE_KEYS = new Set<string>([
 ]);
 
 /**
+ * [COUNT-INTEGRITY-1.1 PATCH 3.1] Internal field name for full affected asset keys.
+ * This field is non-enumerable and never serialized in API responses.
+ * Used for accurate deduplication when affected arrays are capped at 20 items.
+ */
+const FULL_AFFECTED_ASSET_KEYS_FIELD = '__fullAffectedAssetKeys';
+
+/**
+ * [COUNT-INTEGRITY-1.1 PATCH 3.1] Attach full affected asset keys to an issue.
+ * Creates composite keys for all affected assets without cap limitations.
+ *
+ * Composite key formats:
+ * - Products: products:${productId}
+ * - Pages: pages:${url} (for non-collection URLs)
+ * - Collections: collections:${url} (when URL pathname starts with /collections/ or equals /collections)
+ */
+function attachFullAffectedAssetKeys(
+  issue: DeoIssue,
+  productIds: string[],
+  pageUrls: string[]
+): void {
+  const keys = new Set<string>();
+
+  // Add product keys
+  for (const productId of productIds) {
+    keys.add(`products:${productId}`);
+  }
+
+  // Add page and collection keys
+  for (const url of pageUrls) {
+    const assetType = getAssetTypeFromUrl(url);
+    if (assetType === 'collections') {
+      keys.add(`collections:${url}`);
+    } else {
+      keys.add(`pages:${url}`);
+    }
+  }
+
+  // Attach as non-enumerable property
+  Object.defineProperty(issue, FULL_AFFECTED_ASSET_KEYS_FIELD, {
+    value: Array.from(keys),
+    enumerable: false,
+    writable: false,
+    configurable: true,
+  });
+}
+
+/**
+ * [COUNT-INTEGRITY-1.1 PATCH 3.1] Read full affected asset keys from an issue.
+ * Returns null if the field is not present.
+ */
+function getFullAffectedAssetKeys(issue: DeoIssue): string[] | null {
+  const keys = (issue as any)[FULL_AFFECTED_ASSET_KEYS_FIELD];
+  return Array.isArray(keys) ? keys : null;
+}
+
+/**
+ * [COUNT-INTEGRITY-1.1 PATCH 3.1] Copy full affected asset keys from source to target issue.
+ * Preserves non-enumerable property during issue decoration.
+ */
+function copyFullAffectedAssetKeys(source: DeoIssue, target: DeoIssue): void {
+  const keys = getFullAffectedAssetKeys(source);
+  if (keys) {
+    Object.defineProperty(target, FULL_AFFECTED_ASSET_KEYS_FIELD, {
+      value: keys,
+      enumerable: false,
+      writable: false,
+      configurable: true,
+    });
+  }
+}
+
+/**
  * [ROLES-3 FIXUP-3] DEO Issues Service
  * Updated with membership-aware access control (any ProjectMember can view).
  */
@@ -300,6 +372,20 @@ export class DeoIssuesService {
         const atc = issue.assetTypeCounts;
         const isActionable = issue.isActionableNow === true;
 
+        // [COUNT-INTEGRITY-1.1 PATCH 3.3] Prefer full keys when available (no cap-20 limitation)
+        const fullKeys = getFullAffectedAssetKeys(issue);
+        if (fullKeys && fullKeys.length > 0) {
+          // Use full keys for accurate deduplication
+          for (const key of fullKeys) {
+            uniqueAssets.add(key);
+            if (isActionable) {
+              actionableAssetsSet.add(key);
+            }
+          }
+          continue; // Skip fallback logic below
+        }
+
+        // Fallback: Use capped arrays (legacy issues without full keys)
         // For products
         if (atc?.products && atc.products > 0) {
           const productsAffected = issue.affectedProducts ?? [];
@@ -451,6 +537,19 @@ export class DeoIssuesService {
         return false;
       }
 
+      // [COUNT-INTEGRITY-1.1 PATCH 3.4] Prefer full keys when available (no cap-20 omissions)
+      const fullKeys = getFullAffectedAssetKeys(issue);
+      if (fullKeys && fullKeys.length > 0) {
+        // Build the composite key for this asset
+        const targetKey = assetType === 'products'
+          ? `products:${assetId}`
+          : assetType === 'pages'
+            ? `pages:${resolvedAssetIdentifier}`
+            : `collections:${resolvedAssetIdentifier}`;
+        return fullKeys.includes(targetKey);
+      }
+
+      // Fallback: Use capped arrays (legacy issues without full keys)
       // [COUNT-INTEGRITY-1.1 PATCH 2.5] For products: strict membership check (no store-wide false positives)
       if (assetType === 'products') {
         const affected = issue.affectedProducts ?? [];
@@ -744,6 +843,14 @@ export class DeoIssuesService {
     // MEDIA-1: Add Media & Accessibility pillar issues
     try {
       const mediaIssues = await this.mediaAccessibilityService.buildMediaIssuesForProject(projectId);
+      // [COUNT-INTEGRITY-1.1 PATCH 3.5] Attach full keys for media issues that have __tempFullProductIds
+      for (const issue of mediaIssues) {
+        const tempIds = (issue as any).__tempFullProductIds as string[] | undefined;
+        if (tempIds && tempIds.length > 0) {
+          attachFullAffectedAssetKeys(issue, tempIds, []);
+          delete (issue as any).__tempFullProductIds; // Clean up temp field
+        }
+      }
       issues.push(...mediaIssues);
     } catch (error) {
       // Log but don't fail the entire issues request
@@ -826,11 +933,16 @@ export class DeoIssuesService {
           };
         })();
 
-      return {
+      const decoratedIssue: DeoIssue = {
         ...issue,
         isActionableNow,
         assetTypeCounts,
       };
+
+      // [COUNT-INTEGRITY-1.1 PATCH 3.1] Preserve non-enumerable __fullAffectedAssetKeys field
+      copyFullAffectedAssetKeys(issue, decoratedIssue);
+
+      return decoratedIssue;
     });
 
     // Fire-and-forget Answer Block automations for relevant answerability issues.
@@ -900,6 +1012,9 @@ export class DeoIssuesService {
     let missingCollections = 0;
     const affectedPages: string[] = [];
     const affectedProducts: string[] = [];
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Full affected asset tracking (no cap)
+    const allAffectedPageUrls: string[] = [];
+    const allAffectedProductIds: string[] = [];
 
     for (const cr of crawlResults) {
       let missingAny = false;
@@ -926,6 +1041,8 @@ export class DeoIssuesService {
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
+        // [COUNT-INTEGRITY-1.1 PATCH 3.2] Always track full keys
+        allAffectedPageUrls.push(cr.url);
       }
     }
 
@@ -939,8 +1056,12 @@ export class DeoIssuesService {
         missingAny = true;
       }
 
-      if (missingAny && affectedProducts.length < 20) {
-        affectedProducts.push(product.id);
+      if (missingAny) {
+        if (affectedProducts.length < 20) {
+          affectedProducts.push(product.id);
+        }
+        // [COUNT-INTEGRITY-1.1 PATCH 3.2] Always track full keys
+        allAffectedProductIds.push(product.id);
       }
     }
 
@@ -957,7 +1078,7 @@ export class DeoIssuesService {
       return null;
     }
 
-    return {
+    const issue: DeoIssue = {
       id: 'missing_metadata',
       title: 'Missing titles or descriptions',
       description:
@@ -983,6 +1104,11 @@ export class DeoIssuesService {
       aiFixable: false,
       fixCost: 'manual',
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
+    attachFullAffectedAssetKeys(issue, allAffectedProductIds, allAffectedPageUrls);
+
+    return issue;
   }
 
   private buildThinContentIssue(
@@ -1000,6 +1126,9 @@ export class DeoIssuesService {
     let thinNonCollectionPages = 0;
     const affectedPages: string[] = [];
     const affectedProducts: string[] = [];
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Full affected asset tracking (no cap)
+    const allAffectedPageUrls: string[] = [];
+    const allAffectedProductIds: string[] = [];
 
     for (const cr of crawlResults) {
       const wordCount = typeof cr.wordCount === 'number' ? cr.wordCount : 0;
@@ -1015,6 +1144,8 @@ export class DeoIssuesService {
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
+        // [COUNT-INTEGRITY-1.1 PATCH 3.2] Always track full keys
+        allAffectedPageUrls.push(cr.url);
       }
     }
 
@@ -1026,6 +1157,8 @@ export class DeoIssuesService {
         if (affectedProducts.length < 20) {
           affectedProducts.push(product.id);
         }
+        // [COUNT-INTEGRITY-1.1 PATCH 3.2] Always track full keys
+        allAffectedProductIds.push(product.id);
       }
     }
 
@@ -1041,7 +1174,7 @@ export class DeoIssuesService {
       return null;
     }
 
-    return {
+    const issue: DeoIssue = {
       id: 'thin_content',
       title: 'Thin content across pages and products',
       description:
@@ -1067,6 +1200,11 @@ export class DeoIssuesService {
       aiFixable: false,
       fixCost: 'manual',
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
+    attachFullAffectedAssetKeys(issue, allAffectedProductIds, allAffectedPageUrls);
+
+    return issue;
   }
 
   private buildLowEntityCoverageIssue(
@@ -1085,6 +1223,9 @@ export class DeoIssuesService {
     let entityProducts = 0;
     const affectedPages: string[] = [];
     const affectedProducts: string[] = [];
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Full affected asset tracking (no cap)
+    const allAffectedPageUrls: string[] = [];
+    const allAffectedProductIds: string[] = [];
 
     for (const cr of crawlResults) {
       const hasEntityHint = !!cr.title && !!cr.h1;
@@ -1100,6 +1241,8 @@ export class DeoIssuesService {
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
+        // [COUNT-INTEGRITY-1.1 PATCH 3.2] Always track full keys
+        allAffectedPageUrls.push(cr.url);
       }
     }
 
@@ -1117,6 +1260,8 @@ export class DeoIssuesService {
         if (affectedProducts.length < 20) {
           affectedProducts.push(product.id);
         }
+        // [COUNT-INTEGRITY-1.1 PATCH 3.2] Always track full keys
+        allAffectedProductIds.push(product.id);
       }
     }
 
@@ -1138,7 +1283,7 @@ export class DeoIssuesService {
       return null;
     }
 
-    return {
+    const issue: DeoIssue = {
       id: 'low_entity_coverage',
       title: 'Weak entity coverage',
       description:
@@ -1162,6 +1307,11 @@ export class DeoIssuesService {
       aiFixable: false,
       fixCost: 'manual',
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
+    attachFullAffectedAssetKeys(issue, allAffectedProductIds, allAffectedPageUrls);
+
+    return issue;
   }
 
   private buildIndexabilityIssue(
@@ -1792,6 +1942,8 @@ export class DeoIssuesService {
     let sumProductWords = 0;
     let countProductWords = 0;
     const affectedProducts: string[] = [];
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Full affected asset tracking (no cap)
+    const allAffectedProductIds: string[] = [];
 
     for (const product of products) {
       const desc = (product.seoDescription ?? product.description) as string | null;
@@ -1807,6 +1959,8 @@ export class DeoIssuesService {
         if (affectedProducts.length < 20) {
           affectedProducts.push(product.id);
         }
+        // [COUNT-INTEGRITY-1.1 PATCH 3.2] Always track full keys
+        allAffectedProductIds.push(product.id);
       }
     }
 
@@ -1831,7 +1985,7 @@ export class DeoIssuesService {
       return null;
     }
 
-    return {
+    const issue: DeoIssue = {
       id: 'product_content_depth',
       title: 'Shallow product descriptions',
       description:
@@ -1851,6 +2005,11 @@ export class DeoIssuesService {
       aiFixable: false,
       fixCost: 'manual',
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
+    attachFullAffectedAssetKeys(issue, allAffectedProductIds, []);
+
+    return issue;
   }
 
   // ========== Issue Engine Lite: Product-Focused Builders ==========
@@ -1873,7 +2032,10 @@ export class DeoIssuesService {
 
     if (!severity) return null;
 
-    return {
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Track all affected product IDs (no cap)
+    const allAffectedProductIds = affected.map((p) => p.id);
+
+    const issue: DeoIssue = {
       id: 'missing_seo_title',
       type: 'missing_seo_title',
       title: 'Missing SEO Title',
@@ -1897,6 +2059,11 @@ export class DeoIssuesService {
       aiFixable: true,
       fixCost: 'one_click',
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
+    attachFullAffectedAssetKeys(issue, allAffectedProductIds, []);
+
+    return issue;
   }
 
   /**
@@ -1917,7 +2084,10 @@ export class DeoIssuesService {
 
     if (!severity) return null;
 
-    return {
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Track all affected product IDs (no cap)
+    const allAffectedProductIds = affected.map((p) => p.id);
+
+    const issue: DeoIssue = {
       id: 'missing_seo_description',
       type: 'missing_seo_description',
       title: 'Missing SEO Description',
@@ -1941,6 +2111,11 @@ export class DeoIssuesService {
       aiFixable: true,
       fixCost: 'one_click',
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
+    attachFullAffectedAssetKeys(issue, allAffectedProductIds, []);
+
+    return issue;
   }
 
   /**
@@ -1966,7 +2141,10 @@ export class DeoIssuesService {
 
     if (!severity) return null;
 
-    return {
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Track all affected product IDs (no cap)
+    const allAffectedProductIds = affected.map((p) => p.id);
+
+    const issue: DeoIssue = {
       id: 'weak_title',
       type: 'weak_title',
       title: 'Weak Product Title',
@@ -1990,6 +2168,11 @@ export class DeoIssuesService {
       aiFixable: true,
       fixCost: 'one_click',
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
+    attachFullAffectedAssetKeys(issue, allAffectedProductIds, []);
+
+    return issue;
   }
 
   /**
@@ -2015,7 +2198,10 @@ export class DeoIssuesService {
 
     if (!severity) return null;
 
-    return {
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Track all affected product IDs (no cap)
+    const allAffectedProductIds = affected.map((p) => p.id);
+
+    const issue: DeoIssue = {
       id: 'weak_description',
       type: 'weak_description',
       title: 'Weak Product Description',
@@ -2039,6 +2225,11 @@ export class DeoIssuesService {
       aiFixable: true,
       fixCost: 'one_click',
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
+    attachFullAffectedAssetKeys(issue, allAffectedProductIds, []);
+
+    return issue;
   }
 
   /**
@@ -2065,7 +2256,10 @@ export class DeoIssuesService {
 
     if (!severity) return null;
 
-    return {
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Track all affected product IDs (no cap)
+    const allAffectedProductIds = affected.map((p) => p.id);
+
+    const issue: DeoIssue = {
       id: 'missing_long_description',
       type: 'missing_long_description',
       title: 'Missing Long Description',
@@ -2089,6 +2283,11 @@ export class DeoIssuesService {
       aiFixable: true,
       fixCost: 'one_click',
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
+    attachFullAffectedAssetKeys(issue, allAffectedProductIds, []);
+
+    return issue;
   }
 
   /**
@@ -2114,11 +2313,15 @@ export class DeoIssuesService {
       (group) => group.length > 1,
     );
     const affectedProducts: string[] = [];
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Track all affected product IDs (no cap)
+    const allAffectedProductIds: string[] = [];
     for (const group of duplicateGroups) {
       for (const p of group) {
         if (affectedProducts.length < 20) {
           affectedProducts.push(p.id);
         }
+        // [COUNT-INTEGRITY-1.1 PATCH 3.2] Always track full keys
+        allAffectedProductIds.push(p.id);
       }
     }
 
@@ -2133,7 +2336,7 @@ export class DeoIssuesService {
 
     if (!severity) return null;
 
-    return {
+    const issue: DeoIssue = {
       id: 'duplicate_product_content',
       type: 'duplicate_product_content',
       title: 'Duplicate Product Content',
@@ -2157,6 +2360,11 @@ export class DeoIssuesService {
       aiFixable: true,
       fixCost: 'one_click',
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
+    attachFullAffectedAssetKeys(issue, allAffectedProductIds, []);
+
+    return issue;
   }
 
   /**
@@ -2189,7 +2397,10 @@ export class DeoIssuesService {
 
     if (!severity) return null;
 
-    return {
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Track all affected product IDs (no cap)
+    const allAffectedProductIds = affected.map((p) => p.id);
+
+    const issue: DeoIssue = {
       id: 'low_product_entity_coverage',
       type: 'low_product_entity_coverage',
       title: 'Low Entity Coverage in Product Content',
@@ -2213,6 +2424,11 @@ export class DeoIssuesService {
       aiFixable: true,
       fixCost: 'one_click',
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
+    attachFullAffectedAssetKeys(issue, allAffectedProductIds, []);
+
+    return issue;
   }
 
   /**
@@ -2242,7 +2458,10 @@ export class DeoIssuesService {
 
     if (!severity) return null;
 
-    return {
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Track all affected product IDs (no cap)
+    const allAffectedProductIds = affected.map((p) => p.id);
+
+    const issue: DeoIssue = {
       id: 'not_answer_ready',
       type: 'not_answer_ready',
       title: 'Not Answer-Ready',
@@ -2266,6 +2485,11 @@ export class DeoIssuesService {
       aiFixable: true,
       fixCost: 'one_click',
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
+    attachFullAffectedAssetKeys(issue, allAffectedProductIds, []);
+
+    return issue;
   }
 
   /**
@@ -2320,7 +2544,11 @@ export class DeoIssuesService {
       const ratio = affectedSet.size / products.length;
       const severity = this.getSeverityForHigherIsWorse(ratio, { info: 0.1, warning: 0.25, critical: 0.5 });
       if (!severity) continue;
-      results.push({
+
+      // [COUNT-INTEGRITY-1.1 PATCH 3.2] Track all affected product IDs (no cap)
+      const allAffectedProductIds = Array.from(affectedSet);
+
+      const issue: DeoIssue = {
         id: issueType,
         type: issueType,
         geoIssueType: issueType,
@@ -2348,7 +2576,12 @@ export class DeoIssuesService {
           'Use Preview to generate a draft improvement for the Answer Block, then Apply (apply never uses AI).',
         aiFixable: true,
         fixCost: 'one_click',
-      });
+      };
+
+      // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
+      attachFullAffectedAssetKeys(issue, allAffectedProductIds, []);
+
+      results.push(issue);
     }
     return results;
   }
@@ -2380,7 +2613,10 @@ export class DeoIssuesService {
 
     if (!severity) return null;
 
-    return {
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Track all affected product IDs (no cap)
+    const allAffectedProductIds = affected.map((p) => p.id);
+
+    const issue: DeoIssue = {
       id: 'weak_intent_match',
       type: 'weak_intent_match',
       title: 'Weak Intent Match',
@@ -2404,6 +2640,11 @@ export class DeoIssuesService {
       aiFixable: true,
       fixCost: 'one_click',
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
+    attachFullAffectedAssetKeys(issue, allAffectedProductIds, []);
+
+    return issue;
   }
 
   /**
@@ -2428,7 +2669,10 @@ export class DeoIssuesService {
 
     if (!severity) return null;
 
-    return {
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Track all affected product IDs (no cap)
+    const allAffectedProductIds = affected.map((p) => p.id);
+
+    const issue: DeoIssue = {
       id: 'missing_product_image',
       type: 'missing_product_image',
       title: 'Missing Product Image',
@@ -2452,6 +2696,11 @@ export class DeoIssuesService {
       aiFixable: false,
       fixCost: 'manual',
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
+    attachFullAffectedAssetKeys(issue, allAffectedProductIds, []);
+
+    return issue;
   }
 
   /**
@@ -2477,7 +2726,10 @@ export class DeoIssuesService {
 
     if (!severity) return null;
 
-    return {
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Track all affected product IDs (no cap)
+    const allAffectedProductIds = affected.map((p) => p.id);
+
+    const issue: DeoIssue = {
       id: 'missing_price',
       type: 'missing_price',
       title: 'Missing Product Price',
@@ -2501,6 +2753,11 @@ export class DeoIssuesService {
       aiFixable: false,
       fixCost: 'one_click',
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
+    attachFullAffectedAssetKeys(issue, allAffectedProductIds, []);
+
+    return issue;
   }
 
   /**
@@ -2525,7 +2782,10 @@ export class DeoIssuesService {
 
     if (!severity) return null;
 
-    return {
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Track all affected product IDs (no cap)
+    const allAffectedProductIds = affected.map((p) => p.id);
+
+    const issue: DeoIssue = {
       id: 'missing_category',
       type: 'missing_category',
       title: 'Missing Product Category/Type',
@@ -2549,6 +2809,11 @@ export class DeoIssuesService {
       aiFixable: false,
       fixCost: 'one_click',
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
+    attachFullAffectedAssetKeys(issue, allAffectedProductIds, []);
+
+    return issue;
   }
 
   // ========== Helper Methods ==========
