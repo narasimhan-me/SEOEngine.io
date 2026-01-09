@@ -1,17 +1,20 @@
 'use client';
 
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { projectsApi } from '@/lib/api';
 import { buildWorkQueueUrl } from '@/lib/work-queue';
+import { ListControls } from '@/components/common/ListControls';
 import type { WorkQueueRecommendedActionKey } from '@/lib/work-queue';
 
 /**
- * [ASSETS-PAGES-1] Collections Asset List
+ * [ASSETS-PAGES-1] [LIST-SEARCH-FILTER-1.1] Collections Asset List
  *
  * Displays Shopify collections (/collections/*) with health status and recommended actions.
  * Decision-first UX: one health pill, one action label per row.
  * Bulk actions route to Playbooks.
+ *
+ * [LIST-SEARCH-FILTER-1.1] Integrated ListControls for search/filter with URL state.
  */
 
 interface CollectionAsset {
@@ -32,6 +35,7 @@ export default function CollectionsAssetListPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
   const projectId = params.id as string;
 
   const [loading, setLoading] = useState(true);
@@ -42,14 +46,27 @@ export default function CollectionsAssetListPage() {
   // Get filter from URL (from Work Queue click-through)
   const actionKeyFilter = searchParams.get('actionKey') as WorkQueueRecommendedActionKey | null;
 
+  // [LIST-SEARCH-FILTER-1.1] Extract filter params from URL
+  const filterQ = searchParams.get('q') || undefined;
+  const filterStatus = searchParams.get('status') as 'optimized' | 'needs_attention' | undefined;
+  const filterHasDraft = searchParams.get('hasDraft') === 'true' || undefined;
+
+  // Check if any filters are active (for empty state)
+  const hasActiveFilters = !!(filterQ || filterStatus || filterHasDraft);
+
   const fetchCollections = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch crawl pages and filter to collections
-      const crawlPages = await projectsApi.crawlPages(projectId);
+      // [LIST-SEARCH-FILTER-1.1] Fetch crawl pages with filters from URL
+      const crawlPages = await projectsApi.crawlPages(projectId, {
+        q: filterQ,
+        status: filterStatus,
+        hasDraft: filterHasDraft,
+        pageType: 'collection', // Only collections
+      });
 
-      // Filter to only collections
+      // Transform to CollectionAssets with health/actions
       const collectionAssets: CollectionAsset[] = crawlPages
         .filter((p: { pageType: string }) => p.pageType === 'collection')
         .map((p: { id: string; url: string; path: string; title: string | null; metaDescription: string | null; statusCode: number | null; wordCount: number | null; scannedAt: string }) => {
@@ -92,7 +109,7 @@ export default function CollectionsAssetListPage() {
           };
         });
 
-      // Apply actionKey filter if present
+      // Apply actionKey filter if present (from Work Queue click-through)
       const filtered = actionKeyFilter
         ? collectionAssets.filter((c) => c.recommendedActionKey === actionKeyFilter)
         : collectionAssets;
@@ -104,7 +121,7 @@ export default function CollectionsAssetListPage() {
     } finally {
       setLoading(false);
     }
-  }, [projectId, actionKeyFilter]);
+  }, [projectId, actionKeyFilter, filterQ, filterStatus, filterHasDraft]);
 
   useEffect(() => {
     fetchCollections();
@@ -135,6 +152,16 @@ export default function CollectionsAssetListPage() {
       scopeType: 'COLLECTIONS',
     }));
   };
+
+  // [LIST-SEARCH-FILTER-1.1] Clear filters handler for empty state
+  const handleClearFilters = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('q');
+    params.delete('status');
+    params.delete('hasDraft');
+    const qs = params.toString();
+    router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+  }, [router, pathname, searchParams]);
 
   const getHealthStyles = (health: string): string => {
     switch (health) {
@@ -177,7 +204,7 @@ export default function CollectionsAssetListPage() {
         )}
       </div>
 
-      {/* Filter indicator */}
+      {/* Filter indicator (from Work Queue click-through) */}
       {actionKeyFilter && (
         <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm text-blue-700">
           <span>Filtered by: {actionKeyFilter.replace(/_/g, ' ').toLowerCase()}</span>
@@ -189,6 +216,15 @@ export default function CollectionsAssetListPage() {
           </button>
         </div>
       )}
+
+      {/* [LIST-SEARCH-FILTER-1.1] ListControls - search and filter */}
+      <ListControls
+        config={{
+          searchPlaceholder: 'Search by handle or title...',
+          enableStatusFilter: true,
+          enableHasDraftFilter: true,
+        }}
+      />
 
       {/* Loading state */}
       {loading && (
@@ -214,83 +250,104 @@ export default function CollectionsAssetListPage() {
       {/* Collections list */}
       {!loading && !error && (
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="w-12 px-4 py-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.size === collections.length && collections.length > 0}
-                    onChange={handleSelectAll}
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Health
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Handle
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Title
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Action
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {collections.map((collection) => (
-                <tr key={collection.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
+          {collections.length === 0 ? (
+            hasActiveFilters ? (
+              // [LIST-SEARCH-FILTER-1.1] Filtered empty state
+              <div className="text-center py-12">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No collections match your filters.</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Try adjusting your search or filter criteria.
+                </p>
+                <div className="mt-4">
+                  <button
+                    onClick={handleClearFilters}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              </div>
+            ) : (
+              // Unfiltered empty state
+              <div className="px-4 py-8 text-center text-sm text-gray-500">
+                No collections found
+              </div>
+            )
+          ) : (
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="w-12 px-4 py-3">
                     <input
                       type="checkbox"
-                      checked={selectedIds.has(collection.id)}
-                      onChange={() => handleSelectOne(collection.id)}
+                      checked={selectedIds.size === collections.length && collections.length > 0}
+                      onChange={handleSelectAll}
                       className="h-4 w-4 rounded border-gray-300"
                     />
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getHealthStyles(collection.health)}`}
-                    >
-                      {collection.health}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">
-                      {getCollectionHandle(collection.path)}
-                    </code>
-                  </td>
-                  <td className="max-w-xs truncate px-4 py-3 text-sm text-gray-900">
-                    {collection.title || <span className="italic text-gray-400">No title</span>}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    {collection.recommendedActionLabel ? (
-                      <button
-                        onClick={() => router.push(buildWorkQueueUrl(projectId, {
-                          actionKey: collection.recommendedActionKey!,
-                          scopeType: 'COLLECTIONS',
-                        }))}
-                        className="font-medium text-blue-600 hover:text-blue-800"
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Health
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Handle
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Title
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Action
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {collections.map((collection) => (
+                  <tr key={collection.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(collection.id)}
+                        onChange={() => handleSelectOne(collection.id)}
+                        className="h-4 w-4 rounded border-gray-300"
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getHealthStyles(collection.health)}`}
                       >
-                        {collection.recommendedActionLabel}
-                      </button>
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {collections.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">
-                    No collections found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                        {collection.health}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">
+                        {getCollectionHandle(collection.path)}
+                      </code>
+                    </td>
+                    <td className="max-w-xs truncate px-4 py-3 text-sm text-gray-900">
+                      {collection.title || <span className="italic text-gray-400">No title</span>}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {collection.recommendedActionLabel ? (
+                        <button
+                          onClick={() => router.push(buildWorkQueueUrl(projectId, {
+                            actionKey: collection.recommendedActionKey!,
+                            scopeType: 'COLLECTIONS',
+                          }))}
+                          className="font-medium text-blue-600 hover:text-blue-800"
+                        >
+                          {collection.recommendedActionLabel}
+                        </button>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
     </div>

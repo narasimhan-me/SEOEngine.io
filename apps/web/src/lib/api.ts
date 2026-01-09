@@ -889,7 +889,18 @@ export const projectsApi = {
     return fetchWithAuth(url);
   },
 
-  crawlPages: (id: string) => fetchWithAuth(`/projects/${id}/crawl-pages`),
+  /**
+   * [LIST-SEARCH-FILTER-1.1] List crawl pages (non-product) with optional filtering
+   */
+  crawlPages: (id: string, opts?: CrawlPageListOptions) => {
+    const params = new URLSearchParams();
+    if (opts?.q) params.set('q', opts.q);
+    if (opts?.status) params.set('status', opts.status);
+    if (opts?.hasDraft) params.set('hasDraft', 'true');
+    if (opts?.pageType) params.set('pageType', opts.pageType);
+    const qs = params.toString();
+    return fetchWithAuth(`/projects/${id}/crawl-pages${qs ? `?${qs}` : ''}`);
+  },
 
   recomputeDeoScoreSync: (id: string) =>
     fetchWithAuth(`/projects/${id}/deo-score/recompute-sync`, {
@@ -1589,6 +1600,17 @@ export interface ProductListOptions {
   q?: string;
   status?: 'optimized' | 'needs_attention';
   hasDraft?: boolean;
+}
+
+/**
+ * [LIST-SEARCH-FILTER-1.1] Crawl page (Pages/Collections) list filter options
+ */
+export interface CrawlPageListOptions {
+  q?: string;
+  status?: 'optimized' | 'needs_attention';
+  hasDraft?: boolean;
+  /** Filter by page type: 'static' for /pages/*, 'collection' for /collections/* */
+  pageType?: 'static' | 'collection';
 }
 
 export const productsApi = {

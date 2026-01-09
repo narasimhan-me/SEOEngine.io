@@ -38,6 +38,28 @@ export interface ProjectMemberInfo {
   createdAt: Date;
 }
 
+/**
+ * [LIST-SEARCH-FILTER-1.1] Crawl page list filter options
+ */
+export interface CrawlPageListFilters {
+  /** Case-insensitive search across URL path and title */
+  q?: string;
+  /** Status filter: 'optimized' | 'needs_attention' */
+  status?: 'optimized' | 'needs_attention';
+  /** Filter pages that appear in non-applied drafts */
+  hasDraft?: boolean;
+  /** Filter by page type: 'static' (pages) or 'collection' */
+  pageType?: 'static' | 'collection';
+}
+
+/**
+ * [LIST-SEARCH-FILTER-1.1] SEO Metadata status thresholds (same as products)
+ */
+const CRAWL_PAGE_SEO_TITLE_MIN = 30;
+const CRAWL_PAGE_SEO_TITLE_MAX = 60;
+const CRAWL_PAGE_SEO_DESC_MIN = 70;
+const CRAWL_PAGE_SEO_DESC_MAX = 155;
+
 @Injectable()
 export class ProjectsService {
   constructor(
@@ -455,9 +477,10 @@ export class ProjectsService {
   }
 
   /**
-   * [ROLES-3] Get non-product crawl pages for content optimization (membership check)
+   * [ROLES-3] [LIST-SEARCH-FILTER-1.1] Get non-product crawl pages for content optimization (membership check)
+   * Supports filtering by q, status, hasDraft, pageType
    */
-  async getCrawlPages(projectId: string, userId: string) {
+  async getCrawlPages(projectId: string, userId: string, filters?: CrawlPageListFilters) {
     // Validate project access
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -540,10 +563,27 @@ export class ProjectsService {
       return 'misc';
     };
 
+    // [LIST-SEARCH-FILTER-1.1] Helper to determine SEO status
+    const getCrawlPageStatus = (page: { title: string | null; metaDescription: string | null }): 'optimized' | 'needs_attention' => {
+      const titleLen = page.title?.length ?? 0;
+      const descLen = page.metaDescription?.length ?? 0;
+
+      const titleOk = titleLen >= CRAWL_PAGE_SEO_TITLE_MIN && titleLen <= CRAWL_PAGE_SEO_TITLE_MAX;
+      const descOk = descLen >= CRAWL_PAGE_SEO_DESC_MIN && descLen <= CRAWL_PAGE_SEO_DESC_MAX;
+
+      return titleOk && descOk ? 'optimized' : 'needs_attention';
+    };
+
+    // [LIST-SEARCH-FILTER-1.1] Get crawl page IDs with pending drafts if hasDraft filter is active
+    let crawlPageIdsWithDrafts: Set<string> | null = null;
+    if (filters?.hasDraft) {
+      crawlPageIdsWithDrafts = await this.getCrawlPageIdsWithPendingDrafts(projectId);
+    }
+
     // Filter out product URLs, deduplicate by URL (keep most recent), and transform results
     // Since results are ordered by scannedAt desc, first occurrence of each URL is the most recent
     const seenUrls = new Set<string>();
-    const contentPages = crawlResults
+    let contentPages = crawlResults
       .filter((result) => {
         // Skip if we've already seen this URL (keep only the most recent)
         if (seenUrls.has(result.url)) {
@@ -588,7 +628,70 @@ export class ProjectsService {
         };
       });
 
+    // [LIST-SEARCH-FILTER-1.1] Apply filters
+    if (filters) {
+      // Filter by pageType
+      if (filters.pageType) {
+        contentPages = contentPages.filter(page => page.pageType === filters.pageType);
+      }
+
+      // Filter by search query (q) - search in path and title
+      if (filters.q) {
+        const searchLower = filters.q.toLowerCase();
+        contentPages = contentPages.filter(page => {
+          const pathMatch = page.path.toLowerCase().includes(searchLower);
+          const titleMatch = page.title?.toLowerCase().includes(searchLower) ?? false;
+          return pathMatch || titleMatch;
+        });
+      }
+
+      // Filter by status
+      if (filters.status) {
+        contentPages = contentPages.filter(page => getCrawlPageStatus(page) === filters.status);
+      }
+
+      // Filter by hasDraft
+      if (filters.hasDraft && crawlPageIdsWithDrafts) {
+        contentPages = contentPages.filter(page => crawlPageIdsWithDrafts!.has(page.id));
+      }
+    }
+
     return contentPages;
+  }
+
+  /**
+   * [LIST-SEARCH-FILTER-1.1] Get crawl page IDs that appear in non-applied drafts
+   * Checks draftItems Json array for items with crawlResultId field
+   */
+  private async getCrawlPageIdsWithPendingDrafts(projectId: string): Promise<Set<string>> {
+    const now = new Date();
+    const drafts = await this.prisma.automationPlaybookDraft.findMany({
+      where: {
+        projectId,
+        status: { in: ['READY', 'PARTIAL'] },
+        appliedAt: null,
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: now } },
+        ],
+      },
+      select: {
+        draftItems: true,
+      },
+    });
+
+    const ids = new Set<string>();
+    for (const draft of drafts) {
+      // draftItems is a Json field containing an array of items
+      if (draft.draftItems && Array.isArray(draft.draftItems)) {
+        for (const item of draft.draftItems as any[]) {
+          if (item?.crawlResultId) {
+            ids.add(item.crawlResultId);
+          }
+        }
+      }
+    }
+    return ids;
   }
 
   // ===========================================================================

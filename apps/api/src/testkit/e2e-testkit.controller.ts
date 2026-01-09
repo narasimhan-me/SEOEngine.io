@@ -872,6 +872,225 @@ export class E2eTestkitController {
     };
   }
 
+  /**
+   * POST /testkit/e2e/seed-list-search-filter-1-1
+   *
+   * [LIST-SEARCH-FILTER-1.1] Seed for Pages and Collections list search and filter tests.
+   *
+   * Creates a project with crawl results for pages and collections:
+   * - 3 pages (/pages/*) with deterministic titles
+   * - 3 collections (/collections/*) with deterministic titles
+   * - At least one optimized and one needs_attention of each type
+   * - Creates an AutomationPlaybookDraft targeting one page and one collection
+   *
+   * Returns:
+   * - projectId
+   * - accessToken
+   * - pageIds[] (CrawlResult IDs for pages)
+   * - collectionIds[] (CrawlResult IDs for collections)
+   * - pageTitles[] (for search assertions)
+   * - collectionTitles[] (for search assertions)
+   * - optimizedPageId (for status filter assertion)
+   * - needsAttentionPageId (for status filter assertion)
+   * - optimizedCollectionId (for status filter assertion)
+   * - needsAttentionCollectionId (for status filter assertion)
+   * - draftPageId (for hasDraft filter assertion)
+   * - draftCollectionId (for hasDraft filter assertion)
+   */
+  @Post('seed-list-search-filter-1-1')
+  async seedListSearchFilter11() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    const baseUrl = 'https://test-shop.myshopify.com';
+
+    // Create 3 pages as CrawlResults
+    // Page 1: Optimized (complete SEO metadata within length bounds)
+    const page1 = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/pages/about-us`,
+        statusCode: 200,
+        // SEO title: 30-60 chars (optimized)
+        title: 'About Our Company - Learn About Our Story',
+        // SEO description: 70-155 chars (optimized)
+        metaDescription: 'Discover our company history, mission, and the team behind our success. Founded with a passion for quality.',
+        h1: 'About Us',
+        wordCount: 500,
+        loadTimeMs: 250,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Page 2: Needs attention (missing description)
+    const page2 = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/pages/contact`,
+        statusCode: 200,
+        title: 'Contact Us - Get in Touch',
+        metaDescription: null, // Missing = needs_attention
+        h1: 'Contact Us',
+        wordCount: 200,
+        loadTimeMs: 180,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Page 3: Needs attention (title too short)
+    const page3 = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/pages/faq`,
+        statusCode: 200,
+        title: 'FAQ', // Too short (< 30 chars) = needs_attention
+        metaDescription: 'Find answers to commonly asked questions about our products, shipping, returns, and customer support.',
+        h1: 'Frequently Asked Questions',
+        wordCount: 800,
+        loadTimeMs: 200,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Create 3 collections as CrawlResults
+    // Collection 1: Optimized (complete SEO metadata)
+    const collection1 = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/collections/summer-sale`,
+        statusCode: 200,
+        // SEO title: 30-60 chars (optimized)
+        title: 'Summer Sale Collection - Save Up to 50%',
+        // SEO description: 70-155 chars (optimized)
+        metaDescription: 'Shop our summer sale collection with discounts up to 50% off. Limited time offers on seasonal favorites.',
+        h1: 'Summer Sale',
+        wordCount: 300,
+        loadTimeMs: 220,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Collection 2: Needs attention (missing description)
+    const collection2 = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/collections/new-arrivals`,
+        statusCode: 200,
+        title: 'New Arrivals - Latest Products',
+        metaDescription: null, // Missing = needs_attention
+        h1: 'New Arrivals',
+        wordCount: 250,
+        loadTimeMs: 190,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Collection 3: Needs attention (title too short)
+    const collection3 = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/collections/footwear`,
+        statusCode: 200,
+        title: 'Footwear', // Too short (< 30 chars) = needs_attention
+        metaDescription: 'Browse our complete collection of footwear including boots, sneakers, sandals, and more for all occasions.',
+        h1: 'Footwear Collection',
+        wordCount: 400,
+        loadTimeMs: 210,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Create AutomationPlaybookDraft for PAGES with page2 (for hasDraft filter)
+    // Note: draftItems is a Json field, not a relation
+    await this.prisma.automationPlaybookDraft.create({
+      data: {
+        projectId: project.id,
+        playbookId: 'missing_seo_description',
+        scopeId: `project:${project.id}:pages`,
+        rulesHash: 'list-search-filter-1-1-pages-hash',
+        status: 'READY',
+        createdByUserId: user.id,
+        sampleProductIds: [] as unknown as any,
+        draftItems: [
+          {
+            crawlResultId: page2.id,
+            suggestedTitle: null,
+            suggestedDescription: 'Generated SEO description for Contact page',
+            status: 'READY',
+          },
+        ] as unknown as any,
+        counts: {
+          affectedTotal: 1,
+          draftGenerated: 1,
+          noSuggestionCount: 0,
+        } as unknown as any,
+        rules: { enabled: true } as unknown as any,
+        appliedAt: null,
+        expiresAt: null,
+      },
+    });
+
+    // Create AutomationPlaybookDraft for COLLECTIONS with collection2 (for hasDraft filter)
+    // Note: draftItems is a Json field, not a relation
+    await this.prisma.automationPlaybookDraft.create({
+      data: {
+        projectId: project.id,
+        playbookId: 'missing_seo_description',
+        scopeId: `project:${project.id}:collections`,
+        rulesHash: 'list-search-filter-1-1-collections-hash',
+        status: 'READY',
+        createdByUserId: user.id,
+        sampleProductIds: [] as unknown as any,
+        draftItems: [
+          {
+            crawlResultId: collection2.id,
+            suggestedTitle: null,
+            suggestedDescription: 'Generated SEO description for New Arrivals collection',
+            status: 'READY',
+          },
+        ] as unknown as any,
+        counts: {
+          affectedTotal: 1,
+          draftGenerated: 1,
+          noSuggestionCount: 0,
+        } as unknown as any,
+        rules: { enabled: true } as unknown as any,
+        appliedAt: null,
+        expiresAt: null,
+      },
+    });
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      projectId: project.id,
+      accessToken,
+      pageIds: [page1.id, page2.id, page3.id],
+      collectionIds: [collection1.id, collection2.id, collection3.id],
+      pageTitles: [page1.title, page2.title, page3.title],
+      collectionTitles: [collection1.title, collection2.title, collection3.title],
+      optimizedPageId: page1.id,
+      needsAttentionPageId: page2.id,
+      optimizedCollectionId: collection1.id,
+      needsAttentionCollectionId: collection2.id,
+      draftPageId: page2.id,
+      draftCollectionId: collection2.id,
+    };
+  }
+
   // ==========================================================================
   // [COUNT-INTEGRITY-1.1] E2E Seeds
   // ==========================================================================

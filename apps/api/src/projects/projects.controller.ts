@@ -15,7 +15,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { ProjectsService, CreateProjectDto, UpdateProjectDto, AddMemberDto, ChangeMemberRoleDto } from './projects.service';
+import { ProjectsService, CreateProjectDto, UpdateProjectDto, AddMemberDto, ChangeMemberRoleDto, CrawlPageListFilters } from './projects.service';
 import { ProjectMemberRole } from '@prisma/client';
 import { DeoScoreService, DeoSignalsService } from './deo-score.service';
 import { DeoIssuesService } from './deo-issues.service';
@@ -387,11 +387,24 @@ export class ProjectsController {
 
   /**
    * GET /projects/:id/crawl-pages
-   * Returns non-product crawl pages for content optimization
+   * [LIST-SEARCH-FILTER-1.1] Returns non-product crawl pages for content optimization
+   * Supports filtering by q, status, hasDraft, pageType
    */
   @Get(':id/crawl-pages')
-  async getCrawlPages(@Request() req: any, @Param('id') projectId: string) {
-    return this.projectsService.getCrawlPages(projectId, req.user.id);
+  async getCrawlPages(
+    @Request() req: any,
+    @Param('id') projectId: string,
+    @Query('q') q?: string,
+    @Query('status') status?: string,
+    @Query('hasDraft') hasDraft?: string,
+    @Query('pageType') pageType?: string,
+  ) {
+    const filters: CrawlPageListFilters = {};
+    if (q && q.trim()) filters.q = q.trim();
+    if (status === 'optimized' || status === 'needs_attention') filters.status = status;
+    if (hasDraft === 'true' || hasDraft === '1') filters.hasDraft = true;
+    if (pageType === 'static' || pageType === 'collection') filters.pageType = pageType;
+    return this.projectsService.getCrawlPages(projectId, req.user.id, filters);
   }
 
   /**

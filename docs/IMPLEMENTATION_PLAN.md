@@ -777,6 +777,73 @@ LIST-SEARCH-FILTER-1 adds server-authoritative search and filtering to the Produ
 
 ---
 
+### Phase LIST-SEARCH-FILTER-1.1: Pages & Collections List Search & Filtering ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-09
+
+#### Overview
+
+LIST-SEARCH-FILTER-1.1 extends the ListControls pattern from LIST-SEARCH-FILTER-1 to the Pages and Collections asset list pages. Server-authoritative filtering with URL-derived state.
+
+#### Scope
+
+- Pages list page (/projects/:id/assets/pages)
+- Collections list page (/projects/:id/assets/collections)
+- Server-side filtering (q, status, hasDraft, pageType params)
+- Reuses existing ListControls component
+
+#### Explicit Non-Goals
+
+- New UI components (reuses ListControls)
+- Work Queue or Issues list (future phases)
+- Pagination
+
+#### Key Features
+
+1. **Search**: Case-insensitive search across page path/title or collection handle/title
+2. **Status Filter**: `optimized` (complete SEO metadata in range) vs `needs_attention` (incomplete/suboptimal)
+3. **Has Draft Filter**: Pages/collections appearing in non-applied AutomationPlaybookDrafts (PAGES/COLLECTIONS asset types)
+4. **Page Type Filter**: Backend supports `static` (pages) or `collection` filtering via pageType param
+5. **URL Persistence**: Filter state serialized to query params, restored on reload
+6. **Empty States**: Filtered empty state with "Clear filters" affordance
+
+#### Completed Patches
+
+- ✅ **PATCH 1:** Extended web API client `projectsApi.crawlPages()` with optional filter params (q, status, hasDraft, pageType)
+- ✅ **PATCH 2:** Extended projects controller/service with filtering on GET /projects/:id/crawl-pages
+- ✅ **PATCH 3:** Integrated ListControls into Pages list page with server-side filtering
+- ✅ **PATCH 4:** Integrated ListControls into Collections list page with server-side filtering
+- ✅ **PATCH 5:** Added E2E seed endpoint `/testkit/e2e/seed-list-search-filter-1-1`
+- ✅ **PATCH 6:** Playwright smoke tests (list-search-filter-1-1.spec.ts)
+- ✅ **PATCH 7:** Documentation (this section)
+
+#### Core Files
+
+- `apps/web/src/lib/api.ts` (CrawlPageListOptions, crawlPages with filters)
+- `apps/api/src/projects/projects.controller.ts` (filter params on getCrawlPages)
+- `apps/api/src/projects/projects.service.ts` (CrawlPageListFilters, filtering logic, getCrawlPageIdsWithPendingDrafts)
+- `apps/web/src/app/projects/[id]/assets/pages/page.tsx`
+- `apps/web/src/app/projects/[id]/assets/collections/page.tsx`
+- `apps/api/src/testkit/e2e-testkit.controller.ts` (seed endpoint)
+
+#### Test Selectors
+
+- `data-testid="list-controls-search"` — Search input
+- `data-testid="list-controls-status"` — Status filter dropdown
+- `data-testid="list-controls-has-draft"` — Has draft filter dropdown
+- `data-testid="list-controls-clear"` — Clear filters button
+
+#### Manual Testing
+
+- `docs/manual-testing/LIST-SEARCH-FILTER-1.1.md`
+
+#### Automated Tests
+
+- `apps/web/tests/list-search-filter-1-1.spec.ts` (Playwright E2E tests)
+
+---
+
 ## In Progress
 
 *None at this time.*
@@ -970,3 +1037,5 @@ These invariants MUST be preserved during implementation:
 | 6.7 | 2026-01-09 | **COUNT-INTEGRITY-1.1 FIXUP-2 DOC CONSISTENCY**: Documentation-only cleanup — removed stale "(pending)" labels from COUNT-INTEGRITY-1 frontend files (marked superseded), updated Testing Requirements to clarify Work Queue → Issues click-integrity remains valid while Store Health click-integrity is governed by COUNT-INTEGRITY-1.1, aligned all UI smoke test chain references to "Store Health → Issues Engine → Asset Detail" (STRICT). |
 | 6.8 | 2026-01-09 | **LIST-SEARCH-FILTER-1 COMPLETE**: Products list search & filtering. Added handle field to Product model, server-authoritative filtering (q/status/hasDraft), reusable ListControls component (URL-derived state, config-driven), Products page integration with empty states, E2E seed endpoint, Playwright smoke tests, manual testing doc. Pattern ready for future list pages. |
 | 6.9 | 2026-01-09 | **LIST-SEARCH-FILTER-1 FIXUP-1**: Fixed ListControls build (native HTML elements instead of non-existent shadcn/ui), added key={currentQ} for input remount on clear, moved Playwright tests to apps/web/tests/, fixed auth pattern (engineo_token), corrected test path in docs, added root plan pointer. |
+| 6.10 | 2026-01-09 | **LIST-SEARCH-FILTER-1.1 COMPLETE**: Extended ListControls pattern to Pages and Collections asset lists. Added filter params to crawlPages API (q/status/hasDraft/pageType), server-side filtering in projects.service.ts (getCrawlPageIdsWithPendingDrafts for PAGES/COLLECTIONS asset types), integrated ListControls into Pages and Collections pages with empty states, E2E seed endpoint, 8 Playwright smoke tests. |
+| 6.11 | 2026-01-09 | **LIST-SEARCH-FILTER-1.1 DOC-FIXUP-1**: Added missing manual testing checklist doc (`docs/manual-testing/LIST-SEARCH-FILTER-1.1.md`) and linked it from the phase section. |

@@ -9,6 +9,7 @@
  * 3. Filtering by "Has draft pending apply" works (seeded draft product)
  * 4. URL query params update and restore state on reload
  * 5. Clearing filters restores full list
+ * 6. Status filter shows only optimized vs needs_attention products
  *
  * Prerequisites:
  * - /testkit/e2e/seed-list-search-filter-1 endpoint available
@@ -212,5 +213,51 @@ test.describe('LIST-SEARCH-FILTER-1: Products List Search & Filter', () => {
 
     // Clear button should be hidden (no active filters)
     await expect(clearButton).not.toBeVisible();
+  });
+
+  test('LSF-006: Status filter shows only optimized vs needs attention', async ({
+    page,
+  }) => {
+    // Programmatic login
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, seedData.accessToken);
+
+    // Navigate to Products list
+    await page.goto(`/projects/${seedData.projectId}/products`);
+
+    // Wait for controls
+    await expect(
+      page.locator('[data-testid="list-controls-status"]'),
+    ).toBeVisible();
+
+    // Baseline: all 3 seeded products visible
+    await expect(page.getByText('Alpine Mountain Boots')).toBeVisible();
+    await expect(page.getByText('Coastal Kayak Pro')).toBeVisible();
+    await expect(page.getByText('Summit Backpack')).toBeVisible();
+
+    // Select Status dropdown → optimized
+    const statusSelect = page.locator('[data-testid="list-controls-status"]');
+    await statusSelect.selectOption('optimized');
+
+    // Assert URL contains status=optimized
+    await expect(page).toHaveURL(/status=optimized/);
+
+    // Assert only optimized product visible
+    await expect(page.getByText('Alpine Mountain Boots')).toBeVisible();
+    await expect(page.getByText('Coastal Kayak Pro')).not.toBeVisible();
+    await expect(page.getByText('Summit Backpack')).not.toBeVisible();
+
+    // Switch Status dropdown → needs_attention
+    await statusSelect.selectOption('needs_attention');
+
+    // Assert URL contains status=needs_attention
+    await expect(page).toHaveURL(/status=needs_attention/);
+
+    // Assert only needs-attention products visible
+    await expect(page.getByText('Coastal Kayak Pro')).toBeVisible();
+    await expect(page.getByText('Summit Backpack')).toBeVisible();
+    await expect(page.getByText('Alpine Mountain Boots')).not.toBeVisible();
   });
 });
