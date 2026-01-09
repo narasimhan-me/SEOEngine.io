@@ -227,6 +227,7 @@ model Product {
   externalId     String   // platform-agnostic ID (was shopifyId)
   title          String
   description    String?
+  handle         String?  // [LIST-SEARCH-FILTER-1] Shopify handle for URL-based search
   seoTitle       String?
   seoDescription String?
   imageUrls      Json?

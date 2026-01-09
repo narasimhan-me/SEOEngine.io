@@ -874,6 +874,7 @@ export class ShopifyService {
       const productData = {
         title: product.title,
         description: product.body_html || null,
+        handle: product.handle || null, // [LIST-SEARCH-FILTER-1] Persist Shopify handle
         seoTitle: product.metafields_global_title_tag || product.title || null,
         seoDescription: product.metafields_global_description_tag || null,
         imageUrls: product.images?.map((img) => img.src) || [],

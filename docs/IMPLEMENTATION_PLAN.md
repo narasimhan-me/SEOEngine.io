@@ -707,6 +707,76 @@ COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCou
 
 ---
 
+### Phase LIST-SEARCH-FILTER-1: Products List Search & Filtering ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-09
+
+#### Overview
+
+LIST-SEARCH-FILTER-1 adds server-authoritative search and filtering to the Products list page with a reusable ListControls component pattern for future list pages. URL-derived state only (no hidden memory).
+
+#### Scope
+
+- Products list page only (reusable pattern for future Work Queue, Issues, etc.)
+- Server-side filtering (q, status, hasDraft params)
+- URL-derived state with deterministic router.replace updates
+
+#### Explicit Non-Goals
+
+- Advanced filter builders
+- Saved filters
+- Pagination (future phase)
+- Other list pages (Work Queue, Issues — pattern ready for future extension)
+
+#### Key Features
+
+1. **Search**: Case-insensitive search across product title and handle
+2. **Status Filter**: `optimized` (complete SEO metadata in range) vs `needs_attention` (incomplete/suboptimal)
+3. **Has Draft Filter**: Products appearing in non-applied AutomationPlaybookDrafts (status READY/PARTIAL, not expired)
+4. **URL Persistence**: Filter state serialized to query params, restored on reload
+5. **Empty States**: Filtered empty state with "Clear filters" affordance, unfiltered "No products" preserved
+
+#### Completed Patches
+
+- ✅ **PATCH 1:** Added `handle` field to Product model + Prisma migration + Shopify sync persists handle
+- ✅ **PATCH 2:** Extended products controller/service with filtering (q, status, hasDraft) + server-side filtering logic
+- ✅ **PATCH 3:** Extended web API client `productsApi.list()` with optional filter params
+- ✅ **PATCH 4:** Created reusable `ListControls` component (config-driven, URL-derived, stable test selectors)
+- ✅ **PATCH 5:** Wired ListControls to Products page + empty state handling
+- ✅ **PATCH 6:** Added E2E seed endpoint `/testkit/e2e/seed-list-search-filter-1`
+- ✅ **PATCH 7:** Playwright smoke tests (list-search-filter-1.spec.ts)
+- ✅ **PATCH 8:** Documentation (this section + manual testing doc)
+
+#### Core Files
+
+- `apps/api/prisma/schema.prisma` (Product.handle field)
+- `apps/api/prisma/migrations/20260109_add_product_handle/`
+- `apps/api/src/products/products.controller.ts`
+- `apps/api/src/products/products.service.ts`
+- `apps/api/src/shopify/shopify.service.ts` (handle persistence in syncProducts)
+- `apps/web/src/lib/api.ts` (productsApi.list with filters)
+- `apps/web/src/components/common/ListControls.tsx`
+- `apps/web/src/app/projects/[id]/products/page.tsx`
+- `apps/api/src/testkit/e2e-testkit.controller.ts` (seed endpoint)
+
+#### Test Selectors
+
+- `data-testid="list-controls-search"` — Search input
+- `data-testid="list-controls-status"` — Status filter dropdown
+- `data-testid="list-controls-has-draft"` — Has draft filter dropdown
+- `data-testid="list-controls-clear"` — Clear filters button
+
+#### Manual Testing
+
+- `docs/manual-testing/LIST-SEARCH-FILTER-1.md`
+
+#### Automated Tests
+
+- `tests/e2e/products/list-search-filter-1.spec.ts` (Playwright E2E tests)
+
+---
+
 ## In Progress
 
 *None at this time.*
@@ -898,3 +968,4 @@ These invariants MUST be preserved during implementation:
 | 6.5 | 2026-01-09 | **COUNT-INTEGRITY-1.1 POST-AUDIT COMPLIANCE**: (1) Merged 2 UI tests into exactly 1 end-to-end Playwright test per "single smoke test" requirement; (2) Marked COUNT-INTEGRITY-1 as ⚠️ SUPERSEDED/PARTIAL (Store Health clickthrough semantics superseded; Work Queue click-integrity remains valid); (3) Updated UI test count from "2 tests" to "1 test" in documentation. |
 | 6.6 | 2026-01-09 | **COUNT-INTEGRITY-1.1 FIXUP-2 (Trust Correctness)**: (1) Store Health Discoverability/Technical tiles always show numeric pillar-scoped "items affected" (0 fallback; never "Counts unavailable"); (2) Playwright smoke test STRICT mode (requires numeric parsing, requires asset-detail navigation, no optional branches); (3) Removed Work Queue step from UI test (Issues Engine is now the click destination from Store Health, not Work Queue). |
 | 6.7 | 2026-01-09 | **COUNT-INTEGRITY-1.1 FIXUP-2 DOC CONSISTENCY**: Documentation-only cleanup — removed stale "(pending)" labels from COUNT-INTEGRITY-1 frontend files (marked superseded), updated Testing Requirements to clarify Work Queue → Issues click-integrity remains valid while Store Health click-integrity is governed by COUNT-INTEGRITY-1.1, aligned all UI smoke test chain references to "Store Health → Issues Engine → Asset Detail" (STRICT). |
+| 6.8 | 2026-01-09 | **LIST-SEARCH-FILTER-1 COMPLETE**: Products list search & filtering. Added handle field to Product model, server-authoritative filtering (q/status/hasDraft), reusable ListControls component (URL-derived state, config-driven), Products page integration with empty states, E2E seed endpoint, Playwright smoke tests, manual testing doc. Pattern ready for future list pages. |

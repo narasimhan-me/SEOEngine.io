@@ -753,6 +753,126 @@ export class E2eTestkitController {
   }
 
   // ==========================================================================
+  // [LIST-SEARCH-FILTER-1] E2E Seeds
+  // ==========================================================================
+
+  /**
+   * POST /testkit/e2e/seed-list-search-filter-1
+   *
+   * [LIST-SEARCH-FILTER-1] Seed for Products list search and filter tests.
+   *
+   * Creates a project with at least 3 products with known titles and handles
+   * suitable for search assertions:
+   * - At least one product is status=optimized (complete SEO metadata)
+   * - At least one product is status=needs_attention (incomplete SEO)
+   * - Creates an AutomationPlaybookDraft (status READY, not applied) whose
+   *   draftItems includes exactly one of the seeded product IDs so hasDraft=true
+   *   can be validated.
+   *
+   * Returns:
+   * - projectId
+   * - accessToken
+   * - productIds
+   * - titles[] (for search assertions)
+   * - handles[] (for search assertions)
+   * - optimizedProductId (for status filter assertion)
+   * - needsAttentionProductId (for status filter assertion)
+   * - draftProductId (for hasDraft filter assertion)
+   */
+  @Post('seed-list-search-filter-1')
+  async seedListSearchFilter1() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    // Create 3 products with deterministic titles and handles
+    // Product 1: Optimized (complete SEO metadata within length bounds)
+    const product1 = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'ext-product-1',
+        title: 'Alpine Mountain Boots',
+        handle: 'alpine-mountain-boots',
+        // SEO title: 30-60 chars (optimized)
+        seoTitle: 'Alpine Mountain Boots - Premium Hiking Footwear',
+        // SEO description: 70-155 chars (optimized)
+        seoDescription: 'Durable mountain boots designed for serious hikers. Waterproof construction with superior ankle support.',
+      },
+    });
+
+    // Product 2: Needs attention (missing SEO description)
+    const product2 = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'ext-product-2',
+        title: 'Coastal Kayak Pro',
+        handle: 'coastal-kayak-pro',
+        seoTitle: 'Coastal Kayak Pro - Adventure Awaits',
+        seoDescription: null, // Missing = needs_attention
+      },
+    });
+
+    // Product 3: Needs attention (SEO title too short)
+    const product3 = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'ext-product-3',
+        title: 'Summit Backpack',
+        handle: 'summit-backpack',
+        seoTitle: 'Summit Pack', // Too short (< 30 chars) = needs_attention
+        seoDescription: 'A reliable backpack for day hikes and overnight adventures with ergonomic straps and multiple compartments.',
+      },
+    });
+
+    // Create AutomationPlaybookDraft with product2 in draftItems (for hasDraft filter)
+    await this.prisma.automationPlaybookDraft.create({
+      data: {
+        projectId: project.id,
+        playbookId: 'missing_seo_description',
+        scopeId: `project:${project.id}`,
+        rulesHash: 'list-search-filter-1-hash',
+        status: 'READY',
+        createdByUserId: user.id,
+        sampleProductIds: [product2.id] as unknown as any,
+        draftItems: [
+          {
+            productId: product2.id,
+            suggestion: 'Generated SEO description for Coastal Kayak Pro',
+          },
+        ] as unknown as any,
+        counts: {
+          affectedTotal: 1,
+          draftGenerated: 1,
+          noSuggestionCount: 0,
+        } as unknown as any,
+        rules: { enabled: true } as unknown as any,
+        // Not applied, not expired
+        appliedAt: null,
+        expiresAt: null,
+      },
+    });
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      projectId: project.id,
+      accessToken,
+      productIds: [product1.id, product2.id, product3.id],
+      titles: [product1.title, product2.title, product3.title],
+      handles: [product1.handle, product2.handle, product3.handle],
+      optimizedProductId: product1.id,
+      needsAttentionProductId: product2.id,
+      draftProductId: product2.id,
+    };
+  }
+
+  // ==========================================================================
   // [COUNT-INTEGRITY-1.1] E2E Seeds
   // ==========================================================================
 

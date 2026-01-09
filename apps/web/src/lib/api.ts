@@ -1582,8 +1582,27 @@ export const aiApi = {
   },
 };
 
+/**
+ * [LIST-SEARCH-FILTER-1] Product list filter options
+ */
+export interface ProductListOptions {
+  q?: string;
+  status?: 'optimized' | 'needs_attention';
+  hasDraft?: boolean;
+}
+
 export const productsApi = {
-  list: (projectId: string) => fetchWithAuth(`/projects/${projectId}/products`),
+  /**
+   * [LIST-SEARCH-FILTER-1] List products with optional filtering
+   */
+  list: (projectId: string, opts?: ProductListOptions) => {
+    const params = new URLSearchParams();
+    if (opts?.q) params.set('q', opts.q);
+    if (opts?.status) params.set('status', opts.status);
+    if (opts?.hasDraft) params.set('hasDraft', 'true');
+    const qs = params.toString();
+    return fetchWithAuth(`/projects/${projectId}/products${qs ? `?${qs}` : ''}`);
+  },
 
   getAnswerBlocks: (productId: string) =>
     fetchWithAuth(`/products/${productId}/answer-blocks`),

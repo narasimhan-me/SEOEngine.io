@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 import type { DeoIssue } from '@/lib/deo-issues';
 import { ProductTable } from '@/components/products/ProductTable';
+import { ListControls } from '@/components/common/ListControls';
 import { isAuthenticated, getToken } from '@/lib/auth';
 import {
   productsApi,
@@ -43,6 +44,14 @@ export default function ProductsPage() {
   const searchParams = useSearchParams();
   const fromPlaybookResults = searchParams.get('from') === 'playbook_results';
 
+  // [LIST-SEARCH-FILTER-1] Extract filter params from URL
+  const filterQ = searchParams.get('q') || undefined;
+  const filterStatus = searchParams.get('status') as 'optimized' | 'needs_attention' | undefined;
+  const filterHasDraft = searchParams.get('hasDraft') === 'true' || undefined;
+
+  // Check if any filters are active
+  const hasActiveFilters = !!(filterQ || filterStatus || filterHasDraft);
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -58,11 +67,16 @@ export default function ProductsPage() {
 
   const feedback = useFeedback();
 
+  // [LIST-SEARCH-FILTER-1] Fetch products with filters from URL
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
-      const data = await productsApi.list(projectId);
+      const data = await productsApi.list(projectId, {
+        q: filterQ,
+        status: filterStatus,
+        hasDraft: filterHasDraft,
+      });
       setProducts(data);
     } catch (err: unknown) {
       console.error('Error fetching products:', err);
@@ -70,7 +84,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, filterQ, filterStatus, filterHasDraft]);
 
   const fetchProjectInfo = useCallback(async () => {
     try {
@@ -163,6 +177,16 @@ export default function ProductsPage() {
       setScanningId(null);
     }
   };
+
+  // [LIST-SEARCH-FILTER-1] Clear filters handler for empty state
+  const handleClearFilters = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('q');
+    params.delete('status');
+    params.delete('hasDraft');
+    const qs = params.toString();
+    router.replace(`/projects/${projectId}/products${qs ? `?${qs}` : ''}`, { scroll: false });
+  }, [router, projectId, searchParams]);
 
   // Compute isDeoDataStale: true when crawlCount > 0 AND lastCrawledAt is missing/older than crawlFrequency interval
   const isDeoDataStale = (() => {
@@ -292,30 +316,61 @@ export default function ProductsPage() {
         </button>
       </div>
 
+      {/* [LIST-SEARCH-FILTER-1] ListControls - render above product list */}
+      <ListControls
+        config={{
+          searchPlaceholder: 'Search by name or handle...',
+          enableStatusFilter: true,
+          enableHasDraftFilter: true,
+        }}
+      />
+
       {/* Products List */}
       <div className="overflow-hidden rounded-lg bg-white shadow md:overflow-visible">
         {products.length === 0 ? (
-          <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No products</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {projectInfo?.shopify.connected
-                ? 'Sync products and run your first crawl to see DEO insights. Issues will be surfaced in the Issues Engine for AI-powered fixes.'
-                : 'Step 1: Connect your Shopify store, then sync products and run your first crawl to surface issues.'}
-            </p>
-            {!projectInfo?.shopify.connected && (
+          hasActiveFilters ? (
+            // [LIST-SEARCH-FILTER-1] Filtered empty state
+            <div className="text-center py-12">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No products match your filters.</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Try adjusting your search or filter criteria.
+              </p>
               <div className="mt-4">
-                <Link
-                  href={`/projects/${projectId}`}
+                <button
+                  onClick={handleClearFilters}
                   className="text-blue-600 hover:text-blue-800"
                 >
-                  Go to project settings to connect Shopify
-                </Link>
+                  Clear filters
+                </button>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            // Unfiltered empty state (existing)
+            <div className="text-center py-12">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No products</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {projectInfo?.shopify.connected
+                  ? 'Sync products and run your first crawl to see DEO insights. Issues will be surfaced in the Issues Engine for AI-powered fixes.'
+                  : 'Step 1: Connect your Shopify store, then sync products and run your first crawl to surface issues.'}
+              </p>
+              {!projectInfo?.shopify.connected && (
+                <div className="mt-4">
+                  <Link
+                    href={`/projects/${projectId}`}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    Go to project settings to connect Shopify
+                  </Link>
+                </div>
+              )}
+            </div>
+          )
         ) : (
           <ProductTable
             products={products}
