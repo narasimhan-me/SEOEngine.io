@@ -642,12 +642,12 @@ COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCou
 - ✅ **PATCH 2.6-FIXUP-1:** Deterministic Playwright backend API tests (accessToken corrected)
 - ✅ **PATCH 2.7-FIXUP-1:** Documentation truthfulness updated
 - ✅ **PATCH 3.1:** Non-enumerable `__fullAffectedAssetKeys` field infrastructure
-- ✅ **PATCH 3.2:** All capped builders populate full keys (13+ builders)
+- ✅ **PATCH 3.2:** Product-based builders populate full keys (Gap 3a)
 - ✅ **PATCH 3.3:** Canonical summary uses full keys for accurate deduplication
 - ✅ **PATCH 3.4:** Asset endpoint uses full keys for membership checks
 - ✅ **PATCH 3.5:** Media issues carry full keys
 - ✅ **PATCH 3.6:** CANON-009 regression test (30 products, verifies >20 accuracy)
-- ✅ **PATCH 3.7:** Documentation updates (Gap 3 marked resolved)
+- ✅ **PATCH 3.7:** Documentation updates (Gap 3a resolved; Gap 3b identified)
 
 #### Pending Work (Backend Fixup + UI Migration)
 
@@ -659,7 +659,7 @@ COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCou
 
 #### Manual Testing
 
-- `docs/manual-testing/COUNT-INTEGRITY-1.1.md` (backend complete; notes UI migration pending)
+- `docs/manual-testing/COUNT-INTEGRITY-1.1.md` (backend partial; Gap 3b + UI migration + UI smoke test pending)
 
 #### Automated Tests
 

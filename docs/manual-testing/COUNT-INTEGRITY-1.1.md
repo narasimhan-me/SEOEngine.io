@@ -1,7 +1,7 @@
 # COUNT-INTEGRITY-1.1: Canonical Triplet Counts + Explicit Labels Manual Testing Guide
 
 **Phase:** COUNT-INTEGRITY-1.1
-**Status:** ⚠️ BACKEND PARTIAL (Products verified by CANON-009; Pages/Collections pending) | 🚧 UI MIGRATION DEFERRED (Gap 6)
+**Status:** ⚠️ BACKEND PARTIAL (Products verified by CANON-009; Pages/Collections pending) | 🚧 UI MIGRATION DEFERRED (Gap 6) | ⚠️ UI SMOKE TEST PENDING (Gap 7)
 **Date:** 2026-01-08 (Updated after PATCH BATCH 3 + Truthfulness Audit)
 
 ## Overview
