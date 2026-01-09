@@ -91,6 +91,16 @@ export default function IssuesPage() {
   // [COUNT-INTEGRITY-1 PATCH 6] Read click-integrity filter params from Work Queue routing
   const modeParam = searchParams.get('mode') as 'actionable' | 'detected' | null;
   const actionKeyParam = searchParams.get('actionKey');
+  // [COUNT-INTEGRITY-1.1 UI HARDEN] Support actionKeys for multi-action filtering (OR across keys)
+  // Accepts repeated params (?actionKeys=KEY1&actionKeys=KEY2) or comma-separated (?actionKeys=KEY1,KEY2)
+  const actionKeysParam = useMemo(() => {
+    const repeatedParams = searchParams.getAll('actionKeys');
+    if (repeatedParams.length > 0) {
+      // Handle repeated params - flatten any comma-separated values
+      return repeatedParams.flatMap(p => p.split(',').map(k => k.trim())).filter(Boolean);
+    }
+    return null;
+  }, [searchParams]);
   const scopeTypeParam = searchParams.get('scopeType') as 'PRODUCTS' | 'PAGES' | 'COLLECTIONS' | 'STORE_WIDE' | null;
 
   // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] effectiveMode will be computed after countsSummary state is available
@@ -126,30 +136,47 @@ export default function IssuesPage() {
   // [COUNT-INTEGRITY-1 PATCH ERR-001] Graceful degradation for counts-summary API failures
   const [countsSummaryWarning, setCountsSummaryWarning] = useState<string | null>(null);
 
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [projectName, setProjectName] = useState<string | null>(null);
+  const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all');
+  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Don't auto-apply pillar param when click-integrity filters present
+  // [COUNT-INTEGRITY-1.1 UI HARDEN] Include actionKeys in filter detection
+  const hasClickIntegrityFilters = !!(actionKeyParam || (actionKeysParam && actionKeysParam.length > 0) || scopeTypeParam);
+  const [pillarFilter, setPillarFilter] = useState<PillarFilter>(
+    hasClickIntegrityFilters ? 'all' : (pillarParam ?? 'all')
+  );
+
   // [COUNT-INTEGRITY-1.1 Step 2A] Updated to use canonical triplet counts
   // [COUNT-INTEGRITY-1 PATCH ERR-001.1] Fallback to issues list when countsSummary unavailable
-  const hasActionableIssues = countsSummary
-    ? (countsSummary.actionable.issueTypesCount ?? 0) > 0
-    : issues.some((i) => i.isActionableNow === true);
-  const hasDetectedIssues = countsSummary
-    ? (countsSummary.detected.issueTypesCount ?? 0) > 0
-    : issues.length > 0;
+  // [COUNT-INTEGRITY-1.1 AUDIT FIX] Pillar-aware actionable/detected checks
+  // When pillarFilter !== 'all', source from countsSummary.byPillar[pillarFilter]
+  const hasActionableIssues = useMemo(() => {
+    if (!countsSummary) {
+      return issues.some((i) => i.isActionableNow === true);
+    }
+    if (pillarFilter !== 'all' && countsSummary.byPillar?.[pillarFilter]) {
+      return (countsSummary.byPillar[pillarFilter].actionable?.issueTypesCount ?? 0) > 0;
+    }
+    return (countsSummary.actionable.issueTypesCount ?? 0) > 0;
+  }, [countsSummary, pillarFilter, issues]);
+
+  const hasDetectedIssues = useMemo(() => {
+    if (!countsSummary) {
+      return issues.length > 0;
+    }
+    if (pillarFilter !== 'all' && countsSummary.byPillar?.[pillarFilter]) {
+      return (countsSummary.byPillar[pillarFilter].detected?.issueTypesCount ?? 0) > 0;
+    }
+    return (countsSummary.detected.issueTypesCount ?? 0) > 0;
+  }, [countsSummary, pillarFilter, issues]);
+
   const effectiveMode: 'actionable' | 'detected' =
     modeParam === 'detected'
       ? 'detected'
       : (!hasActionableIssues && hasDetectedIssues)
         ? 'detected'  // Force detected when no actionable but detected exist
         : 'actionable';
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [projectName, setProjectName] = useState<string | null>(null);
-  const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all');
-  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Don't auto-apply pillar param when click-integrity filters present
-  const hasClickIntegrityFilters = !!(actionKeyParam || scopeTypeParam);
-  const [pillarFilter, setPillarFilter] = useState<PillarFilter>(
-    hasClickIntegrityFilters ? 'all' : (pillarParam ?? 'all')
-  );
   const [rescanning, setRescanning] = useState(false);
   const [fixingIssueId, setFixingIssueId] = useState<string | null>(null);
 
@@ -208,7 +235,7 @@ export default function IssuesPage() {
       setError('');
       setCountsSummaryWarning(null);
       // [COUNT-INTEGRITY-1.1 PATCH 5] Fetch canonical summary with same filters as rendered list
-      // Build filters object from URL params for click-integrity
+      // [COUNT-INTEGRITY-1.1 UI HARDEN] Build filters object with actionKey OR actionKeys + severity
       const summaryFilters: {
         actionKey?: string;
         actionKeys?: string[];
@@ -216,7 +243,12 @@ export default function IssuesPage() {
         pillar?: string;
         severity?: 'critical' | 'warning' | 'info';
       } = {};
-      if (actionKeyParam) summaryFilters.actionKey = actionKeyParam;
+      // [COUNT-INTEGRITY-1.1 UI HARDEN] actionKeys takes precedence over actionKey (multi-action OR)
+      if (actionKeysParam && actionKeysParam.length > 0) {
+        summaryFilters.actionKeys = actionKeysParam;
+      } else if (actionKeyParam) {
+        summaryFilters.actionKey = actionKeyParam;
+      }
       if (scopeTypeParam) {
         // Normalize scopeType to lowercase for API
         const normalizedScopeType = scopeTypeParam.toLowerCase() as 'products' | 'pages' | 'collections';
@@ -224,7 +256,10 @@ export default function IssuesPage() {
           summaryFilters.scopeType = normalizedScopeType;
         }
       }
-      // Note: pillar and severity from URL could be added here if needed for future filter routing
+      // [COUNT-INTEGRITY-1.1 AUDIT FIX] Pass severity filter when not 'all' for filter-aligned summary
+      if (severityFilter !== 'all') {
+        summaryFilters.severity = severityFilter;
+      }
 
       // [COUNT-INTEGRITY-1 PATCH ERR-001] Graceful degradation: always load issues even if counts-summary fails
       const results = await Promise.allSettled([
@@ -254,7 +289,8 @@ export default function IssuesPage() {
     } finally {
       setLoading(false);
     }
-  }, [projectId, actionKeyParam, scopeTypeParam]);
+  // [COUNT-INTEGRITY-1.1 AUDIT FIX] Include severityFilter to refresh summary when severity changes
+  }, [projectId, actionKeyParam, actionKeysParam, scopeTypeParam, severityFilter]);
 
   const fetchProjectInfo = useCallback(async () => {
     try {
@@ -322,6 +358,18 @@ export default function IssuesPage() {
     }
   };
 
+  // [COUNT-INTEGRITY-1.1 UI HARDEN] Compute "current triplet" based on pillar filter
+  // When pillarFilter !== 'all', select triplet from countsSummary.byPillar[pillarFilter]
+  // Otherwise use the root triplet
+  const currentTriplet = useMemo(() => {
+    if (!countsSummary) return null;
+    if (pillarFilter !== 'all' && countsSummary.byPillar?.[pillarFilter]) {
+      const pillarData = countsSummary.byPillar[pillarFilter];
+      return effectiveMode === 'actionable' ? pillarData.actionable : pillarData.detected;
+    }
+    return effectiveMode === 'actionable' ? countsSummary.actionable : countsSummary.detected;
+  }, [countsSummary, pillarFilter, effectiveMode]);
+
   // [COUNT-INTEGRITY-1.1 Step 2A] Use canonical triplet counts for severity badges
   // [COUNT-INTEGRITY-1 PATCH ERR-001] When countsSummary is null (API failure), counts are unavailable (not 0)
   const criticalCount = countsSummary
@@ -340,7 +388,21 @@ export default function IssuesPage() {
         : (countsSummary.bySeverity?.info?.detected?.issueTypesCount ?? 0))
     : null;
 
-  // [COUNT-INTEGRITY-1 PATCH 6] Filter issues: mode → actionKey → scopeType → UI filters
+  // [COUNT-INTEGRITY-1.1 UI HARDEN] Helper to check if issue matches a single action key
+  const issueMatchesActionKey = (issue: DeoIssue, key: string): boolean => {
+    if (key === 'FIX_MISSING_METADATA') {
+      return issue.pillarId === 'metadata_snippet_quality' || (issue.type?.includes('metadata') ?? false);
+    } else if (key === 'RESOLVE_TECHNICAL_ISSUES') {
+      return issue.pillarId === 'technical_indexability' || issue.category === 'technical';
+    } else if (key === 'IMPROVE_SEARCH_INTENT') {
+      return issue.pillarId === 'search_intent_fit' || Boolean(issue.intentType);
+    } else if (key === 'OPTIMIZE_CONTENT') {
+      return issue.pillarId === 'content_commerce_signals' || issue.category === 'content_entity';
+    }
+    return false;
+  };
+
+  // [COUNT-INTEGRITY-1 PATCH 6] Filter issues: mode → actionKey/actionKeys → scopeType → UI filters
   const filteredIssues = issues.filter((issue) => {
     // 1. Mode filter (actionable vs detected) - use effectiveMode for correct default
     if (effectiveMode === 'actionable' && !issue.isActionableNow) {
@@ -349,19 +411,16 @@ export default function IssuesPage() {
     // Note: mode=detected shows all issues (no filter needed)
 
     // 2. Action key filter (from Work Queue routing)
-    if (actionKeyParam) {
-      // Replicate groupIssuesByAction logic from work-queue.service.ts
-      let matchesActionKey = false;
-      if (actionKeyParam === 'FIX_MISSING_METADATA') {
-        matchesActionKey = issue.pillarId === 'metadata_snippet_quality' || (issue.type?.includes('metadata') ?? false);
-      } else if (actionKeyParam === 'RESOLVE_TECHNICAL_ISSUES') {
-        matchesActionKey = issue.pillarId === 'technical_indexability' || issue.category === 'technical';
-      } else if (actionKeyParam === 'IMPROVE_SEARCH_INTENT') {
-        matchesActionKey = issue.pillarId === 'search_intent_fit' || Boolean(issue.intentType);
-      } else if (actionKeyParam === 'OPTIMIZE_CONTENT') {
-        matchesActionKey = issue.pillarId === 'content_commerce_signals' || issue.category === 'content_entity';
+    // [COUNT-INTEGRITY-1.1 UI HARDEN] Support actionKeys (OR across keys) with actionKey as fallback
+    if (actionKeysParam && actionKeysParam.length > 0) {
+      // OR across multiple action keys
+      const matchesAnyKey = actionKeysParam.some(key => issueMatchesActionKey(issue, key));
+      if (!matchesAnyKey) {
+        return false;
       }
-      if (!matchesActionKey) {
+    } else if (actionKeyParam) {
+      // Single action key (original behavior)
+      if (!issueMatchesActionKey(issue, actionKeyParam)) {
         return false;
       }
     }
@@ -821,10 +880,11 @@ export default function IssuesPage() {
         </div>
 
         {/* [COUNT-INTEGRITY-1.1 Step 2A] Canonical Triplet Summary Display */}
-        {countsSummary ? (
+        {/* [COUNT-INTEGRITY-1.1 UI HARDEN] Use currentTriplet (pillar-aware) instead of root triplet */}
+        {currentTriplet ? (
           <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
             <TripletDisplay
-              triplet={effectiveMode === 'actionable' ? countsSummary.actionable : countsSummary.detected}
+              triplet={currentTriplet}
               layout="horizontal"
               size="lg"
             />
@@ -836,7 +896,8 @@ export default function IssuesPage() {
         )}
 
         {/* [COUNT-INTEGRITY-1.1 PATCH 5] Zero-actionable suppression message */}
-        {countsSummary && effectiveMode === 'actionable' && countsSummary.actionable.actionableNowCount === 0 && (
+        {/* [COUNT-INTEGRITY-1.1 UI HARDEN] Use currentTriplet for pillar-aware suppression */}
+        {currentTriplet && effectiveMode === 'actionable' && currentTriplet.actionableNowCount === 0 && (
           <div
             className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-center"
             data-testid="no-eligible-items-message"
@@ -866,7 +927,8 @@ export default function IssuesPage() {
       </div>
 
       {/* [COUNT-INTEGRITY-1 PATCH 6] Click-integrity filter context banner */}
-      {(actionKeyParam || scopeTypeParam) && (
+      {/* [COUNT-INTEGRITY-1.1 UI HARDEN] Include actionKeys in banner display */}
+      {(actionKeyParam || (actionKeysParam && actionKeysParam.length > 0) || scopeTypeParam) && (
         <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4" data-testid="filter-context-banner">
           <div className="flex items-start gap-3">
             <svg className="h-5 w-5 flex-shrink-0 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -875,12 +937,17 @@ export default function IssuesPage() {
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-blue-900">Filtered from Work Queue</h3>
               <div className="mt-1 text-sm text-blue-800">
-                {actionKeyParam && (
+                {/* [COUNT-INTEGRITY-1.1 UI HARDEN] Display actionKeys as comma-separated list */}
+                {actionKeysParam && actionKeysParam.length > 0 ? (
+                  <span>
+                    Actions: <span className="font-medium">{actionKeysParam.map(k => k.replace(/_/g, ' ')).join(', ')}</span>
+                  </span>
+                ) : actionKeyParam ? (
                   <span>
                     Action: <span className="font-medium">{actionKeyParam.replace(/_/g, ' ')}</span>
                   </span>
-                )}
-                {actionKeyParam && scopeTypeParam && <span className="mx-2">•</span>}
+                ) : null}
+                {(actionKeyParam || (actionKeysParam && actionKeysParam.length > 0)) && scopeTypeParam && <span className="mx-2">•</span>}
                 {scopeTypeParam && (
                   <span>
                     Scope: <span className="font-medium">{scopeTypeParam === 'STORE_WIDE' ? 'Store-wide' : scopeTypeParam.toLowerCase()}</span>
@@ -891,6 +958,8 @@ export default function IssuesPage() {
                 onClick={() => {
                   const params = new URLSearchParams(searchParams.toString());
                   params.delete('actionKey');
+                  // [COUNT-INTEGRITY-1.1 UI HARDEN] Also clear actionKeys
+                  params.delete('actionKeys');
                   params.delete('scopeType');
                   params.delete('mode');
                   // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Also clear pillar param (Work Queue may supply it)

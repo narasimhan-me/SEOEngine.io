@@ -32,6 +32,7 @@ test.describe('COUNT-INTEGRITY-1.1 Gap 7: Cross-Surface UI Smoke Test', () => {
     testProjectId = seedData.projectId;
 
     // Get a product ID for the product detail test
+    // [COUNT-INTEGRITY-1.1 UI HARDEN] Fix: /projects/:id/products returns { products: [...] }, not a top-level array
     const productsResponse = await request.get(`${API_URL}/projects/${testProjectId}/products`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -39,21 +40,16 @@ test.describe('COUNT-INTEGRITY-1.1 Gap 7: Cross-Surface UI Smoke Test', () => {
     });
     expect(productsResponse.ok()).toBeTruthy();
     const productsData = await productsResponse.json();
-    if (productsData.length > 0) {
-      productId = productsData[0].id;
+    // Handle both array (legacy) and object { products: [...] } response shapes
+    const productsArray = Array.isArray(productsData) ? productsData : (productsData.products ?? []);
+    if (productsArray.length > 0) {
+      productId = productsArray[0].id;
     }
   });
 
-  test.beforeEach(async ({ page, context }) => {
-    // Set auth token in localStorage before each test
-    await context.addCookies([{
-      name: 'auth_token',
-      value: accessToken,
-      domain: 'localhost',
-      path: '/',
-    }]);
-
-    // Store token in localStorage for API calls
+  test.beforeEach(async ({ page }) => {
+    // [COUNT-INTEGRITY-1.1 UI HARDEN] Use localStorage token pattern only (matches rest of suite)
+    // Removed cookie-based auth_token setup - use engineo_token in localStorage only
     await page.addInitScript((token: string) => {
       localStorage.setItem('engineo_token', token);
     }, accessToken);

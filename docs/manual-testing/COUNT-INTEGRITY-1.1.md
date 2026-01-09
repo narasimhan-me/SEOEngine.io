@@ -451,6 +451,15 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 - [x] Backend API tests (10 tests: CANON-001 through CANON-010)
 - [x] UI smoke tests (6 tests: UI-001 through UI-006) - Gap 7 complete
 
+**UI Hardening (COMPLETE):**
+- [x] UI HARDEN: Multi-action filtering via actionKeys URL param (OR across keys)
+- [x] UI HARDEN: Pillar-aware triplet display (currentTriplet from byPillar when filtered)
+- [x] UI HARDEN: Fixed UI smoke test auth pattern (localStorage only)
+- [x] UI HARDEN: Fixed product selection shape (response is { products: [...] })
+- [x] AUDIT FIX: Severity-aligned canonical summary (passes severity filter to API)
+- [x] AUDIT FIX: Pillar-aware hasActionableIssues/hasDetectedIssues checks (byPillar fallback)
+- [x] VERIFICATION (NO-OP): All audit fixes confirmed implemented 2026-01-09
+
 **Ready for:**
 - ✅ Backend API consumption for all asset types (all dedup verified)
 - ✅ Work Queue → Issues click-integrity (actionKey filtering works)

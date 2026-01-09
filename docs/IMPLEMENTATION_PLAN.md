@@ -618,17 +618,15 @@ Establishes count integrity as a core trust contract across the product by:
 
 ---
 
-## In Progress
+### Phase COUNT-INTEGRITY-1.1: Canonical Triplet Counts + Explicit Labels ✅ COMPLETE
 
-### Phase COUNT-INTEGRITY-1.1: Canonical Triplet Counts + Explicit Labels ⚠️ BACKEND COMPLETE — UI PENDING
-
-**Status:** Backend Complete (PATCH BATCH 4); All asset types verified; UI Pending
+**Status:** Complete (Backend + UI Migration + UI Smoke Test)
 **Date Started:** 2026-01-08
-**Backend Completed:** 2026-01-08
+**Completed:** 2026-01-08
 
 #### Overview
 
-COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCount, affectedItemsCount, actionableNowCount) with explicit UX labels to replace mixed v1 "groups/instances" semantics. **Backend deduplication verified for all asset types (products via CANON-009, collections via CANON-010).** UI migration (Gap 6) remains as separate deliverable.
+COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCount, affectedItemsCount, actionableNowCount) with explicit UX labels to replace mixed v1 "groups/instances" semantics. All components verified: backend deduplication (products via CANON-009, collections via CANON-010), UI migration (Gap 6), and cross-surface UI smoke tests (Gap 7).
 
 #### Completed Patches
 
@@ -656,18 +654,18 @@ COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCou
 - ✅ **PATCH 5:** Issues Engine filter-aligned canonical summary + labeled triplet display
 - ✅ **PATCH 6:** Product detail Issues tab uses assetIssues endpoint + labeled triplet
 - ✅ **PATCH 7:** Store Health tiles show Items affected from canonical summary
-- ✅ **PATCH 8:** Work Queue trust fixes + canonical "Actionable now" display
+- ✅ **PATCH 8:** Work Queue trust fixes + canonical "Actionable now" display + AI badge copy
 - ✅ **PATCH 9:** Gap 7 cross-surface Playwright UI smoke test
+- ✅ **PATCH 10:** Documentation updates (CRITICAL_PATH_MAP.md, COUNT-INTEGRITY-1.1.md)
+- ✅ **UI HARDEN:** Multi-action filtering (actionKeys), pillar-aware triplet, auth pattern fix
+- ✅ **AUDIT FIX:** Severity-aligned canonical summary, pillar-aware hasActionableIssues/hasDetectedIssues checks
 
-#### Completed Status
+#### All Gaps Resolved
 
-**All gaps resolved:**
 - ✅ **Gap 3a:** Product-based issues populate full keys (verified by CANON-009)
 - ✅ **Gap 3b:** Pages/collections issues populate full keys (verified by CANON-010)
 - ✅ **Gap 6:** UI migration complete (Issues Engine, Store Health, Work Queue, Product Detail)
 - ✅ **Gap 7:** Cross-surface UI smoke test implemented
-
-**Total Remaining Effort:** 0 hours (COUNT-INTEGRITY-1.1 complete)
 
 #### Manual Testing
 
@@ -677,6 +675,12 @@ COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCou
 
 - `apps/web/tests/count-integrity-1-1.spec.ts` (10 backend API tests including CANON-009 + CANON-010)
 - `apps/web/tests/count-integrity-1-1.ui.spec.ts` (6 UI smoke tests for Gap 7)
+
+---
+
+## In Progress
+
+*None at this time.*
 
 ---
 
@@ -858,3 +862,6 @@ These invariants MUST be preserved during implementation:
 | 5.6 | 2026-01-07 | **COVERAGE-AND-PLAN-ALIGNMENT-1 FIXUP-2**: MEDIA-1 smoke test tightened to avoid false positives by keying "scorecard present" to the "Media Accessibility Score" section heading (not generic text like "Accessibility"). |
 | 5.7 | 2026-01-07 | **COVERAGE-AND-PLAN-ALIGNMENT-1 FIXUP-3**: BILLING-GTM-1 core file paths corrected to real locations (`(marketing)/pricing/`, `settings/billing/`); AUTO-PB-1 core file path corrected to `/automation/playbooks/`; added missing manual testing links for BILLING-GTM-1, PRODUCTS-LIST-2.0, MEDIA-1. Documentation-only; no product/test behavior changes. |
 | 5.8 | 2026-01-08 | **ZERO-AFFECTED-SUPPRESSION-1 COMPLETE**: Zero-eligible action surface suppression (trust hardening). Work Queue suppresses AUTOMATION_RUN tiles with scopeCount === 0 from actionable tabs (except Applied Recently history). Playbooks shows calm empty state when eligibility is 0 (hides stepper + Apply CTAs). Consistent copy: "No eligible items right now". Added zero-affected-suppression-1.spec.ts E2E tests and ZERO-AFFECTED-SUPPRESSION-1.md manual testing doc. Updated CP-008 and CP-012. |
+| 6.1 | 2026-01-09 | **COUNT-INTEGRITY-1.1 UI HARDEN**: Multi-action filtering via actionKeys URL param (OR across keys), pillar-aware triplet display (currentTriplet from byPillar when filtered), fixed UI smoke test auth pattern (localStorage only, no cookie), fixed product selection shape (response is { products: [...] } not array). |
+| 6.2 | 2026-01-09 | **COUNT-INTEGRITY-1.1 AUDIT FIX**: Moved COUNT-INTEGRITY-1.1 from "In Progress" section to Trust Hardening completed phases (follows COUNT-INTEGRITY-1). PATCH 1: Severity-aligned canonical summary (passes severity filter to API when not 'all', refreshes on severity change). PATCH 2: Pillar-aware hasActionableIssues/hasDetectedIssues checks (uses byPillar triplets when pillarFilter !== 'all'). Structure now correct: "In Progress" contains only "*None at this time.*" with no phases listed beneath it. |
+| 6.3 | 2026-01-09 | **COUNT-INTEGRITY-1.1 VERIFICATION COMPLETE (NO-OP)**: Verified all audit fix items implemented: (1) page.tsx passes severity to canonicalIssueCountsSummary when severityFilter !== 'all', fetchIssues re-runs on severityFilter changes, hasActionableIssues/hasDetectedIssues are pillar-aware with byPillar + issues-list fallbacks; (2) IMPLEMENTATION_PLAN.md structure correct with COUNT-INTEGRITY-1.1 under Trust Hardening completed phases, "In Progress" contains only "*None at this time.*", Document History includes 6.2 audit-fix entry. No additional patches required. |
