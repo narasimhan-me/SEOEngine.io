@@ -822,7 +822,8 @@ export class E2eTestkitController {
    * Returns:
    * - user (id, email)
    * - projectId
-   * - collectionUrls[] (length = 30)
+   * - collectionIds[] (length = 30) - CrawlResult IDs for /assets/collections/:id/issues endpoint
+   * - collectionUrls[] (length = 30) - URLs for reference
    * - accessToken
    */
   @Post('seed-count-integrity-1-1-many-collections')
@@ -845,12 +846,14 @@ export class E2eTestkitController {
 
     // Create 30 collection CrawlResults with deterministic technical issues
     const collectionUrls: string[] = [];
+    const collectionIds: string[] = [];
     for (let i = 0; i < 30; i++) {
       const collectionHandle = `test-collection-${i + 1}`;
       const collectionUrl = `https://test-shop.myshopify.com/collections/${collectionHandle}`;
       collectionUrls.push(collectionUrl);
 
-      await this.prisma.crawlResult.create({
+      // [COUNT-INTEGRITY-1.1 PATCH 4.2-FIXUP-1] Capture crawlResult.id for asset endpoint
+      const crawlResult = await this.prisma.crawlResult.create({
         data: {
           projectId: project.id,
           url: collectionUrl,
@@ -866,6 +869,7 @@ export class E2eTestkitController {
           lastCrawledAt: new Date(),
         },
       });
+      collectionIds.push(crawlResult.id);
     }
 
     const accessToken = this.jwtService.sign({ sub: user.id });
@@ -876,6 +880,7 @@ export class E2eTestkitController {
         email: user.email,
       },
       projectId: project.id,
+      collectionIds, // [PATCH 4.2-FIXUP-1] Return IDs for asset endpoint
       collectionUrls,
       accessToken,
     };

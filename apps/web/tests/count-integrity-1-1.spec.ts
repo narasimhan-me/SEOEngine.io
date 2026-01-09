@@ -374,12 +374,15 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
     const seedData = await seedResponse.json();
     const manyCollectionsAccessToken = seedData.accessToken;
     const manyCollectionsProjectId = seedData.projectId;
+    const collectionIds = seedData.collectionIds; // [PATCH 4.3-FIXUP-1] Use collectionIds (crawlResult IDs)
     const collectionUrls = seedData.collectionUrls;
 
     expect(manyCollectionsAccessToken).toBeTruthy();
     expect(manyCollectionsProjectId).toBeTruthy();
+    expect(collectionIds).toBeDefined();
+    expect(collectionIds.length).toBe(30); // Verify seed created 30 collections
     expect(collectionUrls).toBeDefined();
-    expect(collectionUrls.length).toBe(30); // Verify seed created 30 collections
+    expect(collectionUrls.length).toBe(30);
 
     // Test 1: Verify affectedItemsCount equals actual collection count (not capped at 20)
     const summaryResponse = await request.get(`${API_URL}/projects/${manyCollectionsProjectId}/issues/summary`, {
@@ -400,11 +403,12 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
 
     // Test 2: Verify collection beyond index 20 returns issues (membership check works)
     // Pick collection #25 (index 24, well beyond cap-20 limit)
-    const collectionBeyondCap = collectionUrls[24];
+    const collectionBeyondCap = collectionIds[24]; // [PATCH 4.3-FIXUP-1] Use crawlResult ID, not URL
     expect(collectionBeyondCap).toBeDefined();
 
+    // [PATCH 4.3-FIXUP-1] Use /assets/pages/:crawlResultId/issues (backend resolves ID→URL)
     const assetIssuesResponse = await request.get(
-      `${API_URL}/projects/${manyCollectionsProjectId}/assets/pages/${encodeURIComponent(collectionBeyondCap)}/issues`,
+      `${API_URL}/projects/${manyCollectionsProjectId}/assets/pages/${collectionBeyondCap}/issues`,
       {
         headers: {
           Authorization: `Bearer ${manyCollectionsAccessToken}`,

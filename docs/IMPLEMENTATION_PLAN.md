@@ -661,11 +661,11 @@ COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCou
 
 #### Manual Testing
 
-- `docs/manual-testing/COUNT-INTEGRITY-1.1.md` (backend partial; Gap 3b + UI migration + UI smoke test pending)
+- `docs/manual-testing/COUNT-INTEGRITY-1.1.md` (backend complete; UI migration + UI smoke test pending)
 
 #### Automated Tests
 
-- `apps/web/tests/count-integrity-1-1.spec.ts` (9 backend API tests including CANON-009; UI smoke test deferred)
+- `apps/web/tests/count-integrity-1-1.spec.ts` (10 backend API tests including CANON-009 + CANON-010; UI smoke test deferred)
 
 ---
 

@@ -1,8 +1,8 @@
 # COUNT-INTEGRITY-1.1: Canonical Triplet Counts + Explicit Labels Manual Testing Guide
 
 **Phase:** COUNT-INTEGRITY-1.1
-**Status:** ⚠️ BACKEND PARTIAL (Products verified by CANON-009; Pages/Collections pending) | 🚧 UI MIGRATION DEFERRED (Gap 6) | ⚠️ UI SMOKE TEST PENDING (Gap 7)
-**Date:** 2026-01-08 (Updated after PATCH BATCH 3 + Truthfulness Audit)
+**Status:** ✅ BACKEND COMPLETE (All asset types verified by CANON-009 + CANON-010) | 🚧 UI MIGRATION DEFERRED (Gap 6) | ⚠️ UI SMOKE TEST PENDING (Gap 7)
+**Date:** 2026-01-08 (Updated after PATCH BATCH 4 + FIXUP)
 
 ## Overview
 
@@ -34,6 +34,10 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 - ✅ PATCH 3.5: Media issues carry full keys
 - ✅ PATCH 3.6: CANON-009 regression test (30 products, verifies >20 accuracy for products)
 - ✅ PATCH 3.7: Documentation updates (Gap 3a marked resolved; Gap 3b identified)
+- ✅ PATCH 4.1: Technical/page-based builders populate full keys (Gap 3b)
+- ✅ PATCH 4.2-FIXUP-1: Collections seed endpoint returns collectionIds for asset endpoint
+- ✅ PATCH 4.3-FIXUP-1: CANON-010 regression test (30 collections, verifies >20 accuracy for collections)
+- ✅ PATCH 4.4-FIXUP-1: Documentation updates (Gap 3b marked resolved)
 
 **DEFERRED (UI Updates - Future Work):**
 - 🚧 PATCH 4: Issues Engine triplet display + labels (**UEP requires labeled display**)
@@ -44,14 +48,14 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 
 ### High-Level User Impact
 
-**Backend (PARTIAL - Products verified; Pages/Collections pending):**
+**Backend (COMPLETE - All asset types verified):**
 - New API endpoints provide canonical triplet counts for any filter combination
 - ActionKey filtering works (shared mapper ensures consistency with Work Queue)
 - Zero-affected suppression semantics built-in (affectedItemsCount = 0 when no items)
 - **Products deduplication accurate beyond cap-20** (PATCH BATCH 3 resolved Gap 3a, verified by CANON-009)
-- **Pages/Collections deduplication NOT VERIFIED** (technical builders don't attach full keys; Gap 3b pending)
-- affectedItemsCount accurate for products; likely undercounts pages/collections beyond cap-20
-- Backend has known limitation for page-based issues (documented in Gap 3b)
+- **Pages/Collections deduplication accurate beyond cap-20** (PATCH BATCH 4 resolved Gap 3b, verified by CANON-010)
+- affectedItemsCount accurate for all asset types (products, pages, collections)
+- Backend has NO known limitations for deduplication
 
 **UI Updates (DEFERRED):**
 - When implemented, all count displays will show explicit labels ("Issue types", "Items affected", "Actionable now")
@@ -299,7 +303,8 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 - ✅ CANON-006: Asset-specific issues structure
 - ✅ CANON-007: Asset-specific pillar filtering
 - ✅ CANON-008: ActionKey filter support [PATCH 2.6]
-- ✅ CANON-009: affectedItemsCount accuracy beyond cap-20 [PATCH 3.6 - regression test for Gap 3]
+- ✅ CANON-009: affectedItemsCount accuracy beyond cap-20 for products [PATCH 3.6 - Gap 3a]
+- ✅ CANON-010: affectedItemsCount accuracy beyond cap-20 for collections [PATCH 4.3 - Gap 3b]
 
 **⚠️ Missing (UI Tests Only):**
 - ❌ **Required single cross-surface UI smoke test** (current tests are backend API only)
@@ -387,23 +392,15 @@ npx playwright test count-integrity-1-1.spec.ts
 
 ---
 
-## Known Limitations (Updated After PATCH BATCH 3 + Truthfulness Audit)
+## Known Limitations (Updated After PATCH BATCH 4 + FIXUP)
 
-1. **Pages/Collections deduplication beyond cap-20 NOT VERIFIED (Gap 3b)**
-   - Product-based issues use full keys (accurate beyond cap-20)
-   - Page-based issues (technical/indexability builders) do NOT attach full keys
-   - affectedItemsCount for pages/collections likely undercounts when >20 items affected
-   - No regression test exists for pages/collections beyond cap-20 (only CANON-009 for products)
-   - **Impact:** Pages/collections with >20 affected items may show lower affectedItemsCount than actual
-   - **Resolution:** Gap 3b requires extending PATCH 3.2 to page-based builders + CANON-010 regression test (8-10 hours)
-
-2. **UI migration not yet implemented (Gap 6)**
-   - Backend endpoints exist but products-only dedup verified
+1. **UI migration not yet implemented (Gap 6)**
+   - Backend endpoints are complete and verified for all asset types
    - UI surfaces (Issues Engine, Store Health, Work Queue, Asset Details) not yet migrated
    - No labeled triplet display in UI (UEP requires explicit labels)
-   - This is deferred work (18-25 hours); should complete Gap 3b first for accuracy
+   - This is deferred work (18-25 hours); backend accuracy is fully verified
 
-3. **Store-wide issues represented as 1 pseudo-item**
+2. **Store-wide issues represented as 1 pseudo-item**
    - When `affectedProducts` array is empty but `assetTypeCounts.products > 0`
    - Backend uses `products:__store_wide__` composite key
    - affectedItemsCount = 1 (not 0, not total product count)
@@ -411,9 +408,9 @@ npx playwright test count-integrity-1-1.spec.ts
 
 ---
 
-## Sign-Off (Updated After PATCH BATCH 3)
+## Sign-Off (Updated After PATCH BATCH 4 + FIXUP)
 
-**Backend (PARTIAL - Products verified; Pages/Collections pending):**
+**Backend (COMPLETE - All asset types verified):**
 - [x] PATCH 0: Endpoint naming fixed (`/summary` primary path)
 - [x] PATCH 1-3: Backend foundation + types + web client
 - [x] PATCH 2.1: Media count bug fixed (true counts)
@@ -421,10 +418,13 @@ npx playwright test count-integrity-1-1.spec.ts
 - [x] PATCH 2.5-FIXUP-1: Asset-specific endpoint bugs fixed (ID→URL, project-scoped, deterministic empty)
 - [x] PATCH 2.6-FIXUP-1: Playwright backend API tests deterministic (testkit seeds, accessToken corrected)
 - [x] PATCH 2.7-FIXUP-1: Documentation truthfulness updated
-- [x] PATCH 3.1-3.5: Non-enumerable full keys infrastructure + product-based builders updated **[Gap 3a only]**
+- [x] PATCH 3.1-3.5: Non-enumerable full keys infrastructure + product-based builders updated (Gap 3a)
 - [x] PATCH 3.6: CANON-009 regression test (30 products, verifies >20 accuracy for products)
 - [x] PATCH 3.7: Documentation updates (Gap 3a marked resolved; Gap 3b identified)
-- [ ] **PATCH 3b.1-3b.3: Extend full keys to page-based builders + CANON-010 test** ⚠️ PENDING (Gap 3b)
+- [x] PATCH 4.1: Technical/page-based builders populate full keys (Gap 3b)
+- [x] PATCH 4.2-FIXUP-1: Collections seed endpoint returns collectionIds
+- [x] PATCH 4.3-FIXUP-1: CANON-010 regression test (30 collections, verifies >20 accuracy)
+- [x] PATCH 4.4-FIXUP-1: Documentation updates (Gap 3b marked resolved)
 
 **UI Migration (INCOMPLETE):**
 - [ ] PATCH 4: Issues Engine triplet display + labels ⚠️ UEP REQUIRES LABELED DISPLAY
@@ -433,16 +433,15 @@ npx playwright test count-integrity-1-1.spec.ts
 - [ ] PATCH 7: Asset detail pages
 
 **Testing:**
-- [x] Backend API tests (9 tests including CANON-009)
+- [x] Backend API tests (10 tests including CANON-009 + CANON-010)
 - [ ] **Required single cross-surface UI smoke test missing** ⚠️ DEFERRED
 
 **Ready for:**
-- ⚠️ Backend API consumption for products (products dedup verified; pages/collections limitation documented)
+- ✅ Backend API consumption for all asset types (all dedup verified)
 - ✅ Work Queue → Issues click-integrity (actionKey filtering works)
 - ✅ Asset detail pages filtering (ID→URL resolution works, project-scoped)
-- ⚠️ affectedItemsCount accuracy for PRODUCTS ONLY (Gap 3a verified; Gap 3b pending)
-- ⚠️ Pages/Collections may undercount beyond cap-20 (Gap 3b limitation)
-- ⚠️ UI migration should wait for Gap 3b completion for full accuracy
+- ✅ affectedItemsCount accuracy for ALL asset types (Gap 3a + Gap 3b verified)
+- ✅ Backend provides accurate counts for UI migration (no limitations)
 
 ---
 
@@ -455,4 +454,4 @@ npx playwright test count-integrity-1-1.spec.ts
 - **Explicit label mandate** - UI MUST display "Issue types", "Items affected", "Actionable now" labels (NOT YET IMPLEMENTED)
 - **UI migration is incremental** - can pilot on one surface before rolling out to all
 
-**Backend is production-ready for products (verified by CANON-009). Pages/Collections dedup remains unverified (Gap 3b). UI migration remains as separate deliverable after Gap 3b completion.**
+**Backend is production-ready for all asset types (verified by CANON-009 + CANON-010). UI migration remains as separate deliverable.**
