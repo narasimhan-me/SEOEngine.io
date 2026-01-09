@@ -27,13 +27,14 @@ export interface ListControlsProps {
  *
  * UX contract:
  * - Inline search input, left-aligned, above the list
- * - Compact filter controls, right-aligned
+ * - Compact filter controls, right-aligned (sm:justify-between layout)
  * - "Clear filters" affordance when filters are active
  *
  * State contract:
  * - No hidden memory: values are derived from URL query params
  * - Updating search/filters updates URL deterministically (router.replace)
  * - Preserves unrelated params (e.g., from=playbook_results)
+ * - Search input uses key={currentQ} to force remount when URL param clears
  *
  * Stable test selectors:
  * - data-testid="list-controls-search"
@@ -76,7 +77,7 @@ export function ListControls({ config }: ListControlsProps) {
   );
 
   /**
-   * Handle search input change (debounced via form submission or blur)
+   * Handle search input change (on Enter or blur)
    */
   const handleSearchChange = useCallback(
     (value: string) => {
@@ -113,9 +114,9 @@ export function ListControls({ config }: ListControlsProps) {
   }, [updateUrl]);
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3 mb-4">
-      {/* Search input - left aligned */}
-      <div className="relative flex-1 max-w-sm">
+    <div className="flex flex-col gap-3 sm:flex-row sm:justify-between mb-4">
+      {/* Search input - left aligned, bounded width */}
+      <div className="relative w-full sm:max-w-sm">
         <svg
           className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
           fill="none"
@@ -129,7 +130,9 @@ export function ListControls({ config }: ListControlsProps) {
             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
           />
         </svg>
+        {/* key={currentQ} forces remount when URL param changes, clearing stale input value */}
         <input
+          key={currentQ}
           data-testid="list-controls-search"
           type="text"
           placeholder={config.searchPlaceholder || 'Search...'}
@@ -144,8 +147,8 @@ export function ListControls({ config }: ListControlsProps) {
         />
       </div>
 
-      {/* Filter controls - right aligned */}
-      <div className="flex gap-2 items-center">
+      {/* Filter controls - right aligned on desktop */}
+      <div className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
         {config.enableStatusFilter && (
           <select
             data-testid="list-controls-status"

@@ -773,7 +773,7 @@ LIST-SEARCH-FILTER-1 adds server-authoritative search and filtering to the Produ
 
 #### Automated Tests
 
-- `tests/e2e/products/list-search-filter-1.spec.ts` (Playwright E2E tests)
+- `apps/web/tests/list-search-filter-1.spec.ts` (Playwright E2E tests)
 
 ---
 
@@ -969,3 +969,4 @@ These invariants MUST be preserved during implementation:
 | 6.6 | 2026-01-09 | **COUNT-INTEGRITY-1.1 FIXUP-2 (Trust Correctness)**: (1) Store Health Discoverability/Technical tiles always show numeric pillar-scoped "items affected" (0 fallback; never "Counts unavailable"); (2) Playwright smoke test STRICT mode (requires numeric parsing, requires asset-detail navigation, no optional branches); (3) Removed Work Queue step from UI test (Issues Engine is now the click destination from Store Health, not Work Queue). |
 | 6.7 | 2026-01-09 | **COUNT-INTEGRITY-1.1 FIXUP-2 DOC CONSISTENCY**: Documentation-only cleanup — removed stale "(pending)" labels from COUNT-INTEGRITY-1 frontend files (marked superseded), updated Testing Requirements to clarify Work Queue → Issues click-integrity remains valid while Store Health click-integrity is governed by COUNT-INTEGRITY-1.1, aligned all UI smoke test chain references to "Store Health → Issues Engine → Asset Detail" (STRICT). |
 | 6.8 | 2026-01-09 | **LIST-SEARCH-FILTER-1 COMPLETE**: Products list search & filtering. Added handle field to Product model, server-authoritative filtering (q/status/hasDraft), reusable ListControls component (URL-derived state, config-driven), Products page integration with empty states, E2E seed endpoint, Playwright smoke tests, manual testing doc. Pattern ready for future list pages. |
+| 6.9 | 2026-01-09 | **LIST-SEARCH-FILTER-1 FIXUP-1**: Fixed ListControls build (native HTML elements instead of non-existent shadcn/ui), added key={currentQ} for input remount on clear, moved Playwright tests to apps/web/tests/, fixed auth pattern (engineo_token), corrected test path in docs, added root plan pointer. |
