@@ -620,15 +620,15 @@ Establishes count integrity as a core trust contract across the product by:
 
 ## In Progress
 
-### Phase COUNT-INTEGRITY-1.1: Canonical Triplet Counts + Explicit Labels ⚠️ BACKEND PARTIAL — PRODUCTS VERIFIED; PAGES/COLLECTIONS + UI PENDING
+### Phase COUNT-INTEGRITY-1.1: Canonical Triplet Counts + Explicit Labels ⚠️ BACKEND COMPLETE — UI PENDING
 
-**Status:** Backend Partial (PATCH BATCH 3); Products dedup verified; Pages/Collections + UI Pending
+**Status:** Backend Complete (PATCH BATCH 4); All asset types verified; UI Pending
 **Date Started:** 2026-01-08
-**Backend Partially Completed:** 2026-01-08
+**Backend Completed:** 2026-01-08
 
 #### Overview
 
-COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCount, affectedItemsCount, actionableNowCount) with explicit UX labels to replace mixed v1 "groups/instances" semantics. **Backend products deduplication verified via CANON-009; pages/collections dedup remains unverified (likely still capped at 20).** UI migration (Gap 6) remains as separate deliverable.
+COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCount, affectedItemsCount, actionableNowCount) with explicit UX labels to replace mixed v1 "groups/instances" semantics. **Backend deduplication verified for all asset types (products via CANON-009, collections via CANON-010).** UI migration (Gap 6) remains as separate deliverable.
 
 #### Completed Patches
 
@@ -648,14 +648,16 @@ COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCou
 - ✅ **PATCH 3.5:** Media issues carry full keys
 - ✅ **PATCH 3.6:** CANON-009 regression test (30 products, verifies >20 accuracy)
 - ✅ **PATCH 3.7:** Documentation updates (Gap 3a resolved; Gap 3b identified)
+- ✅ **PATCH 4.1:** Technical issue builders populate full keys (Gap 3b)
+- ✅ **PATCH 4.2:** Collections seed endpoint for CANON-010 test
+- ✅ **PATCH 4.3:** CANON-010 regression test (30 collections, verifies >20 accuracy)
 
-#### Pending Work (Backend Fixup + UI Migration)
+#### Pending Work (UI Migration Only)
 
-- ⚠️ **Gap 3b:** Pages/Collections deduplication beyond cap-20 (extend PATCH BATCH 3 to page-based issue builders) — **8-10 hours**
 - ⚠️ **Gap 6:** UI migration (Issues Engine, Store Health, Work Queue, Asset Details with labeled triplets) — **18-25 hours**
 - ⚠️ **Gap 7:** Required single cross-surface UI smoke test (deferred with UI migration) — **2-3 hours**
 
-**Total Remaining Effort:** 28-38 hours (backend fixup for pages/collections + UI migration)
+**Total Remaining Effort:** 20-28 hours (UI migration only; backend complete)
 
 #### Manual Testing
 

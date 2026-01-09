@@ -364,4 +364,63 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
     // Verify summary shows this asset is affected (affectedItemsCount = 1 for single asset)
     expect(assetData.summary.detected.affectedItemsCount).toBe(1);
   });
+
+  test('CANON-010: affectedItemsCount accuracy for collections beyond cap-20 (Gap 3b regression)', async ({ request }) => {
+    // [COUNT-INTEGRITY-1.1 PATCH 4.3] Regression test for Gap 3b (Pages/Collections Dedup Beyond Cap-20)
+    // Seed a project with 30 collections, all missing SEO metadata
+    const seedResponse = await request.post(`${API_URL}/testkit/e2e/seed-count-integrity-1-1-many-collections`);
+    expect(seedResponse.ok()).toBeTruthy();
+
+    const seedData = await seedResponse.json();
+    const manyCollectionsAccessToken = seedData.accessToken;
+    const manyCollectionsProjectId = seedData.projectId;
+    const collectionUrls = seedData.collectionUrls;
+
+    expect(manyCollectionsAccessToken).toBeTruthy();
+    expect(manyCollectionsProjectId).toBeTruthy();
+    expect(collectionUrls).toBeDefined();
+    expect(collectionUrls.length).toBe(30); // Verify seed created 30 collections
+
+    // Test 1: Verify affectedItemsCount equals actual collection count (not capped at 20)
+    const summaryResponse = await request.get(`${API_URL}/projects/${manyCollectionsProjectId}/issues/summary`, {
+      headers: {
+        Authorization: `Bearer ${manyCollectionsAccessToken}`,
+      },
+    });
+
+    expect(summaryResponse.ok()).toBeTruthy();
+    const summaryData = await summaryResponse.json();
+
+    // There should be at least one technical issue type affecting all 30 collections (indexability_problems, slow_initial_response)
+    expect(summaryData.detected.issueTypesCount).toBeGreaterThan(0);
+
+    // CRITICAL: affectedItemsCount should be 30, not 20 (proves Gap 3b is fixed)
+    // Before PATCH BATCH 4, this would be ≤20 due to capped array deduplication
+    expect(summaryData.detected.affectedItemsCount).toBe(30);
+
+    // Test 2: Verify collection beyond index 20 returns issues (membership check works)
+    // Pick collection #25 (index 24, well beyond cap-20 limit)
+    const collectionBeyondCap = collectionUrls[24];
+    expect(collectionBeyondCap).toBeDefined();
+
+    const assetIssuesResponse = await request.get(
+      `${API_URL}/projects/${manyCollectionsProjectId}/assets/pages/${encodeURIComponent(collectionBeyondCap)}/issues`,
+      {
+        headers: {
+          Authorization: `Bearer ${manyCollectionsAccessToken}`,
+        },
+      }
+    );
+
+    expect(assetIssuesResponse.ok()).toBeTruthy();
+    const assetData = await assetIssuesResponse.json();
+
+    // Verify issues array is not empty (collection beyond cap-20 has issues)
+    expect(assetData.issues).toBeDefined();
+    expect(Array.isArray(assetData.issues)).toBeTruthy();
+    expect(assetData.issues.length).toBeGreaterThan(0); // Should have missing metadata / slow load issues
+
+    // Verify summary shows this asset is affected (affectedItemsCount = 1 for single asset)
+    expect(assetData.summary.detected.affectedItemsCount).toBe(1);
+  });
 });

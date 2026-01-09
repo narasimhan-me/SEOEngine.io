@@ -806,4 +806,78 @@ export class E2eTestkitController {
       accessToken,
     };
   }
+
+  /**
+   * POST /testkit/e2e/seed-count-integrity-1-1-many-collections
+   *
+   * [COUNT-INTEGRITY-1.1 PATCH 4.2 — Gap 3b] Regression seed for pages/collections dedup beyond cap-20
+   *
+   * Seed a Pro-plan user + project with 30 collection pages with deterministic technical issues
+   * (missing metadata, indexability problems, slow load time, etc.)
+   *
+   * This seed verifies:
+   * - affectedItemsCount accuracy for collections beyond cap-20 (should equal 30, not capped at 20)
+   * - Asset membership checks work for collections beyond index 20
+   *
+   * Returns:
+   * - user (id, email)
+   * - projectId
+   * - collectionUrls[] (length = 30)
+   * - accessToken
+   */
+  @Post('seed-count-integrity-1-1-many-collections')
+  async seedCountIntegrity11ManyCollections() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    // Mark project as crawled
+    await this.prisma.project.update({
+      where: { id: project.id },
+      data: { lastCrawledAt: new Date() },
+    });
+
+    // Create 30 collection CrawlResults with deterministic technical issues
+    const collectionUrls: string[] = [];
+    for (let i = 0; i < 30; i++) {
+      const collectionHandle = `test-collection-${i + 1}`;
+      const collectionUrl = `https://test-shop.myshopify.com/collections/${collectionHandle}`;
+      collectionUrls.push(collectionUrl);
+
+      await this.prisma.crawlResult.create({
+        data: {
+          projectId: project.id,
+          url: collectionUrl,
+          statusCode: 200,
+          // [COUNT-INTEGRITY-1.1 PATCH 4.2] Missing metadata triggers indexability_problems
+          title: null, // Missing title
+          metaDescription: null, // Missing meta description
+          h1: null, // Missing h1
+          wordCount: 50, // Low word count (< 400)
+          loadTimeMs: 3000, // Slow load (> 2500ms) triggers slow_initial_response
+          htmlSize: 1024,
+          issues: ['MISSING_TITLE', 'MISSING_META_DESCRIPTION', 'SLOW_LOAD_TIME'],
+          lastCrawledAt: new Date(),
+        },
+      });
+    }
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+      projectId: project.id,
+      collectionUrls,
+      accessToken,
+    };
+  }
 }

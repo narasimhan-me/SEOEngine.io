@@ -1327,6 +1327,8 @@ export class DeoIssuesService {
     let issuePages = 0;
     let issueCollections = 0;
     const affectedPages: string[] = [];
+    // [COUNT-INTEGRITY-1.1 PATCH 4.1 — Gap 3b] Collect ALL affected page URLs for full-key dedup
+    const allAffectedPageUrls: string[] = [];
 
     for (const cr of crawlResults) {
       const issues = (cr.issues as string[]) ?? [];
@@ -1348,6 +1350,8 @@ export class DeoIssuesService {
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
+        // [COUNT-INTEGRITY-1.1 PATCH 4.1] Track all affected URLs (no cap)
+        allAffectedPageUrls.push(cr.url);
       }
     }
 
@@ -1362,7 +1366,7 @@ export class DeoIssuesService {
       return null;
     }
 
-    return {
+    const issue: DeoIssue = {
       id: 'indexability_problems',
       title: 'Indexability problems',
       description:
@@ -1383,6 +1387,11 @@ export class DeoIssuesService {
       aiFixable: false,
       fixCost: 'advanced',
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 4.1] Attach full affected asset keys for accurate deduplication beyond cap-20
+    attachFullAffectedAssetKeys(issue, [], allAffectedPageUrls);
+
+    return issue;
   }
 
   private buildIndexabilityConflictIssue(
@@ -1398,6 +1407,8 @@ export class DeoIssuesService {
     let conflictPages = 0;
     let conflictCollections = 0;
     const affectedPages: string[] = [];
+    // [COUNT-INTEGRITY-1.1 PATCH 4.1 — Gap 3b] Collect ALL affected page URLs for full-key dedup
+    const allAffectedPageUrls: string[] = [];
 
     for (const cr of crawlResults) {
       const issues = (cr.issues as string[]) ?? [];
@@ -1416,6 +1427,8 @@ export class DeoIssuesService {
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
+        // [COUNT-INTEGRITY-1.1 PATCH 4.1] Track all affected URLs (no cap)
+        allAffectedPageUrls.push(cr.url);
       }
     }
 
@@ -1434,7 +1447,7 @@ export class DeoIssuesService {
       return null;
     }
 
-    return {
+    const issue: DeoIssue = {
       id: 'indexability_conflict',
       type: 'indexability_conflict',
       title: 'Indexability conflicts',
@@ -1455,6 +1468,11 @@ export class DeoIssuesService {
       fixCost: 'advanced',
       signalType: 'indexability_risk' as PerformanceSignalType,
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 4.1] Attach full affected asset keys for accurate deduplication beyond cap-20
+    attachFullAffectedAssetKeys(issue, [], allAffectedPageUrls);
+
+    return issue;
   }
 
   private buildAnswerSurfaceIssue(
@@ -1580,6 +1598,8 @@ export class DeoIssuesService {
     let issuePages = 0;
     let issueCollections = 0;
     const affectedPages: string[] = [];
+    // [COUNT-INTEGRITY-1.1 PATCH 4.1 — Gap 3b] Collect ALL affected page URLs for full-key dedup
+    const allAffectedPageUrls: string[] = [];
 
     for (const cr of crawlResults) {
       const issues = (cr.issues as string[]) ?? [];
@@ -1598,6 +1618,8 @@ export class DeoIssuesService {
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
+        // [COUNT-INTEGRITY-1.1 PATCH 4.1] Track all affected URLs (no cap)
+        allAffectedPageUrls.push(cr.url);
       }
     }
 
@@ -1612,7 +1634,7 @@ export class DeoIssuesService {
       return null;
     }
 
-    return {
+    const issue: DeoIssue = {
       id: 'crawl_health_errors',
       title: 'Crawl health and errors',
       description:
@@ -1638,6 +1660,11 @@ export class DeoIssuesService {
       aiFixable: false,
       fixCost: 'advanced',
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 4.1] Attach full affected asset keys for accurate deduplication beyond cap-20
+    attachFullAffectedAssetKeys(issue, [], allAffectedPageUrls);
+
+    return issue;
   }
 
   private buildRenderBlockingResourcesIssue(
@@ -1651,6 +1678,8 @@ export class DeoIssuesService {
     let issuePages = 0;
     let issueCollections = 0;
     const affectedPages: string[] = [];
+    // [COUNT-INTEGRITY-1.1 PATCH 4.1 — Gap 3b] Collect ALL affected page URLs for full-key dedup
+    const allAffectedPageUrls: string[] = [];
 
     for (const cr of crawlResults) {
       const issues = (cr.issues as string[]) ?? [];
@@ -1665,6 +1694,8 @@ export class DeoIssuesService {
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
+        // [COUNT-INTEGRITY-1.1 PATCH 4.1] Track all affected URLs (no cap)
+        allAffectedPageUrls.push(cr.url);
       }
     }
 
@@ -1684,7 +1715,7 @@ export class DeoIssuesService {
       return null;
     }
 
-    return {
+    const issue: DeoIssue = {
       id: 'render_blocking_resources',
       type: 'render_blocking_resources',
       title: 'Render-blocking scripts and styles',
@@ -1710,6 +1741,11 @@ export class DeoIssuesService {
       fixCost: 'advanced',
       signalType: 'render_blocking' as PerformanceSignalType,
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 4.1] Attach full affected asset keys for accurate deduplication beyond cap-20
+    attachFullAffectedAssetKeys(issue, [], allAffectedPageUrls);
+
+    return issue;
   }
 
   private buildSlowInitialResponseIssue(crawlResults: any[]): DeoIssue | null {
@@ -1721,6 +1757,8 @@ export class DeoIssuesService {
     let issuePages = 0;
     let issueCollections = 0;
     const affectedPages: string[] = [];
+    // [COUNT-INTEGRITY-1.1 PATCH 4.1 — Gap 3b] Collect ALL affected page URLs for full-key dedup
+    const allAffectedPageUrls: string[] = [];
 
     for (const cr of crawlResults) {
       const loadTimeMs =
@@ -1741,6 +1779,8 @@ export class DeoIssuesService {
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
+        // [COUNT-INTEGRITY-1.1 PATCH 4.1] Track all affected URLs (no cap)
+        allAffectedPageUrls.push(cr.url);
       }
     }
 
@@ -1759,7 +1799,7 @@ export class DeoIssuesService {
       return null;
     }
 
-    return {
+    const issue: DeoIssue = {
       id: 'slow_initial_response',
       type: 'slow_initial_response',
       title: 'Slow initial response',
@@ -1785,6 +1825,11 @@ export class DeoIssuesService {
       fixCost: 'manual',
       signalType: 'ttfb_proxy' as PerformanceSignalType,
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 4.1] Attach full affected asset keys for accurate deduplication beyond cap-20
+    attachFullAffectedAssetKeys(issue, [], allAffectedPageUrls);
+
+    return issue;
   }
 
   private buildExcessivePageWeightIssue(crawlResults: any[]): DeoIssue | null {
@@ -1796,6 +1841,8 @@ export class DeoIssuesService {
     let issuePages = 0;
     let issueCollections = 0;
     const affectedPages: string[] = [];
+    // [COUNT-INTEGRITY-1.1 PATCH 4.1 — Gap 3b] Collect ALL affected page URLs for full-key dedup
+    const allAffectedPageUrls: string[] = [];
 
     for (const cr of crawlResults) {
       const issues = (cr.issues as string[]) ?? [];
@@ -1813,6 +1860,8 @@ export class DeoIssuesService {
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
+        // [COUNT-INTEGRITY-1.1 PATCH 4.1] Track all affected URLs (no cap)
+        allAffectedPageUrls.push(cr.url);
       }
     }
 
@@ -1831,7 +1880,7 @@ export class DeoIssuesService {
       return null;
     }
 
-    return {
+    const issue: DeoIssue = {
       id: 'excessive_page_weight',
       type: 'excessive_page_weight',
       title: 'Page weight risk',
@@ -1857,6 +1906,11 @@ export class DeoIssuesService {
       fixCost: 'manual',
       signalType: 'page_weight_risk' as PerformanceSignalType,
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 4.1] Attach full affected asset keys for accurate deduplication beyond cap-20
+    attachFullAffectedAssetKeys(issue, [], allAffectedPageUrls);
+
+    return issue;
   }
 
   private buildMobileRenderingRiskIssue(
@@ -1870,6 +1924,8 @@ export class DeoIssuesService {
     let issuePages = 0;
     let issueCollections = 0;
     const affectedPages: string[] = [];
+    // [COUNT-INTEGRITY-1.1 PATCH 4.1 — Gap 3b] Collect ALL affected page URLs for full-key dedup
+    const allAffectedPageUrls: string[] = [];
 
     for (const cr of crawlResults) {
       const issues = (cr.issues as string[]) ?? [];
@@ -1887,6 +1943,8 @@ export class DeoIssuesService {
         if (affectedPages.length < 20) {
           affectedPages.push(cr.url);
         }
+        // [COUNT-INTEGRITY-1.1 PATCH 4.1] Track all affected URLs (no cap)
+        allAffectedPageUrls.push(cr.url);
       }
     }
 
@@ -1905,7 +1963,7 @@ export class DeoIssuesService {
       return null;
     }
 
-    return {
+    const issue: DeoIssue = {
       id: 'mobile_rendering_risk',
       type: 'mobile_rendering_risk',
       title: 'Mobile rendering risk',
@@ -1931,6 +1989,11 @@ export class DeoIssuesService {
       fixCost: 'manual',
       signalType: 'mobile_readiness' as PerformanceSignalType,
     };
+
+    // [COUNT-INTEGRITY-1.1 PATCH 4.1] Attach full affected asset keys for accurate deduplication beyond cap-20
+    attachFullAffectedAssetKeys(issue, [], allAffectedPageUrls);
+
+    return issue;
   }
 
   private buildProductContentDepthIssue(products: any[]): DeoIssue | null {
