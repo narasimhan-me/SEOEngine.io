@@ -864,9 +864,8 @@ export class E2eTestkitController {
           h1: null, // Missing h1
           wordCount: 50, // Low word count (< 400)
           loadTimeMs: 3000, // Slow load (> 2500ms) triggers slow_initial_response
-          htmlSize: 1024,
           issues: ['MISSING_TITLE', 'MISSING_META_DESCRIPTION', 'SLOW_LOAD_TIME'],
-          lastCrawledAt: new Date(),
+          scannedAt: new Date(),
         },
       });
       collectionIds.push(crawlResult.id);

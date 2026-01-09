@@ -107,14 +107,14 @@ export function ActionBundleCard({
 
       {/* Row 3: Scope line */}
       {/* [ASSETS-PAGES-1] Updated to show correct scope type label */}
-      {/* [COUNT-INTEGRITY-1 PATCH 5.1] Issue-group count semantics for ASSET_OPTIMIZATION */}
+      {/* [COUNT-INTEGRITY-1.1 Step 2D] Add "now" to actionable semantics for clarity */}
       <p className="mt-1 text-sm text-gray-600">
         {bundle.bundleType === 'ASSET_OPTIMIZATION' ? (
           <>
             {bundle.scopeCount > 0 ? (
               <>
                 <span className="font-medium">
-                  {bundle.scopeCount} actionable issue{bundle.scopeCount !== 1 ? 's' : ''}
+                  {bundle.scopeCount} actionable now
                 </span>{' '}
                 affecting {getScopeTypeLabel(bundle.scopeType, bundle.scopeCount)}
                 {bundle.scopeDetectedCount != null && bundle.scopeDetectedCount !== bundle.scopeCount && (
@@ -203,6 +203,7 @@ export function ActionBundleCard({
         )}
 
         {/* AI usage badge */}
+        {/* [COUNT-INTEGRITY-1.1 Step 2D] Clearer AI badge label */}
         <span
           className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
             bundle.aiUsage === 'NONE'
@@ -219,7 +220,7 @@ export function ActionBundleCard({
                 <path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 110-12 6 6 0 010 12z" />
                 <path d="M10 5a1 1 0 011 1v4.586l2.707 2.707a1 1 0 01-1.414 1.414l-3-3A1 1 0 019 11V6a1 1 0 011-1z" />
               </svg>
-              AI for Drafts
+              AI Drafts
             </>
           )}
         </span>

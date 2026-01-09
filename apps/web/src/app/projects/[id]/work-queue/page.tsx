@@ -324,13 +324,13 @@ export default function WorkQueuePage() {
                   ))}
                 </div>
               )}
-              {/* [COUNT-INTEGRITY-1 PATCH 7.1 FIXUP] Mixed-bundle semantics (issues + items split) */}
+              {/* [COUNT-INTEGRITY-1.1 Step 2D] Add "now" to actionable semantics */}
               <p className="mt-2 text-xs text-blue-700">
                 {totalBundleCount} action bundle{totalBundleCount !== 1 ? 's' : ''} affecting{' '}
                 {bundleCounts.hasAssetOpt && !bundleCounts.hasNonAssetOpt ? (
                   // Only ASSET_OPTIMIZATION bundles
                   <>
-                    {bundleCounts.assetOptActionableIssues} actionable {bundleCounts.assetOptActionableIssues === 1 ? 'issue' : 'issues'}
+                    {bundleCounts.assetOptActionableIssues} actionable now
                     {bundleCounts.assetOptDetectedIssues !== bundleCounts.assetOptActionableIssues && (
                       <span className="text-blue-600"> ({bundleCounts.assetOptDetectedIssues} detected)</span>
                     )}
@@ -341,7 +341,7 @@ export default function WorkQueuePage() {
                 ) : (
                   // Mixed bundles
                   <>
-                    {bundleCounts.assetOptActionableIssues} actionable {bundleCounts.assetOptActionableIssues === 1 ? 'issue' : 'issues'}
+                    {bundleCounts.assetOptActionableIssues} actionable now
                     {bundleCounts.assetOptDetectedIssues !== bundleCounts.assetOptActionableIssues && (
                       <span className="text-blue-600"> ({bundleCounts.assetOptDetectedIssues} detected)</span>
                     )}

@@ -105,15 +105,15 @@ export default function StoreHealthPage() {
            b.recommendedActionKey === 'RESOLVE_TECHNICAL_ISSUES'
   );
   const deoHealth = getWorstHealth(deoBundles);
-  // [COUNT-INTEGRITY-1 PATCH 7 FIXUP] Use detected/actionable count semantics
+  // [COUNT-INTEGRITY-1.1 Step 2C] Use canonical "Items affected" semantics with explicit labels
   const deoActionableCount = deoBundles.reduce((sum, b) => sum + b.scopeCount, 0);
   const deoDetectedCount = deoBundles.reduce((sum, b) => sum + (b.scopeDetectedCount ?? b.scopeCount), 0);
   const deoSummary = deoBundles.length > 0
     ? deoActionableCount > 0
       ? deoDetectedCount > deoActionableCount
-        ? `${deoActionableCount} actionable ${deoActionableCount === 1 ? 'issue' : 'issues'} (${deoDetectedCount} detected) across metadata and technical optimization.`
-        : `${deoActionableCount} actionable ${deoActionableCount === 1 ? 'issue' : 'issues'} across metadata and technical optimization.`
-      : `Informational — no action required · ${deoDetectedCount} detected ${deoDetectedCount === 1 ? 'issue' : 'issues'} across metadata and technical optimization.`
+        ? `${deoActionableCount} items affected (actionable now) · ${deoDetectedCount} total detected across metadata and technical optimization.`
+        : `${deoActionableCount} items affected (actionable now) across metadata and technical optimization.`
+      : `Informational only · ${deoDetectedCount} items affected (no action required) across metadata and technical optimization.`
     : 'Your store is discoverable with no outstanding issues.';
   const deoAction = getActionLabel(deoBundles, 'View discoverability');
 
@@ -136,15 +136,15 @@ export default function StoreHealthPage() {
   // 4. Technical Readiness - RESOLVE_TECHNICAL_ISSUES
   const technicalBundles = items.filter((b) => b.recommendedActionKey === 'RESOLVE_TECHNICAL_ISSUES');
   const technicalHealth = getWorstHealth(technicalBundles);
-  // [COUNT-INTEGRITY-1 PATCH 7 FIXUP] Use detected/actionable count semantics (avoid "0 technical issues" when informational exist)
+  // [COUNT-INTEGRITY-1.1 Step 2C] Use canonical "Items affected" semantics with explicit labels
   const technicalActionableCount = technicalBundles.reduce((sum, b) => sum + b.scopeCount, 0);
   const technicalDetectedCount = technicalBundles.reduce((sum, b) => sum + (b.scopeDetectedCount ?? b.scopeCount), 0);
   const technicalSummary = technicalBundles.length > 0
     ? technicalActionableCount > 0
       ? technicalDetectedCount > technicalActionableCount
-        ? `${technicalActionableCount} actionable technical ${technicalActionableCount === 1 ? 'issue' : 'issues'} (${technicalDetectedCount} detected) affecting your store.`
-        : `${technicalActionableCount} actionable technical ${technicalActionableCount === 1 ? 'issue' : 'issues'} affecting your store.`
-      : `Informational — no action required · ${technicalDetectedCount} detected technical ${technicalDetectedCount === 1 ? 'issue' : 'issues'} affecting your store.`
+        ? `${technicalActionableCount} items affected (actionable now) · ${technicalDetectedCount} total detected technical issues affecting your store.`
+        : `${technicalActionableCount} items affected (actionable now) with technical issues affecting your store.`
+      : `Informational only · ${technicalDetectedCount} items affected (no action required) with technical issues.`
     : 'No technical issues detected.';
   const technicalAction = getActionLabel(technicalBundles, 'View technical status');
 

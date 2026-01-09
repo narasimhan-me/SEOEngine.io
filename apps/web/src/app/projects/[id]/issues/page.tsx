@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 
-import type { DeoIssue, DeoIssueFixType, IssueCountsSummary } from '@/lib/deo-issues';
+import type { DeoIssue, DeoIssueFixType, CanonicalIssueCountsSummary } from '@/lib/deo-issues';
+import { TripletDisplay } from '@/components/issues/TripletDisplay';
 import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
 import { isAuthenticated, getToken } from '@/lib/auth';
 import { ApiError, aiApi, projectsApi, shopifyApi } from '@/lib/api';
@@ -120,17 +121,18 @@ export default function IssuesPage() {
   // }, [pathname, searchParams]);
 
   const [issues, setIssues] = useState<DeoIssue[]>([]);
-  const [countsSummary, setCountsSummary] = useState<IssueCountsSummary | null>(null);
+  // [COUNT-INTEGRITY-1.1 Step 2A] Migrated to canonical triplet counts
+  const [countsSummary, setCountsSummary] = useState<CanonicalIssueCountsSummary | null>(null);
   // [COUNT-INTEGRITY-1 PATCH ERR-001] Graceful degradation for counts-summary API failures
   const [countsSummaryWarning, setCountsSummaryWarning] = useState<string | null>(null);
 
-  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] Derive effective mode (with viewer/no-actionable detection)
+  // [COUNT-INTEGRITY-1.1 Step 2A] Updated to use canonical triplet counts
   // [COUNT-INTEGRITY-1 PATCH ERR-001.1] Fallback to issues list when countsSummary unavailable
   const hasActionableIssues = countsSummary
-    ? (countsSummary.actionableGroupsTotal ?? 0) > 0
+    ? (countsSummary.actionable.issueTypesCount ?? 0) > 0
     : issues.some((i) => i.isActionableNow === true);
   const hasDetectedIssues = countsSummary
-    ? (countsSummary.detectedGroupsTotal ?? 0) > 0
+    ? (countsSummary.detected.issueTypesCount ?? 0) > 0
     : issues.length > 0;
   const effectiveMode: 'actionable' | 'detected' =
     modeParam === 'detected'
@@ -205,10 +207,11 @@ export default function IssuesPage() {
       setLoading(true);
       setError('');
       setCountsSummaryWarning(null);
+      // [COUNT-INTEGRITY-1.1 Step 2A] Migrated to canonical triplet summary endpoint
       // [COUNT-INTEGRITY-1 PATCH ERR-001] Graceful degradation: always load issues even if counts-summary fails
       const results = await Promise.allSettled([
         projectsApi.deoIssuesReadOnly(projectId),
-        projectsApi.issueCountsSummary(projectId),
+        projectsApi.canonicalIssueCountsSummary(projectId),
       ]);
 
       // Handle issues response
@@ -301,23 +304,22 @@ export default function IssuesPage() {
     }
   };
 
-  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] Use countsSummary for severity badge counts (mode-aware)
+  // [COUNT-INTEGRITY-1.1 Step 2A] Use canonical triplet counts for severity badges
   // [COUNT-INTEGRITY-1 PATCH ERR-001] When countsSummary is null (API failure), counts are unavailable (not 0)
-  // Use actionableGroups in actionable mode, detectedGroups in detected mode
   const criticalCount = countsSummary
     ? (effectiveMode === 'actionable'
-        ? (countsSummary.bySeverity?.critical?.actionableGroups ?? 0)
-        : (countsSummary.bySeverity?.critical?.detectedGroups ?? 0))
+        ? (countsSummary.bySeverity?.critical?.actionable?.issueTypesCount ?? 0)
+        : (countsSummary.bySeverity?.critical?.detected?.issueTypesCount ?? 0))
     : null;
   const warningCount = countsSummary
     ? (effectiveMode === 'actionable'
-        ? (countsSummary.bySeverity?.warning?.actionableGroups ?? 0)
-        : (countsSummary.bySeverity?.warning?.detectedGroups ?? 0))
+        ? (countsSummary.bySeverity?.warning?.actionable?.issueTypesCount ?? 0)
+        : (countsSummary.bySeverity?.warning?.detected?.issueTypesCount ?? 0))
     : null;
   const infoCount = countsSummary
     ? (effectiveMode === 'actionable'
-        ? (countsSummary.bySeverity?.info?.actionableGroups ?? 0)
-        : (countsSummary.bySeverity?.info?.detectedGroups ?? 0))
+        ? (countsSummary.bySeverity?.info?.actionable?.issueTypesCount ?? 0)
+        : (countsSummary.bySeverity?.info?.detected?.issueTypesCount ?? 0))
     : null;
 
   // [COUNT-INTEGRITY-1 PATCH 6] Filter issues: mode → actionKey → scopeType → UI filters
@@ -800,31 +802,34 @@ export default function IssuesPage() {
           </button>
         </div>
 
-        {/* Summary Cards */}
-        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            {/* [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] Use countsSummary total (mode-aware) */}
-            {/* [COUNT-INTEGRITY-1 PATCH ERR-001] Show — when countsSummary unavailable (not misleading 0) */}
-            <div className="text-2xl font-bold text-gray-900">
-              {countsSummary
-                ? (effectiveMode === 'actionable'
-                    ? (countsSummary.actionableGroupsTotal ?? 0)
-                    : (countsSummary.detectedGroupsTotal ?? 0))
-                : '—'}
-            </div>
-            <div className="text-sm text-gray-600">Total Issues</div>
+        {/* [COUNT-INTEGRITY-1.1 Step 2A] Canonical Triplet Summary Display */}
+        {countsSummary ? (
+          <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
+            <TripletDisplay
+              triplet={effectiveMode === 'actionable' ? countsSummary.actionable : countsSummary.detected}
+              layout="horizontal"
+              size="lg"
+            />
           </div>
+        ) : (
+          <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-6 text-center">
+            <div className="text-sm text-gray-500">Issue counts unavailable</div>
+          </div>
+        )}
+
+        {/* Severity Breakdown Cards */}
+        <div className="mt-4 grid grid-cols-3 gap-4">
           <div className="rounded-lg border border-red-200 bg-red-50 p-4">
             <div className="text-2xl font-bold text-red-700">{criticalCount !== null ? criticalCount : '—'}</div>
-            <div className="text-sm text-red-600">Critical</div>
+            <div className="text-sm text-red-600">Critical issue types</div>
           </div>
           <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
             <div className="text-2xl font-bold text-orange-700">{warningCount !== null ? warningCount : '—'}</div>
-            <div className="text-sm text-orange-600">Warning</div>
+            <div className="text-sm text-orange-600">Warning issue types</div>
           </div>
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
             <div className="text-2xl font-bold text-blue-700">{infoCount !== null ? infoCount : '—'}</div>
-            <div className="text-sm text-blue-600">Info</div>
+            <div className="text-sm text-blue-600">Info issue types</div>
           </div>
         </div>
       </div>
@@ -890,13 +895,13 @@ export default function IssuesPage() {
               All pillars
             </button>
             {DEO_PILLARS.filter((p) => !p.comingSoon).map((pillar) => {
-              // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Use countsSummary for pillar badge counts (single source of truth)
+              // [COUNT-INTEGRITY-1.1 Step 2A] Use canonical triplet counts for pillar badges
               // [COUNT-INTEGRITY-1 PATCH ERR-001] Handle null countsSummary (hide badge when unavailable)
-              const pillarCounts = countsSummary?.byPillar[pillar.id];
+              const pillarTriplet = countsSummary?.byPillar[pillar.id];
               const pillarIssueCount = countsSummary
                 ? (effectiveMode === 'actionable'
-                    ? (pillarCounts?.actionableGroups ?? 0)
-                    : (pillarCounts?.detectedGroups ?? 0))
+                    ? (pillarTriplet?.actionable?.issueTypesCount ?? 0)
+                    : (pillarTriplet?.detected?.issueTypesCount ?? 0))
                 : null;
               return (
                 <button
@@ -910,7 +915,7 @@ export default function IssuesPage() {
                 >
                   {pillar.shortName}
                   {pillarIssueCount !== null && pillarIssueCount > 0 && (
-                    <span className="ml-1 text-xs opacity-75">({pillarIssueCount})</span>
+                    <span className="ml-1 text-xs opacity-75">({pillarIssueCount} issue types)</span>
                   )}
                 </button>
               );
@@ -971,11 +976,11 @@ export default function IssuesPage() {
                 }`}
               >
                 {filter === 'all' ? 'All severities' : filter.charAt(0).toUpperCase() + filter.slice(1)}
-                {/* [COUNT-INTEGRITY-1 PATCH ERR-001] Hide badge count when unavailable (not misleading 0) */}
+                {/* [COUNT-INTEGRITY-1.1 Step 2A] Show explicit "issue types" label */}
                 {filter !== 'all' && (
                   (() => {
                     const count = filter === 'critical' ? criticalCount : filter === 'warning' ? warningCount : infoCount;
-                    return count !== null ? <span className="ml-1">({count})</span> : null;
+                    return count !== null && count > 0 ? <span className="ml-1 text-xs">({count} issue types)</span> : null;
                   })()
                 )}
               </button>

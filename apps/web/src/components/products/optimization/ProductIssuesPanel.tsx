@@ -249,6 +249,30 @@ function IssueRow({
             {issue.recommendedFix}
           </p>
         )}
+        {/* [COUNT-INTEGRITY-1.1 Step 2B] Store-wide impact display */}
+        {issue.assetTypeCounts && (
+          <div className="mt-2 flex gap-2 text-[11px] text-gray-500 border-t border-gray-100 pt-2">
+            <span title="Total products affected across store">
+              <strong>{issue.assetTypeCounts.products}</strong> product{issue.assetTypeCounts.products !== 1 ? 's' : ''}
+            </span>
+            {issue.assetTypeCounts.pages > 0 && (
+              <>
+                <span>•</span>
+                <span title="Total pages affected across store">
+                  <strong>{issue.assetTypeCounts.pages}</strong> page{issue.assetTypeCounts.pages !== 1 ? 's' : ''}
+                </span>
+              </>
+            )}
+            {issue.assetTypeCounts.collections > 0 && (
+              <>
+                <span>•</span>
+                <span title="Total collections affected across store">
+                  <strong>{issue.assetTypeCounts.collections}</strong> collection{issue.assetTypeCounts.collections !== 1 ? 's' : ''}
+                </span>
+              </>
+            )}
+          </div>
+        )}
       </div>
       {issue.aiFixable && (
         <span className="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">
