@@ -264,9 +264,9 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] COUNT-INTEGRITY-1: Issues page URL contract preserved (actionKey + scopeType + mode + pillar)
 - [ ] COUNT-INTEGRITY-1: Preview list shows issue titles (not asset titles) for ASSET_OPTIMIZATION bundles
 - [ ] COUNT-INTEGRITY-1: scopeCount = actionable issue-group count, scopeDetectedCount = detected issue-group count
-- [ ] COUNT-INTEGRITY-1.1: Backend complete (actionKey filtering, asset endpoint, accurate deduplication beyond cap-20) ✅ **BACKEND FULLY COMPLETE (PATCH BATCH 3)**
-- [ ] COUNT-INTEGRITY-1.1: Canonical triplet endpoints (`/summary`) return accurate triplet counts with all filters working
-- [ ] COUNT-INTEGRITY-1.1: affectedItemsCount accurate for all scenarios (verified by CANON-009 test with 30 products)
+- [ ] COUNT-INTEGRITY-1.1: Backend partial (actionKey filtering, asset endpoint working; products dedup verified via CANON-009) ⚠️ **BACKEND PARTIAL (PATCH BATCH 3)**
+- [ ] COUNT-INTEGRITY-1.1: Canonical triplet endpoints (`/summary`) return triplet counts with all filters working
+- [ ] COUNT-INTEGRITY-1.1: affectedItemsCount accurate for products (verified by CANON-009 test with 30 products); pages/collections dedup beyond cap-20 pending
 - [ ] COUNT-INTEGRITY-1.1: **PENDING:** UI displays labeled triplet counts ("Issue types", "Items affected", "Actionable now") — NOT YET IMPLEMENTED
 - [ ] COUNT-INTEGRITY-1.1: **PENDING:** Required single cross-surface UI smoke test (Store Health → Work Queue → Issues → Asset Detail) — DEFERRED WITH UI MIGRATION
 
@@ -302,9 +302,9 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] COUNT-INTEGRITY-1: VIEWER role sees all issues as detected (actionableCount = 0)
 - [ ] COUNT-INTEGRITY-1: Role-based actionability based on canGenerateDrafts OR canRequestApproval OR canApply
 - [ ] COUNT-INTEGRITY-1: issue.isActionableNow determines clickability (not href-based check)
-- [ ] COUNT-INTEGRITY-1.1: Backend canonical triplet endpoints fully complete (accurate deduplication, all filters working) ✅ **BACKEND COMPLETE (PATCH BATCH 3)**
+- [ ] COUNT-INTEGRITY-1.1: Backend canonical triplet endpoints partial (products dedup verified; pages/collections pending) ⚠️ **BACKEND PARTIAL (PATCH BATCH 3)**
 - [ ] COUNT-INTEGRITY-1.1: **PENDING:** Issues Engine displays labeled triplets ("Issue types", "Items affected", "Actionable now") — NOT YET IMPLEMENTED
-- [ ] COUNT-INTEGRITY-1.1: affectedItemsCount accurate for all scenarios (Gap 3 resolved, verified by CANON-009)
+- [ ] COUNT-INTEGRITY-1.1: affectedItemsCount accurate for products (Gap 3a resolved, verified by CANON-009); pages/collections beyond cap-20 pending (Gap 3b)
 
 ---
 
