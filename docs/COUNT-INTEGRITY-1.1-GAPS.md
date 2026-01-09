@@ -136,7 +136,7 @@ count: trueProductCountWithMissingAlt, // True count
 **Files Changed:**
 - [apps/api/src/projects/media-accessibility.service.ts:336-423](apps/api/src/projects/media-accessibility.service.ts#L336-L423)
 
-**Note:** Gap 3 (full deduplication using non-enumerable Sets) is deferred. This fix ensures `count` field is accurate but `affectedItemsCount` in canonical summary may still be capped when >20 products affected.
+**Note:** This fix (PATCH 2.1) ensures media issue `count` field displays true counts, not capped sample length. Gap 3 (full deduplication beyond cap-20) was subsequently resolved in PATCH BATCH 3, making `affectedItemsCount` accurate for all scenarios.
 
 ---
 

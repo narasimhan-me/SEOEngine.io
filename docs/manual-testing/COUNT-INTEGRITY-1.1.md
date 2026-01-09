@@ -147,7 +147,7 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 - Test project exists with issues detected
 
 **Steps:**
-1. Call `GET /projects/{projectId}/issues/canonical-summary`
+1. Call `GET /projects/{projectId}/issues/summary`
 2. Verify response has `detected` and `actionable` triplets
 3. Verify each triplet has `issueTypesCount`, `affectedItemsCount`, `actionableNowCount`
 4. Verify all counts are numbers >= 0
@@ -170,7 +170,7 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 - Test project has issues in multiple pillars
 
 **Steps:**
-1. Call `GET /projects/{projectId}/issues/canonical-summary?pillar=metadata_snippet_quality`
+1. Call `GET /projects/{projectId}/issues/summary?pillar=metadata_snippet_quality`
 2. Verify `filters.pillar` echoed back in response
 3. Verify triplet counts reflect only metadata issues
 
@@ -190,7 +190,7 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 - Test project has issues at multiple severity levels
 
 **Steps:**
-1. Call `GET /projects/{projectId}/issues/canonical-summary?severity=critical`
+1. Call `GET /projects/{projectId}/issues/summary?severity=critical`
 2. Verify `filters.severity` echoed back
 3. Verify triplet counts reflect only critical issues
 
@@ -209,7 +209,7 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 - Test project exists
 
 **Steps:**
-1. Call `GET /projects/{projectId}/issues/canonical-summary`
+1. Call `GET /projects/{projectId}/issues/summary`
 2. Verify `byPillar` contains entries for all 10 pillars
 3. Verify each pillar has `detected` and `actionable` triplets
 
@@ -228,7 +228,7 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 - Test project exists
 
 **Steps:**
-1. Call `GET /projects/{projectId}/issues/canonical-summary`
+1. Call `GET /projects/{projectId}/issues/summary`
 2. Verify `bySeverity` contains entries for critical, warning, info
 3. Verify each severity has `detected` and `actionable` triplets
 
