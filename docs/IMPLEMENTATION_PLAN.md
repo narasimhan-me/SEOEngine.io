@@ -620,14 +620,15 @@ Establishes count integrity as a core trust contract across the product by:
 
 ## In Progress
 
-### Phase COUNT-INTEGRITY-1.1: Canonical Triplet Counts + Explicit Labels ⚠️ BACKEND FILTERING COMPLETE — DEDUP + UI PENDING
+### Phase COUNT-INTEGRITY-1.1: Canonical Triplet Counts + Explicit Labels ✅ BACKEND COMPLETE — UI MIGRATION PENDING
 
-**Status:** Backend Filtering Complete (PATCH 0 + BATCH 2 + FIXUPS); Deduplication Accuracy + UI Migration + Required UI Smoke Test Pending
+**Status:** Backend Complete (PATCH BATCH 3); UI Migration Pending
 **Date Started:** 2026-01-08
+**Backend Completed:** 2026-01-08
 
 #### Overview
 
-COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCount, affectedItemsCount, actionableNowCount) with explicit UX labels to replace mixed v1 "groups/instances" semantics. Backend filtering is complete; deduplication accuracy (Gap 3), UI migration (Gap 6), and required cross-surface UI smoke test (Gap 7) remain pending.
+COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCount, affectedItemsCount, actionableNowCount) with explicit UX labels to replace mixed v1 "groups/instances" semantics. **Backend is fully UEP-contract-compliant with accurate deduplication.** UI migration (Gap 6) remains as separate deliverable.
 
 #### Completed Patches
 
@@ -638,24 +639,30 @@ COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCou
 - ✅ **PATCH 2.3:** Work Queue refactored to use shared mapper
 - ✅ **PATCH 2.4:** Real actionKey filtering implemented in canonical summary
 - ✅ **PATCH 2.5-FIXUP-1:** Asset-specific endpoint bugs fixed (ID→URL, project-scoped, deterministic empty)
-- ✅ **PATCH 2.6-FIXUP-1:** Deterministic Playwright backend API tests (8 tests, accessToken corrected)
-- ✅ **PATCH 2.7-FIXUP-1:** Documentation truthfulness updated (reflects incomplete status)
+- ✅ **PATCH 2.6-FIXUP-1:** Deterministic Playwright backend API tests (accessToken corrected)
+- ✅ **PATCH 2.7-FIXUP-1:** Documentation truthfulness updated
+- ✅ **PATCH 3.1:** Non-enumerable `__fullAffectedAssetKeys` field infrastructure
+- ✅ **PATCH 3.2:** All capped builders populate full keys (13+ builders)
+- ✅ **PATCH 3.3:** Canonical summary uses full keys for accurate deduplication
+- ✅ **PATCH 3.4:** Asset endpoint uses full keys for membership checks
+- ✅ **PATCH 3.5:** Media issues carry full keys
+- ✅ **PATCH 3.6:** CANON-009 regression test (30 products, verifies >20 accuracy)
+- ✅ **PATCH 3.7:** Documentation updates (Gap 3 marked resolved)
 
-#### Pending Work (BLOCKING UEP CONTRACT)
+#### Pending Work (UI Migration Only)
 
-- ⚠️ **Gap 3:** Asset deduplication refactor (affectedItemsCount wrong when >20 items) — **8-12 hours**
 - ⚠️ **Gap 6:** UI migration (Issues Engine, Store Health, Work Queue, Asset Details with labeled triplets) — **18-25 hours**
-- ⚠️ **Gap 7:** Required single cross-surface UI smoke test (UEP spec violation - current tests are backend API only) — **2-3 hours**
+- ⚠️ **Gap 7:** Required single cross-surface UI smoke test (deferred with UI migration) — **2-3 hours**
 
-**Total Remaining Effort:** 28-40 hours
+**Total Remaining Effort:** 20-28 hours (UI migration only)
 
 #### Manual Testing
 
-- `docs/manual-testing/COUNT-INTEGRITY-1.1.md` (backend filtering complete; notes dedup + UI + smoke test pending)
+- `docs/manual-testing/COUNT-INTEGRITY-1.1.md` (backend complete; notes UI migration pending)
 
 #### Automated Tests
 
-- `apps/web/tests/count-integrity-1-1.spec.ts` (8 backend API tests; required UI smoke test missing)
+- `apps/web/tests/count-integrity-1-1.spec.ts` (9 backend API tests including CANON-009; UI smoke test deferred)
 
 ---
 

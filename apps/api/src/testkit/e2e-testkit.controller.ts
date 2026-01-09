@@ -751,4 +751,59 @@ export class E2eTestkitController {
       accessToken,
     };
   }
+
+  // ==========================================================================
+  // [COUNT-INTEGRITY-1.1] E2E Seeds
+  // ==========================================================================
+
+  /**
+   * POST /testkit/e2e/seed-count-integrity-1-1-many-products
+   *
+   * [COUNT-INTEGRITY-1.1 PATCH 3.6] Regression seed for Gap 3 (True Asset Dedup Beyond Cap-20)
+   *
+   * Seed a Pro-plan user + project with ≥25 products (30 products) where SEO fields
+   * are incomplete so metadata issues affect all products deterministically.
+   *
+   * This seed verifies:
+   * - affectedItemsCount accuracy beyond cap-20 (should equal 30, not capped at 20)
+   * - Asset membership checks work for products beyond index 20
+   *
+   * Returns:
+   * - user (id, email)
+   * - projectId
+   * - productIds[] (length = 30)
+   * - accessToken
+   */
+  @Post('seed-count-integrity-1-1-many-products')
+  async seedCountIntegrity11ManyProducts() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    // Create 30 products with incomplete SEO (missing title/description)
+    const products = await createTestProducts(this.prisma as any, {
+      projectId: project.id,
+      count: 30,
+      withSeo: false, // All products will have missing SEO metadata
+      withIssues: true, // Ensure issues are triggered
+    });
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+      projectId: project.id,
+      productIds: products.map((p) => p.id),
+      accessToken,
+    };
+  }
 }

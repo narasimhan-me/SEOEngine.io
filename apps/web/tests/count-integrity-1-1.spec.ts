@@ -305,4 +305,63 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
     // (This is a regression assertion - the filtering should work correctly)
     expect(data.detected.issueTypesCount).toBeGreaterThanOrEqual(0);
   });
+
+  test('CANON-009: affectedItemsCount accuracy beyond cap-20 (Gap 3 regression)', async ({ request }) => {
+    // [COUNT-INTEGRITY-1.1 PATCH 3.6] Regression test for Gap 3 (True Asset Dedup Beyond Cap-20)
+    // Seed a project with 30 products, all missing SEO metadata
+    const seedResponse = await request.post(`${API_URL}/testkit/e2e/seed-count-integrity-1-1-many-products`);
+    expect(seedResponse.ok()).toBeTruthy();
+
+    const seedData = await seedResponse.json();
+    const manyProductsAccessToken = seedData.accessToken;
+    const manyProductsProjectId = seedData.projectId;
+    const productIds = seedData.productIds;
+
+    expect(manyProductsAccessToken).toBeTruthy();
+    expect(manyProductsProjectId).toBeTruthy();
+    expect(productIds).toBeDefined();
+    expect(productIds.length).toBe(30); // Verify seed created 30 products
+
+    // Test 1: Verify affectedItemsCount equals actual product count (not capped at 20)
+    const summaryResponse = await request.get(`${API_URL}/projects/${manyProductsProjectId}/issues/summary`, {
+      headers: {
+        Authorization: `Bearer ${manyProductsAccessToken}`,
+      },
+    });
+
+    expect(summaryResponse.ok()).toBeTruthy();
+    const summaryData = await summaryResponse.json();
+
+    // There should be at least one issue type affecting all 30 products (missing metadata)
+    expect(summaryData.detected.issueTypesCount).toBeGreaterThan(0);
+
+    // CRITICAL: affectedItemsCount should be 30, not 20 (proves Gap 3 is fixed)
+    // Before PATCH BATCH 3, this would be ≤20 due to capped array deduplication
+    expect(summaryData.detected.affectedItemsCount).toBe(30);
+
+    // Test 2: Verify asset beyond index 20 returns issues (membership check works)
+    // Pick product #25 (index 24, well beyond cap-20 limit)
+    const productBeyondCap = productIds[24];
+    expect(productBeyondCap).toBeDefined();
+
+    const assetIssuesResponse = await request.get(
+      `${API_URL}/projects/${manyProductsProjectId}/assets/products/${productBeyondCap}/issues`,
+      {
+        headers: {
+          Authorization: `Bearer ${manyProductsAccessToken}`,
+        },
+      }
+    );
+
+    expect(assetIssuesResponse.ok()).toBeTruthy();
+    const assetData = await assetIssuesResponse.json();
+
+    // Verify issues array is not empty (product beyond cap-20 has issues)
+    expect(assetData.issues).toBeDefined();
+    expect(Array.isArray(assetData.issues)).toBeTruthy();
+    expect(assetData.issues.length).toBeGreaterThan(0); // Should have missing metadata issues
+
+    // Verify summary shows this asset is affected (affectedItemsCount = 1 for single asset)
+    expect(assetData.summary.detected.affectedItemsCount).toBe(1);
+  });
 });
