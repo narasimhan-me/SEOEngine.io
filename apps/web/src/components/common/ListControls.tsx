@@ -2,16 +2,6 @@
 
 import { useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Search, X } from 'lucide-react';
 
 /**
  * [LIST-SEARCH-FILTER-1] Configuration for ListControls component
@@ -126,13 +116,25 @@ export function ListControls({ config }: ListControlsProps) {
     <div className="flex flex-col sm:flex-row gap-3 mb-4">
       {/* Search input - left aligned */}
       <div className="relative flex-1 max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
+        <svg
+          className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
+        </svg>
+        <input
           data-testid="list-controls-search"
           type="text"
           placeholder={config.searchPlaceholder || 'Search...'}
           defaultValue={currentQ}
-          className="pl-9"
+          className="w-full rounded-md border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           onBlur={(e) => handleSearchChange(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
@@ -145,54 +147,53 @@ export function ListControls({ config }: ListControlsProps) {
       {/* Filter controls - right aligned */}
       <div className="flex gap-2 items-center">
         {config.enableStatusFilter && (
-          <Select
+          <select
+            data-testid="list-controls-status"
             value={currentStatus || 'all'}
-            onValueChange={handleStatusChange}
+            onChange={(e) => handleStatusChange(e.target.value)}
+            className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
-            <SelectTrigger
-              data-testid="list-controls-status"
-              className="w-[160px]"
-            >
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="optimized">Optimized</SelectItem>
-              <SelectItem value="needs_attention">Needs attention</SelectItem>
-            </SelectContent>
-          </Select>
+            <option value="all">All statuses</option>
+            <option value="optimized">Optimized</option>
+            <option value="needs_attention">Needs attention</option>
+          </select>
         )}
 
         {config.enableHasDraftFilter && (
-          <Select
+          <select
+            data-testid="list-controls-has-draft"
             value={currentHasDraft ? 'true' : 'all'}
-            onValueChange={handleHasDraftChange}
+            onChange={(e) => handleHasDraftChange(e.target.value)}
+            className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
-            <SelectTrigger
-              data-testid="list-controls-has-draft"
-              className="w-[180px]"
-            >
-              <SelectValue placeholder="Draft status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All products</SelectItem>
-              <SelectItem value="true">Has draft pending</SelectItem>
-            </SelectContent>
-          </Select>
+            <option value="all">All products</option>
+            <option value="true">Has draft pending</option>
+          </select>
         )}
 
         {/* Clear filters button - only show when filters are active */}
         {hasActiveFilters && (
-          <Button
+          <button
             data-testid="list-controls-clear"
-            variant="ghost"
-            size="sm"
+            type="button"
             onClick={handleClearFilters}
-            className="text-muted-foreground hover:text-foreground"
+            className="inline-flex items-center rounded-md px-2 py-1 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100"
           >
-            <X className="h-4 w-4 mr-1" />
+            <svg
+              className="h-4 w-4 mr-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
             Clear
-          </Button>
+          </button>
         )}
       </div>
     </div>
