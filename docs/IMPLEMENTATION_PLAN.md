@@ -593,22 +593,23 @@ Establishes count integrity as a core trust contract across the product by:
 **Frontend:**
 - `apps/web/src/lib/deo-issues.ts` - Type definitions
 - `apps/web/src/lib/api.ts` - API client methods
-- `apps/web/src/app/projects/[id]/issues/page.tsx` - Issues Engine UI (pending)
+- `apps/web/src/app/projects/[id]/issues/page.tsx` - Issues Engine UI (superseded by COUNT-INTEGRITY-1.1)
 - `apps/web/src/components/work-queue/ActionBundleCard.tsx` - Card UI & routing ✅
-- `apps/web/src/app/projects/[id]/work-queue/page.tsx` - Filter banner (pending)
-- `apps/web/src/app/projects/[id]/store-health/page.tsx` - Summaries (pending)
+- `apps/web/src/app/projects/[id]/work-queue/page.tsx` - Filter banner ✅
+- `apps/web/src/app/projects/[id]/store-health/page.tsx` - Summaries (superseded by COUNT-INTEGRITY-1.1)
 
 ### Testing Requirements
 
-**Manual Testing Scenarios:**
-1. Store Health count → Work Queue filtered total matches
-2. Work Queue bundle count → Issues filtered list row count matches
-3. Pillar/severity badge → rendered list count matches
-4. Technical pillar shows "Informational" with no click action
-5. VIEWER role: detected count visible, actionable = 0, no dead-click risk
+**Manual Testing Scenarios (Work Queue click-integrity remains valid):**
+1. Work Queue bundle count → Issues filtered list row count matches
+2. Pillar/severity badge → rendered list count matches
+3. Technical pillar shows "Informational" with no click action
+4. VIEWER role: detected count visible, actionable = 0, no dead-click risk
+
+> **Note:** Store Health Discoverability/Technical click-integrity is now governed by COUNT-INTEGRITY-1.1 (Issues Engine destination, not Work Queue).
 
 **Automated Coverage:**
-- Playwright E2E: Click integrity chain (Store Health → Work Queue → Issues)
+- Playwright E2E: Work Queue → Issues click integrity chain (still valid)
 - Role matrix: VIEWER/EDITOR/OWNER actionability rendering
 - Filter context preservation across navigation
 
@@ -702,7 +703,7 @@ COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCou
 #### Automated Tests
 
 - `apps/web/tests/count-integrity-1-1.spec.ts` (10 backend API tests including CANON-009 + CANON-010)
-- `apps/web/tests/count-integrity-1-1.ui.spec.ts` (1 cross-surface end-to-end click-integrity test)
+- `apps/web/tests/count-integrity-1-1.ui.spec.ts` (1 STRICT end-to-end test: Store Health → Issues Engine → Asset Detail)
 
 ---
 
@@ -896,3 +897,4 @@ These invariants MUST be preserved during implementation:
 | 6.4 | 2026-01-09 | **COUNT-INTEGRITY-1.1 ENTERPRISE TRUST HARDENING FIX-UP**: Store Health pillar-scoped affectedItemsCount + Issues Engine routing (not Work Queue), Work Queue strict zero-actionable suppression across ALL bundle types, Product Issues tab triplet always visible + neutral message reachable, single Playwright UI smoke test replacing prior multi-test suite. Locked semantics: Store Health Discoverability/Technical tiles display pillar-scoped "Items affected" and route to Issues Engine (mode=detected); Work Queue is "actionable now" scoped; zero-actionable shows "No items currently eligible for action." with no CTAs. |
 | 6.5 | 2026-01-09 | **COUNT-INTEGRITY-1.1 POST-AUDIT COMPLIANCE**: (1) Merged 2 UI tests into exactly 1 end-to-end Playwright test per "single smoke test" requirement; (2) Marked COUNT-INTEGRITY-1 as ⚠️ SUPERSEDED/PARTIAL (Store Health clickthrough semantics superseded; Work Queue click-integrity remains valid); (3) Updated UI test count from "2 tests" to "1 test" in documentation. |
 | 6.6 | 2026-01-09 | **COUNT-INTEGRITY-1.1 FIXUP-2 (Trust Correctness)**: (1) Store Health Discoverability/Technical tiles always show numeric pillar-scoped "items affected" (0 fallback; never "Counts unavailable"); (2) Playwright smoke test STRICT mode (requires numeric parsing, requires asset-detail navigation, no optional branches); (3) Removed Work Queue step from UI test (Issues Engine is now the click destination from Store Health, not Work Queue). |
+| 6.7 | 2026-01-09 | **COUNT-INTEGRITY-1.1 FIXUP-2 DOC CONSISTENCY**: Documentation-only cleanup — removed stale "(pending)" labels from COUNT-INTEGRITY-1 frontend files (marked superseded), updated Testing Requirements to clarify Work Queue → Issues click-integrity remains valid while Store Health click-integrity is governed by COUNT-INTEGRITY-1.1, aligned all UI smoke test chain references to "Store Health → Issues Engine → Asset Detail" (STRICT). |

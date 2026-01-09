@@ -452,7 +452,7 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 
 **Testing (COMPLETE):**
 - [x] Backend API tests (10 tests: CANON-001 through CANON-010)
-- [x] UI smoke test (1 end-to-end test: Store Health → Issues Engine → Product Issues → Work Queue)
+- [x] UI smoke test (1 end-to-end test: Store Health → Issues Engine → Asset Detail)
 
 **UI Hardening (COMPLETE):**
 - [x] UI HARDEN: Multi-action filtering via actionKeys URL param (OR across keys)
