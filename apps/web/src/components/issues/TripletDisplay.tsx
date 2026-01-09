@@ -39,17 +39,20 @@ export function TripletDisplay({
   const classes = sizeClasses[size];
 
   return (
-    <div className={`flex ${layout === 'vertical' ? 'flex-col' : 'flex-row items-center'} ${classes.gap}`}>
-      <div className="flex flex-col items-center">
-        <div className={classes.count}>{triplet.issueTypesCount}</div>
+    <div
+      className={`flex ${layout === 'vertical' ? 'flex-col' : 'flex-row items-center'} ${classes.gap}`}
+      data-testid="triplet-display"
+    >
+      <div className="flex flex-col items-center" data-testid="triplet-issue-types">
+        <div className={classes.count} data-testid="triplet-issue-types-value">{triplet.issueTypesCount}</div>
         <div className={classes.label}>Issue types</div>
       </div>
-      <div className="flex flex-col items-center">
-        <div className={classes.count}>{triplet.affectedItemsCount}</div>
+      <div className="flex flex-col items-center" data-testid="triplet-items-affected">
+        <div className={classes.count} data-testid="triplet-items-affected-value">{triplet.affectedItemsCount}</div>
         <div className={classes.label}>Items affected</div>
       </div>
-      <div className="flex flex-col items-center">
-        <div className={classes.count}>{triplet.actionableNowCount}</div>
+      <div className="flex flex-col items-center" data-testid="triplet-actionable-now">
+        <div className={classes.count} data-testid="triplet-actionable-now-value">{triplet.actionableNowCount}</div>
         <div className={classes.label}>Actionable now</div>
       </div>
     </div>

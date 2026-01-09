@@ -653,21 +653,30 @@ COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCou
 - ✅ **PATCH 4.3-FIXUP-1:** CANON-010 uses crawlResult IDs with correct endpoint
 - ✅ **PATCH 4.3-FIXUP-2:** CANON-010 scoped to collections-only (scopeType=collections filter)
 - ✅ **PATCH 4.4-FIXUP-1:** Documentation consistency sweep (Gap 3b marked resolved)
+- ✅ **PATCH 5:** Issues Engine filter-aligned canonical summary + labeled triplet display
+- ✅ **PATCH 6:** Product detail Issues tab uses assetIssues endpoint + labeled triplet
+- ✅ **PATCH 7:** Store Health tiles show Items affected from canonical summary
+- ✅ **PATCH 8:** Work Queue trust fixes + canonical "Actionable now" display
+- ✅ **PATCH 9:** Gap 7 cross-surface Playwright UI smoke test
 
-#### Pending Work (UI Migration Only)
+#### Completed Status
 
-- ⚠️ **Gap 6:** UI migration (Issues Engine, Store Health, Work Queue, Asset Details with labeled triplets) — **18-25 hours**
-- ⚠️ **Gap 7:** Required single cross-surface UI smoke test (deferred with UI migration) — **2-3 hours**
+**All gaps resolved:**
+- ✅ **Gap 3a:** Product-based issues populate full keys (verified by CANON-009)
+- ✅ **Gap 3b:** Pages/collections issues populate full keys (verified by CANON-010)
+- ✅ **Gap 6:** UI migration complete (Issues Engine, Store Health, Work Queue, Product Detail)
+- ✅ **Gap 7:** Cross-surface UI smoke test implemented
 
-**Total Remaining Effort:** 20-28 hours (UI migration only; backend complete)
+**Total Remaining Effort:** 0 hours (COUNT-INTEGRITY-1.1 complete)
 
 #### Manual Testing
 
-- `docs/manual-testing/COUNT-INTEGRITY-1.1.md` (backend complete; UI migration + UI smoke test pending)
+- `docs/manual-testing/COUNT-INTEGRITY-1.1.md` (all steps verified)
 
 #### Automated Tests
 
-- `apps/web/tests/count-integrity-1-1.spec.ts` (10 backend API tests including CANON-009 + CANON-010; UI smoke test deferred)
+- `apps/web/tests/count-integrity-1-1.spec.ts` (10 backend API tests including CANON-009 + CANON-010)
+- `apps/web/tests/count-integrity-1-1.ui.spec.ts` (6 UI smoke tests for Gap 7)
 
 ---
 

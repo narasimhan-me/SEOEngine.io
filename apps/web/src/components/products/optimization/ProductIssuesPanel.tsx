@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 
-import type { DeoIssue } from '@/lib/deo-issues';
+import type { DeoIssue, CanonicalCountTriplet } from '@/lib/deo-issues';
 import type { DeoPillarId } from '@/lib/deo-pillars';
 import { DEO_PILLARS } from '@/lib/deo-pillars';
 import {
@@ -12,10 +12,15 @@ import {
   getActionableIssuesForProduct,
 } from '@/lib/issue-to-fix-path';
 
+// [COUNT-INTEGRITY-1.1 PATCH 6] Add summary prop for triplet display
 interface ProductIssuesPanelProps {
   productId: string;
   projectId: string;
   issues: DeoIssue[];
+  summary?: {
+    detected: CanonicalCountTriplet;
+    actionable: CanonicalCountTriplet;
+  } | null;
 }
 
 interface IssuesByPillar {
@@ -36,9 +41,15 @@ export function ProductIssuesPanel({
   productId,
   projectId,
   issues,
+  summary,
 }: ProductIssuesPanelProps) {
   // [ISSUE-TO-FIX-PATH-1] Filter to actionable issues only
   const actionableIssues = getActionableIssuesForProduct(issues);
+
+  // [COUNT-INTEGRITY-1.1 PATCH 6] Derive zero-actionable state
+  const hasZeroActionable = summary
+    ? summary.actionable.actionableNowCount === 0
+    : actionableIssues.length === 0;
 
   // Group issues by pillar
   const issuesByPillar: IssuesByPillar[] = [];
@@ -102,6 +113,43 @@ export function ProductIssuesPanel({
 
   return (
     <div className="space-y-6">
+      {/* [COUNT-INTEGRITY-1.1 PATCH 6] Canonical triplet summary display */}
+      {summary && (
+        <div
+          className="grid grid-cols-3 gap-4 rounded-lg border border-gray-200 bg-white p-4"
+          data-testid="product-issues-triplet"
+        >
+          <div className="text-center" data-testid="product-triplet-issue-types">
+            <div className="text-xl font-semibold text-gray-900" data-testid="product-triplet-issue-types-value">
+              {summary.actionable.issueTypesCount}
+            </div>
+            <div className="text-xs text-gray-600">Issue types</div>
+          </div>
+          <div className="text-center" data-testid="product-triplet-items-affected">
+            <div className="text-xl font-semibold text-gray-900" data-testid="product-triplet-items-affected-value">
+              {summary.actionable.affectedItemsCount}
+            </div>
+            <div className="text-xs text-gray-600">Items affected</div>
+          </div>
+          <div className="text-center" data-testid="product-triplet-actionable-now">
+            <div className="text-xl font-semibold text-gray-900" data-testid="product-triplet-actionable-now-value">
+              {summary.actionable.actionableNowCount}
+            </div>
+            <div className="text-xs text-gray-600">Actionable now</div>
+          </div>
+        </div>
+      )}
+
+      {/* [COUNT-INTEGRITY-1.1 PATCH 6] Zero-actionable suppression message */}
+      {hasZeroActionable && (
+        <div
+          className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-center"
+          data-testid="product-no-eligible-items-message"
+        >
+          <p className="text-sm text-amber-800">No items currently eligible for action.</p>
+        </div>
+      )}
+
       {/* Summary header */}
       <div className="flex items-center justify-between">
         <div>
@@ -115,7 +163,8 @@ export function ProductIssuesPanel({
             Grouped by pillar for easier prioritization
           </p>
         </div>
-        {fixNextIssue && (
+        {/* [COUNT-INTEGRITY-1.1 PATCH 6] Suppress Fix next badge when zero actionable */}
+        {fixNextIssue && !hasZeroActionable && (
           <FixNextBadge issue={fixNextIssue} projectId={projectId} productId={productId} />
         )}
       </div>

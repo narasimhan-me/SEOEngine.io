@@ -6,7 +6,7 @@ import { projectsApi, aiApi } from '@/lib/api';
 import type { WorkQueueResponse, WorkQueueActionBundle } from '@/lib/work-queue';
 import { buildWorkQueueUrl } from '@/lib/work-queue';
 import type { ProjectInsightsResponse } from '@/lib/insights';
-import type { IssueCountsSummary } from '@/lib/deo-issues';
+import type { CanonicalIssueCountsSummary } from '@/lib/deo-issues';
 
 /**
  * [STORE-HEALTH-1.0] Store Health Page
@@ -44,20 +44,19 @@ export default function StoreHealthPage() {
   const [workQueue, setWorkQueue] = useState<WorkQueueResponse | null>(null);
   const [insights, setInsights] = useState<ProjectInsightsResponse | null>(null);
   const [aiQuota, setAiQuota] = useState<{ used: number; limit: number | null; remaining: number | null } | null>(null);
-  // [COUNT-INTEGRITY-1 PATCH 7] Add countsSummary for click-integrity counts (unused for now, reserved for future features)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [countsSummary, setCountsSummary] = useState<IssueCountsSummary | null>(null);
+  // [COUNT-INTEGRITY-1.1 PATCH 7] Canonical triplet counts for "Items affected" display
+  const [countsSummary, setCountsSummary] = useState<CanonicalIssueCountsSummary | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // [COUNT-INTEGRITY-1 PATCH 7] Fetch countsSummary for click-integrity counts
+      // [COUNT-INTEGRITY-1.1 PATCH 7] Fetch canonical triplet counts for "Items affected" display
       const [wqData, insightsData, quotaData, countsData] = await Promise.all([
         projectsApi.workQueue(projectId),
         projectsApi.insights(projectId).catch(() => null),
         aiApi.getProjectAiUsageQuota(projectId, { action: 'DRAFT_GENERATE' }).catch(() => null),
-        projectsApi.issueCountsSummary(projectId).catch(() => null),
+        projectsApi.canonicalIssueCountsSummary(projectId).catch(() => null),
       ]);
       setWorkQueue(wqData);
       setInsights(insightsData);
@@ -105,15 +104,15 @@ export default function StoreHealthPage() {
            b.recommendedActionKey === 'RESOLVE_TECHNICAL_ISSUES'
   );
   const deoHealth = getWorstHealth(deoBundles);
-  // [COUNT-INTEGRITY-1.1 Step 2C] Use canonical "Items affected" semantics with explicit labels
-  const deoActionableCount = deoBundles.reduce((sum, b) => sum + b.scopeCount, 0);
-  const deoDetectedCount = deoBundles.reduce((sum, b) => sum + (b.scopeDetectedCount ?? b.scopeCount), 0);
-  const deoSummary = deoBundles.length > 0
-    ? deoActionableCount > 0
-      ? deoDetectedCount > deoActionableCount
-        ? `${deoActionableCount} items affected (actionable now) · ${deoDetectedCount} total detected across metadata and technical optimization.`
-        : `${deoActionableCount} items affected (actionable now) across metadata and technical optimization.`
-      : `Informational only · ${deoDetectedCount} items affected (no action required) across metadata and technical optimization.`
+  // [COUNT-INTEGRITY-1.1 PATCH 7] Use canonical triplet for "Items affected" display
+  const deoItemsAffected = countsSummary?.detected?.affectedItemsCount ?? 0;
+  const deoActionableNow = countsSummary?.actionable?.actionableNowCount ?? 0;
+  const deoSummary = deoItemsAffected > 0
+    ? deoActionableNow > 0
+      ? deoItemsAffected > deoActionableNow
+        ? `${deoActionableNow} actionable now · ${deoItemsAffected} items affected across metadata and technical optimization.`
+        : `${deoActionableNow} actionable now across metadata and technical optimization.`
+      : `Informational only · ${deoItemsAffected} items affected (no action required).`
     : 'Your store is discoverable with no outstanding issues.';
   const deoAction = getActionLabel(deoBundles, 'View discoverability');
 
@@ -134,17 +133,14 @@ export default function StoreHealthPage() {
   const contentAction = getActionLabel(contentBundles, 'View content opportunities');
 
   // 4. Technical Readiness - RESOLVE_TECHNICAL_ISSUES
+  // [COUNT-INTEGRITY-1.1 PATCH 7] Uses same canonical summary as Discoverability (store-wide counts)
   const technicalBundles = items.filter((b) => b.recommendedActionKey === 'RESOLVE_TECHNICAL_ISSUES');
   const technicalHealth = getWorstHealth(technicalBundles);
-  // [COUNT-INTEGRITY-1.1 Step 2C] Use canonical "Items affected" semantics with explicit labels
-  const technicalActionableCount = technicalBundles.reduce((sum, b) => sum + b.scopeCount, 0);
-  const technicalDetectedCount = technicalBundles.reduce((sum, b) => sum + (b.scopeDetectedCount ?? b.scopeCount), 0);
+  // Technical issues are a subset - we use bundle presence for summary but canonical for overall health context
   const technicalSummary = technicalBundles.length > 0
-    ? technicalActionableCount > 0
-      ? technicalDetectedCount > technicalActionableCount
-        ? `${technicalActionableCount} items affected (actionable now) · ${technicalDetectedCount} total detected technical issues affecting your store.`
-        : `${technicalActionableCount} items affected (actionable now) with technical issues affecting your store.`
-      : `Informational only · ${technicalDetectedCount} items affected (no action required) with technical issues.`
+    ? deoActionableNow > 0
+      ? `${deoActionableNow} actionable now with technical issues affecting your store.`
+      : `Informational only · Technical issues detected (no action required).`
     : 'No technical issues detected.';
   const technicalAction = getActionLabel(technicalBundles, 'View technical status');
 
@@ -280,16 +276,18 @@ export default function StoreHealthPage() {
 
       {/* Health cards grid */}
       {!loading && !error && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="store-health-cards">
           {cards.map((card) => (
             <button
               key={card.id}
               onClick={card.onClick}
+              data-testid={`store-health-card-${card.id}`}
               className="flex flex-col rounded-lg border border-gray-200 bg-white p-5 text-left shadow-sm transition-all hover:border-blue-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
               {/* Health pill */}
               <span
                 className={`inline-flex w-fit items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getHealthStyles(card.health)}`}
+                data-testid={`store-health-card-${card.id}-health`}
               >
                 {card.health}
               </span>
@@ -297,8 +295,10 @@ export default function StoreHealthPage() {
               {/* Title */}
               <h3 className="mt-3 text-lg font-semibold text-gray-900">{card.title}</h3>
 
-              {/* Summary */}
-              <p className="mt-1 flex-1 text-sm text-gray-600">{card.summary}</p>
+              {/* Summary - contains Items affected count */}
+              <p className="mt-1 flex-1 text-sm text-gray-600" data-testid={`store-health-card-${card.id}-summary`}>
+                {card.summary}
+              </p>
 
               {/* Action label */}
               <span className="mt-4 inline-flex items-center text-sm font-medium text-blue-600">

@@ -207,11 +207,29 @@ export default function IssuesPage() {
       setLoading(true);
       setError('');
       setCountsSummaryWarning(null);
-      // [COUNT-INTEGRITY-1.1 Step 2A] Migrated to canonical triplet summary endpoint
+      // [COUNT-INTEGRITY-1.1 PATCH 5] Fetch canonical summary with same filters as rendered list
+      // Build filters object from URL params for click-integrity
+      const summaryFilters: {
+        actionKey?: string;
+        actionKeys?: string[];
+        scopeType?: 'products' | 'pages' | 'collections';
+        pillar?: string;
+        severity?: 'critical' | 'warning' | 'info';
+      } = {};
+      if (actionKeyParam) summaryFilters.actionKey = actionKeyParam;
+      if (scopeTypeParam) {
+        // Normalize scopeType to lowercase for API
+        const normalizedScopeType = scopeTypeParam.toLowerCase() as 'products' | 'pages' | 'collections';
+        if (['products', 'pages', 'collections'].includes(normalizedScopeType)) {
+          summaryFilters.scopeType = normalizedScopeType;
+        }
+      }
+      // Note: pillar and severity from URL could be added here if needed for future filter routing
+
       // [COUNT-INTEGRITY-1 PATCH ERR-001] Graceful degradation: always load issues even if counts-summary fails
       const results = await Promise.allSettled([
         projectsApi.deoIssuesReadOnly(projectId),
-        projectsApi.canonicalIssueCountsSummary(projectId),
+        projectsApi.canonicalIssueCountsSummary(projectId, Object.keys(summaryFilters).length > 0 ? summaryFilters : undefined),
       ]);
 
       // Handle issues response
@@ -236,7 +254,7 @@ export default function IssuesPage() {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, actionKeyParam, scopeTypeParam]);
 
   const fetchProjectInfo = useCallback(async () => {
     try {
@@ -814,6 +832,19 @@ export default function IssuesPage() {
         ) : (
           <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-6 text-center">
             <div className="text-sm text-gray-500">Issue counts unavailable</div>
+          </div>
+        )}
+
+        {/* [COUNT-INTEGRITY-1.1 PATCH 5] Zero-actionable suppression message */}
+        {countsSummary && effectiveMode === 'actionable' && countsSummary.actionable.actionableNowCount === 0 && (
+          <div
+            className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-center"
+            data-testid="no-eligible-items-message"
+          >
+            <p className="text-sm text-amber-800">No items currently eligible for action.</p>
+            <p className="mt-1 text-xs text-amber-600">
+              Switch to Detected mode to view all detected issues.
+            </p>
           </div>
         )}
 

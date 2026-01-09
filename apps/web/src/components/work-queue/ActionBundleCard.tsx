@@ -107,13 +107,13 @@ export function ActionBundleCard({
 
       {/* Row 3: Scope line */}
       {/* [ASSETS-PAGES-1] Updated to show correct scope type label */}
-      {/* [COUNT-INTEGRITY-1.1 Step 2D] Add "now" to actionable semantics for clarity */}
-      <p className="mt-1 text-sm text-gray-600">
+      {/* [COUNT-INTEGRITY-1.1 PATCH 8] Add "Actionable now" display with test hooks */}
+      <p className="mt-1 text-sm text-gray-600" data-testid="action-bundle-scope">
         {bundle.bundleType === 'ASSET_OPTIMIZATION' ? (
           <>
             {bundle.scopeCount > 0 ? (
               <>
-                <span className="font-medium">
+                <span className="font-medium" data-testid="action-bundle-actionable-now">
                   {bundle.scopeCount} actionable now
                 </span>{' '}
                 affecting {getScopeTypeLabel(bundle.scopeType, bundle.scopeCount)}
@@ -125,14 +125,14 @@ export function ActionBundleCard({
                 )}
               </>
             ) : (
-              <>
+              <span data-testid="action-bundle-informational">
                 <span className="text-gray-500">Informational — no action required</span>
                 {' · '}
                 <span className="font-medium">
                   {bundle.scopeDetectedCount ?? 0} detected issue{(bundle.scopeDetectedCount ?? 0) !== 1 ? 's' : ''}
                 </span>{' '}
                 affecting {getScopeTypeLabel(bundle.scopeType, bundle.scopeDetectedCount ?? 0)}
-              </>
+              </span>
             )}
             {bundle.scopePreviewList.length > 0 && (
               <>
@@ -203,7 +203,7 @@ export function ActionBundleCard({
         )}
 
         {/* AI usage badge */}
-        {/* [COUNT-INTEGRITY-1.1 Step 2D] Clearer AI badge label */}
+        {/* [COUNT-INTEGRITY-1.1 PATCH 8] Trust-building AI badge copy */}
         <span
           className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
             bundle.aiUsage === 'NONE'
@@ -211,16 +211,17 @@ export function ActionBundleCard({
               : 'bg-purple-100 text-purple-700'
           }`}
           title={bundle.aiDisclosureText}
+          data-testid={`action-bundle-ai-badge-${bundle.aiUsage.toLowerCase()}`}
         >
           {bundle.aiUsage === 'NONE' ? (
-            'No AI'
+            'Does not use AI'
           ) : (
             <>
               <svg className="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 110-12 6 6 0 010 12z" />
                 <path d="M10 5a1 1 0 011 1v4.586l2.707 2.707a1 1 0 01-1.414 1.414l-3-3A1 1 0 019 11V6a1 1 0 011-1z" />
               </svg>
-              AI Drafts
+              AI used for drafts only
             </>
           )}
         </span>

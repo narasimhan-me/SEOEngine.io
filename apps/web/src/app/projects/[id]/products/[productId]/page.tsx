@@ -173,6 +173,11 @@ export default function ProductOptimizationPage() {
   const [planId, setPlanId] = useState<string | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
   const [productIssues, setProductIssues] = useState<DeoIssue[]>([]);
+  // [COUNT-INTEGRITY-1.1 PATCH 6] Asset-scoped canonical triplet summary
+  const [productIssuesSummary, setProductIssuesSummary] = useState<{
+    detected: { issueTypesCount: number; affectedItemsCount: number; actionableNowCount: number };
+    actionable: { issueTypesCount: number; affectedItemsCount: number; actionableNowCount: number };
+  } | null>(null);
 
   // Editor states
   const [editorTitle, setEditorTitle] = useState('');
@@ -319,7 +324,14 @@ export default function ProductOptimizationPage() {
         projectsApi.get(projectId),
         projectsApi.integrationStatus(projectId),
         productsApi.list(projectId),
-        projectsApi.deoIssues(projectId).catch(() => ({ issues: [] })),
+        // [COUNT-INTEGRITY-1.1 PATCH 6] Use asset-specific issues endpoint
+        projectsApi.assetIssues(projectId, 'products', productId).catch(() => ({
+          issues: [],
+          summary: {
+            detected: { issueTypesCount: 0, affectedItemsCount: 0, actionableNowCount: 0 },
+            actionable: { issueTypesCount: 0, affectedItemsCount: 0, actionableNowCount: 0 },
+          },
+        })),
         projectsApi.automationSuggestions(projectId).catch(() => ({ suggestions: [] })),
         billingApi.getEntitlements().catch(() => null),
       ]);
@@ -345,11 +357,9 @@ export default function ProductOptimizationPage() {
 
       setProduct(foundProduct);
 
-      // Filter issues to only those affecting this product
-      const issuesForProduct = (issuesResponse.issues ?? []).filter((issue: DeoIssue) =>
-        issue.affectedProducts?.includes(productId)
-      );
-      setProductIssues(issuesForProduct);
+      // [COUNT-INTEGRITY-1.1 PATCH 6] Use asset issues response directly (no client-side filtering)
+      setProductIssues((issuesResponse as any).issues ?? []);
+      setProductIssuesSummary((issuesResponse as any).summary ?? null);
 
       // Find automation suggestion for this product (if any)
       // Prefer unapplied suggestions for the panel
@@ -1327,10 +1337,12 @@ export default function ProductOptimizationPage() {
                     <p className="mb-3 text-xs text-gray-500">
                       Issues are grouped by pillar. Address them in priority order for the best DEO impact.
                     </p>
+                    {/* [COUNT-INTEGRITY-1.1 PATCH 6] Pass asset-scoped triplet summary */}
                     <ProductIssuesPanel
                       productId={productId}
                       projectId={projectId}
                       issues={productIssues}
+                      summary={productIssuesSummary}
                     />
                   </section>
                 )}

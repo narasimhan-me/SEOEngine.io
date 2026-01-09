@@ -225,8 +225,8 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.1.md` ⚠️, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md` |
-| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/web/tests/issue-to-fix-path-1.spec.ts`, `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/count-integrity-1-1.spec.ts` ⚠️ (backend API only), `apps/web/tests/zero-affected-suppression-1.spec.ts` ✅ |
+| **Manual Testing Doc(s)** | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.1.md` ✅, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md` |
+| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/web/tests/issue-to-fix-path-1.spec.ts`, `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/count-integrity-1-1.spec.ts` ✅ (backend API), `apps/web/tests/count-integrity-1-1.ui.spec.ts` ✅ (UI smoke test), `apps/web/tests/zero-affected-suppression-1.spec.ts` ✅ |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | Frontend Team |
@@ -264,11 +264,11 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] COUNT-INTEGRITY-1: Issues page URL contract preserved (actionKey + scopeType + mode + pillar)
 - [ ] COUNT-INTEGRITY-1: Preview list shows issue titles (not asset titles) for ASSET_OPTIMIZATION bundles
 - [ ] COUNT-INTEGRITY-1: scopeCount = actionable issue-group count, scopeDetectedCount = detected issue-group count
-- [ ] COUNT-INTEGRITY-1.1: Backend complete (actionKey filtering, asset endpoint working, all asset types dedup verified via CANON-009 + CANON-010) ✅ **BACKEND COMPLETE (PATCH BATCH 4 + FIXUP)**
-- [ ] COUNT-INTEGRITY-1.1: Canonical triplet endpoints (`/summary`) return triplet counts with all filters working
-- [ ] COUNT-INTEGRITY-1.1: affectedItemsCount accurate for products (verified by CANON-009 with 30 products) and pages/collections (verified by CANON-010 with 30 collections beyond cap-20)
-- [ ] COUNT-INTEGRITY-1.1: **PENDING:** UI displays labeled triplet counts ("Issue types", "Items affected", "Actionable now") — NOT YET IMPLEMENTED
-- [ ] COUNT-INTEGRITY-1.1: **PENDING:** Required single cross-surface UI smoke test (Store Health → Work Queue → Issues → Asset Detail) — DEFERRED WITH UI MIGRATION
+- [x] COUNT-INTEGRITY-1.1: Backend complete (actionKey filtering, asset endpoint working, all asset types dedup verified via CANON-009 + CANON-010) ✅ **BACKEND COMPLETE (PATCH BATCH 4 + FIXUP)**
+- [x] COUNT-INTEGRITY-1.1: Canonical triplet endpoints (`/summary`) return triplet counts with all filters working
+- [x] COUNT-INTEGRITY-1.1: affectedItemsCount accurate for products (verified by CANON-009 with 30 products) and pages/collections (verified by CANON-010 with 30 collections beyond cap-20)
+- [x] COUNT-INTEGRITY-1.1: UI displays labeled triplet counts ("Issue types", "Items affected", "Actionable now") ✅ **GAP 6 COMPLETE (PATCH 5-8)**
+- [x] COUNT-INTEGRITY-1.1: Cross-surface UI smoke test (Store Health → Work Queue → Issues → Product Detail) ✅ **GAP 7 COMPLETE (PATCH 9)**
 
 ---
 
@@ -278,8 +278,8 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/issue-engine-lite.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.1.md` ⚠️ |
-| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/count-integrity-1-1.spec.ts` ⚠️ (backend API only) |
+| **Manual Testing Doc(s)** | `docs/testing/issue-engine-lite.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.1.md` ✅ |
+| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/count-integrity-1-1.spec.ts` ✅ (backend API), `apps/web/tests/count-integrity-1-1.ui.spec.ts` ✅ (UI smoke test) |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | DEO Team |
@@ -302,9 +302,9 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] COUNT-INTEGRITY-1: VIEWER role sees all issues as detected (actionableCount = 0)
 - [ ] COUNT-INTEGRITY-1: Role-based actionability based on canGenerateDrafts OR canRequestApproval OR canApply
 - [ ] COUNT-INTEGRITY-1: issue.isActionableNow determines clickability (not href-based check)
-- [ ] COUNT-INTEGRITY-1.1: Backend canonical triplet endpoints complete (products + pages/collections dedup verified) ✅ **BACKEND COMPLETE (PATCH BATCH 4 + FIXUP)**
-- [ ] COUNT-INTEGRITY-1.1: **PENDING:** Issues Engine displays labeled triplets ("Issue types", "Items affected", "Actionable now") — NOT YET IMPLEMENTED
-- [ ] COUNT-INTEGRITY-1.1: affectedItemsCount accurate for products (Gap 3a resolved, verified by CANON-009) and pages/collections (Gap 3b resolved, verified by CANON-010 with 30 collections beyond cap-20)
+- [x] COUNT-INTEGRITY-1.1: Backend canonical triplet endpoints complete (products + pages/collections dedup verified) ✅ **BACKEND COMPLETE (PATCH BATCH 4 + FIXUP)**
+- [x] COUNT-INTEGRITY-1.1: Issues Engine displays labeled triplets ("Issue types", "Items affected", "Actionable now") ✅ **GAP 6 COMPLETE (PATCH 5)**
+- [x] COUNT-INTEGRITY-1.1: affectedItemsCount accurate for products (Gap 3a resolved, verified by CANON-009) and pages/collections (Gap 3b resolved, verified by CANON-010 with 30 collections beyond cap-20)
 
 ---
 
@@ -788,3 +788,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 5.7 | 2026-01-08 | COUNT-INTEGRITY-1: Updated CP-008 and CP-009 with count integrity scenarios (Work Queue → Issues click integrity, detected vs actionable semantics, role-based actionability, informational issue rendering). Added COUNT-INTEGRITY-1.md manual testing doc and planned count-integrity-1.spec.ts automated tests. |
 | 5.8 | 2026-01-08 | COUNT-INTEGRITY-1 COMPLETE: Implemented all patches (PATCH 6 FIXUP, 7, 9). Created count-integrity-1.spec.ts with 3 smoke tests (click integrity, technical informational, viewer role). Updated Store Health & Work Queue banner terminology. Issues Engine UI corrections (effectiveMode, isClickableIssue semantics, countsSummary for pillar badges, pillar filter alignment). Marked test status as ✅ complete in CP-008 and CP-009. |
 | 5.9 | 2026-01-08 | COUNT-INTEGRITY-1.1 BACKEND COMPLETE: PATCH BATCH 4 + FIXUP resolved Gap 3b (pages/collections dedup beyond cap-20). Updated 7 technical builders to populate full keys (PATCH 4.1), created collections seed with collectionIds (PATCH 4.2-FIXUP-1), added CANON-010 regression test with crawlResult IDs and scopeType=collections filter (PATCH 4.3-FIXUP-1 + FIXUP-2), comprehensive docs sweep (PATCH 4.4-FIXUP-1). Backend verified for all asset types via CANON-009 (products) + CANON-010 (collections). Updated CP-008 and CP-009 with Gap 3b verification. UI migration (Gap 6) + UI smoke test (Gap 7) remain pending. |
+| 6.0 | 2026-01-08 | COUNT-INTEGRITY-1.1 COMPLETE: PATCH 5-10 resolved Gap 6 (UI Migration) and Gap 7 (UI Smoke Test). PATCH 5: Issues Engine filter-aligned canonical summary with TripletDisplay data-testid attributes. PATCH 6: Product detail uses assetIssues endpoint with triplet summary. PATCH 7: Store Health tiles use canonical counts. PATCH 8: Work Queue AI badge trust copy ("Does not use AI", "AI used for drafts only"). PATCH 9: Created count-integrity-1-1.ui.spec.ts with 6 cross-surface UI smoke tests. PATCH 10: Documentation updates. Removed ⚠️ warnings from CP-008 and CP-009, marked all COUNT-INTEGRITY-1.1 scenarios complete. |
