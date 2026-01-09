@@ -361,8 +361,8 @@ function deriveCtas(
   }
 
   // [COUNT-INTEGRITY-1.1 FIX-UP] Strict zero-actionable suppression for ALL bundle types
-  // 0 eligible = no action surfaces (except APPLIED history and GEO_EXPORT).
-  if (bundle.scopeCount === 0 && state !== 'APPLIED' && bundleType !== 'GEO_EXPORT') {
+  // 0 eligible = no action surfaces (except APPLIED history). GEO_EXPORT already handled above.
+  if (bundle.scopeCount === 0 && state !== 'APPLIED') {
     return {
       primaryCta: null,
       secondaryCta: null,
