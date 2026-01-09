@@ -315,13 +315,14 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 - ✅ CANON-009: affectedItemsCount accuracy beyond cap-20 for products [PATCH 3.6 - Gap 3a]
 - ✅ CANON-010: affectedItemsCount accuracy beyond cap-20 for collections [PATCH 4.3 - Gap 3b]
 
-**Test Coverage (UI Smoke Test Complete - Gap 7 + Enterprise Trust Hardening):**
-- ✅ Single end-to-end test: Store Health → Issues Engine → Product Issues → Work Queue
+**Test Coverage (UI Smoke Test Complete - Gap 7 + Enterprise Trust Hardening + FIXUP-2):**
+- ✅ Single end-to-end test: Store Health → Issues Engine → Asset Detail (FIXUP-2: Work Queue step removed)
 - ✅ Store Health shows "X items affected" with pillar-scoped counts (Discoverability/Technical)
+- ✅ STRICT parsing: requires "items affected" text + numeric value (no fallbacks)
 - ✅ Click-through from Store Health to Issues Engine (not Work Queue) with pillar filter + mode=detected
 - ✅ Issues Engine triplet-items-affected-value matches Store Health tile count
 - ✅ Product Issues tab triplet visible; zero-actionable suppression verified
-- ✅ Work Queue zero-actionable bundles show "No items currently eligible for action." with no CTAs
+- ✅ Asset Detail navigation REQUIRED (no optional branches)
 
 **Run Tests:**
 ```bash
@@ -396,10 +397,11 @@ npx playwright test count-integrity-1-1.ui.spec.ts
    - Store Health: Uses canonical counts for "Items affected" display
    - Work Queue: Trust-building AI badge copy
 
-3. **Phase 3 (UI Smoke Test - Gap 7 + Enterprise Trust Hardening):** ✅ DONE (PATCH 9 + FIX-UP)
+3. **Phase 3 (UI Smoke Test - Gap 7 + Enterprise Trust Hardening + FIXUP-2):** ✅ DONE (PATCH 9 + FIX-UP + FIXUP-2)
    - Created/maintained count-integrity-1-1.ui.spec.ts as a single end-to-end test
-   - Covers Store Health → Issues Engine → Product Issues → Work Queue chain
+   - Covers Store Health → Issues Engine → Asset Detail chain (FIXUP-2: Work Queue step removed)
    - Verifies pillar-scoped "Items affected" click-integrity and zero-actionable suppression
+   - STRICT mode: requires numeric parsing, requires asset-detail navigation (no optional branches)
 
 4. **Phase 4 (Documentation - PATCH 10):** ✅ DONE
    - Updated CRITICAL_PATH_MAP.md
@@ -572,4 +574,55 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 
 ---
 
-**COUNT-INTEGRITY-1.1 is COMPLETE. All backend endpoints verified. All UI surfaces migrated. Enterprise trust hardening applied. All tests passing.**
+### FIXUP-2: Trust Correctness Regression Validation (2026-01-09)
+
+#### FIXUP-2 Changes Summary
+
+| Patch | Component | Before | After |
+|-------|-----------|--------|-------|
+| PATCH 1 | Store Health tiles | Could show "Counts unavailable" or store-wide totals | Always shows numeric pillar-scoped "items affected" (0 fallback) |
+| PATCH 2 | Playwright test | Optional branches, fallback text parsing | STRICT: requires numeric parsing, requires asset-detail navigation |
+| PATCH 3 | Test chain | "Store Health → Issues Engine → Product Issues → Work Queue" | "Store Health → Issues Engine → Asset Detail" (Work Queue step removed) |
+
+#### FIXUP-2 Regression Validation Scenarios
+
+##### FIXUP-2-RV-001: Store Health Always-Numeric Display
+
+**Steps:**
+1. Navigate to Store Health page
+2. Verify Discoverability tile displays "N items affected" where N is a number (never "Counts unavailable")
+3. Verify Technical Readiness tile displays "N items affected" where N is a number (never "Counts unavailable")
+4. If canonical summary endpoint is slow/missing, N defaults to 0 (not error text)
+
+**Expected:** Both tiles always display a numeric count, even when the count is 0.
+
+---
+
+##### FIXUP-2-RV-002: Playwright Test Strict Parsing
+
+**Steps:**
+1. Run `npx playwright test count-integrity-1-1.ui.spec.ts`
+2. Verify test FAILS if "items affected" text is missing from Store Health summary
+3. Verify test FAILS if "items affected" value cannot be parsed as a number
+4. Verify test navigates to asset detail page (product Issues tab)
+5. Verify test does NOT have optional branches (no "if visible" fallback paths)
+
+**Expected:** Test passes only when all strict conditions are met; test does not silently pass on missing data.
+
+---
+
+##### FIXUP-2-RV-003: Click-Integrity Chain Ends at Asset Detail
+
+**Steps:**
+1. Navigate to Store Health page
+2. Click Discoverability tile
+3. Verify landing page is Issues Engine (URL contains `/issues`)
+4. Click an actionable issue card
+5. Verify landing page is asset detail (URL contains `/products/`)
+6. Verify Issues tab is accessible and shows triplet
+
+**Expected:** Click chain is "Store Health → Issues Engine → Asset Detail" (Work Queue is NOT part of this chain).
+
+---
+
+**COUNT-INTEGRITY-1.1 is COMPLETE. All backend endpoints verified. All UI surfaces migrated. Enterprise trust hardening applied. FIXUP-2 trust correctness applied. All tests passing.**

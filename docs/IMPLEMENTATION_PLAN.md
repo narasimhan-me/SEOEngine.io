@@ -681,6 +681,12 @@ COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCou
 - ✅ **FIX-UP PATCH 6:** Trust-routing test updated (Content Quality card, not Discoverability)
 - ✅ **FIX-UP PATCH 7:** Documentation updates (this section)
 
+#### FIXUP-2: Trust Correctness (2026-01-09)
+
+- ✅ **FIXUP-2 PATCH 1:** Store Health Discoverability/Technical tiles always display numeric pillar-scoped "items affected" (0 fallback; never "Counts unavailable", never store-wide totals)
+- ✅ **FIXUP-2 PATCH 2:** Playwright smoke test is STRICT: requires "items affected" parsing, requires asset-detail navigation (no optional branches), removed Work Queue step
+- ✅ **FIXUP-2 PATCH 3:** Documentation updates (this section)
+
 #### All Gaps Resolved
 
 - ✅ **Gap 3a:** Product-based issues populate full keys (verified by CANON-009)
@@ -889,3 +895,4 @@ These invariants MUST be preserved during implementation:
 | 6.3 | 2026-01-09 | **COUNT-INTEGRITY-1.1 VERIFICATION COMPLETE (NO-OP)**: Verified all audit fix items implemented: (1) page.tsx passes severity to canonicalIssueCountsSummary when severityFilter !== 'all', fetchIssues re-runs on severityFilter changes, hasActionableIssues/hasDetectedIssues are pillar-aware with byPillar + issues-list fallbacks; (2) IMPLEMENTATION_PLAN.md structure correct with COUNT-INTEGRITY-1.1 under Trust Hardening completed phases, "In Progress" contains only "*None at this time.*", Document History includes 6.2 audit-fix entry. No additional patches required. |
 | 6.4 | 2026-01-09 | **COUNT-INTEGRITY-1.1 ENTERPRISE TRUST HARDENING FIX-UP**: Store Health pillar-scoped affectedItemsCount + Issues Engine routing (not Work Queue), Work Queue strict zero-actionable suppression across ALL bundle types, Product Issues tab triplet always visible + neutral message reachable, single Playwright UI smoke test replacing prior multi-test suite. Locked semantics: Store Health Discoverability/Technical tiles display pillar-scoped "Items affected" and route to Issues Engine (mode=detected); Work Queue is "actionable now" scoped; zero-actionable shows "No items currently eligible for action." with no CTAs. |
 | 6.5 | 2026-01-09 | **COUNT-INTEGRITY-1.1 POST-AUDIT COMPLIANCE**: (1) Merged 2 UI tests into exactly 1 end-to-end Playwright test per "single smoke test" requirement; (2) Marked COUNT-INTEGRITY-1 as ⚠️ SUPERSEDED/PARTIAL (Store Health clickthrough semantics superseded; Work Queue click-integrity remains valid); (3) Updated UI test count from "2 tests" to "1 test" in documentation. |
+| 6.6 | 2026-01-09 | **COUNT-INTEGRITY-1.1 FIXUP-2 (Trust Correctness)**: (1) Store Health Discoverability/Technical tiles always show numeric pillar-scoped "items affected" (0 fallback; never "Counts unavailable"); (2) Playwright smoke test STRICT mode (requires numeric parsing, requires asset-detail navigation, no optional branches); (3) Removed Work Queue step from UI test (Issues Engine is now the click destination from Store Health, not Work Queue). |
