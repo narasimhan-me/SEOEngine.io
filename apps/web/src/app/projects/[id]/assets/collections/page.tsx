@@ -1,20 +1,30 @@
 'use client';
 
 import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
-import { projectsApi } from '@/lib/api';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import Link from 'next/link';
+import { projectsApi, type RoleCapabilities } from '@/lib/api';
 import { buildWorkQueueUrl } from '@/lib/work-queue';
 import { ListControls } from '@/components/common/ListControls';
+import { RowStatusChip } from '@/components/common/RowStatusChip';
+import {
+  resolveRowNextAction,
+  buildAssetIssuesHref,
+  buildReviewDraftsHref,
+  type ResolvedRowNextAction,
+  type NavigationContext,
+} from '@/lib/list-actions-clarity';
 import type { WorkQueueRecommendedActionKey } from '@/lib/work-queue';
 
 /**
- * [ASSETS-PAGES-1] [LIST-SEARCH-FILTER-1.1] Collections Asset List
+ * [ASSETS-PAGES-1] [LIST-SEARCH-FILTER-1.1] [LIST-ACTIONS-CLARITY-1] Collections Asset List
  *
  * Displays Shopify collections (/collections/*) with health status and recommended actions.
  * Decision-first UX: one health pill, one action label per row.
  * Bulk actions route to Playbooks.
  *
  * [LIST-SEARCH-FILTER-1.1] Integrated ListControls for search/filter with URL state.
+ * [LIST-ACTIONS-CLARITY-1] Uses shared RowStatusChip and resolveRowNextAction.
  */
 
 interface CollectionAsset {
@@ -29,6 +39,10 @@ interface CollectionAsset {
   health: 'Healthy' | 'Needs Attention' | 'Critical';
   recommendedActionKey: WorkQueueRecommendedActionKey | null;
   recommendedActionLabel: string | null;
+  /** [LIST-ACTIONS-CLARITY-1] Server-derived draft pending flag */
+  hasDraftPendingApply: boolean;
+  /** [LIST-ACTIONS-CLARITY-1] Count of actionable issues */
+  actionableNowCount: number;
 }
 
 export default function CollectionsAssetListPage() {
@@ -42,6 +56,9 @@ export default function CollectionsAssetListPage() {
   const [error, setError] = useState<string | null>(null);
   const [collections, setCollections] = useState<CollectionAsset[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Role capabilities state
+  const [capabilities, setCapabilities] = useState<RoleCapabilities | null>(null);
 
   // Get filter from URL (from Work Queue click-through)
   const actionKeyFilter = searchParams.get('actionKey') as WorkQueueRecommendedActionKey | null;
@@ -69,29 +86,33 @@ export default function CollectionsAssetListPage() {
       // Transform to CollectionAssets with health/actions
       const collectionAssets: CollectionAsset[] = crawlPages
         .filter((p: { pageType: string }) => p.pageType === 'collection')
-        .map((p: { id: string; url: string; path: string; title: string | null; metaDescription: string | null; statusCode: number | null; wordCount: number | null; scannedAt: string }) => {
+        .map((p: { id: string; url: string; path: string; title: string | null; metaDescription: string | null; statusCode: number | null; wordCount: number | null; scannedAt: string; hasDraftPendingApply?: boolean }) => {
           // Derive health and action from collection state
           let health: 'Healthy' | 'Needs Attention' | 'Critical' = 'Healthy';
           let recommendedActionKey: WorkQueueRecommendedActionKey | null = null;
           let recommendedActionLabel: string | null = null;
+          let actionableNowCount = 0;
 
           // Missing metadata = Critical
           if (!p.title || !p.metaDescription) {
             health = 'Critical';
             recommendedActionKey = 'FIX_MISSING_METADATA';
             recommendedActionLabel = 'Fix missing metadata';
+            actionableNowCount++;
           }
           // Technical issues (4xx/5xx status) = Critical
           else if (p.statusCode && p.statusCode >= 400) {
             health = 'Critical';
             recommendedActionKey = 'RESOLVE_TECHNICAL_ISSUES';
             recommendedActionLabel = 'Resolve technical issues';
+            actionableNowCount++;
           }
           // Thin content = Needs Attention
           else if (p.wordCount !== null && p.wordCount < 300) {
             health = 'Needs Attention';
             recommendedActionKey = 'OPTIMIZE_CONTENT';
             recommendedActionLabel = 'Optimize content';
+            actionableNowCount++;
           }
 
           return {
@@ -106,6 +127,9 @@ export default function CollectionsAssetListPage() {
             health,
             recommendedActionKey,
             recommendedActionLabel,
+            // [LIST-ACTIONS-CLARITY-1] Include server-derived draft flag
+            hasDraftPendingApply: p.hasDraftPendingApply ?? false,
+            actionableNowCount,
           };
         });
 
@@ -123,9 +147,31 @@ export default function CollectionsAssetListPage() {
     }
   }, [projectId, actionKeyFilter, filterQ, filterStatus, filterHasDraft]);
 
+  // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Fetch user role capabilities
+  const fetchCapabilities = useCallback(async () => {
+    try {
+      const roleResponse = await projectsApi.getUserRole(projectId);
+      setCapabilities(roleResponse.capabilities);
+    } catch (err) {
+      console.error('Error fetching role:', err);
+      // Default to permissive if fetch fails
+      setCapabilities({
+        canView: true,
+        canGenerateDrafts: true,
+        canRequestApproval: true,
+        canApprove: true,
+        canApply: true,
+        canModifySettings: true,
+        canManageMembers: true,
+        canExport: true,
+      });
+    }
+  }, [projectId]);
+
   useEffect(() => {
     fetchCollections();
-  }, [fetchCollections]);
+    fetchCapabilities();
+  }, [fetchCollections, fetchCapabilities]);
 
   const handleSelectAll = () => {
     if (selectedIds.size === collections.length) {
@@ -162,6 +208,39 @@ export default function CollectionsAssetListPage() {
     const qs = params.toString();
     router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
   }, [router, pathname, searchParams]);
+
+  // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Compute resolved row actions for each collection
+  // Uses real capabilities instead of hardcoded values
+  const resolvedActionsById = useMemo(() => {
+    const map = new Map<string, ResolvedRowNextAction>();
+
+    // Build navigation context for returnTo propagation
+    const currentPathWithQuery = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    const navContext: NavigationContext = {
+      returnTo: currentPathWithQuery,
+      returnLabel: 'Collections',
+    };
+
+    for (const collection of collections) {
+      // For Collections, "View issues" links to Issues Engine filtered by this asset
+      const openHref = buildAssetIssuesHref(projectId, 'collections', collection.id, navContext);
+
+      const resolved = resolveRowNextAction({
+        assetType: 'collections',
+        hasDraftPendingApply: collection.hasDraftPendingApply,
+        actionableNowCount: collection.actionableNowCount,
+        canApply: capabilities?.canApply ?? true,
+        canRequestApproval: capabilities?.canRequestApproval ?? false,
+        fixNextHref: null, // Collections don't have deterministic "Fix next"
+        openHref,
+        reviewDraftsHref: buildReviewDraftsHref(projectId, 'collections', navContext),
+      });
+
+      map.set(collection.id, resolved);
+    }
+
+    return map;
+  }, [collections, projectId, capabilities, pathname, searchParams]);
 
   const getHealthStyles = (health: string): string => {
     switch (health) {
@@ -303,48 +382,66 @@ export default function CollectionsAssetListPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {collections.map((collection) => (
-                  <tr key={collection.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(collection.id)}
-                        onChange={() => handleSelectOne(collection.id)}
-                        className="h-4 w-4 rounded border-gray-300"
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getHealthStyles(collection.health)}`}
-                      >
-                        {collection.health}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">
-                        {getCollectionHandle(collection.path)}
-                      </code>
-                    </td>
-                    <td className="max-w-xs truncate px-4 py-3 text-sm text-gray-900">
-                      {collection.title || <span className="italic text-gray-400">No title</span>}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {collection.recommendedActionLabel ? (
-                        <button
-                          onClick={() => router.push(buildWorkQueueUrl(projectId, {
-                            actionKey: collection.recommendedActionKey!,
-                            scopeType: 'COLLECTIONS',
-                          }))}
-                          className="font-medium text-blue-600 hover:text-blue-800"
-                        >
-                          {collection.recommendedActionLabel}
-                        </button>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {collections.map((collection) => {
+                  const resolved = resolvedActionsById.get(collection.id);
+                  return (
+                    <tr key={collection.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(collection.id)}
+                          onChange={() => handleSelectOne(collection.id)}
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        {/* [LIST-ACTIONS-CLARITY-1] Use RowStatusChip */}
+                        {resolved?.chipLabel ? (
+                          <RowStatusChip chipLabel={resolved.chipLabel} />
+                        ) : (
+                          <span
+                            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getHealthStyles(collection.health)}`}
+                          >
+                            {collection.health}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">
+                          {getCollectionHandle(collection.path)}
+                        </code>
+                      </td>
+                      <td className="max-w-xs truncate px-4 py-3 text-sm text-gray-900">
+                        {collection.title || <span className="italic text-gray-400">No title</span>}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {/* [LIST-ACTIONS-CLARITY-1] Use resolved actions */}
+                        {resolved?.primaryAction ? (
+                          <Link
+                            href={resolved.primaryAction.href}
+                            className="font-medium text-blue-600 hover:text-blue-800"
+                            data-testid="row-primary-action"
+                          >
+                            {resolved.primaryAction.label}
+                          </Link>
+                        ) : resolved?.helpText ? (
+                          <span className="text-gray-500" data-testid="row-help-text">{resolved.helpText}</span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                        {resolved?.secondaryAction && (
+                          <Link
+                            href={resolved.secondaryAction.href}
+                            className="ml-3 text-gray-600 hover:text-gray-800"
+                            data-testid="row-secondary-action"
+                          >
+                            {resolved.secondaryAction.label}
+                          </Link>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

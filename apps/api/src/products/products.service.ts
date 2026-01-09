@@ -44,6 +44,7 @@ export class ProductsService {
    * Get all products for a project (with membership validation)
    * [ROLES-3] Any ProjectMember can view products
    * [LIST-SEARCH-FILTER-1] Server-authoritative filtering support
+   * [LIST-ACTIONS-CLARITY-1] Always returns hasDraftPendingApply for each product
    */
   async getProductsForProject(
     projectId: string,
@@ -73,6 +74,9 @@ export class ProductsService {
       },
     });
 
+    // [LIST-ACTIONS-CLARITY-1] Always compute pending draft set for hasDraftPendingApply field
+    const productIdsWithDrafts = await this.getProductIdsWithPendingDrafts(projectId);
+
     // [LIST-SEARCH-FILTER-1] Apply filters in memory for complex conditions
     if (filters) {
       // Search filter: case-insensitive match across title and handle
@@ -99,12 +103,15 @@ export class ProductsService {
 
       // Has draft filter: products in non-applied drafts
       if (filters.hasDraft) {
-        const productIdsWithDrafts = await this.getProductIdsWithPendingDrafts(projectId);
         products = products.filter((p) => productIdsWithDrafts.has(p.id));
       }
     }
 
-    return products;
+    // [LIST-ACTIONS-CLARITY-1] Add hasDraftPendingApply to each product
+    return products.map((p) => ({
+      ...p,
+      hasDraftPendingApply: productIdsWithDrafts.has(p.id),
+    }));
   }
 
   /**

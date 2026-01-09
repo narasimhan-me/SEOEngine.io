@@ -6,6 +6,8 @@ import type { DeoPillarId } from '@/lib/deo-pillars';
 import type { Product } from '@/lib/products';
 import type { HealthState } from './ProductTable';
 import { ProductDetailPanel } from './ProductDetailPanel';
+import { RowStatusChip } from '@/components/common/RowStatusChip';
+import type { RowChipLabel, RowAction } from '@/lib/list-actions-clarity';
 
 /**
  * Issue summary by pillar for display in expanded details
@@ -29,6 +31,14 @@ interface ProductRowProps {
   onSyncProject: () => void;
   isSyncing: boolean;
   isScanning: boolean;
+  /** [LIST-ACTIONS-CLARITY-1] Row chip label from resolver */
+  chipLabel?: RowChipLabel;
+  /** [LIST-ACTIONS-CLARITY-1] Primary action from resolver */
+  primaryAction?: RowAction | null;
+  /** [LIST-ACTIONS-CLARITY-1] Secondary action from resolver */
+  secondaryAction?: RowAction | null;
+  /** [LIST-ACTIONS-CLARITY-1] Help text for optimized state */
+  helpText?: string;
 }
 
 export function ProductRow({
@@ -42,6 +52,10 @@ export function ProductRow({
   onToggle,
   onScan,
   isScanning,
+  chipLabel,
+  primaryAction,
+  secondaryAction,
+  helpText,
 }: ProductRowProps) {
   const workspacePath = `/projects/${projectId}/products/${product.id}`;
 
@@ -129,13 +143,18 @@ export function ProductRow({
           </div>
         </div>
 
-        {/* Middle section - Health pill (visible on all sizes) */}
+        {/* Middle section - Status chip (visible on all sizes) */}
         <div className="flex items-center gap-3 sm:justify-center">
-          <span
-            className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${healthPillClasses[healthState]}`}
-          >
-            {healthState}
-          </span>
+          {/* [LIST-ACTIONS-CLARITY-1] Use RowStatusChip if chipLabel provided, else fall back to legacy */}
+          {chipLabel ? (
+            <RowStatusChip chipLabel={chipLabel} />
+          ) : (
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${healthPillClasses[healthState]}`}
+            >
+              {healthState}
+            </span>
+          )}
         </div>
 
         {/* Right section - Actions */}
@@ -195,15 +214,45 @@ export function ProductRow({
             </button>
           )}
 
-          {/* View details button - primary action */}
-          <Link
-            href={workspacePath}
-            onClick={handleButtonClick}
-            className="inline-flex items-center rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800"
-            data-no-row-click
-          >
-            View details
-          </Link>
+          {/* [LIST-ACTIONS-CLARITY-1] Primary action button */}
+          {primaryAction ? (
+            <Link
+              href={primaryAction.href}
+              onClick={handleButtonClick}
+              className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+              data-no-row-click
+              data-testid="row-primary-action"
+            >
+              {primaryAction.label}
+            </Link>
+          ) : helpText ? (
+            <span className="text-xs text-gray-500" data-testid="row-help-text">{helpText}</span>
+          ) : null}
+
+          {/* [LIST-ACTIONS-CLARITY-1] Secondary action (Open) */}
+          {secondaryAction && (
+            <Link
+              href={secondaryAction.href}
+              onClick={handleButtonClick}
+              className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+              data-no-row-click
+              data-testid="row-secondary-action"
+            >
+              {secondaryAction.label}
+            </Link>
+          )}
+
+          {/* Fallback View details if no resolved actions (backward compatibility) */}
+          {!primaryAction && !secondaryAction && !helpText && (
+            <Link
+              href={workspacePath}
+              onClick={handleButtonClick}
+              className="inline-flex items-center rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800"
+              data-no-row-click
+            >
+              View details
+            </Link>
+          )}
 
           {/* Expand indicator */}
           <div className="flex h-8 w-8 items-center justify-center text-gray-400">

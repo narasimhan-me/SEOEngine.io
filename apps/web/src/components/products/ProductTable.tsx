@@ -13,6 +13,14 @@ import {
   type AutomationPlaybookEstimate,
   type AutomationPlaybookApplyResult,
 } from '@/lib/api';
+import {
+  resolveRowNextAction,
+  buildProductWorkspaceHref,
+  buildReviewDraftsHref,
+  type ResolvedRowNextAction,
+  type NavigationContext,
+} from '@/lib/list-actions-clarity';
+import { buildIssueFixHref } from '@/lib/issue-to-fix-path';
 
 /** Health states for the new decision-first UI */
 export type HealthState = 'Healthy' | 'Needs Attention' | 'Critical';
@@ -187,6 +195,12 @@ interface ProductTableProps {
   scanningId: string | null;
   productIssues?: DeoIssue[];
   isDeoDataStale?: boolean;
+  /** [LIST-ACTIONS-CLARITY-1 FIXUP-1] Viewer can apply (OWNER-only) */
+  canApply?: boolean;
+  /** [LIST-ACTIONS-CLARITY-1 FIXUP-1] Viewer can request approval (OWNER/EDITOR) */
+  canRequestApproval?: boolean;
+  /** [LIST-ACTIONS-CLARITY-1 FIXUP-1] Current page path with query for returnTo */
+  currentListPathWithQuery?: string;
 }
 
 export function ProductTable({
@@ -198,6 +212,9 @@ export function ProductTable({
   scanningId,
   productIssues,
   isDeoDataStale = false,
+  canApply = true,
+  canRequestApproval = false,
+  currentListPathWithQuery,
 }: ProductTableProps) {
   const router = useRouter();
   const [healthFilter, setHealthFilter] = useState<HealthFilter>('All');
@@ -337,6 +354,88 @@ export function ProductTable({
 
   // Count products needing attention for Command Bar
   const needsAttentionCount = healthCounts['Needs Attention'] + healthCounts['Critical'];
+
+  // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Compute resolved row actions for each product
+  // Uses buildIssueFixHref for deterministic issue→fix routing
+  const resolvedActionsById = useMemo(() => {
+    const map = new Map<string, ResolvedRowNextAction>();
+
+    // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Build navigation context for returnTo propagation
+    const navContext: NavigationContext = {
+      returnTo: currentListPathWithQuery || `/projects/${projectId}/products`,
+      returnLabel: 'Products',
+    };
+
+    for (const product of products) {
+      const issueData = issuesByProductId.get(product.id);
+      const issues = issueData?.issues ?? [];
+      const hasDraftPendingApply = product.hasDraftPendingApply ?? false;
+
+      // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Count only issues where:
+      // 1. buildIssueFixHref returns non-null (has actionable fix destination)
+      // Sort to get deterministic "next issue" (severity critical > warning > info, then pillar priority)
+      const severityOrder: Record<string, number> = { critical: 0, warning: 1, info: 2 };
+      const actionableIssues = issues
+        .filter((issue) => {
+          const fixHref = buildIssueFixHref({
+            projectId,
+            issue,
+            primaryProductId: product.id,
+            from: 'products',
+            returnTo: navContext.returnTo,
+            returnLabel: navContext.returnLabel,
+          });
+          return fixHref !== null;
+        })
+        .sort((a, b) => {
+          // Severity first (critical > warning > info)
+          const sevA = severityOrder[a.severity] ?? 3;
+          const sevB = severityOrder[b.severity] ?? 3;
+          if (sevA !== sevB) return sevA - sevB;
+
+          // Pillar priority second
+          const pillarA = PILLAR_PRIORITY.indexOf(a.pillarId as DeoPillarId);
+          const pillarB = PILLAR_PRIORITY.indexOf(b.pillarId as DeoPillarId);
+          const priorityA = pillarA === -1 ? 999 : pillarA;
+          const priorityB = pillarB === -1 ? 999 : pillarB;
+          if (priorityA !== priorityB) return priorityA - priorityB;
+
+          // Stable fallback: issue ID
+          return a.id.localeCompare(b.id);
+        });
+
+      const actionableNowCount = actionableIssues.length;
+
+      // Deterministic "Fix next" links to the top actionable issue's fix destination
+      let fixNextHref: string | null = null;
+      if (actionableIssues.length > 0) {
+        const nextIssue = actionableIssues[0];
+        fixNextHref = buildIssueFixHref({
+          projectId,
+          issue: nextIssue,
+          primaryProductId: product.id,
+          from: 'products',
+          returnTo: navContext.returnTo,
+          returnLabel: navContext.returnLabel,
+        });
+      }
+
+      const resolved = resolveRowNextAction({
+        assetType: 'products',
+        hasDraftPendingApply,
+        actionableNowCount,
+        canApply,
+        canRequestApproval,
+        fixNextHref,
+        openHref: buildProductWorkspaceHref(projectId, product.id, navContext),
+        reviewDraftsHref: buildReviewDraftsHref(projectId, 'products', navContext),
+      });
+
+      map.set(product.id, resolved);
+    }
+
+    return map;
+  }, [products, issuesByProductId, projectId, canApply, canRequestApproval, currentListPathWithQuery]);
 
   // Compute bulk action eligibility: products with "Fix missing metadata" action
   const bulkMetadataEligible = useMemo(() => {
@@ -973,6 +1072,7 @@ export function ProductTable({
           {displayProducts.map((product) => {
             const isExpanded = expandedProductId === product.id;
             const productIssueData = issuesByProductId.get(product.id);
+            const resolvedActions = resolvedActionsById.get(product.id);
 
             return (
               <ProductRow
@@ -989,6 +1089,11 @@ export function ProductTable({
                 onSyncProject={onSyncProducts}
                 isSyncing={syncing}
                 isScanning={scanningId === product.id}
+                // [LIST-ACTIONS-CLARITY-1] Pass resolved chip/actions
+                chipLabel={resolvedActions?.chipLabel}
+                primaryAction={resolvedActions?.primaryAction}
+                secondaryAction={resolvedActions?.secondaryAction}
+                helpText={resolvedActions?.helpText}
               />
             );
           })}

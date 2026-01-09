@@ -479,6 +479,7 @@ export class ProjectsService {
   /**
    * [ROLES-3] [LIST-SEARCH-FILTER-1.1] Get non-product crawl pages for content optimization (membership check)
    * Supports filtering by q, status, hasDraft, pageType
+   * [LIST-ACTIONS-CLARITY-1] Always returns hasDraftPendingApply for each page
    */
   async getCrawlPages(projectId: string, userId: string, filters?: CrawlPageListFilters) {
     // Validate project access
@@ -574,11 +575,8 @@ export class ProjectsService {
       return titleOk && descOk ? 'optimized' : 'needs_attention';
     };
 
-    // [LIST-SEARCH-FILTER-1.1] Get crawl page IDs with pending drafts if hasDraft filter is active
-    let crawlPageIdsWithDrafts: Set<string> | null = null;
-    if (filters?.hasDraft) {
-      crawlPageIdsWithDrafts = await this.getCrawlPageIdsWithPendingDrafts(projectId);
-    }
+    // [LIST-ACTIONS-CLARITY-1] Always compute pending draft set for hasDraftPendingApply field
+    const crawlPageIdsWithDrafts = await this.getCrawlPageIdsWithPendingDrafts(projectId);
 
     // Filter out product URLs, deduplicate by URL (keep most recent), and transform results
     // Since results are ordered by scannedAt desc, first occurrence of each URL is the most recent
@@ -625,6 +623,8 @@ export class ProjectsService {
           loadTimeMs: result.loadTimeMs,
           issues: result.issues as string[],
           scannedAt: result.scannedAt.toISOString(),
+          // [LIST-ACTIONS-CLARITY-1] Add hasDraftPendingApply
+          hasDraftPendingApply: crawlPageIdsWithDrafts.has(result.id),
         };
       });
 
@@ -651,8 +651,8 @@ export class ProjectsService {
       }
 
       // Filter by hasDraft
-      if (filters.hasDraft && crawlPageIdsWithDrafts) {
-        contentPages = contentPages.filter(page => crawlPageIdsWithDrafts!.has(page.id));
+      if (filters.hasDraft) {
+        contentPages = contentPages.filter(page => page.hasDraftPendingApply);
       }
     }
 

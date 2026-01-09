@@ -103,6 +103,10 @@ export default function IssuesPage() {
   }, [searchParams]);
   const scopeTypeParam = searchParams.get('scopeType') as 'PRODUCTS' | 'PAGES' | 'COLLECTIONS' | 'STORE_WIDE' | null;
 
+  // [LIST-ACTIONS-CLARITY-1] Read asset filter params for asset-specific issue views
+  const assetTypeParam = searchParams.get('assetType') as 'products' | 'pages' | 'collections' | null;
+  const assetIdParam = searchParams.get('assetId');
+
   // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] effectiveMode will be computed after countsSummary state is available
 
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Read and validate returnTo context from URL
@@ -142,7 +146,8 @@ export default function IssuesPage() {
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all');
   // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Don't auto-apply pillar param when click-integrity filters present
   // [COUNT-INTEGRITY-1.1 UI HARDEN] Include actionKeys in filter detection
-  const hasClickIntegrityFilters = !!(actionKeyParam || (actionKeysParam && actionKeysParam.length > 0) || scopeTypeParam);
+  // [LIST-ACTIONS-CLARITY-1] Include assetType/assetId in filter detection
+  const hasClickIntegrityFilters = !!(actionKeyParam || (actionKeysParam && actionKeysParam.length > 0) || scopeTypeParam || assetTypeParam || assetIdParam);
   const [pillarFilter, setPillarFilter] = useState<PillarFilter>(
     hasClickIntegrityFilters ? 'all' : (pillarParam ?? 'all')
   );
@@ -261,27 +266,46 @@ export default function IssuesPage() {
         summaryFilters.severity = severityFilter;
       }
 
-      // [COUNT-INTEGRITY-1 PATCH ERR-001] Graceful degradation: always load issues even if counts-summary fails
-      const results = await Promise.allSettled([
-        projectsApi.deoIssuesReadOnly(projectId),
-        projectsApi.canonicalIssueCountsSummary(projectId, Object.keys(summaryFilters).length > 0 ? summaryFilters : undefined),
-      ]);
-
-      // Handle issues response
-      if (results[0].status === 'fulfilled') {
-        setIssues(results[0].value.issues ?? []);
+      // [LIST-ACTIONS-CLARITY-1 FIXUP-1] True per-asset filtering using assetIssues API
+      // When assetType + assetId are provided, use the dedicated endpoint for precise filtering
+      if (assetTypeParam && assetIdParam) {
+        const assetIssuesResult = await projectsApi.assetIssues(
+          projectId,
+          assetTypeParam,
+          assetIdParam,
+          severityFilter !== 'all' ? { severity: severityFilter } : undefined,
+        );
+        // assetIssues returns { issues: DeoIssue[], summary?: CanonicalIssueCountsSummary }
+        setIssues(assetIssuesResult.issues ?? []);
+        if (assetIssuesResult.summary) {
+          setCountsSummary(assetIssuesResult.summary);
+        } else {
+          setCountsSummary(null);
+        }
       } else {
-        console.error('Error fetching issues:', results[0].reason);
-        setError(results[0].reason instanceof Error ? results[0].reason.message : 'Failed to load issues');
-      }
+        // Standard fetch: all project issues with optional summary filters
+        // [COUNT-INTEGRITY-1 PATCH ERR-001] Graceful degradation: always load issues even if counts-summary fails
+        const results = await Promise.allSettled([
+          projectsApi.deoIssuesReadOnly(projectId),
+          projectsApi.canonicalIssueCountsSummary(projectId, Object.keys(summaryFilters).length > 0 ? summaryFilters : undefined),
+        ]);
 
-      // Handle counts-summary response (non-blocking)
-      if (results[1].status === 'fulfilled') {
-        setCountsSummary(results[1].value);
-      } else {
-        console.warn('Counts summary unavailable:', results[1].reason);
-        setCountsSummary(null);
-        setCountsSummaryWarning('Issue counts unavailable. Displaying issues list without summary statistics.');
+        // Handle issues response
+        if (results[0].status === 'fulfilled') {
+          setIssues(results[0].value.issues ?? []);
+        } else {
+          console.error('Error fetching issues:', results[0].reason);
+          setError(results[0].reason instanceof Error ? results[0].reason.message : 'Failed to load issues');
+        }
+
+        // Handle counts-summary response (non-blocking)
+        if (results[1].status === 'fulfilled') {
+          setCountsSummary(results[1].value);
+        } else {
+          console.warn('Counts summary unavailable:', results[1].reason);
+          setCountsSummary(null);
+          setCountsSummaryWarning('Issue counts unavailable. Displaying issues list without summary statistics.');
+        }
       }
     } catch (err: unknown) {
       console.error('Unexpected error fetching issues:', err);
@@ -290,7 +314,8 @@ export default function IssuesPage() {
       setLoading(false);
     }
   // [COUNT-INTEGRITY-1.1 AUDIT FIX] Include severityFilter to refresh summary when severity changes
-  }, [projectId, actionKeyParam, actionKeysParam, scopeTypeParam, severityFilter]);
+  // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Include assetTypeParam/assetIdParam for per-asset fetching
+  }, [projectId, actionKeyParam, actionKeysParam, scopeTypeParam, severityFilter, assetTypeParam, assetIdParam]);
 
   const fetchProjectInfo = useCallback(async () => {
     try {
@@ -433,6 +458,12 @@ export default function IssuesPage() {
       }
     }
     // Note: STORE_WIDE shows all issues (no filter needed)
+
+    // 3b. [LIST-ACTIONS-CLARITY-1 FIXUP-1] Asset-specific filter (assetType + assetId)
+    // NOTE: When assetTypeParam + assetIdParam are present, issues are already filtered server-side
+    // via projectsApi.assetIssues(). This client-side filter is kept as a fallback guard.
+    // It will only match issues that were already fetched for this specific asset.
+    // No additional client-side filtering needed - issues array is already asset-specific.
 
     // 4. Severity filter (existing UI filter)
     if (severityFilter !== 'all' && issue.severity !== severityFilter) {
@@ -928,15 +959,28 @@ export default function IssuesPage() {
 
       {/* [COUNT-INTEGRITY-1 PATCH 6] Click-integrity filter context banner */}
       {/* [COUNT-INTEGRITY-1.1 UI HARDEN] Include actionKeys in banner display */}
-      {(actionKeyParam || (actionKeysParam && actionKeysParam.length > 0) || scopeTypeParam) && (
+      {/* [LIST-ACTIONS-CLARITY-1] Include assetType/assetId in banner display */}
+      {(actionKeyParam || (actionKeysParam && actionKeysParam.length > 0) || scopeTypeParam || assetTypeParam) && (
         <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4" data-testid="filter-context-banner">
           <div className="flex items-start gap-3">
             <svg className="h-5 w-5 flex-shrink-0 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div className="flex-1">
-              <h3 className="text-sm font-semibold text-blue-900">Filtered from Work Queue</h3>
+              <h3 className="text-sm font-semibold text-blue-900">
+                {assetTypeParam ? 'Filtered by Asset' : 'Filtered from Work Queue'}
+              </h3>
               <div className="mt-1 text-sm text-blue-800">
+                {/* [LIST-ACTIONS-CLARITY-1] Display asset filter info */}
+                {assetTypeParam && (
+                  <span>
+                    Asset type: <span className="font-medium">{assetTypeParam}</span>
+                    {assetIdParam && (
+                      <span className="ml-1 text-xs text-blue-600">(ID: {assetIdParam.slice(0, 8)}...)</span>
+                    )}
+                  </span>
+                )}
+                {assetTypeParam && (actionKeyParam || (actionKeysParam && actionKeysParam.length > 0) || scopeTypeParam) && <span className="mx-2">•</span>}
                 {/* [COUNT-INTEGRITY-1.1 UI HARDEN] Display actionKeys as comma-separated list */}
                 {actionKeysParam && actionKeysParam.length > 0 ? (
                   <span>
@@ -964,6 +1008,9 @@ export default function IssuesPage() {
                   params.delete('mode');
                   // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Also clear pillar param (Work Queue may supply it)
                   params.delete('pillar');
+                  // [LIST-ACTIONS-CLARITY-1] Also clear asset filters
+                  params.delete('assetType');
+                  params.delete('assetId');
                   const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
                   router.replace(newUrl, { scroll: false });
                 }}

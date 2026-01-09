@@ -12,6 +12,8 @@ export interface Product {
   currency?: string | null;
   shopifyStatus?: string | null;
   lastOptimizedAt?: string | null;
+  /** [LIST-ACTIONS-CLARITY-1] Server-derived: true if product appears in a pending draft */
+  hasDraftPendingApply?: boolean;
 }
 
 export type ProductStatus = 'missing-metadata' | 'needs-optimization' | 'optimized';

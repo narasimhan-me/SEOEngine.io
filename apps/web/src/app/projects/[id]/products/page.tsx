@@ -13,6 +13,7 @@ import {
   projectsApi,
   shopifyApi,
   seoScanApi,
+  type RoleCapabilities,
 } from '@/lib/api';
 import type { Product } from '@/lib/products';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
@@ -64,6 +65,10 @@ export default function ProductsPage() {
 
   // Scanning state
   const [scanningId, setScanningId] = useState<string | null>(null);
+
+  // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Role capabilities state
+  const [capabilities, setCapabilities] = useState<RoleCapabilities | null>(null);
+  const [requireApprovalForApply, setRequireApprovalForApply] = useState(false);
 
   const feedback = useFeedback();
 
@@ -127,6 +132,31 @@ export default function ProductsPage() {
     }
   }, [projectId]);
 
+  // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Fetch user role + governance
+  const fetchCapabilities = useCallback(async () => {
+    try {
+      const [roleResponse, governanceResponse] = await Promise.all([
+        projectsApi.getUserRole(projectId),
+        projectsApi.getGovernancePolicy(projectId).catch(() => ({ requireApprovalForApply: false })),
+      ]);
+      setCapabilities(roleResponse.capabilities);
+      setRequireApprovalForApply(governanceResponse.requireApprovalForApply);
+    } catch (err) {
+      console.error('Error fetching role/governance:', err);
+      // Default to permissive if fetch fails
+      setCapabilities({
+        canView: true,
+        canGenerateDrafts: true,
+        canRequestApproval: true,
+        canApprove: true,
+        canApply: true,
+        canModifySettings: true,
+        canManageMembers: true,
+        canExport: true,
+      });
+    }
+  }, [projectId]);
+
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push('/login');
@@ -136,7 +166,8 @@ export default function ProductsPage() {
     fetchProducts();
     fetchProductIssues();
     fetchOverview();
-  }, [projectId, router, fetchProducts, fetchProjectInfo, fetchProductIssues, fetchOverview]);
+    fetchCapabilities();
+  }, [projectId, router, fetchProducts, fetchProjectInfo, fetchProductIssues, fetchOverview, fetchCapabilities]);
 
   const handleSyncProducts = async () => {
     try {
@@ -381,6 +412,10 @@ export default function ProductsPage() {
             scanningId={scanningId}
             productIssues={productIssues}
             isDeoDataStale={isDeoDataStale}
+            // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Wire real capabilities
+            canApply={capabilities?.canApply ?? true}
+            canRequestApproval={capabilities?.canRequestApproval ?? false}
+            currentListPathWithQuery={`/projects/${projectId}/products${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
           />
         )}
       </div>

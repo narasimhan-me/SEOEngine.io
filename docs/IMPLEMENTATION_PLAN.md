@@ -844,6 +844,83 @@ LIST-SEARCH-FILTER-1.1 extends the ListControls pattern from LIST-SEARCH-FILTER-
 
 ---
 
+### Phase LIST-ACTIONS-CLARITY-1: Row Chips & Actions Unification ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-09
+
+#### Overview
+
+LIST-ACTIONS-CLARITY-1 unifies the row chips and actions across Products, Pages, and Collections lists with locked vocabulary and consistent navigation. Introduces shared `RowStatusChip` component and `resolveRowNextAction` resolver as single sources of truth.
+
+#### Scope
+
+- Products list row chips and actions
+- Pages list row chips and actions
+- Collections list row chips and actions
+- Issues Engine asset-filtered mode
+- Shared components: RowStatusChip, resolveRowNextAction
+
+#### Locked Vocabulary
+
+**Chip Labels:**
+- `✅ Optimized` — Green — No actionable issues, no pending drafts
+- `⚠ Needs attention` — Yellow — Has actionable issues, no pending drafts
+- `🟡 Draft saved (not applied)` — Blue — Has pending draft (can be applied)
+- `⛔ Blocked` — Red — Has pending draft but cannot apply (requires approval)
+
+**Action Labels:**
+- `Fix next` — Products only, links to Issues Engine filtered by product
+- `View issues` — Pages/Collections, links to Issues Engine filtered by asset
+- `Review drafts` — Links to Work Queue
+- `Request approval` — Blocked state (can request)
+- `View approval status` — Blocked state (cannot request)
+- `Open` — Secondary action, links to asset detail
+
+#### Key Features
+
+1. **Shared Resolver**: `resolveRowNextAction()` in `list-actions-clarity.ts` — single source of truth for chip labels and actions
+2. **Shared Component**: `RowStatusChip` — consistent styling across all list pages
+3. **Server-Derived Draft State**: `hasDraftPendingApply` field returned in list payloads (products, crawl pages)
+4. **Asset-Filtered Issues**: Issues Engine accepts `assetType` + `assetId` params for filtering
+5. **Context Banner**: Issues Engine shows "Filtered by Asset" banner with clear button
+
+#### Completed Patches
+
+- ✅ **PATCH 1:** Created `list-actions-clarity.ts` (resolver + helpers)
+- ✅ **PATCH 2:** Created `RowStatusChip.tsx` (shared chip component)
+- ✅ **PATCH 3A:** Products service returns `hasDraftPendingApply` per product
+- ✅ **PATCH 3B:** Projects service returns `hasDraftPendingApply` per crawl page
+- ✅ **PATCH 4:** ProductTable/ProductRow use resolver + RowStatusChip
+- ✅ **PATCH 5:** Pages list uses resolver + RowStatusChip
+- ✅ **PATCH 6:** Collections list uses resolver + RowStatusChip
+- ✅ **PATCH 7:** Issues Engine asset-filtered mode (assetType/assetId params)
+- ✅ **PATCH 8:** E2E seed endpoint + Playwright tests
+- ✅ **PATCH 9:** Documentation
+
+#### Core Files
+
+- `apps/web/src/lib/list-actions-clarity.ts` (resolver + helpers)
+- `apps/web/src/components/common/RowStatusChip.tsx`
+- `apps/api/src/products/products.service.ts` (hasDraftPendingApply)
+- `apps/api/src/projects/projects.service.ts` (hasDraftPendingApply)
+- `apps/web/src/components/products/ProductTable.tsx`
+- `apps/web/src/components/products/ProductRow.tsx`
+- `apps/web/src/app/projects/[id]/assets/pages/page.tsx`
+- `apps/web/src/app/projects/[id]/assets/collections/page.tsx`
+- `apps/web/src/app/projects/[id]/issues/page.tsx`
+- `apps/api/src/testkit/e2e-testkit.controller.ts` (seed endpoint)
+
+#### Manual Testing
+
+- `docs/manual-testing/LIST-ACTIONS-CLARITY-1.md`
+
+#### Automated Tests
+
+- `apps/web/tests/list-actions-clarity-1.spec.ts` (Playwright E2E tests)
+
+---
+
 ## In Progress
 
 *None at this time.*
@@ -1039,3 +1116,5 @@ These invariants MUST be preserved during implementation:
 | 6.9 | 2026-01-09 | **LIST-SEARCH-FILTER-1 FIXUP-1**: Fixed ListControls build (native HTML elements instead of non-existent shadcn/ui), added key={currentQ} for input remount on clear, moved Playwright tests to apps/web/tests/, fixed auth pattern (engineo_token), corrected test path in docs, added root plan pointer. |
 | 6.10 | 2026-01-09 | **LIST-SEARCH-FILTER-1.1 COMPLETE**: Extended ListControls pattern to Pages and Collections asset lists. Added filter params to crawlPages API (q/status/hasDraft/pageType), server-side filtering in projects.service.ts (getCrawlPageIdsWithPendingDrafts for PAGES/COLLECTIONS asset types), integrated ListControls into Pages and Collections pages with empty states, E2E seed endpoint, 8 Playwright smoke tests. |
 | 6.11 | 2026-01-09 | **LIST-SEARCH-FILTER-1.1 DOC-FIXUP-1**: Added missing manual testing checklist doc (`docs/manual-testing/LIST-SEARCH-FILTER-1.1.md`) and linked it from the phase section. |
+| 6.12 | 2026-01-09 | **LIST-ACTIONS-CLARITY-1 COMPLETE**: Unified row chips and actions across Products/Pages/Collections lists. Created shared `RowStatusChip` component and `resolveRowNextAction` resolver as single sources of truth. Added `hasDraftPendingApply` server-derived field to list payloads. Issues Engine supports asset-filtered mode (`assetType`/`assetId` params). Locked vocabulary: chip labels (Optimized/Needs attention/Draft saved/Blocked) and action labels (Fix next/View issues/Review drafts/Request approval/View approval status/Open). E2E seed endpoint, Playwright tests, manual testing doc. |
+| 6.13 | 2026-01-09 | **LIST-ACTIONS-CLARITY-1 FIXUP-1 (Compliance + Missing Coverage)**: (1) Products "Fix next" now uses `buildIssueFixHref` for deterministic issue→fix routing (not Issues list); (2) Wired real viewer capabilities (`canApply`/`canRequestApproval`) from `getUserRole()` API; (3) `NavigationContext` for consistent returnTo propagation in helpers; (4) Added `data-testid` attributes to row actions; (5) Pages/Collections use real capabilities (removed hardcoded role); (6) Issues Engine uses `assetIssues()` API for true per-asset filtering; (7) Seed endpoint extended with Collections + EDITOR token + governance policy; (8) Playwright tests cover Collections + Blocked state + routing; (9) Locked chip vocabulary with exact emojis (✅ Optimized, ⚠ Needs attention, 🟡 Draft saved (not applied), ⛔ Blocked). |
