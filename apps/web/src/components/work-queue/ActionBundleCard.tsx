@@ -125,13 +125,17 @@ export function ActionBundleCard({
                 )}
               </>
             ) : (
-              <span data-testid="action-bundle-informational">
-                <span className="text-gray-500">Informational — no action required</span>
-                {' · '}
-                <span className="font-medium">
-                  {bundle.scopeDetectedCount ?? 0} detected issue{(bundle.scopeDetectedCount ?? 0) !== 1 ? 's' : ''}
-                </span>{' '}
-                affecting {getScopeTypeLabel(bundle.scopeType, bundle.scopeDetectedCount ?? 0)}
+              // [COUNT-INTEGRITY-1.1 FIX-UP] Strict zero-actionable suppression
+              <span data-testid="action-bundle-zero-actionable">
+                <span className="font-medium text-amber-700">No items currently eligible for action.</span>
+                {bundle.scopeDetectedCount != null && bundle.scopeDetectedCount > 0 && (
+                  <>
+                    {' '}
+                    <span className="text-gray-500">
+                      ({bundle.scopeDetectedCount} detected issue{bundle.scopeDetectedCount !== 1 ? 's' : ''} affecting {getScopeTypeLabel(bundle.scopeType, bundle.scopeDetectedCount)})
+                    </span>
+                  </>
+                )}
               </span>
             )}
             {bundle.scopePreviewList.length > 0 && (
@@ -148,7 +152,10 @@ export function ActionBundleCard({
         ) : (
           <>
             {bundle.scopeCount === 0 ? (
-              <span className="text-gray-500">No eligible items right now — nothing to fix right now</span>
+              // [COUNT-INTEGRITY-1.1 FIX-UP] Strict zero-actionable suppression (consistent copy)
+              <span className="font-medium text-amber-700" data-testid="action-bundle-zero-actionable">
+                No items currently eligible for action.
+              </span>
             ) : (
               <>
                 Applies to{' '}
@@ -353,12 +360,13 @@ function deriveCtas(
     };
   }
 
-  // ZERO-AFFECTED-SUPPRESSION-1: 0 eligible = no action surfaces (except Applied Recently history).
-  if (bundleType === 'AUTOMATION_RUN' && bundle.scopeCount === 0 && state !== 'APPLIED') {
+  // [COUNT-INTEGRITY-1.1 FIX-UP] Strict zero-actionable suppression for ALL bundle types
+  // 0 eligible = no action surfaces (except APPLIED history and GEO_EXPORT).
+  if (bundle.scopeCount === 0 && state !== 'APPLIED' && bundleType !== 'GEO_EXPORT') {
     return {
       primaryCta: null,
       secondaryCta: null,
-      disabledReason: 'No eligible items right now — nothing to fix right now',
+      disabledReason: 'No items currently eligible for action.',
     };
   }
   // State-driven CTAs

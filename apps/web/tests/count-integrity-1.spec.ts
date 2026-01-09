@@ -90,7 +90,8 @@ test.describe('COUNT-INTEGRITY-1: Work Queue → Issues click integrity', () => 
       const cardText = await card.textContent();
       const viewIssuesLink = card.getByRole('link', { name: 'View Issues' });
       const hasViewIssues = await viewIssuesLink.count() > 0;
-      const scopeCountMatch = cardText?.match(/(\d+)\s+actionable\s+issue/);
+      // [COUNT-INTEGRITY-1.1 FIX-UP] Updated regex to match "actionable now" semantics
+      const scopeCountMatch = cardText?.match(/(\d+)\s+actionable\s+now/);
       const scopeCount = scopeCountMatch ? parseInt(scopeCountMatch[1], 10) : 0;
 
       if (hasViewIssues && scopeCount > 0) {
@@ -198,17 +199,24 @@ test.describe('COUNT-INTEGRITY-1: Viewer role sees detected-only counts', () => 
       return;
     }
 
-    // Check each bundle for "Informational — no action required" label
+    // [COUNT-INTEGRITY-1.1 FIX-UP] Check each bundle for zero-actionable neutral message
     for (let i = 0; i < Math.min(bundleCount, 3); i++) {
       const card = bundleCards.nth(i);
       const cardText = await card.textContent();
 
-      // VIEWER bundles should show informational label OR detected counts only
-      const hasInformationalLabel = cardText?.includes('Informational — no action required');
+      // VIEWER bundles should show zero-actionable neutral message OR detected counts only
+      const hasZeroActionableMessage = cardText?.includes('No items currently eligible for action');
       const hasDetectedCount = cardText?.match(/(\d+)\s+detected\s+issue/);
 
       // At least one of these conditions should be true for VIEWER
-      expect(hasInformationalLabel || hasDetectedCount).toBe(true);
+      expect(hasZeroActionableMessage || hasDetectedCount).toBe(true);
+
+      // [COUNT-INTEGRITY-1.1 FIX-UP] Assert absence of action CTAs on zero-actionable bundles
+      if (hasZeroActionableMessage) {
+        const primaryCta = card.locator('a.bg-blue-600');
+        const primaryCtaCount = await primaryCta.count();
+        expect(primaryCtaCount).toBe(0);
+      }
     }
 
     // Navigate to Issues page

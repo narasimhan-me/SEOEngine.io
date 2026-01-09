@@ -10,17 +10,20 @@ import type { CanonicalIssueCountsSummary } from '@/lib/deo-issues';
 
 /**
  * [STORE-HEALTH-1.0] Store Health Page
+ * [COUNT-INTEGRITY-1.1 FIX-UP] Enterprise Trust Hardening
  *
- * Decision-only surface showing 6 health cards that route to Work Queue.
+ * Decision-only surface showing 6 health cards:
+ * - Discoverability and Technical Readiness route to Issues Engine (pillar-scoped)
+ * - Other cards route to their respective surfaces (Work Queue, Insights, etc.)
  * No preview/generate/apply triggered from this page.
  *
  * Cards (in order):
- * 1. Discoverability (DEO)
- * 2. Generative Visibility (GEO / AEO)
- * 3. Content Quality
- * 4. Technical Readiness
- * 5. Trust & Compliance
- * 6. AI Usage & Quota
+ * 1. Discoverability (DEO) → Issues Engine (pillar=metadata_snippet_quality, mode=detected)
+ * 2. Generative Visibility (GEO / AEO) → GEO Insights
+ * 3. Content Quality → Work Queue
+ * 4. Technical Readiness → Issues Engine (pillar=technical_indexability, mode=detected)
+ * 5. Trust & Compliance → Work Queue
+ * 6. AI Usage & Quota → Settings
  */
 
 type HealthStatus = 'Healthy' | 'Needs Attention' | 'Critical';
@@ -98,23 +101,25 @@ export default function StoreHealthPage() {
   // Derive card data from Work Queue bundles
   const items = workQueue?.items || [];
 
-  // 1. Discoverability (DEO) - FIX_MISSING_METADATA + RESOLVE_TECHNICAL_ISSUES
+  // 1. Discoverability (DEO) - Pillar-scoped "Items affected" with Issues Engine routing
+  // [COUNT-INTEGRITY-1.1 FIX-UP] Use pillar-scoped affectedItemsCount from canonical triplet
   const deoBundles = items.filter(
     (b) => b.recommendedActionKey === 'FIX_MISSING_METADATA' ||
            b.recommendedActionKey === 'RESOLVE_TECHNICAL_ISSUES'
   );
   const deoHealth = getWorstHealth(deoBundles);
-  // [COUNT-INTEGRITY-1.1 PATCH 7] Use canonical triplet for "Items affected" display
-  const deoItemsAffected = countsSummary?.detected?.affectedItemsCount ?? 0;
-  const deoActionableNow = countsSummary?.actionable?.actionableNowCount ?? 0;
-  const deoSummary = deoItemsAffected > 0
-    ? deoActionableNow > 0
-      ? deoItemsAffected > deoActionableNow
-        ? `${deoActionableNow} actionable now · ${deoItemsAffected} items affected across metadata and technical optimization.`
-        : `${deoActionableNow} actionable now across metadata and technical optimization.`
-      : `Informational only · ${deoItemsAffected} items affected (no action required).`
-    : 'Your store is discoverable with no outstanding issues.';
-  const deoAction = getActionLabel(deoBundles, 'View discoverability');
+
+  // Pillar-scoped count: metadata_snippet_quality detected.affectedItemsCount
+  const discoverabilityPillarData = countsSummary?.byPillar?.['metadata_snippet_quality'];
+  const discoverabilityItemsAffected = discoverabilityPillarData?.detected?.affectedItemsCount;
+  const discoverabilityCountsAvailable = discoverabilityItemsAffected !== undefined;
+
+  const deoSummary = !discoverabilityCountsAvailable
+    ? 'Counts unavailable — unable to load issue data.'
+    : discoverabilityItemsAffected > 0
+      ? `${discoverabilityItemsAffected} items affected across metadata and snippet optimization.`
+      : 'Your store is discoverable with no outstanding issues.';
+  const deoAction = 'View issues';
 
   // 2. Generative Visibility (GEO/AEO) - from insights.geoInsights
   const geoReadinessPercent = insights?.geoInsights?.overview?.productsAnswerReadyPercent ?? 100;
@@ -132,17 +137,22 @@ export default function StoreHealthPage() {
     : 'Your product content meets quality standards.';
   const contentAction = getActionLabel(contentBundles, 'View content opportunities');
 
-  // 4. Technical Readiness - RESOLVE_TECHNICAL_ISSUES
-  // [COUNT-INTEGRITY-1.1 PATCH 7] Uses same canonical summary as Discoverability (store-wide counts)
+  // 4. Technical Readiness - Pillar-scoped "Items affected" with Issues Engine routing
+  // [COUNT-INTEGRITY-1.1 FIX-UP] Use pillar-scoped affectedItemsCount from canonical triplet
   const technicalBundles = items.filter((b) => b.recommendedActionKey === 'RESOLVE_TECHNICAL_ISSUES');
   const technicalHealth = getWorstHealth(technicalBundles);
-  // Technical issues are a subset - we use bundle presence for summary but canonical for overall health context
-  const technicalSummary = technicalBundles.length > 0
-    ? deoActionableNow > 0
-      ? `${deoActionableNow} actionable now with technical issues affecting your store.`
-      : `Informational only · Technical issues detected (no action required).`
-    : 'No technical issues detected.';
-  const technicalAction = getActionLabel(technicalBundles, 'View technical status');
+
+  // Pillar-scoped count: technical_indexability detected.affectedItemsCount
+  const technicalPillarData = countsSummary?.byPillar?.['technical_indexability'];
+  const technicalItemsAffected = technicalPillarData?.detected?.affectedItemsCount;
+  const technicalCountsAvailable = technicalItemsAffected !== undefined;
+
+  const technicalSummary = !technicalCountsAvailable
+    ? 'Counts unavailable — unable to load issue data.'
+    : technicalItemsAffected > 0
+      ? `${technicalItemsAffected} items affected by technical and indexability issues.`
+      : 'No technical issues detected.';
+  const technicalAction = 'View issues';
 
   // 5. Trust & Compliance - IMPROVE_SEARCH_INTENT + governance
   const trustBundles = items.filter(
@@ -173,11 +183,10 @@ export default function StoreHealthPage() {
       health: deoHealth,
       summary: deoSummary,
       actionLabel: deoAction,
-      // [TRUST-ROUTING-1] Route with both FIX_MISSING_METADATA and RESOLVE_TECHNICAL_ISSUES
-      onClick: () => router.push(buildWorkQueueUrl(projectId, {
-        actionKeys: ['FIX_MISSING_METADATA', 'RESOLVE_TECHNICAL_ISSUES'],
-        from: 'store_health',
-      })),
+      // [COUNT-INTEGRITY-1.1 FIX-UP] Route to Issues Engine with pillar filter (not Work Queue)
+      onClick: () => router.push(
+        `/projects/${projectId}/issues?pillar=metadata_snippet_quality&mode=detected&from=store_health`
+      ),
     },
     {
       id: 'generative-visibility',
@@ -205,10 +214,10 @@ export default function StoreHealthPage() {
       health: technicalHealth,
       summary: technicalSummary,
       actionLabel: technicalAction,
-      onClick: () => router.push(buildWorkQueueUrl(projectId, {
-        actionKey: 'RESOLVE_TECHNICAL_ISSUES',
-        from: 'store_health',
-      })),
+      // [COUNT-INTEGRITY-1.1 FIX-UP] Route to Issues Engine with pillar filter (not Work Queue)
+      onClick: () => router.push(
+        `/projects/${projectId}/issues?pillar=technical_indexability&mode=detected&from=store_health`
+      ),
     },
     {
       id: 'trust-compliance',

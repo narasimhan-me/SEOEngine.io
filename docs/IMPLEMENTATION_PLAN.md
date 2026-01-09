@@ -418,11 +418,13 @@ Core contract (locked): 0 eligible = no action surfaces.
 
 ---
 
-### Phase COUNT-INTEGRITY-1: Count Integrity Trust Hardening ✅ COMPLETE
+### Phase COUNT-INTEGRITY-1: Count Integrity Trust Hardening ⚠️ SUPERSEDED/PARTIAL
 
-**Status:** All patches complete, ready for manual testing and production deployment
+**Status:** Work Queue click-integrity remains valid; Store Health clickthrough semantics superseded by COUNT-INTEGRITY-1.1
 **Start Date:** 2026-01-08
-**Completed:** 2026-01-08
+**Completed:** 2026-01-08 (partial — see note below)
+
+> **⚠️ SUPERSEDED:** Store Health tile clickthrough semantics are superseded by COUNT-INTEGRITY-1.1 Enterprise Trust Hardening. Store Health Discoverability/Technical Readiness tiles now route to **Issues Engine** (not Work Queue) with pillar-scoped "Items affected" counts. Work Queue → Issues click-integrity remains valid.
 
 ### Overview
 
@@ -620,13 +622,22 @@ Establishes count integrity as a core trust contract across the product by:
 
 ### Phase COUNT-INTEGRITY-1.1: Canonical Triplet Counts + Explicit Labels ✅ COMPLETE
 
-**Status:** Complete (Backend + UI Migration + UI Smoke Test)
+**Status:** Complete (Backend + UI Migration + UI Smoke Test + Enterprise Trust Hardening)
 **Date Started:** 2026-01-08
-**Completed:** 2026-01-08
+**Completed:** 2026-01-09
 
 #### Overview
 
-COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCount, affectedItemsCount, actionableNowCount) with explicit UX labels to replace mixed v1 "groups/instances" semantics. All components verified: backend deduplication (products via CANON-009, collections via CANON-010), UI migration (Gap 6), and cross-surface UI smoke tests (Gap 7).
+COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCount, affectedItemsCount, actionableNowCount) with explicit UX labels to replace mixed v1 "groups/instances" semantics. All components verified: backend deduplication (products via CANON-009, collections via CANON-010), UI migration (Gap 6), cross-surface UI smoke tests (Gap 7), and enterprise trust hardening (Fix-Up batch).
+
+**⚠️ Note:** COUNT-INTEGRITY-1 is superseded/partial with respect to Store Health clickthrough semantics. Store Health Discoverability/Technical Readiness tiles now route to **Issues Engine** (not Work Queue) with pillar-scoped "Items affected" counts.
+
+#### Locked Semantics (Enterprise Trust Hardening)
+
+- **Store Health tiles (Discoverability/Technical):** Display pillar-scoped "Items affected" (canonical) and route to Issues Engine filtered to that pillar (mode=detected).
+- **Work Queue:** Represents "action bundles"; counts represent "actionable now" (bundle scope) and must not be conflated with "items affected".
+- **Zero-actionable suppression:** All bundle types (except APPLIED history and GEO_EXPORT) suppress CTAs when scopeCount === 0 and show "No items currently eligible for action."
+- **Product Issues tab:** Triplet always visible when summary provided; neutral message appears when actionableNowCount === 0.
 
 #### Completed Patches
 
@@ -660,21 +671,32 @@ COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCou
 - ✅ **UI HARDEN:** Multi-action filtering (actionKeys), pillar-aware triplet, auth pattern fix
 - ✅ **AUDIT FIX:** Severity-aligned canonical summary, pillar-aware hasActionableIssues/hasDetectedIssues checks
 
+#### Enterprise Trust Hardening Fix-Up (2026-01-09)
+
+- ✅ **FIX-UP PATCH 1:** Store Health pillar-scoped affectedItemsCount + Issues Engine routing
+- ✅ **FIX-UP PATCH 2:** Work Queue strict zero-actionable suppression across bundle types
+- ✅ **FIX-UP PATCH 3:** Product Issues tab triplet always visible + neutral message reachable
+- ✅ **FIX-UP PATCH 4:** Single Playwright UI smoke test replacing prior multi-test suite
+- ✅ **FIX-UP PATCH 5:** COUNT-INTEGRITY-1 test expectations updated for new Work Queue copy
+- ✅ **FIX-UP PATCH 6:** Trust-routing test updated (Content Quality card, not Discoverability)
+- ✅ **FIX-UP PATCH 7:** Documentation updates (this section)
+
 #### All Gaps Resolved
 
 - ✅ **Gap 3a:** Product-based issues populate full keys (verified by CANON-009)
 - ✅ **Gap 3b:** Pages/collections issues populate full keys (verified by CANON-010)
 - ✅ **Gap 6:** UI migration complete (Issues Engine, Store Health, Work Queue, Product Detail)
 - ✅ **Gap 7:** Cross-surface UI smoke test implemented
+- ✅ **Gap 8:** Enterprise trust hardening (Store Health click-integrity, zero-actionable suppression)
 
 #### Manual Testing
 
-- `docs/manual-testing/COUNT-INTEGRITY-1.1.md` (all steps verified)
+- `docs/manual-testing/COUNT-INTEGRITY-1.1.md` (all steps verified + enterprise trust hardening scenarios)
 
 #### Automated Tests
 
 - `apps/web/tests/count-integrity-1-1.spec.ts` (10 backend API tests including CANON-009 + CANON-010)
-- `apps/web/tests/count-integrity-1-1.ui.spec.ts` (6 UI smoke tests for Gap 7)
+- `apps/web/tests/count-integrity-1-1.ui.spec.ts` (1 cross-surface end-to-end click-integrity test)
 
 ---
 
@@ -865,3 +887,5 @@ These invariants MUST be preserved during implementation:
 | 6.1 | 2026-01-09 | **COUNT-INTEGRITY-1.1 UI HARDEN**: Multi-action filtering via actionKeys URL param (OR across keys), pillar-aware triplet display (currentTriplet from byPillar when filtered), fixed UI smoke test auth pattern (localStorage only, no cookie), fixed product selection shape (response is { products: [...] } not array). |
 | 6.2 | 2026-01-09 | **COUNT-INTEGRITY-1.1 AUDIT FIX**: Moved COUNT-INTEGRITY-1.1 from "In Progress" section to Trust Hardening completed phases (follows COUNT-INTEGRITY-1). PATCH 1: Severity-aligned canonical summary (passes severity filter to API when not 'all', refreshes on severity change). PATCH 2: Pillar-aware hasActionableIssues/hasDetectedIssues checks (uses byPillar triplets when pillarFilter !== 'all'). Structure now correct: "In Progress" contains only "*None at this time.*" with no phases listed beneath it. |
 | 6.3 | 2026-01-09 | **COUNT-INTEGRITY-1.1 VERIFICATION COMPLETE (NO-OP)**: Verified all audit fix items implemented: (1) page.tsx passes severity to canonicalIssueCountsSummary when severityFilter !== 'all', fetchIssues re-runs on severityFilter changes, hasActionableIssues/hasDetectedIssues are pillar-aware with byPillar + issues-list fallbacks; (2) IMPLEMENTATION_PLAN.md structure correct with COUNT-INTEGRITY-1.1 under Trust Hardening completed phases, "In Progress" contains only "*None at this time.*", Document History includes 6.2 audit-fix entry. No additional patches required. |
+| 6.4 | 2026-01-09 | **COUNT-INTEGRITY-1.1 ENTERPRISE TRUST HARDENING FIX-UP**: Store Health pillar-scoped affectedItemsCount + Issues Engine routing (not Work Queue), Work Queue strict zero-actionable suppression across ALL bundle types, Product Issues tab triplet always visible + neutral message reachable, single Playwright UI smoke test replacing prior multi-test suite. Locked semantics: Store Health Discoverability/Technical tiles display pillar-scoped "Items affected" and route to Issues Engine (mode=detected); Work Queue is "actionable now" scoped; zero-actionable shows "No items currently eligible for action." with no CTAs. |
+| 6.5 | 2026-01-09 | **COUNT-INTEGRITY-1.1 POST-AUDIT COMPLIANCE**: (1) Merged 2 UI tests into exactly 1 end-to-end Playwright test per "single smoke test" requirement; (2) Marked COUNT-INTEGRITY-1 as ⚠️ SUPERSEDED/PARTIAL (Store Health clickthrough semantics superseded; Work Queue click-integrity remains valid); (3) Updated UI test count from "2 tests" to "1 test" in documentation. |

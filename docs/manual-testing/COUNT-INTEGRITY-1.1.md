@@ -40,13 +40,14 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 - ✅ PATCH 4.3-FIXUP-2: CANON-010 scoped to collections-only (scopeType=collections filter)
 - ✅ PATCH 4.4-FIXUP-1: Documentation updates (Gap 3b marked resolved)
 
-**COMPLETED (UI Migration - Gap 6 + Gap 7):**
+**COMPLETED (UI Migration - Gap 6 + Gap 7 + Enterprise Trust Hardening):**
 - ✅ PATCH 5: Issues Engine filter-aligned canonical summary + labeled triplet with data-testid
 - ✅ PATCH 6: Product detail Issues tab uses assetIssues endpoint + labeled triplet
 - ✅ PATCH 7: Store Health tiles show Items affected from canonical summary
 - ✅ PATCH 8: Work Queue trust fixes + canonical Actionable now display + AI badge copy
-- ✅ PATCH 9: Gap 7 cross-surface Playwright UI smoke test (6 tests)
+- ✅ PATCH 9: Gap 7 cross-surface Playwright UI smoke test
 - ✅ PATCH 10: Documentation updates
+- ✅ FIX-UP: Enterprise Trust Hardening (pillar-scoped routing, zero-actionable suppression, single end-to-end test)
 
 ### High-Level User Impact
 
@@ -314,13 +315,13 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 - ✅ CANON-009: affectedItemsCount accuracy beyond cap-20 for products [PATCH 3.6 - Gap 3a]
 - ✅ CANON-010: affectedItemsCount accuracy beyond cap-20 for collections [PATCH 4.3 - Gap 3b]
 
-**Test Coverage (UI Smoke Tests Complete - Gap 7):**
-- ✅ UI-001: Store Health shows Items affected count in tile summaries
-- ✅ UI-002: Work Queue shows Actionable now count in bundle cards + AI badge copy
-- ✅ UI-003: Issues page shows canonical triplet display with labels
-- ✅ UI-004: Issues page shows zero-actionable message when no actionable items
-- ✅ UI-005: Product detail Issues tab shows canonical triplet display
-- ✅ UI-006: Click-through from Store Health to Work Queue preserves filter context
+**Test Coverage (UI Smoke Test Complete - Gap 7 + Enterprise Trust Hardening):**
+- ✅ Single end-to-end test: Store Health → Issues Engine → Product Issues → Work Queue
+- ✅ Store Health shows "X items affected" with pillar-scoped counts (Discoverability/Technical)
+- ✅ Click-through from Store Health to Issues Engine (not Work Queue) with pillar filter + mode=detected
+- ✅ Issues Engine triplet-items-affected-value matches Store Health tile count
+- ✅ Product Issues tab triplet visible; zero-actionable suppression verified
+- ✅ Work Queue zero-actionable bundles show "No items currently eligible for action." with no CTAs
 
 **Run Tests:**
 ```bash
@@ -395,10 +396,10 @@ npx playwright test count-integrity-1-1.ui.spec.ts
    - Store Health: Uses canonical counts for "Items affected" display
    - Work Queue: Trust-building AI badge copy
 
-3. **Phase 3 (UI Smoke Test - Gap 7):** ✅ DONE (PATCH 9)
-   - Created count-integrity-1-1.ui.spec.ts with 6 tests
-   - Covers Store Health, Work Queue, Issues, Product Detail
-   - Verifies cross-surface navigation and filter preservation
+3. **Phase 3 (UI Smoke Test - Gap 7 + Enterprise Trust Hardening):** ✅ DONE (PATCH 9 + FIX-UP)
+   - Created/maintained count-integrity-1-1.ui.spec.ts as a single end-to-end test
+   - Covers Store Health → Issues Engine → Product Issues → Work Queue chain
+   - Verifies pillar-scoped "Items affected" click-integrity and zero-actionable suppression
 
 4. **Phase 4 (Documentation - PATCH 10):** ✅ DONE
    - Updated CRITICAL_PATH_MAP.md
@@ -449,7 +450,7 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 
 **Testing (COMPLETE):**
 - [x] Backend API tests (10 tests: CANON-001 through CANON-010)
-- [x] UI smoke tests (6 tests: UI-001 through UI-006) - Gap 7 complete
+- [x] UI smoke test (1 end-to-end test: Store Health → Issues Engine → Product Issues → Work Queue)
 
 **UI Hardening (COMPLETE):**
 - [x] UI HARDEN: Multi-action filtering via actionKeys URL param (OR across keys)
@@ -480,4 +481,95 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 - **TripletDisplay component** - Reusable component with data-testid attributes for consistent UI testing
 - **Trust-building AI badge copy** - "Does not use AI" and "AI used for drafts only" per design spec
 
-**COUNT-INTEGRITY-1.1 is COMPLETE. All backend endpoints verified. All UI surfaces migrated. All tests passing.**
+---
+
+## Enterprise Trust Hardening Fix-Up (2026-01-09)
+
+### Bug Reproduction + Validation Scenarios
+
+#### Scenario ETH-001: Discoverability Click-Integrity
+
+**Steps:**
+1. Navigate to Store Health page
+2. Verify Discoverability tile displays "X items affected" (pillar-scoped from `metadata_snippet_quality`)
+3. Click Discoverability tile
+4. Verify URL contains:
+   - `/issues` (not `/work-queue`)
+   - `pillar=metadata_snippet_quality`
+   - `mode=detected`
+   - `from=store_health`
+5. Verify Issues Engine triplet displays "Items affected = X" (matches Store Health tile)
+
+**Expected:** Store Health "items affected" count matches Issues Engine filtered triplet.
+
+---
+
+#### Scenario ETH-002: Technical Readiness Click-Integrity
+
+**Steps:**
+1. Navigate to Store Health page
+2. Verify Technical Readiness tile displays "Y items affected" (pillar-scoped from `technical_indexability`)
+3. Click Technical Readiness tile
+4. Verify URL contains:
+   - `/issues` (not `/work-queue`)
+   - `pillar=technical_indexability`
+   - `mode=detected`
+   - `from=store_health`
+5. Verify Issues Engine triplet displays "Items affected = Y" (matches Store Health tile)
+
+**Expected:** Store Health "items affected" count matches Issues Engine filtered triplet.
+
+---
+
+#### Scenario ETH-003: Work Queue Zero-Actionable Suppression (ASSET_OPTIMIZATION)
+
+**Steps:**
+1. Navigate to Work Queue
+2. Find an ASSET_OPTIMIZATION bundle with scopeCount = 0
+3. Verify bundle displays "No items currently eligible for action."
+4. Verify NO action CTAs are visible (no "View Issues", no "Generate", no "Preview", no "Apply")
+
+**Expected:** Zero-actionable bundles show neutral message and suppress all CTAs.
+
+---
+
+#### Scenario ETH-004: Work Queue Zero-Actionable Suppression (AUTOMATION_RUN)
+
+**Steps:**
+1. Navigate to Work Queue
+2. Find an AUTOMATION_RUN bundle with scopeCount = 0
+3. Verify bundle displays "No items currently eligible for action."
+4. Verify NO action CTAs are visible (no "Generate Drafts", no "Preview", no "Apply")
+
+**Expected:** Zero-actionable bundles show neutral message and suppress all CTAs.
+
+---
+
+#### Scenario ETH-005: Product Issues Tab Zero-Actionable Suppression
+
+**Steps:**
+1. Navigate to a product with detected issues but zero actionable issues
+2. Click the Issues tab
+3. Verify triplet is VISIBLE (shows Issue types, Items affected, Actionable now)
+4. Verify "Actionable now" value is 0
+5. Verify neutral message "No items currently eligible for action." is displayed
+6. Verify NO "Fix next" badge is visible
+7. Verify NO actionable issue row links are visible
+
+**Expected:** Triplet always renders; neutral message appears when actionable = 0; no fix CTAs.
+
+---
+
+### Locked Semantics (Enterprise Trust Hardening)
+
+| Surface | Count Semantics | Routing | Copy |
+|---------|-----------------|---------|------|
+| Store Health Discoverability | pillar-scoped `affectedItemsCount` from `byPillar['metadata_snippet_quality'].detected` | Issues Engine with `pillar=metadata_snippet_quality&mode=detected` | "X items affected" |
+| Store Health Technical | pillar-scoped `affectedItemsCount` from `byPillar['technical_indexability'].detected` | Issues Engine with `pillar=technical_indexability&mode=detected` | "X items affected" |
+| Work Queue bundles | `scopeCount` (actionable now) | Issues Engine (ASSET_OPTIMIZATION) or Playbooks (AUTOMATION_RUN) | "X actionable now" |
+| Zero-actionable bundles | scopeCount = 0 | No CTA (suppressed) | "No items currently eligible for action." |
+| Product Issues tab | asset-scoped triplet from `detected` + `actionable` | N/A | Triplet labels + neutral message |
+
+---
+
+**COUNT-INTEGRITY-1.1 is COMPLETE. All backend endpoints verified. All UI surfaces migrated. Enterprise trust hardening applied. All tests passing.**

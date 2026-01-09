@@ -102,6 +102,8 @@ test.describe('TRUST-ROUTING-1: Playbooks Preview Context', () => {
 });
 
 test.describe('TRUST-ROUTING-1: Store Health → Work Queue', () => {
+  // [COUNT-INTEGRITY-1.1 FIX-UP] Updated to click Content Quality card (not Discoverability)
+  // Discoverability and Technical Readiness now route to Issues Engine, not Work Queue
   test('Store Health CTA lands on Work Queue with visible filter context', async ({ page, request }) => {
     const { projectId } = await authenticatePage(page, request);
 
@@ -111,12 +113,13 @@ test.describe('TRUST-ROUTING-1: Store Health → Work Queue', () => {
     // Wait for page to load
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Store Health');
 
-    // Click on Discoverability card (should route with multi-key context)
-    const discoverabilityCard = page.locator('button').filter({ hasText: 'Discoverability' }).first();
-    if (await discoverabilityCard.isVisible()) {
-      await discoverabilityCard.click();
+    // [COUNT-INTEGRITY-1.1 FIX-UP] Click on Content Quality card (still routes to Work Queue)
+    // Note: Discoverability/Technical Readiness now route to Issues Engine with pillar filter
+    const contentQualityCard = page.locator('button').filter({ hasText: 'Content Quality' }).first();
+    if (await contentQualityCard.isVisible()) {
+      await contentQualityCard.click();
 
-      // Verify URL contains multi-key actionKeys and from=store_health
+      // Verify URL contains actionKey and from=store_health
       await expect(page.url()).toContain('work-queue');
       await expect(page.url()).toContain('from=store_health');
 
