@@ -649,8 +649,10 @@ COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics (issueTypesCou
 - ✅ **PATCH 3.6:** CANON-009 regression test (30 products, verifies >20 accuracy)
 - ✅ **PATCH 3.7:** Documentation updates (Gap 3a resolved; Gap 3b identified)
 - ✅ **PATCH 4.1:** Technical issue builders populate full keys (Gap 3b)
-- ✅ **PATCH 4.2:** Collections seed endpoint for CANON-010 test
-- ✅ **PATCH 4.3:** CANON-010 regression test (30 collections, verifies >20 accuracy)
+- ✅ **PATCH 4.2-FIXUP-1:** Collections seed endpoint returns collectionIds for asset endpoint
+- ✅ **PATCH 4.3-FIXUP-1:** CANON-010 uses crawlResult IDs with correct endpoint
+- ✅ **PATCH 4.3-FIXUP-2:** CANON-010 scoped to collections-only (scopeType=collections filter)
+- ✅ **PATCH 4.4-FIXUP-1:** Documentation consistency sweep (Gap 3b marked resolved)
 
 #### Pending Work (UI Migration Only)
 

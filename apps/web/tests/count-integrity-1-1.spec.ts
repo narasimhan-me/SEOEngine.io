@@ -385,20 +385,28 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
     expect(collectionUrls.length).toBe(30);
 
     // Test 1: Verify affectedItemsCount equals actual collection count (not capped at 20)
-    const summaryResponse = await request.get(`${API_URL}/projects/${manyCollectionsProjectId}/issues/summary`, {
-      headers: {
-        Authorization: `Bearer ${manyCollectionsAccessToken}`,
-      },
-    });
+    // [PATCH 4.3-FIXUP-2] Add scopeType=collections to ensure collections-only assertion
+    const summaryResponse = await request.get(
+      `${API_URL}/projects/${manyCollectionsProjectId}/issues/summary?scopeType=collections`,
+      {
+        headers: {
+          Authorization: `Bearer ${manyCollectionsAccessToken}`,
+        },
+      }
+    );
 
     expect(summaryResponse.ok()).toBeTruthy();
     const summaryData = await summaryResponse.json();
+
+    // Verify scopeType filter is echoed back
+    expect(summaryData.filters.scopeType).toBe('collections');
 
     // There should be at least one technical issue type affecting all 30 collections (indexability_problems, slow_initial_response)
     expect(summaryData.detected.issueTypesCount).toBeGreaterThan(0);
 
     // CRITICAL: affectedItemsCount should be 30, not 20 (proves Gap 3b is fixed)
     // Before PATCH BATCH 4, this would be ≤20 due to capped array deduplication
+    // [PATCH 4.3-FIXUP-2] Now scoped to collections only (not mixed with other asset types)
     expect(summaryData.detected.affectedItemsCount).toBe(30);
 
     // Test 2: Verify collection beyond index 20 returns issues (membership check works)

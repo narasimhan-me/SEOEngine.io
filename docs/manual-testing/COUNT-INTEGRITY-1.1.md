@@ -37,6 +37,7 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 - ✅ PATCH 4.1: Technical/page-based builders populate full keys (Gap 3b)
 - ✅ PATCH 4.2-FIXUP-1: Collections seed endpoint returns collectionIds for asset endpoint
 - ✅ PATCH 4.3-FIXUP-1: CANON-010 regression test (30 collections, verifies >20 accuracy for collections)
+- ✅ PATCH 4.3-FIXUP-2: CANON-010 scoped to collections-only (scopeType=collections filter)
 - ✅ PATCH 4.4-FIXUP-1: Documentation updates (Gap 3b marked resolved)
 
 **DEFERRED (UI Updates - Future Work):**
@@ -424,6 +425,7 @@ npx playwright test count-integrity-1-1.spec.ts
 - [x] PATCH 4.1: Technical/page-based builders populate full keys (Gap 3b)
 - [x] PATCH 4.2-FIXUP-1: Collections seed endpoint returns collectionIds
 - [x] PATCH 4.3-FIXUP-1: CANON-010 regression test (30 collections, verifies >20 accuracy)
+- [x] PATCH 4.3-FIXUP-2: CANON-010 scoped to collections-only (scopeType=collections filter)
 - [x] PATCH 4.4-FIXUP-1: Documentation updates (Gap 3b marked resolved)
 
 **UI Migration (INCOMPLETE):**

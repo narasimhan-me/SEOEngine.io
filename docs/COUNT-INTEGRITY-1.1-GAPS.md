@@ -125,12 +125,21 @@
 **PATCH 4.3:** Deterministic regression test for collections (CANON-010)
 - ✅ Test verifies `affectedItemsCount === 30` (not capped at 20)
 - ✅ Test verifies collection beyond index 20 returns issues
-- ✅ Uses URL encoding for page asset endpoint
+- ✅ Uses crawlResult ID with `/assets/pages/:id/issues` endpoint
+
+**PATCH 4.3-FIXUP-1:** CANON-010 endpoint and ID corrections
+- ✅ Seed returns `collectionIds[]` (crawlResult IDs) for asset endpoint
+- ✅ Test uses crawlResult ID instead of URL-encoded collection URL
+- ✅ Backend resolves ID→URL internally
+
+**PATCH 4.3-FIXUP-2:** CANON-010 collections-only assertion
+- ✅ Test now includes `scopeType=collections` filter on summary request
+- ✅ Ensures affectedItemsCount === 30 reflects collections only (not mixed assets)
 
 **Files Changed:**
 - [apps/api/src/projects/deo-issues.service.ts:1317-1997](apps/api/src/projects/deo-issues.service.ts#L1317-L1997) - 7 technical builders updated
-- [apps/api/src/testkit/e2e-testkit.controller.ts:810-882](apps/api/src/testkit/e2e-testkit.controller.ts#L810-L882) - Collections seed endpoint
-- [apps/web/tests/count-integrity-1-1.spec.ts:368-425](apps/web/tests/count-integrity-1-1.spec.ts#L368-L425) - CANON-010 test
+- [apps/api/src/testkit/e2e-testkit.controller.ts:810-882](apps/api/src/testkit/e2e-testkit.controller.ts#L810-L882) - Collections seed endpoint with collectionIds
+- [apps/web/tests/count-integrity-1-1.spec.ts:384-433](apps/web/tests/count-integrity-1-1.spec.ts#L384-L433) - CANON-010 test with scopeType filter
 
 **Impact:** affectedItemsCount is now accurate for **all asset types** (products, pages, collections) when >20 items are affected. Backend deduplication is fully correct and verified via CANON-009 (products) and CANON-010 (collections).
 
