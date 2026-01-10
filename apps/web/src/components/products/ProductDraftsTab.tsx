@@ -24,9 +24,20 @@ import { useFeedback } from '@/components/feedback/FeedbackProvider';
 // [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI boundary note for human-only review surface
 import { DraftAiBoundaryNote } from '@/components/common/DraftAiBoundaryNote';
 
+/**
+ * [DRAFT-DIFF-CLARITY-1] Current field values for diff display
+ * Keyed by field name (seoTitle, seoDescription)
+ */
+interface CurrentFieldValues {
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+}
+
 interface ProductDraftsTabProps {
   projectId: string;
   productId: string;
+  /** [DRAFT-DIFF-CLARITY-1] Current/live field values for diff display */
+  currentFieldValues?: CurrentFieldValues;
 }
 
 /**
@@ -34,8 +45,9 @@ interface ProductDraftsTabProps {
  *
  * Displays pending drafts for the product with inline edit capability.
  * Fetches drafts on mount (standard conditional tab behavior).
+ * [DRAFT-DIFF-CLARITY-1] Shows Current (live) vs Draft (staged) diff for each item.
  */
-export function ProductDraftsTab({ projectId, productId }: ProductDraftsTabProps) {
+export function ProductDraftsTab({ projectId, productId, currentFieldValues }: ProductDraftsTabProps) {
   const feedback = useFeedback();
 
   // Drafts data state
@@ -89,7 +101,24 @@ export function ProductDraftsTab({ projectId, productId }: ProductDraftsTabProps
     setEditError(null);
   }, []);
 
-  const handleSaveEdit = useCallback(async (draftId: string, itemIndex: number) => {
+  const handleSaveEdit = useCallback(async (draftId: string, itemIndex: number, fieldName?: string) => {
+    // [DRAFT-DIFF-CLARITY-1] Empty draft save confirmation
+    // If Draft (staged) is empty AND Current (live) is non-empty, require confirmation
+    if (editValue.trim() === '' && fieldName && currentFieldValues) {
+      const currentValue = fieldName === 'seoTitle'
+        ? currentFieldValues.seoTitle
+        : currentFieldValues.seoDescription;
+
+      if (currentValue && currentValue.trim() !== '') {
+        const confirmed = window.confirm(
+          'Saving an empty draft will clear this field when applied.\n\nAre you sure you want to save an empty draft?'
+        );
+        if (!confirmed) {
+          return; // User canceled - do not persist changes
+        }
+      }
+    }
+
     setEditSaving(true);
     setEditError(null);
 
@@ -132,7 +161,7 @@ export function ProductDraftsTab({ projectId, productId }: ProductDraftsTabProps
     } finally {
       setEditSaving(false);
     }
-  }, [projectId, editValue, feedback]);
+  }, [projectId, editValue, feedback, currentFieldValues]);
 
   return (
     <section aria-label="Drafts" data-testid="drafts-tab-panel">
@@ -190,32 +219,44 @@ export function ProductDraftsTab({ projectId, productId }: ProductDraftsTabProps
                     </span>
                   </div>
                   {/* Render draft items with inline edit */}
+                  {/* [DRAFT-DIFF-CLARITY-1] Shows Current (live) vs Draft (staged) diff */}
                   {draft.filteredItems.length > 0 && (
-                    <div className="mt-3 space-y-2">
+                    <div className="mt-3 space-y-4">
                       {draft.filteredItems.map((item, idx) => {
                         const hasCanonicalShape = item.field !== undefined;
                         const legacyItem = item as any;
                         const itemIndex = item.itemIndex ?? idx;
                         const editKey = `${draft.id}-${itemIndex}`;
                         const isEditing = editingItem === editKey;
-                        const currentValue = item.finalSuggestion || item.rawSuggestion || '';
+                        const draftValue = item.finalSuggestion || item.rawSuggestion || '';
 
                         if (hasCanonicalShape) {
+                          // [DRAFT-DIFF-CLARITY-1] Get current/live value for diff display
+                          const liveValue = item.field === 'seoTitle'
+                            ? (currentFieldValues?.seoTitle || '')
+                            : (currentFieldValues?.seoDescription || '');
+
+                          // [DRAFT-DIFF-CLARITY-1] Determine empty draft messaging
+                          // - No draft generated yet: both raw and final are empty
+                          // - Draft will clear this field: rawSuggestion non-empty but finalSuggestion empty (explicitly cleared)
+                          const noDraftGenerated = !item.rawSuggestion && !item.finalSuggestion;
+                          const draftWillClear = !item.finalSuggestion && item.rawSuggestion && liveValue;
+
                           return (
                             <div
                               key={itemIndex}
                               data-testid={`drafts-tab-item-${draft.id}-${itemIndex}`}
-                              className="rounded bg-gray-50 p-3 text-sm"
+                              className="rounded-lg border border-gray-200 bg-white p-4 text-sm"
                             >
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium text-gray-700">
-                                  {item.field === 'seoTitle' ? 'Title' : 'Description'}
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="font-semibold text-gray-900">
+                                  {item.field === 'seoTitle' ? 'SEO Title' : 'SEO Description'}
                                 </div>
                                 {!isEditing && (
                                   <button
                                     type="button"
                                     data-testid={`drafts-tab-item-edit-${draft.id}-${itemIndex}`}
-                                    onClick={() => handleStartEdit(draft.id, itemIndex, currentValue)}
+                                    onClick={() => handleStartEdit(draft.id, itemIndex, draftValue)}
                                     className="text-xs text-indigo-600 hover:text-indigo-800"
                                   >
                                     Edit
@@ -223,56 +264,85 @@ export function ProductDraftsTab({ projectId, productId }: ProductDraftsTabProps
                                 )}
                               </div>
 
-                              {isEditing ? (
-                                <div className="mt-2">
-                                  <textarea
-                                    data-testid={`drafts-tab-item-input-${draft.id}-${itemIndex}`}
-                                    value={editValue}
-                                    onChange={(e) => setEditValue(e.target.value)}
-                                    className="w-full rounded border border-gray-300 p-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                                    rows={item.field === 'seoDescription' ? 4 : 2}
-                                    disabled={editSaving}
-                                  />
-                                  {editError && (
-                                    <div className="mt-1 text-xs text-red-600">{editError}</div>
-                                  )}
-                                  <div className="mt-2 flex gap-2">
-                                    <button
-                                      type="button"
-                                      data-testid={`drafts-tab-item-save-${draft.id}-${itemIndex}`}
-                                      onClick={() => handleSaveEdit(draft.id, itemIndex)}
-                                      disabled={editSaving}
-                                      className="inline-flex items-center rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-                                    >
-                                      {editSaving ? 'Saving...' : 'Save changes'}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      data-testid={`drafts-tab-item-cancel-${draft.id}-${itemIndex}`}
-                                      onClick={handleCancelEdit}
-                                      disabled={editSaving}
-                                      className="inline-flex items-center rounded bg-white px-3 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
+                              {/* [DRAFT-DIFF-CLARITY-1] Current (live) block */}
+                              <div
+                                data-testid="draft-diff-current"
+                                className="rounded bg-gray-50 p-3 mb-3"
+                              >
+                                <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                                  Current (live)
                                 </div>
-                              ) : (
-                                <>
-                                  <div className="mt-1 text-gray-900">
-                                    {item.finalSuggestion || item.rawSuggestion || '(No suggestion)'}
-                                  </div>
-                                  {item.ruleWarnings && item.ruleWarnings.length > 0 && (
-                                    <div className="mt-1 text-xs text-amber-600">
-                                      Warnings: {item.ruleWarnings.join(', ')}
+                                <div className="text-gray-700">
+                                  {liveValue || <span className="italic text-gray-400">(empty)</span>}
+                                </div>
+                              </div>
+
+                              {/* [DRAFT-DIFF-CLARITY-1] Draft (staged) block */}
+                              <div
+                                data-testid="draft-diff-draft"
+                                className="rounded bg-indigo-50 p-3"
+                              >
+                                <div className="text-xs font-medium text-indigo-600 uppercase tracking-wide mb-1">
+                                  Draft (staged)
+                                </div>
+
+                                {isEditing ? (
+                                  <div>
+                                    <textarea
+                                      data-testid={`drafts-tab-item-input-${draft.id}-${itemIndex}`}
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="w-full rounded border border-indigo-300 p-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                      rows={item.field === 'seoDescription' ? 4 : 2}
+                                      disabled={editSaving}
+                                    />
+                                    {editError && (
+                                      <div className="mt-1 text-xs text-red-600">{editError}</div>
+                                    )}
+                                    <div className="mt-2 flex gap-2">
+                                      <button
+                                        type="button"
+                                        data-testid={`drafts-tab-item-save-${draft.id}-${itemIndex}`}
+                                        onClick={() => handleSaveEdit(draft.id, itemIndex, item.field)}
+                                        disabled={editSaving}
+                                        className="inline-flex items-center rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                                      >
+                                        {editSaving ? 'Saving...' : 'Save changes'}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        data-testid={`drafts-tab-item-cancel-${draft.id}-${itemIndex}`}
+                                        onClick={handleCancelEdit}
+                                        disabled={editSaving}
+                                        className="inline-flex items-center rounded bg-white px-3 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                                      >
+                                        Cancel
+                                      </button>
                                     </div>
-                                  )}
-                                </>
-                              )}
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="text-gray-900">
+                                      {noDraftGenerated ? (
+                                        <span className="italic text-gray-500">No draft generated yet</span>
+                                      ) : draftWillClear ? (
+                                        <span className="text-amber-600">Draft will clear this field when applied</span>
+                                      ) : (
+                                        draftValue || <span className="italic text-gray-400">(empty)</span>
+                                      )}
+                                    </div>
+                                    {item.ruleWarnings && item.ruleWarnings.length > 0 && (
+                                      <div className="mt-1 text-xs text-amber-600">
+                                        Warnings: {item.ruleWarnings.join(', ')}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
                             </div>
                           );
                         } else {
-                          // Legacy shape - read only
+                          // Legacy shape - read only (no diff UI)
                           return (
                             <div key={idx} data-testid={`drafts-tab-item-${draft.id}-${idx}`} className="space-y-2">
                               {legacyItem.suggestedTitle && (

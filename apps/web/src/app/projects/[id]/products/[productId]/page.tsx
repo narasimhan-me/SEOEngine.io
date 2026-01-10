@@ -1388,10 +1388,15 @@ export default function ProductOptimizationPage() {
 
                 {/* [DRAFT-REVIEW-ISOLATION-1] Drafts Tab - Isolated Non-AI Draft Review Component */}
                 {/* Conditionally mounted to match standard tab behavior (no state preservation across tab switches) */}
+                {/* [DRAFT-DIFF-CLARITY-1] Pass current/live field values for diff display */}
                 {activeTab === 'drafts' && (
                   <ProductDraftsTab
                     projectId={projectId}
                     productId={productId}
+                    currentFieldValues={{
+                      seoTitle: product?.seoTitle,
+                      seoDescription: product?.seoDescription,
+                    }}
                   />
                 )}
               </div>

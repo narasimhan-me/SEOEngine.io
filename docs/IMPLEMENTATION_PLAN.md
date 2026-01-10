@@ -1292,6 +1292,60 @@ None. This is a UX clarity addition with no functional behavior changes.
 
 ---
 
+### Phase DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+DRAFT-DIFF-CLARITY-1 adds explicit "Current (live)" vs "Draft (staged)" diff display at draft review surfaces. This provides users with clear visibility into what will change when a draft is applied, preventing confusion about the current state vs proposed changes.
+
+**Trust Principle:** "Make the impact of applying a draft immediately obvious at a glance."
+
+#### Key Features
+
+1. **Diff Display**: Side-by-side "Current (live)" and "Draft (staged)" blocks with distinct visual styling
+2. **Empty Draft Messaging**:
+   - "No draft generated yet" when both rawSuggestion and finalSuggestion are empty
+   - "Draft will clear this field when applied" when explicitly cleared (rawSuggestion exists but finalSuggestion empty)
+3. **Save Confirmation**: Confirmation dialog when saving an empty draft that would clear a live field
+4. **Test Hooks**: `data-testid="draft-diff-current"` and `data-testid="draft-diff-draft"` for E2E automation
+
+#### Locked Copy (Do Not Modify Without Phase Approval)
+
+| Element | Text |
+|---------|------|
+| Current label | "Current (live)" |
+| Draft label | "Draft (staged)" |
+| No draft message | "No draft generated yet" |
+| Clear warning | "Draft will clear this field when applied" |
+| Confirmation dialog | "Saving an empty draft will clear this field when applied.\n\nAre you sure you want to save an empty draft?" |
+
+#### Surfaces Covered
+
+1. **Product Drafts Tab** - Diff display for each draft item with current/draft blocks
+2. **Playbooks Draft Review** - Diff display for each canonical draft item
+
+#### Core Files
+
+- `apps/web/src/components/products/ProductDraftsTab.tsx` (added diff UI + empty draft confirmation)
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` (passes currentFieldValues)
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (added diff UI + current field fetch)
+- `apps/api/src/testkit/e2e-testkit.controller.ts` (seed-draft-diff-clarity-1 endpoint)
+
+#### Test Coverage
+
+- **Playwright Tests:** `apps/web/tests/draft-diff-clarity-1.spec.ts` (7 tests: DDC1-001 through DDC1-007)
+- **Manual Testing:** `docs/manual-testing/DRAFT-DIFF-CLARITY-1.md`
+
+#### Behavior Changes
+
+- Draft review surfaces now show current live values alongside draft values
+- Empty draft saves trigger a confirmation dialog when they would clear a live field
+
+---
+
 ## In Progress
 
 *None at this time.*

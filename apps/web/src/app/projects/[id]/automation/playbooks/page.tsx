@@ -311,6 +311,12 @@ export default function AutomationPlaybooksPage() {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
+  // [DRAFT-DIFF-CLARITY-1] Current/live field values for diff display in Draft Review mode
+  const [draftReviewCurrentFields, setDraftReviewCurrentFields] = useState<{
+    seoTitle?: string | null;
+    seoDescription?: string | null;
+  } | null>(null);
+
   const fetchInitialData = useCallback(async () => {
     try {
       setLoading(true);
@@ -392,10 +398,12 @@ export default function AutomationPlaybooksPage() {
   }, [router, fetchInitialData]);
 
   // [DRAFT-ROUTING-INTEGRITY-1] Fetch asset-scoped drafts when in Draft Review mode
+  // [DRAFT-DIFF-CLARITY-1] Also fetch current/live values for diff display
   useEffect(() => {
     if (!isDraftReviewMode || !draftReviewAssetId) {
       setDraftReviewData(null);
       setDraftReviewError(null);
+      setDraftReviewCurrentFields(null);
       return;
     }
 
@@ -405,11 +413,51 @@ export default function AutomationPlaybooksPage() {
       try {
         // Convert uppercase to lowercase for API
         const assetTypeLower = validUrlAssetType.toLowerCase() as 'products' | 'pages' | 'collections';
-        const data = await projectsApi.listAutomationPlaybookDraftsForAsset(projectId, {
-          assetType: assetTypeLower,
-          assetId: draftReviewAssetId,
-        });
-        setDraftReviewData(data);
+
+        // [DRAFT-DIFF-CLARITY-1] Fetch drafts and current/live values in parallel
+        const [draftData, currentFields] = await Promise.all([
+          projectsApi.listAutomationPlaybookDraftsForAsset(projectId, {
+            assetType: assetTypeLower,
+            assetId: draftReviewAssetId,
+          }),
+          // Fetch current/live field values based on asset type
+          (async () => {
+            try {
+              if (assetTypeLower === 'products') {
+                // Use existing products list and find by ID
+                const productsList = await productsApi.list(projectId);
+                const product = productsList.find((p: any) => p.id === draftReviewAssetId);
+                return product ? {
+                  seoTitle: product.seoTitle,
+                  seoDescription: product.seoDescription,
+                } : null;
+              } else if (assetTypeLower === 'pages') {
+                // Fetch pages (static) and find by ID
+                const pages = await projectsApi.crawlPages(projectId, { pageType: 'static' });
+                const page = pages.find((p: any) => p.id === draftReviewAssetId);
+                return page ? {
+                  seoTitle: page.title,
+                  seoDescription: page.metaDescription,
+                } : null;
+              } else if (assetTypeLower === 'collections') {
+                // Fetch collections and find by ID
+                const collections = await projectsApi.crawlPages(projectId, { pageType: 'collection' });
+                const collection = collections.find((c: any) => c.id === draftReviewAssetId);
+                return collection ? {
+                  seoTitle: collection.title,
+                  seoDescription: collection.metaDescription,
+                } : null;
+              }
+              return null;
+            } catch {
+              // Silent fail - diff display will show empty current values
+              return null;
+            }
+          })(),
+        ]);
+
+        setDraftReviewData(draftData);
+        setDraftReviewCurrentFields(currentFields);
       } catch (err) {
         console.error('[DRAFT-ROUTING-INTEGRITY-1] Failed to fetch draft review data:', err);
         setDraftReviewError(err instanceof Error ? err.message : 'Failed to load drafts');
@@ -435,7 +483,21 @@ export default function AutomationPlaybooksPage() {
     setEditError(null);
   }, []);
 
-  const handleSaveEdit = useCallback(async (draftId: string, itemIndex: number) => {
+  // [DRAFT-DIFF-CLARITY-1] Updated to accept fieldName for empty draft confirmation
+  const handleSaveEdit = useCallback(async (draftId: string, itemIndex: number, fieldName?: 'seoTitle' | 'seoDescription') => {
+    // [DRAFT-DIFF-CLARITY-1] Empty draft confirmation when clearing a live field
+    if (editValue.trim() === '' && fieldName && draftReviewCurrentFields) {
+      const currentValue = fieldName === 'seoTitle'
+        ? draftReviewCurrentFields.seoTitle
+        : draftReviewCurrentFields.seoDescription;
+      if (currentValue && currentValue.trim() !== '') {
+        const confirmed = window.confirm(
+          'Saving an empty draft will clear this field when applied.\n\nAre you sure you want to save an empty draft?'
+        );
+        if (!confirmed) return;
+      }
+    }
+
     setEditSaving(true);
     setEditError(null);
 
@@ -479,7 +541,7 @@ export default function AutomationPlaybooksPage() {
     } finally {
       setEditSaving(false);
     }
-  }, [projectId, editValue, feedback]);
+  }, [projectId, editValue, feedback, draftReviewCurrentFields]);
 
   const issuesByType = useMemo(() => {
     const map = new Map<string, DeoIssue>();
@@ -1579,15 +1641,29 @@ export default function AutomationPlaybooksPage() {
                           const currentValue = item.finalSuggestion || item.rawSuggestion || '';
 
                           if (hasCanonicalShape) {
-                            // Canonical playbook draft shape with inline edit
+                            // [DRAFT-DIFF-CLARITY-1] Canonical playbook draft shape with diff UI and inline edit
+                            // Compute live value from draftReviewCurrentFields
+                            const liveValue = item.field === 'seoTitle'
+                              ? (draftReviewCurrentFields?.seoTitle || '')
+                              : (draftReviewCurrentFields?.seoDescription || '');
+                            const draftValue = item.finalSuggestion ?? item.rawSuggestion ?? null;
+
+                            // [DRAFT-DIFF-CLARITY-1] Derive empty draft messaging:
+                            // - If both rawSuggestion and finalSuggestion are empty/null: "No draft generated yet"
+                            // - If explicitly cleared (has rawSuggestion but finalSuggestion is empty): "Draft will clear this field when applied"
+                            const hasDraftContent = draftValue !== null && draftValue.trim() !== '';
+                            const wasExplicitlyCleared = item.rawSuggestion && item.rawSuggestion.trim() !== '' &&
+                              (item.finalSuggestion === '' || item.finalSuggestion === null);
+                            const noDraftGenerated = !item.rawSuggestion || item.rawSuggestion.trim() === '';
+
                             return (
                               <div
                                 key={itemIndex}
                                 data-testid={`draft-item-${draft.id}-${itemIndex}`}
-                                className="rounded bg-gray-50 p-3 text-sm"
+                                className="rounded border border-gray-200 bg-white p-4 text-sm"
                               >
-                                <div className="flex items-center justify-between">
-                                  <div className="font-medium text-gray-700">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="font-medium text-gray-900">
                                     {item.field === 'seoTitle' ? 'Title' : 'Description'}
                                   </div>
                                   {/* [DRAFT-EDIT-INTEGRITY-1] Edit button - only show when not editing */}
@@ -1603,56 +1679,80 @@ export default function AutomationPlaybooksPage() {
                                   )}
                                 </div>
 
-                                {isEditing ? (
-                                  /* [DRAFT-EDIT-INTEGRITY-1] Edit mode UI */
-                                  <div className="mt-2">
-                                    <textarea
-                                      data-testid={`draft-item-input-${draft.id}-${itemIndex}`}
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      className="w-full rounded border border-gray-300 p-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                                      rows={item.field === 'seoDescription' ? 4 : 2}
-                                      disabled={editSaving}
-                                    />
-                                    {/* Edit error inline */}
-                                    {editError && (
-                                      <div className="mt-1 text-xs text-red-600">{editError}</div>
-                                    )}
-                                    {/* Save/Cancel buttons */}
-                                    <div className="mt-2 flex gap-2">
-                                      <button
-                                        type="button"
-                                        data-testid={`draft-item-save-${draft.id}-${itemIndex}`}
-                                        onClick={() => handleSaveEdit(draft.id, itemIndex)}
-                                        disabled={editSaving}
-                                        className="inline-flex items-center rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-                                      >
-                                        {editSaving ? 'Saving...' : 'Save changes'}
-                                      </button>
-                                      <button
-                                        type="button"
-                                        data-testid={`draft-item-cancel-${draft.id}-${itemIndex}`}
-                                        onClick={handleCancelEdit}
-                                        disabled={editSaving}
-                                        className="inline-flex items-center rounded bg-white px-3 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50"
-                                      >
-                                        Cancel
-                                      </button>
-                                    </div>
+                                {/* [DRAFT-DIFF-CLARITY-1] Diff UI: Current (live) vs Draft (staged) */}
+                                <div data-testid="draft-diff-current" className="rounded bg-gray-50 p-3 mb-3">
+                                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                                    Current (live)
                                   </div>
-                                ) : (
-                                  /* Display mode */
-                                  <>
-                                    <div className="mt-1 text-gray-900">
-                                      {item.finalSuggestion || item.rawSuggestion || '(No suggestion)'}
-                                    </div>
-                                    {item.ruleWarnings && item.ruleWarnings.length > 0 && (
-                                      <div className="mt-1 text-xs text-amber-600">
-                                        Warnings: {item.ruleWarnings.join(', ')}
+                                  <div className="text-gray-700">
+                                    {liveValue || <span className="italic text-gray-400">(empty)</span>}
+                                  </div>
+                                </div>
+
+                                <div data-testid="draft-diff-draft" className="rounded bg-indigo-50 p-3">
+                                  <div className="text-xs font-medium text-indigo-600 uppercase tracking-wide mb-1">
+                                    Draft (staged)
+                                  </div>
+
+                                  {isEditing ? (
+                                    /* [DRAFT-EDIT-INTEGRITY-1] Edit mode UI */
+                                    <div className="mt-1">
+                                      <textarea
+                                        data-testid={`draft-item-input-${draft.id}-${itemIndex}`}
+                                        value={editValue}
+                                        onChange={(e) => setEditValue(e.target.value)}
+                                        className="w-full rounded border border-gray-300 p-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                        rows={item.field === 'seoDescription' ? 4 : 2}
+                                        disabled={editSaving}
+                                      />
+                                      {/* Edit error inline */}
+                                      {editError && (
+                                        <div className="mt-1 text-xs text-red-600">{editError}</div>
+                                      )}
+                                      {/* Save/Cancel buttons */}
+                                      <div className="mt-2 flex gap-2">
+                                        <button
+                                          type="button"
+                                          data-testid={`draft-item-save-${draft.id}-${itemIndex}`}
+                                          onClick={() => handleSaveEdit(draft.id, itemIndex, item.field as 'seoTitle' | 'seoDescription')}
+                                          disabled={editSaving}
+                                          className="inline-flex items-center rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                                        >
+                                          {editSaving ? 'Saving...' : 'Save changes'}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          data-testid={`draft-item-cancel-${draft.id}-${itemIndex}`}
+                                          onClick={handleCancelEdit}
+                                          disabled={editSaving}
+                                          className="inline-flex items-center rounded bg-white px-3 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                                        >
+                                          Cancel
+                                        </button>
                                       </div>
-                                    )}
-                                  </>
-                                )}
+                                    </div>
+                                  ) : (
+                                    /* Display mode with empty draft messaging */
+                                    <div className="text-indigo-900">
+                                      {hasDraftContent ? (
+                                        <>
+                                          {draftValue}
+                                          {item.ruleWarnings && item.ruleWarnings.length > 0 && (
+                                            <div className="mt-1 text-xs text-amber-600">
+                                              Warnings: {item.ruleWarnings.join(', ')}
+                                            </div>
+                                          )}
+                                        </>
+                                      ) : wasExplicitlyCleared ? (
+                                        <span className="italic text-amber-600">Draft will clear this field when applied</span>
+                                      ) : noDraftGenerated ? (
+                                        <span className="italic text-gray-400">No draft generated yet</span>
+                                      ) : (
+                                        <span className="italic text-gray-400">(empty)</span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             );
                           } else {
