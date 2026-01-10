@@ -2,6 +2,7 @@
  * [LIST-ACTIONS-CLARITY-1] Row Chips & Actions E2E Tests
  * [LIST-ACTIONS-CLARITY-1 FIXUP-1] Extended with Collections + Blocked state + Bulk removal
  * [LIST-ACTIONS-CLARITY-1 FIXUP-2] Hardened with row-scoped assertions using seeded titles
+ * [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Canonical issue counts from DEO issues (not UI heuristics)
  *
  * Playwright smoke tests for the unified row chips and actions across
  * Products, Pages, and Collections lists.
@@ -21,6 +22,11 @@
  * 12. [FIXUP-1] No bulk selection checkboxes on list pages
  * 13. [FIXUP-1] No bulk action CTAs in command bars
  * 14. [FIXUP-1] Products command bar routes to playbooks
+ *
+ * [CORRECTNESS-1] Key changes:
+ * - actionableNowCount is now server-derived from canonical DEO issues
+ * - blockedByApproval is server-derived (hasDraft AND !viewerCanApply)
+ * - UI no longer computes actionability from SEO heuristics
  *
  * Prerequisites:
  * - /testkit/e2e/seed-list-actions-clarity-1 endpoint available

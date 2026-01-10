@@ -389,6 +389,7 @@ export class ProjectsController {
    * GET /projects/:id/crawl-pages
    * [LIST-SEARCH-FILTER-1.1] Returns non-product crawl pages for content optimization
    * Supports filtering by q, status, hasDraft, pageType
+   * [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Returns actionableNowCount and blockedByApproval from canonical DEO issues
    */
   @Get(':id/crawl-pages')
   async getCrawlPages(
@@ -404,7 +405,106 @@ export class ProjectsController {
     if (status === 'optimized' || status === 'needs_attention') filters.status = status;
     if (hasDraft === 'true' || hasDraft === '1') filters.hasDraft = true;
     if (pageType === 'static' || pageType === 'collection') filters.pageType = pageType;
-    return this.projectsService.getCrawlPages(projectId, req.user.id, filters);
+
+    // Get base crawl pages from service
+    const contentPages = await this.projectsService.getCrawlPages(projectId, req.user.id, filters);
+
+    // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Compute canonical issue counts per URL
+    const canonicalCountsByUrl = await this.computeCanonicalIssueCountsByUrl(projectId, req.user.id);
+
+    // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Get viewer's apply capability
+    const viewerCanApply = await this.roleResolutionService.canApply(projectId, req.user.id);
+
+    // Add canonical fields to each page
+    return contentPages.map((page: any) => {
+      // Use URL as key for pages/collections matching
+      const counts = canonicalCountsByUrl.get(page.url);
+      const actionableNowCount = counts?.actionable ?? 0;
+      const detectedIssueCount = counts?.detected ?? 0;
+      const blockedByApproval = page.hasDraftPendingApply && !viewerCanApply;
+
+      return {
+        ...page,
+        actionableNowCount,
+        detectedIssueCount,
+        blockedByApproval,
+      };
+    });
+  }
+
+  /**
+   * [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Compute canonical issue counts per URL
+   * Returns a Map of URL → { actionable: number, detected: number }
+   *
+   * Uses DeoIssuesService to fetch canonical issues and counts them per URL:
+   * - For pages: key = "pages:{url}"
+   * - For collections: key = "collections:{url}"
+   */
+  private async computeCanonicalIssueCountsByUrl(
+    projectId: string,
+    userId: string,
+  ): Promise<Map<string, { actionable: number; detected: number }>> {
+    const countsMap = new Map<string, { actionable: number; detected: number }>();
+
+    try {
+      const issuesResponse = await this.deoIssuesService.getIssuesForProjectReadOnly(projectId, userId);
+
+      if (!issuesResponse.issues || issuesResponse.issues.length === 0) {
+        return countsMap;
+      }
+
+      // Build per-URL issue type sets
+      const urlIssueTypes = new Map<string, { actionableTypes: Set<string>; detectedTypes: Set<string> }>();
+
+      for (const issue of issuesResponse.issues) {
+        const issueType = issue.type ?? issue.id;
+
+        // Get full affected keys (non-enumerable) or fall back to affectedPages
+        const fullKeys = (issue as any)['__fullAffectedAssetKeys'] as string[] | undefined;
+
+        // Collect URLs from both pages and collections
+        const urls: string[] = [];
+
+        if (Array.isArray(fullKeys) && fullKeys.length > 0) {
+          // Extract URLs from full keys (format: "pages:{url}" or "collections:{url}")
+          for (const key of fullKeys) {
+            if (key.startsWith('pages:')) {
+              urls.push(key.substring('pages:'.length));
+            } else if (key.startsWith('collections:')) {
+              urls.push(key.substring('collections:'.length));
+            }
+          }
+        } else if (Array.isArray(issue.affectedPages) && issue.affectedPages.length > 0) {
+          // Fallback to affectedPages
+          urls.push(...issue.affectedPages);
+        }
+
+        for (const url of urls) {
+          let entry = urlIssueTypes.get(url);
+          if (!entry) {
+            entry = { actionableTypes: new Set(), detectedTypes: new Set() };
+            urlIssueTypes.set(url, entry);
+          }
+
+          entry.detectedTypes.add(issueType);
+          if (issue.isActionableNow) {
+            entry.actionableTypes.add(issueType);
+          }
+        }
+      }
+
+      // Convert to counts
+      for (const [url, entry] of urlIssueTypes) {
+        countsMap.set(url, {
+          actionable: entry.actionableTypes.size,
+          detected: entry.detectedTypes.size,
+        });
+      }
+    } catch (error) {
+      console.error('[ProjectsController] Failed to fetch canonical issues:', error);
+    }
+
+    return countsMap;
   }
 
   /**

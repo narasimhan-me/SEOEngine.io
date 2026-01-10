@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { RoleResolutionService } from '../common/role-resolution.service';
+import { DeoIssuesService } from '../projects/deo-issues.service';
+import type { DeoIssue } from '@engineo/shared';
 
 /**
  * [LIST-SEARCH-FILTER-1] Product list filter options
@@ -26,8 +28,15 @@ const SEO_DESC_MIN = 70;
 const SEO_DESC_MAX = 155;
 
 /**
+ * [COUNT-INTEGRITY-1.1 PATCH 3.1] Internal field name for full affected asset keys.
+ * Non-enumerable property on DeoIssue for accurate per-asset counting.
+ */
+const FULL_AFFECTED_ASSET_KEYS_FIELD = '__fullAffectedAssetKeys';
+
+/**
  * [ROLES-3] Updated with ProjectMember-aware access enforcement
  * [LIST-SEARCH-FILTER-1] Extended with server-side filtering
+ * [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Uses canonical DEO issues for actionable counts
  *
  * Access control:
  * - getProductsForProject: Any ProjectMember can view
@@ -38,6 +47,9 @@ export class ProductsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly roleResolution: RoleResolutionService,
+    // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Inject DeoIssuesService for canonical issue counts
+    @Inject(forwardRef(() => DeoIssuesService))
+    private readonly deoIssuesService: DeoIssuesService,
   ) {}
 
   /**
@@ -78,10 +90,10 @@ export class ProductsService {
     // [LIST-ACTIONS-CLARITY-1] Always compute pending draft set for hasDraftPendingApply field
     const productIdsWithDrafts = await this.getProductIdsWithPendingDrafts(projectId);
 
-    // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Check governance policy for approval requirements
-    const requireApprovalForApply = await this.getRequireApprovalForApply(projectId);
+    // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Fetch canonical DEO issues for actionable counts
+    const canonicalIssueCountsByProductId = await this.getCanonicalIssueCountsByProduct(projectId, userId);
 
-    // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Get viewer's role capabilities
+    // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Get viewer's role capabilities (not governance-based)
     const viewerCanApply = await this.roleResolution.canApply(projectId, userId);
 
     // [LIST-SEARCH-FILTER-1] Apply filters in memory for complex conditions
@@ -114,18 +126,22 @@ export class ProductsService {
       }
     }
 
-    // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Add server-derived row action fields to each product
+    // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Add server-derived row action fields to each product
+    // Uses canonical DEO issues for actionableNowCount (not SEO heuristics)
     return products.map((p) => {
       const hasDraftPendingApply = productIdsWithDrafts.has(p.id);
-      // Compute actionable issue count from SEO metadata status
-      const actionableNowCount = this.getActionableIssueCountForProduct(p);
-      // blockedByApproval: has draft AND (governance requires approval OR viewer cannot apply)
-      const blockedByApproval = hasDraftPendingApply && (requireApprovalForApply || !viewerCanApply);
+      // Canonical issue count from DeoIssuesService (isActionableNow === true issues affecting this product)
+      const counts = canonicalIssueCountsByProductId.get(p.id);
+      const actionableNowCount = counts?.actionable ?? 0;
+      const detectedIssueCount = counts?.detected ?? 0;
+      // blockedByApproval: has draft AND viewer cannot apply (capability-based, not governance-based)
+      const blockedByApproval = hasDraftPendingApply && !viewerCanApply;
 
       return {
         ...p,
         hasDraftPendingApply,
         actionableNowCount,
+        detectedIssueCount,
         blockedByApproval,
       };
     });
@@ -209,59 +225,96 @@ export class ProductsService {
   }
 
   /**
-   * [LIST-ACTIONS-CLARITY-1 FIXUP-1] Compute actionable issue count per product
-   * Returns a Map of productId → count of actionable issues.
+   * [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Compute canonical issue counts per product
+   * Returns a Map of productId → { actionable: number, detected: number }
    *
-   * Note: This is a simplified computation based on SEO metadata status.
-   * Full issue computation is done client-side from the DEO Issues API.
-   * Server-derived counts provide fast initial rendering.
+   * Uses DeoIssuesService to fetch canonical issues and counts them per product:
+   * - actionable: count of issue types where isActionableNow === true affecting this product
+   * - detected: count of all issue types affecting this product
    *
-   * Actionable issues from SEO metadata:
-   * - missing_seo_title: seoTitle is null/empty
-   * - missing_seo_description: seoDescription is null/empty
-   * - weak_title: title present but outside 30-60 char range
-   * - weak_description: description present but outside 70-155 char range
+   * Issue matching uses the non-enumerable __fullAffectedAssetKeys field when present,
+   * falling back to issue.affectedProducts.
    */
-  private getActionableIssueCountForProduct(
-    product: { seoTitle: string | null; seoDescription: string | null },
-  ): number {
-    let count = 0;
+  private async getCanonicalIssueCountsByProduct(
+    projectId: string,
+    userId: string,
+  ): Promise<Map<string, { actionable: number; detected: number }>> {
+    const countsMap = new Map<string, { actionable: number; detected: number }>();
 
-    const hasTitle = !!product.seoTitle?.trim();
-    const hasDescription = !!product.seoDescription?.trim();
+    try {
+      // Fetch canonical issues from DeoIssuesService
+      const issuesResponse = await this.deoIssuesService.getIssuesForProjectReadOnly(projectId, userId);
 
-    // Missing metadata issues
-    if (!hasTitle) count++; // missing_seo_title
-    if (!hasDescription) count++; // missing_seo_description
-
-    // Weak metadata issues (only if present)
-    if (hasTitle) {
-      const titleLength = product.seoTitle!.length;
-      if (titleLength < SEO_TITLE_MIN || titleLength > SEO_TITLE_MAX) {
-        count++; // weak_title
+      if (!issuesResponse.issues || issuesResponse.issues.length === 0) {
+        return countsMap;
       }
-    }
-    if (hasDescription) {
-      const descLength = product.seoDescription!.length;
-      if (descLength < SEO_DESC_MIN || descLength > SEO_DESC_MAX) {
-        count++; // weak_description
+
+      // Build per-product issue type sets
+      // Key: productId, Value: { actionableTypes: Set<string>, detectedTypes: Set<string> }
+      const productIssueTypes = new Map<string, { actionableTypes: Set<string>; detectedTypes: Set<string> }>();
+
+      for (const issue of issuesResponse.issues) {
+        const issueType = issue.type ?? issue.id;
+        const productIds = this.getProductIdsAffectedByIssue(issue);
+
+        for (const productId of productIds) {
+          let entry = productIssueTypes.get(productId);
+          if (!entry) {
+            entry = { actionableTypes: new Set(), detectedTypes: new Set() };
+            productIssueTypes.set(productId, entry);
+          }
+
+          // Always count detected
+          entry.detectedTypes.add(issueType);
+
+          // Only count actionable if isActionableNow === true
+          if (issue.isActionableNow) {
+            entry.actionableTypes.add(issueType);
+          }
+        }
       }
+
+      // Convert to counts
+      for (const [productId, entry] of productIssueTypes) {
+        countsMap.set(productId, {
+          actionable: entry.actionableTypes.size,
+          detected: entry.detectedTypes.size,
+        });
+      }
+    } catch (error) {
+      // If issues fetch fails, return empty map (graceful degradation)
+      console.error('[ProductsService] Failed to fetch canonical issues:', error);
     }
 
-    return count;
+    return countsMap;
   }
 
   /**
-   * [LIST-ACTIONS-CLARITY-1 FIXUP-1] Check if governance policy requires approval for apply
-   * Returns true if requireApprovalForApply is enabled, false otherwise.
+   * [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Extract product IDs affected by an issue
+   * Prefers __fullAffectedAssetKeys (non-enumerable, uncapped) when present,
+   * falls back to issue.affectedProducts.
    */
-  private async getRequireApprovalForApply(projectId: string): Promise<boolean> {
-    const policy = await this.prisma.projectGovernancePolicy.findUnique({
-      where: { projectId },
-      select: { requireApprovalForApply: true },
-    });
+  private getProductIdsAffectedByIssue(issue: DeoIssue): string[] {
+    // Try non-enumerable full affected keys first (format: "products:{productId}")
+    const fullKeys = (issue as any)[FULL_AFFECTED_ASSET_KEYS_FIELD] as string[] | undefined;
+    if (Array.isArray(fullKeys) && fullKeys.length > 0) {
+      const productIds: string[] = [];
+      for (const key of fullKeys) {
+        if (key.startsWith('products:')) {
+          productIds.push(key.substring('products:'.length));
+        }
+      }
+      if (productIds.length > 0) {
+        return productIds;
+      }
+    }
 
-    return policy?.requireApprovalForApply ?? false;
+    // Fallback to affectedProducts array
+    if (Array.isArray(issue.affectedProducts) && issue.affectedProducts.length > 0) {
+      return issue.affectedProducts;
+    }
+
+    return [];
   }
 
   /**

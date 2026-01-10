@@ -43,8 +43,13 @@ export interface RowNextActionInput {
   hasDraftPendingApply: boolean;
   /** Count of actionable-now issues for this asset */
   actionableNowCount: number;
-  /** Viewer can apply drafts (OWNER only) */
-  canApply: boolean;
+  /**
+   * [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Server-derived blocked state
+   * True if hasDraft AND viewer cannot apply. Replaces canApply derivation.
+   */
+  blockedByApproval?: boolean;
+  /** @deprecated Use blockedByApproval instead. Kept for backwards compat. */
+  canApply?: boolean;
   /** Viewer can request approval (OWNER/EDITOR) */
   canRequestApproval: boolean;
   /** Fix href for Products only (deterministic next issue) */
@@ -68,9 +73,10 @@ export interface RowNextActionInput {
  *
  * LOCKED RULES:
  * 1. Draft chip source: hasDraftPendingApply only (server-derived)
- * 2. Blocked chip: only when hasDraftPendingApply === true AND canApply === false
+ * 2. Blocked chip: only when blockedByApproval === true (server-derived)
+ *    [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Uses server field, not canApply derivation
  * 3. If hasDraftPendingApply === true:
- *    - If blocked → ⛔ Blocked, primary: Request approval / View approval status
+ *    - If blockedByApproval → ⛔ Blocked, primary: Request approval / View approval status
  *    - Else → 🟡 Draft saved (not applied), primary: Review drafts
  * 4. Else (no draft):
  *    - If actionableNowCount > 0 → ⚠ Needs attention, primary: Fix next (Products) / View issues (Pages/Collections)
@@ -82,6 +88,7 @@ export function resolveRowNextAction(input: RowNextActionInput): ResolvedRowNext
     assetType,
     hasDraftPendingApply,
     actionableNowCount,
+    blockedByApproval,
     canApply,
     canRequestApproval,
     fixNextHref,
@@ -91,10 +98,14 @@ export function resolveRowNextAction(input: RowNextActionInput): ResolvedRowNext
     viewApprovalStatusHref,
   } = input;
 
+  // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Determine blocked state:
+  // Prefer server-derived blockedByApproval, fall back to canApply derivation for backwards compat
+  const isBlocked = blockedByApproval !== undefined ? blockedByApproval : (hasDraftPendingApply && !canApply);
+
   // Case 1: Has pending draft
   if (hasDraftPendingApply) {
-    // Blocked: has draft but cannot apply
-    if (!canApply) {
+    // Blocked: has draft but cannot apply (server-derived or capability-derived)
+    if (isBlocked) {
       const primaryLabel = canRequestApproval ? 'Request approval' : 'View approval status';
       const primaryHref = canRequestApproval
         ? (requestApprovalHref || reviewDraftsHref)

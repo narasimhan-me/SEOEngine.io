@@ -378,18 +378,13 @@ export function ProductTable({
         });
       }
 
-      // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Use server-derived blockedByApproval to compute canApply
-      // blockedByApproval = hasDraft AND (governance requires approval OR viewer cannot apply)
-      // Therefore: canApply = NOT blockedByApproval (when draft present)
-      const effectiveCanApply = product.blockedByApproval !== undefined
-        ? !product.blockedByApproval
-        : canApply;
-
+      // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Pass server-derived blockedByApproval directly
       const resolved = resolveRowNextAction({
         assetType: 'products',
         hasDraftPendingApply,
         actionableNowCount,
-        canApply: effectiveCanApply,
+        blockedByApproval: product.blockedByApproval,
+        canApply, // fallback for backwards compat if blockedByApproval undefined
         canRequestApproval,
         fixNextHref,
         openHref: buildProductWorkspaceHref(projectId, product.id, navContext),

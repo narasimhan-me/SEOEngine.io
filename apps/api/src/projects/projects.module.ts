@@ -78,6 +78,7 @@ import { WorkQueueService } from './work-queue.service';
     RoleResolutionService,
     WorkQueueService,
   ],
-  exports: [ProjectsService, DeoScoreService, AutomationService, AnswerEngineService, AutomationPlaybookRunsService, SearchIntentService, CompetitorsService, OffsiteSignalsService, LocalDiscoveryService, MediaAccessibilityService, GovernanceService, ApprovalsService, AuditEventsService, RoleResolutionService],
+  // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Added DeoIssuesService to exports for ProductsService injection
+  exports: [ProjectsService, DeoScoreService, DeoIssuesService, AutomationService, AnswerEngineService, AutomationPlaybookRunsService, SearchIntentService, CompetitorsService, OffsiteSignalsService, LocalDiscoveryService, MediaAccessibilityService, GovernanceService, ApprovalsService, AuditEventsService, RoleResolutionService],
 })
 export class ProjectsModule {}

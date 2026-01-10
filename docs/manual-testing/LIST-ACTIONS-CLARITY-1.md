@@ -12,6 +12,13 @@ Provides consistent visual vocabulary and actionable links for each asset state.
 - **Bulk removal**: No bulk selection UI on any list page (compliance/safety hardening)
 - Server-derived row fields: `actionableNowCount`, `blockedByApproval`
 
+**[LIST-ACTIONS-CLARITY-1-CORRECTNESS-1]** Canonical issue counts:
+- `actionableNowCount` now derived from canonical DEO issues (via DeoIssuesService)
+- Removes SEO-heuristic-based actionability from UI
+- `blockedByApproval` is server-derived: `hasDraft AND !viewerCanApply`
+- Products API uses `__fullAffectedAssetKeys` for accurate per-product counts
+- Crawl Pages/Collections endpoint adds canonical issue counts per URL
+
 ## Scope
 - Products list page (/projects/:projectId/products)
 - Pages list page (/projects/:projectId/assets/pages)

@@ -40,8 +40,10 @@ interface CollectionAsset {
   recommendedActionLabel: string | null;
   /** [LIST-ACTIONS-CLARITY-1] Server-derived draft pending flag */
   hasDraftPendingApply: boolean;
-  /** [LIST-ACTIONS-CLARITY-1] Count of actionable issues */
+  /** [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Server-derived: count of actionable issue types (canonical, from DEO issues) */
   actionableNowCount: number;
+  /** [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Server-derived: true if draft is blocked (hasDraft AND viewer cannot apply) */
+  blockedByApproval: boolean;
 }
 
 export default function CollectionsAssetListPage() {
@@ -82,35 +84,34 @@ export default function CollectionsAssetListPage() {
       });
 
       // Transform to CollectionAssets with health/actions
+      // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Use server-derived actionableNowCount and blockedByApproval
+      // Health/action derivation kept for legacy display only; chip uses canonical issue counts
       const collectionAssets: CollectionAsset[] = crawlPages
         .filter((p: { pageType: string }) => p.pageType === 'collection')
-        .map((p: { id: string; url: string; path: string; title: string | null; metaDescription: string | null; statusCode: number | null; wordCount: number | null; scannedAt: string; hasDraftPendingApply?: boolean }) => {
-          // Derive health and action from collection state
+        .map((p: { id: string; url: string; path: string; title: string | null; metaDescription: string | null; statusCode: number | null; wordCount: number | null; scannedAt: string; hasDraftPendingApply?: boolean; actionableNowCount?: number; blockedByApproval?: boolean }) => {
+          // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Health/action derivation for legacy display only
+          // RowStatusChip and resolveRowNextAction use server-derived actionableNowCount
           let health: 'Healthy' | 'Needs Attention' | 'Critical' = 'Healthy';
           let recommendedActionKey: WorkQueueRecommendedActionKey | null = null;
           let recommendedActionLabel: string | null = null;
-          let actionableNowCount = 0;
 
-          // Missing metadata = Critical
+          // Missing metadata = Critical (legacy health display only)
           if (!p.title || !p.metaDescription) {
             health = 'Critical';
             recommendedActionKey = 'FIX_MISSING_METADATA';
             recommendedActionLabel = 'Fix missing metadata';
-            actionableNowCount++;
           }
-          // Technical issues (4xx/5xx status) = Critical
+          // Technical issues (4xx/5xx status) = Critical (legacy health display only)
           else if (p.statusCode && p.statusCode >= 400) {
             health = 'Critical';
             recommendedActionKey = 'RESOLVE_TECHNICAL_ISSUES';
             recommendedActionLabel = 'Resolve technical issues';
-            actionableNowCount++;
           }
-          // Thin content = Needs Attention
+          // Thin content = Needs Attention (legacy health display only)
           else if (p.wordCount !== null && p.wordCount < 300) {
             health = 'Needs Attention';
             recommendedActionKey = 'OPTIMIZE_CONTENT';
             recommendedActionLabel = 'Optimize content';
-            actionableNowCount++;
           }
 
           return {
@@ -127,7 +128,9 @@ export default function CollectionsAssetListPage() {
             recommendedActionLabel,
             // [LIST-ACTIONS-CLARITY-1] Include server-derived draft flag
             hasDraftPendingApply: p.hasDraftPendingApply ?? false,
-            actionableNowCount,
+            // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Use server-derived canonical issue counts and blocked state
+            actionableNowCount: p.actionableNowCount ?? 0,
+            blockedByApproval: p.blockedByApproval ?? false,
           };
         });
 
@@ -200,11 +203,12 @@ export default function CollectionsAssetListPage() {
       // For Collections, "View issues" links to Issues Engine filtered by this asset
       const openHref = buildAssetIssuesHref(projectId, 'collections', collection.id, navContext);
 
+      // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Pass server-derived blockedByApproval
       const resolved = resolveRowNextAction({
         assetType: 'collections',
         hasDraftPendingApply: collection.hasDraftPendingApply,
         actionableNowCount: collection.actionableNowCount,
-        canApply: capabilities?.canApply ?? true,
+        blockedByApproval: collection.blockedByApproval,
         canRequestApproval: capabilities?.canRequestApproval ?? false,
         fixNextHref: null, // Collections don't have deterministic "Fix next"
         openHref,
