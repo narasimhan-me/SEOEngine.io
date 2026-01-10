@@ -18,11 +18,7 @@ import {
   getSafeIssueTitle,
   getSafeIssueDescription,
 } from '@/lib/issue-to-fix-path';
-// [ISSUE-FIX-NAV-AND-ANCHORS-1] Import navigation utilities for returnTo chain
-import {
-  getValidatedReturnTo,
-  buildBackLink,
-} from '@/lib/issue-fix-navigation';
+// [ISSUE-FIX-NAV-AND-ANCHORS-1] Navigation utilities available in @/lib/issue-fix-navigation if needed
 import { getSafeReturnTo } from '@/lib/route-context';
 // [SCOPE-CLARITY-1] Import scope normalization utilities
 import { normalizeScopeParams, buildClearFiltersHref } from '@/lib/scope-normalization';
@@ -144,30 +140,7 @@ export default function IssuesPage() {
 
   // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] effectiveMode will be computed after countsSummary state is available
 
-  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Read and validate returnTo context from URL
-  const validatedNavContext = useMemo(() => {
-    return getValidatedReturnTo(projectId, searchParams);
-  }, [projectId, searchParams]);
-
-  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Build primary back link when coming from another context
-  const primaryBackLink = useMemo(() => {
-    if (validatedNavContext.returnTo || validatedNavContext.from) {
-      return buildBackLink({
-        projectId,
-        returnTo: validatedNavContext.returnTo,
-        returnLabel: validatedNavContext.returnLabel,
-        from: validatedNavContext.from,
-        fallback: 'store_health',
-      });
-    }
-    return null;
-  }, [projectId, validatedNavContext]);
-
-  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Get current path for passing as returnTo to child navigation
-  // Commented out for now - unused but kept for future navigation context
-  // const currentIssuesPath = useMemo(() => {
-  //   return getCurrentPathWithQuery(pathname, searchParams);
-  // }, [pathname, searchParams]);
+  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Navigation context handled by validatedReturnTo (line 118) and ScopeBanner
 
   const [issues, setIssues] = useState<DeoIssue[]>([]);
   // [COUNT-INTEGRITY-1.1 Step 2A] Migrated to canonical triplet counts
