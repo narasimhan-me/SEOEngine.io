@@ -1,136 +1,19 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import type { DeoIssue } from '@/lib/deo-issues';
 import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
+import { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
+import {
+  buildIssueFixHref,
+  getSafeIssueTitle,
+  getSafeIssueDescription,
+} from '@/lib/issue-to-fix-path';
 
-export const ISSUE_UI_CONFIG: Record<
-  string,
-  { label: string; description: string; pillarId: DeoPillarId }
-> = {
-  // High-level DEO issues
-  missing_metadata: {
-    label: 'Missing Metadata',
-    description:
-      'Some pages and products are missing essential metadata like titles or descriptions.',
-    pillarId: 'metadata_snippet_quality',
-  },
-  thin_content: {
-    label: 'Thin Content',
-    description:
-      'Many surfaces have very short content, which weakens depth and ranking potential.',
-    pillarId: 'content_commerce_signals',
-  },
-  low_entity_coverage: {
-    label: 'Weak Entity Structure',
-    description:
-      'Key entities, headings, or product schemas are incomplete or missing.',
-    pillarId: 'content_commerce_signals',
-  },
-  indexability_problems: {
-    label: 'Indexability Problems',
-    description:
-      'Crawl errors or missing HTML basics make some pages hard to index.',
-    pillarId: 'technical_indexability',
-  },
-  answer_surface_weakness: {
-    label: 'Low AI Answer Potential',
-    description:
-      'Pages lack the long-form content and structure needed to power rich answers.',
-    pillarId: 'search_intent_fit',
-  },
-  brand_navigational_weakness: {
-    label: 'Weak Brand Navigation',
-    description:
-      'Canonical navigational pages like /about or /contact are missing or not discoverable.',
-    pillarId: 'offsite_signals',
-  },
-  crawl_health_errors: {
-    label: 'Crawl Errors',
-    description:
-      'A number of pages return HTTP or fetch errors, reducing crawl coverage.',
-    pillarId: 'technical_indexability',
-  },
-  product_content_depth: {
-    label: 'Shallow Product Content',
-    description:
-      'Many products have very short or missing descriptions, limiting their ability to rank and convert.',
-    pillarId: 'content_commerce_signals',
-  },
-  // Issue Engine Lite: Product-focused issues
-  missing_seo_title: {
-    label: 'Missing SEO Title',
-    description:
-      'Products without an SEO title are harder for search engines and AI to understand and rank.',
-    pillarId: 'metadata_snippet_quality',
-  },
-  missing_seo_description: {
-    label: 'Missing SEO Description',
-    description:
-      'Products without an SEO description miss rich snippet and click-through optimization.',
-    pillarId: 'metadata_snippet_quality',
-  },
-  weak_title: {
-    label: 'Weak Product Title',
-    description:
-      'Product titles are too short or unoptimized, reducing search visibility.',
-    pillarId: 'metadata_snippet_quality',
-  },
-  weak_description: {
-    label: 'Weak Product Description',
-    description:
-      'Short SEO descriptions limit search snippet quality and fail to convey value.',
-    pillarId: 'metadata_snippet_quality',
-  },
-  missing_long_description: {
-    label: 'Missing Long Description',
-    description:
-      'Products lack detailed descriptions needed for rich search results and AI answers.',
-    pillarId: 'content_commerce_signals',
-  },
-  duplicate_product_content: {
-    label: 'Duplicate Product Content',
-    description:
-      'Multiple products share identical descriptions, hurting rankings and confusing AI.',
-    pillarId: 'content_commerce_signals',
-  },
-  low_product_entity_coverage: {
-    label: 'Low Entity Coverage in Product Content',
-    description:
-      'Products lack the metadata and content depth for strong entity signals.',
-    pillarId: 'content_commerce_signals',
-  },
-  not_answer_ready: {
-    label: 'Not Answer-Ready',
-    description:
-      'Products lack sufficient content to be cited in AI-powered answer experiences.',
-    pillarId: 'search_intent_fit',
-  },
-  weak_intent_match: {
-    label: 'Weak Intent Match',
-    description:
-      'Product metadata may not align well with user search intent.',
-    pillarId: 'search_intent_fit',
-  },
-  missing_product_image: {
-    label: 'Missing Product Image',
-    description:
-      'Products without images have significantly lower engagement and conversion.',
-    pillarId: 'media_accessibility',
-  },
-  missing_price: {
-    label: 'Missing Product Price',
-    description:
-      'Products without price data cannot appear in price-filtered results or shopping feeds.',
-    pillarId: 'technical_indexability',
-  },
-  missing_category: {
-    label: 'Missing Product Category/Type',
-    description:
-      'Products without categories are harder to organize and surface in relevant contexts.',
-    pillarId: 'content_commerce_signals',
-  },
-};
+// [ISSUE-TO-FIX-PATH-1 FIXUP-1] Re-export ISSUE_UI_CONFIG for backwards compatibility
+export { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
 
 /**
  * Get the pillar ID for an issue, preferring backend-provided pillarId,
@@ -149,9 +32,11 @@ interface IssuesListProps {
   issues: DeoIssue[];
   /** When true, group issues by pillar in canonical DEO_PILLARS order */
   groupByPillar?: boolean;
+  /** [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Project ID for deterministic routing */
+  projectId?: string;
 }
 
-export function IssuesList({ issues, groupByPillar = false }: IssuesListProps) {
+export function IssuesList({ issues, groupByPillar = false, projectId }: IssuesListProps) {
   const [expandedIssueId, setExpandedIssueId] = useState<string | null>(null);
 
   // Non-grouped view: show "No issues detected" if empty
@@ -209,6 +94,7 @@ export function IssuesList({ issues, groupByPillar = false }: IssuesListProps) {
                           current === issue.id ? null : issue.id,
                         )
                       }
+                      projectId={projectId}
                     />
                   ))}
                 </div>
@@ -237,6 +123,7 @@ export function IssuesList({ issues, groupByPillar = false }: IssuesListProps) {
               current === issue.id ? null : issue.id,
             )
           }
+          projectId={projectId}
         />
       ))}
     </div>
@@ -247,29 +134,65 @@ interface IssueCardProps {
   issue: DeoIssue;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  /** [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Project ID for deterministic routing */
+  projectId?: string;
 }
 
-function IssueCard({ issue, isExpanded, onToggleExpand }: IssueCardProps) {
-  const uiConfig = ISSUE_UI_CONFIG[issue.id] ?? {
-    label: issue.title,
-    description: issue.description,
-    pillarId: issue.pillarId,
-  };
+// [ISSUE-TO-FIX-PATH-1 FIXUP-1] Removed legacy getIssueDeepLink and PILLAR_TO_TAB_MAP
+// Now uses buildIssueFixHref from issue-to-fix-path.ts for deterministic routing
+
+function IssueCard({ issue, isExpanded, onToggleExpand, projectId }: IssueCardProps) {
+  const router = useRouter();
+
+  // [ISSUE-TO-FIX-PATH-1] Use centralized safe title/description helpers
+  const safeTitle = getSafeIssueTitle(issue);
+  const safeDescription = getSafeIssueDescription(issue);
+
+  // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Actionable = has a real href from buildIssueFixHref
+  const fixHref = projectId ? buildIssueFixHref({ projectId, issue }) : null;
+  const actionable = Boolean(fixHref);
 
   const severityBadge = getSeverityBadge(issue.severity);
   const hasAffectedItems =
     (issue.affectedPages?.length ?? 0) + (issue.affectedProducts?.length ?? 0) >
     0;
 
+  // [ISSUE-TO-FIX-PATH-1] Handle card click - only for actionable issues
+  const handleCardClick = () => {
+    if (fixHref) {
+      router.push(fixHref);
+    }
+  };
+
+  // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Get counts for affected items display
+  const affectedProductCount = issue.affectedProducts?.length ?? 0;
+  const affectedPageCount = issue.affectedPages?.length ?? 0;
+
   return (
-    <div className="rounded-md border border-gray-200 bg-white p-3 text-sm text-gray-700">
+    <div
+      // [ISSUE-TO-FIX-PATH-1] Test hooks for actionable vs informational cards
+      data-testid={actionable ? 'issue-card-actionable' : 'issue-card-informational'}
+      role={actionable ? 'button' : undefined}
+      tabIndex={actionable ? 0 : undefined}
+      onClick={actionable ? handleCardClick : undefined}
+      onKeyDown={actionable ? (e) => { if (e.key === 'Enter' || e.key === ' ') handleCardClick(); } : undefined}
+      className={`rounded-md border border-gray-200 bg-white p-3 text-sm text-gray-700 ${
+        actionable ? 'cursor-pointer hover:border-blue-300 hover:bg-blue-50/50 transition-colors' : ''
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold">{uiConfig.label}</span>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-semibold">{safeTitle}</span>
             <span className={severityBadge.className}>{severityBadge.label}</span>
+            {/* [ISSUE-TO-FIX-PATH-1] Informational badge for orphan issues */}
+            {!actionable && (
+              <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 border border-gray-200">
+                Informational — no action required
+              </span>
+            )}
           </div>
-          <p className="mt-1 text-xs text-gray-500">{uiConfig.description}</p>
+          <p className="mt-1 text-xs text-gray-500">{safeDescription}</p>
           <p className="mt-1 text-xs text-gray-500">
             {issue.count} pages/products affected.
           </p>
@@ -280,7 +203,7 @@ function IssueCard({ issue, isExpanded, onToggleExpand }: IssueCardProps) {
         <div className="mt-2">
           <button
             type="button"
-            onClick={onToggleExpand}
+            onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
             className="text-xs font-medium text-blue-600 hover:text-blue-800"
           >
             {isExpanded ? 'Hide affected items' : 'Show affected items'}
@@ -290,7 +213,7 @@ function IssueCard({ issue, isExpanded, onToggleExpand }: IssueCardProps) {
               {issue.affectedPages && issue.affectedPages.length > 0 && (
                 <div className="mb-2">
                   <div className="mb-1 font-semibold">
-                    Pages ({issue.affectedPages.length})
+                    Pages ({affectedPageCount})
                   </div>
                   <ul className="space-y-0.5">
                     {issue.affectedPages.map((url) => (
@@ -303,16 +226,24 @@ function IssueCard({ issue, isExpanded, onToggleExpand }: IssueCardProps) {
               )}
               {issue.affectedProducts && issue.affectedProducts.length > 0 && (
                 <div>
+                  {/* [ISSUE-TO-FIX-PATH-1] Remove internal ID leakage - show count and link instead */}
                   <div className="mb-1 font-semibold">
-                    Products ({issue.affectedProducts.length})
+                    Products ({affectedProductCount})
                   </div>
-                  <ul className="space-y-0.5">
-                    {issue.affectedProducts.map((id) => (
-                      <li key={id} className="truncate">
-                        Product ID: {id}
-                      </li>
-                    ))}
-                  </ul>
+                  {projectId ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">{affectedProductCount} product{affectedProductCount !== 1 ? 's' : ''} affected</span>
+                      <Link
+                        href={`/projects/${projectId}/products`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        View affected →
+                      </Link>
+                    </div>
+                  ) : (
+                    <span className="text-gray-500">{affectedProductCount} product{affectedProductCount !== 1 ? 's' : ''} affected</span>
+                  )}
                 </div>
               )}
             </div>

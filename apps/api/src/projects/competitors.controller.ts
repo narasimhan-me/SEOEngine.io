@@ -1,17 +1,18 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   Post,
   UseGuards,
   Request,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma.service';
 import { CompetitorsService } from './competitors.service';
+import { RoleResolutionService } from '../common/role-resolution.service';
 import { AiService } from '../ai/ai.service';
 import {
   AiUsageQuotaService,
@@ -64,6 +65,11 @@ class CompetitiveFixApplyDto {
  * - POST /products/:productId/competitors/preview — Preview fix draft
  * - POST /products/:productId/competitors/apply — Apply fix draft
  * - GET  /projects/:projectId/competitors/scorecard — Project scorecard
+ *
+ * [ROLES-3 FIXUP-3] Updated with membership-aware access control:
+ * - GET endpoints: any ProjectMember can view
+ * - Preview endpoints: OWNER/EDITOR only
+ * - Apply endpoints: OWNER-only
  */
 @Controller()
 @UseGuards(JwtAuthGuard)
@@ -74,6 +80,7 @@ export class CompetitorsController {
     private readonly aiService: AiService,
     private readonly aiUsageQuotaService: AiUsageQuotaService,
     private readonly aiUsageLedgerService: AiUsageLedgerService,
+    private readonly roleResolution: RoleResolutionService,
   ) {}
 
   // ============================================================================
@@ -169,7 +176,7 @@ export class CompetitorsController {
       );
     }
 
-    // Load product and verify ownership
+    // Load product
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
       include: {
@@ -181,9 +188,8 @@ export class CompetitorsController {
       throw new BadRequestException('Product not found');
     }
 
-    if (product.project.userId !== userId) {
-      throw new ForbiddenException('Access denied');
-    }
+    // [ROLES-3 FIXUP-3] OWNER/EDITOR only for draft generation
+    await this.roleResolution.assertCanGenerateDrafts(product.projectId, userId);
 
     // Derive intent type from area if not provided
     const intentType = dto.intentType || getIntentTypeFromAreaId(dto.areaId);
@@ -346,6 +352,7 @@ export class CompetitorsController {
     });
 
     // Record AI usage in ledger with competitive-specific metadata
+    // [ROLES-3-HARDEN-1] Include actorUserId for multi-user attribution
     await this.aiUsageLedgerService.recordAiRun({
       projectId: product.projectId,
       runType: 'INTENT_FIX_PREVIEW', // Reuse same run type per spec
@@ -354,6 +361,7 @@ export class CompetitorsController {
       productsSkipped: 0,
       draftsFresh: 1,
       draftsReused: 0,
+      actorUserId: userId,
       metadata: {
         playbookId: 'competitive-positioning-fix', // Distinguishes from search intent
         pillar: 'competitive_positioning',
@@ -416,7 +424,7 @@ export class CompetitorsController {
       throw new BadRequestException('draftId and applyTarget are required');
     }
 
-    // Load product and verify ownership
+    // Load product
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
       include: {
@@ -428,9 +436,8 @@ export class CompetitorsController {
       throw new BadRequestException('Product not found');
     }
 
-    if (product.project.userId !== userId) {
-      throw new ForbiddenException('Access denied');
-    }
+    // [ROLES-3 FIXUP-3] OWNER-only for apply mutations
+    await this.roleResolution.assertOwnerRole(product.projectId, userId);
 
     // Load the draft
     const draft = await this.prisma.productCompetitiveFixDraft.findUnique({

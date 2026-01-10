@@ -4,11 +4,16 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { adminApi } from '@/lib/api';
 
+/**
+ * [ADMIN-OPS-1] Extended User interface with new fields.
+ */
 interface User {
   id: string;
   email: string;
   name: string | null;
   role: string;
+  adminRole: 'SUPPORT_AGENT' | 'OPS_ADMIN' | 'MANAGEMENT_CEO' | null;
+  accountStatus: 'ACTIVE' | 'SUSPENDED';
   twoFactorEnabled: boolean;
   createdAt: string;
   subscription: {
@@ -18,6 +23,9 @@ interface User {
   _count: {
     projects: number;
   };
+  aiUsageThisMonth: number;
+  quotaPercent: number;
+  lastActivity: string;
 }
 
 interface Pagination {
@@ -27,6 +35,11 @@ interface Pagination {
   pages: number;
 }
 
+/**
+ * [ADMIN-OPS-1][D2 Users Table]
+ * Updated columns: Email, Plan, Status, AI usage, Quota %, Projects count, Last activity.
+ * Actions: View user, Impersonate (support+ops), Adjust plan (ops), Reset quota (ops).
+ */
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
@@ -51,14 +64,12 @@ export default function AdminUsersPage() {
     }
   }
 
-  async function handleRoleChange(userId: string, newRole: 'USER' | 'ADMIN') {
-    try {
-      await adminApi.updateUserRole(userId, newRole);
-      // Refresh the list
-      fetchUsers(currentPage);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to update user role');
-    }
+  function formatDate(dateString: string) {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
   }
 
   if (loading && users.length === 0) {
@@ -75,7 +86,7 @@ export default function AdminUsersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">User Management</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Users</h1>
 
       {/* Users Table */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
@@ -83,19 +94,25 @@ export default function AdminUsersPage() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                User
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Role
+                Email
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Plan
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                AI Usage
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Quota %
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Projects
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                2FA
+                Last Activity
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
@@ -106,24 +123,10 @@ export default function AdminUsersPage() {
             {users.map((user) => (
               <tr key={user.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">
-                      {user.name || 'No name'}
-                    </div>
-                    <div className="text-sm text-gray-500">{user.email}</div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <select
-                    value={user.role}
-                    onChange={(e) =>
-                      handleRoleChange(user.id, e.target.value as 'USER' | 'ADMIN')
-                    }
-                    className="text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="USER">User</option>
-                    <option value="ADMIN">Admin</option>
-                  </select>
+                  <div className="text-sm font-medium text-gray-900">{user.email}</div>
+                  {user.adminRole && (
+                    <span className="text-xs text-purple-600">{user.adminRole}</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
@@ -140,17 +143,44 @@ export default function AdminUsersPage() {
                     {user.subscription?.plan || 'free'}
                   </span>
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                      user.accountStatus === 'ACTIVE'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    {user.accountStatus}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {user.aiUsageThisMonth}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                      <div
+                        className={`h-2 rounded-full ${
+                          user.quotaPercent >= 90
+                            ? 'bg-red-500'
+                            : user.quotaPercent >= 70
+                            ? 'bg-yellow-500'
+                            : 'bg-green-500'
+                        }`}
+                        style={{ width: `${Math.min(user.quotaPercent, 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-500">{user.quotaPercent}%</span>
+                  </div>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {user._count.projects}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {user.twoFactorEnabled ? (
-                    <span className="text-green-600">✓</span>
-                  ) : (
-                    <span className="text-gray-400">–</span>
-                  )}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {formatDate(user.lastActivity)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                   <Link
                     href={`/admin/users/${user.id}`}
                     className="text-blue-600 hover:text-blue-800"

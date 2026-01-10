@@ -7,6 +7,7 @@ import { projectsApi, shopifyApi } from '@/lib/api';
 import { useUnsavedChanges } from '@/components/unsaved-changes/UnsavedChangesProvider';
 import FriendlyError from '@/components/ui/FriendlyError';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
+import { GovernanceSettingsSection } from '@/components/governance';
 
 type CrawlFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY';
 
@@ -496,8 +497,43 @@ export default function ProjectSettingsPage() {
         </div>
       </div>
 
+      {/* [ENTERPRISE-GEO-1] Governance Settings Section */}
+      <GovernanceSettingsSection
+        projectId={projectId}
+        onUnsavedChanges={(_hasGovernanceChanges) => {
+          // Governance section manages its own save button
+        }}
+      />
+
+      {/* [ROLES-3] Team Members Section */}
+      <div className="rounded-lg bg-white p-6 shadow mt-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Team Members</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Manage who has access to this project and their permissions.
+        </p>
+        <a
+          href={`/projects/${projectId}/settings/members`}
+          className="inline-flex items-center rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+        >
+          Manage team
+          <svg
+            className="ml-2 h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </a>
+      </div>
+
       {/* Active Integrations Section */}
-      <div className="rounded-lg bg-white p-6 shadow">
+      <div className="rounded-lg bg-white p-6 shadow mt-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Active Integrations</h2>
         {status.integrations.length > 0 ? (
           <div className="space-y-3">

@@ -1,5 +1,17 @@
 # Products Page UX Redesign (Phase UX-1)
 
+> **NOTE: Products List Behavior Updated by PRODUCTS-LIST-2.0**
+>
+> The Products list layout described in this document has been updated by **PRODUCTS-LIST-2.0** (2025-12-21).
+> Key changes:
+> - **Row Structure**: Now shows Health pill + Recommended action instead of status chip + metadata indicators + pillar chips
+> - **Filters**: Health filter (All/Critical/Needs Attention/Healthy) replaces metadata status filter
+> - **Progressive Disclosure**: Row is clickable to expand/collapse details; no overflow menu
+> - **No Scan SEO/Optimize buttons**: "Rescan" only visible when data is stale; "View details" is primary action
+> - **Command Bar**: Shows attention count and "Fix in bulk" CTA
+>
+> See `docs/manual-testing/PRODUCTS-LIST-2.0.md` for current behavior.
+
 This document captures the UX decisions and implementation notes for the Products page redesign in the web app (`apps/web`).
 
 The goal is to replace the wide, horizontally scrollable table with a compact, responsive row-card layout that is easier to scan and works well on all screen sizes.
@@ -80,18 +92,27 @@ The panel uses a simple `grid` layout (`md:grid-cols-2`) with a soft gray backgr
 
 ## Filters
 
+> **Updated by PRODUCTS-LIST-2.0**: The filter model has changed from metadata status to Health filter. See note at top of document.
+
 The Products list now includes a simple filter bar implemented entirely on the client:
 
-- Filters:
+- Filters (PRODUCTS-LIST-2.0):
   - **All**
-  - **Needs Optimization**
-  - **Optimized**
-  - **Missing Metadata**
+  - **Critical**
+  - **Needs Attention**
+  - **Healthy**
 - Filter state is local to `ProductTable`.
-- Filter counts are computed from the loaded `products` array using the same status logic that drives the status chip.
+- Filter counts are computed from the loaded `products` array using issue-based health state logic.
 - The active filter is highlighted with a filled pill; others use a subtle gray background.
 
 No new API endpoints are introduced; filtering is done against the in-memory product list returned by `productsApi.list`.
+
+## Sort
+
+> **Updated by PRODUCTS-LIST-2.0**: Sort uses "Sort by impact" (authoritative ladder) as default.
+
+- **Sort by impact** (default): Uses a fixed authoritative ladder (Critical > Needs Attention > Healthy), with secondary ordering by issue category within each health group. No traffic/revenue/AI scoring; deterministic and stable.
+- **Sort by title**: Alphabetical by product title.
 
 ## Component Boundaries
 

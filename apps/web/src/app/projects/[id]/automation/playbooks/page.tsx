@@ -13,11 +13,18 @@ import {
   productsApi,
   projectsApi,
   shopifyApi,
+  getRoleCapabilities,
+  getRoleDisplayLabel,
 } from '@/lib/api';
 import type {
   AutomationPlaybookApplyResult,
   ProjectAiUsageSummary,
   AiUsageQuotaEvaluation,
+  EffectiveProjectRole,
+  GovernancePolicyResponse,
+  ApprovalRequestResponse,
+  ProjectMember,
+  AutomationAssetType,
 } from '@/lib/api';
 import type { Product } from '@/lib/products';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
@@ -139,6 +146,21 @@ const PLAYBOOKS: PlaybookDefinition[] = [
   },
 ];
 
+/**
+ * [ASSETS-PAGES-1.1] Get display labels for asset types.
+ */
+function getAssetTypeLabel(assetType: AutomationAssetType): { singular: string; plural: string } {
+  switch (assetType) {
+    case 'PAGES':
+      return { singular: 'page', plural: 'pages' };
+    case 'COLLECTIONS':
+      return { singular: 'collection', plural: 'collections' };
+    case 'PRODUCTS':
+    default:
+      return { singular: 'product', plural: 'products' };
+  }
+}
+
 export default function AutomationPlaybooksPage() {
   const router = useRouter();
   const params = useParams();
@@ -152,14 +174,45 @@ export default function AutomationPlaybooksPage() {
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [cnabDismissed, setCnabDismissed] = useState(false);
 
+  // Deep-link support: read playbookId from URL query params
+  const urlPlaybookId = searchParams.get('playbookId') as PlaybookId | null;
+  const validUrlPlaybookId =
+    urlPlaybookId === 'missing_seo_title' || urlPlaybookId === 'missing_seo_description'
+      ? urlPlaybookId
+      : null;
+
+  // [ASSETS-PAGES-1.1] Deep-link support: read assetType from URL query params
+  const urlAssetType = searchParams.get('assetType') as AutomationAssetType | null;
+  const validUrlAssetType =
+    urlAssetType === 'PRODUCTS' || urlAssetType === 'PAGES' || urlAssetType === 'COLLECTIONS'
+      ? urlAssetType
+      : 'PRODUCTS'; // Default to PRODUCTS
+
+  // [ASSETS-PAGES-1.1-UI-HARDEN] Deep-link support: read scopeAssetRefs from URL (comma-separated)
+  const urlScopeAssetRefs = searchParams.get('scopeAssetRefs');
+  const parsedScopeAssetRefs = useMemo(() => {
+    if (!urlScopeAssetRefs) return [];
+    return urlScopeAssetRefs.split(',').map((ref) => ref.trim()).filter((ref) => ref.length > 0);
+  }, [urlScopeAssetRefs]);
+
+  // [ASSETS-PAGES-1.1-UI-HARDEN] Deterministic safety check: PAGES/COLLECTIONS require scopeAssetRefs
+  const isMissingScopeForPagesCollections =
+    (validUrlAssetType === 'PAGES' || validUrlAssetType === 'COLLECTIONS') &&
+    parsedScopeAssetRefs.length === 0;
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [projectName, setProjectName] = useState<string | null>(null);
   const [planId, setPlanId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [issues, setIssues] = useState<DeoIssue[]>([]);
+  // Initialize from URL param if valid, otherwise default to 'missing_seo_title'
   const [selectedPlaybookId, setSelectedPlaybookId] =
-    useState<PlaybookId | null>('missing_seo_title');
+    useState<PlaybookId | null>(validUrlPlaybookId ?? 'missing_seo_title');
+  // [ASSETS-PAGES-1.1] Track current asset type from URL deep link (read-only from URL params)
+  const [currentAssetType] = useState<AutomationAssetType>(validUrlAssetType);
+  // [ASSETS-PAGES-1.1-UI-HARDEN] Track scope asset refs from URL deep link (read-only)
+  const [currentScopeAssetRefs] = useState<string[]>(parsedScopeAssetRefs);
   const [flowState, setFlowState] = useState<PlaybookFlowState>('PREVIEW_READY');
   const [previewSamples, setPreviewSamples] = useState<PreviewSample[]>([]);
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -187,6 +240,16 @@ export default function AutomationPlaybooksPage() {
   const [_aiQuotaEvaluation, setAiQuotaEvaluation] = useState<AiUsageQuotaEvaluation | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_aiQuotaLoading, setAiQuotaLoading] = useState(false);
+
+  // [ROLES-2] Role and approval state for governance gating
+  const [effectiveRole, setEffectiveRole] = useState<EffectiveProjectRole>('OWNER');
+  const [governancePolicy, setGovernancePolicy] = useState<GovernancePolicyResponse | null>(null);
+  const [pendingApproval, setPendingApproval] = useState<ApprovalRequestResponse | null>(null);
+  const [approvalLoading, setApprovalLoading] = useState(false);
+  // [ROLES-3 FIXUP-3 CORRECTION] Track if project has multiple members (affects approval UI)
+  const [isMultiUserProject, setIsMultiUserProject] = useState(false);
+  // [ROLES-3 PENDING-1] Members list for approval attribution UI
+  const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -218,6 +281,37 @@ export default function AutomationPlaybooksPage() {
         setAiUsageSummary(null);
       } finally {
         setAiUsageLoading(false);
+      }
+
+      // [ROLES-2] Fetch governance policy for approval requirements
+      try {
+        const policy = await projectsApi.getGovernancePolicy(projectId);
+        setGovernancePolicy(policy);
+      } catch {
+        // Silent fail - use defaults (no approval required)
+        setGovernancePolicy(null);
+      }
+
+      // [ROLES-3] Resolve effective role from project membership API
+      // This returns the user's ProjectMember role with capabilities
+      // [ROLES-3 FIXUP-3 CORRECTION] Also fetch isMultiUserProject for approval flow decisions
+      try {
+        const roleResponse = await projectsApi.getUserRole(projectId);
+        setEffectiveRole(roleResponse.role);
+        setIsMultiUserProject(roleResponse.isMultiUserProject);
+      } catch {
+        // Silent fail - default to OWNER for backward compatibility
+        setEffectiveRole('OWNER');
+        setIsMultiUserProject(false);
+      }
+
+      // [ROLES-3 PENDING-1] Fetch project members for approval attribution UI
+      try {
+        const members = await projectsApi.listMembers(projectId);
+        setProjectMembers(members);
+      } catch {
+        // Silent fail - attribution will show user IDs instead of names
+        setProjectMembers([]);
       }
     } catch (err: unknown) {
       console.error('Error loading automation playbooks data:', err);
@@ -337,14 +431,22 @@ export default function AutomationPlaybooksPage() {
   };
 
   const loadEstimate = useCallback(
-    async (playbookId: PlaybookId) => {
+    async (playbookId: PlaybookId, assetType?: AutomationAssetType, scopeAssetRefs?: string[]) => {
       try {
         setLoadingEstimate(true);
         setError('');
         setEstimate(null);
+        // [ASSETS-PAGES-1.1-UI-HARDEN] Pass assetType and scopeAssetRefs to estimate endpoint
+        const effectiveAssetType = assetType ?? currentAssetType;
+        const effectiveScopeAssetRefs = scopeAssetRefs ?? currentScopeAssetRefs;
         const data = (await projectsApi.automationPlaybookEstimate(
           projectId,
           playbookId,
+          undefined, // scopeProductIds - only for PRODUCTS
+          effectiveAssetType !== 'PRODUCTS' ? effectiveAssetType : undefined,
+          effectiveAssetType !== 'PRODUCTS' && effectiveScopeAssetRefs.length > 0
+            ? effectiveScopeAssetRefs
+            : undefined,
         )) as PlaybookEstimate;
         setEstimate(data);
       } catch (err: unknown) {
@@ -359,7 +461,7 @@ export default function AutomationPlaybooksPage() {
         setLoadingEstimate(false);
       }
     },
-    [projectId],
+    [projectId, currentAssetType, currentScopeAssetRefs],
   );
 
   const loadPreview = useCallback(
@@ -382,10 +484,11 @@ export default function AutomationPlaybooksPage() {
           setAiQuotaEvaluation(quota);
 
           if (quota.status === 'warning' && quota.currentUsagePercent !== null) {
-            // Soft warning: allow the action but inform the user before AI runs.
+            // [BILLING-GTM-1] Predict → Warn: Show limit-style toast with Upgrade CTA but allow action.
             const percentRounded = Math.round(quota.currentUsagePercent);
-            feedback.showWarning(
-              `This will use AI. You're at ${percentRounded}% of your monthly Automation Playbooks limit.`,
+            feedback.showLimit(
+              `This will use AI. You're at ${percentRounded}% of your monthly limit. You can still proceed, but consider upgrading for more AI runs.`,
+              '/settings/billing',
             );
           }
 
@@ -408,11 +511,17 @@ export default function AutomationPlaybooksPage() {
         // 2. Creates/updates a draft in the database
         // 3. Generates AI suggestions for sample products
         // 4. Returns everything needed for the apply flow
+        // [ASSETS-PAGES-1.1-UI-HARDEN] Pass assetType and scopeAssetRefs
         const previewResult = await projectsApi.previewAutomationPlaybook(
           projectId,
           playbookId,
           rules.enabled ? rules : undefined,
           3, // sampleSize
+          undefined, // scopeProductIds - only for PRODUCTS
+          currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined,
+          currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0
+            ? currentScopeAssetRefs
+            : undefined,
         ) as {
           projectId: string;
           playbookId: string;
@@ -480,7 +589,7 @@ export default function AutomationPlaybooksPage() {
           }
           if (err.code === 'AI_QUOTA_EXCEEDED') {
             const quotaMessage =
-              'AI usage limit reached for Automation Playbooks. Upgrade your plan or wait until your monthly AI quota resets to generate new previews.';
+              'AI usage limit reached for Playbooks. Upgrade your plan or wait until your monthly AI quota resets to generate new previews.';
             setError(quotaMessage);
             feedback.showLimit(quotaMessage, '/settings/billing');
             return false;
@@ -518,7 +627,7 @@ export default function AutomationPlaybooksPage() {
         setLoadingPreview(false);
       }
     },
-    [projectId, feedback, rules, rulesVersion, estimate, loadEstimate],
+    [projectId, feedback, rules, rulesVersion, estimate, loadEstimate, currentAssetType, currentScopeAssetRefs],
   );
 
   useEffect(() => {
@@ -528,6 +637,84 @@ export default function AutomationPlaybooksPage() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlaybookId]);
+
+  /**
+   * [ROLES-3 FIXUP-3 PATCH 4.6] Clear approval state when approval is not required.
+   * This ensures no stale approval state is shown when policy changes.
+   */
+  useEffect(() => {
+    if (!governancePolicy?.requireApprovalForApply) {
+      setPendingApproval(null);
+    }
+  }, [governancePolicy?.requireApprovalForApply]);
+
+  /**
+   * [ROLES-3 FIXUP-3 PATCH 4.6] Prefetch approval status when Step 3 is ready.
+   * This ensures the UI shows correct approval state on page load/refresh.
+   *
+   * Triggers when:
+   * - governancePolicy?.requireApprovalForApply === true
+   * - selectedPlaybookId is set
+   * - estimate?.scopeId is present (resourceId can be formed)
+   * - flowState is APPLY_READY (Step 3 is visible)
+   *
+   * Includes stale-response guard to prevent race conditions when playbook changes.
+   */
+  useEffect(() => {
+    // Only prefetch when approval is required by policy
+    if (!governancePolicy?.requireApprovalForApply) {
+      return;
+    }
+
+    // Need all pieces to form resourceId
+    if (!selectedPlaybookId || !estimate?.scopeId) {
+      return;
+    }
+
+    // Only prefetch when Step 3 is visible (APPLY_READY state)
+    if (flowState !== 'APPLY_READY') {
+      return;
+    }
+
+    const resourceId = `${selectedPlaybookId}:${estimate.scopeId}`;
+    let cancelled = false;
+
+    const prefetchApprovalStatus = async () => {
+      setApprovalLoading(true);
+      try {
+        const { approval } = await projectsApi.getApprovalStatus(
+          projectId,
+          'AUTOMATION_PLAYBOOK_APPLY',
+          resourceId,
+        );
+        // Stale-response guard: only update if this effect is still current
+        if (!cancelled) {
+          setPendingApproval(approval);
+        }
+      } catch (err) {
+        // Silent fail - don't block UI for prefetch errors
+        console.error('[ROLES-3 FIXUP-3] Approval status prefetch failed:', err);
+        // Only clear if we can confirm resourceId changed (cancelled flag)
+        // Otherwise leave as-is to avoid flickering
+      } finally {
+        if (!cancelled) {
+          setApprovalLoading(false);
+        }
+      }
+    };
+
+    prefetchApprovalStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    governancePolicy?.requireApprovalForApply,
+    selectedPlaybookId,
+    estimate?.scopeId,
+    flowState,
+    projectId,
+  ]);
 
   const handleSelectPlaybook = (playbookId: PlaybookId) => {
     setSelectedPlaybookId(playbookId);
@@ -542,6 +729,8 @@ export default function AutomationPlaybooksPage() {
     setApplyResult(null);
     setConfirmApply(false);
     setApplyInlineError(null);
+    // [ROLES-3 FIXUP-3 PATCH 4.6] Reset stale approval state when switching playbooks
+    setPendingApproval(null);
   };
 
   const handleGeneratePreview = async () => {
@@ -593,16 +782,133 @@ export default function AutomationPlaybooksPage() {
       return;
     }
     if (flowState !== 'APPLY_READY') return;
+
+    const capabilities = getRoleCapabilities(effectiveRole);
+    const approvalRequiredByPolicy = governancePolicy?.requireApprovalForApply ?? false;
+    const resourceId = `${selectedPlaybookId}:${estimate.scopeId}`;
+
+    // [ROLES-3 FIXUP-3 CORRECTION] EDITOR can NEVER apply, even if approved
+    // EDITOR can only request approval; OWNER must apply after approval is granted
+    if (!capabilities.canApply) {
+      // This is EDITOR or VIEWER
+      if (!capabilities.canRequestApproval) {
+        // VIEWER - blocked entirely
+        feedback.showError('Viewer role cannot apply playbooks.');
+        return;
+      }
+
+      // EDITOR - check approval status and act accordingly
+      if (approvalRequiredByPolicy) {
+        setApprovalLoading(true);
+        try {
+          const { approval } = await projectsApi.getApprovalStatus(
+            projectId,
+            'AUTOMATION_PLAYBOOK_APPLY',
+            resourceId,
+          );
+          setPendingApproval(approval);
+
+          if (!approval || approval.status === 'REJECTED' || approval.consumed) {
+            // No approval or rejected/consumed - create new request
+            const newApproval = await projectsApi.createApprovalRequest(projectId, {
+              resourceType: 'AUTOMATION_PLAYBOOK_APPLY',
+              resourceId,
+            });
+            setPendingApproval(newApproval);
+            feedback.showInfo(
+              'Approval request submitted. An owner must approve and apply this playbook.',
+            );
+          } else if (approval.status === 'PENDING_APPROVAL') {
+            // Already pending - just inform
+            feedback.showInfo('Approval is pending. Waiting for an owner to approve.');
+          } else if (approval.status === 'APPROVED') {
+            // Approved but EDITOR still cannot apply - inform them
+            feedback.showInfo('Approval granted. An owner must apply this playbook.');
+          }
+        } catch (requestErr) {
+          console.error('Error handling approval request:', requestErr);
+          feedback.showError('Failed to process approval request. Please try again.');
+        } finally {
+          setApprovalLoading(false);
+        }
+      } else {
+        // No approval required but EDITOR still cannot apply
+        feedback.showError('Editor role cannot apply playbooks. An owner must apply.');
+      }
+      return;
+    }
+
+    // From here on, user is OWNER (canApply === true)
     try {
       setApplying(true);
       setError('');
       setApplyResult(null);
       setFlowState('APPLY_RUNNING');
+
+      let approvalIdToUse: string | undefined;
+
+      if (approvalRequiredByPolicy) {
+        setApprovalLoading(true);
+        try {
+          // Always refresh approval status from server (derived state rule)
+          const { approval } = await projectsApi.getApprovalStatus(
+            projectId,
+            'AUTOMATION_PLAYBOOK_APPLY',
+            resourceId,
+          );
+          setPendingApproval(approval);
+
+          if (approval && approval.status === 'APPROVED' && !approval.consumed) {
+            // Use existing valid approval
+            approvalIdToUse = approval.id;
+          } else if (approval && approval.status === 'PENDING_APPROVAL') {
+            // OWNER approves the pending request, then applies
+            const approvedRequest = await projectsApi.approveRequest(projectId, approval.id);
+            approvalIdToUse = approvedRequest.id;
+            setPendingApproval(approvedRequest);
+          } else if (isMultiUserProject) {
+            // [ROLES-3 FIXUP-3 CORRECTION] Multi-user project: OWNER cannot self-request
+            // An EDITOR must request approval first
+            setApprovalLoading(false);
+            feedback.showError(
+              'In multi-user projects, an Editor must request approval first. Add an Editor in Members settings.',
+            );
+            setFlowState('APPLY_READY');
+            setApplying(false);
+            return;
+          } else {
+            // Single-user project: OWNER can create → approve → apply (ROLES-2 convenience)
+            const newApproval = await projectsApi.createApprovalRequest(projectId, {
+              resourceType: 'AUTOMATION_PLAYBOOK_APPLY',
+              resourceId,
+            });
+            const approvedRequest = await projectsApi.approveRequest(projectId, newApproval.id);
+            approvalIdToUse = approvedRequest.id;
+            setPendingApproval(approvedRequest);
+          }
+        } catch (approvalErr) {
+          console.error('Error handling approval flow:', approvalErr);
+          feedback.showError('Failed to process approval. Please try again.');
+          setFlowState('APPLY_READY');
+          setApplying(false);
+          return;
+        } finally {
+          setApprovalLoading(false);
+        }
+      }
+
+      // [ASSETS-PAGES-1.1-UI-HARDEN] Pass assetType and scopeAssetRefs to apply
       const data = await projectsApi.applyAutomationPlaybook(
         projectId,
         selectedPlaybookId,
         estimate.scopeId,
         estimate.rulesHash,
+        undefined, // scopeProductIds - only for PRODUCTS
+        approvalIdToUse,
+        currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined,
+        currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0
+          ? currentScopeAssetRefs
+          : undefined,
       );
       setApplyResult(data);
       if (data.updatedCount > 0) {
@@ -682,6 +988,11 @@ export default function AutomationPlaybooksPage() {
     loadEstimate,
     feedback,
     flowState,
+    governancePolicy,
+    effectiveRole,
+    isMultiUserProject,
+    currentAssetType,
+    currentScopeAssetRefs,
   ]);
 
   const handleSyncToShopify = useCallback(async () => {
@@ -721,6 +1032,21 @@ export default function AutomationPlaybooksPage() {
   const estimatePresent = !!estimate;
   const estimateEligible = !!estimate && estimate.canProceed;
   const previewValid = previewPresent && !previewStale;
+
+  // [ROLES-3] Derived state for role-based access control
+  const roleCapabilities = getRoleCapabilities(effectiveRole);
+  const canGenerateDrafts = roleCapabilities.canGenerateDrafts; // OWNER/EDITOR can generate, VIEWER cannot
+  const approvalRequired = governancePolicy?.requireApprovalForApply ?? false;
+
+  // [ROLES-3 PENDING-1] Helper to look up user display name from members list
+  const getUserDisplayName = useCallback((userId: string): string => {
+    const member = projectMembers.find((m) => m.userId === userId);
+    if (member) {
+      return member.name || member.email;
+    }
+    // Fallback: show shortened user ID
+    return userId.length > 8 ? `${userId.slice(0, 8)}…` : userId;
+  }, [projectMembers]);
 
   const canContinueToEstimate =
     previewPresent &&
@@ -981,7 +1307,7 @@ export default function AutomationPlaybooksPage() {
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="text-gray-600">Loading automation playbooks...</div>
+        <div className="text-gray-600">Loading playbooks...</div>
       </div>
     );
   }
@@ -1006,10 +1332,10 @@ export default function AutomationPlaybooksPage() {
           <li>/</li>
           <li>
             <Link
-              href={`/projects/${projectId}/overview`}
+              href={`/projects/${projectId}/store-health`}
               onClick={(event) => {
                 event.preventDefault();
-                handleNavigate(`/projects/${projectId}/overview`);
+                handleNavigate(`/projects/${projectId}/store-health`);
               }}
               className="hover:text-gray-700"
             >
@@ -1026,22 +1352,158 @@ export default function AutomationPlaybooksPage() {
               }}
               className="hover:text-gray-700"
             >
-              Automation
+              Playbooks
             </Link>
           </li>
-          <li>/</li>
-          <li className="text-gray-900">Playbooks</li>
         </ol>
       </nav>
 
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Automation Playbooks</h1>
-        <p className="text-gray-600">
-          Safely apply AI-powered fixes to missing SEO metadata, with preview and
-          token estimates before you run anything.
-        </p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Playbooks
+            {/* [ASSETS-PAGES-1.1] Show asset type badge when not PRODUCTS */}
+            {currentAssetType !== 'PRODUCTS' && (
+              <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                {getAssetTypeLabel(currentAssetType).plural}
+              </span>
+            )}
+          </h1>
+          <p className="text-gray-600">
+            Safely apply AI-powered fixes to missing SEO metadata, with preview and
+            token estimates before you run anything.
+          </p>
+          {/* [ROLES-3] Role visibility label */}
+          <p className="mt-1 text-xs text-gray-500">
+            You are the {getRoleDisplayLabel(effectiveRole)}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => router.push(`/projects/${projectId}/automation/playbooks/entry?source=playbooks_page`)}
+          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+        >
+          Create playbook
+        </button>
       </div>
+
+      {/* [ASSETS-PAGES-1.1-UI-HARDEN] Missing scope safety block for PAGES/COLLECTIONS */}
+      {isMissingScopeForPagesCollections && (
+        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-red-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-red-800">
+                Missing scope for {getAssetTypeLabel(currentAssetType).plural}. Return to Work Queue.
+              </p>
+              <p className="mt-1 text-xs text-red-700">
+                To run playbooks on {getAssetTypeLabel(currentAssetType).plural}, you must navigate from the Work Queue
+                with a specific scope. This prevents unintended project-wide changes.
+              </p>
+              <div className="mt-3">
+                <Link
+                  href={`/projects/${projectId}/work-queue`}
+                  className="inline-flex items-center rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-red-700"
+                >
+                  Return to Work Queue
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* [ASSETS-PAGES-1.1-UI-HARDEN] Scope summary for PAGES/COLLECTIONS with valid scope */}
+      {currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0 && (
+        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-blue-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-blue-900">Scope summary</p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                  {getAssetTypeLabel(currentAssetType).plural}
+                </span>
+                <span className="text-xs text-blue-700">
+                  {currentScopeAssetRefs.slice(0, 3).map((ref) => {
+                    // Extract just the handle part (e.g., 'page_handle:about-us' -> 'about-us')
+                    const parts = ref.split(':');
+                    return parts.length > 1 ? parts[1] : ref;
+                  }).join(', ')}
+                  {currentScopeAssetRefs.length > 3 && (
+                    <span className="text-blue-500"> +{currentScopeAssetRefs.length - 3} more</span>
+                  )}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* [ROLES-3] VIEWER mode banner */}
+      {effectiveRole === 'VIEWER' && (
+        <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-700">View-only mode</p>
+              <p className="mt-1 text-xs text-gray-500">
+                You are viewing this project as a Viewer. To generate previews or apply changes,
+                ask the project Owner to upgrade your role.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Next DEO Win Banner - shown when navigating from overview card */}
       {showNextDeoWinBanner && !bannerDismissed && (
@@ -1068,7 +1530,7 @@ export default function AutomationPlaybooksPage() {
                   Nice work on your first DEO win
                 </h3>
                 <p className="mt-1 text-xs text-purple-800">
-                  Next up, use Automation Playbooks to fix missing SEO titles and
+                  Next up, use Playbooks to fix missing SEO titles and
                   descriptions in bulk. Start with a preview — no changes are
                   applied until you confirm.
                 </p>
@@ -1121,7 +1583,7 @@ export default function AutomationPlaybooksPage() {
                   Next step: Fix missing SEO metadata
                 </h3>
                 <p className="mt-1 text-xs text-blue-800">
-                  Use Automation Playbooks to safely generate missing SEO descriptions in bulk.
+                  Use Playbooks to safely generate missing SEO descriptions in bulk.
                   Start with a preview — nothing is applied until you confirm.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -1147,7 +1609,7 @@ export default function AutomationPlaybooksPage() {
                     }}
                     className="inline-flex items-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
                   >
-                    How Automation Playbooks work
+                    How Playbooks work
                   </button>
                 </div>
               </div>
@@ -1377,7 +1839,7 @@ export default function AutomationPlaybooksPage() {
                     type="button"
                     onClick={() => {
                       setCnabDismissed(true);
-                      handleNavigate(`/projects/${projectId}/overview`);
+                      handleNavigate(`/projects/${projectId}/store-health`);
                     }}
                     className="inline-flex items-center rounded-md border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-green-700 shadow-sm hover:bg-green-50"
                   >
@@ -1503,9 +1965,40 @@ export default function AutomationPlaybooksPage() {
       )}
 
       {selectedDefinition && (
-        <div className="space-y-6">
+        isEligibilityEmptyState ? (
+          <div
+            className="rounded-lg border border-gray-200 bg-white p-6"
+            data-testid="playbook-zero-eligible-empty-state"
+          >
+            <h2 className="text-lg font-semibold text-gray-900">No eligible items right now</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              No eligible items right now. This playbook only applies to products missing SEO{' '}
+              {selectedDefinition.field === 'seoTitle' ? 'titles' : 'descriptions'} in the current scope.
+            </p>
+            <p className="mt-2 text-sm text-gray-600">
+              Common reasons: products are already optimized, the selected scope is out of date, or Shopify data hasn&apos;t been synced recently.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => handleNavigate(`/projects/${projectId}/products`)}
+                className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                View products that need optimization
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSyncToShopify()}
+                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+              >
+                Sync from Shopify
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
           {/* Stepper */}
-          <div className="flex items-center gap-4 text-sm">
+          <div data-testid="playbooks-stepper" className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-2">
               <span
                 className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
@@ -1616,35 +2109,8 @@ export default function AutomationPlaybooksPage() {
 
           {/* Step 1: Preview */}
           <section className="rounded-lg border border-gray-200 bg-white p-4">
-            {isEligibilityEmptyState ? (
-              <div className="space-y-3">
-                <div>
-                  <h2 className="text-sm font-semibold text-gray-900">
-                    Step 0 – Eligibility
-                  </h2>
-                  <p className="text-xs text-gray-600">
-                    No products currently qualify for this playbook. When your
-                    products match this playbook&apos;s criteria, you&apos;ll be able
-                    to generate a preview and run an estimate.
-                  </p>
-                </div>
-                <p className="text-xs text-gray-600">
-                  Use the Products view to find and optimize items that still need SEO
-                  improvements.
-                </p>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleNavigate(`/projects/${projectId}/products`)
-                  }
-                  className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  View products that need optimization
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="mb-3 flex items-center justify-between gap-2">
+            <>
+              <div className="mb-3 flex items-center justify-between gap-2">
                   <div>
                     <h2 className="text-sm font-semibold text-gray-900">
                       Step 1 – Preview changes
@@ -1657,7 +2123,8 @@ export default function AutomationPlaybooksPage() {
                   <button
                     type="button"
                     onClick={handleGeneratePreview}
-                    disabled={loadingPreview || planIsFree}
+                    disabled={loadingPreview || planIsFree || !canGenerateDrafts}
+                    title={!canGenerateDrafts ? 'Viewer role cannot generate previews' : undefined}
                     className={`inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-50 ${
                       hasPreview
                         ? 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
@@ -1879,7 +2346,7 @@ export default function AutomationPlaybooksPage() {
                 </div>
                 {planIsFree && (
                   <p className="mb-3 text-xs text-amber-700">
-                    Bulk Automation Playbooks are gated on the Free plan. Upgrade to
+                    Bulk Playbooks are gated on the Free plan. Upgrade to
                     Pro to unlock bulk metadata fixes.
                   </p>
                 )}
@@ -1915,18 +2382,23 @@ export default function AutomationPlaybooksPage() {
                           <span className="font-semibold text-gray-900">
                             {sample.productTitle}
                           </span>
-                          <Link
-                            href={`/projects/${projectId}/products/${sample.productId}`}
-                            onClick={(event) => {
-                              event.preventDefault();
-                              handleNavigate(
-                                `/projects/${projectId}/products/${sample.productId}`,
-                              );
-                            }}
-                            className="text-xs text-blue-600 hover:text-blue-800"
-                          >
-                            Open product →
-                          </Link>
+                          {(() => {
+                            // [TRUST-ROUTING-1] Build preview context URL for product deep link
+                            const returnToPath = `/projects/${projectId}/automation/playbooks?playbookId=${selectedPlaybookId}${currentAssetType !== 'PRODUCTS' ? `&assetType=${currentAssetType}` : ''}${currentScopeAssetRefs.length > 0 ? `&scopeAssetRefs=${encodeURIComponent(currentScopeAssetRefs.join(','))}` : ''}`;
+                            const previewContextUrl = `/projects/${projectId}/products/${sample.productId}?from=playbook_preview&playbookId=${selectedPlaybookId}&returnTo=${encodeURIComponent(returnToPath)}`;
+                            return (
+                              <Link
+                                href={previewContextUrl}
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  handleNavigate(previewContextUrl);
+                                }}
+                                className="text-xs text-blue-600 hover:text-blue-800"
+                              >
+                                Open product →
+                              </Link>
+                            );
+                          })()}
                         </div>
                         <div className="grid gap-3 text-xs md:grid-cols-2">
                           <div>
@@ -1989,7 +2461,7 @@ export default function AutomationPlaybooksPage() {
                       )}
                       {continueBlockers.includes('plan_not_eligible') && (
                         <li>
-                          Your current plan doesn&apos;t support Automation Playbooks
+                          Your current plan doesn&apos;t support Playbooks
                           for bulk fixes.
                         </li>
                       )}
@@ -2004,7 +2476,7 @@ export default function AutomationPlaybooksPage() {
                               : estimateBlockingReasons.includes(
                                     'no_affected_products',
                                   )
-                                ? "No products currently match this playbook's criteria."
+                                ? "No eligible items right now."
                                 : estimateBlockingReasons.includes('plan_not_eligible')
                                   ? 'This playbook requires a Pro or Business plan. Upgrade to unlock bulk automations.'
                                   : 'This playbook cannot run with the current estimate. Adjust your setup to continue.'}
@@ -2072,8 +2544,7 @@ export default function AutomationPlaybooksPage() {
                     </button>
                   )}
                 </div>
-              </>
-            )}
+            </>
           </section>
 
           {/* Step 2: Estimate */}
@@ -2140,7 +2611,7 @@ export default function AutomationPlaybooksPage() {
                       </li>
                     )}
                     {estimateBlockingReasons.includes('no_affected_products') && (
-                      <li>No products currently match this playbook&apos;s criteria.</li>
+                      <li>No eligible items right now.</li>
                     )}
                     {estimateBlockingReasons.includes('ai_daily_limit_reached') && (
                       <li>
@@ -2338,7 +2809,8 @@ export default function AutomationPlaybooksPage() {
                           setFlowState('PREVIEW_GENERATED');
                         }
                       }}
-                      disabled={loadingPreview}
+                      disabled={loadingPreview || !canGenerateDrafts}
+                      title={!canGenerateDrafts ? 'Viewer role cannot generate previews' : undefined}
                       className="mt-2 inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Generate preview (uses AI)
@@ -2546,18 +3018,23 @@ export default function AutomationPlaybooksPage() {
                                   {item.productId === 'LIMIT_REACHED' ? (
                                     <span className="text-gray-500">—</span>
                                   ) : (
-                                    <Link
-                                      href={`/projects/${projectId}/products/${item.productId}`}
-                                      onClick={(event) => {
-                                        event.preventDefault();
-                                        handleNavigate(
-                                          `/projects/${projectId}/products/${item.productId}`,
-                                        );
-                                      }}
-                                      className="text-blue-600 hover:text-blue-800"
-                                    >
-                                      {product?.title || item.productId}
-                                    </Link>
+                                    (() => {
+                                      // [TRUST-ROUTING-1] Build results context URL for product deep link
+                                      const returnToPath = `/projects/${projectId}/automation/playbooks?playbookId=${selectedPlaybookId}${currentAssetType !== 'PRODUCTS' ? `&assetType=${currentAssetType}` : ''}${currentScopeAssetRefs.length > 0 ? `&scopeAssetRefs=${encodeURIComponent(currentScopeAssetRefs.join(','))}` : ''}`;
+                                      const resultsContextUrl = `/projects/${projectId}/products/${item.productId}?from=playbook_results&playbookId=${selectedPlaybookId}&returnTo=${encodeURIComponent(returnToPath)}`;
+                                      return (
+                                        <Link
+                                          href={resultsContextUrl}
+                                          onClick={(event) => {
+                                            event.preventDefault();
+                                            handleNavigate(resultsContextUrl);
+                                          }}
+                                          className="text-blue-600 hover:text-blue-800"
+                                        >
+                                          {product?.title || item.productId}
+                                        </Link>
+                                      );
+                                    })()
                                   )}
                                 </td>
                                 <td className="px-3 py-1.5">
@@ -2612,34 +3089,174 @@ export default function AutomationPlaybooksPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        handleNavigate(`/projects/${projectId}/overview`)
+                        handleNavigate(`/projects/${projectId}/automation/playbooks`)
                       }
                       className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
                     >
-                      Return to Automation overview
+                      Return to Playbooks
                     </button>
                   </>
                 )}
               </div>
               {flowState !== 'APPLY_COMPLETED' && flowState !== 'APPLY_STOPPED' && (
-                <button
-                  type="button"
-                  onClick={handleApplyPlaybook}
-                  disabled={
-                    flowState !== 'APPLY_READY' ||
-                    applying ||
-                    !estimate ||
-                    !estimate.canProceed ||
-                    !confirmApply
-                  }
-                  className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {applying ? 'Applying…' : 'Apply playbook'}
-                </button>
+                <>
+                  {/* [ROLES-3 FIXUP-3 CORRECTION] All notices derived from server state (pendingApproval) */}
+                  {(() => {
+                    // Derive approval state from server-sourced pendingApproval
+                    const approvalStatus = pendingApproval?.status;
+                    const approvalConsumed = pendingApproval?.consumed ?? false;
+                    const hasPendingApproval = approvalStatus === 'PENDING_APPROVAL';
+                    const hasApprovedApproval = approvalStatus === 'APPROVED' && !approvalConsumed;
+                    const needsNewRequest = !pendingApproval || approvalStatus === 'REJECTED' || approvalConsumed;
+
+                    // VIEWER notice
+                    if (!roleCapabilities.canRequestApproval && !roleCapabilities.canApply) {
+                      return (
+                        <p className="mr-4 text-xs text-gray-500">
+                          Viewer role cannot apply. Preview and export remain available.
+                        </p>
+                      );
+                    }
+
+                    // EDITOR notices (can request but not apply)
+                    if (roleCapabilities.canRequestApproval && !roleCapabilities.canApply) {
+                      if (!approvalRequired) {
+                        return (
+                          <p className="mr-4 text-xs text-gray-500">
+                            Editor role cannot apply. An owner must apply this playbook.
+                          </p>
+                        );
+                      }
+                      if (hasPendingApproval) {
+                        return (
+                          <p className="mr-4 text-xs text-amber-600">
+                            Approval pending. Waiting for owner to approve.
+                          </p>
+                        );
+                      }
+                      if (hasApprovedApproval) {
+                        return (
+                          <p className="mr-4 text-xs text-green-600">
+                            Approved — an owner must apply this playbook.
+                          </p>
+                        );
+                      }
+                      return (
+                        <p className="mr-4 text-xs text-amber-600">
+                          Approval required. Click to request owner approval.
+                        </p>
+                      );
+                    }
+
+                    // OWNER notices
+                    if (roleCapabilities.canApply && approvalRequired) {
+                      if (hasPendingApproval) {
+                        return (
+                          <p className="mr-4 text-xs text-amber-600">
+                            Pending approval from Editor. Click to approve and apply.
+                          </p>
+                        );
+                      }
+                      if (hasApprovedApproval) {
+                        return (
+                          <p className="mr-4 text-xs text-green-600">
+                            Approval granted. Ready to apply.
+                          </p>
+                        );
+                      }
+                      if (isMultiUserProject && needsNewRequest) {
+                        return (
+                          <p className="mr-4 text-xs text-amber-600">
+                            An Editor must request approval first.
+                          </p>
+                        );
+                      }
+                      return (
+                        <p className="mr-4 text-xs text-amber-600">
+                          Approval required before apply.
+                        </p>
+                      );
+                    }
+
+                    return null;
+                  })()}
+                  {/* [ROLES-3 PENDING-1] Approval Attribution Panel */}
+                  {pendingApproval && approvalRequired && (
+                    <div className="mr-4 flex flex-col gap-0.5 text-xs text-gray-500">
+                      <span>
+                        Requested by {getUserDisplayName(pendingApproval.requestedByUserId)}{' '}
+                        on {new Date(pendingApproval.requestedAt).toLocaleDateString()}
+                      </span>
+                      {pendingApproval.decidedByUserId && pendingApproval.decidedAt && (
+                        <span>
+                          {pendingApproval.status === 'APPROVED' ? 'Approved' : 'Decided'} by{' '}
+                          {getUserDisplayName(pendingApproval.decidedByUserId)} on{' '}
+                          {new Date(pendingApproval.decidedAt).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleApplyPlaybook}
+                    disabled={(() => {
+                      // Base conditions
+                      if (flowState !== 'APPLY_READY' || applying || !estimate || !estimate.canProceed || !confirmApply || approvalLoading) {
+                        return true;
+                      }
+                      // VIEWER blocked
+                      if (!roleCapabilities.canRequestApproval && !roleCapabilities.canApply) {
+                        return true;
+                      }
+                      // EDITOR: blocked if approval already pending or approved (they can only request once)
+                      if (roleCapabilities.canRequestApproval && !roleCapabilities.canApply) {
+                        const status = pendingApproval?.status;
+                        if (status === 'PENDING_APPROVAL' || (status === 'APPROVED' && !pendingApproval?.consumed)) {
+                          return true;
+                        }
+                      }
+                      // OWNER in multi-user project with approval required but no pending request
+                      if (roleCapabilities.canApply && approvalRequired && isMultiUserProject) {
+                        const hasActionableApproval = pendingApproval &&
+                          (pendingApproval.status === 'PENDING_APPROVAL' || (pendingApproval.status === 'APPROVED' && !pendingApproval.consumed));
+                        if (!hasActionableApproval) {
+                          return true;
+                        }
+                      }
+                      return false;
+                    })()}
+                    className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {(() => {
+                      if (applying || approvalLoading) return 'Processing…';
+
+                      // EDITOR button text
+                      if (roleCapabilities.canRequestApproval && !roleCapabilities.canApply) {
+                        const status = pendingApproval?.status;
+                        if (status === 'PENDING_APPROVAL') return 'Pending approval';
+                        if (status === 'APPROVED' && !pendingApproval?.consumed) return 'Approved — Owner applies';
+                        return 'Request approval';
+                      }
+
+                      // OWNER button text
+                      if (roleCapabilities.canApply) {
+                        if (!approvalRequired) return 'Apply playbook';
+                        const status = pendingApproval?.status;
+                        if (status === 'PENDING_APPROVAL') return 'Approve and apply';
+                        if (status === 'APPROVED' && !pendingApproval?.consumed) return 'Apply playbook';
+                        if (isMultiUserProject) return 'Waiting for Editor request';
+                        return 'Approve and apply';
+                      }
+
+                      return 'Apply playbook';
+                    })()}
+                  </button>
+                </>
               )}
             </div>
           </section>
-        </div>
+          </div>
+        )
       )}
     </div>
   );

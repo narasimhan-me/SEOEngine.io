@@ -11,6 +11,8 @@ import type {
   DeoScoreSignals,
   DeoIssue,
 } from '@/lib/deo-issues';
+// [ISSUE-TO-FIX-PATH-1 FIXUP-1] Import deterministic routing helpers
+import { buildIssueFixHref, getSafeIssueTitle, getSafeIssueDescription } from '@/lib/issue-to-fix-path';
 
 interface DeoIssuesResponse {
   projectId: string;
@@ -114,15 +116,8 @@ interface ProjectOverview {
   lastAnswerBlockSyncAt?: string | null;
 }
 
-function formatIssueOutcome(issue: DeoIssue): string {
-  if (issue.recommendedFix && issue.recommendedFix.trim().length > 0) {
-    return issue.recommendedFix;
-  }
-  if (issue.description && issue.description.trim().length > 0) {
-    return issue.description;
-  }
-  return issue.title;
-}
+// [ISSUE-TO-FIX-PATH-1 FIXUP-1] Legacy formatIssueOutcome, PILLAR_TO_TAB_MAP, and getIssueDeepLink removed
+// Now uses buildIssueFixHref from @/lib/issue-to-fix-path for deterministic routing
 
 export default function ProjectOverviewPage() {
   const router = useRouter();
@@ -579,8 +574,10 @@ export default function ProjectOverviewPage() {
   const optimizedProductsCount = overview?.productsWithAppliedSeo ?? 0;
 
   const aeoSyncEnabled = status?.aeoSyncToShopifyMetafields ?? false;
-  const issuesForCards: DeoIssue[] =
-    ((deoIssues?.issues as DeoIssue[]) ?? []).slice(0, 3);
+  // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Filter to actionable issues only (have deterministic fix path)
+  const issuesForCards: DeoIssue[] = ((deoIssues?.issues as DeoIssue[]) ?? [])
+    .filter((issue) => buildIssueFixHref({ projectId, issue, from: 'overview' }) !== null)
+    .slice(0, 3);
   const topProductsToFix = (() => {
     if (!deoIssues?.issues || !products.length) {
       return [] as { product: Product; reasons: string[] }[];
@@ -621,7 +618,8 @@ export default function ProjectOverviewPage() {
         };
         existing.score += weight;
         if (existing.reasons.length < 2) {
-          existing.reasons.push(issue.title);
+          // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Use safe title to prevent internal ID leakage
+          existing.reasons.push(getSafeIssueTitle(issue));
         }
         scoreByProductId.set(productId, existing);
       }
@@ -920,7 +918,7 @@ export default function ProjectOverviewPage() {
                   </div>
                 )}
               </div>
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => router.push(`/projects/${projectId}/products`)}
@@ -938,8 +936,10 @@ export default function ProjectOverviewPage() {
                       : 'border-blue-600 bg-blue-50 text-blue-700 hover:bg-blue-100'
                   }`}
                 >
-                  {syncingAeoToShopify ? 'Syncing…' : 'Sync now'}
+                  {syncingAeoToShopify ? 'Syncing…' : 'Sync answers to Shopify'}
                 </button>
+                {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Inline guidance */}
+                <span className="text-[10px] text-gray-500">Does not change metadata or product content.</span>
               </div>
             </div>
             {/* Top Products to Fix (primary action area) */}
@@ -1171,30 +1171,34 @@ export default function ProjectOverviewPage() {
               </p>
             ) : (
               <ul className="space-y-2">
-                {issuesForCards.map((issue) => (
-                  <li
-                    key={issue.id}
-                    className="flex items-start justify-between gap-3"
-                  >
-                    <div className="min-w-0">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          router.push(`/projects/${projectId}/issues`)
-                        }
-                        className="truncate text-xs font-medium text-blue-700 hover:text-blue-900"
-                      >
-                        {issue.title}
-                      </button>
-                      <p className="mt-0.5 truncate text-[11px] text-gray-500">
-                        {formatIssueOutcome(issue)}
-                      </p>
-                    </div>
-                    <span className="ml-2 flex-shrink-0 rounded-full bg-gray-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-600">
-                      {issue.severity}
-                    </span>
-                  </li>
-                ))}
+                {issuesForCards.map((issue) => {
+                  // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Use deterministic routing with safe titles
+                  const href = buildIssueFixHref({ projectId, issue, from: 'overview' });
+                  const safeTitle = getSafeIssueTitle(issue);
+                  const safeDescription = getSafeIssueDescription(issue);
+                  return (
+                    <li
+                      key={issue.id}
+                      className="flex items-start justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        {/* [ISSUE-TO-FIX-PATH-1 FIXUP-1] Deterministic deep-link to fix location */}
+                        <Link
+                          href={href || `/projects/${projectId}/issues`}
+                          className="truncate text-xs font-medium text-blue-700 hover:text-blue-900"
+                        >
+                          {safeTitle}
+                        </Link>
+                        <p className="mt-0.5 truncate text-[11px] text-gray-500">
+                          {safeDescription}
+                        </p>
+                      </div>
+                      <span className="ml-2 flex-shrink-0 rounded-full bg-gray-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-600">
+                        {issue.severity}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
@@ -1227,7 +1231,7 @@ export default function ProjectOverviewPage() {
                   <h3 className="mb-3 text-sm font-semibold text-gray-900">Signals summary</h3>
                   <DeoSignalsSummary signals={deoSignals} loading={deoSignalsLoading} />
                   <div className="mt-4">
-                    <ProjectHealthCards signals={deoSignals} />
+                    <ProjectHealthCards signals={deoSignals} projectId={projectId} />
                   </div>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -1539,7 +1543,8 @@ export default function ProjectOverviewPage() {
               </div>
               {/* Content - scrollable */}
               <div className="max-h-[calc(90vh-100px)] overflow-y-auto px-6 py-5">
-                <IssuesList issues={(deoIssues?.issues as DeoIssue[]) ?? []} />
+                {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Pass projectId for deep-linking */}
+                <IssuesList issues={(deoIssues?.issues as DeoIssue[]) ?? []} projectId={projectId} />
               </div>
             </div>
           </div>

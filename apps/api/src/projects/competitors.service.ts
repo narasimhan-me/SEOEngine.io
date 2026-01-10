@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { RoleResolutionService } from '../common/role-resolution.service';
 import {
   CompetitorGapType as PrismaGapType,
   CompetitiveStatus as PrismaStatus,
@@ -64,9 +65,16 @@ const COMPETITIVE_COVERAGE_AREAS: {
  * - Coverage analysis uses "industry baseline" assumptions
  * - All generated content uses only merchant's product data
  */
+/**
+ * [ROLES-3 FIXUP-3] CompetitorsService
+ * Updated with membership-aware access control (any ProjectMember can view).
+ */
 @Injectable()
 export class CompetitorsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly roleResolution: RoleResolutionService,
+  ) {}
 
   // ============================================================================
   // Type Mapping Helpers
@@ -460,9 +468,8 @@ export class CompetitorsService {
       throw new NotFoundException('Product not found');
     }
 
-    if (product.project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this product');
-    }
+    // [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can view)
+    await this.roleResolution.assertProjectAccess(product.projectId, userId);
 
     // Get or compute coverage
     const coverageRow = await this.prisma.productCompetitiveCoverage.findUnique({
@@ -598,9 +605,8 @@ export class CompetitorsService {
       throw new NotFoundException('Project not found');
     }
 
-    if (project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this project');
-    }
+    // [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can view)
+    await this.roleResolution.assertProjectAccess(projectId, userId);
 
     // Get all products for project
     const products = await this.prisma.product.findMany({

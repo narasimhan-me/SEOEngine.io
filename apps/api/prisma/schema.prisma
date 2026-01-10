@@ -15,6 +15,39 @@ enum UserRole {
   ADMIN
 }
 
+// [ADMIN-OPS-1] Internal admin roles (internal-only, not customer-facing)
+enum InternalAdminRole {
+  SUPPORT_AGENT
+  OPS_ADMIN
+  MANAGEMENT_CEO
+}
+
+// [SELF-SERVICE-1] Customer-facing account roles (separate from internal UserRole)
+enum CustomerAccountRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+// [ROLES-3] Project-level member roles for true multi-user projects
+enum ProjectMemberRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+// [SELF-SERVICE-1] Session type enumeration
+enum SessionType {
+  USER_LOGIN
+  // Future types can be added here
+}
+
+// [ADMIN-OPS-1] Account status for users
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+}
+
 // Supported ecommerce platform integration types
 enum IntegrationType {
   SHOPIFY
@@ -52,6 +85,7 @@ enum AutomationPlaybookRunType {
   DRAFT_GENERATE
   APPLY
   INTENT_FIX_PREVIEW  // SEARCH-INTENT-1: Intent fix preview generation
+  GEO_FIX_PREVIEW     // GEO-FOUNDATION-1: GEO fix preview generation
 }
 
 enum AutomationPlaybookRunStatus {
@@ -64,15 +98,36 @@ enum AutomationPlaybookRunStatus {
 }
 
 model User {
-  id               String   @id @default(cuid())
-  email            String   @unique
+  id               String              @id @default(cuid())
+  email            String              @unique
   password         String
   name             String?
-  role             UserRole @default(USER)
-  twoFactorEnabled Boolean  @default(false)
-  twoFactorSecret  String?  // Base32-encoded TOTP secret
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  role             UserRole            @default(USER)
+  twoFactorEnabled Boolean             @default(false)
+  twoFactorSecret  String?             // Base32-encoded TOTP secret
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  // [ADMIN-OPS-1] Internal admin role and account status
+  adminRole        InternalAdminRole?  // Nullable; only meaningful when role === ADMIN
+  accountStatus    AccountStatus       @default(ACTIVE)
+
+  // [SELF-SERVICE-1] Customer-facing account role and profile fields
+  accountRole      CustomerAccountRole @default(OWNER)
+  avatarUrl        String?
+  timezone         String?
+  locale           String?
+  organizationName String?
+
+  // [SELF-SERVICE-1] Security fields
+  lastLoginAt         DateTime?
+  lastLoginIp         String?
+  tokenInvalidBefore  DateTime?   // For "sign out all sessions"
+
+  // [SELF-SERVICE-1] Relations
+  preferences          UserPreferences?
+  sessions             UserSession[]
+  userAccountAuditLogs UserAccountAuditLog[]
 
   projects     Project[]
   subscription Subscription?
@@ -83,6 +138,16 @@ model User {
   offsiteFixApplications ProjectOffsiteFixApplication[]
   localFixApplications ProjectLocalFixApplication[]
   mediaFixApplications ProductMediaFixApplication[]
+  geoFixApplications ProductGeoFixApplication[]
+
+  // [ADMIN-OPS-1] Admin audit log relations
+  adminAuditLogsPerformed AdminAuditLog[] @relation("PerformedBy")
+  adminAuditLogsTargeted  AdminAuditLog[] @relation("TargetUser")
+  aiQuotaResetsPerformed  AiMonthlyQuotaReset[] @relation("CreatedBy")
+  aiQuotaResetsReceived   AiMonthlyQuotaReset[] @relation("UserReset")
+
+  // [ROLES-3] Project memberships (multi-user projects)
+  projectMemberships      ProjectMember[]
 }
 
 model Project {
@@ -125,6 +190,20 @@ model Project {
   localSignals               ProjectLocalSignal[]
   localFixDrafts             ProjectLocalFixDraft[]
   localFixApplications       ProjectLocalFixApplication[]
+
+  // [ADMIN-OPS-1] Admin audit log relation
+  adminAuditLogsTargeted     AdminAuditLog[] @relation("TargetProject")
+
+  // [GEO-EXPORT-1] GEO report share links
+  geoReportShareLinks        GeoReportShareLink[]
+
+  // [ENTERPRISE-GEO-1] Governance relations
+  governancePolicy           ProjectGovernancePolicy?
+  approvalRequests           ApprovalRequest[]
+  governanceAuditEvents      GovernanceAuditEvent[]
+
+  // [ROLES-3] Project members (multi-user projects)
+  members                    ProjectMember[]
 }
 
 model Integration {
@@ -148,6 +227,7 @@ model Product {
   externalId     String   // platform-agnostic ID (was shopifyId)
   title          String
   description    String?
+  handle         String?  // [LIST-SEARCH-FILTER-1] Shopify handle for URL-based search
   seoTitle       String?
   seoDescription String?
   imageUrls      Json?
@@ -157,6 +237,10 @@ model Product {
   intentCoverages      ProductIntentCoverage[]
   intentFixDrafts      ProductIntentFixDraft[]
   intentFixApplications ProductIntentFixApplication[]
+
+  // GEO-FOUNDATION-1 relations
+  geoFixDrafts                   ProductGeoFixDraft[]
+  geoFixApplications             ProductGeoFixApplication[]
 
   // COMPETITORS-1 relations
   competitors                    ProductCompetitor[]
@@ -310,6 +394,10 @@ model AutomationPlaybookDraft {
   updatedAt       DateTime                      @updatedAt
   expiresAt       DateTime?
 
+  // [WORK-QUEUE-1] Applied state tracking for "Applied Recently" tab derivation
+  appliedAt       DateTime?                     // When this draft was successfully applied
+  appliedByUserId String?                       // User who applied this draft
+
   @@unique([projectId, playbookId, scopeId, rulesHash])
   @@index([projectId, playbookId, updatedAt(sort: Desc)])
 }
@@ -377,6 +465,24 @@ enum IntentFixApplyTarget {
   CONTENT_SNIPPET_SECTION
 }
 
+// =============================================================================
+// GEO-FOUNDATION-1: Answer Readiness & Citation Confidence (Draft-first fixes)
+// =============================================================================
+
+enum GeoIssueType {
+  MISSING_DIRECT_ANSWER
+  ANSWER_TOO_VAGUE
+  POOR_ANSWER_STRUCTURE
+  ANSWER_OVERLY_PROMOTIONAL
+  MISSING_EXAMPLES_OR_FACTS
+}
+
+enum GeoCitationConfidenceLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 // Per-product intent coverage analysis
 model ProductIntentCoverage {
   id              String              @id @default(cuid())
@@ -434,6 +540,51 @@ model ProductIntentFixApplication {
   applyTarget     IntentFixApplyTarget
   notes           String?
   appliedAt       DateTime            @default(now())
+
+  @@index([productId, appliedAt(sort: Desc)])
+  @@index([appliedByUserId, appliedAt(sort: Desc)])
+}
+
+// Draft fixes for GEO answer readiness issues (preview-first pattern)
+model ProductGeoFixDraft {
+  id                String                        @id @default(cuid())
+  product           Product                       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId         String
+  questionId        String
+  issueType         GeoIssueType
+  draftPayload      Json
+  aiWorkKey         String
+  reusedFromWorkKey String?
+  generatedWithAi   Boolean                       @default(true)
+  expiresAt         DateTime?
+  createdAt         DateTime                      @default(now())
+  updatedAt         DateTime                      @updatedAt
+
+  applications      ProductGeoFixApplication[]
+
+  @@index([productId, questionId, issueType])
+  @@index([aiWorkKey])
+  @@index([productId, expiresAt])
+}
+
+// Audit log for applied GEO fixes
+model ProductGeoFixApplication {
+  id                  String                      @id @default(cuid())
+  product             Product                     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId           String
+  draft               ProductGeoFixDraft          @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  draftId             String
+  appliedBy           User                        @relation(fields: [appliedByUserId], references: [id], onDelete: Cascade)
+  appliedByUserId     String
+  questionId          String
+  issueType           GeoIssueType
+  beforeConfidence    GeoCitationConfidenceLevel
+  afterConfidence     GeoCitationConfidenceLevel
+  beforeIssuesCount   Int
+  afterIssuesCount    Int
+  issuesResolvedCount Int
+  resolvedIssueTypes  String[]                    @default([])
+  appliedAt           DateTime                    @default(now())
 
   @@index([productId, appliedAt(sort: Desc)])
   @@index([appliedByUserId, appliedAt(sort: Desc)])
@@ -879,4 +1030,332 @@ model ProductMediaFixApplication {
 
   @@index([productId, appliedAt(sort: Desc)])
   @@index([appliedByUserId, appliedAt(sort: Desc)])
+}
+
+// =============================================================================
+// ADMIN-OPS-1: Support & Management Operations Dashboard Models
+// =============================================================================
+
+// Immutable admin audit log (no update/delete flows)
+model AdminAuditLog {
+  id                    String              @id @default(cuid())
+  createdAt             DateTime            @default(now())
+
+  // Who performed the action
+  performedBy           User                @relation("PerformedBy", fields: [performedByUserId], references: [id])
+  performedByUserId     String
+  performedByAdminRole  InternalAdminRole   // Denormalized snapshot of role at time
+
+  // Action type (string enum-like for extensibility)
+  actionType            String              // e.g., "impersonation", "quota_reset", "plan_override", "project_resync", "run_retry", "admin_role_change"
+
+  // Optional targets
+  targetUser            User?               @relation("TargetUser", fields: [targetUserId], references: [id])
+  targetUserId          String?
+  targetProject         Project?            @relation("TargetProject", fields: [targetProjectId], references: [id])
+  targetProjectId       String?
+  targetRunId           String?             // Nullable; string reference to AutomationPlaybookRun.id
+
+  // Additional context (must avoid storing raw secrets/tokens)
+  metadata              Json?
+
+  @@index([createdAt(sort: Desc)])
+  @@index([performedByUserId, createdAt(sort: Desc)])
+  @@index([actionType, createdAt(sort: Desc)])
+  @@index([targetUserId, createdAt(sort: Desc)])
+  @@index([targetProjectId, createdAt(sort: Desc)])
+}
+
+// [ADMIN-OPS-1] Quota reset without deleting ledger (user-scoped, month-scoped)
+model AiMonthlyQuotaReset {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+
+  // Target user whose quota is being reset
+  user            User     @relation("UserReset", fields: [userId], references: [id])
+  userId          String
+
+  // Month scope (normalized to UTC first-of-month)
+  monthStart      DateTime
+
+  // "Reset baseline" captured at reset time
+  aiRunsOffset    Int
+
+  // Who performed the reset (ops admin)
+  createdByUser   User     @relation("CreatedBy", fields: [createdByUserId], references: [id])
+  createdByUserId String
+
+  // Optional reason for the reset
+  reason          String?
+
+  @@index([userId, monthStart])
+  @@index([createdAt(sort: Desc)])
+}
+
+// =============================================================================
+// SELF-SERVICE-1: Customer Self-Service Control Plane Models
+// =============================================================================
+
+// [SELF-SERVICE-1] User preferences (1:1 with User)
+model UserPreferences {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @unique
+
+  // Notification toggles
+  notifyQuotaWarnings   Boolean @default(true)
+  notifyRunFailures     Boolean @default(true)
+  notifyWeeklyDeoSummary Boolean @default(true)
+
+  // Default behaviors
+  autoOpenIssuesTab       Boolean @default(false)
+  preferredPillarLanding  String? // e.g., "metadata", "search_intent", etc.
+
+  // Future-proofing JSON column for extensible preferences
+  additionalPrefs Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// [SELF-SERVICE-1] Active sessions for "active sessions" visibility
+model UserSession {
+  id          String      @id @default(cuid())
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  sessionType SessionType @default(USER_LOGIN)
+
+  createdAt   DateTime  @default(now())
+  lastSeenAt  DateTime?
+  revokedAt   DateTime?
+
+  ip          String?
+  userAgent   String?
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, revokedAt])
+}
+
+// [SELF-SERVICE-1] Customer audit log (immutable)
+model UserAccountAuditLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Who performed the action (the user themselves)
+  actorUser   User   @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
+  actorUserId String
+
+  // Action type (extensible string enum)
+  actionType  String // e.g., "profile_updated", "preferences_updated", "organization_updated", "sign_out_all_sessions", "disconnect_store"
+
+  // Additional context (must avoid storing secrets)
+  metadata    Json?
+
+  @@index([actorUserId, createdAt(sort: Desc)])
+  @@index([actionType, createdAt(sort: Desc)])
+}
+
+// [GEO-EXPORT-1] GEO Report Share Link status
+enum GeoReportShareLinkStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+// [ENTERPRISE-GEO-1] Share link audience access modes
+enum ShareLinkAudience {
+  ANYONE_WITH_LINK  // Default: no auth required
+  PASSCODE          // Requires system-generated passcode
+  ORG_ONLY          // Placeholder: requires org membership (future)
+}
+
+// [GEO-EXPORT-1 + ENTERPRISE-GEO-1] Shareable link for GEO reports
+// Public, time-bound (14-day default), revocable, with optional passcode protection
+model GeoReportShareLink {
+  id          String                   @id @default(cuid())
+  project     Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+
+  // Non-discoverable token for public URL
+  shareToken  String                   @unique @default(cuid())
+
+  // Title/label for the share (optional)
+  title       String?
+
+  // Time window: 14-day default, can be reduced by governance policy
+  createdAt   DateTime                 @default(now())
+  expiresAt   DateTime                 // Set to createdAt + configured days
+
+  // Revocation support
+  status      GeoReportShareLinkStatus @default(ACTIVE)
+  revokedAt   DateTime?
+
+  // Snapshot timestamp for "generated at" display
+  generatedAt DateTime                 @default(now())
+
+  // Who created this share link (for audit)
+  createdByUserId String
+
+  // [ENTERPRISE-GEO-1] Export control fields
+  audience           ShareLinkAudience  @default(ANYONE_WITH_LINK)
+  passcodeHash       String?            // bcrypt hash of passcode (never store plaintext)
+  passcodeLast4      String?            // Last 4 chars for hint display (e.g., "****ABCD")
+  passcodeCreatedAt  DateTime?          // When passcode was set
+
+  @@index([projectId, status])
+  @@index([shareToken])
+  @@index([expiresAt])
+}
+
+// =============================================================================
+// ENTERPRISE-GEO-1: Enterprise Governance, Approvals, Audit, Export Controls
+// =============================================================================
+
+// [ENTERPRISE-GEO-1] Approval request status
+enum ApprovalStatus {
+  DRAFT             // Not yet submitted for approval
+  PENDING_APPROVAL  // Awaiting decision
+  APPROVED          // Approved by authorized actor
+  REJECTED          // Rejected by authorized actor
+}
+
+// [ENTERPRISE-GEO-1] Resource types that can require approval
+// [ROLES-2] Extended with AUTOMATION_PLAYBOOK_APPLY for playbook apply gating
+enum ApprovalResourceType {
+  GEO_FIX_APPLY              // Applying a GEO fix draft
+  ANSWER_BLOCK_SYNC          // Syncing answer blocks to Shopify
+  AUTOMATION_PLAYBOOK_APPLY  // [ROLES-2] Applying automation playbooks
+}
+
+// [ENTERPRISE-GEO-1] Audit event types for governance tracking
+// [ROLES-3] Extended with project member management events
+enum GovernanceAuditEventType {
+  // Policy events
+  POLICY_CHANGED
+
+  // Approval workflow events
+  APPROVAL_REQUESTED
+  APPROVAL_APPROVED
+  APPROVAL_REJECTED
+
+  // Apply events (after approval)
+  APPLY_EXECUTED
+
+  // Share link events
+  SHARE_LINK_CREATED
+  SHARE_LINK_REVOKED
+
+  // [ROLES-3] Project member management events
+  PROJECT_MEMBER_ADDED
+  PROJECT_MEMBER_REMOVED
+  PROJECT_MEMBER_ROLE_CHANGED
+}
+
+// [ENTERPRISE-GEO-1] Project-scoped governance policy (1:1 with Project)
+// Controls approval requirements, share link restrictions, and export controls
+model ProjectGovernancePolicy {
+  id        String   @id @default(cuid())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String   @unique
+
+  // Approval toggles (default off for backwards compatibility)
+  requireApprovalForApply Boolean @default(false)  // Require approval before GEO/AEO apply
+
+  // Share link restrictions
+  restrictShareLinks    Boolean @default(false)    // If true: force passcode + shorter expiry
+  shareLinkExpiryDays   Int     @default(14)       // Default expiry (max 14, reduced to 7 if restricted)
+  allowedExportAudience ShareLinkAudience @default(ANYONE_WITH_LINK)  // Default audience mode
+
+  // Export content controls (server-side enforcement)
+  allowCompetitorMentionsInExports Boolean @default(false)  // Scrub competitor names if false
+  allowPIIInExports                Boolean @default(false)  // Always false; scrub PII patterns
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// [ENTERPRISE-GEO-1] Approval workflow model
+// Tracks approval requests for governed resources
+model ApprovalRequest {
+  id        String   @id @default(cuid())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  // Resource being approved
+  resourceType ApprovalResourceType
+  resourceId   String                 // e.g., draftId for GEO_FIX_APPLY, productId for ANSWER_BLOCK_SYNC
+
+  // Workflow state
+  status ApprovalStatus @default(PENDING_APPROVAL)
+
+  // Actor tracking
+  requestedByUserId String             // User who submitted the request
+  requestedAt       DateTime @default(now())
+
+  // Decision tracking (null until decided)
+  decidedByUserId String?              // User who approved/rejected
+  decidedAt       DateTime?
+  decisionReason  String?              // Optional reason for approval/rejection
+
+  // Consumption tracking (prevents reusing approved requests)
+  consumed   Boolean   @default(false) // True after the approved action is executed
+  consumedAt DateTime?                 // When the approval was used
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId, resourceType, resourceId])
+  @@index([projectId, status])
+  @@index([requestedByUserId, createdAt(sort: Desc)])
+}
+
+// [ENTERPRISE-GEO-1] Immutable audit event log for governance actions
+// Append-only: no update or delete flows
+model GovernanceAuditEvent {
+  id        String   @id @default(cuid())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  // Who performed the action
+  actorUserId String
+
+  // What happened
+  eventType    GovernanceAuditEventType
+  resourceType String?                    // e.g., "GEO_FIX_APPLY", "SHARE_LINK", "POLICY"
+  resourceId   String?                    // ID of the affected resource
+
+  // Additional context (must never contain secrets/tokens)
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt(sort: Desc)])
+  @@index([projectId, eventType, createdAt(sort: Desc)])
+  @@index([actorUserId, createdAt(sort: Desc)])
+}
+
+// =============================================================================
+// ROLES-3: True Multi-User Projects & Approval Chains
+// =============================================================================
+
+// [ROLES-3] Project membership model for true multi-user projects
+// Links users to projects with specific roles
+// Cascade deletion when project is deleted
+model ProjectMember {
+  id        String            @id @default(cuid())
+  project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  role      ProjectMemberRole
+  createdAt DateTime          @default(now())
+
+  // Uniqueness: one membership per (projectId, userId)
+  @@unique([projectId, userId])
+  // Index for "list members by project"
+  @@index([projectId])
+  // Index for "resolve role by (projectId, userId)"
+  @@index([projectId, userId])
+  // Index for "list projects by user"
+  @@index([userId])
 }

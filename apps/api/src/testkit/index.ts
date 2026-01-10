@@ -1,4 +1,4 @@
-import { IntegrationType, PrismaClient } from '@prisma/client';
+import { IntegrationType, PrismaClient, CustomerAccountRole, UserRole } from '@prisma/client';
 
 let counter = 0;
 
@@ -11,6 +11,10 @@ function nextTestSuffix(label: string): string {
 export interface CreateTestUserOptions {
   email?: string;
   plan?: string; // e.g. "free", "starter", "pro", "business"
+  // [SELF-SERVICE-1] Account role support
+  accountRole?: 'OWNER' | 'EDITOR' | 'VIEWER';
+  // [SELF-SERVICE-1] Internal role support for tests
+  role?: 'USER' | 'ADMIN';
 }
 
 export async function createTestUser(
@@ -20,11 +24,21 @@ export async function createTestUser(
   const email =
     options.email ?? `${nextTestSuffix('user')}@example.com`.toLowerCase();
 
+  // [SELF-SERVICE-1] Support accountRole and role options
+  const accountRole = options.accountRole
+    ? (options.accountRole as CustomerAccountRole)
+    : CustomerAccountRole.OWNER;
+  const role = options.role
+    ? (options.role as UserRole)
+    : UserRole.USER;
+
   const user = await prisma.user.create({
     data: {
       email,
       password: 'hashed-password',
       name: 'Test User',
+      accountRole,
+      role,
     },
   });
 

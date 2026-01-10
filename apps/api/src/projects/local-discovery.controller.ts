@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   Post,
@@ -8,11 +9,11 @@ import {
   UseGuards,
   Request,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma.service';
 import { LocalDiscoveryService } from './local-discovery.service';
+import { RoleResolutionService } from '../common/role-resolution.service';
 import { AiService } from '../ai/ai.service';
 import {
   AiUsageQuotaService,
@@ -76,6 +77,11 @@ class UpdateLocalConfigDto {
  * - PUT  /projects/:projectId/local-discovery/config — Update local config
  * - POST /projects/:projectId/local-discovery/preview — Preview fix draft
  * - POST /projects/:projectId/local-discovery/apply — Apply fix draft
+ *
+ * [ROLES-3 FIXUP-3] Updated with membership-aware access control:
+ * - GET endpoints: any ProjectMember can view
+ * - Preview endpoints: OWNER/EDITOR only
+ * - Apply/config endpoints: OWNER-only
  */
 @Controller()
 @UseGuards(JwtAuthGuard)
@@ -86,6 +92,7 @@ export class LocalDiscoveryController {
     private readonly aiService: AiService,
     private readonly aiUsageQuotaService: AiUsageQuotaService,
     private readonly aiUsageLedgerService: AiUsageLedgerService,
+    private readonly roleResolution: RoleResolutionService,
   ) {}
 
   // ============================================================================
@@ -186,18 +193,8 @@ export class LocalDiscoveryController {
   ): Promise<LocalDiscoveryScorecard> {
     const userId = req.user.id;
 
-    // Verify project access
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      throw new BadRequestException('Project not found');
-    }
-
-    if (project.userId !== userId) {
-      throw new ForbiddenException('Access denied');
-    }
+    // [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can view)
+    await this.roleResolution.assertProjectAccess(projectId, userId);
 
     return this.localDiscoveryService.getProjectScorecard(projectId);
   }
@@ -213,18 +210,8 @@ export class LocalDiscoveryController {
   ): Promise<ProjectLocalConfig | null> {
     const userId = req.user.id;
 
-    // Verify project access
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      throw new BadRequestException('Project not found');
-    }
-
-    if (project.userId !== userId) {
-      throw new ForbiddenException('Access denied');
-    }
+    // [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can view config)
+    await this.roleResolution.assertProjectAccess(projectId, userId);
 
     return this.localDiscoveryService.getProjectLocalConfig(projectId);
   }
@@ -241,18 +228,8 @@ export class LocalDiscoveryController {
   ): Promise<ProjectLocalConfig> {
     const userId = req.user.id;
 
-    // Verify project access
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      throw new BadRequestException('Project not found');
-    }
-
-    if (project.userId !== userId) {
-      throw new ForbiddenException('Access denied');
-    }
+    // [ROLES-3 FIXUP-3] OWNER-only for config mutations
+    await this.roleResolution.assertOwnerRole(projectId, userId);
 
     return this.localDiscoveryService.updateProjectLocalConfig(projectId, dto);
   }
@@ -282,7 +259,7 @@ export class LocalDiscoveryController {
       );
     }
 
-    // Load project and verify ownership
+    // Load project
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -291,9 +268,8 @@ export class LocalDiscoveryController {
       throw new BadRequestException('Project not found');
     }
 
-    if (project.userId !== userId) {
-      throw new ForbiddenException('Access denied');
-    }
+    // [ROLES-3 FIXUP-3] OWNER/EDITOR only for draft generation
+    await this.roleResolution.assertCanGenerateDrafts(projectId, userId);
 
     // Compute deterministic work key for CACHE/REUSE v2
     const aiWorkKey = computeLocalFixWorkKey(
@@ -435,6 +411,7 @@ export class LocalDiscoveryController {
     });
 
     // Record AI usage in ledger
+    // [ROLES-3-HARDEN-1] Include actorUserId for multi-user attribution
     await this.aiUsageLedgerService.recordAiRun({
       projectId,
       runType: 'INTENT_FIX_PREVIEW', // Reuse existing type per spec
@@ -443,6 +420,7 @@ export class LocalDiscoveryController {
       productsSkipped: 0,
       draftsFresh: 1,
       draftsReused: 0,
+      actorUserId: userId,
       metadata: {
         playbookId: 'local-discovery-fix',
         pillar: 'local_discovery',
@@ -505,18 +483,8 @@ export class LocalDiscoveryController {
       throw new BadRequestException('draftId and applyTarget are required');
     }
 
-    // Load project and verify ownership
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      throw new BadRequestException('Project not found');
-    }
-
-    if (project.userId !== userId) {
-      throw new ForbiddenException('Access denied');
-    }
+    // [ROLES-3 FIXUP-3] OWNER-only for apply mutations
+    await this.roleResolution.assertOwnerRole(projectId, userId);
 
     // Load the draft
     const draft = await this.prisma.projectLocalFixDraft.findUnique({

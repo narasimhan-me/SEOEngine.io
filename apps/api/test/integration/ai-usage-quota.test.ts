@@ -20,6 +20,10 @@ describe('AiUsageQuotaService (integration with AiUsageLedgerService)', () => {
       automationPlaybookRun: {
         findMany: jest.fn(),
       },
+      // [ADMIN-OPS-1] Mock for quota reset offset query
+      aiMonthlyQuotaReset: {
+        aggregate: jest.fn().mockResolvedValue({ _sum: { offsetCount: null } }),
+      },
     };
 
     ledgerService = new AiUsageLedgerService(prismaMock);
@@ -28,7 +32,7 @@ describe('AiUsageQuotaService (integration with AiUsageLedgerService)', () => {
       getUserPlan: jest.fn().mockResolvedValue('pro'),
     };
 
-    quotaService = new AiUsageQuotaService(entitlementsMock, ledgerService);
+    quotaService = new AiUsageQuotaService(entitlementsMock, ledgerService, prismaMock);
   });
 
   afterEach(() => {

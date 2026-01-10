@@ -5,19 +5,19 @@ interface DeoFaqItemProps {
 
 function DeoFaqItem({ q, a }: DeoFaqItemProps) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <h3 className="text-sm font-semibold text-slate-900">{q}</h3>
-      <p className="mt-2 text-sm text-slate-600">{a}</p>
+    <div className="rounded-2xl border border-border bg-muted p-4">
+      <h3 className="text-sm font-semibold text-foreground">{q}</h3>
+      <p className="mt-2 text-sm text-muted-foreground">{a}</p>
     </div>
   );
 }
 
 export function DeoFAQSection() {
   return (
-    <section className="border-b border-slate-100 bg-slate-50/60">
+    <section className="border-b border-border bg-muted/60">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
-        <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">DEO FAQs</h2>
-        <p className="mt-2 max-w-3xl text-sm text-slate-600">
+        <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">DEO FAQs</h2>
+        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
           Common questions about DEO (Discovery Engine Optimization) and how it relates to SEO and
           AI visibility.
         </p>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { usersApi, twoFactorApi } from '@/lib/api';
+import { usersApi, twoFactorApi, accountApi } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 
@@ -12,6 +12,17 @@ interface User {
   email: string;
   name: string | null;
   twoFactorEnabled: boolean;
+  lastLoginAt?: string | null;
+}
+
+// [SELF-SERVICE-1] Session interface
+interface Session {
+  id: string;
+  createdAt: string;
+  lastSeenAt: string | null;
+  ip: string | null;
+  userAgent: string | null;
+  isCurrent: boolean;
 }
 
 interface SetupResponse {
@@ -33,6 +44,12 @@ export default function SecuritySettingsPage() {
   const [isEnabling, setIsEnabling] = useState(false);
   const [isDisabling, setIsDisabling] = useState(false);
 
+  // [SELF-SERVICE-1] Sessions state
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(true);
+  const [signingOutAll, setSigningOutAll] = useState(false);
+  const [confirmSignOutAll, setConfirmSignOutAll] = useState(false);
+
   const feedback = useFeedback();
 
   useEffect(() => {
@@ -42,6 +59,7 @@ export default function SecuritySettingsPage() {
     }
 
     fetchUser();
+    fetchSessions();
   }, [router]);
 
   const fetchUser = async () => {
@@ -55,6 +73,45 @@ export default function SecuritySettingsPage() {
       feedback.showError(message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // [SELF-SERVICE-1] Fetch active sessions
+  const fetchSessions = async () => {
+    try {
+      setLoadingSessions(true);
+      const sessionsData = await accountApi.getSessions();
+      setSessions(sessionsData);
+    } catch (err: unknown) {
+      console.error('Failed to load sessions:', err);
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
+
+  // [SELF-SERVICE-1] Sign out all sessions
+  const handleSignOutAll = async () => {
+    setError('');
+    setSuccess('');
+    setSigningOutAll(true);
+
+    try {
+      const result = await accountApi.signOutAllSessions();
+      const message = `Signed out of ${result.revokedCount} session(s). You will be redirected to login.`;
+      setSuccess(message);
+      feedback.showSuccess(message);
+      setConfirmSignOutAll(false);
+      // Redirect to login after a short delay
+      setTimeout(() => {
+        router.push('/login');
+      }, 2000);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to sign out all sessions';
+      setError(message);
+      feedback.showError(message);
+    } finally {
+      setSigningOutAll(false);
     }
   };
 
@@ -184,7 +241,7 @@ export default function SecuritySettingsPage() {
               </span>
             </div>
             <p className="text-gray-600 mb-4">
-              Your account is protected with two-factor authentication. You will need to enter a code from your authenticator app when logging in.
+              Your account is protected with two-factor authentication. You will need to enter a code from your authenticator app when signing in.
             </p>
             <button
               onClick={handleDisable}
@@ -277,6 +334,91 @@ export default function SecuritySettingsPage() {
           <p className="text-sm text-gray-400">
             Backup codes for account recovery will be available in a future update.
           </p>
+        </div>
+      </div>
+
+      {/* [SELF-SERVICE-1] Sessions Section */}
+      <div className="mt-8 bg-white shadow rounded-lg p-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Active Sessions</h2>
+
+        {/* Last Login */}
+        {user?.lastLoginAt && (
+          <p className="text-sm text-gray-600 mb-4">
+            Last login: {new Date(user.lastLoginAt).toLocaleString()}
+          </p>
+        )}
+
+        {loadingSessions ? (
+          <p className="text-gray-500">Loading sessions...</p>
+        ) : sessions.length === 0 ? (
+          <p className="text-gray-500">No active sessions found.</p>
+        ) : (
+          <div className="space-y-3 mb-6">
+            {sessions.map((session) => (
+              <div
+                key={session.id}
+                className={`p-4 rounded-lg border ${session.isCurrent ? 'border-blue-300 bg-blue-50' : 'border-gray-200'}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {session.isCurrent && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-2">
+                          Current
+                        </span>
+                      )}
+                      Session
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Created: {new Date(session.createdAt).toLocaleString()}
+                    </p>
+                    {session.lastSeenAt && (
+                      <p className="text-sm text-gray-500">
+                        Last active: {new Date(session.lastSeenAt).toLocaleString()}
+                      </p>
+                    )}
+                    {session.ip && (
+                      <p className="text-xs text-gray-400">IP: {session.ip}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Sign Out All Sessions */}
+        <div className="border-t border-gray-200 pt-4">
+          <h3 className="text-sm font-medium text-gray-900 mb-2">Sign Out All Sessions</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            This will sign you out of all devices and invalidate all active sessions.
+          </p>
+
+          {confirmSignOutAll ? (
+            <div className="flex items-center space-x-3">
+              <span className="text-sm text-red-600">Are you sure?</span>
+              <button
+                onClick={handleSignOutAll}
+                disabled={signingOutAll}
+                className="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 disabled:opacity-50"
+              >
+                {signingOutAll ? 'Signing out...' : 'Yes, sign out all'}
+              </button>
+              <button
+                onClick={() => setConfirmSignOutAll(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmSignOutAll(true)}
+              className="px-4 py-2 border border-red-300 text-red-700 text-sm rounded-md hover:bg-red-50"
+            >
+              Sign Out All Sessions
+            </button>
+          )}
         </div>
       </div>
     </div>

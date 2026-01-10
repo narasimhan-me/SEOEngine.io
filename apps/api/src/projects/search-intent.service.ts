@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { RoleResolutionService } from '../common/role-resolution.service';
 import {
   SearchIntentType as PrismaIntentType,
   IntentCoverageStatus as PrismaCoverageStatus,
@@ -27,9 +28,16 @@ import type { DeoIssue, DeoIssueSeverity } from '@engineo/shared';
  * - Intent issue generation for DEO Issues Engine
  * - Fix draft management (preview/apply patterns)
  */
+/**
+ * [ROLES-3 FIXUP-3] SearchIntentService
+ * Updated with membership-aware access control (any ProjectMember can view).
+ */
 @Injectable()
 export class SearchIntentService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly roleResolution: RoleResolutionService,
+  ) {}
 
   // ============================================================================
   // Type Mapping Helpers
@@ -268,9 +276,8 @@ export class SearchIntentService {
       throw new NotFoundException('Product not found');
     }
 
-    if (product.project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this product');
-    }
+    // [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can view)
+    await this.roleResolution.assertProjectAccess(product.projectId, userId);
 
     // Get or compute coverage
     let coverageRows = await this.prisma.productIntentCoverage.findMany({
@@ -366,9 +373,8 @@ export class SearchIntentService {
       throw new NotFoundException('Project not found');
     }
 
-    if (project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this project');
-    }
+    // [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can view)
+    await this.roleResolution.assertProjectAccess(projectId, userId);
 
     // Get all products for project
     const products = await this.prisma.product.findMany({

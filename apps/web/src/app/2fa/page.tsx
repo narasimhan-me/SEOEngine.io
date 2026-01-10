@@ -33,7 +33,7 @@ export default function TwoFactorPage() {
     setError('');
 
     if (!tempToken) {
-      setError('Session expired. Please log in again.');
+      setError('Session expired. Please sign in again.');
       router.push('/login');
       return;
     }

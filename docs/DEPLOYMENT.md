@@ -666,7 +666,7 @@ If AI-powered suggestions are not working:
 
 ## Related Documentation
 
-- [Implementation Plan](../IMPLEMENTATION_PLAN.md) – Full project roadmap
+- [Implementation Plan](./IMPLEMENTATION_PLAN.md) – Full project roadmap
 - [Architecture](../ARCHITECTURE.md) – System design
 - [API Specification](../API_SPEC.md) – API endpoints
 - [Shopify Integration](../SHOPIFY_INTEGRATION.md) – Shopify OAuth details

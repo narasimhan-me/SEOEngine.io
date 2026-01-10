@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { RoleResolutionService } from '../common/role-resolution.service';
 import {
   MediaFixDraftType as PrismaDraftType,
   MediaFixApplyTarget as PrismaApplyTarget,
@@ -34,9 +35,16 @@ import type { DeoIssue, DeoIssueSeverity } from '@engineo/shared';
  * - Generated alt text must not hallucinate content not visible in images
  * - Preview uses AI; Apply does NOT use AI
  */
+/**
+ * [ROLES-3 FIXUP-3] MediaAccessibilityService
+ * Updated with membership-aware access control (any ProjectMember can view).
+ */
 @Injectable()
 export class MediaAccessibilityService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly roleResolution: RoleResolutionService,
+  ) {}
 
   // ============================================================================
   // Type Mapping Helpers
@@ -161,9 +169,8 @@ export class MediaAccessibilityService {
       throw new NotFoundException('Project not found');
     }
 
-    if (project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this project');
-    }
+    // [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can view)
+    await this.roleResolution.assertProjectAccess(projectId, userId);
 
     // Load all products for the project
     const products = await this.prisma.product.findMany({
@@ -258,9 +265,8 @@ export class MediaAccessibilityService {
       throw new NotFoundException('Product not found');
     }
 
-    if (product.project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this product');
-    }
+    // [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can view)
+    await this.roleResolution.assertProjectAccess(product.projectId, userId);
 
     // Compute stats
     const stats = await this.computeProductMediaStats(productId, product.title);
@@ -326,26 +332,40 @@ export class MediaAccessibilityService {
     let totalImagesWithGenericAlt = 0;
     let totalProductsWithOnlyOneImage = 0;
     let totalProductsWithNoContextualMedia = 0;
+    // [COUNT-INTEGRITY-1.1 PATCH 2.1] True product counters (not capped by sample arrays)
+    let trueProductCountWithMissingAlt = 0;
+    let trueProductCountWithGenericAlt = 0;
     const productsWithMissingAlt: string[] = [];
     const productsWithGenericAlt: string[] = [];
     const productsWithInsufficientCoverage: string[] = [];
     const productsWithMissingContext: string[] = [];
+    // [COUNT-INTEGRITY-1.1 PATCH 3.5] Full affected product IDs (no cap)
+    const allProductsWithMissingAlt: string[] = [];
+    const allProductsWithGenericAlt: string[] = [];
 
     for (const product of products) {
       const stats = await this.computeProductMediaStats(product.id, product.title);
 
       if (stats.imagesWithoutAlt > 0) {
         totalImagesWithoutAlt += stats.imagesWithoutAlt;
+        // [COUNT-INTEGRITY-1.1 PATCH 2.1] Increment true counter regardless of cap
+        trueProductCountWithMissingAlt++;
         if (productsWithMissingAlt.length < 20) {
           productsWithMissingAlt.push(product.id);
         }
+        // [COUNT-INTEGRITY-1.1 PATCH 3.5] Always track full keys
+        allProductsWithMissingAlt.push(product.id);
       }
 
       if (stats.imagesWithGenericAlt > 0) {
         totalImagesWithGenericAlt += stats.imagesWithGenericAlt;
+        // [COUNT-INTEGRITY-1.1 PATCH 2.1] Increment true counter regardless of cap
+        trueProductCountWithGenericAlt++;
         if (productsWithGenericAlt.length < 20) {
           productsWithGenericAlt.push(product.id);
         }
+        // [COUNT-INTEGRITY-1.1 PATCH 3.5] Always track full keys
+        allProductsWithGenericAlt.push(product.id);
       }
 
       // Insufficient image coverage: 0 or 1 image (excluding products already covered by missing_product_image)
@@ -374,13 +394,15 @@ export class MediaAccessibilityService {
           ? 'warning'
           : 'info';
 
-      issues.push({
+      const issue: any = {
         id: `missing_image_alt_text_${projectId}`,
         type: 'missing_image_alt_text',
         title: 'Missing Image Alt Text',
-        description: `${totalImagesWithoutAlt} image${totalImagesWithoutAlt > 1 ? 's' : ''} across ${productsWithMissingAlt.length} product${productsWithMissingAlt.length > 1 ? 's' : ''} are missing alt text. This hurts accessibility and image/AI discovery.`,
+        // [COUNT-INTEGRITY-1.1 PATCH 2.1] Use true product count (not capped sample length)
+        description: `${totalImagesWithoutAlt} image${totalImagesWithoutAlt > 1 ? 's' : ''} across ${trueProductCountWithMissingAlt} product${trueProductCountWithMissingAlt > 1 ? 's' : ''} are missing alt text. This hurts accessibility and image/AI discovery.`,
         severity,
-        count: productsWithMissingAlt.length,
+        // [COUNT-INTEGRITY-1.1 PATCH 2.1] Use true product count (not capped sample length)
+        count: trueProductCountWithMissingAlt,
         affectedProducts: productsWithMissingAlt,
         primaryProductId: productsWithMissingAlt[0],
         pillarId: 'media_accessibility',
@@ -392,18 +414,24 @@ export class MediaAccessibilityService {
           'Images without alt text are invisible to screen readers and search engines. AI assistants cannot describe or reference these images, reducing discoverability.',
         recommendedFix:
           'Use the MEDIA preview/apply flow to generate and add descriptive alt text for each image. Focus on describing what is visible in the image.',
-      });
+      };
+
+      // [COUNT-INTEGRITY-1.1 PATCH 3.5] Store full product IDs for deo-issues service to attach keys
+      (issue as any).__tempFullProductIds = allProductsWithMissingAlt;
+      issues.push(issue);
     }
 
     // Issue: generic_image_alt_text
     if (totalImagesWithGenericAlt > 0) {
-      issues.push({
+      const issue: any = {
         id: `generic_image_alt_text_${projectId}`,
         type: 'generic_image_alt_text',
         title: 'Generic Image Alt Text',
-        description: `${totalImagesWithGenericAlt} image${totalImagesWithGenericAlt > 1 ? 's' : ''} across ${productsWithGenericAlt.length} product${productsWithGenericAlt.length > 1 ? 's' : ''} have generic or unhelpful alt text like "product image" or just the product name.`,
+        // [COUNT-INTEGRITY-1.1 PATCH 2.1] Use true product count (not capped sample length)
+        description: `${totalImagesWithGenericAlt} image${totalImagesWithGenericAlt > 1 ? 's' : ''} across ${trueProductCountWithGenericAlt} product${trueProductCountWithGenericAlt > 1 ? 's' : ''} have generic or unhelpful alt text like "product image" or just the product name.`,
         severity: 'warning',
-        count: productsWithGenericAlt.length,
+        // [COUNT-INTEGRITY-1.1 PATCH 2.1] Use true product count (not capped sample length)
+        count: trueProductCountWithGenericAlt,
         affectedProducts: productsWithGenericAlt,
         primaryProductId: productsWithGenericAlt[0],
         pillarId: 'media_accessibility',
@@ -415,7 +443,11 @@ export class MediaAccessibilityService {
           'Generic alt text like "product image" provides no meaningful information to users or search engines. Descriptive alt text improves accessibility and image search rankings.',
         recommendedFix:
           'Rewrite generic alt text to describe what is actually visible in each image. Include product details, colors, materials, or context shown.',
-      });
+      };
+
+      // [COUNT-INTEGRITY-1.1 PATCH 3.5] Store full product IDs for deo-issues service to attach keys
+      (issue as any).__tempFullProductIds = allProductsWithGenericAlt;
+      issues.push(issue);
     }
 
     // Issue: insufficient_image_coverage

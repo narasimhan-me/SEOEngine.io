@@ -1,5 +1,4 @@
 import {
-  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -12,6 +11,7 @@ import {
   AutomationPlaybookRunType,
   AutomationPlaybookRunStatus,
 } from '@prisma/client';
+import { RoleResolutionService } from '../common/role-resolution.service';
 
 export { AutomationPlaybookRunType, AutomationPlaybookRunStatus };
 
@@ -33,6 +33,14 @@ export interface ListRunsFilters {
   limit?: number;
 }
 
+/**
+ * [ROLES-3 FIXUP-3] AutomationPlaybookRunsService
+ * Updated with membership-aware access control:
+ * - getRunById / listRuns: any ProjectMember can view
+ * - createRun: enforced by run type:
+ *   - PREVIEW_GENERATE / DRAFT_GENERATE → OWNER/EDITOR only (assertCanGenerateDrafts)
+ *   - APPLY → OWNER-only (assertOwnerRole)
+ */
 @Injectable()
 export class AutomationPlaybookRunsService {
   private readonly logger = new Logger(AutomationPlaybookRunsService.name);
@@ -40,25 +48,17 @@ export class AutomationPlaybookRunsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly runProcessor: AutomationPlaybookRunProcessor,
+    private readonly roleResolution: RoleResolutionService,
   ) {}
-
-  private async ensureProjectOwnership(projectId: string, userId: string) {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-    if (!project) {
-      throw new NotFoundException('Project not found');
-    }
-    if (project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this project');
-    }
-    return project;
-  }
 
   /**
    * Create a new run with idempotency support.
    * If a run with the same (projectId, playbookId, runType, scopeId, rulesHash, idempotencyKey)
    * already exists and is in QUEUED, RUNNING, or SUCCEEDED state, returns the existing run.
+   *
+   * [ROLES-3 FIXUP-3] Role-based access enforcement by run type:
+   * - PREVIEW_GENERATE / DRAFT_GENERATE → OWNER/EDITOR only
+   * - APPLY → OWNER-only
    */
   async createRun(options: CreateRunOptions) {
     const {
@@ -72,7 +72,14 @@ export class AutomationPlaybookRunsService {
       meta,
     } = options;
 
-    await this.ensureProjectOwnership(projectId, userId);
+    // [ROLES-3 FIXUP-3] Enforce role-based access by run type
+    if (runType === 'APPLY') {
+      // APPLY runs require OWNER role
+      await this.roleResolution.assertOwnerRole(projectId, userId);
+    } else {
+      // PREVIEW_GENERATE / DRAFT_GENERATE require OWNER or EDITOR (no VIEWER)
+      await this.roleResolution.assertCanGenerateDrafts(projectId, userId);
+    }
 
     // Compute effective idempotency key
     const effectiveIdempotencyKey =
@@ -160,10 +167,11 @@ export class AutomationPlaybookRunsService {
   }
 
   /**
-   * Get a run by ID with ownership check.
+   * Get a run by ID.
+   * [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can view).
    */
   async getRunById(userId: string, projectId: string, runId: string) {
-    await this.ensureProjectOwnership(projectId, userId);
+    await this.roleResolution.assertProjectAccess(projectId, userId);
 
     const run = await this.prisma.automationPlaybookRun.findFirst({
       where: {
@@ -181,9 +189,10 @@ export class AutomationPlaybookRunsService {
 
   /**
    * List runs for a project with optional filters.
+   * [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can view).
    */
   async listRuns(userId: string, projectId: string, filters: ListRunsFilters) {
-    await this.ensureProjectOwnership(projectId, userId);
+    await this.roleResolution.assertProjectAccess(projectId, userId);
 
     const { playbookId, scopeId, runType, limit = 20 } = filters;
 

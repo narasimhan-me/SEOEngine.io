@@ -6,12 +6,14 @@ import Link from 'next/link';
 
 import type { DeoIssue } from '@/lib/deo-issues';
 import { ProductTable } from '@/components/products/ProductTable';
+import { ListControls } from '@/components/common/ListControls';
 import { isAuthenticated, getToken } from '@/lib/auth';
 import {
   productsApi,
   projectsApi,
   shopifyApi,
   seoScanApi,
+  type RoleCapabilities,
 } from '@/lib/api';
 import type { Product } from '@/lib/products';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
@@ -22,6 +24,8 @@ interface IntegrationStatus {
     connected: boolean;
     shopDomain?: string;
   };
+  crawlFrequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+  lastCrawledAt?: string | null;
 }
 
 interface ProjectOverview {
@@ -41,6 +45,14 @@ export default function ProductsPage() {
   const searchParams = useSearchParams();
   const fromPlaybookResults = searchParams.get('from') === 'playbook_results';
 
+  // [LIST-SEARCH-FILTER-1] Extract filter params from URL
+  const filterQ = searchParams.get('q') || undefined;
+  const filterStatus = searchParams.get('status') as 'optimized' | 'needs_attention' | undefined;
+  const filterHasDraft = searchParams.get('hasDraft') === 'true' || undefined;
+
+  // Check if any filters are active
+  const hasActiveFilters = !!(filterQ || filterStatus || filterHasDraft);
+
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -54,13 +66,21 @@ export default function ProductsPage() {
   // Scanning state
   const [scanningId, setScanningId] = useState<string | null>(null);
 
+  // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Role capabilities state
+  const [capabilities, setCapabilities] = useState<RoleCapabilities | null>(null);
+
   const feedback = useFeedback();
 
+  // [LIST-SEARCH-FILTER-1] Fetch products with filters from URL
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
-      const data = await productsApi.list(projectId);
+      const data = await productsApi.list(projectId, {
+        q: filterQ,
+        status: filterStatus,
+        hasDraft: filterHasDraft,
+      });
       setProducts(data);
     } catch (err: unknown) {
       console.error('Error fetching products:', err);
@@ -68,7 +88,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, filterQ, filterStatus, filterHasDraft]);
 
   const fetchProjectInfo = useCallback(async () => {
     try {
@@ -111,6 +131,27 @@ export default function ProductsPage() {
     }
   }, [projectId]);
 
+  // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Fetch user role capabilities
+  const fetchCapabilities = useCallback(async () => {
+    try {
+      const roleResponse = await projectsApi.getUserRole(projectId);
+      setCapabilities(roleResponse.capabilities);
+    } catch (err) {
+      console.error('Error fetching role:', err);
+      // Default to permissive if fetch fails
+      setCapabilities({
+        canView: true,
+        canGenerateDrafts: true,
+        canRequestApproval: true,
+        canApprove: true,
+        canApply: true,
+        canModifySettings: true,
+        canManageMembers: true,
+        canExport: true,
+      });
+    }
+  }, [projectId]);
+
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push('/login');
@@ -120,7 +161,8 @@ export default function ProductsPage() {
     fetchProducts();
     fetchProductIssues();
     fetchOverview();
-  }, [projectId, router, fetchProducts, fetchProjectInfo, fetchProductIssues, fetchOverview]);
+    fetchCapabilities();
+  }, [projectId, router, fetchProducts, fetchProjectInfo, fetchProductIssues, fetchOverview, fetchCapabilities]);
 
   const handleSyncProducts = async () => {
     try {
@@ -162,6 +204,35 @@ export default function ProductsPage() {
     }
   };
 
+  // [LIST-SEARCH-FILTER-1] Clear filters handler for empty state
+  const handleClearFilters = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('q');
+    params.delete('status');
+    params.delete('hasDraft');
+    const qs = params.toString();
+    router.replace(`/projects/${projectId}/products${qs ? `?${qs}` : ''}`, { scroll: false });
+  }, [router, projectId, searchParams]);
+
+  // Compute isDeoDataStale: true when crawlCount > 0 AND lastCrawledAt is missing/older than crawlFrequency interval
+  const isDeoDataStale = (() => {
+    if (!overview || overview.crawlCount === 0) return false;
+    if (!projectInfo?.lastCrawledAt) return true;
+
+    const lastCrawled = new Date(projectInfo.lastCrawledAt);
+    const now = new Date();
+    const daysDiff = (now.getTime() - lastCrawled.getTime()) / (1000 * 60 * 60 * 24);
+
+    const thresholds: Record<string, number> = {
+      DAILY: 1,
+      WEEKLY: 7,
+      MONTHLY: 30,
+    };
+    const threshold = thresholds[projectInfo.crawlFrequency ?? 'WEEKLY'] ?? 7;
+
+    return daysDiff > threshold;
+  })();
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -183,10 +254,10 @@ export default function ProductsPage() {
           </button>
         )}
         <Link
-          href={`/projects/${projectId}/overview`}
+          href={`/projects/${projectId}/store-health`}
           className="block text-blue-600 hover:text-blue-800"
         >
-          ← Back to Overview
+          ← Back to Store Health
         </Link>
       </div>
 
@@ -219,7 +290,7 @@ export default function ProductsPage() {
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
-                  onClick={() => router.push(`/projects/${projectId}/overview?focus=crawl`)}
+                  onClick={() => router.push(`/projects/${projectId}/store-health?focus=crawl`)}
                   className="inline-flex items-center rounded-md border border-transparent bg-yellow-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-yellow-700"
                 >
                   Run first crawl
@@ -236,73 +307,11 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* CNAB-1: Products optimization banner */}
-      {productIssues.length > 0 && overview && overview.crawlCount > 0 && (
-        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0">
-              <svg
-                className="h-5 w-5 text-blue-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-semibold text-blue-900">
-                Some products need optimization
-              </h3>
-              <p className="mt-1 text-xs text-blue-800">
-                {productIssues.length} issue{productIssues.length !== 1 ? 's' : ''} found
-                across your products. Use{' '}
-                <Link
-                  href={`/projects/${projectId}/automation/playbooks`}
-                  className="font-medium underline hover:text-blue-900"
-                >
-                  Automation Playbooks
-                </Link>{' '}
-                to fix missing SEO metadata in bulk, or click on individual products below
-                to optimize them one by one.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Header - responsive stacking */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">Products</h1>
-            {productIssues.length > 0 && (
-              <Link
-                href={`/projects/${projectId}/issues`}
-                className="inline-flex items-center rounded-md border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-700 hover:bg-orange-100"
-              >
-                <svg
-                  className="mr-1 h-3.5 w-3.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
-                {productIssues.length} Issue{productIssues.length !== 1 ? 's' : ''}
-              </Link>
-            )}
-          </div>
+          <h1 className="text-2xl font-bold text-gray-900">Products</h1>
           <p className="truncate text-gray-600">
             {projectInfo?.shopify.connected
               ? `Connected to ${projectInfo.shopify.shopDomain}`
@@ -333,30 +342,61 @@ export default function ProductsPage() {
         </button>
       </div>
 
+      {/* [LIST-SEARCH-FILTER-1] ListControls - render above product list */}
+      <ListControls
+        config={{
+          searchPlaceholder: 'Search by name or handle...',
+          enableStatusFilter: true,
+          enableHasDraftFilter: true,
+        }}
+      />
+
       {/* Products List */}
       <div className="overflow-hidden rounded-lg bg-white shadow md:overflow-visible">
         {products.length === 0 ? (
-          <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No products</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {projectInfo?.shopify.connected
-                ? 'Sync products and run your first crawl to see DEO insights. Issues will be surfaced in the Issues Engine for AI-powered fixes.'
-                : 'Step 1: Connect your Shopify store, then sync products and run your first crawl to surface issues.'}
-            </p>
-            {!projectInfo?.shopify.connected && (
+          hasActiveFilters ? (
+            // [LIST-SEARCH-FILTER-1] Filtered empty state
+            <div className="text-center py-12">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No products match your filters.</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Try adjusting your search or filter criteria.
+              </p>
               <div className="mt-4">
-                <Link
-                  href={`/projects/${projectId}`}
+                <button
+                  onClick={handleClearFilters}
                   className="text-blue-600 hover:text-blue-800"
                 >
-                  Go to project settings to connect Shopify
-                </Link>
+                  Clear filters
+                </button>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            // Unfiltered empty state (existing)
+            <div className="text-center py-12">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No products</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {projectInfo?.shopify.connected
+                  ? 'Sync products and run your first crawl to see DEO insights. Issues will be surfaced in the Issues Engine for AI-powered fixes.'
+                  : 'Step 1: Connect your Shopify store, then sync products and run your first crawl to surface issues.'}
+              </p>
+              {!projectInfo?.shopify.connected && (
+                <div className="mt-4">
+                  <Link
+                    href={`/projects/${projectId}`}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    Go to project settings to connect Shopify
+                  </Link>
+                </div>
+              )}
+            </div>
+          )
         ) : (
           <ProductTable
             products={products}
@@ -366,6 +406,11 @@ export default function ProductsPage() {
             syncing={syncing}
             scanningId={scanningId}
             productIssues={productIssues}
+            isDeoDataStale={isDeoDataStale}
+            // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Wire real capabilities
+            canApply={capabilities?.canApply ?? true}
+            canRequestApproval={capabilities?.canRequestApproval ?? false}
+            currentListPathWithQuery={`/projects/${projectId}/products${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
           />
         )}
       </div>

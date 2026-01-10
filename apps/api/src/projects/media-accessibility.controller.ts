@@ -1,17 +1,18 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   Post,
   UseGuards,
   Request,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma.service';
 import { MediaAccessibilityService } from './media-accessibility.service';
+import { RoleResolutionService } from '../common/role-resolution.service';
 import { AiService } from '../ai/ai.service';
 import {
   AiUsageQuotaService,
@@ -57,6 +58,11 @@ class MediaFixApplyDto {
  * - GET  /products/:productId/media — Product media data
  * - POST /products/:productId/media/preview — Preview fix draft (uses AI)
  * - POST /products/:productId/media/apply — Apply fix draft (no AI)
+ *
+ * [ROLES-3 FIXUP-3] Updated with membership-aware access control:
+ * - GET endpoints: any ProjectMember can view
+ * - Preview endpoints: OWNER/EDITOR only
+ * - Apply endpoints: OWNER-only
  */
 @Controller()
 @UseGuards(JwtAuthGuard)
@@ -68,6 +74,7 @@ export class MediaAccessibilityController {
     private readonly aiUsageQuotaService: AiUsageQuotaService,
     private readonly aiUsageLedgerService: AiUsageLedgerService,
     private readonly shopifyService: ShopifyService,
+    private readonly roleResolution: RoleResolutionService,
   ) {}
 
   // ============================================================================
@@ -144,7 +151,7 @@ export class MediaAccessibilityController {
       throw new BadRequestException('imageId and draftType are required');
     }
 
-    // Load product and verify ownership
+    // Load product
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
       include: { project: true },
@@ -154,9 +161,8 @@ export class MediaAccessibilityController {
       throw new BadRequestException('Product not found');
     }
 
-    if (product.project.userId !== userId) {
-      throw new ForbiddenException('Access denied');
-    }
+    // [ROLES-3 FIXUP-3] OWNER/EDITOR only for draft generation
+    await this.roleResolution.assertCanGenerateDrafts(product.projectId, userId);
 
     const projectId = product.projectId;
 
@@ -271,6 +277,7 @@ export class MediaAccessibilityController {
     });
 
     // Record AI usage in ledger
+    // [ROLES-3-HARDEN-1] Include actorUserId for multi-user attribution
     await this.aiUsageLedgerService.recordAiRun({
       projectId,
       runType: 'INTENT_FIX_PREVIEW', // Reuse existing type per spec
@@ -279,6 +286,7 @@ export class MediaAccessibilityController {
       productsSkipped: 0,
       draftsFresh: 1,
       draftsReused: 0,
+      actorUserId: userId,
       metadata: {
         playbookId: 'media-accessibility-fix',
         pillar: 'media_accessibility',
@@ -327,7 +335,7 @@ export class MediaAccessibilityController {
       throw new BadRequestException('draftId and applyTarget are required');
     }
 
-    // Load product and verify ownership
+    // Load product
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
       include: { project: true },
@@ -337,9 +345,8 @@ export class MediaAccessibilityController {
       throw new BadRequestException('Product not found');
     }
 
-    if (product.project.userId !== userId) {
-      throw new ForbiddenException('Access denied');
-    }
+    // [ROLES-3 FIXUP-3] OWNER-only for apply mutations
+    await this.roleResolution.assertOwnerRole(product.projectId, userId);
 
     console.log('[MediaAccessibility] apply.started', {
       productId,

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from '../prisma.service';
 import { DeoScoreService, DeoSignalsService } from '../projects/deo-score.service';
 import { AutomationService } from '../projects/automation.service';
+import { RoleResolutionService } from '../common/role-resolution.service';
 import { IntegrationType } from '@prisma/client';
 import * as cheerio from 'cheerio';
 import { isE2EMode } from '../config/test-env-guard';
@@ -17,6 +18,11 @@ export interface ScanResult {
   issues: string[];
 }
 
+/**
+ * [ROLES-3 FIXUP-4] SeoScanService with membership-aware access control:
+ * - Scan operations (mutations): OWNER-only (assertOwnerRole)
+ * - Read operations: any ProjectMember can view (assertProjectAccess)
+ */
 @Injectable()
 export class SeoScanService {
   constructor(
@@ -24,13 +30,18 @@ export class SeoScanService {
     private readonly deoSignalsService: DeoSignalsService,
     private readonly deoScoreService: DeoScoreService,
     private readonly automationService: AutomationService,
+    private readonly roleResolution: RoleResolutionService,
   ) {}
 
   /**
    * Start a SEO scan for a project's domain
+   * [ROLES-3 FIXUP-4] OWNER-only for scan mutations
    */
   async startScan(projectId: string, userId: string) {
-    // Validate project ownership and get integrations
+    // [ROLES-3 FIXUP-4] OWNER-only for scan mutations
+    await this.roleResolution.assertOwnerRole(projectId, userId);
+
+    // Get project with integrations
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: {
@@ -40,10 +51,6 @@ export class SeoScanService {
 
     if (!project) {
       throw new NotFoundException('Project not found');
-    }
-
-    if (project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this project');
     }
 
     // Determine which domain to scan
@@ -208,6 +215,7 @@ export class SeoScanService {
     const startTime = Date.now();
     let statusCode = 0;
     let html = '';
+    let robotsHeader: string | null = null;
 
     // In E2E mode, return a deterministic synthetic scan result without network.
     if (isE2EMode()) {
@@ -232,6 +240,7 @@ export class SeoScanService {
         redirect: 'follow',
       });
       statusCode = response.status;
+      robotsHeader = response.headers.get('x-robots-tag');
       html = await response.text();
     } catch (error) {
       return {
@@ -253,10 +262,17 @@ export class SeoScanService {
     const title = $('title').first().text().trim() || null;
     const metaDescription = $('meta[name="description"]').attr('content')?.trim() || null;
     const h1 = $('h1').first().text().trim() || null;
+    const canonicalHref =
+      $('link[rel="canonical"]').attr('href')?.trim() || null;
+    const robotsMeta =
+      $('meta[name="robots"]').attr('content')?.trim().toLowerCase() || '';
+    const viewportContent =
+      $('meta[name="viewport"]').attr('content')?.trim() || '';
 
     // Calculate word count (simple: text content divided by average word length)
     const bodyText = $('body').text().replace(/\s+/g, ' ').trim();
     const wordCount = bodyText.split(/\s+/).filter(Boolean).length;
+    const htmlBytes = Buffer.byteLength(html, 'utf8');
 
     // Build issues array
     const issues: string[] = [];
@@ -289,6 +305,55 @@ export class SeoScanService {
       issues.push('SLOW_LOAD_TIME');
     }
 
+    // PERFORMANCE-1: Discovery-critical performance heuristics
+    // Render-blocking resources: scripts/styles in <head> without async/defer/module
+    const blockingScripts = $('head script[src]').filter((_, el) => {
+      const attribs = (el as any).attribs ?? {};
+      const hasAsyncOrDefer = 'async' in attribs || 'defer' in attribs;
+      const isModule = attribs.type === 'module';
+      return !hasAsyncOrDefer && !isModule;
+    });
+    const blockingStyles = $('head link[rel="stylesheet"]');
+    if (blockingScripts.length >= 3 || blockingStyles.length >= 4) {
+      issues.push('RENDER_BLOCKING_RESOURCES');
+    }
+
+    // Page weight risk (very large HTML payloads)
+    if (htmlBytes > 800 * 1024) {
+      issues.push('VERY_LARGE_HTML');
+    } else if (htmlBytes > 400 * 1024) {
+      issues.push('LARGE_HTML');
+    }
+
+    // Mobile readiness heuristics
+    if (!viewportContent) {
+      issues.push('MISSING_VIEWPORT_META');
+    } else {
+      const viewportLower = viewportContent.toLowerCase();
+      if (!viewportLower.includes('width=device-width')) {
+        issues.push('POTENTIAL_MOBILE_LAYOUT_ISSUE');
+      }
+    }
+
+    // Indexability-related hints (noindex and canonical conflicts)
+    if (robotsMeta.includes('noindex')) {
+      issues.push('META_ROBOTS_NOINDEX');
+    }
+    if (robotsHeader && robotsHeader.toLowerCase().includes('noindex')) {
+      issues.push('NOINDEX');
+    }
+    if (canonicalHref) {
+      try {
+        const canonicalUrl = new URL(canonicalHref, url);
+        const originalUrl = new URL(url);
+        if (canonicalUrl.hostname !== originalUrl.hostname) {
+          issues.push('CANONICAL_CONFLICT');
+        }
+      } catch {
+        // Ignore invalid canonical URLs; structural issues are covered elsewhere.
+      }
+    }
+
     if (statusCode >= 400) {
       issues.push('HTTP_ERROR');
     }
@@ -307,20 +372,11 @@ export class SeoScanService {
 
   /**
    * Get all scan results for a project
+   * [ROLES-3 FIXUP-4] Any ProjectMember can view (assertProjectAccess)
    */
   async getResults(projectId: string, userId: string) {
-    // Validate project ownership
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      throw new NotFoundException('Project not found');
-    }
-
-    if (project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this project');
-    }
+    // [ROLES-3 FIXUP-4] Any ProjectMember can view scan results
+    await this.roleResolution.assertProjectAccess(projectId, userId);
 
     const results = await this.prisma.crawlResult.findMany({
       where: { projectId },
@@ -356,6 +412,7 @@ export class SeoScanService {
 
   /**
    * Scan a single product page by product ID
+   * [ROLES-3 FIXUP-4] OWNER-only for scan mutations
    */
   async scanProductPage(productId: string, userId: string) {
     // Load product with project and integrations
@@ -374,9 +431,8 @@ export class SeoScanService {
       throw new NotFoundException('Product not found');
     }
 
-    if (product.project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this product');
-    }
+    // [ROLES-3 FIXUP-4] OWNER-only for scan mutations
+    await this.roleResolution.assertOwnerRole(product.projectId, userId);
 
     // Get Shopify integration for the project
     const shopifyIntegration = product.project.integrations.find(

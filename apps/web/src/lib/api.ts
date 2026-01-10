@@ -26,6 +26,12 @@ import type {
   ProductMediaStats,
   ProductImageView,
 } from '@/lib/media-accessibility';
+import type { ProjectInsightsResponse } from '@/lib/insights';
+import type {
+  ProductGeoReadinessResponse,
+  GeoFixPreviewResponse,
+  GeoFixApplyResponse,
+} from '@/lib/geo';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -115,6 +121,320 @@ interface MediaFixApplyResponse {
   issuesResolvedCount: number;
 }
 
+// GEO-EXPORT-1: GEO Report types
+export interface GeoReportData {
+  projectId: string;
+  projectName: string;
+  generatedAt: string;
+  overview: {
+    productsAnswerReadyPercent: number;
+    productsAnswerReadyCount: number;
+    productsTotal: number;
+    answersTotal: number;
+    reuseRatePercent: number;
+    confidenceDistribution: {
+      high: number;
+      medium: number;
+      low: number;
+    };
+  };
+  coverage: {
+    byIntent: Array<{
+      intentType: string;
+      label: string;
+      productsCovered: number;
+      productsTotal: number;
+      coveragePercent: number;
+    }>;
+    gaps: string[];
+    summary: string;
+  };
+  trustSignals: {
+    topBlockers: Array<{
+      label: string;
+      affectedProducts: number;
+    }>;
+    avgTimeToImproveHours: number | null;
+    summary: string;
+  };
+  opportunities: Array<{
+    title: string;
+    why: string;
+    estimatedImpact: 'high' | 'medium' | 'low';
+    category: 'coverage' | 'reuse' | 'trust';
+  }>;
+  disclaimer: string;
+}
+
+export interface GeoReportShareLinkResponse {
+  id: string;
+  shareToken: string;
+  shareUrl: string;
+  title: string | null;
+  expiresAt: string;
+  createdAt: string;
+  status: 'ACTIVE' | 'EXPIRED' | 'REVOKED';
+  // [ENTERPRISE-GEO-1] Passcode and audience fields
+  audience: 'ANYONE_WITH_LINK' | 'PASSCODE' | 'ORG_ONLY';
+  passcodeLast4?: string | null;
+  passcodeCreatedAt?: string | null;
+}
+
+// [ENTERPRISE-GEO-1] Create share link response with one-time passcode
+export interface CreateGeoReportShareLinkResponse {
+  shareLink: GeoReportShareLinkResponse;
+  passcode?: string; // Only present if audience is PASSCODE - shown once
+}
+
+export interface GeoReportPublicShareViewResponse {
+  status: 'valid' | 'expired' | 'revoked' | 'not_found' | 'passcode_required' | 'passcode_invalid';
+  report?: GeoReportData;
+  expiresAt?: string;
+  generatedAt?: string;
+  passcodeLast4?: string;
+}
+
+// [ENTERPRISE-GEO-1] Governance types
+export interface GovernancePolicyResponse {
+  projectId: string;
+  requireApprovalForApply: boolean;
+  restrictShareLinks: boolean;
+  shareLinkExpiryDays: number;
+  allowedExportAudience: 'ANYONE_WITH_LINK' | 'PASSCODE' | 'ORG_ONLY';
+  allowCompetitorMentionsInExports: boolean;
+  allowPIIInExports: boolean;
+  updatedAt: string;
+}
+
+export interface ApprovalRequestResponse {
+  id: string;
+  projectId: string;
+  resourceType: string;
+  resourceId: string;
+  status: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+  // [ROLES-3 PENDING-1] Actor tracking for attribution UI
+  requestedByUserId: string;
+  requestedAt: string;
+  decidedByUserId?: string;
+  decidedAt?: string;
+  decisionReason?: string;
+  consumed: boolean;
+  consumedAt?: string;
+}
+
+export interface AuditEventResponse {
+  id: string;
+  projectId: string;
+  actorUserId: string;
+  eventType: string;
+  resourceType?: string;
+  resourceId?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface AuditEventListResponse {
+  events: AuditEventResponse[];
+  nextCursor?: string;
+  hasMore: boolean;
+}
+
+// =============================================================================
+// [GOV-AUDIT-VIEWER-1] Governance Viewer Response Types
+// =============================================================================
+
+/** Approval item for governance viewer */
+export interface GovernanceViewerApprovalItem {
+  id: string;
+  projectId: string;
+  resourceType: string;
+  resourceId: string;
+  status: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+  requestedByUserId: string;
+  requestedByName?: string;
+  requestedAt: string;
+  decidedByUserId?: string;
+  decidedByName?: string;
+  decidedAt?: string;
+  decisionReason?: string;
+  consumed: boolean;
+  consumedAt?: string;
+  // Deep-link fields for traceability
+  bundleId?: string;
+  playbookId?: string;
+  assetType?: string;
+}
+
+/** Response for governance viewer approvals list */
+export interface GovernanceViewerApprovalsResponse {
+  items: GovernanceViewerApprovalItem[];
+  nextCursor?: string;
+  hasMore: boolean;
+}
+
+/** Audit event item for governance viewer (allowlist-filtered) */
+export interface GovernanceViewerAuditEventItem {
+  id: string;
+  projectId: string;
+  actorUserId: string;
+  actorName?: string;
+  eventType: string;
+  resourceType?: string;
+  resourceId?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+}
+
+/** Response for governance viewer audit events list */
+export interface GovernanceViewerAuditEventsResponse {
+  items: GovernanceViewerAuditEventItem[];
+  nextCursor?: string;
+  hasMore: boolean;
+}
+
+/** Share link status history entry */
+export interface ShareLinkStatusHistoryEntry {
+  status: 'ACTIVE' | 'EXPIRED' | 'REVOKED';
+  changedAt: string;
+  changedByUserId?: string;
+  changedByName?: string;
+}
+
+/** Share link item for governance viewer (passcode NEVER returned) */
+export interface GovernanceViewerShareLinkItem {
+  id: string;
+  projectId: string;
+  reportType: string;
+  title?: string;
+  audience: 'ANYONE_WITH_LINK' | 'PASSCODE' | 'ORG_ONLY';
+  passcodeLast4?: string;
+  status: 'ACTIVE' | 'EXPIRED' | 'REVOKED';
+  expiresAt: string;
+  createdAt: string;
+  createdByUserId: string;
+  createdByName?: string;
+  revokedAt?: string;
+  revokedByUserId?: string;
+  revokedByName?: string;
+  viewCount: number;
+  lastViewedAt?: string;
+  statusHistory?: ShareLinkStatusHistoryEntry[];
+}
+
+/** Response for governance viewer share links list */
+export interface GovernanceViewerShareLinksResponse {
+  items: GovernanceViewerShareLinkItem[];
+  nextCursor?: string;
+  hasMore: boolean;
+}
+
+/**
+ * [ROLES-2] Effective project role for role-based access control.
+ * Single-user emulation: OWNER by default, can simulate VIEWER/EDITOR.
+ */
+export type EffectiveProjectRole = 'OWNER' | 'EDITOR' | 'VIEWER';
+
+/**
+ * [ROLES-3] Role capabilities for UI state derivation.
+ * Updated: canGenerateDrafts, canManageMembers, canExport added
+ * Updated: canApply is OWNER-only
+ */
+export interface RoleCapabilities {
+  canView: boolean;
+  canGenerateDrafts: boolean;
+  canRequestApproval: boolean;
+  canApprove: boolean;
+  canApply: boolean;
+  canModifySettings: boolean;
+  canManageMembers: boolean;
+  canExport: boolean;
+}
+
+/**
+ * [ROLES-3] Get role capabilities for a given effective role.
+ * Updated: EDITOR cannot apply; must request approval
+ */
+export function getRoleCapabilities(role: EffectiveProjectRole): RoleCapabilities {
+  switch (role) {
+    case 'OWNER':
+      return {
+        canView: true,
+        canGenerateDrafts: true,
+        canRequestApproval: true,
+        canApprove: true,
+        canApply: true,
+        canModifySettings: true,
+        canManageMembers: true,
+        canExport: true,
+      };
+    case 'EDITOR':
+      return {
+        canView: true,
+        canGenerateDrafts: true,
+        canRequestApproval: true,
+        canApprove: false,
+        canApply: false, // [ROLES-3] EDITOR cannot apply; must request approval
+        canModifySettings: false,
+        canManageMembers: false,
+        canExport: true,
+      };
+    case 'VIEWER':
+      return {
+        canView: true,
+        canGenerateDrafts: false,
+        canRequestApproval: false,
+        canApprove: false,
+        canApply: false,
+        canModifySettings: false,
+        canManageMembers: false,
+        canExport: true, // View-only export allowed
+      };
+  }
+}
+
+/**
+ * [ROLES-2] Get display label for a role.
+ */
+export function getRoleDisplayLabel(role: EffectiveProjectRole): string {
+  switch (role) {
+    case 'OWNER':
+      return 'Project Owner';
+    case 'EDITOR':
+      return 'Editor';
+    case 'VIEWER':
+      return 'Viewer';
+  }
+}
+
+// =============================================================================
+// [ROLES-3] Project Member Types
+// =============================================================================
+
+/**
+ * [ROLES-3] Project member information
+ */
+export interface ProjectMember {
+  id: string;
+  userId: string;
+  email: string;
+  name: string | null;
+  role: EffectiveProjectRole;
+  createdAt: string;
+}
+
+/**
+ * [ROLES-3] User role response from /projects/:id/role endpoint
+ * [ROLES-3 FIXUP-2] Includes isMultiUserProject for UI decisions
+ */
+export interface UserRoleResponse {
+  projectId: string;
+  userId: string;
+  role: EffectiveProjectRole;
+  capabilities: RoleCapabilities;
+  /** Whether this project has multiple members (affects approval flow UI) */
+  isMultiUserProject: boolean;
+}
+
 /**
  * Custom API error with optional error code for special handling
  */
@@ -132,6 +452,15 @@ export class ApiError extends Error {
 
 /**
  * Build an ApiError from an API response
+ *
+ * [ROLES-2 FIXUP-2] Enhanced to handle NestJS structured error responses.
+ * NestJS BadRequestException({ code, message, ... }) produces:
+ * { statusCode, error, message: { code, message, ... } }
+ *
+ * This function extracts:
+ * - code from body.message.code (structured) or body.code (flat)
+ * - message from body.message.message (structured) or body.message (flat string)
+ * - Falls back to body.error or status-based message
  */
 function buildApiError(response: Response, body: unknown): ApiError {
   let message: string;
@@ -140,15 +469,54 @@ function buildApiError(response: Response, body: unknown): ApiError {
   // Try to extract message and code from JSON body
   if (body && typeof body === 'object') {
     const json = body as Record<string, unknown>;
-    if (typeof json.message === 'string' && json.message) {
-      message = json.message;
-    } else if (typeof json.error === 'string' && json.error) {
-      message = json.error;
-    } else {
-      message = getStatusMessage(response.status, response.statusText);
+
+    // [ROLES-2 FIXUP-2] Handle nested structured error (NestJS BadRequestException with object payload)
+    // Shape: { statusCode, error, message: { code, message, approvalStatus, ... } }
+    if (json.message && typeof json.message === 'object' && !Array.isArray(json.message)) {
+      const nested = json.message as Record<string, unknown>;
+      // Extract code from nested object
+      if (typeof nested.code === 'string') {
+        code = nested.code;
+      }
+      // Extract message from nested object, or construct from code
+      if (typeof nested.message === 'string' && nested.message) {
+        message = nested.message;
+      } else if (code) {
+        // Use code as message if no explicit message
+        message = code;
+      } else {
+        message = getStatusMessage(response.status, response.statusText);
+      }
     }
-    if (typeof json.code === 'string') {
-      code = json.code;
+    // Handle NestJS validation errors (message is an array of strings)
+    else if (Array.isArray(json.message)) {
+      const messages = json.message.filter((m): m is string => typeof m === 'string');
+      message = messages.length > 0 ? messages.join('. ') : getStatusMessage(response.status, response.statusText);
+      // Check for code at top level
+      if (typeof json.code === 'string') {
+        code = json.code;
+      }
+    }
+    // Handle flat string message (original behavior)
+    else if (typeof json.message === 'string' && json.message) {
+      message = json.message;
+      if (typeof json.code === 'string') {
+        code = json.code;
+      }
+    }
+    // Handle body.error as fallback
+    else if (typeof json.error === 'string' && json.error) {
+      message = json.error;
+      if (typeof json.code === 'string') {
+        code = json.code;
+      }
+    }
+    // Final fallback to status-based message
+    else {
+      message = getStatusMessage(response.status, response.statusText);
+      if (typeof json.code === 'string') {
+        code = json.code;
+      }
     }
   } else {
     message = getStatusMessage(response.status, response.statusText);
@@ -259,6 +627,9 @@ async function fetchWithoutAuth(endpoint: string, options: RequestInit = {}) {
 
 export type AutomationPlaybookId = 'missing_seo_title' | 'missing_seo_description';
 
+// [ASSETS-PAGES-1.1] Asset type for automation playbooks
+export type AutomationAssetType = 'PRODUCTS' | 'PAGES' | 'COLLECTIONS';
+
 export type AutomationPlaybookApplyItemStatus =
   | 'UPDATED'
   | 'SKIPPED'
@@ -336,6 +707,49 @@ export interface AutomationPlaybookRun {
   resultRef?: string;
   createdAt: string;
   updatedAt?: string;
+}
+
+/**
+ * Result from generating automation playbook drafts (AI-powered).
+ */
+export interface AutomationPlaybookDraftGenerateResult {
+  projectId: string;
+  playbookId: AutomationPlaybookId;
+  scopeId: string;
+  rulesHash: string;
+  counts: {
+    affectedTotal: number;
+    draftGenerated: number;
+    noSuggestionCount: number;
+  };
+  aiCalled: boolean;
+  draftId?: string;
+}
+
+/**
+ * Draft status for automation playbooks.
+ */
+export type AutomationPlaybookDraftStatus = 'PENDING' | 'READY' | 'APPLIED' | 'EXPIRED' | 'STALE';
+
+/**
+ * Automation playbook draft metadata.
+ */
+export interface AutomationPlaybookDraft {
+  id: string;
+  projectId: string;
+  playbookId: AutomationPlaybookId;
+  scopeId: string;
+  rulesHash: string;
+  status: AutomationPlaybookDraftStatus;
+  counts: {
+    affectedTotal: number;
+    draftGenerated: number;
+    noSuggestionCount: number;
+  };
+  rules?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt?: string;
+  expiresAt?: string;
 }
 
 // AI-USAGE-1: AI Usage Ledger Types
@@ -423,7 +837,70 @@ export const projectsApi = {
 
   deoIssues: (id: string) => fetchWithAuth(`/projects/${id}/deo-issues`),
 
-  crawlPages: (id: string) => fetchWithAuth(`/projects/${id}/crawl-pages`),
+  // COUNT-INTEGRITY-1: Read-only issues endpoint (no side effects)
+  deoIssuesReadOnly: (id: string) => fetchWithAuth(`/projects/${id}/deo-issues/read-only`),
+
+  // COUNT-INTEGRITY-1: Canonical server-side counts summary
+  issueCountsSummary: (id: string) => fetchWithAuth(`/projects/${id}/issues/counts-summary`),
+
+  // COUNT-INTEGRITY-1.1: Canonical triplet counts summary with explicit labels
+  canonicalIssueCountsSummary: (
+    id: string,
+    filters?: {
+      actionKey?: string;
+      actionKeys?: string[];
+      scopeType?: 'products' | 'pages' | 'collections';
+      pillar?: string;
+      pillars?: string[];
+      severity?: 'critical' | 'warning' | 'info';
+    }
+  ) => {
+    const params = new URLSearchParams();
+    if (filters?.actionKey) params.append('actionKey', filters.actionKey);
+    if (filters?.actionKeys) filters.actionKeys.forEach(k => params.append('actionKeys', k));
+    if (filters?.scopeType) params.append('scopeType', filters.scopeType);
+    if (filters?.pillar) params.append('pillar', filters.pillar);
+    if (filters?.pillars) filters.pillars.forEach(p => params.append('pillars', p));
+    if (filters?.severity) params.append('severity', filters.severity);
+
+    const queryString = params.toString();
+    const url = `/projects/${id}/issues/summary${queryString ? `?${queryString}` : ''}`;
+    return fetchWithAuth(url);
+  },
+
+  // COUNT-INTEGRITY-1.1: Asset-specific issues with canonical triplet summary
+  assetIssues: (
+    id: string,
+    assetType: 'products' | 'pages' | 'collections',
+    assetId: string,
+    filters?: {
+      pillar?: string;
+      pillars?: string[];
+      severity?: 'critical' | 'warning' | 'info';
+    }
+  ) => {
+    const params = new URLSearchParams();
+    if (filters?.pillar) params.append('pillar', filters.pillar);
+    if (filters?.pillars) filters.pillars.forEach(p => params.append('pillars', p));
+    if (filters?.severity) params.append('severity', filters.severity);
+
+    const queryString = params.toString();
+    const url = `/projects/${id}/assets/${assetType}/${assetId}/issues${queryString ? `?${queryString}` : ''}`;
+    return fetchWithAuth(url);
+  },
+
+  /**
+   * [LIST-SEARCH-FILTER-1.1] List crawl pages (non-product) with optional filtering
+   */
+  crawlPages: (id: string, opts?: CrawlPageListOptions) => {
+    const params = new URLSearchParams();
+    if (opts?.q) params.set('q', opts.q);
+    if (opts?.status) params.set('status', opts.status);
+    if (opts?.hasDraft) params.set('hasDraft', 'true');
+    if (opts?.pageType) params.set('pageType', opts.pageType);
+    const qs = params.toString();
+    return fetchWithAuth(`/projects/${id}/crawl-pages${qs ? `?${qs}` : ''}`);
+  },
 
   recomputeDeoScoreSync: (id: string) =>
     fetchWithAuth(`/projects/${id}/deo-score/recompute-sync`, {
@@ -455,16 +932,46 @@ export const projectsApi = {
 
   automationSuggestions: (id: string) => fetchWithAuth(`/projects/${id}/automation-suggestions`),
 
-  automationPlaybookEstimate: (id: string, playbookId: AutomationPlaybookId) =>
-    fetchWithAuth(
+  /**
+   * [ASSETS-PAGES-1.1] Estimate automation playbook with optional assetType and scopeAssetRefs.
+   * - assetType: 'PRODUCTS' (default) | 'PAGES' | 'COLLECTIONS'
+   * - scopeAssetRefs: Asset refs like 'page_handle:about-us' or 'collection_handle:summer-sale'
+   */
+  automationPlaybookEstimate: (
+    id: string,
+    playbookId: AutomationPlaybookId,
+    scopeProductIds?: string[],
+    assetType?: AutomationAssetType,
+    scopeAssetRefs?: string[],
+  ) => {
+    // Use POST for scoped requests
+    if ((scopeProductIds && scopeProductIds.length > 0) ||
+        assetType ||
+        (scopeAssetRefs && scopeAssetRefs.length > 0)) {
+      return fetchWithAuth(`/projects/${id}/automation-playbooks/estimate`, {
+        method: 'POST',
+        body: JSON.stringify({
+          playbookId,
+          scopeProductIds,
+          assetType,
+          scopeAssetRefs,
+        }),
+      });
+    }
+    return fetchWithAuth(
       `/projects/${id}/automation-playbooks/estimate?playbookId=${encodeURIComponent(
         playbookId,
       )}`,
-    ),
+    );
+  },
 
   /**
    * Preview an automation playbook - creates/updates a backend draft with sample suggestions.
    * Returns scopeId, rulesHash, and sample preview items that can be used for the full apply flow.
+   *
+   * [ASSETS-PAGES-1.1-UI-HARDEN] Extended with assetType and scopeAssetRefs support.
+   * - PRODUCTS: use scopeProductIds (existing flow)
+   * - PAGES/COLLECTIONS: use scopeAssetRefs (handle-only refs like 'page_handle:about-us')
    */
   previewAutomationPlaybook: (
     id: string,
@@ -480,23 +987,53 @@ export const projectsApi = {
       forbiddenPhrasesText: string;
     },
     sampleSize?: number,
+    scopeProductIds?: string[],
+    assetType?: AutomationAssetType,
+    scopeAssetRefs?: string[],
   ) =>
     fetchWithAuth(`/projects/${id}/automation-playbooks/${playbookId}/preview`, {
       method: 'POST',
-      body: JSON.stringify({ rules, sampleSize }),
+      body: JSON.stringify({
+        rules,
+        sampleSize,
+        scopeProductIds,
+        assetType,
+        scopeAssetRefs,
+      }),
     }),
 
+  /**
+   * Apply an automation playbook.
+   *
+   * [ASSETS-PAGES-1.1-UI-HARDEN] Extended with assetType and scopeAssetRefs support.
+   * XOR enforcement:
+   * - PRODUCTS: use scopeProductIds (existing flow)
+   * - PAGES/COLLECTIONS: use scopeAssetRefs (handle-only refs)
+   */
   applyAutomationPlaybook: (
     id: string,
     playbookId: AutomationPlaybookId,
     scopeId: string,
     rulesHash: string,
+    scopeProductIds?: string[],
+    /** [ROLES-2] Optional approvalId for governance-gated apply */
+    approvalId?: string,
+    assetType?: AutomationAssetType,
+    scopeAssetRefs?: string[],
   ): Promise<AutomationPlaybookApplyResult> =>
     fetchWithAuth(
       `/projects/${id}/automation-playbooks/apply`,
       {
         method: 'POST',
-        body: JSON.stringify({ playbookId, scopeId, rulesHash }),
+        body: JSON.stringify({
+          playbookId,
+          scopeId,
+          rulesHash,
+          scopeProductIds,
+          approvalId,
+          assetType,
+          scopeAssetRefs,
+        }),
       },
     ),
 
@@ -555,6 +1092,70 @@ export const projectsApi = {
       `/projects/${projectId}/automation-playbooks/runs${qs}`,
     );
   },
+
+  /**
+   * Generate a draft for an automation playbook (uses AI).
+   * Returns counts for affected products, drafts generated, and those needing attention.
+   *
+   * [ASSETS-PAGES-1.1-UI-HARDEN] Extended with assetType and scopeAssetRefs support.
+   * XOR enforcement:
+   * - PRODUCTS: use scopeProductIds (existing flow)
+   * - PAGES/COLLECTIONS: use scopeAssetRefs (handle-only refs)
+   */
+  generateAutomationPlaybookDraft: (
+    projectId: string,
+    playbookId: AutomationPlaybookId,
+    scopeId: string,
+    rulesHash: string,
+    scopeProductIds?: string[],
+    assetType?: AutomationAssetType,
+    scopeAssetRefs?: string[],
+  ): Promise<AutomationPlaybookDraftGenerateResult> =>
+    fetchWithAuth(
+      `/projects/${projectId}/automation-playbooks/${playbookId}/draft/generate`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          scopeId,
+          rulesHash,
+          scopeProductIds,
+          assetType,
+          scopeAssetRefs,
+        }),
+      },
+    ),
+
+  /**
+   * Get the latest draft for an automation playbook.
+   * Used to detect existing READY drafts for resumable state.
+   */
+  getLatestAutomationPlaybookDraft: (
+    projectId: string,
+    playbookId: AutomationPlaybookId,
+  ): Promise<AutomationPlaybookDraft | null> =>
+    fetchWithAuth(
+      `/projects/${projectId}/automation-playbooks/${playbookId}/draft/latest`,
+    ),
+
+  setAutomationPlaybookEntryConfig: (
+    projectId: string,
+    playbookId: AutomationPlaybookId,
+    body: {
+      enabled: boolean;
+      trigger: 'manual_only';
+      scopeId: string;
+      rulesHash: string;
+      scopeProductIds?: string[];
+      intent?: string;
+    },
+  ) =>
+    fetchWithAuth(
+      `/projects/${projectId}/automation-playbooks/${playbookId}/config`,
+      {
+        method: 'POST',
+        body: JSON.stringify(body),
+      },
+    ),
 
   delete: (id: string) =>
     fetchWithAuth(`/projects/${id}`, {
@@ -629,6 +1230,271 @@ export const projectsApi = {
 
   mediaScorecard: (projectId: string): Promise<MediaAccessibilityScorecard> =>
     fetchWithAuth(`/projects/${projectId}/media/scorecard`),
+
+  // INSIGHTS-1: Project insights (read-only derived data)
+  insights: (projectId: string): Promise<ProjectInsightsResponse> =>
+    fetchWithAuth(`/projects/${projectId}/insights`),
+
+  // GEO-EXPORT-1: GEO Reports API
+  /** Assemble GEO report data for export/print */
+  assembleGeoReport: (projectId: string): Promise<GeoReportData> =>
+    fetchWithAuth(`/projects/${projectId}/geo-reports/assemble`),
+
+  /** Create a shareable link for the GEO report
+   * [ENTERPRISE-GEO-1] Now supports audience and passcode protection
+   */
+  createGeoReportShareLink: (
+    projectId: string,
+    options?: { title?: string; audience?: 'ANYONE_WITH_LINK' | 'PASSCODE' },
+  ): Promise<CreateGeoReportShareLinkResponse> =>
+    fetchWithAuth(`/projects/${projectId}/geo-reports/share-links`, {
+      method: 'POST',
+      body: JSON.stringify(options ?? {}),
+    }),
+
+  /** List all share links for a project */
+  listGeoReportShareLinks: (projectId: string): Promise<GeoReportShareLinkResponse[]> =>
+    fetchWithAuth(`/projects/${projectId}/geo-reports/share-links`),
+
+  /** Revoke a share link */
+  revokeGeoReportShareLink: (
+    projectId: string,
+    linkId: string,
+  ): Promise<{ success: true }> =>
+    fetchWithAuth(`/projects/${projectId}/geo-reports/share-links/${linkId}`, {
+      method: 'DELETE',
+    }),
+
+  // [ENTERPRISE-GEO-1] Governance API
+  /** Get governance policy for a project */
+  getGovernancePolicy: (projectId: string): Promise<GovernancePolicyResponse> =>
+    fetchWithAuth(`/projects/${projectId}/governance/policy`),
+
+  /** Update governance policy for a project */
+  updateGovernancePolicy: (
+    projectId: string,
+    updates: Partial<{
+      requireApprovalForApply: boolean;
+      restrictShareLinks: boolean;
+      shareLinkExpiryDays: number;
+      allowedExportAudience: 'ANYONE_WITH_LINK' | 'PASSCODE' | 'ORG_ONLY';
+      allowCompetitorMentionsInExports: boolean;
+    }>,
+  ): Promise<GovernancePolicyResponse> =>
+    fetchWithAuth(`/projects/${projectId}/governance/policy`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    }),
+
+  /** Create an approval request
+   * [ROLES-2] Added AUTOMATION_PLAYBOOK_APPLY resource type
+   */
+  createApprovalRequest: (
+    projectId: string,
+    params: { resourceType: 'GEO_FIX_APPLY' | 'ANSWER_BLOCK_SYNC' | 'AUTOMATION_PLAYBOOK_APPLY'; resourceId: string },
+  ): Promise<ApprovalRequestResponse> =>
+    fetchWithAuth(`/projects/${projectId}/governance/approvals`, {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+
+  /** Approve an approval request */
+  approveRequest: (
+    projectId: string,
+    approvalId: string,
+    reason?: string,
+  ): Promise<ApprovalRequestResponse> =>
+    fetchWithAuth(`/projects/${projectId}/governance/approvals/${approvalId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  /** Reject an approval request */
+  rejectRequest: (
+    projectId: string,
+    approvalId: string,
+    reason?: string,
+  ): Promise<ApprovalRequestResponse> =>
+    fetchWithAuth(`/projects/${projectId}/governance/approvals/${approvalId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  /** List pending approval requests */
+  listApprovalRequests: (
+    projectId: string,
+    status?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED',
+  ): Promise<{ requests: ApprovalRequestResponse[] }> =>
+    fetchWithAuth(
+      `/projects/${projectId}/governance/approvals${status ? `?status=${status}` : ''}`,
+    ),
+
+  /**
+   * [ROLES-2] Get approval status for a specific resource
+   * Returns the most recent approval request for the given resource
+   */
+  getApprovalStatus: (
+    projectId: string,
+    resourceType: 'GEO_FIX_APPLY' | 'ANSWER_BLOCK_SYNC' | 'AUTOMATION_PLAYBOOK_APPLY',
+    resourceId: string,
+  ): Promise<{ approval: ApprovalRequestResponse | null }> =>
+    fetchWithAuth(
+      `/projects/${projectId}/governance/approvals?resourceType=${resourceType}&resourceId=${encodeURIComponent(resourceId)}`,
+    ),
+
+  /** Get audit events for a project */
+  listAuditEvents: (
+    projectId: string,
+    options?: { cursor?: string; limit?: number; eventType?: string },
+  ): Promise<AuditEventListResponse> => {
+    const params = new URLSearchParams();
+    if (options?.cursor) params.set('cursor', options.cursor);
+    if (options?.limit) params.set('limit', String(options.limit));
+    if (options?.eventType) params.set('eventType', options.eventType);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return fetchWithAuth(`/projects/${projectId}/governance/audit-events${qs}`);
+  },
+
+  // ===========================================================================
+  // [GOV-AUDIT-VIEWER-1] Governance Viewer API (read-only)
+  // ===========================================================================
+
+  /**
+   * [GOV-AUDIT-VIEWER-1] List approvals for governance viewer with cursor pagination.
+   * @param status - 'pending' (PENDING_APPROVAL) or 'history' (APPROVED/REJECTED)
+   */
+  listViewerApprovals: (
+    projectId: string,
+    options?: { status?: 'pending' | 'history'; cursor?: string; limit?: number },
+  ): Promise<GovernanceViewerApprovalsResponse> => {
+    const params = new URLSearchParams();
+    if (options?.status) params.set('status', options.status);
+    if (options?.cursor) params.set('cursor', options.cursor);
+    if (options?.limit) params.set('limit', String(options.limit));
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return fetchWithAuth(`/projects/${projectId}/governance/viewer/approvals${qs}`);
+  },
+
+  /**
+   * [GOV-AUDIT-VIEWER-1] List audit events for governance viewer with cursor pagination.
+   * IMPORTANT: Only returns events in ALLOWED_AUDIT_EVENT_TYPES allowlist.
+   * @param types - Comma-separated list of event types to filter (optional)
+   * @param actor - Filter by actorUserId (optional)
+   * @param from - ISO timestamp for date range start (optional)
+   * @param to - ISO timestamp for date range end (optional)
+   */
+  listViewerAuditEvents: (
+    projectId: string,
+    options?: {
+      types?: string[];
+      actor?: string;
+      from?: string;
+      to?: string;
+      cursor?: string;
+      limit?: number;
+    },
+  ): Promise<GovernanceViewerAuditEventsResponse> => {
+    const params = new URLSearchParams();
+    if (options?.types && options.types.length > 0) {
+      params.set('types', options.types.join(','));
+    }
+    if (options?.actor) params.set('actor', options.actor);
+    if (options?.from) params.set('from', options.from);
+    if (options?.to) params.set('to', options.to);
+    if (options?.cursor) params.set('cursor', options.cursor);
+    if (options?.limit) params.set('limit', String(options.limit));
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return fetchWithAuth(`/projects/${projectId}/governance/viewer/audit-events${qs}`);
+  },
+
+  /**
+   * [GOV-AUDIT-VIEWER-1] List share links for governance viewer with cursor pagination.
+   * IMPORTANT: Passcode is NEVER returned, only passcodeLast4.
+   * @param status - 'ACTIVE' | 'EXPIRED' | 'REVOKED' | 'all' (optional)
+   */
+  listViewerShareLinks: (
+    projectId: string,
+    options?: { status?: 'ACTIVE' | 'EXPIRED' | 'REVOKED' | 'all'; cursor?: string; limit?: number },
+  ): Promise<GovernanceViewerShareLinksResponse> => {
+    const params = new URLSearchParams();
+    if (options?.status) params.set('status', options.status);
+    if (options?.cursor) params.set('cursor', options.cursor);
+    if (options?.limit) params.set('limit', String(options.limit));
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return fetchWithAuth(`/projects/${projectId}/governance/viewer/share-links${qs}`);
+  },
+
+  // ===========================================================================
+  // [ROLES-3] Member Management API
+  // ===========================================================================
+
+  /** Get the current user's role in a project */
+  getUserRole: (projectId: string): Promise<UserRoleResponse> =>
+    fetchWithAuth(`/projects/${projectId}/role`),
+
+  /** List all members of a project (read-only for all members) */
+  listMembers: (projectId: string): Promise<ProjectMember[]> =>
+    fetchWithAuth(`/projects/${projectId}/members`),
+
+  /** Add a member to a project (OWNER-only) */
+  addMember: (
+    projectId: string,
+    email: string,
+    role: EffectiveProjectRole,
+  ): Promise<ProjectMember> =>
+    fetchWithAuth(`/projects/${projectId}/members`, {
+      method: 'POST',
+      body: JSON.stringify({ email, role }),
+    }),
+
+  /** Change a member's role (OWNER-only) */
+  changeMemberRole: (
+    projectId: string,
+    memberId: string,
+    role: EffectiveProjectRole,
+  ): Promise<ProjectMember> =>
+    fetchWithAuth(`/projects/${projectId}/members/${memberId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ role }),
+    }),
+
+  /** Remove a member from a project (OWNER-only) */
+  removeMember: (
+    projectId: string,
+    memberId: string,
+  ): Promise<{ success: boolean; message: string }> =>
+    fetchWithAuth(`/projects/${projectId}/members/${memberId}`, {
+      method: 'DELETE',
+    }),
+
+  // ===========================================================================
+  // [WORK-QUEUE-1] Unified Action Bundle Work Queue
+  // ===========================================================================
+
+  /**
+   * Get derived Work Queue action bundles for a project.
+   * [WORK-QUEUE-1] All bundles are derived at request time from existing persisted artifacts.
+   * [ASSETS-PAGES-1] Added scopeType filter for filtering by asset type.
+   */
+  workQueue: (
+    projectId: string,
+    params?: {
+      tab?: 'Critical' | 'NeedsAttention' | 'PendingApproval' | 'DraftsReady' | 'AppliedRecently';
+      bundleType?: 'ASSET_OPTIMIZATION' | 'AUTOMATION_RUN' | 'GEO_EXPORT';
+      actionKey?: 'FIX_MISSING_METADATA' | 'RESOLVE_TECHNICAL_ISSUES' | 'IMPROVE_SEARCH_INTENT' | 'OPTIMIZE_CONTENT' | 'SHARE_LINK_GOVERNANCE';
+      scopeType?: 'PRODUCTS' | 'PAGES' | 'COLLECTIONS' | 'STORE_WIDE';
+      bundleId?: string;
+    },
+  ): Promise<import('./work-queue').WorkQueueResponse> => {
+    const searchParams = new URLSearchParams();
+    if (params?.tab) searchParams.set('tab', params.tab);
+    if (params?.bundleType) searchParams.set('bundleType', params.bundleType);
+    if (params?.actionKey) searchParams.set('actionKey', params.actionKey);
+    if (params?.scopeType) searchParams.set('scopeType', params.scopeType);
+    if (params?.bundleId) searchParams.set('bundleId', params.bundleId);
+    const qs = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    return fetchWithAuth(`/projects/${projectId}/work-queue${qs}`);
+  },
 };
 
 export const integrationsApi = {
@@ -727,8 +1593,38 @@ export const aiApi = {
   },
 };
 
+/**
+ * [LIST-SEARCH-FILTER-1] Product list filter options
+ */
+export interface ProductListOptions {
+  q?: string;
+  status?: 'optimized' | 'needs_attention';
+  hasDraft?: boolean;
+}
+
+/**
+ * [LIST-SEARCH-FILTER-1.1] Crawl page (Pages/Collections) list filter options
+ */
+export interface CrawlPageListOptions {
+  q?: string;
+  status?: 'optimized' | 'needs_attention';
+  hasDraft?: boolean;
+  /** Filter by page type: 'static' for /pages/*, 'collection' for /collections/* */
+  pageType?: 'static' | 'collection';
+}
+
 export const productsApi = {
-  list: (projectId: string) => fetchWithAuth(`/projects/${projectId}/products`),
+  /**
+   * [LIST-SEARCH-FILTER-1] List products with optional filtering
+   */
+  list: (projectId: string, opts?: ProductListOptions) => {
+    const params = new URLSearchParams();
+    if (opts?.q) params.set('q', opts.q);
+    if (opts?.status) params.set('status', opts.status);
+    if (opts?.hasDraft) params.set('hasDraft', 'true');
+    const qs = params.toString();
+    return fetchWithAuth(`/projects/${projectId}/products${qs ? `?${qs}` : ''}`);
+  },
 
   getAnswerBlocks: (productId: string) =>
     fetchWithAuth(`/products/${productId}/answer-blocks`),
@@ -778,6 +1674,28 @@ export const productsApi = {
     params: MediaFixApplyRequest,
   ): Promise<MediaFixApplyResponse> =>
     fetchWithAuth(`/products/${productId}/media/apply`, {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+
+  // GEO-FOUNDATION-1: GEO Readiness endpoints
+  getGeoReadiness: (productId: string): Promise<ProductGeoReadinessResponse> =>
+    fetchWithAuth(`/products/${productId}/geo`),
+
+  previewGeoFix: (
+    productId: string,
+    params: { questionId: string; issueType: string },
+  ): Promise<GeoFixPreviewResponse> =>
+    fetchWithAuth(`/products/${productId}/geo/preview`, {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }),
+
+  applyGeoFix: (
+    productId: string,
+    params: { draftId: string },
+  ): Promise<GeoFixApplyResponse> =>
+    fetchWithAuth(`/products/${productId}/geo/apply`, {
       method: 'POST',
       body: JSON.stringify(params),
     }),
@@ -1199,33 +2117,217 @@ export const billingApi = {
 };
 
 /**
- * Admin API - for admin-only operations
+ * [ADMIN-OPS-1] Admin API - for admin-only operations
+ * Extends with new endpoints for the Support & Management Operations Dashboard.
  */
 export const adminApi = {
-  /** Get admin dashboard statistics */
+  // ===========================================================================
+  // [D1] Overview
+  // ===========================================================================
+
+  /** Get executive snapshot overview */
+  getOverview: () => fetchWithAuth('/admin/overview'),
+
+  /** Get admin dashboard statistics (legacy) */
   getStats: () => fetchWithAuth('/admin/stats'),
 
-  /** Get all users with pagination */
+  // ===========================================================================
+  // [D2] Users
+  // ===========================================================================
+
+  /** Get all users with pagination and expanded details */
   getUsers: (page = 1, limit = 20) =>
     fetchWithAuth(`/admin/users?page=${page}&limit=${limit}`),
 
-  /** Get a single user by ID */
+  /** Get a single user by ID with admin context */
   getUser: (userId: string) => fetchWithAuth(`/admin/users/${userId}`),
 
-  /** Update user role */
+  /** Start read-only impersonation (SUPPORT_AGENT + OPS_ADMIN only) */
+  impersonateUser: (userId: string, reason?: string) =>
+    fetchWithAuth(`/admin/users/${userId}/impersonate`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  /** Update user's subscription/plan (OPS_ADMIN only) */
+  updateUserSubscription: (userId: string, planId: string) =>
+    fetchWithAuth(`/admin/users/${userId}/subscription`, {
+      method: 'PUT',
+      body: JSON.stringify({ planId }),
+    }),
+
+  /** Reset AI quota for user (OPS_ADMIN only) */
+  resetUserQuota: (userId: string, reason?: string) =>
+    fetchWithAuth(`/admin/users/${userId}/quota-reset`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  /** Assign internal admin role (OPS_ADMIN only) */
+  updateAdminRole: (userId: string, adminRole: 'SUPPORT_AGENT' | 'OPS_ADMIN' | 'MANAGEMENT_CEO' | null) =>
+    fetchWithAuth(`/admin/users/${userId}/admin-role`, {
+      method: 'PUT',
+      body: JSON.stringify({ adminRole }),
+    }),
+
+  /** Update user role (legacy) */
   updateUserRole: (userId: string, role: 'USER' | 'ADMIN') =>
     fetchWithAuth(`/admin/users/${userId}/role`, {
       method: 'PUT',
       body: JSON.stringify({ role }),
     }),
 
-  /** Update user's subscription (admin override) */
-  updateUserSubscription: (userId: string, planId: string) =>
-    fetchWithAuth(`/admin/users/${userId}/subscription`, {
-      method: 'PUT',
-      body: JSON.stringify({ planId }),
+  // ===========================================================================
+  // [D3] Projects
+  // ===========================================================================
+
+  /** Get all projects with admin details */
+  getProjects: (page = 1, limit = 20) =>
+    fetchWithAuth(`/admin/projects?page=${page}&limit=${limit}`),
+
+  /** Trigger safe resync for a project (no AI side effects) */
+  resyncProject: (projectId: string) =>
+    fetchWithAuth(`/admin/projects/${projectId}/resync`, {
+      method: 'POST',
     }),
+
+  // ===========================================================================
+  // [D4] Runs
+  // ===========================================================================
+
+  /** Get runs with filters */
+  getRuns: (filters?: {
+    projectId?: string;
+    runType?: string;
+    status?: string;
+    aiUsed?: boolean;
+    reused?: boolean;
+    page?: number;
+    limit?: number;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.projectId) params.set('projectId', filters.projectId);
+    if (filters?.runType) params.set('runType', filters.runType);
+    if (filters?.status) params.set('status', filters.status);
+    if (filters?.aiUsed !== undefined) params.set('aiUsed', String(filters.aiUsed));
+    if (filters?.reused !== undefined) params.set('reused', String(filters.reused));
+    if (filters?.page) params.set('page', String(filters.page));
+    if (filters?.limit) params.set('limit', String(filters.limit));
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return fetchWithAuth(`/admin/runs${qs}`);
+  },
+
+  /** Get run detail with redacted inputs */
+  getRun: (runId: string) => fetchWithAuth(`/admin/runs/${runId}`),
+
+  /** Retry a failed run (safe runs only) */
+  retryRun: (runId: string) =>
+    fetchWithAuth(`/admin/runs/${runId}/retry`, {
+      method: 'POST',
+    }),
+
+  // ===========================================================================
+  // [D5] Issues
+  // ===========================================================================
+
+  /** Get global issues summary (derived, no AI calls) */
+  getIssuesSummary: () => fetchWithAuth('/admin/issues/summary'),
+
+  // ===========================================================================
+  // [D6] AI Usage
+  // ===========================================================================
+
+  /** Get AI usage metrics with APPLY invariant check */
+  getAiUsage: () => fetchWithAuth('/admin/ai-usage'),
+
+  // ===========================================================================
+  // [D7] System Health
+  // ===========================================================================
+
+  /** Get system health signals */
+  getSystemHealth: () => fetchWithAuth('/admin/system-health'),
+
+  // ===========================================================================
+  // [D8] Audit Log
+  // ===========================================================================
+
+  /** Get audit log with filters */
+  getAuditLog: (filters?: {
+    actorId?: string;
+    targetUserId?: string;
+    targetProjectId?: string;
+    actionType?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.actorId) params.set('actorId', filters.actorId);
+    if (filters?.targetUserId) params.set('targetUserId', filters.targetUserId);
+    if (filters?.targetProjectId) params.set('targetProjectId', filters.targetProjectId);
+    if (filters?.actionType) params.set('actionType', filters.actionType);
+    if (filters?.startDate) params.set('startDate', filters.startDate);
+    if (filters?.endDate) params.set('endDate', filters.endDate);
+    if (filters?.page) params.set('page', String(filters.page));
+    if (filters?.limit) params.set('limit', String(filters.limit));
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return fetchWithAuth(`/admin/audit-log${qs}`);
+  },
+
+  // ===========================================================================
+  // [D9] Governance Audit Events (ENTERPRISE-GEO-1)
+  // ===========================================================================
+
+  /**
+   * [ENTERPRISE-GEO-1] Get governance audit events with filters.
+   * Read-only access to project-level governance audit events.
+   */
+  getGovernanceAuditEvents: (filters?: {
+    projectId?: string;
+    actorUserId?: string;
+    eventType?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<GovernanceAuditEventsResponse> => {
+    const params = new URLSearchParams();
+    if (filters?.projectId) params.set('projectId', filters.projectId);
+    if (filters?.actorUserId) params.set('actorUserId', filters.actorUserId);
+    if (filters?.eventType) params.set('eventType', filters.eventType);
+    if (filters?.startDate) params.set('startDate', filters.startDate);
+    if (filters?.endDate) params.set('endDate', filters.endDate);
+    if (filters?.page) params.set('page', String(filters.page));
+    if (filters?.limit) params.set('limit', String(filters.limit));
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return fetchWithAuth(`/admin/governance-audit-events${qs}`);
+  },
 };
+
+/** [ENTERPRISE-GEO-1] Governance audit event response types */
+export interface GovernanceAuditEvent {
+  id: string;
+  createdAt: string;
+  eventType: string;
+  actorUserId: string | null;
+  actorEmail: string | null;
+  resourceType: string | null;
+  resourceId: string | null;
+  projectId: string;
+  projectName: string | null;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface GovernanceAuditEventsResponse {
+  events: GovernanceAuditEvent[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
 
 /**
  * Contact API - for public contact form
@@ -1237,4 +2339,151 @@ export const contactApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+};
+
+// =============================================================================
+// [SELF-SERVICE-1] Account API - Customer Self-Service Control Plane
+// =============================================================================
+
+export interface AccountProfile {
+  id: string;
+  email: string;
+  name: string | null;
+  avatarUrl: string | null;
+  timezone: string | null;
+  locale: string | null;
+  organizationName: string | null;
+  accountRole: 'OWNER' | 'EDITOR' | 'VIEWER';
+  lastLoginAt: string | null;
+}
+
+export interface AccountPreferences {
+  notifyQuotaWarnings: boolean;
+  notifyRunFailures: boolean;
+  notifyWeeklyDeoSummary: boolean;
+  autoOpenIssuesTab: boolean;
+  preferredPillarLanding: string | null;
+}
+
+export interface AccountAiUsageSummary {
+  month: string;
+  periodLabel: string;
+  totalRuns: number;
+  aiUsedRuns: number;
+  reusedRuns: number;
+  runsAvoided: number;
+  quotaLimit: number | null;
+  quotaUsedPercent: number;
+  applyInvariantViolations: number;
+  applyInvariantMessage: string;
+  reuseMessage: string;
+}
+
+export interface AccountConnectedStore {
+  projectId: string;
+  projectName: string;
+  storeDomain: string | null;
+  integrationType: string;
+  integrationId: string;
+  connectedAt: string;
+}
+
+export interface AccountSession {
+  id: string;
+  createdAt: string;
+  lastSeenAt: string | null;
+  ip: string | null;
+  userAgent: string | null;
+  isCurrent: boolean;
+}
+
+/**
+ * [SELF-SERVICE-1] Account API
+ *
+ * Customer-facing self-service endpoints.
+ * No AI side effects from any of these endpoints.
+ */
+export const accountApi = {
+  /** Get current user's profile */
+  getProfile: (): Promise<AccountProfile> => fetchWithAuth('/account/profile'),
+
+  /** Update profile (name, avatar, timezone, locale, organizationName) */
+  updateProfile: (data: {
+    name?: string;
+    avatarUrl?: string | null;
+    timezone?: string | null;
+    locale?: string | null;
+    organizationName?: string | null;
+  }): Promise<AccountProfile> =>
+    fetchWithAuth('/account/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  /** Get current user's preferences */
+  getPreferences: (): Promise<AccountPreferences> =>
+    fetchWithAuth('/account/preferences'),
+
+  /** Update preferences (VIEWER cannot update) */
+  updatePreferences: (data: Partial<AccountPreferences>): Promise<AccountPreferences> =>
+    fetchWithAuth('/account/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  /** Get AI usage summary for current month */
+  getAiUsage: (): Promise<AccountAiUsageSummary> =>
+    fetchWithAuth('/account/ai-usage'),
+
+  /** Get connected Shopify stores */
+  getStores: (): Promise<AccountConnectedStore[]> =>
+    fetchWithAuth('/account/stores'),
+
+  /** Disconnect a Shopify store (OWNER only) */
+  disconnectStore: (projectId: string): Promise<{ success: boolean }> =>
+    fetchWithAuth(`/account/stores/${projectId}/disconnect`, {
+      method: 'POST',
+    }),
+
+  /** Get active sessions */
+  getSessions: (): Promise<AccountSession[]> =>
+    fetchWithAuth('/account/sessions'),
+
+  /** Sign out all sessions (invalidates all tokens) */
+  signOutAllSessions: (): Promise<{ revokedCount: number }> =>
+    fetchWithAuth('/account/sessions/sign-out-all', {
+      method: 'POST',
+    }),
+};
+
+/**
+ * [GEO-EXPORT-1] Public API (no auth required)
+ */
+export const publicApi = {
+  /** Get public GEO report share view */
+  getGeoReportShareView: async (shareToken: string): Promise<GeoReportPublicShareViewResponse> => {
+    const response = await fetch(`${API_URL}/public/geo-reports/${shareToken}`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch share view');
+    }
+    return response.json();
+  },
+
+  /** [ENTERPRISE-GEO-1] Verify passcode and get protected share view */
+  verifyAndGetGeoReportShareView: async (
+    shareToken: string,
+    passcode: string,
+  ): Promise<GeoReportPublicShareViewResponse> => {
+    const response = await fetch(`${API_URL}/public/geo-reports/${shareToken}/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ passcode }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to verify passcode');
+    }
+    return response.json();
+  },
 };

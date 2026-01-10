@@ -3,10 +3,21 @@
 import { GuardedLink } from '@/components/navigation/GuardedLink';
 import { usePathname } from 'next/navigation';
 
+/**
+ * [ADMIN-OPS-1] Admin Navigation
+ * Locked internal-only sections for Support, Ops Admin, and Management/CEO.
+ * Removed "Subscriptions" from primary nav (plan overrides moved under Users/Ops-only actions).
+ */
 const navItems = [
-  { label: 'Dashboard', path: '/admin' },
+  { label: 'Overview', path: '/admin' },
   { label: 'Users', path: '/admin/users' },
-  { label: 'Subscriptions', path: '/admin/subscriptions' },
+  { label: 'Projects', path: '/admin/projects' },
+  { label: 'Runs', path: '/admin/runs' },
+  { label: 'Issues', path: '/admin/issues' },
+  { label: 'AI Usage', path: '/admin/ai-usage' },
+  { label: 'System Health', path: '/admin/system-health' },
+  { label: 'Audit Log', path: '/admin/audit-log' },
+  { label: 'Governance Audit', path: '/admin/governance-audit' },
 ];
 
 interface AdminSideNavProps {

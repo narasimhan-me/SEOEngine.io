@@ -94,6 +94,9 @@ export {
 // Answer Engine types
 export * from './answer-engine';
 
+// GEO (GEO-FOUNDATION-1) types
+export * from './geo';
+
 // Automation Engine types
 export * from './automation-engine';
 
@@ -156,3 +159,87 @@ export {
   type ProjectMediaAccessibilityResponse,
   type ProductImageView,
 } from './media-accessibility';
+
+// PERFORMANCE-1: Performance for Discovery types (Technical & Indexability pillar)
+export {
+  type PerformanceSignalType,
+  type PerformanceForDiscoveryStatus,
+  type PerformanceSignalStatus,
+  type PerformanceForDiscoveryScorecard,
+} from './performance-signals';
+
+// GOV-AUDIT-VIEWER-1: Governance Audit & Approvals Viewer types
+export {
+  // Approval types
+  type ApprovalStatusFilter,
+  type ApprovalStatus,
+  type ApprovalResourceType,
+  type ApprovalsQuery,
+  type ApprovalsListItem,
+  type ApprovalsListResponse,
+  // Audit event types
+  ALLOWED_AUDIT_EVENT_TYPES,
+  type AllowedAuditEventType,
+  AUDIT_EVENT_TYPE_LABELS,
+  type AuditEventsQuery,
+  type AuditEventListItem,
+  type AuditEventsListResponse,
+  // Share link types
+  type ShareLinkStatusFilter,
+  type ShareLinkStatus,
+  type ShareLinkAudience,
+  type ShareLinksQuery,
+  type ShareLinkListItem,
+  type ShareLinkEventItem,
+  type ShareLinksListResponse,
+  // Helper functions
+  isAllowedAuditEventType,
+  getAuditEventTypeLabel,
+  buildPaginationCursor,
+  parsePaginationCursor,
+  // Constants
+  GOVERNANCE_DEFAULT_PAGE_SIZE,
+  GOVERNANCE_MAX_PAGE_SIZE,
+} from './governance';
+
+// WORK-QUEUE-1: Unified Action Bundle Work Queue types
+export {
+  // Core enums
+  type WorkQueueBundleType,
+  type WorkQueueRecommendedActionKey,
+  type WorkQueueHealth,
+  type WorkQueueState,
+  type WorkQueueAiUsage,
+  type WorkQueueScopeType,
+  type WorkQueueApprovalStatus,
+  type WorkQueueDraftStatus,
+  type WorkQueueShareLinkStatus,
+  // Subschemas
+  type WorkQueueApprovalInfo,
+  type WorkQueueDraftInfo,
+  type WorkQueueGeoExportInfo,
+  // Main bundle schema
+  type WorkQueueActionBundle,
+  // API types
+  type WorkQueueTab,
+  type WorkQueueQueryParams,
+  type WorkQueueViewerCapabilities,
+  type WorkQueueViewer,
+  type WorkQueueResponse,
+  // Constants
+  WORK_QUEUE_AI_DISCLOSURE_TEXT,
+  WORK_QUEUE_ACTION_LABELS,
+  WORK_QUEUE_IMPACT_RANKS,
+  WORK_QUEUE_STATE_PRIORITY,
+  WORK_QUEUE_HEALTH_PRIORITY,
+  // ASSETS-PAGES-1.1: Asset-scoped automation playbook types
+  type AutomationAssetType,
+  type AssetRef,
+  parseAssetRef,
+  createAssetRef,
+  validateAssetRefsForType,
+  getPlaybookAssetType,
+  PLAYBOOK_ASSET_TYPES,
+  // [COUNT-INTEGRITY-1.1 PATCH 2.2] Shared Issue→ActionKey mapper
+  getWorkQueueRecommendedActionKeyForIssue,
+} from './work-queue';

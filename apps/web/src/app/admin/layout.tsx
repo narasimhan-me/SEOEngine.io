@@ -7,11 +7,15 @@ import { usersApi } from '@/lib/api';
 import TopNav from '@/components/layout/TopNav';
 import AdminSideNav from '@/components/layout/AdminSideNav';
 
+/**
+ * [ADMIN-OPS-1] Extended User interface with internal admin role.
+ */
 interface User {
   id: string;
   email: string;
   name: string | null;
   role: string;
+  adminRole?: 'SUPPORT_AGENT' | 'OPS_ADMIN' | 'MANAGEMENT_CEO' | null;
 }
 
 export default function AdminLayout({
@@ -33,7 +37,9 @@ export default function AdminLayout({
 
       try {
         const user: User = await usersApi.me();
-        if (user.role !== 'ADMIN') {
+        // [ADMIN-OPS-1] Update admin UI gating from role === 'ADMIN' to:
+        // role === 'ADMIN' AND adminRole is present.
+        if (user.role !== 'ADMIN' || !user.adminRole) {
           router.push('/projects');
           return;
         }

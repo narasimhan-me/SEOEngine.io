@@ -17,7 +17,7 @@
 - **High-level user impact and what "success" looks like:**
   - [Describe the expected user experience and measurable outcomes]
 
-- **Related phases/sections in IMPLEMENTATION_PLAN.md:**
+- **Related phases/sections in docs/IMPLEMENTATION_PLAN.md:**
   - [Reference relevant phase numbers, e.g., Phase UX-6, Phase 2.3]
 
 - **Related documentation:**

@@ -68,6 +68,16 @@ export function ProductAiSuggestionsPanel({
         <h3 className="text-sm font-semibold text-gray-900">AI SEO Suggestions</h3>
       </div>
 
+      {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Corrected inline guidance */}
+      <div className="mb-4 rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+        <p className="font-medium text-gray-700 mb-1">How this works:</p>
+        <ul className="list-disc list-inside space-y-0.5">
+          <li>Generate creates suggestions (uses AI)</li>
+          <li>Click &quot;Add to draft&quot; to stage changes (not applied)</li>
+          <li>Save draft enables Apply; Apply uses saved drafts only and does not auto-save or use AI</li>
+        </ul>
+      </div>
+
       {/* Loading state */}
       {loading && (
         <div className="flex flex-col items-center justify-center py-8">
@@ -145,7 +155,7 @@ export function ProductAiSuggestionsPanel({
                 onClick={() => onApply({ title: automationSuggestion!.suggestedTitle! })}
                 className="mt-2 text-xs font-medium text-green-600 hover:text-green-800"
               >
-                Apply to editor
+                Add to draft
               </button>
             </div>
           )}
@@ -170,7 +180,7 @@ export function ProductAiSuggestionsPanel({
                 onClick={() => onApply({ description: automationSuggestion!.suggestedDescription! })}
                 className="mt-2 text-xs font-medium text-green-600 hover:text-green-800"
               >
-                Apply to editor
+                Add to draft
               </button>
             </div>
           )}
@@ -194,7 +204,7 @@ export function ProductAiSuggestionsPanel({
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
-              Generate New Suggestions
+              Generate New Suggestions (uses AI)
             </button>
           </div>
         </div>
@@ -223,7 +233,7 @@ export function ProductAiSuggestionsPanel({
                 d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
               />
             </svg>
-            Generate Suggestions
+            Generate Suggestions (uses AI)
           </button>
         </div>
       )}
@@ -294,7 +304,7 @@ export function ProductAiSuggestionsPanel({
               onClick={() => onApply({ title: suggestion.suggested.title })}
               className="mt-2 text-xs font-medium text-purple-600 hover:text-purple-800"
             >
-              Apply to editor
+              Add to draft
             </button>
           </div>
 
@@ -317,7 +327,7 @@ export function ProductAiSuggestionsPanel({
               onClick={() => onApply({ description: suggestion.suggested.description })}
               className="mt-2 text-xs font-medium text-purple-600 hover:text-purple-800"
             >
-              Apply to editor
+              Add to draft
             </button>
           </div>
 

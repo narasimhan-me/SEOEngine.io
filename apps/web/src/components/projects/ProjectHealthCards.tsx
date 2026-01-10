@@ -1,10 +1,16 @@
+import Link from 'next/link';
 import type { DeoScoreSignals } from '@/lib/deo-issues';
+import { HEALTH_CARD_TO_WORK_QUEUE_MAP, buildWorkQueueUrl } from '@/lib/work-queue';
 
 interface ProjectHealthCardsProps {
   signals: DeoScoreSignals | null;
+  projectId: string; // [WORK-QUEUE-1] Required for routing
 }
 
-export function ProjectHealthCards({ signals }: ProjectHealthCardsProps) {
+/**
+ * [WORK-QUEUE-1] Updated: Cards are now clickable and route to Work Queue filters.
+ */
+export function ProjectHealthCards({ signals, projectId }: ProjectHealthCardsProps) {
   const s = signals ?? {};
 
   const missingMetadataSeverity = 1 - (s.contentCoverage ?? 0);
@@ -62,22 +68,38 @@ export function ProjectHealthCards({ signals }: ProjectHealthCardsProps) {
     return 'bg-red-50 text-red-700 border-red-100';
   };
 
+  // [WORK-QUEUE-1] Build Work Queue URL for each card
+  const getWorkQueueUrl = (cardKey: string) => {
+    const mapping = HEALTH_CARD_TO_WORK_QUEUE_MAP[cardKey];
+    if (mapping) {
+      return buildWorkQueueUrl(projectId, {
+        tab: mapping.tab,
+        actionKey: mapping.actionKey,
+      });
+    }
+    // Fallback to general Work Queue
+    return buildWorkQueueUrl(projectId);
+  };
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
       <h3 className="text-sm font-medium text-gray-700">Issues by Category</h3>
       <p className="mt-1 text-xs text-gray-500">
         High-level DEO issue categories derived from normalized signals (0-1). Higher severity
-        indicates more work needed.
+        indicates more work needed. Click a card to view in Work Queue.
       </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         {cards.map((card) => {
           const severity = card.severity ?? 0;
           const label = getSeverityLabel(severity);
           const color = getSeverityColor(severity);
+          const workQueueUrl = getWorkQueueUrl(card.key);
+
           return (
-            <div
+            <Link
               key={card.key}
-              className={`flex flex-col rounded-md border p-3 text-xs ${color}`}
+              href={workQueueUrl}
+              className={`flex flex-col rounded-md border p-3 text-xs transition-all hover:ring-2 hover:ring-blue-300 ${color}`}
             >
               <div className="flex items-center justify-between">
                 <span className="font-medium">{card.label}</span>
@@ -86,7 +108,7 @@ export function ProjectHealthCards({ signals }: ProjectHealthCardsProps) {
                 </span>
               </div>
               <p className="mt-1 text-[11px] opacity-80">{card.description}</p>
-            </div>
+            </Link>
           );
         })}
       </div>

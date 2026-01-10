@@ -1,5 +1,5 @@
 import {
-  ForbiddenException,
+  BadRequestException,
   Inject,
   Injectable,
   Logger,
@@ -16,6 +16,10 @@ import { EntitlementsService } from '../billing/entitlements.service';
 import { answerBlockAutomationQueue } from '../queues/queues';
 import { PlanId } from '../billing/plans';
 import { ShopifyService } from '../shopify/shopify.service';
+import { GovernanceService } from './governance.service';
+import { ApprovalsService } from './approvals.service';
+import { AuditEventsService } from './audit-events.service';
+import { RoleResolutionService } from '../common/role-resolution.service';
 
 const AUTOMATION_SOURCE = 'automation_v1';
 
@@ -36,6 +40,10 @@ export class AutomationService {
     private readonly entitlementsService: EntitlementsService,
     @Inject(forwardRef(() => ShopifyService))
     private readonly shopifyService: ShopifyService,
+    private readonly governanceService: GovernanceService,
+    private readonly approvalsService: ApprovalsService,
+    private readonly auditEventsService: AuditEventsService,
+    private readonly roleResolutionService: RoleResolutionService,
   ) {}
 
   /**
@@ -288,6 +296,7 @@ export class AutomationService {
    * Returns true only when:
    * - The plan allows auto-apply (Pro/Business)
    * - The issue type is MISSING_METADATA (not THIN_CONTENT for AE-2.1)
+   * - [ROLES-3] The project is single-user (multi-user projects block auto-apply)
    */
   private async shouldAutoApplyMetadataForProject(
     projectId: string,
@@ -305,6 +314,15 @@ export class AutomationService {
     });
 
     if (!project) {
+      return false;
+    }
+
+    // [ROLES-3] Multi-user projects block auto-apply; require OWNER approval
+    const isMultiUser = await this.roleResolutionService.isMultiUserProject(projectId);
+    if (isMultiUser) {
+      this.logger.log(
+        `[Automation] Multi-user project ${projectId}: auto-apply blocked, requiring OWNER approval`,
+      );
       return false;
     }
 
@@ -575,7 +593,16 @@ export class AutomationService {
     });
 
     // Check if we should auto-apply (Pro/Business plans only)
-    const shouldAutoApply = await this.entitlementsService.canAutoApplyMetadataAutomations(userId);
+    // [ROLES-3] Multi-user projects block auto-apply; require OWNER approval
+    const isMultiUser = await this.roleResolutionService.isMultiUserProject(projectId);
+    const canAutoApplyPlan = await this.entitlementsService.canAutoApplyMetadataAutomations(userId);
+    const shouldAutoApply = canAutoApplyPlan && !isMultiUser;
+
+    if (isMultiUser && canAutoApplyPlan) {
+      this.logger.log(
+        `[Automation] Multi-user project ${projectId}: auto-apply blocked for new product ${productId}, requiring OWNER approval`,
+      );
+    }
 
     if (shouldAutoApply) {
       const suggestedTitleValid = metadata.title && metadata.title.trim() !== '';
@@ -621,17 +648,8 @@ export class AutomationService {
   }
 
   async getSuggestionsForProject(projectId: string, userId: string) {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      throw new NotFoundException('Project not found');
-    }
-
-    if (project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this project');
-    }
+    // [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can view)
+    await this.roleResolutionService.assertProjectAccess(projectId, userId);
 
     const suggestions = await this.prisma.automationSuggestion.findMany({
       where: { projectId },
@@ -688,9 +706,8 @@ export class AutomationService {
       return;
     }
 
-    if (product.project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this product');
-    }
+    // [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can trigger)
+    await this.roleResolutionService.assertProjectAccess(product.projectId, userId);
 
     const planId: PlanId = await this.entitlementsService.getUserPlan(userId);
 
@@ -789,9 +806,8 @@ export class AutomationService {
       throw new NotFoundException('Product not found');
     }
 
-    if (product.project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this product');
-    }
+    // [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can view logs)
+    await this.roleResolutionService.assertProjectAccess(product.projectId, userId);
 
     const logs = await this.prisma.answerBlockAutomationLog.findMany({
       where: { productId: product.id },
@@ -843,9 +859,8 @@ export class AutomationService {
       throw new NotFoundException('Product not found');
     }
 
-    if (product.project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this product');
-    }
+    // [ROLES-3 FIXUP-3] OWNER-only for sync mutations (APPLY surface)
+    await this.roleResolutionService.assertOwnerRole(product.projectId, userId);
 
     const planId: PlanId = await this.entitlementsService.getUserPlan(userId);
     const triggerType = 'manual_sync';
@@ -923,6 +938,29 @@ export class AutomationService {
       };
     }
 
+    // [ENTERPRISE-GEO-1] Check approval requirement for ANSWER_BLOCK_SYNC
+    const approvalRequired = await this.governanceService.isApprovalRequired(product.projectId);
+    let approvalId: string | undefined;
+
+    if (approvalRequired) {
+      const approvalStatus = await this.approvalsService.hasValidApproval(
+        product.projectId,
+        'ANSWER_BLOCK_SYNC',
+        productId,
+      );
+
+      if (!approvalStatus.valid) {
+        throw new BadRequestException({
+          code: 'APPROVAL_REQUIRED',
+          message: 'This action requires approval before it can be executed.',
+          approvalStatus: approvalStatus.status ?? 'none',
+          approvalId: approvalStatus.approvalId,
+        });
+      }
+
+      approvalId = approvalStatus.approvalId;
+    }
+
     try {
       const syncResult = await this.shopifyService.syncAnswerBlocksToShopify(
         product.id,
@@ -949,6 +987,25 @@ export class AutomationService {
           modelUsed: 'ae_v1',
         },
       });
+
+      // [ENTERPRISE-GEO-1] Mark approval as consumed and log audit event on successful sync
+      if (approvalId) {
+        await this.approvalsService.markConsumed(approvalId);
+      }
+
+      await this.auditEventsService.logApplyExecuted(
+        product.projectId,
+        userId,
+        'ANSWER_BLOCK_SYNC',
+        productId,
+        {
+          productId,
+          syncedCount: syncResult.syncedCount,
+          errors: syncResult.errors,
+          status,
+        },
+      );
+
       return {
         productId: product.id,
         projectId: product.projectId,

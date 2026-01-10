@@ -12,6 +12,14 @@ export interface Product {
   currency?: string | null;
   shopifyStatus?: string | null;
   lastOptimizedAt?: string | null;
+  /** [LIST-ACTIONS-CLARITY-1] Server-derived: true if product appears in a pending draft */
+  hasDraftPendingApply?: boolean;
+  /** [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Server-derived: count of actionable issue types (canonical, from DEO issues) */
+  actionableNowCount?: number;
+  /** [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Server-derived: count of all detected issue types */
+  detectedIssueCount?: number;
+  /** [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Server-derived: true if draft is blocked (hasDraft AND viewer cannot apply) */
+  blockedByApproval?: boolean;
 }
 
 export type ProductStatus = 'missing-metadata' | 'needs-optimization' | 'optimized';

@@ -15,6 +15,7 @@ import {
 } from '@/lib/api';
 import type { Product } from '@/lib/products';
 import { getDeoPillarById } from '@/lib/deo-pillars';
+import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
 
 // Intent type labels for display
 const INTENT_LABELS: Record<SearchIntentType, string> = {
@@ -116,7 +117,7 @@ export default function SearchIntentWorkspacePage() {
           </li>
           <li>/</li>
           <li>
-            <Link href={`/projects/${projectId}/overview`} className="hover:text-gray-700">
+            <Link href={`/projects/${projectId}/store-health`} className="hover:text-gray-700">
               {projectName || 'Project'}
             </Link>
           </li>
@@ -132,6 +133,8 @@ export default function SearchIntentWorkspacePage() {
           {pillar?.description || 'Analyze query coverage and intent gaps across your products.'}
         </p>
       </div>
+
+      <InsightsPillarsSubnav />
 
       {/* Why It Matters */}
       {pillar?.whyItMatters && (

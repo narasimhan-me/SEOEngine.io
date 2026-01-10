@@ -2,12 +2,14 @@ import type { DeoPillarId } from './deo-pillars';
 import type { SearchIntentType, IntentCoverageStatus } from './search-intent';
 import type { CompetitorGapType, CompetitiveCoverageAreaId } from './competitors';
 import type { OffsiteSignalType, OffsiteGapType } from './offsite-signals';
+import type { PerformanceSignalType } from './performance-signals';
 import type {
   LocalApplicabilityStatus,
   LocalApplicabilityReason,
   LocalSignalType,
   LocalGapType,
 } from './local-discovery';
+import type { GeoIssueType, GeoReadinessSignalType, GeoPillarContext } from './geo';
 
 export type DeoIssueSeverity = 'critical' | 'warning' | 'info';
 
@@ -45,6 +47,14 @@ export type DeoIssueCategory =
  */
 export type DeoIssueFixCost = 'one_click' | 'manual' | 'advanced';
 
+export type IssueAssetTypeKey = 'products' | 'pages' | 'collections';
+
+export interface IssueAssetTypeCounts {
+  products: number;
+  pages: number;
+  collections: number;
+}
+
 export interface DeoIssue {
   id: string;
   title: string;
@@ -69,6 +79,18 @@ export interface DeoIssue {
    * Always set by backend builders in DEO-IA-1 and later phases.
    */
   actionability?: DeoIssueActionability;
+
+  /**
+   * COUNT-INTEGRITY-1: Canonical distribution of issue instances by asset type.
+   * Used to keep tabs/tiles/list counts consistent without UI recomputation.
+   */
+  assetTypeCounts?: IssueAssetTypeCounts;
+
+  /**
+   * COUNT-INTEGRITY-1: Derived, role-aware actionability for the current viewer.
+   * True only when an in-app destination exists and should be treated as actionable.
+   */
+  isActionableNow?: boolean;
 
   // === Issue Engine Lite fields (Phase UX-7) ===
   /** Stable issue type identifier (e.g., 'missing_seo_title', 'weak_description') */
@@ -189,8 +211,10 @@ export interface DeoIssue {
   /**
    * For Off-site Signals pillar issues: the type of off-site signal
    * this issue relates to (brand_mention, trust_proof, etc.).
+   * For Performance for Discovery issues (PERFORMANCE-1): the performance
+   * signal this issue relates to (render_blocking, page_weight_risk, etc.).
    */
-  signalType?: OffsiteSignalType;
+  signalType?: OffsiteSignalType | PerformanceSignalType;
 
   /**
    * For Off-site Signals pillar issues: the type of off-site gap.
@@ -231,10 +255,125 @@ export interface DeoIssue {
    * Represents how many images are impacted across affected products.
    */
   imageCountAffected?: number;
+
+  // === GEO (GEO-FOUNDATION-1) optional fields ===
+  geoIssueType?: GeoIssueType;
+  geoSignalType?: GeoReadinessSignalType;
+  geoPillarContext?: GeoPillarContext;
 }
 
 export interface DeoIssuesResponse {
   projectId: string;
   generatedAt: string; // ISO timestamp
   issues: DeoIssue[];
+}
+
+/**
+ * COUNT-INTEGRITY-1 (legacy v1 groups/instances): Bucket with detected/actionable groups and instances.
+ * Groups = issue types aggregated across assets (issue rows)
+ * Instances = (issueType + assetId) occurrences
+ */
+export interface IssueCountsBucket {
+  detectedGroups: number;
+  actionableGroups: number;
+  detectedInstances: number;
+  actionableInstances: number;
+}
+
+/**
+ * COUNT-INTEGRITY-1 (legacy v1 groups/instances): Single source of truth for issue counts across the product.
+ * "Groups" = issue types aggregated across assets (issue rows)
+ * "Instances" = (issueType + assetId) occurrences
+ */
+export interface IssueCountsSummary {
+  projectId: string;
+  generatedAt: string; // ISO timestamp
+  detectedTotal: number;
+  actionableTotal: number;
+  detectedGroupsTotal: number;
+  actionableGroupsTotal: number;
+  byPillar: Record<DeoPillarId, IssueCountsBucket>;
+  bySeverity: Record<DeoIssueSeverity, IssueCountsBucket>;
+  byAssetType: Record<IssueAssetTypeKey, IssueCountsBucket>;
+  byIssueType: Record<string, IssueCountsBucket>;
+}
+
+/**
+ * COUNT-INTEGRITY-1.1: Canonical triplet count contract with explicit labeled semantics.
+ * All three counts MUST be displayed with their explicit labels in UI:
+ * - issueTypesCount → "Issue types" or "N issue types"
+ * - affectedItemsCount → "Items affected" or "N items affected"
+ * - actionableNowCount → "Actionable now" or "N actionable now"
+ */
+export interface CanonicalCountTriplet {
+  issueTypesCount: number;
+  affectedItemsCount: number;
+  actionableNowCount: number;
+}
+
+/**
+ * COUNT-INTEGRITY-1.1: Canonical summary response with triplet counts for detected/actionable modes.
+ * Replaces mixed v1 "groups/instances" semantics with explicit UX-labeled counts.
+ * Backend computes deduped unique assets; UI displays only (no client-side recomputation).
+ */
+export interface CanonicalIssueCountsSummary {
+  projectId: string;
+  generatedAt: string; // ISO timestamp
+
+  // Echoed filters for cache key validation
+  filters?: {
+    actionKey?: string;
+    actionKeys?: string[];
+    scopeType?: IssueAssetTypeKey;
+    pillar?: DeoPillarId;
+    pillars?: DeoPillarId[];
+    severity?: DeoIssueSeverity;
+  };
+
+  // Triplet counts for detected mode (all issues including informational)
+  detected: CanonicalCountTriplet;
+
+  // Triplet counts for actionable mode (only isActionableNow=true issues)
+  actionable: CanonicalCountTriplet;
+
+  // Breakdown by pillar (for pillar filter badges)
+  byPillar: Record<DeoPillarId, {
+    detected: CanonicalCountTriplet;
+    actionable: CanonicalCountTriplet;
+  }>;
+
+  // Breakdown by severity (for severity filter badges)
+  bySeverity: Record<DeoIssueSeverity, {
+    detected: CanonicalCountTriplet;
+    actionable: CanonicalCountTriplet;
+  }>;
+}
+
+/**
+ * COUNT-INTEGRITY-1.1: Response for asset-specific issues endpoint.
+ * Returns filtered issue list + canonical triplet summary for a specific asset.
+ * Used by asset detail pages (products, pages, collections).
+ */
+export interface AssetIssuesResponse {
+  projectId: string;
+  assetType: IssueAssetTypeKey;
+  assetId: string;
+  generatedAt: string; // ISO timestamp
+
+  // Filtered issue list (respects pillar/severity/actionability filters)
+  issues: DeoIssue[];
+
+  // Canonical triplet summary for this asset's issues
+  summary: {
+    detected: CanonicalCountTriplet;
+    actionable: CanonicalCountTriplet;
+    byPillar: Record<DeoPillarId, {
+      detected: CanonicalCountTriplet;
+      actionable: CanonicalCountTriplet;
+    }>;
+    bySeverity: Record<DeoIssueSeverity, {
+      detected: CanonicalCountTriplet;
+      actionable: CanonicalCountTriplet;
+    }>;
+  };
 }

@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma.service';
 import { IntegrationType } from '@prisma/client';
 import * as crypto from 'crypto';
 import { AutomationService } from '../projects/automation.service';
+import { RoleResolutionService } from '../common/role-resolution.service';
 import { isE2EMode } from '../config/test-env-guard';
 
 const ANSWER_BLOCK_METAFIELD_DEFINITIONS: {
@@ -95,6 +96,18 @@ interface ShopifyGraphqlEnvelope<T> {
   errors?: ShopifyGraphqlError[];
 }
 
+/**
+ * [ADMIN-OPS-1] Options for product sync.
+ */
+interface SyncProductsOptions {
+  /**
+   * When false, skips automation triggers for new products.
+   * Used by admin resync to prevent AI side effects.
+   * Default: true (triggers automation)
+   */
+  triggerAutomation?: boolean;
+}
+
 export function mapAnswerBlocksToMetafieldPayloads(
   blocks: { questionId: string; answerText: string }[],
 ): {
@@ -135,6 +148,7 @@ export class ShopifyService {
     private readonly config: ConfigService,
     @Inject(forwardRef(() => AutomationService))
     private readonly automationService: AutomationService,
+    private readonly roleResolution: RoleResolutionService,
   ) {
     this.apiKey = this.config.get<string>('SHOPIFY_API_KEY');
     this.apiSecret = this.config.get<string>('SHOPIFY_API_SECRET');
@@ -673,16 +687,18 @@ export class ShopifyService {
   }
 
   /**
-   * Check project ownership
+   * Check project ownership (OWNER role required).
+   * [ROLES-3 FIXUP-5] Uses RoleResolutionService as source of truth.
+   * Supports co-owners (any ProjectMember with OWNER role), not just legacy Project.userId.
    */
   async validateProjectOwnership(projectId: string, userId: string): Promise<boolean> {
-    const project = await this.prisma.project.findFirst({
-      where: {
-        id: projectId,
-        userId,
-      },
-    });
-    return !!project;
+    try {
+      const role = await this.roleResolution.resolveEffectiveRole(projectId, userId);
+      return role === 'OWNER';
+    } catch {
+      // User is not a project member at all
+      return false;
+    }
   }
 
   /**
@@ -807,14 +823,20 @@ export class ShopifyService {
   }
 
   /**
-   * Sync products from Shopify store to local database
+   * Sync products from Shopify store to local database.
+   * [ADMIN-OPS-1] Accepts options.triggerAutomation (default true) to control automation triggers.
    */
-  async syncProducts(projectId: string, userId: string): Promise<{
+  async syncProducts(
+    projectId: string,
+    userId: string,
+    options: SyncProductsOptions = {},
+  ): Promise<{
     projectId: string;
     synced: number;
     created: number;
     updated: number;
   }> {
+    const { triggerAutomation = true } = options;
     // Validate ownership
     const isOwner = await this.validateProjectOwnership(projectId, userId);
     if (!isOwner) {
@@ -852,6 +874,7 @@ export class ShopifyService {
       const productData = {
         title: product.title,
         description: product.body_html || null,
+        handle: product.handle || null, // [LIST-SEARCH-FILTER-1] Persist Shopify handle
         seoTitle: product.metafields_global_title_tag || product.title || null,
         seoDescription: product.metafields_global_description_tag || null,
         imageUrls: product.images?.map((img) => img.src) || [],
@@ -878,24 +901,28 @@ export class ShopifyService {
         dbProductId = newProduct.id;
         created++;
 
-        // Trigger automation for new products (non-blocking)
-        // This runs AUTO_GENERATE_METADATA_ON_NEW_PRODUCT rule
-        this.automationService
-          .runNewProductSeoTitleAutomation(projectId, newProduct.id, userId)
-          .catch((err) => {
-            this.logger.warn(
-              `[ShopifySync] Automation failed for new product ${newProduct.id}: ${err.message}`,
-            );
-          });
+        // [ADMIN-OPS-1] Only trigger automation if triggerAutomation is true
+        // Admin resync passes triggerAutomation=false to prevent AI side effects
+        if (triggerAutomation) {
+          // Trigger automation for new products (non-blocking)
+          // This runs AUTO_GENERATE_METADATA_ON_NEW_PRODUCT rule
+          this.automationService
+            .runNewProductSeoTitleAutomation(projectId, newProduct.id, userId)
+            .catch((err) => {
+              this.logger.warn(
+                `[ShopifySync] Automation failed for new product ${newProduct.id}: ${err.message}`,
+              );
+            });
 
-        // Trigger Answer Block automation for new products (non-blocking)
-        this.automationService
-          .triggerAnswerBlockAutomationForProduct(newProduct.id, userId, 'product_synced')
-          .catch((err) => {
-            this.logger.warn(
-              `[ShopifySync] Answer Block automation failed for new product ${newProduct.id}: ${err.message}`,
-            );
-          });
+          // Trigger Answer Block automation for new products (non-blocking)
+          this.automationService
+            .triggerAnswerBlockAutomationForProduct(newProduct.id, userId, 'product_synced')
+            .catch((err) => {
+              this.logger.warn(
+                `[ShopifySync] Answer Block automation failed for new product ${newProduct.id}: ${err.message}`,
+              );
+            });
+        }
       }
 
       // MEDIA-1: Upsert ProductImage records for image alt text sync
@@ -1091,6 +1118,7 @@ export class ShopifyService {
 
   /**
    * Update product SEO fields in Shopify and local database
+   * [ROLES-3 FIXUP-4] OWNER-only for apply/mutation operations
    */
   async updateProductSeo(
     productId: string,
@@ -1115,10 +1143,8 @@ export class ShopifyService {
       throw new BadRequestException('Product not found');
     }
 
-    // Validate ownership
-    if (product.project.userId !== userId) {
-      throw new BadRequestException('You do not have access to this product');
-    }
+    // [ROLES-3 FIXUP-4] OWNER-only for apply/mutation operations
+    await this.roleResolution.assertOwnerRole(product.projectId, userId);
 
     // Get Shopify integration
     const integration = await this.getShopifyIntegration(product.projectId);
@@ -1279,6 +1305,338 @@ export class ShopifyService {
       );
       throw new BadRequestException('Failed to update product SEO in Shopify');
     }
+  }
+
+  // ===========================================================================
+  // [ASSETS-PAGES-1.1] Page and Collection SEO Updates
+  // ===========================================================================
+
+  /**
+   * [ASSETS-PAGES-1.1] Update Page SEO in Shopify.
+   * Uses the pageUpdate mutation with seo field.
+   *
+   * @param shopDomain - The Shopify shop domain
+   * @param accessToken - The Shopify access token
+   * @param pageHandle - The page handle (from URL path /pages/{handle})
+   * @param seoTitle - The new SEO title
+   * @param seoDescription - The new SEO description
+   */
+  private async updateShopifyPageSeo(
+    shopDomain: string,
+    accessToken: string,
+    pageHandle: string,
+    seoTitle: string,
+    seoDescription: string,
+  ): Promise<{ pageId: string }> {
+    // First, look up the page by handle to get its ID
+    const lookupQuery = `
+      query GetPageByHandle($handle: String!) {
+        pageByHandle(handle: $handle) {
+          id
+        }
+      }
+    `;
+
+    const lookupData = await this.executeShopifyGraphql<{
+      pageByHandle: { id: string } | null;
+    }>(shopDomain, accessToken, {
+      query: lookupQuery,
+      variables: { handle: pageHandle },
+      operationName: 'GetPageByHandle',
+    });
+
+    if (!lookupData.pageByHandle) {
+      throw new BadRequestException(`Page not found with handle: ${pageHandle}`);
+    }
+
+    const pageId = lookupData.pageByHandle.id;
+
+    // Now update the page SEO
+    const mutation = `
+      mutation UpdatePageSeo($id: ID!, $page: PageUpdateInput!) {
+        pageUpdate(id: $id, page: $page) {
+          page {
+            id
+            handle
+            seo {
+              title
+              description
+            }
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+
+    const data = await this.executeShopifyGraphql<{
+      pageUpdate: {
+        page: {
+          id: string;
+          handle: string;
+          seo?: {
+            title?: string | null;
+            description?: string | null;
+          };
+        } | null;
+        userErrors: Array<{ field?: string[] | null; message: string }>;
+      } | null;
+    }>(shopDomain, accessToken, {
+      query: mutation,
+      variables: {
+        id: pageId,
+        page: {
+          seo: {
+            title: seoTitle,
+            description: seoDescription,
+          },
+        },
+      },
+      operationName: 'UpdatePageSeo',
+    });
+
+    const userErrors = data.pageUpdate?.userErrors ?? [];
+    if (userErrors.length > 0) {
+      this.logger.warn(
+        `[ShopifyGraphQL] pageUpdate returned errors: ${userErrors
+          .map((e) => e.message)
+          .join('; ')}`,
+      );
+      throw new BadRequestException('Failed to update page SEO in Shopify');
+    }
+
+    return { pageId };
+  }
+
+  /**
+   * [ASSETS-PAGES-1.1] Update Collection SEO in Shopify.
+   * Uses the collectionUpdate mutation with seo field.
+   *
+   * @param shopDomain - The Shopify shop domain
+   * @param accessToken - The Shopify access token
+   * @param collectionHandle - The collection handle (from URL path /collections/{handle})
+   * @param seoTitle - The new SEO title
+   * @param seoDescription - The new SEO description
+   */
+  private async updateShopifyCollectionSeo(
+    shopDomain: string,
+    accessToken: string,
+    collectionHandle: string,
+    seoTitle: string,
+    seoDescription: string,
+  ): Promise<{ collectionId: string }> {
+    // First, look up the collection by handle to get its ID
+    const lookupQuery = `
+      query GetCollectionByHandle($handle: String!) {
+        collectionByHandle(handle: $handle) {
+          id
+        }
+      }
+    `;
+
+    const lookupData = await this.executeShopifyGraphql<{
+      collectionByHandle: { id: string } | null;
+    }>(shopDomain, accessToken, {
+      query: lookupQuery,
+      variables: { handle: collectionHandle },
+      operationName: 'GetCollectionByHandle',
+    });
+
+    if (!lookupData.collectionByHandle) {
+      throw new BadRequestException(`Collection not found with handle: ${collectionHandle}`);
+    }
+
+    const collectionId = lookupData.collectionByHandle.id;
+
+    // Now update the collection SEO
+    const mutation = `
+      mutation UpdateCollectionSeo($input: CollectionInput!) {
+        collectionUpdate(input: $input) {
+          collection {
+            id
+            handle
+            seo {
+              title
+              description
+            }
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+
+    const data = await this.executeShopifyGraphql<{
+      collectionUpdate: {
+        collection: {
+          id: string;
+          handle: string;
+          seo?: {
+            title?: string | null;
+            description?: string | null;
+          };
+        } | null;
+        userErrors: Array<{ field?: string[] | null; message: string }>;
+      } | null;
+    }>(shopDomain, accessToken, {
+      query: mutation,
+      variables: {
+        input: {
+          id: collectionId,
+          seo: {
+            title: seoTitle,
+            description: seoDescription,
+          },
+        },
+      },
+      operationName: 'UpdateCollectionSeo',
+    });
+
+    const userErrors = data.collectionUpdate?.userErrors ?? [];
+    if (userErrors.length > 0) {
+      this.logger.warn(
+        `[ShopifyGraphQL] collectionUpdate returned errors: ${userErrors
+          .map((e) => e.message)
+          .join('; ')}`,
+      );
+      throw new BadRequestException('Failed to update collection SEO in Shopify');
+    }
+
+    return { collectionId };
+  }
+
+  /**
+   * [ASSETS-PAGES-1.1] Public method to update Page SEO.
+   * Validates project access, gets integration, and calls Shopify API.
+   *
+   * @param projectId - The project ID
+   * @param pageHandle - The page handle
+   * @param seoTitle - The new SEO title
+   * @param seoDescription - The new SEO description
+   * @param userId - The user ID (must be OWNER)
+   */
+  async updatePageSeo(
+    projectId: string,
+    pageHandle: string,
+    seoTitle: string,
+    seoDescription: string,
+    userId: string,
+  ): Promise<{
+    projectId: string;
+    pageHandle: string;
+    shopDomain: string;
+    seoTitle: string;
+    seoDescription: string;
+  }> {
+    // [ROLES-3] OWNER-only for apply/mutation operations
+    await this.roleResolution.assertOwnerRole(projectId, userId);
+
+    // Get Shopify integration
+    const integration = await this.getShopifyIntegration(projectId);
+    if (!integration || !integration.accessToken || !integration.externalId) {
+      throw new BadRequestException('No Shopify integration found for this project');
+    }
+
+    const shopDomain = integration.externalId;
+    const accessToken = integration.accessToken;
+
+    // Update SEO in Shopify
+    await this.updateShopifyPageSeo(
+      shopDomain,
+      accessToken,
+      pageHandle,
+      seoTitle,
+      seoDescription,
+    );
+
+    // Update local CrawlResult record
+    await this.prisma.crawlResult.updateMany({
+      where: {
+        projectId,
+        url: { endsWith: `/pages/${pageHandle}` },
+      },
+      data: {
+        title: seoTitle,
+        metaDescription: seoDescription,
+      },
+    });
+
+    return {
+      projectId,
+      pageHandle,
+      shopDomain,
+      seoTitle,
+      seoDescription,
+    };
+  }
+
+  /**
+   * [ASSETS-PAGES-1.1] Public method to update Collection SEO.
+   * Validates project access, gets integration, and calls Shopify API.
+   *
+   * @param projectId - The project ID
+   * @param collectionHandle - The collection handle
+   * @param seoTitle - The new SEO title
+   * @param seoDescription - The new SEO description
+   * @param userId - The user ID (must be OWNER)
+   */
+  async updateCollectionSeo(
+    projectId: string,
+    collectionHandle: string,
+    seoTitle: string,
+    seoDescription: string,
+    userId: string,
+  ): Promise<{
+    projectId: string;
+    collectionHandle: string;
+    shopDomain: string;
+    seoTitle: string;
+    seoDescription: string;
+  }> {
+    // [ROLES-3] OWNER-only for apply/mutation operations
+    await this.roleResolution.assertOwnerRole(projectId, userId);
+
+    // Get Shopify integration
+    const integration = await this.getShopifyIntegration(projectId);
+    if (!integration || !integration.accessToken || !integration.externalId) {
+      throw new BadRequestException('No Shopify integration found for this project');
+    }
+
+    const shopDomain = integration.externalId;
+    const accessToken = integration.accessToken;
+
+    // Update SEO in Shopify
+    await this.updateShopifyCollectionSeo(
+      shopDomain,
+      accessToken,
+      collectionHandle,
+      seoTitle,
+      seoDescription,
+    );
+
+    // Update local CrawlResult record
+    await this.prisma.crawlResult.updateMany({
+      where: {
+        projectId,
+        url: { endsWith: `/collections/${collectionHandle}` },
+      },
+      data: {
+        title: seoTitle,
+        metaDescription: seoDescription,
+      },
+    });
+
+    return {
+      projectId,
+      collectionHandle,
+      shopDomain,
+      seoTitle,
+      seoDescription,
+    };
   }
 }
 

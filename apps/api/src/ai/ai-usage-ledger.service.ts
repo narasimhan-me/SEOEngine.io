@@ -9,7 +9,8 @@ export type AiUsageRunType =
   | 'PREVIEW_GENERATE'
   | 'DRAFT_GENERATE'
   | 'APPLY'
-  | 'INTENT_FIX_PREVIEW'; // SEARCH-INTENT-1
+  | 'INTENT_FIX_PREVIEW' // SEARCH-INTENT-1
+  | 'GEO_FIX_PREVIEW'; // GEO-FOUNDATION-1
 
 export interface AiUsageProjectSummary {
   projectId: string;
@@ -111,6 +112,7 @@ export class AiUsageLedgerService {
       switch (run.runType) {
         case 'PREVIEW_GENERATE':
         case 'INTENT_FIX_PREVIEW': // SEARCH-INTENT-1: Treat as preview
+        case 'GEO_FIX_PREVIEW': // GEO-FOUNDATION-1: Treat as preview
           previewRuns++;
           break;
         case 'DRAFT_GENERATE':
@@ -227,6 +229,9 @@ export class AiUsageLedgerService {
   /**
    * Record an AI run in the ledger.
    * This creates an AutomationPlaybookRun record for tracking AI usage.
+   *
+   * [ROLES-3-HARDEN-1] Added actorUserId parameter for multi-user attribution.
+   * If not provided, falls back to project.userId for backwards compatibility.
    */
   async recordAiRun(params: {
     projectId: string;
@@ -236,7 +241,11 @@ export class AiUsageLedgerService {
     productsSkipped: number;
     draftsFresh: number;
     draftsReused: number;
+    playbookId?: string;
+    rulesHash?: string;
     metadata?: Record<string, unknown>;
+    /** [ROLES-3-HARDEN-1] The user who triggered this AI run (for multi-user attribution) */
+    actorUserId?: string;
   }): Promise<void> {
     const {
       projectId,
@@ -247,22 +256,30 @@ export class AiUsageLedgerService {
       draftsFresh,
       draftsReused,
       metadata,
+      actorUserId,
     } = params;
 
-    // Get the project to find the user
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      select: { userId: true },
-    });
+    // [ROLES-3-HARDEN-1] Use actorUserId if provided, otherwise fall back to project.userId
+    let createdByUserId = actorUserId;
 
-    if (!project) {
-      this.logger.warn(`[AiUsageLedgerService] Project not found: ${projectId}`);
-      return;
+    if (!createdByUserId) {
+      // Get the project to find the user (legacy fallback for backwards compatibility)
+      const project = await this.prisma.project.findUnique({
+        where: { id: projectId },
+        select: { userId: true },
+      });
+
+      if (!project) {
+        this.logger.warn(`[AiUsageLedgerService] Project not found: ${projectId}`);
+        return;
+      }
+
+      createdByUserId = project.userId;
     }
 
     // Generate deterministic keys for the run
     const idempotencyKey = `${runType}:${productIds.join(',')}:${Date.now()}`;
-    const rulesHash = 'intent-fix'; // Simplified for intent fixes
+    const rulesHash = params.rulesHash ?? 'intent-fix'; // Simplified default
     const scopeId = productIds.length === 1 ? productIds[0] : 'batch';
     const aiWorkKey = metadata?.aiWorkKey as string | undefined;
 
@@ -270,8 +287,8 @@ export class AiUsageLedgerService {
       await this.prisma.automationPlaybookRun.create({
         data: {
           projectId,
-          createdByUserId: project.userId,
-          playbookId: 'search-intent-fix', // Virtual playbook for intent fixes
+          createdByUserId, // [ROLES-3-HARDEN-1] Now uses actorUserId when provided
+          playbookId: params.playbookId ?? 'search-intent-fix', // Virtual playbook default
           runType: runType as AutomationPlaybookRunType,
           status: 'SUCCEEDED',
           scopeId,

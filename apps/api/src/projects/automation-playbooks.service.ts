@@ -17,7 +17,15 @@ import {
 import { AiService } from '../ai/ai.service';
 import { PlanId } from '../billing/plans';
 import { AiUsageQuotaService } from '../ai/ai-usage-quota.service';
+import { RoleResolutionService } from '../common/role-resolution.service';
+import type { AutomationAssetType, AssetRef } from '@engineo/shared';
+import { parseAssetRef } from '@engineo/shared';
 
+/**
+ * Canonical playbook IDs.
+ * [ASSETS-PAGES-1.1] Only two playbook IDs exist: missing_seo_title, missing_seo_description.
+ * Asset type differentiation (PRODUCTS, PAGES, COLLECTIONS) is done via the assetType parameter.
+ */
 export type AutomationPlaybookId = 'missing_seo_title' | 'missing_seo_description';
 
 export type AutomationPlaybookDraftStatus = 'READY' | 'PARTIAL' | 'FAILED' | 'EXPIRED';
@@ -26,6 +34,14 @@ export interface PlaybookDraftCounts {
   affectedTotal: number;
   draftGenerated: number;
   noSuggestionCount: number;
+}
+
+export interface AutomationEntryConfigV1 {
+  enabled: boolean;
+  trigger: 'manual_only';
+  scopeProductIds?: string[];
+  intent?: string;
+  updatedAt: string;
 }
 
 export interface PlaybookRulesV1 {
@@ -141,6 +157,19 @@ export interface PlaybookDraftItem {
   ruleWarnings: string[];
 }
 
+/**
+ * [ROLES-3] Updated with ProjectMember-aware access enforcement
+ *
+ * Access control:
+ * - previewPlaybook: OWNER/EDITOR can generate (canGenerateDrafts)
+ * - generateDraft: OWNER/EDITOR can generate (canGenerateDrafts)
+ * - getLatestDraft: Any ProjectMember can view (assertProjectAccess)
+ * - estimatePlaybook: Any ProjectMember can view (assertProjectAccess)
+ * - applyPlaybook: OWNER only (assertOwnerRole)
+ * - setAutomationEntryConfig: OWNER only (assertOwnerRole)
+ *
+ * VIEWER role is blocked from draft generation entirely.
+ */
 @Injectable()
 export class AutomationPlaybooksService {
   constructor(
@@ -149,20 +178,138 @@ export class AutomationPlaybooksService {
     private readonly tokenUsageService: TokenUsageService,
     private readonly aiService: AiService,
     private readonly aiUsageQuotaService: AiUsageQuotaService,
+    private readonly roleResolution: RoleResolutionService,
   ) {}
 
-  private async ensureProjectOwnership(projectId: string, userId: string) {
+  /**
+   * [ROLES-3] Legacy helper - kept for internal use where we need project data
+   */
+  private async getProjectOrThrow(projectId: string) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project) {
       throw new NotFoundException('Project not found');
     }
-    if (project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this project');
-    }
     return project;
   }
+
+  // ===========================================================================
+  // [ASSETS-PAGES-1.1] Asset-scoped helpers
+  // ===========================================================================
+
+  /**
+   * Extract handle from URL path for pages and collections.
+   * e.g., /pages/about-us -> about-us, /collections/summer-sale -> summer-sale
+   */
+  private extractHandleFromUrl(url: string, assetType: 'PAGES' | 'COLLECTIONS'): string | null {
+    try {
+      const urlObj = new URL(url);
+      const path = urlObj.pathname.toLowerCase();
+      const prefix = assetType === 'PAGES' ? '/pages/' : '/collections/';
+      if (path.startsWith(prefix)) {
+        const handle = path.slice(prefix.length).replace(/\/$/, '');
+        return handle || null;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Resolve asset refs (page_handle:*, collection_handle:*) to CrawlResult records.
+   * Returns array of { id, url, handle } objects.
+   */
+  private async resolveAssetRefs(
+    projectId: string,
+    assetType: 'PAGES' | 'COLLECTIONS',
+    scopeAssetRefs?: AssetRef[] | null,
+  ): Promise<Array<{ id: string; url: string; handle: string; title: string | null; metaDescription: string | null }>> {
+    // Get all crawl results for the project
+    const crawlResults = await this.prisma.crawlResult.findMany({
+      where: { projectId },
+      select: {
+        id: true,
+        url: true,
+        title: true,
+        metaDescription: true,
+      },
+      orderBy: { scannedAt: 'desc' },
+    });
+
+    // Filter to only include the target asset type
+    const prefix = assetType === 'PAGES' ? '/pages/' : '/collections/';
+    const assetsWithHandles = crawlResults
+      .map((cr) => {
+        const handle = this.extractHandleFromUrl(cr.url, assetType);
+        return handle ? { ...cr, handle } : null;
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+
+    // If specific refs are provided, filter to those
+    if (scopeAssetRefs && scopeAssetRefs.length > 0) {
+      const refHandles = new Set<string>();
+      for (const ref of scopeAssetRefs) {
+        const parsed = parseAssetRef(ref);
+        if (parsed) {
+          refHandles.add(parsed.handle);
+        }
+      }
+      return assetsWithHandles.filter((asset) => refHandles.has(asset.handle));
+    }
+
+    return assetsWithHandles;
+  }
+
+  /**
+   * Get assets that need SEO fixes (missing title or description).
+   * For Pages/Collections, uses CrawlResult data.
+   *
+   * [ASSETS-PAGES-1.1] Uses canonical playbook IDs (missing_seo_title, missing_seo_description)
+   * with assetType parameter for asset type differentiation.
+   */
+  private async getAffectedAssets(
+    projectId: string,
+    playbookId: AutomationPlaybookId,
+    assetType: 'PAGES' | 'COLLECTIONS',
+    scopeAssetRefs?: AssetRef[] | null,
+  ): Promise<Array<{ id: string; url: string; handle: string; title: string | null; metaDescription: string | null }>> {
+    const allAssets = await this.resolveAssetRefs(projectId, assetType, scopeAssetRefs);
+
+    // Filter to assets needing fixes based on canonical playbook ID
+    const needsTitle = playbookId === 'missing_seo_title';
+
+    return allAssets.filter((asset) => {
+      if (needsTitle) {
+        return !asset.title || asset.title.trim() === '';
+      } else {
+        return !asset.metaDescription || asset.metaDescription.trim() === '';
+      }
+    });
+  }
+
+  /**
+   * Compute scopeId for asset-scoped playbooks.
+   * Uses handle-based refs for deterministic scope tracking.
+   *
+   * [ASSETS-PAGES-1.1] The scopeId now includes assetType to ensure unique scopes
+   * per asset type even when using the same canonical playbook ID.
+   */
+  private computeAssetScopeId(
+    projectId: string,
+    playbookId: AutomationPlaybookId,
+    assetType: 'PAGES' | 'COLLECTIONS',
+    handles: string[],
+  ): string {
+    const sorted = [...handles].sort();
+    const payload = `${projectId}:${playbookId}:${assetType}:${sorted.join(',')}`;
+    return createHash('sha256').update(payload).digest('hex').slice(0, 16);
+  }
+
+  // ===========================================================================
+  // Original product-scoped helpers
+  // ===========================================================================
 
   private getPlaybookWhere(
     projectId: string,
@@ -178,6 +325,49 @@ export class AutomationPlaybooksService {
       projectId,
       OR: [{ seoDescription: null }, { seoDescription: '' }],
     };
+  }
+
+  private async resolveAffectedProductIds(
+    projectId: string,
+    playbookId: AutomationPlaybookId,
+    scopeProductIds?: string[] | null,
+  ): Promise<string[]> {
+    if (!scopeProductIds || scopeProductIds.length === 0) {
+      return this.getAffectedProductIds(projectId, playbookId);
+    }
+    const uniqueScopeIds = Array.from(new Set(scopeProductIds)).filter(Boolean);
+    if (uniqueScopeIds.length === 0) {
+      return [];
+    }
+    const ownedCount = await this.prisma.product.count({
+      where: {
+        projectId,
+        id: { in: uniqueScopeIds },
+      },
+    });
+    if (ownedCount !== uniqueScopeIds.length) {
+      throw new BadRequestException(
+        'One or more scopeProductIds are invalid for this project',
+      );
+    }
+    const where =
+      playbookId === 'missing_seo_title'
+        ? {
+            projectId,
+            id: { in: uniqueScopeIds },
+            OR: [{ seoTitle: null }, { seoTitle: '' }],
+          }
+        : {
+            projectId,
+            id: { in: uniqueScopeIds },
+            OR: [{ seoDescription: null }, { seoDescription: '' }],
+          };
+    const products = await this.prisma.product.findMany({
+      where,
+      select: { id: true },
+      orderBy: { lastSyncedAt: 'desc' },
+    });
+    return products.map((p) => p.id);
   }
 
   /**
@@ -330,8 +520,10 @@ export class AutomationPlaybooksService {
     playbookId: AutomationPlaybookId,
     rules?: PlaybookRulesV1,
     sampleSize = 3,
+    scopeProductIds?: string[] | null,
   ): Promise<PlaybookPreviewResponse> {
-    await this.ensureProjectOwnership(projectId, userId);
+    // [ROLES-3] Only OWNER/EDITOR can generate drafts (VIEWER blocked)
+    await this.roleResolution.assertCanGenerateDrafts(projectId, userId);
 
     // AI-USAGE v2: Plan-aware quota enforcement for preview generation.
     // This check must run before any AI work is performed.
@@ -361,9 +553,10 @@ export class AutomationPlaybooksService {
       );
     }
 
-    const affectedProductIds = await this.getAffectedProductIds(
+    const affectedProductIds = await this.resolveAffectedProductIds(
       projectId,
       playbookId,
+      scopeProductIds,
     );
     const scopeId = this.computeScopeId(projectId, playbookId, affectedProductIds);
     const normalizedRules = this.normalizeRules(rules);
@@ -460,6 +653,26 @@ export class AutomationPlaybooksService {
       noSuggestionCount,
     };
 
+    const existingDraft = await this.prisma.automationPlaybookDraft.findUnique({
+      where: {
+        projectId_playbookId_scopeId_rulesHash: {
+          projectId,
+          playbookId,
+          scopeId,
+          rulesHash,
+        },
+      },
+      select: { rules: true },
+    });
+    const preservedAutomationEntryConfig =
+      (existingDraft?.rules as any)?.__automationEntryConfig ?? undefined;
+    const rulesToPersist: Record<string, unknown> = {
+      ...(normalizedRules as unknown as Record<string, unknown>),
+      ...(preservedAutomationEntryConfig
+        ? { __automationEntryConfig: preservedAutomationEntryConfig }
+        : {}),
+    };
+
     const draft = await this.prisma.automationPlaybookDraft.upsert({
       where: {
         projectId_playbookId_scopeId_rulesHash: {
@@ -478,7 +691,7 @@ export class AutomationPlaybooksService {
         sampleProductIds: sampleIds as unknown as any,
         draftItems: draftItems as unknown as any,
         counts: counts as unknown as any,
-        rules: normalizedRules as unknown as any,
+        rules: rulesToPersist as unknown as any,
         createdByUserId: userId,
       },
       update: {
@@ -486,7 +699,7 @@ export class AutomationPlaybooksService {
         sampleProductIds: sampleIds as unknown as any,
         draftItems: draftItems as unknown as any,
         counts: counts as unknown as any,
-        rules: normalizedRules as unknown as any,
+        rules: rulesToPersist as unknown as any,
       },
     });
 
@@ -520,6 +733,7 @@ export class AutomationPlaybooksService {
     playbookId: AutomationPlaybookId,
     scopeId: string,
     rulesHash: string,
+    scopeProductIds?: string[] | null,
   ): Promise<{
     projectId: string;
     playbookId: AutomationPlaybookId;
@@ -531,7 +745,8 @@ export class AutomationPlaybooksService {
     // CACHE/REUSE v2: Indicates whether AI was actually called during this request
     aiCalled?: boolean;
   }> {
-    await this.ensureProjectOwnership(projectId, userId);
+    // [ROLES-3] Only OWNER/EDITOR can generate drafts (VIEWER blocked)
+    await this.roleResolution.assertCanGenerateDrafts(projectId, userId);
 
     // AI-USAGE v2: Plan-aware quota enforcement for full draft generation.
     // This check must run before any AI work is performed.
@@ -559,9 +774,10 @@ export class AutomationPlaybooksService {
       );
     }
 
-    const affectedProductIds = await this.getAffectedProductIds(
+    const affectedProductIds = await this.resolveAffectedProductIds(
       projectId,
       playbookId,
+      scopeProductIds,
     );
     const currentScopeId = this.computeScopeId(
       projectId,
@@ -764,8 +980,10 @@ export class AutomationPlaybooksService {
     counts: PlaybookDraftCounts | null;
     sampleProductIds: string[];
     draftItems: PlaybookDraftItem[];
+    rules?: Record<string, unknown> | null;
   } | null> {
-    await this.ensureProjectOwnership(projectId, userId);
+    // [ROLES-3] Any ProjectMember can view drafts
+    await this.roleResolution.assertProjectAccess(projectId, userId);
 
     const draft = await this.prisma.automationPlaybookDraft.findFirst({
       where: {
@@ -791,26 +1009,53 @@ export class AutomationPlaybooksService {
         (draft.sampleProductIds as unknown as string[] | null) ?? ([] as string[]),
       draftItems:
         (draft.draftItems as unknown as PlaybookDraftItem[] | null) ?? ([] as PlaybookDraftItem[]),
+      rules: (draft.rules as unknown as Record<string, unknown> | null) ?? null,
     };
   }
 
+  /**
+   * [ASSETS-PAGES-1.1] Estimate a playbook with optional asset type scoping.
+   *
+   * @param assetType - 'PRODUCTS' (default), 'PAGES', or 'COLLECTIONS'
+   * @param scopeAssetRefs - Handle-based refs for non-product assets (e.g., 'page_handle:about-us')
+   */
   async estimatePlaybook(
     userId: string,
     projectId: string,
     playbookId: AutomationPlaybookId,
+    scopeProductIds?: string[] | null,
+    assetType?: AutomationAssetType,
+    scopeAssetRefs?: AssetRef[] | null,
   ): Promise<PlaybookEstimate> {
-    await this.ensureProjectOwnership(projectId, userId);
+    // [ROLES-3] Any ProjectMember can view estimates
+    await this.roleResolution.assertProjectAccess(projectId, userId);
 
-    const affectedProductIds = await this.getAffectedProductIds(
-      projectId,
-      playbookId,
-    );
-    const totalAffectedProducts = affectedProductIds.length;
-    const scopeId = this.computeScopeId(
-      projectId,
-      playbookId,
-      affectedProductIds,
-    );
+    const effectiveAssetType = assetType ?? 'PRODUCTS';
+
+    // [ASSETS-PAGES-1.1] Branch based on asset type
+    let totalAffectedProducts: number;
+    let scopeId: string;
+
+    if (effectiveAssetType === 'PRODUCTS') {
+      const affectedProductIds = await this.resolveAffectedProductIds(
+        projectId,
+        playbookId,
+        scopeProductIds,
+      );
+      totalAffectedProducts = affectedProductIds.length;
+      scopeId = this.computeScopeId(projectId, playbookId, affectedProductIds);
+    } else {
+      // PAGES or COLLECTIONS
+      const affectedAssets = await this.getAffectedAssets(
+        projectId,
+        playbookId,
+        effectiveAssetType,
+        scopeAssetRefs,
+      );
+      totalAffectedProducts = affectedAssets.length;
+      const handles = affectedAssets.map((a) => a.handle);
+      scopeId = this.computeAssetScopeId(projectId, playbookId, effectiveAssetType, handles);
+    }
 
     let rulesHash = this.computeRulesHash(null);
     let draftStatus: AutomationPlaybookDraftStatus | undefined;
@@ -905,8 +1150,11 @@ export class AutomationPlaybooksService {
     playbookId: AutomationPlaybookId,
     scopeId: string,
     rulesHash: string,
+    scopeProductIds?: string[] | null,
   ): Promise<PlaybookApplyResult> {
-    const project = await this.ensureProjectOwnership(projectId, userId);
+    // [ROLES-3] Only OWNER can apply playbooks
+    await this.roleResolution.assertOwnerRole(projectId, userId);
+    const project = await this.getProjectOrThrow(projectId);
 
     const planId = await this.entitlementsService.getUserPlan(userId);
     if (planId === 'free') {
@@ -920,9 +1168,10 @@ export class AutomationPlaybooksService {
       });
     }
 
-    const affectedProductIds = await this.getAffectedProductIds(
+    const affectedProductIds = await this.resolveAffectedProductIds(
       projectId,
       playbookId,
+      scopeProductIds,
     );
     const currentScopeId = this.computeScopeId(
       projectId,
@@ -1116,6 +1365,18 @@ export class AutomationPlaybooksService {
       aiCalled: false,
     });
 
+    // [WORK-QUEUE-1] Mark draft as applied for "Applied Recently" tab derivation
+    // Only set if at least one product was updated successfully
+    if (updatedCount > 0) {
+      await this.prisma.automationPlaybookDraft.update({
+        where: { id: latestDraft.id },
+        data: {
+          appliedAt: finishedAt,
+          appliedByUserId: userId,
+        },
+      });
+    }
+
     return {
       projectId,
       playbookId,
@@ -1128,6 +1389,82 @@ export class AutomationPlaybooksService {
       stoppedAtProductId: undefined,
       failureReason: undefined,
       results,
+    };
+  }
+
+  async setAutomationEntryConfig(
+    userId: string,
+    projectId: string,
+    playbookId: AutomationPlaybookId,
+    params: {
+      enabled: boolean;
+      trigger: 'manual_only';
+      scopeId: string;
+      rulesHash: string;
+      scopeProductIds?: string[] | null;
+      intent?: string;
+    },
+  ): Promise<{
+    projectId: string;
+    playbookId: AutomationPlaybookId;
+    enabled: boolean;
+    trigger: 'manual_only';
+    scopeId: string;
+    rulesHash: string;
+    updatedAt: string;
+  }> {
+    // [ROLES-3] Only OWNER can configure automation settings
+    await this.roleResolution.assertOwnerRole(projectId, userId);
+
+    const draft = await this.prisma.automationPlaybookDraft.findUnique({
+      where: {
+        projectId_playbookId_scopeId_rulesHash: {
+          projectId,
+          playbookId,
+          scopeId: params.scopeId,
+          rulesHash: params.rulesHash,
+        },
+      },
+    });
+
+    if (!draft) {
+      throw new ConflictException({
+        message:
+          'No Automation Playbook draft was found for this scope. Generate a sample preview before enabling.',
+        error: 'PLAYBOOK_DRAFT_NOT_FOUND',
+        code: 'PLAYBOOK_DRAFT_NOT_FOUND',
+        scopeId: params.scopeId,
+      });
+    }
+
+    const updatedAt = new Date().toISOString();
+    const currentRules = (draft.rules as unknown as Record<string, unknown> | null) ?? {};
+    const nextRules = {
+      ...currentRules,
+      __automationEntryConfig: {
+        enabled: params.enabled,
+        trigger: 'manual_only',
+        scopeProductIds: params.scopeProductIds ?? undefined,
+        intent: params.intent ?? undefined,
+        updatedAt,
+      } satisfies AutomationEntryConfigV1,
+    };
+
+    await this.prisma.automationPlaybookDraft.update({
+      where: { id: draft.id },
+      data: {
+        rules: nextRules as unknown as any,
+      },
+    });
+
+    return {
+      projectId,
+      playbookId,
+      enabled: params.enabled,
+      trigger: 'manual_only',
+      scopeId: params.scopeId,
+      rulesHash: params.rulesHash,
+      updatedAt,
     };
   }
 }

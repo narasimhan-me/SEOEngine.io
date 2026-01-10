@@ -439,7 +439,7 @@ function QueryItem({ query, status, intentType, onPreview, isPreviewing, isLoadi
         disabled={isLoading}
         className="flex-shrink-0 rounded bg-white px-2 py-0.5 text-[10px] font-medium text-blue-600 shadow-sm hover:bg-gray-50 disabled:opacity-50"
       >
-        {isPreviewing && isLoading ? 'Loading...' : 'Preview Fix'}
+        {isPreviewing && isLoading ? 'Loading...' : 'Preview Fix (uses AI)'}
       </button>
     </div>
   );

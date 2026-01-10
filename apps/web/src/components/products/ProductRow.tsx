@@ -1,149 +1,123 @@
-import { useState, type KeyboardEvent, type MouseEvent } from 'react';
+import { type MouseEvent } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
-import type { DeoIssueSeverity } from '@/lib/deo-issues';
-import type { Product, ProductStatus } from '@/lib/products';
+import type { DeoPillarId } from '@/lib/deo-pillars';
+import type { Product } from '@/lib/products';
+import type { HealthState } from './ProductTable';
 import { ProductDetailPanel } from './ProductDetailPanel';
-import { IssueBadge } from '@/components/issues/IssueBadge';
+import { RowStatusChip } from '@/components/common/RowStatusChip';
+import type { RowChipLabel, RowAction } from '@/lib/list-actions-clarity';
+
+/**
+ * Issue summary by pillar for display in expanded details
+ */
+export interface PillarIssueSummary {
+  pillarId: DeoPillarId;
+  label: string;
+  count: number;
+}
 
 interface ProductRowProps {
   product: Product;
   projectId: string;
-  status: ProductStatus;
+  healthState: HealthState;
+  recommendedAction: string;
+  issuesByPillar?: PillarIssueSummary[];
+  showRescan: boolean;
   isExpanded: boolean;
   onToggle: () => void;
   onScan: () => void;
   onSyncProject: () => void;
   isSyncing: boolean;
   isScanning: boolean;
-  issueCount?: number;
-  maxIssueSeverity?: DeoIssueSeverity | null;
+  /** [LIST-ACTIONS-CLARITY-1] Row chip label from resolver */
+  chipLabel?: RowChipLabel;
+  /** [LIST-ACTIONS-CLARITY-1] Primary action from resolver */
+  primaryAction?: RowAction | null;
+  /** [LIST-ACTIONS-CLARITY-1] Secondary action from resolver */
+  secondaryAction?: RowAction | null;
+  /** [LIST-ACTIONS-CLARITY-1] Help text for optimized state */
+  helpText?: string;
 }
 
 export function ProductRow({
   product,
   projectId,
-  status,
+  healthState,
+  recommendedAction,
+  issuesByPillar,
+  showRescan,
   isExpanded,
-  onToggle: _onToggle,
+  onToggle,
   onScan,
-  onSyncProject,
-  isSyncing,
   isScanning,
-  issueCount,
-  maxIssueSeverity,
+  chipLabel,
+  primaryAction,
+  secondaryAction,
+  helpText,
 }: ProductRowProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const router = useRouter();
-
   const workspacePath = `/projects/${projectId}/products/${product.id}`;
 
-  const openWorkspace = () => {
-    router.push(workspacePath);
-  };
-
+  // Handle row click for progressive disclosure (expand/collapse)
   const handleRowClick = (event: MouseEvent<HTMLDivElement>) => {
-    const target = event.target as HTMLElement | null;
+    // Don't toggle if clicking on interactive elements
+    const target = event.target as HTMLElement;
     if (
-      target &&
-      (target.closest('button') ||
-        target.closest('[data-no-row-click]') ||
-        target.closest('a'))
+      target.closest('a') ||
+      target.closest('button') ||
+      target.closest('[data-no-row-click]')
     ) {
       return;
     }
-
-    openWorkspace();
+    onToggle();
   };
 
-  const handleRowKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== 'Enter' && event.key !== ' ') {
-      return;
+  // Handle keyboard navigation for accessibility
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onToggle();
     }
-
-    const target = event.target as HTMLElement | null;
-    if (
-      target &&
-      (target.closest('button') ||
-        target.closest('[data-no-row-click]') ||
-        target.closest('a'))
-    ) {
-      return;
-    }
-
-    event.preventDefault();
-    openWorkspace();
   };
 
-  const stopAnd = (event: MouseEvent, fn: () => void) => {
+  // Prevent buttons from triggering row toggle
+  const handleButtonClick = (event: MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
     event.stopPropagation();
-    fn();
   };
 
-  const handleMenuToggle = (event: MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    setMenuOpen((open) => !open);
+  // Health pill styling
+  const healthPillClasses = {
+    Healthy: 'bg-green-50 text-green-700 ring-1 ring-green-200',
+    'Needs Attention': 'bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200',
+    Critical: 'bg-red-50 text-red-700 ring-1 ring-red-200',
   };
-
-  const handleViewDetails = (event: MouseEvent<HTMLButtonElement>) => {
-    stopAnd(event, () => {
-      setMenuOpen(false);
-      openWorkspace();
-    });
-  };
-
-  const handleSync = (event: MouseEvent<HTMLButtonElement>) => {
-    stopAnd(event, () => {
-      onSyncProject();
-      setMenuOpen(false);
-    });
-  };
-
-  // Status labels explicitly reference metadata status (not overall DEO health)
-  const statusLabel =
-    status === 'optimized'
-      ? 'Metadata optimized'
-      : status === 'needs-optimization'
-        ? 'Metadata needs work'
-        : 'Metadata missing';
-
-  const statusClasses =
-    status === 'optimized'
-      ? 'bg-green-50 text-green-800 ring-1 ring-green-100'
-      : status === 'needs-optimization'
-        ? 'bg-yellow-50 text-yellow-800 ring-1 ring-yellow-100'
-        : 'bg-red-50 text-red-800 ring-1 ring-red-100';
-
-  const hasMetaTitle = !!product.seoTitle?.trim();
-  const hasMetaDescription = !!product.seoDescription?.trim();
 
   return (
     <div className="relative">
+      {/* Row container - clickable for progressive disclosure */}
       <div
-        className="flex cursor-pointer flex-col gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 transition-all hover:bg-gray-50 hover:shadow-sm active:bg-gray-100 sm:flex-row sm:items-center sm:justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
-        onClick={handleRowClick}
-        onKeyDown={handleRowKeyDown}
         role="button"
         tabIndex={0}
+        onClick={handleRowClick}
+        onKeyDown={handleKeyDown}
+        className="flex cursor-pointer flex-col gap-4 rounded-lg border border-gray-200 bg-white px-4 py-4 transition-colors hover:bg-gray-50 active:bg-gray-100 sm:flex-row sm:items-center sm:justify-between"
       >
-        {/* Header section – image + title + handle + status (mobile) */}
+        {/* Left section - image + title + recommended action */}
         <div className="flex min-w-0 flex-1 items-start gap-3">
           {product.imageUrls && product.imageUrls.length > 0 ? (
             <Image
               src={product.imageUrls[0]}
               alt={product.title}
-              width={40}
-              height={40}
-              className="h-10 w-10 flex-shrink-0 rounded object-cover"
+              width={48}
+              height={48}
+              className="h-12 w-12 flex-shrink-0 rounded object-cover"
               unoptimized
             />
           ) : (
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded bg-gray-100">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded bg-gray-100">
               <svg
-                className="h-5 w-5 text-gray-400"
+                className="h-6 w-6 text-gray-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -158,54 +132,48 @@ export function ProductRow({
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <div className="line-clamp-2 text-sm font-medium text-gray-900 sm:line-clamp-1">
+            {/* Title line */}
+            <div className="line-clamp-1 text-sm font-medium text-gray-900">
               {product.title}
             </div>
-            <div className="mt-0.5 truncate text-xs text-gray-500">
-              {product.handle ?? product.externalId}
-            </div>
-            {/* Status chip (mobile) + Open Workspace link */}
-            <div className="mt-1.5 flex flex-wrap items-center gap-2">
-              <span
-                className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium sm:hidden ${statusClasses}`}
-              >
-                {statusLabel}
-              </span>
-              <Link
-                href={workspacePath}
-                className="inline-flex items-center text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                data-no-row-click
-                onClick={(event) => event.stopPropagation()}
-              >
-                Open Workspace
-                <span aria-hidden="true" className="ml-0.5">
-                  &rarr;
-                </span>
-              </Link>
+            {/* Action line (recommended action) */}
+            <div className="mt-0.5 text-xs text-gray-500">
+              {recommendedAction}
             </div>
           </div>
         </div>
 
-        {/* Middle section – status (desktop) + micro indicators */}
-        <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <div className="hidden items-center gap-2 sm:flex">
-            {/* Status chip - desktop only */}
+        {/* Middle section - Status chip (visible on all sizes) */}
+        <div className="flex items-center gap-3 sm:justify-center">
+          {/* [LIST-ACTIONS-CLARITY-1] Use RowStatusChip if chipLabel provided, else fall back to legacy */}
+          {chipLabel ? (
+            <RowStatusChip chipLabel={chipLabel} />
+          ) : (
             <span
-              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${statusClasses}`}
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${healthPillClasses[healthState]}`}
             >
-              {statusLabel}
+              {healthState}
             </span>
-            {/* Scan SEO button - desktop only */}
+          )}
+        </div>
+
+        {/* Right section - Actions */}
+        <div className="flex items-center gap-2 sm:justify-end">
+          {/* Rescan button - only shown when stale */}
+          {showRescan && (
             <button
-              data-no-row-click
-              onClick={(event) => stopAnd(event, onScan)}
+              onClick={(e) => {
+                handleButtonClick(e);
+                onScan();
+              }}
               disabled={isScanning}
-              className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              data-no-row-click
             >
               {isScanning ? (
                 <>
                   <svg
-                    className="mr-1 h-3 w-3 animate-spin text-blue-700"
+                    className="mr-1.5 h-3.5 w-3.5 animate-spin text-gray-500"
                     fill="none"
                     viewBox="0 0 24 24"
                   >
@@ -223,12 +191,12 @@ export function ProductRow({
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Scanning...
+                  Rescanning...
                 </>
               ) : (
                 <>
                   <svg
-                    className="mr-1 h-3 w-3"
+                    className="mr-1.5 h-3.5 w-3.5 text-gray-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -237,59 +205,59 @@ export function ProductRow({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                     />
                   </svg>
-                  Scan SEO
+                  Rescan
                 </>
               )}
             </button>
-          </div>
+          )}
 
-          {/* Metadata indicators */}
-          <div className="mt-1 flex flex-wrap gap-2 text-xs text-gray-500 sm:mt-0">
-            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1">
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${
-                  hasMetaTitle ? 'bg-green-500' : 'bg-red-400'
-                }`}
-              />
-              <span>Title</span>
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1">
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${
-                  hasMetaDescription ? 'bg-green-500' : 'bg-red-400'
-                }`}
-              />
-              <span>Description</span>
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-gray-300" />
-              <span>Alt text</span>
-            </span>
-            {issueCount && issueCount > 0 && (
-              <IssueBadge
-                count={issueCount}
-                severity={maxIssueSeverity}
-                onClick={() => {
-                  router.push(`${workspacePath}?from=products&focus=deo-issues`);
-                }}
-              />
-            )}
-          </div>
-        </div>
+          {/* [LIST-ACTIONS-CLARITY-1] Primary action button */}
+          {primaryAction ? (
+            <Link
+              href={primaryAction.href}
+              onClick={handleButtonClick}
+              className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+              data-no-row-click
+              data-testid="row-primary-action"
+            >
+              {primaryAction.label}
+            </Link>
+          ) : helpText ? (
+            <span className="text-xs text-gray-500" data-testid="row-help-text">{helpText}</span>
+          ) : null}
 
-        {/* Actions section */}
-        <div className="mt-2 flex flex-col gap-2 sm:ml-4 sm:mt-0 sm:flex-row sm:items-center sm:justify-end">
-          {/* Optimize button - full width on mobile */}
-          <button
-            data-no-row-click
-            onClick={(event) => stopAnd(event, openWorkspace)}
-            className="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-purple-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 sm:w-auto sm:py-1.5"
-          >
+          {/* [LIST-ACTIONS-CLARITY-1] Secondary action (Open) */}
+          {secondaryAction && (
+            <Link
+              href={secondaryAction.href}
+              onClick={handleButtonClick}
+              className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+              data-no-row-click
+              data-testid="row-secondary-action"
+            >
+              {secondaryAction.label}
+            </Link>
+          )}
+
+          {/* Fallback View details if no resolved actions (backward compatibility) */}
+          {!primaryAction && !secondaryAction && !helpText && (
+            <Link
+              href={workspacePath}
+              onClick={handleButtonClick}
+              className="inline-flex items-center rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800"
+              data-no-row-click
+            >
+              View details
+            </Link>
+          )}
+
+          {/* Expand indicator */}
+          <div className="flex h-8 w-8 items-center justify-center text-gray-400">
             <svg
-              className="mr-2 h-3.5 w-3.5"
+              className={`h-5 w-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -298,131 +266,21 @@ export function ProductRow({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                d="M19 9l-7 7-7-7"
               />
             </svg>
-            Optimize
-          </button>
-
-          {/* Secondary actions row - Scan SEO (mobile) + Overflow menu */}
-          <div className="flex items-center justify-between gap-2 sm:justify-end">
-            {/* Scan SEO button - mobile only */}
-            <button
-              data-no-row-click
-              onClick={(event) => stopAnd(event, onScan)}
-              disabled={isScanning}
-              className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50 sm:hidden"
-            >
-              {isScanning ? (
-                <>
-                  <svg
-                    className="mr-1 h-3 w-3 animate-spin text-blue-700"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Scanning...
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="mr-1 h-3 w-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                  Scan SEO
-                </>
-              )}
-            </button>
-
-            {/* Overflow menu */}
-            <div className="relative">
-              <button
-                type="button"
-                data-no-row-click
-                onClick={handleMenuToggle}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 7.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 7.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"
-                  />
-                </svg>
-              </button>
-              {menuOpen && (
-                <div className="absolute right-0 z-20 mt-2 w-44 rounded-md border border-gray-200 bg-white py-1 text-sm text-gray-700 shadow-lg">
-                  <button
-                    type="button"
-                    data-no-row-click
-                    onClick={handleViewDetails}
-                    className="block w-full px-3 py-1.5 text-left hover:bg-gray-50"
-                  >
-                    View details
-                  </button>
-                  <button
-                    type="button"
-                    data-no-row-click
-                    onClick={handleSync}
-                    disabled={isSyncing}
-                    className="block w-full px-3 py-1.5 text-left hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400"
-                  >
-                    {isSyncing ? 'Syncing…' : 'Sync'}
-                  </button>
-                  <button
-                    type="button"
-                    disabled
-                    data-no-row-click
-                    className="block w-full cursor-not-allowed px-3 py-1.5 text-left text-gray-400"
-                    title="Editing coming soon"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    disabled
-                    data-no-row-click
-                    className="block w-full cursor-not-allowed px-3 py-1.5 text-left text-gray-400"
-                    title="Remove coming soon"
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>
 
-      {isExpanded && <ProductDetailPanel product={product} />}
+      {/* Expanded detail panel */}
+      {isExpanded && (
+        <ProductDetailPanel
+          product={product}
+          projectId={projectId}
+          issuesByPillar={issuesByPillar}
+        />
+      )}
     </div>
   );
 }

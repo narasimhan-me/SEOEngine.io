@@ -19,7 +19,7 @@ export default function MarketingNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         {/* Left: Logo + brand */}
         <Link href="/" className="flex items-center gap-2">
@@ -34,13 +34,13 @@ export default function MarketingNavbar() {
         </Link>
 
         {/* Center: Nav (desktop) */}
-        <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 md:flex">
+        <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground md:flex">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className={`transition-colors hover:text-slate-900 ${
-                pathname === link.href ? 'text-slate-900' : ''
+              className={`transition-colors hover:text-foreground ${
+                pathname === link.href ? 'text-foreground' : ''
               }`}
             >
               {link.label}
@@ -52,13 +52,13 @@ export default function MarketingNavbar() {
         <div className="hidden items-center gap-3 md:flex">
           <Link
             href="/login"
-            className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground"
           >
-            Log in
+            Sign in
           </Link>
           <Link
             href="/signup"
-            className="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             Start free
           </Link>
@@ -67,7 +67,7 @@ export default function MarketingNavbar() {
         {/* Mobile menu button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 text-slate-600 hover:text-slate-900"
+          className="md:hidden p-2 text-muted-foreground hover:text-foreground"
         >
           {mobileMenuOpen ? (
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,7 +83,7 @@ export default function MarketingNavbar() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-200 bg-white py-4 px-4">
+        <div className="md:hidden border-t border-border bg-background py-4 px-4">
           <nav className="space-y-2">
             {navLinks.map((link) => (
               <Link
@@ -91,8 +91,8 @@ export default function MarketingNavbar() {
                 href={link.href}
                 className={`block px-3 py-2 text-base font-medium rounded-lg transition-colors ${
                   pathname === link.href
-                    ? 'text-slate-900 bg-slate-100'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    ? 'text-foreground bg-muted'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                 }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -100,17 +100,17 @@ export default function MarketingNavbar() {
               </Link>
             ))}
           </nav>
-          <div className="mt-4 pt-4 border-t border-slate-200 space-y-2">
+          <div className="mt-4 pt-4 border-t border-border space-y-2">
             <Link
               href="/login"
-              className="block px-3 py-2 text-base font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg"
+              className="block px-3 py-2 text-base font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Log in
+              Sign in
             </Link>
             <Link
               href="/signup"
-              className="block px-3 py-2 text-base font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg text-center"
+              className="block px-3 py-2 text-base font-semibold text-primary-foreground bg-primary hover:bg-primary/90 rounded-md text-center"
               onClick={() => setMobileMenuOpen(false)}
             >
               Start free

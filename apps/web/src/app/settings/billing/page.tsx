@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { billingApi } from '@/lib/api';
+import { billingApi, accountApi } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 
@@ -17,6 +17,8 @@ interface Plan {
     crawledPages: number;
     automationSuggestionsPerDay: number;
   };
+  /** [BILLING-GTM-1] Monthly AI runs quota (null = unlimited) */
+  aiQuotaMonthlyRuns: number | null;
 }
 
 interface BillingSummary {
@@ -33,6 +35,15 @@ interface BillingSummary {
   currentPeriodEnd?: string | null;
 }
 
+/**
+ * [SELF-SERVICE-1] Plan & Billing Page (D3)
+ *
+ * - Shows current plan + renewal date
+ * - Shows included AI quota + current usage vs quota
+ * - "Billing handled via Stripe portal; no card details stored"
+ * - Role-safe UI: OWNER sees enabled actions, EDITOR/VIEWER see read-only
+ */
+
 function BillingSettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -43,6 +54,19 @@ function BillingSettingsContent() {
   const [success, setSuccess] = useState('');
   const [updating, setUpdating] = useState(false);
   const [pollingForUpdate, setPollingForUpdate] = useState(false);
+  // [SELF-SERVICE-1] Account role for owner-only billing actions
+  const [accountRole, setAccountRole] = useState<'OWNER' | 'EDITOR' | 'VIEWER'>('OWNER');
+  // [SELF-SERVICE-1] [BILLING-GTM-1] AI usage data with trust messaging
+  const [aiUsage, setAiUsage] = useState<{
+    periodLabel: string;
+    totalRuns: number;
+    aiUsedRuns: number;
+    runsAvoided: number;
+    quotaLimit: number | null;
+    quotaUsedPercent: number;
+    applyInvariantMessage: string;
+    reuseMessage: string;
+  } | null>(null);
 
   const feedback = useFeedback();
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -56,12 +80,27 @@ function BillingSettingsContent() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [plansData, summaryData] = await Promise.all([
+      const [plansData, summaryData, profileData, aiUsageData] = await Promise.all([
         billingApi.getPlans(),
         billingApi.getSummary(),
+        accountApi.getProfile(),
+        accountApi.getAiUsage(),
       ]);
       setPlans(plansData);
       setSummary(summaryData);
+      // [SELF-SERVICE-1] Set account role for role-safe UI
+      setAccountRole(profileData.accountRole);
+      // [SELF-SERVICE-1] [BILLING-GTM-1] Set AI usage for quota display with trust messaging
+      setAiUsage({
+        periodLabel: aiUsageData.periodLabel,
+        totalRuns: aiUsageData.totalRuns,
+        aiUsedRuns: aiUsageData.aiUsedRuns,
+        runsAvoided: aiUsageData.runsAvoided,
+        quotaLimit: aiUsageData.quotaLimit,
+        quotaUsedPercent: aiUsageData.quotaUsedPercent,
+        applyInvariantMessage: aiUsageData.applyInvariantMessage,
+        reuseMessage: aiUsageData.reuseMessage,
+      });
       return summaryData;
     } catch (err: unknown) {
       const message =
@@ -167,8 +206,16 @@ function BillingSettingsContent() {
     }
   }, [router, searchParams, fetchData, startPollingForPlanUpdate, feedback]);
 
+  // [SELF-SERVICE-1] Check if user is OWNER for billing actions
+  const isOwner = accountRole === 'OWNER';
+
   async function handleUpgrade(planId: string) {
     if (planId === 'free') return;
+    // [SELF-SERVICE-1] Only OWNER can perform billing actions
+    if (!isOwner) {
+      setError('Only account owners can change billing plans');
+      return;
+    }
 
     setError('');
     setSuccess('');
@@ -188,6 +235,12 @@ function BillingSettingsContent() {
   }
 
   async function handleManageBilling() {
+    // [SELF-SERVICE-1] Only OWNER can access billing portal
+    if (!isOwner) {
+      setError('Only account owners can manage billing');
+      return;
+    }
+
     setError('');
     setUpdating(true);
 
@@ -235,8 +288,20 @@ function BillingSettingsContent() {
         </Link>
       </nav>
 
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">Billing & Subscription</h1>
-      <p className="text-gray-600 mb-8">Manage your subscription plan</p>
+      <h1 className="text-3xl font-bold text-gray-900 mb-2">Plan & Billing</h1>
+      <p className="text-gray-600 mb-6">
+        View your subscription plan and usage. Billing is handled securely via Stripe portal &mdash; we never store your card details.
+      </p>
+
+      {/* [SELF-SERVICE-1] Role-based access notice */}
+      {!isOwner && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
+          <p className="text-amber-800 text-sm">
+            <strong>Read-only access:</strong> Only account owners can manage billing and change plans.
+            Contact your account owner if you need to make changes.
+          </p>
+        </div>
+      )}
 
       {/* Status messages */}
       {error && (
@@ -282,11 +347,55 @@ function BillingSettingsContent() {
         {summary && (
           <div className="mt-4 p-4 bg-gray-50 rounded-md">
             <h3 className="text-sm font-medium text-gray-700 mb-2">Usage</h3>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 space-y-1">
               <p>
                 Projects: {summary.usage.projects} / {formatLimit(summary.limits.projects)}
               </p>
             </div>
+          </div>
+        )}
+
+        {/* [SELF-SERVICE-1] [BILLING-GTM-1] AI Usage Quota with Trust Messaging */}
+        {aiUsage && (
+          <div className="mt-4 p-4 bg-blue-50 rounded-md">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">AI Usage ({aiUsage.periodLabel})</h3>
+            <div className="text-sm text-gray-600 space-y-2">
+              {/* [BILLING-GTM-1] Fix: Show aiUsedRuns as numerator, not totalRuns */}
+              <p>
+                AI runs used: {aiUsage.aiUsedRuns} / {aiUsage.quotaLimit !== null ? aiUsage.quotaLimit : 'Unlimited'}
+              </p>
+              {/* [BILLING-GTM-1] Show runs avoided via reuse */}
+              <p className="text-green-700">
+                Runs avoided via reuse: {aiUsage.runsAvoided}
+              </p>
+              {aiUsage.quotaLimit !== null && (
+                <div className="mt-2">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full ${
+                        aiUsage.quotaUsedPercent >= 90
+                          ? 'bg-red-500'
+                          : aiUsage.quotaUsedPercent >= 70
+                          ? 'bg-yellow-500'
+                          : 'bg-blue-500'
+                      }`}
+                      style={{ width: `${Math.min(aiUsage.quotaUsedPercent, 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {aiUsage.quotaUsedPercent.toFixed(0)}% of monthly quota used
+                  </p>
+                </div>
+              )}
+            </div>
+            {/* [BILLING-GTM-1] Trust invariant display */}
+            <div className="mt-3 pt-3 border-t border-blue-200">
+              <p className="text-xs text-blue-800 font-medium">{aiUsage.applyInvariantMessage}</p>
+              <p className="text-xs text-blue-700 mt-1">{aiUsage.reuseMessage}</p>
+            </div>
+            <Link href="/settings/ai-usage" className="text-xs text-blue-600 hover:text-blue-800 mt-2 inline-block">
+              View detailed AI usage &rarr;
+            </Link>
           </div>
         )}
 
@@ -299,13 +408,22 @@ function BillingSettingsContent() {
 
         {/* Manage Billing Button for paid plans */}
         {effectivePlanId !== 'free' && effectiveStatus === 'active' && (
-          <button
-            onClick={handleManageBilling}
-            disabled={updating}
-            className="mt-4 px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50"
-          >
-            {updating ? 'Processing...' : 'Manage Billing'}
-          </button>
+          <div className="mt-4">
+            <button
+              onClick={handleManageBilling}
+              disabled={updating || !isOwner}
+              className={`px-4 py-2 text-sm border rounded-md disabled:opacity-50 ${
+                isOwner
+                  ? 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                  : 'border-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              {updating ? 'Processing...' : 'Manage Billing'}
+            </button>
+            {!isOwner && (
+              <p className="text-xs text-gray-500 mt-1">Only account owners can manage billing</p>
+            )}
+          </div>
         )}
       </div>
 
@@ -316,10 +434,13 @@ function BillingSettingsContent() {
           const isCurrent = effectivePlanId === plan.id;
           const isHigher = !isCurrent && plan.price > currentPrice;
           const isLower = !isCurrent && plan.price < currentPrice;
-          const isDisabled = updating || isCurrent;
+          // [SELF-SERVICE-1] Disable plan change for non-owners
+          const isDisabled = updating || isCurrent || !isOwner;
 
           const buttonLabel = isCurrent
             ? 'Current Plan'
+            : !isOwner
+            ? 'Owner Only'
             : updating
             ? 'Processing...'
             : isHigher
@@ -359,6 +480,10 @@ function BillingSettingsContent() {
                   </p>
                   <p className="text-xs text-gray-500">
                     {formatLimit(plan.limits.automationSuggestionsPerDay)} suggestions/day
+                  </p>
+                  {/* [BILLING-GTM-1] Monthly AI runs quota */}
+                  <p className="text-xs text-gray-500">
+                    {plan.aiQuotaMonthlyRuns === null ? 'Unlimited' : plan.aiQuotaMonthlyRuns} AI runs/month
                   </p>
                 </div>
               </div>

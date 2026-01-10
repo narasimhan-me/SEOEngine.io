@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { RoleResolutionService } from '../common/role-resolution.service';
 import {
   LocalApplicabilityStatus as PrismaApplicabilityStatus,
   LocalSignalType as PrismaSignalType,
@@ -48,9 +49,16 @@ import type { DeoIssue, DeoIssueSeverity } from '@engineo/shared';
  * - No GMB management, map rank tracking, or multi-location/franchise tooling in v1
  * - No geo-rank promises or external location API integrations in v1
  */
+/**
+ * [ROLES-3 FIXUP-3] LocalDiscoveryService
+ * Updated with membership-aware access control (any ProjectMember can view).
+ */
 @Injectable()
 export class LocalDiscoveryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly roleResolution: RoleResolutionService,
+  ) {}
 
   // ============================================================================
   // Type Mapping Helpers
@@ -491,6 +499,32 @@ export class LocalDiscoveryService {
     };
   }
 
+  /**
+   * INSIGHTS-1: Read-only scorecard accessor (never computes or persists).
+   * Returns null when no cached scorecard exists.
+   */
+  async getCachedProjectScorecard(projectId: string): Promise<LocalDiscoveryScorecard | null> {
+    const row = await this.prisma.projectLocalCoverage.findFirst({
+      where: { projectId },
+      orderBy: { computedAt: 'desc' },
+    });
+
+    if (!row) return null;
+
+    const signalCounts = row.signalCounts as Record<LocalSignalType, number>;
+
+    return {
+      projectId,
+      applicabilityStatus: this.fromPrismaApplicabilityStatus(row.applicabilityStatus),
+      applicabilityReasons: row.applicabilityReasons as LocalApplicabilityReason[],
+      score: row.score ?? undefined,
+      status: row.status ? this.fromPrismaCoverageStatus(row.status) : undefined,
+      signalCounts,
+      missingLocalSignalsCount: row.missingLocalSignalsCount,
+      computedAt: row.computedAt.toISOString(),
+    };
+  }
+
   // ============================================================================
   // Gap Analysis
   // ============================================================================
@@ -582,9 +616,8 @@ export class LocalDiscoveryService {
       throw new NotFoundException('Project not found');
     }
 
-    if (project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this project');
-    }
+    // [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can view)
+    await this.roleResolution.assertProjectAccess(projectId, userId);
 
     // Get or compute scorecard
     const scorecard = await this.getProjectScorecard(projectId);
@@ -648,6 +681,46 @@ export class LocalDiscoveryService {
     }
 
     // Generate issues based on coverage gaps
+    for (const signalType of LOCAL_SIGNAL_TYPES) {
+      if (scorecard.signalCounts[signalType] === 0) {
+        const gapType = getLocalGapTypeForMissingSignal(signalType);
+        const severity: DeoIssueSeverity = calculateLocalSeverity(signalType, gapType);
+
+        issues.push({
+          id: `local_${gapType}_${projectId}`,
+          title: `Missing ${LOCAL_SIGNAL_LABELS[signalType]}`,
+          description: this.getGapExample(signalType),
+          severity,
+          count: 1,
+          pillarId: 'local_discovery',
+          actionability: 'manual',
+          localSignalType: signalType,
+          localGapType: gapType,
+          localApplicabilityStatus: scorecard.applicabilityStatus,
+          localApplicabilityReasons: scorecard.applicabilityReasons,
+          recommendedAction: this.getRecommendedAction(signalType),
+          whyItMatters: `${LOCAL_SIGNAL_LABELS[signalType]} helps local customers and discovery engines find your business for location-specific searches.`,
+        });
+      }
+    }
+
+    return issues;
+  }
+
+  /**
+   * INSIGHTS-1: Read-only issue generation (never computes or persists scorecard).
+   * Returns [] when no cached scorecard exists yet.
+   */
+  async buildLocalIssuesForProjectReadOnly(projectId: string): Promise<DeoIssue[]> {
+    const scorecard = await this.getCachedProjectScorecard(projectId);
+    if (!scorecard) return [];
+
+    const issues: DeoIssue[] = [];
+
+    if (scorecard.applicabilityStatus !== 'applicable') {
+      return [];
+    }
+
     for (const signalType of LOCAL_SIGNAL_TYPES) {
       if (scorecard.signalCounts[signalType] === 0) {
         const gapType = getLocalGapTypeForMissingSignal(signalType);

@@ -1,17 +1,18 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   Post,
   UseGuards,
   Request,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma.service';
 import { SearchIntentService } from './search-intent.service';
+import { RoleResolutionService } from '../common/role-resolution.service';
 import { AiService } from '../ai/ai.service';
 import {
   AiUsageQuotaService,
@@ -59,6 +60,11 @@ class IntentFixApplyDto {
  * - POST /products/:productId/search-intent/preview — Preview fix draft
  * - POST /products/:productId/search-intent/apply — Apply fix draft
  * - GET  /projects/:projectId/search-intent/summary — Project scorecard
+ *
+ * [ROLES-3 FIXUP-3] Updated with membership-aware access control:
+ * - GET endpoints: any ProjectMember can view
+ * - Preview endpoints: OWNER/EDITOR only
+ * - Apply endpoints: OWNER-only
  */
 @Controller()
 @UseGuards(JwtAuthGuard)
@@ -69,6 +75,7 @@ export class SearchIntentController {
     private readonly aiService: AiService,
     private readonly aiUsageQuotaService: AiUsageQuotaService,
     private readonly aiUsageLedgerService: AiUsageLedgerService,
+    private readonly roleResolution: RoleResolutionService,
   ) {}
 
   // ============================================================================
@@ -156,7 +163,7 @@ export class SearchIntentController {
       );
     }
 
-    // Load product and verify ownership
+    // Load product
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
       include: {
@@ -168,9 +175,8 @@ export class SearchIntentController {
       throw new BadRequestException('Product not found');
     }
 
-    if (product.project.userId !== userId) {
-      throw new ForbiddenException('Access denied');
-    }
+    // [ROLES-3 FIXUP-3] OWNER/EDITOR only for draft generation
+    await this.roleResolution.assertCanGenerateDrafts(product.projectId, userId);
 
     // Compute deterministic work key for CACHE/REUSE v2
     const aiWorkKey = computeIntentFixWorkKey(
@@ -322,6 +328,7 @@ export class SearchIntentController {
     });
 
     // Record AI usage in ledger
+    // [ROLES-3-HARDEN-1] Include actorUserId for multi-user attribution
     await this.aiUsageLedgerService.recordAiRun({
       projectId: product.projectId,
       runType: 'INTENT_FIX_PREVIEW',
@@ -330,6 +337,7 @@ export class SearchIntentController {
       productsSkipped: 0,
       draftsFresh: 1,
       draftsReused: 0,
+      actorUserId: userId,
       metadata: {
         intentType: dto.intentType,
         query: dto.query,
@@ -388,7 +396,7 @@ export class SearchIntentController {
       throw new BadRequestException('draftId and applyTarget are required');
     }
 
-    // Load product and verify ownership
+    // Load product
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
       include: {
@@ -400,9 +408,8 @@ export class SearchIntentController {
       throw new BadRequestException('Product not found');
     }
 
-    if (product.project.userId !== userId) {
-      throw new ForbiddenException('Access denied');
-    }
+    // [ROLES-3 FIXUP-3] OWNER-only for apply mutations
+    await this.roleResolution.assertOwnerRole(product.projectId, userId);
 
     // Load the draft
     const draft = await this.prisma.productIntentFixDraft.findUnique({

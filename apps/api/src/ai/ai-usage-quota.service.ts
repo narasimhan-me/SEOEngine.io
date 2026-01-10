@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { EntitlementsService } from '../billing/entitlements.service';
 import { AiUsageLedgerService } from './ai-usage-ledger.service';
 import { PlanId } from '../billing/plans';
+import { PrismaService } from '../prisma.service';
 
 export type AiUsageQuotaAction = 'PREVIEW_GENERATE' | 'DRAFT_GENERATE';
 
@@ -69,7 +70,29 @@ export class AiUsageQuotaService {
   constructor(
     private readonly entitlementsService: EntitlementsService,
     private readonly aiUsageLedgerService: AiUsageLedgerService,
+    private readonly prisma: PrismaService,
   ) {}
+
+  /**
+   * [ADMIN-OPS-1] Get quota reset offsets for a user in the current month.
+   * This incorporates AiMonthlyQuotaReset records without deleting ledger rows.
+   */
+  private async getQuotaResetOffset(userId: string): Promise<number> {
+    const now = new Date();
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
+    const resets = await this.prisma.aiMonthlyQuotaReset.findMany({
+      where: {
+        userId,
+        monthStart,
+      },
+      select: {
+        aiRunsOffset: true,
+      },
+    });
+
+    return resets.reduce((sum, reset) => sum + reset.aiRunsOffset, 0);
+  }
 
   private getPolicyForPlan(planId: PlanId): AiUsageQuotaPolicy {
     const upper = planId.toUpperCase();
@@ -104,6 +127,7 @@ export class AiUsageQuotaService {
   /**
    * Evaluate AI usage quota for a given project + action for the current calendar month.
    * Uses AiUsageLedgerService as the source of truth (AutomationPlaybookRun rows).
+   * [ADMIN-OPS-1] Incorporates AiMonthlyQuotaReset offsets without deleting ledger rows.
    */
   async evaluateQuotaForAction(params: {
     userId: string;
@@ -117,7 +141,13 @@ export class AiUsageQuotaService {
 
     // Ledger summary uses calendar-month window by default (AI-USAGE-1 contract).
     const summary = await this.aiUsageLedgerService.getProjectSummary(projectId);
-    const currentMonthAiRuns = summary.totalAiRuns;
+    const ledgerAiRuns = summary.totalAiRuns;
+
+    // [ADMIN-OPS-1] Incorporate quota reset offsets.
+    // Adjust currentMonthAiRuns = max(ledgerAiRuns - offsetsSum, 0).
+    // This does not weaken the APPLY invariant (APPLY aiUsed must still be treated as violation).
+    const offsetsSum = await this.getQuotaResetOffset(userId);
+    const currentMonthAiRuns = Math.max(ledgerAiRuns - offsetsSum, 0);
 
     // Unlimited plans: always allowed, no percentage or remaining.
     if (policy.monthlyAiRunsLimit === null) {

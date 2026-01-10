@@ -10,7 +10,7 @@
   - Introduce a canonical manual testing template (`docs/MANUAL_TESTING_TEMPLATE.md`) for all EngineO.ai features and patches.
   - Update the AI Collaboration Protocol to v3.3 with mandatory manual testing documentation requirements.
   - Update boot prompts in both `ENGINEO_AI_INSTRUCTIONS.md` and `SESSION_STARTER.md`.
-  - Add a Manual Testing Documentation Workflow section to `IMPLEMENTATION_PLAN.md`.
+  - Add a Manual Testing Documentation Workflow section to `docs/IMPLEMENTATION_PLAN.md`.
 
 - **High-level user impact and what "success" looks like:**
   - Every future PATCH BATCH will require manual testing documentation as part of the deliverable.
@@ -18,7 +18,7 @@
   - GPT-5.1 Supervisor will include testing requirements in every PATCH BATCH.
   - The Implementation Plan will reference manual testing docs for each phase.
 
-- **Related phases/sections in IMPLEMENTATION_PLAN.md:**
+- **Related phases/sections in docs/IMPLEMENTATION_PLAN.md:**
   - Manual Testing Documentation Workflow (new section)
   - Final summary section (updated with manual testing docs reference)
 
@@ -128,7 +128,7 @@
 
 ---
 
-### Scenario 4: Verify IMPLEMENTATION_PLAN.md includes manual testing workflow section
+### Scenario 4: Verify docs/IMPLEMENTATION_PLAN.md includes manual testing workflow section
 
 **ID:** HP-004
 
@@ -136,7 +136,7 @@
 - Patch has been applied
 
 **Steps:**
-1. Open `IMPLEMENTATION_PLAN.md`
+1. Open `docs/IMPLEMENTATION_PLAN.md`
 2. Search for "## Manual Testing Documentation Workflow"
 3. Verify it appears after "Test Track" section and before "Test Phase 0"
 4. Confirm it references `docs/MANUAL_TESTING_TEMPLATE.md`
@@ -241,7 +241,7 @@
 
 - [ ] `docs/ENGINEO_AI_INSTRUCTIONS.md` still contains all v3.2 rules in addition to v3.3 additions
 - [ ] `docs/SESSION_STARTER.md` UEP prompt content unchanged (only version label updated)
-- [ ] `IMPLEMENTATION_PLAN.md` Test Track section unchanged except for new Manual Testing section insertion
+- [ ] `docs/IMPLEMENTATION_PLAN.md` Test Track section unchanged except for new Manual Testing section insertion
 - [ ] No other docs accidentally modified
 
 ---
@@ -262,7 +262,7 @@
 ## Known Issues
 
 - **Intentionally accepted issues:**
-  - Older phases in IMPLEMENTATION_PLAN.md do not yet have `Manual Testing:` bullets; these will be backfilled opportunistically as phases are revisited.
+  - Older phases in docs/IMPLEMENTATION_PLAN.md do not yet have `Manual Testing:` bullets; these will be backfilled opportunistically as phases are revisited.
 
 - **Out-of-scope items:**
   - Automated enforcement of manual testing doc creation (this is a process rule, not code enforcement)

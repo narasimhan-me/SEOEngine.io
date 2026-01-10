@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 export default function DeoPage() {
   return (
-    <div className="bg-white">
+    <div className="bg-background">
       <DeoHero />
       <DeoWhySection />
       <DeoPillarsSection />

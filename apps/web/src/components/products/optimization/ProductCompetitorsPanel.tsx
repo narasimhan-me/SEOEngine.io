@@ -468,7 +468,7 @@ function GapItem({ gap, onPreview, isPreviewing, isLoading }: GapItemProps) {
             disabled={isLoading}
             className="ml-3 flex-shrink-0 rounded bg-white px-2.5 py-1 text-xs font-medium text-blue-600 shadow-sm hover:bg-gray-50 disabled:opacity-50"
           >
-            {isPreviewing && isLoading ? 'Loading...' : 'Preview Fix'}
+            {isPreviewing && isLoading ? 'Loading...' : 'Preview Fix (uses AI)'}
           </button>
         )}
       </div>

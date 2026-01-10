@@ -9,6 +9,8 @@ export interface JwtPayload {
   email: string;
   role: string;
   twoFactor?: boolean; // true for temp tokens during 2FA flow
+  sessionId?: string;  // [SELF-SERVICE-1] Session ID for session tracking
+  iat?: number;        // JWT issued at timestamp
 }
 
 // Response when user has 2FA enabled
@@ -119,16 +121,53 @@ export class AuthService {
       };
     }
 
-    // Normal login (no 2FA)
+    // Normal login (no 2FA) - create session and issue token
+    const { accessToken, session } = await this.createSessionAndToken(user.id, user.email, user.role);
+
+    // [SELF-SERVICE-1] Update last login info (ip can be passed from controller if needed)
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
+    return {
+      accessToken,
+      user,
+    };
+  }
+
+  /**
+   * [SELF-SERVICE-1] Create a session record and issue a JWT with the session ID.
+   * This enables session tracking and sign-out-all functionality.
+   */
+  private async createSessionAndToken(
+    userId: string,
+    email: string,
+    role: string,
+    ip?: string,
+    userAgent?: string,
+  ): Promise<{ accessToken: string; session: { id: string } }> {
+    // Create a session record
+    const session = await this.prisma.userSession.create({
+      data: {
+        userId,
+        ip,
+        userAgent,
+        lastSeenAt: new Date(),
+      },
+    });
+
+    // Issue JWT with session ID
     const payload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
+      sub: userId,
+      email,
+      role,
+      sessionId: session.id,
     };
 
     return {
       accessToken: this.jwtService.sign(payload),
-      user,
+      session: { id: session.id },
     };
   }
 
@@ -178,17 +217,19 @@ export class AuthService {
       throw new BadRequestException('Invalid or expired code');
     }
 
-    // Generate final access token (without twoFactor claim)
-    const finalPayload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    };
+    // [SELF-SERVICE-1] Create session and issue final access token with session ID
+    const { accessToken } = await this.createSessionAndToken(user.id, user.email, user.role);
+
+    // [SELF-SERVICE-1] Update last login info
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
 
     const { password: _, twoFactorSecret: __, ...userWithoutSensitive } = user;
 
     return {
-      accessToken: this.jwtService.sign(finalPayload),
+      accessToken,
       user: userWithoutSensitive,
     };
   }
@@ -206,5 +247,63 @@ export class AuthService {
     // twoFactorEnabled is included so frontend can show 2FA status
     const { password: _, twoFactorSecret: __, ...userWithoutSensitive } = user;
     return userWithoutSensitive;
+  }
+
+  /**
+   * [SELF-SERVICE-1] Sign out all sessions for a user.
+   * Sets tokenInvalidBefore to now, revokes all sessions, and writes audit log.
+   */
+  async signOutAllSessions(userId: string): Promise<{ revokedCount: number }> {
+    const now = new Date();
+
+    // Update tokenInvalidBefore to invalidate all existing tokens
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { tokenInvalidBefore: now },
+    });
+
+    // Revoke all existing sessions
+    const result = await this.prisma.userSession.updateMany({
+      where: {
+        userId,
+        revokedAt: null,
+      },
+      data: { revokedAt: now },
+    });
+
+    // Write audit log entry
+    await this.prisma.userAccountAuditLog.create({
+      data: {
+        actorUserId: userId,
+        actionType: 'sign_out_all_sessions',
+        metadata: {
+          revokedCount: result.count,
+          timestamp: now.toISOString(),
+        },
+      },
+    });
+
+    return { revokedCount: result.count };
+  }
+
+  /**
+   * [SELF-SERVICE-1] Update session last seen time.
+   * Called periodically during authenticated requests (throttled).
+   */
+  async updateSessionLastSeen(sessionId: string): Promise<void> {
+    await this.prisma.userSession.update({
+      where: { id: sessionId },
+      data: { lastSeenAt: new Date() },
+    });
+  }
+
+  /**
+   * [SELF-SERVICE-1] Check if a session is valid (not revoked).
+   */
+  async isSessionValid(sessionId: string): Promise<boolean> {
+    const session = await this.prisma.userSession.findUnique({
+      where: { id: sessionId },
+    });
+    return session !== null && session.revokedAt === null;
   }
 }

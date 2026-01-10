@@ -624,7 +624,7 @@ After successful deployment:
 
 - [DEPLOYMENT.md](./DEPLOYMENT.md) – Full deployment guide including Neon, Vercel, and Cloudflare
 - [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) – Frontend deployment guide
-- [Implementation Plan](../IMPLEMENTATION_PLAN.md) – Full project roadmap
+- [Implementation Plan](./IMPLEMENTATION_PLAN.md) – Full project roadmap
 - [API Specification](../API_SPEC.md) – API endpoints documentation
 
 ---

@@ -120,6 +120,55 @@ export class E2eTestkitController {
   }
 
   /**
+   * POST /testkit/e2e/seed-work-queue-zero-eligible-draft
+   * Seed a Pro-plan user + project where products have complete SEO metadata (eligibleCount = 0),
+   * but an existing AutomationPlaybookDraft exists (simulating a stale/broken Work Queue tile scenario).
+   * Used to verify ZERO-AFFECTED-SUPPRESSION-1 Work Queue suppression (no dead-end CTAs).
+   */
+  @Post('seed-work-queue-zero-eligible-draft')
+  async seedWorkQueueZeroEligibleDraft() {
+    this.ensureE2eMode();
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+    const products = await createTestProducts(this.prisma as any, {
+      projectId: project.id,
+      count: 3,
+      withSeo: true,
+      withIssues: false,
+    });
+    await this.prisma.automationPlaybookDraft.create({
+      data: {
+        projectId: project.id,
+        playbookId: 'missing_seo_title',
+        scopeId: 'test-scope-id',
+        rulesHash: 'test-rules-hash',
+        status: 'READY',
+        createdByUserId: user.id,
+        sampleProductIds: products.map((p) => p.id) as unknown as any,
+        draftItems: [] as unknown as any,
+        counts: {
+          affectedTotal: products.length,
+          draftGenerated: products.length,
+          noSuggestionCount: 0,
+        } as unknown as any,
+        rules: { enabled: false } as unknown as any,
+      },
+    });
+    const accessToken = this.jwtService.sign({ sub: user.id });
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+      projectId: project.id,
+      accessToken,
+    };
+  }
+  /**
    * POST /testkit/e2e/connect-shopify
    *
    * In E2E mode, creates a mocked Shopify integration for the project.
@@ -151,6 +200,1354 @@ export class E2eTestkitController {
     return {
       projectId: project.id,
       shopDomain: integration.externalId,
+    };
+  }
+
+  // ==========================================================================
+  // [SELF-SERVICE-1] E2E Seeds
+  // ==========================================================================
+
+  /**
+   * POST /testkit/e2e/seed-self-service-user
+   *
+   * Seed a user with chosen plan and some runs (including reused) for AI usage page validation.
+   * Also creates at least one Shopify-connected project for stores page validation.
+   *
+   * Body:
+   * - plan: "free" | "pro" | "business" (default: "pro")
+   * - accountRole: "OWNER" | "EDITOR" | "VIEWER" (default: "OWNER")
+   * - includeRuns: boolean (default: true)
+   *
+   * Returns:
+   * - user (id, email, accountRole)
+   * - projectId
+   * - shopDomain
+   * - accessToken
+   */
+  @Post('seed-self-service-user')
+  async seedSelfServiceUser(
+    @Body()
+    body: {
+      plan?: string;
+      accountRole?: 'OWNER' | 'EDITOR' | 'VIEWER';
+      includeRuns?: boolean;
+    } = {},
+  ) {
+    this.ensureE2eMode();
+
+    const plan = body.plan ?? 'pro';
+    const accountRole = body.accountRole ?? 'OWNER';
+    const includeRuns = body.includeRuns !== false;
+
+    // Create user with specified accountRole
+    const { user } = await createTestUser(this.prisma as any, {
+      plan,
+      accountRole,
+    });
+
+    // Create project with Shopify connection
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    const integration = await createTestShopifyStoreConnection(
+      this.prisma as any,
+      {
+        projectId: project.id,
+      },
+    );
+
+    // Optionally seed some AI usage runs (including reused)
+    if (includeRuns) {
+      const now = new Date();
+      const testPlaybookId = 'test-playbook-id';
+      const testScopeId = 'test-scope-id';
+      const testRulesHash = 'test-rules-hash';
+
+      // Create some preview runs with AI
+      for (let i = 0; i < 5; i++) {
+        await this.prisma.automationPlaybookRun.create({
+          data: {
+            project: { connect: { id: project.id } },
+            createdBy: { connect: { id: user.id } },
+            playbookId: testPlaybookId,
+            scopeId: testScopeId,
+            rulesHash: testRulesHash,
+            idempotencyKey: `preview-ai-${i}-${Date.now()}`,
+            runType: 'PREVIEW_GENERATE',
+            status: 'SUCCEEDED',
+            aiUsed: true,
+            createdAt: new Date(now.getTime() - i * 60000),
+          },
+        });
+      }
+
+      // Create some reused runs (no AI)
+      for (let i = 0; i < 3; i++) {
+        const originalRun = await this.prisma.automationPlaybookRun.findFirst({
+          where: { createdByUserId: user.id, aiUsed: true },
+        });
+
+        await this.prisma.automationPlaybookRun.create({
+          data: {
+            project: { connect: { id: project.id } },
+            createdBy: { connect: { id: user.id } },
+            playbookId: testPlaybookId,
+            scopeId: testScopeId,
+            rulesHash: testRulesHash,
+            idempotencyKey: `preview-reuse-${i}-${Date.now()}`,
+            runType: 'PREVIEW_GENERATE',
+            status: 'SUCCEEDED',
+            aiUsed: false,
+            reusedFromRunId: originalRun?.id,
+            reused: true,
+            createdAt: new Date(now.getTime() - (5 + i) * 60000),
+          },
+        });
+      }
+
+      // Create some APPLY runs (should never use AI per invariant)
+      for (let i = 0; i < 2; i++) {
+        await this.prisma.automationPlaybookRun.create({
+          data: {
+            project: { connect: { id: project.id } },
+            createdBy: { connect: { id: user.id } },
+            playbookId: testPlaybookId,
+            scopeId: testScopeId,
+            rulesHash: testRulesHash,
+            idempotencyKey: `apply-${i}-${Date.now()}`,
+            runType: 'APPLY',
+            status: 'SUCCEEDED',
+            aiUsed: false, // APPLY never uses AI
+            createdAt: new Date(now.getTime() - (8 + i) * 60000),
+          },
+        });
+      }
+    }
+
+    // Generate JWT with session ID
+    const session = await this.prisma.userSession.create({
+      data: {
+        userId: user.id,
+        lastSeenAt: new Date(),
+      },
+    });
+
+    const accessToken = this.jwtService.sign({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      sessionId: session.id,
+    });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        accountRole: user.accountRole,
+      },
+      projectId: project.id,
+      shopDomain: integration.externalId,
+      accessToken,
+    };
+  }
+
+  /**
+   * POST /testkit/e2e/seed-self-service-editor
+   *
+   * Convenience endpoint: seeds a user with EDITOR accountRole.
+   * Same as seed-self-service-user with accountRole=EDITOR.
+   */
+  @Post('seed-self-service-editor')
+  async seedSelfServiceEditor() {
+    return this.seedSelfServiceUser({ accountRole: 'EDITOR', plan: 'pro' });
+  }
+
+  /**
+   * POST /testkit/e2e/seed-self-service-viewer
+   *
+   * Convenience endpoint: seeds a user with VIEWER accountRole.
+   * Same as seed-self-service-user with accountRole=VIEWER.
+   */
+  @Post('seed-self-service-viewer')
+  async seedSelfServiceViewer() {
+    return this.seedSelfServiceUser({ accountRole: 'VIEWER', plan: 'pro' });
+  }
+
+  // ==========================================================================
+  // [INSIGHTS-1] E2E Seeds
+  // ==========================================================================
+
+  /**
+   * POST /testkit/e2e/seed-insights-1
+   *
+   * Seed a Pro-plan user with:
+   * - A Shopify-connected project
+   * - Products with mixed SEO state (some fixed, some with issues)
+   * - Historical DEO snapshots for trend visualization
+   * - AI usage runs (some reused) for quota/efficiency metrics
+   * - APPLY runs for fix tracking
+   * - Cached offsite/local data for read-only issue computation
+   *
+   * Returns:
+   * - user (id, email)
+   * - projectId
+   * - shopDomain
+   * - accessToken
+   */
+  @Post('seed-insights-1')
+  async seedInsights1() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    const integration = await createTestShopifyStoreConnection(
+      this.prisma as any,
+      {
+        projectId: project.id,
+      },
+    );
+
+    // Create products with mixed SEO state
+    await createTestProducts(this.prisma as any, {
+      projectId: project.id,
+      count: 10,
+      withSeo: false, // Some will be fixed via APPLY runs below
+      withIssues: true,
+    });
+
+    const now = new Date();
+
+    // Create historical DEO snapshots for trend visualization (last 30 days)
+    for (let i = 30; i >= 0; i -= 5) {
+      const snapshotDate = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      // Simulate improving score over time
+      const score = Math.min(100, Math.round(45 + (30 - i) * 1.5));
+
+      await this.prisma.deoScoreSnapshot.create({
+        data: {
+          projectId: project.id,
+          overallScore: score,
+          contentScore: Math.min(100, Math.round(50 + (30 - i) * 1.0)),
+          entityScore: Math.min(100, Math.round(40 + (30 - i) * 1.2)),
+          technicalScore: Math.min(100, Math.round(60 + (30 - i) * 0.8)),
+          visibilityScore: Math.min(100, Math.round(35 + (30 - i) * 1.5)),
+          version: 'v2',
+          computedAt: snapshotDate,
+          createdAt: snapshotDate,
+          metadata: {
+            searchIntentFit: Math.min(100, 40 + (30 - i) * 1.2),
+            contentCommerceSignals: Math.min(100, 50 + (30 - i) * 1.0),
+            technicalIndexability: Math.min(100, 60 + (30 - i) * 0.8),
+            metadataSnippetQuality: Math.min(100, 35 + (30 - i) * 1.5),
+            mediaAccessibility: Math.min(100, 45 + (30 - i) * 1.1),
+            offsiteSignals: Math.min(100, 30 + (30 - i) * 1.3),
+            localDiscovery: Math.min(100, 55 + (30 - i) * 0.9),
+            competitivePositioning: Math.min(100, 40 + (30 - i) * 1.0),
+            v2: {
+              components: {
+                entityStrength: Math.min(100, 40 + (30 - i) * 1.2),
+                intentMatch: Math.min(100, 45 + (30 - i) * 1.1),
+                answerability: Math.min(100, 35 + (30 - i) * 1.3),
+                aiVisibility: Math.min(100, 30 + (30 - i) * 1.4),
+                contentCompleteness: Math.min(100, 50 + (30 - i) * 1.0),
+                technicalQuality: Math.min(100, 60 + (30 - i) * 0.8),
+              },
+            },
+          },
+        },
+      });
+    }
+
+    const testPlaybookId = 'insights-test-playbook';
+    const testScopeId = `project:${project.id}`;
+    const testRulesHash = 'insights-test-hash';
+
+    // Create AI preview runs (some reused for efficiency metrics)
+    for (let i = 0; i < 8; i++) {
+      await this.prisma.automationPlaybookRun.create({
+        data: {
+          project: { connect: { id: project.id } },
+          createdBy: { connect: { id: user.id } },
+          playbookId: testPlaybookId,
+          scopeId: testScopeId,
+          rulesHash: testRulesHash,
+          idempotencyKey: `insights-preview-ai-${i}-${Date.now()}`,
+          runType: 'PREVIEW_GENERATE',
+          status: 'SUCCEEDED',
+          aiUsed: true,
+          createdAt: new Date(now.getTime() - i * 2 * 60 * 60 * 1000),
+        },
+      });
+    }
+
+    // Create reused runs (no AI cost)
+    const originalRun = await this.prisma.automationPlaybookRun.findFirst({
+      where: { createdByUserId: user.id, aiUsed: true },
+    });
+
+    for (let i = 0; i < 5; i++) {
+      await this.prisma.automationPlaybookRun.create({
+        data: {
+          project: { connect: { id: project.id } },
+          createdBy: { connect: { id: user.id } },
+          playbookId: testPlaybookId,
+          scopeId: testScopeId,
+          rulesHash: testRulesHash,
+          idempotencyKey: `insights-preview-reuse-${i}-${Date.now()}`,
+          runType: 'PREVIEW_GENERATE',
+          status: 'SUCCEEDED',
+          aiUsed: false,
+          reusedFromRunId: originalRun?.id,
+          reused: true,
+          createdAt: new Date(now.getTime() - (8 + i) * 2 * 60 * 60 * 1000),
+        },
+      });
+    }
+
+    // Create APPLY runs across different pillars for fix tracking
+    const pillarPlaybooks = [
+      { playbookId: 'search_intent_fix', pillar: 'intent' },
+      { playbookId: 'media_accessibility_fix', pillar: 'media' },
+      { playbookId: 'competitive_fix', pillar: 'competitive' },
+      { playbookId: 'offsite_fix', pillar: 'offsite' },
+      { playbookId: 'local_fix', pillar: 'local' },
+      { playbookId: 'shopify_product_seo_update', pillar: 'metadata' },
+    ];
+
+    for (let i = 0; i < pillarPlaybooks.length; i++) {
+      const { playbookId, pillar } = pillarPlaybooks[i];
+      await this.prisma.automationPlaybookRun.create({
+        data: {
+          project: { connect: { id: project.id } },
+          createdBy: { connect: { id: user.id } },
+          playbookId,
+          scopeId: `product:test-product-${i}`,
+          rulesHash: `${pillar}-hash`,
+          idempotencyKey: `insights-apply-${pillar}-${Date.now()}`,
+          runType: 'APPLY',
+          status: 'SUCCEEDED',
+          aiUsed: false, // APPLY never uses AI
+          createdAt: new Date(now.getTime() - i * 24 * 60 * 60 * 1000),
+          meta: {
+            pillar,
+            source: 'insights-test',
+          },
+        },
+      });
+    }
+
+    // Create cached offsite coverage for read-only computation
+    // Schema: id, projectId, coverageData (Json), overallScore (Float), status (enum), computedAt
+    await this.prisma.projectOffsiteCoverage.create({
+      data: {
+        projectId: project.id,
+        coverageData: {
+          backlinks: 5,
+          uniqueDomains: 3,
+          socialMentions: 2,
+          brandSearchVolume: 100,
+          competitorGap: 50,
+        },
+        overallScore: 45.0,
+        status: 'LOW',
+        computedAt: now,
+      },
+    });
+
+    // Create cached local coverage for read-only computation
+    // Schema: id, projectId, applicabilityStatus, applicabilityReasons, score, status, signalCounts, missingLocalSignalsCount, computedAt
+    await this.prisma.projectLocalCoverage.create({
+      data: {
+        projectId: project.id,
+        applicabilityStatus: 'APPLICABLE',
+        applicabilityReasons: ['HAS_PHYSICAL_LOCATION'],
+        score: 65.0,
+        status: 'NEEDS_IMPROVEMENT',
+        signalCounts: {
+          gbp_connected: 1,
+          nap_consistent: 0,
+          local_reviews: 25,
+          citations: 10,
+        },
+        missingLocalSignalsCount: 2,
+        computedAt: now,
+      },
+    });
+
+    // Generate JWT
+    const session = await this.prisma.userSession.create({
+      data: {
+        userId: user.id,
+        lastSeenAt: new Date(),
+      },
+    });
+
+    const accessToken = this.jwtService.sign({
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      sessionId: session.id,
+    });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+      projectId: project.id,
+      shopDomain: integration.externalId,
+      accessToken,
+    };
+  }
+
+  /**
+   * POST /testkit/e2e/seed-geo-insights-2
+   *
+   * Seed a Pro-plan user with:
+   * - A Shopify-connected project
+   * - A small set of products with Answer Blocks
+   * - A GEO fix application to power trust trajectory metrics
+   * - DEO snapshots for Insights charts
+   *
+   * This seed is intentionally AI-free (no preview calls).
+   */
+  @Post('seed-geo-insights-2')
+  async seedGeoInsights2() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, { plan: 'pro' });
+    const project = await createTestProject(this.prisma as any, { userId: user.id });
+    const integration = await createTestShopifyStoreConnection(this.prisma as any, { projectId: project.id });
+    const products = await createTestProducts(this.prisma as any, {
+      projectId: project.id,
+      count: 3,
+      withSeo: true,
+      withIssues: false,
+    });
+
+    const p1 = products[0];
+    const now = new Date();
+
+    // DEO snapshots (v2 metadata shape expected by Insights)
+    for (let i = 30; i >= 0; i -= 10) {
+      const snapshotDate = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const score = Math.min(100, Math.round(55 + (30 - i) * 1.0));
+      await this.prisma.deoScoreSnapshot.create({
+        data: {
+          projectId: project.id,
+          overallScore: score,
+          contentScore: Math.min(100, 60),
+          entityScore: Math.min(100, 55),
+          technicalScore: Math.min(100, 70),
+          visibilityScore: Math.min(100, 50),
+          version: 'v2',
+          computedAt: snapshotDate,
+          createdAt: snapshotDate,
+          metadata: {
+            v2: {
+              components: {
+                entityStrength: 55,
+                intentMatch: 58,
+                answerability: 52,
+                aiVisibility: 49,
+                contentCompleteness: 60,
+                technicalQuality: 70,
+              },
+            },
+          },
+        },
+      });
+    }
+
+    // Seed Answer Blocks (canonical question IDs)
+    await this.prisma.answerBlock.createMany({
+      data: [
+        {
+          productId: p1.id,
+          questionId: 'why_choose_this',
+          questionText: 'Why choose this?',
+          answerText:
+            'This is a long, hard-to-scan paragraph that keeps going without structure. ' +
+            'It has many sentences so it should fail structure in the heuristic. ' +
+            'It continues with more filler content to push the word count above the threshold. ' +
+            'Another sentence adds length and ambiguity without giving a clear structure. ' +
+            'Yet another sentence adds more words and makes the block harder to scan. ' +
+            'Finally, this ends after enough words to exceed the limit.',
+          confidenceScore: 0.6,
+          sourceType: 'generated',
+          sourceFieldsUsed: [],
+          version: 'ae_v1',
+        },
+        {
+          productId: products[1].id,
+          questionId: 'what_is_it',
+          questionText: 'What is this?',
+          answerText: 'A concise, factual description with a clear first sentence and a concrete detail (e.g., 2-step setup).',
+          confidenceScore: 0.8,
+          sourceType: 'generated',
+          sourceFieldsUsed: ['e.g.'],
+          version: 'ae_v1',
+        },
+      ],
+    });
+
+    // Create a draft + apply-like audit row for GEO trust trajectory (no AI)
+    const draft = await this.prisma.productGeoFixDraft.create({
+      data: {
+        productId: p1.id,
+        questionId: 'why_choose_this',
+        issueType: 'POOR_ANSWER_STRUCTURE',
+        draftPayload: {
+          improvedAnswer:
+            'Choose this when you need a clear, comparable option for a specific use case.\n\n' +
+            '- Works well for common scenarios\n' +
+            '- Includes concrete details (e.g., 2-step setup)\n',
+        },
+        aiWorkKey: `e2e:geo:${project.id}:${p1.id}`,
+        generatedWithAi: false,
+      },
+    });
+
+    // Apply the improved answer to the Answer Block so current GEO reflects post-fix state
+    await this.prisma.answerBlock.update({
+      where: { productId_questionId: { productId: p1.id, questionId: 'why_choose_this' } },
+      data: {
+        answerText: (draft.draftPayload as any).improvedAnswer,
+        sourceType: 'geo_fix_ai',
+        confidenceScore: 0.85,
+      },
+    });
+
+    await this.prisma.productGeoFixApplication.create({
+      data: {
+        productId: p1.id,
+        draftId: draft.id,
+        appliedByUserId: user.id,
+        questionId: 'why_choose_this',
+        issueType: 'POOR_ANSWER_STRUCTURE',
+        beforeConfidence: 'LOW',
+        afterConfidence: 'HIGH',
+        beforeIssuesCount: 3,
+        afterIssuesCount: 0,
+        issuesResolvedCount: 3,
+        resolvedIssueTypes: ['poor_answer_structure:why_choose_this'],
+        appliedAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+    return {
+      user: { id: user.id, email: user.email },
+      projectId: project.id,
+      productId: p1.id,
+      shopDomain: integration.externalId,
+      accessToken,
+    };
+  }
+
+  // ==========================================================================
+  // [LIST-SEARCH-FILTER-1] E2E Seeds
+  // ==========================================================================
+
+  /**
+   * POST /testkit/e2e/seed-list-search-filter-1
+   *
+   * [LIST-SEARCH-FILTER-1] Seed for Products list search and filter tests.
+   *
+   * Creates a project with at least 3 products with known titles and handles
+   * suitable for search assertions:
+   * - At least one product is status=optimized (complete SEO metadata)
+   * - At least one product is status=needs_attention (incomplete SEO)
+   * - Creates an AutomationPlaybookDraft (status READY, not applied) whose
+   *   draftItems includes exactly one of the seeded product IDs so hasDraft=true
+   *   can be validated.
+   *
+   * Returns:
+   * - projectId
+   * - accessToken
+   * - productIds
+   * - titles[] (for search assertions)
+   * - handles[] (for search assertions)
+   * - optimizedProductId (for status filter assertion)
+   * - needsAttentionProductId (for status filter assertion)
+   * - draftProductId (for hasDraft filter assertion)
+   */
+  @Post('seed-list-search-filter-1')
+  async seedListSearchFilter1() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    // Create 3 products with deterministic titles and handles
+    // Product 1: Optimized (complete SEO metadata within length bounds)
+    const product1 = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'ext-product-1',
+        title: 'Alpine Mountain Boots',
+        handle: 'alpine-mountain-boots',
+        // SEO title: 30-60 chars (optimized)
+        seoTitle: 'Alpine Mountain Boots - Premium Hiking Footwear',
+        // SEO description: 70-155 chars (optimized)
+        seoDescription: 'Durable mountain boots designed for serious hikers. Waterproof construction with superior ankle support.',
+      },
+    });
+
+    // Product 2: Needs attention (missing SEO description)
+    const product2 = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'ext-product-2',
+        title: 'Coastal Kayak Pro',
+        handle: 'coastal-kayak-pro',
+        seoTitle: 'Coastal Kayak Pro - Adventure Awaits',
+        seoDescription: null, // Missing = needs_attention
+      },
+    });
+
+    // Product 3: Needs attention (SEO title too short)
+    const product3 = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'ext-product-3',
+        title: 'Summit Backpack',
+        handle: 'summit-backpack',
+        seoTitle: 'Summit Pack', // Too short (< 30 chars) = needs_attention
+        seoDescription: 'A reliable backpack for day hikes and overnight adventures with ergonomic straps and multiple compartments.',
+      },
+    });
+
+    // Create AutomationPlaybookDraft with product2 in draftItems (for hasDraft filter)
+    await this.prisma.automationPlaybookDraft.create({
+      data: {
+        projectId: project.id,
+        playbookId: 'missing_seo_description',
+        scopeId: `project:${project.id}`,
+        rulesHash: 'list-search-filter-1-hash',
+        status: 'READY',
+        createdByUserId: user.id,
+        sampleProductIds: [product2.id] as unknown as any,
+        draftItems: [
+          {
+            productId: product2.id,
+            suggestion: 'Generated SEO description for Coastal Kayak Pro',
+          },
+        ] as unknown as any,
+        counts: {
+          affectedTotal: 1,
+          draftGenerated: 1,
+          noSuggestionCount: 0,
+        } as unknown as any,
+        rules: { enabled: true } as unknown as any,
+        // Not applied, not expired
+        appliedAt: null,
+        expiresAt: null,
+      },
+    });
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      projectId: project.id,
+      accessToken,
+      productIds: [product1.id, product2.id, product3.id],
+      titles: [product1.title, product2.title, product3.title],
+      handles: [product1.handle, product2.handle, product3.handle],
+      optimizedProductId: product1.id,
+      needsAttentionProductId: product2.id,
+      draftProductId: product2.id,
+    };
+  }
+
+  /**
+   * POST /testkit/e2e/seed-list-search-filter-1-1
+   *
+   * [LIST-SEARCH-FILTER-1.1] Seed for Pages and Collections list search and filter tests.
+   *
+   * Creates a project with crawl results for pages and collections:
+   * - 3 pages (/pages/*) with deterministic titles
+   * - 3 collections (/collections/*) with deterministic titles
+   * - At least one optimized and one needs_attention of each type
+   * - Creates an AutomationPlaybookDraft targeting one page and one collection
+   *
+   * Returns:
+   * - projectId
+   * - accessToken
+   * - pageIds[] (CrawlResult IDs for pages)
+   * - collectionIds[] (CrawlResult IDs for collections)
+   * - pageTitles[] (for search assertions)
+   * - collectionTitles[] (for search assertions)
+   * - optimizedPageId (for status filter assertion)
+   * - needsAttentionPageId (for status filter assertion)
+   * - optimizedCollectionId (for status filter assertion)
+   * - needsAttentionCollectionId (for status filter assertion)
+   * - draftPageId (for hasDraft filter assertion)
+   * - draftCollectionId (for hasDraft filter assertion)
+   */
+  @Post('seed-list-search-filter-1-1')
+  async seedListSearchFilter11() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    const baseUrl = 'https://test-shop.myshopify.com';
+
+    // Create 3 pages as CrawlResults
+    // Page 1: Optimized (complete SEO metadata within length bounds)
+    const page1 = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/pages/about-us`,
+        statusCode: 200,
+        // SEO title: 30-60 chars (optimized)
+        title: 'About Our Company - Learn About Our Story',
+        // SEO description: 70-155 chars (optimized)
+        metaDescription: 'Discover our company history, mission, and the team behind our success. Founded with a passion for quality.',
+        h1: 'About Us',
+        wordCount: 500,
+        loadTimeMs: 250,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Page 2: Needs attention (missing description)
+    const page2 = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/pages/contact`,
+        statusCode: 200,
+        title: 'Contact Us - Get in Touch',
+        metaDescription: null, // Missing = needs_attention
+        h1: 'Contact Us',
+        wordCount: 200,
+        loadTimeMs: 180,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Page 3: Needs attention (title too short)
+    const page3 = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/pages/faq`,
+        statusCode: 200,
+        title: 'FAQ', // Too short (< 30 chars) = needs_attention
+        metaDescription: 'Find answers to commonly asked questions about our products, shipping, returns, and customer support.',
+        h1: 'Frequently Asked Questions',
+        wordCount: 800,
+        loadTimeMs: 200,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Create 3 collections as CrawlResults
+    // Collection 1: Optimized (complete SEO metadata)
+    const collection1 = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/collections/summer-sale`,
+        statusCode: 200,
+        // SEO title: 30-60 chars (optimized)
+        title: 'Summer Sale Collection - Save Up to 50%',
+        // SEO description: 70-155 chars (optimized)
+        metaDescription: 'Shop our summer sale collection with discounts up to 50% off. Limited time offers on seasonal favorites.',
+        h1: 'Summer Sale',
+        wordCount: 300,
+        loadTimeMs: 220,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Collection 2: Needs attention (missing description)
+    const collection2 = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/collections/new-arrivals`,
+        statusCode: 200,
+        title: 'New Arrivals - Latest Products',
+        metaDescription: null, // Missing = needs_attention
+        h1: 'New Arrivals',
+        wordCount: 250,
+        loadTimeMs: 190,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Collection 3: Needs attention (title too short)
+    const collection3 = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/collections/footwear`,
+        statusCode: 200,
+        title: 'Footwear', // Too short (< 30 chars) = needs_attention
+        metaDescription: 'Browse our complete collection of footwear including boots, sneakers, sandals, and more for all occasions.',
+        h1: 'Footwear Collection',
+        wordCount: 400,
+        loadTimeMs: 210,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Create AutomationPlaybookDraft for PAGES with page2 (for hasDraft filter)
+    // Note: draftItems is a Json field, not a relation
+    await this.prisma.automationPlaybookDraft.create({
+      data: {
+        projectId: project.id,
+        playbookId: 'missing_seo_description',
+        scopeId: `project:${project.id}:pages`,
+        rulesHash: 'list-search-filter-1-1-pages-hash',
+        status: 'READY',
+        createdByUserId: user.id,
+        sampleProductIds: [] as unknown as any,
+        draftItems: [
+          {
+            crawlResultId: page2.id,
+            suggestedTitle: null,
+            suggestedDescription: 'Generated SEO description for Contact page',
+            status: 'READY',
+          },
+        ] as unknown as any,
+        counts: {
+          affectedTotal: 1,
+          draftGenerated: 1,
+          noSuggestionCount: 0,
+        } as unknown as any,
+        rules: { enabled: true } as unknown as any,
+        appliedAt: null,
+        expiresAt: null,
+      },
+    });
+
+    // Create AutomationPlaybookDraft for COLLECTIONS with collection2 (for hasDraft filter)
+    // Note: draftItems is a Json field, not a relation
+    await this.prisma.automationPlaybookDraft.create({
+      data: {
+        projectId: project.id,
+        playbookId: 'missing_seo_description',
+        scopeId: `project:${project.id}:collections`,
+        rulesHash: 'list-search-filter-1-1-collections-hash',
+        status: 'READY',
+        createdByUserId: user.id,
+        sampleProductIds: [] as unknown as any,
+        draftItems: [
+          {
+            crawlResultId: collection2.id,
+            suggestedTitle: null,
+            suggestedDescription: 'Generated SEO description for New Arrivals collection',
+            status: 'READY',
+          },
+        ] as unknown as any,
+        counts: {
+          affectedTotal: 1,
+          draftGenerated: 1,
+          noSuggestionCount: 0,
+        } as unknown as any,
+        rules: { enabled: true } as unknown as any,
+        appliedAt: null,
+        expiresAt: null,
+      },
+    });
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      projectId: project.id,
+      accessToken,
+      pageIds: [page1.id, page2.id, page3.id],
+      collectionIds: [collection1.id, collection2.id, collection3.id],
+      pageTitles: [page1.title, page2.title, page3.title],
+      collectionTitles: [collection1.title, collection2.title, collection3.title],
+      optimizedPageId: page1.id,
+      needsAttentionPageId: page2.id,
+      optimizedCollectionId: collection1.id,
+      needsAttentionCollectionId: collection2.id,
+      draftPageId: page2.id,
+      draftCollectionId: collection2.id,
+    };
+  }
+
+  // ==========================================================================
+  // [COUNT-INTEGRITY-1.1] E2E Seeds
+  // ==========================================================================
+
+  /**
+   * POST /testkit/e2e/seed-count-integrity-1-1-many-products
+   *
+   * [COUNT-INTEGRITY-1.1 PATCH 3.6] Regression seed for Gap 3 (True Asset Dedup Beyond Cap-20)
+   *
+   * Seed a Pro-plan user + project with ≥25 products (30 products) where SEO fields
+   * are incomplete so metadata issues affect all products deterministically.
+   *
+   * This seed verifies:
+   * - affectedItemsCount accuracy beyond cap-20 (should equal 30, not capped at 20)
+   * - Asset membership checks work for products beyond index 20
+   *
+   * Returns:
+   * - user (id, email)
+   * - projectId
+   * - productIds[] (length = 30)
+   * - accessToken
+   */
+  @Post('seed-count-integrity-1-1-many-products')
+  async seedCountIntegrity11ManyProducts() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    // Create 30 products with incomplete SEO (missing title/description)
+    const products = await createTestProducts(this.prisma as any, {
+      projectId: project.id,
+      count: 30,
+      withSeo: false, // All products will have missing SEO metadata
+      withIssues: true, // Ensure issues are triggered
+    });
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+      projectId: project.id,
+      productIds: products.map((p) => p.id),
+      accessToken,
+    };
+  }
+
+  /**
+   * POST /testkit/e2e/seed-count-integrity-1-1-many-collections
+   *
+   * [COUNT-INTEGRITY-1.1 PATCH 4.2 — Gap 3b] Regression seed for pages/collections dedup beyond cap-20
+   *
+   * Seed a Pro-plan user + project with 30 collection pages with deterministic technical issues
+   * (missing metadata, indexability problems, slow load time, etc.)
+   *
+   * This seed verifies:
+   * - affectedItemsCount accuracy for collections beyond cap-20 (should equal 30, not capped at 20)
+   * - Asset membership checks work for collections beyond index 20
+   *
+   * Returns:
+   * - user (id, email)
+   * - projectId
+   * - collectionIds[] (length = 30) - CrawlResult IDs for /assets/collections/:id/issues endpoint
+   * - collectionUrls[] (length = 30) - URLs for reference
+   * - accessToken
+   */
+  @Post('seed-count-integrity-1-1-many-collections')
+  async seedCountIntegrity11ManyCollections() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    // Mark project as crawled
+    await this.prisma.project.update({
+      where: { id: project.id },
+      data: { lastCrawledAt: new Date() },
+    });
+
+    // Create 30 collection CrawlResults with deterministic technical issues
+    const collectionUrls: string[] = [];
+    const collectionIds: string[] = [];
+    for (let i = 0; i < 30; i++) {
+      const collectionHandle = `test-collection-${i + 1}`;
+      const collectionUrl = `https://test-shop.myshopify.com/collections/${collectionHandle}`;
+      collectionUrls.push(collectionUrl);
+
+      // [COUNT-INTEGRITY-1.1 PATCH 4.2-FIXUP-1] Capture crawlResult.id for asset endpoint
+      const crawlResult = await this.prisma.crawlResult.create({
+        data: {
+          projectId: project.id,
+          url: collectionUrl,
+          statusCode: 200,
+          // [COUNT-INTEGRITY-1.1 PATCH 4.2] Missing metadata triggers indexability_problems
+          title: null, // Missing title
+          metaDescription: null, // Missing meta description
+          h1: null, // Missing h1
+          wordCount: 50, // Low word count (< 400)
+          loadTimeMs: 3000, // Slow load (> 2500ms) triggers slow_initial_response
+          issues: ['MISSING_TITLE', 'MISSING_META_DESCRIPTION', 'SLOW_LOAD_TIME'],
+          scannedAt: new Date(),
+        },
+      });
+      collectionIds.push(crawlResult.id);
+    }
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+      projectId: project.id,
+      collectionIds, // [PATCH 4.2-FIXUP-1] Return IDs for asset endpoint
+      collectionUrls,
+      accessToken,
+    };
+  }
+
+  // ==========================================================================
+  // [LIST-ACTIONS-CLARITY-1] E2E Seeds
+  // ==========================================================================
+
+  /**
+   * POST /testkit/e2e/seed-list-actions-clarity-1
+   *
+   * [LIST-ACTIONS-CLARITY-1] Seed for row chip and action tests.
+   * [LIST-ACTIONS-CLARITY-1 FIXUP-1] Extended with:
+   * - Collections support
+   * - EDITOR access token (for Blocked state testing)
+   * - Governance policy enabled for approval gating
+   *
+   * Creates a project with products, pages, and collections in various states:
+   * - Product 1: Optimized (complete SEO, no draft)
+   * - Product 2: Needs attention (incomplete SEO, no draft)
+   * - Product 3: Draft pending (has pending draft, owner can apply)
+   * - Page 1: Optimized (complete SEO, no draft)
+   * - Page 2: Needs attention (incomplete SEO, no draft)
+   * - Page 3: Draft pending (has pending draft)
+   * - Collection 1: Optimized (complete SEO, no draft)
+   * - Collection 2: Needs attention (incomplete SEO, no draft)
+   * - Collection 3: Draft pending (has pending draft)
+   *
+   * Returns:
+   * - projectId
+   * - accessToken (OWNER)
+   * - editorAccessToken (EDITOR - for Blocked state tests)
+   * - optimizedProductId
+   * - needsAttentionProductId
+   * - draftPendingProductId
+   * - optimizedPageId
+   * - needsAttentionPageId
+   * - draftPendingPageId
+   * - optimizedCollectionId
+   * - needsAttentionCollectionId
+   * - draftPendingCollectionId
+   */
+  @Post('seed-list-actions-clarity-1')
+  async seedListActionsClarity1() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    const baseUrl = 'https://test-shop.myshopify.com';
+
+    // Product 1: Optimized (complete SEO metadata)
+    const product1 = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'lac1-product-1',
+        title: 'Optimized Product - Complete SEO',
+        description: 'This product has complete SEO metadata.',
+        handle: 'optimized-product',
+        seoTitle: 'Optimized Product - Best Quality Item for Your Needs',
+        seoDescription: 'Discover our optimized product with premium quality and excellent features. Perfect for everyday use and great value.',
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    // Product 2: Needs attention (missing SEO description)
+    const product2 = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'lac1-product-2',
+        title: 'Product Missing SEO Description',
+        description: 'This product is missing SEO description.',
+        handle: 'needs-attention-product',
+        seoTitle: 'Product Title That Needs Attention',
+        seoDescription: null, // Missing = needs attention
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    // Product 3: Draft pending (will have a draft created)
+    const product3 = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'lac1-product-3',
+        title: 'Product With Pending Draft',
+        description: 'This product has a pending draft.',
+        handle: 'draft-pending-product',
+        seoTitle: 'Short', // Short title = needs attention
+        seoDescription: null, // Missing
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    // Create AutomationPlaybookDraft for product3
+    await this.prisma.automationPlaybookDraft.create({
+      data: {
+        projectId: project.id,
+        playbookId: 'missing_seo_description',
+        scopeId: `project:${project.id}:products`,
+        rulesHash: 'list-actions-clarity-1-products-hash',
+        status: 'READY',
+        createdByUserId: user.id,
+        sampleProductIds: [product3.id] as unknown as any,
+        draftItems: [
+          {
+            productId: product3.id,
+            suggestedTitle: 'Improved Product Title for Better SEO',
+            suggestedDescription: 'A comprehensive description for the product that improves search visibility and user experience.',
+            status: 'READY',
+          },
+        ] as unknown as any,
+        counts: {
+          affectedTotal: 1,
+          draftGenerated: 1,
+          noSuggestionCount: 0,
+        } as unknown as any,
+        rules: { enabled: true } as unknown as any,
+        appliedAt: null,
+        expiresAt: null,
+      },
+    });
+
+    // Page 1: Optimized (complete SEO metadata)
+    const page1 = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/pages/optimized-page`,
+        statusCode: 200,
+        title: 'Optimized Page - Everything You Need to Know',
+        metaDescription: 'Discover everything about our optimized page. Complete information with all the details you need for success.',
+        h1: 'Optimized Page',
+        wordCount: 500,
+        loadTimeMs: 200,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Page 2: Needs attention (missing description)
+    const page2 = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/pages/needs-attention`,
+        statusCode: 200,
+        title: 'Page Needs Attention - Missing Description',
+        metaDescription: null, // Missing = needs attention
+        h1: 'Needs Attention',
+        wordCount: 300,
+        loadTimeMs: 150,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Page 3: Draft pending (will have a draft created)
+    const page3 = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/pages/draft-pending`,
+        statusCode: 200,
+        title: 'Short', // Short title = needs attention
+        metaDescription: null, // Missing
+        h1: 'Draft Pending Page',
+        wordCount: 100,
+        loadTimeMs: 180,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Create AutomationPlaybookDraft for page3
+    await this.prisma.automationPlaybookDraft.create({
+      data: {
+        projectId: project.id,
+        playbookId: 'missing_seo_description',
+        scopeId: `project:${project.id}:pages`,
+        rulesHash: 'list-actions-clarity-1-pages-hash',
+        status: 'READY',
+        createdByUserId: user.id,
+        sampleProductIds: [] as unknown as any,
+        draftItems: [
+          {
+            crawlResultId: page3.id,
+            suggestedTitle: 'Improved Page Title for Better Visibility',
+            suggestedDescription: 'A comprehensive page description that improves search visibility.',
+            status: 'READY',
+          },
+        ] as unknown as any,
+        counts: {
+          affectedTotal: 1,
+          draftGenerated: 1,
+          noSuggestionCount: 0,
+        } as unknown as any,
+        rules: { enabled: true } as unknown as any,
+        appliedAt: null,
+        expiresAt: null,
+      },
+    });
+
+    // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Create Collections
+    // Collection 1: Optimized (complete SEO metadata)
+    const collection1 = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/collections/optimized-collection`,
+        statusCode: 200,
+        title: 'Optimized Collection - Premium Products Selection',
+        metaDescription: 'Browse our optimized collection of premium products. Carefully curated selection with the best quality items.',
+        h1: 'Optimized Collection',
+        wordCount: 400,
+        loadTimeMs: 180,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Collection 2: Needs attention (missing description)
+    const collection2 = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/collections/needs-attention`,
+        statusCode: 200,
+        title: 'Collection Needs Attention - Missing Description',
+        metaDescription: null, // Missing = needs attention
+        h1: 'Needs Attention Collection',
+        wordCount: 250,
+        loadTimeMs: 200,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Collection 3: Draft pending (will have a draft created)
+    const collection3 = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/collections/draft-pending`,
+        statusCode: 200,
+        title: 'Short', // Short title = needs attention
+        metaDescription: null, // Missing
+        h1: 'Draft Pending Collection',
+        wordCount: 150,
+        loadTimeMs: 220,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Create AutomationPlaybookDraft for collection3
+    await this.prisma.automationPlaybookDraft.create({
+      data: {
+        projectId: project.id,
+        playbookId: 'missing_seo_description',
+        scopeId: `project:${project.id}:collections`,
+        rulesHash: 'list-actions-clarity-1-collections-hash',
+        status: 'READY',
+        createdByUserId: user.id,
+        sampleProductIds: [] as unknown as any,
+        draftItems: [
+          {
+            crawlResultId: collection3.id,
+            suggestedTitle: 'Improved Collection Title for Better Visibility',
+            suggestedDescription: 'A comprehensive collection description that improves search visibility.',
+            status: 'READY',
+          },
+        ] as unknown as any,
+        counts: {
+          affectedTotal: 1,
+          draftGenerated: 1,
+          noSuggestionCount: 0,
+        } as unknown as any,
+        rules: { enabled: true } as unknown as any,
+        appliedAt: null,
+        expiresAt: null,
+      },
+    });
+
+    // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Create EDITOR user for Blocked state testing
+    const { user: editorUser } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+      accountRole: 'EDITOR',
+    });
+
+    // Add EDITOR as project member
+    await this.prisma.projectMember.create({
+      data: {
+        projectId: project.id,
+        userId: editorUser.id,
+        role: 'EDITOR',
+      },
+    });
+
+    // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Enable governance (approval required)
+    // This makes EDITORs see "Blocked" state since they can't apply without approval
+    await this.prisma.projectGovernancePolicy.upsert({
+      where: { projectId: project.id },
+      create: {
+        projectId: project.id,
+        requireApprovalForApply: true,
+        updatedAt: new Date(),
+      },
+      update: {
+        requireApprovalForApply: true,
+        updatedAt: new Date(),
+      },
+    });
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+    const editorAccessToken = this.jwtService.sign({ sub: editorUser.id });
+
+    return {
+      projectId: project.id,
+      accessToken,
+      editorAccessToken,
+      optimizedProductId: product1.id,
+      needsAttentionProductId: product2.id,
+      draftPendingProductId: product3.id,
+      optimizedPageId: page1.id,
+      needsAttentionPageId: page2.id,
+      draftPendingPageId: page3.id,
+      optimizedCollectionId: collection1.id,
+      needsAttentionCollectionId: collection2.id,
+      draftPendingCollectionId: collection3.id,
     };
   }
 }

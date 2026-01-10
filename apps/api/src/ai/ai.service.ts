@@ -349,6 +349,87 @@ Respond in JSON format only:
   /**
    * Generate a content snippet draft for a specific intent/query gap.
    */
+  // ============================================================================
+  // GEO Fix Preview Generation (GEO-FOUNDATION-1)
+  // ============================================================================
+
+  async generateGeoAnswerImprovement(input: {
+    product: {
+      title: string;
+      description: string;
+      seoTitle: string;
+      seoDescription: string;
+    };
+    questionText: string;
+    questionId: string;
+    currentAnswer: string;
+    issueType:
+      | 'missing_direct_answer'
+      | 'answer_too_vague'
+      | 'poor_answer_structure'
+      | 'answer_overly_promotional'
+      | 'missing_examples_or_facts';
+    factsUsed?: string[];
+  }): Promise<{ improvedAnswer: string }> {
+    const facts = Array.isArray(input.factsUsed) && input.factsUsed.length > 0
+      ? input.factsUsed.join(', ')
+      : 'None provided';
+
+    const prompt = `You are helping improve an Answer Block for "Answer Readiness" and "Citation Confidence".
+
+Trust & Safety rules (non-negotiable):
+- Do NOT invent facts or claims.
+- Use ONLY the product info provided below (and the factsUsed list if present).
+- Keep tone neutral and factual (no hype, no guarantees, no superlatives).
+- No SEO stuffing.
+- Prefer short paragraphs or bullets.
+- If the provided product info is insufficient for concrete facts, stay generic and suggest what detail is missing rather than inventing.
+
+Product title: ${input.product.title}
+Product description: ${input.product.description || 'Not provided'}
+SEO title: ${input.product.seoTitle || 'Not provided'}
+SEO description: ${input.product.seoDescription || 'Not provided'}
+factsUsed (keys/hints): ${facts}
+
+Answer Block question (${input.questionId}): ${input.questionText}
+Current answer:
+${input.currentAnswer || '(empty)'}
+
+Issue to fix: ${input.issueType}
+
+Output requirements:
+- 2–5 short sentences OR 3–6 bullets (choose what best fits the issue).
+- Direct answer first (first sentence should answer the question).
+- No new product claims beyond provided info.
+
+Respond in JSON only:
+{"improvedAnswer":"..."}`;
+
+    try {
+      const data = await this.geminiClient.generateWithFallback({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.4,
+          maxOutputTokens: 350,
+        },
+      });
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed?.improvedAnswer && typeof parsed.improvedAnswer === 'string') {
+          return { improvedAnswer: parsed.improvedAnswer.trim() };
+        }
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('[AI] generateGeoAnswerImprovement error:', error);
+    }
+    return {
+      improvedAnswer: (input.currentAnswer || '').trim(),
+    };
+  }
+
   async generateContentSnippetForIntent(input: {
     product: {
       title: string;

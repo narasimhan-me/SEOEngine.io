@@ -31,6 +31,7 @@ import {
   AiUsageQuotaEvaluation,
   AiUsageQuotaService,
 } from './ai-usage-quota.service';
+import { RoleResolutionService } from '../common/role-resolution.service';
 
 class MetadataDto {
   crawlResultId: string;
@@ -46,6 +47,11 @@ class ProductAnswersDto {
   productId: string;
 }
 
+/**
+ * [ROLES-3 FIXUP-4] AI Controller with membership-aware access control:
+ * - Draft generation endpoints (POST): OWNER/EDITOR only (assertCanGenerateDrafts)
+ * - AI usage read endpoints (GET): any ProjectMember can view (assertProjectAccess)
+ */
 @Controller('ai')
 @UseGuards(JwtAuthGuard)
 export class AiController {
@@ -58,13 +64,14 @@ export class AiController {
     private readonly tokenUsageService: TokenUsageService,
     private readonly aiUsageLedgerService: AiUsageLedgerService,
     private readonly aiUsageQuotaService: AiUsageQuotaService,
+    private readonly roleResolution: RoleResolutionService,
   ) {}
 
   @Post('metadata')
   async suggestMetadata(@Request() req: any, @Body() dto: MetadataDto) {
     const userId = req.user.id;
 
-    // Load crawl result and verify ownership
+    // Load crawl result
     const crawlResult = await this.prisma.crawlResult.findUnique({
       where: { id: dto.crawlResultId },
       include: {
@@ -76,9 +83,8 @@ export class AiController {
       throw new BadRequestException('Crawl result not found');
     }
 
-    if (crawlResult.project.userId !== userId) {
-      throw new BadRequestException('Access denied');
-    }
+    // [ROLES-3 FIXUP-4] OWNER/EDITOR only for draft generation
+    await this.roleResolution.assertCanGenerateDrafts(crawlResult.projectId, userId);
 
     // Generate AI suggestions
     const suggestions = await this.aiService.generateMetadata({
@@ -106,12 +112,13 @@ export class AiController {
   /**
    * POST /ai/product-metadata
    * Generate AI SEO suggestions for a product
+   * [ROLES-3 FIXUP-4] OWNER/EDITOR only for draft generation
    */
   @Post('product-metadata')
   async suggestProductMetadata(@Request() req: any, @Body() dto: ProductMetadataDto) {
     const userId = req.user.id;
 
-    // Load product and verify ownership
+    // Load product
     const product = await this.prisma.product.findUnique({
       where: { id: dto.productId },
       include: {
@@ -123,9 +130,8 @@ export class AiController {
       throw new BadRequestException('Product not found');
     }
 
-    if (product.project.userId !== userId) {
-      throw new BadRequestException('Access denied');
-    }
+    // [ROLES-3 FIXUP-4] OWNER/EDITOR only for draft generation
+    await this.roleResolution.assertCanGenerateDrafts(product.projectId, userId);
 
     // Enforce daily AI suggestion limit before calling provider
     const { planId, limit, dailyCount } =
@@ -266,6 +272,7 @@ export class AiController {
    *
    * Uses existing product data to generate factual, structured answers
    * to the 10 canonical buyer/AI questions. Answers are ephemeral (not persisted).
+   * [ROLES-3 FIXUP-4] OWNER/EDITOR only for draft generation
    */
   @Post('product-answers')
   async generateProductAnswers(
@@ -274,7 +281,7 @@ export class AiController {
   ): Promise<ProductAnswersResponse> {
     const userId = req.user.id;
 
-    // Load product and verify ownership
+    // Load product
     const product = await this.prisma.product.findUnique({
       where: { id: dto.productId },
       include: {
@@ -286,9 +293,8 @@ export class AiController {
       throw new BadRequestException('Product not found');
     }
 
-    if (product.project.userId !== userId) {
-      throw new BadRequestException('Access denied');
-    }
+    // [ROLES-3 FIXUP-4] OWNER/EDITOR only for draft generation
+    await this.roleResolution.assertCanGenerateDrafts(product.projectId, userId);
 
     // Enforce daily AI limit before calling provider
     const { planId, limit, dailyCount } =
@@ -392,6 +398,7 @@ export class AiController {
   /**
    * GET /ai/projects/:projectId/usage/summary
    * Get AI usage summary for the current billing month.
+   * [ROLES-3 FIXUP-4] All ProjectMembers can view (assertProjectAccess)
    */
   @Get('projects/:projectId/usage/summary')
   async getProjectAiUsageSummary(
@@ -400,18 +407,8 @@ export class AiController {
   ): Promise<AiUsageProjectSummary> {
     const userId = req.user.id;
 
-    // Verify project ownership
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      throw new BadRequestException('Project not found');
-    }
-
-    if (project.userId !== userId) {
-      throw new BadRequestException('Access denied');
-    }
+    // [ROLES-3 FIXUP-4] Any ProjectMember can view AI usage
+    await this.roleResolution.assertProjectAccess(projectId, userId);
 
     // Get current month range
     const now = new Date();
@@ -427,6 +424,7 @@ export class AiController {
   /**
    * GET /ai/projects/:projectId/usage/runs
    * List recent AI usage runs for a project.
+   * [ROLES-3 FIXUP-4] All ProjectMembers can view (assertProjectAccess)
    */
   @Get('projects/:projectId/usage/runs')
   async listProjectAiUsageRuns(
@@ -437,18 +435,8 @@ export class AiController {
   ): Promise<AiUsageRunSummary[]> {
     const userId = req.user.id;
 
-    // Verify project ownership
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      throw new BadRequestException('Project not found');
-    }
-
-    if (project.userId !== userId) {
-      throw new BadRequestException('Access denied');
-    }
+    // [ROLES-3 FIXUP-4] Any ProjectMember can view AI usage
+    await this.roleResolution.assertProjectAccess(projectId, userId);
 
     return this.aiUsageLedgerService.getProjectRunSummaries(projectId, {
       runType: runType as AiUsageRunType | undefined,
@@ -462,6 +450,7 @@ export class AiController {
    * This endpoint is used by the frontend predictive guard to "predict before prevent":
    * - Soft warnings when near the monthly quota
    * - Hard blocking (when enabled) once the monthly limit is exceeded
+   * [ROLES-3 FIXUP-4] All ProjectMembers can view (assertProjectAccess)
    */
   @Get('projects/:projectId/usage/quota')
   async evaluateProjectAiUsageQuota(
@@ -471,18 +460,8 @@ export class AiController {
   ): Promise<AiUsageQuotaEvaluation> {
     const userId = req.user.id;
 
-    // Verify project ownership (same contract as other AI usage endpoints)
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      throw new BadRequestException('Project not found');
-    }
-
-    if (project.userId !== userId) {
-      throw new BadRequestException('Access denied');
-    }
+    // [ROLES-3 FIXUP-4] Any ProjectMember can view AI usage quota
+    await this.roleResolution.assertProjectAccess(projectId, userId);
 
     const normalizedAction: AiUsageQuotaAction =
       (action as AiUsageQuotaAction) || 'PREVIEW_GENERATE';

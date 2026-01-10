@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import {
   DEO_SCORE_VERSION,
@@ -11,14 +11,22 @@ import {
   computeDeoScoreV2FromSignals,
 } from '@engineo/shared';
 import { DEO_SCORE_MODEL_V2 } from '@engineo/shared';
+import { RoleResolutionService } from '../common/role-resolution.service';
 
+/**
+ * [ROLES-3 FIXUP-3] DEO Score Service
+ * Updated with membership-aware access control (any ProjectMember can view).
+ */
 @Injectable()
 export class DeoScoreService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly roleResolution: RoleResolutionService,
+  ) {}
 
   /**
-   * Get the latest DEO score snapshot for a project,
-   * with ownership validation.
+   * Get the latest DEO score snapshot for a project.
+   * [ROLES-3 FIXUP-3] Uses membership-aware access control (any ProjectMember can view).
    */
   async getLatestForProject(projectId: string, userId: string): Promise<DeoScoreLatestResponse> {
     const prisma = this.prisma as any;
@@ -31,9 +39,8 @@ export class DeoScoreService {
       throw new NotFoundException('Project not found');
     }
 
-    if (project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this project');
-    }
+    // [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can view)
+    await this.roleResolution.assertProjectAccess(projectId, userId);
 
     const snapshot = await prisma.deoScoreSnapshot.findFirst({
       where: { projectId },

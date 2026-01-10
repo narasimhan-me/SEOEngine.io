@@ -488,3 +488,150 @@ Each issue now includes:
 6. `aiFixable` accurately reflects whether AI optimization can resolve the issue.
 7. `fixCost` accurately reflects the effort level required.
 8. Backward compatibility maintained (all new fields are optional).
+
+---
+
+## 9. PERFORMANCE-1: Discovery-Critical Performance Issues
+
+Phase PERFORMANCE-1 extends the Technical & Indexability pillar with discovery-critical performance signals. Unlike full page-speed audits, these focus on signals that directly affect crawlability and rendering.
+
+### 9.1 Performance Signal Types
+
+```typescript
+export type PerformanceSignalType =
+  | 'render_blocking'
+  | 'indexability_risk'
+  | 'ttfb_proxy'
+  | 'page_weight_risk'
+  | 'mobile_readiness';
+```
+
+### 9.2 Performance Issue Types
+
+| Issue ID | Signal Type | Severity Thresholds | Description |
+|----------|-------------|---------------------|-------------|
+| `render_blocking_resources` | `render_blocking` | warning: ≥3 pages, critical: ≥5 pages | Scripts/styles in `<head>` without async/defer |
+| `indexability_conflict` | `indexability_risk` | Always critical | noindex directives, canonical conflicts |
+| `slow_initial_response` | `ttfb_proxy` | warning: >10% pages, critical: >25% pages | HTML >500KB indicating slow TTFB |
+| `excessive_page_weight` | `page_weight_risk` | warning: >5% pages, critical: >10% pages | HTML >1MB (very large) |
+| `mobile_rendering_risk` | `mobile_readiness` | warning: >10% pages, critical: >25% pages | Missing viewport meta, layout issues |
+
+### 9.3 Detection Rules
+
+#### Render-blocking Resources
+
+**Detection (during crawl):**
+- Scan `<head>` for `<script>` tags without `async`, `defer`, or `type="module"`
+- Scan `<head>` for `<link rel="stylesheet">` without `media="print"` or preload hints
+
+**Issue fields:**
+- `pillarId`: `'technical_indexability'`
+- `signalType`: `'render_blocking'`
+- `category`: `'technical'`
+- `aiFixable`: `false`
+- `fixCost`: `'advanced'`
+
+#### Indexability Conflict
+
+**Detection (during crawl):**
+- `<meta name="robots" content="noindex">`
+- `X-Robots-Tag: noindex` response header
+- Canonical URL pointing to different domain/page
+
+**Issue fields:**
+- `pillarId`: `'technical_indexability'`
+- `signalType`: `'indexability_risk'`
+- `category`: `'technical'`
+- `severity`: Always `'critical'`
+- `aiFixable`: `false`
+- `fixCost`: `'manual'`
+
+#### Slow Initial Response (TTFB Proxy)
+
+**Detection (during crawl):**
+- HTML bytes captured via `Buffer.byteLength(html, 'utf-8')`
+- `htmlBytes > 500KB` → LARGE_HTML
+- `htmlBytes > 1MB` → VERY_LARGE_HTML
+
+**Issue fields:**
+- `pillarId`: `'technical_indexability'`
+- `signalType`: `'ttfb_proxy'`
+- `category`: `'technical'`
+- `aiFixable`: `false`
+- `fixCost`: `'advanced'`
+
+#### Excessive Page Weight
+
+**Detection:**
+- Same as Slow Initial Response but focuses on >1MB threshold
+- Indicates pages that are problematic for crawlers and users
+
+**Issue fields:**
+- `pillarId`: `'technical_indexability'`
+- `signalType`: `'page_weight_risk'`
+- `category`: `'technical'`
+- `aiFixable`: `false`
+- `fixCost`: `'advanced'`
+
+#### Mobile Rendering Risk
+
+**Detection (during crawl):**
+- Missing `<meta name="viewport">` tag
+- Viewport without `width=device-width`
+- Static viewport widths (e.g., `width=1024`)
+
+**Issue fields:**
+- `pillarId`: `'technical_indexability'`
+- `signalType`: `'mobile_readiness'`
+- `category`: `'technical'`
+- `aiFixable`: `false`
+- `fixCost`: `'manual'`
+
+### 9.4 Crawl Data Fields
+
+New fields captured during SEO scan:
+
+```typescript
+// In CrawlResult.data or issues array
+{
+  robotsHeader?: string;      // X-Robots-Tag header value
+  canonicalHref?: string;     // Canonical URL from link tag
+  robotsMeta?: string;        // robots meta content
+  viewportContent?: string;   // viewport meta content
+  htmlBytes?: number;         // Document size in bytes
+}
+```
+
+### 9.5 Performance Scorecard
+
+Frontend computes a scorecard from issues:
+
+```typescript
+interface PerformanceForDiscoveryScorecard {
+  projectId: string;
+  status: 'Strong' | 'Needs improvement' | 'Risky';
+  issuesAffectingDiscovery: number;
+  signals: PerformanceSignalStatus[];
+}
+
+interface PerformanceSignalStatus {
+  signalType: PerformanceSignalType;
+  status: 'ok' | 'needs_attention' | 'risky';
+  issueCount: number;
+}
+```
+
+**Status Calculation:**
+- **Strong**: 0-2 total issues, no critical issues
+- **Needs improvement**: 3-9 issues or 1 risky signal
+- **Risky**: 10+ issues, 2+ risky signals, or any critical issue
+
+### 9.6 Acceptance Criteria (PERFORMANCE-1)
+
+1. All 5 performance issue types are detected during crawl and built into DEO issues.
+2. Issues include `pillarId: 'technical_indexability'` and appropriate `signalType`.
+3. Severity thresholds match the table in 9.2.
+4. Frontend Performance page displays scorecard with signal breakdown.
+5. Issues appear in Issues Engine under Technical & Indexability pillar.
+6. No new database tables or columns required.
+7. Backward compatibility maintained with existing Technical pillar issues.

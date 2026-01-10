@@ -111,8 +111,8 @@ export default function ProjectsPage() {
       setProjects([created, ...projects]);
       setShowCreateModal(false);
       setNewProject({ name: '', domain: '' });
-      // Navigate to the new project's overview
-      router.push(`/projects/${created.id}/overview`);
+      // [STORE-HEALTH-1.0] Navigate to the new project's Store Health page
+      router.push(`/projects/${created.id}/store-health`);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create project';
       // Handle network errors by redirecting to login

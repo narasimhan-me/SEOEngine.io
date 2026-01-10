@@ -9,15 +9,21 @@ import {
 import { PrismaService } from '../prisma.service';
 import { EntitlementsService } from '../billing/entitlements.service';
 import { AiService } from './ai.service';
+import { RoleResolutionService } from '../common/role-resolution.service';
 
 type SupportedIssueType = 'missing_seo_title' | 'missing_seo_description';
 
+/**
+ * [ROLES-3 FIXUP-4] ProductIssueFixService with membership-aware access control:
+ * - Fix operations are OWNER-only (assertOwnerRole) since they mutate data
+ */
 @Injectable()
 export class ProductIssueFixService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiService: AiService,
     private readonly entitlementsService: EntitlementsService,
+    private readonly roleResolution: RoleResolutionService,
   ) {}
 
   /**
@@ -60,9 +66,8 @@ export class ProductIssueFixService {
       throw new NotFoundException('Product not found');
     }
 
-    if (product.project.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this product');
-    }
+    // [ROLES-3 FIXUP-4] OWNER-only for apply/mutation operations
+    await this.roleResolution.assertOwnerRole(product.projectId, userId);
 
     // Enforce plan-level entitlement: free plan can see issues but cannot run Fix now.
     const planId = await this.entitlementsService.getUserPlan(userId);

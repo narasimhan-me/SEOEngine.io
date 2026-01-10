@@ -203,7 +203,7 @@ export default function ContentWorkspacePage() {
           <li>/</li>
           <li>
             <Link
-              href={`/projects/${projectId}/overview`}
+              href={`/projects/${projectId}/store-health`}
               className="hover:text-gray-700"
             >
               {projectName || 'Project'}

@@ -1,17 +1,18 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   Post,
   UseGuards,
   Request,
   BadRequestException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma.service';
 import { OffsiteSignalsService } from './offsite-signals.service';
+import { RoleResolutionService } from '../common/role-resolution.service';
 import { AiService } from '../ai/ai.service';
 import {
   AiUsageQuotaService,
@@ -62,6 +63,11 @@ class OffsiteFixApplyDto {
  * - GET  /projects/:projectId/offsite-signals/scorecard — Project scorecard only
  * - POST /projects/:projectId/offsite-signals/preview — Preview fix draft
  * - POST /projects/:projectId/offsite-signals/apply — Apply fix draft
+ *
+ * [ROLES-3 FIXUP-3] Updated with membership-aware access control:
+ * - GET endpoints: any ProjectMember can view
+ * - Preview endpoints: OWNER/EDITOR only
+ * - Apply endpoints: OWNER-only
  */
 @Controller()
 @UseGuards(JwtAuthGuard)
@@ -72,6 +78,7 @@ export class OffsiteSignalsController {
     private readonly aiService: AiService,
     private readonly aiUsageQuotaService: AiUsageQuotaService,
     private readonly aiUsageLedgerService: AiUsageLedgerService,
+    private readonly roleResolution: RoleResolutionService,
   ) {}
 
   // ============================================================================
@@ -175,18 +182,8 @@ export class OffsiteSignalsController {
   ): Promise<ProjectOffsiteCoverage> {
     const userId = req.user.id;
 
-    // Verify project access
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      throw new BadRequestException('Project not found');
-    }
-
-    if (project.userId !== userId) {
-      throw new ForbiddenException('Access denied');
-    }
+    // [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can view)
+    await this.roleResolution.assertProjectAccess(projectId, userId);
 
     return this.offsiteSignalsService.getProjectCoverage(projectId);
   }
@@ -216,7 +213,7 @@ export class OffsiteSignalsController {
       );
     }
 
-    // Load project and verify ownership
+    // Load project
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -225,9 +222,8 @@ export class OffsiteSignalsController {
       throw new BadRequestException('Project not found');
     }
 
-    if (project.userId !== userId) {
-      throw new ForbiddenException('Access denied');
-    }
+    // [ROLES-3 FIXUP-3] OWNER/EDITOR only for draft generation
+    await this.roleResolution.assertCanGenerateDrafts(projectId, userId);
 
     // Compute deterministic work key for CACHE/REUSE v2
     const aiWorkKey = computeOffsiteFixWorkKey(
@@ -380,6 +376,7 @@ export class OffsiteSignalsController {
     });
 
     // Record AI usage in ledger
+    // [ROLES-3-HARDEN-1] Include actorUserId for multi-user attribution
     await this.aiUsageLedgerService.recordAiRun({
       projectId,
       runType: 'INTENT_FIX_PREVIEW', // Reuse existing type per spec
@@ -388,6 +385,7 @@ export class OffsiteSignalsController {
       productsSkipped: 0,
       draftsFresh: 1,
       draftsReused: 0,
+      actorUserId: userId,
       metadata: {
         playbookId: 'offsite-signals-fix',
         pillar: 'offsite_signals',
@@ -451,18 +449,8 @@ export class OffsiteSignalsController {
       throw new BadRequestException('draftId and applyTarget are required');
     }
 
-    // Load project and verify ownership
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      throw new BadRequestException('Project not found');
-    }
-
-    if (project.userId !== userId) {
-      throw new ForbiddenException('Access denied');
-    }
+    // [ROLES-3 FIXUP-3] OWNER-only for apply mutations
+    await this.roleResolution.assertOwnerRole(projectId, userId);
 
     // Load the draft
     const draft = await this.prisma.projectOffsiteFixDraft.findUnique({

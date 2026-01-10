@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, lazy, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, lazy, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { authApi, ApiError } from '@/lib/api';
 import { setToken } from '@/lib/auth';
@@ -14,14 +14,44 @@ const Captcha = lazy(() =>
 // Session storage key for 2FA temp token
 const TEMP_2FA_TOKEN_KEY = 'engineo_temp_2fa_token';
 
-export default function LoginPage() {
+// Sensitive query params that should never appear in URLs
+const SENSITIVE_PARAMS = ['password', 'pass', 'pwd', 'email'];
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [securityMessage, setSecurityMessage] = useState('');
+
+  // [SECURITY] Client-side defense-in-depth: sanitize URL if sensitive params detected
+  useEffect(() => {
+    const hasSensitiveParams = SENSITIVE_PARAMS.some((param) =>
+      searchParams.has(param)
+    );
+
+    if (hasSensitiveParams) {
+      // Build sanitized URL preserving only `next` param
+      const nextParam = searchParams.get('next');
+      const sanitizedUrl = nextParam ? `/login?next=${encodeURIComponent(nextParam)}&sanitized=1` : '/login?sanitized=1';
+      router.replace(sanitizedUrl);
+      setSecurityMessage('For security, we removed sensitive parameters from the URL. Please enter your credentials.');
+      return;
+    }
+
+    // Show message if redirected from middleware sanitization
+    if (searchParams.get('sanitized') === '1') {
+      setSecurityMessage('For security, we removed sensitive parameters from the URL. Please enter your credentials.');
+      // Clean up the sanitized flag from URL
+      const nextParam = searchParams.get('next');
+      const cleanUrl = nextParam ? `/login?next=${encodeURIComponent(nextParam)}` : '/login';
+      router.replace(cleanUrl);
+    }
+  }, [searchParams, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +90,7 @@ export default function LoginPage() {
         setShowCaptcha(true);
         setCaptchaToken(null);
       }
-      const message = err instanceof Error ? err.message : 'Login failed. Please check your credentials.';
+      const message = err instanceof Error ? err.message : 'Sign-in failed. Please check your credentials.';
       setError(message);
     } finally {
       setLoading(false);
@@ -68,18 +98,39 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h1 className="text-center text-3xl font-bold text-gray-900">
-            EngineO.ai
-          </h1>
-          <h2 className="mt-6 text-center text-2xl font-semibold text-gray-700">
-            Sign in to your EngineO.ai account
-          </h2>
+    <div className="max-w-md w-full">
+      {/* [DEO-UX-REFRESH-1] Premium branded header */}
+      <div className="text-center mb-8">
+        {/* Logo/Wordmark */}
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <svg
+            className="h-10 w-10 text-blue-600"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+          </svg>
+          <span className="text-3xl font-bold text-gray-900">EngineO.ai</span>
         </div>
+        <p className="text-sm text-gray-500">
+          Digital Engine Optimization for AI-Powered Discovery
+        </p>
+      </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+      {/* [DEO-UX-REFRESH-1] Premium card styling */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-lg p-8">
+        {/* Accessible heading */}
+        <h1 className="text-2xl font-semibold text-gray-900 text-center mb-6">
+          Sign in
+        </h1>
+
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          {securityMessage && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded">
+              {securityMessage}
+            </div>
+          )}
+
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
               {error}
@@ -143,17 +194,35 @@ export default function LoginPage() {
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
-
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
-                Sign up
-              </Link>
-            </p>
-          </div>
         </form>
+
+        {/* Sign up link */}
+        <div className="text-center mt-6 pt-6 border-t border-gray-100">
+          <p className="text-sm text-gray-600">
+            Don&apos;t have an account?{' '}
+            <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+              Create account
+            </Link>
+          </p>
+        </div>
       </div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <Suspense fallback={
+        <div className="max-w-md w-full text-center">
+          <div className="animate-pulse">
+            <div className="h-10 bg-gray-200 rounded w-48 mx-auto mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-64 mx-auto"></div>
+          </div>
+        </div>
+      }>
+        <LoginForm />
+      </Suspense>
     </div>
   );
 }

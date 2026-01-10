@@ -1,37 +1,37 @@
 export function DeoEngineSection() {
   return (
-    <section className="border-b border-slate-100 bg-slate-50/60">
+    <section className="border-b border-border bg-muted/60">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="max-w-3xl space-y-4">
-          <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
             How EngineO.ai implements DEO
           </h2>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             EngineO.ai is the first platform built around DEO:
           </p>
-          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600">
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
             <li>
-              <span className="font-semibold text-slate-900">Automated full-site crawl</span> &mdash;
+              <span className="font-semibold text-foreground">Automated full-site crawl</span> &mdash;
               finds every URL and extracts signals.
             </li>
             <li>
-              <span className="font-semibold text-slate-900">DEO Score</span> &mdash; your universal
+              <span className="font-semibold text-foreground">DEO Score</span> &mdash; your universal
               visibility metric.
             </li>
             <li>
-              <span className="font-semibold text-slate-900">Issues Engine</span> &mdash; clear,
+              <span className="font-semibold text-foreground">Issues Engine</span> &mdash; clear,
               actionable problem detection.
             </li>
             <li>
-              <span className="font-semibold text-slate-900">AI Optimization Workspaces</span>{' '}
+              <span className="font-semibold text-foreground">AI Optimization Workspaces</span>{' '}
               &mdash; one for products, one for all content pages.
             </li>
             <li>
-              <span className="font-semibold text-slate-900">Automation layer</span> &mdash; daily
+              <span className="font-semibold text-foreground">Automation layer</span> &mdash; daily
               crawling, recompute, issue updates.
             </li>
             <li>
-              <span className="font-semibold text-slate-900">CMS-agnostic</span> &mdash; works with
+              <span className="font-semibold text-foreground">CMS-agnostic</span> &mdash; works with
               Shopify, WordPress, Webflow, SaaS sites, blogs &mdash; everything.
             </li>
           </ul>

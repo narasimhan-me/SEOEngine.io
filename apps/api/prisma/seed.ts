@@ -27,19 +27,28 @@ async function main() {
         password: hashedPassword,
         name: 'Admin User',
         role: 'ADMIN',
+        // [ADMIN-OPS-1] Set internal admin role and account status
+        adminRole: 'OPS_ADMIN',
+        accountStatus: 'ACTIVE',
       },
     });
     console.log('✅ Admin user created:', admin.id);
   } else {
-    // Ensure admin role
-    if (admin.role !== 'ADMIN') {
+    // Ensure admin role and internal admin role
+    const needsUpdate = admin.role !== 'ADMIN' || !(admin as any).adminRole || (admin as any).accountStatus !== 'ACTIVE';
+    if (needsUpdate) {
       admin = await prisma.user.update({
         where: { id: admin.id },
-        data: { role: 'ADMIN' },
+        data: {
+          role: 'ADMIN',
+          // [ADMIN-OPS-1] Ensure adminRole and accountStatus are set
+          adminRole: 'OPS_ADMIN',
+          accountStatus: 'ACTIVE',
+        },
       });
-      console.log('✅ Updated user to ADMIN role');
+      console.log('✅ Updated user to ADMIN role with OPS_ADMIN internal role');
     } else {
-      console.log('✅ Admin user already exists:', admin.id);
+      console.log('✅ Admin user already exists with proper roles:', admin.id);
     }
   }
 

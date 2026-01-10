@@ -183,12 +183,22 @@ describe('CACHE/REUSE v2: Deterministic AI Work Reuse', () => {
       }),
     };
 
+    // [ROLES-3] Mock RoleResolutionService for role checks
+    const roleResolutionMock = {
+      resolveEffectiveRole: jest.fn().mockResolvedValue('OWNER'),
+      assertOwnerRole: jest.fn().mockResolvedValue(undefined),
+      assertProjectAccess: jest.fn().mockResolvedValue(undefined),
+      assertCanGenerateDrafts: jest.fn().mockResolvedValue(undefined),
+      isMultiUserProject: jest.fn().mockResolvedValue(false),
+    };
+
     playbooksService = new AutomationPlaybooksService(
       prismaMock,
       entitlementsMock as any,
       tokenUsageMock as any,
       aiServiceMock as any,
       quotaServiceMock as any,
+      roleResolutionMock as any,
     );
 
     processor = new AutomationPlaybookRunProcessor(prismaMock, playbooksService);

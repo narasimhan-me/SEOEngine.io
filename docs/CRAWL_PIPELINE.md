@@ -96,4 +96,4 @@ The pipeline logs timing metrics at each stage:
 
 - `docs/CRAWL_SCHEDULER.md` - Nightly scheduling details
 - `docs/deo-score-spec.md` - DEO scoring formula and signals
-- `IMPLEMENTATION_PLAN.md` - Overall implementation roadmap
+- `docs/IMPLEMENTATION_PLAN.md` - Overall implementation roadmap

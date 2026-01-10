@@ -1,7 +1,10 @@
 import type { DeoIssue } from '@/lib/deo-issues';
 import type { ContentPage, ContentStatus } from '@/lib/content';
 import { getPageTypeLabel } from '@/lib/content';
-import { ISSUE_UI_CONFIG } from '@/components/issues/IssuesList';
+// [ISSUE-TO-FIX-PATH-1 FIXUP-1] Import from lib module
+import { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
+// [ISSUE-TO-FIX-PATH-1 FIXUP-2] Import safe title/description helpers to prevent internal ID leakage
+import { getSafeIssueTitle, getSafeIssueDescription } from '@/lib/issue-to-fix-path';
 
 interface ContentDeoInsightsPanelProps {
   page: ContentPage;
@@ -182,9 +185,11 @@ export function ContentDeoInsightsPanel({
             </div>
             <div className="space-y-2">
               {pageIssues.map((issue) => {
+                // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Use human-readable label, never show internal ID
+                // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Use safe helpers to prevent internal ID leakage in fallback
                 const config = ISSUE_UI_CONFIG[issue.id] ?? {
-                  label: issue.id,
-                  description: '',
+                  label: getSafeIssueTitle(issue),
+                  description: getSafeIssueDescription(issue),
                 };
                 const severityColors = {
                   critical: 'border-red-200 bg-red-50 text-red-700',
