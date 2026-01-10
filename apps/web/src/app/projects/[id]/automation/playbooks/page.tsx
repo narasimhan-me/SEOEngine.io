@@ -16,6 +16,8 @@ import {
   getRoleCapabilities,
   getRoleDisplayLabel,
 } from '@/lib/api';
+import { ScopeBanner } from '@/components/common/ScopeBanner';
+import { getSafeReturnTo } from '@/lib/route-context';
 import type {
   AutomationPlaybookApplyResult,
   ProjectAiUsageSummary,
@@ -199,6 +201,28 @@ export default function AutomationPlaybooksPage() {
   const isMissingScopeForPagesCollections =
     (validUrlAssetType === 'PAGES' || validUrlAssetType === 'COLLECTIONS') &&
     parsedScopeAssetRefs.length === 0;
+
+  // [ROUTE-INTEGRITY-1] Read from context from URL
+  const fromParam = searchParams.get('from');
+
+  // [ROUTE-INTEGRITY-1] Get validated returnTo for ScopeBanner
+  const validatedReturnTo = useMemo(() => {
+    return getSafeReturnTo(searchParams, projectId);
+  }, [searchParams, projectId]);
+
+  // [ROUTE-INTEGRITY-1] Derive showingText for ScopeBanner
+  const scopeBannerShowingText = useMemo(() => {
+    const parts: string[] = [];
+    if (validUrlPlaybookId) {
+      const playbook = PLAYBOOKS.find((p) => p.id === validUrlPlaybookId);
+      parts.push(playbook?.name || validUrlPlaybookId);
+    }
+    if (validUrlAssetType && validUrlAssetType !== 'PRODUCTS') {
+      const labels = getAssetTypeLabel(validUrlAssetType);
+      parts.push(`Asset type: ${labels.plural}`);
+    }
+    return parts.length > 0 ? parts.join(' · ') : 'Playbooks';
+  }, [validUrlPlaybookId, validUrlAssetType]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -1357,6 +1381,14 @@ export default function AutomationPlaybooksPage() {
           </li>
         </ol>
       </nav>
+
+      {/* [ROUTE-INTEGRITY-1] ScopeBanner - show when from context is present */}
+      <ScopeBanner
+        from={fromParam}
+        returnTo={validatedReturnTo || `/projects/${projectId}/automation/playbooks`}
+        showingText={scopeBannerShowingText}
+        onClearFiltersHref={`/projects/${projectId}/automation/playbooks`}
+      />
 
       {/* Header */}
       <div className="mb-6 flex items-start justify-between">

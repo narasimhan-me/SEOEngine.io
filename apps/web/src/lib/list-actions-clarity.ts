@@ -9,6 +9,8 @@
  * - Actions: Fix next, Review drafts, View issues, Request approval, View approval status, Open
  */
 
+import type { FromContext } from './issue-fix-navigation';
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -186,12 +188,15 @@ export function resolveRowNextAction(input: RowNextActionInput): ResolvedRowNext
 
 /**
  * [LIST-ACTIONS-CLARITY-1 FIXUP-1] Navigation context for returnTo propagation
+ * [ROUTE-INTEGRITY-1] Extended with from for deterministic routing
  */
 export interface NavigationContext {
   /** Current list path with query params (e.g., /projects/123/products?q=test) */
   returnTo?: string;
   /** Label for back navigation (e.g., "Products") */
   returnLabel?: string;
+  /** [ROUTE-INTEGRITY-1] Origin context for back navigation */
+  from?: FromContext;
 }
 
 /**
@@ -213,6 +218,8 @@ export function buildAssetIssuesHref(
   if (typeof navContext === 'object' && navContext !== null) {
     if (navContext.returnTo) params.set('returnTo', navContext.returnTo);
     if (navContext.returnLabel) params.set('returnLabel', navContext.returnLabel);
+    // [ROUTE-INTEGRITY-1] Append from when provided
+    if (navContext.from) params.set('from', navContext.from);
   } else if (typeof navContext === 'string') {
     // Legacy: navContext is returnTo string
     params.set('returnTo', navContext);
@@ -241,6 +248,10 @@ export function buildReviewDraftsHref(
   if (navContext?.returnLabel) {
     params.set('returnLabel', navContext.returnLabel);
   }
+  // [ROUTE-INTEGRITY-1] Append from when provided
+  if (navContext?.from) {
+    params.set('from', navContext.from);
+  }
   const qs = params.toString();
   return `/projects/${projectId}/work-queue${qs ? `?${qs}` : ''}`;
 }
@@ -255,11 +266,13 @@ export function buildProductWorkspaceHref(
   navContext?: NavigationContext,
 ): string {
   const base = `/projects/${projectId}/products/${productId}`;
-  if (!navContext?.returnTo && !navContext?.returnLabel) {
+  if (!navContext?.returnTo && !navContext?.returnLabel && !navContext?.from) {
     return base;
   }
   const params = new URLSearchParams();
-  if (navContext.returnTo) params.set('returnTo', navContext.returnTo);
-  if (navContext.returnLabel) params.set('returnLabel', navContext.returnLabel);
+  if (navContext?.returnTo) params.set('returnTo', navContext.returnTo);
+  if (navContext?.returnLabel) params.set('returnLabel', navContext.returnLabel);
+  // [ROUTE-INTEGRITY-1] Append from when provided
+  if (navContext?.from) params.set('from', navContext.from);
   return `${base}?${params.toString()}`;
 }

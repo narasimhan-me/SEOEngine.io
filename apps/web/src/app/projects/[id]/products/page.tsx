@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 
 import type { DeoIssue } from '@/lib/deo-issues';
 import { ProductTable } from '@/components/products/ProductTable';
 import { ListControls } from '@/components/common/ListControls';
+import { ScopeBanner } from '@/components/common/ScopeBanner';
 import { isAuthenticated, getToken } from '@/lib/auth';
 import {
   productsApi,
@@ -17,6 +18,7 @@ import {
 } from '@/lib/api';
 import type { Product } from '@/lib/products';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
+import { getReturnToFromCurrentUrl, getSafeReturnTo } from '@/lib/route-context';
 
 interface IntegrationStatus {
   projectName: string;
@@ -40,10 +42,36 @@ interface ProjectOverview {
 export default function ProductsPage() {
   const router = useRouter();
   const params = useParams();
+  const pathname = usePathname();
   const projectId = params.id as string;
 
   const searchParams = useSearchParams();
   const fromPlaybookResults = searchParams.get('from') === 'playbook_results';
+
+  // [ROUTE-INTEGRITY-1] Read from context from URL
+  const fromParam = searchParams.get('from');
+
+  // [ROUTE-INTEGRITY-1] Compute returnTo for downstream navigation
+  const currentListPathWithQuery = useMemo(() => {
+    return getReturnToFromCurrentUrl(pathname, searchParams);
+  }, [pathname, searchParams]);
+
+  // [ROUTE-INTEGRITY-1] Get validated returnTo for back navigation
+  const validatedReturnTo = useMemo(() => {
+    return getSafeReturnTo(searchParams, projectId);
+  }, [searchParams, projectId]);
+
+  // [ROUTE-INTEGRITY-1] Derive showingText for ScopeBanner
+  const showingText = useMemo(() => {
+    const parts: string[] = [];
+    const filterQ = searchParams.get('q');
+    const filterStatus = searchParams.get('status');
+    const filterHasDraft = searchParams.get('hasDraft');
+    if (filterQ) parts.push(`Search: "${filterQ}"`);
+    if (filterStatus) parts.push(`Status: ${filterStatus}`);
+    if (filterHasDraft === 'true') parts.push('Has draft');
+    return parts.length > 0 ? parts.join(' · ') : 'All products';
+  }, [searchParams]);
 
   // [LIST-SEARCH-FILTER-1] Extract filter params from URL
   const filterQ = searchParams.get('q') || undefined;
@@ -342,6 +370,14 @@ export default function ProductsPage() {
         </button>
       </div>
 
+      {/* [ROUTE-INTEGRITY-1] ScopeBanner - show when from context is present */}
+      <ScopeBanner
+        from={fromParam}
+        returnTo={validatedReturnTo || `/projects/${projectId}/products`}
+        showingText={showingText}
+        onClearFiltersHref={`/projects/${projectId}/products`}
+      />
+
       {/* [LIST-SEARCH-FILTER-1] ListControls - render above product list */}
       <ListControls
         config={{
@@ -410,7 +446,8 @@ export default function ProductsPage() {
             // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Wire real capabilities
             canApply={capabilities?.canApply ?? true}
             canRequestApproval={capabilities?.canRequestApproval ?? false}
-            currentListPathWithQuery={`/projects/${projectId}/products${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
+            // [ROUTE-INTEGRITY-1] Use shared helper to build returnTo (strips from/returnTo/returnLabel)
+            currentListPathWithQuery={currentListPathWithQuery}
           />
         )}
       </div>

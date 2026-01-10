@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { projectsApi, type RoleCapabilities } from '@/lib/api';
 import { ListControls } from '@/components/common/ListControls';
 import { RowStatusChip } from '@/components/common/RowStatusChip';
+import { ScopeBanner } from '@/components/common/ScopeBanner';
 import {
   resolveRowNextAction,
   buildAssetIssuesHref,
@@ -14,6 +15,7 @@ import {
   type NavigationContext,
 } from '@/lib/list-actions-clarity';
 import type { WorkQueueRecommendedActionKey } from '@/lib/work-queue';
+import { getReturnToFromCurrentUrl, getSafeReturnTo } from '@/lib/route-context';
 
 /**
  * [ASSETS-PAGES-1] [LIST-SEARCH-FILTER-1.1] [LIST-ACTIONS-CLARITY-1] Pages Asset List
@@ -71,6 +73,28 @@ export default function PagesAssetListPage() {
 
   // Check if any filters are active (for empty state)
   const hasActiveFilters = !!(filterQ || filterStatus || filterHasDraft);
+
+  // [ROUTE-INTEGRITY-1] Read from context from URL
+  const fromParam = searchParams.get('from');
+
+  // [ROUTE-INTEGRITY-1] Compute returnTo for downstream navigation
+  const currentPathWithQuery = useMemo(() => {
+    return getReturnToFromCurrentUrl(pathname, searchParams);
+  }, [pathname, searchParams]);
+
+  // [ROUTE-INTEGRITY-1] Get validated returnTo for back navigation
+  const validatedReturnTo = useMemo(() => {
+    return getSafeReturnTo(searchParams, projectId);
+  }, [searchParams, projectId]);
+
+  // [ROUTE-INTEGRITY-1] Derive showingText for ScopeBanner
+  const showingText = useMemo(() => {
+    const parts: string[] = [];
+    if (filterQ) parts.push(`Search: "${filterQ}"`);
+    if (filterStatus) parts.push(`Status: ${filterStatus}`);
+    if (filterHasDraft) parts.push('Has draft');
+    return parts.length > 0 ? parts.join(' · ') : 'All pages';
+  }, [filterQ, filterStatus, filterHasDraft]);
 
   const fetchPages = useCallback(async () => {
     setLoading(true);
@@ -194,11 +218,11 @@ export default function PagesAssetListPage() {
   const resolvedActionsById = useMemo(() => {
     const map = new Map<string, ResolvedRowNextAction>();
 
-    // Build navigation context for returnTo propagation
-    const currentPathWithQuery = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    // [ROUTE-INTEGRITY-1] Build navigation context for returnTo propagation with from=asset_list
     const navContext: NavigationContext = {
       returnTo: currentPathWithQuery,
       returnLabel: 'Pages',
+      from: 'asset_list',
     };
 
     for (const page of pages) {
@@ -250,6 +274,14 @@ export default function PagesAssetListPage() {
         </div>
         {/* [LIST-ACTIONS-CLARITY-1 FIXUP-1] Removed bulk selection CTA - bulk actions route through Playbooks/Work Queue */}
       </div>
+
+      {/* [ROUTE-INTEGRITY-1] ScopeBanner - show when from context is present */}
+      <ScopeBanner
+        from={fromParam}
+        returnTo={validatedReturnTo || `/projects/${projectId}/assets/pages`}
+        showingText={showingText}
+        onClearFiltersHref={`/projects/${projectId}/assets/pages`}
+      />
 
       {/* Filter indicator (from Work Queue click-through) */}
       {actionKeyFilter && (

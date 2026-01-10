@@ -376,6 +376,48 @@ Trust-critical UX hardening for issue→fix path navigation.
 
 ---
 
+### Phase ROUTE-INTEGRITY-1: Deterministic Deep Links + Scope Banner ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+Trust hardening for deterministic deep link routing with visible navigation context.
+
+### Key Features
+
+1. **URL is Source of Truth**: All navigation context derived from URL params (from + returnTo)
+2. **Shared Route Context**: `route-context.ts` provides `withRouteContext()`, `getSafeReturnTo()`, `getReturnToFromCurrentUrl()`, `labelFrom()`
+3. **ScopeBanner Component**: Visible navigation context on destination surfaces with Back + Clear filters actions
+4. **Consistent Origin Enum**: Extended `FromContext` with `asset_list`, `issues_engine`, `playbook`
+
+### Locked Routing Contract
+
+- **from**: Origin context for back navigation (e.g., `store_health`, `work_queue`, `asset_list`)
+- **returnTo**: URL-encoded path to return to (includes filtered state like `?q=...`)
+- **Clear filters**: Always resets to base route without query params
+
+### ScopeBanner Surfaces
+
+- Issues Engine page
+- Playbooks page
+- Products list page
+- Pages list page
+- Collections list page
+- Product detail page
+
+### Test Coverage
+
+- **E2E Tests:** `apps/web/tests/route-integrity-1.spec.ts`
+- **Manual Testing:** `docs/manual-testing/ROUTE-INTEGRITY-1.md`
+
+### Critical Paths
+
+- Store Health → Issues Engine → Back (filter context preserved)
+- Products list (with filter) → Fix next → Back (original filter restored)
+- Work Queue → Playbooks → Back + Clear filters
+
+---
+
 ## Completed Phases (Chronological)
 
 ### Trust Hardening

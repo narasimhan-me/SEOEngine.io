@@ -22,6 +22,8 @@ import {
   buildBackLink,
   type FromContext,
 } from '@/lib/issue-fix-navigation';
+import { ScopeBanner } from '@/components/common/ScopeBanner';
+import { getSafeReturnTo } from '@/lib/route-context';
 import {
   scrollToFixAnchor,
   getArrivalCalloutContent,
@@ -131,6 +133,11 @@ export default function ProductOptimizationPage() {
   // [TRUST-ROUTING-1] Determine preview/results mode
   const isPreviewMode = fromContext === 'playbook_preview' && !!playbookIdParam;
   const isResultsMode = fromContext === 'playbook_results' && !!playbookIdParam;
+
+  // [ROUTE-INTEGRITY-1] Get validated returnTo for ScopeBanner
+  const scopeBannerReturnTo = useMemo(() => {
+    return getSafeReturnTo(searchParams, projectId);
+  }, [searchParams, projectId]);
 
   // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Determine issue fix mode - triggers on issueId alone, not requiring from=issues
   const isIssueFixMode = !!issueIdParam;
@@ -935,6 +942,16 @@ export default function ProductOptimizationPage() {
               productId={productId}
               activeTab={activeTab}
               issueCount={actionableIssueCount}
+            />
+          </div>
+
+          {/* [ROUTE-INTEGRITY-1] ScopeBanner - show when from context is present */}
+          <div className="mt-4">
+            <ScopeBanner
+              from={fromContext}
+              returnTo={scopeBannerReturnTo || `/projects/${projectId}/products`}
+              showingText={`Product · ${product?.title || 'Product'}`}
+              onClearFiltersHref={`/projects/${projectId}/products/${productId}`}
             />
           </div>
 

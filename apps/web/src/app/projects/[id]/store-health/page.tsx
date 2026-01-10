@@ -1,12 +1,13 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
+import { useParams, useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { projectsApi, aiApi } from '@/lib/api';
 import type { WorkQueueResponse, WorkQueueActionBundle } from '@/lib/work-queue';
 import { buildWorkQueueUrl } from '@/lib/work-queue';
 import type { ProjectInsightsResponse } from '@/lib/insights';
 import type { CanonicalIssueCountsSummary } from '@/lib/deo-issues';
+import { getReturnToFromCurrentUrl, withRouteContext } from '@/lib/route-context';
 
 /**
  * [STORE-HEALTH-1.0] Store Health Page
@@ -40,7 +41,14 @@ interface HealthCard {
 export default function StoreHealthPage() {
   const params = useParams();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const projectId = params.id as string;
+
+  // [ROUTE-INTEGRITY-1] Compute returnTo from current URL
+  const returnTo = useMemo(() => {
+    return getReturnToFromCurrentUrl(pathname, searchParams);
+  }, [pathname, searchParams]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -175,9 +183,12 @@ export default function StoreHealthPage() {
       health: deoHealth,
       summary: deoSummary,
       actionLabel: deoAction,
-      // [COUNT-INTEGRITY-1.1 FIX-UP] Route to Issues Engine with pillar filter (not Work Queue)
+      // [ROUTE-INTEGRITY-1] Route to Issues Engine with deterministic returnTo via shared builder
       onClick: () => router.push(
-        `/projects/${projectId}/issues?pillar=metadata_snippet_quality&mode=detected&from=store_health`
+        withRouteContext(
+          `/projects/${projectId}/issues?pillar=metadata_snippet_quality&mode=detected`,
+          { from: 'store_health', returnTo }
+        )
       ),
     },
     {
@@ -195,10 +206,13 @@ export default function StoreHealthPage() {
       health: contentHealth,
       summary: contentSummary,
       actionLabel: contentAction,
-      onClick: () => router.push(buildWorkQueueUrl(projectId, {
-        actionKey: 'OPTIMIZE_CONTENT',
-        from: 'store_health',
-      })),
+      // [ROUTE-INTEGRITY-1] Wrap Work Queue URL with deterministic returnTo
+      onClick: () => router.push(
+        withRouteContext(
+          buildWorkQueueUrl(projectId, { actionKey: 'OPTIMIZE_CONTENT' }),
+          { from: 'store_health', returnTo }
+        )
+      ),
     },
     {
       id: 'technical-readiness',
@@ -206,9 +220,12 @@ export default function StoreHealthPage() {
       health: technicalHealth,
       summary: technicalSummary,
       actionLabel: technicalAction,
-      // [COUNT-INTEGRITY-1.1 FIX-UP] Route to Issues Engine with pillar filter (not Work Queue)
+      // [ROUTE-INTEGRITY-1] Route to Issues Engine with deterministic returnTo via shared builder
       onClick: () => router.push(
-        `/projects/${projectId}/issues?pillar=technical_indexability&mode=detected&from=store_health`
+        withRouteContext(
+          `/projects/${projectId}/issues?pillar=technical_indexability&mode=detected`,
+          { from: 'store_health', returnTo }
+        )
       ),
     },
     {
@@ -217,11 +234,13 @@ export default function StoreHealthPage() {
       health: trustHealth,
       summary: trustSummary,
       actionLabel: trustAction,
-      // [TRUST-ROUTING-1] Route with both IMPROVE_SEARCH_INTENT and SHARE_LINK_GOVERNANCE
-      onClick: () => router.push(buildWorkQueueUrl(projectId, {
-        actionKeys: ['IMPROVE_SEARCH_INTENT', 'SHARE_LINK_GOVERNANCE'],
-        from: 'store_health',
-      })),
+      // [ROUTE-INTEGRITY-1] Wrap Work Queue URL with deterministic returnTo
+      onClick: () => router.push(
+        withRouteContext(
+          buildWorkQueueUrl(projectId, { actionKeys: ['IMPROVE_SEARCH_INTENT', 'SHARE_LINK_GOVERNANCE'] }),
+          { from: 'store_health', returnTo }
+        )
+      ),
     },
     {
       id: 'ai-usage',
