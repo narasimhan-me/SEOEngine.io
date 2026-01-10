@@ -18,6 +18,8 @@ import {
 } from '@/lib/api';
 import { ScopeBanner } from '@/components/common/ScopeBanner';
 import { getSafeReturnTo } from '@/lib/route-context';
+// [SCOPE-CLARITY-1] Import scope normalization utilities
+import { normalizeScopeParams, buildClearFiltersHref } from '@/lib/scope-normalization';
 import type {
   AutomationPlaybookApplyResult,
   ProjectAiUsageSummary,
@@ -27,7 +29,9 @@ import type {
   ApprovalRequestResponse,
   ProjectMember,
   AutomationAssetType,
+  AssetScopedDraftsResponse,
 } from '@/lib/api';
+import { buildAssetIssuesHref, type AssetListType } from '@/lib/list-actions-clarity';
 import type { Product } from '@/lib/products';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 
@@ -183,12 +187,25 @@ export default function AutomationPlaybooksPage() {
       ? urlPlaybookId
       : null;
 
+  // [DRAFT-ROUTING-INTEGRITY-1] Draft Review mode: mode=drafts activates asset-scoped draft review
+  const urlMode = searchParams.get('mode');
+  const isDraftReviewMode = urlMode === 'drafts';
+  const draftReviewAssetId = searchParams.get('assetId') || null;
+
   // [ASSETS-PAGES-1.1] Deep-link support: read assetType from URL query params
-  const urlAssetType = searchParams.get('assetType') as AutomationAssetType | null;
-  const validUrlAssetType =
-    urlAssetType === 'PRODUCTS' || urlAssetType === 'PAGES' || urlAssetType === 'COLLECTIONS'
-      ? urlAssetType
-      : 'PRODUCTS'; // Default to PRODUCTS
+  // [DRAFT-ROUTING-INTEGRITY-1] Draft Review uses lowercase assetType (products|pages|collections)
+  const urlAssetType = searchParams.get('assetType') as AutomationAssetType | string | null;
+  const validUrlAssetType = (() => {
+    // Handle Draft Review mode lowercase values
+    if (urlAssetType === 'products') return 'PRODUCTS';
+    if (urlAssetType === 'pages') return 'PAGES';
+    if (urlAssetType === 'collections') return 'COLLECTIONS';
+    // Handle standard uppercase values
+    if (urlAssetType === 'PRODUCTS' || urlAssetType === 'PAGES' || urlAssetType === 'COLLECTIONS') {
+      return urlAssetType;
+    }
+    return 'PRODUCTS'; // Default to PRODUCTS
+  })();
 
   // [ASSETS-PAGES-1.1-UI-HARDEN] Deep-link support: read scopeAssetRefs from URL (comma-separated)
   const urlScopeAssetRefs = searchParams.get('scopeAssetRefs');
@@ -209,6 +226,11 @@ export default function AutomationPlaybooksPage() {
   const validatedReturnTo = useMemo(() => {
     return getSafeReturnTo(searchParams, projectId);
   }, [searchParams, projectId]);
+
+  // [SCOPE-CLARITY-1] Normalize scope params using canonical normalization
+  const normalizedScopeResult = useMemo(() => {
+    return normalizeScopeParams(searchParams);
+  }, [searchParams]);
 
   // [ROUTE-INTEGRITY-1] Derive showingText for ScopeBanner
   const scopeBannerShowingText = useMemo(() => {
@@ -274,6 +296,11 @@ export default function AutomationPlaybooksPage() {
   const [isMultiUserProject, setIsMultiUserProject] = useState(false);
   // [ROLES-3 PENDING-1] Members list for approval attribution UI
   const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
+
+  // [DRAFT-ROUTING-INTEGRITY-1] Draft Review mode state
+  const [draftReviewLoading, setDraftReviewLoading] = useState(false);
+  const [draftReviewData, setDraftReviewData] = useState<AssetScopedDraftsResponse | null>(null);
+  const [draftReviewError, setDraftReviewError] = useState<string | null>(null);
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -354,6 +381,36 @@ export default function AutomationPlaybooksPage() {
     }
     fetchInitialData();
   }, [router, fetchInitialData]);
+
+  // [DRAFT-ROUTING-INTEGRITY-1] Fetch asset-scoped drafts when in Draft Review mode
+  useEffect(() => {
+    if (!isDraftReviewMode || !draftReviewAssetId) {
+      setDraftReviewData(null);
+      setDraftReviewError(null);
+      return;
+    }
+
+    const fetchDraftReviewData = async () => {
+      setDraftReviewLoading(true);
+      setDraftReviewError(null);
+      try {
+        // Convert uppercase to lowercase for API
+        const assetTypeLower = validUrlAssetType.toLowerCase() as 'products' | 'pages' | 'collections';
+        const data = await projectsApi.listAutomationPlaybookDraftsForAsset(projectId, {
+          assetType: assetTypeLower,
+          assetId: draftReviewAssetId,
+        });
+        setDraftReviewData(data);
+      } catch (err) {
+        console.error('[DRAFT-ROUTING-INTEGRITY-1] Failed to fetch draft review data:', err);
+        setDraftReviewError(err instanceof Error ? err.message : 'Failed to load drafts');
+      } finally {
+        setDraftReviewLoading(false);
+      }
+    };
+
+    fetchDraftReviewData();
+  }, [isDraftReviewMode, draftReviewAssetId, validUrlAssetType, projectId]);
 
   const issuesByType = useMemo(() => {
     const map = new Map<string, DeoIssue>();
@@ -1336,6 +1393,204 @@ export default function AutomationPlaybooksPage() {
     );
   }
 
+  // [DRAFT-ROUTING-INTEGRITY-1] Draft Review mode UI
+  // Renders scoped draft review panel with ScopeBanner + empty state + CTAs
+  if (isDraftReviewMode && draftReviewAssetId) {
+    // Derive lowercase assetType for href builders
+    const assetTypeLower = validUrlAssetType.toLowerCase() as AssetListType;
+    const returnLabel = `${assetTypeLower.charAt(0).toUpperCase() + assetTypeLower.slice(1)}`;
+
+    // Build Issues Engine href for "View issues" CTA
+    const viewIssuesHref = buildAssetIssuesHref(
+      projectId,
+      assetTypeLower,
+      draftReviewAssetId,
+      {
+        returnTo: validatedReturnTo || `/projects/${projectId}/${assetTypeLower === 'products' ? 'products' : `assets/${assetTypeLower}`}`,
+        returnLabel,
+        from: 'asset_list',
+      },
+    );
+
+    // Back href: use validated returnTo or fallback to asset list
+    const backHref = validatedReturnTo || `/projects/${projectId}/${assetTypeLower === 'products' ? 'products' : `assets/${assetTypeLower}`}`;
+
+    const hasDrafts = draftReviewData && draftReviewData.drafts.length > 0;
+
+    return (
+      <div data-testid="draft-review-panel">
+        {/* [DRAFT-ROUTING-INTEGRITY-1 FIXUP-1] ScopeBanner for context and back navigation */}
+        {/* Uses normalized scope chips to show asset scope explicitly */}
+        <ScopeBanner
+          from={fromParam ?? 'asset_list'}
+          returnTo={backHref}
+          showingText={`Draft Review · ${returnLabel}`}
+          onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/automation/playbooks`)}
+          chips={normalizedScopeResult.chips}
+          wasAdjusted={normalizedScopeResult.wasAdjusted}
+        />
+
+        {/* Header */}
+        <div className="mb-6 mt-4">
+          <h1 className="text-2xl font-bold text-gray-900">Draft Review</h1>
+          <p className="text-gray-600">
+            Review pending drafts for this {assetTypeLower.slice(0, -1)}.
+          </p>
+        </div>
+
+        {/* Loading state */}
+        {draftReviewLoading && (
+          <div className="flex min-h-[200px] items-center justify-center">
+            <div className="text-gray-600">Loading drafts...</div>
+          </div>
+        )}
+
+        {/* Error state */}
+        {draftReviewError && (
+          <div className="rounded-md bg-red-50 p-4">
+            <p className="text-sm text-red-800">{draftReviewError}</p>
+          </div>
+        )}
+
+        {/* Draft list or empty state */}
+        {!draftReviewLoading && !draftReviewError && (
+          <>
+            {hasDrafts ? (
+              <div data-testid="draft-review-list" className="space-y-4">
+                {draftReviewData?.drafts.map((draft) => (
+                  <div
+                    key={draft.id}
+                    className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-medium text-gray-900">
+                          {draft.playbookId === 'missing_seo_title'
+                            ? 'SEO Title Suggestion'
+                            : 'SEO Description Suggestion'}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          Status: {draft.status} · Updated:{' '}
+                          {new Date(draft.updatedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          draft.status === 'READY'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}
+                      >
+                        {draft.status}
+                      </span>
+                    </div>
+                    {/* [FIXUP-2] Render draft items supporting both canonical and legacy/testkit shapes */}
+                    {draft.filteredItems.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {draft.filteredItems.map((item, idx) => {
+                          // [FIXUP-2] Support canonical shape (field, finalSuggestion, rawSuggestion)
+                          // and legacy/testkit shape (suggestedTitle, suggestedDescription)
+                          const hasCanonicalShape = item.field !== undefined;
+                          const legacyItem = item as any; // For accessing suggestedTitle/suggestedDescription
+
+                          if (hasCanonicalShape) {
+                            // Canonical playbook draft shape
+                            return (
+                              <div
+                                key={idx}
+                                className="rounded bg-gray-50 p-3 text-sm"
+                              >
+                                <div className="font-medium text-gray-700">
+                                  {item.field === 'seoTitle' ? 'Title' : 'Description'}
+                                </div>
+                                <div className="mt-1 text-gray-900">
+                                  {item.finalSuggestion || item.rawSuggestion || '(No suggestion)'}
+                                </div>
+                                {item.ruleWarnings && item.ruleWarnings.length > 0 && (
+                                  <div className="mt-1 text-xs text-amber-600">
+                                    Warnings: {item.ruleWarnings.join(', ')}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          } else {
+                            // Legacy/testkit shape with suggestedTitle and/or suggestedDescription
+                            return (
+                              <div key={idx} className="space-y-2">
+                                {legacyItem.suggestedTitle && (
+                                  <div className="rounded bg-gray-50 p-3 text-sm">
+                                    <div className="font-medium text-gray-700">Title</div>
+                                    <div className="mt-1 text-gray-900">{legacyItem.suggestedTitle}</div>
+                                  </div>
+                                )}
+                                {legacyItem.suggestedDescription && (
+                                  <div className="rounded bg-gray-50 p-3 text-sm">
+                                    <div className="font-medium text-gray-700">Description</div>
+                                    <div className="mt-1 text-gray-900">{legacyItem.suggestedDescription}</div>
+                                  </div>
+                                )}
+                                {!legacyItem.suggestedTitle && !legacyItem.suggestedDescription && (
+                                  <div className="rounded bg-gray-50 p-3 text-sm">
+                                    <div className="text-gray-500">(No suggestion)</div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* Zero-draft empty state - MANDATORY per DRAFT-ROUTING-INTEGRITY-1 */
+              <div
+                data-testid="draft-review-empty"
+                className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center"
+              >
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                  No drafts available for this item.
+                </h3>
+                <div className="mt-6 flex gap-3">
+                  {/* Primary CTA: View issues */}
+                  <Link
+                    href={viewIssuesHref}
+                    className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                  >
+                    View issues
+                  </Link>
+                  {/* Secondary CTA: Back - [FIXUP-1] Use phase-specific testid, not scope-banner-back */}
+                  <Link
+                    href={backHref}
+                    data-testid="draft-review-back"
+                    className="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                  >
+                    Back
+                  </Link>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Breadcrumbs */}
@@ -1412,12 +1667,15 @@ export default function AutomationPlaybooksPage() {
         </button>
       </div>
 
-      {/* [ROUTE-INTEGRITY-1 FIXUP-1] ScopeBanner - moved after header for visual hierarchy */}
+      {/* [ROUTE-INTEGRITY-1 FIXUP-1] [SCOPE-CLARITY-1] ScopeBanner - moved after header for visual hierarchy */}
+      {/* Uses normalized scope chips for explicit scope display */}
       <ScopeBanner
         from={fromParam}
         returnTo={validatedReturnTo || `/projects/${projectId}/automation/playbooks`}
         showingText={scopeBannerShowingText}
-        onClearFiltersHref={`/projects/${projectId}/automation/playbooks`}
+        onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/automation/playbooks`)}
+        chips={normalizedScopeResult.chips}
+        wasAdjusted={normalizedScopeResult.wasAdjusted}
       />
 
       {/* [ASSETS-PAGES-1.1-UI-HARDEN] Missing scope safety block for PAGES/COLLECTIONS */}

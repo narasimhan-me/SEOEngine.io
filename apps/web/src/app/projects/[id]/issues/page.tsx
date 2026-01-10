@@ -24,6 +24,8 @@ import {
   buildBackLink,
 } from '@/lib/issue-fix-navigation';
 import { getSafeReturnTo } from '@/lib/route-context';
+// [SCOPE-CLARITY-1] Import scope normalization utilities
+import { normalizeScopeParams, buildClearFiltersHref } from '@/lib/scope-normalization';
 
 type SeverityFilter = 'all' | 'critical' | 'warning' | 'info';
 type PillarFilter = 'all' | DeoPillarId;
@@ -117,7 +119,12 @@ export default function IssuesPage() {
     return getSafeReturnTo(searchParams, projectId);
   }, [searchParams, projectId]);
 
-  // [ROUTE-INTEGRITY-1] Derive showingText for ScopeBanner
+  // [SCOPE-CLARITY-1] Normalize scope params using canonical normalization
+  const normalizedScopeResult = useMemo(() => {
+    return normalizeScopeParams(searchParams);
+  }, [searchParams]);
+
+  // [ROUTE-INTEGRITY-1] Derive showingText for ScopeBanner (fallback when chips not rendered)
   const scopeBannerShowingText = useMemo(() => {
     const parts: string[] = [];
     if (assetTypeParam) {
@@ -176,8 +183,11 @@ export default function IssuesPage() {
   // [COUNT-INTEGRITY-1.1 UI HARDEN] Include actionKeys in filter detection
   // [LIST-ACTIONS-CLARITY-1] Include assetType/assetId in filter detection
   const hasClickIntegrityFilters = !!(actionKeyParam || (actionKeysParam && actionKeysParam.length > 0) || scopeTypeParam || assetTypeParam || assetIdParam);
+  // [SCOPE-CLARITY-1 FIXUP-1] Use normalized pillar (prevents hidden stacking when issueType overrides pillar)
+  // normalizedScopeResult.normalized.pillar will be undefined if issueType or asset scope took priority
+  const normalizedPillar = normalizedScopeResult.normalized.pillar;
   const [pillarFilter, setPillarFilter] = useState<PillarFilter>(
-    hasClickIntegrityFilters ? 'all' : (pillarParam ?? 'all')
+    hasClickIntegrityFilters ? 'all' : (normalizedPillar ?? 'all')
   );
 
   // [COUNT-INTEGRITY-1.1 Step 2A] Updated to use canonical triplet counts
@@ -373,15 +383,17 @@ export default function IssuesPage() {
     fetchProjectInfo();
   }, [projectId, router, fetchIssues, fetchProjectInfo]);
 
-  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] Sync pillarFilter state when URL param changes (respect click-integrity filters)
+  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] [SCOPE-CLARITY-1 FIXUP-1] Sync pillarFilter state when URL param changes
+  // Use normalizedPillar (not raw pillarParam) to respect priority rules (issueType > pillar)
   useEffect(() => {
     if (hasClickIntegrityFilters) {
       // When click-integrity filters present, force pillar to 'all' (don't sync from URL)
       setPillarFilter('all');
     } else {
-      setPillarFilter(pillarParam ?? 'all');
+      // [SCOPE-CLARITY-1 FIXUP-1] Use normalized pillar - if issueType took priority, pillar will be undefined
+      setPillarFilter(normalizedPillar ?? 'all');
     }
-  }, [pillarParam, hasClickIntegrityFilters]);
+  }, [normalizedPillar, hasClickIntegrityFilters]);
 
   // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] URL normalization: force mode=detected when no actionable issues
   useEffect(() => {
@@ -507,6 +519,7 @@ export default function IssuesPage() {
   });
 
   // Handler to update pillar filter and URL
+  // [SCOPE-CLARITY-1 FIXUP-1] When user explicitly picks a pillar, clear conflicting higher-priority scope params
   const handlePillarFilterChange = (newFilter: PillarFilter) => {
     setPillarFilter(newFilter);
     // Update URL without full navigation
@@ -515,6 +528,11 @@ export default function IssuesPage() {
       params.delete('pillar');
     } else {
       params.set('pillar', newFilter);
+      // [SCOPE-CLARITY-1 FIXUP-1] Delete conflicting higher-priority scope params so the selected pillar becomes unambiguous
+      // Priority order: asset > issueType > pillar - so when user selects pillar, clear issueType and asset scope
+      params.delete('issueType');
+      params.delete('assetType');
+      params.delete('assetId');
     }
     const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
     router.replace(newUrl, { scroll: false });
@@ -927,13 +945,15 @@ export default function IssuesPage() {
           </button>
         </div>
 
-        {/* [ROUTE-INTEGRITY-1 FIXUP-2] ScopeBanner - placed immediately after h1 header row ("on arrival") */}
-        {/* Preserves "Filtered by Asset" display when assetType is present */}
+        {/* [ROUTE-INTEGRITY-1 FIXUP-2] [SCOPE-CLARITY-1] ScopeBanner - placed immediately after h1 header row ("on arrival") */}
+        {/* Uses normalized scope chips for explicit scope display */}
         <ScopeBanner
           from={fromParam}
           returnTo={validatedReturnTo || `/projects/${projectId}/issues`}
           showingText={scopeBannerShowingText}
-          onClearFiltersHref={`/projects/${projectId}/issues`}
+          onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/issues`)}
+          chips={normalizedScopeResult.chips}
+          wasAdjusted={normalizedScopeResult.wasAdjusted}
         />
 
         {/* [COUNT-INTEGRITY-1.1 Step 2A] Canonical Triplet Summary Display */}
@@ -993,6 +1013,8 @@ export default function IssuesPage() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => handlePillarFilterChange('all')}
+              data-testid="pillar-filter-all"
+              aria-pressed={pillarFilter === 'all'}
               className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 pillarFilter === 'all'
                   ? 'bg-purple-600 text-white'
@@ -1014,6 +1036,8 @@ export default function IssuesPage() {
                 <button
                   key={pillar.id}
                   onClick={() => handlePillarFilterChange(pillar.id)}
+                  data-testid={`pillar-filter-${pillar.id}`}
+                  aria-pressed={pillarFilter === pillar.id}
                   className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                     pillarFilter === pillar.id
                       ? 'bg-purple-600 text-white'

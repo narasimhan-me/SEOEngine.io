@@ -1392,6 +1392,111 @@ export class AutomationPlaybooksService {
     };
   }
 
+  /**
+   * [DRAFT-ROUTING-INTEGRITY-1] List pending drafts for a specific asset.
+   *
+   * Returns only pending (non-applied, non-expired) draft records that contain
+   * items for the specified asset. Never returns global/unscoped drafts.
+   *
+   * For products: matches draftItems[].productId === assetId (or sampleProductIds)
+   * For pages/collections: matches draftItems[].crawlResultId === assetId
+   */
+  async listPendingDraftsForAsset(
+    userId: string,
+    projectId: string,
+    assetType: 'products' | 'pages' | 'collections',
+    assetId: string,
+  ): Promise<{
+    projectId: string;
+    assetType: string;
+    assetId: string;
+    drafts: Array<{
+      id: string;
+      playbookId: AutomationPlaybookId;
+      status: AutomationPlaybookDraftStatus;
+      scopeId: string;
+      rulesHash: string;
+      createdAt: string;
+      updatedAt: string;
+      counts: PlaybookDraftCounts | null;
+      filteredItems: PlaybookDraftItem[];
+    }>;
+  }> {
+    // [ROLES-3] Any ProjectMember can view drafts (view-only)
+    await this.roleResolution.assertProjectAccess(projectId, userId);
+
+    // Query pending drafts: status in (READY, PARTIAL), appliedAt=null, expiresAt null or > now
+    const now = new Date();
+    const pendingDrafts = await this.prisma.automationPlaybookDraft.findMany({
+      where: {
+        projectId,
+        status: { in: ['READY', 'PARTIAL'] },
+        appliedAt: null,
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: now } },
+        ],
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    const matchingDrafts: Array<{
+      id: string;
+      playbookId: AutomationPlaybookId;
+      status: AutomationPlaybookDraftStatus;
+      scopeId: string;
+      rulesHash: string;
+      createdAt: string;
+      updatedAt: string;
+      counts: PlaybookDraftCounts | null;
+      filteredItems: PlaybookDraftItem[];
+    }> = [];
+
+    for (const draft of pendingDrafts) {
+      const draftItems = (draft.draftItems as unknown as PlaybookDraftItem[] | null) ?? [];
+      const sampleProductIds = (draft.sampleProductIds as unknown as string[] | null) ?? [];
+
+      let filteredItems: PlaybookDraftItem[] = [];
+
+      if (assetType === 'products') {
+        // For products: match by productId in draftItems or sampleProductIds
+        filteredItems = draftItems.filter((item) => item.productId === assetId);
+
+        // If no items but assetId is in sampleProductIds, include draft with empty items
+        if (filteredItems.length === 0 && !sampleProductIds.includes(assetId)) {
+          continue; // Skip this draft - asset not found
+        }
+      } else {
+        // For pages/collections: match by crawlResultId in draftItems
+        // [FIXUP-1] Pages/collections drafts filter by crawlResultId field
+        filteredItems = draftItems.filter((item: any) => item.crawlResultId === assetId);
+
+        if (filteredItems.length === 0) {
+          continue; // Skip this draft - asset not found
+        }
+      }
+
+      matchingDrafts.push({
+        id: draft.id,
+        playbookId: draft.playbookId as AutomationPlaybookId,
+        status: draft.status as AutomationPlaybookDraftStatus,
+        scopeId: draft.scopeId,
+        rulesHash: draft.rulesHash,
+        createdAt: draft.createdAt.toISOString(),
+        updatedAt: draft.updatedAt.toISOString(),
+        counts: (draft.counts as unknown as PlaybookDraftCounts | null) ?? null,
+        filteredItems,
+      });
+    }
+
+    return {
+      projectId,
+      assetType,
+      assetId,
+      drafts: matchingDrafts,
+    };
+  }
+
   async setAutomationEntryConfig(
     userId: string,
     projectId: string,

@@ -3,6 +3,7 @@
  * [LIST-ACTIONS-CLARITY-1 FIXUP-1] Extended with Collections + Blocked state + Bulk removal
  * [LIST-ACTIONS-CLARITY-1 FIXUP-2] Hardened with row-scoped assertions using seeded titles
  * [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Canonical issue counts from DEO issues (not UI heuristics)
+ * [DRAFT-ROUTING-INTEGRITY-1] Review drafts routes to Draft Review (scoped), NOT Work Queue
  *
  * Playwright smoke tests for the unified row chips and actions across
  * Products, Pages, and Collections lists.
@@ -13,7 +14,7 @@
  * 3. Pages list renders RowStatusChip with correct labels (row-scoped)
  * 4. Pages list renders correct primary/secondary actions (row-scoped)
  * 5. "View issues" action navigates to Issues Engine with asset filter + banner
- * 6. "Review drafts" action links to Work Queue
+ * 6. "Review drafts" routes to Draft Review mode (NOT Work Queue) [DRAFT-ROUTING-INTEGRITY-1]
  * 7. hasDraftPendingApply field triggers Draft saved chip
  * 8. [FIXUP-1] Collections list renders RowStatusChip with correct labels
  * 9. [FIXUP-1] EDITOR sees "Blocked" chip when draft pending but can't apply
@@ -283,7 +284,18 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     await expect(filterBanner).toContainText('Filtered by Asset');
   });
 
-  test('LAC1-008: Review drafts action links to Work Queue', async ({
+  /**
+   * [DRAFT-ROUTING-INTEGRITY-1] Review drafts routes to Draft Review (scoped), NOT Work Queue
+   * Smoke flow:
+   * 1. Navigate to Products list
+   * 2. Click "Review drafts" on draft-pending product row
+   * 3. Assert URL contains /automation/playbooks with mode=drafts, assetType=products, assetId
+   * 4. Assert URL does NOT contain /work-queue
+   * 5. Assert ScopeBanner is visible
+   * 6. Assert Draft Review panel is visible
+   * 7. Click Back and assert return to Products list
+   */
+  test('LAC1-008: Review drafts routes to Draft Review mode (NOT Work Queue)', async ({
     page,
   }) => {
     await page.goto('/login');
@@ -291,16 +303,65 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
       localStorage.setItem('engineo_token', token);
     }, seedData.accessToken);
 
+    // Navigate to Products list
     await page.goto(`/projects/${seedData.projectId}/products`);
     await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
 
-    // [FIXUP-2] Row-scoped assertion for draft-pending product
+    // [DRAFT-ROUTING-INTEGRITY-1] Row-scoped assertion for draft-pending product
     const draftPendingRow = getRowByTitle(page, SEEDED_TITLES.products.draftPending);
     const reviewDraftsLink = draftPendingRow.locator('[data-testid="row-primary-action"]:has-text("Review drafts")');
 
     await expect(reviewDraftsLink).toBeVisible();
+
+    // Get href and verify it routes to Draft Review, NOT Work Queue
     const href = await reviewDraftsLink.getAttribute('href');
-    expect(href).toContain('/work-queue');
+    expect(href).toContain('/automation/playbooks');
+    expect(href).toContain('mode=drafts');
+    expect(href).toContain('assetType=products');
+    expect(href).toContain(`assetId=${seedData.draftPendingProductId}`);
+    expect(href).not.toContain('/work-queue');
+
+    // Click to navigate to Draft Review mode
+    await reviewDraftsLink.click();
+
+    // Wait for navigation and verify URL
+    await page.waitForURL(/\/automation\/playbooks/);
+    const currentUrl = page.url();
+    expect(currentUrl).toContain('/automation/playbooks');
+    expect(currentUrl).toContain('mode=drafts');
+    expect(currentUrl).toContain('assetType=products');
+    expect(currentUrl).toContain(`assetId=${seedData.draftPendingProductId}`);
+    expect(currentUrl).not.toContain('/work-queue');
+
+    // Assert ScopeBanner (filter-context-banner) is visible
+    const scopeBanner = page.locator('[data-testid="filter-context-banner"]');
+    await expect(scopeBanner).toBeVisible();
+
+    // Assert Draft Review panel is visible
+    const draftReviewPanel = page.locator('[data-testid="draft-review-panel"]');
+    await expect(draftReviewPanel).toBeVisible();
+
+    // [FIXUP-2] Assert draft-review-list is visible (seeded product has a draft)
+    const draftReviewList = page.locator('[data-testid="draft-review-list"]');
+    await expect(draftReviewList).toBeVisible();
+
+    // [FIXUP-2] Assert seeded draft content is visible (stable substring from seed)
+    // Seeded draft has: suggestedTitle: 'Improved Product Title for Better SEO'
+    await expect(draftReviewPanel).toContainText('Improved Product Title');
+
+    // Click Back via ScopeBanner (or draft-review-back if empty state) and verify return to Products list
+    // [FIXUP-1] ScopeBanner has scope-banner-back; empty state has draft-review-back
+    const scopeBannerBack = page.locator('[data-testid="scope-banner-back"]');
+    const draftReviewBack = page.locator('[data-testid="draft-review-back"]');
+    const backButton = (await scopeBannerBack.isVisible()) ? scopeBannerBack : draftReviewBack;
+    await expect(backButton).toBeVisible();
+    await backButton.click();
+
+    // Verify returned to Products list (not Work Queue)
+    await page.waitForURL(/\/products/);
+    const returnUrl = page.url();
+    expect(returnUrl).toContain('/products');
+    expect(returnUrl).not.toContain('/work-queue');
   });
 
   // ==========================================================================

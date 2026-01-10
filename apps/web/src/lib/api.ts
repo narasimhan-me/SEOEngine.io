@@ -732,6 +732,56 @@ export interface AutomationPlaybookDraftGenerateResult {
 export type AutomationPlaybookDraftStatus = 'PENDING' | 'READY' | 'APPLIED' | 'EXPIRED' | 'STALE';
 
 /**
+ * [DRAFT-ROUTING-INTEGRITY-1] Draft item for asset-scoped drafts
+ * [FIXUP-2] Supports both canonical shape (field/finalSuggestion/rawSuggestion)
+ * and legacy/testkit shape (suggestedTitle/suggestedDescription)
+ */
+export interface AssetScopedDraftItem {
+  // Asset identifier - one of these should be present
+  productId?: string;
+  crawlResultId?: string; // For pages/collections
+
+  // Canonical playbook draft shape
+  field?: 'seoTitle' | 'seoDescription';
+  rawSuggestion?: string;
+  finalSuggestion?: string;
+  ruleWarnings?: string[];
+
+  // Legacy/testkit draft shape
+  suggestedTitle?: string;
+  suggestedDescription?: string;
+}
+
+/**
+ * [DRAFT-ROUTING-INTEGRITY-1] Individual draft in asset-scoped response
+ */
+export interface AssetScopedDraft {
+  id: string;
+  playbookId: AutomationPlaybookId;
+  status: 'READY' | 'PARTIAL';
+  scopeId: string;
+  rulesHash: string;
+  createdAt: string;
+  updatedAt: string;
+  counts: {
+    affectedTotal: number;
+    draftGenerated: number;
+    noSuggestionCount: number;
+  } | null;
+  filteredItems: AssetScopedDraftItem[];
+}
+
+/**
+ * [DRAFT-ROUTING-INTEGRITY-1] Response from listAutomationPlaybookDraftsForAsset
+ */
+export interface AssetScopedDraftsResponse {
+  projectId: string;
+  assetType: string;
+  assetId: string;
+  drafts: AssetScopedDraft[];
+}
+
+/**
  * Automation playbook draft metadata.
  */
 export interface AutomationPlaybookDraft {
@@ -1494,6 +1544,32 @@ export const projectsApi = {
     if (params?.bundleId) searchParams.set('bundleId', params.bundleId);
     const qs = searchParams.toString() ? `?${searchParams.toString()}` : '';
     return fetchWithAuth(`/projects/${projectId}/work-queue${qs}`);
+  },
+
+  // ===========================================================================
+  // [DRAFT-ROUTING-INTEGRITY-1] Asset-Scoped Drafts API
+  // ===========================================================================
+
+  /**
+   * [DRAFT-ROUTING-INTEGRITY-1] List pending drafts for a specific asset.
+   * Used by Draft Review mode to show only drafts relevant to a single asset.
+   *
+   * Returns only pending (non-applied, non-expired) drafts that contain items
+   * for the specified asset. Never returns global/unscoped drafts.
+   */
+  listAutomationPlaybookDraftsForAsset: (
+    projectId: string,
+    params: {
+      assetType: 'products' | 'pages' | 'collections';
+      assetId: string;
+    },
+  ): Promise<AssetScopedDraftsResponse> => {
+    const searchParams = new URLSearchParams();
+    searchParams.set('assetType', params.assetType);
+    searchParams.set('assetId', params.assetId);
+    return fetchWithAuth(
+      `/projects/${projectId}/automation-playbooks/drafts?${searchParams.toString()}`,
+    );
   },
 };
 

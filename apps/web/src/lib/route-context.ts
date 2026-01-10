@@ -1,8 +1,12 @@
 /**
- * [ROUTE-INTEGRITY-1] Shared Route Context Utilities
+ * [ROUTE-INTEGRITY-1] [SCOPE-CLARITY-1] Shared Route Context Utilities
  *
  * Single source of truth for from + returnTo URL construction.
  * Eliminates bespoke string concat at callsites.
+ *
+ * [SCOPE-CLARITY-1] Canonical scope params (pillar, assetType, assetId, issueType, mode)
+ * are defined in scope-normalization.ts. Use normalizeScopeParams() for reading
+ * and withRouteContext() for writing these params.
  *
  * Key exports:
  * - RouteFrom: Type alias for FromContext
@@ -43,13 +47,23 @@ export function encodeReturnTo(path: string): string {
 // Route Context Builder
 // =============================================================================
 
+/**
+ * [SCOPE-CLARITY-1] Route context params for URL construction.
+ * Contains navigation context (from, returnTo) + canonical scope params.
+ * See scope-normalization.ts for NormalizedScope type and normalization rules.
+ */
 export interface RouteContextParams {
   from: RouteFrom;
   returnTo: string;
+  /** [SCOPE-CLARITY-1] DEO pillar ID */
   pillar?: string;
+  /** [SCOPE-CLARITY-1] Asset type: 'products' | 'pages' | 'collections' */
   assetType?: string;
+  /** [SCOPE-CLARITY-1] Asset ID */
   assetId?: string;
+  /** [SCOPE-CLARITY-1] Issue type key */
   issueType?: string;
+  /** [SCOPE-CLARITY-1] View mode: 'actionable' | 'detected' */
   mode?: string;
 }
 

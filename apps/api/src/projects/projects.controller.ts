@@ -562,6 +562,42 @@ export class ProjectsController {
   }
 
   /**
+   * GET /projects/:id/automation-playbooks/drafts
+   * [DRAFT-ROUTING-INTEGRITY-1] Returns pending drafts for a specific asset.
+   * Used by Draft Review mode to show only drafts relevant to a single asset.
+   *
+   * Query params (required):
+   * - assetType: 'products' | 'pages' | 'collections'
+   * - assetId: string (product ID or crawl result ID)
+   *
+   * Returns only pending (non-applied, non-expired) drafts that contain items
+   * for the specified asset. Never returns global/unscoped drafts.
+   */
+  @Get(':id/automation-playbooks/drafts')
+  async listPendingDraftsForAsset(
+    @Request() req: any,
+    @Param('id') projectId: string,
+    @Query('assetType') assetType?: string,
+    @Query('assetId') assetId?: string,
+  ) {
+    if (!assetType || !['products', 'pages', 'collections'].includes(assetType)) {
+      throw new BadRequestException(
+        'assetType is required and must be one of: products, pages, collections',
+      );
+    }
+    if (!assetId || !assetId.trim()) {
+      throw new BadRequestException('assetId is required');
+    }
+
+    return this.automationPlaybooksService.listPendingDraftsForAsset(
+      req.user.id,
+      projectId,
+      assetType as 'products' | 'pages' | 'collections',
+      assetId.trim(),
+    );
+  }
+
+  /**
    * GET /projects/:id/automation-playbooks/estimate
    * Returns estimate for an automation playbook (affected products, token usage, eligibility).
    */
