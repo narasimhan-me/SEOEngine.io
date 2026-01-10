@@ -4,6 +4,7 @@
  * [LIST-ACTIONS-CLARITY-1 FIXUP-2] Hardened with row-scoped assertions using seeded titles
  * [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Canonical issue counts from DEO issues (not UI heuristics)
  * [DRAFT-ROUTING-INTEGRITY-1] Review drafts routes to Draft Review (scoped), NOT Work Queue
+ * [DRAFT-EDIT-INTEGRITY-1] Draft items can be edited and saved in Draft Review mode
  *
  * Playwright smoke tests for the unified row chips and actions across
  * Products, Pages, and Collections lists.
@@ -23,6 +24,7 @@
  * 12. [FIXUP-1] No bulk selection checkboxes on list pages
  * 13. [FIXUP-1] No bulk action CTAs in command bars
  * 14. [FIXUP-1] Products command bar routes to playbooks
+ * 15. [DRAFT-EDIT-INTEGRITY-1] Draft item can be edited, saved, and persists after reload
  *
  * [CORRECTNESS-1] Key changes:
  * - actionableNowCount is now server-derived from canonical DEO issues
@@ -362,6 +364,91 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     const returnUrl = page.url();
     expect(returnUrl).toContain('/products');
     expect(returnUrl).not.toContain('/work-queue');
+  });
+
+  /**
+   * [DRAFT-EDIT-INTEGRITY-1] Draft item can be edited and saved in Draft Review mode
+   * Smoke flow:
+   * 1. Navigate to Products list → Review drafts (Draft Review mode)
+   * 2. Click Edit on a draft item
+   * 3. Enter new text
+   * 4. Click Save changes
+   * 5. Assert new text is visible after save
+   * 6. Reload page and assert new text persists (server persisted)
+   * 7. Test Cancel reverts changes
+   */
+  test('LAC1-009: Draft item can be edited and saved', async ({ page }) => {
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, seedData.accessToken);
+
+    // Navigate to Products list
+    await page.goto(`/projects/${seedData.projectId}/products`);
+    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+
+    // Click Review drafts on draft-pending product
+    const draftPendingRow = getRowByTitle(page, SEEDED_TITLES.products.draftPending);
+    const reviewDraftsLink = draftPendingRow.locator('[data-testid="row-primary-action"]:has-text("Review drafts")');
+    await reviewDraftsLink.click();
+
+    // Wait for Draft Review panel
+    await page.waitForURL(/\/automation\/playbooks/);
+    const draftReviewPanel = page.locator('[data-testid="draft-review-panel"]');
+    await expect(draftReviewPanel).toBeVisible();
+
+    // [DRAFT-EDIT-INTEGRITY-1] Find the first Edit button (matches pattern draft-item-edit-*)
+    const editButton = page.locator('[data-testid^="draft-item-edit-"]').first();
+    await expect(editButton).toBeVisible();
+    await editButton.click();
+
+    // Assert edit mode is active - input should be visible
+    const editInput = page.locator('[data-testid^="draft-item-input-"]').first();
+    await expect(editInput).toBeVisible();
+
+    // Enter new text
+    const editedText = `Edited Draft Text - ${Date.now()}`;
+    await editInput.fill(editedText);
+
+    // Click Save changes
+    const saveButton = page.locator('[data-testid^="draft-item-save-"]').first();
+    await expect(saveButton).toBeVisible();
+    await saveButton.click();
+
+    // Wait for save to complete - input should no longer be visible
+    await expect(editInput).not.toBeVisible({ timeout: 5000 });
+
+    // Assert new text is visible in the draft item
+    await expect(draftReviewPanel).toContainText(editedText);
+
+    // Reload page and assert new text persists (server persisted)
+    await page.reload();
+    await expect(draftReviewPanel).toBeVisible({ timeout: 10000 });
+    await expect(draftReviewPanel).toContainText(editedText);
+
+    // [DRAFT-EDIT-INTEGRITY-1] Test Cancel flow
+    const editButton2 = page.locator('[data-testid^="draft-item-edit-"]').first();
+    await editButton2.click();
+
+    const editInput2 = page.locator('[data-testid^="draft-item-input-"]').first();
+    await expect(editInput2).toBeVisible();
+
+    // Type something different
+    const canceledText = 'This should be canceled';
+    await editInput2.fill(canceledText);
+
+    // Click Cancel
+    const cancelButton = page.locator('[data-testid^="draft-item-cancel-"]').first();
+    await cancelButton.click();
+
+    // Assert input is no longer visible
+    await expect(editInput2).not.toBeVisible();
+
+    // Assert the canceled text is NOT visible (reverted to saved value)
+    await expect(draftReviewPanel).not.toContainText(canceledText);
+
+    // Assert the previously saved text is still visible
+    await expect(draftReviewPanel).toContainText(editedText);
   });
 
   // ==========================================================================

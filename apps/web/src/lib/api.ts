@@ -782,6 +782,16 @@ export interface AssetScopedDraftsResponse {
 }
 
 /**
+ * [DRAFT-EDIT-INTEGRITY-1] Response from updateDraftItem
+ */
+export interface UpdateDraftItemResponse {
+  draftId: string;
+  itemIndex: number;
+  updatedItem: AssetScopedDraftItem;
+  updatedAt: string;
+}
+
+/**
  * Automation playbook draft metadata.
  */
 export interface AutomationPlaybookDraft {
@@ -1569,6 +1579,31 @@ export const projectsApi = {
     searchParams.set('assetId', params.assetId);
     return fetchWithAuth(
       `/projects/${projectId}/automation-playbooks/drafts?${searchParams.toString()}`,
+    );
+  },
+
+  /**
+   * [DRAFT-EDIT-INTEGRITY-1] Update a specific draft item's content.
+   * Allows users to edit draft suggestions before apply. Server draft is source of truth.
+   * No autosave - explicit save required.
+   *
+   * @param projectId - The project ID
+   * @param draftId - The draft ID
+   * @param itemIndex - The index of the item in the draft to update
+   * @param value - The new text content for the draft item
+   */
+  updateDraftItem: (
+    projectId: string,
+    draftId: string,
+    itemIndex: number,
+    value: string,
+  ): Promise<UpdateDraftItemResponse> => {
+    return fetchWithAuth(
+      `/projects/${projectId}/automation-playbooks/drafts/${draftId}/items/${itemIndex}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ value }),
+      },
     );
   },
 };

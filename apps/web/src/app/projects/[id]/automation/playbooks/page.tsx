@@ -302,6 +302,13 @@ export default function AutomationPlaybooksPage() {
   const [draftReviewData, setDraftReviewData] = useState<AssetScopedDraftsResponse | null>(null);
   const [draftReviewError, setDraftReviewError] = useState<string | null>(null);
 
+  // [DRAFT-EDIT-INTEGRITY-1] Inline edit state for Draft Review mode
+  // Key format: `${draftId}-${itemIndex}` -> editing state
+  const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
   const fetchInitialData = useCallback(async () => {
     try {
       setLoading(true);
@@ -411,6 +418,62 @@ export default function AutomationPlaybooksPage() {
 
     fetchDraftReviewData();
   }, [isDraftReviewMode, draftReviewAssetId, validUrlAssetType, projectId]);
+
+  // [DRAFT-EDIT-INTEGRITY-1] Handlers for inline edit mode in Draft Review
+  const handleStartEdit = useCallback((draftId: string, itemIndex: number, currentValue: string) => {
+    const editKey = `${draftId}-${itemIndex}`;
+    setEditingItem(editKey);
+    setEditValue(currentValue);
+    setEditError(null);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingItem(null);
+    setEditValue('');
+    setEditError(null);
+  }, []);
+
+  const handleSaveEdit = useCallback(async (draftId: string, itemIndex: number) => {
+    setEditSaving(true);
+    setEditError(null);
+
+    try {
+      const response = await projectsApi.updateDraftItem(projectId, draftId, itemIndex, editValue);
+
+      // Update local state with the server response
+      setDraftReviewData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          drafts: prev.drafts.map((draft) => {
+            if (draft.id !== draftId) return draft;
+            return {
+              ...draft,
+              updatedAt: response.updatedAt,
+              filteredItems: draft.filteredItems.map((item, idx) => {
+                if (idx !== itemIndex) return item;
+                // Update the finalSuggestion with the edited value
+                return {
+                  ...item,
+                  finalSuggestion: editValue,
+                };
+              }),
+            };
+          }),
+        };
+      });
+
+      // Exit edit mode
+      setEditingItem(null);
+      setEditValue('');
+      feedback.showSuccess('Draft saved successfully');
+    } catch (err) {
+      console.error('[DRAFT-EDIT-INTEGRITY-1] Failed to save draft edit:', err);
+      setEditError(err instanceof Error ? err.message : 'Failed to save changes');
+    } finally {
+      setEditSaving(false);
+    }
+  }, [projectId, editValue, feedback]);
 
   const issuesByType = useMemo(() => {
     const map = new Map<string, DeoIssue>();
@@ -1485,6 +1548,7 @@ export default function AutomationPlaybooksPage() {
                       </span>
                     </div>
                     {/* [FIXUP-2] Render draft items supporting both canonical and legacy/testkit shapes */}
+                    {/* [DRAFT-EDIT-INTEGRITY-1] With inline edit mode */}
                     {draft.filteredItems.length > 0 && (
                       <div className="mt-3 space-y-2">
                         {draft.filteredItems.map((item, idx) => {
@@ -1493,30 +1557,93 @@ export default function AutomationPlaybooksPage() {
                           const hasCanonicalShape = item.field !== undefined;
                           const legacyItem = item as any; // For accessing suggestedTitle/suggestedDescription
 
+                          // [DRAFT-EDIT-INTEGRITY-1] Edit state for this item
+                          const editKey = `${draft.id}-${idx}`;
+                          const isEditing = editingItem === editKey;
+                          const currentValue = item.finalSuggestion || item.rawSuggestion || '';
+
                           if (hasCanonicalShape) {
-                            // Canonical playbook draft shape
+                            // Canonical playbook draft shape with inline edit
                             return (
                               <div
                                 key={idx}
+                                data-testid={`draft-item-${draft.id}-${idx}`}
                                 className="rounded bg-gray-50 p-3 text-sm"
                               >
-                                <div className="font-medium text-gray-700">
-                                  {item.field === 'seoTitle' ? 'Title' : 'Description'}
-                                </div>
-                                <div className="mt-1 text-gray-900">
-                                  {item.finalSuggestion || item.rawSuggestion || '(No suggestion)'}
-                                </div>
-                                {item.ruleWarnings && item.ruleWarnings.length > 0 && (
-                                  <div className="mt-1 text-xs text-amber-600">
-                                    Warnings: {item.ruleWarnings.join(', ')}
+                                <div className="flex items-center justify-between">
+                                  <div className="font-medium text-gray-700">
+                                    {item.field === 'seoTitle' ? 'Title' : 'Description'}
                                   </div>
+                                  {/* [DRAFT-EDIT-INTEGRITY-1] Edit button - only show when not editing */}
+                                  {!isEditing && (
+                                    <button
+                                      type="button"
+                                      data-testid={`draft-item-edit-${draft.id}-${idx}`}
+                                      onClick={() => handleStartEdit(draft.id, idx, currentValue)}
+                                      className="text-xs text-indigo-600 hover:text-indigo-800"
+                                    >
+                                      Edit
+                                    </button>
+                                  )}
+                                </div>
+
+                                {isEditing ? (
+                                  /* [DRAFT-EDIT-INTEGRITY-1] Edit mode UI */
+                                  <div className="mt-2">
+                                    <textarea
+                                      data-testid={`draft-item-input-${draft.id}-${idx}`}
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      className="w-full rounded border border-gray-300 p-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                      rows={item.field === 'seoDescription' ? 4 : 2}
+                                      disabled={editSaving}
+                                    />
+                                    {/* Edit error inline */}
+                                    {editError && (
+                                      <div className="mt-1 text-xs text-red-600">{editError}</div>
+                                    )}
+                                    {/* Save/Cancel buttons */}
+                                    <div className="mt-2 flex gap-2">
+                                      <button
+                                        type="button"
+                                        data-testid={`draft-item-save-${draft.id}-${idx}`}
+                                        onClick={() => handleSaveEdit(draft.id, idx)}
+                                        disabled={editSaving}
+                                        className="inline-flex items-center rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                                      >
+                                        {editSaving ? 'Saving...' : 'Save changes'}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        data-testid={`draft-item-cancel-${draft.id}-${idx}`}
+                                        onClick={handleCancelEdit}
+                                        disabled={editSaving}
+                                        className="inline-flex items-center rounded bg-white px-3 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  /* Display mode */
+                                  <>
+                                    <div className="mt-1 text-gray-900">
+                                      {item.finalSuggestion || item.rawSuggestion || '(No suggestion)'}
+                                    </div>
+                                    {item.ruleWarnings && item.ruleWarnings.length > 0 && (
+                                      <div className="mt-1 text-xs text-amber-600">
+                                        Warnings: {item.ruleWarnings.join(', ')}
+                                      </div>
+                                    )}
+                                  </>
                                 )}
                               </div>
                             );
                           } else {
                             // Legacy/testkit shape with suggestedTitle and/or suggestedDescription
+                            // [DRAFT-EDIT-INTEGRITY-1] Legacy items are read-only (no edit button)
                             return (
-                              <div key={idx} className="space-y-2">
+                              <div key={idx} data-testid={`draft-item-${draft.id}-${idx}`} className="space-y-2">
                                 {legacyItem.suggestedTitle && (
                                   <div className="rounded bg-gray-50 p-3 text-sm">
                                     <div className="font-medium text-gray-700">Title</div>

@@ -1091,6 +1091,48 @@ DRAFT-ROUTING-INTEGRITY-1 ensures "Review drafts" action routes to Draft Review 
 
 ---
 
+### Phase DRAFT-EDIT-INTEGRITY-1: Inline Draft Editing in Draft Review Mode ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+DRAFT-EDIT-INTEGRITY-1 adds explicit Edit affordance to Draft Review mode, allowing users to edit draft content before approval/apply. Server draft is source of truth - no autosave, explicit save required.
+
+**Trust Principle:** "If we present a draft for review, the user must be able to edit it safely before approval/apply."
+
+#### Key Features
+
+1. **Per-Item Edit**: Each draft item has Edit button; only one item editable at a time
+2. **Explicit Save**: Save changes / Cancel buttons; no auto-save-on-type
+3. **Server Source of Truth**: Edits persist to server; UI re-renders from response
+4. **Permission Enforcement**: OWNER/EDITOR can edit; VIEWER cannot
+5. **Test Hooks**: `draft-item-${id}-${idx}`, `draft-item-edit-*`, `draft-item-save-*`, `draft-item-cancel-*`, `draft-item-input-*`
+
+#### Completed Patches
+
+- ✅ **PATCH 1:** Added `updateDraftItem()` service method in automation-playbooks.service.ts
+- ✅ **PATCH 2:** Added `PATCH /projects/:id/automation-playbooks/drafts/:draftId/items/:itemIndex` endpoint
+- ✅ **PATCH 3:** Added `projectsApi.updateDraftItem()` web client method + `UpdateDraftItemResponse` type
+- ✅ **PATCH 4:** Implemented inline edit mode in Draft Review UI (playbooks/page.tsx)
+- ✅ **PATCH 5:** Added Playwright test LAC1-009 for draft editing + persistence verification
+- ✅ **PATCH 6:** Created `DRAFT-EDIT-INTEGRITY-1.md` manual testing doc
+
+#### Core Files
+
+- `apps/api/src/projects/automation-playbooks.service.ts` (updateDraftItem)
+- `apps/api/src/projects/projects.controller.ts` (PATCH endpoint)
+- `apps/web/src/lib/api.ts` (UpdateDraftItemResponse + updateDraftItem method)
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (inline edit mode)
+
+#### Test Coverage
+
+- **E2E Tests:** `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-009)
+- **Manual Testing:** `docs/manual-testing/DRAFT-EDIT-INTEGRITY-1.md`
+
+---
+
 ## In Progress
 
 *None at this time.*
@@ -1297,3 +1339,4 @@ These invariants MUST be preserved during implementation:
 | 6.20 | 2026-01-10 | **SCOPE-CLARITY-1 FIXUP-1**: Issues Engine pillar filter state now driven by normalized scope (prevents hidden stacking when issueType overrides pillar). `pillarFilter` initial state and sync effect use `normalizedScopeResult.normalized.pillar` instead of raw `pillarParam`. When user explicitly picks a pillar via `handlePillarFilterChange()`, conflicting higher-priority scope params (`issueType`, `assetType`, `assetId`) are deleted from URL. Playwright test updated with "All pillars" button visibility assertion. Manual testing doc updated with pillar filter UI verification step. |
 | 6.21 | 2026-01-10 | **DRAFT-ROUTING-INTEGRITY-1 FIXUP-2**: Draft content visibility + test hardening. (1) Draft Review UI now renders both canonical (field/finalSuggestion/rawSuggestion) and legacy/testkit (suggestedTitle/suggestedDescription) draft item shapes; (2) `AssetScopedDraftItem` type loosened to support both shapes + optional crawlResultId for pages/collections; (3) Playwright LAC1-008 hardened to require `draft-review-list` visible and assert seeded suggestion content ("Improved Product Title"); (4) Manual testing doc updated to verify draft list shows non-empty content. |
 | 6.22 | 2026-01-10 | **SCOPE-CLARITY-1 FIXUP-2**: Strict pillar filter test hooks. Added `data-testid="pillar-filter-all"` + `aria-pressed` to "All pillars" button, `data-testid="pillar-filter-${pillar.id}"` + `aria-pressed` to each pillar button. Playwright test updated with strict `aria-pressed` assertions (replaces brittle `:has-text()` locator). |
+| 6.23 | 2026-01-10 | **DRAFT-EDIT-INTEGRITY-1 COMPLETE**: Inline draft editing in Draft Review mode. Added `updateDraftItem()` service method with permission enforcement (OWNER/EDITOR only), `PATCH /projects/:id/automation-playbooks/drafts/:draftId/items/:itemIndex` endpoint, `projectsApi.updateDraftItem()` client method. Implemented per-item inline edit mode with Save changes / Cancel buttons (no autosave). Server draft is source of truth - edits persist and survive page reload. Playwright test LAC1-009 verifies edit + save + persistence + cancel flow. Manual testing doc in `DRAFT-EDIT-INTEGRITY-1.md`. |

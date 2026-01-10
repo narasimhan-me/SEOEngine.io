@@ -1497,6 +1497,126 @@ export class AutomationPlaybooksService {
     };
   }
 
+  /**
+   * [DRAFT-EDIT-INTEGRITY-1] Update a specific draft item's content.
+   *
+   * Allows users to edit draft suggestions before apply. Server draft is source of truth.
+   * No autosave - explicit save required.
+   *
+   * Access control:
+   * - OWNER/EDITOR can edit drafts (canGenerateDrafts permission)
+   * - VIEWER cannot edit
+   *
+   * Validation:
+   * - Draft must exist and belong to project
+   * - Draft must not be applied or expired
+   * - Item must exist within the draft
+   *
+   * @param itemIndex - Index of the item in the draftItems array to update
+   */
+  async updateDraftItem(
+    userId: string,
+    projectId: string,
+    draftId: string,
+    itemIndex: number,
+    value: string,
+  ): Promise<{
+    draftId: string;
+    itemIndex: number;
+    updatedItem: PlaybookDraftItem;
+    updatedAt: string;
+  }> {
+    // [DRAFT-EDIT-INTEGRITY-1] Only OWNER/EDITOR can edit drafts
+    await this.roleResolution.assertCanGenerateDrafts(projectId, userId);
+
+    // Find the draft by ID
+    const draft = await this.prisma.automationPlaybookDraft.findUnique({
+      where: { id: draftId },
+    });
+
+    if (!draft) {
+      throw new NotFoundException({
+        message: 'Draft not found.',
+        error: 'DRAFT_NOT_FOUND',
+        code: 'DRAFT_NOT_FOUND',
+        draftId,
+      });
+    }
+
+    // Validate draft belongs to project
+    if (draft.projectId !== projectId) {
+      throw new ForbiddenException({
+        message: 'Draft does not belong to this project.',
+        error: 'DRAFT_PROJECT_MISMATCH',
+        code: 'DRAFT_PROJECT_MISMATCH',
+      });
+    }
+
+    // Validate draft is not applied
+    if (draft.appliedAt) {
+      throw new ConflictException({
+        message: 'Cannot edit an already-applied draft.',
+        error: 'DRAFT_ALREADY_APPLIED',
+        code: 'DRAFT_ALREADY_APPLIED',
+      });
+    }
+
+    // Validate draft is not expired
+    if (draft.expiresAt && draft.expiresAt < new Date()) {
+      throw new ConflictException({
+        message: 'Cannot edit an expired draft.',
+        error: 'DRAFT_EXPIRED',
+        code: 'DRAFT_EXPIRED',
+      });
+    }
+
+    // Get the draft items array
+    const draftItems = (draft.draftItems as unknown as PlaybookDraftItem[] | null) ?? [];
+
+    // Validate item index
+    if (itemIndex < 0 || itemIndex >= draftItems.length) {
+      throw new BadRequestException({
+        message: `Invalid item index. Draft has ${draftItems.length} items.`,
+        error: 'INVALID_ITEM_INDEX',
+        code: 'INVALID_ITEM_INDEX',
+        itemIndex,
+        totalItems: draftItems.length,
+      });
+    }
+
+    // Update the specific item's finalSuggestion
+    const updatedItems = [...draftItems];
+    updatedItems[itemIndex] = {
+      ...updatedItems[itemIndex],
+      finalSuggestion: value,
+    };
+
+    // Persist the update
+    const now = new Date();
+    await this.prisma.automationPlaybookDraft.update({
+      where: { id: draftId },
+      data: {
+        draftItems: updatedItems as unknown as any,
+        updatedAt: now,
+      },
+    });
+
+    // eslint-disable-next-line no-console
+    console.log('[AutomationPlaybooks] draft.item.updated', {
+      projectId,
+      draftId,
+      itemIndex,
+      userId,
+    });
+
+    return {
+      draftId,
+      itemIndex,
+      updatedItem: updatedItems[itemIndex],
+      updatedAt: now.toISOString(),
+    };
+  }
+
   async setAutomationEntryConfig(
     userId: string,
     projectId: string,
