@@ -19,6 +19,8 @@ import {
 import type { Product } from '@/lib/products';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { getReturnToFromCurrentUrl, getSafeReturnTo } from '@/lib/route-context';
+// [SCOPE-CLARITY-1] Import scope normalization utilities
+import { normalizeScopeParams, buildClearFiltersHref } from '@/lib/scope-normalization';
 
 interface IntegrationStatus {
   projectName: string;
@@ -60,6 +62,11 @@ export default function ProductsPage() {
   const validatedReturnTo = useMemo(() => {
     return getSafeReturnTo(searchParams, projectId);
   }, [searchParams, projectId]);
+
+  // [SCOPE-CLARITY-1] Normalize scope params using canonical normalization
+  const normalizedScopeResult = useMemo(() => {
+    return normalizeScopeParams(searchParams);
+  }, [searchParams]);
 
   // [ROUTE-INTEGRITY-1] Derive showingText for ScopeBanner
   const showingText = useMemo(() => {
@@ -371,12 +378,15 @@ export default function ProductsPage() {
         </button>
       </div>
 
-      {/* [ROUTE-INTEGRITY-1] ScopeBanner - show when from context is present */}
+      {/* [ROUTE-INTEGRITY-1] [SCOPE-CLARITY-1] ScopeBanner - show when from context is present */}
+      {/* Uses normalized scope chips for explicit scope display */}
       <ScopeBanner
         from={fromParam}
         returnTo={validatedReturnTo || `/projects/${projectId}/products`}
         showingText={showingText}
-        onClearFiltersHref={`/projects/${projectId}/products`}
+        onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/products`)}
+        chips={normalizedScopeResult.chips}
+        wasAdjusted={normalizedScopeResult.wasAdjusted}
       />
 
       {/* [LIST-SEARCH-FILTER-1] ListControls - render above product list */}

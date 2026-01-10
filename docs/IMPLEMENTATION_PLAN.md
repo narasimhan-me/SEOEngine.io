@@ -431,6 +431,74 @@ Trust hardening for deterministic deep link routing with visible navigation cont
 
 ---
 
+### Phase SCOPE-CLARITY-1: Explicit Scope Chips + Normalization ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+SCOPE-CLARITY-1 enhances ScopeBanner to show explicit scope chips instead of plain text descriptions, and introduces canonical scope normalization rules to prevent hidden filter stacking. URL is the single source of truth for all scope params.
+
+#### Canonical Scope Keys (LOCKED)
+
+- `pillar` - DEO pillar ID
+- `assetType` - Asset type: 'products' | 'pages' | 'collections'
+- `assetId` - Specific asset identifier
+- `issueType` - Issue type key
+- `mode` - View mode: 'actionable' | 'detected'
+
+#### Priority Rules (LOCKED)
+
+1. **Asset scope** (assetType + assetId both present) → Keep only asset; drop issueType, pillar, mode
+2. **Issue type scope** (issueType present) → Keep issueType (+ mode if present); drop pillar
+3. **Pillar scope** (pillar present) → Keep pillar (+ mode if present)
+4. **Mode alone** → Keep mode
+
+#### Key Features
+
+1. **Scope Normalization**: `normalizeScopeParams()` in `scope-normalization.ts` - canonical normalization with priority rules
+2. **Scope Chips**: Ordered `ScopeChip[]` with type + label for explicit display
+3. **wasAdjusted Flag**: Shows note when conflicting params were dropped
+4. **Test Hooks**: `data-testid="scope-chips"`, `data-testid="scope-chip"` + `data-scope-chip-type="{type}"`, `data-testid="scope-banner-adjusted-note"`
+
+#### Core Files
+
+- `apps/web/src/lib/scope-normalization.ts` (normalization utilities)
+- `apps/web/src/components/common/ScopeBanner.tsx` (chip rendering)
+- `apps/web/src/lib/route-context.ts` (updated documentation)
+
+#### Surfaces Updated
+
+- Issues Engine page
+- Playbooks page
+- Product Detail page
+- Products List page
+- Pages List page
+- Collections List page
+
+#### Test Coverage
+
+- **E2E Tests:** `apps/web/tests/scope-clarity-1.spec.ts`
+- **Manual Testing:** `docs/manual-testing/SCOPE-CLARITY-1.md`
+
+#### FIXUP-1 (2026-01-10)
+
+Issues Engine pillar filter state is now driven by normalized scope (prevents hidden stacking when issueType overrides pillar):
+
+1. **Normalized Pillar State**: `pillarFilter` initial state and sync effect use `normalizedScopeResult.normalized.pillar` instead of raw `pillarParam`. When issueType takes priority, pillar is `undefined` and filter stays on "All".
+2. **User Selection Clears Conflicts**: When user explicitly picks a pillar via `handlePillarFilterChange()`, conflicting higher-priority scope params (`issueType`, `assetType`, `assetId`) are deleted from URL so the selected pillar becomes unambiguous.
+3. **Test Coverage**: Playwright test asserts that "All pillars" filter button is visible when issueType overrides pillar.
+
+#### FIXUP-2 (2026-01-10)
+
+Strict, non-brittle test hooks for pillar filter buttons:
+
+1. **Pillar Filter Test Hooks**: Added `data-testid="pillar-filter-all"` and `aria-pressed` to "All pillars" button. Added `data-testid="pillar-filter-${pillar.id}"` (e.g., `pillar-filter-metadata_snippet_quality`) and `aria-pressed` to each pillar button in the DEO_PILLARS loop.
+2. **Playwright Strict Assertions**: Replaced brittle `button:has-text("All")` locator with `[data-testid="pillar-filter-all"]`. Test now asserts `aria-pressed="true"` for All button and `aria-pressed="false"` for Metadata pillar button when issueType overrides pillar.
+
+---
+
 ## Completed Phases (Chronological)
 
 ### Trust Hardening
@@ -976,6 +1044,53 @@ LIST-ACTIONS-CLARITY-1 unifies the row chips and actions across Products, Pages,
 
 ---
 
+### Phase DRAFT-ROUTING-INTEGRITY-1: Review Drafts → Draft Review (NOT Work Queue) ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+DRAFT-ROUTING-INTEGRITY-1 ensures "Review drafts" action routes to Draft Review mode (scoped to asset), NOT Work Queue. Provides deterministic, scoped draft review with Back navigation via ScopeBanner.
+
+**Locked Rule:** "Review drafts NEVER routes to Work Queue."
+
+#### Key Features
+
+1. **Draft Review Mode**: `/automation/playbooks?mode=drafts&assetType=...&assetId=...&from=asset_list&returnTo=...`
+2. **Server Endpoint**: `GET /projects/:id/automation-playbooks/drafts` returns pending drafts for specific asset
+3. **ScopeBanner**: Visible navigation context with Back link to origin list
+4. **Zero-Draft Empty State**: "No drafts available for this item." with View issues + Back CTAs
+5. **Test Hooks**: `draft-review-panel`, `draft-review-list`, `draft-review-empty`, `scope-banner-back`
+
+#### Completed Patches
+
+- ✅ **PATCH 1:** Updated `buildReviewDraftsHref()` to route to Draft Review (not Work Queue)
+- ✅ **PATCH 2:** Updated ProductTable, Pages list, Collections list to pass assetId
+- ✅ **PATCH 3:** Added `GET /projects/:id/automation-playbooks/drafts` endpoint
+- ✅ **PATCH 4:** Added `projectsApi.listAutomationPlaybookDraftsForAsset()` web client method
+- ✅ **PATCH 5:** Implemented Draft Review mode in Playbooks page with ScopeBanner + empty state
+- ✅ **PATCH 6:** Updated Playwright test LAC1-008 for Draft Review routing + back navigation
+- ✅ **PATCH 7:** Created `DRAFT-ROUTING-INTEGRITY-1.md` manual testing doc, updated LIST-ACTIONS-CLARITY-1.md
+
+#### Core Files
+
+- `apps/web/src/lib/list-actions-clarity.ts` (buildReviewDraftsHref)
+- `apps/web/src/components/products/ProductTable.tsx`
+- `apps/web/src/app/projects/[id]/assets/pages/page.tsx`
+- `apps/web/src/app/projects/[id]/assets/collections/page.tsx`
+- `apps/api/src/projects/projects.controller.ts` (drafts endpoint)
+- `apps/api/src/projects/automation-playbooks.service.ts` (listPendingDraftsForAsset)
+- `apps/web/src/lib/api.ts` (AssetScopedDraftsResponse types + method)
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (Draft Review mode)
+
+#### Test Coverage
+
+- **E2E Tests:** `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-008)
+- **Manual Testing:** `docs/manual-testing/DRAFT-ROUTING-INTEGRITY-1.md`
+
+---
+
 ## In Progress
 
 *None at this time.*
@@ -1176,3 +1291,9 @@ These invariants MUST be preserved during implementation:
 | 6.14 | 2026-01-10 | **LIST-ACTIONS-CLARITY-1 FIXUP-2 (Tests + Manual Doc Consistency)**: Tightened Playwright assertions to use row-scoped locators with seeded titles (no ordering assumptions), exact emoji chip label matching, strict Blocked action assertions (NOT Review drafts), click-through navigation to Issues Engine with filter banner verification, "no Apply on list rows" regression test. Fixed manual testing doc: corrected Products "Fix next" routing expectation (routes to Issue→Fix deep link), removed stale "Future - ROLES-3 Integration" Blocked subsection (already implemented), updated per-asset wording for Pages/Collections, removed obsolete non-goal about per-asset crawl results. No production logic changes. |
 | 6.15 | 2026-01-10 | **LIST-ACTIONS-CLARITY-1 FIXUP-1 (Bulk Removal + Server-Derived Fields)**: Compliance/safety hardening - removed ALL bulk selection UI from Products/Pages/Collections lists (checkboxes, bulk action CTAs, selection context strip, confirmation modals). Products command bar now links to Playbooks for automation. Added server-derived fields to Products API (`actionableNowCount`, `blockedByApproval`). ProductTable uses server-derived fields with client-side fallback. Extended Playwright tests with bulk removal regressions (LAC1-018 through LAC1-022). Updated manual testing doc with Bulk Removal Verification section. |
 | 6.16 | 2026-01-10 | **LIST-ACTIONS-CLARITY-1 CORRECTNESS-1 COMPLETE**: Canonical row fields now enforced server-side for Products + Crawl Pages/Collections. Products API uses `DeoIssuesService.getIssuesForProjectReadOnly()` with `__fullAffectedAssetKeys` for accurate per-product issue counts (`actionableNowCount`, `detectedIssueCount`). Crawl Pages endpoint adds `actionableNowCount`, `detectedIssueCount`, `blockedByApproval` per URL. Resolver updated to consume `blockedByApproval` directly (deprecates `canApply` derivation). UI heuristics removed from Pages/Collections lists - now use server-derived actionability. Playwright API-contract regression tests added (LAC1-023/024/025). ForwardRef pattern applied to ProjectsModule → ProductsModule import for circular dependency safety. Manual testing doc updated with emoji chip labels. |
+| 6.17 | 2026-01-10 | **SCOPE-CLARITY-1 COMPLETE**: Explicit scope chips + normalization for ScopeBanner. Created `scope-normalization.ts` with `normalizeScopeParams()` implementing priority rules (asset > issueType > pillar > mode). ScopeBanner now renders ordered ScopeChip[] with type-specific styling and test hooks (`scope-chips`, `scope-chip`, `scope-chip-type`). Shows "adjusted" note when conflicting params are normalized. Updated all 6 ScopeBanner surfaces (Issues Engine, Playbooks, Product Detail, Products List, Pages List, Collections List). Updated `route-context.ts` documentation. E2E tests in `scope-clarity-1.spec.ts`, manual testing doc in `SCOPE-CLARITY-1.md`. |
+| 6.18 | 2026-01-10 | **DRAFT-ROUTING-INTEGRITY-1 COMPLETE**: "Review drafts" action now routes to Draft Review mode (`/automation/playbooks?mode=drafts&assetType=...&assetId=...`), NOT Work Queue. Locked rule: "Review drafts NEVER routes to Work Queue." Added server-authoritative endpoint `GET /projects/:id/automation-playbooks/drafts` for asset-scoped pending drafts. Playbooks page implements Draft Review mode with ScopeBanner, draft list, and zero-draft empty state ("No drafts available for this item." with View issues + Back CTAs). Updated `buildReviewDraftsHref()` signature to require assetType + assetId. Updated ProductTable, Pages list, Collections list to pass assetId. Playwright test LAC1-008 updated for Draft Review routing + back navigation. Manual testing doc in `DRAFT-ROUTING-INTEGRITY-1.md`. |
+| 6.19 | 2026-01-10 | **DRAFT-ROUTING-INTEGRITY-1 FIXUP-1**: ScopeBanner wiring fixes. (1) Draft Review ScopeBanner now passes `onClearFiltersHref`, `chips` from `normalizedScopeResult`, and `wasAdjusted` props for explicit scope display; (2) Empty state Back CTA uses `data-testid="draft-review-back"` (not duplicate `scope-banner-back`); (3) Removed misleading server comment about pages/collections drafts "not yet supported". Playwright test updated to handle both ScopeBanner and empty state back buttons. |
+| 6.20 | 2026-01-10 | **SCOPE-CLARITY-1 FIXUP-1**: Issues Engine pillar filter state now driven by normalized scope (prevents hidden stacking when issueType overrides pillar). `pillarFilter` initial state and sync effect use `normalizedScopeResult.normalized.pillar` instead of raw `pillarParam`. When user explicitly picks a pillar via `handlePillarFilterChange()`, conflicting higher-priority scope params (`issueType`, `assetType`, `assetId`) are deleted from URL. Playwright test updated with "All pillars" button visibility assertion. Manual testing doc updated with pillar filter UI verification step. |
+| 6.21 | 2026-01-10 | **DRAFT-ROUTING-INTEGRITY-1 FIXUP-2**: Draft content visibility + test hardening. (1) Draft Review UI now renders both canonical (field/finalSuggestion/rawSuggestion) and legacy/testkit (suggestedTitle/suggestedDescription) draft item shapes; (2) `AssetScopedDraftItem` type loosened to support both shapes + optional crawlResultId for pages/collections; (3) Playwright LAC1-008 hardened to require `draft-review-list` visible and assert seeded suggestion content ("Improved Product Title"); (4) Manual testing doc updated to verify draft list shows non-empty content. |
+| 6.22 | 2026-01-10 | **SCOPE-CLARITY-1 FIXUP-2**: Strict pillar filter test hooks. Added `data-testid="pillar-filter-all"` + `aria-pressed` to "All pillars" button, `data-testid="pillar-filter-${pillar.id}"` + `aria-pressed` to each pillar button. Playwright test updated with strict `aria-pressed` assertions (replaces brittle `:has-text()` locator). |

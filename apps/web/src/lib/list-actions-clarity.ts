@@ -58,7 +58,7 @@ export interface RowNextActionInput {
   fixNextHref: string | null;
   /** Open/view asset href (product workspace, or Issues filtered) */
   openHref: string;
-  /** Review drafts href (Work Queue or Playbooks) */
+  /** Review drafts href (Draft Review surface, scoped to asset) */
   reviewDraftsHref: string;
   /** Request approval href */
   requestApprovalHref?: string;
@@ -230,30 +230,30 @@ export function buildAssetIssuesHref(
 }
 
 /**
- * Build the Work Queue URL for reviewing drafts
+ * Build the Draft Review URL for reviewing drafts (scoped to asset)
+ * [DRAFT-ROUTING-INTEGRITY-1] Review drafts NEVER routes to Work Queue.
+ * Routes to /automation/playbooks with mode=drafts and asset scope.
  * [LIST-ACTIONS-CLARITY-1 FIXUP-1] Added returnTo support
  */
 export function buildReviewDraftsHref(
   projectId: string,
-  assetType?: AssetListType,
+  assetType: AssetListType,
+  assetId: string,
   navContext?: NavigationContext,
 ): string {
   const params = new URLSearchParams();
-  if (assetType) {
-    params.set('scopeType', assetType.toUpperCase());
-  }
+  // [DRAFT-ROUTING-INTEGRITY-1] Required params for Draft Review mode
+  params.set('mode', 'drafts');
+  params.set('assetType', assetType);
+  params.set('assetId', assetId);
+  params.set('from', 'asset_list');
   if (navContext?.returnTo) {
     params.set('returnTo', navContext.returnTo);
   }
   if (navContext?.returnLabel) {
     params.set('returnLabel', navContext.returnLabel);
   }
-  // [ROUTE-INTEGRITY-1] Append from when provided
-  if (navContext?.from) {
-    params.set('from', navContext.from);
-  }
-  const qs = params.toString();
-  return `/projects/${projectId}/work-queue${qs ? `?${qs}` : ''}`;
+  return `/projects/${projectId}/automation/playbooks?${params.toString()}`;
 }
 
 /**

@@ -382,6 +382,7 @@ export function ProductTable({
       }
 
       // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Pass server-derived blockedByApproval directly
+      // [DRAFT-ROUTING-INTEGRITY-1] Pass product.id as assetId for scoped Draft Review
       const resolved = resolveRowNextAction({
         assetType: 'products',
         hasDraftPendingApply,
@@ -391,7 +392,7 @@ export function ProductTable({
         canRequestApproval,
         fixNextHref,
         openHref: buildProductWorkspaceHref(projectId, product.id, navContext),
-        reviewDraftsHref: buildReviewDraftsHref(projectId, 'products', navContext),
+        reviewDraftsHref: buildReviewDraftsHref(projectId, 'products', product.id, navContext),
       });
 
       map.set(product.id, resolved);

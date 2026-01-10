@@ -16,6 +16,8 @@ import {
 } from '@/lib/list-actions-clarity';
 import type { WorkQueueRecommendedActionKey } from '@/lib/work-queue';
 import { getReturnToFromCurrentUrl, getSafeReturnTo } from '@/lib/route-context';
+// [SCOPE-CLARITY-1] Import scope normalization utilities
+import { normalizeScopeParams, buildClearFiltersHref } from '@/lib/scope-normalization';
 
 /**
  * [ASSETS-PAGES-1] [LIST-SEARCH-FILTER-1.1] [LIST-ACTIONS-CLARITY-1] Pages Asset List
@@ -86,6 +88,11 @@ export default function PagesAssetListPage() {
   const validatedReturnTo = useMemo(() => {
     return getSafeReturnTo(searchParams, projectId);
   }, [searchParams, projectId]);
+
+  // [SCOPE-CLARITY-1] Normalize scope params using canonical normalization
+  const normalizedScopeResult = useMemo(() => {
+    return normalizeScopeParams(searchParams);
+  }, [searchParams]);
 
   // [ROUTE-INTEGRITY-1] Derive showingText for ScopeBanner
   const showingText = useMemo(() => {
@@ -230,6 +237,7 @@ export default function PagesAssetListPage() {
       const openHref = buildAssetIssuesHref(projectId, 'pages', page.id, navContext);
 
       // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Pass server-derived blockedByApproval
+      // [DRAFT-ROUTING-INTEGRITY-1] Pass page.id as assetId for scoped Draft Review
       const resolved = resolveRowNextAction({
         assetType: 'pages',
         hasDraftPendingApply: page.hasDraftPendingApply,
@@ -238,7 +246,7 @@ export default function PagesAssetListPage() {
         canRequestApproval: capabilities?.canRequestApproval ?? false,
         fixNextHref: null, // Pages don't have deterministic "Fix next"
         openHref,
-        reviewDraftsHref: buildReviewDraftsHref(projectId, 'pages', navContext),
+        reviewDraftsHref: buildReviewDraftsHref(projectId, 'pages', page.id, navContext),
       });
 
       map.set(page.id, resolved);
@@ -275,12 +283,15 @@ export default function PagesAssetListPage() {
         {/* [LIST-ACTIONS-CLARITY-1 FIXUP-1] Removed bulk selection CTA - bulk actions route through Playbooks/Work Queue */}
       </div>
 
-      {/* [ROUTE-INTEGRITY-1] ScopeBanner - show when from context is present */}
+      {/* [ROUTE-INTEGRITY-1] [SCOPE-CLARITY-1] ScopeBanner - show when from context is present */}
+      {/* Uses normalized scope chips for explicit scope display */}
       <ScopeBanner
         from={fromParam}
         returnTo={validatedReturnTo || `/projects/${projectId}/assets/pages`}
         showingText={showingText}
-        onClearFiltersHref={`/projects/${projectId}/assets/pages`}
+        onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/assets/pages`)}
+        chips={normalizedScopeResult.chips}
+        wasAdjusted={normalizedScopeResult.wasAdjusted}
       />
 
       {/* Filter indicator (from Work Queue click-through) */}

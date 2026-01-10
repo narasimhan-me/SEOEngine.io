@@ -184,8 +184,22 @@ For E2E test automation, verify these `data-testid` attributes:
 
 ---
 
+## SCOPE-CLARITY-1 Enhancement
+
+ScopeBanner now supports explicit scope chips for better user visibility:
+
+- **chips**: Ordered ScopeChip[] for explicit scope display
+- **wasAdjusted**: Shows note when conflicting scope params were normalized
+
+Canonical scope params (pillar, assetType, assetId, issueType, mode) are normalized via `normalizeScopeParams()` from `scope-normalization.ts`.
+
+See [SCOPE-CLARITY-1.md](./SCOPE-CLARITY-1.md) for full testing checklist.
+
+---
+
 ## Regression Notes
 
 - **TRUST-ROUTING-1**: Extended with deterministic returnTo (not just from context)
 - **ISSUE-TO-FIX-PATH-1**: Uses same navigation context system
 - **LIST-ACTIONS-CLARITY-1**: Row actions now include `from=asset_list`
+- **SCOPE-CLARITY-1**: Adds explicit scope chips + normalization rules

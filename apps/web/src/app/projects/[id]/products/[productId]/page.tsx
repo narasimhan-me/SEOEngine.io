@@ -24,6 +24,8 @@ import {
 } from '@/lib/issue-fix-navigation';
 import { ScopeBanner } from '@/components/common/ScopeBanner';
 import { getSafeReturnTo } from '@/lib/route-context';
+// [SCOPE-CLARITY-1] Import scope normalization utilities
+import { normalizeScopeParams, buildClearFiltersHref } from '@/lib/scope-normalization';
 import {
   scrollToFixAnchor,
   getArrivalCalloutContent,
@@ -138,6 +140,11 @@ export default function ProductOptimizationPage() {
   const scopeBannerReturnTo = useMemo(() => {
     return getSafeReturnTo(searchParams, projectId);
   }, [searchParams, projectId]);
+
+  // [SCOPE-CLARITY-1] Normalize scope params using canonical normalization
+  const normalizedScopeResult = useMemo(() => {
+    return normalizeScopeParams(searchParams);
+  }, [searchParams]);
 
   // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Determine issue fix mode - triggers on issueId alone, not requiring from=issues
   const isIssueFixMode = !!issueIdParam;
@@ -945,13 +952,16 @@ export default function ProductOptimizationPage() {
             />
           </div>
 
-          {/* [ROUTE-INTEGRITY-1] ScopeBanner - show when from context is present */}
+          {/* [ROUTE-INTEGRITY-1] [SCOPE-CLARITY-1] ScopeBanner - show when from context is present */}
+          {/* Uses normalized scope chips for explicit scope display */}
           <div className="mt-4">
             <ScopeBanner
               from={fromContext}
               returnTo={scopeBannerReturnTo || `/projects/${projectId}/products`}
               showingText={`Product · ${product?.title || 'Product'}`}
-              onClearFiltersHref={`/projects/${projectId}/products/${productId}`}
+              onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/products/${productId}`)}
+              chips={normalizedScopeResult.chips}
+              wasAdjusted={normalizedScopeResult.wasAdjusted}
             />
           </div>
 
