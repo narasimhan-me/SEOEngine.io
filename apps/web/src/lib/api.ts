@@ -735,11 +735,15 @@ export type AutomationPlaybookDraftStatus = 'PENDING' | 'READY' | 'APPLIED' | 'E
  * [DRAFT-ROUTING-INTEGRITY-1] Draft item for asset-scoped drafts
  * [FIXUP-2] Supports both canonical shape (field/finalSuggestion/rawSuggestion)
  * and legacy/testkit shape (suggestedTitle/suggestedDescription)
+ * [DRAFT-ENTRYPOINT-UNIFICATION-1] Added itemIndex for edit mapping
  */
 export interface AssetScopedDraftItem {
   // Asset identifier - one of these should be present
   productId?: string;
   crawlResultId?: string; // For pages/collections
+
+  // [DRAFT-ENTRYPOINT-UNIFICATION-1] Original index in draftItems array for edit/save
+  itemIndex?: number;
 
   // Canonical playbook draft shape
   field?: 'seoTitle' | 'seoDescription';

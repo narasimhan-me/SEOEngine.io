@@ -1549,6 +1549,7 @@ export default function AutomationPlaybooksPage() {
                     </div>
                     {/* [FIXUP-2] Render draft items supporting both canonical and legacy/testkit shapes */}
                     {/* [DRAFT-EDIT-INTEGRITY-1] With inline edit mode */}
+                    {/* [DRAFT-ENTRYPOINT-UNIFICATION-1] Use item.itemIndex for API calls */}
                     {draft.filteredItems.length > 0 && (
                       <div className="mt-3 space-y-2">
                         {draft.filteredItems.map((item, idx) => {
@@ -1557,8 +1558,12 @@ export default function AutomationPlaybooksPage() {
                           const hasCanonicalShape = item.field !== undefined;
                           const legacyItem = item as any; // For accessing suggestedTitle/suggestedDescription
 
+                          // [DRAFT-ENTRYPOINT-UNIFICATION-1] Use itemIndex from server for API calls,
+                          // fall back to idx for backwards compatibility with older responses
+                          const itemIndex = item.itemIndex ?? idx;
+
                           // [DRAFT-EDIT-INTEGRITY-1] Edit state for this item
-                          const editKey = `${draft.id}-${idx}`;
+                          const editKey = `${draft.id}-${itemIndex}`;
                           const isEditing = editingItem === editKey;
                           const currentValue = item.finalSuggestion || item.rawSuggestion || '';
 
@@ -1566,8 +1571,8 @@ export default function AutomationPlaybooksPage() {
                             // Canonical playbook draft shape with inline edit
                             return (
                               <div
-                                key={idx}
-                                data-testid={`draft-item-${draft.id}-${idx}`}
+                                key={itemIndex}
+                                data-testid={`draft-item-${draft.id}-${itemIndex}`}
                                 className="rounded bg-gray-50 p-3 text-sm"
                               >
                                 <div className="flex items-center justify-between">
@@ -1578,8 +1583,8 @@ export default function AutomationPlaybooksPage() {
                                   {!isEditing && (
                                     <button
                                       type="button"
-                                      data-testid={`draft-item-edit-${draft.id}-${idx}`}
-                                      onClick={() => handleStartEdit(draft.id, idx, currentValue)}
+                                      data-testid={`draft-item-edit-${draft.id}-${itemIndex}`}
+                                      onClick={() => handleStartEdit(draft.id, itemIndex, currentValue)}
                                       className="text-xs text-indigo-600 hover:text-indigo-800"
                                     >
                                       Edit
@@ -1591,7 +1596,7 @@ export default function AutomationPlaybooksPage() {
                                   /* [DRAFT-EDIT-INTEGRITY-1] Edit mode UI */
                                   <div className="mt-2">
                                     <textarea
-                                      data-testid={`draft-item-input-${draft.id}-${idx}`}
+                                      data-testid={`draft-item-input-${draft.id}-${itemIndex}`}
                                       value={editValue}
                                       onChange={(e) => setEditValue(e.target.value)}
                                       className="w-full rounded border border-gray-300 p-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
@@ -1606,8 +1611,8 @@ export default function AutomationPlaybooksPage() {
                                     <div className="mt-2 flex gap-2">
                                       <button
                                         type="button"
-                                        data-testid={`draft-item-save-${draft.id}-${idx}`}
-                                        onClick={() => handleSaveEdit(draft.id, idx)}
+                                        data-testid={`draft-item-save-${draft.id}-${itemIndex}`}
+                                        onClick={() => handleSaveEdit(draft.id, itemIndex)}
                                         disabled={editSaving}
                                         className="inline-flex items-center rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
                                       >
@@ -1615,7 +1620,7 @@ export default function AutomationPlaybooksPage() {
                                       </button>
                                       <button
                                         type="button"
-                                        data-testid={`draft-item-cancel-${draft.id}-${idx}`}
+                                        data-testid={`draft-item-cancel-${draft.id}-${itemIndex}`}
                                         onClick={handleCancelEdit}
                                         disabled={editSaving}
                                         className="inline-flex items-center rounded bg-white px-3 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50"
@@ -1643,7 +1648,7 @@ export default function AutomationPlaybooksPage() {
                             // Legacy/testkit shape with suggestedTitle and/or suggestedDescription
                             // [DRAFT-EDIT-INTEGRITY-1] Legacy items are read-only (no edit button)
                             return (
-                              <div key={idx} data-testid={`draft-item-${draft.id}-${idx}`} className="space-y-2">
+                              <div key={itemIndex} data-testid={`draft-item-${draft.id}-${itemIndex}`} className="space-y-2">
                                 {legacyItem.suggestedTitle && (
                                   <div className="rounded bg-gray-50 p-3 text-sm">
                                     <div className="font-medium text-gray-700">Title</div>

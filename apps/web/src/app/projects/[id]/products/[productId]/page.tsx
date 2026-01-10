@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 import type { DeoIssue } from '@/lib/deo-issues';
 import { isAuthenticated } from '@/lib/auth';
-import { projectsApi, productsApi, aiApi, shopifyApi, ApiError, billingApi } from '@/lib/api';
+import { projectsApi, productsApi, aiApi, shopifyApi, ApiError, billingApi, type AssetScopedDraftsResponse } from '@/lib/api';
 import type { Product } from '@/lib/products';
 import { getProductStatus } from '@/lib/products';
 import {
@@ -218,6 +218,16 @@ export default function ProductOptimizationPage() {
 
   // Track if we've shown the auto-apply toast (one-time per page load)
   const autoApplyToastShown = useRef(false);
+
+  // [DRAFT-ENTRYPOINT-UNIFICATION-1] Drafts tab state for non-AI draft review
+  const [draftsTabData, setDraftsTabData] = useState<AssetScopedDraftsResponse | null>(null);
+  const [draftsTabLoading, setDraftsTabLoading] = useState(false);
+  const [draftsTabError, setDraftsTabError] = useState<string | null>(null);
+  // Edit state for Drafts tab: `${draftId}-${itemIndex}`
+  const [draftsTabEditingItem, setDraftsTabEditingItem] = useState<string | null>(null);
+  const [draftsTabEditValue, setDraftsTabEditValue] = useState<string>('');
+  const [draftsTabEditSaving, setDraftsTabEditSaving] = useState(false);
+  const [draftsTabEditError, setDraftsTabEditError] = useState<string | null>(null);
 
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft lifecycle state
   const { setHasUnsavedChanges } = useUnsavedChanges();
@@ -753,6 +763,87 @@ export default function ProductOptimizationPage() {
       }
     }, 200);
   }, [isIssueFixMode, issueIdParam, highlightParam, fixAnchorParam, productIssues, activeTab, loading, router]);
+
+  // [DRAFT-ENTRYPOINT-UNIFICATION-1] Fetch drafts when Drafts tab is active
+  useEffect(() => {
+    if (activeTab !== 'drafts' || !productId) {
+      return;
+    }
+
+    const fetchDrafts = async () => {
+      setDraftsTabLoading(true);
+      setDraftsTabError(null);
+      try {
+        const data = await projectsApi.listAutomationPlaybookDraftsForAsset(projectId, {
+          assetType: 'products',
+          assetId: productId,
+        });
+        setDraftsTabData(data);
+      } catch (err) {
+        console.error('[DRAFT-ENTRYPOINT-UNIFICATION-1] Failed to fetch drafts:', err);
+        setDraftsTabError(err instanceof Error ? err.message : 'Failed to load drafts');
+      } finally {
+        setDraftsTabLoading(false);
+      }
+    };
+
+    fetchDrafts();
+  }, [activeTab, projectId, productId]);
+
+  // [DRAFT-ENTRYPOINT-UNIFICATION-1] Edit handlers for Drafts tab
+  const handleDraftsTabStartEdit = useCallback((draftId: string, itemIndex: number, currentValue: string) => {
+    const editKey = `${draftId}-${itemIndex}`;
+    setDraftsTabEditingItem(editKey);
+    setDraftsTabEditValue(currentValue);
+    setDraftsTabEditError(null);
+  }, []);
+
+  const handleDraftsTabCancelEdit = useCallback(() => {
+    setDraftsTabEditingItem(null);
+    setDraftsTabEditValue('');
+    setDraftsTabEditError(null);
+  }, []);
+
+  const handleDraftsTabSaveEdit = useCallback(async (draftId: string, itemIndex: number) => {
+    setDraftsTabEditSaving(true);
+    setDraftsTabEditError(null);
+
+    try {
+      const response = await projectsApi.updateDraftItem(projectId, draftId, itemIndex, draftsTabEditValue);
+
+      // Update local state with the server response
+      setDraftsTabData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          drafts: prev.drafts.map((draft) => {
+            if (draft.id !== draftId) return draft;
+            return {
+              ...draft,
+              updatedAt: response.updatedAt,
+              filteredItems: draft.filteredItems.map((item, idx) => {
+                if (idx !== itemIndex) return item;
+                return {
+                  ...item,
+                  finalSuggestion: draftsTabEditValue,
+                };
+              }),
+            };
+          }),
+        };
+      });
+
+      // Exit edit mode
+      setDraftsTabEditingItem(null);
+      setDraftsTabEditValue('');
+      feedback.showSuccess('Draft saved successfully');
+    } catch (err) {
+      console.error('[DRAFT-ENTRYPOINT-UNIFICATION-1] Failed to save draft edit:', err);
+      setDraftsTabEditError(err instanceof Error ? err.message : 'Failed to save changes');
+    } finally {
+      setDraftsTabEditSaving(false);
+    }
+  }, [projectId, draftsTabEditValue, feedback]);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -1371,6 +1462,207 @@ export default function ProductOptimizationPage() {
                       issues={productIssues}
                       summary={productIssuesSummary}
                     />
+                  </section>
+                )}
+
+                {/* [DRAFT-ENTRYPOINT-UNIFICATION-1] Drafts Tab - Non-AI Draft Review */}
+                {/* Draft Review is intentionally non-AI. Do not add AI actions here. */}
+                {activeTab === 'drafts' && (
+                  <section aria-label="Drafts" data-testid="drafts-tab-panel">
+                    <h2 className="mb-4 text-base font-semibold text-gray-900">Drafts</h2>
+                    <p className="mb-3 text-xs text-gray-500">
+                      Review and edit pending drafts for this product. Save changes before applying.
+                    </p>
+
+                    {/* Loading state */}
+                    {draftsTabLoading && (
+                      <div className="flex min-h-[200px] items-center justify-center">
+                        <div className="text-gray-600">Loading drafts...</div>
+                      </div>
+                    )}
+
+                    {/* Error state */}
+                    {draftsTabError && (
+                      <div className="rounded-md bg-red-50 p-4">
+                        <p className="text-sm text-red-800">{draftsTabError}</p>
+                      </div>
+                    )}
+
+                    {/* Draft list or empty state */}
+                    {!draftsTabLoading && !draftsTabError && (
+                      <>
+                        {draftsTabData && draftsTabData.drafts.length > 0 ? (
+                          <div data-testid="drafts-tab-list" className="space-y-4">
+                            {draftsTabData.drafts.map((draft) => (
+                              <div
+                                key={draft.id}
+                                className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div>
+                                    <h3 className="font-medium text-gray-900">
+                                      {draft.playbookId === 'missing_seo_title'
+                                        ? 'SEO Title Suggestion'
+                                        : 'SEO Description Suggestion'}
+                                    </h3>
+                                    <p className="text-sm text-gray-500">
+                                      Status: {draft.status} · Updated:{' '}
+                                      {new Date(draft.updatedAt).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                  <span
+                                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                      draft.status === 'READY'
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-yellow-100 text-yellow-800'
+                                    }`}
+                                  >
+                                    {draft.status}
+                                  </span>
+                                </div>
+                                {/* Render draft items with inline edit */}
+                                {draft.filteredItems.length > 0 && (
+                                  <div className="mt-3 space-y-2">
+                                    {draft.filteredItems.map((item, idx) => {
+                                      const hasCanonicalShape = item.field !== undefined;
+                                      const legacyItem = item as any;
+                                      const itemIndex = item.itemIndex ?? idx;
+                                      const editKey = `${draft.id}-${itemIndex}`;
+                                      const isEditing = draftsTabEditingItem === editKey;
+                                      const currentValue = item.finalSuggestion || item.rawSuggestion || '';
+
+                                      if (hasCanonicalShape) {
+                                        return (
+                                          <div
+                                            key={itemIndex}
+                                            data-testid={`drafts-tab-item-${draft.id}-${itemIndex}`}
+                                            className="rounded bg-gray-50 p-3 text-sm"
+                                          >
+                                            <div className="flex items-center justify-between">
+                                              <div className="font-medium text-gray-700">
+                                                {item.field === 'seoTitle' ? 'Title' : 'Description'}
+                                              </div>
+                                              {!isEditing && (
+                                                <button
+                                                  type="button"
+                                                  data-testid={`drafts-tab-item-edit-${draft.id}-${itemIndex}`}
+                                                  onClick={() => handleDraftsTabStartEdit(draft.id, itemIndex, currentValue)}
+                                                  className="text-xs text-indigo-600 hover:text-indigo-800"
+                                                >
+                                                  Edit
+                                                </button>
+                                              )}
+                                            </div>
+
+                                            {isEditing ? (
+                                              <div className="mt-2">
+                                                <textarea
+                                                  data-testid={`drafts-tab-item-input-${draft.id}-${itemIndex}`}
+                                                  value={draftsTabEditValue}
+                                                  onChange={(e) => setDraftsTabEditValue(e.target.value)}
+                                                  className="w-full rounded border border-gray-300 p-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                                  rows={item.field === 'seoDescription' ? 4 : 2}
+                                                  disabled={draftsTabEditSaving}
+                                                />
+                                                {draftsTabEditError && (
+                                                  <div className="mt-1 text-xs text-red-600">{draftsTabEditError}</div>
+                                                )}
+                                                <div className="mt-2 flex gap-2">
+                                                  <button
+                                                    type="button"
+                                                    data-testid={`drafts-tab-item-save-${draft.id}-${itemIndex}`}
+                                                    onClick={() => handleDraftsTabSaveEdit(draft.id, itemIndex)}
+                                                    disabled={draftsTabEditSaving}
+                                                    className="inline-flex items-center rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                                                  >
+                                                    {draftsTabEditSaving ? 'Saving...' : 'Save changes'}
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    data-testid={`drafts-tab-item-cancel-${draft.id}-${itemIndex}`}
+                                                    onClick={handleDraftsTabCancelEdit}
+                                                    disabled={draftsTabEditSaving}
+                                                    className="inline-flex items-center rounded bg-white px-3 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                                                  >
+                                                    Cancel
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <>
+                                                <div className="mt-1 text-gray-900">
+                                                  {item.finalSuggestion || item.rawSuggestion || '(No suggestion)'}
+                                                </div>
+                                                {item.ruleWarnings && item.ruleWarnings.length > 0 && (
+                                                  <div className="mt-1 text-xs text-amber-600">
+                                                    Warnings: {item.ruleWarnings.join(', ')}
+                                                  </div>
+                                                )}
+                                              </>
+                                            )}
+                                          </div>
+                                        );
+                                      } else {
+                                        // Legacy shape - read only
+                                        return (
+                                          <div key={idx} data-testid={`drafts-tab-item-${draft.id}-${idx}`} className="space-y-2">
+                                            {legacyItem.suggestedTitle && (
+                                              <div className="rounded bg-gray-50 p-3 text-sm">
+                                                <div className="font-medium text-gray-700">Title</div>
+                                                <div className="mt-1 text-gray-900">{legacyItem.suggestedTitle}</div>
+                                              </div>
+                                            )}
+                                            {legacyItem.suggestedDescription && (
+                                              <div className="rounded bg-gray-50 p-3 text-sm">
+                                                <div className="font-medium text-gray-700">Description</div>
+                                                <div className="mt-1 text-gray-900">{legacyItem.suggestedDescription}</div>
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      }
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          /* Empty state */
+                          <div
+                            data-testid="drafts-tab-empty"
+                            className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center"
+                          >
+                            <svg
+                              className="mx-auto h-12 w-12 text-gray-400"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              aria-hidden="true"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
+                            <h3 className="mt-2 text-sm font-medium text-gray-900">
+                              No drafts saved for this product.
+                            </h3>
+                            <div className="mt-6">
+                              {/* Primary CTA: View issues - switches to Issues tab */}
+                              <Link
+                                href={`/projects/${projectId}/products/${productId}?tab=issues`}
+                                className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                              >
+                                View issues
+                              </Link>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </section>
                 )}
               </div>

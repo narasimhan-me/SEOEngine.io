@@ -1456,11 +1456,15 @@ export class AutomationPlaybooksService {
       const draftItems = (draft.draftItems as unknown as PlaybookDraftItem[] | null) ?? [];
       const sampleProductIds = (draft.sampleProductIds as unknown as string[] | null) ?? [];
 
-      let filteredItems: PlaybookDraftItem[] = [];
+      // [DRAFT-ENTRYPOINT-UNIFICATION-1] Track original itemIndex for edit mapping
+      let filteredItems: (PlaybookDraftItem & { itemIndex: number })[] = [];
 
       if (assetType === 'products') {
         // For products: match by productId in draftItems or sampleProductIds
-        filteredItems = draftItems.filter((item) => item.productId === assetId);
+        // Include itemIndex for edit/save operations
+        filteredItems = draftItems
+          .map((item, idx) => ({ ...item, itemIndex: idx }))
+          .filter((item) => item.productId === assetId);
 
         // If no items but assetId is in sampleProductIds, include draft with empty items
         if (filteredItems.length === 0 && !sampleProductIds.includes(assetId)) {
@@ -1469,7 +1473,10 @@ export class AutomationPlaybooksService {
       } else {
         // For pages/collections: match by crawlResultId in draftItems
         // [FIXUP-1] Pages/collections drafts filter by crawlResultId field
-        filteredItems = draftItems.filter((item: any) => item.crawlResultId === assetId);
+        // Include itemIndex for edit/save operations
+        filteredItems = draftItems
+          .map((item, idx) => ({ ...item, itemIndex: idx }))
+          .filter((item: any) => item.crawlResultId === assetId);
 
         if (filteredItems.length === 0) {
           continue; // Skip this draft - asset not found

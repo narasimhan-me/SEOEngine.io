@@ -9,7 +9,7 @@ import { ProductRow, type PillarIssueSummary } from './ProductRow';
 import {
   resolveRowNextAction,
   buildProductWorkspaceHref,
-  buildReviewDraftsHref,
+  buildProductDraftsTabHref,
   type ResolvedRowNextAction,
   type NavigationContext,
 } from '@/lib/list-actions-clarity';
@@ -382,7 +382,8 @@ export function ProductTable({
       }
 
       // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Pass server-derived blockedByApproval directly
-      // [DRAFT-ROUTING-INTEGRITY-1] Pass product.id as assetId for scoped Draft Review
+      // [DRAFT-ENTRYPOINT-UNIFICATION-1] Products "Review drafts" routes to Product detail Drafts tab
+      // LOCKED: "Product detail is the canonical draft review entrypoint."
       const resolved = resolveRowNextAction({
         assetType: 'products',
         hasDraftPendingApply,
@@ -392,7 +393,7 @@ export function ProductTable({
         canRequestApproval,
         fixNextHref,
         openHref: buildProductWorkspaceHref(projectId, product.id, navContext),
-        reviewDraftsHref: buildReviewDraftsHref(projectId, 'products', product.id, navContext),
+        reviewDraftsHref: buildProductDraftsTabHref(projectId, product.id, navContext),
       });
 
       map.set(product.id, resolved);

@@ -5,9 +5,10 @@ import { useSearchParams } from 'next/navigation';
 
 /**
  * [DEO-UX-REFRESH-1] Product Details Tab IDs
+ * [DRAFT-ENTRYPOINT-UNIFICATION-1] Added 'drafts' tab for non-AI draft review
  *
  * Ordered as specified in the patch:
- * Metadata, Answers, Search & Intent, Competitors, GEO, Automations, Issues
+ * Metadata, Answers, Search & Intent, Competitors, GEO, Automations, Issues, Drafts
  */
 export type ProductDetailsTabId =
   | 'metadata'
@@ -16,7 +17,8 @@ export type ProductDetailsTabId =
   | 'competitors'
   | 'geo'
   | 'automations'
-  | 'issues';
+  | 'issues'
+  | 'drafts';
 
 export interface ProductDetailsTabDef {
   id: ProductDetailsTabId;
@@ -32,6 +34,8 @@ export const PRODUCT_DETAILS_TABS: ProductDetailsTabDef[] = [
   { id: 'geo', label: 'GEO' },
   { id: 'automations', label: 'Automations' },
   { id: 'issues', label: 'Issues' },
+  // [DRAFT-ENTRYPOINT-UNIFICATION-1] Drafts tab for non-AI draft review
+  { id: 'drafts', label: 'Drafts' },
 ];
 
 interface ProductDetailsTabsProps {

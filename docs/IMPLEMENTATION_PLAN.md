@@ -1133,6 +1133,65 @@ DRAFT-EDIT-INTEGRITY-1 adds explicit Edit affordance to Draft Review mode, allow
 
 ---
 
+### Phase DRAFT-ENTRYPOINT-UNIFICATION-1: Product Detail Drafts Tab ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+DRAFT-ENTRYPOINT-UNIFICATION-1 unifies draft review entrypoints by adding a Drafts tab to Product detail page. Products list "Review drafts" action now routes directly to Product detail Drafts tab (NOT Automation/Playbooks Draft Review), establishing Product detail as the canonical draft review entrypoint for product assets.
+
+#### Locked Statements
+
+- **Product detail is the canonical draft review entrypoint for products**: Products list "Review drafts" routes to `/projects/:id/products/:productId?tab=drafts`, NOT to `/automation/playbooks`.
+- **Draft Review stays human-only**: AI is never invoked during Draft Review/Approval/Apply. No Generate/Regenerate buttons in Drafts tab.
+- **Products list Review drafts does not route to Automation Draft Review**: The Automation/Playbooks Draft Review mode is preserved for Pages/Collections, but Products use their own Drafts tab.
+
+#### Key Features
+
+1. **Drafts Tab**: New tab in Product detail page showing asset-scoped pending drafts
+2. **Inline Edit**: Edit/Save/Cancel per draft item (reuses DRAFT-EDIT-INTEGRITY-1 pattern)
+3. **itemIndex Tracking**: Server returns original array index for accurate edit API calls
+4. **No AI Affordances**: Drafts tab is intentionally non-AI (no Generate/Regenerate buttons)
+5. **Unified Navigation**: `buildProductDraftsTabHref()` helper for consistent routing
+
+#### Completed Patches
+
+- ✅ **PATCH 1:** Updated ProductTable to route "Review drafts" to Product detail Drafts tab
+- ✅ **PATCH 2:** Added `buildProductDraftsTabHref()` helper in list-actions-clarity.ts
+- ✅ **PATCH 3:** Added 'drafts' tab to ProductDetailsTabs.tsx
+- ✅ **PATCH 4:** Implemented Drafts tab UI in Product detail page (fetch + edit + render)
+- ✅ **PATCH 5:** Added `itemIndex` to asset-scoped drafts response in automation-playbooks.service.ts
+- ✅ **PATCH 6:** Extended `AssetScopedDraftItem` type with `itemIndex` field
+- ✅ **PATCH 7:** Updated Playbooks Draft Review to use `item.itemIndex` for API calls
+- ✅ **PATCH 8:** Updated Playwright tests LAC1-008/009 for Product detail Drafts tab routing
+- ✅ **PATCH 9:** Updated testkit seed to use canonical draft shape (field/rawSuggestion/finalSuggestion)
+- ✅ **PATCH 10:** Documentation updates (this section + manual testing doc)
+
+#### Core Files
+
+- `apps/web/src/lib/list-actions-clarity.ts` (buildProductDraftsTabHref)
+- `apps/web/src/components/products/ProductTable.tsx` (Review drafts routing)
+- `apps/web/src/components/products/optimization/ProductDetailsTabs.tsx` (Drafts tab)
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` (Drafts tab implementation)
+- `apps/api/src/projects/automation-playbooks.service.ts` (itemIndex in listPendingDraftsForAsset)
+- `apps/web/src/lib/api.ts` (AssetScopedDraftItem.itemIndex)
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (itemIndex usage)
+- `apps/api/src/testkit/e2e-testkit.controller.ts` (canonical draft shape in seed)
+
+#### Test Coverage
+
+- **E2E Tests:** `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-008, LAC1-009)
+- **Manual Testing:** `docs/manual-testing/DRAFT-ENTRYPOINT-UNIFICATION-1.md`
+
+#### Routing Contract
+
+- Products "Review drafts": `/projects/:projectId/products/:productId?tab=drafts&from=asset_list&returnTo=...`
+- Pages/Collections "Review drafts": `/automation/playbooks?mode=drafts&assetType=...&assetId=...` (unchanged)
+
+---
+
 ## In Progress
 
 *None at this time.*
@@ -1340,3 +1399,4 @@ These invariants MUST be preserved during implementation:
 | 6.21 | 2026-01-10 | **DRAFT-ROUTING-INTEGRITY-1 FIXUP-2**: Draft content visibility + test hardening. (1) Draft Review UI now renders both canonical (field/finalSuggestion/rawSuggestion) and legacy/testkit (suggestedTitle/suggestedDescription) draft item shapes; (2) `AssetScopedDraftItem` type loosened to support both shapes + optional crawlResultId for pages/collections; (3) Playwright LAC1-008 hardened to require `draft-review-list` visible and assert seeded suggestion content ("Improved Product Title"); (4) Manual testing doc updated to verify draft list shows non-empty content. |
 | 6.22 | 2026-01-10 | **SCOPE-CLARITY-1 FIXUP-2**: Strict pillar filter test hooks. Added `data-testid="pillar-filter-all"` + `aria-pressed` to "All pillars" button, `data-testid="pillar-filter-${pillar.id}"` + `aria-pressed` to each pillar button. Playwright test updated with strict `aria-pressed` assertions (replaces brittle `:has-text()` locator). |
 | 6.23 | 2026-01-10 | **DRAFT-EDIT-INTEGRITY-1 COMPLETE**: Inline draft editing in Draft Review mode. Added `updateDraftItem()` service method with permission enforcement (OWNER/EDITOR only), `PATCH /projects/:id/automation-playbooks/drafts/:draftId/items/:itemIndex` endpoint, `projectsApi.updateDraftItem()` client method. Implemented per-item inline edit mode with Save changes / Cancel buttons (no autosave). Server draft is source of truth - edits persist and survive page reload. Playwright test LAC1-009 verifies edit + save + persistence + cancel flow. Manual testing doc in `DRAFT-EDIT-INTEGRITY-1.md`. |
+| 6.24 | 2026-01-10 | **DRAFT-ENTRYPOINT-UNIFICATION-1 COMPLETE**: Products list "Review drafts" now routes to Product detail Drafts tab (not Automation/Playbooks). Locked statements: (1) Product detail is the canonical draft review entrypoint for products; (2) Draft Review stays human-only (no AI); (3) Products list Review drafts does not route to Automation Draft Review. Added `buildProductDraftsTabHref()` helper, 'drafts' tab to ProductDetailsTabs, Drafts tab UI with fetch/edit/render, server-side `itemIndex` for accurate edit API calls. Pages/Collections continue using Automation Draft Review (`/automation/playbooks?mode=drafts`). Testkit seed updated to canonical draft shape. Playwright tests LAC1-008/009 updated. Manual testing doc in `DRAFT-ENTRYPOINT-UNIFICATION-1.md`. |

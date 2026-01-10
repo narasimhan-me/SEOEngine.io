@@ -1319,6 +1319,8 @@ export class E2eTestkitController {
     });
 
     // Create AutomationPlaybookDraft for product3
+    // [DRAFT-ENTRYPOINT-UNIFICATION-1] Use canonical draft shape (field/rawSuggestion/finalSuggestion)
+    // to support edit functionality in Drafts tab
     await this.prisma.automationPlaybookDraft.create({
       data: {
         projectId: project.id,
@@ -1331,9 +1333,10 @@ export class E2eTestkitController {
         draftItems: [
           {
             productId: product3.id,
-            suggestedTitle: 'Improved Product Title for Better SEO',
-            suggestedDescription: 'A comprehensive description for the product that improves search visibility and user experience.',
-            status: 'READY',
+            field: 'seoDescription',
+            rawSuggestion: 'A comprehensive description for the product that improves search visibility and user experience.',
+            finalSuggestion: 'A comprehensive description for the product that improves search visibility and user experience.',
+            ruleWarnings: [],
           },
         ] as unknown as any,
         counts: {
