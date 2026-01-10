@@ -61,7 +61,7 @@ Provides consistent visual vocabulary and actionable links for each asset state.
 
 ### 1. Optimized Product Row
 - [ ] Product with complete SEO (title 30-60 chars, description 70-155 chars) and no pending draft
-- [ ] **Expected**: Green "Optimized" chip
+- [ ] **Expected**: Green "✅ Optimized" chip
 - [ ] **Expected**: "No action needed" help text instead of primary action
 - [ ] **Expected**: "Open" secondary action linking to product workspace
 
@@ -83,19 +83,19 @@ Provides consistent visual vocabulary and actionable links for each asset state.
 
 ### 1. Optimized Page Row
 - [ ] Page with complete SEO metadata (title 30-60 chars, description 70-155 chars)
-- [ ] **Expected**: Green "Optimized" chip
+- [ ] **Expected**: Green "✅ Optimized" chip
 - [ ] **Expected**: "No action needed" help text
 - [ ] **Expected**: "Open" secondary action (links to Issues filtered by page)
 
 ### 2. Needs Attention Page Row
 - [ ] Page with incomplete SEO metadata
-- [ ] **Expected**: Yellow "Needs attention" chip
+- [ ] **Expected**: Yellow "⚠ Needs attention" chip
 - [ ] **Expected**: "View issues" primary action (links to Issues filtered by page)
 - [ ] **Expected**: No redundant "Open" secondary action
 
 ### 3. Draft Saved Page Row
 - [ ] Page appearing in a non-applied AutomationPlaybookDraft
-- [ ] **Expected**: Blue "Draft saved (not applied)" chip
+- [ ] **Expected**: Blue "🟡 Draft saved (not applied)" chip
 - [ ] **Expected**: "Review drafts" primary action (links to Work Queue)
 - [ ] **Expected**: "Open" secondary action
 
@@ -105,19 +105,19 @@ Provides consistent visual vocabulary and actionable links for each asset state.
 
 ### 1. Optimized Collection Row
 - [ ] Collection with complete SEO metadata
-- [ ] **Expected**: Green "Optimized" chip
+- [ ] **Expected**: Green "✅ Optimized" chip
 - [ ] **Expected**: "No action needed" help text
 - [ ] **Expected**: "Open" secondary action
 
 ### 2. Needs Attention Collection Row
 - [ ] Collection with incomplete SEO metadata
-- [ ] **Expected**: Yellow "Needs attention" chip
+- [ ] **Expected**: Yellow "⚠ Needs attention" chip
 - [ ] **Expected**: "View issues" primary action (links to Issues filtered by collection)
 - [ ] **Expected**: No redundant "Open" secondary action
 
 ### 3. Draft Saved Collection Row
 - [ ] Collection appearing in a non-applied AutomationPlaybookDraft
-- [ ] **Expected**: Blue "Draft saved (not applied)" chip
+- [ ] **Expected**: Blue "🟡 Draft saved (not applied)" chip
 - [ ] **Expected**: "Review drafts" primary action
 - [ ] **Expected**: "Open" secondary action
 

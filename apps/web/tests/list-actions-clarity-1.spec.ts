@@ -584,4 +584,89 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
       expect(href).toContain('/automation/playbooks');
     }
   });
+
+  // ==========================================================================
+  // [CORRECTNESS-1-FIXUP-1] API Contract Regression: Canonical Row Fields
+  // ==========================================================================
+
+  test('LAC1-023: Products API includes canonical row fields', async ({
+    request,
+  }) => {
+    // [CORRECTNESS-1-FIXUP-1] Verify Products list payload includes server-derived fields
+    const response = await request.get(
+      `${API_BASE_URL}/projects/${seedData.projectId}/products`,
+      {
+        headers: {
+          Authorization: `Bearer ${seedData.accessToken}`,
+        },
+      },
+    );
+
+    expect(response.ok()).toBeTruthy();
+    const products = await response.json();
+
+    expect(Array.isArray(products)).toBeTruthy();
+    expect(products.length).toBeGreaterThan(0);
+
+    // Assert first product has canonical row fields
+    const firstProduct = products[0];
+    expect(typeof firstProduct.hasDraftPendingApply).toBe('boolean');
+    expect(typeof firstProduct.actionableNowCount).toBe('number');
+    expect(typeof firstProduct.detectedIssueCount).toBe('number');
+    expect(typeof firstProduct.blockedByApproval).toBe('boolean');
+  });
+
+  test('LAC1-024: Crawl Pages API (static) includes canonical row fields', async ({
+    request,
+  }) => {
+    // [CORRECTNESS-1-FIXUP-1] Verify Crawl Pages payload includes server-derived fields
+    const response = await request.get(
+      `${API_BASE_URL}/projects/${seedData.projectId}/crawl-pages?pageType=static`,
+      {
+        headers: {
+          Authorization: `Bearer ${seedData.accessToken}`,
+        },
+      },
+    );
+
+    expect(response.ok()).toBeTruthy();
+    const pages = await response.json();
+
+    expect(Array.isArray(pages)).toBeTruthy();
+    // Pages may be empty if no static pages seeded, so only check fields if present
+    if (pages.length > 0) {
+      const firstPage = pages[0];
+      expect(typeof firstPage.hasDraftPendingApply).toBe('boolean');
+      expect(typeof firstPage.actionableNowCount).toBe('number');
+      expect(typeof firstPage.detectedIssueCount).toBe('number');
+      expect(typeof firstPage.blockedByApproval).toBe('boolean');
+    }
+  });
+
+  test('LAC1-025: Crawl Pages API (collection) includes canonical row fields', async ({
+    request,
+  }) => {
+    // [CORRECTNESS-1-FIXUP-1] Verify Crawl Pages (collections) payload includes server-derived fields
+    const response = await request.get(
+      `${API_BASE_URL}/projects/${seedData.projectId}/crawl-pages?pageType=collection`,
+      {
+        headers: {
+          Authorization: `Bearer ${seedData.accessToken}`,
+        },
+      },
+    );
+
+    expect(response.ok()).toBeTruthy();
+    const collections = await response.json();
+
+    expect(Array.isArray(collections)).toBeTruthy();
+    // Collections may be empty if none seeded, so only check fields if present
+    if (collections.length > 0) {
+      const firstCollection = collections[0];
+      expect(typeof firstCollection.hasDraftPendingApply).toBe('boolean');
+      expect(typeof firstCollection.actionableNowCount).toBe('number');
+      expect(typeof firstCollection.detectedIssueCount).toBe('number');
+      expect(typeof firstCollection.blockedByApproval).toBe('boolean');
+    }
+  });
 });

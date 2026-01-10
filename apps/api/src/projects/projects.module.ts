@@ -45,7 +45,8 @@ import { WorkQueueService } from './work-queue.service';
   imports: [
     forwardRef(() => AiModule),
     BillingModule,
-    ProductsModule,
+    // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1-FIXUP-1] Use forwardRef to match ProductsModule ↔ ProjectsModule mutual import
+    forwardRef(() => ProductsModule),
     forwardRef(() => ShopifyModule),
   ],
   controllers: [ProjectsController, ProductAutomationController, SearchIntentController, CompetitorsController, OffsiteSignalsController, LocalDiscoveryController, MediaAccessibilityController, GeoController, GeoReportsController, GeoReportsPublicController, GovernanceController],
