@@ -281,11 +281,12 @@ export default function ProductsPage() {
             ← Back to Playbook results
           </button>
         )}
+        {/* [ROUTE-INTEGRITY-1 FIXUP-2] Neutral link label - not claiming "Back" navigation */}
         <Link
           href={`/projects/${projectId}/store-health`}
           className="block text-blue-600 hover:text-blue-800"
         >
-          ← Back to Store Health
+          ← Store Health
         </Link>
       </div>
 

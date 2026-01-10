@@ -834,17 +834,6 @@ export default function IssuesPage() {
 
   return (
     <div className="overflow-x-hidden">
-      {/* [ISSUE-FIX-NAV-AND-ANCHORS-1] ReturnTo-aware back link */}
-      {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Use GuardedLink for unsaved changes blocking */}
-      <div className="mb-4 text-sm">
-        <GuardedLink
-          href={primaryBackLink?.href || `/projects/${projectId}/store-health`}
-          className="text-blue-600 hover:text-blue-800"
-        >
-          ← {primaryBackLink?.label || 'Back to Store Health'}
-        </GuardedLink>
-      </div>
-
       {/* Error Banner */}
       {error && (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
@@ -938,6 +927,15 @@ export default function IssuesPage() {
           </button>
         </div>
 
+        {/* [ROUTE-INTEGRITY-1 FIXUP-2] ScopeBanner - placed immediately after h1 header row ("on arrival") */}
+        {/* Preserves "Filtered by Asset" display when assetType is present */}
+        <ScopeBanner
+          from={fromParam}
+          returnTo={validatedReturnTo || `/projects/${projectId}/issues`}
+          showingText={scopeBannerShowingText}
+          onClearFiltersHref={`/projects/${projectId}/issues`}
+        />
+
         {/* [COUNT-INTEGRITY-1.1 Step 2A] Canonical Triplet Summary Display */}
         {/* [COUNT-INTEGRITY-1.1 UI HARDEN] Use currentTriplet (pillar-aware) instead of root triplet */}
         {currentTriplet ? (
@@ -984,15 +982,6 @@ export default function IssuesPage() {
           </div>
         </div>
       </div>
-
-      {/* [ROUTE-INTEGRITY-1] ScopeBanner - replaces inline filter-context-banner */}
-      {/* Preserves "Filtered by Asset" display when assetType is present */}
-      <ScopeBanner
-        from={fromParam}
-        returnTo={validatedReturnTo || `/projects/${projectId}/issues`}
-        showingText={scopeBannerShowingText}
-        onClearFiltersHref={`/projects/${projectId}/issues`}
-      />
 
       {/* Filters Section */}
       <div className="mb-6 space-y-4">

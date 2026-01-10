@@ -416,6 +416,19 @@ Trust hardening for deterministic deep link routing with visible navigation cont
 - Products list (with filter) → Fix next → Back (original filter restored)
 - Work Queue → Playbooks → Back + Clear filters
 
+### FIXUP-1 (2026-01-10)
+
+1. **ScopeBanner Placement**: Moved ScopeBanner after page header on Playbooks and Issues Engine pages for consistent visual hierarchy
+2. **Strict E2E Tests**: Removed conditional guards, use correct test IDs (`store-health-card-discoverability`), tests now fail if elements aren't found
+3. **Dynamic Back Label**: Issues Engine back link now uses `labelFrom()` for dynamic context-aware label (no longer hardcoded "Back to Store Health")
+
+### FIXUP-2 (2026-01-10)
+
+1. **Issues Engine ScopeBanner "On Arrival"**: Moved ScopeBanner to immediately after h1 header row (before TripletDisplay/counts), removed misleading always-visible back link that claimed "Back to..." even without navigation context
+2. **Products Page "Back" Copy Fix**: Changed "← Back to Store Health" to neutral "← Store Health" (not claiming back navigation when it isn't)
+3. **Work Queue → Playbooks Test Seed**: Replaced `seedFirstDeoWin` with `seedListSearchFilter1` in Work Queue → Playbooks tests to guarantee Playbooks CTAs exist; tightened locator to target `?playbookId=` param
+4. **Removed Unused Import**: Removed `labelFrom` import from issues page (no longer needed after back link removal)
+
 ---
 
 ## Completed Phases (Chronological)

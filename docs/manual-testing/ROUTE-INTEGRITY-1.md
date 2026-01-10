@@ -142,6 +142,48 @@ For E2E test automation, verify these `data-testid` attributes:
 
 ---
 
+## FIXUP-1 Changes
+
+### ScopeBanner Placement
+
+- **Playbooks page**: ScopeBanner now appears after the page header (title + description) for consistent visual hierarchy
+- **Issues Engine page**: ScopeBanner appears after the Issue Summary Header (triplet counts + severity cards)
+
+### Dynamic Back Link Label
+
+- Issues Engine back link now uses `labelFrom()` for dynamic label
+- When `from=asset_list`: Shows "Back to Asset list"
+- When `from=work_queue`: Shows "Back to Work Queue"
+- Fallback: "Back to Store Health" (only when no from context)
+
+### E2E Test Updates
+
+- Tests now use strict assertions (`await expect(element).toBeVisible()`)
+- Correct test ID: `store-health-card-discoverability` (not `health-card`)
+- No conditional guards - tests fail if elements aren't found
+
+---
+
+## FIXUP-2 Changes
+
+### Issues Engine ScopeBanner "On Arrival"
+
+- ScopeBanner now renders immediately after the h1 header row (before TripletDisplay and counts)
+- Removed misleading always-visible "← Back to Store Health" link that claimed back navigation even without `from` context
+- ScopeBanner Back button is the only back navigation control (only visible when `from` param exists)
+
+### Products Page Neutral Link
+
+- Changed "← Back to Store Health" to "← Store Health"
+- Link no longer claims "Back" when it's not actually returning to a previous context
+
+### Work Queue → Playbooks Test Prerequisites
+
+- Tests now use `seed-list-search-filter-1` endpoint which guarantees Work Queue has Playbooks CTAs
+- Locator tightened to target `a[href*="/automation/playbooks?playbookId="]` for strict matching
+
+---
+
 ## Regression Notes
 
 - **TRUST-ROUTING-1**: Extended with deterministic returnTo (not just from context)

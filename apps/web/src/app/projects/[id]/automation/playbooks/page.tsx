@@ -1382,14 +1382,6 @@ export default function AutomationPlaybooksPage() {
         </ol>
       </nav>
 
-      {/* [ROUTE-INTEGRITY-1] ScopeBanner - show when from context is present */}
-      <ScopeBanner
-        from={fromParam}
-        returnTo={validatedReturnTo || `/projects/${projectId}/automation/playbooks`}
-        showingText={scopeBannerShowingText}
-        onClearFiltersHref={`/projects/${projectId}/automation/playbooks`}
-      />
-
       {/* Header */}
       <div className="mb-6 flex items-start justify-between">
         <div>
@@ -1419,6 +1411,14 @@ export default function AutomationPlaybooksPage() {
           Create playbook
         </button>
       </div>
+
+      {/* [ROUTE-INTEGRITY-1 FIXUP-1] ScopeBanner - moved after header for visual hierarchy */}
+      <ScopeBanner
+        from={fromParam}
+        returnTo={validatedReturnTo || `/projects/${projectId}/automation/playbooks`}
+        showingText={scopeBannerShowingText}
+        onClearFiltersHref={`/projects/${projectId}/automation/playbooks`}
+      />
 
       {/* [ASSETS-PAGES-1.1-UI-HARDEN] Missing scope safety block for PAGES/COLLECTIONS */}
       {isMissingScopeForPagesCollections && (
