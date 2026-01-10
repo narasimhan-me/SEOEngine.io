@@ -341,6 +341,12 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     await expect(page.locator('button:has-text("Regenerate")')).not.toBeVisible();
     await expect(page.locator(':text("AI suggestion")')).not.toBeVisible();
 
+    // [DRAFT-AI-ENTRYPOINT-CLARITY-1] Assert boundary note is visible in review mode
+    const boundaryNote = page.locator('[data-testid="draft-ai-boundary-note"]');
+    await expect(boundaryNote).toBeVisible();
+    await expect(boundaryNote).toHaveAttribute('data-mode', 'review');
+    await expect(boundaryNote).toContainText('Review & edit (no AI on this step)');
+
     // [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Assert no AI/apply CTAs on Drafts tab (non-brittle absence assertions)
     // The header action cluster should be hidden on Drafts tab
     await expect(page.locator('[data-testid="header-draft-state-indicator"]')).toHaveCount(0);

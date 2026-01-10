@@ -21,6 +21,8 @@ import Link from 'next/link';
 
 import { projectsApi, type AssetScopedDraftsResponse } from '@/lib/api';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
+// [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI boundary note for human-only review surface
+import { DraftAiBoundaryNote } from '@/components/common/DraftAiBoundaryNote';
 
 interface ProductDraftsTabProps {
   projectId: string;
@@ -135,6 +137,8 @@ export function ProductDraftsTab({ projectId, productId }: ProductDraftsTabProps
   return (
     <section aria-label="Drafts" data-testid="drafts-tab-panel">
       <h2 className="mb-4 text-base font-semibold text-gray-900">Drafts</h2>
+      {/* [DRAFT-AI-ENTRYPOINT-CLARITY-1] Human-only review boundary note */}
+      <DraftAiBoundaryNote mode="review" />
       <p className="mb-3 text-xs text-gray-500">
         Review and edit pending drafts for this product. Save changes before applying.
       </p>

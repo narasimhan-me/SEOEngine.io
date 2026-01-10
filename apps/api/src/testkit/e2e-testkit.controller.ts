@@ -1553,4 +1553,106 @@ export class E2eTestkitController {
       draftPendingCollectionId: collection3.id,
     };
   }
+
+  // ==========================================================================
+  // [DRAFT-AI-ENTRYPOINT-CLARITY-1] E2E Seeds
+  // ==========================================================================
+
+  /**
+   * POST /testkit/e2e/seed-draft-ai-entrypoint-clarity-1
+   *
+   * [DRAFT-AI-ENTRYPOINT-CLARITY-1] Seed for AI boundary note visibility tests.
+   *
+   * Creates a project with:
+   * - Products with missing SEO (for generation flow testing)
+   * - Products with pending drafts (for review flow testing)
+   * - Both scenarios enable testing AI boundary note visibility
+   *
+   * Returns:
+   * - projectId
+   * - accessToken
+   * - productWithDraftId (for review boundary testing)
+   * - productWithoutDraftId (for generate boundary testing)
+   */
+  @Post('seed-draft-ai-entrypoint-clarity-1')
+  async seedDraftAiEntrypointClarity1() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    // Product 1: Has pending draft (for Draft Review boundary note testing)
+    const productWithDraft = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'daepc1-product-with-draft',
+        title: 'Product With Draft For Review',
+        description: 'This product has a pending draft for review testing.',
+        handle: 'product-with-draft-for-review',
+        seoTitle: 'Short', // Needs attention
+        seoDescription: null, // Missing
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    // Product 2: No draft (for Generate boundary note testing)
+    const productWithoutDraft = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'daepc1-product-without-draft',
+        title: 'Product Without Draft For Generate',
+        description: 'This product has no draft for generation testing.',
+        handle: 'product-without-draft-for-generate',
+        seoTitle: null, // Missing = needs attention
+        seoDescription: null, // Missing
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    // Create AutomationPlaybookDraft for productWithDraft
+    // [DRAFT-AI-ENTRYPOINT-CLARITY-1-FIXUP-1] Use PARTIAL status so Work Queue shows "Generate Full Drafts"
+    // Use canonical draft shape (field/rawSuggestion/finalSuggestion)
+    await this.prisma.automationPlaybookDraft.create({
+      data: {
+        projectId: project.id,
+        playbookId: 'missing_seo_description',
+        scopeId: `project:${project.id}:products`,
+        rulesHash: 'draft-ai-entrypoint-clarity-1-hash',
+        status: 'PARTIAL', // PARTIAL triggers "Generate Full Drafts" CTA in Work Queue
+        createdByUserId: user.id,
+        sampleProductIds: [productWithDraft.id, productWithoutDraft.id] as unknown as any,
+        draftItems: [
+          {
+            productId: productWithDraft.id,
+            field: 'seoDescription',
+            rawSuggestion: 'AI-generated draft for testing review boundary note visibility.',
+            finalSuggestion: 'AI-generated draft for testing review boundary note visibility.',
+            ruleWarnings: [],
+          },
+        ] as unknown as any,
+        counts: {
+          affectedTotal: 2, // Both products are eligible
+          draftGenerated: 1, // Only one has draft = PARTIAL
+          noSuggestionCount: 0,
+        } as unknown as any,
+        rules: { enabled: true } as unknown as any,
+        appliedAt: null,
+        expiresAt: null,
+      },
+    });
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      projectId: project.id,
+      accessToken,
+      productWithDraftId: productWithDraft.id,
+      productWithoutDraftId: productWithoutDraft.id,
+    };
+  }
 }

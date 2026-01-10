@@ -34,6 +34,8 @@ import type {
 import { buildAssetIssuesHref, type AssetListType } from '@/lib/list-actions-clarity';
 import type { Product } from '@/lib/products';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
+// [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI boundary note for human-only review and AI generation surfaces
+import { DraftAiBoundaryNote } from '@/components/common/DraftAiBoundaryNote';
 
 type PlaybookId = 'missing_seo_title' | 'missing_seo_description';
 
@@ -1497,6 +1499,11 @@ export default function AutomationPlaybooksPage() {
           wasAdjusted={normalizedScopeResult.wasAdjusted}
         />
 
+        {/* [DRAFT-AI-ENTRYPOINT-CLARITY-1] Human-only review boundary note */}
+        <div className="mt-4">
+          <DraftAiBoundaryNote mode="review" />
+        </div>
+
         {/* Header */}
         <div className="mb-6 mt-4">
           <h1 className="text-2xl font-bold text-gray-900">Draft Review</h1>
@@ -2560,6 +2567,8 @@ export default function AutomationPlaybooksPage() {
                     {loadingPreview ? 'Generating preview…' : 'Generate preview (uses AI)'}
                   </button>
                 </div>
+                {/* [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI usage disclosure for generation */}
+                <DraftAiBoundaryNote mode="generate" />
                 {resumedFromSession && hasPreview && (
                   <div className="mb-3 rounded-md border border-blue-100 bg-blue-50 p-3 text-xs text-blue-800">
                     <div className="flex items-start justify-between gap-2">

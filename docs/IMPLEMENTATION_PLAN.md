@@ -1247,6 +1247,51 @@ None. This is a pure structural refactor with no behavioral changes.
 
 ---
 
+### Phase DRAFT-AI-ENTRYPOINT-CLARITY-1: AI Boundary Notes ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+DRAFT-AI-ENTRYPOINT-CLARITY-1 adds explicit AI boundary labeling at all draft workflow surfaces. The boundary notes provide transparency about AI usage at each step, ensuring users always know when AI is or isn't being used.
+
+**Trust Principle:** "If we use AI, we disclose it. If we don't use AI, we clarify that too."
+
+#### Locked Copy (Do Not Modify Without Phase Approval)
+
+| Mode | Text | Icon |
+|------|------|------|
+| Review | "Review & edit (no AI on this step)" | Person (gray) |
+| Generate | "AI used for drafts only · AI is not used at Apply" | Lightbulb (indigo) |
+
+#### Surfaces Covered
+
+1. **Product Drafts Tab** (review mode) - below "Drafts" heading
+2. **Playbooks Draft Review** (review mode) - below ScopeBanner
+3. **Playbooks Step 1 Generation** (generate mode) - below "Generate preview" button
+4. **Work Queue Generation CTA** (generate mode) - below "Generate Drafts" / "Generate Full Drafts" button
+
+#### Core Files
+
+- `apps/web/src/components/common/DraftAiBoundaryNote.tsx` (NEW - shared component)
+- `apps/web/src/components/products/ProductDraftsTab.tsx` (added review note)
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (added review + generate notes)
+- `apps/web/src/components/work-queue/ActionBundleCard.tsx` (added generate note)
+- `apps/api/src/testkit/e2e-testkit.controller.ts` (seed endpoint)
+
+#### Test Coverage
+
+- **Playwright Tests:** `apps/web/tests/draft-ai-entrypoint-clarity-1.spec.ts` (6 tests: DAEPC1-001 through DAEPC1-006)
+- **Existing Tests:** `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-008 updated with boundary note assertion)
+- **Manual Testing:** `docs/manual-testing/DRAFT-AI-ENTRYPOINT-CLARITY-1.md`
+
+#### Behavior Changes
+
+None. This is a UX clarity addition with no functional behavior changes.
+
+---
+
 ## In Progress
 
 *None at this time.*
@@ -1458,3 +1503,5 @@ These invariants MUST be preserved during implementation:
 | 6.25 | 2026-01-10 | **DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1**: Non-AI Drafts tab compliance + itemIndex correctness. (1) Drafts tab now suppresses AI/generation copy + apply/automation CTAs when `activeTab === 'drafts'` (header action cluster, CNAB-1 banner, AI limit upsell hidden); (2) Fixed itemIndex-based local update correctness in both Product detail Drafts tab and Playbooks Draft Review (was using loop `idx` instead of `item.itemIndex` for filtered subsets); (3) Tightened Playwright LAC1-008 regression coverage with `toHaveCount(0)` assertions for AI/apply elements; (4) Updated manual testing doc with non-AI surface verification (scenario 3a) and corrected empty state copy to "No drafts saved for this product." |
 | 6.26 | 2026-01-10 | **DRAFT-REVIEW-ISOLATION-1 COMPLETE**: Structural non-AI boundary for Product Drafts tab. Extracted `ProductDraftsTab.tsx` as isolated module with NON-AI BOUNDARY header comment. Module is forbidden from importing: `aiApi`, `ProductAiSuggestionsPanel`, `suggestProductMetadata`, `generateProductAnswers`, `AI_DAILY_LIMIT_REACHED`. Added `draft-review-isolation-1.spec.ts` guard test (DRI1-001/002/003) that reads source file and fails if forbidden tokens detected or header missing. Product detail page delegates Drafts tab rendering to isolated component. Pure structural refactor with no behavioral changes. Manual testing doc in `DRAFT-REVIEW-ISOLATION-1.md`. |
 | 6.27 | 2026-01-10 | **DRAFT-REVIEW-ISOLATION-1-FIXUP-1**: Strict "no behavior changes" alignment. (1) Removed `isActive` prop and `hasFetched` caching from ProductDraftsTab - restored simple "fetch on mount" semantics; (2) Restored conditional mounting in page.tsx (`activeTab === 'drafts'`) to match standard tab behavior; (3) Removed "Tab State Preservation" scenario from manual testing doc since state preservation across tab switches was a behavior change. Guard test and non-AI boundary remain in place. |
+| 6.28 | 2026-01-10 | **DRAFT-AI-ENTRYPOINT-CLARITY-1 COMPLETE**: UX AI boundary notes at draft workflow surfaces. Created `DraftAiBoundaryNote` component (`@/components/common/DraftAiBoundaryNote.tsx`) with `mode: 'review' | 'generate'` prop. Review mode: "Review & edit (no AI on this step)" with person icon. Generate mode: "AI used for drafts only · AI is not used at Apply" with lightbulb icon. Added to 3 surfaces: (1) ProductDraftsTab (review mode); (2) Playbooks Draft Review panel (review mode); (3) Playbooks Step 1 generation CTA (generate mode). Locked copy (do not modify without phase approval). Testkit seed `seed-draft-ai-entrypoint-clarity-1`. Playwright tests in `draft-ai-entrypoint-clarity-1.spec.ts` (5 tests) + updated LAC1-008. Manual testing doc in `DRAFT-AI-ENTRYPOINT-CLARITY-1.md`. |
+| 6.29 | 2026-01-10 | **DRAFT-AI-ENTRYPOINT-CLARITY-1-FIXUP-1**: Work Queue generate-mode note + expanded coverage. (1) Added `DraftAiBoundaryNote mode="generate"` to `ActionBundleCard.tsx` for "Generate Drafts" / "Generate Full Drafts" CTAs; (2) Updated seed to use `status: 'PARTIAL'` for deterministic Work Queue "Generate Full Drafts" CTA in tests; (3) Added DAEPC1-006 Playwright test for Work Queue boundary note visibility; (4) Extended DAEPC1-001/002 with panel-scoped "no AI creep" assertions (no "Improve with AI", "Use AI", "Generate", "Regenerate" buttons in review panels); (5) Added Work Queue scenario to manual testing doc; (6) Added Phase DRAFT-AI-ENTRYPOINT-CLARITY-1 section to Implementation Plan (Surfaces Covered now includes Work Queue). |
