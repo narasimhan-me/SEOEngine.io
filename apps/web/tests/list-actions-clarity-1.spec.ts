@@ -1,21 +1,23 @@
 /**
  * [LIST-ACTIONS-CLARITY-1] Row Chips & Actions E2E Tests
  * [LIST-ACTIONS-CLARITY-1 FIXUP-1] Extended with Collections + Blocked state
+ * [LIST-ACTIONS-CLARITY-1 FIXUP-2] Hardened with row-scoped assertions using seeded titles
  *
  * Playwright smoke tests for the unified row chips and actions across
  * Products, Pages, and Collections lists.
  *
  * Test coverage:
- * 1. Products list renders RowStatusChip with correct labels
- * 2. Products list renders correct primary/secondary actions
- * 3. Pages list renders RowStatusChip with correct labels
- * 4. Pages list renders correct primary/secondary actions
- * 5. "View issues" action links to Issues Engine with asset filter
+ * 1. Products list renders RowStatusChip with correct labels (row-scoped)
+ * 2. Products list renders correct primary/secondary actions (row-scoped)
+ * 3. Pages list renders RowStatusChip with correct labels (row-scoped)
+ * 4. Pages list renders correct primary/secondary actions (row-scoped)
+ * 5. "View issues" action navigates to Issues Engine with asset filter + banner
  * 6. "Review drafts" action links to Work Queue
  * 7. hasDraftPendingApply field triggers Draft saved chip
  * 8. [FIXUP-1] Collections list renders RowStatusChip with correct labels
  * 9. [FIXUP-1] EDITOR sees "Blocked" chip when draft pending but can't apply
  * 10. [FIXUP-1] "Fix next" action routes to issue fix destination
+ * 11. [FIXUP-2] No "Apply" action appears on any list row
  *
  * Prerequisites:
  * - /testkit/e2e/seed-list-actions-clarity-1 endpoint available
@@ -25,6 +27,25 @@
 import { test, expect } from '@playwright/test';
 
 const API_BASE_URL = process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
+
+// Seeded titles from e2e-testkit.controller.ts seed-list-actions-clarity-1
+const SEEDED_TITLES = {
+  products: {
+    optimized: 'Optimized Product - Complete SEO',
+    needsAttention: 'Product Missing SEO Description',
+    draftPending: 'Product With Pending Draft',
+  },
+  pages: {
+    optimized: 'Optimized Page - Everything You Need to Know',
+    needsAttention: 'Page Needs Attention - Missing Description',
+    draftPending: 'Short', // Short title triggers needs attention + has draft
+  },
+  collections: {
+    optimized: 'Optimized Collection - Premium Products Selection',
+    needsAttention: 'Collection Needs Attention - Missing Description',
+    draftPending: 'Short', // Short title triggers needs attention + has draft
+  },
+};
 
 interface SeedResponse {
   projectId: string;
@@ -53,6 +74,14 @@ async function seedListActionsClarity1Data(request: any): Promise<SeedResponse> 
   return response.json();
 }
 
+/**
+ * Helper: Get a row locator by title text (scoped to table rows containing the title)
+ */
+function getRowByTitle(page: any, title: string) {
+  // Find the row that contains the title text
+  return page.locator(`tr:has-text("${title}"), div[class*="row"]:has-text("${title}")`).first();
+}
+
 test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
   let seedData: SeedResponse;
 
@@ -63,30 +92,10 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
   });
 
   // ==========================================================================
-  // Products List Tests
+  // [FIXUP-2] Products List Tests - Row-Scoped Assertions
   // ==========================================================================
 
-  test('LAC1-001: Products list renders RowStatusChip component', async ({
-    page,
-  }) => {
-    // Programmatic login: set token in localStorage
-    await page.goto('/login');
-    await page.evaluate((token) => {
-      localStorage.setItem('engineo_token', token);
-    }, seedData.accessToken);
-
-    // Navigate to Products list
-    await page.goto(`/projects/${seedData.projectId}/products`);
-
-    // Wait for products to load
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
-
-    // Assert at least one RowStatusChip is rendered
-    const chipCount = await page.locator('[data-testid="row-status-chip"]').count();
-    expect(chipCount).toBeGreaterThanOrEqual(1);
-  });
-
-  test('LAC1-002: Products list shows correct chip labels for different states', async ({
+  test('LAC1-001: Optimized product row shows correct chip and help text', async ({
     page,
   }) => {
     await page.goto('/login');
@@ -95,21 +104,26 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/products`);
-
-    // Wait for products to load
     await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
 
-    // Check for expected chip labels (at least one of each type based on seed data)
-    const pageContent = await page.content();
+    // [FIXUP-2] Row-scoped assertion for optimized product
+    const optimizedRow = getRowByTitle(page, SEEDED_TITLES.products.optimized);
+    await expect(optimizedRow).toBeVisible();
 
-    // We should see "Optimized" for product1 (complete SEO)
-    expect(pageContent).toContain('Optimized');
+    // Assert chip text exactly matches locked vocabulary with emoji
+    const chip = optimizedRow.locator('[data-testid="row-status-chip"]');
+    await expect(chip).toHaveText('✅ Optimized');
 
-    // We should see "Needs attention" for product2 (missing SEO description)
-    expect(pageContent).toContain('Needs attention');
+    // Assert help text instead of primary action
+    const helpText = optimizedRow.locator('[data-testid="row-help-text"]');
+    await expect(helpText).toHaveText('No action needed');
+
+    // Assert NO primary action in this row
+    const primaryAction = optimizedRow.locator('[data-testid="row-primary-action"]');
+    await expect(primaryAction).toHaveCount(0);
   });
 
-  test('LAC1-003: Products list shows Draft saved chip for products with pending drafts', async ({
+  test('LAC1-002: Needs attention product row shows correct chip and Fix next action', async ({
     page,
   }) => {
     await page.goto('/login');
@@ -118,20 +132,26 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/products`);
-
-    // Wait for products to load
     await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
 
-    // Product3 has a pending draft, should show "Draft saved (not applied)" chip
-    const pageContent = await page.content();
-    expect(pageContent).toContain('Draft saved');
+    // [FIXUP-2] Row-scoped assertion for needs-attention product
+    const needsAttentionRow = getRowByTitle(page, SEEDED_TITLES.products.needsAttention);
+    await expect(needsAttentionRow).toBeVisible();
+
+    // Assert chip text exactly matches locked vocabulary with emoji
+    const chip = needsAttentionRow.locator('[data-testid="row-status-chip"]');
+    await expect(chip).toHaveText('⚠ Needs attention');
+
+    // Assert primary action is "Fix next" (not "Apply")
+    const primaryAction = needsAttentionRow.locator('[data-testid="row-primary-action"]');
+    await expect(primaryAction).toHaveText('Fix next');
+
+    // Assert NO "Apply" text anywhere in row actions
+    await expect(needsAttentionRow.locator('[data-testid="row-primary-action"]:has-text("Apply")')).toHaveCount(0);
+    await expect(needsAttentionRow.locator('[data-testid="row-secondary-action"]:has-text("Apply")')).toHaveCount(0);
   });
 
-  // ==========================================================================
-  // Pages List Tests
-  // ==========================================================================
-
-  test('LAC1-004: Pages list renders RowStatusChip component', async ({
+  test('LAC1-003: Draft pending product row (OWNER) shows Draft saved chip and Review drafts action', async ({
     page,
   }) => {
     await page.goto('/login');
@@ -139,62 +159,27 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
       localStorage.setItem('engineo_token', token);
     }, seedData.accessToken);
 
-    // Navigate to Pages list
-    await page.goto(`/projects/${seedData.projectId}/assets/pages`);
-
-    // Wait for pages to load
+    await page.goto(`/projects/${seedData.projectId}/products`);
     await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
 
-    // Assert at least one RowStatusChip is rendered
-    const chipCount = await page.locator('[data-testid="row-status-chip"]').count();
-    expect(chipCount).toBeGreaterThanOrEqual(1);
-  });
+    // [FIXUP-2] Row-scoped assertion for draft-pending product
+    const draftPendingRow = getRowByTitle(page, SEEDED_TITLES.products.draftPending);
+    await expect(draftPendingRow).toBeVisible();
 
-  test('LAC1-005: Pages list shows correct chip labels for different states', async ({
-    page,
-  }) => {
-    await page.goto('/login');
-    await page.evaluate((token) => {
-      localStorage.setItem('engineo_token', token);
-    }, seedData.accessToken);
+    // Assert chip text exactly matches locked vocabulary with emoji
+    const chip = draftPendingRow.locator('[data-testid="row-status-chip"]');
+    await expect(chip).toHaveText('🟡 Draft saved (not applied)');
 
-    await page.goto(`/projects/${seedData.projectId}/assets/pages`);
-
-    // Wait for pages to load
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
-
-    const pageContent = await page.content();
-
-    // We should see "Optimized" for page1 (complete SEO)
-    expect(pageContent).toContain('Optimized');
-
-    // We should see "Needs attention" for page2 (missing description)
-    expect(pageContent).toContain('Needs attention');
-  });
-
-  test('LAC1-006: Pages list shows Draft saved chip for pages with pending drafts', async ({
-    page,
-  }) => {
-    await page.goto('/login');
-    await page.evaluate((token) => {
-      localStorage.setItem('engineo_token', token);
-    }, seedData.accessToken);
-
-    await page.goto(`/projects/${seedData.projectId}/assets/pages`);
-
-    // Wait for pages to load
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
-
-    // Page3 has a pending draft, should show "Draft saved (not applied)" chip
-    const pageContent = await page.content();
-    expect(pageContent).toContain('Draft saved');
+    // Assert primary action is "Review drafts"
+    const primaryAction = draftPendingRow.locator('[data-testid="row-primary-action"]');
+    await expect(primaryAction).toHaveText('Review drafts');
   });
 
   // ==========================================================================
-  // Action Link Tests
+  // [FIXUP-2] Pages List Tests - Row-Scoped Assertions
   // ==========================================================================
 
-  test('LAC1-007: View issues action links to Issues Engine with asset filter', async ({
+  test('LAC1-004: Optimized page row shows correct chip', async ({
     page,
   }) => {
     await page.goto('/login');
@@ -203,20 +188,90 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/assets/pages`);
-
-    // Wait for pages to load
     await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
 
-    // Find and click "View issues" link for pages with issues
-    const viewIssuesLink = page.locator('a:has-text("View issues")').first();
+    // [FIXUP-2] Row-scoped assertion for optimized page
+    const optimizedRow = getRowByTitle(page, SEEDED_TITLES.pages.optimized);
+    await expect(optimizedRow).toBeVisible();
 
-    if (await viewIssuesLink.isVisible()) {
-      const href = await viewIssuesLink.getAttribute('href');
+    const chip = optimizedRow.locator('[data-testid="row-status-chip"]');
+    await expect(chip).toHaveText('✅ Optimized');
+  });
 
-      // Assert the href contains asset filter params
-      expect(href).toContain('/issues');
-      expect(href).toContain('assetType=pages');
-    }
+  test('LAC1-005: Needs attention page row shows correct chip', async ({
+    page,
+  }) => {
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, seedData.accessToken);
+
+    await page.goto(`/projects/${seedData.projectId}/assets/pages`);
+    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+
+    // [FIXUP-2] Row-scoped assertion for needs-attention page
+    const needsAttentionRow = getRowByTitle(page, SEEDED_TITLES.pages.needsAttention);
+    await expect(needsAttentionRow).toBeVisible();
+
+    const chip = needsAttentionRow.locator('[data-testid="row-status-chip"]');
+    await expect(chip).toHaveText('⚠ Needs attention');
+  });
+
+  test('LAC1-006: Draft pending page row shows Draft saved chip', async ({
+    page,
+  }) => {
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, seedData.accessToken);
+
+    await page.goto(`/projects/${seedData.projectId}/assets/pages`);
+    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+
+    // [FIXUP-2] Find the draft-pending page row (title is "Short" for /pages/draft-pending)
+    // We need to find the row that contains both "Short" title AND the draft-pending URL path
+    const draftPendingRow = page.locator('tr:has-text("Short"), div[class*="row"]:has-text("Short")').first();
+    await expect(draftPendingRow).toBeVisible();
+
+    const chip = draftPendingRow.locator('[data-testid="row-status-chip"]');
+    await expect(chip).toHaveText('🟡 Draft saved (not applied)');
+  });
+
+  // ==========================================================================
+  // [FIXUP-2] View Issues Navigation Test - Click-through with Banner
+  // ==========================================================================
+
+  test('LAC1-007: View issues action navigates to Issues Engine with filter banner', async ({
+    page,
+  }) => {
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, seedData.accessToken);
+
+    await page.goto(`/projects/${seedData.projectId}/assets/pages`);
+    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+
+    // [FIXUP-2] Find the needs-attention page row and click View issues
+    const needsAttentionRow = getRowByTitle(page, SEEDED_TITLES.pages.needsAttention);
+    await expect(needsAttentionRow).toBeVisible();
+
+    const viewIssuesLink = needsAttentionRow.locator('[data-testid="row-primary-action"]:has-text("View issues")');
+    await expect(viewIssuesLink).toBeVisible();
+
+    // Click and navigate
+    await viewIssuesLink.click();
+
+    // [FIXUP-2] Assert URL contains correct params
+    await page.waitForURL(/\/issues/);
+    const url = page.url();
+    expect(url).toContain('assetType=pages');
+    expect(url).toContain(`assetId=${seedData.needsAttentionPageId}`);
+
+    // [FIXUP-2] Assert filter context banner is visible
+    const filterBanner = page.locator('[data-testid="filter-context-banner"]');
+    await expect(filterBanner).toBeVisible();
+    await expect(filterBanner).toContainText('Filtered by Asset');
   });
 
   test('LAC1-008: Review drafts action links to Work Queue', async ({
@@ -228,67 +283,22 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/products`);
-
-    // Wait for products to load
     await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
 
-    // Find "Review drafts" link for products with pending drafts
-    const reviewDraftsLink = page.locator('a:has-text("Review drafts")').first();
+    // [FIXUP-2] Row-scoped assertion for draft-pending product
+    const draftPendingRow = getRowByTitle(page, SEEDED_TITLES.products.draftPending);
+    const reviewDraftsLink = draftPendingRow.locator('[data-testid="row-primary-action"]:has-text("Review drafts")');
 
-    if (await reviewDraftsLink.isVisible()) {
-      const href = await reviewDraftsLink.getAttribute('href');
-
-      // Assert the href links to work-queue
-      expect(href).toContain('/work-queue');
-    }
+    await expect(reviewDraftsLink).toBeVisible();
+    const href = await reviewDraftsLink.getAttribute('href');
+    expect(href).toContain('/work-queue');
   });
 
   // ==========================================================================
-  // Optimized State Tests
+  // [FIXUP-2] Collections List Tests - Row-Scoped Assertions
   // ==========================================================================
 
-  test('LAC1-009: Optimized rows show help text instead of primary action', async ({
-    page,
-  }) => {
-    await page.goto('/login');
-    await page.evaluate((token) => {
-      localStorage.setItem('engineo_token', token);
-    }, seedData.accessToken);
-
-    await page.goto(`/projects/${seedData.projectId}/products`);
-
-    // Wait for products to load
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
-
-    // Check for "No action needed" help text for optimized products
-    const pageContent = await page.content();
-    expect(pageContent).toContain('No action needed');
-  });
-
-  // ==========================================================================
-  // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Collections List Tests
-  // ==========================================================================
-
-  test('LAC1-010: Collections list renders RowStatusChip component', async ({
-    page,
-  }) => {
-    await page.goto('/login');
-    await page.evaluate((token) => {
-      localStorage.setItem('engineo_token', token);
-    }, seedData.accessToken);
-
-    // Navigate to Collections list
-    await page.goto(`/projects/${seedData.projectId}/assets/collections`);
-
-    // Wait for collections to load
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
-
-    // Assert at least one RowStatusChip is rendered
-    const chipCount = await page.locator('[data-testid="row-status-chip"]').count();
-    expect(chipCount).toBeGreaterThanOrEqual(1);
-  });
-
-  test('LAC1-011: Collections list shows correct chip labels for different states', async ({
+  test('LAC1-010: Optimized collection row shows correct chip', async ({
     page,
   }) => {
     await page.goto('/login');
@@ -297,20 +307,17 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/assets/collections`);
-
-    // Wait for collections to load
     await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
 
-    const pageContent = await page.content();
+    // [FIXUP-2] Row-scoped assertion for optimized collection
+    const optimizedRow = getRowByTitle(page, SEEDED_TITLES.collections.optimized);
+    await expect(optimizedRow).toBeVisible();
 
-    // We should see "Optimized" for collection1 (complete SEO)
-    expect(pageContent).toContain('Optimized');
-
-    // We should see "Needs attention" for collection2 (missing description)
-    expect(pageContent).toContain('Needs attention');
+    const chip = optimizedRow.locator('[data-testid="row-status-chip"]');
+    await expect(chip).toHaveText('✅ Optimized');
   });
 
-  test('LAC1-012: Collections list shows Draft saved chip for collections with pending drafts', async ({
+  test('LAC1-011: Needs attention collection row shows correct chip', async ({
     page,
   }) => {
     await page.goto('/login');
@@ -319,20 +326,40 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/assets/collections`);
-
-    // Wait for collections to load
     await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
 
-    // Collection3 has a pending draft, should show "Draft saved (not applied)" chip
-    const pageContent = await page.content();
-    expect(pageContent).toContain('Draft saved');
+    // [FIXUP-2] Row-scoped assertion for needs-attention collection
+    const needsAttentionRow = getRowByTitle(page, SEEDED_TITLES.collections.needsAttention);
+    await expect(needsAttentionRow).toBeVisible();
+
+    const chip = needsAttentionRow.locator('[data-testid="row-status-chip"]');
+    await expect(chip).toHaveText('⚠ Needs attention');
+  });
+
+  test('LAC1-012: Draft pending collection row shows Draft saved chip', async ({
+    page,
+  }) => {
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, seedData.accessToken);
+
+    await page.goto(`/projects/${seedData.projectId}/assets/collections`);
+    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+
+    // [FIXUP-2] Find the draft-pending collection row (title is "Short" for /collections/draft-pending)
+    const draftPendingRow = page.locator('tr:has-text("Short"), div[class*="row"]:has-text("Short")').first();
+    await expect(draftPendingRow).toBeVisible();
+
+    const chip = draftPendingRow.locator('[data-testid="row-status-chip"]');
+    await expect(chip).toHaveText('🟡 Draft saved (not applied)');
   });
 
   // ==========================================================================
-  // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Blocked State Tests (EDITOR role)
+  // [FIXUP-2] Blocked State Tests - Strict EDITOR Assertions
   // ==========================================================================
 
-  test('LAC1-013: EDITOR sees Blocked chip for draft-pending items they cannot apply', async ({
+  test('LAC1-013: EDITOR sees Blocked chip for draft-pending product', async ({
     page,
   }) => {
     await page.goto('/login');
@@ -342,17 +369,18 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.editorAccessToken);
 
     await page.goto(`/projects/${seedData.projectId}/products`);
-
-    // Wait for products to load
     await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
 
-    // EDITOR cannot apply drafts when governance requires approval
-    // Product3 has a pending draft, EDITOR should see "Blocked" chip
-    const pageContent = await page.content();
-    expect(pageContent).toContain('Blocked');
+    // [FIXUP-2] Row-scoped assertion for draft-pending product as EDITOR
+    const draftPendingRow = getRowByTitle(page, SEEDED_TITLES.products.draftPending);
+    await expect(draftPendingRow).toBeVisible();
+
+    // Assert chip text exactly matches locked vocabulary with emoji
+    const chip = draftPendingRow.locator('[data-testid="row-status-chip"]');
+    await expect(chip).toHaveText('⛔ Blocked');
   });
 
-  test('LAC1-014: EDITOR sees Request approval action for blocked items', async ({
+  test('LAC1-014: EDITOR sees approval action (NOT Review drafts) for blocked items', async ({
     page,
   }) => {
     await page.goto('/login');
@@ -361,21 +389,26 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.editorAccessToken);
 
     await page.goto(`/projects/${seedData.projectId}/products`);
-
-    // Wait for products to load
     await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
 
-    // EDITOR with canRequestApproval should see "Request approval" action
-    const pageContent = await page.content();
-    // Note: The exact action depends on resolver logic - may show "Request approval" or "View approval status"
-    expect(pageContent).toMatch(/Request approval|View approval status|Review drafts/);
+    // [FIXUP-2] Row-scoped assertion for draft-pending product as EDITOR
+    const draftPendingRow = getRowByTitle(page, SEEDED_TITLES.products.draftPending);
+    await expect(draftPendingRow).toBeVisible();
+
+    const primaryAction = draftPendingRow.locator('[data-testid="row-primary-action"]');
+    await expect(primaryAction).toBeVisible();
+
+    // [FIXUP-2] Strict: must be "Request approval" OR "View approval status", NOT "Review drafts"
+    const actionText = await primaryAction.textContent();
+    expect(actionText).toMatch(/Request approval|View approval status/);
+    expect(actionText).not.toBe('Review drafts');
   });
 
   // ==========================================================================
-  // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Fix Next Routing Tests
+  // [FIXUP-2] Fix Next Routing Tests
   // ==========================================================================
 
-  test('LAC1-015: Fix next action routes to issue fix destination (not Issues list)', async ({
+  test('LAC1-015: Fix next action routes to product workspace (not Issues list)', async ({
     page,
   }) => {
     await page.goto('/login');
@@ -384,21 +417,20 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/products`);
-
-    // Wait for products to load
     await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
 
-    // Find "Fix next" link for products with issues
-    const fixNextLink = page.locator('[data-testid="row-primary-action"]:has-text("Fix next")').first();
+    // [FIXUP-2] Row-scoped assertion for needs-attention product
+    const needsAttentionRow = getRowByTitle(page, SEEDED_TITLES.products.needsAttention);
+    const fixNextLink = needsAttentionRow.locator('[data-testid="row-primary-action"]:has-text("Fix next")');
 
-    if (await fixNextLink.isVisible()) {
-      const href = await fixNextLink.getAttribute('href');
+    await expect(fixNextLink).toBeVisible();
+    const href = await fixNextLink.getAttribute('href');
 
-      // Assert the href routes to a product workspace (issue fix surface), not Issues list
-      expect(href).toContain('/products/');
-      // Should contain returnTo for navigation back
-      expect(href).toContain('returnTo');
-    }
+    // Assert routes to product workspace (issue fix surface), not Issues list
+    expect(href).toContain('/products/');
+    expect(href).not.toContain('/issues');
+    // Should contain returnTo for navigation back
+    expect(href).toContain('returnTo');
   });
 
   test('LAC1-016: View issues action in Collections includes returnTo context', async ({
@@ -410,20 +442,48 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/assets/collections`);
-
-    // Wait for collections to load
     await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
 
-    // Find "View issues" link
-    const viewIssuesLink = page.locator('[data-testid="row-primary-action"]:has-text("View issues")').first();
+    // [FIXUP-2] Row-scoped assertion for needs-attention collection
+    const needsAttentionRow = getRowByTitle(page, SEEDED_TITLES.collections.needsAttention);
+    const viewIssuesLink = needsAttentionRow.locator('[data-testid="row-primary-action"]:has-text("View issues")');
 
-    if (await viewIssuesLink.isVisible()) {
-      const href = await viewIssuesLink.getAttribute('href');
+    await expect(viewIssuesLink).toBeVisible();
+    const href = await viewIssuesLink.getAttribute('href');
 
-      // Assert the href contains asset filter and returnTo params
-      expect(href).toContain('/issues');
-      expect(href).toContain('assetType=collections');
-      expect(href).toContain('returnTo');
-    }
+    expect(href).toContain('/issues');
+    expect(href).toContain('assetType=collections');
+    expect(href).toContain('returnTo');
+  });
+
+  // ==========================================================================
+  // [FIXUP-2] Regression: No "Apply" Action on List Rows
+  // ==========================================================================
+
+  test('LAC1-017: No Apply action appears on any list row (Products/Pages/Collections)', async ({
+    page,
+  }) => {
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, seedData.accessToken);
+
+    // Check Products list
+    await page.goto(`/projects/${seedData.projectId}/products`);
+    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await expect(page.locator('[data-testid="row-primary-action"]:has-text("Apply")')).toHaveCount(0);
+    await expect(page.locator('[data-testid="row-secondary-action"]:has-text("Apply")')).toHaveCount(0);
+
+    // Check Pages list
+    await page.goto(`/projects/${seedData.projectId}/assets/pages`);
+    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await expect(page.locator('[data-testid="row-primary-action"]:has-text("Apply")')).toHaveCount(0);
+    await expect(page.locator('[data-testid="row-secondary-action"]:has-text("Apply")')).toHaveCount(0);
+
+    // Check Collections list
+    await page.goto(`/projects/${seedData.projectId}/assets/collections`);
+    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await expect(page.locator('[data-testid="row-primary-action"]:has-text("Apply")')).toHaveCount(0);
+    await expect(page.locator('[data-testid="row-secondary-action"]:has-text("Apply")')).toHaveCount(0);
   });
 });

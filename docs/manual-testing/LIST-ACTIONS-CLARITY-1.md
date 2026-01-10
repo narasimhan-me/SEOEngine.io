@@ -58,20 +58,15 @@ Provides consistent visual vocabulary and actionable links for each asset state.
 
 ### 2. Needs Attention Product Row
 - [ ] Product with incomplete SEO (missing title or description, or length outside optimal range)
-- [ ] **Expected**: Yellow "Needs attention" chip
-- [ ] **Expected**: "Fix next" primary action linking to Issues Engine
+- [ ] **Expected**: Yellow "⚠ Needs attention" chip
+- [ ] **Expected**: "Fix next" primary action routes to the Issue→Fix deep link (product workspace fix surface), preserving returnTo
 - [ ] **Expected**: "Open" secondary action
 
 ### 3. Draft Saved Product Row
 - [ ] Product appearing in a non-applied AutomationPlaybookDraft (status READY or PARTIAL)
-- [ ] **Expected**: Blue "Draft saved (not applied)" chip
+- [ ] **Expected**: Blue "🟡 Draft saved (not applied)" chip
 - [ ] **Expected**: "Review drafts" primary action linking to Work Queue
 - [ ] **Expected**: "Open" secondary action
-
-### 4. Blocked Product Row (Future - ROLES-3 Integration)
-- [ ] Product with pending draft but user lacks OWNER role to apply
-- [ ] **Expected**: Red "Blocked" chip
-- [ ] **Expected**: "Request approval" or "View approval status" primary action
 
 ---
 
@@ -130,7 +125,7 @@ Provides consistent visual vocabulary and actionable links for each asset state.
 ### 2. Asset Filter Functionality
 - [ ] Apply asset filter for a product with known issues
 - [ ] **Expected**: Only issues affecting that specific product are shown
-- [ ] For pages/collections: Only issues affecting that asset type are shown
+- [ ] For pages/collections: Only issues affecting that specific asset are shown
 
 ### 3. Return Navigation
 - [ ] Click "View issues" from Products list row
@@ -177,7 +172,6 @@ Returns:
 - Full approval workflow (submit, review, approve)
 - Bulk actions from list pages
 - Real-time draft sync
-- Per-asset issues for crawl results (requires backend affectedCrawlResults)
 
 ---
 

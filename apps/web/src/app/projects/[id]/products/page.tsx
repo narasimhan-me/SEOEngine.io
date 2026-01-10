@@ -68,7 +68,6 @@ export default function ProductsPage() {
 
   // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Role capabilities state
   const [capabilities, setCapabilities] = useState<RoleCapabilities | null>(null);
-  const [requireApprovalForApply, setRequireApprovalForApply] = useState(false);
 
   const feedback = useFeedback();
 
@@ -132,17 +131,13 @@ export default function ProductsPage() {
     }
   }, [projectId]);
 
-  // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Fetch user role + governance
+  // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Fetch user role capabilities
   const fetchCapabilities = useCallback(async () => {
     try {
-      const [roleResponse, governanceResponse] = await Promise.all([
-        projectsApi.getUserRole(projectId),
-        projectsApi.getGovernancePolicy(projectId).catch(() => ({ requireApprovalForApply: false })),
-      ]);
+      const roleResponse = await projectsApi.getUserRole(projectId);
       setCapabilities(roleResponse.capabilities);
-      setRequireApprovalForApply(governanceResponse.requireApprovalForApply);
     } catch (err) {
-      console.error('Error fetching role/governance:', err);
+      console.error('Error fetching role:', err);
       // Default to permissive if fetch fails
       setCapabilities({
         canView: true,
