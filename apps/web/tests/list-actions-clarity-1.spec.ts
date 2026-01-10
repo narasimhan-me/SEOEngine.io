@@ -340,6 +340,15 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     await expect(page.locator('button:has-text("Generate")')).not.toBeVisible();
     await expect(page.locator('button:has-text("Regenerate")')).not.toBeVisible();
     await expect(page.locator(':text("AI suggestion")')).not.toBeVisible();
+
+    // [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Assert no AI/apply CTAs on Drafts tab (non-brittle absence assertions)
+    // The header action cluster should be hidden on Drafts tab
+    await expect(page.locator('[data-testid="header-draft-state-indicator"]')).toHaveCount(0);
+    await expect(page.locator('button:has-text("Automate this fix")')).toHaveCount(0);
+    await expect(page.locator('[data-testid="header-apply-to-shopify-button"]')).toHaveCount(0);
+
+    // The CNAB-1 banner with "Generate drafts, review, then apply to Shopify" should not appear
+    await expect(page.locator(':text("Generate drafts, review, then apply to Shopify")')).toHaveCount(0);
   });
 
   /**

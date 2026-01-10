@@ -812,6 +812,8 @@ export default function ProductOptimizationPage() {
       const response = await projectsApi.updateDraftItem(projectId, draftId, itemIndex, draftsTabEditValue);
 
       // Update local state with the server response
+      // [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Use item.itemIndex for stable matching
+      // (filteredItems is a subset; idx may not equal item.itemIndex)
       setDraftsTabData((prev) => {
         if (!prev) return prev;
         return {
@@ -822,7 +824,9 @@ export default function ProductOptimizationPage() {
               ...draft,
               updatedAt: response.updatedAt,
               filteredItems: draft.filteredItems.map((item, idx) => {
-                if (idx !== itemIndex) return item;
+                // Use item.itemIndex for stable comparison; fall back to idx if absent
+                const itemServerIndex = item.itemIndex ?? idx;
+                if (itemServerIndex !== itemIndex) return item;
                 return {
                   ...item,
                   finalSuggestion: draftsTabEditValue,
@@ -991,47 +995,51 @@ export default function ProductOptimizationPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Compact header draft state indicator */}
-                <span
-                  data-testid="header-draft-state-indicator"
-                  className={`hidden sm:inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                    draftState === 'unsaved'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : draftState === 'saved'
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-green-100 text-green-800'
-                  }`}
-                >
-                  {draftState === 'unsaved' && 'Draft — not applied'}
-                  {draftState === 'saved' && 'Draft saved — not applied'}
-                  {draftState === 'applied' && (
-                    <>Applied to Shopify on {appliedAt ? new Date(appliedAt).toLocaleDateString() : product?.lastOptimizedAt ? new Date(product.lastOptimizedAt).toLocaleDateString() : '—'}</>
-                  )}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleAutomateThisFix}
-                  className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-                >
-                  Automate this fix
-                </button>
-                {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Header Apply button - disabled unless draft is saved */}
-                <button
-                  type="button"
-                  data-testid="header-apply-to-shopify-button"
-                  onClick={handleApplyToShopify}
-                  disabled={applyingToShopify || !canApplyToShopify}
-                  title={
-                    !canApplyToShopify
-                      ? 'Save draft first; Apply uses saved drafts only and never auto-saves.'
-                      : 'Apply saved draft to Shopify'
-                  }
-                  className="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {applyingToShopify ? 'Applying…' : 'Apply to Shopify'}
-                </button>
-              </div>
+              {/* [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Hide AI/generation + apply CTAs on Drafts tab */}
+              {/* Draft Review is human-only - no AI actions, no apply, no automation */}
+              {activeTab !== 'drafts' && (
+                <div className="flex items-center gap-2">
+                  {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Compact header draft state indicator */}
+                  <span
+                    data-testid="header-draft-state-indicator"
+                    className={`hidden sm:inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                      draftState === 'unsaved'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : draftState === 'saved'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-green-100 text-green-800'
+                    }`}
+                  >
+                    {draftState === 'unsaved' && 'Draft — not applied'}
+                    {draftState === 'saved' && 'Draft saved — not applied'}
+                    {draftState === 'applied' && (
+                      <>Applied to Shopify on {appliedAt ? new Date(appliedAt).toLocaleDateString() : product?.lastOptimizedAt ? new Date(product.lastOptimizedAt).toLocaleDateString() : '—'}</>
+                    )}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleAutomateThisFix}
+                    className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                  >
+                    Automate this fix
+                  </button>
+                  {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Header Apply button - disabled unless draft is saved */}
+                  <button
+                    type="button"
+                    data-testid="header-apply-to-shopify-button"
+                    onClick={handleApplyToShopify}
+                    disabled={applyingToShopify || !canApplyToShopify}
+                    title={
+                      !canApplyToShopify
+                        ? 'Save draft first; Apply uses saved drafts only and never auto-saves.'
+                        : 'Apply saved draft to Shopify'
+                    }
+                    className="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {applyingToShopify ? 'Applying…' : 'Apply to Shopify'}
+                  </button>
+                </div>
+              )}
             </div>
             {/* [DEO-UX-REFRESH-1] Tab bar replacing "Jump to:" anchors */}
             {/* [ISSUE-TO-FIX-PATH-1] Pass actionable issue count, not total */}
@@ -1211,7 +1219,8 @@ export default function ProductOptimizationPage() {
           })()}
 
           {/* CNAB-1: Product optimization banner */}
-          {(productIssues.length > 0 || status === 'missing-metadata' || status === 'needs-optimization') && (
+          {/* [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Hide AI/generation banner on Drafts tab */}
+          {activeTab !== 'drafts' && (productIssues.length > 0 || status === 'missing-metadata' || status === 'needs-optimization') && (
             <div className="mb-6 mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0">
@@ -1252,10 +1261,11 @@ export default function ProductOptimizationPage() {
           )}
 
           {/* Error message */}
+          {/* [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Hide AI limit upsell on Drafts tab */}
           {error && (
             <div className="mb-6 rounded border border-red-400 bg-red-100 p-4 text-red-700">
               <p>{error}</p>
-              {isAiLimitError && (
+              {isAiLimitError && activeTab !== 'drafts' && (
                 <p className="mt-2">
                   <Link
                     href="/settings/billing"

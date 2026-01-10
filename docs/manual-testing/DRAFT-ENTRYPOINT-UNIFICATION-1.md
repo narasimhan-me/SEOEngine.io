@@ -59,6 +59,20 @@ This document covers manual testing for DRAFT-ENTRYPOINT-UNIFICATION-1, which un
   - Edit button
 - No "Generate" or "Regenerate" buttons (AI is not invoked)
 
+### 3a. [FIXUP-1] Non-AI Surface Verification (Drafts Tab)
+
+**Steps:**
+1. Navigate to Product detail Drafts tab (`?tab=drafts`)
+2. Inspect the page header and banners
+
+**Expected:**
+- No "Generate drafts, review, then apply to Shopify" copy appears
+- No "Automate this fix" button in the header
+- No "Apply to Shopify" button in the header
+- No draft state indicator (`data-testid="header-draft-state-indicator"`) in the header
+- No AI limit upsell link ("Upgrade your plan to unlock more AI suggestions")
+- The CNAB-1 optimization banner is NOT visible on Drafts tab
+
 ### 4. Drafts Tab Content - No Drafts
 
 **Steps:**
@@ -67,7 +81,7 @@ This document covers manual testing for DRAFT-ENTRYPOINT-UNIFICATION-1, which un
 
 **Expected:**
 - Empty state is visible (`data-testid="drafts-tab-empty"`)
-- Message: "No drafts available for this product."
+- Message: "No drafts saved for this product."
 - Optional: Link to Issues Engine for the product
 
 ### 5. Inline Edit Mode

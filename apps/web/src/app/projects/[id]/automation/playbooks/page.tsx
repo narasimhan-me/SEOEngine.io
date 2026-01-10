@@ -441,6 +441,8 @@ export default function AutomationPlaybooksPage() {
       const response = await projectsApi.updateDraftItem(projectId, draftId, itemIndex, editValue);
 
       // Update local state with the server response
+      // [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Use item.itemIndex for stable matching
+      // (filteredItems is a subset; idx may not equal item.itemIndex)
       setDraftReviewData((prev) => {
         if (!prev) return prev;
         return {
@@ -451,7 +453,9 @@ export default function AutomationPlaybooksPage() {
               ...draft,
               updatedAt: response.updatedAt,
               filteredItems: draft.filteredItems.map((item, idx) => {
-                if (idx !== itemIndex) return item;
+                // Use item.itemIndex for stable comparison; fall back to idx if absent
+                const itemServerIndex = item.itemIndex ?? idx;
+                if (itemServerIndex !== itemIndex) return item;
                 // Update the finalSuggestion with the edited value
                 return {
                   ...item,
