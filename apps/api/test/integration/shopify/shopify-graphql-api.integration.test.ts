@@ -132,8 +132,8 @@ describe('Shopify GraphQL product APIs (integration)', () => {
     };
 
     const automationServiceStub: any = {
-      runNewProductSeoTitleAutomation: jest.fn(),
-      triggerAnswerBlockAutomationForProduct: jest.fn(),
+      runNewProductSeoTitleAutomation: jest.fn().mockResolvedValue(undefined),
+      triggerAnswerBlockAutomationForProduct: jest.fn().mockResolvedValue(undefined),
     };
 
     const shopifyService = new ShopifyService(
@@ -241,8 +241,8 @@ describe('Shopify GraphQL product APIs (integration)', () => {
     };
 
     const automationServiceStub: any = {
-      runNewProductSeoTitleAutomation: jest.fn(),
-      triggerAnswerBlockAutomationForProduct: jest.fn(),
+      runNewProductSeoTitleAutomation: jest.fn().mockResolvedValue(undefined),
+      triggerAnswerBlockAutomationForProduct: jest.fn().mockResolvedValue(undefined),
     };
 
     const shopifyService = new ShopifyService(

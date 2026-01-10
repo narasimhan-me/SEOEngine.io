@@ -41,3 +41,9 @@
 // - Add real describe/it/test blocks and selectors once Dashboard/Product Workspace automation UX
 //   is implemented and routes/components are stable.
 // - Reuse existing E2E helpers (auth, project setup, Shopify connect) when available.
+
+describe.skip('Automation Flows E2E (scaffolding)', () => {
+  it('placeholder - tests to be implemented', () => {
+    // Placeholder test to prevent Jest from failing on empty test suite
+  });
+});

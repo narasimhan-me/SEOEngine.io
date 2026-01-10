@@ -36,10 +36,22 @@ pnpm test:unit || {
   exit 1
 }
 
-# Run critical integration tests
-echo "🔐 Running critical integration tests..."
-pnpm test:api:critical || {
-  echo "❌ Critical integration tests failed. Please fix the failing tests and try again."
+# Run all integration tests
+echo "🔐 Running all integration tests..."
+echo "⚠️  Note: Integration tests require a test database."
+echo "   If tests fail due to database connection, set up the test database:"
+echo "   1. Create database: CREATE DATABASE engineo_test;"
+echo "   2. Set DATABASE_URL_TEST in apps/api/.env.test"
+echo "   3. Run: cd apps/api && pnpm db:test:migrate"
+echo ""
+NODE_ENV=test ENGINEO_ENV=test pnpm test:api || {
+  echo ""
+  echo "❌ Integration tests failed."
+  echo ""
+  echo "If the failure is due to database connection issues:"
+  echo "  1. Set up the test database (see apps/api/TEST_DB_SETUP_GUIDE.md)"
+  echo "  2. Or skip with: git push --no-verify (not recommended)"
+  echo ""
   exit 1
 }
 

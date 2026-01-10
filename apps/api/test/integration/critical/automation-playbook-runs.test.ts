@@ -16,7 +16,7 @@ import { EntitlementsService } from '../../../src/billing/entitlements.service';
 import { TokenUsageService } from '../../../src/ai/token-usage.service';
 
 // Mock the queue for integration tests
-jest.mock('../../../../src/queues/queues', () => ({
+jest.mock('../../../src/queues/queues', () => ({
   playbookRunQueue: null,
 }));
 

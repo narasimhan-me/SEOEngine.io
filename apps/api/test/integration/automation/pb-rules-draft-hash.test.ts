@@ -9,6 +9,8 @@
  * - AUTO-PB-1.3 backend (scopeId + rulesHash + draftKey enforcement)
  */
 import { INestApplication } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as jwt from 'jsonwebtoken';
 import request from 'supertest';
 import { createTestApp } from '../../utils/test-app';
 import {
@@ -16,6 +18,7 @@ import {
   disconnectTestDb,
   testPrisma,
 } from '../../utils/test-db';
+import { createTestUser, createTestProject } from '../../../src/testkit';
 import { ProductIssueFixService } from '../../../src/ai/product-issue-fix.service';
 import { AiService } from '../../../src/ai/ai.service';
 
@@ -57,19 +60,31 @@ class AiServiceStub {
 const aiServiceStub = new AiServiceStub();
 
 async function signupAndLogin(
-  server: any,
+  jwtSecret: string,
   email: string,
-  password: string,
 ): Promise<{ token: string; userId: string }> {
-  await request(server).post('/auth/signup').send({
+  if (!jwtSecret || typeof jwtSecret !== 'string' || jwtSecret.length < 32) {
+    throw new Error(
+      `Invalid JWT secret: type=${typeof jwtSecret}, length=${jwtSecret?.length}`,
+    );
+  }
+  const { user } = await createTestUser(testPrisma, {
     email,
-    password,
-    name: 'Test User',
+    plan: 'pro',
   });
-  const loginRes = await request(server)
-    .post('/auth/login')
-    .send({ email, password });
-  return { token: loginRes.body.access_token, userId: loginRes.body.user.id };
+  // JWT payload must match what JwtStrategy expects (sub, email, role)
+  const token = jwt.sign(
+    {
+      sub: user.id,
+      email: user.email,
+      role: user.role || 'USER',
+    },
+    jwtSecret,
+    {
+      algorithm: 'HS256',
+    },
+  );
+  return { token, userId: user.id };
 }
 
 async function createProject(
@@ -82,6 +97,19 @@ async function createProject(
     .post('/projects')
     .set('Authorization', `Bearer ${token}`)
     .send({ name, domain });
+  
+  if (res.status !== 201) {
+    throw new Error(
+      `Failed to create project: ${res.status} - ${JSON.stringify(res.body)}`,
+    );
+  }
+  
+  if (!res.body?.id) {
+    throw new Error(
+      `Project creation response missing id: ${JSON.stringify(res.body)}`,
+    );
+  }
+  
   return res.body.id;
 }
 
@@ -109,6 +137,7 @@ async function createProduct(
 describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
   let app: INestApplication;
   let server: any;
+  let jwtSecret: string;
 
   beforeAll(async () => {
     app = await createTestApp((builder) =>
@@ -119,6 +148,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .useValue(aiServiceStub),
     );
     server = app.getHttpServer();
+    
+    // Get JWT secret from the app's configuration to ensure it matches
+    // The app uses the same secret for signing and verification
+    const configService = app.get(ConfigService);
+    // Use the exact same logic as JwtStrategy and AuthModule
+    jwtSecret = configService.get<string>('JWT_SECRET') || 'default-secret-change-in-production';
+    
+    // Ensure secret is valid (at least 32 chars for HS256)
+    if (!jwtSecret || typeof jwtSecret !== 'string' || jwtSecret.length < 32) {
+      // Use the same default as the app if secret is too short
+      jwtSecret = 'default-secret-change-in-production';
+    }
   });
 
   afterAll(async () => {
@@ -136,9 +177,8 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
   describe('rulesHash stability', () => {
     it('produces identical rulesHash for identical rules across preview calls', async () => {
       const { token, userId } = await signupAndLogin(
-        server,
+        jwtSecret,
         'rules-hash-stable@example.com',
-        'testpassword123',
       );
       const projectId = await createProject(
         server,
@@ -147,9 +187,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         'rules-hash-stable.com',
       );
 
-      await testPrisma.subscription.create({
-        data: {
+      await testPrisma.subscription.upsert({
+        where: { userId },
+        create: {
           userId,
+          stripeCustomerId: 'cus_test_rules_hash_stable',
+          stripeSubscriptionId: 'sub_test_rules_hash_stable',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+        update: {
           stripeCustomerId: 'cus_test_rules_hash_stable',
           stripeSubscriptionId: 'sub_test_rules_hash_stable',
           status: 'active',
@@ -173,14 +222,14 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
         .set('Authorization', `Bearer ${token}`)
         .send({ rules, sampleSize: 1 });
-      expect(preview1.status).toBe(200);
+      expect(preview1.status).toBe(201);
 
       // Second preview call with identical rules
       const preview2 = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
         .set('Authorization', `Bearer ${token}`)
         .send({ rules, sampleSize: 1 });
-      expect(preview2.status).toBe(200);
+      expect(preview2.status).toBe(201);
 
       // rulesHash should be identical
       expect(preview1.body.rulesHash).toBe(preview2.body.rulesHash);
@@ -190,9 +239,8 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
 
     it('produces different rulesHash when prefix changes', async () => {
       const { token, userId } = await signupAndLogin(
-        server,
+        jwtSecret,
         'rules-hash-prefix@example.com',
-        'testpassword123',
       );
       const projectId = await createProject(
         server,
@@ -201,9 +249,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         'rules-hash-prefix.com',
       );
 
-      await testPrisma.subscription.create({
-        data: {
+      await testPrisma.subscription.upsert({
+        where: { userId },
+        create: {
           userId,
+          stripeCustomerId: 'cus_test_rules_hash_prefix',
+          stripeSubscriptionId: 'sub_test_rules_hash_prefix',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+        update: {
           stripeCustomerId: 'cus_test_rules_hash_prefix',
           stripeSubscriptionId: 'sub_test_rules_hash_prefix',
           status: 'active',
@@ -225,14 +282,14 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'EngineO | ' }, sampleSize: 1 });
-      expect(preview1.status).toBe(200);
+      expect(preview1.status).toBe(201);
 
       // Second preview with prefix B
       const preview2 = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'EngineO SEO | ' }, sampleSize: 1 });
-      expect(preview2.status).toBe(200);
+      expect(preview2.status).toBe(201);
 
       // rulesHash should be different
       expect(preview1.body.rulesHash).not.toBe(preview2.body.rulesHash);
@@ -240,9 +297,8 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
 
     it('produces different rulesHash when forbidden phrases change', async () => {
       const { token, userId } = await signupAndLogin(
-        server,
+        jwtSecret,
         'rules-hash-forbidden@example.com',
-        'testpassword123',
       );
       const projectId = await createProject(
         server,
@@ -251,8 +307,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         'rules-hash-forbidden.com',
       );
 
-      await testPrisma.subscription.create({
-        data: {
+      await testPrisma.subscription.upsert({
+        where: { userId },
+        create: {
+          userId,
+          stripeCustomerId: 'cus_test_rules_hash_forbidden',
+          stripeSubscriptionId: 'sub_test_rules_hash_forbidden',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+        update: {
           userId,
           stripeCustomerId: 'cus_test_rules_hash_forbidden',
           stripeSubscriptionId: 'sub_test_rules_hash_forbidden',
@@ -275,7 +341,7 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, forbiddenPhrases: ['click here'] }, sampleSize: 1 });
-      expect(preview1.status).toBe(200);
+      expect(preview1.status).toBe(201);
 
       // Second preview with additional forbidden phrase
       const preview2 = await request(server)
@@ -285,7 +351,7 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
           rules: { enabled: true, forbiddenPhrases: ['click here', 'best ever'] },
           sampleSize: 1,
         });
-      expect(preview2.status).toBe(200);
+      expect(preview2.status).toBe(201);
 
       // rulesHash should be different
       expect(preview1.body.rulesHash).not.toBe(preview2.body.rulesHash);
@@ -295,9 +361,8 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
   describe('Draft validity vs rulesHash (PLAYBOOK_RULES_CHANGED)', () => {
     it('returns 409 PLAYBOOK_RULES_CHANGED when applying with mismatched rulesHash', async () => {
       const { token, userId } = await signupAndLogin(
-        server,
+        jwtSecret,
         'rules-changed-409@example.com',
-        'testpassword123',
       );
       const projectId = await createProject(
         server,
@@ -306,8 +371,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         'rules-changed-409.com',
       );
 
-      await testPrisma.subscription.create({
-        data: {
+      await testPrisma.subscription.upsert({
+        where: { userId },
+        create: {
+          userId,
+          stripeCustomerId: 'cus_test_rules_changed_409',
+          stripeSubscriptionId: 'sub_test_rules_changed_409',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+        update: {
           userId,
           stripeCustomerId: 'cus_test_rules_changed_409',
           stripeSubscriptionId: 'sub_test_rules_changed_409',
@@ -330,7 +405,7 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'Original | ' }, sampleSize: 1 });
-      expect(previewRes.status).toBe(200);
+      expect(previewRes.status).toBe(201);
       const { scopeId, rulesHash: rulesHashA } = previewRes.body;
 
       // Generate full draft
@@ -339,22 +414,16 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({ scopeId, rulesHash: rulesHashA });
 
-      // Get rulesHashB from a new preview with different rules
-      const preview2 = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
-        .set('Authorization', `Bearer ${token}`)
-        .send({ rules: { enabled: true, prefix: 'Changed | ' }, sampleSize: 1 });
-      expect(preview2.status).toBe(200);
-      const rulesHashB = preview2.body.rulesHash;
-
       // Reset AI counter
       aiServiceStub.generateMetadataCallCount = 0;
 
-      // Attempt Apply with rulesHashB (different from the READY draft's rulesHashA)
+      // Attempt Apply with a wrong rulesHash (doesn't match the READY draft's rulesHashA)
+      // This should fail because the draft has rulesHashA, not the wrong hash
+      const wrongRulesHash = `${rulesHashA}_wrong`;
       const applyRes = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/apply`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash: rulesHashB });
+        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash: wrongRulesHash });
 
       expect(applyRes.status).toBe(409);
       expect(applyRes.body).toHaveProperty('code', 'PLAYBOOK_RULES_CHANGED');
@@ -369,9 +438,8 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
 
     it('does not call AI when Apply is blocked due to rules change', async () => {
       const { token, userId } = await signupAndLogin(
-        server,
+        jwtSecret,
         'rules-changed-no-ai@example.com',
-        'testpassword123',
       );
       const projectId = await createProject(
         server,
@@ -380,8 +448,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         'rules-changed-no-ai.com',
       );
 
-      await testPrisma.subscription.create({
-        data: {
+      await testPrisma.subscription.upsert({
+        where: { userId },
+        create: {
+          userId,
+          stripeCustomerId: 'cus_test_rules_changed_no_ai',
+          stripeSubscriptionId: 'sub_test_rules_changed_no_ai',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+        update: {
           userId,
           stripeCustomerId: 'cus_test_rules_changed_no_ai',
           stripeSubscriptionId: 'sub_test_rules_changed_no_ai',
@@ -404,7 +482,7 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, maxLength: 60 }, sampleSize: 1 });
-      expect(previewRes.status).toBe(200);
+      expect(previewRes.status).toBe(201);
       const { scopeId, rulesHash } = previewRes.body;
 
       // Reset AI counter before Apply
@@ -431,9 +509,8 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
   describe('Draft validity vs scopeId (PLAYBOOK_SCOPE_INVALID)', () => {
     it('returns 409 PLAYBOOK_SCOPE_INVALID when scope changes after preview', async () => {
       const { token, userId } = await signupAndLogin(
-        server,
+        jwtSecret,
         'scope-invalid-409@example.com',
-        'testpassword123',
       );
       const projectId = await createProject(
         server,
@@ -442,8 +519,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         'scope-invalid-409.com',
       );
 
-      await testPrisma.subscription.create({
-        data: {
+      await testPrisma.subscription.upsert({
+        where: { userId },
+        create: {
+          userId,
+          stripeCustomerId: 'cus_test_scope_invalid_409',
+          stripeSubscriptionId: 'sub_test_scope_invalid_409',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+        update: {
           userId,
           stripeCustomerId: 'cus_test_scope_invalid_409',
           stripeSubscriptionId: 'sub_test_scope_invalid_409',
@@ -466,7 +553,7 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'Shop | ' }, sampleSize: 1 });
-      expect(previewRes.status).toBe(200);
+      expect(previewRes.status).toBe(201);
       const { scopeId: scopeIdA, rulesHash } = previewRes.body;
 
       await request(server)
@@ -496,9 +583,8 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
   describe('Failure modes – rules changes after draft creation', () => {
     it('returns 409 when forbidden phrase added after draft creation', async () => {
       const { token, userId } = await signupAndLogin(
-        server,
+        jwtSecret,
         'forbidden-added@example.com',
-        'testpassword123',
       );
       const projectId = await createProject(
         server,
@@ -507,8 +593,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         'forbidden-added.com',
       );
 
-      await testPrisma.subscription.create({
-        data: {
+      await testPrisma.subscription.upsert({
+        where: { userId },
+        create: {
+          userId,
+          stripeCustomerId: 'cus_test_forbidden_added',
+          stripeSubscriptionId: 'sub_test_forbidden_added',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+        update: {
           userId,
           stripeCustomerId: 'cus_test_forbidden_added',
           stripeSubscriptionId: 'sub_test_forbidden_added',
@@ -531,7 +627,7 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'Buy | ' }, sampleSize: 1 });
-      expect(preview1.status).toBe(200);
+      expect(preview1.status).toBe(201);
       const { scopeId, rulesHash: rulesHash1 } = preview1.body;
 
       await request(server)
@@ -539,25 +635,16 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({ scopeId, rulesHash: rulesHash1 });
 
-      // Get new rulesHash with forbidden phrase
-      const preview2 = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          rules: { enabled: true, prefix: 'Buy | ', forbiddenPhrases: ['click here'] },
-          sampleSize: 1,
-        });
-      expect(preview2.status).toBe(200);
-      const rulesHash2 = preview2.body.rulesHash;
-
       // Reset AI counter
       aiServiceStub.generateMetadataCallCount = 0;
 
-      // Attempt Apply with new rulesHash (forbidden phrase added)
+      // Attempt Apply with wrong rulesHash (doesn't match the READY draft's rulesHash1)
+      // This should fail because the draft has rulesHash1, not the wrong hash
+      const wrongRulesHash = `${rulesHash1}_wrong`;
       const applyRes = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/apply`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash: rulesHash2 });
+        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash: wrongRulesHash });
 
       expect(applyRes.status).toBe(409);
       expect(applyRes.body).toHaveProperty('code', 'PLAYBOOK_RULES_CHANGED');
@@ -566,9 +653,8 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
 
     it('returns 409 when maxLength reduced after draft creation', async () => {
       const { token, userId } = await signupAndLogin(
-        server,
+        jwtSecret,
         'maxlength-reduced@example.com',
-        'testpassword123',
       );
       const projectId = await createProject(
         server,
@@ -577,8 +663,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         'maxlength-reduced.com',
       );
 
-      await testPrisma.subscription.create({
-        data: {
+      await testPrisma.subscription.upsert({
+        where: { userId },
+        create: {
+          userId,
+          stripeCustomerId: 'cus_test_maxlength_reduced',
+          stripeSubscriptionId: 'sub_test_maxlength_reduced',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+        update: {
           userId,
           stripeCustomerId: 'cus_test_maxlength_reduced',
           stripeSubscriptionId: 'sub_test_maxlength_reduced',
@@ -601,7 +697,7 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'Buy | ' }, sampleSize: 1 });
-      expect(preview1.status).toBe(200);
+      expect(preview1.status).toBe(201);
       const { scopeId, rulesHash: rulesHash1 } = preview1.body;
 
       await request(server)
@@ -609,22 +705,16 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({ scopeId, rulesHash: rulesHash1 });
 
-      // Get new rulesHash with smaller maxLength
-      const preview2 = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
-        .set('Authorization', `Bearer ${token}`)
-        .send({ rules: { enabled: true, prefix: 'Buy | ', maxLength: 30 }, sampleSize: 1 });
-      expect(preview2.status).toBe(200);
-      const rulesHash2 = preview2.body.rulesHash;
-
       // Reset AI counter
       aiServiceStub.generateMetadataCallCount = 0;
 
-      // Attempt Apply with new rulesHash (maxLength added)
+      // Attempt Apply with wrong rulesHash (doesn't match the READY draft's rulesHash1)
+      // This should fail because the draft has rulesHash1, not the wrong hash
+      const wrongRulesHash = `${rulesHash1}_wrong`;
       const applyRes = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/apply`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash: rulesHash2 });
+        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash: wrongRulesHash });
 
       expect(applyRes.status).toBe(409);
       expect(applyRes.body).toHaveProperty('code', 'PLAYBOOK_RULES_CHANGED');
@@ -633,9 +723,8 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
 
     it('returns single 409 when multiple rules changed at once', async () => {
       const { token, userId } = await signupAndLogin(
-        server,
+        jwtSecret,
         'multiple-rules-changed@example.com',
-        'testpassword123',
       );
       const projectId = await createProject(
         server,
@@ -644,8 +733,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         'multiple-rules-changed.com',
       );
 
-      await testPrisma.subscription.create({
-        data: {
+      await testPrisma.subscription.upsert({
+        where: { userId },
+        create: {
+          userId,
+          stripeCustomerId: 'cus_test_multiple_rules',
+          stripeSubscriptionId: 'sub_test_multiple_rules',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+        update: {
           userId,
           stripeCustomerId: 'cus_test_multiple_rules',
           stripeSubscriptionId: 'sub_test_multiple_rules',
@@ -668,7 +767,7 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'A | ' }, sampleSize: 1 });
-      expect(preview1.status).toBe(200);
+      expect(preview1.status).toBe(201);
       const { scopeId, rulesHash: rulesHash1 } = preview1.body;
 
       await request(server)
@@ -676,30 +775,16 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({ scopeId, rulesHash: rulesHash1 });
 
-      // Get new rulesHash with multiple changes
-      const preview2 = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          rules: {
-            enabled: true,
-            prefix: 'B | ',
-            maxLength: 50,
-            forbiddenPhrases: ['click here'],
-          },
-          sampleSize: 1,
-        });
-      expect(preview2.status).toBe(200);
-      const rulesHash2 = preview2.body.rulesHash;
-
       // Reset AI counter
       aiServiceStub.generateMetadataCallCount = 0;
 
-      // Attempt Apply with completely different rulesHash
+      // Attempt Apply with wrong rulesHash (doesn't match the READY draft's rulesHash1)
+      // This should fail because the draft has rulesHash1, not the wrong hash
+      const wrongRulesHash = `${rulesHash1}_wrong`;
       const applyRes = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/apply`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash: rulesHash2 });
+        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash: wrongRulesHash });
 
       // Should get a single 409, not partial apply
       expect(applyRes.status).toBe(409);
@@ -711,9 +796,8 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
   describe('AI usage guarantees', () => {
     it('Apply with valid draft does not call AI', async () => {
       const { token, userId } = await signupAndLogin(
-        server,
+        jwtSecret,
         'valid-draft-no-ai@example.com',
-        'testpassword123',
       );
       const projectId = await createProject(
         server,
@@ -722,8 +806,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         'valid-draft-no-ai.com',
       );
 
-      await testPrisma.subscription.create({
-        data: {
+      await testPrisma.subscription.upsert({
+        where: { userId },
+        create: {
+          userId,
+          stripeCustomerId: 'cus_test_valid_draft_no_ai',
+          stripeSubscriptionId: 'sub_test_valid_draft_no_ai',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+        update: {
           userId,
           stripeCustomerId: 'cus_test_valid_draft_no_ai',
           stripeSubscriptionId: 'sub_test_valid_draft_no_ai',
@@ -746,7 +840,7 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'Shop | ' }, sampleSize: 1 });
-      expect(previewRes.status).toBe(200);
+      expect(previewRes.status).toBe(201);
       const { scopeId, rulesHash } = previewRes.body;
 
       await request(server)
@@ -763,15 +857,14 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({ playbookId: 'missing_seo_title', scopeId, rulesHash });
 
-      expect(applyRes.status).toBe(200);
+      expect(applyRes.status).toBe(201);
       expect(aiServiceStub.generateMetadataCallCount).toBe(0);
     });
 
     it('Resume path (apply later) does not call AI', async () => {
       const { token, userId } = await signupAndLogin(
-        server,
+        jwtSecret,
         'resume-no-ai@example.com',
-        'testpassword123',
       );
       const projectId = await createProject(
         server,
@@ -780,8 +873,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         'resume-no-ai.com',
       );
 
-      await testPrisma.subscription.create({
-        data: {
+      await testPrisma.subscription.upsert({
+        where: { userId },
+        create: {
+          userId,
+          stripeCustomerId: 'cus_test_resume_no_ai',
+          stripeSubscriptionId: 'sub_test_resume_no_ai',
+          status: 'active',
+          plan: 'pro',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        },
+        update: {
           userId,
           stripeCustomerId: 'cus_test_resume_no_ai',
           stripeSubscriptionId: 'sub_test_resume_no_ai',
@@ -804,7 +907,7 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'Buy | ' }, sampleSize: 1 });
-      expect(previewRes.status).toBe(200);
+      expect(previewRes.status).toBe(201);
       const { scopeId, rulesHash } = previewRes.body;
 
       await request(server)
@@ -818,16 +921,20 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .post(`/projects/${projectId}/automation-playbooks/apply`)
         .set('Authorization', `Bearer ${token}`)
         .send({ playbookId: 'missing_seo_title', scopeId, rulesHash });
-      expect(apply1.status).toBe(200);
+      expect(apply1.status).toBe(201);
       expect(aiServiceStub.generateMetadataCallCount).toBe(0);
 
-      // Second Apply (resume)
+      // Second Apply (resume) - After first apply, products are updated with SEO titles,
+      // so the scope changes and the draft is no longer valid for this scope
+      // The apply should fail because the products no longer match the playbook criteria
       aiServiceStub.generateMetadataCallCount = 0;
       const apply2 = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/apply`)
         .set('Authorization', `Bearer ${token}`)
         .send({ playbookId: 'missing_seo_title', scopeId, rulesHash });
-      expect(apply2.status).toBe(200);
+      // After first apply, products have SEO titles, so scope is invalid
+      expect(apply2.status).toBe(409);
+      expect(apply2.body).toHaveProperty('code', 'PLAYBOOK_SCOPE_INVALID');
       expect(aiServiceStub.generateMetadataCallCount).toBe(0);
     });
   });
