@@ -1192,6 +1192,61 @@ DRAFT-ENTRYPOINT-UNIFICATION-1 unifies draft review entrypoints by adding a Draf
 
 ---
 
+### Phase DRAFT-REVIEW-ISOLATION-1: Structural Non-AI Boundary ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+DRAFT-REVIEW-ISOLATION-1 extracts the Product Drafts tab into an isolated module with a NON-AI BOUNDARY contract. This structural refactor prevents accidental AI creep into the Draft Review surface, enforcing the locked statement: "Draft Review stays human-only."
+
+**Trust Principle:** "If we promise human-only Draft Review, the code structure must enforce it."
+
+#### Why Isolation Exists
+
+1. **Prevent accidental AI creep**: Developers cannot accidentally import AI modules into Draft Review
+2. **Self-documenting contract**: The NON-AI BOUNDARY header makes the constraint explicit
+3. **Automated enforcement**: Guard test fails if forbidden imports are added
+4. **Code review signal**: Any PR touching `ProductDraftsTab.tsx` triggers immediate scrutiny
+
+#### NON-AI BOUNDARY Contract
+
+The `ProductDraftsTab.tsx` module must:
+1. Contain the header: `NON-AI BOUNDARY: Draft Review is human-only. Do not import aiApi or add AI generation actions here.`
+2. NOT import any of these forbidden tokens:
+   - `aiApi`
+   - `ProductAiSuggestionsPanel`
+   - `suggestProductMetadata`
+   - `generateProductAnswers`
+   - `AI_DAILY_LIMIT_REACHED`
+
+#### Completed Patches
+
+- ✅ **PATCH 1:** Extracted `ProductDraftsTab.tsx` with NON-AI BOUNDARY header and verbatim behavior
+- ✅ **PATCH 2:** Added `draft-review-isolation-1.spec.ts` guard test for forbidden imports
+- ✅ **PATCH 3:** Updated Product detail page to use isolated component (conditionally mounted to match standard tab behavior)
+- ✅ **PATCH 4:** Verified existing non-AI UI regression tests (LAC1-008) still pass
+- ✅ **PATCH 5:** Documentation updates (this section + manual testing doc)
+
+#### Core Files
+
+- `apps/web/src/components/products/ProductDraftsTab.tsx` (NEW - isolated non-AI module)
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` (delegates to ProductDraftsTab)
+- `apps/web/tests/draft-review-isolation-1.spec.ts` (NEW - no-AI import guard test)
+
+#### Test Coverage
+
+- **Guard Tests:** `apps/web/tests/draft-review-isolation-1.spec.ts` (DRI1-001, DRI1-002, DRI1-003)
+- **UI Tests:** `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-008 - existing non-AI assertions)
+- **Manual Testing:** `docs/manual-testing/DRAFT-REVIEW-ISOLATION-1.md`
+
+#### Behavior Changes
+
+None. This is a pure structural refactor with no behavioral changes.
+
+---
+
 ## In Progress
 
 *None at this time.*
@@ -1401,3 +1456,5 @@ These invariants MUST be preserved during implementation:
 | 6.23 | 2026-01-10 | **DRAFT-EDIT-INTEGRITY-1 COMPLETE**: Inline draft editing in Draft Review mode. Added `updateDraftItem()` service method with permission enforcement (OWNER/EDITOR only), `PATCH /projects/:id/automation-playbooks/drafts/:draftId/items/:itemIndex` endpoint, `projectsApi.updateDraftItem()` client method. Implemented per-item inline edit mode with Save changes / Cancel buttons (no autosave). Server draft is source of truth - edits persist and survive page reload. Playwright test LAC1-009 verifies edit + save + persistence + cancel flow. Manual testing doc in `DRAFT-EDIT-INTEGRITY-1.md`. |
 | 6.24 | 2026-01-10 | **DRAFT-ENTRYPOINT-UNIFICATION-1 COMPLETE**: Products list "Review drafts" now routes to Product detail Drafts tab (not Automation/Playbooks). Locked statements: (1) Product detail is the canonical draft review entrypoint for products; (2) Draft Review stays human-only (no AI); (3) Products list Review drafts does not route to Automation Draft Review. Added `buildProductDraftsTabHref()` helper, 'drafts' tab to ProductDetailsTabs, Drafts tab UI with fetch/edit/render, server-side `itemIndex` for accurate edit API calls. Pages/Collections continue using Automation Draft Review (`/automation/playbooks?mode=drafts`). Testkit seed updated to canonical draft shape. Playwright tests LAC1-008/009 updated. Manual testing doc in `DRAFT-ENTRYPOINT-UNIFICATION-1.md`. |
 | 6.25 | 2026-01-10 | **DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1**: Non-AI Drafts tab compliance + itemIndex correctness. (1) Drafts tab now suppresses AI/generation copy + apply/automation CTAs when `activeTab === 'drafts'` (header action cluster, CNAB-1 banner, AI limit upsell hidden); (2) Fixed itemIndex-based local update correctness in both Product detail Drafts tab and Playbooks Draft Review (was using loop `idx` instead of `item.itemIndex` for filtered subsets); (3) Tightened Playwright LAC1-008 regression coverage with `toHaveCount(0)` assertions for AI/apply elements; (4) Updated manual testing doc with non-AI surface verification (scenario 3a) and corrected empty state copy to "No drafts saved for this product." |
+| 6.26 | 2026-01-10 | **DRAFT-REVIEW-ISOLATION-1 COMPLETE**: Structural non-AI boundary for Product Drafts tab. Extracted `ProductDraftsTab.tsx` as isolated module with NON-AI BOUNDARY header comment. Module is forbidden from importing: `aiApi`, `ProductAiSuggestionsPanel`, `suggestProductMetadata`, `generateProductAnswers`, `AI_DAILY_LIMIT_REACHED`. Added `draft-review-isolation-1.spec.ts` guard test (DRI1-001/002/003) that reads source file and fails if forbidden tokens detected or header missing. Product detail page delegates Drafts tab rendering to isolated component. Pure structural refactor with no behavioral changes. Manual testing doc in `DRAFT-REVIEW-ISOLATION-1.md`. |
+| 6.27 | 2026-01-10 | **DRAFT-REVIEW-ISOLATION-1-FIXUP-1**: Strict "no behavior changes" alignment. (1) Removed `isActive` prop and `hasFetched` caching from ProductDraftsTab - restored simple "fetch on mount" semantics; (2) Restored conditional mounting in page.tsx (`activeTab === 'drafts'`) to match standard tab behavior; (3) Removed "Tab State Preservation" scenario from manual testing doc since state preservation across tab switches was a behavior change. Guard test and non-AI boundary remain in place. |
