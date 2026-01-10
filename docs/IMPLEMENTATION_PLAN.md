@@ -376,6 +376,61 @@ Trust-critical UX hardening for issue→fix path navigation.
 
 ---
 
+### Phase ROUTE-INTEGRITY-1: Deterministic Deep Links + Scope Banner ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+Trust hardening for deterministic deep link routing with visible navigation context.
+
+### Key Features
+
+1. **URL is Source of Truth**: All navigation context derived from URL params (from + returnTo)
+2. **Shared Route Context**: `route-context.ts` provides `withRouteContext()`, `getSafeReturnTo()`, `getReturnToFromCurrentUrl()`, `labelFrom()`
+3. **ScopeBanner Component**: Visible navigation context on destination surfaces with Back + Clear filters actions
+4. **Consistent Origin Enum**: Extended `FromContext` with `asset_list`, `issues_engine`, `playbook`
+
+### Locked Routing Contract
+
+- **from**: Origin context for back navigation (e.g., `store_health`, `work_queue`, `asset_list`)
+- **returnTo**: URL-encoded path to return to (includes filtered state like `?q=...`)
+- **Clear filters**: Always resets to base route without query params
+
+### ScopeBanner Surfaces
+
+- Issues Engine page
+- Playbooks page
+- Products list page
+- Pages list page
+- Collections list page
+- Product detail page
+
+### Test Coverage
+
+- **E2E Tests:** `apps/web/tests/route-integrity-1.spec.ts`
+- **Manual Testing:** `docs/manual-testing/ROUTE-INTEGRITY-1.md`
+
+### Critical Paths
+
+- Store Health → Issues Engine → Back (filter context preserved)
+- Products list (with filter) → Fix next → Back (original filter restored)
+- Work Queue → Playbooks → Back + Clear filters
+
+### FIXUP-1 (2026-01-10)
+
+1. **ScopeBanner Placement**: Moved ScopeBanner after page header on Playbooks and Issues Engine pages for consistent visual hierarchy
+2. **Strict E2E Tests**: Removed conditional guards, use correct test IDs (`store-health-card-discoverability`), tests now fail if elements aren't found
+3. **Dynamic Back Label**: Issues Engine back link now uses `labelFrom()` for dynamic context-aware label (no longer hardcoded "Back to Store Health")
+
+### FIXUP-2 (2026-01-10)
+
+1. **Issues Engine ScopeBanner "On Arrival"**: Moved ScopeBanner to immediately after h1 header row (before TripletDisplay/counts), removed misleading always-visible back link that claimed "Back to..." even without navigation context
+2. **Products Page "Back" Copy Fix**: Changed "← Back to Store Health" to neutral "← Store Health" (not claiming back navigation when it isn't)
+3. **Work Queue → Playbooks Test Seed**: Replaced `seedFirstDeoWin` with `seedListSearchFilter1` in Work Queue → Playbooks tests to guarantee Playbooks CTAs exist; tightened locator to target `?playbookId=` param
+4. **Removed Unused Import**: Removed `labelFrom` import from issues page (no longer needed after back link removal)
+
+---
+
 ## Completed Phases (Chronological)
 
 ### Trust Hardening

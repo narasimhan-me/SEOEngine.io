@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 
 import type { DeoIssue, DeoIssueFixType, CanonicalIssueCountsSummary } from '@/lib/deo-issues';
 import { TripletDisplay } from '@/components/issues/TripletDisplay';
+import { ScopeBanner } from '@/components/common/ScopeBanner';
 import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
 import { isAuthenticated, getToken } from '@/lib/auth';
 import { ApiError, aiApi, projectsApi, shopifyApi } from '@/lib/api';
@@ -22,6 +23,7 @@ import {
   getValidatedReturnTo,
   buildBackLink,
 } from '@/lib/issue-fix-navigation';
+import { getSafeReturnTo } from '@/lib/route-context';
 
 type SeverityFilter = 'all' | 'critical' | 'warning' | 'info';
 type PillarFilter = 'all' | DeoPillarId;
@@ -106,6 +108,32 @@ export default function IssuesPage() {
   // [LIST-ACTIONS-CLARITY-1] Read asset filter params for asset-specific issue views
   const assetTypeParam = searchParams.get('assetType') as 'products' | 'pages' | 'collections' | null;
   const assetIdParam = searchParams.get('assetId');
+
+  // [ROUTE-INTEGRITY-1] Read from context from URL
+  const fromParam = searchParams.get('from');
+
+  // [ROUTE-INTEGRITY-1] Get validated returnTo for ScopeBanner
+  const validatedReturnTo = useMemo(() => {
+    return getSafeReturnTo(searchParams, projectId);
+  }, [searchParams, projectId]);
+
+  // [ROUTE-INTEGRITY-1] Derive showingText for ScopeBanner
+  const scopeBannerShowingText = useMemo(() => {
+    const parts: string[] = [];
+    if (assetTypeParam) {
+      parts.push(`Filtered by Asset: ${assetTypeParam}`);
+    }
+    if (pillarParam) {
+      const pillar = DEO_PILLARS.find((p) => p.id === pillarParam);
+      parts.push(`Pillar: ${pillar?.label || pillarParam}`);
+    }
+    if (modeParam === 'actionable') {
+      parts.push('Actionable issues');
+    } else if (modeParam === 'detected') {
+      parts.push('Detected issues');
+    }
+    return parts.length > 0 ? parts.join(' · ') : 'All issues';
+  }, [assetTypeParam, pillarParam, modeParam]);
 
   // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] effectiveMode will be computed after countsSummary state is available
 
@@ -505,7 +533,7 @@ export default function IssuesPage() {
     const issueType = (issue.type as string | undefined) || issue.id;
 
     // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Check if issue has a valid fix href (href-based actionability)
-    const fixHref = buildIssueFixHref({ projectId, issue, from: 'issues' });
+    const fixHref = buildIssueFixHref({ projectId, issue, from: 'issues_engine' });
 
     // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Return null if no valid href (prevents "Fix next" without destination)
     if (!fixHref) {
@@ -604,7 +632,7 @@ export default function IssuesPage() {
       issueType !== 'missing_seo_description'
     ) {
       // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Compute href for navigation
-      const href = buildIssueFixHref({ projectId, issue, from: 'issues' });
+      const href = buildIssueFixHref({ projectId, issue, from: 'issues_engine' });
       if (href) {
         handleIssueClick(href);
       }
@@ -806,17 +834,6 @@ export default function IssuesPage() {
 
   return (
     <div className="overflow-x-hidden">
-      {/* [ISSUE-FIX-NAV-AND-ANCHORS-1] ReturnTo-aware back link */}
-      {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Use GuardedLink for unsaved changes blocking */}
-      <div className="mb-4 text-sm">
-        <GuardedLink
-          href={primaryBackLink?.href || `/projects/${projectId}/store-health`}
-          className="text-blue-600 hover:text-blue-800"
-        >
-          ← {primaryBackLink?.label || 'Back to Store Health'}
-        </GuardedLink>
-      </div>
-
       {/* Error Banner */}
       {error && (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
@@ -910,6 +927,15 @@ export default function IssuesPage() {
           </button>
         </div>
 
+        {/* [ROUTE-INTEGRITY-1 FIXUP-2] ScopeBanner - placed immediately after h1 header row ("on arrival") */}
+        {/* Preserves "Filtered by Asset" display when assetType is present */}
+        <ScopeBanner
+          from={fromParam}
+          returnTo={validatedReturnTo || `/projects/${projectId}/issues`}
+          showingText={scopeBannerShowingText}
+          onClearFiltersHref={`/projects/${projectId}/issues`}
+        />
+
         {/* [COUNT-INTEGRITY-1.1 Step 2A] Canonical Triplet Summary Display */}
         {/* [COUNT-INTEGRITY-1.1 UI HARDEN] Use currentTriplet (pillar-aware) instead of root triplet */}
         {currentTriplet ? (
@@ -956,72 +982,6 @@ export default function IssuesPage() {
           </div>
         </div>
       </div>
-
-      {/* [COUNT-INTEGRITY-1 PATCH 6] Click-integrity filter context banner */}
-      {/* [COUNT-INTEGRITY-1.1 UI HARDEN] Include actionKeys in banner display */}
-      {/* [LIST-ACTIONS-CLARITY-1] Include assetType/assetId in banner display */}
-      {(actionKeyParam || (actionKeysParam && actionKeysParam.length > 0) || scopeTypeParam || assetTypeParam) && (
-        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4" data-testid="filter-context-banner">
-          <div className="flex items-start gap-3">
-            <svg className="h-5 w-5 flex-shrink-0 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-blue-900">
-                {assetTypeParam ? 'Filtered by Asset' : 'Filtered from Work Queue'}
-              </h3>
-              <div className="mt-1 text-sm text-blue-800">
-                {/* [LIST-ACTIONS-CLARITY-1] Display asset filter info */}
-                {assetTypeParam && (
-                  <span>
-                    Asset type: <span className="font-medium">{assetTypeParam}</span>
-                    {assetIdParam && (
-                      <span className="ml-1 text-xs text-blue-600">(ID: {assetIdParam.slice(0, 8)}...)</span>
-                    )}
-                  </span>
-                )}
-                {assetTypeParam && (actionKeyParam || (actionKeysParam && actionKeysParam.length > 0) || scopeTypeParam) && <span className="mx-2">•</span>}
-                {/* [COUNT-INTEGRITY-1.1 UI HARDEN] Display actionKeys as comma-separated list */}
-                {actionKeysParam && actionKeysParam.length > 0 ? (
-                  <span>
-                    Actions: <span className="font-medium">{actionKeysParam.map(k => k.replace(/_/g, ' ')).join(', ')}</span>
-                  </span>
-                ) : actionKeyParam ? (
-                  <span>
-                    Action: <span className="font-medium">{actionKeyParam.replace(/_/g, ' ')}</span>
-                  </span>
-                ) : null}
-                {(actionKeyParam || (actionKeysParam && actionKeysParam.length > 0)) && scopeTypeParam && <span className="mx-2">•</span>}
-                {scopeTypeParam && (
-                  <span>
-                    Scope: <span className="font-medium">{scopeTypeParam === 'STORE_WIDE' ? 'Store-wide' : scopeTypeParam.toLowerCase()}</span>
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={() => {
-                  const params = new URLSearchParams(searchParams.toString());
-                  params.delete('actionKey');
-                  // [COUNT-INTEGRITY-1.1 UI HARDEN] Also clear actionKeys
-                  params.delete('actionKeys');
-                  params.delete('scopeType');
-                  params.delete('mode');
-                  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Also clear pillar param (Work Queue may supply it)
-                  params.delete('pillar');
-                  // [LIST-ACTIONS-CLARITY-1] Also clear asset filters
-                  params.delete('assetType');
-                  params.delete('assetId');
-                  const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-                  router.replace(newUrl, { scroll: false });
-                }}
-                className="mt-2 text-sm font-medium text-blue-700 hover:text-blue-800 underline"
-              >
-                Clear filters
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Filters Section */}
       <div className="mb-6 space-y-4">
@@ -1174,7 +1134,7 @@ export default function IssuesPage() {
             const safeDescription = getSafeIssueDescription(issue);
 
             // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Compute fixHref unconditionally, then define isClickableIssue
-            const fixHref = buildIssueFixHref({ projectId, issue, from: 'issues' });
+            const fixHref = buildIssueFixHref({ projectId, issue, from: 'issues_engine' });
             const isClickableIssue = (issue.isActionableNow === true) && (fixHref !== null);
             const fixAction = getFixAction(issue);
 

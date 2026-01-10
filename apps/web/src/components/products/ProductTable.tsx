@@ -315,10 +315,11 @@ export function ProductTable({
   const resolvedActionsById = useMemo(() => {
     const map = new Map<string, ResolvedRowNextAction>();
 
-    // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Build navigation context for returnTo propagation
+    // [ROUTE-INTEGRITY-1] Build navigation context for returnTo propagation with from=asset_list
     const navContext: NavigationContext = {
       returnTo: currentListPathWithQuery || `/projects/${projectId}/products`,
       returnLabel: 'Products',
+      from: 'asset_list',
     };
 
     for (const product of products) {
@@ -332,11 +333,12 @@ export function ProductTable({
       const severityOrder: Record<string, number> = { critical: 0, warning: 1, info: 2 };
       const actionableIssues = issues
         .filter((issue) => {
+          // [ROUTE-INTEGRITY-1] Use from=asset_list for consistent back navigation
           const fixHref = buildIssueFixHref({
             projectId,
             issue,
             primaryProductId: product.id,
-            from: 'products',
+            from: 'asset_list',
             returnTo: navContext.returnTo,
             returnLabel: navContext.returnLabel,
           });
@@ -368,11 +370,12 @@ export function ProductTable({
       let fixNextHref: string | null = null;
       if (actionableIssues.length > 0) {
         const nextIssue = actionableIssues[0];
+        // [ROUTE-INTEGRITY-1] Use from=asset_list for consistent back navigation
         fixNextHref = buildIssueFixHref({
           projectId,
           issue: nextIssue,
           primaryProductId: product.id,
-          from: 'products',
+          from: 'asset_list',
           returnTo: navContext.returnTo,
           returnLabel: navContext.returnLabel,
         });

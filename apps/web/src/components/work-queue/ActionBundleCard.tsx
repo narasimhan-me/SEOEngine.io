@@ -1,7 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { useMemo } from 'react';
 import type { WorkQueueActionBundle, WorkQueueViewer } from '@/lib/work-queue';
+import { getReturnToFromCurrentUrl, withRouteContext } from '@/lib/route-context';
 
 interface ActionBundleCardProps {
   bundle: WorkQueueActionBundle;
@@ -28,6 +31,14 @@ export function ActionBundleCard({
   isHighlighted,
   onRefresh: _onRefresh,
 }: ActionBundleCardProps) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // [ROUTE-INTEGRITY-1] Compute returnTo from current URL
+  const returnTo = useMemo(() => {
+    return getReturnToFromCurrentUrl(pathname, searchParams);
+  }, [pathname, searchParams]);
+
   // Health pill styling
   const healthStyles: Record<string, string> = {
     CRITICAL: 'bg-red-100 text-red-700 border-red-200',
@@ -59,6 +70,11 @@ export function ActionBundleCard({
 
   // Build CTA route
   const ctaRoute = getCTARoute(bundle, projectId);
+
+  // [ROUTE-INTEGRITY-1] Wrap ctaRoute with from=work_queue + returnTo
+  const ctaRouteWithContext = useMemo(() => {
+    return withRouteContext(ctaRoute, { from: 'work_queue', returnTo });
+  }, [ctaRoute, returnTo]);
 
   return (
     <div
@@ -249,10 +265,11 @@ export function ActionBundleCard({
       </div>
 
       {/* Row 5: Footer CTAs */}
+      {/* [ROUTE-INTEGRITY-1] Use ctaRouteWithContext for deterministic from+returnTo */}
       <div className="mt-4 flex items-center gap-3 border-t border-gray-100 pt-4">
         {primaryCta && (
           <Link
-            href={ctaRoute}
+            href={ctaRouteWithContext}
             className={`inline-flex items-center rounded-md px-4 py-2 text-sm font-medium transition-colors ${
               disabledReason
                 ? 'cursor-not-allowed bg-gray-100 text-gray-400'
@@ -269,7 +286,7 @@ export function ActionBundleCard({
         )}
         {secondaryCta && (
           <Link
-            href={ctaRoute}
+            href={ctaRouteWithContext}
             className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
           >
             {secondaryCta}
