@@ -1,6 +1,6 @@
 /**
  * [LIST-ACTIONS-CLARITY-1] Row Chips & Actions E2E Tests
- * [LIST-ACTIONS-CLARITY-1 FIXUP-1] Extended with Collections + Blocked state
+ * [LIST-ACTIONS-CLARITY-1 FIXUP-1] Extended with Collections + Blocked state + Bulk removal
  * [LIST-ACTIONS-CLARITY-1 FIXUP-2] Hardened with row-scoped assertions using seeded titles
  *
  * Playwright smoke tests for the unified row chips and actions across
@@ -18,6 +18,9 @@
  * 9. [FIXUP-1] EDITOR sees "Blocked" chip when draft pending but can't apply
  * 10. [FIXUP-1] "Fix next" action routes to issue fix destination
  * 11. [FIXUP-2] No "Apply" action appears on any list row
+ * 12. [FIXUP-1] No bulk selection checkboxes on list pages
+ * 13. [FIXUP-1] No bulk action CTAs in command bars
+ * 14. [FIXUP-1] Products command bar routes to playbooks
  *
  * Prerequisites:
  * - /testkit/e2e/seed-list-actions-clarity-1 endpoint available
@@ -485,5 +488,94 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
     await expect(page.locator('[data-testid="row-primary-action"]:has-text("Apply")')).toHaveCount(0);
     await expect(page.locator('[data-testid="row-secondary-action"]:has-text("Apply")')).toHaveCount(0);
+  });
+
+  // ==========================================================================
+  // [FIXUP-1] Regression: No Bulk Selection UI on List Pages
+  // ==========================================================================
+
+  test('LAC1-018: No bulk selection checkboxes appear on Products list', async ({
+    page,
+  }) => {
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, seedData.accessToken);
+
+    await page.goto(`/projects/${seedData.projectId}/products`);
+    await page.waitForSelector('[data-testid="products-list"]', { timeout: 10000 });
+
+    // Assert no checkboxes in table headers or rows
+    await expect(page.locator('[data-testid="products-list"] input[type="checkbox"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="products-list"] th:has(input[type="checkbox"])')).toHaveCount(0);
+  });
+
+  test('LAC1-019: No bulk selection checkboxes appear on Pages list', async ({
+    page,
+  }) => {
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, seedData.accessToken);
+
+    await page.goto(`/projects/${seedData.projectId}/assets/pages`);
+    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+
+    // Assert no checkboxes in table headers or rows
+    await expect(page.locator('table input[type="checkbox"]')).toHaveCount(0);
+  });
+
+  test('LAC1-020: No bulk selection checkboxes appear on Collections list', async ({
+    page,
+  }) => {
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, seedData.accessToken);
+
+    await page.goto(`/projects/${seedData.projectId}/assets/collections`);
+    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+
+    // Assert no checkboxes in table headers or rows
+    await expect(page.locator('table input[type="checkbox"]')).toHaveCount(0);
+  });
+
+  test('LAC1-021: No bulk action CTA appears on Products command bar', async ({
+    page,
+  }) => {
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, seedData.accessToken);
+
+    await page.goto(`/projects/${seedData.projectId}/products`);
+    await page.waitForSelector('[data-testid="products-list"]', { timeout: 10000 });
+
+    // Assert no "Generate drafts", "Fix all", or "Bulk" buttons
+    await expect(page.locator('button:has-text("Generate drafts")')).toHaveCount(0);
+    await expect(page.locator('button:has-text("Fix all")')).toHaveCount(0);
+    await expect(page.locator('button:has-text("Bulk")')).toHaveCount(0);
+  });
+
+  test('LAC1-022: Products command bar links to playbooks (not bulk action)', async ({
+    page,
+  }) => {
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, seedData.accessToken);
+
+    await page.goto(`/projects/${seedData.projectId}/products`);
+    await page.waitForSelector('[data-testid="products-list"]', { timeout: 10000 });
+
+    // Assert "View playbooks" link exists instead of bulk CTA
+    const viewPlaybooksLink = page.locator('a:has-text("View playbooks")');
+    const linkExists = await viewPlaybooksLink.count();
+
+    // If there are products needing attention, should show View playbooks link
+    if (linkExists > 0) {
+      const href = await viewPlaybooksLink.getAttribute('href');
+      expect(href).toContain('/automation/playbooks');
+    }
   });
 });

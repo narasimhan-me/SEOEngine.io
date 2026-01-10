@@ -1,18 +1,11 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 import type { DeoIssue } from '@/lib/deo-issues';
 import type { DeoPillarId } from '@/lib/deo-pillars';
 import { getDeoPillarById } from '@/lib/deo-pillars';
 import type { Product } from '@/lib/products';
 import { ProductRow, type PillarIssueSummary } from './ProductRow';
-import {
-  projectsApi,
-  type AutomationPlaybookId,
-  type AutomationPlaybookEstimate,
-  type AutomationPlaybookApplyResult,
-} from '@/lib/api';
 import {
   resolveRowNextAction,
   buildProductWorkspaceHref,
@@ -57,31 +50,6 @@ const PILLAR_TO_ACTION: Record<DeoPillarId, string> = {
 
 /** Issue types that indicate missing required metadata */
 const MISSING_REQUIRED_METADATA_TYPES = ['missing_seo_title', 'missing_seo_description'];
-
-/** Bulk action types - v1 only supports metadata fixes */
-type BulkActionType = 'Fix missing metadata';
-
-/** Bulk action state for the 3-step flow */
-interface BulkActionSelection {
-  actionType: BulkActionType;
-  productIds: string[];
-  productNames: string[];
-  missingTitleCount: number;
-  missingDescriptionCount: number;
-}
-
-/** Draft generation result tracking */
-interface DraftGenerationResult {
-  playbookId: AutomationPlaybookId;
-  scopeId: string;
-  rulesHash: string;
-  draftsGenerated: number;
-  needsAttention: number;
-  affectedTotal: number;
-}
-
-/** Bulk modal step state */
-type BulkModalStep = 'preview' | 'generating' | 'ready' | 'applying' | 'complete' | 'error';
 
 /**
  * Category counts for impact-based sorting
@@ -216,22 +184,9 @@ export function ProductTable({
   canRequestApproval = false,
   currentListPathWithQuery,
 }: ProductTableProps) {
-  const router = useRouter();
   const [healthFilter, setHealthFilter] = useState<HealthFilter>('All');
   const [sortOption, setSortOption] = useState<SortOption>('Impact');
   const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
-
-  // Bulk action state (3-step flow)
-  const [bulkSelection, setBulkSelection] = useState<BulkActionSelection | null>(null);
-  const [bulkModalOpen, setBulkModalOpen] = useState(false);
-  const [bulkModalStep, setBulkModalStep] = useState<BulkModalStep>('preview');
-  const [bulkEstimates, setBulkEstimates] = useState<{
-    title?: AutomationPlaybookEstimate;
-    description?: AutomationPlaybookEstimate;
-  }>({});
-  const [draftResults, setDraftResults] = useState<DraftGenerationResult[]>([]);
-  const [applyResults, setApplyResults] = useState<AutomationPlaybookApplyResult[]>([]);
-  const [bulkError, setBulkError] = useState<string | null>(null);
 
   // Build enriched issue map with healthState, recommendedAction, and impact counts per product
   const issuesByProductId = useMemo(() => {
@@ -404,7 +359,10 @@ export function ProductTable({
           return a.id.localeCompare(b.id);
         });
 
-      const actionableNowCount = actionableIssues.length;
+      // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Use server-derived count as fallback when issues aren't available
+      const actionableNowCount = actionableIssues.length > 0
+        ? actionableIssues.length
+        : (product.actionableNowCount ?? 0);
 
       // Deterministic "Fix next" links to the top actionable issue's fix destination
       let fixNextHref: string | null = null;
@@ -420,11 +378,18 @@ export function ProductTable({
         });
       }
 
+      // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Use server-derived blockedByApproval to compute canApply
+      // blockedByApproval = hasDraft AND (governance requires approval OR viewer cannot apply)
+      // Therefore: canApply = NOT blockedByApproval (when draft present)
+      const effectiveCanApply = product.blockedByApproval !== undefined
+        ? !product.blockedByApproval
+        : canApply;
+
       const resolved = resolveRowNextAction({
         assetType: 'products',
         hasDraftPendingApply,
         actionableNowCount,
-        canApply,
+        canApply: effectiveCanApply,
         canRequestApproval,
         fixNextHref,
         openHref: buildProductWorkspaceHref(projectId, product.id, navContext),
@@ -436,230 +401,6 @@ export function ProductTable({
 
     return map;
   }, [products, issuesByProductId, projectId, canApply, canRequestApproval, currentListPathWithQuery]);
-
-  // Compute bulk action eligibility: products with "Fix missing metadata" action
-  const bulkMetadataEligible = useMemo(() => {
-    const eligible: {
-      productId: string;
-      productName: string;
-      missingTitle: boolean;
-      missingDescription: boolean;
-    }[] = [];
-
-    for (const product of products) {
-      const data = issuesByProductId.get(product.id);
-      if (!data || data.healthState === 'Healthy') continue;
-
-      // Check if this product has missing metadata issues
-      const hasMissingTitle = data.issues.some((i) => i.type === 'missing_seo_title');
-      const hasMissingDescription = data.issues.some((i) => i.type === 'missing_seo_description');
-
-      if (hasMissingTitle || hasMissingDescription) {
-        eligible.push({
-          productId: product.id,
-          productName: product.title,
-          missingTitle: hasMissingTitle,
-          missingDescription: hasMissingDescription,
-        });
-      }
-    }
-
-    return eligible;
-  }, [products, issuesByProductId]);
-
-  // Bulk action visibility: only when needsAttentionCount > 0 AND sort is Impact
-  const showBulkActions = needsAttentionCount > 0 && sortOption === 'Impact';
-  const bulkMetadataCount = bulkMetadataEligible.length;
-
-  const handleOpenAutomationEntryFromBulk = useCallback(() => {
-    const key = `automationEntryContext:${projectId}`;
-    const scopeKey = `automationEntryScope:${projectId}`;
-    try {
-      sessionStorage.setItem(
-        key,
-        JSON.stringify({
-          version: 1,
-          createdAt: new Date().toISOString(),
-          source: 'products_bulk',
-          intent: 'missing_metadata',
-          selectedProductIds: bulkMetadataEligible.map((p) => p.productId),
-        }),
-      );
-      sessionStorage.setItem(
-        scopeKey,
-        JSON.stringify({ productIds: bulkMetadataEligible.map((p) => p.productId) }),
-      );
-    } catch {
-      // ignore
-    }
-    router.push(
-      `/projects/${projectId}/automation/playbooks/entry?source=products_bulk&intent=missing_metadata`,
-    );
-  }, [projectId, bulkMetadataEligible, router]);
-
-  // Clear bulk action selection
-  const handleClearBulkSelection = useCallback(() => {
-    setBulkSelection(null);
-    setBulkModalOpen(false);
-    setBulkModalStep('preview');
-    setBulkEstimates({});
-    setDraftResults([]);
-    setApplyResults([]);
-    setBulkError(null);
-  }, []);
-
-  // Open bulk modal and fetch estimates (Step 2)
-  const handleOpenBulkModal = useCallback(async () => {
-    if (!bulkSelection) return;
-
-    setBulkModalOpen(true);
-    setBulkModalStep('preview');
-    setBulkError(null);
-
-    try {
-      // Fetch estimates for applicable playbooks (no AI call)
-      const estimates: typeof bulkEstimates = {};
-
-      if (bulkSelection.missingTitleCount > 0) {
-        estimates.title = await projectsApi.automationPlaybookEstimate(projectId, 'missing_seo_title');
-      }
-      if (bulkSelection.missingDescriptionCount > 0) {
-        estimates.description = await projectsApi.automationPlaybookEstimate(projectId, 'missing_seo_description');
-      }
-
-      setBulkEstimates(estimates);
-
-      // Check if drafts already exist (resumable state)
-      const existingDrafts: DraftGenerationResult[] = [];
-      if (estimates.title?.scopeId) {
-        const draft = await projectsApi.getLatestAutomationPlaybookDraft(projectId, 'missing_seo_title');
-        if (draft && draft.status === 'READY' && draft.scopeId === estimates.title.scopeId) {
-          existingDrafts.push({
-            playbookId: 'missing_seo_title',
-            scopeId: draft.scopeId,
-            rulesHash: draft.rulesHash,
-            draftsGenerated: draft.counts.draftGenerated,
-            needsAttention: draft.counts.noSuggestionCount,
-            affectedTotal: draft.counts.affectedTotal,
-          });
-        }
-      }
-      if (estimates.description?.scopeId) {
-        const draft = await projectsApi.getLatestAutomationPlaybookDraft(projectId, 'missing_seo_description');
-        if (draft && draft.status === 'READY' && draft.scopeId === estimates.description.scopeId) {
-          existingDrafts.push({
-            playbookId: 'missing_seo_description',
-            scopeId: draft.scopeId,
-            rulesHash: draft.rulesHash,
-            draftsGenerated: draft.counts.draftGenerated,
-            needsAttention: draft.counts.noSuggestionCount,
-            affectedTotal: draft.counts.affectedTotal,
-          });
-        }
-      }
-
-      if (existingDrafts.length > 0) {
-        setDraftResults(existingDrafts);
-        setBulkModalStep('ready');
-      }
-    } catch (err) {
-      setBulkError(err instanceof Error ? err.message : 'Failed to load scope information');
-      setBulkModalStep('error');
-    }
-  }, [bulkSelection, projectId]);
-
-  // Generate drafts (Step 3a - uses AI)
-  const handleGenerateDrafts = useCallback(async () => {
-    if (!bulkSelection || !bulkEstimates) return;
-
-    setBulkModalStep('generating');
-    setBulkError(null);
-
-    try {
-      const results: DraftGenerationResult[] = [];
-
-      // Generate title drafts if applicable
-      if (bulkEstimates.title?.scopeId) {
-        const result = await projectsApi.generateAutomationPlaybookDraft(
-          projectId,
-          'missing_seo_title',
-          bulkEstimates.title.scopeId,
-          bulkEstimates.title.scopeId, // rulesHash - using scopeId as placeholder
-        );
-        results.push({
-          playbookId: 'missing_seo_title',
-          scopeId: result.scopeId,
-          rulesHash: result.rulesHash,
-          draftsGenerated: result.counts.draftGenerated,
-          needsAttention: result.counts.noSuggestionCount,
-          affectedTotal: result.counts.affectedTotal,
-        });
-      }
-
-      // Generate description drafts if applicable
-      if (bulkEstimates.description?.scopeId) {
-        const result = await projectsApi.generateAutomationPlaybookDraft(
-          projectId,
-          'missing_seo_description',
-          bulkEstimates.description.scopeId,
-          bulkEstimates.description.scopeId, // rulesHash - using scopeId as placeholder
-        );
-        results.push({
-          playbookId: 'missing_seo_description',
-          scopeId: result.scopeId,
-          rulesHash: result.rulesHash,
-          draftsGenerated: result.counts.draftGenerated,
-          needsAttention: result.counts.noSuggestionCount,
-          affectedTotal: result.counts.affectedTotal,
-        });
-      }
-
-      setDraftResults(results);
-      setBulkModalStep('ready');
-    } catch (err) {
-      setBulkError(err instanceof Error ? err.message : 'Failed to generate drafts');
-      setBulkModalStep('error');
-    }
-  }, [bulkSelection, bulkEstimates, projectId]);
-
-  // Apply drafts (Step 3b - no AI)
-  const handleApplyDrafts = useCallback(async () => {
-    if (draftResults.length === 0) return;
-
-    setBulkModalStep('applying');
-    setBulkError(null);
-
-    try {
-      const results: AutomationPlaybookApplyResult[] = [];
-
-      for (const draft of draftResults) {
-        const result = await projectsApi.applyAutomationPlaybook(
-          projectId,
-          draft.playbookId,
-          draft.scopeId,
-          draft.rulesHash,
-        );
-        results.push(result);
-      }
-
-      setApplyResults(results);
-      setBulkModalStep('complete');
-    } catch (err) {
-      setBulkError(err instanceof Error ? err.message : 'Failed to apply updates');
-      setBulkModalStep('error');
-    }
-  }, [draftResults, projectId]);
-
-  // Retry failed drafts
-  const handleRetryDrafts = useCallback(() => {
-    setBulkError(null);
-    handleGenerateDrafts();
-  }, [handleGenerateDrafts]);
-
-  // Compute totals for display
-  const totalDraftsGenerated = draftResults.reduce((sum, r) => sum + r.draftsGenerated, 0);
-  const totalNeedsAttention = draftResults.reduce((sum, r) => sum + r.needsAttention, 0);
-  const totalApplied = applyResults.reduce((sum, r) => sum + r.updatedCount, 0);
 
   // Filter and sort products
   const displayProducts = useMemo(() => {
@@ -757,7 +498,7 @@ export function ProductTable({
   ];
 
   return (
-    <div>
+    <div data-testid="products-list">
       {/* Command Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3">
         <div className="flex items-center gap-2 text-sm">
@@ -766,25 +507,13 @@ export function ProductTable({
               <span className="font-medium text-gray-900">
                 {needsAttentionCount} product{needsAttentionCount !== 1 ? 's' : ''} need attention
               </span>
-              {/* Bulk action buttons - only show when sort is Impact */}
-              {showBulkActions && bulkMetadataCount > 0 && !bulkSelection && (
-                <button
-                  type="button"
-                  onClick={handleOpenAutomationEntryFromBulk}
-                  className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
-                >
-                  Fix missing metadata ({bulkMetadataCount} product{bulkMetadataCount !== 1 ? 's' : ''})
-                </button>
-              )}
-              {/* Fallback link when bulk actions not available */}
-              {(!showBulkActions || bulkMetadataCount === 0) && !bulkSelection && (
-                <Link
-                  href={`/projects/${projectId}/automation/playbooks`}
-                  className="inline-flex items-center rounded-md bg-gray-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-700"
-                >
-                  View playbooks
-                </Link>
-              )}
+              {/* [LIST-ACTIONS-CLARITY-1 FIXUP-1] Removed bulk CTA - navigate to playbooks for automation */}
+              <Link
+                href={`/projects/${projectId}/automation/playbooks`}
+                className="inline-flex items-center rounded-md bg-gray-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-700"
+              >
+                View playbooks
+              </Link>
             </>
           ) : (
             <span className="font-medium text-green-700">All products are healthy</span>
@@ -829,239 +558,6 @@ export function ProductTable({
           </select>
         </div>
       </div>
-
-      {/* Bulk Selection Context Strip (Step 1 selected) */}
-      {bulkSelection && !bulkModalOpen && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-blue-200 bg-blue-50 px-4 py-2">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="font-medium text-blue-900">
-              {bulkSelection.actionType} ({bulkSelection.productIds.length} product{bulkSelection.productIds.length !== 1 ? 's' : ''})
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleOpenBulkModal}
-              className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
-            >
-              Review scope
-            </button>
-            <button
-              type="button"
-              onClick={handleClearBulkSelection}
-              className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Bulk Confirmation Modal (Step 2 & 3) */}
-      {bulkModalOpen && bulkSelection && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="mx-4 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white shadow-xl">
-            {/* Modal Header */}
-            <div className="border-b border-gray-200 px-6 py-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {bulkModalStep === 'complete' ? 'Updates applied' : 'Review bulk action'}
-                </h2>
-                <button
-                  type="button"
-                  onClick={handleClearBulkSelection}
-                  className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-500"
-                >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Content */}
-            <div className="px-6 py-4">
-              {/* Action Summary */}
-              <div className="mb-4">
-                <p className="text-sm text-gray-700">
-                  {bulkModalStep === 'complete'
-                    ? `Applied updates to ${totalApplied} product${totalApplied !== 1 ? 's' : ''}`
-                    : `You're about to generate draft metadata for ${bulkSelection.productIds.length} product${bulkSelection.productIds.length !== 1 ? 's' : ''}`}
-                </p>
-              </div>
-
-              {/* Scope Disclosure */}
-              {bulkModalStep !== 'complete' && (
-                <div className="mb-4">
-                  <h3 className="mb-2 text-sm font-medium text-gray-900">Products affected</h3>
-                  <div className="max-h-40 overflow-y-auto rounded-md border border-gray-200 bg-gray-50 p-3">
-                    <ul className="space-y-1 text-xs text-gray-700">
-                      {bulkSelection.productNames.map((name, idx) => (
-                        <li key={bulkSelection.productIds[idx]} className="truncate">
-                          {name}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {/* Fields breakdown */}
-              {bulkModalStep !== 'complete' && (
-                <div className="mb-4">
-                  <h3 className="mb-2 text-sm font-medium text-gray-900">Fields that will be touched</h3>
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    <span className="rounded-full bg-gray-100 px-2 py-1 text-gray-700">Title</span>
-                    <span className="rounded-full bg-gray-100 px-2 py-1 text-gray-700">Description</span>
-                  </div>
-                  {(bulkSelection.missingTitleCount > 0 || bulkSelection.missingDescriptionCount > 0) && (
-                    <div className="mt-2 text-xs text-gray-600">
-                      {bulkSelection.missingTitleCount > 0 && (
-                        <span>Missing title: {bulkSelection.missingTitleCount} product{bulkSelection.missingTitleCount !== 1 ? 's' : ''}</span>
-                      )}
-                      {bulkSelection.missingTitleCount > 0 && bulkSelection.missingDescriptionCount > 0 && ' / '}
-                      {bulkSelection.missingDescriptionCount > 0 && (
-                        <span>Missing description: {bulkSelection.missingDescriptionCount} product{bulkSelection.missingDescriptionCount !== 1 ? 's' : ''}</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* AI Usage Disclosure */}
-              {bulkModalStep === 'preview' && (
-                <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3">
-                  <p className="text-xs text-amber-800">
-                    <span className="mr-1">⚡</span>
-                    This step uses AI to generate drafts. Nothing will be applied automatically.
-                  </p>
-                </div>
-              )}
-
-              {/* Generating state */}
-              {bulkModalStep === 'generating' && (
-                <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
-                  <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Generating drafts...
-                </div>
-              )}
-
-              {/* Applying state */}
-              {bulkModalStep === 'applying' && (
-                <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
-                  <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Applying updates...
-                </div>
-              )}
-
-              {/* Draft results */}
-              {bulkModalStep === 'ready' && draftResults.length > 0 && (
-                <div className="mb-4 rounded-md border border-green-200 bg-green-50 p-3">
-                  <p className="text-sm font-medium text-green-800">
-                    {totalDraftsGenerated} draft{totalDraftsGenerated !== 1 ? 's' : ''} created
-                    {totalNeedsAttention > 0 && (
-                      <span className="ml-1 text-amber-700">, {totalNeedsAttention} need attention</span>
-                    )}
-                  </p>
-                  {draftResults.length > 1 && (
-                    <div className="mt-2 text-xs text-green-700">
-                      {draftResults.map((r) => (
-                        <div key={r.playbookId}>
-                          {r.playbookId === 'missing_seo_title' ? 'Titles' : 'Descriptions'}: {r.draftsGenerated} generated
-                          {r.needsAttention > 0 && <span className="text-amber-600"> ({r.needsAttention} need attention)</span>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Apply confirmation note */}
-              {bulkModalStep === 'ready' && (
-                <div className="mb-4 text-xs text-gray-600">
-                  <span className="mr-1">✓</span>
-                  Apply updates does not use AI.
-                </div>
-              )}
-
-              {/* Error state */}
-              {bulkModalStep === 'error' && bulkError && (
-                <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3">
-                  <p className="text-sm text-red-800">{bulkError}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="border-t border-gray-200 px-6 py-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                {/* Left side - Review link when ready */}
-                {bulkModalStep === 'ready' && (
-                  <Link
-                    href={`/projects/${projectId}/automation/playbooks?playbookId=missing_seo_title`}
-                    className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
-                  >
-                    Review changes
-                  </Link>
-                )}
-                {bulkModalStep !== 'ready' && <div />}
-
-                {/* Right side - Action buttons */}
-                <div className="flex items-center gap-2">
-                  {/* Cancel button */}
-                  <button
-                    type="button"
-                    onClick={handleClearBulkSelection}
-                    className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    {bulkModalStep === 'complete' ? 'Close' : 'Cancel'}
-                  </button>
-
-                  {/* Generate drafts button (Step 2 -> Step 3a) */}
-                  {bulkModalStep === 'preview' && (
-                    <button
-                      type="button"
-                      onClick={handleGenerateDrafts}
-                      className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                    >
-                      Generate drafts
-                    </button>
-                  )}
-
-                  {/* Retry button on error */}
-                  {bulkModalStep === 'error' && (
-                    <button
-                      type="button"
-                      onClick={handleRetryDrafts}
-                      className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                    >
-                      Retry
-                    </button>
-                  )}
-
-                  {/* Apply updates button (Step 3b) */}
-                  {bulkModalStep === 'ready' && (
-                    <button
-                      type="button"
-                      onClick={handleApplyDrafts}
-                      disabled={draftResults.length === 0}
-                      className="inline-flex items-center rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-                    >
-                      Apply updates
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {displayProducts.length === 0 ? (
         <div className="px-4 py-6 text-sm text-gray-500">

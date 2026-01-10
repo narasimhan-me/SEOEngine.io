@@ -9,6 +9,8 @@ Provides consistent visual vocabulary and actionable links for each asset state.
 - Collections list full support
 - Blocked state for EDITOR role
 - True per-asset filtering in Issues Engine
+- **Bulk removal**: No bulk selection UI on any list page (compliance/safety hardening)
+- Server-derived row fields: `actionableNowCount`, `blockedByApproval`
 
 ## Scope
 - Products list page (/projects/:projectId/products)
@@ -168,10 +170,25 @@ Returns:
 
 ---
 
+## Bulk Removal Verification (FIXUP-1)
+
+### 1. No Bulk Selection UI
+- [ ] **Products list**: No checkboxes in table headers or rows
+- [ ] **Pages list**: No checkboxes in table headers or rows
+- [ ] **Collections list**: No checkboxes in table headers or rows
+
+### 2. No Bulk Action CTAs
+- [ ] **Products command bar**: No "Generate drafts" or "Fix all" buttons
+- [ ] **Products command bar**: "View playbooks" link routes to Playbooks page
+- [ ] **Pages header**: No bulk action button
+- [ ] **Collections header**: No bulk action button
+
+---
+
 ## Non-Goals (Not Tested in This Phase)
 - Full approval workflow (submit, review, approve)
-- Bulk actions from list pages
 - Real-time draft sync
+- Bulk actions via Work Queue/Playbooks (tested separately)
 
 ---
 

@@ -45,6 +45,7 @@ export class ProductsService {
    * [ROLES-3] Any ProjectMember can view products
    * [LIST-SEARCH-FILTER-1] Server-authoritative filtering support
    * [LIST-ACTIONS-CLARITY-1] Always returns hasDraftPendingApply for each product
+   * [LIST-ACTIONS-CLARITY-1 FIXUP-1] Returns actionableNowCount and blockedByApproval
    */
   async getProductsForProject(
     projectId: string,
@@ -77,6 +78,12 @@ export class ProductsService {
     // [LIST-ACTIONS-CLARITY-1] Always compute pending draft set for hasDraftPendingApply field
     const productIdsWithDrafts = await this.getProductIdsWithPendingDrafts(projectId);
 
+    // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Check governance policy for approval requirements
+    const requireApprovalForApply = await this.getRequireApprovalForApply(projectId);
+
+    // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Get viewer's role capabilities
+    const viewerCanApply = await this.roleResolution.canApply(projectId, userId);
+
     // [LIST-SEARCH-FILTER-1] Apply filters in memory for complex conditions
     if (filters) {
       // Search filter: case-insensitive match across title and handle
@@ -107,11 +114,21 @@ export class ProductsService {
       }
     }
 
-    // [LIST-ACTIONS-CLARITY-1] Add hasDraftPendingApply to each product
-    return products.map((p) => ({
-      ...p,
-      hasDraftPendingApply: productIdsWithDrafts.has(p.id),
-    }));
+    // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Add server-derived row action fields to each product
+    return products.map((p) => {
+      const hasDraftPendingApply = productIdsWithDrafts.has(p.id);
+      // Compute actionable issue count from SEO metadata status
+      const actionableNowCount = this.getActionableIssueCountForProduct(p);
+      // blockedByApproval: has draft AND (governance requires approval OR viewer cannot apply)
+      const blockedByApproval = hasDraftPendingApply && (requireApprovalForApply || !viewerCanApply);
+
+      return {
+        ...p,
+        hasDraftPendingApply,
+        actionableNowCount,
+        blockedByApproval,
+      };
+    });
   }
 
   /**
@@ -189,6 +206,62 @@ export class ProductsService {
     }
 
     return productIdSet;
+  }
+
+  /**
+   * [LIST-ACTIONS-CLARITY-1 FIXUP-1] Compute actionable issue count per product
+   * Returns a Map of productId → count of actionable issues.
+   *
+   * Note: This is a simplified computation based on SEO metadata status.
+   * Full issue computation is done client-side from the DEO Issues API.
+   * Server-derived counts provide fast initial rendering.
+   *
+   * Actionable issues from SEO metadata:
+   * - missing_seo_title: seoTitle is null/empty
+   * - missing_seo_description: seoDescription is null/empty
+   * - weak_title: title present but outside 30-60 char range
+   * - weak_description: description present but outside 70-155 char range
+   */
+  private getActionableIssueCountForProduct(
+    product: { seoTitle: string | null; seoDescription: string | null },
+  ): number {
+    let count = 0;
+
+    const hasTitle = !!product.seoTitle?.trim();
+    const hasDescription = !!product.seoDescription?.trim();
+
+    // Missing metadata issues
+    if (!hasTitle) count++; // missing_seo_title
+    if (!hasDescription) count++; // missing_seo_description
+
+    // Weak metadata issues (only if present)
+    if (hasTitle) {
+      const titleLength = product.seoTitle!.length;
+      if (titleLength < SEO_TITLE_MIN || titleLength > SEO_TITLE_MAX) {
+        count++; // weak_title
+      }
+    }
+    if (hasDescription) {
+      const descLength = product.seoDescription!.length;
+      if (descLength < SEO_DESC_MIN || descLength > SEO_DESC_MAX) {
+        count++; // weak_description
+      }
+    }
+
+    return count;
+  }
+
+  /**
+   * [LIST-ACTIONS-CLARITY-1 FIXUP-1] Check if governance policy requires approval for apply
+   * Returns true if requireApprovalForApply is enabled, false otherwise.
+   */
+  private async getRequireApprovalForApply(projectId: string): Promise<boolean> {
+    const policy = await this.prisma.projectGovernancePolicy.findUnique({
+      where: { projectId },
+      select: { requireApprovalForApply: true },
+    });
+
+    return policy?.requireApprovalForApply ?? false;
   }
 
   /**

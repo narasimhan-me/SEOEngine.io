@@ -4,7 +4,6 @@ import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigat
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { projectsApi, type RoleCapabilities } from '@/lib/api';
-import { buildWorkQueueUrl } from '@/lib/work-queue';
 import { ListControls } from '@/components/common/ListControls';
 import { RowStatusChip } from '@/components/common/RowStatusChip';
 import {
@@ -55,7 +54,6 @@ export default function CollectionsAssetListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [collections, setCollections] = useState<CollectionAsset[]>([]);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Role capabilities state
   const [capabilities, setCapabilities] = useState<RoleCapabilities | null>(null);
@@ -173,31 +171,8 @@ export default function CollectionsAssetListPage() {
     fetchCapabilities();
   }, [fetchCollections, fetchCapabilities]);
 
-  const handleSelectAll = () => {
-    if (selectedIds.size === collections.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(collections.map((c) => c.id)));
-    }
-  };
-
-  const handleSelectOne = (id: string) => {
-    const newSet = new Set(selectedIds);
-    if (newSet.has(id)) {
-      newSet.delete(id);
-    } else {
-      newSet.add(id);
-    }
-    setSelectedIds(newSet);
-  };
-
-  const handleBulkFix = () => {
-    // Route to Work Queue with COLLECTIONS scope filter
-    router.push(buildWorkQueueUrl(projectId, {
-      actionKey: 'FIX_MISSING_METADATA',
-      scopeType: 'COLLECTIONS',
-    }));
-  };
+  // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Removed bulk selection handlers (handleSelectAll, handleSelectOne, handleBulkFix)
+  // Bulk actions now route through Playbooks/Work Queue directly
 
   // [LIST-SEARCH-FILTER-1.1] Clear filters handler for empty state
   const handleClearFilters = useCallback(() => {
@@ -273,14 +248,7 @@ export default function CollectionsAssetListPage() {
             {collections.length} collections • {criticalCount} critical • {needsAttentionCount} need attention
           </p>
         </div>
-        {selectedIds.size > 0 && (
-          <button
-            onClick={handleBulkFix}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Fix missing metadata ({selectedIds.size})
-          </button>
-        )}
+        {/* [LIST-ACTIONS-CLARITY-1 FIXUP-1] Removed bulk selection CTA - bulk actions route through Playbooks/Work Queue */}
       </div>
 
       {/* Filter indicator (from Work Queue click-through) */}
@@ -356,17 +324,10 @@ export default function CollectionsAssetListPage() {
               </div>
             )
           ) : (
+            // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Removed bulk selection checkboxes
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="w-12 px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.size === collections.length && collections.length > 0}
-                      onChange={handleSelectAll}
-                      className="h-4 w-4 rounded border-gray-300"
-                    />
-                  </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Health
                   </th>
@@ -386,14 +347,6 @@ export default function CollectionsAssetListPage() {
                   const resolved = resolvedActionsById.get(collection.id);
                   return (
                     <tr key={collection.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(collection.id)}
-                          onChange={() => handleSelectOne(collection.id)}
-                          className="h-4 w-4 rounded border-gray-300"
-                        />
-                      </td>
                       <td className="px-4 py-3">
                         {/* [LIST-ACTIONS-CLARITY-1] Use RowStatusChip */}
                         {resolved?.chipLabel ? (

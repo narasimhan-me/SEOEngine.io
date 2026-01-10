@@ -14,6 +14,10 @@ export interface Product {
   lastOptimizedAt?: string | null;
   /** [LIST-ACTIONS-CLARITY-1] Server-derived: true if product appears in a pending draft */
   hasDraftPendingApply?: boolean;
+  /** [LIST-ACTIONS-CLARITY-1 FIXUP-1] Server-derived: count of actionable issues for this product */
+  actionableNowCount?: number;
+  /** [LIST-ACTIONS-CLARITY-1 FIXUP-1] Server-derived: true if draft is blocked by approval requirements */
+  blockedByApproval?: boolean;
 }
 
 export type ProductStatus = 'missing-metadata' | 'needs-optimization' | 'optimized';
