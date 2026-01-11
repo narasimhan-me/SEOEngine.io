@@ -10,7 +10,8 @@ import { ScopeBanner } from '@/components/common/ScopeBanner';
 import {
   resolveRowNextAction,
   buildAssetIssuesHref,
-  buildReviewDraftsHref,
+  buildAssetWorkspaceHref,
+  buildAssetDraftsTabHref,
   type ResolvedRowNextAction,
   type NavigationContext,
 } from '@/lib/list-actions-clarity';
@@ -231,11 +232,13 @@ export default function CollectionsAssetListPage() {
     };
 
     for (const collection of collections) {
-      // For Collections, "View issues" links to Issues Engine filtered by this asset
-      const openHref = buildAssetIssuesHref(projectId, 'collections', collection.id, navContext);
+      // [DRAFT-LIST-PARITY-1] Build separate hrefs for asset detail and Issues Engine
+      const openHref = buildAssetWorkspaceHref(projectId, 'collections', collection.id, navContext);
+      const issuesHref = buildAssetIssuesHref(projectId, 'collections', collection.id, navContext);
 
       // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Pass server-derived blockedByApproval
-      // [DRAFT-ROUTING-INTEGRITY-1] Pass collection.id as assetId for scoped Draft Review
+      // [DRAFT-LIST-PARITY-1] Pass issuesHref for "View issues" + "Open" dual actions
+      // [DRAFT-LIST-PARITY-1] reviewDraftsHref now routes to asset detail Drafts tab (NOT Playbooks)
       const resolved = resolveRowNextAction({
         assetType: 'collections',
         hasDraftPendingApply: collection.hasDraftPendingApply,
@@ -244,7 +247,8 @@ export default function CollectionsAssetListPage() {
         canRequestApproval: capabilities?.canRequestApproval ?? false,
         fixNextHref: null, // Collections don't have deterministic "Fix next"
         openHref,
-        reviewDraftsHref: buildReviewDraftsHref(projectId, 'collections', collection.id, navContext),
+        issuesHref,
+        reviewDraftsHref: buildAssetDraftsTabHref(projectId, 'collections', collection.id, navContext),
       });
 
       map.set(collection.id, resolved);

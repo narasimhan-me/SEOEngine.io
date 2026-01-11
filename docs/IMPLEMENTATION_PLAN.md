@@ -1411,6 +1411,49 @@ Seeds:
 
 ---
 
+### Phase DRAFT-LIST-PARITY-1: List-Level Draft Review Entrypoint Parity ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-11
+
+#### Overview
+
+DRAFT-LIST-PARITY-1 ensures that "Review drafts" actions on Pages and Collections list views route to the asset detail Drafts tab (NOT to Work Queue or Playbooks). This creates parity with Products, where draft review already routes to the product detail Drafts tab.
+
+**Trust Principle:** "Review drafts on asset lists routes to the asset detail Drafts tab, keeping the user focused on the individual asset rather than redirecting to batch automation surfaces."
+
+#### Key Features
+
+1. **Resolver Update**: `resolveRowNextAction()` now supports `issuesHref` for Pages/Collections dual-action rows (View issues + Open as secondary)
+2. **Routing Helpers**: New `buildAssetWorkspaceHref()` and `buildAssetDraftsTabHref()` helpers for consistent asset routing
+3. **Pages List**: "Review drafts" routes to `/projects/{id}/assets/pages/{pageId}?tab=drafts&from=asset_list`
+4. **Collections List**: "Review drafts" routes to `/projects/{id}/assets/collections/{collectionId}?tab=drafts&from=asset_list`
+
+#### Locked Routing Behavior
+
+- Pages/Collections "Review drafts" MUST route to asset detail Drafts tab
+- MUST NOT route to `/automation/playbooks?mode=drafts`
+- MUST NOT route to `/work-queue`
+- URL must include `?tab=drafts&from=asset_list` query params
+
+#### Core Files
+
+**Updated:**
+- `apps/web/src/lib/list-actions-clarity.ts` (resolver + new helpers)
+- `apps/web/src/app/projects/[id]/assets/pages/page.tsx` (uses new helpers)
+- `apps/web/src/app/projects/[id]/assets/collections/page.tsx` (uses new helpers)
+
+#### Test Coverage
+
+- **Playwright Tests:** `apps/web/tests/draft-list-parity-1.spec.ts` (2 tests: DLP1-001, DLP1-002)
+- **Manual Testing:** `docs/manual-testing/DRAFT-LIST-PARITY-1.md`
+
+#### Seed Endpoint
+
+Uses existing `POST /testkit/e2e/seed-draft-field-coverage-1` (provides pages/collections with drafts)
+
+---
+
 ## In Progress
 
 *None at this time.*
@@ -1628,3 +1671,4 @@ These invariants MUST be preserved during implementation:
 | 6.31 | 2026-01-11 | **DRAFT-DIFF-CLARITY-1-FIXUP-2**: Seed count consistency + exact dialog assertion. (1) Fixed `counts.draftGenerated` from 3→2 (Products 1-2 have actual suggestions; Product 3 is empty); (2) Added `EMPTY_DRAFT_CONFIRM_MESSAGE` constant with exact locked copy; (3) Changed `page.on('dialog')` to `page.once('dialog')` in DDC1-009/DDC1-010 to avoid listener accumulation; (4) Changed `toContain()` to `toBe()` for exact dialog message matching. Tests/seed correctness only; no documentation updates required. |
 | 6.32 | 2026-01-11 | **DRAFT-FIELD-COVERAGE-1 COMPLETE**: Draft Review parity across Products, Pages, and Collections. (1) Generalized ProductDraftsTab → AssetDraftsTab with asset-type-specific field labels (Products: SEO Title/Description, Pages: Page Title/Meta Description, Collections: Collection Title/Meta Description); (2) Added Pages detail route `/assets/pages/[pageId]` with Overview + Drafts tabs; (3) Added Collections detail route `/assets/collections/[collectionId]` with Overview + Drafts tabs; (4) Updated draft-review-isolation-1.spec.ts guard test to target AssetDraftsTab; (5) Added seed-draft-field-coverage-1 endpoint (3 products + 3 pages + 3 collections with diff/clear/no-draft scenarios); (6) Added draft-field-coverage-1.spec.ts Playwright tests (11 tests: DFC1-001 through DFC1-011) covering Pages/Collections diff display, no-draft messaging, destructive-clear confirmation dialogs, cross-asset parity; (7) Manual testing doc DRAFT-FIELD-COVERAGE-1.md. |
 | 6.33 | 2026-01-11 | **DRAFT-FIELD-COVERAGE-1-FIXUP-1**: Canonical route aliases + accept-path dialog assertions. (1) Added canonical route `/projects/[id]/pages/[pageId]` (server redirect to `/assets/pages/...`, preserves query); (2) Added canonical route `/projects/[id]/collections/[collectionId]` (server redirect to `/assets/collections/...`, preserves query); (3) Updated Playwright tests to use canonical routes for Pages/Collections; (4) Added exact `EMPTY_DRAFT_CONFIRM_MESSAGE` assertions on accept path (DFC1-004 + DFC1-008) - now both dismiss and accept paths verify locked dialog copy; (5) Made ProductDraftsTab a thin wrapper around AssetDraftsTab to prevent implementation drift. |
+| 6.34 | 2026-01-11 | **DRAFT-LIST-PARITY-1 COMPLETE**: List-level draft review entrypoint parity for Pages/Collections. (1) Updated `resolveRowNextAction()` to support `issuesHref` for Pages/Collections dual-action rows (View issues primary + Open secondary); (2) Added `buildAssetWorkspaceHref()` and `buildAssetDraftsTabHref()` helpers in `list-actions-clarity.ts`; (3) Pages list "Review drafts" now routes to `/assets/pages/{pageId}?tab=drafts&from=asset_list` (NOT Work Queue/Playbooks); (4) Collections list "Review drafts" routes similarly to asset detail Drafts tab; (5) Playwright tests `draft-list-parity-1.spec.ts` (DLP1-001, DLP1-002) verify routing assertions including negative checks for /work-queue and /automation/playbooks in URL. |

@@ -10,7 +10,8 @@ import { ScopeBanner } from '@/components/common/ScopeBanner';
 import {
   resolveRowNextAction,
   buildAssetIssuesHref,
-  buildReviewDraftsHref,
+  buildAssetWorkspaceHref,
+  buildAssetDraftsTabHref,
   type ResolvedRowNextAction,
   type NavigationContext,
 } from '@/lib/list-actions-clarity';
@@ -233,11 +234,13 @@ export default function PagesAssetListPage() {
     };
 
     for (const page of pages) {
-      // For Pages, "View issues" links to Issues Engine filtered by this asset
-      const openHref = buildAssetIssuesHref(projectId, 'pages', page.id, navContext);
+      // [DRAFT-LIST-PARITY-1] Build separate hrefs for asset detail and Issues Engine
+      const openHref = buildAssetWorkspaceHref(projectId, 'pages', page.id, navContext);
+      const issuesHref = buildAssetIssuesHref(projectId, 'pages', page.id, navContext);
 
       // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Pass server-derived blockedByApproval
-      // [DRAFT-ROUTING-INTEGRITY-1] Pass page.id as assetId for scoped Draft Review
+      // [DRAFT-LIST-PARITY-1] Pass issuesHref for "View issues" + "Open" dual actions
+      // [DRAFT-LIST-PARITY-1] reviewDraftsHref now routes to asset detail Drafts tab (NOT Playbooks)
       const resolved = resolveRowNextAction({
         assetType: 'pages',
         hasDraftPendingApply: page.hasDraftPendingApply,
@@ -246,7 +249,8 @@ export default function PagesAssetListPage() {
         canRequestApproval: capabilities?.canRequestApproval ?? false,
         fixNextHref: null, // Pages don't have deterministic "Fix next"
         openHref,
-        reviewDraftsHref: buildReviewDraftsHref(projectId, 'pages', page.id, navContext),
+        issuesHref,
+        reviewDraftsHref: buildAssetDraftsTabHref(projectId, 'pages', page.id, navContext),
       });
 
       map.set(page.id, resolved);
