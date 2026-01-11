@@ -2389,6 +2389,10 @@ export class E2eTestkitController {
       '../shopify/e2e-shopify-mock.store'
     );
 
+    // [SHOPIFY-ASSET-SYNC-COVERAGE-1-FIXUP-1] Reset store to prevent cross-test leakage
+    // when only one of pages/collections is re-seeded
+    e2eShopifyMockStore.reset();
+
     if (body.pages) {
       e2eShopifyMockStore.setPages(body.pages);
     }

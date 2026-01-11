@@ -1535,10 +1535,6 @@ Seeds:
 - Banner CTA routing preserves the exact same scope semantics as the eligibility basis (no cross-scope routing).
 - Manual Testing: Added "Scoped Playbooks entry (Products list / filtered scope)" to PLAYBOOK-ENTRYPOINT-INTEGRITY-1.md.
 
----
-
-## In Progress
-
 ### Phase SHOPIFY-ASSET-SYNC-COVERAGE-1: Shopify Pages + Collections Ingestion ✅ COMPLETE
 
 **Status:** Complete
@@ -1560,10 +1556,10 @@ Seeds:
 
 #### Key Changes
 
-1. **Prisma Schema**: Added Shopify identity fields to CrawlResult (shopifyResourceType, shopifyResourceId, shopifyHandle, shopifyUpdatedAt, shopifySyncedAt) with compound unique constraint.
+1. **Prisma Schema**: Added Shopify identity fields to CrawlResult (shopifyResourceType, shopifyResourceId, shopifyHandle, shopifyUpdatedAt, shopifySyncedAt) with compound unique constraint and @@index([projectId, url]).
 2. **API Endpoints**: Added project-scoped sync endpoints (POST /projects/:id/shopify/sync-pages, POST /projects/:id/shopify/sync-collections, GET /projects/:id/shopify/sync-status).
 3. **ShopifyService**: Added GraphQL fetchers (GetPages, GetCollections), sync methods, and sync status persistence.
-4. **Frontend**: Pages and Collections list pages with sync buttons, status lines, and empty state differentiation. Detail pages show handle and updatedAt.
+4. **Frontend**: Pages and Collections list pages with sync buttons (visible but disabled when Shopify not connected), status lines, and empty state differentiation. Detail pages show handle and updatedAt.
 5. **E2E Tests**: API-level e2e spec and Playwright smoke test.
 
 #### Test Coverage
@@ -1574,6 +1570,12 @@ Seeds:
 #### Manual Testing
 
 - `docs/manual-testing/SHOPIFY-ASSET-SYNC-COVERAGE-1.md`
+
+---
+
+## In Progress
+
+*None at this time.*
 
 ---
 
@@ -1793,3 +1795,4 @@ These invariants MUST be preserved during implementation:
 | 6.36 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1**: (1) Fixed TDZ crash in Playbooks page (urlSource used before declaration); (2) CNAB derived strictly from eligibility counts (no issue-count fallback, hidden when counts unknown); (3) NO_RUN_WITH_ISSUES banner CTA targets primary playbook from eligibility counts (max wins, tie → descriptions); (4) Split mount effect into eligibility fetch + default selection effects (no fallback to setSelectedPlaybookId on error); (5) Work Queue entrypoint uses `buildPlaybookRunHref()` with playbookId validation; (6) trust-routing-1.spec.ts updated to canonical `/playbooks` route. |
 | 6.37 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2**: (1) Breadcrumb "Playbooks" link uses canonical `/playbooks` route (not `/automation`); (2) Automation tabs "Playbooks" link uses canonical `/playbooks` with dual-route active highlighting (`/playbooks` OR `/automation/playbooks`); (3) "Return to Playbooks" button after apply uses canonical `/playbooks`; (4) Product "Back to preview" fallback uses canonical `/playbooks/:playbookId?step=preview&source=product_details` (not legacy `?playbookId=` query param). |
 | 6.38 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3**: Scoped eligibility integrity. (1) `buildPlaybookRunHref()` now includes `assetType=PRODUCTS` when scopeAssetRefs are present (previously omitted PRODUCTS assetType even when scoped); (2) All API calls (estimate, preview, apply, eligibility fetch) now correctly pass scopeProductIds for PRODUCTS scope (was passing undefined); (3) Banner CTA routing preserves exact scope semantics (no global-vs-scoped mismatch); (4) Tile click, default selection, and product detail returnToPath all preserve scoped PRODUCTS context; (5) Added PEPI1-002 Playwright test for scoped PRODUCTS banner routing integrity; (6) Updated manual testing doc with Scenario 1.1 (Scoped Playbooks entry). |
+| 6.39 | 2026-01-11 | **SHOPIFY-ASSET-SYNC-COVERAGE-1 COMPLETE**: Shopify Pages + Collections sync coverage. (1) Prisma schema: Added Shopify identity fields (shopifyResourceType, shopifyResourceId, shopifyHandle, shopifyUpdatedAt, shopifySyncedAt) with compound unique constraint + @@index([projectId, url]); (2) API endpoints: POST /projects/:id/shopify/sync-pages, POST /projects/:id/shopify/sync-collections (OWNER-only), GET /projects/:id/shopify/sync-status; (3) ShopifyService: GraphQL fetchers (GetPages, GetCollections), sync methods with E2E mock handler support, read_content scope requirement; (4) Frontend: Pages/Collections lists with sync buttons (visible but disabled when Shopify not connected), status lines, empty state differentiation; detail pages show handle + updatedAt; (5) E2E tests: API-level spec + Playwright smoke test; (6) Manual testing doc + CRITICAL_PATH_MAP.md CP-006 update. |

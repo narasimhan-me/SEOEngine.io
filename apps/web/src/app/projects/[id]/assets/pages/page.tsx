@@ -332,11 +332,12 @@ export default function PagesAssetListPage() {
             {pages.length} pages • {criticalCount} critical • {needsAttentionCount} need attention
           </p>
         </div>
-        {/* [SHOPIFY-ASSET-SYNC-COVERAGE-1] Sync button (OWNER-only, Shopify connected) */}
-        {syncStatus.shopifyConnected && capabilities?.canModifySettings && (
+        {/* [SHOPIFY-ASSET-SYNC-COVERAGE-1] Sync button (OWNER-only) */}
+        {/* [SHOPIFY-ASSET-SYNC-COVERAGE-1-FIXUP-1] Visible but disabled when Shopify not connected */}
+        {capabilities?.canModifySettings && (
           <button
             onClick={handleSyncPages}
-            disabled={syncing}
+            disabled={syncing || !syncStatus.shopifyConnected}
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {syncing ? (

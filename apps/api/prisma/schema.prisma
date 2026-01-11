@@ -314,6 +314,7 @@ model CrawlResult {
   // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Compound unique for upsert identity
   @@unique([projectId, shopifyResourceType, shopifyResourceId])
   @@index([projectId, shopifyResourceType])
+  @@index([projectId, url])
 }
 
 model AutomationSuggestion {
