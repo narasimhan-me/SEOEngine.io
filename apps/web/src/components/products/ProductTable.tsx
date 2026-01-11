@@ -507,9 +507,9 @@ export function ProductTable({
               <span className="font-medium text-gray-900">
                 {needsAttentionCount} product{needsAttentionCount !== 1 ? 's' : ''} need attention
               </span>
-              {/* [LIST-ACTIONS-CLARITY-1 FIXUP-1] Removed bulk CTA - navigate to playbooks for automation */}
+              {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Navigate to canonical playbooks list */}
               <Link
-                href={`/projects/${projectId}/automation/playbooks`}
+                href={`/projects/${projectId}/playbooks?source=products_list`}
                 className="inline-flex items-center rounded-md bg-gray-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-700"
               >
                 View playbooks

@@ -2255,4 +2255,91 @@ export class E2eTestkitController {
       },
     };
   }
+
+  /**
+   * POST /testkit/e2e/seed-playbook-entrypoint-integrity-1
+   *
+   * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Seed data for playbook entrypoint routing tests.
+   *
+   * Creates:
+   * - Pro-plan user + project
+   * - Products such that:
+   *   - Titles playbook eligibleCount = 0 (all products have seoTitle)
+   *   - Descriptions playbook eligibleCount > 0 (at least 1 product missing seoDescription)
+   *
+   * This setup verifies that the banner correctly shows "Preview missing SEO descriptions"
+   * and clicking it routes to the descriptions playbook, not titles.
+   *
+   * Returns:
+   * - user (id, email)
+   * - projectId
+   * - productIds[]
+   * - accessToken
+   */
+  @Post('seed-playbook-entrypoint-integrity-1')
+  async seedPlaybookEntrypointIntegrity1() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    // Create products manually to control SEO field presence precisely:
+    // - All products have seoTitle (titles eligibleCount = 0)
+    // - Some products missing seoDescription (descriptions eligibleCount > 0)
+    const products = await Promise.all([
+      // Product 1: Has both title and description (not eligible for either)
+      this.prisma.product.create({
+        data: {
+          projectId: project.id,
+          externalId: `pepi1-ext-${Date.now()}-1`,
+          title: 'Product With Full SEO',
+          handle: 'product-with-full-seo',
+          seoTitle: 'Complete SEO Title 1',
+          seoDescription: 'Complete SEO Description 1',
+        },
+      }),
+      // Product 2: Has title but no description (eligible for descriptions)
+      this.prisma.product.create({
+        data: {
+          projectId: project.id,
+          externalId: `pepi1-ext-${Date.now()}-2`,
+          title: 'Product Missing Description',
+          handle: 'product-missing-description',
+          seoTitle: 'Has SEO Title 2',
+          seoDescription: null, // Missing - eligible for descriptions playbook
+        },
+      }),
+      // Product 3: Has title but no description (eligible for descriptions)
+      this.prisma.product.create({
+        data: {
+          projectId: project.id,
+          externalId: `pepi1-ext-${Date.now()}-3`,
+          title: 'Another Product Missing Description',
+          handle: 'another-product-missing-description',
+          seoTitle: 'Has SEO Title 3',
+          seoDescription: null, // Missing - eligible for descriptions playbook
+        },
+      }),
+    ]);
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+      projectId: project.id,
+      productIds: products.map((p) => p.id),
+      accessToken,
+      // Expected counts for test assertions
+      expectedTitlesEligible: 0,
+      expectedDescriptionsEligible: 2,
+    };
+  }
 }

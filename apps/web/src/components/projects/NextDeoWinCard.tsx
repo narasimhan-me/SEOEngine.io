@@ -62,7 +62,15 @@ export function NextDeoWinCard({ projectId, planId }: NextDeoWinCardProps) {
   }, [fetchEstimates]);
 
   const handleOpenPlaybooks = () => {
-    router.push(`/projects/${projectId}/automation/playbooks?source=next_deo_win`);
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Route to canonical playbook run URL
+    // Prefer direct run route for best UX since we already have counts
+    if ((missingDescriptions ?? 0) > 0) {
+      router.push(`/projects/${projectId}/playbooks/missing_seo_description?step=preview&source=next_deo_win`);
+    } else if ((missingTitles ?? 0) > 0) {
+      router.push(`/projects/${projectId}/playbooks/missing_seo_title?step=preview&source=next_deo_win`);
+    } else {
+      router.push(`/projects/${projectId}/playbooks?source=next_deo_win`);
+    }
   };
 
   const isFree = planId === 'free' || !planId;

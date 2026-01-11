@@ -728,10 +728,10 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     const viewPlaybooksLink = page.locator('a:has-text("View playbooks")');
     const linkExists = await viewPlaybooksLink.count();
 
-    // If there are products needing attention, should show View playbooks link
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] If there are products needing attention, should show View playbooks link
     if (linkExists > 0) {
       const href = await viewPlaybooksLink.getAttribute('href');
-      expect(href).toContain('/automation/playbooks');
+      expect(href).toContain('/playbooks');
     }
   });
 

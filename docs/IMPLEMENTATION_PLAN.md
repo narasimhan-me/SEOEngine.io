@@ -1454,6 +1454,83 @@ Uses existing `POST /testkit/e2e/seed-draft-field-coverage-1` (provides pages/co
 
 ---
 
+### Phase PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Route Canonicalization & Banner Routing Guarantee ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-11
+
+#### Overview
+
+PLAYBOOK-ENTRYPOINT-INTEGRITY-1 introduces canonical playbook routes and guarantees that banner CTAs route to the correct playbook based on eligibility counts. The phase eliminates implicit default selection bugs and ensures URL is always the source of truth.
+
+**Trust Principle:** "The playbook in the URL is the playbook being run. Banner clicks route deterministically to the correct playbook with no AI side effects."
+
+#### Key Features
+
+1. **Canonical Route Shape**: `/projects/:projectId/playbooks/:playbookId?step=preview|estimate|apply&source=<entrypoint>`
+2. **Centralized Routing Helper**: `buildPlaybookRunHref()` as single source of truth for URL construction
+3. **Deterministic Default Selection**: max eligibleCount wins; tie → descriptions; all 0 → neutral (no implicit default)
+4. **Banner CTA Guarantee**: Banner routes canonically (no AI side effects on click)
+5. **Tile Click Routing**: Tiles route via canonical URL (same as banner)
+6. **Estimate/Playbook Mismatch Fix**: Estimates only merge when playbookId matches
+
+#### Locked Routing Behavior
+
+- Banner CTA MUST route to `/playbooks/:playbookId?step=preview&source=banner`
+- URL MUST contain the correct playbookId (matching banner label)
+- Click MUST NOT trigger AI/preview side effects
+- Stepper MUST be visible after navigation
+- Zero-eligible empty state MUST NOT appear when eligibility > 0
+
+#### Canonical Route Shape
+
+```
+/projects/:projectId/playbooks/:playbookId?step=preview|estimate|apply&source=<entrypoint>
+```
+
+**Sources (entrypoints):**
+- `banner` - Playbooks page banner CTA
+- `tile` - Playbooks page tile click
+- `work_queue` - Work Queue CTA
+- `products_list` - Products list View playbooks link
+- `next_deo_win` - Next DEO Win card CTA
+- `entry` - Entry wizard
+- `product_details` - Product details page
+- `default` - Deterministic default selection
+
+#### Core Files
+
+**Created:**
+- `apps/web/src/app/projects/[id]/playbooks/page.tsx` (canonical list route re-export)
+- `apps/web/src/app/projects/[id]/playbooks/[playbookId]/page.tsx` (canonical run route re-export)
+- `apps/web/src/lib/playbooks-routing.ts` (centralized routing helper)
+
+**Updated:**
+- `apps/web/src/app/projects/[id]/automation/page.tsx` (redirect to /playbooks)
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (integrity fixes)
+- `apps/web/src/components/work-queue/ActionBundleCard.tsx` (canonical routing)
+- `apps/web/src/components/products/ProductTable.tsx` (canonical routing)
+- `apps/web/src/components/projects/NextDeoWinCard.tsx` (canonical routing)
+- `apps/web/src/app/projects/[id]/automation/playbooks/entry/page.tsx` (canonical routing)
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` (returnTo validation)
+- `apps/web/src/lib/issue-fix-navigation.ts` (canonical route contexts)
+
+#### Test Coverage
+
+- **Playwright Tests:** `apps/web/tests/playbook-entrypoint-integrity-1.spec.ts` (PEPI1-001)
+- **Manual Testing:** `docs/manual-testing/PLAYBOOK-ENTRYPOINT-INTEGRITY-1.md`
+
+#### Seed Endpoint
+
+`POST /testkit/e2e/seed-playbook-entrypoint-integrity-1`
+
+Seeds:
+- User with project and Shopify connection
+- Products where: titles eligibleCount = 0, descriptions eligibleCount > 0
+- Returns expected counts for test assertions
+
+---
+
 ## In Progress
 
 *None at this time.*
@@ -1672,3 +1749,5 @@ These invariants MUST be preserved during implementation:
 | 6.32 | 2026-01-11 | **DRAFT-FIELD-COVERAGE-1 COMPLETE**: Draft Review parity across Products, Pages, and Collections. (1) Generalized ProductDraftsTab → AssetDraftsTab with asset-type-specific field labels (Products: SEO Title/Description, Pages: Page Title/Meta Description, Collections: Collection Title/Meta Description); (2) Added Pages detail route `/assets/pages/[pageId]` with Overview + Drafts tabs; (3) Added Collections detail route `/assets/collections/[collectionId]` with Overview + Drafts tabs; (4) Updated draft-review-isolation-1.spec.ts guard test to target AssetDraftsTab; (5) Added seed-draft-field-coverage-1 endpoint (3 products + 3 pages + 3 collections with diff/clear/no-draft scenarios); (6) Added draft-field-coverage-1.spec.ts Playwright tests (11 tests: DFC1-001 through DFC1-011) covering Pages/Collections diff display, no-draft messaging, destructive-clear confirmation dialogs, cross-asset parity; (7) Manual testing doc DRAFT-FIELD-COVERAGE-1.md. |
 | 6.33 | 2026-01-11 | **DRAFT-FIELD-COVERAGE-1-FIXUP-1**: Canonical route aliases + accept-path dialog assertions. (1) Added canonical route `/projects/[id]/pages/[pageId]` (server redirect to `/assets/pages/...`, preserves query); (2) Added canonical route `/projects/[id]/collections/[collectionId]` (server redirect to `/assets/collections/...`, preserves query); (3) Updated Playwright tests to use canonical routes for Pages/Collections; (4) Added exact `EMPTY_DRAFT_CONFIRM_MESSAGE` assertions on accept path (DFC1-004 + DFC1-008) - now both dismiss and accept paths verify locked dialog copy; (5) Made ProductDraftsTab a thin wrapper around AssetDraftsTab to prevent implementation drift. |
 | 6.34 | 2026-01-11 | **DRAFT-LIST-PARITY-1 COMPLETE**: List-level draft review entrypoint parity for Pages/Collections. (1) Updated `resolveRowNextAction()` to support `issuesHref` for Pages/Collections dual-action rows (View issues primary + Open secondary); (2) Added `buildAssetWorkspaceHref()` and `buildAssetDraftsTabHref()` helpers in `list-actions-clarity.ts`; (3) Pages list "Review drafts" now routes to `/assets/pages/{pageId}?tab=drafts&from=asset_list` (NOT Work Queue/Playbooks); (4) Collections list "Review drafts" routes similarly to asset detail Drafts tab; (5) Playwright tests `draft-list-parity-1.spec.ts` (DLP1-001, DLP1-002) verify routing assertions including negative checks for /work-queue and /automation/playbooks in URL. |
+| 6.35 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1 COMPLETE**: Playbook route canonicalization + banner routing guarantee. (1) Canonical route shape `/projects/:projectId/playbooks/:playbookId?step=...&source=...`; (2) Centralized routing helper `playbooks-routing.ts` with `buildPlaybookRunHref()`; (3) Deterministic default selection (max eligibleCount; tie → descriptions; all 0 → neutral); (4) Banner CTA routes canonically (no AI side effects on click); (5) Tile click routing via canonical URL; (6) Estimate/playbook mismatch bug fix; (7) All external entrypoints updated to canonical routes; (8) Playwright test PEPI1-001 verifies banner routes to correct playbook with step=preview and source=banner. |
+| 6.36 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1**: (1) Fixed TDZ crash in Playbooks page (urlSource used before declaration); (2) CNAB derived strictly from eligibility counts (no issue-count fallback, hidden when counts unknown); (3) NO_RUN_WITH_ISSUES banner CTA targets primary playbook from eligibility counts (max wins, tie → descriptions); (4) Split mount effect into eligibility fetch + default selection effects (no fallback to setSelectedPlaybookId on error); (5) Work Queue entrypoint uses `buildPlaybookRunHref()` with playbookId validation; (6) trust-routing-1.spec.ts updated to canonical `/playbooks` route. |

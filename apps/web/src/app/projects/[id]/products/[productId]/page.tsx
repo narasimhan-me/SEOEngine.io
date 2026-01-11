@@ -106,6 +106,7 @@ export default function ProductOptimizationPage() {
   }, [projectId, searchParams]);
 
   // [TRUST-ROUTING-1] Backward compat: Validate returnTo for playbook paths
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Expand to accept both /automation/playbooks and canonical /playbooks
   const validatedReturnTo = useMemo(() => {
     // First try the new validation
     if (validatedNavContext.returnTo) {
@@ -114,13 +115,16 @@ export default function ProductOptimizationPage() {
     // Fallback to legacy playbook-only validation
     if (!returnToParam) return null;
     const decoded = decodeURIComponent(returnToParam);
-    // Only allow navigation to playbooks path for this project
-    if (decoded.startsWith(`/projects/${projectId}/automation/playbooks`)) {
+    // Allow navigation to playbooks path for this project (both legacy and canonical)
+    if (
+      decoded.startsWith(`/projects/${projectId}/automation/playbooks`) ||
+      decoded.startsWith(`/projects/${projectId}/playbooks`)
+    ) {
       return decoded;
     }
-    // Fallback to safe default
+    // Fallback to safe default using canonical route
     return playbookIdParam
-      ? `/projects/${projectId}/automation/playbooks?playbookId=${playbookIdParam}`
+      ? `/projects/${projectId}/playbooks/${playbookIdParam}?step=preview&source=product_details`
       : null;
   }, [validatedNavContext.returnTo, returnToParam, projectId, playbookIdParam]);
 

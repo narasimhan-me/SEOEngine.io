@@ -51,8 +51,8 @@ test.describe('TRUST-ROUTING-1: Playbooks Preview Context', () => {
   test('Playbooks preview survives navigation to Product and back', async ({ page, request }) => {
     const { projectId, productIds } = await authenticatePage(page, request);
 
-    // Navigate to playbooks page
-    await page.goto(`/projects/${projectId}/automation/playbooks`);
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Navigate to canonical playbooks route
+    await page.goto(`/projects/${projectId}/playbooks`);
 
     // Wait for page to load
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Playbooks');
@@ -92,9 +92,9 @@ test.describe('TRUST-ROUTING-1: Playbooks Preview Context', () => {
           const backLink = page.getByRole('link', { name: /Back to preview/i });
           await expect(backLink).toBeVisible();
 
-          // Click back and verify we return to playbooks
+          // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Click back and verify we return to playbooks (canonical route)
           await backLink.click();
-          await expect(page.url()).toContain('/automation/playbooks');
+          await expect(page.url()).toContain('/playbooks');
         }
       }
     }
