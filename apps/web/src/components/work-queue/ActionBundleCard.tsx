@@ -5,6 +5,8 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { useMemo } from 'react';
 import type { WorkQueueActionBundle, WorkQueueViewer } from '@/lib/work-queue';
 import { getReturnToFromCurrentUrl, withRouteContext } from '@/lib/route-context';
+// [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI boundary note for generation entrypoints
+import { DraftAiBoundaryNote } from '@/components/common/DraftAiBoundaryNote';
 
 interface ActionBundleCardProps {
   bundle: WorkQueueActionBundle;
@@ -266,34 +268,40 @@ export function ActionBundleCard({
 
       {/* Row 5: Footer CTAs */}
       {/* [ROUTE-INTEGRITY-1] Use ctaRouteWithContext for deterministic from+returnTo */}
-      <div className="mt-4 flex items-center gap-3 border-t border-gray-100 pt-4">
-        {primaryCta && (
-          <Link
-            href={ctaRouteWithContext}
-            className={`inline-flex items-center rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              disabledReason
-                ? 'cursor-not-allowed bg-gray-100 text-gray-400'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            }`}
-            onClick={(e) => {
-              if (disabledReason) {
-                e.preventDefault();
-              }
-            }}
-          >
-            {primaryCta}
-          </Link>
-        )}
-        {secondaryCta && (
-          <Link
-            href={ctaRouteWithContext}
-            className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-          >
-            {secondaryCta}
-          </Link>
-        )}
-        {disabledReason && (
-          <span className="text-sm text-gray-500">{disabledReason}</span>
+      <div className="mt-4 flex flex-col gap-2 border-t border-gray-100 pt-4">
+        <div className="flex items-center gap-3">
+          {primaryCta && (
+            <Link
+              href={ctaRouteWithContext}
+              className={`inline-flex items-center rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                disabledReason
+                  ? 'cursor-not-allowed bg-gray-100 text-gray-400'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+              onClick={(e) => {
+                if (disabledReason) {
+                  e.preventDefault();
+                }
+              }}
+            >
+              {primaryCta}
+            </Link>
+          )}
+          {secondaryCta && (
+            <Link
+              href={ctaRouteWithContext}
+              className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              {secondaryCta}
+            </Link>
+          )}
+          {disabledReason && (
+            <span className="text-sm text-gray-500">{disabledReason}</span>
+          )}
+        </div>
+        {/* [DRAFT-AI-ENTRYPOINT-CLARITY-1] Show AI boundary note for generation CTAs */}
+        {(primaryCta === 'Generate Drafts' || primaryCta === 'Generate Full Drafts') && (
+          <DraftAiBoundaryNote mode="generate" />
         )}
       </div>
     </div>

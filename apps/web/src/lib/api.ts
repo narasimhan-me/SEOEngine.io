@@ -735,11 +735,15 @@ export type AutomationPlaybookDraftStatus = 'PENDING' | 'READY' | 'APPLIED' | 'E
  * [DRAFT-ROUTING-INTEGRITY-1] Draft item for asset-scoped drafts
  * [FIXUP-2] Supports both canonical shape (field/finalSuggestion/rawSuggestion)
  * and legacy/testkit shape (suggestedTitle/suggestedDescription)
+ * [DRAFT-ENTRYPOINT-UNIFICATION-1] Added itemIndex for edit mapping
  */
 export interface AssetScopedDraftItem {
   // Asset identifier - one of these should be present
   productId?: string;
   crawlResultId?: string; // For pages/collections
+
+  // [DRAFT-ENTRYPOINT-UNIFICATION-1] Original index in draftItems array for edit/save
+  itemIndex?: number;
 
   // Canonical playbook draft shape
   field?: 'seoTitle' | 'seoDescription';
@@ -779,6 +783,16 @@ export interface AssetScopedDraftsResponse {
   assetType: string;
   assetId: string;
   drafts: AssetScopedDraft[];
+}
+
+/**
+ * [DRAFT-EDIT-INTEGRITY-1] Response from updateDraftItem
+ */
+export interface UpdateDraftItemResponse {
+  draftId: string;
+  itemIndex: number;
+  updatedItem: AssetScopedDraftItem;
+  updatedAt: string;
 }
 
 /**
@@ -1569,6 +1583,31 @@ export const projectsApi = {
     searchParams.set('assetId', params.assetId);
     return fetchWithAuth(
       `/projects/${projectId}/automation-playbooks/drafts?${searchParams.toString()}`,
+    );
+  },
+
+  /**
+   * [DRAFT-EDIT-INTEGRITY-1] Update a specific draft item's content.
+   * Allows users to edit draft suggestions before apply. Server draft is source of truth.
+   * No autosave - explicit save required.
+   *
+   * @param projectId - The project ID
+   * @param draftId - The draft ID
+   * @param itemIndex - The index of the item in the draft to update
+   * @param value - The new text content for the draft item
+   */
+  updateDraftItem: (
+    projectId: string,
+    draftId: string,
+    itemIndex: number,
+    value: string,
+  ): Promise<UpdateDraftItemResponse> => {
+    return fetchWithAuth(
+      `/projects/${projectId}/automation-playbooks/drafts/${draftId}/items/${itemIndex}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ value }),
+      },
     );
   },
 };

@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -594,6 +595,49 @@ export class ProjectsController {
       projectId,
       assetType as 'products' | 'pages' | 'collections',
       assetId.trim(),
+    );
+  }
+
+  /**
+   * PATCH /projects/:id/automation-playbooks/drafts/:draftId/items/:itemIndex
+   * [DRAFT-EDIT-INTEGRITY-1] Update a specific draft item's content.
+   *
+   * Allows users to edit draft suggestions before apply. Server draft is source of truth.
+   * No autosave - explicit save required.
+   *
+   * Path params:
+   * - draftId: The draft ID
+   * - itemIndex: The index of the item in the draft to update
+   *
+   * Body:
+   * - value: The new text content for the draft item
+   *
+   * Access control:
+   * - OWNER/EDITOR can edit drafts
+   * - VIEWER cannot edit (returns 403)
+   */
+  @Patch(':id/automation-playbooks/drafts/:draftId/items/:itemIndex')
+  async updateDraftItem(
+    @Request() req: any,
+    @Param('id') projectId: string,
+    @Param('draftId') draftId: string,
+    @Param('itemIndex') itemIndexStr: string,
+    @Body('value') value?: string,
+  ) {
+    const itemIndex = parseInt(itemIndexStr, 10);
+    if (isNaN(itemIndex) || itemIndex < 0) {
+      throw new BadRequestException('itemIndex must be a non-negative integer');
+    }
+    if (value === undefined || value === null) {
+      throw new BadRequestException('value is required in request body');
+    }
+
+    return this.automationPlaybooksService.updateDraftItem(
+      req.user.id,
+      projectId,
+      draftId,
+      itemIndex,
+      value,
     );
   }
 

@@ -1319,6 +1319,8 @@ export class E2eTestkitController {
     });
 
     // Create AutomationPlaybookDraft for product3
+    // [DRAFT-ENTRYPOINT-UNIFICATION-1] Use canonical draft shape (field/rawSuggestion/finalSuggestion)
+    // to support edit functionality in Drafts tab
     await this.prisma.automationPlaybookDraft.create({
       data: {
         projectId: project.id,
@@ -1331,9 +1333,10 @@ export class E2eTestkitController {
         draftItems: [
           {
             productId: product3.id,
-            suggestedTitle: 'Improved Product Title for Better SEO',
-            suggestedDescription: 'A comprehensive description for the product that improves search visibility and user experience.',
-            status: 'READY',
+            field: 'seoDescription',
+            rawSuggestion: 'A comprehensive description for the product that improves search visibility and user experience.',
+            finalSuggestion: 'A comprehensive description for the product that improves search visibility and user experience.',
+            ruleWarnings: [],
           },
         ] as unknown as any,
         counts: {
@@ -1548,6 +1551,317 @@ export class E2eTestkitController {
       optimizedCollectionId: collection1.id,
       needsAttentionCollectionId: collection2.id,
       draftPendingCollectionId: collection3.id,
+    };
+  }
+
+  // ==========================================================================
+  // [DRAFT-AI-ENTRYPOINT-CLARITY-1] E2E Seeds
+  // ==========================================================================
+
+  /**
+   * POST /testkit/e2e/seed-draft-ai-entrypoint-clarity-1
+   *
+   * [DRAFT-AI-ENTRYPOINT-CLARITY-1] Seed for AI boundary note visibility tests.
+   *
+   * Creates a project with:
+   * - Products with missing SEO (for generation flow testing)
+   * - Products with pending drafts (for review flow testing)
+   * - Both scenarios enable testing AI boundary note visibility
+   *
+   * Returns:
+   * - projectId
+   * - accessToken
+   * - productWithDraftId (for review boundary testing)
+   * - productWithoutDraftId (for generate boundary testing)
+   */
+  @Post('seed-draft-ai-entrypoint-clarity-1')
+  async seedDraftAiEntrypointClarity1() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    // Product 1: Has pending draft (for Draft Review boundary note testing)
+    const productWithDraft = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'daepc1-product-with-draft',
+        title: 'Product With Draft For Review',
+        description: 'This product has a pending draft for review testing.',
+        handle: 'product-with-draft-for-review',
+        seoTitle: 'Short', // Needs attention
+        seoDescription: null, // Missing
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    // Product 2: No draft (for Generate boundary note testing)
+    const productWithoutDraft = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'daepc1-product-without-draft',
+        title: 'Product Without Draft For Generate',
+        description: 'This product has no draft for generation testing.',
+        handle: 'product-without-draft-for-generate',
+        seoTitle: null, // Missing = needs attention
+        seoDescription: null, // Missing
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    // Create AutomationPlaybookDraft for productWithDraft
+    // [DRAFT-AI-ENTRYPOINT-CLARITY-1-FIXUP-1] Use PARTIAL status so Work Queue shows "Generate Full Drafts"
+    // Use canonical draft shape (field/rawSuggestion/finalSuggestion)
+    await this.prisma.automationPlaybookDraft.create({
+      data: {
+        projectId: project.id,
+        playbookId: 'missing_seo_description',
+        scopeId: `project:${project.id}:products`,
+        rulesHash: 'draft-ai-entrypoint-clarity-1-hash',
+        status: 'PARTIAL', // PARTIAL triggers "Generate Full Drafts" CTA in Work Queue
+        createdByUserId: user.id,
+        sampleProductIds: [productWithDraft.id, productWithoutDraft.id] as unknown as any,
+        draftItems: [
+          {
+            productId: productWithDraft.id,
+            field: 'seoDescription',
+            rawSuggestion: 'AI-generated draft for testing review boundary note visibility.',
+            finalSuggestion: 'AI-generated draft for testing review boundary note visibility.',
+            ruleWarnings: [],
+          },
+        ] as unknown as any,
+        counts: {
+          affectedTotal: 2, // Both products are eligible
+          draftGenerated: 1, // Only one has draft = PARTIAL
+          noSuggestionCount: 0,
+        } as unknown as any,
+        rules: { enabled: true } as unknown as any,
+        appliedAt: null,
+        expiresAt: null,
+      },
+    });
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      projectId: project.id,
+      accessToken,
+      productWithDraftId: productWithDraft.id,
+      productWithoutDraftId: productWithoutDraft.id,
+    };
+  }
+
+  // ==========================================================================
+  // [DRAFT-DIFF-CLARITY-1] E2E Seeds
+  // ==========================================================================
+
+  /**
+   * POST /testkit/e2e/seed-draft-diff-clarity-1
+   *
+   * [DRAFT-DIFF-CLARITY-1] Seed for Current vs Draft diff UI tests.
+   *
+   * Creates a project with:
+   * - Product 1: Has live SEO and a draft with different value (for diff display testing)
+   * - Product 2: Has live SEO and a draft explicitly cleared (for "Draft will clear" testing)
+   * - Product 3: Has live SEO and no draft generated yet (for "No draft generated" testing)
+   * - Page: Has draft for Playbooks Draft Review diff testing
+   *
+   * Returns:
+   * - projectId
+   * - accessToken
+   * - productWithDiffId (has live value + different draft value)
+   * - productWithClearedDraftId (has live value + empty draft = "Draft will clear")
+   * - productNoDraftId (has live value + no draft = "No draft generated yet")
+   * - pageWithDraftId (for Playbooks Draft Review diff testing)
+   * - liveSeoTitle (for assertion against "Current (live)" display)
+   * - liveSeoDescription (for assertion against "Current (live)" display)
+   * - draftSeoTitle (for assertion against "Draft (staged)" display)
+   * - draftSeoDescription (for assertion against "Draft (staged)" display)
+   */
+  @Post('seed-draft-diff-clarity-1')
+  async seedDraftDiffClarity1() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    const baseUrl = 'https://test-shop.myshopify.com';
+
+    // Product 1: Has live SEO + draft with different value (for diff display)
+    const liveSeoTitle = 'Original Live SEO Title for Testing';
+    const liveSeoDescription = 'This is the original live SEO description that is currently published on the store.';
+    const draftSeoTitle = 'Updated Draft SEO Title - AI Generated';
+    const draftSeoDescription = 'This is the new AI-generated draft SEO description ready to be applied.';
+
+    const productWithDiff = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'ddc1-product-with-diff',
+        title: 'Product With Diff Values',
+        description: 'This product has live SEO values and a draft with different values.',
+        handle: 'product-with-diff-values',
+        seoTitle: liveSeoTitle,
+        seoDescription: liveSeoDescription,
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    // Product 2: Has live SEO + explicitly cleared draft (for "Draft will clear" message)
+    const productWithClearedDraft = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'ddc1-product-cleared-draft',
+        title: 'Product With Cleared Draft',
+        description: 'This product has live SEO values and an explicitly cleared draft.',
+        handle: 'product-cleared-draft',
+        seoTitle: 'Live Title That Will Be Cleared',
+        seoDescription: 'This description will be cleared when the empty draft is applied.',
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    // Product 3: Has live SEO + "No draft generated yet" scenario
+    // [DRAFT-DIFF-CLARITY-1-FIXUP-1] This product has a draftItem entry with field present
+    // but both rawSuggestion and finalSuggestion empty - triggers "No draft generated yet" message
+    const productNoDraft = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'ddc1-product-no-draft',
+        title: 'Product Without Draft Generated',
+        description: 'This product has live SEO values but draft field has empty suggestions.',
+        handle: 'product-no-draft',
+        seoTitle: 'Live Title With No Draft',
+        seoDescription: 'This description has no corresponding draft generated.',
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    // Page: For Playbooks Draft Review diff testing
+    const pageWithDraft = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/pages/draft-diff-test`,
+        statusCode: 200,
+        title: 'Page With Live And Draft Values',
+        metaDescription: 'This is the live page description that will be compared to the draft.',
+        h1: 'Draft Diff Test Page',
+        wordCount: 300,
+        loadTimeMs: 200,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Create AutomationPlaybookDraft for products with canonical shape
+    // [DRAFT-DIFF-CLARITY-1-FIXUP-1] Includes all 3 products to cover all diff scenarios
+    await this.prisma.automationPlaybookDraft.create({
+      data: {
+        projectId: project.id,
+        playbookId: 'missing_seo_title',
+        scopeId: `project:${project.id}:products`,
+        rulesHash: 'draft-diff-clarity-1-products-hash',
+        status: 'READY',
+        createdByUserId: user.id,
+        sampleProductIds: [productWithDiff.id, productWithClearedDraft.id, productNoDraft.id] as unknown as any,
+        draftItems: [
+          // Product 1: Has different draft value (diff display scenario)
+          {
+            productId: productWithDiff.id,
+            field: 'seoTitle',
+            rawSuggestion: draftSeoTitle,
+            finalSuggestion: draftSeoTitle,
+            ruleWarnings: [],
+          },
+          {
+            productId: productWithDiff.id,
+            field: 'seoDescription',
+            rawSuggestion: draftSeoDescription,
+            finalSuggestion: draftSeoDescription,
+            ruleWarnings: [],
+          },
+          // Product 2: Explicitly cleared (rawSuggestion exists but finalSuggestion is empty)
+          // Triggers "Draft will clear this field when applied" message
+          {
+            productId: productWithClearedDraft.id,
+            field: 'seoDescription',
+            rawSuggestion: 'AI generated this but user cleared it',
+            finalSuggestion: '', // Explicitly cleared
+            ruleWarnings: [],
+          },
+          // Product 3: No draft generated yet (field present but both rawSuggestion and finalSuggestion empty)
+          // [DRAFT-DIFF-CLARITY-1-FIXUP-1] Triggers "No draft generated yet" message
+          {
+            productId: productNoDraft.id,
+            field: 'seoTitle',
+            rawSuggestion: '', // Empty - no draft generated
+            finalSuggestion: '', // Empty - no draft generated
+            ruleWarnings: [],
+          },
+        ] as unknown as any,
+        counts: {
+          affectedTotal: 3,
+          draftGenerated: 2, // Products 1-2 have actual suggestions; Product 3 is empty
+          noSuggestionCount: 1, // Product 3 has no actual suggestion
+        } as unknown as any,
+        rules: { enabled: true } as unknown as any,
+        appliedAt: null,
+        expiresAt: null,
+      },
+    });
+
+    // Create AutomationPlaybookDraft for page with canonical shape
+    await this.prisma.automationPlaybookDraft.create({
+      data: {
+        projectId: project.id,
+        playbookId: 'missing_seo_description',
+        scopeId: `project:${project.id}:pages`,
+        rulesHash: 'draft-diff-clarity-1-pages-hash',
+        status: 'READY',
+        createdByUserId: user.id,
+        sampleProductIds: [] as unknown as any,
+        draftItems: [
+          {
+            crawlResultId: pageWithDraft.id,
+            field: 'seoDescription',
+            rawSuggestion: 'AI-generated page description for diff testing.',
+            finalSuggestion: 'AI-generated page description for diff testing.',
+            ruleWarnings: [],
+          },
+        ] as unknown as any,
+        counts: {
+          affectedTotal: 1,
+          draftGenerated: 1,
+          noSuggestionCount: 0,
+        } as unknown as any,
+        rules: { enabled: true } as unknown as any,
+        appliedAt: null,
+        expiresAt: null,
+      },
+    });
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      projectId: project.id,
+      accessToken,
+      productWithDiffId: productWithDiff.id,
+      productWithClearedDraftId: productWithClearedDraft.id,
+      productNoDraftId: productNoDraft.id,
+      pageWithDraftId: pageWithDraft.id,
+      liveSeoTitle,
+      liveSeoDescription,
+      draftSeoTitle,
+      draftSeoDescription,
     };
   }
 }

@@ -1091,6 +1091,261 @@ DRAFT-ROUTING-INTEGRITY-1 ensures "Review drafts" action routes to Draft Review 
 
 ---
 
+### Phase DRAFT-EDIT-INTEGRITY-1: Inline Draft Editing in Draft Review Mode ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+DRAFT-EDIT-INTEGRITY-1 adds explicit Edit affordance to Draft Review mode, allowing users to edit draft content before approval/apply. Server draft is source of truth - no autosave, explicit save required.
+
+**Trust Principle:** "If we present a draft for review, the user must be able to edit it safely before approval/apply."
+
+#### Key Features
+
+1. **Per-Item Edit**: Each draft item has Edit button; only one item editable at a time
+2. **Explicit Save**: Save changes / Cancel buttons; no auto-save-on-type
+3. **Server Source of Truth**: Edits persist to server; UI re-renders from response
+4. **Permission Enforcement**: OWNER/EDITOR can edit; VIEWER cannot
+5. **Test Hooks**: `draft-item-${id}-${idx}`, `draft-item-edit-*`, `draft-item-save-*`, `draft-item-cancel-*`, `draft-item-input-*`
+
+#### Completed Patches
+
+- ✅ **PATCH 1:** Added `updateDraftItem()` service method in automation-playbooks.service.ts
+- ✅ **PATCH 2:** Added `PATCH /projects/:id/automation-playbooks/drafts/:draftId/items/:itemIndex` endpoint
+- ✅ **PATCH 3:** Added `projectsApi.updateDraftItem()` web client method + `UpdateDraftItemResponse` type
+- ✅ **PATCH 4:** Implemented inline edit mode in Draft Review UI (playbooks/page.tsx)
+- ✅ **PATCH 5:** Added Playwright test LAC1-009 for draft editing + persistence verification
+- ✅ **PATCH 6:** Created `DRAFT-EDIT-INTEGRITY-1.md` manual testing doc
+
+#### Core Files
+
+- `apps/api/src/projects/automation-playbooks.service.ts` (updateDraftItem)
+- `apps/api/src/projects/projects.controller.ts` (PATCH endpoint)
+- `apps/web/src/lib/api.ts` (UpdateDraftItemResponse + updateDraftItem method)
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (inline edit mode)
+
+#### Test Coverage
+
+- **E2E Tests:** `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-009)
+- **Manual Testing:** `docs/manual-testing/DRAFT-EDIT-INTEGRITY-1.md`
+
+---
+
+### Phase DRAFT-ENTRYPOINT-UNIFICATION-1: Product Detail Drafts Tab ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+DRAFT-ENTRYPOINT-UNIFICATION-1 unifies draft review entrypoints by adding a Drafts tab to Product detail page. Products list "Review drafts" action now routes directly to Product detail Drafts tab (NOT Automation/Playbooks Draft Review), establishing Product detail as the canonical draft review entrypoint for product assets.
+
+#### Locked Statements
+
+- **Product detail is the canonical draft review entrypoint for products**: Products list "Review drafts" routes to `/projects/:id/products/:productId?tab=drafts`, NOT to `/automation/playbooks`.
+- **Draft Review stays human-only**: AI is never invoked during Draft Review/Approval/Apply. No Generate/Regenerate buttons in Drafts tab.
+- **Products list Review drafts does not route to Automation Draft Review**: The Automation/Playbooks Draft Review mode is preserved for Pages/Collections, but Products use their own Drafts tab.
+
+#### Key Features
+
+1. **Drafts Tab**: New tab in Product detail page showing asset-scoped pending drafts
+2. **Inline Edit**: Edit/Save/Cancel per draft item (reuses DRAFT-EDIT-INTEGRITY-1 pattern)
+3. **itemIndex Tracking**: Server returns original array index for accurate edit API calls
+4. **No AI Affordances**: Drafts tab is intentionally non-AI (no Generate/Regenerate buttons)
+5. **Unified Navigation**: `buildProductDraftsTabHref()` helper for consistent routing
+
+#### Completed Patches
+
+- ✅ **PATCH 1:** Updated ProductTable to route "Review drafts" to Product detail Drafts tab
+- ✅ **PATCH 2:** Added `buildProductDraftsTabHref()` helper in list-actions-clarity.ts
+- ✅ **PATCH 3:** Added 'drafts' tab to ProductDetailsTabs.tsx
+- ✅ **PATCH 4:** Implemented Drafts tab UI in Product detail page (fetch + edit + render)
+- ✅ **PATCH 5:** Added `itemIndex` to asset-scoped drafts response in automation-playbooks.service.ts
+- ✅ **PATCH 6:** Extended `AssetScopedDraftItem` type with `itemIndex` field
+- ✅ **PATCH 7:** Updated Playbooks Draft Review to use `item.itemIndex` for API calls
+- ✅ **PATCH 8:** Updated Playwright tests LAC1-008/009 for Product detail Drafts tab routing
+- ✅ **PATCH 9:** Updated testkit seed to use canonical draft shape (field/rawSuggestion/finalSuggestion)
+- ✅ **PATCH 10:** Documentation updates (this section + manual testing doc)
+
+#### Core Files
+
+- `apps/web/src/lib/list-actions-clarity.ts` (buildProductDraftsTabHref)
+- `apps/web/src/components/products/ProductTable.tsx` (Review drafts routing)
+- `apps/web/src/components/products/optimization/ProductDetailsTabs.tsx` (Drafts tab)
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` (Drafts tab implementation)
+- `apps/api/src/projects/automation-playbooks.service.ts` (itemIndex in listPendingDraftsForAsset)
+- `apps/web/src/lib/api.ts` (AssetScopedDraftItem.itemIndex)
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (itemIndex usage)
+- `apps/api/src/testkit/e2e-testkit.controller.ts` (canonical draft shape in seed)
+
+#### Test Coverage
+
+- **E2E Tests:** `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-008, LAC1-009)
+- **Manual Testing:** `docs/manual-testing/DRAFT-ENTRYPOINT-UNIFICATION-1.md`
+
+#### Routing Contract
+
+- Products "Review drafts": `/projects/:projectId/products/:productId?tab=drafts&from=asset_list&returnTo=...`
+- Pages/Collections "Review drafts": `/automation/playbooks?mode=drafts&assetType=...&assetId=...` (unchanged)
+
+---
+
+### Phase DRAFT-REVIEW-ISOLATION-1: Structural Non-AI Boundary ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+DRAFT-REVIEW-ISOLATION-1 extracts the Product Drafts tab into an isolated module with a NON-AI BOUNDARY contract. This structural refactor prevents accidental AI creep into the Draft Review surface, enforcing the locked statement: "Draft Review stays human-only."
+
+**Trust Principle:** "If we promise human-only Draft Review, the code structure must enforce it."
+
+#### Why Isolation Exists
+
+1. **Prevent accidental AI creep**: Developers cannot accidentally import AI modules into Draft Review
+2. **Self-documenting contract**: The NON-AI BOUNDARY header makes the constraint explicit
+3. **Automated enforcement**: Guard test fails if forbidden imports are added
+4. **Code review signal**: Any PR touching `ProductDraftsTab.tsx` triggers immediate scrutiny
+
+#### NON-AI BOUNDARY Contract
+
+The `ProductDraftsTab.tsx` module must:
+1. Contain the header: `NON-AI BOUNDARY: Draft Review is human-only. Do not import aiApi or add AI generation actions here.`
+2. NOT import any of these forbidden tokens:
+   - `aiApi`
+   - `ProductAiSuggestionsPanel`
+   - `suggestProductMetadata`
+   - `generateProductAnswers`
+   - `AI_DAILY_LIMIT_REACHED`
+
+#### Completed Patches
+
+- ✅ **PATCH 1:** Extracted `ProductDraftsTab.tsx` with NON-AI BOUNDARY header and verbatim behavior
+- ✅ **PATCH 2:** Added `draft-review-isolation-1.spec.ts` guard test for forbidden imports
+- ✅ **PATCH 3:** Updated Product detail page to use isolated component (conditionally mounted to match standard tab behavior)
+- ✅ **PATCH 4:** Verified existing non-AI UI regression tests (LAC1-008) still pass
+- ✅ **PATCH 5:** Documentation updates (this section + manual testing doc)
+
+#### Core Files
+
+- `apps/web/src/components/products/ProductDraftsTab.tsx` (NEW - isolated non-AI module)
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` (delegates to ProductDraftsTab)
+- `apps/web/tests/draft-review-isolation-1.spec.ts` (NEW - no-AI import guard test)
+
+#### Test Coverage
+
+- **Guard Tests:** `apps/web/tests/draft-review-isolation-1.spec.ts` (DRI1-001, DRI1-002, DRI1-003)
+- **UI Tests:** `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-008 - existing non-AI assertions)
+- **Manual Testing:** `docs/manual-testing/DRAFT-REVIEW-ISOLATION-1.md`
+
+#### Behavior Changes
+
+None. This is a pure structural refactor with no behavioral changes.
+
+---
+
+### Phase DRAFT-AI-ENTRYPOINT-CLARITY-1: AI Boundary Notes ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+DRAFT-AI-ENTRYPOINT-CLARITY-1 adds explicit AI boundary labeling at all draft workflow surfaces. The boundary notes provide transparency about AI usage at each step, ensuring users always know when AI is or isn't being used.
+
+**Trust Principle:** "If we use AI, we disclose it. If we don't use AI, we clarify that too."
+
+#### Locked Copy (Do Not Modify Without Phase Approval)
+
+| Mode | Text | Icon |
+|------|------|------|
+| Review | "Review & edit (no AI on this step)" | Person (gray) |
+| Generate | "AI used for drafts only · AI is not used at Apply" | Lightbulb (indigo) |
+
+#### Surfaces Covered
+
+1. **Product Drafts Tab** (review mode) - below "Drafts" heading
+2. **Playbooks Draft Review** (review mode) - below ScopeBanner
+3. **Playbooks Step 1 Generation** (generate mode) - below "Generate preview" button
+4. **Work Queue Generation CTA** (generate mode) - below "Generate Drafts" / "Generate Full Drafts" button
+
+#### Core Files
+
+- `apps/web/src/components/common/DraftAiBoundaryNote.tsx` (NEW - shared component)
+- `apps/web/src/components/products/ProductDraftsTab.tsx` (added review note)
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (added review + generate notes)
+- `apps/web/src/components/work-queue/ActionBundleCard.tsx` (added generate note)
+- `apps/api/src/testkit/e2e-testkit.controller.ts` (seed endpoint)
+
+#### Test Coverage
+
+- **Playwright Tests:** `apps/web/tests/draft-ai-entrypoint-clarity-1.spec.ts` (6 tests: DAEPC1-001 through DAEPC1-006)
+- **Existing Tests:** `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-008 updated with boundary note assertion)
+- **Manual Testing:** `docs/manual-testing/DRAFT-AI-ENTRYPOINT-CLARITY-1.md`
+
+#### Behavior Changes
+
+None. This is a UX clarity addition with no functional behavior changes.
+
+---
+
+### Phase DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+DRAFT-DIFF-CLARITY-1 adds explicit "Current (live)" vs "Draft (staged)" diff display at draft review surfaces. This provides users with clear visibility into what will change when a draft is applied, preventing confusion about the current state vs proposed changes.
+
+**Trust Principle:** "Make the impact of applying a draft immediately obvious at a glance."
+
+#### Key Features
+
+1. **Diff Display**: Side-by-side "Current (live)" and "Draft (staged)" blocks with distinct visual styling
+2. **Empty Draft Messaging**:
+   - "No draft generated yet" when both rawSuggestion and finalSuggestion are empty
+   - "Draft will clear this field when applied" when explicitly cleared (rawSuggestion exists but finalSuggestion empty)
+3. **Save Confirmation**: Confirmation dialog when saving an empty draft that would clear a live field
+4. **Test Hooks**: `data-testid="draft-diff-current"` and `data-testid="draft-diff-draft"` for E2E automation
+
+#### Locked Copy (Do Not Modify Without Phase Approval)
+
+| Element | Text |
+|---------|------|
+| Current label | "Current (live)" |
+| Draft label | "Draft (staged)" |
+| No draft message | "No draft generated yet" |
+| Clear warning | "Draft will clear this field when applied" |
+| Confirmation dialog | "Saving an empty draft will clear this field when applied.\n\nAre you sure you want to save an empty draft?" |
+
+#### Surfaces Covered
+
+1. **Product Drafts Tab** - Diff display for each draft item with current/draft blocks
+2. **Playbooks Draft Review** - Diff display for each canonical draft item
+
+#### Core Files
+
+- `apps/web/src/components/products/ProductDraftsTab.tsx` (added diff UI + empty draft confirmation)
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` (passes currentFieldValues)
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (added diff UI + current field fetch)
+- `apps/api/src/testkit/e2e-testkit.controller.ts` (seed-draft-diff-clarity-1 endpoint)
+
+#### Test Coverage
+
+- **Playwright Tests:** `apps/web/tests/draft-diff-clarity-1.spec.ts` (10 tests: DDC1-001 through DDC1-010)
+- **Manual Testing:** `docs/manual-testing/DRAFT-DIFF-CLARITY-1.md`
+
+#### Behavior Changes
+
+- Draft review surfaces now show current live values alongside draft values
+- Empty draft saves trigger a confirmation dialog when they would clear a live field
+
+---
+
 ## In Progress
 
 *None at this time.*
@@ -1297,3 +1552,12 @@ These invariants MUST be preserved during implementation:
 | 6.20 | 2026-01-10 | **SCOPE-CLARITY-1 FIXUP-1**: Issues Engine pillar filter state now driven by normalized scope (prevents hidden stacking when issueType overrides pillar). `pillarFilter` initial state and sync effect use `normalizedScopeResult.normalized.pillar` instead of raw `pillarParam`. When user explicitly picks a pillar via `handlePillarFilterChange()`, conflicting higher-priority scope params (`issueType`, `assetType`, `assetId`) are deleted from URL. Playwright test updated with "All pillars" button visibility assertion. Manual testing doc updated with pillar filter UI verification step. |
 | 6.21 | 2026-01-10 | **DRAFT-ROUTING-INTEGRITY-1 FIXUP-2**: Draft content visibility + test hardening. (1) Draft Review UI now renders both canonical (field/finalSuggestion/rawSuggestion) and legacy/testkit (suggestedTitle/suggestedDescription) draft item shapes; (2) `AssetScopedDraftItem` type loosened to support both shapes + optional crawlResultId for pages/collections; (3) Playwright LAC1-008 hardened to require `draft-review-list` visible and assert seeded suggestion content ("Improved Product Title"); (4) Manual testing doc updated to verify draft list shows non-empty content. |
 | 6.22 | 2026-01-10 | **SCOPE-CLARITY-1 FIXUP-2**: Strict pillar filter test hooks. Added `data-testid="pillar-filter-all"` + `aria-pressed` to "All pillars" button, `data-testid="pillar-filter-${pillar.id}"` + `aria-pressed` to each pillar button. Playwright test updated with strict `aria-pressed` assertions (replaces brittle `:has-text()` locator). |
+| 6.23 | 2026-01-10 | **DRAFT-EDIT-INTEGRITY-1 COMPLETE**: Inline draft editing in Draft Review mode. Added `updateDraftItem()` service method with permission enforcement (OWNER/EDITOR only), `PATCH /projects/:id/automation-playbooks/drafts/:draftId/items/:itemIndex` endpoint, `projectsApi.updateDraftItem()` client method. Implemented per-item inline edit mode with Save changes / Cancel buttons (no autosave). Server draft is source of truth - edits persist and survive page reload. Playwright test LAC1-009 verifies edit + save + persistence + cancel flow. Manual testing doc in `DRAFT-EDIT-INTEGRITY-1.md`. |
+| 6.24 | 2026-01-10 | **DRAFT-ENTRYPOINT-UNIFICATION-1 COMPLETE**: Products list "Review drafts" now routes to Product detail Drafts tab (not Automation/Playbooks). Locked statements: (1) Product detail is the canonical draft review entrypoint for products; (2) Draft Review stays human-only (no AI); (3) Products list Review drafts does not route to Automation Draft Review. Added `buildProductDraftsTabHref()` helper, 'drafts' tab to ProductDetailsTabs, Drafts tab UI with fetch/edit/render, server-side `itemIndex` for accurate edit API calls. Pages/Collections continue using Automation Draft Review (`/automation/playbooks?mode=drafts`). Testkit seed updated to canonical draft shape. Playwright tests LAC1-008/009 updated. Manual testing doc in `DRAFT-ENTRYPOINT-UNIFICATION-1.md`. |
+| 6.25 | 2026-01-10 | **DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1**: Non-AI Drafts tab compliance + itemIndex correctness. (1) Drafts tab now suppresses AI/generation copy + apply/automation CTAs when `activeTab === 'drafts'` (header action cluster, CNAB-1 banner, AI limit upsell hidden); (2) Fixed itemIndex-based local update correctness in both Product detail Drafts tab and Playbooks Draft Review (was using loop `idx` instead of `item.itemIndex` for filtered subsets); (3) Tightened Playwright LAC1-008 regression coverage with `toHaveCount(0)` assertions for AI/apply elements; (4) Updated manual testing doc with non-AI surface verification (scenario 3a) and corrected empty state copy to "No drafts saved for this product." |
+| 6.26 | 2026-01-10 | **DRAFT-REVIEW-ISOLATION-1 COMPLETE**: Structural non-AI boundary for Product Drafts tab. Extracted `ProductDraftsTab.tsx` as isolated module with NON-AI BOUNDARY header comment. Module is forbidden from importing: `aiApi`, `ProductAiSuggestionsPanel`, `suggestProductMetadata`, `generateProductAnswers`, `AI_DAILY_LIMIT_REACHED`. Added `draft-review-isolation-1.spec.ts` guard test (DRI1-001/002/003) that reads source file and fails if forbidden tokens detected or header missing. Product detail page delegates Drafts tab rendering to isolated component. Pure structural refactor with no behavioral changes. Manual testing doc in `DRAFT-REVIEW-ISOLATION-1.md`. |
+| 6.27 | 2026-01-10 | **DRAFT-REVIEW-ISOLATION-1-FIXUP-1**: Strict "no behavior changes" alignment. (1) Removed `isActive` prop and `hasFetched` caching from ProductDraftsTab - restored simple "fetch on mount" semantics; (2) Restored conditional mounting in page.tsx (`activeTab === 'drafts'`) to match standard tab behavior; (3) Removed "Tab State Preservation" scenario from manual testing doc since state preservation across tab switches was a behavior change. Guard test and non-AI boundary remain in place. |
+| 6.28 | 2026-01-10 | **DRAFT-AI-ENTRYPOINT-CLARITY-1 COMPLETE**: UX AI boundary notes at draft workflow surfaces. Created `DraftAiBoundaryNote` component (`@/components/common/DraftAiBoundaryNote.tsx`) with `mode: 'review' | 'generate'` prop. Review mode: "Review & edit (no AI on this step)" with person icon. Generate mode: "AI used for drafts only · AI is not used at Apply" with lightbulb icon. Added to 3 surfaces: (1) ProductDraftsTab (review mode); (2) Playbooks Draft Review panel (review mode); (3) Playbooks Step 1 generation CTA (generate mode). Locked copy (do not modify without phase approval). Testkit seed `seed-draft-ai-entrypoint-clarity-1`. Playwright tests in `draft-ai-entrypoint-clarity-1.spec.ts` (5 tests) + updated LAC1-008. Manual testing doc in `DRAFT-AI-ENTRYPOINT-CLARITY-1.md`. |
+| 6.29 | 2026-01-10 | **DRAFT-AI-ENTRYPOINT-CLARITY-1-FIXUP-1**: Work Queue generate-mode note + expanded coverage. (1) Added `DraftAiBoundaryNote mode="generate"` to `ActionBundleCard.tsx` for "Generate Drafts" / "Generate Full Drafts" CTAs; (2) Updated seed to use `status: 'PARTIAL'` for deterministic Work Queue "Generate Full Drafts" CTA in tests; (3) Added DAEPC1-006 Playwright test for Work Queue boundary note visibility; (4) Extended DAEPC1-001/002 with panel-scoped "no AI creep" assertions (no "Improve with AI", "Use AI", "Generate", "Regenerate" buttons in review panels); (5) Added Work Queue scenario to manual testing doc; (6) Added Phase DRAFT-AI-ENTRYPOINT-CLARITY-1 section to Implementation Plan (Surfaces Covered now includes Work Queue). |
+| 6.30 | 2026-01-11 | **DRAFT-DIFF-CLARITY-1 COMPLETE + FIXUP-1**: Current vs Draft diff UI at draft review surfaces. (1) Diff display: "Current (live)" vs "Draft (staged)" blocks with distinct styling and test hooks (`draft-diff-current`, `draft-diff-draft`); (2) Empty draft messaging: "No draft generated yet" (both raw/final empty) vs "Draft will clear this field when applied" (explicitly cleared); (3) Save confirmation dialog when clearing live field; (4) ProductDraftsTab + Playbooks Draft Review surfaces updated; (5) Testkit seed `seed-draft-diff-clarity-1` with diff/cleared/no-draft products + page; (6) Playwright tests DDC1-001..DDC1-010 (10 tests) covering diff labels, messaging, confirmation dismiss/accept. FIXUP-1: Added Product 3 draftItem with empty raw/final for "No draft generated yet" scenario; added DDC1-008 (no draft message), DDC1-009 (dialog dismiss), DDC1-010 (dialog accept + save). |
+| 6.31 | 2026-01-11 | **DRAFT-DIFF-CLARITY-1-FIXUP-2**: Seed count consistency + exact dialog assertion. (1) Fixed `counts.draftGenerated` from 3→2 (Products 1-2 have actual suggestions; Product 3 is empty); (2) Added `EMPTY_DRAFT_CONFIRM_MESSAGE` constant with exact locked copy; (3) Changed `page.on('dialog')` to `page.once('dialog')` in DDC1-009/DDC1-010 to avoid listener accumulation; (4) Changed `toContain()` to `toBe()` for exact dialog message matching. Tests/seed correctness only; no documentation updates required. |

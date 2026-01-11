@@ -276,3 +276,25 @@ export function buildProductWorkspaceHref(
   if (navContext?.from) params.set('from', navContext.from);
   return `${base}?${params.toString()}`;
 }
+
+/**
+ * [DRAFT-ENTRYPOINT-UNIFICATION-1] Build the product detail Drafts tab URL
+ *
+ * Products-only routing for "Review drafts" action.
+ * Routes to /projects/:projectId/products/:productId?tab=drafts with navigation context.
+ *
+ * LOCKED: "Product detail is the canonical draft review entrypoint for Products."
+ */
+export function buildProductDraftsTabHref(
+  projectId: string,
+  productId: string,
+  navContext?: NavigationContext,
+): string {
+  const base = `/projects/${projectId}/products/${productId}`;
+  const params = new URLSearchParams();
+  params.set('tab', 'drafts');
+  params.set('from', 'asset_list');
+  if (navContext?.returnTo) params.set('returnTo', navContext.returnTo);
+  if (navContext?.returnLabel) params.set('returnLabel', navContext.returnLabel);
+  return `${base}?${params.toString()}`;
+}
