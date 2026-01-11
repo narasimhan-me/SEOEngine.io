@@ -214,7 +214,7 @@ export default function PagesAssetListPage() {
   // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Fetch sync status
   const fetchSyncStatus = useCallback(async () => {
     try {
-      const integrationStatus = await projectsApi.getIntegrationStatus(projectId);
+      const integrationStatus = await projectsApi.integrationStatus(projectId);
       const shopifyConnected = integrationStatus?.shopify?.connected ?? false;
 
       if (shopifyConnected) {
