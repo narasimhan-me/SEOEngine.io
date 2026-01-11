@@ -54,7 +54,8 @@ import {
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { useUnsavedChanges } from '@/components/unsaved-changes/UnsavedChangesProvider';
 // [DRAFT-REVIEW-ISOLATION-1] Import isolated non-AI Draft Review component
-import { ProductDraftsTab } from '@/components/products/ProductDraftsTab';
+// [DRAFT-FIELD-COVERAGE-1] Generalized to AssetDraftsTab supporting Products, Pages, Collections
+import { AssetDraftsTab } from '@/components/products/AssetDraftsTab';
 
 // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft state types
 type MetadataDraftState = 'unsaved' | 'saved' | 'applied';
@@ -1389,10 +1390,12 @@ export default function ProductOptimizationPage() {
                 {/* [DRAFT-REVIEW-ISOLATION-1] Drafts Tab - Isolated Non-AI Draft Review Component */}
                 {/* Conditionally mounted to match standard tab behavior (no state preservation across tab switches) */}
                 {/* [DRAFT-DIFF-CLARITY-1] Pass current/live field values for diff display */}
+                {/* [DRAFT-FIELD-COVERAGE-1] AssetDraftsTab now supports Products, Pages, Collections */}
                 {activeTab === 'drafts' && (
-                  <ProductDraftsTab
+                  <AssetDraftsTab
                     projectId={projectId}
-                    productId={productId}
+                    assetType="products"
+                    assetId={productId}
                     currentFieldValues={{
                       seoTitle: product?.seoTitle,
                       seoDescription: product?.seoDescription,

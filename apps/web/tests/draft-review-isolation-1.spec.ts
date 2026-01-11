@@ -1,7 +1,8 @@
 /**
  * [DRAFT-REVIEW-ISOLATION-1] No-AI Import Guard Test
+ * [DRAFT-FIELD-COVERAGE-1] Updated to target AssetDraftsTab (generalized from ProductDraftsTab)
  *
- * This test ensures the ProductDraftsTab module maintains its NON-AI BOUNDARY
+ * This test ensures the AssetDraftsTab module maintains its NON-AI BOUNDARY
  * by failing if forbidden AI-related imports or tokens are detected.
  *
  * The guard prevents accidental AI creep into the Draft Review surface,
@@ -13,17 +14,17 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 /**
- * Resolve the path to ProductDraftsTab.tsx robustly.
+ * Resolve the path to AssetDraftsTab.tsx robustly.
  * Handles Playwright running with cwd at repo root or apps/web.
  */
-function resolveProductDraftsTabPath(): string {
+function resolveAssetDraftsTabPath(): string {
   const possiblePaths = [
     // From repo root
-    path.join(process.cwd(), 'apps/web/src/components/products/ProductDraftsTab.tsx'),
+    path.join(process.cwd(), 'apps/web/src/components/products/AssetDraftsTab.tsx'),
     // From apps/web
-    path.join(process.cwd(), 'src/components/products/ProductDraftsTab.tsx'),
+    path.join(process.cwd(), 'src/components/products/AssetDraftsTab.tsx'),
     // Absolute fallback using __dirname
-    path.resolve(__dirname, '../src/components/products/ProductDraftsTab.tsx'),
+    path.resolve(__dirname, '../src/components/products/AssetDraftsTab.tsx'),
   ];
 
   for (const p of possiblePaths) {
@@ -33,13 +34,13 @@ function resolveProductDraftsTabPath(): string {
   }
 
   throw new Error(
-    `ProductDraftsTab.tsx not found. Searched:\n${possiblePaths.join('\n')}`
+    `AssetDraftsTab.tsx not found. Searched:\n${possiblePaths.join('\n')}`
   );
 }
 
 test.describe('DRAFT-REVIEW-ISOLATION-1: No-AI Import Guard', () => {
   /**
-   * DRI1-001: ProductDraftsTab must not contain forbidden AI imports
+   * DRI1-001: AssetDraftsTab must not contain forbidden AI imports
    *
    * Forbidden tokens (minimum set):
    * - aiApi
@@ -48,8 +49,8 @@ test.describe('DRAFT-REVIEW-ISOLATION-1: No-AI Import Guard', () => {
    * - generateProductAnswers
    * - AI_DAILY_LIMIT_REACHED
    */
-  test('DRI1-001: ProductDraftsTab contains no forbidden AI imports', async () => {
-    const filePath = resolveProductDraftsTabPath();
+  test('DRI1-001: AssetDraftsTab contains no forbidden AI imports', async () => {
+    const filePath = resolveAssetDraftsTabPath();
     const fileContent = fs.readFileSync(filePath, 'utf-8');
 
     // Forbidden tokens that indicate AI functionality
@@ -84,19 +85,19 @@ test.describe('DRAFT-REVIEW-ISOLATION-1: No-AI Import Guard', () => {
 
       expect(
         foundForbidden,
-        `Forbidden AI token "${token}" found in ProductDraftsTab.tsx at line ${foundLine}. ` +
+        `Forbidden AI token "${token}" found in AssetDraftsTab.tsx at line ${foundLine}. ` +
         `This violates the NON-AI BOUNDARY contract. Draft Review must remain human-only.`
       ).toBe(false);
     }
   });
 
   /**
-   * DRI1-002: ProductDraftsTab must contain the NON-AI BOUNDARY header
+   * DRI1-002: AssetDraftsTab must contain the NON-AI BOUNDARY header
    *
    * The header comment serves as documentation and a reminder for developers.
    */
-  test('DRI1-002: ProductDraftsTab contains NON-AI BOUNDARY header', async () => {
-    const filePath = resolveProductDraftsTabPath();
+  test('DRI1-002: AssetDraftsTab contains NON-AI BOUNDARY header', async () => {
+    const filePath = resolveAssetDraftsTabPath();
     const fileContent = fs.readFileSync(filePath, 'utf-8');
 
     // The exact header that must be present
@@ -104,18 +105,18 @@ test.describe('DRAFT-REVIEW-ISOLATION-1: No-AI Import Guard', () => {
 
     expect(
       fileContent.includes(requiredHeader),
-      `ProductDraftsTab.tsx must contain the NON-AI BOUNDARY header comment: "${requiredHeader}". ` +
+      `AssetDraftsTab.tsx must contain the NON-AI BOUNDARY header comment: "${requiredHeader}". ` +
       `This header documents the isolation contract.`
     ).toBe(true);
   });
 
   /**
-   * DRI1-003: ProductDraftsTab must not import from AI modules
+   * DRI1-003: AssetDraftsTab must not import from AI modules
    *
    * Check that no AI-related module imports exist.
    */
-  test('DRI1-003: ProductDraftsTab has no AI module imports', async () => {
-    const filePath = resolveProductDraftsTabPath();
+  test('DRI1-003: AssetDraftsTab has no AI module imports', async () => {
+    const filePath = resolveAssetDraftsTabPath();
     const fileContent = fs.readFileSync(filePath, 'utf-8');
 
     // AI-related import patterns
@@ -131,7 +132,7 @@ test.describe('DRAFT-REVIEW-ISOLATION-1: No-AI Import Guard', () => {
       expect(
         match,
         `Forbidden AI import pattern found: ${match?.[0]}. ` +
-        `ProductDraftsTab must not import AI-related modules.`
+        `AssetDraftsTab must not import AI-related modules.`
       ).toBeNull();
     }
   });
