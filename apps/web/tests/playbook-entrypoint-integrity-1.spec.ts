@@ -176,4 +176,92 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
     const zeroEligibleState = page.locator('[data-testid="playbook-zero-eligible-empty-state"]');
     await expect(zeroEligibleState).not.toBeVisible();
   });
+
+  /**
+   * PEPI1-003: Entry page CTA routes to playbook with explicit scope
+   *
+   * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Entry page "View playbook" CTA
+   *
+   * Given: User is on Entry page with ONLY_SELECTED scope option (selected products)
+   * When: User enables the playbook and clicks "View playbook"
+   * Then: URL routes to /playbooks/missing_seo_title with step=preview&source=entry
+   *       URL contains assetType=PRODUCTS and scopeAssetRefs matching selected products
+   *       Stepper is visible
+   */
+  test('PEPI1-003: Entry page CTA routes to playbook with explicit scope', async ({ page }) => {
+    const seed = await seedAndAuth(page);
+
+    // Connect Shopify store
+    await connectShopify(seed.projectId);
+
+    // Set up entry context in sessionStorage with selected products
+    const selectedProductIds = [seed.productIds[0], seed.productIds[1]];
+    const entryContextKey = `automationEntryContext:${seed.projectId}`;
+    const entryContext = {
+      version: 1,
+      createdAt: new Date().toISOString(),
+      source: 'products_bulk',
+      intent: 'missing_metadata',
+      selectedProductIds,
+    };
+
+    // Navigate to entry page and set up sessionStorage
+    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/automation/playbooks/entry?source=products_bulk&intent=missing_metadata`);
+    await page.evaluate(
+      ([key, value]) => {
+        sessionStorage.setItem(key, value);
+      },
+      [entryContextKey, JSON.stringify(entryContext)],
+    );
+
+    // Reload to pick up the sessionStorage context
+    await page.reload();
+
+    // Wait for page to load
+    await page.waitForSelector('text=New Playbook', { timeout: 15000 });
+
+    // Ensure "Only selected products" radio is selected (should be auto-selected due to context)
+    const onlySelectedRadio = page.locator('input[name="scope"][type="radio"]').first();
+    await expect(onlySelectedRadio).toBeChecked();
+
+    // Generate preview (required before enabling)
+    const previewBtn = page.locator('button:has-text("Generate sample preview")');
+    await expect(previewBtn).toBeVisible();
+    await previewBtn.click();
+
+    // Wait for preview to complete
+    await page.waitForSelector('text=Sample draft — not applied', { timeout: 30000 });
+
+    // Enable the playbook
+    const enableBtn = page.locator('button:has-text("Enable playbook")');
+    await expect(enableBtn).toBeEnabled();
+    await enableBtn.click();
+
+    // Wait for enablement success
+    await page.waitForSelector('text=Playbook enabled', { timeout: 15000 });
+
+    // Click "View playbook" CTA
+    const viewPlaybookBtn = page.locator('button:has-text("View playbook")');
+    await expect(viewPlaybookBtn).toBeVisible();
+    await viewPlaybookBtn.click();
+
+    // Wait for navigation
+    await page.waitForURL(/\/playbooks\/missing_seo_title/);
+
+    const currentUrl = page.url();
+
+    // Assert canonical target
+    expect(currentUrl).toContain(`/projects/${seed.projectId}/playbooks/missing_seo_title`);
+    expect(currentUrl).toContain('step=preview');
+    expect(currentUrl).toContain('source=entry');
+
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Assert scope via URLSearchParams
+    const url = new URL(currentUrl);
+    expect(url.searchParams.get('assetType')).toBe('PRODUCTS');
+    const scopeRefs = url.searchParams.getAll('scopeAssetRefs');
+    expect(scopeRefs).toEqual(expect.arrayContaining(selectedProductIds));
+
+    // Stepper visible → valid run surface
+    await expect(page.locator('[data-testid="playbooks-stepper"]')).toBeVisible();
+  });
 });

@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { projectsApi } from '@/lib/api';
+// [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Use centralized routing helpers
+import {
+  navigateToPlaybookRun,
+  buildPlaybooksListHref,
+} from '@/lib/playbooks-routing';
 
 interface PlaybookEstimate {
   totalAffectedProducts: number;
@@ -62,14 +67,24 @@ export function NextDeoWinCard({ projectId, planId }: NextDeoWinCardProps) {
   }, [fetchEstimates]);
 
   const handleOpenPlaybooks = () => {
-    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Route to canonical playbook run URL
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Use centralized routing helpers
     // Prefer direct run route for best UX since we already have counts
     if ((missingDescriptions ?? 0) > 0) {
-      router.push(`/projects/${projectId}/playbooks/missing_seo_description?step=preview&source=next_deo_win`);
+      navigateToPlaybookRun(router, {
+        projectId,
+        playbookId: 'missing_seo_description',
+        step: 'preview',
+        source: 'next_deo_win',
+      });
     } else if ((missingTitles ?? 0) > 0) {
-      router.push(`/projects/${projectId}/playbooks/missing_seo_title?step=preview&source=next_deo_win`);
+      navigateToPlaybookRun(router, {
+        projectId,
+        playbookId: 'missing_seo_title',
+        step: 'preview',
+        source: 'next_deo_win',
+      });
     } else {
-      router.push(`/projects/${projectId}/playbooks?source=next_deo_win`);
+      router.push(buildPlaybooksListHref({ projectId, source: 'next_deo_win' }));
     }
   };
 

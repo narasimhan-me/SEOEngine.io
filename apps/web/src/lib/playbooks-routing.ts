@@ -104,21 +104,44 @@ export function buildPlaybookRunHrefOrNull(args: BuildPlaybookRunHrefArgs): stri
 export interface BuildPlaybooksListHrefArgs {
   projectId: string;
   source?: PlaybookSource;
+  /** Optional asset type for scoped playbook list */
+  assetType?: AutomationAssetType;
+  /** Optional scoped asset refs */
+  scopeAssetRefs?: string[];
 }
 
 /**
  * Build the playbooks list URL.
  *
- * Shape: /projects/:projectId/playbooks?source=...
+ * Shape: /projects/:projectId/playbooks?source=...&assetType=...&scopeAssetRefs=...
+ *
+ * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Extended to support scope params.
  */
 export function buildPlaybooksListHref({
   projectId,
   source,
+  assetType,
+  scopeAssetRefs,
 }: BuildPlaybooksListHrefArgs): string {
-  if (!source) {
+  const params = new URLSearchParams();
+
+  if (source) {
+    params.set('source', source);
+  }
+
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Include scope when present
+  if (assetType && scopeAssetRefs && scopeAssetRefs.length > 0) {
+    params.set('assetType', assetType);
+    for (const ref of scopeAssetRefs) {
+      params.append('scopeAssetRefs', ref);
+    }
+  }
+
+  const queryString = params.toString();
+  if (!queryString) {
     return `/projects/${projectId}/playbooks`;
   }
-  return `/projects/${projectId}/playbooks?source=${source}`;
+  return `/projects/${projectId}/playbooks?${queryString}`;
 }
 
 /**
@@ -155,4 +178,30 @@ export function navigateToPlaybookRunReplace(
  */
 export function isValidPlaybookId(id: string | null | undefined): id is PlaybookId {
   return id === 'missing_seo_title' || id === 'missing_seo_description';
+}
+
+/**
+ * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Navigate to playbooks list URL using the router.
+ */
+export function navigateToPlaybooksList(
+  router: AppRouterInstance,
+  args: BuildPlaybooksListHrefArgs,
+): void {
+  router.push(buildPlaybooksListHref(args));
+}
+
+/**
+ * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Build scope payload for playbook routing.
+ *
+ * Returns scope args only when scopeAssetRefs is non-empty (returns {} otherwise).
+ * Use with spread operator: `...buildPlaybookScopePayload(assetType, scopeAssetRefs)`
+ */
+export function buildPlaybookScopePayload(
+  assetType: AutomationAssetType | undefined,
+  scopeAssetRefs: string[],
+): { assetType?: AutomationAssetType; scopeAssetRefs?: string[] } {
+  if (!scopeAssetRefs || scopeAssetRefs.length === 0) {
+    return {};
+  }
+  return { assetType, scopeAssetRefs };
 }

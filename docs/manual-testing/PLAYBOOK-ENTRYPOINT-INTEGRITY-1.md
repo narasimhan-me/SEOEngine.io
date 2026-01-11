@@ -96,6 +96,31 @@ This phase ensures playbook entrypoints route deterministically to the correct p
 
 ---
 
+### Scenario 1.2: Entry page CTA routes with explicit scope
+
+**Route:** `/projects/{projectId}/automation/playbooks/entry?source=products_bulk&intent=missing_metadata`
+
+**Goal:** Entry page "View playbook" CTA routes to Playbook run with explicit scope params when ONLY_SELECTED scope is used.
+
+**Setup:** Set up sessionStorage with `automationEntryContext:{projectId}` containing `selectedProductIds` array.
+
+1. Navigate to Entry page with `source=products_bulk` and `intent=missing_metadata`.
+2. Ensure "Only selected products" radio is selected (should auto-select from context).
+3. Click "Generate sample preview (uses AI)" button.
+4. Wait for preview to complete ("Sample draft — not applied" visible).
+5. Click "Enable playbook" button.
+6. Wait for "Playbook enabled" success message.
+7. Click "View playbook" CTA.
+8. **Verify:**
+   - [ ] URL contains `/playbooks/missing_seo_title`
+   - [ ] URL contains `step=preview`
+   - [ ] URL contains `source=entry`
+   - [ ] URL contains `assetType=PRODUCTS`
+   - [ ] URL contains `scopeAssetRefs=` with the selected product IDs
+   - [ ] Stepper is visible
+
+---
+
 ### Scenario 2: Tile Click Routes Canonically
 
 **Route:** `/projects/{projectId}/playbooks`
@@ -176,6 +201,7 @@ This phase ensures playbook entrypoints route deterministically to the correct p
 | Tile click | [ ] | [ ] | [ ] | [ ] |
 | Work Queue | [ ] | [ ] | [ ] | [ ] |
 | Products list | [ ] | [ ] | [ ] | [ ] |
+| Entry page | [ ] | [ ] | [ ] | N/A (AI used for preview) |
 
 ---
 

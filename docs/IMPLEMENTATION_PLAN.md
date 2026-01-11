@@ -1543,6 +1543,17 @@ Seeds:
 - Introduced `playbookRunScopeForUrl` shared memo for scope-identical routing across all entrypoints.
 - Strengthened PEPI1-002 to assert repeated scopeAssetRefs params via `URLSearchParams.getAll()`.
 
+#### FIXUP-5 (2026-01-11): Canonical Entrypoints + Explicit Scope Payload
+
+- Extended `buildPlaybooksListHref()` to support `assetType` and `scopeAssetRefs` params.
+- Added `buildPlaybookScopePayload()` helper for consistent scope spreading in routing args.
+- Added `navigateToPlaybooksList()` wrapper for router navigation.
+- Updated `NextDeoWinCard` to use `navigateToPlaybookRun()` and `buildPlaybooksListHref()` (no manual string URLs).
+- Updated Entry page to use `buildPlaybooksListHref()` for breadcrumb/back links and `buildPlaybookRunHref()` for "View playbook" CTA with explicit scope.
+- Replaced `playbookRunScopeForUrl` inline memo with `buildPlaybookScopePayload()` from routing module.
+- Added PEPI1-003 Playwright test for Entry page CTA routing with scoped products.
+- Manual Testing: Added Scenario 1.2 (Entry page → Playbook with scope) to PLAYBOOK-ENTRYPOINT-INTEGRITY-1.md.
+
 ### Phase SHOPIFY-ASSET-SYNC-COVERAGE-1: Shopify Pages + Collections Ingestion ✅ COMPLETE
 
 **Status:** Complete
@@ -1805,3 +1816,4 @@ These invariants MUST be preserved during implementation:
 | 6.38 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3**: Scoped eligibility integrity. (1) `buildPlaybookRunHref()` now includes `assetType=PRODUCTS` when scopeAssetRefs are present (previously omitted PRODUCTS assetType even when scoped); (2) All API calls (estimate, preview, apply, eligibility fetch) now correctly pass scopeProductIds for PRODUCTS scope (was passing undefined); (3) Banner CTA routing preserves exact scope semantics (no global-vs-scoped mismatch); (4) Tile click, default selection, and product detail returnToPath all preserve scoped PRODUCTS context; (5) Added PEPI1-002 Playwright test for scoped PRODUCTS banner routing integrity; (6) Updated manual testing doc with Scenario 1.1 (Scoped Playbooks entry). |
 | 6.39 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4**: Scoped routing guardrails. (1) Added `buildPlaybookRunHrefOrNull()` guardrail that refuses scoped routes without assetType (console error + no-op); (2) Updated `navigateToPlaybookRun()` and `navigateToPlaybookRunReplace()` to use guardrail; (3) Introduced `playbookRunScopeForUrl` shared memo for scope-identical routing across all entrypoints; (4) Removed all `currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined` suppression patterns; (5) Banner CTAs now use `buildPlaybookRunHrefOrNull()` with early-return on invalid scope; (6) Work Queue `getCTARoute()` extracts scopeAssetRefs for all asset types (not just PAGES/COLLECTIONS); (7) PEPI1-002 test now asserts repeated scopeAssetRefs via `URLSearchParams.getAll()`. |
 | 6.40 | 2026-01-11 | **SHOPIFY-ASSET-SYNC-COVERAGE-1 COMPLETE**: Shopify Pages + Collections sync coverage. (1) Prisma schema: Added Shopify identity fields (shopifyResourceType, shopifyResourceId, shopifyHandle, shopifyUpdatedAt, shopifySyncedAt) with compound unique constraint + @@index([projectId, url]); (2) API endpoints: POST /projects/:id/shopify/sync-pages, POST /projects/:id/shopify/sync-collections (OWNER-only), GET /projects/:id/shopify/sync-status; (3) ShopifyService: GraphQL fetchers (GetPages, GetCollections), sync methods with E2E mock handler support, read_content scope requirement; (4) Frontend: Pages/Collections lists with sync buttons (visible but disabled when Shopify not connected), status lines, empty state differentiation; detail pages show handle + updatedAt; (5) E2E tests: API-level spec + Playwright smoke test; (6) Manual testing doc + CRITICAL_PATH_MAP.md CP-006 update. |
+| 6.41 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5**: Canonical entrypoints + explicit scope payload. (1) Extended `buildPlaybooksListHref()` to support assetType + scopeAssetRefs params; (2) Added `buildPlaybookScopePayload()` helper for consistent scope spreading; (3) Added `navigateToPlaybooksList()` wrapper; (4) Updated NextDeoWinCard to use `navigateToPlaybookRun()` + `buildPlaybooksListHref()`; (5) Updated Entry page to use `buildPlaybooksListHref()` for links and `buildPlaybookRunHref()` with explicit scope for "View playbook" CTA; (6) Replaced `playbookRunScopeForUrl` inline memo with `buildPlaybookScopePayload()` in Playbooks page; (7) Added PEPI1-003 Playwright test for Entry page scoped CTA routing; (8) Updated manual testing doc with Scenario 1.2. |

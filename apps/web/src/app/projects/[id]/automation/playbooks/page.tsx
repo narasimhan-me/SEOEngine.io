@@ -37,9 +37,11 @@ import { useFeedback } from '@/components/feedback/FeedbackProvider';
 // [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI boundary note for human-only review and AI generation surfaces
 import { DraftAiBoundaryNote } from '@/components/common/DraftAiBoundaryNote';
 // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Centralized routing helper
+// [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Added buildPlaybookScopePayload
 import {
   buildPlaybookRunHref,
   buildPlaybookRunHrefOrNull,
+  buildPlaybookScopePayload,
   navigateToPlaybookRun,
   navigateToPlaybookRunReplace,
   isValidPlaybookId,
@@ -283,11 +285,11 @@ export default function AutomationPlaybooksPage() {
   // [ASSETS-PAGES-1.1-UI-HARDEN] Track scope asset refs from URL deep link (read-only)
   const [currentScopeAssetRefs] = useState<string[]>(parsedScopeAssetRefs);
 
-  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Shared scope args for URL construction (scope-identical for eligibility + CTA routing)
-  const playbookRunScopeForUrl = useMemo(() => {
-    if (currentScopeAssetRefs.length === 0) return {};
-    return { assetType: currentAssetType, scopeAssetRefs: currentScopeAssetRefs };
-  }, [currentAssetType, currentScopeAssetRefs]);
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Use centralized scope payload builder
+  const playbookRunScopeForUrl = useMemo(
+    () => buildPlaybookScopePayload(currentAssetType, currentScopeAssetRefs),
+    [currentAssetType, currentScopeAssetRefs],
+  );
 
   const [flowState, setFlowState] = useState<PlaybookFlowState>('PREVIEW_READY');
   const [previewSamples, setPreviewSamples] = useState<PreviewSample[]>([]);
