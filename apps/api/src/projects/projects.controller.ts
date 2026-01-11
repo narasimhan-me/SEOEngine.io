@@ -1363,7 +1363,7 @@ export class ProjectsController {
     @Param('id') projectId: string,
   ) {
     // OWNER-only check
-    const role = await this.roleResolutionService.resolveProjectRole(projectId, req.user.id);
+    const role = await this.roleResolutionService.resolveEffectiveRole(projectId, req.user.id);
     if (role !== 'OWNER') {
       throw new ForbiddenException('Only project owners can sync Shopify Pages');
     }
@@ -1387,7 +1387,7 @@ export class ProjectsController {
     @Param('id') projectId: string,
   ) {
     // OWNER-only check
-    const role = await this.roleResolutionService.resolveProjectRole(projectId, req.user.id);
+    const role = await this.roleResolutionService.resolveEffectiveRole(projectId, req.user.id);
     if (role !== 'OWNER') {
       throw new ForbiddenException('Only project owners can sync Shopify Collections');
     }
