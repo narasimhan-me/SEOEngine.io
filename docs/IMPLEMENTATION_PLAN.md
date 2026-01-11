@@ -1379,11 +1379,14 @@ DRAFT-FIELD-COVERAGE-1 generalizes the Draft Review UI to work consistently acro
 #### Core Files
 
 **New Routes:**
-- `apps/web/src/app/projects/[id]/assets/pages/[pageId]/page.tsx`
-- `apps/web/src/app/projects/[id]/assets/collections/[collectionId]/page.tsx`
+- `apps/web/src/app/projects/[id]/assets/pages/[pageId]/page.tsx` (implementation)
+- `apps/web/src/app/projects/[id]/assets/collections/[collectionId]/page.tsx` (implementation)
+- `apps/web/src/app/projects/[id]/pages/[pageId]/page.tsx` (canonical alias, redirects to /assets/pages/...)
+- `apps/web/src/app/projects/[id]/collections/[collectionId]/page.tsx` (canonical alias, redirects to /assets/collections/...)
 
 **Component:**
 - `apps/web/src/components/products/AssetDraftsTab.tsx` (generalized from ProductDraftsTab)
+- `apps/web/src/components/products/ProductDraftsTab.tsx` (thin wrapper around AssetDraftsTab)
 
 **Updated:**
 - `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` (uses AssetDraftsTab)
@@ -1624,3 +1627,4 @@ These invariants MUST be preserved during implementation:
 | 6.30 | 2026-01-11 | **DRAFT-DIFF-CLARITY-1 COMPLETE + FIXUP-1**: Current vs Draft diff UI at draft review surfaces. (1) Diff display: "Current (live)" vs "Draft (staged)" blocks with distinct styling and test hooks (`draft-diff-current`, `draft-diff-draft`); (2) Empty draft messaging: "No draft generated yet" (both raw/final empty) vs "Draft will clear this field when applied" (explicitly cleared); (3) Save confirmation dialog when clearing live field; (4) ProductDraftsTab + Playbooks Draft Review surfaces updated; (5) Testkit seed `seed-draft-diff-clarity-1` with diff/cleared/no-draft products + page; (6) Playwright tests DDC1-001..DDC1-010 (10 tests) covering diff labels, messaging, confirmation dismiss/accept. FIXUP-1: Added Product 3 draftItem with empty raw/final for "No draft generated yet" scenario; added DDC1-008 (no draft message), DDC1-009 (dialog dismiss), DDC1-010 (dialog accept + save). |
 | 6.31 | 2026-01-11 | **DRAFT-DIFF-CLARITY-1-FIXUP-2**: Seed count consistency + exact dialog assertion. (1) Fixed `counts.draftGenerated` from 3→2 (Products 1-2 have actual suggestions; Product 3 is empty); (2) Added `EMPTY_DRAFT_CONFIRM_MESSAGE` constant with exact locked copy; (3) Changed `page.on('dialog')` to `page.once('dialog')` in DDC1-009/DDC1-010 to avoid listener accumulation; (4) Changed `toContain()` to `toBe()` for exact dialog message matching. Tests/seed correctness only; no documentation updates required. |
 | 6.32 | 2026-01-11 | **DRAFT-FIELD-COVERAGE-1 COMPLETE**: Draft Review parity across Products, Pages, and Collections. (1) Generalized ProductDraftsTab → AssetDraftsTab with asset-type-specific field labels (Products: SEO Title/Description, Pages: Page Title/Meta Description, Collections: Collection Title/Meta Description); (2) Added Pages detail route `/assets/pages/[pageId]` with Overview + Drafts tabs; (3) Added Collections detail route `/assets/collections/[collectionId]` with Overview + Drafts tabs; (4) Updated draft-review-isolation-1.spec.ts guard test to target AssetDraftsTab; (5) Added seed-draft-field-coverage-1 endpoint (3 products + 3 pages + 3 collections with diff/clear/no-draft scenarios); (6) Added draft-field-coverage-1.spec.ts Playwright tests (11 tests: DFC1-001 through DFC1-011) covering Pages/Collections diff display, no-draft messaging, destructive-clear confirmation dialogs, cross-asset parity; (7) Manual testing doc DRAFT-FIELD-COVERAGE-1.md. |
+| 6.33 | 2026-01-11 | **DRAFT-FIELD-COVERAGE-1-FIXUP-1**: Canonical route aliases + accept-path dialog assertions. (1) Added canonical route `/projects/[id]/pages/[pageId]` (server redirect to `/assets/pages/...`, preserves query); (2) Added canonical route `/projects/[id]/collections/[collectionId]` (server redirect to `/assets/collections/...`, preserves query); (3) Updated Playwright tests to use canonical routes for Pages/Collections; (4) Added exact `EMPTY_DRAFT_CONFIRM_MESSAGE` assertions on accept path (DFC1-004 + DFC1-008) - now both dismiss and accept paths verify locked dialog copy; (5) Made ProductDraftsTab a thin wrapper around AssetDraftsTab to prevent implementation drift. |

@@ -59,7 +59,8 @@ These strings are locked across all asset types:
 
 ### Scenario 2: Pages Drafts Tab
 
-**Route:** `/projects/{projectId}/assets/pages/{pageId}?tab=drafts`
+**Route:** `/projects/{projectId}/pages/{pageId}?tab=drafts`
+*(Canonical route - redirects to `/assets/pages/...`)*
 
 1. Navigate to a page with pending drafts
 2. Click the "Drafts" tab
@@ -76,7 +77,8 @@ These strings are locked across all asset types:
 
 ### Scenario 3: Collections Drafts Tab
 
-**Route:** `/projects/{projectId}/assets/collections/{collectionId}?tab=drafts`
+**Route:** `/projects/{projectId}/collections/{collectionId}?tab=drafts`
+*(Canonical route - redirects to `/assets/collections/...`)*
 
 1. Navigate to a collection with pending drafts
 2. Click the "Drafts" tab

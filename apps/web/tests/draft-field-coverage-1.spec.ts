@@ -1,5 +1,6 @@
 /**
  * [DRAFT-FIELD-COVERAGE-1] Playwright E2E Tests
+ * [DRAFT-FIELD-COVERAGE-1-FIXUP-1] Updated to use canonical routes
  *
  * Tests for Draft Review parity across Products, Pages, and Collections.
  * Verifies consistent behavior for:
@@ -9,6 +10,11 @@
  * - Cross-asset parity (testids + labels)
  *
  * Uses seed: POST /testkit/e2e/seed-draft-field-coverage-1
+ *
+ * Route usage:
+ * - Products: /projects/{id}/products/{productId}
+ * - Pages: /projects/{id}/pages/{pageId} (canonical, redirects to /assets/pages/...)
+ * - Collections: /projects/{id}/collections/{collectionId} (canonical, redirects to /assets/collections/...)
  */
 
 import { test, expect, type Page } from '@playwright/test';
@@ -71,15 +77,15 @@ async function seedAndAuth(page: Page): Promise<SeedResponse> {
 }
 
 // ==========================================================================
-// PAGES DRAFTS TAB TESTS
+// PAGES DRAFTS TAB TESTS (using canonical route /projects/{id}/pages/{pageId})
 // ==========================================================================
 
 test.describe('DRAFT-FIELD-COVERAGE-1: Pages Drafts Tab', () => {
   test('DFC1-001: Pages Drafts tab shows Current vs Draft blocks with correct labels', async ({ page }) => {
     const seed = await seedAndAuth(page);
 
-    // Navigate to page with diff - Drafts tab
-    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/assets/pages/${seed.pageDiffId}?tab=drafts`);
+    // [FIXUP-1] Navigate via canonical route (redirects to /assets/pages/...)
+    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/pages/${seed.pageDiffId}?tab=drafts`);
 
     // Wait for drafts tab panel
     await expect(page.locator('[data-testid="drafts-tab-panel"]')).toBeVisible();
@@ -96,8 +102,8 @@ test.describe('DRAFT-FIELD-COVERAGE-1: Pages Drafts Tab', () => {
   test('DFC1-002: Pages Drafts tab shows "No draft generated yet" for empty-suggestion scenario', async ({ page }) => {
     const seed = await seedAndAuth(page);
 
-    // Navigate to page with no draft - Drafts tab
-    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/assets/pages/${seed.pageNoDraftId}?tab=drafts`);
+    // [FIXUP-1] Navigate via canonical route
+    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/pages/${seed.pageNoDraftId}?tab=drafts`);
 
     await expect(page.locator('[data-testid="drafts-tab-panel"]')).toBeVisible();
 
@@ -108,8 +114,8 @@ test.describe('DRAFT-FIELD-COVERAGE-1: Pages Drafts Tab', () => {
   test('DFC1-003: Pages destructive-clear confirmation dialog - dismiss path', async ({ page }) => {
     const seed = await seedAndAuth(page);
 
-    // Navigate to page with cleared draft - Drafts tab
-    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/assets/pages/${seed.pageClearId}?tab=drafts`);
+    // [FIXUP-1] Navigate via canonical route
+    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/pages/${seed.pageClearId}?tab=drafts`);
 
     await expect(page.locator('[data-testid="drafts-tab-panel"]')).toBeVisible();
 
@@ -140,15 +146,15 @@ test.describe('DRAFT-FIELD-COVERAGE-1: Pages Drafts Tab', () => {
     // Wait a moment for dialog to be handled
     await page.waitForTimeout(500);
 
-    // Verify exact dialog message
+    // Verify exact dialog message (locked copy)
     expect(dialogMessage).toBe(EMPTY_DRAFT_CONFIRM_MESSAGE);
   });
 
   test('DFC1-004: Pages destructive-clear confirmation dialog - accept path', async ({ page }) => {
     const seed = await seedAndAuth(page);
 
-    // Navigate to page with diff (has live + draft) - Drafts tab
-    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/assets/pages/${seed.pageDiffId}?tab=drafts`);
+    // [FIXUP-1] Navigate via canonical route
+    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/pages/${seed.pageDiffId}?tab=drafts`);
 
     await expect(page.locator('[data-testid="drafts-tab-panel"]')).toBeVisible();
 
@@ -160,8 +166,10 @@ test.describe('DRAFT-FIELD-COVERAGE-1: Pages Drafts Tab', () => {
     const textarea = page.locator('textarea').first();
     await textarea.fill('');
 
-    // Setup dialog handler BEFORE clicking save - accept
+    // [FIXUP-1] Setup dialog handler - assert locked copy BEFORE accepting
+    let dialogMessage = '';
     page.once('dialog', async (dialog) => {
+      dialogMessage = dialog.message();
       await dialog.accept();
     });
 
@@ -172,21 +180,24 @@ test.describe('DRAFT-FIELD-COVERAGE-1: Pages Drafts Tab', () => {
     // Wait for save to complete and UI to update
     await page.waitForTimeout(500);
 
+    // [FIXUP-1] Verify exact dialog message was shown (locked copy assertion on accept path)
+    expect(dialogMessage).toBe(EMPTY_DRAFT_CONFIRM_MESSAGE);
+
     // After accepting, the "Draft will clear this field when applied" should appear
     await expect(page.locator('text=Draft will clear this field when applied')).toBeVisible();
   });
 });
 
 // ==========================================================================
-// COLLECTIONS DRAFTS TAB TESTS
+// COLLECTIONS DRAFTS TAB TESTS (using canonical route /projects/{id}/collections/{collectionId})
 // ==========================================================================
 
 test.describe('DRAFT-FIELD-COVERAGE-1: Collections Drafts Tab', () => {
   test('DFC1-005: Collections Drafts tab shows Current vs Draft blocks with correct labels', async ({ page }) => {
     const seed = await seedAndAuth(page);
 
-    // Navigate to collection with diff - Drafts tab
-    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/assets/collections/${seed.collectionDiffId}?tab=drafts`);
+    // [FIXUP-1] Navigate via canonical route (redirects to /assets/collections/...)
+    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/collections/${seed.collectionDiffId}?tab=drafts`);
 
     // Wait for drafts tab panel
     await expect(page.locator('[data-testid="drafts-tab-panel"]')).toBeVisible();
@@ -203,8 +214,8 @@ test.describe('DRAFT-FIELD-COVERAGE-1: Collections Drafts Tab', () => {
   test('DFC1-006: Collections Drafts tab shows "No draft generated yet" for empty-suggestion scenario', async ({ page }) => {
     const seed = await seedAndAuth(page);
 
-    // Navigate to collection with no draft - Drafts tab
-    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/assets/collections/${seed.collectionNoDraftId}?tab=drafts`);
+    // [FIXUP-1] Navigate via canonical route
+    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/collections/${seed.collectionNoDraftId}?tab=drafts`);
 
     await expect(page.locator('[data-testid="drafts-tab-panel"]')).toBeVisible();
 
@@ -215,8 +226,8 @@ test.describe('DRAFT-FIELD-COVERAGE-1: Collections Drafts Tab', () => {
   test('DFC1-007: Collections destructive-clear confirmation dialog - dismiss path', async ({ page }) => {
     const seed = await seedAndAuth(page);
 
-    // Navigate to collection with cleared draft - Drafts tab
-    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/assets/collections/${seed.collectionClearId}?tab=drafts`);
+    // [FIXUP-1] Navigate via canonical route
+    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/collections/${seed.collectionClearId}?tab=drafts`);
 
     await expect(page.locator('[data-testid="drafts-tab-panel"]')).toBeVisible();
 
@@ -248,8 +259,8 @@ test.describe('DRAFT-FIELD-COVERAGE-1: Collections Drafts Tab', () => {
   test('DFC1-008: Collections destructive-clear confirmation dialog - accept path', async ({ page }) => {
     const seed = await seedAndAuth(page);
 
-    // Navigate to collection with diff - Drafts tab
-    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/assets/collections/${seed.collectionDiffId}?tab=drafts`);
+    // [FIXUP-1] Navigate via canonical route
+    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/collections/${seed.collectionDiffId}?tab=drafts`);
 
     await expect(page.locator('[data-testid="drafts-tab-panel"]')).toBeVisible();
 
@@ -261,8 +272,10 @@ test.describe('DRAFT-FIELD-COVERAGE-1: Collections Drafts Tab', () => {
     const textarea = page.locator('textarea').first();
     await textarea.fill('');
 
-    // Setup dialog handler - accept
+    // [FIXUP-1] Setup dialog handler - assert locked copy BEFORE accepting
+    let dialogMessage = '';
     page.once('dialog', async (dialog) => {
+      dialogMessage = dialog.message();
       await dialog.accept();
     });
 
@@ -270,6 +283,9 @@ test.describe('DRAFT-FIELD-COVERAGE-1: Collections Drafts Tab', () => {
     await page.locator('button:has-text("Save changes")').first().click();
 
     await page.waitForTimeout(500);
+
+    // [FIXUP-1] Verify exact dialog message was shown (locked copy assertion on accept path)
+    expect(dialogMessage).toBe(EMPTY_DRAFT_CONFIRM_MESSAGE);
 
     // Verify clear message appears
     await expect(page.locator('text=Draft will clear this field when applied')).toBeVisible();
@@ -302,8 +318,8 @@ test.describe('DRAFT-FIELD-COVERAGE-1: Cross-Asset Parity', () => {
   test('DFC1-010: Pages Drafts tab has consistent testids and AI boundary note', async ({ page }) => {
     const seed = await seedAndAuth(page);
 
-    // Navigate to page with diff - Drafts tab
-    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/assets/pages/${seed.pageDiffId}?tab=drafts`);
+    // [FIXUP-1] Navigate via canonical route
+    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/pages/${seed.pageDiffId}?tab=drafts`);
 
     // Verify required testids
     await expect(page.locator('[data-testid="drafts-tab-panel"]')).toBeVisible();
@@ -323,8 +339,8 @@ test.describe('DRAFT-FIELD-COVERAGE-1: Cross-Asset Parity', () => {
   test('DFC1-011: Collections Drafts tab has consistent testids and AI boundary note', async ({ page }) => {
     const seed = await seedAndAuth(page);
 
-    // Navigate to collection with diff - Drafts tab
-    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/assets/collections/${seed.collectionDiffId}?tab=drafts`);
+    // [FIXUP-1] Navigate via canonical route
+    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/collections/${seed.collectionDiffId}?tab=drafts`);
 
     // Verify required testids
     await expect(page.locator('[data-testid="drafts-tab-panel"]')).toBeVisible();
