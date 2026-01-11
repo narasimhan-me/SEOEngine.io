@@ -1810,7 +1810,7 @@ export class E2eTestkitController {
         ] as unknown as any,
         counts: {
           affectedTotal: 3,
-          draftGenerated: 3, // All have draft items (even if empty)
+          draftGenerated: 2, // Products 1-2 have actual suggestions; Product 3 is empty
           noSuggestionCount: 1, // Product 3 has no actual suggestion
         } as unknown as any,
         rules: { enabled: true } as unknown as any,

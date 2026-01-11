@@ -26,6 +26,10 @@ import { test, expect } from '@playwright/test';
 
 const API_BASE_URL = process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
 
+// [DRAFT-DIFF-CLARITY-1-FIXUP-2] Locked copy for empty draft confirmation dialog
+const EMPTY_DRAFT_CONFIRM_MESSAGE =
+  'Saving an empty draft will clear this field when applied.\n\nAre you sure you want to save an empty draft?';
+
 interface SeedResponse {
   projectId: string;
   accessToken: string;
@@ -394,9 +398,9 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
     await expect(textarea).toBeVisible();
     await textarea.fill('');
 
-    // Set up dialog handler to dismiss (cancel)
-    page.on('dialog', async (dialog) => {
-      expect(dialog.message()).toContain('Saving an empty draft will clear this field when applied');
+    // [FIXUP-2] Set up dialog handler to dismiss (cancel) - use once() to avoid listener accumulation
+    page.once('dialog', async (dialog) => {
+      expect(dialog.message()).toBe(EMPTY_DRAFT_CONFIRM_MESSAGE);
       await dialog.dismiss();
     });
 
@@ -451,9 +455,9 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
     await expect(textarea).toBeVisible();
     await textarea.fill('');
 
-    // Set up dialog handler to accept
-    page.on('dialog', async (dialog) => {
-      expect(dialog.message()).toContain('Saving an empty draft will clear this field when applied');
+    // [FIXUP-2] Set up dialog handler to accept - use once() to avoid listener accumulation
+    page.once('dialog', async (dialog) => {
+      expect(dialog.message()).toBe(EMPTY_DRAFT_CONFIRM_MESSAGE);
       await dialog.accept();
     });
 
