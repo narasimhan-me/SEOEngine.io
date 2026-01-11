@@ -455,7 +455,7 @@ export default function PagesAssetListPage() {
                 {syncStatus.shopifyConnected && !syncStatus.lastPagesSyncAt ? (
                   <>
                     <p>Not yet synced.</p>
-                    <p className="mt-2">Click "Sync Pages" to import pages from Shopify.</p>
+                    <p className="mt-2">Click &quot;Sync Pages&quot; to import pages from Shopify.</p>
                   </>
                 ) : syncStatus.shopifyConnected && syncStatus.lastPagesSyncAt ? (
                   <p>No pages found in Shopify for this store.</p>

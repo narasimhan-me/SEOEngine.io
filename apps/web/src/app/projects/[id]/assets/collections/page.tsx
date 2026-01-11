@@ -459,7 +459,7 @@ export default function CollectionsAssetListPage() {
                 {syncStatus.shopifyConnected && !syncStatus.lastCollectionsSyncAt ? (
                   <>
                     <p>Not yet synced.</p>
-                    <p className="mt-2">Click "Sync Collections" to import collections from Shopify.</p>
+                    <p className="mt-2">Click &quot;Sync Collections&quot; to import collections from Shopify.</p>
                   </>
                 ) : syncStatus.shopifyConnected && syncStatus.lastCollectionsSyncAt ? (
                   <p>No collections found in Shopify for this store.</p>

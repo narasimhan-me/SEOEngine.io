@@ -41,7 +41,6 @@ import {
   buildPlaybookRunHref,
   navigateToPlaybookRunReplace,
   isValidPlaybookId,
-  type PlaybookId as PlaybookIdType,
   type PlaybookSource,
 } from '@/lib/playbooks-routing';
 
@@ -267,8 +266,9 @@ export default function AutomationPlaybooksPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [issues, setIssues] = useState<DeoIssue[]>([]);
   // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] URL is source of truth (path param preferred). No implicit default.
-  // Default selection is handled via effect that fetches eligibility counts.
-  const [selectedPlaybookId, setSelectedPlaybookId] =
+  // Default selection navigates via router.replace, not setState. Setter intentionally unused.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [selectedPlaybookId, _setSelectedPlaybookId] =
     useState<PlaybookId | null>(validUrlPlaybookId);
   // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Track eligibility counts for default selection + banner visibility
   const [titlesEligibleCount, setTitlesEligibleCount] = useState<number | null>(null);
