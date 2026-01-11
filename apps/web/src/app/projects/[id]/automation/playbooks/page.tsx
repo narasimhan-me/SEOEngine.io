@@ -694,11 +694,10 @@ export default function AutomationPlaybooksPage() {
         const data = (await projectsApi.automationPlaybookEstimate(
           projectId,
           playbookId,
-          undefined, // scopeProductIds - only for PRODUCTS
-          effectiveAssetType !== 'PRODUCTS' ? effectiveAssetType : undefined,
-          effectiveAssetType !== 'PRODUCTS' && effectiveScopeAssetRefs.length > 0
-            ? effectiveScopeAssetRefs
-            : undefined,
+          // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] PRODUCTS scope uses scopeProductIds (from URL scopeAssetRefs)
+          effectiveAssetType === 'PRODUCTS' && effectiveScopeAssetRefs.length > 0 ? effectiveScopeAssetRefs : undefined,
+          effectiveScopeAssetRefs.length > 0 ? effectiveAssetType : (effectiveAssetType !== 'PRODUCTS' ? effectiveAssetType : undefined),
+          effectiveAssetType !== 'PRODUCTS' && effectiveScopeAssetRefs.length > 0 ? effectiveScopeAssetRefs : undefined,
         )) as PlaybookEstimate;
         setEstimate(data);
       } catch (err: unknown) {
@@ -769,11 +768,10 @@ export default function AutomationPlaybooksPage() {
           playbookId,
           rules.enabled ? rules : undefined,
           3, // sampleSize
-          undefined, // scopeProductIds - only for PRODUCTS
-          currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined,
-          currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0
-            ? currentScopeAssetRefs
-            : undefined,
+          // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] PRODUCTS scope uses scopeProductIds (from URL scopeAssetRefs)
+          currentAssetType === 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
+          currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
+          currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
         ) as {
           projectId: string;
           playbookId: string;
@@ -976,7 +974,8 @@ export default function AutomationPlaybooksPage() {
       playbookId,
       step: 'preview',
       source: 'tile',
-      assetType: currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined,
+      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] Preserve explicit scope semantics for PRODUCTS when scoped
+      assetType: currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
       scopeAssetRefs: currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
     }));
   };
@@ -1151,12 +1150,11 @@ export default function AutomationPlaybooksPage() {
         selectedPlaybookId,
         estimate.scopeId,
         estimate.rulesHash,
-        undefined, // scopeProductIds - only for PRODUCTS
+        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] PRODUCTS scope uses scopeProductIds (from URL scopeAssetRefs)
+        currentAssetType === 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
         approvalIdToUse,
-        currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined,
-        currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0
-          ? currentScopeAssetRefs
-          : undefined,
+        currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
+        currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
       );
       setApplyResult(data);
       if (data.updatedCount > 0) {
@@ -1560,20 +1558,18 @@ export default function AutomationPlaybooksPage() {
           projectsApi.automationPlaybookEstimate(
             projectId,
             'missing_seo_title',
-            undefined,
-            currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined,
-            currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0
-              ? currentScopeAssetRefs
-              : undefined,
+            // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] PRODUCTS scoped entry must scope eligibility counts (no global-vs-scoped mismatch)
+            currentAssetType === 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
+            currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
+            currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
           ) as Promise<{ totalAffectedProducts: number }>,
           projectsApi.automationPlaybookEstimate(
             projectId,
             'missing_seo_description',
-            undefined,
-            currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined,
-            currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0
-              ? currentScopeAssetRefs
-              : undefined,
+            // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] PRODUCTS scoped entry must scope eligibility counts (no global-vs-scoped mismatch)
+            currentAssetType === 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
+            currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
+            currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
           ) as Promise<{ totalAffectedProducts: number }>,
         ]);
 
@@ -1651,7 +1647,8 @@ export default function AutomationPlaybooksPage() {
         playbookId: chosenPlaybook,
         step: 'preview',
         source: urlSource,
-        assetType: currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined,
+        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] Preserve explicit scope semantics for PRODUCTS when scoped
+        assetType: currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
         scopeAssetRefs: currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
       });
     }
@@ -2291,7 +2288,8 @@ export default function AutomationPlaybooksPage() {
                         playbookId: primaryCnabPlaybookId,
                         step: 'preview',
                         source: 'banner',
-                        assetType: currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined,
+                        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] Banner CTA must never cross scopes
+                        assetType: currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
                         scopeAssetRefs: currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
                       }));
                     }}
@@ -2375,7 +2373,8 @@ export default function AutomationPlaybooksPage() {
                         playbookId: 'missing_seo_title',
                         step: 'preview',
                         source: 'banner',
-                        assetType: currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined,
+                        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] Banner CTA must never cross scopes
+                        assetType: currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
                         scopeAssetRefs: currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
                       }));
                     }}
@@ -2459,7 +2458,8 @@ export default function AutomationPlaybooksPage() {
                         playbookId: 'missing_seo_description',
                         step: 'preview',
                         source: 'banner',
-                        assetType: currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined,
+                        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] Banner CTA must never cross scopes
+                        assetType: currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
                         scopeAssetRefs: currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
                       }));
                     }}
@@ -3101,7 +3101,8 @@ export default function AutomationPlaybooksPage() {
                               playbookId: selectedPlaybookId!,
                               step: 'preview',
                               source: 'product_details',
-                              assetType: currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined,
+                              // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] Preserve explicit scope semantics for PRODUCTS when scoped
+                              assetType: currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
                               scopeAssetRefs: currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
                             });
                             const previewContextUrl = `/projects/${projectId}/products/${sample.productId}?from=playbook_preview&playbookId=${selectedPlaybookId}&returnTo=${encodeURIComponent(returnToPath)}`;
@@ -3744,7 +3745,8 @@ export default function AutomationPlaybooksPage() {
                                         playbookId: selectedPlaybookId!,
                                         step: 'preview',
                                         source: 'product_details',
-                                        assetType: currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined,
+                                        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] Preserve explicit scope semantics for PRODUCTS when scoped
+                                        assetType: currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
                                         scopeAssetRefs: currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
                                       });
                                       const resultsContextUrl = `/projects/${projectId}/products/${item.productId}?from=playbook_results&playbookId=${selectedPlaybookId}&returnTo=${encodeURIComponent(returnToPath)}`;

@@ -1517,7 +1517,7 @@ PLAYBOOK-ENTRYPOINT-INTEGRITY-1 introduces canonical playbook routes and guarant
 
 #### Test Coverage
 
-- **Playwright Tests:** `apps/web/tests/playbook-entrypoint-integrity-1.spec.ts` (PEPI1-001)
+- **Playwright Tests:** `apps/web/tests/playbook-entrypoint-integrity-1.spec.ts` (PEPI1-001, PEPI1-002)
 - **Manual Testing:** `docs/manual-testing/PLAYBOOK-ENTRYPOINT-INTEGRITY-1.md`
 
 #### Seed Endpoint
@@ -1528,6 +1528,12 @@ Seeds:
 - User with project and Shopify connection
 - Products where: titles eligibleCount = 0, descriptions eligibleCount > 0
 - Returns expected counts for test assertions
+
+#### FIXUP-3 (2026-01-11): Scoped Eligibility Integrity
+
+- Scoped PRODUCTS entry (assetType=PRODUCTS + scopeAssetRefs) now computes eligibility counts scoped (no global banner → scoped destination mismatch).
+- Banner CTA routing preserves the exact same scope semantics as the eligibility basis (no cross-scope routing).
+- Manual Testing: Added "Scoped Playbooks entry (Products list / filtered scope)" to PLAYBOOK-ENTRYPOINT-INTEGRITY-1.md.
 
 ---
 
@@ -1786,3 +1792,4 @@ These invariants MUST be preserved during implementation:
 | 6.35 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1 COMPLETE**: Playbook route canonicalization + banner routing guarantee. (1) Canonical route shape `/projects/:projectId/playbooks/:playbookId?step=...&source=...`; (2) Centralized routing helper `playbooks-routing.ts` with `buildPlaybookRunHref()`; (3) Deterministic default selection (max eligibleCount; tie → descriptions; all 0 → neutral); (4) Banner CTA routes canonically (no AI side effects on click); (5) Tile click routing via canonical URL; (6) Estimate/playbook mismatch bug fix; (7) All external entrypoints updated to canonical routes; (8) Playwright test PEPI1-001 verifies banner routes to correct playbook with step=preview and source=banner. |
 | 6.36 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1**: (1) Fixed TDZ crash in Playbooks page (urlSource used before declaration); (2) CNAB derived strictly from eligibility counts (no issue-count fallback, hidden when counts unknown); (3) NO_RUN_WITH_ISSUES banner CTA targets primary playbook from eligibility counts (max wins, tie → descriptions); (4) Split mount effect into eligibility fetch + default selection effects (no fallback to setSelectedPlaybookId on error); (5) Work Queue entrypoint uses `buildPlaybookRunHref()` with playbookId validation; (6) trust-routing-1.spec.ts updated to canonical `/playbooks` route. |
 | 6.37 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2**: (1) Breadcrumb "Playbooks" link uses canonical `/playbooks` route (not `/automation`); (2) Automation tabs "Playbooks" link uses canonical `/playbooks` with dual-route active highlighting (`/playbooks` OR `/automation/playbooks`); (3) "Return to Playbooks" button after apply uses canonical `/playbooks`; (4) Product "Back to preview" fallback uses canonical `/playbooks/:playbookId?step=preview&source=product_details` (not legacy `?playbookId=` query param). |
+| 6.38 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3**: Scoped eligibility integrity. (1) `buildPlaybookRunHref()` now includes `assetType=PRODUCTS` when scopeAssetRefs are present (previously omitted PRODUCTS assetType even when scoped); (2) All API calls (estimate, preview, apply, eligibility fetch) now correctly pass scopeProductIds for PRODUCTS scope (was passing undefined); (3) Banner CTA routing preserves exact scope semantics (no global-vs-scoped mismatch); (4) Tile click, default selection, and product detail returnToPath all preserve scoped PRODUCTS context; (5) Added PEPI1-002 Playwright test for scoped PRODUCTS banner routing integrity; (6) Updated manual testing doc with Scenario 1.1 (Scoped Playbooks entry). |

@@ -75,6 +75,26 @@ This phase ensures playbook entrypoints route deterministically to the correct p
 
 ---
 
+### Scenario 1.1: Scoped Playbooks entry (Products list / filtered scope)
+
+**Route (entry):** `/projects/{projectId}/playbooks?assetType=PRODUCTS&scopeAssetRefs={productId1},{productId2}`
+
+**Goal:** Banner eligibility + CTA landing view remain scope-consistent (no "No eligible items right now" unless scoped eligibility is 0).
+
+1. Enter Playbooks from a scoped Products context (or use the URL above with 2 product IDs in scope).
+2. Confirm the banner CTA label matches scoped eligibility (e.g., "Preview missing SEO descriptions" only if scoped descriptions eligibleCount > 0).
+3. Click the banner CTA.
+4. **Verify:**
+   - [ ] URL contains `/playbooks/missing_seo_description` (or the playbook matching the CTA label)
+   - [ ] URL contains `step=preview`
+   - [ ] URL contains `source=banner`
+   - [ ] URL contains `assetType=PRODUCTS`
+   - [ ] URL preserves the same `scopeAssetRefs` values
+   - [ ] Stepper is visible
+   - [ ] "No eligible items right now" is NOT shown unless scoped eligibility is truly 0
+
+---
+
 ### Scenario 2: Tile Click Routes Canonically
 
 **Route:** `/projects/{projectId}/playbooks`

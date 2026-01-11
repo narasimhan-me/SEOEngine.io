@@ -118,4 +118,59 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
     const zeroEligibleState = page.locator('[data-testid="playbook-zero-eligible-empty-state"]');
     await expect(zeroEligibleState).not.toBeVisible();
   });
+
+  /**
+   * PEPI1-002: Banner routing integrity with PRODUCT scope (scoped eligibility)
+   *
+   * Given: User enters Playbooks with assetType=PRODUCTS and scopeAssetRefs=<productIds>
+   * When: User clicks the banner CTA "Preview missing SEO descriptions"
+   * Then: URL routes to /playbooks/missing_seo_description with step=preview&source=banner
+   *       URL preserves assetType=PRODUCTS and the same scopeAssetRefs values
+   *       Stepper is visible and zero-eligible empty state is NOT visible
+   */
+  test('PEPI1-002: Playbook banner routing stays scope-consistent for scoped PRODUCTS entry', async ({ page }) => {
+    const seed = await seedAndAuth(page);
+
+    // Connect Shopify store
+    await connectShopify(seed.projectId);
+
+    const scopedProductIds = [seed.productIds[1], seed.productIds[2]];
+    const scopeAssetRefs = scopedProductIds.join(',');
+
+    // Navigate to playbooks page with explicit PRODUCTS scope
+    await page.goto(
+      `${APP_BASE_URL}/projects/${seed.projectId}/playbooks?source=asset_list&assetType=PRODUCTS&scopeAssetRefs=${scopeAssetRefs}`,
+    );
+
+    // Wait for banner CTA to appear (descriptions playbook should be eligible in this scope)
+    await page.waitForSelector('text=Preview missing SEO descriptions', { timeout: 15000 });
+
+    // Click the banner CTA
+    const bannerCta = page.locator('button:has-text("Preview missing SEO descriptions")');
+    await expect(bannerCta).toBeVisible();
+    await bannerCta.click();
+
+    // Wait for navigation
+    await page.waitForURL(/\/playbooks\/missing_seo_description/);
+
+    const currentUrl = page.url();
+
+    // Assert canonical target
+    expect(currentUrl).toContain(`/projects/${seed.projectId}/playbooks/missing_seo_description`);
+    expect(currentUrl).toContain('step=preview');
+    expect(currentUrl).toContain('source=banner');
+
+    // Assert scope is preserved (explicit PRODUCTS scope + same refs)
+    expect(currentUrl).toContain('assetType=PRODUCTS');
+    expect(currentUrl).toContain('scopeAssetRefs=');
+    expect(currentUrl).toContain(scopedProductIds[0]);
+    expect(currentUrl).toContain(scopedProductIds[1]);
+
+    // Stepper visible → valid run surface
+    await expect(page.locator('[data-testid="playbooks-stepper"]')).toBeVisible();
+
+    // Zero-eligible empty state must not be visible
+    const zeroEligibleState = page.locator('[data-testid="playbook-zero-eligible-empty-state"]');
+    await expect(zeroEligibleState).not.toBeVisible();
+  });
 });

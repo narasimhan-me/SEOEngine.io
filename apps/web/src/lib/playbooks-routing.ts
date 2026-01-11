@@ -59,7 +59,8 @@ export function buildPlaybookRunHref({
   params.set('source', source);
 
   // Optional asset scoping
-  if (assetType && assetType !== 'PRODUCTS') {
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] Include assetType=PRODUCTS when scopeAssetRefs are present
+  if (assetType && (assetType !== 'PRODUCTS' || (scopeAssetRefs && scopeAssetRefs.length > 0))) {
     params.set('assetType', assetType);
   }
   if (scopeAssetRefs && scopeAssetRefs.length > 0) {
