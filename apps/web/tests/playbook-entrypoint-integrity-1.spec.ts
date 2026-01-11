@@ -135,12 +135,15 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
     await connectShopify(seed.projectId);
 
     const scopedProductIds = [seed.productIds[1], seed.productIds[2]];
-    const scopeAssetRefs = scopedProductIds.join(',');
 
-    // Navigate to playbooks page with explicit PRODUCTS scope
-    await page.goto(
-      `${APP_BASE_URL}/projects/${seed.projectId}/playbooks?source=asset_list&assetType=PRODUCTS&scopeAssetRefs=${scopeAssetRefs}`,
-    );
+    const scopedUrl = new URL(`${APP_BASE_URL}/projects/${seed.projectId}/playbooks`);
+    scopedUrl.searchParams.set('source', 'asset_list');
+    scopedUrl.searchParams.set('assetType', 'PRODUCTS');
+    scopedUrl.searchParams.append('scopeAssetRefs', scopedProductIds[0]);
+    scopedUrl.searchParams.append('scopeAssetRefs', scopedProductIds[1]);
+
+    // Navigate to playbooks page with explicit PRODUCTS scope (repeated scopeAssetRefs params)
+    await page.goto(scopedUrl.toString());
 
     // Wait for banner CTA to appear (descriptions playbook should be eligible in this scope)
     await page.waitForSelector('text=Preview missing SEO descriptions', { timeout: 15000 });

@@ -220,12 +220,15 @@ export default function AutomationPlaybooksPage() {
     return 'PRODUCTS'; // Default to PRODUCTS
   })();
 
-  // [ASSETS-PAGES-1.1-UI-HARDEN] Deep-link support: read scopeAssetRefs from URL (comma-separated)
-  const urlScopeAssetRefs = searchParams.get('scopeAssetRefs');
+  // [ASSETS-PAGES-1.1-UI-HARDEN] Deep-link support: read scopeAssetRefs from URL (repeated query params and/or comma-separated)
   const parsedScopeAssetRefs = useMemo(() => {
-    if (!urlScopeAssetRefs) return [];
-    return urlScopeAssetRefs.split(',').map((ref) => ref.trim()).filter((ref) => ref.length > 0);
-  }, [urlScopeAssetRefs]);
+    const rawValues = searchParams.getAll('scopeAssetRefs');
+    if (!rawValues || rawValues.length === 0) return [];
+    return rawValues
+      .flatMap((value) => value.split(','))
+      .map((ref) => ref.trim())
+      .filter((ref) => ref.length > 0);
+  }, [searchParams]);
 
   // [ASSETS-PAGES-1.1-UI-HARDEN] Deterministic safety check: PAGES/COLLECTIONS require scopeAssetRefs
   const isMissingScopeForPagesCollections =

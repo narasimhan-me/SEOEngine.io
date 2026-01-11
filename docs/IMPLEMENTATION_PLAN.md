@@ -1534,6 +1534,7 @@ Seeds:
 - Scoped PRODUCTS entry (assetType=PRODUCTS + scopeAssetRefs) now computes eligibility counts scoped (no global banner → scoped destination mismatch).
 - Banner CTA routing preserves the exact same scope semantics as the eligibility basis (no cross-scope routing).
 - Manual Testing: Added "Scoped Playbooks entry (Products list / filtered scope)" to PLAYBOOK-ENTRYPOINT-INTEGRITY-1.md.
+- Scope parsing now accepts repeated scopeAssetRefs query params (and comma-separated), matching Playwright PEPI1-002 entry shape.
 
 ### Phase SHOPIFY-ASSET-SYNC-COVERAGE-1: Shopify Pages + Collections Ingestion ✅ COMPLETE
 

@@ -64,7 +64,9 @@ export function buildPlaybookRunHref({
     params.set('assetType', assetType);
   }
   if (scopeAssetRefs && scopeAssetRefs.length > 0) {
-    params.set('scopeAssetRefs', scopeAssetRefs.join(','));
+    for (const ref of scopeAssetRefs) {
+      params.append('scopeAssetRefs', ref);
+    }
   }
 
   // Extra params (for preserving context like returnTo, returnLabel)

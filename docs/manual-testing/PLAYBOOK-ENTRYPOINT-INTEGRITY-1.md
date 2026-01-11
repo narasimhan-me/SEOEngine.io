@@ -77,7 +77,7 @@ This phase ensures playbook entrypoints route deterministically to the correct p
 
 ### Scenario 1.1: Scoped Playbooks entry (Products list / filtered scope)
 
-**Route (entry):** `/projects/{projectId}/playbooks?assetType=PRODUCTS&scopeAssetRefs={productId1},{productId2}`
+**Route (entry):** `/projects/{projectId}/playbooks?assetType=PRODUCTS&scopeAssetRefs={productId1}&scopeAssetRefs={productId2}` (also accepts comma-separated)
 
 **Goal:** Banner eligibility + CTA landing view remain scope-consistent (no "No eligible items right now" unless scoped eligibility is 0).
 
