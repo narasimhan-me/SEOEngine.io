@@ -136,10 +136,10 @@ POST /testkit/e2e/seed-draft-diff-clarity-1
 ```
 
 This creates:
-- Product with live SEO + draft with different values (for diff display)
-- Product with live SEO + explicitly cleared draft (for "Draft will clear" message)
-- Product with live SEO + no draft (for "No draft generated yet" message)
-- Page with draft (for Playbooks Draft Review testing)
+- **Product 1** (`productWithDiffId`): Live SEO + draft with different values (for diff display)
+- **Product 2** (`productWithClearedDraftId`): Live SEO + explicitly cleared draft (rawSuggestion non-empty, finalSuggestion empty → "Draft will clear" message)
+- **Product 3** (`productNoDraftId`): Live SEO + draftItem entry with field present but both rawSuggestion and finalSuggestion empty (→ "No draft generated yet" message)
+- **Page** (`pageWithDraftId`): Draft for Playbooks Draft Review testing
 
 ## Related Documents
 

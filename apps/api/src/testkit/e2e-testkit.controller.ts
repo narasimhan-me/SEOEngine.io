@@ -1730,13 +1730,15 @@ export class E2eTestkitController {
       },
     });
 
-    // Product 3: Has live SEO + no draft generated yet (for "No draft generated" message)
+    // Product 3: Has live SEO + "No draft generated yet" scenario
+    // [DRAFT-DIFF-CLARITY-1-FIXUP-1] This product has a draftItem entry with field present
+    // but both rawSuggestion and finalSuggestion empty - triggers "No draft generated yet" message
     const productNoDraft = await this.prisma.product.create({
       data: {
         projectId: project.id,
         externalId: 'ddc1-product-no-draft',
         title: 'Product Without Draft Generated',
-        description: 'This product has live SEO values but no draft has been generated.',
+        description: 'This product has live SEO values but draft field has empty suggestions.',
         handle: 'product-no-draft',
         seoTitle: 'Live Title With No Draft',
         seoDescription: 'This description has no corresponding draft generated.',
@@ -1761,6 +1763,7 @@ export class E2eTestkitController {
     });
 
     // Create AutomationPlaybookDraft for products with canonical shape
+    // [DRAFT-DIFF-CLARITY-1-FIXUP-1] Includes all 3 products to cover all diff scenarios
     await this.prisma.automationPlaybookDraft.create({
       data: {
         projectId: project.id,
@@ -1769,9 +1772,9 @@ export class E2eTestkitController {
         rulesHash: 'draft-diff-clarity-1-products-hash',
         status: 'READY',
         createdByUserId: user.id,
-        sampleProductIds: [productWithDiff.id, productWithClearedDraft.id] as unknown as any,
+        sampleProductIds: [productWithDiff.id, productWithClearedDraft.id, productNoDraft.id] as unknown as any,
         draftItems: [
-          // Product 1: Has different draft value
+          // Product 1: Has different draft value (diff display scenario)
           {
             productId: productWithDiff.id,
             field: 'seoTitle',
@@ -1787,6 +1790,7 @@ export class E2eTestkitController {
             ruleWarnings: [],
           },
           // Product 2: Explicitly cleared (rawSuggestion exists but finalSuggestion is empty)
+          // Triggers "Draft will clear this field when applied" message
           {
             productId: productWithClearedDraft.id,
             field: 'seoDescription',
@@ -1794,11 +1798,20 @@ export class E2eTestkitController {
             finalSuggestion: '', // Explicitly cleared
             ruleWarnings: [],
           },
+          // Product 3: No draft generated yet (field present but both rawSuggestion and finalSuggestion empty)
+          // [DRAFT-DIFF-CLARITY-1-FIXUP-1] Triggers "No draft generated yet" message
+          {
+            productId: productNoDraft.id,
+            field: 'seoTitle',
+            rawSuggestion: '', // Empty - no draft generated
+            finalSuggestion: '', // Empty - no draft generated
+            ruleWarnings: [],
+          },
         ] as unknown as any,
         counts: {
           affectedTotal: 3,
-          draftGenerated: 3,
-          noSuggestionCount: 0,
+          draftGenerated: 3, // All have draft items (even if empty)
+          noSuggestionCount: 1, // Product 3 has no actual suggestion
         } as unknown as any,
         rules: { enabled: true } as unknown as any,
         appliedAt: null,
