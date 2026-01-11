@@ -163,11 +163,11 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
     expect(currentUrl).toContain('step=preview');
     expect(currentUrl).toContain('source=banner');
 
-    // Assert scope is preserved (explicit PRODUCTS scope + same refs)
-    expect(currentUrl).toContain('assetType=PRODUCTS');
-    expect(currentUrl).toContain('scopeAssetRefs=');
-    expect(currentUrl).toContain(scopedProductIds[0]);
-    expect(currentUrl).toContain(scopedProductIds[1]);
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Assert scope via URLSearchParams for repeated params
+    const url = new URL(currentUrl);
+    expect(url.searchParams.get('assetType')).toBe('PRODUCTS');
+    const scopeRefs = url.searchParams.getAll('scopeAssetRefs');
+    expect(scopeRefs).toEqual(expect.arrayContaining(scopedProductIds));
 
     // Stepper visible → valid run surface
     await expect(page.locator('[data-testid="playbooks-stepper"]')).toBeVisible();

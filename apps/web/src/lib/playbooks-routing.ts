@@ -81,6 +81,26 @@ export function buildPlaybookRunHref({
   return `/projects/${projectId}/playbooks/${playbookId}?${params.toString()}`;
 }
 
+/**
+ * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Safe builder that refuses scoped URLs without assetType.
+ *
+ * Returns null if scopeAssetRefs is present but assetType is missing (invalid scoped route).
+ * Callers must handle null to prevent silent scope drops.
+ */
+export function buildPlaybookRunHrefOrNull(args: BuildPlaybookRunHrefArgs): string | null {
+  const hasScope = !!args.scopeAssetRefs && args.scopeAssetRefs.length > 0;
+  if (hasScope && !args.assetType) {
+    console.error('[PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Invalid scoped Playbooks route: scopeAssetRefs present but assetType missing. Navigation aborted.', {
+      playbookId: args.playbookId,
+      step: args.step,
+      source: args.source,
+      scopeAssetRefsCount: args.scopeAssetRefs?.length ?? 0,
+    });
+    return null;
+  }
+  return buildPlaybookRunHref(args);
+}
+
 export interface BuildPlaybooksListHrefArgs {
   projectId: string;
   source?: PlaybookSource;
@@ -104,25 +124,30 @@ export function buildPlaybooksListHref({
 /**
  * Navigate to a playbook run URL using the router.
  *
- * Thin wrapper around router.push(buildPlaybookRunHref(args)).
+ * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Uses guardrail to refuse invalid scoped routes.
  */
 export function navigateToPlaybookRun(
   router: AppRouterInstance,
   args: BuildPlaybookRunHrefArgs,
 ): void {
-  router.push(buildPlaybookRunHref(args));
+  const href = buildPlaybookRunHrefOrNull(args);
+  if (!href) return;
+  router.push(href);
 }
 
 /**
  * Navigate to a playbook run URL using router.replace (deterministic, no history spam).
  *
  * Used for default selection where we want to avoid history pollution.
+ * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Uses guardrail to refuse invalid scoped routes.
  */
 export function navigateToPlaybookRunReplace(
   router: AppRouterInstance,
   args: BuildPlaybookRunHrefArgs,
 ): void {
-  router.replace(buildPlaybookRunHref(args));
+  const href = buildPlaybookRunHrefOrNull(args);
+  if (!href) return;
+  router.replace(href);
 }
 
 /**

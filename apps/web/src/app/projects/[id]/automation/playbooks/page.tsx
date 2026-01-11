@@ -39,6 +39,8 @@ import { DraftAiBoundaryNote } from '@/components/common/DraftAiBoundaryNote';
 // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Centralized routing helper
 import {
   buildPlaybookRunHref,
+  buildPlaybookRunHrefOrNull,
+  navigateToPlaybookRun,
   navigateToPlaybookRunReplace,
   isValidPlaybookId,
   type PlaybookSource,
@@ -280,6 +282,13 @@ export default function AutomationPlaybooksPage() {
   const [currentAssetType] = useState<AutomationAssetType>(validUrlAssetType);
   // [ASSETS-PAGES-1.1-UI-HARDEN] Track scope asset refs from URL deep link (read-only)
   const [currentScopeAssetRefs] = useState<string[]>(parsedScopeAssetRefs);
+
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Shared scope args for URL construction (scope-identical for eligibility + CTA routing)
+  const playbookRunScopeForUrl = useMemo(() => {
+    if (currentScopeAssetRefs.length === 0) return {};
+    return { assetType: currentAssetType, scopeAssetRefs: currentScopeAssetRefs };
+  }, [currentAssetType, currentScopeAssetRefs]);
+
   const [flowState, setFlowState] = useState<PlaybookFlowState>('PREVIEW_READY');
   const [previewSamples, setPreviewSamples] = useState<PreviewSample[]>([]);
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -697,9 +706,9 @@ export default function AutomationPlaybooksPage() {
         const data = (await projectsApi.automationPlaybookEstimate(
           projectId,
           playbookId,
-          // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] PRODUCTS scope uses scopeProductIds (from URL scopeAssetRefs)
+          // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] PRODUCTS scope uses scopeProductIds (from URL scopeAssetRefs)
           effectiveAssetType === 'PRODUCTS' && effectiveScopeAssetRefs.length > 0 ? effectiveScopeAssetRefs : undefined,
-          effectiveScopeAssetRefs.length > 0 ? effectiveAssetType : (effectiveAssetType !== 'PRODUCTS' ? effectiveAssetType : undefined),
+          effectiveScopeAssetRefs.length > 0 ? effectiveAssetType : undefined,
           effectiveAssetType !== 'PRODUCTS' && effectiveScopeAssetRefs.length > 0 ? effectiveScopeAssetRefs : undefined,
         )) as PlaybookEstimate;
         setEstimate(data);
@@ -771,9 +780,9 @@ export default function AutomationPlaybooksPage() {
           playbookId,
           rules.enabled ? rules : undefined,
           3, // sampleSize
-          // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] PRODUCTS scope uses scopeProductIds (from URL scopeAssetRefs)
+          // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] PRODUCTS scope uses scopeProductIds (from URL scopeAssetRefs)
           currentAssetType === 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
-          currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
+          currentScopeAssetRefs.length > 0 ? currentAssetType : undefined,
           currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
         ) as {
           projectId: string;
@@ -972,15 +981,14 @@ export default function AutomationPlaybooksPage() {
 
   const handleSelectPlaybook = (playbookId: PlaybookId) => {
     // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Route canonically via URL, no local selection state
-    router.push(buildPlaybookRunHref({
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use shared scope args via playbookRunScopeForUrl
+    navigateToPlaybookRun(router, {
       projectId,
       playbookId,
       step: 'preview',
       source: 'tile',
-      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] Preserve explicit scope semantics for PRODUCTS when scoped
-      assetType: currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
-      scopeAssetRefs: currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
-    }));
+      ...playbookRunScopeForUrl,
+    });
   };
 
   const handleGeneratePreview = async () => {
@@ -1153,10 +1161,10 @@ export default function AutomationPlaybooksPage() {
         selectedPlaybookId,
         estimate.scopeId,
         estimate.rulesHash,
-        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] PRODUCTS scope uses scopeProductIds (from URL scopeAssetRefs)
+        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] PRODUCTS scope uses scopeProductIds (from URL scopeAssetRefs)
         currentAssetType === 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
         approvalIdToUse,
-        currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
+        currentScopeAssetRefs.length > 0 ? currentAssetType : undefined,
         currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
       );
       setApplyResult(data);
@@ -1561,17 +1569,17 @@ export default function AutomationPlaybooksPage() {
           projectsApi.automationPlaybookEstimate(
             projectId,
             'missing_seo_title',
-            // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] PRODUCTS scoped entry must scope eligibility counts (no global-vs-scoped mismatch)
+            // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] PRODUCTS scoped entry must scope eligibility counts (no global-vs-scoped mismatch)
             currentAssetType === 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
-            currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
+            currentScopeAssetRefs.length > 0 ? currentAssetType : undefined,
             currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
           ) as Promise<{ totalAffectedProducts: number }>,
           projectsApi.automationPlaybookEstimate(
             projectId,
             'missing_seo_description',
-            // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] PRODUCTS scoped entry must scope eligibility counts (no global-vs-scoped mismatch)
+            // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] PRODUCTS scoped entry must scope eligibility counts (no global-vs-scoped mismatch)
             currentAssetType === 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
-            currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
+            currentScopeAssetRefs.length > 0 ? currentAssetType : undefined,
             currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
           ) as Promise<{ totalAffectedProducts: number }>,
         ]);
@@ -1645,18 +1653,17 @@ export default function AutomationPlaybooksPage() {
 
     if (chosenPlaybook) {
       // Navigate via replace to avoid history pollution
+      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use shared scope args via playbookRunScopeForUrl
       navigateToPlaybookRunReplace(router, {
         projectId,
         playbookId: chosenPlaybook,
         step: 'preview',
         source: urlSource,
-        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] Preserve explicit scope semantics for PRODUCTS when scoped
-        assetType: currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
-        scopeAssetRefs: currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
+        ...playbookRunScopeForUrl,
       });
     }
     // Run when eligibility counts become available
-  }, [isDraftReviewMode, validUrlPlaybookId, titlesEligibleCount, descriptionsEligibleCount, router, projectId, urlSource, currentAssetType, currentScopeAssetRefs]);
+  }, [isDraftReviewMode, validUrlPlaybookId, titlesEligibleCount, descriptionsEligibleCount, router, projectId, urlSource, playbookRunScopeForUrl]);
 
   const handleNavigate = useCallback(
     (href: string) => {
@@ -2285,16 +2292,17 @@ export default function AutomationPlaybooksPage() {
                     type="button"
                     onClick={() => {
                       // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Route to primaryCnabPlaybookId, no AI side effects
-                      setCnabDismissed(true);
-                      handleNavigate(buildPlaybookRunHref({
+                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use guardrail + shared scope args
+                      const href = buildPlaybookRunHrefOrNull({
                         projectId,
                         playbookId: primaryCnabPlaybookId,
                         step: 'preview',
                         source: 'banner',
-                        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] Banner CTA must never cross scopes
-                        assetType: currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
-                        scopeAssetRefs: currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
-                      }));
+                        ...playbookRunScopeForUrl,
+                      });
+                      if (!href) return;
+                      setCnabDismissed(true);
+                      handleNavigate(href);
                     }}
                     className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
@@ -2370,16 +2378,17 @@ export default function AutomationPlaybooksPage() {
                     type="button"
                     onClick={() => {
                       // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Route canonically, no AI side effects
-                      setCnabDismissed(true);
-                      handleNavigate(buildPlaybookRunHref({
+                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use guardrail + shared scope args
+                      const href = buildPlaybookRunHrefOrNull({
                         projectId,
                         playbookId: 'missing_seo_title',
                         step: 'preview',
                         source: 'banner',
-                        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] Banner CTA must never cross scopes
-                        assetType: currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
-                        scopeAssetRefs: currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
-                      }));
+                        ...playbookRunScopeForUrl,
+                      });
+                      if (!href) return;
+                      setCnabDismissed(true);
+                      handleNavigate(href);
                     }}
                     className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
@@ -2455,16 +2464,17 @@ export default function AutomationPlaybooksPage() {
                     type="button"
                     onClick={() => {
                       // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Route canonically, no AI side effects
-                      setCnabDismissed(true);
-                      handleNavigate(buildPlaybookRunHref({
+                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use guardrail + shared scope args
+                      const href = buildPlaybookRunHrefOrNull({
                         projectId,
                         playbookId: 'missing_seo_description',
                         step: 'preview',
                         source: 'banner',
-                        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] Banner CTA must never cross scopes
-                        assetType: currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
-                        scopeAssetRefs: currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
-                      }));
+                        ...playbookRunScopeForUrl,
+                      });
+                      if (!href) return;
+                      setCnabDismissed(true);
+                      handleNavigate(href);
                     }}
                     className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
@@ -3099,14 +3109,13 @@ export default function AutomationPlaybooksPage() {
                           </span>
                           {(() => {
                             // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Build preview context URL for product deep link with canonical route
+                            // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use shared scope args via playbookRunScopeForUrl
                             const returnToPath = buildPlaybookRunHref({
                               projectId,
                               playbookId: selectedPlaybookId!,
                               step: 'preview',
                               source: 'product_details',
-                              // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] Preserve explicit scope semantics for PRODUCTS when scoped
-                              assetType: currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
-                              scopeAssetRefs: currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
+                              ...playbookRunScopeForUrl,
                             });
                             const previewContextUrl = `/projects/${projectId}/products/${sample.productId}?from=playbook_preview&playbookId=${selectedPlaybookId}&returnTo=${encodeURIComponent(returnToPath)}`;
                             return (
@@ -3743,14 +3752,13 @@ export default function AutomationPlaybooksPage() {
                                   ) : (
                                     (() => {
                                       // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Build results context URL for product deep link with canonical route
+                                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use shared scope args via playbookRunScopeForUrl
                                       const returnToPath = buildPlaybookRunHref({
                                         projectId,
                                         playbookId: selectedPlaybookId!,
                                         step: 'preview',
                                         source: 'product_details',
-                                        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] Preserve explicit scope semantics for PRODUCTS when scoped
-                                        assetType: currentScopeAssetRefs.length > 0 ? currentAssetType : (currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined),
-                                        scopeAssetRefs: currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
+                                        ...playbookRunScopeForUrl,
                                       });
                                       const resultsContextUrl = `/projects/${projectId}/products/${item.productId}?from=playbook_results&playbookId=${selectedPlaybookId}&returnTo=${encodeURIComponent(returnToPath)}`;
                                       return (

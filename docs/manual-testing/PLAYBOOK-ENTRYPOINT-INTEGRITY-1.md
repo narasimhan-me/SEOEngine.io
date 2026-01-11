@@ -75,7 +75,7 @@ This phase ensures playbook entrypoints route deterministically to the correct p
 
 ---
 
-### Scenario 1.1: Scoped Playbooks entry (Products list / filtered scope)
+### Scenario 1.1: Scoped entry (Products list / banner)
 
 **Route (entry):** `/projects/{projectId}/playbooks?assetType=PRODUCTS&scopeAssetRefs={productId1}&scopeAssetRefs={productId2}` (also accepts comma-separated)
 
@@ -90,6 +90,7 @@ This phase ensures playbook entrypoints route deterministically to the correct p
    - [ ] URL contains `source=banner`
    - [ ] URL contains `assetType=PRODUCTS`
    - [ ] URL preserves the same `scopeAssetRefs` values
+   - [ ] URL includes repeated params: `scopeAssetRefs={id1}&scopeAssetRefs={id2}` (not a single comma-joined value)
    - [ ] Stepper is visible
    - [ ] "No eligible items right now" is NOT shown unless scoped eligibility is truly 0
 

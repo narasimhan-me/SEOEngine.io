@@ -564,18 +564,17 @@ function getCTARoute(bundle: WorkQueueActionBundle, projectId: string): string {
       ? parsedPlaybookId
       : 'missing_seo_title';
 
-    // [FIXUP-1] Extract scopeAssetRefs for PAGES/COLLECTIONS
-    const scopeAssetRefs = assetType !== 'PRODUCTS'
-      ? extractScopeAssetRefs(bundle) ?? undefined
-      : undefined;
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Extract scopeAssetRefs for all asset types
+    const scopeAssetRefs = extractScopeAssetRefs(bundle) ?? undefined;
+    const hasScope = !!scopeAssetRefs && scopeAssetRefs.length > 0;
 
     return buildPlaybookRunHref({
       projectId,
       playbookId,
       step: 'preview',
       source: 'work_queue',
-      assetType: assetType !== 'PRODUCTS' ? assetType : undefined,
-      scopeAssetRefs: scopeAssetRefs && scopeAssetRefs.length > 0 ? scopeAssetRefs : undefined,
+      assetType: hasScope ? assetType : undefined,
+      scopeAssetRefs: hasScope ? scopeAssetRefs : undefined,
     });
   }
 
