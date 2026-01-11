@@ -25,6 +25,9 @@ interface PageAsset {
   statusCode: number | null;
   wordCount: number | null;
   scannedAt: string;
+  // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Shopify identity fields
+  shopifyHandle?: string | null;
+  shopifyUpdatedAt?: string | null;
 }
 
 type PageDetailTab = 'overview' | 'drafts';
@@ -123,6 +126,12 @@ export default function PageDetailPage() {
   // Extract path from URL for display
   const urlPath = new URL(page.url).pathname;
 
+  // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Derive handle from Shopify field or URL path segment
+  const displayHandle = page.shopifyHandle || urlPath.split('/').pop() || urlPath;
+
+  // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Use Shopify updatedAt if present, otherwise scannedAt
+  const displayUpdatedAt = page.shopifyUpdatedAt || page.scannedAt;
+
   return (
     <div>
       {/* Header */}
@@ -136,7 +145,13 @@ export default function PageDetailPage() {
         <h1 className="text-xl font-semibold text-gray-900">
           {page.title || urlPath}
         </h1>
-        <p className="text-sm text-gray-500 mt-1">{page.url}</p>
+        {/* [SHOPIFY-ASSET-SYNC-COVERAGE-1] Display handle and updated timestamp */}
+        <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-gray-500">
+          <span>Handle: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">{displayHandle}</code></span>
+          <span className="text-gray-300">|</span>
+          <span>Updated: {displayUpdatedAt ? new Date(displayUpdatedAt).toLocaleString() : '-'}</span>
+        </div>
+        <p className="text-sm text-gray-400 mt-1">{page.url}</p>
       </div>
 
       {/* Tab Bar */}

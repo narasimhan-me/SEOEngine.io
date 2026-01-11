@@ -51,6 +51,7 @@ import { GovernanceService } from './governance.service';
 import { ApprovalsService } from './approvals.service';
 import { RoleResolutionService } from '../common/role-resolution.service';
 import { WorkQueueService } from './work-queue.service';
+import { ShopifyService } from '../shopify/shopify.service';
 import type {
   WorkQueueTab,
   WorkQueueBundleType,
@@ -81,6 +82,7 @@ export class ProjectsController {
     private readonly approvalsService: ApprovalsService,
     private readonly roleResolutionService: RoleResolutionService,
     private readonly workQueueService: WorkQueueService,
+    private readonly shopifyService: ShopifyService,
   ) {}
 
   /**
@@ -1339,5 +1341,80 @@ export class ProjectsController {
       scopeType,
       bundleId,
     });
+  }
+
+  // ===========================================================================
+  // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Project-scoped Shopify sync endpoints
+  // ===========================================================================
+
+  /**
+   * POST /projects/:id/shopify/sync-pages
+   * [SHOPIFY-ASSET-SYNC-COVERAGE-1] [CRITICAL PATH: CP-006 Shopify Sync]
+   *
+   * Triggers Shopify Pages sync for this project.
+   * OWNER-only (matches existing Shopify mutation posture).
+   *
+   * Returns: { fetched, upserted, skipped, completedAt, warnings?, projectId }
+   */
+  @Post(':id/shopify/sync-pages')
+  @HttpCode(HttpStatus.OK)
+  async syncShopifyPages(
+    @Request() req: any,
+    @Param('id') projectId: string,
+  ) {
+    // OWNER-only check
+    const role = await this.roleResolutionService.resolveProjectRole(projectId, req.user.id);
+    if (role !== 'OWNER') {
+      throw new ForbiddenException('Only project owners can sync Shopify Pages');
+    }
+
+    return this.shopifyService.syncPages(projectId);
+  }
+
+  /**
+   * POST /projects/:id/shopify/sync-collections
+   * [SHOPIFY-ASSET-SYNC-COVERAGE-1] [CRITICAL PATH: CP-006 Shopify Sync]
+   *
+   * Triggers Shopify Collections sync for this project.
+   * OWNER-only (matches existing Shopify mutation posture).
+   *
+   * Returns: { fetched, upserted, skipped, completedAt, warnings?, projectId }
+   */
+  @Post(':id/shopify/sync-collections')
+  @HttpCode(HttpStatus.OK)
+  async syncShopifyCollections(
+    @Request() req: any,
+    @Param('id') projectId: string,
+  ) {
+    // OWNER-only check
+    const role = await this.roleResolutionService.resolveProjectRole(projectId, req.user.id);
+    if (role !== 'OWNER') {
+      throw new ForbiddenException('Only project owners can sync Shopify Collections');
+    }
+
+    return this.shopifyService.syncCollections(projectId);
+  }
+
+  /**
+   * GET /projects/:id/shopify/sync-status
+   * [SHOPIFY-ASSET-SYNC-COVERAGE-1] [CRITICAL PATH: CP-006 Shopify Sync]
+   *
+   * Returns sync status timestamps for this project.
+   * Membership-accessible (read-only).
+   *
+   * Returns: { lastProductsSyncAt, lastPagesSyncAt, lastCollectionsSyncAt, projectId }
+   */
+  @Get(':id/shopify/sync-status')
+  async getShopifySyncStatus(
+    @Request() req: any,
+    @Param('id') projectId: string,
+  ) {
+    // Membership check (any role can read)
+    const hasAccess = await this.roleResolutionService.hasProjectAccess(projectId, req.user.id);
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this project');
+    }
+
+    return this.shopifyService.getSyncStatus(projectId);
   }
 }

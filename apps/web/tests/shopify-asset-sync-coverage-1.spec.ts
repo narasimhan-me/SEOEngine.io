@@ -1,0 +1,235 @@
+/**
+ * [SHOPIFY-ASSET-SYNC-COVERAGE-1] Playwright E2E Smoke Test
+ *
+ * This test verifies Shopify Pages + Collections sync functionality:
+ * 1. Seeds seed-first-deo-win, connects Shopify
+ * 2. Seeds Shopify mock Pages + Collections via POST /testkit/e2e/mock-shopify-assets
+ * 3. Navigates to Pages list and verifies sync behavior
+ * 4. Navigates to Collections list and verifies sync behavior
+ *
+ * Prerequisites:
+ * - Uses /testkit/e2e/seed-first-deo-win to set up test data
+ * - Uses /testkit/e2e/connect-shopify to connect a test Shopify store
+ * - Uses /testkit/e2e/mock-shopify-assets to seed mock Shopify data
+ *
+ * Fully deterministic (no live Shopify dependency).
+ */
+
+import { test, expect } from '@playwright/test';
+
+const API_BASE_URL =
+  process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
+
+async function seedFirstDeoWinProject(request: any) {
+  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
+    data: {},
+  });
+  expect(res.ok()).toBeTruthy();
+  const body = await res.json();
+  return {
+    user: body.user as { id: string; email: string },
+    projectId: body.projectId as string,
+    productIds: body.productIds as string[],
+    accessToken: body.accessToken as string,
+  };
+}
+
+async function connectShopifyE2E(request: any, projectId: string) {
+  const res = await request.post(`${API_BASE_URL}/testkit/e2e/connect-shopify`, {
+    data: { projectId },
+  });
+  expect(res.ok()).toBeTruthy();
+}
+
+async function seedMockShopifyAssets(request: any) {
+  const res = await request.post(`${API_BASE_URL}/testkit/e2e/mock-shopify-assets`, {
+    data: {
+      pages: [
+        {
+          id: '101',
+          title: 'About Us',
+          handle: 'about-us',
+          updatedAt: '2025-01-01T00:00:00Z',
+          seo: { title: 'About Us - SEO Title', description: 'About us page description' },
+        },
+        {
+          id: '102',
+          title: 'Contact',
+          handle: 'contact',
+          updatedAt: '2025-01-02T00:00:00Z',
+          seo: { title: null, description: null },
+        },
+      ],
+      collections: [
+        {
+          id: '201',
+          title: 'Summer Collection',
+          handle: 'summer-collection',
+          updatedAt: '2025-01-03T00:00:00Z',
+          seo: { title: 'Summer Collection SEO', description: 'Summer deals' },
+        },
+        {
+          id: '202',
+          title: 'New Arrivals',
+          handle: 'new-arrivals',
+          updatedAt: '2025-01-04T00:00:00Z',
+          seo: { title: null, description: null },
+        },
+      ],
+    },
+  });
+  expect(res.ok()).toBeTruthy();
+  return await res.json();
+}
+
+test.describe('SHOPIFY-ASSET-SYNC-COVERAGE-1: Shopify Pages + Collections Sync', () => {
+  test('Pages list shows sync status and pages after sync', async ({
+    page,
+    request,
+  }) => {
+    // Seed project and Shopify connection
+    const { projectId, accessToken } = await seedFirstDeoWinProject(request);
+    await connectShopifyE2E(request, projectId);
+    await seedMockShopifyAssets(request);
+
+    // Programmatic login
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, accessToken);
+
+    // Navigate to Pages list
+    await page.goto(`/projects/${projectId}/assets/pages`);
+
+    // Wait for page to load
+    await expect(page.getByRole('heading', { name: 'Pages' })).toBeVisible({ timeout: 10000 });
+
+    // Verify "Shopify Pages" label is visible
+    await expect(page.getByText('Shopify Pages')).toBeVisible();
+
+    // Initially, should show "Not yet synced" message
+    await expect(page.getByText(/Not yet synced/i)).toBeVisible();
+
+    // Click Sync Pages button
+    const syncButton = page.getByRole('button', { name: /Sync Pages/i });
+    await expect(syncButton).toBeVisible();
+    await syncButton.click();
+
+    // Wait for sync to complete and verify pages appear
+    await expect(page.getByText(/Last synced:/i)).toBeVisible({ timeout: 15000 });
+
+    // Verify About Us page appears in the list
+    await expect(page.getByText('about-us')).toBeVisible();
+
+    // Verify Contact page appears in the list
+    await expect(page.getByText('contact')).toBeVisible();
+  });
+
+  test('Collections list shows sync status and collections after sync', async ({
+    page,
+    request,
+  }) => {
+    // Seed project and Shopify connection
+    const { projectId, accessToken } = await seedFirstDeoWinProject(request);
+    await connectShopifyE2E(request, projectId);
+    await seedMockShopifyAssets(request);
+
+    // Programmatic login
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, accessToken);
+
+    // Navigate to Collections list
+    await page.goto(`/projects/${projectId}/assets/collections`);
+
+    // Wait for page to load
+    await expect(page.getByRole('heading', { name: 'Collections' })).toBeVisible({ timeout: 10000 });
+
+    // Verify "Shopify Collections" label is visible
+    await expect(page.getByText('Shopify Collections')).toBeVisible();
+
+    // Initially, should show "Not yet synced" message
+    await expect(page.getByText(/Not yet synced/i)).toBeVisible();
+
+    // Click Sync Collections button
+    const syncButton = page.getByRole('button', { name: /Sync Collections/i });
+    await expect(syncButton).toBeVisible();
+    await syncButton.click();
+
+    // Wait for sync to complete and verify collections appear
+    await expect(page.getByText(/Last synced:/i)).toBeVisible({ timeout: 15000 });
+
+    // Verify Summer Collection appears in the list
+    await expect(page.getByText('summer-collection')).toBeVisible();
+
+    // Verify New Arrivals appears in the list
+    await expect(page.getByText('new-arrivals')).toBeVisible();
+  });
+
+  test('Sync status API returns correct timestamps', async ({ request }) => {
+    // Seed project and Shopify connection
+    const { projectId, accessToken } = await seedFirstDeoWinProject(request);
+    await connectShopifyE2E(request, projectId);
+    await seedMockShopifyAssets(request);
+
+    // Check initial sync status (all null)
+    const statusBefore = await request.get(
+      `${API_BASE_URL}/projects/${projectId}/shopify/sync-status`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
+    expect(statusBefore.ok()).toBeTruthy();
+    const bodyBefore = await statusBefore.json();
+    expect(bodyBefore.lastPagesSyncAt).toBeNull();
+    expect(bodyBefore.lastCollectionsSyncAt).toBeNull();
+
+    // Sync pages
+    const syncPagesRes = await request.post(
+      `${API_BASE_URL}/projects/${projectId}/shopify/sync-pages`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
+    expect(syncPagesRes.ok()).toBeTruthy();
+    const syncPagesBody = await syncPagesRes.json();
+    expect(syncPagesBody.fetched).toBeGreaterThan(0);
+    expect(syncPagesBody.upserted).toBeGreaterThan(0);
+
+    // Check sync status after pages sync
+    const statusAfterPages = await request.get(
+      `${API_BASE_URL}/projects/${projectId}/shopify/sync-status`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
+    expect(statusAfterPages.ok()).toBeTruthy();
+    const bodyAfterPages = await statusAfterPages.json();
+    expect(bodyAfterPages.lastPagesSyncAt).not.toBeNull();
+    expect(bodyAfterPages.lastCollectionsSyncAt).toBeNull(); // Not yet synced
+
+    // Sync collections
+    const syncCollectionsRes = await request.post(
+      `${API_BASE_URL}/projects/${projectId}/shopify/sync-collections`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
+    expect(syncCollectionsRes.ok()).toBeTruthy();
+    const syncCollBody = await syncCollectionsRes.json();
+    expect(syncCollBody.fetched).toBeGreaterThan(0);
+
+    // Check sync status after collections sync
+    const statusAfterAll = await request.get(
+      `${API_BASE_URL}/projects/${projectId}/shopify/sync-status`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
+    expect(statusAfterAll.ok()).toBeTruthy();
+    const bodyAfterAll = await statusAfterAll.json();
+    expect(bodyAfterAll.lastPagesSyncAt).not.toBeNull();
+    expect(bodyAfterAll.lastCollectionsSyncAt).not.toBeNull();
+  });
+});

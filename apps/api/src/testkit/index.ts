@@ -102,6 +102,7 @@ export async function createTestShopifyStoreConnection(
     `${nextTestSuffix('shop')}.myshopify.com`.toLowerCase();
   const accessToken = options.accessToken ?? 'test-token';
 
+  // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Include read_content scope for Pages sync
   const integration = await prisma.integration.create({
     data: {
       projectId: options.projectId,
@@ -109,7 +110,7 @@ export async function createTestShopifyStoreConnection(
       externalId: shopDomain,
       accessToken,
       config: {
-        scope: 'read_products,write_products',
+        scope: 'read_products,write_products,read_content',
         installedAt: new Date().toISOString(),
         source: 'testkit',
       } as any,

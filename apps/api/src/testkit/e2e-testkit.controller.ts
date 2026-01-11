@@ -2342,4 +2342,64 @@ export class E2eTestkitController {
       expectedDescriptionsEligible: 2,
     };
   }
+
+  // ==========================================================================
+  // [SHOPIFY-ASSET-SYNC-COVERAGE-1] E2E Mock Shopify Assets
+  // ==========================================================================
+
+  /**
+   * POST /testkit/e2e/mock-shopify-assets
+   *
+   * Seed Shopify mock Pages and Collections for E2E sync coverage tests.
+   * This stores data in the in-memory E2E Shopify mock store.
+   * Tests must still trigger sync via the real endpoints to populate DB.
+   *
+   * Body:
+   * - pages: Array of { id, title, handle, updatedAt, seo? }
+   * - collections: Array of { id, title, handle, updatedAt, seo? }
+   *
+   * Returns:
+   * - pagesSeeded: number
+   * - collectionsSeeded: number
+   */
+  @Post('mock-shopify-assets')
+  async mockShopifyAssets(
+    @Body()
+    body: {
+      pages?: Array<{
+        id: string;
+        title: string;
+        handle: string;
+        updatedAt: string;
+        seo?: { title: string | null; description: string | null };
+      }>;
+      collections?: Array<{
+        id: string;
+        title: string;
+        handle: string;
+        updatedAt: string;
+        seo?: { title: string | null; description: string | null };
+      }>;
+    },
+  ) {
+    this.ensureE2eMode();
+
+    // Dynamic import to avoid bundling in non-E2E builds
+    const { e2eShopifyMockStore } = await import(
+      '../shopify/e2e-shopify-mock.store'
+    );
+
+    if (body.pages) {
+      e2eShopifyMockStore.setPages(body.pages);
+    }
+
+    if (body.collections) {
+      e2eShopifyMockStore.setCollections(body.collections);
+    }
+
+    return {
+      pagesSeeded: body.pages?.length ?? 0,
+      collectionsSeeded: body.collections?.length ?? 0,
+    };
+  }
 }

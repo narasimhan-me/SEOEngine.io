@@ -1533,7 +1533,41 @@ Seeds:
 
 ## In Progress
 
-*None at this time.*
+### Phase SHOPIFY-ASSET-SYNC-COVERAGE-1: Shopify Pages + Collections Ingestion ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-11
+**Activation:** Shopify-first ingestion coverage (read + display only)
+
+#### Goals
+
+1. Ingest Shopify Pages and Collections into EngineO.ai DB (metadata-only).
+2. Display them in Assets → Pages and Assets → Collections (list + detail).
+3. Make sync explicit: users can trigger sync; UI shows coverage + last sync time.
+
+#### Strict Non-Goals
+
+- No content-body ingestion/edit/apply
+- No new playbooks or playbook IDs
+- No apply expansion beyond existing support
+- No changes to approval/audit/AI usage rules
+
+#### Key Changes
+
+1. **Prisma Schema**: Added Shopify identity fields to CrawlResult (shopifyResourceType, shopifyResourceId, shopifyHandle, shopifyUpdatedAt, shopifySyncedAt) with compound unique constraint.
+2. **API Endpoints**: Added project-scoped sync endpoints (POST /projects/:id/shopify/sync-pages, POST /projects/:id/shopify/sync-collections, GET /projects/:id/shopify/sync-status).
+3. **ShopifyService**: Added GraphQL fetchers (GetPages, GetCollections), sync methods, and sync status persistence.
+4. **Frontend**: Pages and Collections list pages with sync buttons, status lines, and empty state differentiation. Detail pages show handle and updatedAt.
+5. **E2E Tests**: API-level e2e spec and Playwright smoke test.
+
+#### Test Coverage
+
+- API e2e spec: `apps/api/test/e2e/shopify-asset-sync.e2e-spec.ts`
+- Playwright smoke test: `apps/web/tests/shopify-asset-sync-coverage-1.spec.ts`
+
+#### Manual Testing
+
+- `docs/manual-testing/SHOPIFY-ASSET-SYNC-COVERAGE-1.md`
 
 ---
 

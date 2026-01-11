@@ -303,6 +303,17 @@ model CrawlResult {
   loadTimeMs      Int?
   issues          Json
   scannedAt       DateTime @default(now())
+
+  // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Shopify identity fields for Pages/Collections
+  shopifyResourceType String?   // "PAGE" | "COLLECTION"
+  shopifyResourceId   String?   // Shopify numeric ID extracted from GID
+  shopifyHandle       String?   // Handle as returned by Shopify
+  shopifyUpdatedAt    DateTime? // Shopify object updatedAt
+  shopifySyncedAt     DateTime? // Last successful sync time for this row
+
+  // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Compound unique for upsert identity
+  @@unique([projectId, shopifyResourceType, shopifyResourceId])
+  @@index([projectId, shopifyResourceType])
 }
 
 model AutomationSuggestion {
