@@ -300,7 +300,7 @@ export function AssetDraftsTab({ projectId, assetType, assetId, currentFieldValu
                             >
                               <div className="flex items-center justify-between mb-3">
                                 <div className="font-semibold text-gray-900">
-                                  {getFieldLabel(item.field)}
+                                  {getFieldLabel(item.field ?? 'seoTitle')}
                                 </div>
                                 {!isEditing && (
                                   <button
