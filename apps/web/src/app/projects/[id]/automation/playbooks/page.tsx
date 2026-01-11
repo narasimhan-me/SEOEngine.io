@@ -2024,11 +2024,12 @@ export default function AutomationPlaybooksPage() {
           </li>
           <li>/</li>
           <li>
+            {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2] Breadcrumb uses canonical /playbooks route */}
             <Link
-              href={`/projects/${projectId}/automation`}
+              href={`/projects/${projectId}/playbooks`}
               onClick={(event) => {
                 event.preventDefault();
-                handleNavigate(`/projects/${projectId}/automation`);
+                handleNavigate(`/projects/${projectId}/playbooks`);
               }}
               className="hover:text-gray-700"
             >
@@ -2595,9 +2596,11 @@ export default function AutomationPlaybooksPage() {
           >
             Activity
           </Link>
+          {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2] Use canonical /playbooks, highlight on both routes */}
           <Link
-            href={`/projects/${projectId}/automation/playbooks`}
+            href={`/projects/${projectId}/playbooks`}
             className={`border-b-2 px-1 pb-2 ${
+              pathname?.startsWith(`/projects/${projectId}/playbooks`) ||
               pathname?.startsWith(`/projects/${projectId}/automation/playbooks`)
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -3809,10 +3812,11 @@ export default function AutomationPlaybooksPage() {
                     >
                       Sync to Shopify
                     </button>
+                    {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2] Use canonical /playbooks route */}
                     <button
                       type="button"
                       onClick={() =>
-                        handleNavigate(`/projects/${projectId}/automation/playbooks`)
+                        handleNavigate(`/projects/${projectId}/playbooks`)
                       }
                       className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
                     >

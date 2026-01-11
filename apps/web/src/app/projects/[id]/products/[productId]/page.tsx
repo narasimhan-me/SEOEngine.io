@@ -1063,9 +1063,10 @@ export default function ProductOptimizationPage() {
                     The preview session has expired or this product was not in the sample set.
                     Return to Playbooks to regenerate the preview.
                   </p>
+                  {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2] Use canonical /playbooks/:playbookId route */}
                   <div className="mt-3">
                     <Link
-                      href={validatedReturnTo || `/projects/${projectId}/automation/playbooks?playbookId=${playbookIdParam}`}
+                      href={validatedReturnTo || (playbookIdParam ? `/projects/${projectId}/playbooks/${playbookIdParam}?step=preview&source=product_details` : `/projects/${projectId}/playbooks`)}
                       className="inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700"
                     >
                       ← Back to preview
