@@ -9,7 +9,8 @@ import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
 import { GuardedLink } from '@/components/navigation/GuardedLink';
 import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
 // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Import deterministic routing helpers
-import { buildIssueFixHref, getSafeIssueTitle } from '@/lib/issue-to-fix-path';
+// [ISSUE-FIX-KIND-CLARITY-1] Import getIssueFixConfig for fixKind-aware CTA
+import { buildIssueFixHref, getSafeIssueTitle, getIssueFixConfig } from '@/lib/issue-to-fix-path';
 
 interface DeoIssuesResponse {
   projectId: string;
@@ -151,6 +152,9 @@ export default function DeoOverviewPage() {
               {actionableIssuesList.slice(0, 3).map((issue) => {
                 const href = buildIssueFixHref({ projectId, issue, from: 'deo' });
                 const safeTitle = getSafeIssueTitle(issue);
+                // [ISSUE-FIX-KIND-CLARITY-1] Use "Review" for DIAGNOSTIC issues, "Fix now" otherwise
+                const fixConfig = getIssueFixConfig(issue.type || issue.id);
+                const ctaLabel = fixConfig?.fixKind === 'DIAGNOSTIC' ? 'Review' : 'Fix now';
                 return (
                   <li key={issue.id} className="text-sm text-gray-600">
                     <span className="font-medium">{safeTitle}</span>
@@ -158,8 +162,9 @@ export default function DeoOverviewPage() {
                       <GuardedLink
                         href={href}
                         className="ml-2 text-blue-600 hover:underline"
+                        data-testid="deo-overview-issue-cta"
                       >
-                        Fix now
+                        {ctaLabel}
                       </GuardedLink>
                     )}
                   </li>

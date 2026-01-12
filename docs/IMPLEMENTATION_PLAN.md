@@ -1599,6 +1599,51 @@ Seeds:
 
 - `docs/manual-testing/SHOPIFY-ASSET-SYNC-COVERAGE-1.md`
 
+### Phase ISSUE-FIX-KIND-CLARITY-1: Diagnostic vs Fixable Issue CTA Semantics ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-12
+**Activation:** UX semantic clarity for informational/diagnostic issues
+
+#### Goals
+
+1. Distinguish DIAGNOSTIC issues (informational, no direct fix) from EDIT/AI issues (actionable with direct fix surface).
+2. Show "Review" CTA for DIAGNOSTIC issues (not "Fix") in Issues Engine + DEO Overview.
+3. Show blue "diagnostic" arrival callout (not yellow "anchor not found") for DIAGNOSTIC issues.
+4. Add "View related issues" CTA for DIAGNOSTIC arrival callout.
+
+#### Strict Non-Goals
+
+- No changes to issue detection or scoring logic
+- No new issue types or pillar classifications
+- No changes to issue-to-fix routing (just CTA semantics)
+
+#### Key Changes
+
+1. **IssueFixKind Type**: Added `IssueFixKind = 'EDIT' | 'AI' | 'DIAGNOSTIC'` to `issue-to-fix-path.ts`. Each issue config can specify `fixKind`; defaults to 'EDIT' if not specified.
+2. **Search & Intent Issue Configs Fixed**: `answer_surface_weakness`, `not_answer_ready`, `weak_intent_match` now have correct `fixAnchorTestId` values matching actual DOM testids. `not_answer_ready` marked as `fixKind: 'DIAGNOSTIC'`.
+3. **DIAGNOSTIC Arrival Callout**: Added `diagnostic` variant to `CalloutVariant` type in `issue-fix-anchors.ts`. Shows blue styling with "You're here to review:" message. Includes `showViewRelatedIssues: true` for "View related issues" CTA.
+4. **Product Page Integration**: Reads `fixKind` from URL param + fix config, passes to `getArrivalCalloutContent()`, renders "View related issues" CTA when `showViewRelatedIssues` is true.
+5. **Issues Engine CTA**: `IssueCard` in `IssuesList.tsx` now shows "Review →" CTA for DIAGNOSTIC issues, "Fix →" for others.
+6. **DEO Overview CTA**: "Top Recommended Actions" shows "Review" for DIAGNOSTIC issues, "Fix now" for others.
+7. **URL Param**: `buildIssueFixHref()` now includes `fixKind` param in URL; skips `fixAnchor` for DIAGNOSTIC issues (no scroll/highlight needed).
+
+#### Core Files
+
+- `apps/web/src/lib/issue-to-fix-path.ts` - IssueFixKind type + issue configs
+- `apps/web/src/lib/issue-fix-anchors.ts` - Diagnostic callout variant
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` - fixKind URL param + callout rendering
+- `apps/web/src/components/issues/IssuesList.tsx` - Issue card CTA wording
+- `apps/web/src/app/projects/[id]/deo/page.tsx` - DEO Overview CTA wording
+
+#### Test Coverage
+
+- Playwright tests: `apps/web/tests/issue-fix-kind-clarity-1.spec.ts` (5 tests)
+
+#### Manual Testing
+
+- `docs/manual-testing/ISSUE-FIX-KIND-CLARITY-1.md`
+
 ---
 
 ## In Progress
@@ -1828,3 +1873,4 @@ These invariants MUST be preserved during implementation:
 | 6.41 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5**: Canonical entrypoints + explicit scope payload. (1) Extended `buildPlaybooksListHref()` to support assetType + scopeAssetRefs params; (2) Added `buildPlaybookScopePayload()` helper for consistent scope spreading; (3) Added `navigateToPlaybooksList()` wrapper; (4) Updated NextDeoWinCard to use `navigateToPlaybookRun()` + `buildPlaybooksListHref()`; (5) Updated Entry page to use `buildPlaybooksListHref()` for links and `buildPlaybookRunHref()` with explicit scope for "View playbook" CTA; (6) Replaced `playbookRunScopeForUrl` inline memo with `buildPlaybookScopePayload()` in Playbooks page; (7) Added PEPI1-003 Playwright test for Entry page scoped CTA routing; (8) Updated manual testing doc with Scenario 1.2. |
 | 6.42 | 2026-01-12 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1**: Entry CTA correctness + explicit API scope payload. (1) `buildPlaybookScopePayload()` now validates PRODUCTS scope refs (rejects handle-prefixed refs) and returns explicit `scopeProductIds` for API calls; (2) Added `getRoutingScopeFromPayload()` helper; (3) Removed positional branching in all API calls (eligibility, estimate, preview, apply) - uses explicit payload; (4) Entry page CTA routes to Playbooks LIST for deterministic selection (not hardcoded run target); (5) Added stable "Open Playbooks" CTA (`data-testid="automation-entry-open-playbooks"`) visible without AI dependency; (6) PEPI1-003 test rewritten: no AI dependency, uses stable CTA, asserts deterministic selection lands on descriptions playbook; (7) Updated manual testing doc Scenario 1.2 to reflect new CTA behavior. |
 | 6.43 | 2026-01-12 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1-AUDIT-1**: Source integrity. (1) Tightened PEPI1-003 to assert `source=entry` is preserved by deterministic selection (not overwritten to `default`); (2) Updated manual testing doc Scenario 1.2 to require `source=entry`; (3) Documented source-preservation guarantee in FOLLOWUP-1 section. |
+| 6.44 | 2026-01-12 | **ISSUE-FIX-KIND-CLARITY-1 COMPLETE**: Diagnostic vs fixable issue CTA semantics. (1) Added `IssueFixKind = 'EDIT' | 'AI' | 'DIAGNOSTIC'` type to issue-to-fix-path.ts; (2) Fixed Search & Intent issue configs with correct fixAnchorTestId values; `not_answer_ready` marked as DIAGNOSTIC; (3) Added `diagnostic` variant to arrival callout (blue styling, "You're here to review:"); (4) Product page passes fixKind to callout, shows "View related issues" CTA for DIAGNOSTIC; (5) Issues Engine IssueCard shows "Review →" for DIAGNOSTIC, "Fix →" for others; (6) DEO Overview "Top Recommended Actions" shows "Review" for DIAGNOSTIC, "Fix now" for others; (7) buildIssueFixHref() adds fixKind param, skips fixAnchor for DIAGNOSTIC; (8) Playwright tests issue-fix-kind-clarity-1.spec.ts (5 tests); (9) Manual testing doc ISSUE-FIX-KIND-CLARITY-1.md. |

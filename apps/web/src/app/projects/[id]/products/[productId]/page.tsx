@@ -99,6 +99,8 @@ export default function ProductOptimizationPage() {
   const highlightParam = searchParams.get('highlight');
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Read fix anchor from URL
   const fixAnchorParam = searchParams.get('fixAnchor');
+  // [ISSUE-FIX-KIND-CLARITY-1] Read fixKind from URL
+  const fixKindParam = searchParams.get('fixKind') as 'EDIT' | 'AI' | 'DIAGNOSTIC' | null;
 
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Validate returnTo using centralized validation
   const validatedNavContext = useMemo(() => {
@@ -162,6 +164,7 @@ export default function ProductOptimizationPage() {
 
   // [ISSUE-TO-FIX-PATH-1] Issue fix context state
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Extended with nextActionLabel and anchor result
+  // [ISSUE-FIX-KIND-CLARITY-1] Extended with fixKind
   const [issueFixContext, setIssueFixContext] = useState<{
     issueId: string;
     issueTitle: string;
@@ -170,6 +173,7 @@ export default function ProductOptimizationPage() {
     fixAnchorTestId?: string;
     anchorFound?: boolean;
     issuePresentOnSurface?: boolean;
+    fixKind?: 'EDIT' | 'AI' | 'DIAGNOSTIC';
   } | null>(null);
   const issueFixRouteHandledRef = useRef(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -716,6 +720,8 @@ export default function ProductOptimizationPage() {
     // Determine the anchor to use (URL param > fix path > config)
     const fixAnchorTestId = fixAnchorParam || fixPath?.fixAnchorTestId || fixConfig?.fixAnchorTestId;
     const nextActionLabel = fixPath?.nextActionLabel || fixConfig?.nextActionLabel;
+    // [ISSUE-FIX-KIND-CLARITY-1] Get fixKind from URL param > fix path > config
+    const fixKind = fixKindParam || fixPath?.fixKind || fixConfig?.fixKind;
 
     // Set the fix context for the banner (even if issue not found - shows "already compliant")
     setIssueFixContext({
@@ -726,6 +732,7 @@ export default function ProductOptimizationPage() {
       fixAnchorTestId,
       issuePresentOnSurface,
       anchorFound: false, // Will be updated after scroll attempt
+      fixKind,
     });
 
     // If issue not found on this product, we still show the banner but with "already compliant" message
@@ -761,7 +768,7 @@ export default function ProductOptimizationPage() {
         }
       }
     }, 200);
-  }, [isIssueFixMode, issueIdParam, highlightParam, fixAnchorParam, productIssues, activeTab, loading, router]);
+  }, [isIssueFixMode, issueIdParam, highlightParam, fixAnchorParam, fixKindParam, productIssues, activeTab, loading, router]);
 
   // [DRAFT-REVIEW-ISOLATION-1] Drafts tab fetch + edit handlers moved to isolated ProductDraftsTab component
 
@@ -1079,12 +1086,14 @@ export default function ProductOptimizationPage() {
 
           {/* [ISSUE-TO-FIX-PATH-1] Issue Fix Context Banner */}
           {/* [ISSUE-FIX-NAV-AND-ANCHORS-1] Enhanced with callout content + returnTo back link */}
+          {/* [ISSUE-FIX-KIND-CLARITY-1] Pass fixKind to arrival callout */}
           {isIssueFixMode && issueFixContext && (() => {
             const calloutContent = getArrivalCalloutContent({
               issueTitle: issueFixContext.issueTitle,
               nextActionLabel: issueFixContext.nextActionLabel,
               foundAnchor: issueFixContext.anchorFound ?? false,
               issuePresentOnSurface: issueFixContext.issuePresentOnSurface ?? true,
+              fixKind: issueFixContext.fixKind,
             });
             return (
               <div
@@ -1120,13 +1129,23 @@ export default function ProductOptimizationPage() {
                       </p>
                     )}
                     {calloutContent.showBackLink && (
-                      <div className="mt-3">
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
                         <Link
                           href={issueFixBackLink.href}
                           className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-700"
                         >
                           ← {issueFixBackLink.label}
                         </Link>
+                        {/* [ISSUE-FIX-KIND-CLARITY-1] View related issues CTA for DIAGNOSTIC */}
+                        {calloutContent.showViewRelatedIssues && (
+                          <Link
+                            href={`/projects/${projectId}/products/${productId}?tab=issues`}
+                            data-testid="issue-fix-view-related-issues"
+                            className="inline-flex items-center rounded-md border border-blue-300 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
+                          >
+                            View related issues
+                          </Link>
+                        )}
                       </div>
                     )}
                   </div>
