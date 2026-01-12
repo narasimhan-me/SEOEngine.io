@@ -9,6 +9,7 @@
  */
 import { DeoScoreService } from '../../../src/projects/deo-score.service';
 import { PrismaService } from '../../../src/prisma.service';
+import { RoleResolutionService } from '../../../src/common/role-resolution.service';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { DeoScoreSignals } from '@engineo/shared';
 
@@ -23,13 +24,25 @@ const createPrismaMock = () => ({
   },
 });
 
+const createRoleResolutionServiceMock = () => ({
+  assertProjectAccess: jest.fn().mockResolvedValue(undefined),
+  assertOwnerRole: jest.fn().mockResolvedValue(undefined),
+  hasProjectAccess: jest.fn().mockResolvedValue(true),
+  isMultiUserProject: jest.fn().mockResolvedValue(false),
+});
+
 describe('DeoScoreService', () => {
   let service: DeoScoreService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
+  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
-    service = new DeoScoreService(prismaMock as unknown as PrismaService);
+    roleResolutionServiceMock = createRoleResolutionServiceMock();
+    service = new DeoScoreService(
+      prismaMock as unknown as PrismaService,
+      roleResolutionServiceMock as unknown as RoleResolutionService,
+    );
   });
 
   describe('getLatestForProject', () => {
@@ -102,6 +115,9 @@ describe('DeoScoreService', () => {
       };
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
+      roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
+        new ForbiddenException('You do not have access to this project'),
+      );
 
       await expect(service.getLatestForProject('proj-1', 'user-1')).rejects.toThrow(
         ForbiddenException,

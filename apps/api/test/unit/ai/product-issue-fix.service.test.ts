@@ -14,6 +14,7 @@ import { ProductIssueFixService } from '../../../src/ai/product-issue-fix.servic
 import { PrismaService } from '../../../src/prisma.service';
 import { EntitlementsService } from '../../../src/billing/entitlements.service';
 import { AiService } from '../../../src/ai/ai.service';
+import { RoleResolutionService } from '../../../src/common/role-resolution.service';
 import {
   NotFoundException,
   ForbiddenException,
@@ -39,16 +40,27 @@ const createAiServiceMock = () => ({
   generateMetadata: jest.fn(),
 });
 
+const createRoleResolutionServiceMock = () => ({
+  assertProjectAccess: jest.fn().mockResolvedValue(undefined),
+  assertOwnerRole: jest.fn().mockResolvedValue(undefined),
+  hasProjectAccess: jest.fn().mockResolvedValue(true),
+  isMultiUserProject: jest.fn().mockResolvedValue(false),
+});
+
 describe('ProductIssueFixService', () => {
   let service: ProductIssueFixService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
   let entitlementsServiceMock: ReturnType<typeof createEntitlementsServiceMock>;
   let aiServiceMock: ReturnType<typeof createAiServiceMock>;
+  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
+  let consoleLogSpy: jest.SpyInstance;
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(async () => {
     prismaMock = createPrismaMock();
     entitlementsServiceMock = createEntitlementsServiceMock();
     aiServiceMock = createAiServiceMock();
+    roleResolutionServiceMock = createRoleResolutionServiceMock();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -56,18 +68,19 @@ describe('ProductIssueFixService', () => {
         { provide: PrismaService, useValue: prismaMock },
         { provide: EntitlementsService, useValue: entitlementsServiceMock },
         { provide: AiService, useValue: aiServiceMock },
+        { provide: RoleResolutionService, useValue: roleResolutionServiceMock },
       ],
     }).compile();
 
     service = module.get<ProductIssueFixService>(ProductIssueFixService);
-    jest.spyOn(global.console, 'log').mockImplementation(() => {});
-    jest.spyOn(global.console, 'error').mockImplementation(() => {});
+    consoleLogSpy = jest.spyOn(global.console, 'log').mockImplementation(() => {});
+    consoleErrorSpy = jest.spyOn(global.console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    (global.console.log as jest.Mock).mockRestore();
-    (global.console.error as jest.Mock).mockRestore();
+    if (consoleLogSpy) consoleLogSpy.mockRestore();
+    if (consoleErrorSpy) consoleErrorSpy.mockRestore();
   });
 
   describe('fixMissingSeoFieldFromIssue', () => {
@@ -227,6 +240,9 @@ describe('ProductIssueFixService', () => {
       };
 
       prismaMock.product.findUnique.mockResolvedValue(mockProduct as any);
+      roleResolutionServiceMock.assertOwnerRole.mockRejectedValue(
+        new ForbiddenException('You do not have access to this project'),
+      );
 
       await expect(
         service.fixMissingSeoFieldFromIssue({

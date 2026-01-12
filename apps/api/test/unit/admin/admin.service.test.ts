@@ -11,6 +11,8 @@
  */
 import { AdminService } from '../../../src/admin/admin.service';
 import { PrismaService } from '../../../src/prisma.service';
+import { JwtService } from '@nestjs/jwt';
+import { ShopifyService } from '../../../src/shopify/shopify.service';
 import { NotFoundException } from '@nestjs/common';
 
 const createPrismaMock = () => ({
@@ -30,15 +32,55 @@ const createPrismaMock = () => ({
     create: jest.fn(),
     groupBy: jest.fn(),
   },
+  automationPlaybookRun: {
+    count: jest.fn(),
+    findFirst: jest.fn(),
+    findMany: jest.fn(),
+  },
+  aiUsageEvents: {
+    some: jest.fn(),
+  },
+  adminAuditLog: {
+    create: jest.fn(),
+    findMany: jest.fn(),
+    count: jest.fn(),
+  },
+  aiMonthlyQuotaReset: {
+    create: jest.fn(),
+  },
+  answerBlockAutomationLog: {
+    count: jest.fn(),
+  },
+  governanceAuditEvent: {
+    findMany: jest.fn(),
+    count: jest.fn(),
+  },
+  $queryRaw: jest.fn(),
+});
+
+const createJwtServiceMock = () => ({
+  sign: jest.fn(),
+});
+
+const createShopifyServiceMock = () => ({
+  syncProducts: jest.fn(),
 });
 
 describe('AdminService', () => {
   let service: AdminService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
+  let jwtServiceMock: ReturnType<typeof createJwtServiceMock>;
+  let shopifyServiceMock: ReturnType<typeof createShopifyServiceMock>;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
-    service = new AdminService(prismaMock as unknown as PrismaService);
+    jwtServiceMock = createJwtServiceMock();
+    shopifyServiceMock = createShopifyServiceMock();
+    service = new AdminService(
+      prismaMock as unknown as PrismaService,
+      jwtServiceMock as unknown as JwtService,
+      shopifyServiceMock as any,
+    );
   });
 
   describe('getUsers', () => {
@@ -70,6 +112,9 @@ describe('AdminService', () => {
 
       prismaMock.user.findMany.mockResolvedValue(mockUsers);
       prismaMock.user.count.mockResolvedValue(2);
+      // Mock automationPlaybookRun.count for each user's AI usage calculation
+      prismaMock.automationPlaybookRun.count.mockResolvedValue(0);
+      prismaMock.automationPlaybookRun.findFirst.mockResolvedValue(null);
 
       const result = await service.getUsers(1, 20);
 
@@ -116,15 +161,21 @@ describe('AdminService', () => {
         updatedAt: new Date(),
         subscription: { plan: 'free', status: 'active' },
         projects: [
-          { id: 'proj-1', name: 'Project 1', domain: 'example.com', createdAt: new Date() },
+          { id: 'proj-1', name: 'Project 1', domain: 'example.com', createdAt: new Date(), _count: { products: 5 } },
         ],
       };
 
       prismaMock.user.findUnique.mockResolvedValue(mockUser);
+      prismaMock.automationPlaybookRun.count.mockResolvedValue(0);
+      prismaMock.automationPlaybookRun.findMany.mockResolvedValue([]);
 
       const result = await service.getUser('user-1');
 
-      expect(result).toEqual(mockUser);
+      expect(result).toHaveProperty('id', 'user-1');
+      expect(result).toHaveProperty('email', 'user1@example.com');
+      expect(result).toHaveProperty('usageSummary');
+      expect(result.usageSummary).toHaveProperty('aiUsageThisMonth', 0);
+      expect(result.usageSummary).toHaveProperty('recentRuns', []);
       expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
         where: { id: 'user-1' },
         select: expect.any(Object),

@@ -9,6 +9,7 @@
  * - Percent calculations and remaining runs are derived from ledger summary.
  */
 import { AiUsageQuotaService } from '../../../src/ai/ai-usage-quota.service';
+import { PrismaService } from '../../../src/prisma.service';
 
 describe('AiUsageQuotaService', () => {
   const entitlementsStub = {
@@ -19,11 +20,23 @@ describe('AiUsageQuotaService', () => {
     getProjectSummary: jest.fn(),
   } as any;
 
+  const createPrismaMock = () => ({
+    aiMonthlyQuotaReset: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+  });
+
   let service: AiUsageQuotaService;
+  let prismaMock: ReturnType<typeof createPrismaMock>;
 
   beforeEach(() => {
     jest.resetAllMocks();
-    service = new AiUsageQuotaService(entitlementsStub, ledgerStub);
+    prismaMock = createPrismaMock();
+    service = new AiUsageQuotaService(
+      entitlementsStub,
+      ledgerStub,
+      prismaMock as unknown as PrismaService,
+    );
   });
 
   afterEach(() => {

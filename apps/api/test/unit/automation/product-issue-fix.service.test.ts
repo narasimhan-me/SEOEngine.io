@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 import { EntitlementsService } from '../../../src/billing/entitlements.service';
 import { ProductIssueFixService } from '../../../src/ai/product-issue-fix.service';
+import { RoleResolutionService } from '../../../src/common/role-resolution.service';
 import {
   cleanupTestDb,
   disconnectTestDb,
@@ -16,11 +17,13 @@ import {
 describe('ProductIssueFixService – Issue Engine Lite AI fixes', () => {
   let entitlementsService: EntitlementsService;
   let aiServiceStub: { generateMetadata: jest.Mock };
+  let roleResolutionService: RoleResolutionService;
   let service: ProductIssueFixService;
 
   beforeAll(() => {
     const prisma = testPrisma as any;
     entitlementsService = new EntitlementsService(prisma);
+    roleResolutionService = new RoleResolutionService(prisma);
     aiServiceStub = {
       generateMetadata: jest.fn(),
     };
@@ -28,6 +31,7 @@ describe('ProductIssueFixService – Issue Engine Lite AI fixes', () => {
       prisma,
       aiServiceStub as any,
       entitlementsService,
+      roleResolutionService,
     );
   });
 
@@ -69,6 +73,15 @@ describe('ProductIssueFixService – Issue Engine Lite AI fixes', () => {
         name: `Issue Fix Project (${plan})`,
         domain: `issue-fix-${plan}.example.com`,
         userId: user.id,
+      },
+    });
+
+    // [ROLES-3] Create ProjectMember record for the owner
+    await testPrisma.projectMember.create({
+      data: {
+        projectId: project.id,
+        userId: user.id,
+        role: 'OWNER',
       },
     });
 
@@ -160,10 +173,12 @@ describe('ProductIssueFixService – Issue Engine Lite AI fixes', () => {
       recordAiUsage: jest.fn(),
     };
 
+    const roleResolutionStub = new RoleResolutionService(testPrisma as any);
     const serviceWithStub = new ProductIssueFixService(
       testPrisma as any,
       aiServiceStub as any,
       entitlementsStub as any,
+      roleResolutionStub,
     );
 
     await expect(

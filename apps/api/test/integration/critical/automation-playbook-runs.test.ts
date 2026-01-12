@@ -70,6 +70,7 @@ describe('CRITICAL – AutomationPlaybookRuns Integration', () => {
       },
       automationPlaybookDraft: {
         findFirst: jest.fn().mockResolvedValue(null),
+        findUnique: jest.fn().mockResolvedValue(null),
         upsert: jest.fn().mockImplementation((args) => ({
           id: 'draft-integration-1',
           projectId: args.create.projectId,
@@ -148,6 +149,14 @@ describe('CRITICAL – AutomationPlaybookRuns Integration', () => {
       }),
     };
 
+    // Role resolution mock
+    const roleResolutionMock = {
+      assertProjectAccess: jest.fn().mockResolvedValue(undefined),
+      assertCanGenerateDrafts: jest.fn().mockResolvedValue(undefined),
+      assertOwnerRole: jest.fn().mockResolvedValue(undefined),
+      canApply: jest.fn().mockResolvedValue(true),
+    };
+
     // Create the real service instances with mocked dependencies
     playbooksService = new AutomationPlaybooksService(
       prismaMock,
@@ -155,11 +164,12 @@ describe('CRITICAL – AutomationPlaybookRuns Integration', () => {
       tokenUsageMock as any,
       aiServiceMock as any,
       quotaServiceMock as any,
+      roleResolutionMock as any,
     );
 
     processor = new AutomationPlaybookRunProcessor(prismaMock, playbooksService);
 
-    runsService = new AutomationPlaybookRunsService(prismaMock, processor);
+    runsService = new AutomationPlaybookRunsService(prismaMock, processor, roleResolutionMock as any);
   });
 
   afterEach(() => {

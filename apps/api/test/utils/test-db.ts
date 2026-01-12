@@ -17,40 +17,53 @@ const pool = new Pool({
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
+async function safeDelete(tableName: string): Promise<void> {
+  try {
+    await prisma.$executeRawUnsafe(`DELETE FROM "${tableName}" WHERE 1=1`);
+  } catch (error: any) {
+    // Ignore errors for tables that don't exist (e.g., schema not migrated)
+    if (error?.code === '42P01') {
+      // Table does not exist - this is OK for test databases that may not have all migrations
+      return;
+    }
+    throw error;
+  }
+}
+
 export async function cleanupTestDb(): Promise<void> {
   // Delete in order to respect FK constraints
   // [ADMIN-OPS-1] Admin audit and quota reset tables (FK to User)
-  await prisma.$executeRawUnsafe('DELETE FROM "AdminAuditLog" WHERE 1=1');
-  await prisma.$executeRawUnsafe('DELETE FROM "AiMonthlyQuotaReset" WHERE 1=1');
+  await safeDelete('AdminAuditLog');
+  await safeDelete('AiMonthlyQuotaReset');
   // [SELF-SERVICE-1] Customer self-service tables (FK to User)
-  await prisma.$executeRawUnsafe('DELETE FROM "UserAccountAuditLog" WHERE 1=1');
-  await prisma.$executeRawUnsafe('DELETE FROM "UserSession" WHERE 1=1');
-  await prisma.$executeRawUnsafe('DELETE FROM "UserPreferences" WHERE 1=1');
+  await safeDelete('UserAccountAuditLog');
+  await safeDelete('UserSession');
+  await safeDelete('UserPreferences');
   // Tables with FK to Product must be deleted first
-  await prisma.$executeRawUnsafe('DELETE FROM "AnswerBlock" WHERE 1=1');
-  await prisma.$executeRawUnsafe('DELETE FROM "AnswerBlockAutomationLog" WHERE 1=1');
+  await safeDelete('AnswerBlock');
+  await safeDelete('AnswerBlockAutomationLog');
   // Tables with FK to Project must be deleted next
-  await prisma.$executeRawUnsafe('DELETE FROM "Integration" WHERE 1=1');
-  await prisma.$executeRawUnsafe('DELETE FROM "DeoScoreSnapshot" WHERE 1=1');
-  await prisma.$executeRawUnsafe('DELETE FROM "CrawlResult" WHERE 1=1');
+  await safeDelete('Integration');
+  await safeDelete('DeoScoreSnapshot');
+  await safeDelete('CrawlResult');
   // Off-site Signals tables (OFFSITE-1)
-  await prisma.$executeRawUnsafe('DELETE FROM "ProjectOffsiteFixApplication" WHERE 1=1');
-  await prisma.$executeRawUnsafe('DELETE FROM "ProjectOffsiteFixDraft" WHERE 1=1');
-  await prisma.$executeRawUnsafe('DELETE FROM "ProjectOffsiteCoverage" WHERE 1=1');
-  await prisma.$executeRawUnsafe('DELETE FROM "ProjectOffsiteSignal" WHERE 1=1');
+  await safeDelete('ProjectOffsiteFixApplication');
+  await safeDelete('ProjectOffsiteFixDraft');
+  await safeDelete('ProjectOffsiteCoverage');
+  await safeDelete('ProjectOffsiteSignal');
   // Local Discovery tables (LOCAL-1)
-  await prisma.$executeRawUnsafe('DELETE FROM "ProjectLocalFixApplication" WHERE 1=1');
-  await prisma.$executeRawUnsafe('DELETE FROM "ProjectLocalFixDraft" WHERE 1=1');
-  await prisma.$executeRawUnsafe('DELETE FROM "ProjectLocalCoverage" WHERE 1=1');
-  await prisma.$executeRawUnsafe('DELETE FROM "ProjectLocalSignal" WHERE 1=1');
-  await prisma.$executeRawUnsafe('DELETE FROM "ProjectLocalConfig" WHERE 1=1');
-  await prisma.$executeRawUnsafe('DELETE FROM "Product" WHERE 1=1');
+  await safeDelete('ProjectLocalFixApplication');
+  await safeDelete('ProjectLocalFixDraft');
+  await safeDelete('ProjectLocalCoverage');
+  await safeDelete('ProjectLocalSignal');
+  await safeDelete('ProjectLocalConfig');
+  await safeDelete('Product');
   // Now delete Project (which has FK to User)
-  await prisma.$executeRawUnsafe('DELETE FROM "Project" WHERE 1=1');
+  await safeDelete('Project');
   // Delete Subscription (FK to User) before User
-  await prisma.$executeRawUnsafe('DELETE FROM "Subscription" WHERE 1=1');
+  await safeDelete('Subscription');
   // Finally delete User
-  await prisma.$executeRawUnsafe('DELETE FROM "User" WHERE 1=1');
+  await safeDelete('User');
 }
 
 export async function disconnectTestDb(): Promise<void> {

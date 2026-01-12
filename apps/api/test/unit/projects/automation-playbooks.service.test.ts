@@ -19,6 +19,7 @@ import { EntitlementsService } from '../../../src/billing/entitlements.service';
 import { TokenUsageService } from '../../../src/ai/token-usage.service';
 import { AiService } from '../../../src/ai/ai.service';
 import { AiUsageQuotaService } from '../../../src/ai/ai-usage-quota.service';
+import { RoleResolutionService } from '../../../src/common/role-resolution.service';
 import {
   NotFoundException,
   ForbiddenException,
@@ -39,6 +40,7 @@ const createPrismaMock = () => ({
   },
   automationPlaybookDraft: {
     findFirst: jest.fn(),
+    findUnique: jest.fn(),
     upsert: jest.fn(),
     update: jest.fn(),
   },
@@ -62,6 +64,15 @@ const createAiUsageQuotaServiceMock = () => ({
   evaluateQuotaForAction: jest.fn(),
 });
 
+const createRoleResolutionServiceMock = () => ({
+  assertProjectAccess: jest.fn().mockResolvedValue(undefined),
+  assertOwnerRole: jest.fn().mockResolvedValue(undefined),
+  assertCanGenerateDrafts: jest.fn().mockResolvedValue(undefined),
+  hasProjectAccess: jest.fn().mockResolvedValue(true),
+  isMultiUserProject: jest.fn().mockResolvedValue(false),
+  resolveEffectiveRole: jest.fn().mockResolvedValue('OWNER'),
+});
+
 describe('AutomationPlaybooksService', () => {
   let service: AutomationPlaybooksService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
@@ -69,6 +80,7 @@ describe('AutomationPlaybooksService', () => {
   let tokenUsageServiceMock: ReturnType<typeof createTokenUsageServiceMock>;
   let aiServiceMock: ReturnType<typeof createAiServiceMock>;
   let aiUsageQuotaServiceMock: ReturnType<typeof createAiUsageQuotaServiceMock>;
+  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
 
   beforeEach(async () => {
     prismaMock = createPrismaMock();
@@ -76,6 +88,7 @@ describe('AutomationPlaybooksService', () => {
     tokenUsageServiceMock = createTokenUsageServiceMock();
     aiServiceMock = createAiServiceMock();
     aiUsageQuotaServiceMock = createAiUsageQuotaServiceMock();
+    roleResolutionServiceMock = createRoleResolutionServiceMock();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -85,6 +98,7 @@ describe('AutomationPlaybooksService', () => {
         { provide: TokenUsageService, useValue: tokenUsageServiceMock },
         { provide: AiService, useValue: aiServiceMock },
         { provide: AiUsageQuotaService, useValue: aiUsageQuotaServiceMock },
+        { provide: RoleResolutionService, useValue: roleResolutionServiceMock },
       ],
     }).compile();
 
@@ -222,6 +236,9 @@ describe('AutomationPlaybooksService', () => {
       const playbookId: AutomationPlaybookId = 'missing_seo_title';
 
       prismaMock.project.findUnique.mockResolvedValue(null);
+      roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
+        new NotFoundException('Project not found'),
+      );
 
       await expect(service.estimatePlaybook(userId, projectId, playbookId)).rejects.toThrow(
         NotFoundException,
@@ -239,6 +256,9 @@ describe('AutomationPlaybooksService', () => {
       };
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
+      roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
+        new ForbiddenException('You do not have access to this project'),
+      );
 
       await expect(service.estimatePlaybook(userId, projectId, playbookId)).rejects.toThrow(
         ForbiddenException,

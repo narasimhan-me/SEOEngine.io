@@ -10,6 +10,7 @@
  */
 import { SearchIntentService } from '../../../src/projects/search-intent.service';
 import { PrismaService } from '../../../src/prisma.service';
+import { RoleResolutionService } from '../../../src/common/role-resolution.service';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 
 const createPrismaMock = () => ({
@@ -30,13 +31,25 @@ const createPrismaMock = () => ({
   },
 });
 
+const createRoleResolutionServiceMock = () => ({
+  assertProjectAccess: jest.fn().mockResolvedValue(undefined),
+  assertOwnerRole: jest.fn().mockResolvedValue(undefined),
+  hasProjectAccess: jest.fn().mockResolvedValue(true),
+  isMultiUserProject: jest.fn().mockResolvedValue(false),
+});
+
 describe('SearchIntentService', () => {
   let service: SearchIntentService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
+  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
-    service = new SearchIntentService(prismaMock as unknown as PrismaService);
+    roleResolutionServiceMock = createRoleResolutionServiceMock();
+    service = new SearchIntentService(
+      prismaMock as unknown as PrismaService,
+      roleResolutionServiceMock as unknown as RoleResolutionService,
+    );
   });
 
   describe('analyzeProductIntent', () => {
@@ -145,6 +158,9 @@ describe('SearchIntentService', () => {
       };
 
       prismaMock.product.findUnique.mockResolvedValue(mockProduct);
+      roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
+        new ForbiddenException('You do not have access to this project'),
+      );
 
       await expect(service.getProductIntentData('prod-1', 'user-1')).rejects.toThrow(
         ForbiddenException,
@@ -258,6 +274,9 @@ describe('SearchIntentService', () => {
       };
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
+      roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
+        new ForbiddenException('You do not have access to this project'),
+      );
 
       await expect(service.getProjectIntentSummary('proj-1', 'user-1')).rejects.toThrow(
         ForbiddenException,

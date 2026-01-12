@@ -9,6 +9,7 @@
  */
 import { AnswerEngineService } from '../../../src/projects/answer-engine.service';
 import { PrismaService } from '../../../src/prisma.service';
+import { RoleResolutionService } from '../../../src/common/role-resolution.service';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 
 const createPrismaMock = () => ({
@@ -20,13 +21,25 @@ const createPrismaMock = () => ({
   },
 });
 
+const createRoleResolutionServiceMock = () => ({
+  assertProjectAccess: jest.fn().mockResolvedValue(undefined),
+  assertOwnerRole: jest.fn().mockResolvedValue(undefined),
+  hasProjectAccess: jest.fn().mockResolvedValue(true),
+  isMultiUserProject: jest.fn().mockResolvedValue(false),
+});
+
 describe('AnswerEngineService', () => {
   let service: AnswerEngineService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
+  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
-    service = new AnswerEngineService(prismaMock as unknown as PrismaService);
+    roleResolutionServiceMock = createRoleResolutionServiceMock();
+    service = new AnswerEngineService(
+      prismaMock as unknown as PrismaService,
+      roleResolutionServiceMock as unknown as RoleResolutionService,
+    );
   });
 
   describe('getProjectAnswerability', () => {
@@ -75,6 +88,9 @@ describe('AnswerEngineService', () => {
       };
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
+      roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
+        new ForbiddenException('You do not have access to this project'),
+      );
 
       await expect(service.getProjectAnswerability('proj-1', 'user-1')).rejects.toThrow(
         ForbiddenException,

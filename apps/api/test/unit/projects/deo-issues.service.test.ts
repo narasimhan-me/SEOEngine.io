@@ -15,6 +15,7 @@ import { CompetitorsService } from '../../../src/projects/competitors.service';
 import { OffsiteSignalsService } from '../../../src/projects/offsite-signals.service';
 import { LocalDiscoveryService } from '../../../src/projects/local-discovery.service';
 import { MediaAccessibilityService } from '../../../src/projects/media-accessibility.service';
+import { RoleResolutionService } from '../../../src/common/role-resolution.service';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { DeoScoreSignals } from '@engineo/shared';
 
@@ -27,6 +28,12 @@ const createPrismaMock = () => ({
   },
   product: {
     findMany: jest.fn(),
+  },
+  answerBlock: {
+    findMany: jest.fn().mockResolvedValue([]),
+  },
+  geoReportShareLink: {
+    findMany: jest.fn().mockResolvedValue([]),
   },
 });
 
@@ -55,16 +62,31 @@ const createServiceMocks = () => ({
   },
 });
 
+const createRoleResolutionServiceMock = () => ({
+  assertProjectAccess: jest.fn().mockResolvedValue(undefined),
+  assertOwnerRole: jest.fn().mockResolvedValue(undefined),
+  hasProjectAccess: jest.fn().mockResolvedValue(true),
+  isMultiUserProject: jest.fn().mockResolvedValue(false),
+  resolveEffectiveRole: jest.fn().mockResolvedValue('OWNER'),
+  getCapabilities: jest.fn((role: string) => ({
+    canGenerateDrafts: role === 'OWNER' || role === 'EDITOR',
+    canRequestApproval: role === 'OWNER' || role === 'EDITOR',
+    canApply: role === 'OWNER',
+  })),
+});
+
 describe('DeoIssuesService', () => {
   let service: DeoIssuesService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
   let deoSignalsServiceMock: ReturnType<typeof createDeoSignalsServiceMock>;
   let serviceMocks: ReturnType<typeof createServiceMocks>;
+  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
     deoSignalsServiceMock = createDeoSignalsServiceMock();
     serviceMocks = createServiceMocks();
+    roleResolutionServiceMock = createRoleResolutionServiceMock();
 
     service = new DeoIssuesService(
       prismaMock as unknown as PrismaService,
@@ -75,6 +97,7 @@ describe('DeoIssuesService', () => {
       serviceMocks.offsiteSignalsService as unknown as OffsiteSignalsService,
       serviceMocks.localDiscoveryService as unknown as LocalDiscoveryService,
       serviceMocks.mediaAccessibilityService as unknown as MediaAccessibilityService,
+      roleResolutionServiceMock as unknown as RoleResolutionService,
     );
   });
 
@@ -152,6 +175,9 @@ describe('DeoIssuesService', () => {
       };
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
+      roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
+        new ForbiddenException('You do not have access to this project'),
+      );
 
       await expect(service.getIssuesForProject('proj-1', 'user-1')).rejects.toThrow(
         ForbiddenException,

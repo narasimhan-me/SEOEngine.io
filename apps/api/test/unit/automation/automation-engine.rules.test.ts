@@ -24,6 +24,7 @@ import {
 } from '../../fixtures/automation-events.fixtures';
 import { AutomationService } from '../../../src/projects/automation.service';
 import { EntitlementsService } from '../../../src/billing/entitlements.service';
+import { RoleResolutionService } from '../../../src/common/role-resolution.service';
 import {
   cleanupTestDb,
   disconnectTestDb,
@@ -34,10 +35,12 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
   let entitlementsService: EntitlementsService;
   let automationService: AutomationService;
   let shopifyServiceStub: { syncAnswerBlocksToShopify: jest.Mock };
+  let roleResolutionService: RoleResolutionService;
 
   beforeAll(() => {
     const prisma = testPrisma as any;
     entitlementsService = new EntitlementsService(prisma);
+    roleResolutionService = new RoleResolutionService(prisma);
     const aiServiceStub = {
       generateMetadata: jest.fn(),
       generateProductAnswers: jest.fn(),
@@ -45,11 +48,25 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
     shopifyServiceStub = {
       syncAnswerBlocksToShopify: jest.fn(),
     };
+    const governanceServiceStub = {
+      isApprovalRequired: jest.fn().mockResolvedValue(false),
+    } as any;
+    const approvalsServiceStub = {
+      hasValidApproval: jest.fn().mockResolvedValue({ valid: true }),
+      markConsumed: jest.fn().mockResolvedValue(undefined),
+    } as any;
+    const auditEventsServiceStub = {
+      logApplyExecuted: jest.fn().mockResolvedValue(undefined),
+    } as any;
     automationService = new AutomationService(
       prisma,
       aiServiceStub,
       entitlementsService,
       shopifyServiceStub as any,
+      governanceServiceStub,
+      approvalsServiceStub,
+      auditEventsServiceStub,
+      roleResolutionService,
     );
   });
 
@@ -96,6 +113,15 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
         name: `Automation Rules Project (${plan})`,
         domain: `automation-rules-${plan}.example.com`,
         userId: user.id,
+      },
+    });
+
+    // [ROLES-3] Create ProjectMember record for the owner
+    await testPrisma.projectMember.create({
+      data: {
+        projectId: project.id,
+        userId: user.id,
+        role: 'OWNER',
       },
     });
 
@@ -161,7 +187,7 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
         otherUser.id,
         'product_synced',
       ),
-    ).rejects.toThrow('You do not have access to this product');
+    ).rejects.toThrow('You do not have access to this project');
 
     const logs = await testPrisma.answerBlockAutomationLog.findMany({
       where: { productId: product.id },

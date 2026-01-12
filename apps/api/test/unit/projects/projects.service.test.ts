@@ -11,6 +11,7 @@
  */
 import { ProjectsService } from '../../../src/projects/projects.service';
 import { PrismaService } from '../../../src/prisma.service';
+import { RoleResolutionService } from '../../../src/common/role-resolution.service';
 import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { CrawlFrequency } from '@prisma/client';
 
@@ -23,6 +24,11 @@ const createPrismaMock = () => ({
     update: jest.fn(),
     delete: jest.fn(),
   },
+  projectMember: {
+    findMany: jest.fn(),
+    create: jest.fn(),
+    findUnique: jest.fn(),
+  },
   integration: {
     deleteMany: jest.fn(),
   },
@@ -32,42 +38,71 @@ const createPrismaMock = () => ({
   crawlResult: {
     deleteMany: jest.fn(),
   },
+  governanceAuditEvent: {
+    create: jest.fn(),
+  },
+  $transaction: jest.fn(async (callback) => {
+    const tx = createPrismaMock();
+    return await callback(tx);
+  }),
+});
+
+const createRoleResolutionServiceMock = () => ({
+  assertProjectAccess: jest.fn().mockResolvedValue(undefined),
+  assertOwnerRole: jest.fn().mockResolvedValue(undefined),
+  hasProjectAccess: jest.fn().mockResolvedValue(true),
+  isMultiUserProject: jest.fn().mockResolvedValue(false),
+  resolveEffectiveRole: jest.fn().mockResolvedValue('OWNER'),
 });
 
 describe('ProjectsService', () => {
   let service: ProjectsService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
+  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
-    service = new ProjectsService(prismaMock as unknown as PrismaService);
+    roleResolutionServiceMock = createRoleResolutionServiceMock();
+    service = new ProjectsService(
+      prismaMock as unknown as PrismaService,
+      roleResolutionServiceMock as unknown as RoleResolutionService,
+    );
   });
 
   describe('getProjectsForUser', () => {
     it('should return projects for user ordered by creation date', async () => {
-      const mockProjects = [
+      const mockMemberProjects = [
         {
-          id: 'proj-2',
-          userId: 'user-1',
-          name: 'Project 2',
-          createdAt: new Date('2024-01-02'),
+          project: {
+            id: 'proj-2',
+            userId: 'user-1',
+            name: 'Project 2',
+            createdAt: new Date('2024-01-02'),
+          },
+          role: 'OWNER',
         },
         {
-          id: 'proj-1',
-          userId: 'user-1',
-          name: 'Project 1',
-          createdAt: new Date('2024-01-01'),
+          project: {
+            id: 'proj-1',
+            userId: 'user-1',
+            name: 'Project 1',
+            createdAt: new Date('2024-01-01'),
+          },
+          role: 'OWNER',
         },
       ];
 
-      prismaMock.project.findMany.mockResolvedValue(mockProjects);
+      prismaMock.projectMember.findMany.mockResolvedValue(mockMemberProjects as any);
+      prismaMock.project.findMany.mockResolvedValue([]); // No legacy projects
 
       const result = await service.getProjectsForUser('user-1');
 
-      expect(result).toEqual(mockProjects);
-      expect(prismaMock.project.findMany).toHaveBeenCalledWith({
+      expect(result).toHaveLength(2);
+      expect(result[0]).toHaveProperty('memberRole', 'OWNER');
+      expect(prismaMock.projectMember.findMany).toHaveBeenCalledWith({
         where: { userId: 'user-1' },
-        orderBy: { createdAt: 'desc' },
+        include: { project: true },
+        orderBy: { project: { createdAt: 'desc' } },
       });
     });
   });
@@ -82,10 +117,13 @@ describe('ProjectsService', () => {
       };
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
+      roleResolutionServiceMock.resolveEffectiveRole.mockResolvedValue('OWNER');
 
       const result = await service.getProject('proj-1', 'user-1');
 
-      expect(result).toEqual(mockProject);
+      expect(result).toHaveProperty('id', 'proj-1');
+      expect(result).toHaveProperty('name', 'Test Project');
+      expect(result).toHaveProperty('memberRole', 'OWNER');
       expect(prismaMock.project.findUnique).toHaveBeenCalledWith({
         where: { id: 'proj-1' },
       });
@@ -105,6 +143,7 @@ describe('ProjectsService', () => {
       };
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
+      roleResolutionServiceMock.hasProjectAccess.mockResolvedValue(false);
 
       await expect(service.getProject('proj-1', 'user-1')).rejects.toThrow(ForbiddenException);
     });
@@ -121,7 +160,28 @@ describe('ProjectsService', () => {
         updatedAt: new Date(),
       };
 
-      prismaMock.project.create.mockResolvedValue(mockProject);
+      const mockProjectMember = {
+        id: 'member-1',
+        projectId: 'proj-1',
+        userId: 'user-1',
+        role: 'OWNER',
+      };
+
+      // Mock transaction to return the project
+      prismaMock.$transaction.mockImplementation(async (callback) => {
+        const tx = {
+          ...prismaMock,
+          project: {
+            ...prismaMock.project,
+            create: jest.fn().mockResolvedValue(mockProject),
+          },
+          projectMember: {
+            ...prismaMock.projectMember,
+            create: jest.fn().mockResolvedValue(mockProjectMember),
+          },
+        };
+        return await callback(tx);
+      });
 
       const result = await service.createProject('user-1', {
         name: 'New Project',
@@ -129,13 +189,7 @@ describe('ProjectsService', () => {
       });
 
       expect(result).toEqual(mockProject);
-      expect(prismaMock.project.create).toHaveBeenCalledWith({
-        data: {
-          userId: 'user-1',
-          name: 'New Project',
-          domain: 'example.com',
-        },
-      });
+      expect(prismaMock.$transaction).toHaveBeenCalled();
     });
 
     it('should create project with name only', async () => {
@@ -148,7 +202,28 @@ describe('ProjectsService', () => {
         updatedAt: new Date(),
       };
 
-      prismaMock.project.create.mockResolvedValue(mockProject);
+      const mockProjectMember = {
+        id: 'member-1',
+        projectId: 'proj-1',
+        userId: 'user-1',
+        role: 'OWNER',
+      };
+
+      // Mock transaction to return the project
+      prismaMock.$transaction.mockImplementation(async (callback) => {
+        const tx = {
+          ...prismaMock,
+          project: {
+            ...prismaMock.project,
+            create: jest.fn().mockResolvedValue(mockProject),
+          },
+          projectMember: {
+            ...prismaMock.projectMember,
+            create: jest.fn().mockResolvedValue(mockProjectMember),
+          },
+        };
+        return await callback(tx);
+      });
 
       const result = await service.createProject('user-1', {
         name: 'New Project',

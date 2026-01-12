@@ -9,6 +9,7 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { IsNotEmpty, IsString } from 'class-validator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma.service';
 import { GeoService, ProductGeoReadinessResponse } from './geo.service';
@@ -36,6 +37,8 @@ class GeoFixPreviewDto {
 }
 
 class GeoFixApplyDto {
+  @IsString()
+  @IsNotEmpty()
   draftId: string;
 }
 
@@ -263,7 +266,9 @@ export class GeoController {
   }> {
     const userId = req.user.id;
 
-    if (!dto?.draftId) throw new BadRequestException('draftId is required');
+    if (!dto?.draftId) {
+      throw new BadRequestException('draftId is required');
+    }
 
     const product = await this.prisma.product.findUnique({
       where: { id: productId },

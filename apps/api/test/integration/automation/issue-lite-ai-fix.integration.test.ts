@@ -1,5 +1,6 @@
 import { EntitlementsService } from '../../../src/billing/entitlements.service';
 import { ProductIssueFixService } from '../../../src/ai/product-issue-fix.service';
+import { RoleResolutionService } from '../../../src/common/role-resolution.service';
 import {
   cleanupTestDb,
   disconnectTestDb,
@@ -17,6 +18,7 @@ describe('Issue Engine Lite – AI Fix integration', () => {
   beforeAll(() => {
     const prisma = testPrisma as any;
     entitlementsService = new EntitlementsService(prisma);
+    const roleResolutionService = new RoleResolutionService(prisma);
     aiServiceStub = {
       generateMetadata: jest.fn(async () => ({
         title: 'Generated SEO Title from Issue Fix',
@@ -27,6 +29,7 @@ describe('Issue Engine Lite – AI Fix integration', () => {
       prisma,
       aiServiceStub as any,
       entitlementsService,
+      roleResolutionService,
     );
   });
 

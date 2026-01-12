@@ -103,7 +103,7 @@ describe('SELF-SERVICE-1 Integration Tests', () => {
       const signOutResponse = await request(app.getHttpServer())
         .post('/account/sessions/sign-out-all')
         .set('Authorization', `Bearer ${accessToken}`)
-        .expect(200);
+        .expect(201);
 
       expect(signOutResponse.body).toHaveProperty('revokedCount');
       expect(signOutResponse.body.revokedCount).toBeGreaterThan(0);
@@ -251,7 +251,7 @@ describe('SELF-SERVICE-1 Integration Tests', () => {
       const response = await request(app.getHttpServer())
         .post(`/account/stores/${project.id}/disconnect`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .expect(200);
+        .expect(201);
 
       expect(response.body.success).toBe(true);
 

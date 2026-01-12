@@ -24,6 +24,15 @@ const createPrismaMock = () => ({
   user: {
     findUnique: jest.fn(),
     create: jest.fn(),
+    update: jest.fn(),
+  },
+  userSession: {
+    create: jest.fn(),
+    findMany: jest.fn(),
+    deleteMany: jest.fn(),
+  },
+  userAccountAuditLog: {
+    create: jest.fn(),
   },
 });
 
@@ -202,6 +211,13 @@ describe('AuthService', () => {
         password: 'hashed-password',
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      prismaMock.userSession.create.mockResolvedValue({
+        id: 'session-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        lastSeenAt: new Date(),
+      });
+      prismaMock.user.update.mockResolvedValue(mockUser);
       jwtServiceMock.sign.mockReturnValue('access-token');
 
       const result = await service.login('test@example.com', 'password123');
@@ -213,6 +229,7 @@ describe('AuthService', () => {
         sub: 'user-1',
         email: 'test@example.com',
         role: 'user',
+        sessionId: 'session-1',
       });
     });
 
@@ -279,6 +296,12 @@ describe('AuthService', () => {
       jwtServiceMock.verify.mockReturnValue(payload);
       prismaMock.user.findUnique.mockResolvedValue(mockUser);
       (speakeasy.totp.verify as jest.Mock).mockReturnValue(true);
+      prismaMock.userSession.create.mockResolvedValue({
+        id: 'session-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        expiresAt: new Date(),
+      });
       jwtServiceMock.sign.mockReturnValue('final-access-token');
 
       const result = await service.verifyTwoFactor('temp-token', '123456');

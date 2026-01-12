@@ -12,6 +12,7 @@ import { PrismaService } from '../../../src/prisma.service';
 import { AiService } from '../../../src/ai/ai.service';
 import { EntitlementsService } from '../../../src/billing/entitlements.service';
 import { ShopifyService } from '../../../src/shopify/shopify.service';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { AutomationTargetType, AutomationIssueType } from '@prisma/client';
 
 // Mock queues module
@@ -57,24 +58,49 @@ const createEntitlementsServiceMock = () => ({
 
 const createShopifyServiceMock = () => ({});
 
+const createGovernanceServiceMock = () => ({});
+
+const createApprovalsServiceMock = () => ({});
+
+const createAuditEventsServiceMock = () => ({});
+
+const createRoleResolutionServiceMock = () => ({
+  assertProjectAccess: jest.fn().mockResolvedValue(undefined),
+  assertOwnerRole: jest.fn().mockResolvedValue(undefined),
+  hasProjectAccess: jest.fn().mockResolvedValue(true),
+  isMultiUserProject: jest.fn().mockResolvedValue(false),
+});
+
 describe('AutomationService', () => {
   let service: AutomationService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
   let aiServiceMock: ReturnType<typeof createAiServiceMock>;
   let entitlementsServiceMock: ReturnType<typeof createEntitlementsServiceMock>;
   let shopifyServiceMock: ReturnType<typeof createShopifyServiceMock>;
+  let governanceServiceMock: ReturnType<typeof createGovernanceServiceMock>;
+  let approvalsServiceMock: ReturnType<typeof createApprovalsServiceMock>;
+  let auditEventsServiceMock: ReturnType<typeof createAuditEventsServiceMock>;
+  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
     aiServiceMock = createAiServiceMock();
     entitlementsServiceMock = createEntitlementsServiceMock();
     shopifyServiceMock = createShopifyServiceMock();
+    governanceServiceMock = createGovernanceServiceMock();
+    approvalsServiceMock = createApprovalsServiceMock();
+    auditEventsServiceMock = createAuditEventsServiceMock();
+    roleResolutionServiceMock = createRoleResolutionServiceMock();
 
     service = new AutomationService(
       prismaMock as unknown as PrismaService,
       aiServiceMock as unknown as AiService,
       entitlementsServiceMock as unknown as EntitlementsService,
       shopifyServiceMock as unknown as ShopifyService,
+      governanceServiceMock as any,
+      approvalsServiceMock as any,
+      auditEventsServiceMock as any,
+      roleResolutionServiceMock as any,
     );
 
     jest.spyOn(service['logger'], 'warn').mockImplementation(() => {});
@@ -380,6 +406,9 @@ describe('AutomationService', () => {
 
     it('should throw NotFoundException when project not found', async () => {
       prismaMock.project.findUnique.mockResolvedValue(null);
+      roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
+        new NotFoundException('Project not found'),
+      );
 
       await expect(
         service.getSuggestionsForProject('proj-1', 'user-1'),
@@ -393,6 +422,9 @@ describe('AutomationService', () => {
       };
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
+      roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
+        new ForbiddenException('You do not have access to this project'),
+      );
 
       await expect(
         service.getSuggestionsForProject('proj-1', 'user-1'),
@@ -437,10 +469,13 @@ describe('AutomationService', () => {
       };
 
       prismaMock.product.findUnique.mockResolvedValue(mockProduct as any);
+      roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
+        new ForbiddenException('You do not have access to this project'),
+      );
 
       await expect(
         service.triggerAnswerBlockAutomationForProduct('prod-1', 'user-1', 'product_synced'),
-      ).rejects.toThrow('You do not have access to this product');
+      ).rejects.toThrow('You do not have access to this project');
     });
 
     it('should skip when product not found', async () => {

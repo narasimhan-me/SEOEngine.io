@@ -2,6 +2,7 @@
 // Verifies product sync and SEO update flows using mocked Shopify GraphQL Admin API.
 
 import { ShopifyService } from '../../../src/shopify/shopify.service';
+import { RoleResolutionService } from '../../../src/common/role-resolution.service';
 import {
   cleanupTestDb,
   disconnectTestDb,
@@ -136,10 +137,12 @@ describe('Shopify GraphQL product APIs (integration)', () => {
       triggerAnswerBlockAutomationForProduct: jest.fn().mockResolvedValue(undefined),
     };
 
+    const roleResolutionService = new RoleResolutionService(testPrisma as any);
     const shopifyService = new ShopifyService(
       testPrisma as any,
       configServiceStub,
       automationServiceStub,
+      roleResolutionService,
     );
 
     const result = await shopifyService.syncProducts(project.id, user.id);
@@ -245,10 +248,12 @@ describe('Shopify GraphQL product APIs (integration)', () => {
       triggerAnswerBlockAutomationForProduct: jest.fn().mockResolvedValue(undefined),
     };
 
+    const roleResolutionService = new RoleResolutionService(testPrisma as any);
     const shopifyService = new ShopifyService(
       testPrisma as any,
       configServiceStub,
       automationServiceStub,
+      roleResolutionService,
     );
 
     await shopifyService.updateProductSeo(

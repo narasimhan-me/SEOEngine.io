@@ -14,6 +14,7 @@ import { ProjectsService } from '../../src/projects/projects.service';
 import { ProductIssueFixService } from '../../src/ai/product-issue-fix.service';
 import { TokenUsageService } from '../../src/ai/token-usage.service';
 import { AiUsageQuotaService } from '../../src/ai/ai-usage-quota.service';
+import { RoleResolutionService } from '../../src/common/role-resolution.service';
 
 describe('AutomationPlaybooksService.applyPlaybook – no AI contract', () => {
   let service: AutomationPlaybooksService;
@@ -91,6 +92,15 @@ describe('AutomationPlaybooksService.applyPlaybook – no AI contract', () => {
               status: 'allowed',
               reason: 'unlimited',
             }),
+          },
+        },
+        {
+          provide: RoleResolutionService,
+          useValue: {
+            assertProjectAccess: jest.fn().mockResolvedValue(undefined),
+            assertCanGenerateDrafts: jest.fn().mockResolvedValue(undefined),
+            assertOwnerRole: jest.fn().mockResolvedValue(undefined),
+            canApply: jest.fn().mockResolvedValue(true),
           },
         },
       ],

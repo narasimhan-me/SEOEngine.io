@@ -13,6 +13,7 @@ import { SeoScanService } from '../../../src/seo-scan/seo-scan.service';
 import { PrismaService } from '../../../src/prisma.service';
 import { DeoScoreService, DeoSignalsService } from '../../../src/projects/deo-score.service';
 import { AutomationService } from '../../../src/projects/automation.service';
+import { RoleResolutionService } from '../../../src/common/role-resolution.service';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { IntegrationType } from '@prisma/client';
 
@@ -73,12 +74,20 @@ const createAutomationServiceMock = () => ({
   scheduleSuggestionsForProject: jest.fn(),
 });
 
+const createRoleResolutionServiceMock = () => ({
+  assertProjectAccess: jest.fn().mockResolvedValue(undefined),
+  assertOwnerRole: jest.fn().mockResolvedValue(undefined),
+  hasProjectAccess: jest.fn().mockResolvedValue(true),
+  isMultiUserProject: jest.fn().mockResolvedValue(false),
+});
+
 describe('SeoScanService', () => {
   let service: SeoScanService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
   let deoSignalsServiceMock: ReturnType<typeof createDeoSignalsServiceMock>;
   let deoScoreServiceMock: ReturnType<typeof createDeoScoreServiceMock>;
   let automationServiceMock: ReturnType<typeof createAutomationServiceMock>;
+  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
   let originalFetch: typeof global.fetch;
 
   beforeEach(() => {
@@ -86,12 +95,14 @@ describe('SeoScanService', () => {
     deoSignalsServiceMock = createDeoSignalsServiceMock();
     deoScoreServiceMock = createDeoScoreServiceMock();
     automationServiceMock = createAutomationServiceMock();
+    roleResolutionServiceMock = createRoleResolutionServiceMock();
 
     service = new SeoScanService(
       prismaMock as unknown as PrismaService,
       deoSignalsServiceMock as unknown as DeoSignalsService,
       deoScoreServiceMock as unknown as DeoScoreService,
       automationServiceMock as unknown as AutomationService,
+      roleResolutionServiceMock as unknown as RoleResolutionService,
     );
 
     originalFetch = global.fetch;
@@ -195,6 +206,9 @@ describe('SeoScanService', () => {
       };
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
+      roleResolutionServiceMock.assertOwnerRole.mockRejectedValue(
+        new ForbiddenException('You do not have access to this project'),
+      );
 
       await expect(service.startScan('proj-1', 'user-1')).rejects.toThrow(ForbiddenException);
     });

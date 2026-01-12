@@ -9,6 +9,7 @@
  */
 import { AutomationPlaybookRunsService, AutomationPlaybookRunType } from '../../../src/projects/automation-playbook-runs.service';
 import { AutomationPlaybookRunProcessor } from '../../../src/projects/automation-playbook-run.processor';
+import { RoleResolutionService } from '../../../src/common/role-resolution.service';
 
 // Mock the queue to simulate dev mode (no Redis)
 jest.mock('../../../src/queues/queues', () => ({
@@ -29,19 +30,30 @@ const createPrismaMock = () => ({
   },
 });
 
+const createRoleResolutionServiceMock = () => ({
+  assertProjectAccess: jest.fn().mockResolvedValue(undefined),
+  assertOwnerRole: jest.fn().mockResolvedValue(undefined),
+  hasProjectAccess: jest.fn().mockResolvedValue(true),
+  isMultiUserProject: jest.fn().mockResolvedValue(false),
+  assertCanGenerateDrafts: jest.fn().mockResolvedValue(undefined),
+});
+
 describe('AutomationPlaybookRunsService', () => {
   let service: AutomationPlaybookRunsService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
   let processorMock: { processJob: jest.Mock };
+  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
     processorMock = { processJob: jest.fn() };
+    roleResolutionServiceMock = createRoleResolutionServiceMock();
 
     // Construct service directly with mocks
     service = new AutomationPlaybookRunsService(
       prismaMock as any,
       processorMock as any,
+      roleResolutionServiceMock as any,
     );
   });
 

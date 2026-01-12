@@ -40,8 +40,8 @@ const config: Config = {
   coverageDirectory: './coverage-unit',
   testEnvironment: 'node',
   moduleNameMapper: {
-    // Use compiled dist for @engineo/shared to ensure CommonJS compatibility
-    '^@engineo/shared$': '<rootDir>/packages/shared/dist',
+    // Use source for @engineo/shared (same as integration tests)
+    '^@engineo/shared$': '<rootDir>/packages/shared/src',
     // Map NestJS modules to apps/api node_modules
     '^@nestjs/(.*)$': '<rootDir>/apps/api/node_modules/@nestjs/$1',
   },

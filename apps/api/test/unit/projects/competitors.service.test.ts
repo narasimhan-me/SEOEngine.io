@@ -10,6 +10,7 @@
  */
 import { CompetitorsService } from '../../../src/projects/competitors.service';
 import { PrismaService } from '../../../src/prisma.service';
+import { RoleResolutionService } from '../../../src/common/role-resolution.service';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 
 const createPrismaMock = () => ({
@@ -32,13 +33,25 @@ const createPrismaMock = () => ({
   },
 });
 
+const createRoleResolutionServiceMock = () => ({
+  assertProjectAccess: jest.fn().mockResolvedValue(undefined),
+  assertOwnerRole: jest.fn().mockResolvedValue(undefined),
+  hasProjectAccess: jest.fn().mockResolvedValue(true),
+  isMultiUserProject: jest.fn().mockResolvedValue(false),
+});
+
 describe('CompetitorsService', () => {
   let service: CompetitorsService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
+  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
-    service = new CompetitorsService(prismaMock as unknown as PrismaService);
+    roleResolutionServiceMock = createRoleResolutionServiceMock();
+    service = new CompetitorsService(
+      prismaMock as unknown as PrismaService,
+      roleResolutionServiceMock as unknown as RoleResolutionService,
+    );
   });
 
   describe('getProductCompetitiveData', () => {
@@ -98,6 +111,9 @@ describe('CompetitorsService', () => {
       };
 
       prismaMock.product.findUnique.mockResolvedValue(mockProduct);
+      roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
+        new ForbiddenException('You do not have access to this project'),
+      );
 
       await expect(
         service.getProductCompetitiveData('prod-1', 'user-1'),

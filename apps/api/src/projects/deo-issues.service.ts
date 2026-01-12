@@ -366,7 +366,7 @@ export class DeoIssuesService {
 
       // Dedupe unique assets (UEP decision: use composite keys like "products:123")
       const uniqueAssets = new Set<string>();
-      let actionableAssetsSet = new Set<string>();
+      const actionableAssetsSet = new Set<string>();
 
       for (const issue of filteredIssues) {
         const atc = issue.assetTypeCounts;
