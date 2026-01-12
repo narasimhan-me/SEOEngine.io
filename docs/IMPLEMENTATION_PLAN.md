@@ -1621,12 +1621,21 @@ Seeds:
 #### Key Changes
 
 1. **IssueFixKind Type**: Added `IssueFixKind = 'EDIT' | 'AI' | 'DIAGNOSTIC'` to `issue-to-fix-path.ts`. Each issue config can specify `fixKind`; defaults to 'EDIT' if not specified.
-2. **Search & Intent Issue Configs Fixed**: `answer_surface_weakness`, `not_answer_ready`, `weak_intent_match` now have correct `fixAnchorTestId` values matching actual DOM testids. `not_answer_ready` marked as `fixKind: 'DIAGNOSTIC'`.
+2. **Search & Intent Issue Configs**: `answer_surface_weakness`, `not_answer_ready`, `weak_intent_match` use `search-intent-tab-anchor` as canonical anchor. `not_answer_ready` marked as `fixKind: 'DIAGNOSTIC'` with NO `fixAnchorTestId` (no scroll/highlight).
 3. **DIAGNOSTIC Arrival Callout**: Added `diagnostic` variant to `CalloutVariant` type in `issue-fix-anchors.ts`. Shows blue styling with "You're here to review:" message. Includes `showViewRelatedIssues: true` for "View related issues" CTA.
-4. **Product Page Integration**: Reads `fixKind` from URL param + fix config, passes to `getArrivalCalloutContent()`, renders "View related issues" CTA when `showViewRelatedIssues` is true.
-5. **Issues Engine CTA**: `IssueCard` in `IssuesList.tsx` now shows "Review →" CTA for DIAGNOSTIC issues, "Fix →" for others.
+4. **Product Page Integration**: `fixKind` is derived from fix config ONLY (NOT from URL param - URL param is non-authoritative). Renders "View related issues" CTA that routes to Issues Engine with pillar filter.
+5. **Issues Engine CTA**: Issues Engine page (`issues/page.tsx`) derives `fixKind` via `getIssueFixConfig()`, shows "Review" CTA for DIAGNOSTIC issues with blue styling, adds `data-fix-kind` attribute to cards.
 6. **DEO Overview CTA**: "Top Recommended Actions" shows "Review" for DIAGNOSTIC issues, "Fix now" for others.
-7. **URL Param**: `buildIssueFixHref()` now includes `fixKind` param in URL; skips `fixAnchor` for DIAGNOSTIC issues (no scroll/highlight needed).
+7. **URL Navigation**: `buildIssueFixHref()` skips `fixAnchor` param for DIAGNOSTIC issues (no scroll/highlight needed). fixKind is NOT passed in URL.
+
+#### FIXUP-1 (2026-01-12)
+
+Corrections to initial implementation:
+1. **Anchor Integrity**: Search & Intent issues now use `search-intent-tab-anchor` as canonical anchor (not module-specific testids that don't exist).
+2. **fixKind Security**: fixKind is NEVER read from URL params (non-authoritative, spoofable). Always derived from `getIssueFixConfig()`.
+3. **View Related Issues Route**: "View related issues" CTA routes to Issues Engine (`/projects/:id/issues?mode=detected&pillar=:pillarId`), NOT to product `tab=issues`.
+4. **Issues Engine DIAGNOSTIC**: Issues Engine page now derives fixKind from config, shows "Review" CTA for DIAGNOSTIC, suppresses "Fixes one affected product at a time" text.
+5. **Strict Test Assertions**: Playwright tests fail if preconditions aren't met (no no-op guards).
 
 #### Core Files
 
@@ -1874,3 +1883,4 @@ These invariants MUST be preserved during implementation:
 | 6.42 | 2026-01-12 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1**: Entry CTA correctness + explicit API scope payload. (1) `buildPlaybookScopePayload()` now validates PRODUCTS scope refs (rejects handle-prefixed refs) and returns explicit `scopeProductIds` for API calls; (2) Added `getRoutingScopeFromPayload()` helper; (3) Removed positional branching in all API calls (eligibility, estimate, preview, apply) - uses explicit payload; (4) Entry page CTA routes to Playbooks LIST for deterministic selection (not hardcoded run target); (5) Added stable "Open Playbooks" CTA (`data-testid="automation-entry-open-playbooks"`) visible without AI dependency; (6) PEPI1-003 test rewritten: no AI dependency, uses stable CTA, asserts deterministic selection lands on descriptions playbook; (7) Updated manual testing doc Scenario 1.2 to reflect new CTA behavior. |
 | 6.43 | 2026-01-12 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1-AUDIT-1**: Source integrity. (1) Tightened PEPI1-003 to assert `source=entry` is preserved by deterministic selection (not overwritten to `default`); (2) Updated manual testing doc Scenario 1.2 to require `source=entry`; (3) Documented source-preservation guarantee in FOLLOWUP-1 section. |
 | 6.44 | 2026-01-12 | **ISSUE-FIX-KIND-CLARITY-1 COMPLETE**: Diagnostic vs fixable issue CTA semantics. (1) Added `IssueFixKind = 'EDIT' | 'AI' | 'DIAGNOSTIC'` type to issue-to-fix-path.ts; (2) Fixed Search & Intent issue configs with correct fixAnchorTestId values; `not_answer_ready` marked as DIAGNOSTIC; (3) Added `diagnostic` variant to arrival callout (blue styling, "You're here to review:"); (4) Product page passes fixKind to callout, shows "View related issues" CTA for DIAGNOSTIC; (5) Issues Engine IssueCard shows "Review →" for DIAGNOSTIC, "Fix →" for others; (6) DEO Overview "Top Recommended Actions" shows "Review" for DIAGNOSTIC, "Fix now" for others; (7) buildIssueFixHref() adds fixKind param, skips fixAnchor for DIAGNOSTIC; (8) Playwright tests issue-fix-kind-clarity-1.spec.ts (5 tests); (9) Manual testing doc ISSUE-FIX-KIND-CLARITY-1.md. |
+| 6.45 | 2026-01-12 | **ISSUE-FIX-KIND-CLARITY-1-FIXUP-1**: Correctness + security hardening. (1) Search & Intent issues now use `search-intent-tab-anchor` as canonical anchor (module-specific testids don't exist); `not_answer_ready` has NO `fixAnchorTestId` (no scroll/highlight for DIAGNOSTIC); (2) Product page derives `fixKind` from config ONLY - removed URL param reading (non-authoritative, spoofable); skips scroll/highlight for DIAGNOSTIC issues; (3) "View related issues" CTA routes to Issues Engine (`/projects/:id/issues?mode=detected&pillar=:pillarId`), NOT product `tab=issues`; (4) Issues Engine page derives `fixKind` via `getIssueFixConfig()`, shows "Review" CTA with blue styling for DIAGNOSTIC, adds `data-fix-kind` attribute, suppresses "Fixes one affected product..." text for DIAGNOSTIC; (5) Playwright tests hardened with strict assertions (no no-op guards), removed URL `fixKind` param from navigation; (6) Documentation corrected to reflect fixKind security model. |

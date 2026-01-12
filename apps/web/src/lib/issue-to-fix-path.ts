@@ -242,15 +242,16 @@ const ISSUE_FIX_PATH_MAP: Record<string, Omit<IssueFixPath, 'routeTarget'>> = {
 
   // ==========================================================================
   // Search intent issues → Product Search & Intent tab
-  // [ISSUE-FIX-KIND-CLARITY-1] Fixed anchors to match actual DOM testids
+  // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Use search-intent-tab-anchor as canonical anchor
+  // (specific module testids do not exist in the DOM)
   // ==========================================================================
   answer_surface_weakness: {
     fixSurface: IssueFixSurface.PRODUCT_SEARCH_INTENT,
     ctaLabel: 'Review in Search & Intent',
     highlightTarget: 'search-intent-tab-anchor',
     isActionableNow: true,
-    // [ISSUE-FIX-KIND-CLARITY-1] Correct anchor: product-search-intent-answer-surface-module
-    fixAnchorTestId: 'product-search-intent-answer-surface-module',
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Canonical tab anchor (no module-level testid exists)
+    fixAnchorTestId: 'search-intent-tab-anchor',
     nextActionLabel: 'Review answer surface analysis below',
   },
   not_answer_ready: {
@@ -259,8 +260,7 @@ const ISSUE_FIX_PATH_MAP: Record<string, Omit<IssueFixPath, 'routeTarget'>> = {
     ctaLabel: 'Review in Search & Intent',
     highlightTarget: 'search-intent-tab-anchor',
     isActionableNow: true,
-    // [ISSUE-FIX-KIND-CLARITY-1] Correct anchor: product-search-intent-readiness-module
-    fixAnchorTestId: 'product-search-intent-readiness-module',
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] DIAGNOSTIC issues have no fixAnchorTestId (no scroll/highlight)
     nextActionLabel: 'Review answer readiness analysis below',
     fixKind: 'DIAGNOSTIC',
   },
@@ -269,8 +269,8 @@ const ISSUE_FIX_PATH_MAP: Record<string, Omit<IssueFixPath, 'routeTarget'>> = {
     ctaLabel: 'Review in Search & Intent',
     highlightTarget: 'search-intent-tab-anchor',
     isActionableNow: true,
-    // [ISSUE-FIX-KIND-CLARITY-1] Correct anchor: product-search-intent-match-module
-    fixAnchorTestId: 'product-search-intent-match-module',
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Canonical tab anchor (no module-level testid exists)
+    fixAnchorTestId: 'search-intent-tab-anchor',
     nextActionLabel: 'Review search intent match analysis below',
   },
 

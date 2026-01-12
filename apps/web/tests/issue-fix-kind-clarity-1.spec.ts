@@ -1,10 +1,11 @@
 /**
  * [ISSUE-FIX-KIND-CLARITY-1] Playwright Regression Tests
+ * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Strict assertions, no no-op guards
  *
  * Validates the semantic distinction between DIAGNOSTIC vs EDIT/AI fix kinds:
  * 1. DIAGNOSTIC issues show "Review" CTA (not "Fix")
  * 2. DIAGNOSTIC issues show blue "diagnostic" arrival callout (not yellow "anchor not found")
- * 3. DIAGNOSTIC callout shows "View related issues" CTA
+ * 3. DIAGNOSTIC callout shows "View related issues" CTA (routes to Issues Engine)
  * 4. Issues Engine and DEO Overview use correct CTA wording
  *
  * Critical paths: CP-008 (Issue-to-Fix-Path)
@@ -53,6 +54,8 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC issues use Review CTA', () =
    * Given: An issue with fixKind=DIAGNOSTIC (e.g., not_answer_ready)
    * When: User views the issue in the Issues Engine
    * Then: CTA should show "Review" (not "Fix")
+   *
+   * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] No no-op guard - test fails if no DIAGNOSTIC issues
    */
   test('IFKC1-001: DIAGNOSTIC issue shows Review CTA in Issues Engine', async ({ page, request }) => {
     const { projectId } = await authenticatePage(page, request);
@@ -63,21 +66,19 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC issues use Review CTA', () =
     // Wait for page to load
     await page.waitForLoadState('networkidle');
 
-    // Look for issue cards with DIAGNOSTIC fixKind
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] STRICT: Expect at least 1 DIAGNOSTIC card
     const diagnosticCards = page.locator('[data-fix-kind="DIAGNOSTIC"]');
-    const diagnosticCount = await diagnosticCards.count();
+    await expect(diagnosticCards).toHaveCount(1, { timeout: 5000 });
 
-    if (diagnosticCount > 0) {
-      // First DIAGNOSTIC card should show "Review" CTA
-      const firstCard = diagnosticCards.first();
-      const ctaElement = firstCard.getByTestId('issue-card-cta');
+    // First DIAGNOSTIC card should show "Review" CTA
+    const firstCard = diagnosticCards.first();
+    const ctaElement = firstCard.getByTestId('issue-card-cta');
 
-      // CTA should contain "Review" (not "Fix")
-      await expect(ctaElement).toBeVisible();
-      const ctaText = await ctaElement.textContent();
-      expect(ctaText).toContain('Review');
-      expect(ctaText).not.toContain('Fix');
-    }
+    // CTA should contain "Review" (not "Fix")
+    await expect(ctaElement).toBeVisible();
+    const ctaText = await ctaElement.textContent();
+    expect(ctaText).toContain('Review');
+    expect(ctaText).not.toContain('Fix');
   });
 
   /**
@@ -85,7 +86,9 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC issues use Review CTA', () =
    *
    * Given: An issue with fixKind=EDIT (e.g., missing_seo_title)
    * When: User views the issue in the Issues Engine
-   * Then: CTA should show "Fix" (not "Review")
+   * Then: CTA should show "Fix" or similar action label (not "Review")
+   *
+   * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] No no-op guard - test fails if no EDIT issues
    */
   test('IFKC1-002: Non-DIAGNOSTIC issue shows Fix CTA in Issues Engine', async ({ page, request }) => {
     const { projectId } = await authenticatePage(page, request);
@@ -96,20 +99,20 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC issues use Review CTA', () =
     // Wait for page to load
     await page.waitForLoadState('networkidle');
 
-    // Look for issue cards with EDIT fixKind (or no fixKind - defaults to EDIT)
-    const editCards = page.locator('[data-fix-kind="EDIT"], [data-testid="issue-card-actionable"]:not([data-fix-kind="DIAGNOSTIC"])');
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] STRICT: Expect at least 1 EDIT card
+    // Look for cards with EDIT fixKind (seed data should have missing_seo_title)
+    const editCards = page.locator('[data-fix-kind="EDIT"]');
     const editCount = await editCards.count();
+    expect(editCount).toBeGreaterThan(0);
 
-    if (editCount > 0) {
-      // First EDIT card should show "Fix" CTA
-      const firstCard = editCards.first();
-      const ctaElement = firstCard.getByTestId('issue-card-cta');
+    // First EDIT card should show a non-Review CTA
+    const firstCard = editCards.first();
+    const ctaElement = firstCard.getByTestId('issue-card-cta');
 
-      if (await ctaElement.isVisible()) {
-        const ctaText = await ctaElement.textContent();
-        expect(ctaText).toContain('Fix');
-      }
-    }
+    // CTA should be visible and NOT contain "Review"
+    await expect(ctaElement).toBeVisible();
+    const ctaText = await ctaElement.textContent();
+    expect(ctaText).not.toContain('Review');
   });
 });
 
@@ -120,34 +123,37 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC arrival callout semantics', 
    * Given: User navigates to a product with DIAGNOSTIC issue context
    * When: The arrival callout is rendered
    * Then: Callout should be blue (diagnostic variant), not yellow (anchor_not_found)
+   *
+   * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] fixKind is NOT passed via URL (derived from config)
    */
   test('IFKC1-003: DIAGNOSTIC arrival callout uses blue styling', async ({ page, request }) => {
     const { projectId, productIds } = await authenticatePage(page, request);
 
-    if (productIds.length > 0) {
-      // Navigate to product with DIAGNOSTIC issue context (not_answer_ready)
-      await page.goto(
-        `/projects/${projectId}/products/${productIds[0]}?from=issues&issueId=not_answer_ready&tab=search-intent&fixKind=DIAGNOSTIC`
-      );
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] STRICT: Expect at least 1 product
+    expect(productIds.length).toBeGreaterThan(0);
 
-      // Wait for page to load
-      await page.waitForLoadState('networkidle');
+    // Navigate to product with DIAGNOSTIC issue context (not_answer_ready)
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] No fixKind in URL - it's derived from config
+    await page.goto(
+      `/projects/${projectId}/products/${productIds[0]}?from=issues&issueId=not_answer_ready&tab=search-intent`
+    );
 
-      // Check for issue-fix-context-banner
-      const fixBanner = page.getByTestId('issue-fix-context-banner');
+    // Wait for page to load
+    await page.waitForLoadState('networkidle');
 
-      if (await fixBanner.isVisible()) {
-        // Callout should be blue (diagnostic variant), not yellow (anchor_not_found)
-        // Blue class: bg-blue-50 border-blue-200 text-blue-800
-        // Yellow class: bg-yellow-50 border-yellow-200 text-yellow-800
-        const bannerClass = await fixBanner.getAttribute('class');
-        expect(bannerClass).toContain('bg-blue-50');
-        expect(bannerClass).not.toContain('bg-yellow-50');
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] STRICT: Banner must be visible
+    const fixBanner = page.getByTestId('issue-fix-context-banner');
+    await expect(fixBanner).toBeVisible();
 
-        // Callout should say "You're here to review:" (not "You're here to fix:")
-        await expect(fixBanner).toContainText("You're here to review:");
-      }
-    }
+    // Callout should be blue (diagnostic variant), not yellow (anchor_not_found)
+    // Blue class: bg-blue-50 border-blue-200 text-blue-800
+    // Yellow class: bg-yellow-50 border-yellow-200 text-yellow-800
+    const bannerClass = await fixBanner.getAttribute('class');
+    expect(bannerClass).toContain('bg-blue-50');
+    expect(bannerClass).not.toContain('bg-yellow-50');
+
+    // Callout should say "You're here to review:" (not "You're here to fix:")
+    await expect(fixBanner).toContainText("You're here to review:");
   });
 
   /**
@@ -155,33 +161,38 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC arrival callout semantics', 
    *
    * Given: User is on a product page with DIAGNOSTIC issue context
    * When: The arrival callout is rendered
-   * Then: Callout should include "View related issues" link
+   * Then: Callout should include "View related issues" link pointing to Issues Engine
+   *
+   * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Link routes to Issues Engine, not product tab=issues
    */
   test('IFKC1-004: DIAGNOSTIC callout shows View related issues CTA', async ({ page, request }) => {
     const { projectId, productIds } = await authenticatePage(page, request);
 
-    if (productIds.length > 0) {
-      // Navigate to product with DIAGNOSTIC issue context
-      await page.goto(
-        `/projects/${projectId}/products/${productIds[0]}?from=issues&issueId=not_answer_ready&tab=search-intent&fixKind=DIAGNOSTIC`
-      );
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] STRICT: Expect at least 1 product
+    expect(productIds.length).toBeGreaterThan(0);
 
-      // Wait for page to load
-      await page.waitForLoadState('networkidle');
+    // Navigate to product with DIAGNOSTIC issue context
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] No fixKind in URL - it's derived from config
+    await page.goto(
+      `/projects/${projectId}/products/${productIds[0]}?from=issues&issueId=not_answer_ready&tab=search-intent`
+    );
 
-      // Check for issue-fix-context-banner
-      const fixBanner = page.getByTestId('issue-fix-context-banner');
+    // Wait for page to load
+    await page.waitForLoadState('networkidle');
 
-      if (await fixBanner.isVisible()) {
-        // Look for "View related issues" link
-        const viewRelatedLink = page.getByTestId('issue-fix-view-related-issues');
-        await expect(viewRelatedLink).toBeVisible();
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] STRICT: Banner must be visible
+    const fixBanner = page.getByTestId('issue-fix-context-banner');
+    await expect(fixBanner).toBeVisible();
 
-        // Link should point to issues tab
-        const href = await viewRelatedLink.getAttribute('href');
-        expect(href).toContain('tab=issues');
-      }
-    }
+    // Look for "View related issues" link
+    const viewRelatedLink = page.getByTestId('issue-fix-view-related-issues');
+    await expect(viewRelatedLink).toBeVisible();
+
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Link should point to Issues Engine (not tab=issues)
+    const href = await viewRelatedLink.getAttribute('href');
+    expect(href).toContain('/issues');
+    expect(href).toContain('mode=detected');
+    expect(href).toContain('pillar=');
   });
 });
 
@@ -192,6 +203,8 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DEO Overview uses correct CTA wording',
    * Given: DEO Overview has a DIAGNOSTIC issue in "Top Recommended Actions"
    * When: User views the DEO Overview page
    * Then: CTA should show "Review" (not "Fix now")
+   *
+   * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Strict assertion - at least 1 CTA must exist
    */
   test('IFKC1-005: DEO Overview shows correct CTA for DIAGNOSTIC issues', async ({ page, request }) => {
     const { projectId } = await authenticatePage(page, request);
@@ -202,19 +215,18 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DEO Overview uses correct CTA wording',
     // Wait for page to load
     await page.waitForLoadState('networkidle');
 
-    // Look for issue CTAs in Top Recommended Actions
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] STRICT: Expect at least 1 CTA
     const issueCtas = page.getByTestId('deo-overview-issue-cta');
     const ctaCount = await issueCtas.count();
+    expect(ctaCount).toBeGreaterThan(0);
 
-    if (ctaCount > 0) {
-      // Verify each CTA uses appropriate wording
-      // (We can't deterministically know which are DIAGNOSTIC without inspecting data,
-      // but we can verify the CTA text is either "Review" or "Fix now" - not empty or broken)
-      for (let i = 0; i < ctaCount; i++) {
-        const cta = issueCtas.nth(i);
-        const ctaText = await cta.textContent();
-        expect(ctaText === 'Review' || ctaText === 'Fix now').toBe(true);
-      }
+    // Verify each CTA uses appropriate wording
+    // (We can't deterministically know which are DIAGNOSTIC without inspecting data,
+    // but we can verify the CTA text is either "Review" or "Fix now" - not empty or broken)
+    for (let i = 0; i < ctaCount; i++) {
+      const cta = issueCtas.nth(i);
+      const ctaText = await cta.textContent();
+      expect(ctaText === 'Review' || ctaText === 'Fix now').toBe(true);
     }
   });
 });

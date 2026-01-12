@@ -16,6 +16,8 @@ import {
   getActionableIssuesForProduct,
   getIssueFixConfig,
 } from '@/lib/issue-to-fix-path';
+// [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Import ISSUE_UI_CONFIG for pillarId fallback
+import { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
 // [ISSUE-FIX-NAV-AND-ANCHORS-1] Import navigation and anchor utilities
 import {
   getValidatedReturnTo,
@@ -99,8 +101,8 @@ export default function ProductOptimizationPage() {
   const highlightParam = searchParams.get('highlight');
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Read fix anchor from URL
   const fixAnchorParam = searchParams.get('fixAnchor');
-  // [ISSUE-FIX-KIND-CLARITY-1] Read fixKind from URL
-  const fixKindParam = searchParams.get('fixKind') as 'EDIT' | 'AI' | 'DIAGNOSTIC' | null;
+  // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] fixKind is NOT read from URL (non-authoritative)
+  // It is derived from fix path config or issue config only
 
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Validate returnTo using centralized validation
   const validatedNavContext = useMemo(() => {
@@ -720,8 +722,8 @@ export default function ProductOptimizationPage() {
     // Determine the anchor to use (URL param > fix path > config)
     const fixAnchorTestId = fixAnchorParam || fixPath?.fixAnchorTestId || fixConfig?.fixAnchorTestId;
     const nextActionLabel = fixPath?.nextActionLabel || fixConfig?.nextActionLabel;
-    // [ISSUE-FIX-KIND-CLARITY-1] Get fixKind from URL param > fix path > config
-    const fixKind = fixKindParam || fixPath?.fixKind || fixConfig?.fixKind;
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] fixKind from config only (URL param is non-authoritative)
+    const fixKind = fixPath?.fixKind || fixConfig?.fixKind;
 
     // Set the fix context for the banner (even if issue not found - shows "already compliant")
     setIssueFixContext({
@@ -756,6 +758,13 @@ export default function ProductOptimizationPage() {
     issueFixRouteHandledRef.current = true;
 
     // [ISSUE-FIX-NAV-AND-ANCHORS-1] Use centralized scroll/highlight utility
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Skip scroll/highlight for DIAGNOSTIC issues
+    if (fixKind === 'DIAGNOSTIC') {
+      // DIAGNOSTIC issues have no fix anchor to scroll to
+      setIssueFixContext((prev) => prev ? { ...prev, anchorFound: true } : null);
+      return;
+    }
+
     setTimeout(() => {
       const targetAnchor = fixAnchorTestId || highlightParam || fixPath.highlightTarget;
       if (targetAnchor) {
@@ -768,7 +777,7 @@ export default function ProductOptimizationPage() {
         }
       }
     }, 200);
-  }, [isIssueFixMode, issueIdParam, highlightParam, fixAnchorParam, fixKindParam, productIssues, activeTab, loading, router]);
+  }, [isIssueFixMode, issueIdParam, highlightParam, fixAnchorParam, productIssues, activeTab, loading, router]);
 
   // [DRAFT-REVIEW-ISOLATION-1] Drafts tab fetch + edit handlers moved to isolated ProductDraftsTab component
 
@@ -1095,6 +1104,16 @@ export default function ProductOptimizationPage() {
               issuePresentOnSurface: issueFixContext.issuePresentOnSurface ?? true,
               fixKind: issueFixContext.fixKind,
             });
+
+            // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Build Issues Engine URL with pillar for "View related issues"
+            const buildViewRelatedIssuesHref = () => {
+              // Derive pillarId from matching issue (preferred) or ISSUE_UI_CONFIG (fallback)
+              const matchingIssue = productIssues.find((i) => i.id === issueFixContext.issueId);
+              const pillarId = matchingIssue?.pillarId || ISSUE_UI_CONFIG[issueFixContext.issueId]?.pillarId;
+              const baseUrl = `/projects/${projectId}/issues?mode=detected&from=product_details`;
+              return pillarId ? `${baseUrl}&pillar=${pillarId}` : baseUrl;
+            };
+
             return (
               <div
                 data-testid="issue-fix-context-banner"
@@ -1136,10 +1155,10 @@ export default function ProductOptimizationPage() {
                         >
                           ← {issueFixBackLink.label}
                         </Link>
-                        {/* [ISSUE-FIX-KIND-CLARITY-1] View related issues CTA for DIAGNOSTIC */}
+                        {/* [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] View related issues routes to Issues Engine with pillar */}
                         {calloutContent.showViewRelatedIssues && (
                           <Link
-                            href={`/projects/${projectId}/products/${productId}?tab=issues`}
+                            href={buildViewRelatedIssuesHref()}
                             data-testid="issue-fix-view-related-issues"
                             className="inline-flex items-center rounded-md border border-blue-300 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
                           >
