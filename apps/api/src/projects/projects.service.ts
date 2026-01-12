@@ -498,6 +498,7 @@ export class ProjectsService {
     }
 
     // Get all crawl results for the project
+    // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Include Shopify identity fields
     const crawlResults = await this.prisma.crawlResult.findMany({
       where: { projectId },
       select: {
@@ -512,6 +513,12 @@ export class ProjectsService {
         loadTimeMs: true,
         issues: true,
         scannedAt: true,
+        // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Shopify identity fields
+        shopifyResourceType: true,
+        shopifyResourceId: true,
+        shopifyHandle: true,
+        shopifyUpdatedAt: true,
+        shopifySyncedAt: true,
       },
       orderBy: { scannedAt: 'desc' },
     });
@@ -578,27 +585,40 @@ export class ProjectsService {
     // [LIST-ACTIONS-CLARITY-1] Always compute pending draft set for hasDraftPendingApply field
     const crawlPageIdsWithDrafts = await this.getCrawlPageIdsWithPendingDrafts(projectId);
 
-    // Filter out product URLs, deduplicate by URL (keep most recent), and transform results
-    // Since results are ordered by scannedAt desc, first occurrence of each URL is the most recent
-    const seenUrls = new Set<string>();
-    let contentPages = crawlResults
-      .filter((result) => {
-        // Skip if we've already seen this URL (keep only the most recent)
-        if (seenUrls.has(result.url)) {
-          return false;
-        }
-        seenUrls.add(result.url);
+    // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Deduplicate by URL, preferring Shopify-identified rows
+    // Build a map of URL -> best candidate (Shopify-identified preferred, then most recent)
+    const urlToBestResult = new Map<string, typeof crawlResults[0]>();
 
-        try {
-          const urlObj = new URL(result.url);
-          const path = urlObj.pathname.toLowerCase();
-          // Exclude product URLs (Shopify pattern: /products/*)
-          return !path.startsWith('/products/') && path !== '/products';
-        } catch {
-          // If URL parsing fails, include it as misc
-          return true;
+    for (const result of crawlResults) {
+      try {
+        const urlObj = new URL(result.url);
+        const path = urlObj.pathname.toLowerCase();
+        // Exclude product URLs (Shopify pattern: /products/*)
+        if (path.startsWith('/products/') || path === '/products') {
+          continue;
         }
-      })
+      } catch {
+        // If URL parsing fails, include it as misc
+      }
+
+      const existing = urlToBestResult.get(result.url);
+      if (!existing) {
+        urlToBestResult.set(result.url, result);
+      } else {
+        // Prefer Shopify-identified row (has shopifyResourceId) over non-Shopify row
+        const existingIsShopify = !!existing.shopifyResourceId;
+        const currentIsShopify = !!result.shopifyResourceId;
+
+        if (currentIsShopify && !existingIsShopify) {
+          // Current has Shopify identity, existing doesn't - prefer current
+          urlToBestResult.set(result.url, result);
+        }
+        // Otherwise keep existing (already ordered by scannedAt desc, so first is most recent)
+      }
+    }
+
+    // Convert map values to array
+    let contentPages = Array.from(urlToBestResult.values())
       .map((result) => {
         let path = '/';
         try {
@@ -625,6 +645,12 @@ export class ProjectsService {
           scannedAt: result.scannedAt.toISOString(),
           // [LIST-ACTIONS-CLARITY-1] Add hasDraftPendingApply
           hasDraftPendingApply: crawlPageIdsWithDrafts.has(result.id),
+          // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Include Shopify identity fields
+          shopifyResourceType: result.shopifyResourceType,
+          shopifyResourceId: result.shopifyResourceId,
+          shopifyHandle: result.shopifyHandle,
+          shopifyUpdatedAt: result.shopifyUpdatedAt?.toISOString() ?? null,
+          shopifySyncedAt: result.shopifySyncedAt?.toISOString() ?? null,
         };
       });
 

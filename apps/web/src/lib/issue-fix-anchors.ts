@@ -10,6 +10,8 @@
  * 3. Auto-cleanup of highlight after timeout
  */
 
+import type { IssueFixKind } from './issue-to-fix-path';
+
 // =============================================================================
 // Scroll + Highlight
 // =============================================================================
@@ -87,13 +89,15 @@ export function removeHighlight(element: HTMLElement): void {
 
 /**
  * Callout variant types for issue-fix arrival.
+ * [ISSUE-FIX-KIND-CLARITY-1] Added 'diagnostic' variant for informational issues.
  */
 export type CalloutVariant =
   | 'actionable'
   | 'already_compliant'
   | 'external_fix'
   | 'coming_soon'
-  | 'anchor_not_found';
+  | 'anchor_not_found'
+  | 'diagnostic';
 
 /**
  * Input for generating arrival callout content.
@@ -111,6 +115,8 @@ export interface ArrivalCalloutInput {
   isExternalFix?: boolean;
   /** Whether this feature is coming soon */
   isComingSoon?: boolean;
+  /** [ISSUE-FIX-KIND-CLARITY-1] Semantic classification of how this issue is resolved */
+  fixKind?: IssueFixKind;
 }
 
 /**
@@ -127,6 +133,8 @@ export interface ArrivalCalloutOutput {
   showBackLink: boolean;
   /** Whether to show external link (e.g., "Open Shopify") */
   showExternalLink?: boolean;
+  /** [ISSUE-FIX-KIND-CLARITY-1] Whether to show "View related issues" link for DIAGNOSTIC */
+  showViewRelatedIssues?: boolean;
   /** CSS class for the callout container */
   containerClass: string;
 }
@@ -145,6 +153,7 @@ export function getArrivalCalloutContent(input: ArrivalCalloutInput): ArrivalCal
     issuePresentOnSurface,
     isExternalFix,
     isComingSoon,
+    fixKind,
   } = input;
 
   // Coming soon
@@ -181,7 +190,21 @@ export function getArrivalCalloutContent(input: ArrivalCalloutInput): ArrivalCal
     };
   }
 
+  // [ISSUE-FIX-KIND-CLARITY-1] DIAGNOSTIC issues: informational, no direct fix
+  // Never show "Fix surface not available" for DIAGNOSTIC issues
+  if (fixKind === 'DIAGNOSTIC') {
+    return {
+      variant: 'diagnostic',
+      primaryMessage: `You're here to review: ${issueTitle}`,
+      secondaryMessage: nextActionLabel || 'Review the analysis below. No direct fix is available for this issue.',
+      showBackLink: true,
+      showViewRelatedIssues: true,
+      containerClass: 'bg-blue-50 border-blue-200 text-blue-800',
+    };
+  }
+
   // Anchor not found (fix surface not available)
+  // [ISSUE-FIX-KIND-CLARITY-1] Only show for non-DIAGNOSTIC issues
   if (!foundAnchor) {
     return {
       variant: 'anchor_not_found',

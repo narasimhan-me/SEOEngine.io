@@ -5,8 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 
 /**
  * [NAV-IA-CONSISTENCY-1] Automation landing page - redirects to Playbooks.
+ * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Now redirects to canonical /playbooks route.
  *
- * The sidebar "Playbooks" label lands on /automation which redirects to /automation/playbooks.
+ * The sidebar "Playbooks" label lands on /automation which redirects to /playbooks.
  * This maintains route stability while ensuring users always see the playbooks interface.
  */
 export default function AutomationPage() {
@@ -15,8 +16,8 @@ export default function AutomationPage() {
   const projectId = params.id as string;
 
   useEffect(() => {
-    // Redirect to playbooks page
-    router.replace(`/projects/${projectId}/automation/playbooks`);
+    // Redirect to canonical playbooks page
+    router.replace(`/projects/${projectId}/playbooks`);
   }, [router, projectId]);
 
   return (

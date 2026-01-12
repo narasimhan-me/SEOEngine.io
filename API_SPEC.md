@@ -402,6 +402,73 @@ Updates Shopify product SEO fields and local DB.
 
 ---
 
+### POST `/projects/:projectId/shopify/sync-pages` (auth required)
+
+**[SHOPIFY-ASSET-SYNC-COVERAGE-1]** Sync Shopify Pages into CrawlResult table. OWNER-only.
+
+**Response:**
+
+```json
+{
+  "projectId": "string",
+  "fetched": 5,
+  "upserted": 5,
+  "skipped": 0,
+  "completedAt": "2026-01-11T00:00:00.000Z",
+  "warnings": []
+}
+```
+
+**Errors:**
+- `403 Forbidden` – Only project owners can sync Shopify Pages
+- `400 Bad Request` – read_content scope not granted (requires re-install with updated scopes)
+- `404 Not Found` – No Shopify store connected
+
+---
+
+### POST `/projects/:projectId/shopify/sync-collections` (auth required)
+
+**[SHOPIFY-ASSET-SYNC-COVERAGE-1]** Sync Shopify Collections into CrawlResult table. OWNER-only.
+
+**Response:**
+
+```json
+{
+  "projectId": "string",
+  "fetched": 3,
+  "upserted": 3,
+  "skipped": 0,
+  "completedAt": "2026-01-11T00:00:00.000Z",
+  "warnings": []
+}
+```
+
+**Errors:**
+- `403 Forbidden` – Only project owners can sync Shopify Collections
+- `400 Bad Request` – read_content scope not granted (requires re-install with updated scopes)
+- `404 Not Found` – No Shopify store connected
+
+---
+
+### GET `/projects/:projectId/shopify/sync-status` (auth required)
+
+**[SHOPIFY-ASSET-SYNC-COVERAGE-1]** Get sync timestamps for products, pages, and collections. Any project member can read.
+
+**Response:**
+
+```json
+{
+  "projectId": "string",
+  "lastProductsSyncAt": "2026-01-10T00:00:00.000Z",
+  "lastPagesSyncAt": "2026-01-11T00:00:00.000Z",
+  "lastCollectionsSyncAt": "2026-01-11T00:00:00.000Z"
+}
+```
+
+All timestamps are nullable (null if never synced).
+
+---
+
 ## 5. SEO Scan
 
 ### POST `/seo-scan/start` (auth required)

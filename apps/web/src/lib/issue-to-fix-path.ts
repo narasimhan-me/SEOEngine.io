@@ -54,6 +54,19 @@ export const FIX_SURFACE_TO_TAB: Partial<Record<IssueFixSurface, string>> = {
 };
 
 // =============================================================================
+// Issue Fix Kind (Semantic Classification)
+// =============================================================================
+
+/**
+ * [ISSUE-FIX-KIND-CLARITY-1] Semantic classification of how an issue is resolved.
+ *
+ * EDIT - User edits a field directly (e.g., SEO title, description)
+ * AI - User triggers AI generation (e.g., Answers, Playbooks)
+ * DIAGNOSTIC - Issue is informational; no direct fix, just review data
+ */
+export type IssueFixKind = 'EDIT' | 'AI' | 'DIAGNOSTIC';
+
+// =============================================================================
 // Issue Fix Path Shape
 // =============================================================================
 
@@ -81,6 +94,11 @@ export interface IssueFixPath {
    * E.g., "Edit the SEO title below"
    */
   nextActionLabel?: string;
+  /**
+   * [ISSUE-FIX-KIND-CLARITY-1] Semantic classification of how this issue is resolved.
+   * Defaults to 'EDIT' if not specified.
+   */
+  fixKind?: IssueFixKind;
 }
 
 // =============================================================================
@@ -224,30 +242,36 @@ const ISSUE_FIX_PATH_MAP: Record<string, Omit<IssueFixPath, 'routeTarget'>> = {
 
   // ==========================================================================
   // Search intent issues → Product Search & Intent tab
+  // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Use search-intent-tab-anchor as canonical anchor
+  // (specific module testids do not exist in the DOM)
   // ==========================================================================
   answer_surface_weakness: {
     fixSurface: IssueFixSurface.PRODUCT_SEARCH_INTENT,
-    ctaLabel: 'Fix in Search & Intent',
+    ctaLabel: 'Review in Search & Intent',
     highlightTarget: 'search-intent-tab-anchor',
     isActionableNow: true,
-    fixAnchorTestId: 'product-search-intent-module',
-    nextActionLabel: 'Review search intent alignment below',
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Canonical tab anchor (no module-level testid exists)
+    fixAnchorTestId: 'search-intent-tab-anchor',
+    nextActionLabel: 'Review answer surface analysis below',
   },
   not_answer_ready: {
     fixSurface: IssueFixSurface.PRODUCT_SEARCH_INTENT,
-    ctaLabel: 'Fix in Search & Intent',
+    // [ISSUE-FIX-KIND-CLARITY-1] DIAGNOSTIC: no direct fix, just review
+    ctaLabel: 'Review in Search & Intent',
     highlightTarget: 'search-intent-tab-anchor',
     isActionableNow: true,
-    fixAnchorTestId: 'product-search-intent-module',
-    nextActionLabel: 'Make this product answer-ready below',
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] DIAGNOSTIC issues have no fixAnchorTestId (no scroll/highlight)
+    nextActionLabel: 'Review answer readiness analysis below',
+    fixKind: 'DIAGNOSTIC',
   },
   weak_intent_match: {
     fixSurface: IssueFixSurface.PRODUCT_SEARCH_INTENT,
-    ctaLabel: 'Fix in Search & Intent',
+    ctaLabel: 'Review in Search & Intent',
     highlightTarget: 'search-intent-tab-anchor',
     isActionableNow: true,
-    fixAnchorTestId: 'product-search-intent-module',
-    nextActionLabel: 'Improve search intent match below',
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Canonical tab anchor (no module-level testid exists)
+    fixAnchorTestId: 'search-intent-tab-anchor',
+    nextActionLabel: 'Review search intent match analysis below',
   },
 
   // ==========================================================================
@@ -476,8 +500,13 @@ export function buildIssueFixHref(params: {
       queryParams.set('highlight', fixPath.highlightTarget);
     }
     // [ISSUE-FIX-NAV-AND-ANCHORS-1] Add fixAnchor for scroll/highlight
-    if (fixPath.fixAnchorTestId) {
+    // [ISSUE-FIX-KIND-CLARITY-1] Skip fixAnchor for DIAGNOSTIC issues (no scroll/highlight needed)
+    if (fixPath.fixAnchorTestId && fixPath.fixKind !== 'DIAGNOSTIC') {
       queryParams.set('fixAnchor', fixPath.fixAnchorTestId);
+    }
+    // [ISSUE-FIX-KIND-CLARITY-1] Pass fixKind to arrival callout
+    if (fixPath.fixKind) {
+      queryParams.set('fixKind', fixPath.fixKind);
     }
     // [ISSUE-FIX-NAV-AND-ANCHORS-1] Add returnTo navigation context
     if (returnTo) {

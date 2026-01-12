@@ -68,11 +68,12 @@ export const FROM_CONTEXT_ROUTES: Record<FromContext, (projectId: string) => str
   overview: (projectId) => `/projects/${projectId}/overview`,
   deo: (projectId) => `/projects/${projectId}/deo`,
   product_issues: (projectId) => `/projects/${projectId}/issues`,
-  playbook_preview: (projectId) => `/projects/${projectId}/automation/playbooks`,
-  playbook_results: (projectId) => `/projects/${projectId}/automation/playbooks`,
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Use canonical /playbooks routes
+  playbook_preview: (projectId) => `/projects/${projectId}/playbooks`,
+  playbook_results: (projectId) => `/projects/${projectId}/playbooks`,
   asset_list: (projectId) => `/projects/${projectId}/products`,
   issues_engine: (projectId) => `/projects/${projectId}/issues`,
-  playbook: (projectId) => `/projects/${projectId}/automation/playbooks`,
+  playbook: (projectId) => `/projects/${projectId}/playbooks`,
 };
 
 // =============================================================================

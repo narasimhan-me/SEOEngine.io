@@ -3,14 +3,15 @@
 import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { projectsApi, type RoleCapabilities } from '@/lib/api';
+import { projectsApi, shopifyApi, type RoleCapabilities } from '@/lib/api';
 import { ListControls } from '@/components/common/ListControls';
 import { RowStatusChip } from '@/components/common/RowStatusChip';
 import { ScopeBanner } from '@/components/common/ScopeBanner';
 import {
   resolveRowNextAction,
   buildAssetIssuesHref,
-  buildReviewDraftsHref,
+  buildAssetWorkspaceHref,
+  buildAssetDraftsTabHref,
   type ResolvedRowNextAction,
   type NavigationContext,
 } from '@/lib/list-actions-clarity';
@@ -63,6 +64,14 @@ export default function CollectionsAssetListPage() {
 
   // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Role capabilities state
   const [capabilities, setCapabilities] = useState<RoleCapabilities | null>(null);
+
+  // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Sync status state
+  const [syncStatus, setSyncStatus] = useState<{
+    lastCollectionsSyncAt: string | null;
+    shopifyConnected: boolean;
+  }>({ lastCollectionsSyncAt: null, shopifyConnected: false });
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   // Get filter from URL (from Work Queue click-through)
   const actionKeyFilter = searchParams.get('actionKey') as WorkQueueRecommendedActionKey | null;
@@ -200,10 +209,48 @@ export default function CollectionsAssetListPage() {
     }
   }, [projectId]);
 
+  // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Fetch sync status
+  const fetchSyncStatus = useCallback(async () => {
+    try {
+      const integrationStatus = await projectsApi.integrationStatus(projectId);
+      const shopifyConnected = integrationStatus?.shopify?.connected ?? false;
+
+      if (shopifyConnected) {
+        const status = await shopifyApi.getSyncStatus(projectId);
+        setSyncStatus({
+          lastCollectionsSyncAt: status.lastCollectionsSyncAt,
+          shopifyConnected: true,
+        });
+      } else {
+        setSyncStatus({ lastCollectionsSyncAt: null, shopifyConnected: false });
+      }
+    } catch (err) {
+      console.error('Error fetching sync status:', err);
+      setSyncStatus({ lastCollectionsSyncAt: null, shopifyConnected: false });
+    }
+  }, [projectId]);
+
+  // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Sync collections handler
+  const handleSyncCollections = useCallback(async () => {
+    setSyncing(true);
+    setSyncError(null);
+    try {
+      await shopifyApi.syncCollections(projectId);
+      await fetchSyncStatus();
+      await fetchCollections();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Sync failed';
+      setSyncError(message);
+    } finally {
+      setSyncing(false);
+    }
+  }, [projectId, fetchSyncStatus, fetchCollections]);
+
   useEffect(() => {
     fetchCollections();
     fetchCapabilities();
-  }, [fetchCollections, fetchCapabilities]);
+    fetchSyncStatus();
+  }, [fetchCollections, fetchCapabilities, fetchSyncStatus]);
 
   // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Removed bulk selection handlers (handleSelectAll, handleSelectOne, handleBulkFix)
   // Bulk actions now route through Playbooks/Work Queue directly
@@ -231,11 +278,13 @@ export default function CollectionsAssetListPage() {
     };
 
     for (const collection of collections) {
-      // For Collections, "View issues" links to Issues Engine filtered by this asset
-      const openHref = buildAssetIssuesHref(projectId, 'collections', collection.id, navContext);
+      // [DRAFT-LIST-PARITY-1] Build separate hrefs for asset detail and Issues Engine
+      const openHref = buildAssetWorkspaceHref(projectId, 'collections', collection.id, navContext);
+      const issuesHref = buildAssetIssuesHref(projectId, 'collections', collection.id, navContext);
 
       // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Pass server-derived blockedByApproval
-      // [DRAFT-ROUTING-INTEGRITY-1] Pass collection.id as assetId for scoped Draft Review
+      // [DRAFT-LIST-PARITY-1] Pass issuesHref for "View issues" + "Open" dual actions
+      // [DRAFT-LIST-PARITY-1] reviewDraftsHref now routes to asset detail Drafts tab (NOT Playbooks)
       const resolved = resolveRowNextAction({
         assetType: 'collections',
         hasDraftPendingApply: collection.hasDraftPendingApply,
@@ -244,7 +293,8 @@ export default function CollectionsAssetListPage() {
         canRequestApproval: capabilities?.canRequestApproval ?? false,
         fixNextHref: null, // Collections don't have deterministic "Fix next"
         openHref,
-        reviewDraftsHref: buildReviewDraftsHref(projectId, 'collections', collection.id, navContext),
+        issuesHref,
+        reviewDraftsHref: buildAssetDraftsTabHref(projectId, 'collections', collection.id, navContext),
       });
 
       map.set(collection.id, resolved);
@@ -280,12 +330,52 @@ export default function CollectionsAssetListPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Collections</h1>
+          {/* [SHOPIFY-ASSET-SYNC-COVERAGE-1] Label under heading */}
+          <p className="text-xs text-gray-400 mt-0.5">Shopify Collections</p>
           <p className="mt-1 text-sm text-gray-500">
             {collections.length} collections • {criticalCount} critical • {needsAttentionCount} need attention
           </p>
         </div>
-        {/* [LIST-ACTIONS-CLARITY-1 FIXUP-1] Removed bulk selection CTA - bulk actions route through Playbooks/Work Queue */}
+        {/* [SHOPIFY-ASSET-SYNC-COVERAGE-1] Sync button (OWNER-only) */}
+        {/* [SHOPIFY-ASSET-SYNC-COVERAGE-1-FIXUP-1] Visible but disabled when Shopify not connected */}
+        {capabilities?.canModifySettings && (
+          <button
+            onClick={handleSyncCollections}
+            disabled={syncing || !syncStatus.shopifyConnected}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {syncing ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Syncing...
+              </>
+            ) : (
+              'Sync Collections'
+            )}
+          </button>
+        )}
       </div>
+
+      {/* [SHOPIFY-ASSET-SYNC-COVERAGE-1] Sync status line */}
+      {syncStatus.shopifyConnected && (
+        <div className="text-sm text-gray-500">
+          {syncStatus.lastCollectionsSyncAt ? (
+            <>Last synced: {new Date(syncStatus.lastCollectionsSyncAt).toLocaleString()}</>
+          ) : (
+            <>Not yet synced. Click Sync to import from Shopify.</>
+          )}
+        </div>
+      )}
+
+      {/* [SHOPIFY-ASSET-SYNC-COVERAGE-1] Sync error */}
+      {syncError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {syncError}
+        </div>
+      )}
 
       {/* [ROUTE-INTEGRITY-1] [SCOPE-CLARITY-1] ScopeBanner - show when from context is present */}
       {/* Uses normalized scope chips for explicit scope display */}
@@ -365,9 +455,18 @@ export default function CollectionsAssetListPage() {
                 </div>
               </div>
             ) : (
-              // Unfiltered empty state
+              // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Unfiltered empty state - distinguish never synced vs synced but empty
               <div className="px-4 py-8 text-center text-sm text-gray-500">
-                No collections found
+                {syncStatus.shopifyConnected && !syncStatus.lastCollectionsSyncAt ? (
+                  <>
+                    <p>Not yet synced.</p>
+                    <p className="mt-2">Click &quot;Sync Collections&quot; to import collections from Shopify.</p>
+                  </>
+                ) : syncStatus.shopifyConnected && syncStatus.lastCollectionsSyncAt ? (
+                  <p>No collections found in Shopify for this store.</p>
+                ) : (
+                  <p>No collections found</p>
+                )}
               </div>
             )
           ) : (

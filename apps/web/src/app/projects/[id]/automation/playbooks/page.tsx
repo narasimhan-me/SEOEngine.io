@@ -36,6 +36,20 @@ import type { Product } from '@/lib/products';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 // [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI boundary note for human-only review and AI generation surfaces
 import { DraftAiBoundaryNote } from '@/components/common/DraftAiBoundaryNote';
+// [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Centralized routing helper
+// [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Added buildPlaybookScopePayload
+// [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Added getRoutingScopeFromPayload
+import {
+  buildPlaybookRunHref,
+  buildPlaybookRunHrefOrNull,
+  buildPlaybookScopePayload,
+  getRoutingScopeFromPayload,
+  navigateToPlaybookRun,
+  navigateToPlaybookRunReplace,
+  isValidPlaybookId,
+  type PlaybookSource,
+  type PlaybookScopePayload,
+} from '@/lib/playbooks-routing';
 
 type PlaybookId = 'missing_seo_title' | 'missing_seo_description';
 
@@ -177,17 +191,21 @@ export default function AutomationPlaybooksPage() {
   const projectId = params.id as string;
   const feedback = useFeedback();
 
-  const source = searchParams.get('source');
-  const showNextDeoWinBanner = source === 'next_deo_win';
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Deep-link support: read playbookId from path param or query param
+  // Path param is preferred (canonical route: /playbooks/:playbookId)
+  const pathPlaybookId = params.playbookId as string | undefined;
+  const queryPlaybookId = searchParams.get('playbookId') as PlaybookId | null;
+  const urlPlaybookId = (pathPlaybookId || queryPlaybookId) as PlaybookId | null;
+  const validUrlPlaybookId = isValidPlaybookId(urlPlaybookId) ? urlPlaybookId : null;
+
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Read step and source from URL
+  // NOTE: urlSource must be defined before showNextDeoWinBanner to avoid TDZ
+  const urlSource = (searchParams.get('source') || 'default') as PlaybookSource;
+
+  // Next DEO Win banner visibility (must come after urlSource)
+  const showNextDeoWinBanner = urlSource === 'next_deo_win';
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [cnabDismissed, setCnabDismissed] = useState(false);
-
-  // Deep-link support: read playbookId from URL query params
-  const urlPlaybookId = searchParams.get('playbookId') as PlaybookId | null;
-  const validUrlPlaybookId =
-    urlPlaybookId === 'missing_seo_title' || urlPlaybookId === 'missing_seo_description'
-      ? urlPlaybookId
-      : null;
 
   // [DRAFT-ROUTING-INTEGRITY-1] Draft Review mode: mode=drafts activates asset-scoped draft review
   const urlMode = searchParams.get('mode');
@@ -209,12 +227,15 @@ export default function AutomationPlaybooksPage() {
     return 'PRODUCTS'; // Default to PRODUCTS
   })();
 
-  // [ASSETS-PAGES-1.1-UI-HARDEN] Deep-link support: read scopeAssetRefs from URL (comma-separated)
-  const urlScopeAssetRefs = searchParams.get('scopeAssetRefs');
+  // [ASSETS-PAGES-1.1-UI-HARDEN] Deep-link support: read scopeAssetRefs from URL (repeated query params and/or comma-separated)
   const parsedScopeAssetRefs = useMemo(() => {
-    if (!urlScopeAssetRefs) return [];
-    return urlScopeAssetRefs.split(',').map((ref) => ref.trim()).filter((ref) => ref.length > 0);
-  }, [urlScopeAssetRefs]);
+    const rawValues = searchParams.getAll('scopeAssetRefs');
+    if (!rawValues || rawValues.length === 0) return [];
+    return rawValues
+      .flatMap((value) => value.split(','))
+      .map((ref) => ref.trim())
+      .filter((ref) => ref.length > 0);
+  }, [searchParams]);
 
   // [ASSETS-PAGES-1.1-UI-HARDEN] Deterministic safety check: PAGES/COLLECTIONS require scopeAssetRefs
   const isMissingScopeForPagesCollections =
@@ -254,13 +275,32 @@ export default function AutomationPlaybooksPage() {
   const [planId, setPlanId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [issues, setIssues] = useState<DeoIssue[]>([]);
-  // Initialize from URL param if valid, otherwise default to 'missing_seo_title'
-  const [selectedPlaybookId, setSelectedPlaybookId] =
-    useState<PlaybookId | null>(validUrlPlaybookId ?? 'missing_seo_title');
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] URL is source of truth (path param preferred). No implicit default.
+  // Default selection navigates via router.replace, not setState. Setter intentionally unused.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [selectedPlaybookId, _setSelectedPlaybookId] =
+    useState<PlaybookId | null>(validUrlPlaybookId);
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Track eligibility counts for default selection + banner visibility
+  const [titlesEligibleCount, setTitlesEligibleCount] = useState<number | null>(null);
+  const [descriptionsEligibleCount, setDescriptionsEligibleCount] = useState<number | null>(null);
   // [ASSETS-PAGES-1.1] Track current asset type from URL deep link (read-only from URL params)
   const [currentAssetType] = useState<AutomationAssetType>(validUrlAssetType);
   // [ASSETS-PAGES-1.1-UI-HARDEN] Track scope asset refs from URL deep link (read-only)
   const [currentScopeAssetRefs] = useState<string[]>(parsedScopeAssetRefs);
+
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Explicit scope payload for API calls + routing
+  // This payload includes scopeProductIds for API calls (when PRODUCTS scope)
+  const playbookScopePayload: PlaybookScopePayload = useMemo(
+    () => buildPlaybookScopePayload(currentAssetType, currentScopeAssetRefs),
+    [currentAssetType, currentScopeAssetRefs],
+  );
+
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Routing-only subset (excludes scopeProductIds)
+  const playbookRunScopeForUrl = useMemo(
+    () => getRoutingScopeFromPayload(playbookScopePayload),
+    [playbookScopePayload],
+  );
+
   const [flowState, setFlowState] = useState<PlaybookFlowState>('PREVIEW_READY');
   const [previewSamples, setPreviewSamples] = useState<PreviewSample[]>([]);
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -575,16 +615,21 @@ export default function AutomationPlaybooksPage() {
     enabledRulesLabels.length > 0 ? `Rules: ${enabledRulesLabels.join(', ')}` : 'Rules: None';
 
   /**
-   * CNAB-1: Calculate contextual banner state based on playbook summaries.
+   * CNAB-1: Calculate contextual banner state based on canonical eligibility counts.
+   * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Strict: eligibility counts must be known (not null)
+   * to show any CNAB banner. No fallback to issue counts - hide banner if eligibility unknown.
    */
   const cnabState = useMemo((): PlaybooksCnabState => {
-    const titlesSummary = playbookSummaries.find((s) => s.id === 'missing_seo_title');
-    const descriptionsSummary = playbookSummaries.find((s) => s.id === 'missing_seo_description');
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] If eligibility counts are unknown, hide CNAB
+    // Do not fall back to issue counts - that violates deterministic banner derivation
+    if (titlesEligibleCount === null || descriptionsEligibleCount === null) {
+      return null;
+    }
 
-    const titlesAffected = titlesSummary?.totalAffected ?? 0;
-    const descriptionsAffected = descriptionsSummary?.totalAffected ?? 0;
+    const titlesAffected = titlesEligibleCount;
+    const descriptionsAffected = descriptionsEligibleCount;
 
-    // All done - no issues for either playbook
+    // All done - no eligible items for either playbook
     if (titlesAffected === 0 && descriptionsAffected === 0) {
       return 'ALL_DONE';
     }
@@ -609,7 +654,7 @@ export default function AutomationPlaybooksPage() {
       return 'TITLES_DONE_DESCRIPTIONS_REMAIN';
     }
 
-    // Has issues but hasn't run any playbook successfully yet
+    // Has eligible items but hasn't run any playbook successfully yet
     if (titlesAffected > 0 || descriptionsAffected > 0) {
       // Only show this if we're not in a completed state
       if (flowState !== 'APPLY_COMPLETED' && flowState !== 'APPLY_STOPPED') {
@@ -618,7 +663,26 @@ export default function AutomationPlaybooksPage() {
     }
 
     return null;
-  }, [playbookSummaries, selectedPlaybookId, applyResult, flowState]);
+  }, [titlesEligibleCount, descriptionsEligibleCount, selectedPlaybookId, applyResult, flowState]);
+
+  /**
+   * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Primary CNAB playbook for NO_RUN_WITH_ISSUES banner.
+   * Derived from eligibility counts: max wins; tie → descriptions.
+   * Returns null if both counts are 0 (banner should not render).
+   */
+  const primaryCnabPlaybookId = useMemo((): PlaybookId | null => {
+    if (titlesEligibleCount === null || descriptionsEligibleCount === null) {
+      return null;
+    }
+    if (titlesEligibleCount === 0 && descriptionsEligibleCount === 0) {
+      return null;
+    }
+    // Max wins; tie → prefer descriptions
+    if (descriptionsEligibleCount >= titlesEligibleCount) {
+      return 'missing_seo_description';
+    }
+    return 'missing_seo_title';
+  }, [titlesEligibleCount, descriptionsEligibleCount]);
 
   const markRulesEdited = () => {
     setRules((previous) => ({
@@ -648,17 +712,16 @@ export default function AutomationPlaybooksPage() {
         setLoadingEstimate(true);
         setError('');
         setEstimate(null);
-        // [ASSETS-PAGES-1.1-UI-HARDEN] Pass assetType and scopeAssetRefs to estimate endpoint
+        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Use explicit scope payload (removes positional branching)
         const effectiveAssetType = assetType ?? currentAssetType;
         const effectiveScopeAssetRefs = scopeAssetRefs ?? currentScopeAssetRefs;
+        const payload = buildPlaybookScopePayload(effectiveAssetType, effectiveScopeAssetRefs);
         const data = (await projectsApi.automationPlaybookEstimate(
           projectId,
           playbookId,
-          undefined, // scopeProductIds - only for PRODUCTS
-          effectiveAssetType !== 'PRODUCTS' ? effectiveAssetType : undefined,
-          effectiveAssetType !== 'PRODUCTS' && effectiveScopeAssetRefs.length > 0
-            ? effectiveScopeAssetRefs
-            : undefined,
+          payload.scopeProductIds,
+          payload.assetType,
+          payload.assetType !== 'PRODUCTS' ? payload.scopeAssetRefs : undefined,
         )) as PlaybookEstimate;
         setEstimate(data);
       } catch (err: unknown) {
@@ -724,16 +787,15 @@ export default function AutomationPlaybooksPage() {
         // 3. Generates AI suggestions for sample products
         // 4. Returns everything needed for the apply flow
         // [ASSETS-PAGES-1.1-UI-HARDEN] Pass assetType and scopeAssetRefs
+        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Use explicit scope payload
         const previewResult = await projectsApi.previewAutomationPlaybook(
           projectId,
           playbookId,
           rules.enabled ? rules : undefined,
           3, // sampleSize
-          undefined, // scopeProductIds - only for PRODUCTS
-          currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined,
-          currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0
-            ? currentScopeAssetRefs
-            : undefined,
+          playbookScopePayload.scopeProductIds,
+          playbookScopePayload.assetType,
+          playbookScopePayload.assetType !== 'PRODUCTS' ? playbookScopePayload.scopeAssetRefs : undefined,
         ) as {
           projectId: string;
           playbookId: string;
@@ -771,17 +833,18 @@ export default function AutomationPlaybooksPage() {
 
         setPreviewSamples(samples);
 
-        // Update estimate with scopeId and rulesHash from preview
-        if (estimate) {
-          setEstimate({
-            ...estimate,
-            scopeId: previewResult.scopeId,
-            rulesHash: previewResult.rulesHash,
-          });
-        } else {
-          // Fetch fresh estimate to get scopeId and rulesHash
+        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Fix state-integrity bug: estimate must match playbook
+        // Only merge scopeId/rulesHash if estimate belongs to the same playbook
+        if (!estimate || estimate.playbookId !== playbookId) {
+          // Fetch fresh estimate for this playbook
           await loadEstimate(playbookId);
         }
+        // Update the estimate with scopeId and rulesHash from preview (after confirming it's for the right playbook)
+        setEstimate((prev) =>
+          prev && prev.playbookId === playbookId
+            ? { ...prev, scopeId: previewResult.scopeId, rulesHash: previewResult.rulesHash }
+            : prev,
+        );
 
         if (samples.length > 0) {
           setPreviewRulesVersion(rulesVersion);
@@ -929,20 +992,15 @@ export default function AutomationPlaybooksPage() {
   ]);
 
   const handleSelectPlaybook = (playbookId: PlaybookId) => {
-    setSelectedPlaybookId(playbookId);
-    const summary = playbookSummaries.find((s) => s.id === playbookId);
-    if ((summary?.totalAffected ?? 0) === 0) {
-      setFlowState('ELIGIBILITY_EMPTY');
-    } else {
-      setFlowState('PREVIEW_READY');
-    }
-    setPreviewSamples([]);
-    setEstimate(null);
-    setApplyResult(null);
-    setConfirmApply(false);
-    setApplyInlineError(null);
-    // [ROLES-3 FIXUP-3 PATCH 4.6] Reset stale approval state when switching playbooks
-    setPendingApproval(null);
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Route canonically via URL, no local selection state
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use shared scope args via playbookRunScopeForUrl
+    navigateToPlaybookRun(router, {
+      projectId,
+      playbookId,
+      step: 'preview',
+      source: 'tile',
+      ...playbookRunScopeForUrl,
+    });
   };
 
   const handleGeneratePreview = async () => {
@@ -1109,18 +1167,16 @@ export default function AutomationPlaybooksPage() {
         }
       }
 
-      // [ASSETS-PAGES-1.1-UI-HARDEN] Pass assetType and scopeAssetRefs to apply
+      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Use explicit scope payload
       const data = await projectsApi.applyAutomationPlaybook(
         projectId,
         selectedPlaybookId,
         estimate.scopeId,
         estimate.rulesHash,
-        undefined, // scopeProductIds - only for PRODUCTS
+        playbookScopePayload.scopeProductIds,
         approvalIdToUse,
-        currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined,
-        currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0
-          ? currentScopeAssetRefs
-          : undefined,
+        playbookScopePayload.assetType,
+        playbookScopePayload.assetType !== 'PRODUCTS' ? playbookScopePayload.scopeAssetRefs : undefined,
       );
       setApplyResult(data);
       if (data.updatedCount > 0) {
@@ -1500,6 +1556,126 @@ export default function AutomationPlaybooksPage() {
     previewRulesVersion,
   ]);
 
+  /**
+   * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Effect 1: Eligibility counts fetch.
+   *
+   * Runs for all non-draft-mode entrypoints (including /playbooks/:playbookId).
+   * Fetches NON-AI estimates for both playbooks to populate titlesEligibleCount
+   * and descriptionsEligibleCount for banner visibility.
+   *
+   * On failure: sets both counts to null (banner hidden). Does NOT set selectedPlaybookId.
+   */
+  useEffect(() => {
+    // Skip in Draft Review mode
+    if (isDraftReviewMode) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function fetchEligibilityCounts() {
+      try {
+        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Use explicit scope payload (reused for both estimates)
+        const scopePayload = buildPlaybookScopePayload(currentAssetType, currentScopeAssetRefs);
+        // Fetch estimates for both playbooks (NON-AI - just counts)
+        const [titleEst, descEst] = await Promise.all([
+          projectsApi.automationPlaybookEstimate(
+            projectId,
+            'missing_seo_title',
+            scopePayload.scopeProductIds,
+            scopePayload.assetType,
+            scopePayload.assetType !== 'PRODUCTS' ? scopePayload.scopeAssetRefs : undefined,
+          ) as Promise<{ totalAffectedProducts: number }>,
+          projectsApi.automationPlaybookEstimate(
+            projectId,
+            'missing_seo_description',
+            scopePayload.scopeProductIds,
+            scopePayload.assetType,
+            scopePayload.assetType !== 'PRODUCTS' ? scopePayload.scopeAssetRefs : undefined,
+          ) as Promise<{ totalAffectedProducts: number }>,
+        ]);
+
+        if (cancelled) return;
+
+        const titleCount = titleEst.totalAffectedProducts ?? 0;
+        const descCount = descEst.totalAffectedProducts ?? 0;
+
+        // Update eligibility counts for banner visibility
+        setTitlesEligibleCount(titleCount);
+        setDescriptionsEligibleCount(descCount);
+      } catch (err) {
+        console.error('[PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Failed to fetch eligibility counts:', err);
+        // [FIXUP-1] On failure: set both to null, do NOT set selectedPlaybookId
+        if (!cancelled) {
+          setTitlesEligibleCount(null);
+          setDescriptionsEligibleCount(null);
+        }
+      }
+    }
+
+    fetchEligibilityCounts();
+
+    return () => {
+      cancelled = true;
+    };
+    // Run on mount only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Effect 2: Deterministic default selection.
+   *
+   * Runs when:
+   * - Not in Draft Review mode
+   * - No playbookId in URL (path or query)
+   * - Both eligibility counts are known (not null)
+   *
+   * Navigates via router.replace to canonical run URL.
+   * If both counts are 0, stays neutral (no navigation).
+   */
+  useEffect(() => {
+    // Skip in Draft Review mode
+    if (isDraftReviewMode) {
+      return;
+    }
+
+    // Skip if playbookId already in URL
+    if (validUrlPlaybookId) {
+      return;
+    }
+
+    // Wait until eligibility counts are fetched (not null)
+    if (titlesEligibleCount === null || descriptionsEligibleCount === null) {
+      return;
+    }
+
+    // Determine which playbook to select
+    let chosenPlaybook: PlaybookId | null = null;
+
+    if (descriptionsEligibleCount > titlesEligibleCount) {
+      chosenPlaybook = 'missing_seo_description';
+    } else if (titlesEligibleCount > descriptionsEligibleCount) {
+      chosenPlaybook = 'missing_seo_title';
+    } else if (titlesEligibleCount > 0 || descriptionsEligibleCount > 0) {
+      // Tie with at least one > 0 → prefer descriptions
+      chosenPlaybook = 'missing_seo_description';
+    }
+    // else: both 0 → stay neutral (no navigation)
+
+    if (chosenPlaybook) {
+      // Navigate via replace to avoid history pollution
+      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use shared scope args via playbookRunScopeForUrl
+      navigateToPlaybookRunReplace(router, {
+        projectId,
+        playbookId: chosenPlaybook,
+        step: 'preview',
+        source: urlSource,
+        ...playbookRunScopeForUrl,
+      });
+    }
+    // Run when eligibility counts become available
+  }, [isDraftReviewMode, validUrlPlaybookId, titlesEligibleCount, descriptionsEligibleCount, router, projectId, urlSource, playbookRunScopeForUrl]);
+
   const handleNavigate = useCallback(
     (href: string) => {
       if (
@@ -1866,11 +2042,12 @@ export default function AutomationPlaybooksPage() {
           </li>
           <li>/</li>
           <li>
+            {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2] Breadcrumb uses canonical /playbooks route */}
             <Link
-              href={`/projects/${projectId}/automation`}
+              href={`/projects/${projectId}/playbooks`}
               onClick={(event) => {
                 event.preventDefault();
-                handleNavigate(`/projects/${projectId}/automation`);
+                handleNavigate(`/projects/${projectId}/playbooks`);
               }}
               className="hover:text-gray-700"
             >
@@ -1911,12 +2088,12 @@ export default function AutomationPlaybooksPage() {
       </div>
 
       {/* [ROUTE-INTEGRITY-1 FIXUP-1] [SCOPE-CLARITY-1] ScopeBanner - moved after header for visual hierarchy */}
-      {/* Uses normalized scope chips for explicit scope display */}
+      {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Uses canonical /playbooks route */}
       <ScopeBanner
         from={fromParam}
-        returnTo={validatedReturnTo || `/projects/${projectId}/automation/playbooks`}
+        returnTo={validatedReturnTo || `/projects/${projectId}/playbooks`}
         showingText={scopeBannerShowingText}
-        onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/automation/playbooks`)}
+        onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/playbooks`)}
         chips={normalizedScopeResult.chips}
         wasAdjusted={normalizedScopeResult.wasAdjusted}
       />
@@ -2092,7 +2269,8 @@ export default function AutomationPlaybooksPage() {
       )}
 
       {/* CNAB-1: Contextual Next-Action Banners */}
-      {cnabState === 'NO_RUN_WITH_ISSUES' && !cnabDismissed && (
+      {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] NO_RUN_WITH_ISSUES uses primaryCnabPlaybookId for routing */}
+      {cnabState === 'NO_RUN_WITH_ISSUES' && !cnabDismissed && primaryCnabPlaybookId && (
         <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
@@ -2116,29 +2294,38 @@ export default function AutomationPlaybooksPage() {
                   Next step: Fix missing SEO metadata
                 </h3>
                 <p className="mt-1 text-xs text-blue-800">
-                  Use Playbooks to safely generate missing SEO descriptions in bulk.
-                  Start with a preview — nothing is applied until you confirm.
+                  {primaryCnabPlaybookId === 'missing_seo_title'
+                    ? 'Use Playbooks to safely generate missing SEO titles in bulk. Start with a preview — nothing is applied until you confirm.'
+                    : 'Use Playbooks to safely generate missing SEO descriptions in bulk. Start with a preview — nothing is applied until you confirm.'}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={async () => {
+                    onClick={() => {
+                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Route to primaryCnabPlaybookId, no AI side effects
+                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use guardrail + shared scope args
+                      const href = buildPlaybookRunHrefOrNull({
+                        projectId,
+                        playbookId: primaryCnabPlaybookId,
+                        step: 'preview',
+                        source: 'banner',
+                        ...playbookRunScopeForUrl,
+                      });
+                      if (!href) return;
                       setCnabDismissed(true);
-                      setSelectedPlaybookId('missing_seo_description');
-                      const ok = await loadPreview('missing_seo_description');
-                      if (ok) {
-                        setFlowState('PREVIEW_GENERATED');
-                      }
+                      handleNavigate(href);
                     }}
                     className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
-                    Preview missing SEO descriptions
+                    {primaryCnabPlaybookId === 'missing_seo_title'
+                      ? 'Preview missing SEO titles'
+                      : 'Preview missing SEO descriptions'}
                   </button>
                   <button
                     type="button"
                     onClick={() => {
                       setCnabDismissed(true);
-                      handleNavigate(`/projects/${projectId}/automation`);
+                      handleNavigate(`/projects/${projectId}/playbooks`);
                     }}
                     className="inline-flex items-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
                   >
@@ -2200,13 +2387,19 @@ export default function AutomationPlaybooksPage() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={async () => {
+                    onClick={() => {
+                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Route canonically, no AI side effects
+                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use guardrail + shared scope args
+                      const href = buildPlaybookRunHrefOrNull({
+                        projectId,
+                        playbookId: 'missing_seo_title',
+                        step: 'preview',
+                        source: 'banner',
+                        ...playbookRunScopeForUrl,
+                      });
+                      if (!href) return;
                       setCnabDismissed(true);
-                      setSelectedPlaybookId('missing_seo_title');
-                      const ok = await loadPreview('missing_seo_title');
-                      if (ok) {
-                        setFlowState('PREVIEW_GENERATED');
-                      }
+                      handleNavigate(href);
                     }}
                     className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
@@ -2280,13 +2473,19 @@ export default function AutomationPlaybooksPage() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={async () => {
+                    onClick={() => {
+                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Route canonically, no AI side effects
+                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use guardrail + shared scope args
+                      const href = buildPlaybookRunHrefOrNull({
+                        projectId,
+                        playbookId: 'missing_seo_description',
+                        step: 'preview',
+                        source: 'banner',
+                        ...playbookRunScopeForUrl,
+                      });
+                      if (!href) return;
                       setCnabDismissed(true);
-                      setSelectedPlaybookId('missing_seo_description');
-                      const ok = await loadPreview('missing_seo_description');
-                      if (ok) {
-                        setFlowState('PREVIEW_GENERATED');
-                      }
+                      handleNavigate(href);
                     }}
                     className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
@@ -2421,9 +2620,11 @@ export default function AutomationPlaybooksPage() {
           >
             Activity
           </Link>
+          {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2] Use canonical /playbooks, highlight on both routes */}
           <Link
-            href={`/projects/${projectId}/automation/playbooks`}
+            href={`/projects/${projectId}/playbooks`}
             className={`border-b-2 px-1 pb-2 ${
+              pathname?.startsWith(`/projects/${projectId}/playbooks`) ||
               pathname?.startsWith(`/projects/${projectId}/automation/playbooks`)
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -2918,8 +3119,15 @@ export default function AutomationPlaybooksPage() {
                             {sample.productTitle}
                           </span>
                           {(() => {
-                            // [TRUST-ROUTING-1] Build preview context URL for product deep link
-                            const returnToPath = `/projects/${projectId}/automation/playbooks?playbookId=${selectedPlaybookId}${currentAssetType !== 'PRODUCTS' ? `&assetType=${currentAssetType}` : ''}${currentScopeAssetRefs.length > 0 ? `&scopeAssetRefs=${encodeURIComponent(currentScopeAssetRefs.join(','))}` : ''}`;
+                            // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Build preview context URL for product deep link with canonical route
+                            // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use shared scope args via playbookRunScopeForUrl
+                            const returnToPath = buildPlaybookRunHref({
+                              projectId,
+                              playbookId: selectedPlaybookId!,
+                              step: 'preview',
+                              source: 'product_details',
+                              ...playbookRunScopeForUrl,
+                            });
                             const previewContextUrl = `/projects/${projectId}/products/${sample.productId}?from=playbook_preview&playbookId=${selectedPlaybookId}&returnTo=${encodeURIComponent(returnToPath)}`;
                             return (
                               <Link
@@ -3554,8 +3762,15 @@ export default function AutomationPlaybooksPage() {
                                     <span className="text-gray-500">—</span>
                                   ) : (
                                     (() => {
-                                      // [TRUST-ROUTING-1] Build results context URL for product deep link
-                                      const returnToPath = `/projects/${projectId}/automation/playbooks?playbookId=${selectedPlaybookId}${currentAssetType !== 'PRODUCTS' ? `&assetType=${currentAssetType}` : ''}${currentScopeAssetRefs.length > 0 ? `&scopeAssetRefs=${encodeURIComponent(currentScopeAssetRefs.join(','))}` : ''}`;
+                                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Build results context URL for product deep link with canonical route
+                                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use shared scope args via playbookRunScopeForUrl
+                                      const returnToPath = buildPlaybookRunHref({
+                                        projectId,
+                                        playbookId: selectedPlaybookId!,
+                                        step: 'preview',
+                                        source: 'product_details',
+                                        ...playbookRunScopeForUrl,
+                                      });
                                       const resultsContextUrl = `/projects/${projectId}/products/${item.productId}?from=playbook_results&playbookId=${selectedPlaybookId}&returnTo=${encodeURIComponent(returnToPath)}`;
                                       return (
                                         <Link
@@ -3621,10 +3836,11 @@ export default function AutomationPlaybooksPage() {
                     >
                       Sync to Shopify
                     </button>
+                    {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2] Use canonical /playbooks route */}
                     <button
                       type="button"
                       onClick={() =>
-                        handleNavigate(`/projects/${projectId}/automation/playbooks`)
+                        handleNavigate(`/projects/${projectId}/playbooks`)
                       }
                       className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
                     >

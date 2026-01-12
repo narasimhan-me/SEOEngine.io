@@ -2149,6 +2149,22 @@ export const shopifyApi = {
     fetchWithAuth(`/shopify/ensure-metafield-definitions?projectId=${projectId}`, {
       method: 'POST',
     }),
+
+  // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Project-scoped sync endpoints
+  syncPages: (projectId: string) =>
+    fetchWithAuth(`/projects/${projectId}/shopify/sync-pages`, {
+      method: 'POST',
+    }),
+
+  syncCollections: (projectId: string) =>
+    fetchWithAuth(`/projects/${projectId}/shopify/sync-collections`, {
+      method: 'POST',
+    }),
+
+  getSyncStatus: (projectId: string) =>
+    fetchWithAuth(`/projects/${projectId}/shopify/sync-status`, {
+      method: 'GET',
+    }),
 };
 
 /**

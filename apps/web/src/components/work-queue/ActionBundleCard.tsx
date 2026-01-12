@@ -7,6 +7,8 @@ import type { WorkQueueActionBundle, WorkQueueViewer } from '@/lib/work-queue';
 import { getReturnToFromCurrentUrl, withRouteContext } from '@/lib/route-context';
 // [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI boundary note for generation entrypoints
 import { DraftAiBoundaryNote } from '@/components/common/DraftAiBoundaryNote';
+// [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Use centralized routing helper
+import { buildPlaybookRunHref, isValidPlaybookId, type PlaybookId } from '@/lib/playbooks-routing';
 
 interface ActionBundleCardProps {
   bundle: WorkQueueActionBundle;
@@ -549,27 +551,31 @@ function getCTARoute(bundle: WorkQueueActionBundle, projectId: string): string {
     return `/projects/${projectId}/insights/geo-insights`;
   }
 
-  // [ASSETS-PAGES-1.1] Route AUTOMATION_RUN bundles to playbooks with asset-scoped deep link
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Route AUTOMATION_RUN bundles via buildPlaybookRunHref
   if (bundleType === 'AUTOMATION_RUN') {
-    // Extract playbookId from recommendedActionKey (e.g., 'FIX_MISSING_METADATA' maps to playbook)
-    // For now, use the bundleId to determine the playbook since it contains the playbookId
+    // Extract playbookId from bundleId
     // Bundle ID format: AUTOMATION_RUN:FIX_MISSING_METADATA:{playbookId}:{assetType}:{projectId}
     const bundleIdParts = bundle.bundleId.split(':');
-    const playbookId = bundleIdParts.length >= 3 ? bundleIdParts[2] : 'missing_seo_title';
-    const assetType = bundleIdParts.length >= 4 ? bundleIdParts[3] : 'PRODUCTS';
+    const parsedPlaybookId = bundleIdParts.length >= 3 ? bundleIdParts[2] : null;
+    const assetType = (bundleIdParts.length >= 4 ? bundleIdParts[3] : 'PRODUCTS') as 'PRODUCTS' | 'PAGES' | 'COLLECTIONS';
 
-    const params = new URLSearchParams();
-    params.set('playbookId', playbookId);
-    if (assetType !== 'PRODUCTS') {
-      params.set('assetType', assetType);
+    // [FIXUP-1] Validate playbookId - default to missing_seo_title if invalid
+    const playbookId: PlaybookId = isValidPlaybookId(parsedPlaybookId)
+      ? parsedPlaybookId
+      : 'missing_seo_title';
 
-      // [ASSETS-PAGES-1.1-UI-HARDEN] Include scopeAssetRefs for PAGES/COLLECTIONS
-      const scopeRefs = extractScopeAssetRefs(bundle);
-      if (scopeRefs && scopeRefs.length > 0) {
-        params.set('scopeAssetRefs', scopeRefs.join(','));
-      }
-    }
-    return `/projects/${projectId}/automation/playbooks?${params.toString()}`;
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Extract scopeAssetRefs for all asset types
+    const scopeAssetRefs = extractScopeAssetRefs(bundle) ?? undefined;
+    const hasScope = !!scopeAssetRefs && scopeAssetRefs.length > 0;
+
+    return buildPlaybookRunHref({
+      projectId,
+      playbookId,
+      step: 'preview',
+      source: 'work_queue',
+      assetType: hasScope ? assetType : undefined,
+      scopeAssetRefs: hasScope ? scopeAssetRefs : undefined,
+    });
   }
 
   // [COUNT-INTEGRITY-1 PATCH 5.2] All ASSET_OPTIMIZATION bundles route to Issues with click-integrity filters

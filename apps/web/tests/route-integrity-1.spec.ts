@@ -210,8 +210,8 @@ test.describe('ROUTE-INTEGRITY-1: Work Queue -> Playbooks -> Back', () => {
     await page.goto(`/projects/${projectId}/work-queue`);
     await page.waitForLoadState('networkidle');
 
-    // [FIXUP-2] Target Work Queue card CTA with playbookId param for strict matching
-    const playbooksLink = page.locator('a[href*="/automation/playbooks?playbookId="]').first();
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Target Work Queue card CTA with canonical route
+    const playbooksLink = page.locator('a[href*="/playbooks/"][href*="step=preview"]').first();
     await expect(playbooksLink).toBeVisible();
 
     await playbooksLink.click();
@@ -247,8 +247,8 @@ test.describe('ROUTE-INTEGRITY-1: Work Queue -> Playbooks -> Back', () => {
     await page.goto(`/projects/${projectId}/work-queue`);
     await page.waitForLoadState('networkidle');
 
-    // [FIXUP-2] Target Work Queue card CTA with playbookId param
-    const playbooksLink = page.locator('a[href*="/automation/playbooks?playbookId="]').first();
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Target Work Queue card CTA with canonical route
+    const playbooksLink = page.locator('a[href*="/playbooks/"][href*="step=preview"]').first();
     await expect(playbooksLink).toBeVisible();
     await playbooksLink.click();
     await page.waitForLoadState('networkidle');
@@ -259,9 +259,9 @@ test.describe('ROUTE-INTEGRITY-1: Work Queue -> Playbooks -> Back', () => {
     await clearButton.click();
     await page.waitForLoadState('networkidle');
 
-    // Assert URL is base /automation/playbooks with no from/returnTo
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Assert URL is base /playbooks with no from/returnTo
     const clearedUrl = page.url();
-    expect(clearedUrl).toContain('/automation/playbooks');
+    expect(clearedUrl).toContain('/playbooks');
     expect(clearedUrl).not.toContain('from=');
     expect(clearedUrl).not.toContain('returnTo=');
   });

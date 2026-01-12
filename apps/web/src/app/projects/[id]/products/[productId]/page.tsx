@@ -16,6 +16,8 @@ import {
   getActionableIssuesForProduct,
   getIssueFixConfig,
 } from '@/lib/issue-to-fix-path';
+// [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Import ISSUE_UI_CONFIG for pillarId fallback
+import { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
 // [ISSUE-FIX-NAV-AND-ANCHORS-1] Import navigation and anchor utilities
 import {
   getValidatedReturnTo,
@@ -54,7 +56,8 @@ import {
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { useUnsavedChanges } from '@/components/unsaved-changes/UnsavedChangesProvider';
 // [DRAFT-REVIEW-ISOLATION-1] Import isolated non-AI Draft Review component
-import { ProductDraftsTab } from '@/components/products/ProductDraftsTab';
+// [DRAFT-FIELD-COVERAGE-1] Generalized to AssetDraftsTab supporting Products, Pages, Collections
+import { AssetDraftsTab } from '@/components/products/AssetDraftsTab';
 
 // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft state types
 type MetadataDraftState = 'unsaved' | 'saved' | 'applied';
@@ -98,6 +101,8 @@ export default function ProductOptimizationPage() {
   const highlightParam = searchParams.get('highlight');
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Read fix anchor from URL
   const fixAnchorParam = searchParams.get('fixAnchor');
+  // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] fixKind is NOT read from URL (non-authoritative)
+  // It is derived from fix path config or issue config only
 
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Validate returnTo using centralized validation
   const validatedNavContext = useMemo(() => {
@@ -105,6 +110,7 @@ export default function ProductOptimizationPage() {
   }, [projectId, searchParams]);
 
   // [TRUST-ROUTING-1] Backward compat: Validate returnTo for playbook paths
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Expand to accept both /automation/playbooks and canonical /playbooks
   const validatedReturnTo = useMemo(() => {
     // First try the new validation
     if (validatedNavContext.returnTo) {
@@ -113,13 +119,16 @@ export default function ProductOptimizationPage() {
     // Fallback to legacy playbook-only validation
     if (!returnToParam) return null;
     const decoded = decodeURIComponent(returnToParam);
-    // Only allow navigation to playbooks path for this project
-    if (decoded.startsWith(`/projects/${projectId}/automation/playbooks`)) {
+    // Allow navigation to playbooks path for this project (both legacy and canonical)
+    if (
+      decoded.startsWith(`/projects/${projectId}/automation/playbooks`) ||
+      decoded.startsWith(`/projects/${projectId}/playbooks`)
+    ) {
       return decoded;
     }
-    // Fallback to safe default
+    // Fallback to safe default using canonical route
     return playbookIdParam
-      ? `/projects/${projectId}/automation/playbooks?playbookId=${playbookIdParam}`
+      ? `/projects/${projectId}/playbooks/${playbookIdParam}?step=preview&source=product_details`
       : null;
   }, [validatedNavContext.returnTo, returnToParam, projectId, playbookIdParam]);
 
@@ -157,6 +166,7 @@ export default function ProductOptimizationPage() {
 
   // [ISSUE-TO-FIX-PATH-1] Issue fix context state
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Extended with nextActionLabel and anchor result
+  // [ISSUE-FIX-KIND-CLARITY-1] Extended with fixKind
   const [issueFixContext, setIssueFixContext] = useState<{
     issueId: string;
     issueTitle: string;
@@ -165,6 +175,7 @@ export default function ProductOptimizationPage() {
     fixAnchorTestId?: string;
     anchorFound?: boolean;
     issuePresentOnSurface?: boolean;
+    fixKind?: 'EDIT' | 'AI' | 'DIAGNOSTIC';
   } | null>(null);
   const issueFixRouteHandledRef = useRef(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -711,6 +722,8 @@ export default function ProductOptimizationPage() {
     // Determine the anchor to use (URL param > fix path > config)
     const fixAnchorTestId = fixAnchorParam || fixPath?.fixAnchorTestId || fixConfig?.fixAnchorTestId;
     const nextActionLabel = fixPath?.nextActionLabel || fixConfig?.nextActionLabel;
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] fixKind from config only (URL param is non-authoritative)
+    const fixKind = fixPath?.fixKind || fixConfig?.fixKind;
 
     // Set the fix context for the banner (even if issue not found - shows "already compliant")
     setIssueFixContext({
@@ -721,6 +734,7 @@ export default function ProductOptimizationPage() {
       fixAnchorTestId,
       issuePresentOnSurface,
       anchorFound: false, // Will be updated after scroll attempt
+      fixKind,
     });
 
     // If issue not found on this product, we still show the banner but with "already compliant" message
@@ -744,6 +758,13 @@ export default function ProductOptimizationPage() {
     issueFixRouteHandledRef.current = true;
 
     // [ISSUE-FIX-NAV-AND-ANCHORS-1] Use centralized scroll/highlight utility
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Skip scroll/highlight for DIAGNOSTIC issues
+    if (fixKind === 'DIAGNOSTIC') {
+      // DIAGNOSTIC issues have no fix anchor to scroll to
+      setIssueFixContext((prev) => prev ? { ...prev, anchorFound: true } : null);
+      return;
+    }
+
     setTimeout(() => {
       const targetAnchor = fixAnchorTestId || highlightParam || fixPath.highlightTarget;
       if (targetAnchor) {
@@ -1058,9 +1079,10 @@ export default function ProductOptimizationPage() {
                     The preview session has expired or this product was not in the sample set.
                     Return to Playbooks to regenerate the preview.
                   </p>
+                  {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2] Use canonical /playbooks/:playbookId route */}
                   <div className="mt-3">
                     <Link
-                      href={validatedReturnTo || `/projects/${projectId}/automation/playbooks?playbookId=${playbookIdParam}`}
+                      href={validatedReturnTo || (playbookIdParam ? `/projects/${projectId}/playbooks/${playbookIdParam}?step=preview&source=product_details` : `/projects/${projectId}/playbooks`)}
                       className="inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700"
                     >
                       ← Back to preview
@@ -1073,13 +1095,25 @@ export default function ProductOptimizationPage() {
 
           {/* [ISSUE-TO-FIX-PATH-1] Issue Fix Context Banner */}
           {/* [ISSUE-FIX-NAV-AND-ANCHORS-1] Enhanced with callout content + returnTo back link */}
+          {/* [ISSUE-FIX-KIND-CLARITY-1] Pass fixKind to arrival callout */}
           {isIssueFixMode && issueFixContext && (() => {
             const calloutContent = getArrivalCalloutContent({
               issueTitle: issueFixContext.issueTitle,
               nextActionLabel: issueFixContext.nextActionLabel,
               foundAnchor: issueFixContext.anchorFound ?? false,
               issuePresentOnSurface: issueFixContext.issuePresentOnSurface ?? true,
+              fixKind: issueFixContext.fixKind,
             });
+
+            // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Build Issues Engine URL with pillar for "View related issues"
+            const buildViewRelatedIssuesHref = () => {
+              // Derive pillarId from matching issue (preferred) or ISSUE_UI_CONFIG (fallback)
+              const matchingIssue = productIssues.find((i) => i.id === issueFixContext.issueId);
+              const pillarId = matchingIssue?.pillarId || ISSUE_UI_CONFIG[issueFixContext.issueId]?.pillarId;
+              const baseUrl = `/projects/${projectId}/issues?mode=detected&from=product_details`;
+              return pillarId ? `${baseUrl}&pillar=${pillarId}` : baseUrl;
+            };
+
             return (
               <div
                 data-testid="issue-fix-context-banner"
@@ -1114,13 +1148,23 @@ export default function ProductOptimizationPage() {
                       </p>
                     )}
                     {calloutContent.showBackLink && (
-                      <div className="mt-3">
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
                         <Link
                           href={issueFixBackLink.href}
                           className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-700"
                         >
                           ← {issueFixBackLink.label}
                         </Link>
+                        {/* [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] View related issues routes to Issues Engine with pillar */}
+                        {calloutContent.showViewRelatedIssues && (
+                          <Link
+                            href={buildViewRelatedIssuesHref()}
+                            data-testid="issue-fix-view-related-issues"
+                            className="inline-flex items-center rounded-md border border-blue-300 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
+                          >
+                            View related issues
+                          </Link>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1389,10 +1433,12 @@ export default function ProductOptimizationPage() {
                 {/* [DRAFT-REVIEW-ISOLATION-1] Drafts Tab - Isolated Non-AI Draft Review Component */}
                 {/* Conditionally mounted to match standard tab behavior (no state preservation across tab switches) */}
                 {/* [DRAFT-DIFF-CLARITY-1] Pass current/live field values for diff display */}
+                {/* [DRAFT-FIELD-COVERAGE-1] AssetDraftsTab now supports Products, Pages, Collections */}
                 {activeTab === 'drafts' && (
-                  <ProductDraftsTab
+                  <AssetDraftsTab
                     projectId={projectId}
-                    productId={productId}
+                    assetType="products"
+                    assetId={productId}
                     currentFieldValues={{
                       seoTitle: product?.seoTitle,
                       seoDescription: product?.seoDescription,

@@ -1864,4 +1864,546 @@ export class E2eTestkitController {
       draftSeoDescription,
     };
   }
+
+  // ==========================================================================
+  // [DRAFT-FIELD-COVERAGE-1] E2E Seeds
+  // ==========================================================================
+
+  /**
+   * POST /testkit/e2e/seed-draft-field-coverage-1
+   *
+   * [DRAFT-FIELD-COVERAGE-1] Seed for Draft Review parity across asset types.
+   *
+   * Creates a project with:
+   * - Products: 3 products matching DDC1 scenarios (diff / explicit clear / no draft generated yet)
+   * - Pages (static): 3 crawlResults under /pages/... for the same 3 scenarios
+   * - Collections: 3 crawlResults under /collections/... same scenarios
+   *
+   * Each asset type has:
+   * - Asset 1: Has live SEO and a draft with different value (for diff display testing)
+   * - Asset 2: Has live SEO and a draft explicitly cleared (for "Draft will clear" testing)
+   * - Asset 3: Has live SEO and no draft generated yet (for "No draft generated" testing)
+   *
+   * Returns:
+   * - projectId
+   * - accessToken
+   * - Products: productDiffId, productClearId, productNoDraftId
+   * - Pages: pageDiffId, pageClearId, pageNoDraftId
+   * - Collections: collectionDiffId, collectionClearId, collectionNoDraftId
+   * - Live/draft strings for assertions
+   * - Counts: { affectedTotal: 3, draftGenerated: 2, noSuggestionCount: 1 }
+   */
+  @Post('seed-draft-field-coverage-1')
+  async seedDraftFieldCoverage1() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    const baseUrl = 'https://test-shop.myshopify.com';
+
+    // Locked test strings for assertions
+    const liveSeoTitle = 'Original Live SEO Title for DFC1 Testing';
+    const liveSeoDescription = 'This is the original live SEO description for DFC1 testing.';
+    const draftSeoTitle = 'Updated Draft SEO Title - DFC1 AI Generated';
+    const draftSeoDescription = 'This is the new AI-generated draft SEO description for DFC1 testing.';
+
+    // ========================================================================
+    // PRODUCTS (3 scenarios)
+    // ========================================================================
+
+    // Product 1: Diff scenario - has live + different draft
+    const productDiff = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'dfc1-product-diff',
+        title: 'DFC1 Product With Diff',
+        description: 'Product with live SEO and different draft values.',
+        handle: 'dfc1-product-diff',
+        seoTitle: liveSeoTitle,
+        seoDescription: liveSeoDescription,
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    // Product 2: Clear scenario - has live + explicitly cleared draft
+    const productClear = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'dfc1-product-clear',
+        title: 'DFC1 Product With Cleared Draft',
+        description: 'Product with live SEO and explicitly cleared draft.',
+        handle: 'dfc1-product-clear',
+        seoTitle: 'Live Title That Will Be Cleared',
+        seoDescription: 'This description will be cleared when the empty draft is applied.',
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    // Product 3: No draft scenario - has live + empty raw/final
+    const productNoDraft = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: 'dfc1-product-no-draft',
+        title: 'DFC1 Product No Draft Generated',
+        description: 'Product with live SEO but no draft generated yet.',
+        handle: 'dfc1-product-no-draft',
+        seoTitle: 'Live Title With No Draft',
+        seoDescription: 'This description has no corresponding draft generated.',
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    // Create AutomationPlaybookDraft for products
+    await this.prisma.automationPlaybookDraft.create({
+      data: {
+        projectId: project.id,
+        playbookId: 'missing_seo_title',
+        scopeId: `project:${project.id}:products`,
+        rulesHash: 'dfc1-products-hash',
+        status: 'READY',
+        createdByUserId: user.id,
+        sampleProductIds: [productDiff.id, productClear.id, productNoDraft.id] as unknown as any,
+        draftItems: [
+          // Product 1: Diff scenario
+          {
+            productId: productDiff.id,
+            field: 'seoTitle',
+            rawSuggestion: draftSeoTitle,
+            finalSuggestion: draftSeoTitle,
+            ruleWarnings: [],
+          },
+          {
+            productId: productDiff.id,
+            field: 'seoDescription',
+            rawSuggestion: draftSeoDescription,
+            finalSuggestion: draftSeoDescription,
+            ruleWarnings: [],
+          },
+          // Product 2: Explicitly cleared
+          {
+            productId: productClear.id,
+            field: 'seoDescription',
+            rawSuggestion: 'AI generated this but user cleared it',
+            finalSuggestion: '', // Explicitly cleared
+            ruleWarnings: [],
+          },
+          // Product 3: No draft generated yet (both empty)
+          {
+            productId: productNoDraft.id,
+            field: 'seoTitle',
+            rawSuggestion: '', // Empty - no draft generated
+            finalSuggestion: '', // Empty - no draft generated
+            ruleWarnings: [],
+          },
+        ] as unknown as any,
+        counts: {
+          affectedTotal: 3,
+          draftGenerated: 2,
+          noSuggestionCount: 1,
+        } as unknown as any,
+        rules: { enabled: true } as unknown as any,
+        appliedAt: null,
+        expiresAt: null,
+      },
+    });
+
+    // ========================================================================
+    // PAGES (3 scenarios - static pages)
+    // ========================================================================
+
+    // Page 1: Diff scenario
+    const pageDiff = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/pages/dfc1-diff-page`,
+        statusCode: 200,
+        title: liveSeoTitle,
+        metaDescription: liveSeoDescription,
+        h1: 'DFC1 Diff Page',
+        wordCount: 300,
+        loadTimeMs: 200,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Page 2: Clear scenario
+    const pageClear = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/pages/dfc1-clear-page`,
+        statusCode: 200,
+        title: 'Page Title That Will Be Cleared',
+        metaDescription: 'This description will be cleared when applied.',
+        h1: 'DFC1 Clear Page',
+        wordCount: 250,
+        loadTimeMs: 180,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Page 3: No draft scenario
+    const pageNoDraft = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/pages/dfc1-no-draft-page`,
+        statusCode: 200,
+        title: 'Page Title With No Draft',
+        metaDescription: 'This description has no corresponding draft.',
+        h1: 'DFC1 No Draft Page',
+        wordCount: 200,
+        loadTimeMs: 150,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Create AutomationPlaybookDraft for pages
+    await this.prisma.automationPlaybookDraft.create({
+      data: {
+        projectId: project.id,
+        playbookId: 'missing_seo_description',
+        scopeId: `project:${project.id}:pages`,
+        rulesHash: 'dfc1-pages-hash',
+        status: 'READY',
+        createdByUserId: user.id,
+        sampleProductIds: [] as unknown as any,
+        draftItems: [
+          // Page 1: Diff scenario
+          {
+            crawlResultId: pageDiff.id,
+            field: 'seoTitle',
+            rawSuggestion: draftSeoTitle,
+            finalSuggestion: draftSeoTitle,
+            ruleWarnings: [],
+          },
+          {
+            crawlResultId: pageDiff.id,
+            field: 'seoDescription',
+            rawSuggestion: draftSeoDescription,
+            finalSuggestion: draftSeoDescription,
+            ruleWarnings: [],
+          },
+          // Page 2: Explicitly cleared
+          {
+            crawlResultId: pageClear.id,
+            field: 'seoDescription',
+            rawSuggestion: 'AI generated but cleared',
+            finalSuggestion: '', // Explicitly cleared
+            ruleWarnings: [],
+          },
+          // Page 3: No draft generated (both empty)
+          {
+            crawlResultId: pageNoDraft.id,
+            field: 'seoTitle',
+            rawSuggestion: '',
+            finalSuggestion: '',
+            ruleWarnings: [],
+          },
+        ] as unknown as any,
+        counts: {
+          affectedTotal: 3,
+          draftGenerated: 2,
+          noSuggestionCount: 1,
+        } as unknown as any,
+        rules: { enabled: true } as unknown as any,
+        appliedAt: null,
+        expiresAt: null,
+      },
+    });
+
+    // ========================================================================
+    // COLLECTIONS (3 scenarios)
+    // ========================================================================
+
+    // Collection 1: Diff scenario
+    const collectionDiff = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/collections/dfc1-diff-collection`,
+        statusCode: 200,
+        title: liveSeoTitle,
+        metaDescription: liveSeoDescription,
+        h1: 'DFC1 Diff Collection',
+        wordCount: 350,
+        loadTimeMs: 220,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Collection 2: Clear scenario
+    const collectionClear = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/collections/dfc1-clear-collection`,
+        statusCode: 200,
+        title: 'Collection Title That Will Be Cleared',
+        metaDescription: 'This description will be cleared when applied.',
+        h1: 'DFC1 Clear Collection',
+        wordCount: 280,
+        loadTimeMs: 190,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Collection 3: No draft scenario
+    const collectionNoDraft = await this.prisma.crawlResult.create({
+      data: {
+        projectId: project.id,
+        url: `${baseUrl}/collections/dfc1-no-draft-collection`,
+        statusCode: 200,
+        title: 'Collection Title With No Draft',
+        metaDescription: 'This description has no corresponding draft.',
+        h1: 'DFC1 No Draft Collection',
+        wordCount: 230,
+        loadTimeMs: 170,
+        issues: [],
+        scannedAt: new Date(),
+      },
+    });
+
+    // Create AutomationPlaybookDraft for collections
+    await this.prisma.automationPlaybookDraft.create({
+      data: {
+        projectId: project.id,
+        playbookId: 'missing_seo_description',
+        scopeId: `project:${project.id}:collections`,
+        rulesHash: 'dfc1-collections-hash',
+        status: 'READY',
+        createdByUserId: user.id,
+        sampleProductIds: [] as unknown as any,
+        draftItems: [
+          // Collection 1: Diff scenario
+          {
+            crawlResultId: collectionDiff.id,
+            field: 'seoTitle',
+            rawSuggestion: draftSeoTitle,
+            finalSuggestion: draftSeoTitle,
+            ruleWarnings: [],
+          },
+          {
+            crawlResultId: collectionDiff.id,
+            field: 'seoDescription',
+            rawSuggestion: draftSeoDescription,
+            finalSuggestion: draftSeoDescription,
+            ruleWarnings: [],
+          },
+          // Collection 2: Explicitly cleared
+          {
+            crawlResultId: collectionClear.id,
+            field: 'seoDescription',
+            rawSuggestion: 'AI generated but cleared',
+            finalSuggestion: '', // Explicitly cleared
+            ruleWarnings: [],
+          },
+          // Collection 3: No draft generated (both empty)
+          {
+            crawlResultId: collectionNoDraft.id,
+            field: 'seoTitle',
+            rawSuggestion: '',
+            finalSuggestion: '',
+            ruleWarnings: [],
+          },
+        ] as unknown as any,
+        counts: {
+          affectedTotal: 3,
+          draftGenerated: 2,
+          noSuggestionCount: 1,
+        } as unknown as any,
+        rules: { enabled: true } as unknown as any,
+        appliedAt: null,
+        expiresAt: null,
+      },
+    });
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      projectId: project.id,
+      accessToken,
+      // Product IDs
+      productDiffId: productDiff.id,
+      productClearId: productClear.id,
+      productNoDraftId: productNoDraft.id,
+      // Page IDs
+      pageDiffId: pageDiff.id,
+      pageClearId: pageClear.id,
+      pageNoDraftId: pageNoDraft.id,
+      // Collection IDs
+      collectionDiffId: collectionDiff.id,
+      collectionClearId: collectionClear.id,
+      collectionNoDraftId: collectionNoDraft.id,
+      // Live/draft strings for assertions
+      liveSeoTitle,
+      liveSeoDescription,
+      draftSeoTitle,
+      draftSeoDescription,
+      // Counts for reference
+      counts: {
+        affectedTotal: 3,
+        draftGenerated: 2,
+        noSuggestionCount: 1,
+      },
+    };
+  }
+
+  /**
+   * POST /testkit/e2e/seed-playbook-entrypoint-integrity-1
+   *
+   * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Seed data for playbook entrypoint routing tests.
+   *
+   * Creates:
+   * - Pro-plan user + project
+   * - Products such that:
+   *   - Titles playbook eligibleCount = 0 (all products have seoTitle)
+   *   - Descriptions playbook eligibleCount > 0 (at least 1 product missing seoDescription)
+   *
+   * This setup verifies that the banner correctly shows "Preview missing SEO descriptions"
+   * and clicking it routes to the descriptions playbook, not titles.
+   *
+   * Returns:
+   * - user (id, email)
+   * - projectId
+   * - productIds[]
+   * - accessToken
+   */
+  @Post('seed-playbook-entrypoint-integrity-1')
+  async seedPlaybookEntrypointIntegrity1() {
+    this.ensureE2eMode();
+
+    const { user } = await createTestUser(this.prisma as any, {
+      plan: 'pro',
+    });
+
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+
+    // Create products manually to control SEO field presence precisely:
+    // - All products have seoTitle (titles eligibleCount = 0)
+    // - Some products missing seoDescription (descriptions eligibleCount > 0)
+    const products = await Promise.all([
+      // Product 1: Has both title and description (not eligible for either)
+      this.prisma.product.create({
+        data: {
+          projectId: project.id,
+          externalId: `pepi1-ext-${Date.now()}-1`,
+          title: 'Product With Full SEO',
+          handle: 'product-with-full-seo',
+          seoTitle: 'Complete SEO Title 1',
+          seoDescription: 'Complete SEO Description 1',
+        },
+      }),
+      // Product 2: Has title but no description (eligible for descriptions)
+      this.prisma.product.create({
+        data: {
+          projectId: project.id,
+          externalId: `pepi1-ext-${Date.now()}-2`,
+          title: 'Product Missing Description',
+          handle: 'product-missing-description',
+          seoTitle: 'Has SEO Title 2',
+          seoDescription: null, // Missing - eligible for descriptions playbook
+        },
+      }),
+      // Product 3: Has title but no description (eligible for descriptions)
+      this.prisma.product.create({
+        data: {
+          projectId: project.id,
+          externalId: `pepi1-ext-${Date.now()}-3`,
+          title: 'Another Product Missing Description',
+          handle: 'another-product-missing-description',
+          seoTitle: 'Has SEO Title 3',
+          seoDescription: null, // Missing - eligible for descriptions playbook
+        },
+      }),
+    ]);
+
+    const accessToken = this.jwtService.sign({ sub: user.id });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+      },
+      projectId: project.id,
+      productIds: products.map((p) => p.id),
+      accessToken,
+      // Expected counts for test assertions
+      expectedTitlesEligible: 0,
+      expectedDescriptionsEligible: 2,
+    };
+  }
+
+  // ==========================================================================
+  // [SHOPIFY-ASSET-SYNC-COVERAGE-1] E2E Mock Shopify Assets
+  // ==========================================================================
+
+  /**
+   * POST /testkit/e2e/mock-shopify-assets
+   *
+   * Seed Shopify mock Pages and Collections for E2E sync coverage tests.
+   * This stores data in the in-memory E2E Shopify mock store.
+   * Tests must still trigger sync via the real endpoints to populate DB.
+   *
+   * Body:
+   * - pages: Array of { id, title, handle, updatedAt, seo? }
+   * - collections: Array of { id, title, handle, updatedAt, seo? }
+   *
+   * Returns:
+   * - pagesSeeded: number
+   * - collectionsSeeded: number
+   */
+  @Post('mock-shopify-assets')
+  async mockShopifyAssets(
+    @Body()
+    body: {
+      pages?: Array<{
+        id: string;
+        title: string;
+        handle: string;
+        updatedAt: string;
+        seo?: { title: string | null; description: string | null };
+      }>;
+      collections?: Array<{
+        id: string;
+        title: string;
+        handle: string;
+        updatedAt: string;
+        seo?: { title: string | null; description: string | null };
+      }>;
+    },
+  ) {
+    this.ensureE2eMode();
+
+    // Dynamic import to avoid bundling in non-E2E builds
+    const { e2eShopifyMockStore } = await import(
+      '../shopify/e2e-shopify-mock.store'
+    );
+
+    // [SHOPIFY-ASSET-SYNC-COVERAGE-1-FIXUP-1] Reset store to prevent cross-test leakage
+    // when only one of pages/collections is re-seeded
+    e2eShopifyMockStore.reset();
+
+    if (body.pages) {
+      e2eShopifyMockStore.setPages(body.pages);
+    }
+
+    if (body.collections) {
+      e2eShopifyMockStore.setCollections(body.collections);
+    }
+
+    return {
+      pagesSeeded: body.pages?.length ?? 0,
+      collectionsSeeded: body.collections?.length ?? 0,
+    };
+  }
 }

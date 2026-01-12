@@ -17,6 +17,7 @@ import {
   buildIssueFixHref,
   getSafeIssueTitle,
   getSafeIssueDescription,
+  getIssueFixConfig,
 } from '@/lib/issue-to-fix-path';
 // [ISSUE-FIX-NAV-AND-ANCHORS-1] Navigation utilities available in @/lib/issue-fix-navigation if needed
 import { getSafeReturnTo } from '@/lib/route-context';
@@ -512,6 +513,7 @@ export default function IssuesPage() {
   };
 
   // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Updated to use href-based actionability
+  // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Returns fixKind for card attributes
   const getFixAction = (issue: DeoIssue) => {
     // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Gate all fix CTAs on isActionableNow
     if (!issue.isActionableNow) {
@@ -523,12 +525,27 @@ export default function IssuesPage() {
     const primaryProductId = issue.primaryProductId;
     const issueType = (issue.type as string | undefined) || issue.id;
 
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Derive fixKind from config (default to EDIT)
+    const fixConfig = getIssueFixConfig(issueType);
+    const fixKind = fixConfig?.fixKind || 'EDIT';
+
     // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Check if issue has a valid fix href (href-based actionability)
     const fixHref = buildIssueFixHref({ projectId, issue, from: 'issues_engine' });
 
     // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Return null if no valid href (prevents "Fix next" without destination)
     if (!fixHref) {
       return null;
+    }
+
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] DIAGNOSTIC issues get "Review" CTA, not "Fix"
+    if (fixKind === 'DIAGNOSTIC') {
+      return {
+        kind: 'link' as const,
+        label: 'Review',
+        href: fixHref,
+        variant: 'diagnostic' as const,
+        fixKind: 'DIAGNOSTIC' as const,
+      };
     }
 
     // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Reuse fixHref computed above - no dead-click risk
@@ -539,6 +556,7 @@ export default function IssuesPage() {
         return {
           kind: 'ai-fix-now' as const,
           fixHref, // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Include href for navigation guarantee
+          fixKind,
         };
       }
       return {
@@ -546,6 +564,7 @@ export default function IssuesPage() {
         label: 'Fix with AI',
         href: fixHref,
         variant: 'ai' as const,
+        fixKind,
       };
     }
 
@@ -555,6 +574,7 @@ export default function IssuesPage() {
         label: 'Open',
         href: fixHref,
         variant: 'manual' as const,
+        fixKind,
       };
     }
 
@@ -564,6 +584,7 @@ export default function IssuesPage() {
         label: 'Sync',
         href: `/projects/${projectId}/products?action=sync`,
         variant: 'sync' as const,
+        fixKind,
       };
     }
 
@@ -574,6 +595,7 @@ export default function IssuesPage() {
         label: 'View affected',
         href: fixHref,
         variant: 'default' as const,
+        fixKind,
       };
     }
 
@@ -1140,6 +1162,8 @@ export default function IssuesPage() {
                 key={issue.id}
                 // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Test hooks use isClickableIssue (both isActionableNow AND fixHref)
                 data-testid={isClickableIssue ? 'issue-card-actionable' : 'issue-card-informational'}
+                // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Expose fixKind for test hooks
+                data-fix-kind={fixAction?.fixKind}
                 className="rounded-lg border border-gray-200 bg-white p-4"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -1167,7 +1191,8 @@ export default function IssuesPage() {
                         </span>
                       </div>
                       <p className="mt-1 text-sm text-gray-600">{safeDescription}</p>
-                      {issue.fixType === 'aiFix' && (
+                      {/* [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Suppress for DIAGNOSTIC issues */}
+                      {issue.fixType === 'aiFix' && fixAction?.fixKind !== 'DIAGNOSTIC' && (
                         <p className="mt-1 text-xs text-gray-500">
                           Fixes one affected product at a time for safe review.
                         </p>
@@ -1364,15 +1389,19 @@ export default function IssuesPage() {
                   )}
 
                   {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Use GuardedLink for unsaved changes blocking */}
+                  {/* [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Added diagnostic variant and issue-card-cta testid */}
                   {fixAction && fixAction.kind === 'link' && (
                     <GuardedLink
                       href={fixAction.href}
+                      data-testid="issue-card-cta"
                       className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ${
                         fixAction.variant === 'ai'
                           ? 'border border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100'
                           : fixAction.variant === 'sync'
                             ? 'border border-green-300 bg-green-50 text-green-700 hover:bg-green-100'
-                            : 'border border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
+                            : fixAction.variant === 'diagnostic'
+                              ? 'border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100'
+                              : 'border border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
                       }`}
                     >
                       {fixAction.variant === 'ai' && (

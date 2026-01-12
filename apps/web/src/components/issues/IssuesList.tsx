@@ -10,6 +10,8 @@ import {
   buildIssueFixHref,
   getSafeIssueTitle,
   getSafeIssueDescription,
+  getIssueFixConfig,
+  type IssueFixKind,
 } from '@/lib/issue-to-fix-path';
 
 // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Re-export ISSUE_UI_CONFIG for backwards compatibility
@@ -152,6 +154,11 @@ function IssueCard({ issue, isExpanded, onToggleExpand, projectId }: IssueCardPr
   const fixHref = projectId ? buildIssueFixHref({ projectId, issue }) : null;
   const actionable = Boolean(fixHref);
 
+  // [ISSUE-FIX-KIND-CLARITY-1] Get fixKind to determine CTA wording
+  const fixConfig = getIssueFixConfig(issue.type || issue.id);
+  const fixKind: IssueFixKind = fixConfig?.fixKind || 'EDIT';
+  const ctaLabel = fixKind === 'DIAGNOSTIC' ? 'Review' : 'Fix';
+
   const severityBadge = getSeverityBadge(issue.severity);
   const hasAffectedItems =
     (issue.affectedPages?.length ?? 0) + (issue.affectedProducts?.length ?? 0) >
@@ -171,7 +178,9 @@ function IssueCard({ issue, isExpanded, onToggleExpand, projectId }: IssueCardPr
   return (
     <div
       // [ISSUE-TO-FIX-PATH-1] Test hooks for actionable vs informational cards
+      // [ISSUE-FIX-KIND-CLARITY-1] Added fixKind test attribute for DIAGNOSTIC detection
       data-testid={actionable ? 'issue-card-actionable' : 'issue-card-informational'}
+      data-fix-kind={fixKind}
       role={actionable ? 'button' : undefined}
       tabIndex={actionable ? 0 : undefined}
       onClick={actionable ? handleCardClick : undefined}
@@ -196,6 +205,15 @@ function IssueCard({ issue, isExpanded, onToggleExpand, projectId }: IssueCardPr
           <p className="mt-1 text-xs text-gray-500">
             {issue.count} pages/products affected.
           </p>
+          {/* [ISSUE-FIX-KIND-CLARITY-1] Visible CTA showing "Fix" or "Review" based on fixKind */}
+          {actionable && (
+            <span
+              data-testid="issue-card-cta"
+              className="mt-2 inline-flex items-center text-xs font-medium text-blue-600"
+            >
+              {ctaLabel} →
+            </span>
+          )}
         </div>
       </div>
 
