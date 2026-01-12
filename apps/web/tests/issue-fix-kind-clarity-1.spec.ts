@@ -1,6 +1,7 @@
 /**
  * [ISSUE-FIX-KIND-CLARITY-1] Playwright Regression Tests
  * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Strict assertions, no no-op guards
+ * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1-AUDIT-2] Click chain + pillar assertion
  *
  * Validates the semantic distinction between DIAGNOSTIC vs EDIT/AI fix kinds:
  * 1. DIAGNOSTIC issues show "Review" CTA (not "Fix")
@@ -56,6 +57,7 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC issues use Review CTA', () =
    * Then: CTA should show "Review" (not "Fix")
    *
    * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] No no-op guard - test fails if no DIAGNOSTIC issues
+   * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1-AUDIT-2] Require ≥1 DIAGNOSTIC card (not exactly 1)
    */
   test('IFKC1-001: DIAGNOSTIC issue shows Review CTA in Issues Engine', async ({ page, request }) => {
     const { projectId } = await authenticatePage(page, request);
@@ -66,9 +68,10 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC issues use Review CTA', () =
     // Wait for page to load
     await page.waitForLoadState('networkidle');
 
-    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] STRICT: Expect at least 1 DIAGNOSTIC card
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1-AUDIT-2] STRICT: Expect at least 1 DIAGNOSTIC card (not exactly 1)
     const diagnosticCards = page.locator('[data-fix-kind="DIAGNOSTIC"]');
-    await expect(diagnosticCards).toHaveCount(1, { timeout: 5000 });
+    const diagnosticCount = await diagnosticCards.count();
+    expect(diagnosticCount).toBeGreaterThan(0);
 
     // First DIAGNOSTIC card should show "Review" CTA
     const firstCard = diagnosticCards.first();
@@ -157,13 +160,14 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC arrival callout semantics', 
   });
 
   /**
-   * IFKC1-004: DIAGNOSTIC callout shows "View related issues" CTA
+   * IFKC1-004: DIAGNOSTIC callout shows "View related issues" CTA and navigates correctly
    *
    * Given: User is on a product page with DIAGNOSTIC issue context
-   * When: The arrival callout is rendered
-   * Then: Callout should include "View related issues" link pointing to Issues Engine
+   * When: The arrival callout is rendered and user clicks "View related issues"
+   * Then: Browser navigates to Issues Engine with pillar=search_intent_fit preserved
    *
    * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Link routes to Issues Engine, not product tab=issues
+   * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1-AUDIT-2] Full click chain + pillar assertion
    */
   test('IFKC1-004: DIAGNOSTIC callout shows View related issues CTA', async ({ page, request }) => {
     const { projectId, productIds } = await authenticatePage(page, request);
@@ -188,11 +192,25 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC arrival callout semantics', 
     const viewRelatedLink = page.getByTestId('issue-fix-view-related-issues');
     await expect(viewRelatedLink).toBeVisible();
 
-    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Link should point to Issues Engine (not tab=issues)
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1-AUDIT-2] Assert href contains exact pillar value
     const href = await viewRelatedLink.getAttribute('href');
     expect(href).toContain('/issues');
     expect(href).toContain('mode=detected');
-    expect(href).toContain('pillar=');
+    expect(href).toContain('pillar=search_intent_fit');
+
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1-AUDIT-2] Click and assert navigation
+    await viewRelatedLink.click();
+    await page.waitForLoadState('networkidle');
+
+    // Assert browser is on Issues Engine with correct query params
+    const currentUrl = page.url();
+    expect(currentUrl).toContain(`/projects/${projectId}/issues`);
+
+    // Parse query params to verify preservation
+    const url = new URL(currentUrl);
+    expect(url.searchParams.get('mode')).toBe('detected');
+    expect(url.searchParams.get('from')).toBe('product_details');
+    expect(url.searchParams.get('pillar')).toBe('search_intent_fit');
   });
 });
 
