@@ -38,14 +38,17 @@ import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { DraftAiBoundaryNote } from '@/components/common/DraftAiBoundaryNote';
 // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Centralized routing helper
 // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Added buildPlaybookScopePayload
+// [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Added getRoutingScopeFromPayload
 import {
   buildPlaybookRunHref,
   buildPlaybookRunHrefOrNull,
   buildPlaybookScopePayload,
+  getRoutingScopeFromPayload,
   navigateToPlaybookRun,
   navigateToPlaybookRunReplace,
   isValidPlaybookId,
   type PlaybookSource,
+  type PlaybookScopePayload,
 } from '@/lib/playbooks-routing';
 
 type PlaybookId = 'missing_seo_title' | 'missing_seo_description';
@@ -285,10 +288,17 @@ export default function AutomationPlaybooksPage() {
   // [ASSETS-PAGES-1.1-UI-HARDEN] Track scope asset refs from URL deep link (read-only)
   const [currentScopeAssetRefs] = useState<string[]>(parsedScopeAssetRefs);
 
-  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Use centralized scope payload builder
-  const playbookRunScopeForUrl = useMemo(
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Explicit scope payload for API calls + routing
+  // This payload includes scopeProductIds for API calls (when PRODUCTS scope)
+  const playbookScopePayload: PlaybookScopePayload = useMemo(
     () => buildPlaybookScopePayload(currentAssetType, currentScopeAssetRefs),
     [currentAssetType, currentScopeAssetRefs],
+  );
+
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Routing-only subset (excludes scopeProductIds)
+  const playbookRunScopeForUrl = useMemo(
+    () => getRoutingScopeFromPayload(playbookScopePayload),
+    [playbookScopePayload],
   );
 
   const [flowState, setFlowState] = useState<PlaybookFlowState>('PREVIEW_READY');
@@ -702,16 +712,16 @@ export default function AutomationPlaybooksPage() {
         setLoadingEstimate(true);
         setError('');
         setEstimate(null);
-        // [ASSETS-PAGES-1.1-UI-HARDEN] Pass assetType and scopeAssetRefs to estimate endpoint
+        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Use explicit scope payload (removes positional branching)
         const effectiveAssetType = assetType ?? currentAssetType;
         const effectiveScopeAssetRefs = scopeAssetRefs ?? currentScopeAssetRefs;
+        const payload = buildPlaybookScopePayload(effectiveAssetType, effectiveScopeAssetRefs);
         const data = (await projectsApi.automationPlaybookEstimate(
           projectId,
           playbookId,
-          // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] PRODUCTS scope uses scopeProductIds (from URL scopeAssetRefs)
-          effectiveAssetType === 'PRODUCTS' && effectiveScopeAssetRefs.length > 0 ? effectiveScopeAssetRefs : undefined,
-          effectiveScopeAssetRefs.length > 0 ? effectiveAssetType : undefined,
-          effectiveAssetType !== 'PRODUCTS' && effectiveScopeAssetRefs.length > 0 ? effectiveScopeAssetRefs : undefined,
+          payload.scopeProductIds,
+          payload.assetType,
+          payload.assetType !== 'PRODUCTS' ? payload.scopeAssetRefs : undefined,
         )) as PlaybookEstimate;
         setEstimate(data);
       } catch (err: unknown) {
@@ -777,15 +787,15 @@ export default function AutomationPlaybooksPage() {
         // 3. Generates AI suggestions for sample products
         // 4. Returns everything needed for the apply flow
         // [ASSETS-PAGES-1.1-UI-HARDEN] Pass assetType and scopeAssetRefs
+        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Use explicit scope payload
         const previewResult = await projectsApi.previewAutomationPlaybook(
           projectId,
           playbookId,
           rules.enabled ? rules : undefined,
           3, // sampleSize
-          // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] PRODUCTS scope uses scopeProductIds (from URL scopeAssetRefs)
-          currentAssetType === 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
-          currentScopeAssetRefs.length > 0 ? currentAssetType : undefined,
-          currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
+          playbookScopePayload.scopeProductIds,
+          playbookScopePayload.assetType,
+          playbookScopePayload.assetType !== 'PRODUCTS' ? playbookScopePayload.scopeAssetRefs : undefined,
         ) as {
           projectId: string;
           playbookId: string;
@@ -1157,17 +1167,16 @@ export default function AutomationPlaybooksPage() {
         }
       }
 
-      // [ASSETS-PAGES-1.1-UI-HARDEN] Pass assetType and scopeAssetRefs to apply
+      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Use explicit scope payload
       const data = await projectsApi.applyAutomationPlaybook(
         projectId,
         selectedPlaybookId,
         estimate.scopeId,
         estimate.rulesHash,
-        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] PRODUCTS scope uses scopeProductIds (from URL scopeAssetRefs)
-        currentAssetType === 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
+        playbookScopePayload.scopeProductIds,
         approvalIdToUse,
-        currentScopeAssetRefs.length > 0 ? currentAssetType : undefined,
-        currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
+        playbookScopePayload.assetType,
+        playbookScopePayload.assetType !== 'PRODUCTS' ? playbookScopePayload.scopeAssetRefs : undefined,
       );
       setApplyResult(data);
       if (data.updatedCount > 0) {
@@ -1566,23 +1575,23 @@ export default function AutomationPlaybooksPage() {
 
     async function fetchEligibilityCounts() {
       try {
+        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Use explicit scope payload (reused for both estimates)
+        const scopePayload = buildPlaybookScopePayload(currentAssetType, currentScopeAssetRefs);
         // Fetch estimates for both playbooks (NON-AI - just counts)
         const [titleEst, descEst] = await Promise.all([
           projectsApi.automationPlaybookEstimate(
             projectId,
             'missing_seo_title',
-            // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] PRODUCTS scoped entry must scope eligibility counts (no global-vs-scoped mismatch)
-            currentAssetType === 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
-            currentScopeAssetRefs.length > 0 ? currentAssetType : undefined,
-            currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
+            scopePayload.scopeProductIds,
+            scopePayload.assetType,
+            scopePayload.assetType !== 'PRODUCTS' ? scopePayload.scopeAssetRefs : undefined,
           ) as Promise<{ totalAffectedProducts: number }>,
           projectsApi.automationPlaybookEstimate(
             projectId,
             'missing_seo_description',
-            // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] PRODUCTS scoped entry must scope eligibility counts (no global-vs-scoped mismatch)
-            currentAssetType === 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
-            currentScopeAssetRefs.length > 0 ? currentAssetType : undefined,
-            currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0 ? currentScopeAssetRefs : undefined,
+            scopePayload.scopeProductIds,
+            scopePayload.assetType,
+            scopePayload.assetType !== 'PRODUCTS' ? scopePayload.scopeAssetRefs : undefined,
           ) as Promise<{ totalAffectedProducts: number }>,
         ]);
 

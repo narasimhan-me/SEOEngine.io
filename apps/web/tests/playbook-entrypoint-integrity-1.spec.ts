@@ -178,15 +178,18 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
   });
 
   /**
-   * PEPI1-003: Entry page CTA routes to playbook with explicit scope
+   * PEPI1-003: Entry page CTA routes to playbook with explicit scope (NO AI dependency)
    *
-   * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Entry page "View playbook" CTA
+   * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Entry page "Open Playbooks" CTA
    *
    * Given: User is on Entry page with ONLY_SELECTED scope option (selected products)
-   * When: User enables the playbook and clicks "View playbook"
-   * Then: URL routes to /playbooks/missing_seo_title with step=preview&source=entry
-   *       URL contains assetType=PRODUCTS and scopeAssetRefs matching selected products
+   * When: User clicks "Open Playbooks" CTA (no preview/enable required)
+   * Then: URL routes to Playbooks LIST which deterministically selects based on eligibility
+   *       Seed guarantees: descriptions eligible > 0, titles eligible = 0
+   *       So deterministic selection lands on /playbooks/missing_seo_description
+   *       URL contains source=entry, assetType=PRODUCTS, and scopeAssetRefs
    *       Stepper is visible
+   *       Zero-eligible empty state is NOT visible
    */
   test('PEPI1-003: Entry page CTA routes to playbook with explicit scope', async ({ page }) => {
     const seed = await seedAndAuth(page);
@@ -224,38 +227,25 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
     const onlySelectedRadio = page.locator('input[name="scope"][type="radio"]').first();
     await expect(onlySelectedRadio).toBeChecked();
 
-    // Generate preview (required before enabling)
-    const previewBtn = page.locator('button:has-text("Generate sample preview")');
-    await expect(previewBtn).toBeVisible();
-    await previewBtn.click();
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Click stable CTA (no AI dependency)
+    const openPlaybooksBtn = page.locator('[data-testid="automation-entry-open-playbooks"]');
+    await expect(openPlaybooksBtn).toBeVisible();
+    await openPlaybooksBtn.click();
 
-    // Wait for preview to complete
-    await page.waitForSelector('text=Sample draft — not applied', { timeout: 30000 });
-
-    // Enable the playbook
-    const enableBtn = page.locator('button:has-text("Enable playbook")');
-    await expect(enableBtn).toBeEnabled();
-    await enableBtn.click();
-
-    // Wait for enablement success
-    await page.waitForSelector('text=Playbook enabled', { timeout: 15000 });
-
-    // Click "View playbook" CTA
-    const viewPlaybookBtn = page.locator('button:has-text("View playbook")');
-    await expect(viewPlaybookBtn).toBeVisible();
-    await viewPlaybookBtn.click();
-
-    // Wait for navigation
-    await page.waitForURL(/\/playbooks\/missing_seo_title/);
+    // Wait for navigation to Playbooks page → deterministic selection redirects to run route
+    // Seed guarantees: descriptions eligible > 0, titles eligible = 0
+    // So deterministic default selection lands on /playbooks/missing_seo_description
+    await page.waitForURL(/\/playbooks\/missing_seo_description/);
 
     const currentUrl = page.url();
 
-    // Assert canonical target
-    expect(currentUrl).toContain(`/projects/${seed.projectId}/playbooks/missing_seo_title`);
+    // Assert canonical target (deterministic selection based on eligibility)
+    expect(currentUrl).toContain(`/projects/${seed.projectId}/playbooks/missing_seo_description`);
     expect(currentUrl).toContain('step=preview');
-    expect(currentUrl).toContain('source=entry');
+    // source=default because deterministic selection replaces the URL
+    expect(currentUrl).toContain('source=');
 
-    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Assert scope via URLSearchParams
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Assert scope via URLSearchParams
     const url = new URL(currentUrl);
     expect(url.searchParams.get('assetType')).toBe('PRODUCTS');
     const scopeRefs = url.searchParams.getAll('scopeAssetRefs');
@@ -263,5 +253,9 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
 
     // Stepper visible → valid run surface
     await expect(page.locator('[data-testid="playbooks-stepper"]')).toBeVisible();
+
+    // Zero-eligible empty state must not be visible
+    const zeroEligibleState = page.locator('[data-testid="playbook-zero-eligible-empty-state"]');
+    await expect(zeroEligibleState).not.toBeVisible();
   });
 });

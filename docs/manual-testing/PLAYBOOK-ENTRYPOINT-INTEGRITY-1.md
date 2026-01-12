@@ -96,28 +96,28 @@ This phase ensures playbook entrypoints route deterministically to the correct p
 
 ---
 
-### Scenario 1.2: Entry page CTA routes with explicit scope
+### Scenario 1.2: Entry page CTA routes with explicit scope (NO AI required)
 
 **Route:** `/projects/{projectId}/automation/playbooks/entry?source=products_bulk&intent=missing_metadata`
 
-**Goal:** Entry page "View playbook" CTA routes to Playbook run with explicit scope params when ONLY_SELECTED scope is used.
+**Goal:** Entry page "Open Playbooks" CTA routes to Playbooks LIST which deterministically selects the correct playbook based on scoped eligibility.
 
-**Setup:** Set up sessionStorage with `automationEntryContext:{projectId}` containing `selectedProductIds` array.
+**Setup:**
+- Set up sessionStorage with `automationEntryContext:{projectId}` containing `selectedProductIds` array.
+- Seed data where descriptions eligibleCount > 0 AND titles eligibleCount = 0 (for the scoped products).
 
 1. Navigate to Entry page with `source=products_bulk` and `intent=missing_metadata`.
 2. Ensure "Only selected products" radio is selected (should auto-select from context).
-3. Click "Generate sample preview (uses AI)" button.
-4. Wait for preview to complete ("Sample draft — not applied" visible).
-5. Click "Enable playbook" button.
-6. Wait for "Playbook enabled" success message.
-7. Click "View playbook" CTA.
-8. **Verify:**
-   - [ ] URL contains `/playbooks/missing_seo_title`
+3. Click "Open Playbooks" button (`data-testid="automation-entry-open-playbooks"`).
+   - **Note:** NO preview generation or enablement required.
+4. **Verify:**
+   - [ ] URL navigates to `/playbooks/missing_seo_description` (deterministic selection based on eligibility - descriptions > titles)
    - [ ] URL contains `step=preview`
-   - [ ] URL contains `source=entry`
+   - [ ] URL contains `source=` (may be `default` after deterministic selection)
    - [ ] URL contains `assetType=PRODUCTS`
    - [ ] URL contains `scopeAssetRefs=` with the selected product IDs
    - [ ] Stepper is visible
+   - [ ] Zero-eligible empty state is NOT visible
 
 ---
 
@@ -201,7 +201,7 @@ This phase ensures playbook entrypoints route deterministically to the correct p
 | Tile click | [ ] | [ ] | [ ] | [ ] |
 | Work Queue | [ ] | [ ] | [ ] | [ ] |
 | Products list | [ ] | [ ] | [ ] | [ ] |
-| Entry page | [ ] | [ ] | [ ] | N/A (AI used for preview) |
+| Entry page (Open Playbooks CTA) | [ ] | [ ] | [ ] | [ ] (routing only, no AI dependency) |
 
 ---
 

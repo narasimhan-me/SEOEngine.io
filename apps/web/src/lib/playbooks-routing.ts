@@ -191,17 +191,89 @@ export function navigateToPlaybooksList(
 }
 
 /**
- * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Build scope payload for playbook routing.
+ * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Explicit scope payload for playbook API calls and routing.
  *
- * Returns scope args only when scopeAssetRefs is non-empty (returns {} otherwise).
- * Use with spread operator: `...buildPlaybookScopePayload(assetType, scopeAssetRefs)`
+ * This builder validates scope refs and returns a unified payload used for:
+ * - API calls (eligibility, estimate, preview, apply) via scopeProductIds
+ * - URL routing via assetType + scopeAssetRefs
+ *
+ * Validation rules:
+ * - Empty scopeAssetRefs → returns {} (no scope)
+ * - PRODUCTS: validates refs look like DB IDs (rejects refs containing ':' like page_handle:...)
+ *   - If validation leaves zero valid IDs → returns {} (invalid scope)
+ *   - Otherwise returns { scopeProductIds, assetType, scopeAssetRefs }
+ * - PAGES/COLLECTIONS: returns { assetType, scopeAssetRefs } (no scopeProductIds)
+ *
+ * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Added scopeProductIds for API contract.
  */
+export interface PlaybookScopePayload {
+  /** For API calls: product IDs when assetType=PRODUCTS */
+  scopeProductIds?: string[];
+  /** For routing + API: the asset type */
+  assetType?: AutomationAssetType;
+  /** For routing: the scope refs (preserved in URL as repeated params) */
+  scopeAssetRefs?: string[];
+}
+
+/**
+ * Check if a ref looks like a valid product ID (not a handle-prefixed ref).
+ * Rejects refs containing ':' (e.g., page_handle:foo, collection_handle:bar).
+ */
+function isValidProductIdRef(ref: string): boolean {
+  return !ref.includes(':');
+}
+
 export function buildPlaybookScopePayload(
   assetType: AutomationAssetType | undefined,
   scopeAssetRefs: string[],
-): { assetType?: AutomationAssetType; scopeAssetRefs?: string[] } {
+): PlaybookScopePayload {
   if (!scopeAssetRefs || scopeAssetRefs.length === 0) {
     return {};
   }
-  return { assetType, scopeAssetRefs };
+
+  if (assetType === 'PRODUCTS') {
+    // Validate that refs look like product IDs (not handle-prefixed refs)
+    const validProductIds = scopeAssetRefs.filter(isValidProductIdRef);
+    if (validProductIds.length === 0) {
+      // Invalid scope: no valid product IDs after filtering
+      console.warn('[PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Invalid PRODUCTS scope: no valid product IDs after filtering.', {
+        originalCount: scopeAssetRefs.length,
+        filteredCount: 0,
+      });
+      return {};
+    }
+    return {
+      scopeProductIds: validProductIds,
+      assetType: 'PRODUCTS',
+      scopeAssetRefs: validProductIds,
+    };
+  }
+
+  if (assetType === 'PAGES' || assetType === 'COLLECTIONS') {
+    return {
+      assetType,
+      scopeAssetRefs,
+    };
+  }
+
+  // No assetType but has refs - treat as unscoped (defensive)
+  return {};
+}
+
+/**
+ * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Extract routing-only subset from scope payload.
+ *
+ * Returns { assetType, scopeAssetRefs } when scope is valid, {} otherwise.
+ * Excludes scopeProductIds (API-only field) from routing args.
+ */
+export function getRoutingScopeFromPayload(
+  payload: PlaybookScopePayload,
+): { assetType?: AutomationAssetType; scopeAssetRefs?: string[] } {
+  if (!payload.scopeAssetRefs || payload.scopeAssetRefs.length === 0) {
+    return {};
+  }
+  return {
+    assetType: payload.assetType,
+    scopeAssetRefs: payload.scopeAssetRefs,
+  };
 }

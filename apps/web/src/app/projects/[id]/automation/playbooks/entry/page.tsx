@@ -7,9 +7,10 @@ import { isAuthenticated } from '@/lib/auth';
 import { productsApi, projectsApi, type AutomationPlaybookId } from '@/lib/api';
 import type { Product } from '@/lib/products';
 // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Use centralized routing helpers
+// [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Route to list for deterministic selection
 import {
   buildPlaybooksListHref,
-  buildPlaybookRunHref,
+  navigateToPlaybooksList,
 } from '@/lib/playbooks-routing';
 
 type EntryIntent =
@@ -299,17 +300,16 @@ export default function AutomationPlaybooksEntryPage() {
   }, [titlePreview, descriptionPreview, projectId, scopeOption, effectiveScopeIds, intentParam]);
 
   const handleViewAutomation = useCallback(() => {
-    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Use centralized routing helper with explicit scope
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Route to Playbooks LIST for deterministic selection
+    // DO NOT hardcode a run target - let the Playbooks page select based on eligibility counts
     persistScopeForPlaybooks();
     const scopeAssetRefs = scopeOption === 'ONLY_SELECTED' ? effectiveScopeIds : undefined;
-    router.push(buildPlaybookRunHref({
+    navigateToPlaybooksList(router, {
       projectId,
-      playbookId: 'missing_seo_title',
-      step: 'preview',
       source: 'entry',
       assetType: scopeAssetRefs && scopeAssetRefs.length > 0 ? 'PRODUCTS' : undefined,
       scopeAssetRefs,
-    }));
+    });
   }, [projectId, router, scopeOption, effectiveScopeIds, persistScopeForPlaybooks]);
 
   if (loading) {
@@ -339,12 +339,23 @@ export default function AutomationPlaybooksEntryPage() {
           <h1 className="text-2xl font-bold text-gray-900">New Playbook</h1>
           <p className="mt-1 text-gray-600">{intentSummary}</p>
         </div>
-        <Link
-          href={buildPlaybooksListHref({ projectId })}
-          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          Back to playbooks
-        </Link>
+        <div className="flex items-center gap-2">
+          {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Stable CTA for Playwright/manual testing (no AI dependency) */}
+          <button
+            type="button"
+            data-testid="automation-entry-open-playbooks"
+            onClick={handleViewAutomation}
+            className="inline-flex items-center rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700"
+          >
+            Open Playbooks
+          </button>
+          <Link
+            href={buildPlaybooksListHref({ projectId })}
+            className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Back to playbooks
+          </Link>
+        </div>
       </div>
       {error && (
         <div className="mb-6 rounded border border-red-400 bg-red-100 p-4 text-red-700">
