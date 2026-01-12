@@ -113,7 +113,7 @@ This phase ensures playbook entrypoints route deterministically to the correct p
 4. **Verify:**
    - [ ] URL navigates to `/playbooks/missing_seo_description` (deterministic selection based on eligibility - descriptions > titles)
    - [ ] URL contains `step=preview`
-   - [ ] URL contains `source=` (may be `default` after deterministic selection)
+   - [ ] URL contains `source=entry` (deterministic selection preserves original source)
    - [ ] URL contains `assetType=PRODUCTS`
    - [ ] URL contains `scopeAssetRefs=` with the selected product IDs
    - [ ] Stepper is visible

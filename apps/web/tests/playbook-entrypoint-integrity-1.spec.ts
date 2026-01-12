@@ -242,11 +242,11 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
     // Assert canonical target (deterministic selection based on eligibility)
     expect(currentUrl).toContain(`/projects/${seed.projectId}/playbooks/missing_seo_description`);
     expect(currentUrl).toContain('step=preview');
-    // source=default because deterministic selection replaces the URL
-    expect(currentUrl).toContain('source=');
 
-    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Assert scope via URLSearchParams
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1-AUDIT-1] Assert scope via URLSearchParams
     const url = new URL(currentUrl);
+    // Source MUST be preserved as 'entry' (deterministic selection must not overwrite source)
+    expect(url.searchParams.get('source')).toBe('entry');
     expect(url.searchParams.get('assetType')).toBe('PRODUCTS');
     const scopeRefs = url.searchParams.getAll('scopeAssetRefs');
     expect(scopeRefs).toEqual(expect.arrayContaining(selectedProductIds));
