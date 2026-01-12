@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 
 import type { DeoIssue, DeoIssueFixType, CanonicalIssueCountsSummary } from '@/lib/deo-issues';
 import { TripletDisplay } from '@/components/issues/TripletDisplay';
+import { ScopeBanner } from '@/components/common/ScopeBanner';
 import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
 import { isAuthenticated, getToken } from '@/lib/auth';
 import { ApiError, aiApi, projectsApi, shopifyApi } from '@/lib/api';
@@ -16,12 +17,12 @@ import {
   buildIssueFixHref,
   getSafeIssueTitle,
   getSafeIssueDescription,
+  getIssueFixConfig,
 } from '@/lib/issue-to-fix-path';
-// [ISSUE-FIX-NAV-AND-ANCHORS-1] Import navigation utilities for returnTo chain
-import {
-  getValidatedReturnTo,
-  buildBackLink,
-} from '@/lib/issue-fix-navigation';
+// [ISSUE-FIX-NAV-AND-ANCHORS-1] Navigation utilities available in @/lib/issue-fix-navigation if needed
+import { getSafeReturnTo } from '@/lib/route-context';
+// [SCOPE-CLARITY-1] Import scope normalization utilities
+import { normalizeScopeParams, buildClearFiltersHref } from '@/lib/scope-normalization';
 
 type SeverityFilter = 'all' | 'critical' | 'warning' | 'info';
 type PillarFilter = 'all' | DeoPillarId;
@@ -107,32 +108,40 @@ export default function IssuesPage() {
   const assetTypeParam = searchParams.get('assetType') as 'products' | 'pages' | 'collections' | null;
   const assetIdParam = searchParams.get('assetId');
 
+  // [ROUTE-INTEGRITY-1] Read from context from URL
+  const fromParam = searchParams.get('from');
+
+  // [ROUTE-INTEGRITY-1] Get validated returnTo for ScopeBanner
+  const validatedReturnTo = useMemo(() => {
+    return getSafeReturnTo(searchParams, projectId);
+  }, [searchParams, projectId]);
+
+  // [SCOPE-CLARITY-1] Normalize scope params using canonical normalization
+  const normalizedScopeResult = useMemo(() => {
+    return normalizeScopeParams(searchParams);
+  }, [searchParams]);
+
+  // [ROUTE-INTEGRITY-1] Derive showingText for ScopeBanner (fallback when chips not rendered)
+  const scopeBannerShowingText = useMemo(() => {
+    const parts: string[] = [];
+    if (assetTypeParam) {
+      parts.push(`Filtered by Asset: ${assetTypeParam}`);
+    }
+    if (pillarParam) {
+      const pillar = DEO_PILLARS.find((p) => p.id === pillarParam);
+      parts.push(`Pillar: ${pillar?.label || pillarParam}`);
+    }
+    if (modeParam === 'actionable') {
+      parts.push('Actionable issues');
+    } else if (modeParam === 'detected') {
+      parts.push('Detected issues');
+    }
+    return parts.length > 0 ? parts.join(' · ') : 'All issues';
+  }, [assetTypeParam, pillarParam, modeParam]);
+
   // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] effectiveMode will be computed after countsSummary state is available
 
-  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Read and validate returnTo context from URL
-  const validatedNavContext = useMemo(() => {
-    return getValidatedReturnTo(projectId, searchParams);
-  }, [projectId, searchParams]);
-
-  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Build primary back link when coming from another context
-  const primaryBackLink = useMemo(() => {
-    if (validatedNavContext.returnTo || validatedNavContext.from) {
-      return buildBackLink({
-        projectId,
-        returnTo: validatedNavContext.returnTo,
-        returnLabel: validatedNavContext.returnLabel,
-        from: validatedNavContext.from,
-        fallback: 'store_health',
-      });
-    }
-    return null;
-  }, [projectId, validatedNavContext]);
-
-  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Get current path for passing as returnTo to child navigation
-  // Commented out for now - unused but kept for future navigation context
-  // const currentIssuesPath = useMemo(() => {
-  //   return getCurrentPathWithQuery(pathname, searchParams);
-  // }, [pathname, searchParams]);
+  // [ISSUE-FIX-NAV-AND-ANCHORS-1] Navigation context handled by validatedReturnTo (line 118) and ScopeBanner
 
   const [issues, setIssues] = useState<DeoIssue[]>([]);
   // [COUNT-INTEGRITY-1.1 Step 2A] Migrated to canonical triplet counts
@@ -148,8 +157,11 @@ export default function IssuesPage() {
   // [COUNT-INTEGRITY-1.1 UI HARDEN] Include actionKeys in filter detection
   // [LIST-ACTIONS-CLARITY-1] Include assetType/assetId in filter detection
   const hasClickIntegrityFilters = !!(actionKeyParam || (actionKeysParam && actionKeysParam.length > 0) || scopeTypeParam || assetTypeParam || assetIdParam);
+  // [SCOPE-CLARITY-1 FIXUP-1] Use normalized pillar (prevents hidden stacking when issueType overrides pillar)
+  // normalizedScopeResult.normalized.pillar will be undefined if issueType or asset scope took priority
+  const normalizedPillar = normalizedScopeResult.normalized.pillar;
   const [pillarFilter, setPillarFilter] = useState<PillarFilter>(
-    hasClickIntegrityFilters ? 'all' : (pillarParam ?? 'all')
+    hasClickIntegrityFilters ? 'all' : (normalizedPillar ?? 'all')
   );
 
   // [COUNT-INTEGRITY-1.1 Step 2A] Updated to use canonical triplet counts
@@ -345,15 +357,17 @@ export default function IssuesPage() {
     fetchProjectInfo();
   }, [projectId, router, fetchIssues, fetchProjectInfo]);
 
-  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] Sync pillarFilter state when URL param changes (respect click-integrity filters)
+  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] [SCOPE-CLARITY-1 FIXUP-1] Sync pillarFilter state when URL param changes
+  // Use normalizedPillar (not raw pillarParam) to respect priority rules (issueType > pillar)
   useEffect(() => {
     if (hasClickIntegrityFilters) {
       // When click-integrity filters present, force pillar to 'all' (don't sync from URL)
       setPillarFilter('all');
     } else {
-      setPillarFilter(pillarParam ?? 'all');
+      // [SCOPE-CLARITY-1 FIXUP-1] Use normalized pillar - if issueType took priority, pillar will be undefined
+      setPillarFilter(normalizedPillar ?? 'all');
     }
-  }, [pillarParam, hasClickIntegrityFilters]);
+  }, [normalizedPillar, hasClickIntegrityFilters]);
 
   // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] URL normalization: force mode=detected when no actionable issues
   useEffect(() => {
@@ -479,6 +493,7 @@ export default function IssuesPage() {
   });
 
   // Handler to update pillar filter and URL
+  // [SCOPE-CLARITY-1 FIXUP-1] When user explicitly picks a pillar, clear conflicting higher-priority scope params
   const handlePillarFilterChange = (newFilter: PillarFilter) => {
     setPillarFilter(newFilter);
     // Update URL without full navigation
@@ -487,12 +502,18 @@ export default function IssuesPage() {
       params.delete('pillar');
     } else {
       params.set('pillar', newFilter);
+      // [SCOPE-CLARITY-1 FIXUP-1] Delete conflicting higher-priority scope params so the selected pillar becomes unambiguous
+      // Priority order: asset > issueType > pillar - so when user selects pillar, clear issueType and asset scope
+      params.delete('issueType');
+      params.delete('assetType');
+      params.delete('assetId');
     }
     const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
     router.replace(newUrl, { scroll: false });
   };
 
   // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Updated to use href-based actionability
+  // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Returns fixKind for card attributes
   const getFixAction = (issue: DeoIssue) => {
     // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Gate all fix CTAs on isActionableNow
     if (!issue.isActionableNow) {
@@ -504,12 +525,27 @@ export default function IssuesPage() {
     const primaryProductId = issue.primaryProductId;
     const issueType = (issue.type as string | undefined) || issue.id;
 
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Derive fixKind from config (default to EDIT)
+    const fixConfig = getIssueFixConfig(issueType);
+    const fixKind = fixConfig?.fixKind || 'EDIT';
+
     // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Check if issue has a valid fix href (href-based actionability)
-    const fixHref = buildIssueFixHref({ projectId, issue, from: 'issues' });
+    const fixHref = buildIssueFixHref({ projectId, issue, from: 'issues_engine' });
 
     // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Return null if no valid href (prevents "Fix next" without destination)
     if (!fixHref) {
       return null;
+    }
+
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] DIAGNOSTIC issues get "Review" CTA, not "Fix"
+    if (fixKind === 'DIAGNOSTIC') {
+      return {
+        kind: 'link' as const,
+        label: 'Review',
+        href: fixHref,
+        variant: 'diagnostic' as const,
+        fixKind: 'DIAGNOSTIC' as const,
+      };
     }
 
     // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Reuse fixHref computed above - no dead-click risk
@@ -520,6 +556,7 @@ export default function IssuesPage() {
         return {
           kind: 'ai-fix-now' as const,
           fixHref, // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Include href for navigation guarantee
+          fixKind,
         };
       }
       return {
@@ -527,6 +564,7 @@ export default function IssuesPage() {
         label: 'Fix with AI',
         href: fixHref,
         variant: 'ai' as const,
+        fixKind,
       };
     }
 
@@ -536,6 +574,7 @@ export default function IssuesPage() {
         label: 'Open',
         href: fixHref,
         variant: 'manual' as const,
+        fixKind,
       };
     }
 
@@ -545,6 +584,7 @@ export default function IssuesPage() {
         label: 'Sync',
         href: `/projects/${projectId}/products?action=sync`,
         variant: 'sync' as const,
+        fixKind,
       };
     }
 
@@ -555,6 +595,7 @@ export default function IssuesPage() {
         label: 'View affected',
         href: fixHref,
         variant: 'default' as const,
+        fixKind,
       };
     }
 
@@ -604,7 +645,7 @@ export default function IssuesPage() {
       issueType !== 'missing_seo_description'
     ) {
       // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Compute href for navigation
-      const href = buildIssueFixHref({ projectId, issue, from: 'issues' });
+      const href = buildIssueFixHref({ projectId, issue, from: 'issues_engine' });
       if (href) {
         handleIssueClick(href);
       }
@@ -806,17 +847,6 @@ export default function IssuesPage() {
 
   return (
     <div className="overflow-x-hidden">
-      {/* [ISSUE-FIX-NAV-AND-ANCHORS-1] ReturnTo-aware back link */}
-      {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Use GuardedLink for unsaved changes blocking */}
-      <div className="mb-4 text-sm">
-        <GuardedLink
-          href={primaryBackLink?.href || `/projects/${projectId}/store-health`}
-          className="text-blue-600 hover:text-blue-800"
-        >
-          ← {primaryBackLink?.label || 'Back to Store Health'}
-        </GuardedLink>
-      </div>
-
       {/* Error Banner */}
       {error && (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
@@ -910,6 +940,17 @@ export default function IssuesPage() {
           </button>
         </div>
 
+        {/* [ROUTE-INTEGRITY-1 FIXUP-2] [SCOPE-CLARITY-1] ScopeBanner - placed immediately after h1 header row ("on arrival") */}
+        {/* Uses normalized scope chips for explicit scope display */}
+        <ScopeBanner
+          from={fromParam}
+          returnTo={validatedReturnTo || `/projects/${projectId}/issues`}
+          showingText={scopeBannerShowingText}
+          onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/issues`)}
+          chips={normalizedScopeResult.chips}
+          wasAdjusted={normalizedScopeResult.wasAdjusted}
+        />
+
         {/* [COUNT-INTEGRITY-1.1 Step 2A] Canonical Triplet Summary Display */}
         {/* [COUNT-INTEGRITY-1.1 UI HARDEN] Use currentTriplet (pillar-aware) instead of root triplet */}
         {currentTriplet ? (
@@ -957,72 +998,6 @@ export default function IssuesPage() {
         </div>
       </div>
 
-      {/* [COUNT-INTEGRITY-1 PATCH 6] Click-integrity filter context banner */}
-      {/* [COUNT-INTEGRITY-1.1 UI HARDEN] Include actionKeys in banner display */}
-      {/* [LIST-ACTIONS-CLARITY-1] Include assetType/assetId in banner display */}
-      {(actionKeyParam || (actionKeysParam && actionKeysParam.length > 0) || scopeTypeParam || assetTypeParam) && (
-        <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4" data-testid="filter-context-banner">
-          <div className="flex items-start gap-3">
-            <svg className="h-5 w-5 flex-shrink-0 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-blue-900">
-                {assetTypeParam ? 'Filtered by Asset' : 'Filtered from Work Queue'}
-              </h3>
-              <div className="mt-1 text-sm text-blue-800">
-                {/* [LIST-ACTIONS-CLARITY-1] Display asset filter info */}
-                {assetTypeParam && (
-                  <span>
-                    Asset type: <span className="font-medium">{assetTypeParam}</span>
-                    {assetIdParam && (
-                      <span className="ml-1 text-xs text-blue-600">(ID: {assetIdParam.slice(0, 8)}...)</span>
-                    )}
-                  </span>
-                )}
-                {assetTypeParam && (actionKeyParam || (actionKeysParam && actionKeysParam.length > 0) || scopeTypeParam) && <span className="mx-2">•</span>}
-                {/* [COUNT-INTEGRITY-1.1 UI HARDEN] Display actionKeys as comma-separated list */}
-                {actionKeysParam && actionKeysParam.length > 0 ? (
-                  <span>
-                    Actions: <span className="font-medium">{actionKeysParam.map(k => k.replace(/_/g, ' ')).join(', ')}</span>
-                  </span>
-                ) : actionKeyParam ? (
-                  <span>
-                    Action: <span className="font-medium">{actionKeyParam.replace(/_/g, ' ')}</span>
-                  </span>
-                ) : null}
-                {(actionKeyParam || (actionKeysParam && actionKeysParam.length > 0)) && scopeTypeParam && <span className="mx-2">•</span>}
-                {scopeTypeParam && (
-                  <span>
-                    Scope: <span className="font-medium">{scopeTypeParam === 'STORE_WIDE' ? 'Store-wide' : scopeTypeParam.toLowerCase()}</span>
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={() => {
-                  const params = new URLSearchParams(searchParams.toString());
-                  params.delete('actionKey');
-                  // [COUNT-INTEGRITY-1.1 UI HARDEN] Also clear actionKeys
-                  params.delete('actionKeys');
-                  params.delete('scopeType');
-                  params.delete('mode');
-                  // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Also clear pillar param (Work Queue may supply it)
-                  params.delete('pillar');
-                  // [LIST-ACTIONS-CLARITY-1] Also clear asset filters
-                  params.delete('assetType');
-                  params.delete('assetId');
-                  const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
-                  router.replace(newUrl, { scroll: false });
-                }}
-                className="mt-2 text-sm font-medium text-blue-700 hover:text-blue-800 underline"
-              >
-                Clear filters
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Filters Section */}
       <div className="mb-6 space-y-4">
         {/* Pillar Filter */}
@@ -1033,6 +1008,8 @@ export default function IssuesPage() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => handlePillarFilterChange('all')}
+              data-testid="pillar-filter-all"
+              aria-pressed={pillarFilter === 'all'}
               className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 pillarFilter === 'all'
                   ? 'bg-purple-600 text-white'
@@ -1054,6 +1031,8 @@ export default function IssuesPage() {
                 <button
                   key={pillar.id}
                   onClick={() => handlePillarFilterChange(pillar.id)}
+                  data-testid={`pillar-filter-${pillar.id}`}
+                  aria-pressed={pillarFilter === pillar.id}
                   className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                     pillarFilter === pillar.id
                       ? 'bg-purple-600 text-white'
@@ -1174,7 +1153,7 @@ export default function IssuesPage() {
             const safeDescription = getSafeIssueDescription(issue);
 
             // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Compute fixHref unconditionally, then define isClickableIssue
-            const fixHref = buildIssueFixHref({ projectId, issue, from: 'issues' });
+            const fixHref = buildIssueFixHref({ projectId, issue, from: 'issues_engine' });
             const isClickableIssue = (issue.isActionableNow === true) && (fixHref !== null);
             const fixAction = getFixAction(issue);
 
@@ -1183,6 +1162,8 @@ export default function IssuesPage() {
                 key={issue.id}
                 // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Test hooks use isClickableIssue (both isActionableNow AND fixHref)
                 data-testid={isClickableIssue ? 'issue-card-actionable' : 'issue-card-informational'}
+                // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Expose fixKind for test hooks
+                data-fix-kind={fixAction?.fixKind}
                 className="rounded-lg border border-gray-200 bg-white p-4"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -1210,7 +1191,8 @@ export default function IssuesPage() {
                         </span>
                       </div>
                       <p className="mt-1 text-sm text-gray-600">{safeDescription}</p>
-                      {issue.fixType === 'aiFix' && (
+                      {/* [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Suppress for DIAGNOSTIC issues */}
+                      {issue.fixType === 'aiFix' && fixAction?.fixKind !== 'DIAGNOSTIC' && (
                         <p className="mt-1 text-xs text-gray-500">
                           Fixes one affected product at a time for safe review.
                         </p>
@@ -1407,15 +1389,19 @@ export default function IssuesPage() {
                   )}
 
                   {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Use GuardedLink for unsaved changes blocking */}
+                  {/* [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Added diagnostic variant and issue-card-cta testid */}
                   {fixAction && fixAction.kind === 'link' && (
                     <GuardedLink
                       href={fixAction.href}
+                      data-testid="issue-card-cta"
                       className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ${
                         fixAction.variant === 'ai'
                           ? 'border border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100'
                           : fixAction.variant === 'sync'
                             ? 'border border-green-300 bg-green-50 text-green-700 hover:bg-green-100'
-                            : 'border border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
+                            : fixAction.variant === 'diagnostic'
+                              ? 'border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100'
+                              : 'border border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
                       }`}
                     >
                       {fixAction.variant === 'ai' && (

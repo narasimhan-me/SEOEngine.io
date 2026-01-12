@@ -6,6 +6,12 @@ import Link from 'next/link';
 import { isAuthenticated } from '@/lib/auth';
 import { productsApi, projectsApi, type AutomationPlaybookId } from '@/lib/api';
 import type { Product } from '@/lib/products';
+// [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Use centralized routing helpers
+// [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Route to list for deterministic selection
+import {
+  buildPlaybooksListHref,
+  navigateToPlaybooksList,
+} from '@/lib/playbooks-routing';
 
 type EntryIntent =
   | 'missing_metadata'
@@ -294,13 +300,17 @@ export default function AutomationPlaybooksEntryPage() {
   }, [titlePreview, descriptionPreview, projectId, scopeOption, effectiveScopeIds, intentParam]);
 
   const handleViewAutomation = useCallback(() => {
-    if (scopeOption === 'ONLY_SELECTED') {
-      persistScopeForPlaybooks();
-      router.push(`/projects/${projectId}/automation/playbooks?scope=selected&playbookId=missing_seo_title`);
-      return;
-    }
-    router.push(`/projects/${projectId}/automation/playbooks?playbookId=missing_seo_title`);
-  }, [projectId, router, scopeOption, persistScopeForPlaybooks]);
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Route to Playbooks LIST for deterministic selection
+    // DO NOT hardcode a run target - let the Playbooks page select based on eligibility counts
+    persistScopeForPlaybooks();
+    const scopeAssetRefs = scopeOption === 'ONLY_SELECTED' ? effectiveScopeIds : undefined;
+    navigateToPlaybooksList(router, {
+      projectId,
+      source: 'entry',
+      assetType: scopeAssetRefs && scopeAssetRefs.length > 0 ? 'PRODUCTS' : undefined,
+      scopeAssetRefs,
+    });
+  }, [projectId, router, scopeOption, effectiveScopeIds, persistScopeForPlaybooks]);
 
   if (loading) {
     return (
@@ -315,7 +325,8 @@ export default function AutomationPlaybooksEntryPage() {
       <nav className="mb-4 text-sm">
         <ol className="flex flex-wrap items-center gap-2 text-gray-500">
           <li>
-            <Link href={`/projects/${projectId}/automation/playbooks`} className="hover:text-gray-700">
+            {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Use canonical route via helper */}
+            <Link href={buildPlaybooksListHref({ projectId })} className="hover:text-gray-700">
               Playbooks
             </Link>
           </li>
@@ -328,12 +339,23 @@ export default function AutomationPlaybooksEntryPage() {
           <h1 className="text-2xl font-bold text-gray-900">New Playbook</h1>
           <p className="mt-1 text-gray-600">{intentSummary}</p>
         </div>
-        <Link
-          href={`/projects/${projectId}/automation/playbooks`}
-          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          Back to playbooks
-        </Link>
+        <div className="flex items-center gap-2">
+          {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Stable CTA for Playwright/manual testing (no AI dependency) */}
+          <button
+            type="button"
+            data-testid="automation-entry-open-playbooks"
+            onClick={handleViewAutomation}
+            className="inline-flex items-center rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700"
+          >
+            Open Playbooks
+          </button>
+          <Link
+            href={buildPlaybooksListHref({ projectId })}
+            className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Back to playbooks
+          </Link>
+        </div>
       </div>
       {error && (
         <div className="mb-6 rounded border border-red-400 bg-red-100 p-4 text-red-700">

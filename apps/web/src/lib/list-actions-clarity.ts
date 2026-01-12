@@ -9,6 +9,8 @@
  * - Actions: Fix next, Review drafts, View issues, Request approval, View approval status, Open
  */
 
+import type { FromContext } from './issue-fix-navigation';
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -54,9 +56,14 @@ export interface RowNextActionInput {
   canRequestApproval: boolean;
   /** Fix href for Products only (deterministic next issue) */
   fixNextHref: string | null;
-  /** Open/view asset href (product workspace, or Issues filtered) */
+  /** Asset detail/workspace open href (not Issues Engine) */
   openHref: string;
-  /** Review drafts href (Work Queue or Playbooks) */
+  /**
+   * [DRAFT-LIST-PARITY-1] Issues Engine filtered href (when different from openHref)
+   * Used for Pages/Collections to enable both "View issues" and "Open" actions.
+   */
+  issuesHref?: string;
+  /** Review drafts href (Draft Review surface, scoped to asset) */
   reviewDraftsHref: string;
   /** Request approval href */
   requestApprovalHref?: string;
@@ -93,6 +100,7 @@ export function resolveRowNextAction(input: RowNextActionInput): ResolvedRowNext
     canRequestApproval,
     fixNextHref,
     openHref,
+    issuesHref,
     reviewDraftsHref,
     requestApprovalHref,
     viewApprovalStatusHref,
@@ -156,15 +164,17 @@ export function resolveRowNextAction(input: RowNextActionInput): ResolvedRowNext
       };
     }
 
-    // Pages/Collections: View issues (openHref is Issues filtered)
+    // [DRAFT-LIST-PARITY-1] Pages/Collections: View issues + Open (max 2 actions)
+    // Use issuesHref for "View issues" if provided, otherwise fall back to openHref
+    const viewIssuesHref = issuesHref ?? openHref;
     return {
       chipLabel: '⚠ Needs attention',
       primaryAction: {
         label: 'View issues',
-        href: openHref,
+        href: viewIssuesHref,
       },
-      // No secondary when primary already routes to issues/open
-      secondaryAction: null,
+      // [DRAFT-LIST-PARITY-1] Secondary "Open" only if it differs from primary
+      secondaryAction: openHref !== viewIssuesHref ? { label: 'Open', href: openHref } : null,
     };
   }
 
@@ -186,12 +196,15 @@ export function resolveRowNextAction(input: RowNextActionInput): ResolvedRowNext
 
 /**
  * [LIST-ACTIONS-CLARITY-1 FIXUP-1] Navigation context for returnTo propagation
+ * [ROUTE-INTEGRITY-1] Extended with from for deterministic routing
  */
 export interface NavigationContext {
   /** Current list path with query params (e.g., /projects/123/products?q=test) */
   returnTo?: string;
   /** Label for back navigation (e.g., "Products") */
   returnLabel?: string;
+  /** [ROUTE-INTEGRITY-1] Origin context for back navigation */
+  from?: FromContext;
 }
 
 /**
@@ -213,6 +226,8 @@ export function buildAssetIssuesHref(
   if (typeof navContext === 'object' && navContext !== null) {
     if (navContext.returnTo) params.set('returnTo', navContext.returnTo);
     if (navContext.returnLabel) params.set('returnLabel', navContext.returnLabel);
+    // [ROUTE-INTEGRITY-1] Append from when provided
+    if (navContext.from) params.set('from', navContext.from);
   } else if (typeof navContext === 'string') {
     // Legacy: navContext is returnTo string
     params.set('returnTo', navContext);
@@ -223,26 +238,30 @@ export function buildAssetIssuesHref(
 }
 
 /**
- * Build the Work Queue URL for reviewing drafts
+ * Build the Draft Review URL for reviewing drafts (scoped to asset)
+ * [DRAFT-ROUTING-INTEGRITY-1] Review drafts NEVER routes to Work Queue.
+ * Routes to /automation/playbooks with mode=drafts and asset scope.
  * [LIST-ACTIONS-CLARITY-1 FIXUP-1] Added returnTo support
  */
 export function buildReviewDraftsHref(
   projectId: string,
-  assetType?: AssetListType,
+  assetType: AssetListType,
+  assetId: string,
   navContext?: NavigationContext,
 ): string {
   const params = new URLSearchParams();
-  if (assetType) {
-    params.set('scopeType', assetType.toUpperCase());
-  }
+  // [DRAFT-ROUTING-INTEGRITY-1] Required params for Draft Review mode
+  params.set('mode', 'drafts');
+  params.set('assetType', assetType);
+  params.set('assetId', assetId);
+  params.set('from', 'asset_list');
   if (navContext?.returnTo) {
     params.set('returnTo', navContext.returnTo);
   }
   if (navContext?.returnLabel) {
     params.set('returnLabel', navContext.returnLabel);
   }
-  const qs = params.toString();
-  return `/projects/${projectId}/work-queue${qs ? `?${qs}` : ''}`;
+  return `/projects/${projectId}/automation/playbooks?${params.toString()}`;
 }
 
 /**
@@ -255,11 +274,104 @@ export function buildProductWorkspaceHref(
   navContext?: NavigationContext,
 ): string {
   const base = `/projects/${projectId}/products/${productId}`;
-  if (!navContext?.returnTo && !navContext?.returnLabel) {
+  if (!navContext?.returnTo && !navContext?.returnLabel && !navContext?.from) {
     return base;
   }
   const params = new URLSearchParams();
-  if (navContext.returnTo) params.set('returnTo', navContext.returnTo);
-  if (navContext.returnLabel) params.set('returnLabel', navContext.returnLabel);
+  if (navContext?.returnTo) params.set('returnTo', navContext.returnTo);
+  if (navContext?.returnLabel) params.set('returnLabel', navContext.returnLabel);
+  // [ROUTE-INTEGRITY-1] Append from when provided
+  if (navContext?.from) params.set('from', navContext.from);
+  return `${base}?${params.toString()}`;
+}
+
+/**
+ * [DRAFT-ENTRYPOINT-UNIFICATION-1] Build the product detail Drafts tab URL
+ *
+ * Products-only routing for "Review drafts" action.
+ * Routes to /projects/:projectId/products/:productId?tab=drafts with navigation context.
+ *
+ * LOCKED: "Product detail is the canonical draft review entrypoint for Products."
+ */
+export function buildProductDraftsTabHref(
+  projectId: string,
+  productId: string,
+  navContext?: NavigationContext,
+): string {
+  const base = `/projects/${projectId}/products/${productId}`;
+  const params = new URLSearchParams();
+  params.set('tab', 'drafts');
+  params.set('from', 'asset_list');
+  if (navContext?.returnTo) params.set('returnTo', navContext.returnTo);
+  if (navContext?.returnLabel) params.set('returnLabel', navContext.returnLabel);
+  return `${base}?${params.toString()}`;
+}
+
+/**
+ * [DRAFT-LIST-PARITY-1] Build the asset detail/workspace URL
+ *
+ * Routes to the appropriate asset detail page based on asset type:
+ * - products: /projects/:projectId/products/:assetId
+ * - pages: /projects/:projectId/assets/pages/:assetId
+ * - collections: /projects/:projectId/assets/collections/:assetId
+ *
+ * Appends navigation context (returnTo, returnLabel, from) when provided.
+ */
+export function buildAssetWorkspaceHref(
+  projectId: string,
+  assetType: AssetListType,
+  assetId: string,
+  navContext?: NavigationContext,
+): string {
+  // Products delegate to existing helper
+  if (assetType === 'products') {
+    return buildProductWorkspaceHref(projectId, assetId, navContext);
+  }
+
+  // Pages and Collections use /assets/ routes
+  const base = `/projects/${projectId}/assets/${assetType}/${assetId}`;
+  if (!navContext?.returnTo && !navContext?.returnLabel && !navContext?.from) {
+    return base;
+  }
+  const params = new URLSearchParams();
+  if (navContext?.returnTo) params.set('returnTo', navContext.returnTo);
+  if (navContext?.returnLabel) params.set('returnLabel', navContext.returnLabel);
+  if (navContext?.from) params.set('from', navContext.from);
+  return `${base}?${params.toString()}`;
+}
+
+/**
+ * [DRAFT-LIST-PARITY-1] Build the asset detail Drafts tab URL
+ *
+ * Routes to the appropriate asset detail page with ?tab=drafts:
+ * - products: /projects/:projectId/products/:assetId?tab=drafts (delegates to buildProductDraftsTabHref)
+ * - pages: /projects/:projectId/assets/pages/:assetId?tab=drafts
+ * - collections: /projects/:projectId/assets/collections/:assetId?tab=drafts
+ *
+ * LOCKED routing integrity:
+ * - tab=drafts (always)
+ * - from=asset_list (always)
+ * - includes returnTo, returnLabel from navContext when present
+ *
+ * LOCKED: "Asset detail is the canonical draft review entrypoint for all asset types."
+ */
+export function buildAssetDraftsTabHref(
+  projectId: string,
+  assetType: AssetListType,
+  assetId: string,
+  navContext?: NavigationContext,
+): string {
+  // Products delegate to existing helper
+  if (assetType === 'products') {
+    return buildProductDraftsTabHref(projectId, assetId, navContext);
+  }
+
+  // Pages and Collections use /assets/ routes with tab=drafts
+  const base = `/projects/${projectId}/assets/${assetType}/${assetId}`;
+  const params = new URLSearchParams();
+  params.set('tab', 'drafts');
+  params.set('from', 'asset_list');
+  if (navContext?.returnTo) params.set('returnTo', navContext.returnTo);
+  if (navContext?.returnLabel) params.set('returnLabel', navContext.returnLabel);
   return `${base}?${params.toString()}`;
 }

@@ -16,6 +16,10 @@ import {
   getRoleCapabilities,
   getRoleDisplayLabel,
 } from '@/lib/api';
+import { ScopeBanner } from '@/components/common/ScopeBanner';
+import { getSafeReturnTo } from '@/lib/route-context';
+// [SCOPE-CLARITY-1] Import scope normalization utilities
+import { normalizeScopeParams, buildClearFiltersHref } from '@/lib/scope-normalization';
 import type {
   AutomationPlaybookApplyResult,
   ProjectAiUsageSummary,
@@ -25,9 +29,27 @@ import type {
   ApprovalRequestResponse,
   ProjectMember,
   AutomationAssetType,
+  AssetScopedDraftsResponse,
 } from '@/lib/api';
+import { buildAssetIssuesHref, type AssetListType } from '@/lib/list-actions-clarity';
 import type { Product } from '@/lib/products';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
+// [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI boundary note for human-only review and AI generation surfaces
+import { DraftAiBoundaryNote } from '@/components/common/DraftAiBoundaryNote';
+// [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Centralized routing helper
+// [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Added buildPlaybookScopePayload
+// [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Added getRoutingScopeFromPayload
+import {
+  buildPlaybookRunHref,
+  buildPlaybookRunHrefOrNull,
+  buildPlaybookScopePayload,
+  getRoutingScopeFromPayload,
+  navigateToPlaybookRun,
+  navigateToPlaybookRunReplace,
+  isValidPlaybookId,
+  type PlaybookSource,
+  type PlaybookScopePayload,
+} from '@/lib/playbooks-routing';
 
 type PlaybookId = 'missing_seo_title' | 'missing_seo_description';
 
@@ -169,36 +191,83 @@ export default function AutomationPlaybooksPage() {
   const projectId = params.id as string;
   const feedback = useFeedback();
 
-  const source = searchParams.get('source');
-  const showNextDeoWinBanner = source === 'next_deo_win';
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Deep-link support: read playbookId from path param or query param
+  // Path param is preferred (canonical route: /playbooks/:playbookId)
+  const pathPlaybookId = params.playbookId as string | undefined;
+  const queryPlaybookId = searchParams.get('playbookId') as PlaybookId | null;
+  const urlPlaybookId = (pathPlaybookId || queryPlaybookId) as PlaybookId | null;
+  const validUrlPlaybookId = isValidPlaybookId(urlPlaybookId) ? urlPlaybookId : null;
+
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Read step and source from URL
+  // NOTE: urlSource must be defined before showNextDeoWinBanner to avoid TDZ
+  const urlSource = (searchParams.get('source') || 'default') as PlaybookSource;
+
+  // Next DEO Win banner visibility (must come after urlSource)
+  const showNextDeoWinBanner = urlSource === 'next_deo_win';
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [cnabDismissed, setCnabDismissed] = useState(false);
 
-  // Deep-link support: read playbookId from URL query params
-  const urlPlaybookId = searchParams.get('playbookId') as PlaybookId | null;
-  const validUrlPlaybookId =
-    urlPlaybookId === 'missing_seo_title' || urlPlaybookId === 'missing_seo_description'
-      ? urlPlaybookId
-      : null;
+  // [DRAFT-ROUTING-INTEGRITY-1] Draft Review mode: mode=drafts activates asset-scoped draft review
+  const urlMode = searchParams.get('mode');
+  const isDraftReviewMode = urlMode === 'drafts';
+  const draftReviewAssetId = searchParams.get('assetId') || null;
 
   // [ASSETS-PAGES-1.1] Deep-link support: read assetType from URL query params
-  const urlAssetType = searchParams.get('assetType') as AutomationAssetType | null;
-  const validUrlAssetType =
-    urlAssetType === 'PRODUCTS' || urlAssetType === 'PAGES' || urlAssetType === 'COLLECTIONS'
-      ? urlAssetType
-      : 'PRODUCTS'; // Default to PRODUCTS
+  // [DRAFT-ROUTING-INTEGRITY-1] Draft Review uses lowercase assetType (products|pages|collections)
+  const urlAssetType = searchParams.get('assetType') as AutomationAssetType | string | null;
+  const validUrlAssetType = (() => {
+    // Handle Draft Review mode lowercase values
+    if (urlAssetType === 'products') return 'PRODUCTS';
+    if (urlAssetType === 'pages') return 'PAGES';
+    if (urlAssetType === 'collections') return 'COLLECTIONS';
+    // Handle standard uppercase values
+    if (urlAssetType === 'PRODUCTS' || urlAssetType === 'PAGES' || urlAssetType === 'COLLECTIONS') {
+      return urlAssetType;
+    }
+    return 'PRODUCTS'; // Default to PRODUCTS
+  })();
 
-  // [ASSETS-PAGES-1.1-UI-HARDEN] Deep-link support: read scopeAssetRefs from URL (comma-separated)
-  const urlScopeAssetRefs = searchParams.get('scopeAssetRefs');
+  // [ASSETS-PAGES-1.1-UI-HARDEN] Deep-link support: read scopeAssetRefs from URL (repeated query params and/or comma-separated)
   const parsedScopeAssetRefs = useMemo(() => {
-    if (!urlScopeAssetRefs) return [];
-    return urlScopeAssetRefs.split(',').map((ref) => ref.trim()).filter((ref) => ref.length > 0);
-  }, [urlScopeAssetRefs]);
+    const rawValues = searchParams.getAll('scopeAssetRefs');
+    if (!rawValues || rawValues.length === 0) return [];
+    return rawValues
+      .flatMap((value) => value.split(','))
+      .map((ref) => ref.trim())
+      .filter((ref) => ref.length > 0);
+  }, [searchParams]);
 
   // [ASSETS-PAGES-1.1-UI-HARDEN] Deterministic safety check: PAGES/COLLECTIONS require scopeAssetRefs
   const isMissingScopeForPagesCollections =
     (validUrlAssetType === 'PAGES' || validUrlAssetType === 'COLLECTIONS') &&
     parsedScopeAssetRefs.length === 0;
+
+  // [ROUTE-INTEGRITY-1] Read from context from URL
+  const fromParam = searchParams.get('from');
+
+  // [ROUTE-INTEGRITY-1] Get validated returnTo for ScopeBanner
+  const validatedReturnTo = useMemo(() => {
+    return getSafeReturnTo(searchParams, projectId);
+  }, [searchParams, projectId]);
+
+  // [SCOPE-CLARITY-1] Normalize scope params using canonical normalization
+  const normalizedScopeResult = useMemo(() => {
+    return normalizeScopeParams(searchParams);
+  }, [searchParams]);
+
+  // [ROUTE-INTEGRITY-1] Derive showingText for ScopeBanner
+  const scopeBannerShowingText = useMemo(() => {
+    const parts: string[] = [];
+    if (validUrlPlaybookId) {
+      const playbook = PLAYBOOKS.find((p) => p.id === validUrlPlaybookId);
+      parts.push(playbook?.name || validUrlPlaybookId);
+    }
+    if (validUrlAssetType && validUrlAssetType !== 'PRODUCTS') {
+      const labels = getAssetTypeLabel(validUrlAssetType);
+      parts.push(`Asset type: ${labels.plural}`);
+    }
+    return parts.length > 0 ? parts.join(' · ') : 'Playbooks';
+  }, [validUrlPlaybookId, validUrlAssetType]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -206,13 +275,32 @@ export default function AutomationPlaybooksPage() {
   const [planId, setPlanId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [issues, setIssues] = useState<DeoIssue[]>([]);
-  // Initialize from URL param if valid, otherwise default to 'missing_seo_title'
-  const [selectedPlaybookId, setSelectedPlaybookId] =
-    useState<PlaybookId | null>(validUrlPlaybookId ?? 'missing_seo_title');
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] URL is source of truth (path param preferred). No implicit default.
+  // Default selection navigates via router.replace, not setState. Setter intentionally unused.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [selectedPlaybookId, _setSelectedPlaybookId] =
+    useState<PlaybookId | null>(validUrlPlaybookId);
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Track eligibility counts for default selection + banner visibility
+  const [titlesEligibleCount, setTitlesEligibleCount] = useState<number | null>(null);
+  const [descriptionsEligibleCount, setDescriptionsEligibleCount] = useState<number | null>(null);
   // [ASSETS-PAGES-1.1] Track current asset type from URL deep link (read-only from URL params)
   const [currentAssetType] = useState<AutomationAssetType>(validUrlAssetType);
   // [ASSETS-PAGES-1.1-UI-HARDEN] Track scope asset refs from URL deep link (read-only)
   const [currentScopeAssetRefs] = useState<string[]>(parsedScopeAssetRefs);
+
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Explicit scope payload for API calls + routing
+  // This payload includes scopeProductIds for API calls (when PRODUCTS scope)
+  const playbookScopePayload: PlaybookScopePayload = useMemo(
+    () => buildPlaybookScopePayload(currentAssetType, currentScopeAssetRefs),
+    [currentAssetType, currentScopeAssetRefs],
+  );
+
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Routing-only subset (excludes scopeProductIds)
+  const playbookRunScopeForUrl = useMemo(
+    () => getRoutingScopeFromPayload(playbookScopePayload),
+    [playbookScopePayload],
+  );
+
   const [flowState, setFlowState] = useState<PlaybookFlowState>('PREVIEW_READY');
   const [previewSamples, setPreviewSamples] = useState<PreviewSample[]>([]);
   const [loadingPreview, setLoadingPreview] = useState(false);
@@ -250,6 +338,24 @@ export default function AutomationPlaybooksPage() {
   const [isMultiUserProject, setIsMultiUserProject] = useState(false);
   // [ROLES-3 PENDING-1] Members list for approval attribution UI
   const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
+
+  // [DRAFT-ROUTING-INTEGRITY-1] Draft Review mode state
+  const [draftReviewLoading, setDraftReviewLoading] = useState(false);
+  const [draftReviewData, setDraftReviewData] = useState<AssetScopedDraftsResponse | null>(null);
+  const [draftReviewError, setDraftReviewError] = useState<string | null>(null);
+
+  // [DRAFT-EDIT-INTEGRITY-1] Inline edit state for Draft Review mode
+  // Key format: `${draftId}-${itemIndex}` -> editing state
+  const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  // [DRAFT-DIFF-CLARITY-1] Current/live field values for diff display in Draft Review mode
+  const [draftReviewCurrentFields, setDraftReviewCurrentFields] = useState<{
+    seoTitle?: string | null;
+    seoDescription?: string | null;
+  } | null>(null);
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -331,6 +437,152 @@ export default function AutomationPlaybooksPage() {
     fetchInitialData();
   }, [router, fetchInitialData]);
 
+  // [DRAFT-ROUTING-INTEGRITY-1] Fetch asset-scoped drafts when in Draft Review mode
+  // [DRAFT-DIFF-CLARITY-1] Also fetch current/live values for diff display
+  useEffect(() => {
+    if (!isDraftReviewMode || !draftReviewAssetId) {
+      setDraftReviewData(null);
+      setDraftReviewError(null);
+      setDraftReviewCurrentFields(null);
+      return;
+    }
+
+    const fetchDraftReviewData = async () => {
+      setDraftReviewLoading(true);
+      setDraftReviewError(null);
+      try {
+        // Convert uppercase to lowercase for API
+        const assetTypeLower = validUrlAssetType.toLowerCase() as 'products' | 'pages' | 'collections';
+
+        // [DRAFT-DIFF-CLARITY-1] Fetch drafts and current/live values in parallel
+        const [draftData, currentFields] = await Promise.all([
+          projectsApi.listAutomationPlaybookDraftsForAsset(projectId, {
+            assetType: assetTypeLower,
+            assetId: draftReviewAssetId,
+          }),
+          // Fetch current/live field values based on asset type
+          (async () => {
+            try {
+              if (assetTypeLower === 'products') {
+                // Use existing products list and find by ID
+                const productsList = await productsApi.list(projectId);
+                const product = productsList.find((p: any) => p.id === draftReviewAssetId);
+                return product ? {
+                  seoTitle: product.seoTitle,
+                  seoDescription: product.seoDescription,
+                } : null;
+              } else if (assetTypeLower === 'pages') {
+                // Fetch pages (static) and find by ID
+                const pages = await projectsApi.crawlPages(projectId, { pageType: 'static' });
+                const page = pages.find((p: any) => p.id === draftReviewAssetId);
+                return page ? {
+                  seoTitle: page.title,
+                  seoDescription: page.metaDescription,
+                } : null;
+              } else if (assetTypeLower === 'collections') {
+                // Fetch collections and find by ID
+                const collections = await projectsApi.crawlPages(projectId, { pageType: 'collection' });
+                const collection = collections.find((c: any) => c.id === draftReviewAssetId);
+                return collection ? {
+                  seoTitle: collection.title,
+                  seoDescription: collection.metaDescription,
+                } : null;
+              }
+              return null;
+            } catch {
+              // Silent fail - diff display will show empty current values
+              return null;
+            }
+          })(),
+        ]);
+
+        setDraftReviewData(draftData);
+        setDraftReviewCurrentFields(currentFields);
+      } catch (err) {
+        console.error('[DRAFT-ROUTING-INTEGRITY-1] Failed to fetch draft review data:', err);
+        setDraftReviewError(err instanceof Error ? err.message : 'Failed to load drafts');
+      } finally {
+        setDraftReviewLoading(false);
+      }
+    };
+
+    fetchDraftReviewData();
+  }, [isDraftReviewMode, draftReviewAssetId, validUrlAssetType, projectId]);
+
+  // [DRAFT-EDIT-INTEGRITY-1] Handlers for inline edit mode in Draft Review
+  const handleStartEdit = useCallback((draftId: string, itemIndex: number, currentValue: string) => {
+    const editKey = `${draftId}-${itemIndex}`;
+    setEditingItem(editKey);
+    setEditValue(currentValue);
+    setEditError(null);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingItem(null);
+    setEditValue('');
+    setEditError(null);
+  }, []);
+
+  // [DRAFT-DIFF-CLARITY-1] Updated to accept fieldName for empty draft confirmation
+  const handleSaveEdit = useCallback(async (draftId: string, itemIndex: number, fieldName?: 'seoTitle' | 'seoDescription') => {
+    // [DRAFT-DIFF-CLARITY-1] Empty draft confirmation when clearing a live field
+    if (editValue.trim() === '' && fieldName && draftReviewCurrentFields) {
+      const currentValue = fieldName === 'seoTitle'
+        ? draftReviewCurrentFields.seoTitle
+        : draftReviewCurrentFields.seoDescription;
+      if (currentValue && currentValue.trim() !== '') {
+        const confirmed = window.confirm(
+          'Saving an empty draft will clear this field when applied.\n\nAre you sure you want to save an empty draft?'
+        );
+        if (!confirmed) return;
+      }
+    }
+
+    setEditSaving(true);
+    setEditError(null);
+
+    try {
+      const response = await projectsApi.updateDraftItem(projectId, draftId, itemIndex, editValue);
+
+      // Update local state with the server response
+      // [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Use item.itemIndex for stable matching
+      // (filteredItems is a subset; idx may not equal item.itemIndex)
+      setDraftReviewData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          drafts: prev.drafts.map((draft) => {
+            if (draft.id !== draftId) return draft;
+            return {
+              ...draft,
+              updatedAt: response.updatedAt,
+              filteredItems: draft.filteredItems.map((item, idx) => {
+                // Use item.itemIndex for stable comparison; fall back to idx if absent
+                const itemServerIndex = item.itemIndex ?? idx;
+                if (itemServerIndex !== itemIndex) return item;
+                // Update the finalSuggestion with the edited value
+                return {
+                  ...item,
+                  finalSuggestion: editValue,
+                };
+              }),
+            };
+          }),
+        };
+      });
+
+      // Exit edit mode
+      setEditingItem(null);
+      setEditValue('');
+      feedback.showSuccess('Draft saved successfully');
+    } catch (err) {
+      console.error('[DRAFT-EDIT-INTEGRITY-1] Failed to save draft edit:', err);
+      setEditError(err instanceof Error ? err.message : 'Failed to save changes');
+    } finally {
+      setEditSaving(false);
+    }
+  }, [projectId, editValue, feedback, draftReviewCurrentFields]);
+
   const issuesByType = useMemo(() => {
     const map = new Map<string, DeoIssue>();
     for (const issue of issues) {
@@ -363,16 +615,21 @@ export default function AutomationPlaybooksPage() {
     enabledRulesLabels.length > 0 ? `Rules: ${enabledRulesLabels.join(', ')}` : 'Rules: None';
 
   /**
-   * CNAB-1: Calculate contextual banner state based on playbook summaries.
+   * CNAB-1: Calculate contextual banner state based on canonical eligibility counts.
+   * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Strict: eligibility counts must be known (not null)
+   * to show any CNAB banner. No fallback to issue counts - hide banner if eligibility unknown.
    */
   const cnabState = useMemo((): PlaybooksCnabState => {
-    const titlesSummary = playbookSummaries.find((s) => s.id === 'missing_seo_title');
-    const descriptionsSummary = playbookSummaries.find((s) => s.id === 'missing_seo_description');
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] If eligibility counts are unknown, hide CNAB
+    // Do not fall back to issue counts - that violates deterministic banner derivation
+    if (titlesEligibleCount === null || descriptionsEligibleCount === null) {
+      return null;
+    }
 
-    const titlesAffected = titlesSummary?.totalAffected ?? 0;
-    const descriptionsAffected = descriptionsSummary?.totalAffected ?? 0;
+    const titlesAffected = titlesEligibleCount;
+    const descriptionsAffected = descriptionsEligibleCount;
 
-    // All done - no issues for either playbook
+    // All done - no eligible items for either playbook
     if (titlesAffected === 0 && descriptionsAffected === 0) {
       return 'ALL_DONE';
     }
@@ -397,7 +654,7 @@ export default function AutomationPlaybooksPage() {
       return 'TITLES_DONE_DESCRIPTIONS_REMAIN';
     }
 
-    // Has issues but hasn't run any playbook successfully yet
+    // Has eligible items but hasn't run any playbook successfully yet
     if (titlesAffected > 0 || descriptionsAffected > 0) {
       // Only show this if we're not in a completed state
       if (flowState !== 'APPLY_COMPLETED' && flowState !== 'APPLY_STOPPED') {
@@ -406,7 +663,26 @@ export default function AutomationPlaybooksPage() {
     }
 
     return null;
-  }, [playbookSummaries, selectedPlaybookId, applyResult, flowState]);
+  }, [titlesEligibleCount, descriptionsEligibleCount, selectedPlaybookId, applyResult, flowState]);
+
+  /**
+   * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Primary CNAB playbook for NO_RUN_WITH_ISSUES banner.
+   * Derived from eligibility counts: max wins; tie → descriptions.
+   * Returns null if both counts are 0 (banner should not render).
+   */
+  const primaryCnabPlaybookId = useMemo((): PlaybookId | null => {
+    if (titlesEligibleCount === null || descriptionsEligibleCount === null) {
+      return null;
+    }
+    if (titlesEligibleCount === 0 && descriptionsEligibleCount === 0) {
+      return null;
+    }
+    // Max wins; tie → prefer descriptions
+    if (descriptionsEligibleCount >= titlesEligibleCount) {
+      return 'missing_seo_description';
+    }
+    return 'missing_seo_title';
+  }, [titlesEligibleCount, descriptionsEligibleCount]);
 
   const markRulesEdited = () => {
     setRules((previous) => ({
@@ -436,17 +712,16 @@ export default function AutomationPlaybooksPage() {
         setLoadingEstimate(true);
         setError('');
         setEstimate(null);
-        // [ASSETS-PAGES-1.1-UI-HARDEN] Pass assetType and scopeAssetRefs to estimate endpoint
+        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Use explicit scope payload (removes positional branching)
         const effectiveAssetType = assetType ?? currentAssetType;
         const effectiveScopeAssetRefs = scopeAssetRefs ?? currentScopeAssetRefs;
+        const payload = buildPlaybookScopePayload(effectiveAssetType, effectiveScopeAssetRefs);
         const data = (await projectsApi.automationPlaybookEstimate(
           projectId,
           playbookId,
-          undefined, // scopeProductIds - only for PRODUCTS
-          effectiveAssetType !== 'PRODUCTS' ? effectiveAssetType : undefined,
-          effectiveAssetType !== 'PRODUCTS' && effectiveScopeAssetRefs.length > 0
-            ? effectiveScopeAssetRefs
-            : undefined,
+          payload.scopeProductIds,
+          payload.assetType,
+          payload.assetType !== 'PRODUCTS' ? payload.scopeAssetRefs : undefined,
         )) as PlaybookEstimate;
         setEstimate(data);
       } catch (err: unknown) {
@@ -512,16 +787,15 @@ export default function AutomationPlaybooksPage() {
         // 3. Generates AI suggestions for sample products
         // 4. Returns everything needed for the apply flow
         // [ASSETS-PAGES-1.1-UI-HARDEN] Pass assetType and scopeAssetRefs
+        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Use explicit scope payload
         const previewResult = await projectsApi.previewAutomationPlaybook(
           projectId,
           playbookId,
           rules.enabled ? rules : undefined,
           3, // sampleSize
-          undefined, // scopeProductIds - only for PRODUCTS
-          currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined,
-          currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0
-            ? currentScopeAssetRefs
-            : undefined,
+          playbookScopePayload.scopeProductIds,
+          playbookScopePayload.assetType,
+          playbookScopePayload.assetType !== 'PRODUCTS' ? playbookScopePayload.scopeAssetRefs : undefined,
         ) as {
           projectId: string;
           playbookId: string;
@@ -559,17 +833,18 @@ export default function AutomationPlaybooksPage() {
 
         setPreviewSamples(samples);
 
-        // Update estimate with scopeId and rulesHash from preview
-        if (estimate) {
-          setEstimate({
-            ...estimate,
-            scopeId: previewResult.scopeId,
-            rulesHash: previewResult.rulesHash,
-          });
-        } else {
-          // Fetch fresh estimate to get scopeId and rulesHash
+        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Fix state-integrity bug: estimate must match playbook
+        // Only merge scopeId/rulesHash if estimate belongs to the same playbook
+        if (!estimate || estimate.playbookId !== playbookId) {
+          // Fetch fresh estimate for this playbook
           await loadEstimate(playbookId);
         }
+        // Update the estimate with scopeId and rulesHash from preview (after confirming it's for the right playbook)
+        setEstimate((prev) =>
+          prev && prev.playbookId === playbookId
+            ? { ...prev, scopeId: previewResult.scopeId, rulesHash: previewResult.rulesHash }
+            : prev,
+        );
 
         if (samples.length > 0) {
           setPreviewRulesVersion(rulesVersion);
@@ -717,20 +992,15 @@ export default function AutomationPlaybooksPage() {
   ]);
 
   const handleSelectPlaybook = (playbookId: PlaybookId) => {
-    setSelectedPlaybookId(playbookId);
-    const summary = playbookSummaries.find((s) => s.id === playbookId);
-    if ((summary?.totalAffected ?? 0) === 0) {
-      setFlowState('ELIGIBILITY_EMPTY');
-    } else {
-      setFlowState('PREVIEW_READY');
-    }
-    setPreviewSamples([]);
-    setEstimate(null);
-    setApplyResult(null);
-    setConfirmApply(false);
-    setApplyInlineError(null);
-    // [ROLES-3 FIXUP-3 PATCH 4.6] Reset stale approval state when switching playbooks
-    setPendingApproval(null);
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Route canonically via URL, no local selection state
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use shared scope args via playbookRunScopeForUrl
+    navigateToPlaybookRun(router, {
+      projectId,
+      playbookId,
+      step: 'preview',
+      source: 'tile',
+      ...playbookRunScopeForUrl,
+    });
   };
 
   const handleGeneratePreview = async () => {
@@ -897,18 +1167,16 @@ export default function AutomationPlaybooksPage() {
         }
       }
 
-      // [ASSETS-PAGES-1.1-UI-HARDEN] Pass assetType and scopeAssetRefs to apply
+      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Use explicit scope payload
       const data = await projectsApi.applyAutomationPlaybook(
         projectId,
         selectedPlaybookId,
         estimate.scopeId,
         estimate.rulesHash,
-        undefined, // scopeProductIds - only for PRODUCTS
+        playbookScopePayload.scopeProductIds,
         approvalIdToUse,
-        currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined,
-        currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0
-          ? currentScopeAssetRefs
-          : undefined,
+        playbookScopePayload.assetType,
+        playbookScopePayload.assetType !== 'PRODUCTS' ? playbookScopePayload.scopeAssetRefs : undefined,
       );
       setApplyResult(data);
       if (data.updatedCount > 0) {
@@ -1288,6 +1556,126 @@ export default function AutomationPlaybooksPage() {
     previewRulesVersion,
   ]);
 
+  /**
+   * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Effect 1: Eligibility counts fetch.
+   *
+   * Runs for all non-draft-mode entrypoints (including /playbooks/:playbookId).
+   * Fetches NON-AI estimates for both playbooks to populate titlesEligibleCount
+   * and descriptionsEligibleCount for banner visibility.
+   *
+   * On failure: sets both counts to null (banner hidden). Does NOT set selectedPlaybookId.
+   */
+  useEffect(() => {
+    // Skip in Draft Review mode
+    if (isDraftReviewMode) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function fetchEligibilityCounts() {
+      try {
+        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Use explicit scope payload (reused for both estimates)
+        const scopePayload = buildPlaybookScopePayload(currentAssetType, currentScopeAssetRefs);
+        // Fetch estimates for both playbooks (NON-AI - just counts)
+        const [titleEst, descEst] = await Promise.all([
+          projectsApi.automationPlaybookEstimate(
+            projectId,
+            'missing_seo_title',
+            scopePayload.scopeProductIds,
+            scopePayload.assetType,
+            scopePayload.assetType !== 'PRODUCTS' ? scopePayload.scopeAssetRefs : undefined,
+          ) as Promise<{ totalAffectedProducts: number }>,
+          projectsApi.automationPlaybookEstimate(
+            projectId,
+            'missing_seo_description',
+            scopePayload.scopeProductIds,
+            scopePayload.assetType,
+            scopePayload.assetType !== 'PRODUCTS' ? scopePayload.scopeAssetRefs : undefined,
+          ) as Promise<{ totalAffectedProducts: number }>,
+        ]);
+
+        if (cancelled) return;
+
+        const titleCount = titleEst.totalAffectedProducts ?? 0;
+        const descCount = descEst.totalAffectedProducts ?? 0;
+
+        // Update eligibility counts for banner visibility
+        setTitlesEligibleCount(titleCount);
+        setDescriptionsEligibleCount(descCount);
+      } catch (err) {
+        console.error('[PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Failed to fetch eligibility counts:', err);
+        // [FIXUP-1] On failure: set both to null, do NOT set selectedPlaybookId
+        if (!cancelled) {
+          setTitlesEligibleCount(null);
+          setDescriptionsEligibleCount(null);
+        }
+      }
+    }
+
+    fetchEligibilityCounts();
+
+    return () => {
+      cancelled = true;
+    };
+    // Run on mount only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Effect 2: Deterministic default selection.
+   *
+   * Runs when:
+   * - Not in Draft Review mode
+   * - No playbookId in URL (path or query)
+   * - Both eligibility counts are known (not null)
+   *
+   * Navigates via router.replace to canonical run URL.
+   * If both counts are 0, stays neutral (no navigation).
+   */
+  useEffect(() => {
+    // Skip in Draft Review mode
+    if (isDraftReviewMode) {
+      return;
+    }
+
+    // Skip if playbookId already in URL
+    if (validUrlPlaybookId) {
+      return;
+    }
+
+    // Wait until eligibility counts are fetched (not null)
+    if (titlesEligibleCount === null || descriptionsEligibleCount === null) {
+      return;
+    }
+
+    // Determine which playbook to select
+    let chosenPlaybook: PlaybookId | null = null;
+
+    if (descriptionsEligibleCount > titlesEligibleCount) {
+      chosenPlaybook = 'missing_seo_description';
+    } else if (titlesEligibleCount > descriptionsEligibleCount) {
+      chosenPlaybook = 'missing_seo_title';
+    } else if (titlesEligibleCount > 0 || descriptionsEligibleCount > 0) {
+      // Tie with at least one > 0 → prefer descriptions
+      chosenPlaybook = 'missing_seo_description';
+    }
+    // else: both 0 → stay neutral (no navigation)
+
+    if (chosenPlaybook) {
+      // Navigate via replace to avoid history pollution
+      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use shared scope args via playbookRunScopeForUrl
+      navigateToPlaybookRunReplace(router, {
+        projectId,
+        playbookId: chosenPlaybook,
+        step: 'preview',
+        source: urlSource,
+        ...playbookRunScopeForUrl,
+      });
+    }
+    // Run when eligibility counts become available
+  }, [isDraftReviewMode, validUrlPlaybookId, titlesEligibleCount, descriptionsEligibleCount, router, projectId, urlSource, playbookRunScopeForUrl]);
+
   const handleNavigate = useCallback(
     (href: string) => {
       if (
@@ -1308,6 +1696,316 @@ export default function AutomationPlaybooksPage() {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-gray-600">Loading playbooks...</div>
+      </div>
+    );
+  }
+
+  // [DRAFT-ROUTING-INTEGRITY-1] Draft Review mode UI
+  // Renders scoped draft review panel with ScopeBanner + empty state + CTAs
+  if (isDraftReviewMode && draftReviewAssetId) {
+    // Derive lowercase assetType for href builders
+    const assetTypeLower = validUrlAssetType.toLowerCase() as AssetListType;
+    const returnLabel = `${assetTypeLower.charAt(0).toUpperCase() + assetTypeLower.slice(1)}`;
+
+    // Build Issues Engine href for "View issues" CTA
+    const viewIssuesHref = buildAssetIssuesHref(
+      projectId,
+      assetTypeLower,
+      draftReviewAssetId,
+      {
+        returnTo: validatedReturnTo || `/projects/${projectId}/${assetTypeLower === 'products' ? 'products' : `assets/${assetTypeLower}`}`,
+        returnLabel,
+        from: 'asset_list',
+      },
+    );
+
+    // Back href: use validated returnTo or fallback to asset list
+    const backHref = validatedReturnTo || `/projects/${projectId}/${assetTypeLower === 'products' ? 'products' : `assets/${assetTypeLower}`}`;
+
+    const hasDrafts = draftReviewData && draftReviewData.drafts.length > 0;
+
+    return (
+      <div data-testid="draft-review-panel">
+        {/* [DRAFT-ROUTING-INTEGRITY-1 FIXUP-1] ScopeBanner for context and back navigation */}
+        {/* Uses normalized scope chips to show asset scope explicitly */}
+        <ScopeBanner
+          from={fromParam ?? 'asset_list'}
+          returnTo={backHref}
+          showingText={`Draft Review · ${returnLabel}`}
+          onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/automation/playbooks`)}
+          chips={normalizedScopeResult.chips}
+          wasAdjusted={normalizedScopeResult.wasAdjusted}
+        />
+
+        {/* [DRAFT-AI-ENTRYPOINT-CLARITY-1] Human-only review boundary note */}
+        <div className="mt-4">
+          <DraftAiBoundaryNote mode="review" />
+        </div>
+
+        {/* Header */}
+        <div className="mb-6 mt-4">
+          <h1 className="text-2xl font-bold text-gray-900">Draft Review</h1>
+          <p className="text-gray-600">
+            Review pending drafts for this {assetTypeLower.slice(0, -1)}.
+          </p>
+        </div>
+
+        {/* Loading state */}
+        {draftReviewLoading && (
+          <div className="flex min-h-[200px] items-center justify-center">
+            <div className="text-gray-600">Loading drafts...</div>
+          </div>
+        )}
+
+        {/* Error state */}
+        {draftReviewError && (
+          <div className="rounded-md bg-red-50 p-4">
+            <p className="text-sm text-red-800">{draftReviewError}</p>
+          </div>
+        )}
+
+        {/* Draft list or empty state */}
+        {!draftReviewLoading && !draftReviewError && (
+          <>
+            {hasDrafts ? (
+              <div data-testid="draft-review-list" className="space-y-4">
+                {draftReviewData?.drafts.map((draft) => (
+                  <div
+                    key={draft.id}
+                    className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-medium text-gray-900">
+                          {draft.playbookId === 'missing_seo_title'
+                            ? 'SEO Title Suggestion'
+                            : 'SEO Description Suggestion'}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          Status: {draft.status} · Updated:{' '}
+                          {new Date(draft.updatedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          draft.status === 'READY'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}
+                      >
+                        {draft.status}
+                      </span>
+                    </div>
+                    {/* [FIXUP-2] Render draft items supporting both canonical and legacy/testkit shapes */}
+                    {/* [DRAFT-EDIT-INTEGRITY-1] With inline edit mode */}
+                    {/* [DRAFT-ENTRYPOINT-UNIFICATION-1] Use item.itemIndex for API calls */}
+                    {draft.filteredItems.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {draft.filteredItems.map((item, idx) => {
+                          // [FIXUP-2] Support canonical shape (field, finalSuggestion, rawSuggestion)
+                          // and legacy/testkit shape (suggestedTitle, suggestedDescription)
+                          const hasCanonicalShape = item.field !== undefined;
+                          const legacyItem = item as any; // For accessing suggestedTitle/suggestedDescription
+
+                          // [DRAFT-ENTRYPOINT-UNIFICATION-1] Use itemIndex from server for API calls,
+                          // fall back to idx for backwards compatibility with older responses
+                          const itemIndex = item.itemIndex ?? idx;
+
+                          // [DRAFT-EDIT-INTEGRITY-1] Edit state for this item
+                          const editKey = `${draft.id}-${itemIndex}`;
+                          const isEditing = editingItem === editKey;
+                          const currentValue = item.finalSuggestion || item.rawSuggestion || '';
+
+                          if (hasCanonicalShape) {
+                            // [DRAFT-DIFF-CLARITY-1] Canonical playbook draft shape with diff UI and inline edit
+                            // Compute live value from draftReviewCurrentFields
+                            const liveValue = item.field === 'seoTitle'
+                              ? (draftReviewCurrentFields?.seoTitle || '')
+                              : (draftReviewCurrentFields?.seoDescription || '');
+                            const draftValue = item.finalSuggestion ?? item.rawSuggestion ?? null;
+
+                            // [DRAFT-DIFF-CLARITY-1] Derive empty draft messaging:
+                            // - If both rawSuggestion and finalSuggestion are empty/null: "No draft generated yet"
+                            // - If explicitly cleared (has rawSuggestion but finalSuggestion is empty): "Draft will clear this field when applied"
+                            const hasDraftContent = draftValue !== null && draftValue.trim() !== '';
+                            const wasExplicitlyCleared = item.rawSuggestion && item.rawSuggestion.trim() !== '' &&
+                              (item.finalSuggestion === '' || item.finalSuggestion === null);
+                            const noDraftGenerated = !item.rawSuggestion || item.rawSuggestion.trim() === '';
+
+                            return (
+                              <div
+                                key={itemIndex}
+                                data-testid={`draft-item-${draft.id}-${itemIndex}`}
+                                className="rounded border border-gray-200 bg-white p-4 text-sm"
+                              >
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="font-medium text-gray-900">
+                                    {item.field === 'seoTitle' ? 'Title' : 'Description'}
+                                  </div>
+                                  {/* [DRAFT-EDIT-INTEGRITY-1] Edit button - only show when not editing */}
+                                  {!isEditing && (
+                                    <button
+                                      type="button"
+                                      data-testid={`draft-item-edit-${draft.id}-${itemIndex}`}
+                                      onClick={() => handleStartEdit(draft.id, itemIndex, currentValue)}
+                                      className="text-xs text-indigo-600 hover:text-indigo-800"
+                                    >
+                                      Edit
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* [DRAFT-DIFF-CLARITY-1] Diff UI: Current (live) vs Draft (staged) */}
+                                <div data-testid="draft-diff-current" className="rounded bg-gray-50 p-3 mb-3">
+                                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                                    Current (live)
+                                  </div>
+                                  <div className="text-gray-700">
+                                    {liveValue || <span className="italic text-gray-400">(empty)</span>}
+                                  </div>
+                                </div>
+
+                                <div data-testid="draft-diff-draft" className="rounded bg-indigo-50 p-3">
+                                  <div className="text-xs font-medium text-indigo-600 uppercase tracking-wide mb-1">
+                                    Draft (staged)
+                                  </div>
+
+                                  {isEditing ? (
+                                    /* [DRAFT-EDIT-INTEGRITY-1] Edit mode UI */
+                                    <div className="mt-1">
+                                      <textarea
+                                        data-testid={`draft-item-input-${draft.id}-${itemIndex}`}
+                                        value={editValue}
+                                        onChange={(e) => setEditValue(e.target.value)}
+                                        className="w-full rounded border border-gray-300 p-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                        rows={item.field === 'seoDescription' ? 4 : 2}
+                                        disabled={editSaving}
+                                      />
+                                      {/* Edit error inline */}
+                                      {editError && (
+                                        <div className="mt-1 text-xs text-red-600">{editError}</div>
+                                      )}
+                                      {/* Save/Cancel buttons */}
+                                      <div className="mt-2 flex gap-2">
+                                        <button
+                                          type="button"
+                                          data-testid={`draft-item-save-${draft.id}-${itemIndex}`}
+                                          onClick={() => handleSaveEdit(draft.id, itemIndex, item.field as 'seoTitle' | 'seoDescription')}
+                                          disabled={editSaving}
+                                          className="inline-flex items-center rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                                        >
+                                          {editSaving ? 'Saving...' : 'Save changes'}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          data-testid={`draft-item-cancel-${draft.id}-${itemIndex}`}
+                                          onClick={handleCancelEdit}
+                                          disabled={editSaving}
+                                          className="inline-flex items-center rounded bg-white px-3 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    /* Display mode with empty draft messaging */
+                                    <div className="text-indigo-900">
+                                      {hasDraftContent ? (
+                                        <>
+                                          {draftValue}
+                                          {item.ruleWarnings && item.ruleWarnings.length > 0 && (
+                                            <div className="mt-1 text-xs text-amber-600">
+                                              Warnings: {item.ruleWarnings.join(', ')}
+                                            </div>
+                                          )}
+                                        </>
+                                      ) : wasExplicitlyCleared ? (
+                                        <span className="italic text-amber-600">Draft will clear this field when applied</span>
+                                      ) : noDraftGenerated ? (
+                                        <span className="italic text-gray-400">No draft generated yet</span>
+                                      ) : (
+                                        <span className="italic text-gray-400">(empty)</span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          } else {
+                            // Legacy/testkit shape with suggestedTitle and/or suggestedDescription
+                            // [DRAFT-EDIT-INTEGRITY-1] Legacy items are read-only (no edit button)
+                            return (
+                              <div key={itemIndex} data-testid={`draft-item-${draft.id}-${itemIndex}`} className="space-y-2">
+                                {legacyItem.suggestedTitle && (
+                                  <div className="rounded bg-gray-50 p-3 text-sm">
+                                    <div className="font-medium text-gray-700">Title</div>
+                                    <div className="mt-1 text-gray-900">{legacyItem.suggestedTitle}</div>
+                                  </div>
+                                )}
+                                {legacyItem.suggestedDescription && (
+                                  <div className="rounded bg-gray-50 p-3 text-sm">
+                                    <div className="font-medium text-gray-700">Description</div>
+                                    <div className="mt-1 text-gray-900">{legacyItem.suggestedDescription}</div>
+                                  </div>
+                                )}
+                                {!legacyItem.suggestedTitle && !legacyItem.suggestedDescription && (
+                                  <div className="rounded bg-gray-50 p-3 text-sm">
+                                    <div className="text-gray-500">(No suggestion)</div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* Zero-draft empty state - MANDATORY per DRAFT-ROUTING-INTEGRITY-1 */
+              <div
+                data-testid="draft-review-empty"
+                className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center"
+              >
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                  No drafts available for this item.
+                </h3>
+                <div className="mt-6 flex gap-3">
+                  {/* Primary CTA: View issues */}
+                  <Link
+                    href={viewIssuesHref}
+                    className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                  >
+                    View issues
+                  </Link>
+                  {/* Secondary CTA: Back - [FIXUP-1] Use phase-specific testid, not scope-banner-back */}
+                  <Link
+                    href={backHref}
+                    data-testid="draft-review-back"
+                    className="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                  >
+                    Back
+                  </Link>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     );
   }
@@ -1344,11 +2042,12 @@ export default function AutomationPlaybooksPage() {
           </li>
           <li>/</li>
           <li>
+            {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2] Breadcrumb uses canonical /playbooks route */}
             <Link
-              href={`/projects/${projectId}/automation`}
+              href={`/projects/${projectId}/playbooks`}
               onClick={(event) => {
                 event.preventDefault();
-                handleNavigate(`/projects/${projectId}/automation`);
+                handleNavigate(`/projects/${projectId}/playbooks`);
               }}
               className="hover:text-gray-700"
             >
@@ -1387,6 +2086,17 @@ export default function AutomationPlaybooksPage() {
           Create playbook
         </button>
       </div>
+
+      {/* [ROUTE-INTEGRITY-1 FIXUP-1] [SCOPE-CLARITY-1] ScopeBanner - moved after header for visual hierarchy */}
+      {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Uses canonical /playbooks route */}
+      <ScopeBanner
+        from={fromParam}
+        returnTo={validatedReturnTo || `/projects/${projectId}/playbooks`}
+        showingText={scopeBannerShowingText}
+        onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/playbooks`)}
+        chips={normalizedScopeResult.chips}
+        wasAdjusted={normalizedScopeResult.wasAdjusted}
+      />
 
       {/* [ASSETS-PAGES-1.1-UI-HARDEN] Missing scope safety block for PAGES/COLLECTIONS */}
       {isMissingScopeForPagesCollections && (
@@ -1559,7 +2269,8 @@ export default function AutomationPlaybooksPage() {
       )}
 
       {/* CNAB-1: Contextual Next-Action Banners */}
-      {cnabState === 'NO_RUN_WITH_ISSUES' && !cnabDismissed && (
+      {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] NO_RUN_WITH_ISSUES uses primaryCnabPlaybookId for routing */}
+      {cnabState === 'NO_RUN_WITH_ISSUES' && !cnabDismissed && primaryCnabPlaybookId && (
         <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
@@ -1583,29 +2294,38 @@ export default function AutomationPlaybooksPage() {
                   Next step: Fix missing SEO metadata
                 </h3>
                 <p className="mt-1 text-xs text-blue-800">
-                  Use Playbooks to safely generate missing SEO descriptions in bulk.
-                  Start with a preview — nothing is applied until you confirm.
+                  {primaryCnabPlaybookId === 'missing_seo_title'
+                    ? 'Use Playbooks to safely generate missing SEO titles in bulk. Start with a preview — nothing is applied until you confirm.'
+                    : 'Use Playbooks to safely generate missing SEO descriptions in bulk. Start with a preview — nothing is applied until you confirm.'}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={async () => {
+                    onClick={() => {
+                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Route to primaryCnabPlaybookId, no AI side effects
+                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use guardrail + shared scope args
+                      const href = buildPlaybookRunHrefOrNull({
+                        projectId,
+                        playbookId: primaryCnabPlaybookId,
+                        step: 'preview',
+                        source: 'banner',
+                        ...playbookRunScopeForUrl,
+                      });
+                      if (!href) return;
                       setCnabDismissed(true);
-                      setSelectedPlaybookId('missing_seo_description');
-                      const ok = await loadPreview('missing_seo_description');
-                      if (ok) {
-                        setFlowState('PREVIEW_GENERATED');
-                      }
+                      handleNavigate(href);
                     }}
                     className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
-                    Preview missing SEO descriptions
+                    {primaryCnabPlaybookId === 'missing_seo_title'
+                      ? 'Preview missing SEO titles'
+                      : 'Preview missing SEO descriptions'}
                   </button>
                   <button
                     type="button"
                     onClick={() => {
                       setCnabDismissed(true);
-                      handleNavigate(`/projects/${projectId}/automation`);
+                      handleNavigate(`/projects/${projectId}/playbooks`);
                     }}
                     className="inline-flex items-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
                   >
@@ -1667,13 +2387,19 @@ export default function AutomationPlaybooksPage() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={async () => {
+                    onClick={() => {
+                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Route canonically, no AI side effects
+                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use guardrail + shared scope args
+                      const href = buildPlaybookRunHrefOrNull({
+                        projectId,
+                        playbookId: 'missing_seo_title',
+                        step: 'preview',
+                        source: 'banner',
+                        ...playbookRunScopeForUrl,
+                      });
+                      if (!href) return;
                       setCnabDismissed(true);
-                      setSelectedPlaybookId('missing_seo_title');
-                      const ok = await loadPreview('missing_seo_title');
-                      if (ok) {
-                        setFlowState('PREVIEW_GENERATED');
-                      }
+                      handleNavigate(href);
                     }}
                     className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
@@ -1747,13 +2473,19 @@ export default function AutomationPlaybooksPage() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={async () => {
+                    onClick={() => {
+                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Route canonically, no AI side effects
+                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use guardrail + shared scope args
+                      const href = buildPlaybookRunHrefOrNull({
+                        projectId,
+                        playbookId: 'missing_seo_description',
+                        step: 'preview',
+                        source: 'banner',
+                        ...playbookRunScopeForUrl,
+                      });
+                      if (!href) return;
                       setCnabDismissed(true);
-                      setSelectedPlaybookId('missing_seo_description');
-                      const ok = await loadPreview('missing_seo_description');
-                      if (ok) {
-                        setFlowState('PREVIEW_GENERATED');
-                      }
+                      handleNavigate(href);
                     }}
                     className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
@@ -1888,9 +2620,11 @@ export default function AutomationPlaybooksPage() {
           >
             Activity
           </Link>
+          {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2] Use canonical /playbooks, highlight on both routes */}
           <Link
-            href={`/projects/${projectId}/automation/playbooks`}
+            href={`/projects/${projectId}/playbooks`}
             className={`border-b-2 px-1 pb-2 ${
+              pathname?.startsWith(`/projects/${projectId}/playbooks`) ||
               pathname?.startsWith(`/projects/${projectId}/automation/playbooks`)
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -2134,6 +2868,8 @@ export default function AutomationPlaybooksPage() {
                     {loadingPreview ? 'Generating preview…' : 'Generate preview (uses AI)'}
                   </button>
                 </div>
+                {/* [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI usage disclosure for generation */}
+                <DraftAiBoundaryNote mode="generate" />
                 {resumedFromSession && hasPreview && (
                   <div className="mb-3 rounded-md border border-blue-100 bg-blue-50 p-3 text-xs text-blue-800">
                     <div className="flex items-start justify-between gap-2">
@@ -2383,8 +3119,15 @@ export default function AutomationPlaybooksPage() {
                             {sample.productTitle}
                           </span>
                           {(() => {
-                            // [TRUST-ROUTING-1] Build preview context URL for product deep link
-                            const returnToPath = `/projects/${projectId}/automation/playbooks?playbookId=${selectedPlaybookId}${currentAssetType !== 'PRODUCTS' ? `&assetType=${currentAssetType}` : ''}${currentScopeAssetRefs.length > 0 ? `&scopeAssetRefs=${encodeURIComponent(currentScopeAssetRefs.join(','))}` : ''}`;
+                            // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Build preview context URL for product deep link with canonical route
+                            // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use shared scope args via playbookRunScopeForUrl
+                            const returnToPath = buildPlaybookRunHref({
+                              projectId,
+                              playbookId: selectedPlaybookId!,
+                              step: 'preview',
+                              source: 'product_details',
+                              ...playbookRunScopeForUrl,
+                            });
                             const previewContextUrl = `/projects/${projectId}/products/${sample.productId}?from=playbook_preview&playbookId=${selectedPlaybookId}&returnTo=${encodeURIComponent(returnToPath)}`;
                             return (
                               <Link
@@ -3019,8 +3762,15 @@ export default function AutomationPlaybooksPage() {
                                     <span className="text-gray-500">—</span>
                                   ) : (
                                     (() => {
-                                      // [TRUST-ROUTING-1] Build results context URL for product deep link
-                                      const returnToPath = `/projects/${projectId}/automation/playbooks?playbookId=${selectedPlaybookId}${currentAssetType !== 'PRODUCTS' ? `&assetType=${currentAssetType}` : ''}${currentScopeAssetRefs.length > 0 ? `&scopeAssetRefs=${encodeURIComponent(currentScopeAssetRefs.join(','))}` : ''}`;
+                                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Build results context URL for product deep link with canonical route
+                                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use shared scope args via playbookRunScopeForUrl
+                                      const returnToPath = buildPlaybookRunHref({
+                                        projectId,
+                                        playbookId: selectedPlaybookId!,
+                                        step: 'preview',
+                                        source: 'product_details',
+                                        ...playbookRunScopeForUrl,
+                                      });
                                       const resultsContextUrl = `/projects/${projectId}/products/${item.productId}?from=playbook_results&playbookId=${selectedPlaybookId}&returnTo=${encodeURIComponent(returnToPath)}`;
                                       return (
                                         <Link
@@ -3086,10 +3836,11 @@ export default function AutomationPlaybooksPage() {
                     >
                       Sync to Shopify
                     </button>
+                    {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2] Use canonical /playbooks route */}
                     <button
                       type="button"
                       onClick={() =>
-                        handleNavigate(`/projects/${projectId}/automation/playbooks`)
+                        handleNavigate(`/projects/${projectId}/playbooks`)
                       }
                       className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
                     >

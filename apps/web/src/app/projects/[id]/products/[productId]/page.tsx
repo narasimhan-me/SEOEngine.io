@@ -16,12 +16,18 @@ import {
   getActionableIssuesForProduct,
   getIssueFixConfig,
 } from '@/lib/issue-to-fix-path';
+// [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Import ISSUE_UI_CONFIG for pillarId fallback
+import { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
 // [ISSUE-FIX-NAV-AND-ANCHORS-1] Import navigation and anchor utilities
 import {
   getValidatedReturnTo,
   buildBackLink,
   type FromContext,
 } from '@/lib/issue-fix-navigation';
+import { ScopeBanner } from '@/components/common/ScopeBanner';
+import { getSafeReturnTo } from '@/lib/route-context';
+// [SCOPE-CLARITY-1] Import scope normalization utilities
+import { normalizeScopeParams, buildClearFiltersHref } from '@/lib/scope-normalization';
 import {
   scrollToFixAnchor,
   getArrivalCalloutContent,
@@ -49,6 +55,9 @@ import {
 } from '@/components/products/optimization';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { useUnsavedChanges } from '@/components/unsaved-changes/UnsavedChangesProvider';
+// [DRAFT-REVIEW-ISOLATION-1] Import isolated non-AI Draft Review component
+// [DRAFT-FIELD-COVERAGE-1] Generalized to AssetDraftsTab supporting Products, Pages, Collections
+import { AssetDraftsTab } from '@/components/products/AssetDraftsTab';
 
 // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft state types
 type MetadataDraftState = 'unsaved' | 'saved' | 'applied';
@@ -92,6 +101,8 @@ export default function ProductOptimizationPage() {
   const highlightParam = searchParams.get('highlight');
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Read fix anchor from URL
   const fixAnchorParam = searchParams.get('fixAnchor');
+  // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] fixKind is NOT read from URL (non-authoritative)
+  // It is derived from fix path config or issue config only
 
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Validate returnTo using centralized validation
   const validatedNavContext = useMemo(() => {
@@ -99,6 +110,7 @@ export default function ProductOptimizationPage() {
   }, [projectId, searchParams]);
 
   // [TRUST-ROUTING-1] Backward compat: Validate returnTo for playbook paths
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Expand to accept both /automation/playbooks and canonical /playbooks
   const validatedReturnTo = useMemo(() => {
     // First try the new validation
     if (validatedNavContext.returnTo) {
@@ -107,13 +119,16 @@ export default function ProductOptimizationPage() {
     // Fallback to legacy playbook-only validation
     if (!returnToParam) return null;
     const decoded = decodeURIComponent(returnToParam);
-    // Only allow navigation to playbooks path for this project
-    if (decoded.startsWith(`/projects/${projectId}/automation/playbooks`)) {
+    // Allow navigation to playbooks path for this project (both legacy and canonical)
+    if (
+      decoded.startsWith(`/projects/${projectId}/automation/playbooks`) ||
+      decoded.startsWith(`/projects/${projectId}/playbooks`)
+    ) {
       return decoded;
     }
-    // Fallback to safe default
+    // Fallback to safe default using canonical route
     return playbookIdParam
-      ? `/projects/${projectId}/automation/playbooks?playbookId=${playbookIdParam}`
+      ? `/projects/${projectId}/playbooks/${playbookIdParam}?step=preview&source=product_details`
       : null;
   }, [validatedNavContext.returnTo, returnToParam, projectId, playbookIdParam]);
 
@@ -132,6 +147,16 @@ export default function ProductOptimizationPage() {
   const isPreviewMode = fromContext === 'playbook_preview' && !!playbookIdParam;
   const isResultsMode = fromContext === 'playbook_results' && !!playbookIdParam;
 
+  // [ROUTE-INTEGRITY-1] Get validated returnTo for ScopeBanner
+  const scopeBannerReturnTo = useMemo(() => {
+    return getSafeReturnTo(searchParams, projectId);
+  }, [searchParams, projectId]);
+
+  // [SCOPE-CLARITY-1] Normalize scope params using canonical normalization
+  const normalizedScopeResult = useMemo(() => {
+    return normalizeScopeParams(searchParams);
+  }, [searchParams]);
+
   // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Determine issue fix mode - triggers on issueId alone, not requiring from=issues
   const isIssueFixMode = !!issueIdParam;
 
@@ -141,6 +166,7 @@ export default function ProductOptimizationPage() {
 
   // [ISSUE-TO-FIX-PATH-1] Issue fix context state
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Extended with nextActionLabel and anchor result
+  // [ISSUE-FIX-KIND-CLARITY-1] Extended with fixKind
   const [issueFixContext, setIssueFixContext] = useState<{
     issueId: string;
     issueTitle: string;
@@ -149,6 +175,7 @@ export default function ProductOptimizationPage() {
     fixAnchorTestId?: string;
     anchorFound?: boolean;
     issuePresentOnSurface?: boolean;
+    fixKind?: 'EDIT' | 'AI' | 'DIAGNOSTIC';
   } | null>(null);
   const issueFixRouteHandledRef = useRef(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -204,6 +231,8 @@ export default function ProductOptimizationPage() {
 
   // Track if we've shown the auto-apply toast (one-time per page load)
   const autoApplyToastShown = useRef(false);
+
+  // [DRAFT-REVIEW-ISOLATION-1] Drafts tab state moved to isolated ProductDraftsTab component
 
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft lifecycle state
   const { setHasUnsavedChanges } = useUnsavedChanges();
@@ -693,6 +722,8 @@ export default function ProductOptimizationPage() {
     // Determine the anchor to use (URL param > fix path > config)
     const fixAnchorTestId = fixAnchorParam || fixPath?.fixAnchorTestId || fixConfig?.fixAnchorTestId;
     const nextActionLabel = fixPath?.nextActionLabel || fixConfig?.nextActionLabel;
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] fixKind from config only (URL param is non-authoritative)
+    const fixKind = fixPath?.fixKind || fixConfig?.fixKind;
 
     // Set the fix context for the banner (even if issue not found - shows "already compliant")
     setIssueFixContext({
@@ -703,6 +734,7 @@ export default function ProductOptimizationPage() {
       fixAnchorTestId,
       issuePresentOnSurface,
       anchorFound: false, // Will be updated after scroll attempt
+      fixKind,
     });
 
     // If issue not found on this product, we still show the banner but with "already compliant" message
@@ -726,6 +758,13 @@ export default function ProductOptimizationPage() {
     issueFixRouteHandledRef.current = true;
 
     // [ISSUE-FIX-NAV-AND-ANCHORS-1] Use centralized scroll/highlight utility
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Skip scroll/highlight for DIAGNOSTIC issues
+    if (fixKind === 'DIAGNOSTIC') {
+      // DIAGNOSTIC issues have no fix anchor to scroll to
+      setIssueFixContext((prev) => prev ? { ...prev, anchorFound: true } : null);
+      return;
+    }
+
     setTimeout(() => {
       const targetAnchor = fixAnchorTestId || highlightParam || fixPath.highlightTarget;
       if (targetAnchor) {
@@ -739,6 +778,8 @@ export default function ProductOptimizationPage() {
       }
     }, 200);
   }, [isIssueFixMode, issueIdParam, highlightParam, fixAnchorParam, productIssues, activeTab, loading, router]);
+
+  // [DRAFT-REVIEW-ISOLATION-1] Drafts tab fetch + edit handlers moved to isolated ProductDraftsTab component
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -886,47 +927,51 @@ export default function ProductOptimizationPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Compact header draft state indicator */}
-                <span
-                  data-testid="header-draft-state-indicator"
-                  className={`hidden sm:inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                    draftState === 'unsaved'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : draftState === 'saved'
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-green-100 text-green-800'
-                  }`}
-                >
-                  {draftState === 'unsaved' && 'Draft — not applied'}
-                  {draftState === 'saved' && 'Draft saved — not applied'}
-                  {draftState === 'applied' && (
-                    <>Applied to Shopify on {appliedAt ? new Date(appliedAt).toLocaleDateString() : product?.lastOptimizedAt ? new Date(product.lastOptimizedAt).toLocaleDateString() : '—'}</>
-                  )}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleAutomateThisFix}
-                  className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-                >
-                  Automate this fix
-                </button>
-                {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Header Apply button - disabled unless draft is saved */}
-                <button
-                  type="button"
-                  data-testid="header-apply-to-shopify-button"
-                  onClick={handleApplyToShopify}
-                  disabled={applyingToShopify || !canApplyToShopify}
-                  title={
-                    !canApplyToShopify
-                      ? 'Save draft first; Apply uses saved drafts only and never auto-saves.'
-                      : 'Apply saved draft to Shopify'
-                  }
-                  className="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {applyingToShopify ? 'Applying…' : 'Apply to Shopify'}
-                </button>
-              </div>
+              {/* [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Hide AI/generation + apply CTAs on Drafts tab */}
+              {/* Draft Review is human-only - no AI actions, no apply, no automation */}
+              {activeTab !== 'drafts' && (
+                <div className="flex items-center gap-2">
+                  {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Compact header draft state indicator */}
+                  <span
+                    data-testid="header-draft-state-indicator"
+                    className={`hidden sm:inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                      draftState === 'unsaved'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : draftState === 'saved'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-green-100 text-green-800'
+                    }`}
+                  >
+                    {draftState === 'unsaved' && 'Draft — not applied'}
+                    {draftState === 'saved' && 'Draft saved — not applied'}
+                    {draftState === 'applied' && (
+                      <>Applied to Shopify on {appliedAt ? new Date(appliedAt).toLocaleDateString() : product?.lastOptimizedAt ? new Date(product.lastOptimizedAt).toLocaleDateString() : '—'}</>
+                    )}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleAutomateThisFix}
+                    className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                  >
+                    Automate this fix
+                  </button>
+                  {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Header Apply button - disabled unless draft is saved */}
+                  <button
+                    type="button"
+                    data-testid="header-apply-to-shopify-button"
+                    onClick={handleApplyToShopify}
+                    disabled={applyingToShopify || !canApplyToShopify}
+                    title={
+                      !canApplyToShopify
+                        ? 'Save draft first; Apply uses saved drafts only and never auto-saves.'
+                        : 'Apply saved draft to Shopify'
+                    }
+                    className="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {applyingToShopify ? 'Applying…' : 'Apply to Shopify'}
+                  </button>
+                </div>
+              )}
             </div>
             {/* [DEO-UX-REFRESH-1] Tab bar replacing "Jump to:" anchors */}
             {/* [ISSUE-TO-FIX-PATH-1] Pass actionable issue count, not total */}
@@ -935,6 +980,19 @@ export default function ProductOptimizationPage() {
               productId={productId}
               activeTab={activeTab}
               issueCount={actionableIssueCount}
+            />
+          </div>
+
+          {/* [ROUTE-INTEGRITY-1] [SCOPE-CLARITY-1] ScopeBanner - show when from context is present */}
+          {/* Uses normalized scope chips for explicit scope display */}
+          <div className="mt-4">
+            <ScopeBanner
+              from={fromContext}
+              returnTo={scopeBannerReturnTo || `/projects/${projectId}/products`}
+              showingText={`Product · ${product?.title || 'Product'}`}
+              onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/products/${productId}`)}
+              chips={normalizedScopeResult.chips}
+              wasAdjusted={normalizedScopeResult.wasAdjusted}
             />
           </div>
 
@@ -1021,9 +1079,10 @@ export default function ProductOptimizationPage() {
                     The preview session has expired or this product was not in the sample set.
                     Return to Playbooks to regenerate the preview.
                   </p>
+                  {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2] Use canonical /playbooks/:playbookId route */}
                   <div className="mt-3">
                     <Link
-                      href={validatedReturnTo || `/projects/${projectId}/automation/playbooks?playbookId=${playbookIdParam}`}
+                      href={validatedReturnTo || (playbookIdParam ? `/projects/${projectId}/playbooks/${playbookIdParam}?step=preview&source=product_details` : `/projects/${projectId}/playbooks`)}
                       className="inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700"
                     >
                       ← Back to preview
@@ -1036,13 +1095,25 @@ export default function ProductOptimizationPage() {
 
           {/* [ISSUE-TO-FIX-PATH-1] Issue Fix Context Banner */}
           {/* [ISSUE-FIX-NAV-AND-ANCHORS-1] Enhanced with callout content + returnTo back link */}
+          {/* [ISSUE-FIX-KIND-CLARITY-1] Pass fixKind to arrival callout */}
           {isIssueFixMode && issueFixContext && (() => {
             const calloutContent = getArrivalCalloutContent({
               issueTitle: issueFixContext.issueTitle,
               nextActionLabel: issueFixContext.nextActionLabel,
               foundAnchor: issueFixContext.anchorFound ?? false,
               issuePresentOnSurface: issueFixContext.issuePresentOnSurface ?? true,
+              fixKind: issueFixContext.fixKind,
             });
+
+            // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Build Issues Engine URL with pillar for "View related issues"
+            const buildViewRelatedIssuesHref = () => {
+              // Derive pillarId from matching issue (preferred) or ISSUE_UI_CONFIG (fallback)
+              const matchingIssue = productIssues.find((i) => i.id === issueFixContext.issueId);
+              const pillarId = matchingIssue?.pillarId || ISSUE_UI_CONFIG[issueFixContext.issueId]?.pillarId;
+              const baseUrl = `/projects/${projectId}/issues?mode=detected&from=product_details`;
+              return pillarId ? `${baseUrl}&pillar=${pillarId}` : baseUrl;
+            };
+
             return (
               <div
                 data-testid="issue-fix-context-banner"
@@ -1077,13 +1148,23 @@ export default function ProductOptimizationPage() {
                       </p>
                     )}
                     {calloutContent.showBackLink && (
-                      <div className="mt-3">
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
                         <Link
                           href={issueFixBackLink.href}
                           className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-700"
                         >
                           ← {issueFixBackLink.label}
                         </Link>
+                        {/* [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] View related issues routes to Issues Engine with pillar */}
+                        {calloutContent.showViewRelatedIssues && (
+                          <Link
+                            href={buildViewRelatedIssuesHref()}
+                            data-testid="issue-fix-view-related-issues"
+                            className="inline-flex items-center rounded-md border border-blue-300 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
+                          >
+                            View related issues
+                          </Link>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1093,7 +1174,8 @@ export default function ProductOptimizationPage() {
           })()}
 
           {/* CNAB-1: Product optimization banner */}
-          {(productIssues.length > 0 || status === 'missing-metadata' || status === 'needs-optimization') && (
+          {/* [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Hide AI/generation banner on Drafts tab */}
+          {activeTab !== 'drafts' && (productIssues.length > 0 || status === 'missing-metadata' || status === 'needs-optimization') && (
             <div className="mb-6 mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0">
@@ -1134,10 +1216,11 @@ export default function ProductOptimizationPage() {
           )}
 
           {/* Error message */}
+          {/* [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Hide AI limit upsell on Drafts tab */}
           {error && (
             <div className="mb-6 rounded border border-red-400 bg-red-100 p-4 text-red-700">
               <p>{error}</p>
-              {isAiLimitError && (
+              {isAiLimitError && activeTab !== 'drafts' && (
                 <p className="mt-2">
                   <Link
                     href="/settings/billing"
@@ -1345,6 +1428,22 @@ export default function ProductOptimizationPage() {
                       summary={productIssuesSummary}
                     />
                   </section>
+                )}
+
+                {/* [DRAFT-REVIEW-ISOLATION-1] Drafts Tab - Isolated Non-AI Draft Review Component */}
+                {/* Conditionally mounted to match standard tab behavior (no state preservation across tab switches) */}
+                {/* [DRAFT-DIFF-CLARITY-1] Pass current/live field values for diff display */}
+                {/* [DRAFT-FIELD-COVERAGE-1] AssetDraftsTab now supports Products, Pages, Collections */}
+                {activeTab === 'drafts' && (
+                  <AssetDraftsTab
+                    projectId={projectId}
+                    assetType="products"
+                    assetId={productId}
+                    currentFieldValues={{
+                      seoTitle: product?.seoTitle,
+                      seoDescription: product?.seoDescription,
+                    }}
+                  />
                 )}
               </div>
             }

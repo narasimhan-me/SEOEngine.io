@@ -30,7 +30,10 @@ export type FromContext =
   | 'deo'
   | 'product_issues'
   | 'playbook_preview'
-  | 'playbook_results';
+  | 'playbook_results'
+  | 'asset_list'
+  | 'issues_engine'
+  | 'playbook';
 
 /**
  * Human-readable labels for navigation origins.
@@ -47,6 +50,9 @@ export const FROM_CONTEXT_LABELS: Record<FromContext, string> = {
   product_issues: 'Product Issues',
   playbook_preview: 'Playbook Preview',
   playbook_results: 'Playbook Results',
+  asset_list: 'Asset list',
+  issues_engine: 'Issues Engine',
+  playbook: 'Playbooks',
 };
 
 /**
@@ -62,8 +68,12 @@ export const FROM_CONTEXT_ROUTES: Record<FromContext, (projectId: string) => str
   overview: (projectId) => `/projects/${projectId}/overview`,
   deo: (projectId) => `/projects/${projectId}/deo`,
   product_issues: (projectId) => `/projects/${projectId}/issues`,
-  playbook_preview: (projectId) => `/projects/${projectId}/automation/playbooks`,
-  playbook_results: (projectId) => `/projects/${projectId}/automation/playbooks`,
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Use canonical /playbooks routes
+  playbook_preview: (projectId) => `/projects/${projectId}/playbooks`,
+  playbook_results: (projectId) => `/projects/${projectId}/playbooks`,
+  asset_list: (projectId) => `/projects/${projectId}/products`,
+  issues_engine: (projectId) => `/projects/${projectId}/issues`,
+  playbook: (projectId) => `/projects/${projectId}/playbooks`,
 };
 
 // =============================================================================
@@ -323,10 +333,10 @@ export function getCurrentPathWithQuery(
     return pathname;
   }
 
-  // Exclude returnTo-related params to prevent circular references
+  // Exclude returnTo-related params and 'from' to prevent circular references and returnTo chains
   const cleanParams = new URLSearchParams();
   searchParams.forEach((value, key) => {
-    if (!['returnTo', 'returnLabel'].includes(key)) {
+    if (!['returnTo', 'returnLabel', 'from'].includes(key)) {
       cleanParams.set(key, value);
     }
   });

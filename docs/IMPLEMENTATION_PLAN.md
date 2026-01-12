@@ -376,6 +376,129 @@ Trust-critical UX hardening for issue→fix path navigation.
 
 ---
 
+### Phase ROUTE-INTEGRITY-1: Deterministic Deep Links + Scope Banner ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+Trust hardening for deterministic deep link routing with visible navigation context.
+
+### Key Features
+
+1. **URL is Source of Truth**: All navigation context derived from URL params (from + returnTo)
+2. **Shared Route Context**: `route-context.ts` provides `withRouteContext()`, `getSafeReturnTo()`, `getReturnToFromCurrentUrl()`, `labelFrom()`
+3. **ScopeBanner Component**: Visible navigation context on destination surfaces with Back + Clear filters actions
+4. **Consistent Origin Enum**: Extended `FromContext` with `asset_list`, `issues_engine`, `playbook`
+
+### Locked Routing Contract
+
+- **from**: Origin context for back navigation (e.g., `store_health`, `work_queue`, `asset_list`)
+- **returnTo**: URL-encoded path to return to (includes filtered state like `?q=...`)
+- **Clear filters**: Always resets to base route without query params
+
+### ScopeBanner Surfaces
+
+- Issues Engine page
+- Playbooks page
+- Products list page
+- Pages list page
+- Collections list page
+- Product detail page
+
+### Test Coverage
+
+- **E2E Tests:** `apps/web/tests/route-integrity-1.spec.ts`
+- **Manual Testing:** `docs/manual-testing/ROUTE-INTEGRITY-1.md`
+
+### Critical Paths
+
+- Store Health → Issues Engine → Back (filter context preserved)
+- Products list (with filter) → Fix next → Back (original filter restored)
+- Work Queue → Playbooks → Back + Clear filters
+
+### FIXUP-1 (2026-01-10)
+
+1. **ScopeBanner Placement**: Moved ScopeBanner after page header on Playbooks and Issues Engine pages for consistent visual hierarchy
+2. **Strict E2E Tests**: Removed conditional guards, use correct test IDs (`store-health-card-discoverability`), tests now fail if elements aren't found
+3. **Dynamic Back Label**: Issues Engine back link now uses `labelFrom()` for dynamic context-aware label (no longer hardcoded "Back to Store Health")
+
+### FIXUP-2 (2026-01-10)
+
+1. **Issues Engine ScopeBanner "On Arrival"**: Moved ScopeBanner to immediately after h1 header row (before TripletDisplay/counts), removed misleading always-visible back link that claimed "Back to..." even without navigation context
+2. **Products Page "Back" Copy Fix**: Changed "← Back to Store Health" to neutral "← Store Health" (not claiming back navigation when it isn't)
+3. **Work Queue → Playbooks Test Seed**: Replaced `seedFirstDeoWin` with `seedListSearchFilter1` in Work Queue → Playbooks tests to guarantee Playbooks CTAs exist; tightened locator to target `?playbookId=` param
+4. **Removed Unused Import**: Removed `labelFrom` import from issues page (no longer needed after back link removal)
+
+---
+
+### Phase SCOPE-CLARITY-1: Explicit Scope Chips + Normalization ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+SCOPE-CLARITY-1 enhances ScopeBanner to show explicit scope chips instead of plain text descriptions, and introduces canonical scope normalization rules to prevent hidden filter stacking. URL is the single source of truth for all scope params.
+
+#### Canonical Scope Keys (LOCKED)
+
+- `pillar` - DEO pillar ID
+- `assetType` - Asset type: 'products' | 'pages' | 'collections'
+- `assetId` - Specific asset identifier
+- `issueType` - Issue type key
+- `mode` - View mode: 'actionable' | 'detected'
+
+#### Priority Rules (LOCKED)
+
+1. **Asset scope** (assetType + assetId both present) → Keep only asset; drop issueType, pillar, mode
+2. **Issue type scope** (issueType present) → Keep issueType (+ mode if present); drop pillar
+3. **Pillar scope** (pillar present) → Keep pillar (+ mode if present)
+4. **Mode alone** → Keep mode
+
+#### Key Features
+
+1. **Scope Normalization**: `normalizeScopeParams()` in `scope-normalization.ts` - canonical normalization with priority rules
+2. **Scope Chips**: Ordered `ScopeChip[]` with type + label for explicit display
+3. **wasAdjusted Flag**: Shows note when conflicting params were dropped
+4. **Test Hooks**: `data-testid="scope-chips"`, `data-testid="scope-chip"` + `data-scope-chip-type="{type}"`, `data-testid="scope-banner-adjusted-note"`
+
+#### Core Files
+
+- `apps/web/src/lib/scope-normalization.ts` (normalization utilities)
+- `apps/web/src/components/common/ScopeBanner.tsx` (chip rendering)
+- `apps/web/src/lib/route-context.ts` (updated documentation)
+
+#### Surfaces Updated
+
+- Issues Engine page
+- Playbooks page
+- Product Detail page
+- Products List page
+- Pages List page
+- Collections List page
+
+#### Test Coverage
+
+- **E2E Tests:** `apps/web/tests/scope-clarity-1.spec.ts`
+- **Manual Testing:** `docs/manual-testing/SCOPE-CLARITY-1.md`
+
+#### FIXUP-1 (2026-01-10)
+
+Issues Engine pillar filter state is now driven by normalized scope (prevents hidden stacking when issueType overrides pillar):
+
+1. **Normalized Pillar State**: `pillarFilter` initial state and sync effect use `normalizedScopeResult.normalized.pillar` instead of raw `pillarParam`. When issueType takes priority, pillar is `undefined` and filter stays on "All".
+2. **User Selection Clears Conflicts**: When user explicitly picks a pillar via `handlePillarFilterChange()`, conflicting higher-priority scope params (`issueType`, `assetType`, `assetId`) are deleted from URL so the selected pillar becomes unambiguous.
+3. **Test Coverage**: Playwright test asserts that "All pillars" filter button is visible when issueType overrides pillar.
+
+#### FIXUP-2 (2026-01-10)
+
+Strict, non-brittle test hooks for pillar filter buttons:
+
+1. **Pillar Filter Test Hooks**: Added `data-testid="pillar-filter-all"` and `aria-pressed` to "All pillars" button. Added `data-testid="pillar-filter-${pillar.id}"` (e.g., `pillar-filter-metadata_snippet_quality`) and `aria-pressed` to each pillar button in the DEO_PILLARS loop.
+2. **Playwright Strict Assertions**: Replaced brittle `button:has-text("All")` locator with `[data-testid="pillar-filter-all"]`. Test now asserts `aria-pressed="true"` for All button and `aria-pressed="false"` for Metadata pillar button when issueType overrides pillar.
+
+---
+
 ## Completed Phases (Chronological)
 
 ### Trust Hardening
@@ -921,6 +1044,617 @@ LIST-ACTIONS-CLARITY-1 unifies the row chips and actions across Products, Pages,
 
 ---
 
+### Phase DRAFT-ROUTING-INTEGRITY-1: Review Drafts → Draft Review (NOT Work Queue) ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+DRAFT-ROUTING-INTEGRITY-1 ensures "Review drafts" action routes to Draft Review mode (scoped to asset), NOT Work Queue. Provides deterministic, scoped draft review with Back navigation via ScopeBanner.
+
+**Locked Rule:** "Review drafts NEVER routes to Work Queue."
+
+#### Key Features
+
+1. **Draft Review Mode**: `/automation/playbooks?mode=drafts&assetType=...&assetId=...&from=asset_list&returnTo=...`
+2. **Server Endpoint**: `GET /projects/:id/automation-playbooks/drafts` returns pending drafts for specific asset
+3. **ScopeBanner**: Visible navigation context with Back link to origin list
+4. **Zero-Draft Empty State**: "No drafts available for this item." with View issues + Back CTAs
+5. **Test Hooks**: `draft-review-panel`, `draft-review-list`, `draft-review-empty`, `scope-banner-back`
+
+#### Completed Patches
+
+- ✅ **PATCH 1:** Updated `buildReviewDraftsHref()` to route to Draft Review (not Work Queue)
+- ✅ **PATCH 2:** Updated ProductTable, Pages list, Collections list to pass assetId
+- ✅ **PATCH 3:** Added `GET /projects/:id/automation-playbooks/drafts` endpoint
+- ✅ **PATCH 4:** Added `projectsApi.listAutomationPlaybookDraftsForAsset()` web client method
+- ✅ **PATCH 5:** Implemented Draft Review mode in Playbooks page with ScopeBanner + empty state
+- ✅ **PATCH 6:** Updated Playwright test LAC1-008 for Draft Review routing + back navigation
+- ✅ **PATCH 7:** Created `DRAFT-ROUTING-INTEGRITY-1.md` manual testing doc, updated LIST-ACTIONS-CLARITY-1.md
+
+#### Core Files
+
+- `apps/web/src/lib/list-actions-clarity.ts` (buildReviewDraftsHref)
+- `apps/web/src/components/products/ProductTable.tsx`
+- `apps/web/src/app/projects/[id]/assets/pages/page.tsx`
+- `apps/web/src/app/projects/[id]/assets/collections/page.tsx`
+- `apps/api/src/projects/projects.controller.ts` (drafts endpoint)
+- `apps/api/src/projects/automation-playbooks.service.ts` (listPendingDraftsForAsset)
+- `apps/web/src/lib/api.ts` (AssetScopedDraftsResponse types + method)
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (Draft Review mode)
+
+#### Test Coverage
+
+- **E2E Tests:** `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-008)
+- **Manual Testing:** `docs/manual-testing/DRAFT-ROUTING-INTEGRITY-1.md`
+
+---
+
+### Phase DRAFT-EDIT-INTEGRITY-1: Inline Draft Editing in Draft Review Mode ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+DRAFT-EDIT-INTEGRITY-1 adds explicit Edit affordance to Draft Review mode, allowing users to edit draft content before approval/apply. Server draft is source of truth - no autosave, explicit save required.
+
+**Trust Principle:** "If we present a draft for review, the user must be able to edit it safely before approval/apply."
+
+#### Key Features
+
+1. **Per-Item Edit**: Each draft item has Edit button; only one item editable at a time
+2. **Explicit Save**: Save changes / Cancel buttons; no auto-save-on-type
+3. **Server Source of Truth**: Edits persist to server; UI re-renders from response
+4. **Permission Enforcement**: OWNER/EDITOR can edit; VIEWER cannot
+5. **Test Hooks**: `draft-item-${id}-${idx}`, `draft-item-edit-*`, `draft-item-save-*`, `draft-item-cancel-*`, `draft-item-input-*`
+
+#### Completed Patches
+
+- ✅ **PATCH 1:** Added `updateDraftItem()` service method in automation-playbooks.service.ts
+- ✅ **PATCH 2:** Added `PATCH /projects/:id/automation-playbooks/drafts/:draftId/items/:itemIndex` endpoint
+- ✅ **PATCH 3:** Added `projectsApi.updateDraftItem()` web client method + `UpdateDraftItemResponse` type
+- ✅ **PATCH 4:** Implemented inline edit mode in Draft Review UI (playbooks/page.tsx)
+- ✅ **PATCH 5:** Added Playwright test LAC1-009 for draft editing + persistence verification
+- ✅ **PATCH 6:** Created `DRAFT-EDIT-INTEGRITY-1.md` manual testing doc
+
+#### Core Files
+
+- `apps/api/src/projects/automation-playbooks.service.ts` (updateDraftItem)
+- `apps/api/src/projects/projects.controller.ts` (PATCH endpoint)
+- `apps/web/src/lib/api.ts` (UpdateDraftItemResponse + updateDraftItem method)
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (inline edit mode)
+
+#### Test Coverage
+
+- **E2E Tests:** `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-009)
+- **Manual Testing:** `docs/manual-testing/DRAFT-EDIT-INTEGRITY-1.md`
+
+---
+
+### Phase DRAFT-ENTRYPOINT-UNIFICATION-1: Product Detail Drafts Tab ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+DRAFT-ENTRYPOINT-UNIFICATION-1 unifies draft review entrypoints by adding a Drafts tab to Product detail page. Products list "Review drafts" action now routes directly to Product detail Drafts tab (NOT Automation/Playbooks Draft Review), establishing Product detail as the canonical draft review entrypoint for product assets.
+
+#### Locked Statements
+
+- **Product detail is the canonical draft review entrypoint for products**: Products list "Review drafts" routes to `/projects/:id/products/:productId?tab=drafts`, NOT to `/automation/playbooks`.
+- **Draft Review stays human-only**: AI is never invoked during Draft Review/Approval/Apply. No Generate/Regenerate buttons in Drafts tab.
+- **Products list Review drafts does not route to Automation Draft Review**: The Automation/Playbooks Draft Review mode is preserved for Pages/Collections, but Products use their own Drafts tab.
+
+#### Key Features
+
+1. **Drafts Tab**: New tab in Product detail page showing asset-scoped pending drafts
+2. **Inline Edit**: Edit/Save/Cancel per draft item (reuses DRAFT-EDIT-INTEGRITY-1 pattern)
+3. **itemIndex Tracking**: Server returns original array index for accurate edit API calls
+4. **No AI Affordances**: Drafts tab is intentionally non-AI (no Generate/Regenerate buttons)
+5. **Unified Navigation**: `buildProductDraftsTabHref()` helper for consistent routing
+
+#### Completed Patches
+
+- ✅ **PATCH 1:** Updated ProductTable to route "Review drafts" to Product detail Drafts tab
+- ✅ **PATCH 2:** Added `buildProductDraftsTabHref()` helper in list-actions-clarity.ts
+- ✅ **PATCH 3:** Added 'drafts' tab to ProductDetailsTabs.tsx
+- ✅ **PATCH 4:** Implemented Drafts tab UI in Product detail page (fetch + edit + render)
+- ✅ **PATCH 5:** Added `itemIndex` to asset-scoped drafts response in automation-playbooks.service.ts
+- ✅ **PATCH 6:** Extended `AssetScopedDraftItem` type with `itemIndex` field
+- ✅ **PATCH 7:** Updated Playbooks Draft Review to use `item.itemIndex` for API calls
+- ✅ **PATCH 8:** Updated Playwright tests LAC1-008/009 for Product detail Drafts tab routing
+- ✅ **PATCH 9:** Updated testkit seed to use canonical draft shape (field/rawSuggestion/finalSuggestion)
+- ✅ **PATCH 10:** Documentation updates (this section + manual testing doc)
+
+#### Core Files
+
+- `apps/web/src/lib/list-actions-clarity.ts` (buildProductDraftsTabHref)
+- `apps/web/src/components/products/ProductTable.tsx` (Review drafts routing)
+- `apps/web/src/components/products/optimization/ProductDetailsTabs.tsx` (Drafts tab)
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` (Drafts tab implementation)
+- `apps/api/src/projects/automation-playbooks.service.ts` (itemIndex in listPendingDraftsForAsset)
+- `apps/web/src/lib/api.ts` (AssetScopedDraftItem.itemIndex)
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (itemIndex usage)
+- `apps/api/src/testkit/e2e-testkit.controller.ts` (canonical draft shape in seed)
+
+#### Test Coverage
+
+- **E2E Tests:** `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-008, LAC1-009)
+- **Manual Testing:** `docs/manual-testing/DRAFT-ENTRYPOINT-UNIFICATION-1.md`
+
+#### Routing Contract
+
+- Products "Review drafts": `/projects/:projectId/products/:productId?tab=drafts&from=asset_list&returnTo=...`
+- Pages/Collections "Review drafts": `/automation/playbooks?mode=drafts&assetType=...&assetId=...` (unchanged)
+
+---
+
+### Phase DRAFT-REVIEW-ISOLATION-1: Structural Non-AI Boundary ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+DRAFT-REVIEW-ISOLATION-1 extracts the Product Drafts tab into an isolated module with a NON-AI BOUNDARY contract. This structural refactor prevents accidental AI creep into the Draft Review surface, enforcing the locked statement: "Draft Review stays human-only."
+
+**Trust Principle:** "If we promise human-only Draft Review, the code structure must enforce it."
+
+#### Why Isolation Exists
+
+1. **Prevent accidental AI creep**: Developers cannot accidentally import AI modules into Draft Review
+2. **Self-documenting contract**: The NON-AI BOUNDARY header makes the constraint explicit
+3. **Automated enforcement**: Guard test fails if forbidden imports are added
+4. **Code review signal**: Any PR touching `ProductDraftsTab.tsx` triggers immediate scrutiny
+
+#### NON-AI BOUNDARY Contract
+
+The `ProductDraftsTab.tsx` module must:
+1. Contain the header: `NON-AI BOUNDARY: Draft Review is human-only. Do not import aiApi or add AI generation actions here.`
+2. NOT import any of these forbidden tokens:
+   - `aiApi`
+   - `ProductAiSuggestionsPanel`
+   - `suggestProductMetadata`
+   - `generateProductAnswers`
+   - `AI_DAILY_LIMIT_REACHED`
+
+#### Completed Patches
+
+- ✅ **PATCH 1:** Extracted `ProductDraftsTab.tsx` with NON-AI BOUNDARY header and verbatim behavior
+- ✅ **PATCH 2:** Added `draft-review-isolation-1.spec.ts` guard test for forbidden imports
+- ✅ **PATCH 3:** Updated Product detail page to use isolated component (conditionally mounted to match standard tab behavior)
+- ✅ **PATCH 4:** Verified existing non-AI UI regression tests (LAC1-008) still pass
+- ✅ **PATCH 5:** Documentation updates (this section + manual testing doc)
+
+#### Core Files
+
+- `apps/web/src/components/products/ProductDraftsTab.tsx` (NEW - isolated non-AI module)
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` (delegates to ProductDraftsTab)
+- `apps/web/tests/draft-review-isolation-1.spec.ts` (NEW - no-AI import guard test)
+
+#### Test Coverage
+
+- **Guard Tests:** `apps/web/tests/draft-review-isolation-1.spec.ts` (DRI1-001, DRI1-002, DRI1-003)
+- **UI Tests:** `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-008 - existing non-AI assertions)
+- **Manual Testing:** `docs/manual-testing/DRAFT-REVIEW-ISOLATION-1.md`
+
+#### Behavior Changes
+
+None. This is a pure structural refactor with no behavioral changes.
+
+---
+
+### Phase DRAFT-AI-ENTRYPOINT-CLARITY-1: AI Boundary Notes ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+DRAFT-AI-ENTRYPOINT-CLARITY-1 adds explicit AI boundary labeling at all draft workflow surfaces. The boundary notes provide transparency about AI usage at each step, ensuring users always know when AI is or isn't being used.
+
+**Trust Principle:** "If we use AI, we disclose it. If we don't use AI, we clarify that too."
+
+#### Locked Copy (Do Not Modify Without Phase Approval)
+
+| Mode | Text | Icon |
+|------|------|------|
+| Review | "Review & edit (no AI on this step)" | Person (gray) |
+| Generate | "AI used for drafts only · AI is not used at Apply" | Lightbulb (indigo) |
+
+#### Surfaces Covered
+
+1. **Product Drafts Tab** (review mode) - below "Drafts" heading
+2. **Playbooks Draft Review** (review mode) - below ScopeBanner
+3. **Playbooks Step 1 Generation** (generate mode) - below "Generate preview" button
+4. **Work Queue Generation CTA** (generate mode) - below "Generate Drafts" / "Generate Full Drafts" button
+
+#### Core Files
+
+- `apps/web/src/components/common/DraftAiBoundaryNote.tsx` (NEW - shared component)
+- `apps/web/src/components/products/ProductDraftsTab.tsx` (added review note)
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (added review + generate notes)
+- `apps/web/src/components/work-queue/ActionBundleCard.tsx` (added generate note)
+- `apps/api/src/testkit/e2e-testkit.controller.ts` (seed endpoint)
+
+#### Test Coverage
+
+- **Playwright Tests:** `apps/web/tests/draft-ai-entrypoint-clarity-1.spec.ts` (6 tests: DAEPC1-001 through DAEPC1-006)
+- **Existing Tests:** `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-008 updated with boundary note assertion)
+- **Manual Testing:** `docs/manual-testing/DRAFT-AI-ENTRYPOINT-CLARITY-1.md`
+
+#### Behavior Changes
+
+None. This is a UX clarity addition with no functional behavior changes.
+
+---
+
+### Phase DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-10
+
+#### Overview
+
+DRAFT-DIFF-CLARITY-1 adds explicit "Current (live)" vs "Draft (staged)" diff display at draft review surfaces. This provides users with clear visibility into what will change when a draft is applied, preventing confusion about the current state vs proposed changes.
+
+**Trust Principle:** "Make the impact of applying a draft immediately obvious at a glance."
+
+#### Key Features
+
+1. **Diff Display**: Side-by-side "Current (live)" and "Draft (staged)" blocks with distinct visual styling
+2. **Empty Draft Messaging**:
+   - "No draft generated yet" when both rawSuggestion and finalSuggestion are empty
+   - "Draft will clear this field when applied" when explicitly cleared (rawSuggestion exists but finalSuggestion empty)
+3. **Save Confirmation**: Confirmation dialog when saving an empty draft that would clear a live field
+4. **Test Hooks**: `data-testid="draft-diff-current"` and `data-testid="draft-diff-draft"` for E2E automation
+
+#### Locked Copy (Do Not Modify Without Phase Approval)
+
+| Element | Text |
+|---------|------|
+| Current label | "Current (live)" |
+| Draft label | "Draft (staged)" |
+| No draft message | "No draft generated yet" |
+| Clear warning | "Draft will clear this field when applied" |
+| Confirmation dialog | "Saving an empty draft will clear this field when applied.\n\nAre you sure you want to save an empty draft?" |
+
+#### Surfaces Covered
+
+1. **Product Drafts Tab** - Diff display for each draft item with current/draft blocks
+2. **Playbooks Draft Review** - Diff display for each canonical draft item
+
+#### Core Files
+
+- `apps/web/src/components/products/ProductDraftsTab.tsx` (added diff UI + empty draft confirmation)
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` (passes currentFieldValues)
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (added diff UI + current field fetch)
+- `apps/api/src/testkit/e2e-testkit.controller.ts` (seed-draft-diff-clarity-1 endpoint)
+
+#### Test Coverage
+
+- **Playwright Tests:** `apps/web/tests/draft-diff-clarity-1.spec.ts` (10 tests: DDC1-001 through DDC1-010)
+- **Manual Testing:** `docs/manual-testing/DRAFT-DIFF-CLARITY-1.md`
+
+#### Behavior Changes
+
+- Draft review surfaces now show current live values alongside draft values
+- Empty draft saves trigger a confirmation dialog when they would clear a live field
+
+---
+
+### Phase DRAFT-FIELD-COVERAGE-1: Draft Review Parity Across Assets ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-11
+
+#### Overview
+
+DRAFT-FIELD-COVERAGE-1 generalizes the Draft Review UI to work consistently across Products, Pages, and Collections asset types. The Draft Diff Clarity (Current vs Draft display) and edit safeguards now apply uniformly to all asset types.
+
+**Trust Principle:** "Draft review works identically regardless of asset type - users get the same experience whether reviewing product, page, or collection drafts."
+
+#### Key Features
+
+1. **AssetDraftsTab Component**: Generalized from ProductDraftsTab to support all asset types with asset-specific field labels
+2. **Pages Detail Route**: New `/projects/[id]/assets/pages/[pageId]` route with Overview and Drafts tabs
+3. **Collections Detail Route**: New `/projects/[id]/assets/collections/[collectionId]` route with Overview and Drafts tabs
+4. **Field Label Mapping**: Asset-type-specific field labels:
+   - Products: "SEO Title", "SEO Description"
+   - Pages: "Page Title", "Meta Description"
+   - Collections: "Collection Title", "Meta Description"
+5. **Non-AI Boundary**: AssetDraftsTab maintains the NON-AI BOUNDARY contract (enforced by guard test)
+
+#### Draft Features Now Available for All Asset Types
+
+- Current (live) vs Draft (staged) diff display
+- "No draft generated yet" messaging
+- "Draft will clear this field when applied" warning
+- Save confirmation dialog for destructive clears
+- Inline edit with Save/Cancel
+
+#### Core Files
+
+**New Routes:**
+- `apps/web/src/app/projects/[id]/assets/pages/[pageId]/page.tsx` (implementation)
+- `apps/web/src/app/projects/[id]/assets/collections/[collectionId]/page.tsx` (implementation)
+- `apps/web/src/app/projects/[id]/pages/[pageId]/page.tsx` (canonical alias, redirects to /assets/pages/...)
+- `apps/web/src/app/projects/[id]/collections/[collectionId]/page.tsx` (canonical alias, redirects to /assets/collections/...)
+
+**Component:**
+- `apps/web/src/components/products/AssetDraftsTab.tsx` (generalized from ProductDraftsTab)
+- `apps/web/src/components/products/ProductDraftsTab.tsx` (thin wrapper around AssetDraftsTab)
+
+**Updated:**
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` (uses AssetDraftsTab)
+- `apps/web/tests/draft-review-isolation-1.spec.ts` (targets AssetDraftsTab)
+- `apps/api/src/testkit/e2e-testkit.controller.ts` (seed-draft-field-coverage-1)
+
+#### Test Coverage
+
+- **Playwright Tests:** `apps/web/tests/draft-field-coverage-1.spec.ts` (11 tests: DFC1-001 through DFC1-011)
+- **Guard Test:** `apps/web/tests/draft-review-isolation-1.spec.ts` (updated to target AssetDraftsTab)
+- **Manual Testing:** `docs/manual-testing/DRAFT-FIELD-COVERAGE-1.md`
+
+#### Seed Endpoint
+
+`POST /testkit/e2e/seed-draft-field-coverage-1`
+
+Seeds:
+- 3 Products (diff / clear / no-draft scenarios)
+- 3 Pages (diff / clear / no-draft scenarios)
+- 3 Collections (diff / clear / no-draft scenarios)
+- Counts: `{ affectedTotal: 3, draftGenerated: 2, noSuggestionCount: 1 }`
+
+---
+
+### Phase DRAFT-LIST-PARITY-1: List-Level Draft Review Entrypoint Parity ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-11
+
+#### Overview
+
+DRAFT-LIST-PARITY-1 ensures that "Review drafts" actions on Pages and Collections list views route to the asset detail Drafts tab (NOT to Work Queue or Playbooks). This creates parity with Products, where draft review already routes to the product detail Drafts tab.
+
+**Trust Principle:** "Review drafts on asset lists routes to the asset detail Drafts tab, keeping the user focused on the individual asset rather than redirecting to batch automation surfaces."
+
+#### Key Features
+
+1. **Resolver Update**: `resolveRowNextAction()` now supports `issuesHref` for Pages/Collections dual-action rows (View issues + Open as secondary)
+2. **Routing Helpers**: New `buildAssetWorkspaceHref()` and `buildAssetDraftsTabHref()` helpers for consistent asset routing
+3. **Pages List**: "Review drafts" routes to `/projects/{id}/assets/pages/{pageId}?tab=drafts&from=asset_list`
+4. **Collections List**: "Review drafts" routes to `/projects/{id}/assets/collections/{collectionId}?tab=drafts&from=asset_list`
+
+#### Locked Routing Behavior
+
+- Pages/Collections "Review drafts" MUST route to asset detail Drafts tab
+- MUST NOT route to `/automation/playbooks?mode=drafts`
+- MUST NOT route to `/work-queue`
+- URL must include `?tab=drafts&from=asset_list` query params
+
+#### Core Files
+
+**Updated:**
+- `apps/web/src/lib/list-actions-clarity.ts` (resolver + new helpers)
+- `apps/web/src/app/projects/[id]/assets/pages/page.tsx` (uses new helpers)
+- `apps/web/src/app/projects/[id]/assets/collections/page.tsx` (uses new helpers)
+
+#### Test Coverage
+
+- **Playwright Tests:** `apps/web/tests/draft-list-parity-1.spec.ts` (2 tests: DLP1-001, DLP1-002)
+- **Manual Testing:** `docs/manual-testing/DRAFT-LIST-PARITY-1.md`
+
+#### Seed Endpoint
+
+Uses existing `POST /testkit/e2e/seed-draft-field-coverage-1` (provides pages/collections with drafts)
+
+---
+
+### Phase PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Route Canonicalization & Banner Routing Guarantee ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-11
+
+#### Overview
+
+PLAYBOOK-ENTRYPOINT-INTEGRITY-1 introduces canonical playbook routes and guarantees that banner CTAs route to the correct playbook based on eligibility counts. The phase eliminates implicit default selection bugs and ensures URL is always the source of truth.
+
+**Trust Principle:** "The playbook in the URL is the playbook being run. Banner clicks route deterministically to the correct playbook with no AI side effects."
+
+#### Key Features
+
+1. **Canonical Route Shape**: `/projects/:projectId/playbooks/:playbookId?step=preview|estimate|apply&source=<entrypoint>`
+2. **Centralized Routing Helper**: `buildPlaybookRunHref()` as single source of truth for URL construction
+3. **Deterministic Default Selection**: max eligibleCount wins; tie → descriptions; all 0 → neutral (no implicit default)
+4. **Banner CTA Guarantee**: Banner routes canonically (no AI side effects on click)
+5. **Tile Click Routing**: Tiles route via canonical URL (same as banner)
+6. **Estimate/Playbook Mismatch Fix**: Estimates only merge when playbookId matches
+
+#### Locked Routing Behavior
+
+- Banner CTA MUST route to `/playbooks/:playbookId?step=preview&source=banner`
+- URL MUST contain the correct playbookId (matching banner label)
+- Click MUST NOT trigger AI/preview side effects
+- Stepper MUST be visible after navigation
+- Zero-eligible empty state MUST NOT appear when eligibility > 0
+
+#### Canonical Route Shape
+
+```
+/projects/:projectId/playbooks/:playbookId?step=preview|estimate|apply&source=<entrypoint>
+```
+
+**Sources (entrypoints):**
+- `banner` - Playbooks page banner CTA
+- `tile` - Playbooks page tile click
+- `work_queue` - Work Queue CTA
+- `products_list` - Products list View playbooks link
+- `next_deo_win` - Next DEO Win card CTA
+- `entry` - Entry wizard
+- `product_details` - Product details page
+- `default` - Deterministic default selection
+
+#### Core Files
+
+**Created:**
+- `apps/web/src/app/projects/[id]/playbooks/page.tsx` (canonical list route re-export)
+- `apps/web/src/app/projects/[id]/playbooks/[playbookId]/page.tsx` (canonical run route re-export)
+- `apps/web/src/lib/playbooks-routing.ts` (centralized routing helper)
+
+**Updated:**
+- `apps/web/src/app/projects/[id]/automation/page.tsx` (redirect to /playbooks)
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (integrity fixes)
+- `apps/web/src/components/work-queue/ActionBundleCard.tsx` (canonical routing)
+- `apps/web/src/components/products/ProductTable.tsx` (canonical routing)
+- `apps/web/src/components/projects/NextDeoWinCard.tsx` (canonical routing)
+- `apps/web/src/app/projects/[id]/automation/playbooks/entry/page.tsx` (canonical routing)
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` (returnTo validation)
+- `apps/web/src/lib/issue-fix-navigation.ts` (canonical route contexts)
+
+#### Test Coverage
+
+- **Playwright Tests:** `apps/web/tests/playbook-entrypoint-integrity-1.spec.ts` (PEPI1-001, PEPI1-002)
+- **Manual Testing:** `docs/manual-testing/PLAYBOOK-ENTRYPOINT-INTEGRITY-1.md`
+
+#### Seed Endpoint
+
+`POST /testkit/e2e/seed-playbook-entrypoint-integrity-1`
+
+Seeds:
+- User with project and Shopify connection
+- Products where: titles eligibleCount = 0, descriptions eligibleCount > 0
+- Returns expected counts for test assertions
+
+#### FIXUP-3 (2026-01-11): Scoped Eligibility Integrity
+
+- Scoped PRODUCTS entry (assetType=PRODUCTS + scopeAssetRefs) now computes eligibility counts scoped (no global banner → scoped destination mismatch).
+- Banner CTA routing preserves the exact same scope semantics as the eligibility basis (no cross-scope routing).
+- Manual Testing: Added "Scoped Playbooks entry (Products list / filtered scope)" to PLAYBOOK-ENTRYPOINT-INTEGRITY-1.md.
+- Scope parsing now accepts repeated scopeAssetRefs query params (and comma-separated), matching Playwright PEPI1-002 entry shape.
+
+#### FIXUP-4 (2026-01-11): Scoped Routing Guardrails (PRODUCTS)
+
+- Removed remaining PRODUCTS scope-suppression patterns in Playbooks routing entrypoints (Playbooks page + Work Queue).
+- Added guardrail: scoped playbook routes must include assetType; invalid scoped routes are refused (console error + no navigation).
+- Introduced `playbookRunScopeForUrl` shared memo for scope-identical routing across all entrypoints.
+- Strengthened PEPI1-002 to assert repeated scopeAssetRefs params via `URLSearchParams.getAll()`.
+
+#### FIXUP-5 (2026-01-11): Canonical Entrypoints + Explicit Scope Payload
+
+- Extended `buildPlaybooksListHref()` to support `assetType` and `scopeAssetRefs` params.
+- Added `buildPlaybookScopePayload()` helper for consistent scope spreading in routing args.
+- Added `navigateToPlaybooksList()` wrapper for router navigation.
+- Updated `NextDeoWinCard` to use `navigateToPlaybookRun()` and `buildPlaybooksListHref()` (no manual string URLs).
+- Updated Entry page to use `buildPlaybooksListHref()` for breadcrumb/back links and `buildPlaybookRunHref()` for "View playbook" CTA with explicit scope.
+- Replaced `playbookRunScopeForUrl` inline memo with `buildPlaybookScopePayload()` from routing module.
+- Added PEPI1-003 Playwright test for Entry page CTA routing with scoped products.
+- Manual Testing: Added Scenario 1.2 (Entry page → Playbook with scope) to PLAYBOOK-ENTRYPOINT-INTEGRITY-1.md.
+
+**FOLLOWUP-1 (2026-01-12):**
+- Entry page CTA now routes to Playbooks LIST (not hardcoded run target) so deterministic selection chooses the correct playbook for scoped eligibility.
+- `buildPlaybookScopePayload()` now validates PRODUCTS scope refs (rejects handle-prefixed refs like `page_handle:...`) and provides an explicit payload with `scopeProductIds` for API calls.
+- Added `getRoutingScopeFromPayload()` helper to extract routing-only subset (excludes `scopeProductIds`).
+- Removed positional branching in all API calls (eligibility, estimate, preview, apply) - all use explicit payload.
+- Added stable "Open Playbooks" CTA (`data-testid="automation-entry-open-playbooks"`) visible without AI/enable dependency.
+- PEPI1-003 test rewritten: no AI dependency, uses stable CTA, asserts deterministic selection lands on descriptions playbook (seed: titles=0, descriptions>0).
+- Deterministic selection preserves `source=entry` into the run URL; PEPI1-003 asserts this to prevent routing drift.
+
+### Phase SHOPIFY-ASSET-SYNC-COVERAGE-1: Shopify Pages + Collections Ingestion ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-11
+**Activation:** Shopify-first ingestion coverage (read + display only)
+
+#### Goals
+
+1. Ingest Shopify Pages and Collections into EngineO.ai DB (metadata-only).
+2. Display them in Assets → Pages and Assets → Collections (list + detail).
+3. Make sync explicit: users can trigger sync; UI shows coverage + last sync time.
+
+#### Strict Non-Goals
+
+- No content-body ingestion/edit/apply
+- No new playbooks or playbook IDs
+- No apply expansion beyond existing support
+- No changes to approval/audit/AI usage rules
+
+#### Key Changes
+
+1. **Prisma Schema**: Added Shopify identity fields to CrawlResult (shopifyResourceType, shopifyResourceId, shopifyHandle, shopifyUpdatedAt, shopifySyncedAt) with compound unique constraint and @@index([projectId, url]).
+2. **API Endpoints**: Added project-scoped sync endpoints (POST /projects/:id/shopify/sync-pages, POST /projects/:id/shopify/sync-collections, GET /projects/:id/shopify/sync-status).
+3. **ShopifyService**: Added GraphQL fetchers (GetPages, GetCollections), sync methods, and sync status persistence.
+4. **Frontend**: Pages and Collections list pages with sync buttons (visible but disabled when Shopify not connected), status lines, and empty state differentiation. Detail pages show handle and updatedAt.
+5. **E2E Tests**: API-level e2e spec and Playwright smoke test.
+
+#### Test Coverage
+
+- API e2e spec: `apps/api/test/e2e/shopify-asset-sync.e2e-spec.ts`
+- Playwright smoke test: `apps/web/tests/shopify-asset-sync-coverage-1.spec.ts`
+
+#### Manual Testing
+
+- `docs/manual-testing/SHOPIFY-ASSET-SYNC-COVERAGE-1.md`
+
+### Phase ISSUE-FIX-KIND-CLARITY-1: Diagnostic vs Fixable Issue CTA Semantics ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-12
+**Activation:** UX semantic clarity for informational/diagnostic issues
+
+#### Goals
+
+1. Distinguish DIAGNOSTIC issues (informational, no direct fix) from EDIT/AI issues (actionable with direct fix surface).
+2. Show "Review" CTA for DIAGNOSTIC issues (not "Fix") in Issues Engine + DEO Overview.
+3. Show blue "diagnostic" arrival callout (not yellow "anchor not found") for DIAGNOSTIC issues.
+4. Add "View related issues" CTA for DIAGNOSTIC arrival callout.
+
+#### Strict Non-Goals
+
+- No changes to issue detection or scoring logic
+- No new issue types or pillar classifications
+- No changes to issue-to-fix routing (just CTA semantics)
+
+#### Key Changes
+
+1. **IssueFixKind Type**: Added `IssueFixKind = 'EDIT' | 'AI' | 'DIAGNOSTIC'` to `issue-to-fix-path.ts`. Each issue config can specify `fixKind`; defaults to 'EDIT' if not specified.
+2. **Search & Intent Issue Configs**: `answer_surface_weakness`, `not_answer_ready`, `weak_intent_match` use `search-intent-tab-anchor` as canonical anchor. `not_answer_ready` marked as `fixKind: 'DIAGNOSTIC'` with NO `fixAnchorTestId` (no scroll/highlight).
+3. **DIAGNOSTIC Arrival Callout**: Added `diagnostic` variant to `CalloutVariant` type in `issue-fix-anchors.ts`. Shows blue styling with "You're here to review:" message. Includes `showViewRelatedIssues: true` for "View related issues" CTA.
+4. **Product Page Integration**: `fixKind` is derived from fix config ONLY (NOT from URL param - URL param is non-authoritative). Renders "View related issues" CTA that routes to Issues Engine with pillar filter.
+5. **Issues Engine CTA**: Issues Engine page (`issues/page.tsx`) derives `fixKind` via `getIssueFixConfig()`, shows "Review" CTA for DIAGNOSTIC issues with blue styling, adds `data-fix-kind` attribute to cards.
+6. **DEO Overview CTA**: "Top Recommended Actions" shows "Review" for DIAGNOSTIC issues, "Fix now" for others.
+7. **URL Navigation**: `buildIssueFixHref()` skips `fixAnchor` param for DIAGNOSTIC issues (no scroll/highlight needed). fixKind is NOT passed in URL.
+
+#### FIXUP-1 (2026-01-12)
+
+Corrections to initial implementation:
+1. **Anchor Integrity**: Search & Intent issues now use `search-intent-tab-anchor` as canonical anchor (not module-specific testids that don't exist).
+2. **fixKind Security**: fixKind is NEVER read from URL params (non-authoritative, spoofable). Always derived from `getIssueFixConfig()`.
+3. **View Related Issues Route**: "View related issues" CTA routes to Issues Engine (`/projects/:id/issues?mode=detected&pillar=:pillarId`), NOT to product `tab=issues`.
+4. **Issues Engine DIAGNOSTIC**: Issues Engine page now derives fixKind from config, shows "Review" CTA for DIAGNOSTIC, suppresses "Fixes one affected product at a time" text.
+5. **Strict Test Assertions**: Playwright tests fail if preconditions aren't met (no no-op guards).
+
+#### Core Files
+
+- `apps/web/src/lib/issue-to-fix-path.ts` - IssueFixKind type + issue configs
+- `apps/web/src/lib/issue-fix-anchors.ts` - Diagnostic callout variant
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` - fixKind URL param + callout rendering
+- `apps/web/src/components/issues/IssuesList.tsx` - Issue card CTA wording
+- `apps/web/src/app/projects/[id]/deo/page.tsx` - DEO Overview CTA wording
+
+#### Test Coverage
+
+- Playwright tests: `apps/web/tests/issue-fix-kind-clarity-1.spec.ts` (5 tests)
+
+#### Manual Testing
+
+- `docs/manual-testing/ISSUE-FIX-KIND-CLARITY-1.md`
+
+---
+
 ## In Progress
 
 *None at this time.*
@@ -1121,3 +1855,33 @@ These invariants MUST be preserved during implementation:
 | 6.14 | 2026-01-10 | **LIST-ACTIONS-CLARITY-1 FIXUP-2 (Tests + Manual Doc Consistency)**: Tightened Playwright assertions to use row-scoped locators with seeded titles (no ordering assumptions), exact emoji chip label matching, strict Blocked action assertions (NOT Review drafts), click-through navigation to Issues Engine with filter banner verification, "no Apply on list rows" regression test. Fixed manual testing doc: corrected Products "Fix next" routing expectation (routes to Issue→Fix deep link), removed stale "Future - ROLES-3 Integration" Blocked subsection (already implemented), updated per-asset wording for Pages/Collections, removed obsolete non-goal about per-asset crawl results. No production logic changes. |
 | 6.15 | 2026-01-10 | **LIST-ACTIONS-CLARITY-1 FIXUP-1 (Bulk Removal + Server-Derived Fields)**: Compliance/safety hardening - removed ALL bulk selection UI from Products/Pages/Collections lists (checkboxes, bulk action CTAs, selection context strip, confirmation modals). Products command bar now links to Playbooks for automation. Added server-derived fields to Products API (`actionableNowCount`, `blockedByApproval`). ProductTable uses server-derived fields with client-side fallback. Extended Playwright tests with bulk removal regressions (LAC1-018 through LAC1-022). Updated manual testing doc with Bulk Removal Verification section. |
 | 6.16 | 2026-01-10 | **LIST-ACTIONS-CLARITY-1 CORRECTNESS-1 COMPLETE**: Canonical row fields now enforced server-side for Products + Crawl Pages/Collections. Products API uses `DeoIssuesService.getIssuesForProjectReadOnly()` with `__fullAffectedAssetKeys` for accurate per-product issue counts (`actionableNowCount`, `detectedIssueCount`). Crawl Pages endpoint adds `actionableNowCount`, `detectedIssueCount`, `blockedByApproval` per URL. Resolver updated to consume `blockedByApproval` directly (deprecates `canApply` derivation). UI heuristics removed from Pages/Collections lists - now use server-derived actionability. Playwright API-contract regression tests added (LAC1-023/024/025). ForwardRef pattern applied to ProjectsModule → ProductsModule import for circular dependency safety. Manual testing doc updated with emoji chip labels. |
+| 6.17 | 2026-01-10 | **SCOPE-CLARITY-1 COMPLETE**: Explicit scope chips + normalization for ScopeBanner. Created `scope-normalization.ts` with `normalizeScopeParams()` implementing priority rules (asset > issueType > pillar > mode). ScopeBanner now renders ordered ScopeChip[] with type-specific styling and test hooks (`scope-chips`, `scope-chip`, `scope-chip-type`). Shows "adjusted" note when conflicting params are normalized. Updated all 6 ScopeBanner surfaces (Issues Engine, Playbooks, Product Detail, Products List, Pages List, Collections List). Updated `route-context.ts` documentation. E2E tests in `scope-clarity-1.spec.ts`, manual testing doc in `SCOPE-CLARITY-1.md`. |
+| 6.18 | 2026-01-10 | **DRAFT-ROUTING-INTEGRITY-1 COMPLETE**: "Review drafts" action now routes to Draft Review mode (`/automation/playbooks?mode=drafts&assetType=...&assetId=...`), NOT Work Queue. Locked rule: "Review drafts NEVER routes to Work Queue." Added server-authoritative endpoint `GET /projects/:id/automation-playbooks/drafts` for asset-scoped pending drafts. Playbooks page implements Draft Review mode with ScopeBanner, draft list, and zero-draft empty state ("No drafts available for this item." with View issues + Back CTAs). Updated `buildReviewDraftsHref()` signature to require assetType + assetId. Updated ProductTable, Pages list, Collections list to pass assetId. Playwright test LAC1-008 updated for Draft Review routing + back navigation. Manual testing doc in `DRAFT-ROUTING-INTEGRITY-1.md`. |
+| 6.19 | 2026-01-10 | **DRAFT-ROUTING-INTEGRITY-1 FIXUP-1**: ScopeBanner wiring fixes. (1) Draft Review ScopeBanner now passes `onClearFiltersHref`, `chips` from `normalizedScopeResult`, and `wasAdjusted` props for explicit scope display; (2) Empty state Back CTA uses `data-testid="draft-review-back"` (not duplicate `scope-banner-back`); (3) Removed misleading server comment about pages/collections drafts "not yet supported". Playwright test updated to handle both ScopeBanner and empty state back buttons. |
+| 6.20 | 2026-01-10 | **SCOPE-CLARITY-1 FIXUP-1**: Issues Engine pillar filter state now driven by normalized scope (prevents hidden stacking when issueType overrides pillar). `pillarFilter` initial state and sync effect use `normalizedScopeResult.normalized.pillar` instead of raw `pillarParam`. When user explicitly picks a pillar via `handlePillarFilterChange()`, conflicting higher-priority scope params (`issueType`, `assetType`, `assetId`) are deleted from URL. Playwright test updated with "All pillars" button visibility assertion. Manual testing doc updated with pillar filter UI verification step. |
+| 6.21 | 2026-01-10 | **DRAFT-ROUTING-INTEGRITY-1 FIXUP-2**: Draft content visibility + test hardening. (1) Draft Review UI now renders both canonical (field/finalSuggestion/rawSuggestion) and legacy/testkit (suggestedTitle/suggestedDescription) draft item shapes; (2) `AssetScopedDraftItem` type loosened to support both shapes + optional crawlResultId for pages/collections; (3) Playwright LAC1-008 hardened to require `draft-review-list` visible and assert seeded suggestion content ("Improved Product Title"); (4) Manual testing doc updated to verify draft list shows non-empty content. |
+| 6.22 | 2026-01-10 | **SCOPE-CLARITY-1 FIXUP-2**: Strict pillar filter test hooks. Added `data-testid="pillar-filter-all"` + `aria-pressed` to "All pillars" button, `data-testid="pillar-filter-${pillar.id}"` + `aria-pressed` to each pillar button. Playwright test updated with strict `aria-pressed` assertions (replaces brittle `:has-text()` locator). |
+| 6.23 | 2026-01-10 | **DRAFT-EDIT-INTEGRITY-1 COMPLETE**: Inline draft editing in Draft Review mode. Added `updateDraftItem()` service method with permission enforcement (OWNER/EDITOR only), `PATCH /projects/:id/automation-playbooks/drafts/:draftId/items/:itemIndex` endpoint, `projectsApi.updateDraftItem()` client method. Implemented per-item inline edit mode with Save changes / Cancel buttons (no autosave). Server draft is source of truth - edits persist and survive page reload. Playwright test LAC1-009 verifies edit + save + persistence + cancel flow. Manual testing doc in `DRAFT-EDIT-INTEGRITY-1.md`. |
+| 6.24 | 2026-01-10 | **DRAFT-ENTRYPOINT-UNIFICATION-1 COMPLETE**: Products list "Review drafts" now routes to Product detail Drafts tab (not Automation/Playbooks). Locked statements: (1) Product detail is the canonical draft review entrypoint for products; (2) Draft Review stays human-only (no AI); (3) Products list Review drafts does not route to Automation Draft Review. Added `buildProductDraftsTabHref()` helper, 'drafts' tab to ProductDetailsTabs, Drafts tab UI with fetch/edit/render, server-side `itemIndex` for accurate edit API calls. Pages/Collections continue using Automation Draft Review (`/automation/playbooks?mode=drafts`). Testkit seed updated to canonical draft shape. Playwright tests LAC1-008/009 updated. Manual testing doc in `DRAFT-ENTRYPOINT-UNIFICATION-1.md`. |
+| 6.25 | 2026-01-10 | **DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1**: Non-AI Drafts tab compliance + itemIndex correctness. (1) Drafts tab now suppresses AI/generation copy + apply/automation CTAs when `activeTab === 'drafts'` (header action cluster, CNAB-1 banner, AI limit upsell hidden); (2) Fixed itemIndex-based local update correctness in both Product detail Drafts tab and Playbooks Draft Review (was using loop `idx` instead of `item.itemIndex` for filtered subsets); (3) Tightened Playwright LAC1-008 regression coverage with `toHaveCount(0)` assertions for AI/apply elements; (4) Updated manual testing doc with non-AI surface verification (scenario 3a) and corrected empty state copy to "No drafts saved for this product." |
+| 6.26 | 2026-01-10 | **DRAFT-REVIEW-ISOLATION-1 COMPLETE**: Structural non-AI boundary for Product Drafts tab. Extracted `ProductDraftsTab.tsx` as isolated module with NON-AI BOUNDARY header comment. Module is forbidden from importing: `aiApi`, `ProductAiSuggestionsPanel`, `suggestProductMetadata`, `generateProductAnswers`, `AI_DAILY_LIMIT_REACHED`. Added `draft-review-isolation-1.spec.ts` guard test (DRI1-001/002/003) that reads source file and fails if forbidden tokens detected or header missing. Product detail page delegates Drafts tab rendering to isolated component. Pure structural refactor with no behavioral changes. Manual testing doc in `DRAFT-REVIEW-ISOLATION-1.md`. |
+| 6.27 | 2026-01-10 | **DRAFT-REVIEW-ISOLATION-1-FIXUP-1**: Strict "no behavior changes" alignment. (1) Removed `isActive` prop and `hasFetched` caching from ProductDraftsTab - restored simple "fetch on mount" semantics; (2) Restored conditional mounting in page.tsx (`activeTab === 'drafts'`) to match standard tab behavior; (3) Removed "Tab State Preservation" scenario from manual testing doc since state preservation across tab switches was a behavior change. Guard test and non-AI boundary remain in place. |
+| 6.28 | 2026-01-10 | **DRAFT-AI-ENTRYPOINT-CLARITY-1 COMPLETE**: UX AI boundary notes at draft workflow surfaces. Created `DraftAiBoundaryNote` component (`@/components/common/DraftAiBoundaryNote.tsx`) with `mode: 'review' | 'generate'` prop. Review mode: "Review & edit (no AI on this step)" with person icon. Generate mode: "AI used for drafts only · AI is not used at Apply" with lightbulb icon. Added to 3 surfaces: (1) ProductDraftsTab (review mode); (2) Playbooks Draft Review panel (review mode); (3) Playbooks Step 1 generation CTA (generate mode). Locked copy (do not modify without phase approval). Testkit seed `seed-draft-ai-entrypoint-clarity-1`. Playwright tests in `draft-ai-entrypoint-clarity-1.spec.ts` (5 tests) + updated LAC1-008. Manual testing doc in `DRAFT-AI-ENTRYPOINT-CLARITY-1.md`. |
+| 6.29 | 2026-01-10 | **DRAFT-AI-ENTRYPOINT-CLARITY-1-FIXUP-1**: Work Queue generate-mode note + expanded coverage. (1) Added `DraftAiBoundaryNote mode="generate"` to `ActionBundleCard.tsx` for "Generate Drafts" / "Generate Full Drafts" CTAs; (2) Updated seed to use `status: 'PARTIAL'` for deterministic Work Queue "Generate Full Drafts" CTA in tests; (3) Added DAEPC1-006 Playwright test for Work Queue boundary note visibility; (4) Extended DAEPC1-001/002 with panel-scoped "no AI creep" assertions (no "Improve with AI", "Use AI", "Generate", "Regenerate" buttons in review panels); (5) Added Work Queue scenario to manual testing doc; (6) Added Phase DRAFT-AI-ENTRYPOINT-CLARITY-1 section to Implementation Plan (Surfaces Covered now includes Work Queue). |
+| 6.30 | 2026-01-11 | **DRAFT-DIFF-CLARITY-1 COMPLETE + FIXUP-1**: Current vs Draft diff UI at draft review surfaces. (1) Diff display: "Current (live)" vs "Draft (staged)" blocks with distinct styling and test hooks (`draft-diff-current`, `draft-diff-draft`); (2) Empty draft messaging: "No draft generated yet" (both raw/final empty) vs "Draft will clear this field when applied" (explicitly cleared); (3) Save confirmation dialog when clearing live field; (4) ProductDraftsTab + Playbooks Draft Review surfaces updated; (5) Testkit seed `seed-draft-diff-clarity-1` with diff/cleared/no-draft products + page; (6) Playwright tests DDC1-001..DDC1-010 (10 tests) covering diff labels, messaging, confirmation dismiss/accept. FIXUP-1: Added Product 3 draftItem with empty raw/final for "No draft generated yet" scenario; added DDC1-008 (no draft message), DDC1-009 (dialog dismiss), DDC1-010 (dialog accept + save). |
+| 6.31 | 2026-01-11 | **DRAFT-DIFF-CLARITY-1-FIXUP-2**: Seed count consistency + exact dialog assertion. (1) Fixed `counts.draftGenerated` from 3→2 (Products 1-2 have actual suggestions; Product 3 is empty); (2) Added `EMPTY_DRAFT_CONFIRM_MESSAGE` constant with exact locked copy; (3) Changed `page.on('dialog')` to `page.once('dialog')` in DDC1-009/DDC1-010 to avoid listener accumulation; (4) Changed `toContain()` to `toBe()` for exact dialog message matching. Tests/seed correctness only; no documentation updates required. |
+| 6.32 | 2026-01-11 | **DRAFT-FIELD-COVERAGE-1 COMPLETE**: Draft Review parity across Products, Pages, and Collections. (1) Generalized ProductDraftsTab → AssetDraftsTab with asset-type-specific field labels (Products: SEO Title/Description, Pages: Page Title/Meta Description, Collections: Collection Title/Meta Description); (2) Added Pages detail route `/assets/pages/[pageId]` with Overview + Drafts tabs; (3) Added Collections detail route `/assets/collections/[collectionId]` with Overview + Drafts tabs; (4) Updated draft-review-isolation-1.spec.ts guard test to target AssetDraftsTab; (5) Added seed-draft-field-coverage-1 endpoint (3 products + 3 pages + 3 collections with diff/clear/no-draft scenarios); (6) Added draft-field-coverage-1.spec.ts Playwright tests (11 tests: DFC1-001 through DFC1-011) covering Pages/Collections diff display, no-draft messaging, destructive-clear confirmation dialogs, cross-asset parity; (7) Manual testing doc DRAFT-FIELD-COVERAGE-1.md. |
+| 6.33 | 2026-01-11 | **DRAFT-FIELD-COVERAGE-1-FIXUP-1**: Canonical route aliases + accept-path dialog assertions. (1) Added canonical route `/projects/[id]/pages/[pageId]` (server redirect to `/assets/pages/...`, preserves query); (2) Added canonical route `/projects/[id]/collections/[collectionId]` (server redirect to `/assets/collections/...`, preserves query); (3) Updated Playwright tests to use canonical routes for Pages/Collections; (4) Added exact `EMPTY_DRAFT_CONFIRM_MESSAGE` assertions on accept path (DFC1-004 + DFC1-008) - now both dismiss and accept paths verify locked dialog copy; (5) Made ProductDraftsTab a thin wrapper around AssetDraftsTab to prevent implementation drift. |
+| 6.34 | 2026-01-11 | **DRAFT-LIST-PARITY-1 COMPLETE**: List-level draft review entrypoint parity for Pages/Collections. (1) Updated `resolveRowNextAction()` to support `issuesHref` for Pages/Collections dual-action rows (View issues primary + Open secondary); (2) Added `buildAssetWorkspaceHref()` and `buildAssetDraftsTabHref()` helpers in `list-actions-clarity.ts`; (3) Pages list "Review drafts" now routes to `/assets/pages/{pageId}?tab=drafts&from=asset_list` (NOT Work Queue/Playbooks); (4) Collections list "Review drafts" routes similarly to asset detail Drafts tab; (5) Playwright tests `draft-list-parity-1.spec.ts` (DLP1-001, DLP1-002) verify routing assertions including negative checks for /work-queue and /automation/playbooks in URL. |
+| 6.35 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1 COMPLETE**: Playbook route canonicalization + banner routing guarantee. (1) Canonical route shape `/projects/:projectId/playbooks/:playbookId?step=...&source=...`; (2) Centralized routing helper `playbooks-routing.ts` with `buildPlaybookRunHref()`; (3) Deterministic default selection (max eligibleCount; tie → descriptions; all 0 → neutral); (4) Banner CTA routes canonically (no AI side effects on click); (5) Tile click routing via canonical URL; (6) Estimate/playbook mismatch bug fix; (7) All external entrypoints updated to canonical routes; (8) Playwright test PEPI1-001 verifies banner routes to correct playbook with step=preview and source=banner. |
+| 6.36 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1**: (1) Fixed TDZ crash in Playbooks page (urlSource used before declaration); (2) CNAB derived strictly from eligibility counts (no issue-count fallback, hidden when counts unknown); (3) NO_RUN_WITH_ISSUES banner CTA targets primary playbook from eligibility counts (max wins, tie → descriptions); (4) Split mount effect into eligibility fetch + default selection effects (no fallback to setSelectedPlaybookId on error); (5) Work Queue entrypoint uses `buildPlaybookRunHref()` with playbookId validation; (6) trust-routing-1.spec.ts updated to canonical `/playbooks` route. |
+| 6.37 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2**: (1) Breadcrumb "Playbooks" link uses canonical `/playbooks` route (not `/automation`); (2) Automation tabs "Playbooks" link uses canonical `/playbooks` with dual-route active highlighting (`/playbooks` OR `/automation/playbooks`); (3) "Return to Playbooks" button after apply uses canonical `/playbooks`; (4) Product "Back to preview" fallback uses canonical `/playbooks/:playbookId?step=preview&source=product_details` (not legacy `?playbookId=` query param). |
+| 6.38 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3**: Scoped eligibility integrity. (1) `buildPlaybookRunHref()` now includes `assetType=PRODUCTS` when scopeAssetRefs are present (previously omitted PRODUCTS assetType even when scoped); (2) All API calls (estimate, preview, apply, eligibility fetch) now correctly pass scopeProductIds for PRODUCTS scope (was passing undefined); (3) Banner CTA routing preserves exact scope semantics (no global-vs-scoped mismatch); (4) Tile click, default selection, and product detail returnToPath all preserve scoped PRODUCTS context; (5) Added PEPI1-002 Playwright test for scoped PRODUCTS banner routing integrity; (6) Updated manual testing doc with Scenario 1.1 (Scoped Playbooks entry). |
+| 6.39 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4**: Scoped routing guardrails. (1) Added `buildPlaybookRunHrefOrNull()` guardrail that refuses scoped routes without assetType (console error + no-op); (2) Updated `navigateToPlaybookRun()` and `navigateToPlaybookRunReplace()` to use guardrail; (3) Introduced `playbookRunScopeForUrl` shared memo for scope-identical routing across all entrypoints; (4) Removed all `currentAssetType !== 'PRODUCTS' ? currentAssetType : undefined` suppression patterns; (5) Banner CTAs now use `buildPlaybookRunHrefOrNull()` with early-return on invalid scope; (6) Work Queue `getCTARoute()` extracts scopeAssetRefs for all asset types (not just PAGES/COLLECTIONS); (7) PEPI1-002 test now asserts repeated scopeAssetRefs via `URLSearchParams.getAll()`. |
+| 6.40 | 2026-01-11 | **SHOPIFY-ASSET-SYNC-COVERAGE-1 COMPLETE**: Shopify Pages + Collections sync coverage. (1) Prisma schema: Added Shopify identity fields (shopifyResourceType, shopifyResourceId, shopifyHandle, shopifyUpdatedAt, shopifySyncedAt) with compound unique constraint + @@index([projectId, url]); (2) API endpoints: POST /projects/:id/shopify/sync-pages, POST /projects/:id/shopify/sync-collections (OWNER-only), GET /projects/:id/shopify/sync-status; (3) ShopifyService: GraphQL fetchers (GetPages, GetCollections), sync methods with E2E mock handler support, read_content scope requirement; (4) Frontend: Pages/Collections lists with sync buttons (visible but disabled when Shopify not connected), status lines, empty state differentiation; detail pages show handle + updatedAt; (5) E2E tests: API-level spec + Playwright smoke test; (6) Manual testing doc + CRITICAL_PATH_MAP.md CP-006 update. |
+| 6.41 | 2026-01-11 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5**: Canonical entrypoints + explicit scope payload. (1) Extended `buildPlaybooksListHref()` to support assetType + scopeAssetRefs params; (2) Added `buildPlaybookScopePayload()` helper for consistent scope spreading; (3) Added `navigateToPlaybooksList()` wrapper; (4) Updated NextDeoWinCard to use `navigateToPlaybookRun()` + `buildPlaybooksListHref()`; (5) Updated Entry page to use `buildPlaybooksListHref()` for links and `buildPlaybookRunHref()` with explicit scope for "View playbook" CTA; (6) Replaced `playbookRunScopeForUrl` inline memo with `buildPlaybookScopePayload()` in Playbooks page; (7) Added PEPI1-003 Playwright test for Entry page scoped CTA routing; (8) Updated manual testing doc with Scenario 1.2. |
+| 6.42 | 2026-01-12 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1**: Entry CTA correctness + explicit API scope payload. (1) `buildPlaybookScopePayload()` now validates PRODUCTS scope refs (rejects handle-prefixed refs) and returns explicit `scopeProductIds` for API calls; (2) Added `getRoutingScopeFromPayload()` helper; (3) Removed positional branching in all API calls (eligibility, estimate, preview, apply) - uses explicit payload; (4) Entry page CTA routes to Playbooks LIST for deterministic selection (not hardcoded run target); (5) Added stable "Open Playbooks" CTA (`data-testid="automation-entry-open-playbooks"`) visible without AI dependency; (6) PEPI1-003 test rewritten: no AI dependency, uses stable CTA, asserts deterministic selection lands on descriptions playbook; (7) Updated manual testing doc Scenario 1.2 to reflect new CTA behavior. |
+| 6.43 | 2026-01-12 | **PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1-AUDIT-1**: Source integrity. (1) Tightened PEPI1-003 to assert `source=entry` is preserved by deterministic selection (not overwritten to `default`); (2) Updated manual testing doc Scenario 1.2 to require `source=entry`; (3) Documented source-preservation guarantee in FOLLOWUP-1 section. |
+| 6.44 | 2026-01-12 | **ISSUE-FIX-KIND-CLARITY-1 COMPLETE**: Diagnostic vs fixable issue CTA semantics. (1) Added `IssueFixKind = 'EDIT' | 'AI' | 'DIAGNOSTIC'` type to issue-to-fix-path.ts; (2) Fixed Search & Intent issue configs with correct fixAnchorTestId values; `not_answer_ready` marked as DIAGNOSTIC; (3) Added `diagnostic` variant to arrival callout (blue styling, "You're here to review:"); (4) Product page passes fixKind to callout, shows "View related issues" CTA for DIAGNOSTIC; (5) Issues Engine IssueCard shows "Review →" for DIAGNOSTIC, "Fix →" for others; (6) DEO Overview "Top Recommended Actions" shows "Review" for DIAGNOSTIC, "Fix now" for others; (7) buildIssueFixHref() adds fixKind param, skips fixAnchor for DIAGNOSTIC; (8) Playwright tests issue-fix-kind-clarity-1.spec.ts (5 tests); (9) Manual testing doc ISSUE-FIX-KIND-CLARITY-1.md. |
+| 6.45 | 2026-01-12 | **ISSUE-FIX-KIND-CLARITY-1-FIXUP-1**: Correctness + security hardening. (1) Search & Intent issues now use `search-intent-tab-anchor` as canonical anchor (module-specific testids don't exist); `not_answer_ready` has NO `fixAnchorTestId` (no scroll/highlight for DIAGNOSTIC); (2) Product page derives `fixKind` from config ONLY - removed URL param reading (non-authoritative, spoofable); skips scroll/highlight for DIAGNOSTIC issues; (3) "View related issues" CTA routes to Issues Engine (`/projects/:id/issues?mode=detected&pillar=:pillarId`), NOT product `tab=issues`; (4) Issues Engine page derives `fixKind` via `getIssueFixConfig()`, shows "Review" CTA with blue styling for DIAGNOSTIC, adds `data-fix-kind` attribute, suppresses "Fixes one affected product..." text for DIAGNOSTIC; (5) Playwright tests hardened with strict assertions (no no-op guards), removed URL `fixKind` param from navigation; (6) Documentation corrected to reflect fixKind security model. |
+| 6.46 | 2026-01-12 | **ISSUE-FIX-KIND-CLARITY-1-FIXUP-1-AUDIT-2**: Test contract completion. (1) IFKC1-001 now requires ≥1 DIAGNOSTIC card (not exactly 1) - removes fragile count assertion; (2) IFKC1-004 tightened to assert exact pillar value `pillar=search_intent_fit`, then clicks "View related issues" and asserts browser navigates to Issues Engine with query params preserved (`mode=detected`, `from=product_details`, `pillar=search_intent_fit`). |

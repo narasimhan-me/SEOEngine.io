@@ -153,7 +153,8 @@ export class ShopifyService {
     this.apiKey = this.config.get<string>('SHOPIFY_API_KEY');
     this.apiSecret = this.config.get<string>('SHOPIFY_API_SECRET');
     this.appUrl = this.config.get<string>('SHOPIFY_APP_URL');
-    this.scopes = this.config.get<string>('SHOPIFY_SCOPES', 'read_products,write_products,read_themes');
+    // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Add read_content scope for Pages sync
+    this.scopes = this.config.get<string>('SHOPIFY_SCOPES', 'read_products,write_products,read_themes,read_content');
   }
 
   private get isTestEnv(): boolean {
@@ -298,6 +299,60 @@ export class ShopifyService {
                     },
                   },
                 ],
+              },
+            },
+          }),
+          text: async () => '',
+        };
+      }
+
+      // [SHOPIFY-ASSET-SYNC-COVERAGE-1] E2E mock for GetPages
+      if (operationName === 'GetPages') {
+        // Import mock store and return seeded data
+        const { e2eShopifyMockStore } = await import('./e2e-shopify-mock.store');
+        const pages = e2eShopifyMockStore.getPages();
+        return {
+          ok: true,
+          json: async () => ({
+            data: {
+              pages: {
+                edges: pages.map((page: any) => ({
+                  node: {
+                    id: `gid://shopify/Page/${page.id}`,
+                    title: page.title,
+                    handle: page.handle,
+                    updatedAt: page.updatedAt,
+                    seo: page.seo ?? { title: null, description: null },
+                  },
+                })),
+                pageInfo: { hasNextPage: false, endCursor: null },
+              },
+            },
+          }),
+          text: async () => '',
+        };
+      }
+
+      // [SHOPIFY-ASSET-SYNC-COVERAGE-1] E2E mock for GetCollections
+      if (operationName === 'GetCollections') {
+        // Import mock store and return seeded data
+        const { e2eShopifyMockStore } = await import('./e2e-shopify-mock.store');
+        const collections = e2eShopifyMockStore.getCollections();
+        return {
+          ok: true,
+          json: async () => ({
+            data: {
+              collections: {
+                edges: collections.map((coll: any) => ({
+                  node: {
+                    id: `gid://shopify/Collection/${coll.id}`,
+                    title: coll.title,
+                    handle: coll.handle,
+                    updatedAt: coll.updatedAt,
+                    seo: coll.seo ?? { title: null, description: null },
+                  },
+                })),
+                pageInfo: { hasNextPage: false, endCursor: null },
               },
             },
           }),
@@ -1064,6 +1119,18 @@ export class ShopifyService {
       await this.syncProductImages(dbProductId, product.images || []);
     }
 
+    // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Update sync timestamp on integration config
+    const existingConfig = (integration.config as any) || {};
+    await this.prisma.integration.update({
+      where: { id: integration.id },
+      data: {
+        config: {
+          ...existingConfig,
+          lastProductsSyncAt: new Date().toISOString(),
+        },
+      },
+    });
+
     return {
       projectId,
       synced: products.length,
@@ -1771,6 +1838,424 @@ export class ShopifyService {
       shopDomain,
       seoTitle,
       seoDescription,
+    };
+  }
+
+  // ===========================================================================
+  // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Pages and Collections Sync
+  // ===========================================================================
+
+  /**
+   * Fetch Shopify Pages via Admin GraphQL (metadata only, no body).
+   * Uses stable operationName GetPages for deterministic mocking/tests.
+   */
+  private async fetchShopifyPages(
+    shopDomain: string,
+    accessToken: string,
+  ): Promise<Array<{
+    id: string;
+    title: string;
+    handle: string;
+    updatedAt: string;
+    seo: { title: string | null; description: string | null };
+  }>> {
+    const query = `
+      query GetPages($first: Int!, $after: String) {
+        pages(first: $first, after: $after) {
+          edges {
+            node {
+              id
+              title
+              handle
+              updatedAt
+              seo {
+                title
+                description
+              }
+            }
+          }
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+        }
+      }
+    `;
+
+    const allPages: Array<{
+      id: string;
+      title: string;
+      handle: string;
+      updatedAt: string;
+      seo: { title: string | null; description: string | null };
+    }> = [];
+
+    let hasNextPage = true;
+    let cursor: string | null = null;
+
+    while (hasNextPage) {
+      const data = await this.executeShopifyGraphql<{
+        pages: {
+          edges: Array<{
+            node: {
+              id: string;
+              title: string;
+              handle: string;
+              updatedAt: string;
+              seo: { title: string | null; description: string | null };
+            };
+          }>;
+          pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        };
+      }>(shopDomain, accessToken, {
+        query,
+        variables: { first: 50, after: cursor },
+        operationName: 'GetPages',
+      });
+
+      for (const edge of data.pages.edges) {
+        allPages.push(edge.node);
+      }
+
+      hasNextPage = data.pages.pageInfo.hasNextPage;
+      cursor = data.pages.pageInfo.endCursor;
+    }
+
+    return allPages;
+  }
+
+  /**
+   * Fetch Shopify Collections via Admin GraphQL (metadata only, no body).
+   * Uses stable operationName GetCollections for deterministic mocking/tests.
+   */
+  private async fetchShopifyCollections(
+    shopDomain: string,
+    accessToken: string,
+  ): Promise<Array<{
+    id: string;
+    title: string;
+    handle: string;
+    updatedAt: string;
+    seo: { title: string | null; description: string | null };
+  }>> {
+    const query = `
+      query GetCollections($first: Int!, $after: String) {
+        collections(first: $first, after: $after) {
+          edges {
+            node {
+              id
+              title
+              handle
+              updatedAt
+              seo {
+                title
+                description
+              }
+            }
+          }
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+        }
+      }
+    `;
+
+    const allCollections: Array<{
+      id: string;
+      title: string;
+      handle: string;
+      updatedAt: string;
+      seo: { title: string | null; description: string | null };
+    }> = [];
+
+    let hasNextPage = true;
+    let cursor: string | null = null;
+
+    while (hasNextPage) {
+      const data = await this.executeShopifyGraphql<{
+        collections: {
+          edges: Array<{
+            node: {
+              id: string;
+              title: string;
+              handle: string;
+              updatedAt: string;
+              seo: { title: string | null; description: string | null };
+            };
+          }>;
+          pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        };
+      }>(shopDomain, accessToken, {
+        query,
+        variables: { first: 50, after: cursor },
+        operationName: 'GetCollections',
+      });
+
+      for (const edge of data.collections.edges) {
+        allCollections.push(edge.node);
+      }
+
+      hasNextPage = data.collections.pageInfo.hasNextPage;
+      cursor = data.collections.pageInfo.endCursor;
+    }
+
+    return allCollections;
+  }
+
+  /**
+   * Extract numeric ID from Shopify GID (e.g., "gid://shopify/Page/123" -> "123")
+   */
+  private extractShopifyId(gid: string): string {
+    const match = gid.match(/\/(\d+)$/);
+    return match ? match[1] : gid;
+  }
+
+  /**
+   * Sync Shopify Pages into CrawlResult (metadata only).
+   * Returns counts + completedAt + warnings.
+   */
+  async syncPages(projectId: string): Promise<{
+    projectId: string;
+    fetched: number;
+    upserted: number;
+    skipped: number;
+    completedAt: string;
+    warnings?: string[];
+  }> {
+    const integration = await this.getShopifyIntegration(projectId);
+    if (!integration || !integration.accessToken || !integration.externalId) {
+      throw new BadRequestException('No Shopify integration found for this project');
+    }
+
+    // Check for read_content scope
+    const storedScope = (integration.config as any)?.scope ?? '';
+    if (!storedScope.includes('read_content')) {
+      throw new BadRequestException(
+        'Missing required Shopify scope: read_content. Please reconnect Shopify to grant Pages access.',
+      );
+    }
+
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new BadRequestException('Project not found');
+    }
+
+    const shopDomain = integration.externalId;
+    const accessToken = integration.accessToken;
+
+    // Fetch Pages from Shopify
+    const pages = await this.fetchShopifyPages(shopDomain, accessToken);
+
+    const warnings: string[] = [];
+    let upserted = 0;
+    let skipped = 0;
+    const now = new Date();
+
+    for (const page of pages) {
+      // Skip pages without handle
+      if (!page.handle) {
+        warnings.push(`Skipped page ${page.id}: missing handle`);
+        skipped++;
+        continue;
+      }
+
+      const resourceId = this.extractShopifyId(page.id);
+      const domain = project.domain || shopDomain;
+      const url = `https://${domain}/pages/${page.handle}`;
+
+      // Upsert into CrawlResult using compound unique key
+      await this.prisma.crawlResult.upsert({
+        where: {
+          projectId_shopifyResourceType_shopifyResourceId: {
+            projectId,
+            shopifyResourceType: 'PAGE',
+            shopifyResourceId: resourceId,
+          },
+        },
+        create: {
+          projectId,
+          url,
+          statusCode: 200,
+          title: page.seo?.title || null,
+          metaDescription: page.seo?.description || null,
+          h1: page.title,
+          wordCount: null,
+          loadTimeMs: null,
+          issues: [],
+          scannedAt: now,
+          shopifyResourceType: 'PAGE',
+          shopifyResourceId: resourceId,
+          shopifyHandle: page.handle,
+          shopifyUpdatedAt: new Date(page.updatedAt),
+          shopifySyncedAt: now,
+        },
+        update: {
+          url,
+          title: page.seo?.title || null,
+          metaDescription: page.seo?.description || null,
+          h1: page.title,
+          shopifyHandle: page.handle,
+          shopifyUpdatedAt: new Date(page.updatedAt),
+          shopifySyncedAt: now,
+        },
+      });
+
+      upserted++;
+    }
+
+    // Update sync timestamp on integration config
+    const existingConfig = (integration.config as any) || {};
+    await this.prisma.integration.update({
+      where: { id: integration.id },
+      data: {
+        config: {
+          ...existingConfig,
+          lastPagesSyncAt: now.toISOString(),
+        },
+      },
+    });
+
+    return {
+      projectId,
+      fetched: pages.length,
+      upserted,
+      skipped,
+      completedAt: now.toISOString(),
+      ...(warnings.length > 0 && { warnings }),
+    };
+  }
+
+  /**
+   * Sync Shopify Collections into CrawlResult (metadata only).
+   * Returns counts + completedAt + warnings.
+   */
+  async syncCollections(projectId: string): Promise<{
+    projectId: string;
+    fetched: number;
+    upserted: number;
+    skipped: number;
+    completedAt: string;
+    warnings?: string[];
+  }> {
+    const integration = await this.getShopifyIntegration(projectId);
+    if (!integration || !integration.accessToken || !integration.externalId) {
+      throw new BadRequestException('No Shopify integration found for this project');
+    }
+
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new BadRequestException('Project not found');
+    }
+
+    const shopDomain = integration.externalId;
+    const accessToken = integration.accessToken;
+
+    // Fetch Collections from Shopify
+    const collections = await this.fetchShopifyCollections(shopDomain, accessToken);
+
+    const warnings: string[] = [];
+    let upserted = 0;
+    let skipped = 0;
+    const now = new Date();
+
+    for (const coll of collections) {
+      // Skip collections without handle
+      if (!coll.handle) {
+        warnings.push(`Skipped collection ${coll.id}: missing handle`);
+        skipped++;
+        continue;
+      }
+
+      const resourceId = this.extractShopifyId(coll.id);
+      const domain = project.domain || shopDomain;
+      const url = `https://${domain}/collections/${coll.handle}`;
+
+      // Upsert into CrawlResult using compound unique key
+      await this.prisma.crawlResult.upsert({
+        where: {
+          projectId_shopifyResourceType_shopifyResourceId: {
+            projectId,
+            shopifyResourceType: 'COLLECTION',
+            shopifyResourceId: resourceId,
+          },
+        },
+        create: {
+          projectId,
+          url,
+          statusCode: 200,
+          title: coll.seo?.title || null,
+          metaDescription: coll.seo?.description || null,
+          h1: coll.title,
+          wordCount: null,
+          loadTimeMs: null,
+          issues: [],
+          scannedAt: now,
+          shopifyResourceType: 'COLLECTION',
+          shopifyResourceId: resourceId,
+          shopifyHandle: coll.handle,
+          shopifyUpdatedAt: new Date(coll.updatedAt),
+          shopifySyncedAt: now,
+        },
+        update: {
+          url,
+          title: coll.seo?.title || null,
+          metaDescription: coll.seo?.description || null,
+          h1: coll.title,
+          shopifyHandle: coll.handle,
+          shopifyUpdatedAt: new Date(coll.updatedAt),
+          shopifySyncedAt: now,
+        },
+      });
+
+      upserted++;
+    }
+
+    // Update sync timestamp on integration config
+    const existingConfig = (integration.config as any) || {};
+    await this.prisma.integration.update({
+      where: { id: integration.id },
+      data: {
+        config: {
+          ...existingConfig,
+          lastCollectionsSyncAt: now.toISOString(),
+        },
+      },
+    });
+
+    return {
+      projectId,
+      fetched: collections.length,
+      upserted,
+      skipped,
+      completedAt: now.toISOString(),
+      ...(warnings.length > 0 && { warnings }),
+    };
+  }
+
+  /**
+   * Get sync status timestamps for a project.
+   * Returns lastProductsSyncAt, lastPagesSyncAt, lastCollectionsSyncAt (null when never synced).
+   */
+  async getSyncStatus(projectId: string): Promise<{
+    projectId: string;
+    lastProductsSyncAt: string | null;
+    lastPagesSyncAt: string | null;
+    lastCollectionsSyncAt: string | null;
+  }> {
+    const integration = await this.getShopifyIntegration(projectId);
+
+    const config = (integration?.config as any) || {};
+
+    return {
+      projectId,
+      lastProductsSyncAt: config.lastProductsSyncAt ?? null,
+      lastPagesSyncAt: config.lastPagesSyncAt ?? null,
+      lastCollectionsSyncAt: config.lastCollectionsSyncAt ?? null,
     };
   }
 }

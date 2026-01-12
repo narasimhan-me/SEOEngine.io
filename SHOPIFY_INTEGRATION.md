@@ -43,8 +43,10 @@ Example minimal scopes:
 - `write_products`
 - `read_themes` (optional, for schema injection)
 - `write_themes` (optional)
-- `read_content` (blogs, pages – future)
+- `read_content` – **Required for Pages ingestion** [SHOPIFY-ASSET-SYNC-COVERAGE-1]
 - `write_content` (future, if writing blogs)
+
+> **Note [SHOPIFY-ASSET-SYNC-COVERAGE-1]:** The `read_content` scope is required to ingest Shopify Pages via the project-scoped sync endpoints (`POST /projects/:projectId/shopify/sync-pages`, `POST /projects/:projectId/shopify/sync-collections`). Stores connected before this scope was added will need to re-install to grant the additional permission. Pages and Collections sync is metadata-only (title, handle, SEO fields) – no content body ingestion or editing.
 
 ---
 

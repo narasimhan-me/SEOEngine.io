@@ -1,7 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { useMemo } from 'react';
 import type { WorkQueueActionBundle, WorkQueueViewer } from '@/lib/work-queue';
+import { getReturnToFromCurrentUrl, withRouteContext } from '@/lib/route-context';
+// [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI boundary note for generation entrypoints
+import { DraftAiBoundaryNote } from '@/components/common/DraftAiBoundaryNote';
+// [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Use centralized routing helper
+import { buildPlaybookRunHref, isValidPlaybookId, type PlaybookId } from '@/lib/playbooks-routing';
 
 interface ActionBundleCardProps {
   bundle: WorkQueueActionBundle;
@@ -28,6 +35,14 @@ export function ActionBundleCard({
   isHighlighted,
   onRefresh: _onRefresh,
 }: ActionBundleCardProps) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // [ROUTE-INTEGRITY-1] Compute returnTo from current URL
+  const returnTo = useMemo(() => {
+    return getReturnToFromCurrentUrl(pathname, searchParams);
+  }, [pathname, searchParams]);
+
   // Health pill styling
   const healthStyles: Record<string, string> = {
     CRITICAL: 'bg-red-100 text-red-700 border-red-200',
@@ -59,6 +74,11 @@ export function ActionBundleCard({
 
   // Build CTA route
   const ctaRoute = getCTARoute(bundle, projectId);
+
+  // [ROUTE-INTEGRITY-1] Wrap ctaRoute with from=work_queue + returnTo
+  const ctaRouteWithContext = useMemo(() => {
+    return withRouteContext(ctaRoute, { from: 'work_queue', returnTo });
+  }, [ctaRoute, returnTo]);
 
   return (
     <div
@@ -249,34 +269,41 @@ export function ActionBundleCard({
       </div>
 
       {/* Row 5: Footer CTAs */}
-      <div className="mt-4 flex items-center gap-3 border-t border-gray-100 pt-4">
-        {primaryCta && (
-          <Link
-            href={ctaRoute}
-            className={`inline-flex items-center rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-              disabledReason
-                ? 'cursor-not-allowed bg-gray-100 text-gray-400'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            }`}
-            onClick={(e) => {
-              if (disabledReason) {
-                e.preventDefault();
-              }
-            }}
-          >
-            {primaryCta}
-          </Link>
-        )}
-        {secondaryCta && (
-          <Link
-            href={ctaRoute}
-            className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-          >
-            {secondaryCta}
-          </Link>
-        )}
-        {disabledReason && (
-          <span className="text-sm text-gray-500">{disabledReason}</span>
+      {/* [ROUTE-INTEGRITY-1] Use ctaRouteWithContext for deterministic from+returnTo */}
+      <div className="mt-4 flex flex-col gap-2 border-t border-gray-100 pt-4">
+        <div className="flex items-center gap-3">
+          {primaryCta && (
+            <Link
+              href={ctaRouteWithContext}
+              className={`inline-flex items-center rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                disabledReason
+                  ? 'cursor-not-allowed bg-gray-100 text-gray-400'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+              onClick={(e) => {
+                if (disabledReason) {
+                  e.preventDefault();
+                }
+              }}
+            >
+              {primaryCta}
+            </Link>
+          )}
+          {secondaryCta && (
+            <Link
+              href={ctaRouteWithContext}
+              className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              {secondaryCta}
+            </Link>
+          )}
+          {disabledReason && (
+            <span className="text-sm text-gray-500">{disabledReason}</span>
+          )}
+        </div>
+        {/* [DRAFT-AI-ENTRYPOINT-CLARITY-1] Show AI boundary note for generation CTAs */}
+        {(primaryCta === 'Generate Drafts' || primaryCta === 'Generate Full Drafts') && (
+          <DraftAiBoundaryNote mode="generate" />
         )}
       </div>
     </div>
@@ -524,27 +551,31 @@ function getCTARoute(bundle: WorkQueueActionBundle, projectId: string): string {
     return `/projects/${projectId}/insights/geo-insights`;
   }
 
-  // [ASSETS-PAGES-1.1] Route AUTOMATION_RUN bundles to playbooks with asset-scoped deep link
+  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Route AUTOMATION_RUN bundles via buildPlaybookRunHref
   if (bundleType === 'AUTOMATION_RUN') {
-    // Extract playbookId from recommendedActionKey (e.g., 'FIX_MISSING_METADATA' maps to playbook)
-    // For now, use the bundleId to determine the playbook since it contains the playbookId
+    // Extract playbookId from bundleId
     // Bundle ID format: AUTOMATION_RUN:FIX_MISSING_METADATA:{playbookId}:{assetType}:{projectId}
     const bundleIdParts = bundle.bundleId.split(':');
-    const playbookId = bundleIdParts.length >= 3 ? bundleIdParts[2] : 'missing_seo_title';
-    const assetType = bundleIdParts.length >= 4 ? bundleIdParts[3] : 'PRODUCTS';
+    const parsedPlaybookId = bundleIdParts.length >= 3 ? bundleIdParts[2] : null;
+    const assetType = (bundleIdParts.length >= 4 ? bundleIdParts[3] : 'PRODUCTS') as 'PRODUCTS' | 'PAGES' | 'COLLECTIONS';
 
-    const params = new URLSearchParams();
-    params.set('playbookId', playbookId);
-    if (assetType !== 'PRODUCTS') {
-      params.set('assetType', assetType);
+    // [FIXUP-1] Validate playbookId - default to missing_seo_title if invalid
+    const playbookId: PlaybookId = isValidPlaybookId(parsedPlaybookId)
+      ? parsedPlaybookId
+      : 'missing_seo_title';
 
-      // [ASSETS-PAGES-1.1-UI-HARDEN] Include scopeAssetRefs for PAGES/COLLECTIONS
-      const scopeRefs = extractScopeAssetRefs(bundle);
-      if (scopeRefs && scopeRefs.length > 0) {
-        params.set('scopeAssetRefs', scopeRefs.join(','));
-      }
-    }
-    return `/projects/${projectId}/automation/playbooks?${params.toString()}`;
+    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Extract scopeAssetRefs for all asset types
+    const scopeAssetRefs = extractScopeAssetRefs(bundle) ?? undefined;
+    const hasScope = !!scopeAssetRefs && scopeAssetRefs.length > 0;
+
+    return buildPlaybookRunHref({
+      projectId,
+      playbookId,
+      step: 'preview',
+      source: 'work_queue',
+      assetType: hasScope ? assetType : undefined,
+      scopeAssetRefs: hasScope ? scopeAssetRefs : undefined,
+    });
   }
 
   // [COUNT-INTEGRITY-1 PATCH 5.2] All ASSET_OPTIMIZATION bundles route to Issues with click-integrity filters

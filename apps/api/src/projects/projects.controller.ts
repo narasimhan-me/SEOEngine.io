@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -50,6 +51,7 @@ import { GovernanceService } from './governance.service';
 import { ApprovalsService } from './approvals.service';
 import { RoleResolutionService } from '../common/role-resolution.service';
 import { WorkQueueService } from './work-queue.service';
+import { ShopifyService } from '../shopify/shopify.service';
 import type {
   WorkQueueTab,
   WorkQueueBundleType,
@@ -80,6 +82,7 @@ export class ProjectsController {
     private readonly approvalsService: ApprovalsService,
     private readonly roleResolutionService: RoleResolutionService,
     private readonly workQueueService: WorkQueueService,
+    private readonly shopifyService: ShopifyService,
   ) {}
 
   /**
@@ -559,6 +562,85 @@ export class ProjectsController {
     @Param('id') projectId: string,
   ): Promise<ProjectAnswerabilityResponse> {
     return this.answerEngineService.getProjectAnswerability(projectId, req.user.id);
+  }
+
+  /**
+   * GET /projects/:id/automation-playbooks/drafts
+   * [DRAFT-ROUTING-INTEGRITY-1] Returns pending drafts for a specific asset.
+   * Used by Draft Review mode to show only drafts relevant to a single asset.
+   *
+   * Query params (required):
+   * - assetType: 'products' | 'pages' | 'collections'
+   * - assetId: string (product ID or crawl result ID)
+   *
+   * Returns only pending (non-applied, non-expired) drafts that contain items
+   * for the specified asset. Never returns global/unscoped drafts.
+   */
+  @Get(':id/automation-playbooks/drafts')
+  async listPendingDraftsForAsset(
+    @Request() req: any,
+    @Param('id') projectId: string,
+    @Query('assetType') assetType?: string,
+    @Query('assetId') assetId?: string,
+  ) {
+    if (!assetType || !['products', 'pages', 'collections'].includes(assetType)) {
+      throw new BadRequestException(
+        'assetType is required and must be one of: products, pages, collections',
+      );
+    }
+    if (!assetId || !assetId.trim()) {
+      throw new BadRequestException('assetId is required');
+    }
+
+    return this.automationPlaybooksService.listPendingDraftsForAsset(
+      req.user.id,
+      projectId,
+      assetType as 'products' | 'pages' | 'collections',
+      assetId.trim(),
+    );
+  }
+
+  /**
+   * PATCH /projects/:id/automation-playbooks/drafts/:draftId/items/:itemIndex
+   * [DRAFT-EDIT-INTEGRITY-1] Update a specific draft item's content.
+   *
+   * Allows users to edit draft suggestions before apply. Server draft is source of truth.
+   * No autosave - explicit save required.
+   *
+   * Path params:
+   * - draftId: The draft ID
+   * - itemIndex: The index of the item in the draft to update
+   *
+   * Body:
+   * - value: The new text content for the draft item
+   *
+   * Access control:
+   * - OWNER/EDITOR can edit drafts
+   * - VIEWER cannot edit (returns 403)
+   */
+  @Patch(':id/automation-playbooks/drafts/:draftId/items/:itemIndex')
+  async updateDraftItem(
+    @Request() req: any,
+    @Param('id') projectId: string,
+    @Param('draftId') draftId: string,
+    @Param('itemIndex') itemIndexStr: string,
+    @Body('value') value?: string,
+  ) {
+    const itemIndex = parseInt(itemIndexStr, 10);
+    if (isNaN(itemIndex) || itemIndex < 0) {
+      throw new BadRequestException('itemIndex must be a non-negative integer');
+    }
+    if (value === undefined || value === null) {
+      throw new BadRequestException('value is required in request body');
+    }
+
+    return this.automationPlaybooksService.updateDraftItem(
+      req.user.id,
+      projectId,
+      draftId,
+      itemIndex,
+      value,
+    );
   }
 
   /**
@@ -1259,5 +1341,80 @@ export class ProjectsController {
       scopeType,
       bundleId,
     });
+  }
+
+  // ===========================================================================
+  // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Project-scoped Shopify sync endpoints
+  // ===========================================================================
+
+  /**
+   * POST /projects/:id/shopify/sync-pages
+   * [SHOPIFY-ASSET-SYNC-COVERAGE-1] [CRITICAL PATH: CP-006 Shopify Sync]
+   *
+   * Triggers Shopify Pages sync for this project.
+   * OWNER-only (matches existing Shopify mutation posture).
+   *
+   * Returns: { fetched, upserted, skipped, completedAt, warnings?, projectId }
+   */
+  @Post(':id/shopify/sync-pages')
+  @HttpCode(HttpStatus.OK)
+  async syncShopifyPages(
+    @Request() req: any,
+    @Param('id') projectId: string,
+  ) {
+    // OWNER-only check
+    const role = await this.roleResolutionService.resolveEffectiveRole(projectId, req.user.id);
+    if (role !== 'OWNER') {
+      throw new ForbiddenException('Only project owners can sync Shopify Pages');
+    }
+
+    return this.shopifyService.syncPages(projectId);
+  }
+
+  /**
+   * POST /projects/:id/shopify/sync-collections
+   * [SHOPIFY-ASSET-SYNC-COVERAGE-1] [CRITICAL PATH: CP-006 Shopify Sync]
+   *
+   * Triggers Shopify Collections sync for this project.
+   * OWNER-only (matches existing Shopify mutation posture).
+   *
+   * Returns: { fetched, upserted, skipped, completedAt, warnings?, projectId }
+   */
+  @Post(':id/shopify/sync-collections')
+  @HttpCode(HttpStatus.OK)
+  async syncShopifyCollections(
+    @Request() req: any,
+    @Param('id') projectId: string,
+  ) {
+    // OWNER-only check
+    const role = await this.roleResolutionService.resolveEffectiveRole(projectId, req.user.id);
+    if (role !== 'OWNER') {
+      throw new ForbiddenException('Only project owners can sync Shopify Collections');
+    }
+
+    return this.shopifyService.syncCollections(projectId);
+  }
+
+  /**
+   * GET /projects/:id/shopify/sync-status
+   * [SHOPIFY-ASSET-SYNC-COVERAGE-1] [CRITICAL PATH: CP-006 Shopify Sync]
+   *
+   * Returns sync status timestamps for this project.
+   * Membership-accessible (read-only).
+   *
+   * Returns: { lastProductsSyncAt, lastPagesSyncAt, lastCollectionsSyncAt, projectId }
+   */
+  @Get(':id/shopify/sync-status')
+  async getShopifySyncStatus(
+    @Request() req: any,
+    @Param('id') projectId: string,
+  ) {
+    // Membership check (any role can read)
+    const hasAccess = await this.roleResolutionService.hasProjectAccess(projectId, req.user.id);
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this project');
+    }
+
+    return this.shopifyService.getSyncStatus(projectId);
   }
 }

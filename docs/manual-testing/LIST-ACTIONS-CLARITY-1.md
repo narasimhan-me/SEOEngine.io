@@ -48,12 +48,14 @@ Provides consistent visual vocabulary and actionable links for each asset state.
 |--------------|-------------|------------|
 | Fix next | Issue→Fix deep link (Products) | Needs attention (Products) - routes to fix surface |
 | View issues | Issues Engine (filtered) | Needs attention (Pages/Collections) |
-| Review drafts | Work Queue | Draft saved (OWNER can apply) |
+| Review drafts | Draft Review (scoped) | Draft saved (OWNER can apply) - **[DRAFT-ROUTING-INTEGRITY-1]** |
 | Request approval | Approval flow | Blocked (EDITOR with canRequestApproval) |
 | View approval status | Approval status | Blocked (EDITOR without canRequestApproval) |
 | Open | Asset detail page | Secondary action |
 
 **[FIXUP-1]**: "Fix next" now routes to the issue fix surface (product workspace), NOT the Issues list.
+
+**[DRAFT-ROUTING-INTEGRITY-1]**: "Review drafts" routes to Draft Review mode (`/automation/playbooks?mode=drafts&assetType=...&assetId=...`), NOT Work Queue. Includes asset scoping and Back navigation via ScopeBanner.
 
 ---
 
@@ -74,8 +76,9 @@ Provides consistent visual vocabulary and actionable links for each asset state.
 ### 3. Draft Saved Product Row
 - [ ] Product appearing in a non-applied AutomationPlaybookDraft (status READY or PARTIAL)
 - [ ] **Expected**: Blue "🟡 Draft saved (not applied)" chip
-- [ ] **Expected**: "Review drafts" primary action linking to Work Queue
+- [ ] **Expected**: "Review drafts" primary action linking to Draft Review (`/automation/playbooks?mode=drafts&assetType=products&assetId=<productId>`)
 - [ ] **Expected**: "Open" secondary action
+- [ ] **[DRAFT-ROUTING-INTEGRITY-1]**: URL must NOT contain `/work-queue`
 
 ---
 
@@ -96,8 +99,9 @@ Provides consistent visual vocabulary and actionable links for each asset state.
 ### 3. Draft Saved Page Row
 - [ ] Page appearing in a non-applied AutomationPlaybookDraft
 - [ ] **Expected**: Blue "🟡 Draft saved (not applied)" chip
-- [ ] **Expected**: "Review drafts" primary action (links to Work Queue)
+- [ ] **Expected**: "Review drafts" primary action (links to Draft Review: `/automation/playbooks?mode=drafts&assetType=pages&assetId=<pageId>`)
 - [ ] **Expected**: "Open" secondary action
+- [ ] **[DRAFT-ROUTING-INTEGRITY-1]**: URL must NOT contain `/work-queue`
 
 ---
 
@@ -118,8 +122,9 @@ Provides consistent visual vocabulary and actionable links for each asset state.
 ### 3. Draft Saved Collection Row
 - [ ] Collection appearing in a non-applied AutomationPlaybookDraft
 - [ ] **Expected**: Blue "🟡 Draft saved (not applied)" chip
-- [ ] **Expected**: "Review drafts" primary action
+- [ ] **Expected**: "Review drafts" primary action (links to Draft Review: `/automation/playbooks?mode=drafts&assetType=collections&assetId=<collectionId>`)
 - [ ] **Expected**: "Open" secondary action
+- [ ] **[DRAFT-ROUTING-INTEGRITY-1]**: URL must NOT contain `/work-queue`
 
 ---
 
