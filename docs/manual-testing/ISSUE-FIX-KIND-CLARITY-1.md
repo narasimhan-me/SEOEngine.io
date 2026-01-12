@@ -105,7 +105,7 @@ This phase ensures that DIAGNOSTIC issues (informational, no direct fix availabl
 1. **DIAGNOSTIC issues NEVER show "Fix surface not available"** - They use the dedicated "diagnostic" callout variant
 2. **DIAGNOSTIC CTAs use "Review" wording** - Never "Fix" or "Fix now"
 3. **DIAGNOSTIC arrival callout is blue** - Never yellow (anchor_not_found) or indigo (actionable)
-4. **fixKind is NOT passed via URL** - It is derived from `getIssueFixConfig()` only (URL param is non-authoritative, spoofable)
+4. **fixKind is derived from issue config, not URL** - `getIssueFixConfig()` / `fixPath.fixKind` is the source of truth; URL does not include `fixKind` param
 5. **"View related issues" routes to Issues Engine** - NOT to product `?tab=issues`
 
 ---
@@ -126,5 +126,5 @@ This phase ensures that DIAGNOSTIC issues (informational, no direct fix availabl
 - The `fixKind` field defaults to `'EDIT'` if not specified in issue config
 - Search & Intent issues use `search-intent-tab-anchor` as canonical anchor (no module-level testids)
 - DIAGNOSTIC issues (`not_answer_ready`) have NO `fixAnchorTestId` - no scroll/highlight is performed
-- `buildIssueFixHref()` skips adding `fixAnchor` param for DIAGNOSTIC issues (no scroll/highlight needed)
-- Issues Engine derives `fixKind` via `getIssueFixConfig(issueType)` - never from URL
+- `buildIssueFixHref()` does NOT emit `fixKind` in URL; skips `fixAnchor` for DIAGNOSTIC issues
+- All surfaces derive `fixKind` via `getIssueFixConfig(issueType)` or `fixPath.fixKind` - never from URL

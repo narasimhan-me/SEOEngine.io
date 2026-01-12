@@ -504,10 +504,7 @@ export function buildIssueFixHref(params: {
     if (fixPath.fixAnchorTestId && fixPath.fixKind !== 'DIAGNOSTIC') {
       queryParams.set('fixAnchor', fixPath.fixAnchorTestId);
     }
-    // [ISSUE-FIX-KIND-CLARITY-1] Pass fixKind to arrival callout
-    if (fixPath.fixKind) {
-      queryParams.set('fixKind', fixPath.fixKind);
-    }
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1-AUDIT-3] fixKind is NOT passed in URL (derived from config only)
     // [ISSUE-FIX-NAV-AND-ANCHORS-1] Add returnTo navigation context
     if (returnTo) {
       queryParams.set('returnTo', returnTo);
