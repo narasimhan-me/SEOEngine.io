@@ -8,8 +8,16 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   private pool: Pool;
 
   constructor() {
+    // In test mode, prefer DATABASE_URL_TEST, otherwise use DATABASE_URL
+    const dbUrl =
+      process.env.DATABASE_URL_TEST || process.env.DATABASE_URL;
+    if (!dbUrl) {
+      throw new Error(
+        'DATABASE_URL or DATABASE_URL_TEST must be set',
+      );
+    }
     const pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: dbUrl,
     });
     const adapter = new PrismaPg(pool);
 

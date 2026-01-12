@@ -109,7 +109,7 @@ export class BillingService {
       throw new NotFoundException('User not found');
     }
 
-    let customerId = await this.getOrCreateStripeCustomer(userId, user.email);
+    const customerId = await this.getOrCreateStripeCustomer(userId, user.email);
 
     const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
 
@@ -304,7 +304,7 @@ export class BillingService {
       switch (event.type) {
         case 'checkout.session.completed': {
           const session = event.data.object as Stripe.Checkout.Session;
-          await this.handleCheckoutCompleted(session);
+          await this.handleCheckoutCompleted(session, event.id);
           break;
         }
         case 'customer.subscription.created':
@@ -330,12 +330,13 @@ export class BillingService {
     return { received: true };
   }
 
-  private async handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  private async handleCheckoutCompleted(session: Stripe.Checkout.Session, eventId: string) {
     const userId = session.metadata?.userId;
     const planId = session.metadata?.planId;
 
     console.log('[handleCheckoutCompleted] Processing checkout session:', {
       sessionId: session.id,
+      eventId,
       userId,
       planId,
       subscription: session.subscription,
@@ -350,6 +351,17 @@ export class BillingService {
     const subscriptionId = session.subscription as string;
     const customerId = session.customer as string;
 
+    // Check for existing subscription to implement idempotency
+    const existingSub = await this.prisma.subscription.findUnique({
+      where: { userId },
+    });
+
+    if (existingSub && existingSub.lastStripeEventId === eventId) {
+      // Idempotent: this event has already been applied
+      console.log('[handleCheckoutCompleted] Event already processed, skipping:', eventId);
+      return;
+    }
+
     console.log('[handleCheckoutCompleted] Upserting subscription for userId:', userId, 'planId:', planId);
 
     const result = await this.prisma.subscription.upsert({
@@ -361,6 +373,7 @@ export class BillingService {
         stripeSubscriptionId: subscriptionId,
         currentPeriodStart: new Date(),
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // ~30 days
+        lastStripeEventId: eventId,
       },
       create: {
         userId,
@@ -370,6 +383,7 @@ export class BillingService {
         stripeSubscriptionId: subscriptionId,
         currentPeriodStart: new Date(),
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        lastStripeEventId: eventId,
       },
     });
 

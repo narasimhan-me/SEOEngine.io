@@ -692,7 +692,7 @@ export class AnswerEngineService {
   private computeAnswerabilityScore(
     strongCount: number,
     weakCount: number,
-    missingCount: number,
+    _missingCount: number,
   ): number {
     const totalQuestions = ANSWER_QUESTION_IDS.length; // 10
 

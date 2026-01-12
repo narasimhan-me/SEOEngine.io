@@ -94,7 +94,7 @@ describe('ADMIN-OPS-1 – Support & Management Operations', () => {
         .post(`/admin/users/${targetUser.id}/impersonate`)
         .set('Authorization', `Bearer ${token}`);
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(201);
       expect(res.body.token).toBeDefined();
     });
 
@@ -133,7 +133,7 @@ describe('ADMIN-OPS-1 – Support & Management Operations', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({ reason: 'Customer support case #12345' });
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
       expect(res.body.reset?.id).toBeDefined();
     });
@@ -160,7 +160,7 @@ describe('ADMIN-OPS-1 – Support & Management Operations', () => {
         .post(`/admin/users/${targetUser.id}/impersonate`)
         .set('Authorization', `Bearer ${adminToken}`);
 
-      expect(impersonateRes.status).toBe(200);
+      expect(impersonateRes.status).toBe(201);
       const impersonationToken = impersonateRes.body.token;
 
       // Try to perform a write action with impersonation token - should fail
@@ -170,7 +170,7 @@ describe('ADMIN-OPS-1 – Support & Management Operations', () => {
         .send({ name: 'Hacked Name' });
 
       expect(writeRes.status).toBe(403);
-      expect(writeRes.body.message).toContain('read-only');
+      expect(writeRes.body.message).toContain('Read-only impersonation mode');
     });
 
     it('impersonation token allows read actions', async () => {

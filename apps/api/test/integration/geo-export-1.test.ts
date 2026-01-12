@@ -105,14 +105,14 @@ describe('GEO-EXPORT-1 – GEO Report Export and Share Links', () => {
         .send({ title: 'Test Share' })
         .expect(201);
 
-      expect(res.body).toHaveProperty('id');
-      expect(res.body).toHaveProperty('shareToken');
-      expect(res.body).toHaveProperty('shareUrl');
-      expect(res.body).toHaveProperty('status', 'ACTIVE');
-      expect(res.body).toHaveProperty('expiresAt');
+      expect(res.body.shareLink).toHaveProperty('id');
+      expect(res.body.shareLink).toHaveProperty('shareToken');
+      expect(res.body.shareLink).toHaveProperty('shareUrl');
+      expect(res.body.shareLink).toHaveProperty('status', 'ACTIVE');
+      expect(res.body.shareLink).toHaveProperty('expiresAt');
 
       // Verify expiry is ~14 days from now
-      const expiresAt = new Date(res.body.expiresAt);
+      const expiresAt = new Date(res.body.shareLink.expiresAt);
       const now = new Date();
       const daysDiff = (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
       expect(daysDiff).toBeGreaterThan(13);

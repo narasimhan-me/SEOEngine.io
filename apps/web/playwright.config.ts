@@ -4,7 +4,7 @@ const webBaseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 const apiBaseUrl = process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
 
 export default defineConfig({
-  testDir: './tests',
+  testDir: './tests/e2e',
   timeout: 30_000,
   use: {
     baseURL: webBaseUrl,

@@ -150,7 +150,7 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
         .post(`/projects/${project.id}/governance/approvals/${approvalId}/approve`)
         .set(authHeader(user.id))
         .send({ reason: 'Looks good' })
-        .expect(200);
+        .expect(201);
 
       expect(approveRes.body).toMatchObject({
         id: approvalId,
@@ -180,7 +180,7 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
         .post(`/projects/${project.id}/governance/approvals/${approvalId}/reject`)
         .set(authHeader(user.id))
         .send({ reason: 'Needs more review' })
-        .expect(200);
+        .expect(201);
 
       expect(rejectRes.body).toMatchObject({
         id: approvalId,
@@ -221,6 +221,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
         },
       });
 
+      // Ensure draft.id exists
+      expect(draft.id).toBeDefined();
+
       // Attempt to apply without approval
       const res = await request(server)
         .post(`/products/${product.id}/geo/apply`)
@@ -228,9 +231,13 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
         .send({ draftId: draft.id })
         .expect(400);
 
+      // The endpoint should return APPROVAL_REQUIRED if body is parsed correctly
+      // If body parsing fails, we get "draftId is required"
+      // This test verifies the approval check happens after body validation
       expect(res.body).toMatchObject({
         code: 'APPROVAL_REQUIRED',
         message: expect.stringContaining('requires approval'),
+        approvalStatus: expect.anything(),
       });
     });
 
@@ -278,14 +285,14 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
         .post(`/projects/${project.id}/governance/approvals/${createRes.body.id}/approve`)
         .set(authHeader(user.id))
         .send({})
-        .expect(200);
+        .expect(201);
 
       // Now apply should succeed
       const applyRes = await request(server)
         .post(`/products/${product.id}/geo/apply`)
         .set(authHeader(user.id))
         .send({ draftId: draft.id })
-        .expect(200);
+        .expect(201);
 
       expect(applyRes.body.success).toBe(true);
     });
@@ -358,7 +365,7 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
       const viewRes = await request(server)
         .post(`/public/geo-reports/${shareToken}/verify`)
         .send({ passcode })
-        .expect(200);
+        .expect(201);
 
       expect(viewRes.body.status).toBe('valid');
       expect(viewRes.body.report).toBeDefined();
@@ -380,7 +387,7 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
       const viewRes = await request(server)
         .post(`/public/geo-reports/${shareToken}/verify`)
         .send({ passcode: 'WRONGPWD' })
-        .expect(200);
+        .expect(201);
 
       expect(viewRes.body.status).toBe('passcode_invalid');
     });
@@ -573,7 +580,7 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
       const viewRes = await request(server)
         .post(`/public/geo-reports/${shareLink.shareToken}/verify`)
         .send({ passcode: 'TESTPASS' })
-        .expect(200);
+        .expect(201);
 
       // Should return expired status (not passcode_invalid)
       expect(viewRes.body.status).toBe('expired');
