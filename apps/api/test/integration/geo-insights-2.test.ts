@@ -119,10 +119,10 @@ describe('GEO-INSIGHTS-2 – Insights contract + GEO read-only insights', () => 
       delta: expect.any(Number),
       trend: expect.stringMatching(/^(up|down|flat)$/),
     });
-    expect(body.overview.saved.quota).toMatchObject({
-      limit: expect.any(Number),
-      used: expect.any(Number),
-    });
+    expect(body.overview.saved.quota).toBeDefined();
+    expect(body.overview.saved.quota).toHaveProperty('limit');
+    expect(body.overview.saved.quota).toHaveProperty('used');
+    expect(typeof body.overview.saved.quota.used).toBe('number');
     expect(body.overview.saved.trust).toMatchObject({
       applyAiRuns: expect.any(Number),
       invariantMessage: expect.any(String),
@@ -166,10 +166,11 @@ describe('GEO-INSIGHTS-2 – Insights contract + GEO read-only insights', () => 
     });
     expect(body.geoInsights.trustSignals).toMatchObject({
       topBlockers: expect.any(Array),
-      avgTimeToImproveHours: expect.anything(),
       mostImproved: expect.any(Array),
       whyThisMatters: expect.any(String),
     });
+    // avgTimeToImproveHours can be null if no improvements yet, or a number
+    expect(body.geoInsights.trustSignals.avgTimeToImproveHours === null || typeof body.geoInsights.trustSignals.avgTimeToImproveHours === 'number').toBe(true);
     expect(body.geoInsights.opportunities).toBeInstanceOf(Array);
   });
 

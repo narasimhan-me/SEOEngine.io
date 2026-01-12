@@ -1,0 +1,12 @@
+{
+  "runId": "20260110-e2b8e45f",
+  "storeDomain": "test-store.myshopify.com",
+  "startedAt": "2026-01-10T11:19:11.755Z",
+  "finishedAt": "2026-01-10T11:19:11.757Z",
+  "status": "success",
+  "createdProductIds": [],
+  "seoUpdateVerified": false,
+  "manualSyncVerified": null,
+  "errorSummary": null,
+  "cleanupStatus": "skipped"
+}

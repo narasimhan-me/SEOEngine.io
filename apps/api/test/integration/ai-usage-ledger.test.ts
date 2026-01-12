@@ -72,6 +72,35 @@ describe('AiUsageLedger Integration', () => {
       },
       automationPlaybookDraft: {
         findFirst: jest.fn().mockResolvedValue(null),
+        findUnique: jest.fn().mockImplementation((args) => {
+          // Handle compound unique key lookups
+          if (args.where.projectId_playbookId_scopeId_rulesHash) {
+            const key = args.where.projectId_playbookId_scopeId_rulesHash;
+            // Return draft if it matches the existing draft we set up
+            if (key.scopeId === 'e4a4d4c8f8bfccfb' && key.rulesHash === '39c4bcfbb8c41ddd') {
+              return Promise.resolve({
+                id: 'draft-ready-1',
+                projectId: key.projectId,
+                playbookId: key.playbookId,
+                scopeId: key.scopeId,
+                rulesHash: key.rulesHash,
+                status: 'READY',
+                draftItems: [
+                  {
+                    productId: 'prod-1',
+                    field: 'seoTitle',
+                    rawSuggestion: 'Title from draft',
+                    finalSuggestion: 'Title from draft',
+                    ruleWarnings: [],
+                  },
+                ],
+                counts: { affectedTotal: 2, draftGenerated: 2, noSuggestionCount: 0 },
+                rules: { enabled: false },
+              });
+            }
+          }
+          return Promise.resolve(null);
+        }),
         upsert: jest.fn().mockImplementation((args) => ({
           id: 'draft-ledger-1',
           projectId: args.create.projectId,

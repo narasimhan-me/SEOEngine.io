@@ -6,6 +6,7 @@ import { AuditEventsService } from './audit-events.service';
 import { RoleResolutionService } from '../common/role-resolution.service';
 import { ShareLinkAudience } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 
 /**
  * [GEO-EXPORT-1] GEO Report Assembly and Share Link Service
@@ -108,7 +109,7 @@ function generatePasscode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
   const array = new Uint8Array(8);
-  require('crypto').randomFillSync(array);
+  crypto.randomFillSync(array);
   for (let i = 0; i < 8; i++) {
     result += chars[array[i] % chars.length];
   }

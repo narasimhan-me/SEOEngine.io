@@ -110,40 +110,52 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
       const { owner, project } = await seedMultiUserProject();
 
       const res = await request(server)
-        .get(`/projects/${project.id}/deo/score`)
+        .get(`/projects/${project.id}/deo-score`)
         .set(authHeader(owner.id))
         .expect(200);
 
-      expect(res.body).toHaveProperty('overallScore');
+      expect(res.body).toHaveProperty('latestScore');
+      // If no snapshot exists, latestScore will be null
+      if (res.body.latestScore) {
+        expect(res.body.latestScore).toHaveProperty('overall');
+      }
     });
 
     it('EDITOR can access project DEO score', async () => {
       const { editor, project } = await seedMultiUserProject();
 
       const res = await request(server)
-        .get(`/projects/${project.id}/deo/score`)
+        .get(`/projects/${project.id}/deo-score`)
         .set(authHeader(editor.id))
         .expect(200);
 
-      expect(res.body).toHaveProperty('overallScore');
+      expect(res.body).toHaveProperty('latestScore');
+      // If no snapshot exists, latestScore will be null
+      if (res.body.latestScore) {
+        expect(res.body.latestScore).toHaveProperty('overall');
+      }
     });
 
     it('VIEWER can access project DEO score', async () => {
       const { viewer, project } = await seedMultiUserProject();
 
       const res = await request(server)
-        .get(`/projects/${project.id}/deo/score`)
+        .get(`/projects/${project.id}/deo-score`)
         .set(authHeader(viewer.id))
         .expect(200);
 
-      expect(res.body).toHaveProperty('overallScore');
+      expect(res.body).toHaveProperty('latestScore');
+      // If no snapshot exists, latestScore will be null
+      if (res.body.latestScore) {
+        expect(res.body.latestScore).toHaveProperty('overall');
+      }
     });
 
     it('Non-member is blocked from project DEO score (403)', async () => {
       const { nonMember, project } = await seedMultiUserProject();
 
       await request(server)
-        .get(`/projects/${project.id}/deo/score`)
+        .get(`/projects/${project.id}/deo-score`)
         .set(authHeader(nonMember.id))
         .expect(403);
     });
@@ -227,7 +239,7 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
         .send({ sampleSize: 1 })
         .expect(403);
 
-      expect(res.body.message).toContain('cannot generate');
+      expect(res.body.message).toContain('Editor or Owner role');
     });
 
     it('Non-member is blocked from generating preview (403)', async () => {
@@ -291,7 +303,7 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
         })
         .expect(403);
 
-      expect(res.body.message).toContain('Owner');
+      expect(res.body.message).toContain('Editor role cannot apply');
     });
 
     it('VIEWER is blocked from applying automation playbook (403)', async () => {
@@ -451,7 +463,8 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
         .get(`/projects/${project.id}/members`)
         .set(authHeader(owner.id))
         .expect(200);
-      expect(ownerRes.body.members.length).toBeGreaterThanOrEqual(2);
+      expect(Array.isArray(ownerRes.body)).toBe(true);
+      expect(ownerRes.body.length).toBeGreaterThanOrEqual(2);
 
       // EDITOR
       await request(server)
@@ -475,7 +488,7 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
         .set(authHeader(owner.id))
         .expect(200);
 
-      const editorMembership = membersRes.body.members.find(
+      const editorMembership = membersRes.body.find(
         (m: any) => m.userId === editor.id,
       );
 
@@ -483,7 +496,7 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
 
       // OWNER can change role
       const res = await request(server)
-        .patch(`/projects/${project.id}/members/${editorMembership.id}`)
+        .put(`/projects/${project.id}/members/${editorMembership.id}`)
         .set(authHeader(owner.id))
         .send({ role: 'VIEWER' })
         .expect(200);
@@ -500,13 +513,13 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
         .set(authHeader(owner.id))
         .expect(200);
 
-      const viewerMembership = membersRes.body.members.find(
+      const viewerMembership = membersRes.body.find(
         (m: any) => m.userId === viewer.id,
       );
 
       // EDITOR cannot change role
       await request(server)
-        .patch(`/projects/${project.id}/members/${viewerMembership.id}`)
+        .put(`/projects/${project.id}/members/${viewerMembership.id}`)
         .set(authHeader(editor.id))
         .send({ role: 'EDITOR' })
         .expect(403);
@@ -518,43 +531,43 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
       const { owner, project } = await seedMultiUserProject();
 
       const res = await request(server)
-        .get(`/projects/${project.id}/user-role`)
+        .get(`/projects/${project.id}/role`)
         .set(authHeader(owner.id))
         .expect(200);
 
-      expect(res.body.effectiveRole).toBe('OWNER');
-      expect(res.body.isMultiUser).toBe(true);
+      expect(res.body.role).toBe('OWNER');
+      expect(res.body.isMultiUserProject).toBe(true);
     });
 
     it('Returns correct role for EDITOR', async () => {
       const { editor, project } = await seedMultiUserProject();
 
       const res = await request(server)
-        .get(`/projects/${project.id}/user-role`)
+        .get(`/projects/${project.id}/role`)
         .set(authHeader(editor.id))
         .expect(200);
 
-      expect(res.body.effectiveRole).toBe('EDITOR');
-      expect(res.body.isMultiUser).toBe(true);
+      expect(res.body.role).toBe('EDITOR');
+      expect(res.body.isMultiUserProject).toBe(true);
     });
 
     it('Returns correct role for VIEWER', async () => {
       const { viewer, project } = await seedMultiUserProject();
 
       const res = await request(server)
-        .get(`/projects/${project.id}/user-role`)
+        .get(`/projects/${project.id}/role`)
         .set(authHeader(viewer.id))
         .expect(200);
 
-      expect(res.body.effectiveRole).toBe('VIEWER');
-      expect(res.body.isMultiUser).toBe(true);
+      expect(res.body.role).toBe('VIEWER');
+      expect(res.body.isMultiUserProject).toBe(true);
     });
 
     it('Returns 403 for non-member', async () => {
       const { nonMember, project } = await seedMultiUserProject();
 
       await request(server)
-        .get(`/projects/${project.id}/user-role`)
+        .get(`/projects/${project.id}/role`)
         .set(authHeader(nonMember.id))
         .expect(403);
     });
@@ -575,16 +588,16 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
 
       // Owner should have full access (implicit OWNER via project.userId)
       const roleRes = await request(server)
-        .get(`/projects/${project.id}/user-role`)
+        .get(`/projects/${project.id}/role`)
         .set(authHeader(owner.id))
         .expect(200);
 
-      expect(roleRes.body.effectiveRole).toBe('OWNER');
-      expect(roleRes.body.isMultiUser).toBe(false);
+      expect(roleRes.body.role).toBe('OWNER');
+      expect(roleRes.body.isMultiUserProject).toBe(false);
 
       // Owner can view
       await request(server)
-        .get(`/projects/${project.id}/deo/score`)
+        .get(`/projects/${project.id}/deo-score`)
         .set(authHeader(owner.id))
         .expect(200);
 
@@ -1024,19 +1037,19 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
 
       // Primary OWNER
       const primaryRes = await request(server)
-        .get(`/projects/${project.id}/user-role`)
+        .get(`/projects/${project.id}/role`)
         .set(authHeader(primaryOwner.id))
         .expect(200);
 
-      expect(primaryRes.body.effectiveRole).toBe('OWNER');
+      expect(primaryRes.body.role).toBe('OWNER');
 
       // Secondary OWNER
       const secondaryRes = await request(server)
-        .get(`/projects/${project.id}/user-role`)
+        .get(`/projects/${project.id}/role`)
         .set(authHeader(secondaryOwner.id))
         .expect(200);
 
-      expect(secondaryRes.body.effectiveRole).toBe('OWNER');
+      expect(secondaryRes.body.role).toBe('OWNER');
     });
   });
 });

@@ -70,6 +70,7 @@ describe('AutomationPlaybookRuns Integration', () => {
       },
       automationPlaybookDraft: {
         findFirst: jest.fn().mockResolvedValue(null),
+        findUnique: jest.fn().mockResolvedValue(null),
         upsert: jest.fn().mockImplementation((args) => ({
           id: 'draft-integration-1',
           projectId: args.create.projectId,

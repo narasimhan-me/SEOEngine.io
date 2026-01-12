@@ -22,6 +22,7 @@ describe('AiUsageQuotaService (integration with AiUsageLedgerService)', () => {
       },
       // [ADMIN-OPS-1] Mock for quota reset offset query
       aiMonthlyQuotaReset: {
+        findMany: jest.fn().mockResolvedValue([]),
         aggregate: jest.fn().mockResolvedValue({ _sum: { offsetCount: null } }),
       },
     };
