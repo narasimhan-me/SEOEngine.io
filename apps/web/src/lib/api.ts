@@ -1710,11 +1710,14 @@ export const aiApi = {
 
 /**
  * [LIST-SEARCH-FILTER-1] Product list filter options
+ * [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Extended with issueType filter
  */
 export interface ProductListOptions {
   q?: string;
   status?: 'optimized' | 'needs_attention';
   hasDraft?: boolean;
+  /** [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Filter to products affected by this issue type */
+  issueType?: string;
 }
 
 /**
@@ -1731,12 +1734,14 @@ export interface CrawlPageListOptions {
 export const productsApi = {
   /**
    * [LIST-SEARCH-FILTER-1] List products with optional filtering
+   * [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Extended with issueType filter for Issue→List routing
    */
   list: (projectId: string, opts?: ProductListOptions) => {
     const params = new URLSearchParams();
     if (opts?.q) params.set('q', opts.q);
     if (opts?.status) params.set('status', opts.status);
     if (opts?.hasDraft) params.set('hasDraft', 'true');
+    if (opts?.issueType) params.set('issueType', opts.issueType);
     const qs = params.toString();
     return fetchWithAuth(`/projects/${projectId}/products${qs ? `?${qs}` : ''}`);
   },

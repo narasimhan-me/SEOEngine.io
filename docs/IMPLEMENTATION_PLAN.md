@@ -1670,6 +1670,100 @@ Aggregation surfaces (Products list, Work Queue) now use fixKind-aware semantics
 
 ---
 
+### Phase ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1: View Affected → Filtered Products List ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-14
+**Activation:** Issue-to-fix path integrity for multi-product issues
+
+#### Goals
+
+1. "View affected" CTA in Issues Engine routes to **Products list** (filtered by issueType), NOT to product detail.
+2. Server-authoritative issueType filtering in Products API.
+3. ScopeBanner shows issueType scope chip for filtered Products list.
+4. Return navigation (Back to Issues Engine) preserved via `returnTo` param.
+
+#### Strict Non-Goals
+
+- No changes to issue detection or scoring logic
+- No changes to single-product "Fix" CTA routing (still goes to product detail)
+- No changes to issue-to-fix anchor mapping
+
+#### Key Changes
+
+1. **Issues Engine "View affected" Routing**: `getFixAction()` in `issues/page.tsx` now builds "View affected" href that routes to `/projects/:id/products` with `issueType`, `from=issues_engine`, and `returnTo` params.
+2. **Server-Authoritative issueType Filtering**: Added `issueType?: string` to `ProductListOptions` in `api.ts`. Products API controller accepts `issueType` query param and passes to service. `ProductsService.getProductsForProject()` filters products by affected issue type using `getProductIdsAffectedByIssueType()` helper (fetches canonical issues via `DeoIssuesService.getIssuesForProjectReadOnly()`).
+3. **Products Page Integration**: Products page reads `issueType` from URL search params, passes to `fetchProducts()`, includes in `hasActiveFilters` check, removes from URL in `handleClearFilters()`.
+4. **ScopeBanner Scope Chip**: `normalizeScopeParams()` already handles `issueType` priority. ScopeBanner renders issueType scope chip when present.
+5. **Return Navigation**: `returnTo` param encodes current Issues Engine path with query params, enabling "Back to Issues Engine" navigation from filtered Products list.
+
+#### Core Files
+
+- `apps/web/src/app/projects/[id]/issues/page.tsx` - View affected href builder
+- `apps/web/src/lib/api.ts` - ProductListOptions.issueType
+- `apps/api/src/products/products.controller.ts` - issueType query param
+- `apps/api/src/products/products.service.ts` - getProductIdsAffectedByIssueType()
+- `apps/web/src/app/projects/[id]/products/page.tsx` - issueType filter integration
+
+#### Test Coverage
+
+- Playwright tests: `apps/web/tests/view-affected-routing-1.spec.ts` (5 tests)
+  - VAR1-001: View affected routes to Products list with issueType filter
+  - VAR1-002: Products list shows ScopeBanner with issueType chip
+  - VAR1-003: issueType filtering excludes non-affected products
+
+#### Manual Testing
+
+- `docs/manual-testing/ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1.md`
+
+---
+
+### Phase MISSING-METADATA-FIX-SURFACE-INTEGRITY-1: Metadata Anchor Mapping ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-14
+**Activation:** "Fix surface not available" error elimination for metadata issues
+
+#### Goals
+
+1. Eliminate "Fix surface not available" error when navigating to metadata issues via issue-to-fix path.
+2. Correct anchor testid mapping for all metadata issues to use real DOM element (`seo-editor-anchor`).
+
+#### Strict Non-Goals
+
+- No changes to issue detection or scoring logic
+- No changes to SEO editor component structure
+- No changes to other pillar anchor mappings
+
+#### Key Changes
+
+1. **Anchor Mapping Correction**: All metadata issue configs in `issue-to-fix-path.ts` now use `seo-editor-anchor` as `fixAnchorTestId`:
+   - `missing_seo_title` → `seo-editor-anchor` (was: `product-metadata-seo-title-module`)
+   - `missing_seo_description` → `seo-editor-anchor` (was: `product-metadata-seo-description-module`)
+   - `missing_metadata` → `seo-editor-anchor` (was: `product-metadata-seo-title-module`)
+   - `seo_title_keyword_stuffing` → `seo-editor-anchor` (was: `product-metadata-seo-title-module`)
+   - `seo_description_keyword_stuffing` → `seo-editor-anchor` (was: `product-metadata-seo-description-module`)
+   - `thin_seo_title` → `seo-editor-anchor` (was: `product-metadata-seo-title-module`)
+   - `thin_seo_description` → `seo-editor-anchor` (was: `product-metadata-seo-description-module`)
+
+2. **Root Cause**: Previous `fixAnchorTestId` values (e.g., `product-metadata-seo-title-module`) did not exist in the DOM. The actual SEO editor uses `data-testid="seo-editor-anchor"`.
+
+#### Core Files
+
+- `apps/web/src/lib/issue-to-fix-path.ts` - Metadata issue fixAnchorTestId values
+
+#### Test Coverage
+
+- Playwright tests: `apps/web/tests/view-affected-routing-1.spec.ts`
+  - MMFSI1-001: Missing Metadata issues land on SEO editor anchor
+  - MMFSI1-002: missing_metadata issue uses seo-editor-anchor
+
+#### Manual Testing
+
+- `docs/manual-testing/MISSING-METADATA-FIX-SURFACE-INTEGRITY-1.md`
+
+---
+
 ## In Progress
 
 *None at this time.*
@@ -1903,3 +1997,7 @@ These invariants MUST be preserved during implementation:
 | 6.47 | 2026-01-12 | **ISSUE-FIX-KIND-CLARITY-1-FIXUP-1-AUDIT-3**: Remove fixKind query param emission. (1) Removed `fixKind` query param emission from `buildIssueFixHref()` - URL no longer carries `fixKind` (was non-authoritative, now removed entirely); (2) Manual testing doc updated to reflect "derived from config; not in URL" - Critical Invariant 4 and Notes section clarified. |
 | 6.48 | 2026-01-14 | **ISSUE-FIX-KIND-CLARITY-1-FIXUP-2**: Aggregation CTA and Work Queue banner semantics. (1) Added `fixNextIsDiagnostic?: boolean` to `RowNextActionInput` in list-actions-clarity.ts; Products list shows "Review" CTA when deterministic next issue is DIAGNOSTIC (not "Fix next"); (2) ProductTable.tsx passes `fixNextIsDiagnostic` derived from `getIssueFixConfig()`; (3) Work Queue page derives `fixKind` from `getIssueFixConfig(issueIdParam)`, shows blue banner with "You're here to review:" for DIAGNOSTIC issues (not indigo "You're here to fix:"); (4) `seed-first-deo-win` extended to 4 products - Product 4 has SEO + thin content triggering `not_answer_ready` as top issue; (5) Playwright tests: LAC1-002b, IFKC1-006, IFKC1-007; (6) Manual testing Scenarios 6 and 7. |
 | 6.49 | 2026-01-14 | **ISSUE-FIX-KIND-CLARITY-1-FIXUP-2-AUDIT-1**: Work Queue DIAGNOSTIC helper line wording corrected to explicit "To review this issue:" (never "fix"); updated IFKC1-007 assertion + manual testing Scenario 7 to match shipped behavior. |
+| 6.50 | 2026-01-14 | **ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1 COMPLETE**: "View affected" CTA in Issues Engine now routes to filtered Products list (not product detail). Server-authoritative issueType filtering via Products API (`getProductIdsAffectedByIssueType()` using canonical `getIssuesForProjectReadOnly()`). ScopeBanner shows issueType scope chip. Return navigation via `returnTo` param. Playwright tests VAR1-001/002/003. Manual testing doc. |
+| 6.51 | 2026-01-14 | **MISSING-METADATA-FIX-SURFACE-INTEGRITY-1 COMPLETE**: Fixed "Fix surface not available" error for metadata issues. Corrected anchor testid mapping for all metadata issues to use real DOM element `seo-editor-anchor` (was incorrectly targeting non-existent testids like `product-metadata-seo-title-module`). Playwright tests MMFSI1-001/002. Manual testing doc. |
+| 6.52 | 2026-01-14 | **ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1-AUDIT-1 + MISSING-METADATA-FIX-SURFACE-INTEGRITY-1-AUDIT-1**: Playwright hardening. (1) VAR1-001 no longer uses conditional skip - targets deterministic "Missing titles or descriptions" issue card; (2) Added VAR1-004 for back-navigation contract (ScopeBanner Back returns to Issues Engine with original pillar + mode filters); (3) VAR1-003 now asserts non-empty list before exclusion check; (4) MMFSI1-001 now tests via app-generated link (not direct URL) to verify real anchor mapping; (5) MMFSI1-002 adds explicit fixAnchor URL assertion. Manual testing docs updated with corrected example (missing_metadata) and test coverage. |
+| 6.53 | 2026-01-14 | **ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1-AUDIT-2**: Fixed Playwright selector mismatch. VAR1-001 and VAR1-004 now use canonical Issues Engine card testids (`issue-card-actionable` / `issue-card-informational`) instead of nonexistent `issue-card`. Added `.first()` after filter to force single target. |
