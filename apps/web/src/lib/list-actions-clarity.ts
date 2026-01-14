@@ -6,7 +6,7 @@
  *
  * LOCKED VOCABULARY:
  * - Chip labels: ✅ Optimized, ⚠ Needs attention, 🟡 Draft saved (not applied), ⛔ Blocked
- * - Actions: Fix next, Review drafts, View issues, Request approval, View approval status, Open
+ * - Actions: Fix next, Review, Review drafts, View issues, Request approval, View approval status, Open
  */
 
 import type { FromContext } from './issue-fix-navigation';
@@ -56,6 +56,8 @@ export interface RowNextActionInput {
   canRequestApproval: boolean;
   /** Fix href for Products only (deterministic next issue) */
   fixNextHref: string | null;
+  /** [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] True when deterministic next issue is DIAGNOSTIC */
+  fixNextIsDiagnostic?: boolean;
   /** Asset detail/workspace open href (not Issues Engine) */
   openHref: string;
   /**
@@ -86,7 +88,7 @@ export interface RowNextActionInput {
  *    - If blockedByApproval → ⛔ Blocked, primary: Request approval / View approval status
  *    - Else → 🟡 Draft saved (not applied), primary: Review drafts
  * 4. Else (no draft):
- *    - If actionableNowCount > 0 → ⚠ Needs attention, primary: Fix next (Products) / View issues (Pages/Collections)
+ *    - If actionableNowCount > 0 → ⚠ Needs attention, primary: Fix next (Products; "Review" when DIAGNOSTIC) / View issues (Pages/Collections)
  *    - If actionableNowCount === 0 → ✅ Optimized, no Fix-style primary CTA
  * 5. Secondary action: Open only when not redundant (primary routes elsewhere)
  */
@@ -99,6 +101,7 @@ export function resolveRowNextAction(input: RowNextActionInput): ResolvedRowNext
     canApply,
     canRequestApproval,
     fixNextHref,
+    fixNextIsDiagnostic,
     openHref,
     issuesHref,
     reviewDraftsHref,
@@ -151,10 +154,11 @@ export function resolveRowNextAction(input: RowNextActionInput): ResolvedRowNext
     // Has actionable issues
     if (assetType === 'products' && fixNextHref) {
       // Products: Fix next links to deterministic issue fix
+      // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Use "Review" for DIAGNOSTIC issues
       return {
         chipLabel: '⚠ Needs attention',
         primaryAction: {
-          label: 'Fix next',
+          label: fixNextIsDiagnostic ? 'Review' : 'Fix next',
           href: fixNextHref,
         },
         secondaryAction: {

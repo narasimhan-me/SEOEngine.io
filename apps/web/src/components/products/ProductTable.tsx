@@ -13,7 +13,7 @@ import {
   type ResolvedRowNextAction,
   type NavigationContext,
 } from '@/lib/list-actions-clarity';
-import { buildIssueFixHref } from '@/lib/issue-to-fix-path';
+import { buildIssueFixHref, getIssueFixConfig } from '@/lib/issue-to-fix-path';
 
 /** Health states for the new decision-first UI */
 export type HealthState = 'Healthy' | 'Needs Attention' | 'Critical';
@@ -368,6 +368,8 @@ export function ProductTable({
 
       // Deterministic "Fix next" links to the top actionable issue's fix destination
       let fixNextHref: string | null = null;
+      // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Track if next issue is DIAGNOSTIC for "Review" CTA
+      let fixNextIsDiagnostic = false;
       if (actionableIssues.length > 0) {
         const nextIssue = actionableIssues[0];
         // [ROUTE-INTEGRITY-1] Use from=asset_list for consistent back navigation
@@ -379,6 +381,10 @@ export function ProductTable({
           returnTo: navContext.returnTo,
           returnLabel: navContext.returnLabel,
         });
+        // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Check if next issue is DIAGNOSTIC
+        const issueKey = (nextIssue.type as string | undefined) || nextIssue.id;
+        const fixConfig = getIssueFixConfig(issueKey);
+        fixNextIsDiagnostic = fixConfig?.fixKind === 'DIAGNOSTIC';
       }
 
       // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Pass server-derived blockedByApproval directly
@@ -392,6 +398,8 @@ export function ProductTable({
         canApply, // fallback for backwards compat if blockedByApproval undefined
         canRequestApproval,
         fixNextHref,
+        // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Pass DIAGNOSTIC flag for "Review" CTA
+        fixNextIsDiagnostic,
         openHref: buildProductWorkspaceHref(projectId, product.id, navContext),
         reviewDraftsHref: buildProductDraftsTabHref(projectId, product.id, navContext),
       });

@@ -248,3 +248,74 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DEO Overview uses correct CTA wording',
     }
   });
 });
+
+test.describe('ISSUE-FIX-KIND-CLARITY-1-FIXUP-2: Aggregation CTA and Work Queue banner', () => {
+  /**
+   * IFKC1-006: Products list shows "Review" CTA for DIAGNOSTIC-topped products
+   *
+   * Given: Product 4 with thin content (not_answer_ready as top issue)
+   * When: User views the Products list
+   * Then: Product 4 row should show "Review" CTA (not "Fix next")
+   *
+   * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Products list fixNextIsDiagnostic drives "Review" label
+   */
+  test('IFKC1-006: Products list shows Review CTA for DIAGNOSTIC-topped product', async ({ page, request }) => {
+    const { projectId, productIds } = await authenticatePage(page, request);
+
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] STRICT: Expect at least 4 products (Product 4 is DIAGNOSTIC)
+    expect(productIds.length).toBeGreaterThanOrEqual(4);
+
+    // Navigate to Products list
+    await page.goto(`/projects/${projectId}/products`);
+    await page.waitForLoadState('networkidle');
+
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Find Product 4 row by title
+    const diagnosticProductRow = page.locator('tr:has-text("Product 4 - DIAGNOSTIC Test"), div[class*="row"]:has-text("Product 4 - DIAGNOSTIC Test")').first();
+    await expect(diagnosticProductRow).toBeVisible();
+
+    // Assert primary action is "Review" (not "Fix next")
+    const primaryAction = diagnosticProductRow.locator('[data-testid="row-primary-action"]');
+    await expect(primaryAction).toBeVisible();
+    const ctaText = await primaryAction.textContent();
+    expect(ctaText).toBe('Review');
+    expect(ctaText).not.toBe('Fix next');
+  });
+
+  /**
+   * IFKC1-007: Work Queue shows blue banner with "review" wording for DIAGNOSTIC issueId
+   *
+   * Given: User navigates to Work Queue with issueId=not_answer_ready
+   * When: The page loads
+   * Then: Issue fix context banner should be blue with "You're here to review:" wording
+   *
+   * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Work Queue fixKind-aware banner styling and wording
+   */
+  test('IFKC1-007: Work Queue shows blue review banner for DIAGNOSTIC issueId', async ({ page, request }) => {
+    const { projectId } = await authenticatePage(page, request);
+
+    // Navigate to Work Queue with DIAGNOSTIC issue context
+    await page.goto(`/projects/${projectId}/work-queue?from=issues&issueId=not_answer_ready`);
+    await page.waitForLoadState('networkidle');
+
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Assert issue fix context banner is visible
+    const banner = page.getByTestId('work-queue-issue-fix-context-banner');
+    await expect(banner).toBeVisible();
+
+    // Assert banner has DIAGNOSTIC fixKind data attribute
+    await expect(banner).toHaveAttribute('data-fix-kind', 'DIAGNOSTIC');
+
+    // Assert banner has blue styling (not indigo)
+    const bannerClass = await banner.getAttribute('class');
+    expect(bannerClass).toContain('bg-blue-50');
+    expect(bannerClass).not.toContain('bg-indigo-50');
+
+    // Assert banner says "You're here to review:" (not "You're here to fix:")
+    await expect(banner).toContainText("You're here to review:");
+
+    // Assert helper line uses explicit "review" language (not "fix")
+    const nextAction = page.getByTestId('issue-fix-next-action-callout');
+    await expect(nextAction).toBeVisible();
+    await expect(nextAction).toContainText('To review this issue:');
+    await expect(nextAction).not.toContainText('To fix this issue:');
+  });
+});

@@ -36,8 +36,12 @@ export class E2eTestkitController {
   /**
    * POST /testkit/e2e/seed-first-deo-win
    *
-   * Seed a Pro-plan user + project + 3 products with missing SEO fields,
-   * but WITHOUT a connected store or crawl/DEO state.
+   * Seed a Pro-plan user + project + 4 products:
+   * - Products 1-3: Missing SEO fields (triggers EDIT issues like missing_seo_title)
+   * - Product 4: Has SEO fields but thin content (triggers DIAGNOSTIC issue not_answer_ready)
+   *
+   * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Product 4 enables testing of DIAGNOSTIC fixKind
+   * on aggregation surfaces (Products list "Review" CTA, Work Queue banner wording).
    *
    * Returns:
    * - user (id, email)
@@ -57,11 +61,31 @@ export class E2eTestkitController {
       userId: user.id,
     });
 
+    // Products 1-3: Missing SEO fields (triggers EDIT issues)
     const products = await createTestProducts(this.prisma as any, {
       projectId: project.id,
       count: 3,
       withSeo: false,
       withIssues: true,
+    });
+
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Product 4: DIAGNOSTIC (not_answer_ready) without competing top issues
+    // NOTE: seoDescription is intentionally non-empty but wordless (spaces) to avoid:
+    // - missing_seo_description (falsy check)
+    // - weak_description (length < 80)
+    // - thin_content (wordCount 0)
+    const product4 = await this.prisma.product.create({
+      data: {
+        projectId: project.id,
+        externalId: `test_product_diagnostic_${Date.now()}`,
+        title: 'Product 4 - DIAGNOSTIC Test',
+        // 50+ words, but < 80 words total when combined with seoDescription wordCount (0)
+        description:
+          'Informational body copy for diagnostic routing tests. This product intentionally has enough narrative to avoid the Missing Long Description issue, but still stays under the Answer-Ready threshold. It describes what the item is, how it is used, who it is for, and what to expect after purchase, without adding full FAQ depth.',
+        seoTitle: 'Product 4 SEO Title - Complete', // Has SEO = no missing_seo_title
+        // Non-empty but wordless to preserve SEO presence without triggering thin_content
+        seoDescription: ' '.repeat(120),
+      },
     });
 
     const accessToken = this.jwtService.sign({ sub: user.id });
@@ -72,7 +96,7 @@ export class E2eTestkitController {
         email: user.email,
       },
       projectId: project.id,
-      productIds: products.map((p) => p.id),
+      productIds: [...products.map((p) => p.id), product4.id],
       accessToken,
     };
   }

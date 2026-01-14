@@ -225,8 +225,8 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.1.md` ✅, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md` |
-| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/web/tests/issue-to-fix-path-1.spec.ts`, `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/count-integrity-1-1.spec.ts` ✅ (backend API), `apps/web/tests/count-integrity-1-1.ui.spec.ts` ✅ (UI smoke test), `apps/web/tests/zero-affected-suppression-1.spec.ts` ✅ |
+| **Manual Testing Doc(s)** | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.1.md` ✅, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md`, `docs/manual-testing/ISSUE-FIX-KIND-CLARITY-1.md` ✅ |
+| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/web/tests/issue-to-fix-path-1.spec.ts`, `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/count-integrity-1-1.spec.ts` ✅ (backend API), `apps/web/tests/count-integrity-1-1.ui.spec.ts` ✅ (UI smoke test), `apps/web/tests/zero-affected-suppression-1.spec.ts` ✅, `apps/web/tests/issue-fix-kind-clarity-1.spec.ts` ✅, `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-002b) |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
 | **Owner** | Frontend Team |
@@ -269,6 +269,13 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [x] COUNT-INTEGRITY-1.1: affectedItemsCount accurate for products (verified by CANON-009 with 30 products) and pages/collections (verified by CANON-010 with 30 collections beyond cap-20)
 - [x] COUNT-INTEGRITY-1.1: UI displays labeled triplet counts ("Issue types", "Items affected", "Actionable now") ✅ **GAP 6 COMPLETE (PATCH 5-8)**
 - [x] COUNT-INTEGRITY-1.1: Cross-surface UI smoke test (Store Health → Work Queue → Issues → Product Detail) ✅ **GAP 7 COMPLETE (PATCH 9)**
+- [x] ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC issues show "Review" CTA (not "Fix") in Issues Engine
+- [x] ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC arrival callout uses blue styling (not yellow/indigo)
+- [x] ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC callout shows "View related issues" CTA (routes to Issues Engine)
+- [x] ISSUE-FIX-KIND-CLARITY-1: DEO Overview shows correct CTA for DIAGNOSTIC issues
+- [x] ISSUE-FIX-KIND-CLARITY-1: fixKind derived from config only (never URL param)
+- [x] ISSUE-FIX-KIND-CLARITY-1-FIXUP-2: Products list shows "Review" CTA for DIAGNOSTIC-topped products
+- [x] ISSUE-FIX-KIND-CLARITY-1-FIXUP-2: Work Queue shows blue review banner for DIAGNOSTIC issueId
 
 ---
 
@@ -790,3 +797,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 5.9 | 2026-01-08 | COUNT-INTEGRITY-1.1 BACKEND COMPLETE: PATCH BATCH 4 + FIXUP resolved Gap 3b (pages/collections dedup beyond cap-20). Updated 7 technical builders to populate full keys (PATCH 4.1), created collections seed with collectionIds (PATCH 4.2-FIXUP-1), added CANON-010 regression test with crawlResult IDs and scopeType=collections filter (PATCH 4.3-FIXUP-1 + FIXUP-2), comprehensive docs sweep (PATCH 4.4-FIXUP-1). Backend verified for all asset types via CANON-009 (products) + CANON-010 (collections). Updated CP-008 and CP-009 with Gap 3b verification. UI migration (Gap 6) + UI smoke test (Gap 7) remain pending. |
 | 6.0 | 2026-01-08 | COUNT-INTEGRITY-1.1 COMPLETE: PATCH 5-10 resolved Gap 6 (UI Migration) and Gap 7 (UI Smoke Test). PATCH 5: Issues Engine filter-aligned canonical summary with TripletDisplay data-testid attributes. PATCH 6: Product detail uses assetIssues endpoint with triplet summary. PATCH 7: Store Health tiles use canonical counts. PATCH 8: Work Queue AI badge trust copy ("Does not use AI", "AI used for drafts only"). PATCH 9: Created count-integrity-1-1.ui.spec.ts with 6 cross-surface UI smoke tests. PATCH 10: Documentation updates. Removed ⚠️ warnings from CP-008 and CP-009, marked all COUNT-INTEGRITY-1.1 scenarios complete. |
 | 6.1 | 2026-01-09 | COUNT-INTEGRITY-1.1 UI HARDEN + AUDIT FIX: Multi-action filtering via actionKeys (OR across keys), pillar-aware triplet display (currentTriplet from byPillar), severity-aligned canonical summary (passes severity to API), pillar-aware hasActionableIssues/hasDetectedIssues checks. Fixed UI smoke test auth (localStorage only) and product selection shape ({ products: [...] }). Verification complete (NO-OP) — all audit fixes confirmed implemented. |
+| 6.2 | 2026-01-14 | ISSUE-FIX-KIND-CLARITY-1: Added CP-008 scenarios for DIAGNOSTIC vs EDIT/AI issue CTA semantics. DIAGNOSTIC issues show "Review" CTA (not "Fix"), blue arrival callout (not yellow/indigo), "View related issues" routes to Issues Engine. fixKind derived from config only (never URL). Added issue-fix-kind-clarity-1.spec.ts (7 tests) + LAC1-002b in list-actions-clarity-1.spec.ts. Added manual testing doc. FIXUP-2: Products list shows "Review" for DIAGNOSTIC-topped products, Work Queue shows blue review banner for DIAGNOSTIC issueId. |

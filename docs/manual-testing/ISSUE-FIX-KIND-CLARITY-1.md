@@ -100,6 +100,39 @@ This phase ensures that DIAGNOSTIC issues (informational, no direct fix availabl
 
 ---
 
+### Scenario 6: Products List "Review" CTA for DIAGNOSTIC Issues
+
+> [FIXUP-2] Aggregation CTA wording based on fixNextIsDiagnostic
+
+**Route:** `/projects/{projectId}/products`
+
+**Setup:** Use seed with Product 4 (SEO fields populated; body copy < 80 words so `not_answer_ready` is the deterministic next issue)
+
+1. Navigate to the Products list
+2. Locate the row for "Product 4 - DIAGNOSTIC Test"
+3. **Verify:**
+   - [ ] Row shows "⚠ Needs attention" chip (has actionable issue)
+   - [ ] Primary action CTA shows "Review" (NOT "Fix next")
+   - [ ] Clicking "Review" navigates to Product detail with `issueId=not_answer_ready&tab=search-intent`
+
+---
+
+### Scenario 7: Work Queue DIAGNOSTIC Banner Wording
+
+> [FIXUP-2] Work Queue issue fix context banner uses fixKind-aware wording
+
+**Route:** `/projects/{projectId}/work-queue?from=issues&issueId=not_answer_ready`
+
+1. Navigate to Work Queue with DIAGNOSTIC issue context
+2. **Verify:**
+   - [ ] Issue fix context banner (`data-testid="work-queue-issue-fix-context-banner"`) is visible
+   - [ ] Banner has `data-fix-kind="DIAGNOSTIC"` attribute
+   - [ ] Banner has blue styling (`bg-blue-50`) NOT indigo (`bg-indigo-50`)
+   - [ ] Banner shows "You're here to review:" (NOT "You're here to fix:")
+   - [ ] Helper line uses "To review this issue:" (NOT "To fix this issue:")
+
+---
+
 ## Critical Invariants
 
 1. **DIAGNOSTIC issues NEVER show "Fix surface not available"** - They use the dedicated "diagnostic" callout variant
@@ -118,6 +151,11 @@ This phase ensures that DIAGNOSTIC issues (informational, no direct fix availabl
   - IFKC1-003: DIAGNOSTIC arrival callout uses blue styling
   - IFKC1-004: DIAGNOSTIC callout shows View related issues CTA (routes to Issues Engine)
   - IFKC1-005: DEO Overview shows correct CTA for DIAGNOSTIC issues
+  - IFKC1-006: [FIXUP-2] Products list shows Review CTA for DIAGNOSTIC-topped product
+  - IFKC1-007: [FIXUP-2] Work Queue shows blue review banner for DIAGNOSTIC issueId
+
+- Playwright E2E: `apps/web/tests/list-actions-clarity-1.spec.ts`
+  - LAC1-002b: [FIXUP-2] DIAGNOSTIC issue product shows Review CTA (not Fix next)
 
 ---
 
@@ -128,3 +166,6 @@ This phase ensures that DIAGNOSTIC issues (informational, no direct fix availabl
 - DIAGNOSTIC issues (`not_answer_ready`) have NO `fixAnchorTestId` - no scroll/highlight is performed
 - `buildIssueFixHref()` does NOT emit `fixKind` in URL; skips `fixAnchor` for DIAGNOSTIC issues
 - All surfaces derive `fixKind` via `getIssueFixConfig(issueType)` or `fixPath.fixKind` - never from URL
+- [FIXUP-2] Products list uses `fixNextIsDiagnostic` flag to show "Review" instead of "Fix next"
+- [FIXUP-2] Work Queue derives `fixKind` from `getIssueFixConfig(issueIdParam)` for banner wording
+- [FIXUP-2] Product 4 in seed has SEO populated + thin content to trigger not_answer_ready as top issue

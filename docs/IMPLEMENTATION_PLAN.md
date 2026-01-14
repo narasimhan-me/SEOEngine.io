@@ -1638,6 +1638,19 @@ Corrections to initial implementation:
 5. **Strict Test Assertions**: Playwright tests fail if preconditions aren't met (no no-op guards).
 6. **[AUDIT-3] fixKind Not Emitted**: `buildIssueFixHref()` no longer emits `fixKind` in URL - it is derived from config only, URL does not include it.
 
+#### FIXUP-2 (2026-01-14)
+
+Aggregation surfaces (Products list, Work Queue) now use fixKind-aware semantics:
+1. **Products List "Review" CTA**: Added `fixNextIsDiagnostic?: boolean` to `RowNextActionInput`. Products list passes flag when deterministic next issue is DIAGNOSTIC. CTA shows "Review" instead of "Fix next".
+2. **Work Queue Banner Wording**: Work Queue derives `fixKind` from `getIssueFixConfig(issueIdParam)`. DIAGNOSTIC issues render blue banner with "You're here to review:" wording (not indigo "You're here to fix:").
+3. **Seed Data Extension**: `seed-first-deo-win` now creates 4 products. Product 4 has SEO populated and is shaped so `not_answer_ready` is the deterministic next issue (for testing DIAGNOSTIC CTA) without competing top issues.
+4. **Playwright Tests**: LAC1-002b (Products list Review CTA), IFKC1-006 (Products list Review CTA), IFKC1-007 (Work Queue DIAGNOSTIC banner).
+5. **Manual Testing**: Scenarios 6 (Products list Review CTA) and 7 (Work Queue DIAGNOSTIC banner) added.
+
+#### FIXUP-2 AUDIT-1 (2026-01-14)
+
+1. **Work Queue helper line semantics**: DIAGNOSTIC issue banner now uses explicit "To review this issue:" helper prefix (never "fix" language); IFKC1-007 asserts this to prevent regression.
+
 #### Core Files
 
 - `apps/web/src/lib/issue-to-fix-path.ts` - IssueFixKind type + issue configs
@@ -1648,7 +1661,8 @@ Corrections to initial implementation:
 
 #### Test Coverage
 
-- Playwright tests: `apps/web/tests/issue-fix-kind-clarity-1.spec.ts` (5 tests)
+- Playwright tests: `apps/web/tests/issue-fix-kind-clarity-1.spec.ts` (7 tests)
+- Playwright tests: `apps/web/tests/list-actions-clarity-1.spec.ts` - LAC1-002b (DIAGNOSTIC CTA)
 
 #### Manual Testing
 
@@ -1887,3 +1901,5 @@ These invariants MUST be preserved during implementation:
 | 6.45 | 2026-01-12 | **ISSUE-FIX-KIND-CLARITY-1-FIXUP-1**: Correctness + security hardening. (1) Search & Intent issues now use `search-intent-tab-anchor` as canonical anchor (module-specific testids don't exist); `not_answer_ready` has NO `fixAnchorTestId` (no scroll/highlight for DIAGNOSTIC); (2) Product page derives `fixKind` from config ONLY - removed URL param reading (non-authoritative, spoofable); skips scroll/highlight for DIAGNOSTIC issues; (3) "View related issues" CTA routes to Issues Engine (`/projects/:id/issues?mode=detected&pillar=:pillarId`), NOT product `tab=issues`; (4) Issues Engine page derives `fixKind` via `getIssueFixConfig()`, shows "Review" CTA with blue styling for DIAGNOSTIC, adds `data-fix-kind` attribute, suppresses "Fixes one affected product..." text for DIAGNOSTIC; (5) Playwright tests hardened with strict assertions (no no-op guards), removed URL `fixKind` param from navigation; (6) Documentation corrected to reflect fixKind security model. |
 | 6.46 | 2026-01-12 | **ISSUE-FIX-KIND-CLARITY-1-FIXUP-1-AUDIT-2**: Test contract completion. (1) IFKC1-001 now requires ≥1 DIAGNOSTIC card (not exactly 1) - removes fragile count assertion; (2) IFKC1-004 tightened to assert exact pillar value `pillar=search_intent_fit`, then clicks "View related issues" and asserts browser navigates to Issues Engine with query params preserved (`mode=detected`, `from=product_details`, `pillar=search_intent_fit`). |
 | 6.47 | 2026-01-12 | **ISSUE-FIX-KIND-CLARITY-1-FIXUP-1-AUDIT-3**: Remove fixKind query param emission. (1) Removed `fixKind` query param emission from `buildIssueFixHref()` - URL no longer carries `fixKind` (was non-authoritative, now removed entirely); (2) Manual testing doc updated to reflect "derived from config; not in URL" - Critical Invariant 4 and Notes section clarified. |
+| 6.48 | 2026-01-14 | **ISSUE-FIX-KIND-CLARITY-1-FIXUP-2**: Aggregation CTA and Work Queue banner semantics. (1) Added `fixNextIsDiagnostic?: boolean` to `RowNextActionInput` in list-actions-clarity.ts; Products list shows "Review" CTA when deterministic next issue is DIAGNOSTIC (not "Fix next"); (2) ProductTable.tsx passes `fixNextIsDiagnostic` derived from `getIssueFixConfig()`; (3) Work Queue page derives `fixKind` from `getIssueFixConfig(issueIdParam)`, shows blue banner with "You're here to review:" for DIAGNOSTIC issues (not indigo "You're here to fix:"); (4) `seed-first-deo-win` extended to 4 products - Product 4 has SEO + thin content triggering `not_answer_ready` as top issue; (5) Playwright tests: LAC1-002b, IFKC1-006, IFKC1-007; (6) Manual testing Scenarios 6 and 7. |
+| 6.49 | 2026-01-14 | **ISSUE-FIX-KIND-CLARITY-1-FIXUP-2-AUDIT-1**: Work Queue DIAGNOSTIC helper line wording corrected to explicit "To review this issue:" (never "fix"); updated IFKC1-007 assertion + manual testing Scenario 7 to match shipped behavior. |
