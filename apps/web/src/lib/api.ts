@@ -568,7 +568,9 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
           typeof (body as Record<string, unknown>).error === 'string' &&
           (body as Record<string, unknown>).error === 'ENTITLEMENTS_LIMIT_REACHED');
 
-      if ((response.status === 401 || response.status === 403) && !isEntitlementsError) {
+      // Only redirect to login on 401 (unauthenticated), not 403 (unauthorized/forbidden)
+      // 403 means the user IS authenticated but lacks permission - redirecting to login is wrong
+      if (response.status === 401 && !isEntitlementsError) {
         if (typeof window !== 'undefined') {
           const next = window.location.pathname + window.location.search;
           redirectToSignIn(next);

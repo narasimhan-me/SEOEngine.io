@@ -274,38 +274,38 @@ export default function PagesAssetListPage() {
 
   const hasMissingScopes = (scopeStatus?.missingScopes?.length ?? 0) > 0;
 
-  const handleReconnectShopify = useCallback(() => {
-    void (async () => {
-      setReconnectError(null);
-      if (!projectId) {
-        setReconnectError(
-          "We couldn't start Shopify reconnection because your project ID is missing. Please refresh and try again.",
-        );
+  const handleReconnectShopify = useCallback(async () => {
+    setReconnectError(null);
+    if (!projectId) {
+      setReconnectError(
+        "We couldn't start Shopify reconnection because your project ID is missing. Please refresh and try again.",
+      );
+      return;
+    }
+    const token = getToken();
+    if (!token) {
+      setReconnectError(
+        "We couldn't start Shopify reconnection because your session token is missing. Please sign in again, then retry.",
+      );
+      return;
+    }
+    try {
+      const result = await shopifyApi.getReconnectUrl(projectId, 'pages_sync', currentPathWithQuery);
+      const url = result && typeof (result as any).url === 'string' ? (result as any).url : null;
+      if (!url) {
+        setReconnectError("We couldn't start Shopify reconnection. Please refresh and try again.");
         return;
       }
-      const token = getToken();
-      if (!token) {
-        setReconnectError(
-          "We couldn't start Shopify reconnection because your session token is missing. Please sign in again, then retry.",
-        );
-        return;
-      }
-      try {
-        const result = await shopifyApi.getReconnectUrl(projectId, 'pages_sync', currentPathWithQuery);
-        const url = result && typeof (result as any).url === 'string' ? (result as any).url : null;
-        if (!url) {
-          setReconnectError("We couldn't start Shopify reconnection. Please refresh and try again.");
-          return;
-        }
-        window.location.href = url;
-      } catch (err: unknown) {
-        const message =
-          err instanceof Error && err.message
-            ? err.message
-            : "We couldn't start Shopify reconnection. Please sign in again, then retry.";
-        setReconnectError(message);
-      }
-    })();
+      window.location.href = url;
+    } catch (err: unknown) {
+      // Prevent fetchWithAuth's automatic redirect to login for 403 errors
+      // A 403 here means the user lacks OWNER permission, not that they're unauthenticated
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "We couldn't start Shopify reconnection. Please sign in again, then retry.";
+      setReconnectError(message);
+    }
   }, [projectId, currentPathWithQuery]);
 
   const handleSignInAgain = useCallback(() => {
