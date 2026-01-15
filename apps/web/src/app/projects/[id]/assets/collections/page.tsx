@@ -74,6 +74,7 @@ export default function CollectionsAssetListPage() {
   }>({ lastCollectionsSyncAt: null, shopifyConnected: false });
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [reconnectError, setReconnectError] = useState<string | null>(null);
   const [scopeStatus, setScopeStatus] = useState<{
     requiredScopes: string[];
     grantedScopes: string[];
@@ -272,17 +273,46 @@ export default function CollectionsAssetListPage() {
   const hasMissingScopes = (scopeStatus?.missingScopes?.length ?? 0) > 0;
 
   const handleReconnectShopify = useCallback(() => {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-    const token = getToken();
-    if (!token) {
-      setSyncError("Couldn't start Shopify connection. Try again.");
-      return;
-    }
-    const reconnectUrl = `${API_URL}/shopify/reconnect?projectId=${projectId}&token=${token}&capability=collections_sync&returnTo=${encodeURIComponent(
-      currentPathWithQuery,
-    )}`;
-    window.location.href = reconnectUrl;
+    void (async () => {
+      setReconnectError(null);
+      if (!projectId) {
+        setReconnectError(
+          "We couldn't start Shopify reconnection because your project ID is missing. Please refresh and try again.",
+        );
+        return;
+      }
+      const token = getToken();
+      if (!token) {
+        setReconnectError(
+          "We couldn't start Shopify reconnection because your session token is missing. Please sign in again, then retry.",
+        );
+        return;
+      }
+      try {
+        const result = await shopifyApi.getReconnectUrl(
+          projectId,
+          'collections_sync',
+          currentPathWithQuery,
+        );
+        const url = result && typeof (result as any).url === 'string' ? (result as any).url : null;
+        if (!url) {
+          setReconnectError("We couldn't start Shopify reconnection. Please refresh and try again.");
+          return;
+        }
+        window.location.href = url;
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error && err.message
+            ? err.message
+            : "We couldn't start Shopify reconnection. Please sign in again, then retry.";
+        setReconnectError(message);
+      }
+    })();
   }, [projectId, currentPathWithQuery]);
+
+  const handleSignInAgain = useCallback(() => {
+    router.push(`/login?next=${encodeURIComponent(currentPathWithQuery)}`);
+  }, [router, currentPathWithQuery]);
 
   // [SHOPIFY-SCOPE-RECONSENT-UX-1] After reconnect return, auto-attempt the previously blocked sync.
   useEffect(() => {
@@ -424,6 +454,8 @@ export default function CollectionsAssetListPage() {
           canReconnect={capabilities?.canModifySettings ?? false}
           onReconnect={handleReconnectShopify}
           learnMoreHref="/help/shopify-permissions"
+          errorMessage={reconnectError}
+          onSignInAgain={handleSignInAgain}
         />
       )}
 

@@ -491,6 +491,27 @@ Response:
 
 ---
 
+### GET `/projects/:projectId/shopify/reconnect-url` (auth required)
+
+**[SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1]** Returns a Shopify OAuth authorize URL for explicit, user-initiated re-consent.
+
+**Query parameters:**
+- `capability` (required): `pages_sync` | `collections_sync`
+- `returnTo` (optional): path beginning with `/projects/:projectId/...`
+
+**Access:**
+- OWNER-only
+
+**Response:**
+
+```json
+{
+  "url": "https://{shop}.myshopify.com/admin/oauth/authorize?client_id=...&scope=...&redirect_uri=...&state=..."
+}
+```
+
+---
+
 ### GET `/projects/:projectId/shopify/sync-status` (auth required)
 
 **[SHOPIFY-ASSET-SYNC-COVERAGE-1]** Get sync timestamps for products, pages, and collections. Any project member can read.

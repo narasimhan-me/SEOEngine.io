@@ -1627,6 +1627,28 @@ Seeds:
 
 - `docs/SHOPIFY_PERMISSIONS_AND_RECONSENT.md`
 
+### Phase SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1: Reconnect CTA Must Never Fail Silently ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-15
+**Activation:** Trust hardening for re-consent remediation path (Pages / Collections)
+
+#### Goals
+
+1. Ensure "Reconnect Shopify" always results in a redirect or a visible, actionable error message.
+2. Avoid reliance on localStorage token for starting reconnect (server-authoritative reconnect URL).
+3. Maintain Pages + Collections parity.
+
+#### Key Changes
+
+1. **API:** Added `GET /projects/:id/shopify/reconnect-url` (OWNER-only) to return Shopify OAuth authorize URL for reconnect.
+2. **Frontend:** Permission notice now renders inline reconnect errors + "Sign in again" CTA; Pages/Collections use reconnect-url and never hide reconnect errors behind missing-scope gating.
+3. **Tests:** Playwright coverage for missing-token inline error + reconnect-url request + OAuth navigation attempt.
+
+#### Manual Testing
+
+- `docs/manual-testing/SHOPIFY-SCOPE-RECONSENT-UX-1.md`
+
 ### Phase ISSUE-FIX-KIND-CLARITY-1: Diagnostic vs Fixable Issue CTA Semantics ✅ COMPLETE
 
 **Status:** Complete
@@ -2032,3 +2054,4 @@ These invariants MUST be preserved during implementation:
 | 6.54 | 2026-01-15 | **ISSUESLIST-VIEW-AFFECTED-CONTEXT-1 COMPLETE**: Secondary "View affected →" link in IssuesList expanded details now preserves full route context. Uses `withRouteContext()` to include `issueType`, `from`, and `returnTo` params. Computed via `getReturnToFromCurrentUrl()` and pathname inference. Playwright test ILVAC1-001 added. Manual testing doc updated with Critical Invariant 5 and test coverage. |
 | 6.55 | 2026-01-15 | **SHOPIFY-SCOPE-RECONSENT-UX-1 COMPLETE**: Explicit Shopify re-consent UX for newly required scopes. Server-authoritative missing scope endpoint (`/projects/:id/shopify/missing-scopes`), user-initiated reconnect (`/shopify/reconnect`) with safe `returnTo`, structured permission notice + Reconnect CTA on Pages/Collections lists, structured `SHOPIFY_MISSING_SCOPES` API payload, auto-sync after reconnect return. Playwright coverage added; manual testing doc + internal permissions doc. |
 | 6.56 | 2026-01-15 | **SHOPIFY-SCOPE-RECONSENT-UX-1-AUDIT-1**: Playwright scope parsing hardened. (1) Reconnect redirect scope assertion now parses OAuth redirect URL properly (`new URL(location).searchParams.get('scope')`) instead of relying on `decodeURIComponent` substring match - avoids false positives from URL-encoded characters; (2) Manual testing doc paths corrected to full relative paths (`docs/testing/...`, `docs/API_SPEC.md`). |
+| 6.57 | 2026-01-15 | **SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1 COMPLETE**: Reconnect CTA never fails silently. (1) Added OWNER-only reconnect URL endpoint (`/projects/:id/shopify/reconnect-url`) so reconnect start is server-authoritative; (2) Permission notice shows inline reconnect errors + "Sign in again" CTA; (3) Pages/Collections parity; (4) Playwright tests for missing-token error and OAuth navigation attempt. |

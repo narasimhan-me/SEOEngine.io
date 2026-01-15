@@ -120,6 +120,22 @@ Expected Behavior:
 
 ---
 
+### ERR-002: Reconnect CTA shows visible inline error when session is missing
+
+Scenario: User clicks "Reconnect Shopify" but the session token is missing/expired.
+
+Steps:
+1. Go to Assets > Pages (with missing scopes so the permission notice is visible).
+2. Clear the local session token (localStorage `engineo_token`) or let the session expire.
+3. Click "Reconnect Shopify".
+
+Expected Behavior:
+- UI shows an inline error *within the permission notice* explaining what to do next.
+- Primary remediation action is visible ("Sign in again").
+- No silent failures (click always causes redirect OR visible error).
+
+---
+
 ## Limits
 
 ### LIM-001: N/A

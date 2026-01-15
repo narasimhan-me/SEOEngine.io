@@ -2177,6 +2177,19 @@ export const shopifyApi = {
       `/projects/${projectId}/shopify/missing-scopes?capability=${encodeURIComponent(capability)}`,
       { method: 'GET' },
     ),
+
+  // [SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1] Server-authoritative reconnect URL (avoids localStorage token dependency)
+  getReconnectUrl: (
+    projectId: string,
+    capability: 'pages_sync' | 'collections_sync',
+    returnTo: string,
+  ) =>
+    fetchWithAuth(
+      `/projects/${projectId}/shopify/reconnect-url?capability=${encodeURIComponent(
+        capability,
+      )}&returnTo=${encodeURIComponent(returnTo)}`,
+      { method: 'GET' },
+    ),
 };
 
 /**

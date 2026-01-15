@@ -5,8 +5,11 @@ export function ShopifyPermissionNotice(props: {
   canReconnect: boolean;
   onReconnect: () => void;
   learnMoreHref?: string;
+  errorMessage?: string | null;
+  onSignInAgain?: () => void;
 }) {
-  const { missingScopes, canReconnect, onReconnect, learnMoreHref } = props;
+  const { missingScopes, canReconnect, onReconnect, learnMoreHref, errorMessage, onSignInAgain } =
+    props;
   const missingLabel = missingScopes.length ? missingScopes.join(', ') : null;
   return (
     <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
@@ -46,6 +49,20 @@ export function ShopifyPermissionNotice(props: {
           <span className="text-xs text-amber-800">Ask a project owner to reconnect Shopify.</span>
         )}
       </div>
+      {errorMessage && (
+        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <p>{errorMessage}</p>
+          {onSignInAgain && (
+            <button
+              type="button"
+              onClick={onSignInAgain}
+              className="mt-2 inline-flex items-center rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+            >
+              Sign in again
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
