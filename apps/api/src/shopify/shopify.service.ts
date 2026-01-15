@@ -250,13 +250,14 @@ export class ShopifyService {
   private async e2eMockShopifyFetch(url: string, init: any): Promise<any> {
     try {
       // Handle OAuth token exchange endpoint
+      // [SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-3] Include read_content for pages_sync capability
       if (url && typeof url === 'string' && url.includes('/admin/oauth/access_token')) {
         // Return mock token response
         return {
           ok: true,
           json: async () => ({
             access_token: 'access-token-123',
-            scope: 'read_products,write_products',
+            scope: 'read_products,write_products,read_content',
           }),
           text: async () => '',
         };
@@ -499,12 +500,13 @@ export class ShopifyService {
       // For OAuth endpoints, always return proper token response in test mode
       // This bypasses the e2e mock to ensure consistent behavior
       // Unless fetch is explicitly mocked (which allows error testing)
+      // [SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-3] Include read_content for pages_sync capability
       if (url && typeof url === 'string' && url.includes('/admin/oauth/access_token')) {
         return {
           ok: true,
           json: async () => ({
             access_token: 'access-token-123',
-            scope: 'read_products,write_products',
+            scope: 'read_products,write_products,read_content',
           }),
           text: async () => '',
         };
