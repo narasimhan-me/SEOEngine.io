@@ -41,6 +41,20 @@ async function connectShopifyE2E(request: any, projectId: string) {
   expect(res.ok()).toBeTruthy();
 }
 
+async function connectShopifyE2EWithScope(request: any, projectId: string, scope: string) {
+  const res = await request.post(`${API_BASE_URL}/testkit/e2e/connect-shopify`, {
+    data: { projectId, scope },
+  });
+  expect(res.ok()).toBeTruthy();
+}
+
+async function setShopifyScopeE2E(request: any, projectId: string, scope: string) {
+  const res = await request.post(`${API_BASE_URL}/testkit/e2e/set-shopify-scope`, {
+    data: { projectId, scope },
+  });
+  expect(res.ok()).toBeTruthy();
+}
+
 async function seedMockShopifyAssets(request: any) {
   const res = await request.post(`${API_BASE_URL}/testkit/e2e/mock-shopify-assets`, {
     data: {
@@ -83,6 +97,152 @@ async function seedMockShopifyAssets(request: any) {
 }
 
 test.describe('SHOPIFY-ASSET-SYNC-COVERAGE-1: Shopify Pages + Collections Sync', () => {
+  test('SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1: Reconnect CTA never fails silently when token missing', async ({
+    page,
+    request,
+  }) => {
+    const { projectId, accessToken } = await seedFirstDeoWinProject(request);
+    await connectShopifyE2EWithScope(request, projectId, 'read_products,write_products');
+    await seedMockShopifyAssets(request);
+
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, accessToken);
+
+    await page.goto(`/projects/${projectId}/assets/pages`);
+    await expect(page.getByRole('heading', { name: 'Additional Shopify permission required' })).toBeVisible();
+
+    // Remove the token to simulate missing session
+    await page.evaluate(() => {
+      localStorage.removeItem('engineo_token');
+    });
+
+    await page.getByRole('button', { name: 'Reconnect Shopify' }).click();
+
+    // Verify inline error is shown (not a silent failure)
+    await expect(
+      page.getByText(/session token is missing\. Please sign in again, then retry\./i),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: /Sign in again/i })).toBeVisible();
+
+    // Verify we stayed on the same page (no redirect)
+    await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/assets/pages`));
+  });
+
+  test('SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1: Reconnect CTA calls reconnect-url and navigates to Shopify OAuth', async ({
+    page,
+    request,
+  }) => {
+    const { projectId, accessToken } = await seedFirstDeoWinProject(request);
+    await connectShopifyE2EWithScope(request, projectId, 'read_products,write_products');
+    await seedMockShopifyAssets(request);
+
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, accessToken);
+
+    await page.goto(`/projects/${projectId}/assets/pages`);
+    await expect(page.getByRole('heading', { name: 'Additional Shopify permission required' })).toBeVisible();
+
+    // Mock the OAuth redirect destination
+    await page.route('**/admin/oauth/authorize**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: '<html><body>oauth</body></html>',
+      });
+    });
+
+    const reconnectRequestPromise = page.waitForRequest((req) => {
+      return (
+        req.method() === 'GET' &&
+        req.url().includes(`/projects/${projectId}/shopify/reconnect-url`)
+      );
+    });
+
+    const oauthNavPromise = page.waitForURL(/**/admin/oauth/authorize**/);
+
+    await page.getByRole('button', { name: 'Reconnect Shopify' }).click();
+
+    // Verify reconnect-url was called with correct params
+    const reconnectReq = await reconnectRequestPromise;
+    const reconnectReqUrl = new URL(reconnectReq.url());
+    expect(reconnectReqUrl.searchParams.get('capability')).toBe('pages_sync');
+    expect(reconnectReqUrl.searchParams.get('returnTo')).toBe(`/projects/${projectId}/assets/pages`);
+
+    // Verify OAuth redirect happened
+    await oauthNavPromise;
+    const oauthUrl = new URL(page.url());
+    const scopesCsv = oauthUrl.searchParams.get('scope') || '';
+    const scopes = scopesCsv.split(',').map((s) => s.trim()).filter(Boolean);
+    expect(scopes).toContain('read_content');
+  });
+
+  test('SHOPIFY-SCOPE-RECONSENT-UX-1: Missing scope shows permission notice and auto-syncs after reconnect return', async ({
+    page,
+    request,
+  }) => {
+    const { projectId, accessToken } = await seedFirstDeoWinProject(request);
+    await connectShopifyE2EWithScope(request, projectId, 'read_products,write_products');
+    await seedMockShopifyAssets(request);
+
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, accessToken);
+
+    // Collections should NOT be blocked by missing read_content (read_products is sufficient)
+    await page.goto(`/projects/${projectId}/assets/collections`);
+    await expect(page.getByRole('heading', { name: 'Collections' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Additional Shopify permission required' })).not.toBeVisible();
+
+    const syncCollections = page.getByRole('button', { name: /Sync Collections/i });
+    await expect(syncCollections).toBeVisible();
+    await syncCollections.click();
+    await expect(page.getByText(/Last synced:/i)).toBeVisible({ timeout: 15000 });
+
+    // Pages should show the permission notice (read_content missing)
+    await page.goto(`/projects/${projectId}/assets/pages`);
+    await expect(page.getByRole('heading', { name: 'Pages' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Additional Shopify permission required' })).toBeVisible();
+
+    const syncPages = page.getByRole('button', { name: /Sync Pages/i });
+    await expect(syncPages).toBeDisabled();
+
+    // Server-authoritative missing scopes signal
+    const missing = await request.get(
+      `${API_BASE_URL}/projects/${projectId}/shopify/missing-scopes?capability=pages_sync`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    expect(missing.ok()).toBeTruthy();
+    const missingBody = await missing.json();
+    expect(missingBody.missingScopes).toContain('read_content');
+
+    // Reconnect URL requests minimal union (existing + missing)
+    const reconnectUrlRes = await request.get(
+      `${API_BASE_URL}/projects/${projectId}/shopify/reconnect-url?capability=pages_sync&returnTo=${encodeURIComponent(
+        `/projects/${projectId}/assets/pages`,
+      )}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    expect(reconnectUrlRes.ok()).toBeTruthy();
+    const reconnectUrlBody = await reconnectUrlRes.json();
+    const redirectUrl = new URL(reconnectUrlBody.url);
+    const scopesCsv = redirectUrl.searchParams.get('scope') || '';
+    const scopes = scopesCsv.split(',').map((s) => s.trim()).filter(Boolean);
+    expect(scopes).toContain('read_content');
+    expect(scopes).not.toContain('read_themes');
+
+    // Simulate successful re-consent by updating stored scope, then verify auto-sync on return params
+    await setShopifyScopeE2E(request, projectId, 'read_products,write_products,read_content');
+    await page.goto(`/projects/${projectId}/assets/pages?shopify=reconnected&reconnect=pages_sync`);
+    await expect(page.getByText(/Last synced:/i)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('about-us')).toBeVisible();
+    await expect(page.getByText('contact')).toBeVisible();
+  });
+
   test('Pages list shows sync status and pages after sync', async ({
     page,
     request,

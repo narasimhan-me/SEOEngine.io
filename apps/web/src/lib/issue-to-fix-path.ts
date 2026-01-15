@@ -145,14 +145,15 @@ const _PILLAR_TO_HIGHLIGHT: Partial<Record<DeoPillarId, string>> = {
 const ISSUE_FIX_PATH_MAP: Record<string, Omit<IssueFixPath, 'routeTarget'>> = {
   // ==========================================================================
   // Metadata issues → Product Metadata tab
+  // [MISSING-METADATA-FIX-SURFACE-INTEGRITY-1] Use seo-editor-anchor (real DOM anchor)
+  // Previous testids (product-metadata-seo-*-module) did not exist in DOM, causing "Fix surface not available"
   // ==========================================================================
   missing_seo_title: {
     fixSurface: IssueFixSurface.PRODUCT_METADATA,
     ctaLabel: 'Fix in Metadata',
     highlightTarget: 'seo-editor-anchor',
     isActionableNow: true,
-    // [ISSUE-FIX-NAV-AND-ANCHORS-1] Anchor + next action
-    fixAnchorTestId: 'product-metadata-seo-title-module',
+    fixAnchorTestId: 'seo-editor-anchor',
     nextActionLabel: 'Edit the SEO title below',
   },
   missing_seo_description: {
@@ -160,7 +161,7 @@ const ISSUE_FIX_PATH_MAP: Record<string, Omit<IssueFixPath, 'routeTarget'>> = {
     ctaLabel: 'Fix in Metadata',
     highlightTarget: 'seo-editor-anchor',
     isActionableNow: true,
-    fixAnchorTestId: 'product-metadata-seo-description-module',
+    fixAnchorTestId: 'seo-editor-anchor',
     nextActionLabel: 'Edit the SEO description below',
   },
   weak_title: {
@@ -168,7 +169,7 @@ const ISSUE_FIX_PATH_MAP: Record<string, Omit<IssueFixPath, 'routeTarget'>> = {
     ctaLabel: 'Fix in Metadata',
     highlightTarget: 'seo-editor-anchor',
     isActionableNow: true,
-    fixAnchorTestId: 'product-metadata-seo-title-module',
+    fixAnchorTestId: 'seo-editor-anchor',
     nextActionLabel: 'Improve the SEO title below',
   },
   weak_description: {
@@ -176,7 +177,7 @@ const ISSUE_FIX_PATH_MAP: Record<string, Omit<IssueFixPath, 'routeTarget'>> = {
     ctaLabel: 'Fix in Metadata',
     highlightTarget: 'seo-editor-anchor',
     isActionableNow: true,
-    fixAnchorTestId: 'product-metadata-seo-description-module',
+    fixAnchorTestId: 'seo-editor-anchor',
     nextActionLabel: 'Improve the SEO description below',
   },
   missing_metadata: {
@@ -184,7 +185,7 @@ const ISSUE_FIX_PATH_MAP: Record<string, Omit<IssueFixPath, 'routeTarget'>> = {
     ctaLabel: 'Fix in Metadata',
     highlightTarget: 'seo-editor-anchor',
     isActionableNow: true,
-    fixAnchorTestId: 'product-metadata-seo-title-module',
+    fixAnchorTestId: 'seo-editor-anchor',
     nextActionLabel: 'Add the missing metadata below',
   },
 
@@ -504,10 +505,7 @@ export function buildIssueFixHref(params: {
     if (fixPath.fixAnchorTestId && fixPath.fixKind !== 'DIAGNOSTIC') {
       queryParams.set('fixAnchor', fixPath.fixAnchorTestId);
     }
-    // [ISSUE-FIX-KIND-CLARITY-1] Pass fixKind to arrival callout
-    if (fixPath.fixKind) {
-      queryParams.set('fixKind', fixPath.fixKind);
-    }
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1-AUDIT-3] fixKind is NOT passed in URL (derived from config only)
     // [ISSUE-FIX-NAV-AND-ANCHORS-1] Add returnTo navigation context
     if (returnTo) {
       queryParams.set('returnTo', returnTo);

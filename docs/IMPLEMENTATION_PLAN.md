@@ -1599,6 +1599,56 @@ Seeds:
 
 - `docs/manual-testing/SHOPIFY-ASSET-SYNC-COVERAGE-1.md`
 
+### Phase SHOPIFY-SCOPE-RECONSENT-UX-1: Explicit Shopify Re-Consent for New Scopes ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-15
+**Activation:** Trust-preserving remediation path for missing Shopify scopes (Pages / Collections)
+
+#### Goals
+
+1. Expose server-authoritative missing scope detection per capability.
+2. Replace generic "sync failed" messaging with a structured permission notice + explicit remediation CTA.
+3. Ensure re-consent is user-initiated, requests only the minimal additional scopes required, and returns to the originating screen.
+4. Auto-retry the previously blocked sync after successful re-consent return.
+
+#### Key Changes
+
+1. **API:** Added `GET /projects/:id/shopify/missing-scopes?capability=...` and `GET /shopify/reconnect` (user-initiated); OAuth callback now respects safe `returnTo` for reconnect.
+2. **ShopifyService:** Added scope status helpers; Pages/Collections sync throws structured `SHOPIFY_MISSING_SCOPES` payload when blocked.
+3. **Frontend:** Pages/Collections list pages show "Additional Shopify permission required" notice, provide "Reconnect Shopify", and auto-sync on reconnect return.
+4. **Tests:** Added Playwright coverage for missing-scope notice + auto-sync after reconnect return.
+
+#### Manual Testing
+
+- `docs/manual-testing/SHOPIFY-SCOPE-RECONSENT-UX-1.md`
+
+#### Related Documentation
+
+- `docs/SHOPIFY_PERMISSIONS_AND_RECONSENT.md`
+
+### Phase SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1: Reconnect CTA Must Never Fail Silently ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-15
+**Activation:** Trust hardening for re-consent remediation path (Pages / Collections)
+
+#### Goals
+
+1. Ensure "Reconnect Shopify" always results in a redirect or a visible, actionable error message.
+2. Avoid reliance on localStorage token for starting reconnect (server-authoritative reconnect URL).
+3. Maintain Pages + Collections parity.
+
+#### Key Changes
+
+1. **API:** Added `GET /projects/:id/shopify/reconnect-url` (OWNER-only) to return Shopify OAuth authorize URL for reconnect.
+2. **Frontend:** Permission notice now renders inline reconnect errors + "Sign in again" CTA; Pages/Collections use reconnect-url and never hide reconnect errors behind missing-scope gating.
+3. **Tests:** Playwright coverage for missing-token inline error + reconnect-url request + OAuth navigation attempt.
+
+#### Manual Testing
+
+- `docs/manual-testing/SHOPIFY-SCOPE-RECONSENT-UX-1.md`
+
 ### Phase ISSUE-FIX-KIND-CLARITY-1: Diagnostic vs Fixable Issue CTA Semantics ✅ COMPLETE
 
 **Status:** Complete
@@ -1636,6 +1686,20 @@ Corrections to initial implementation:
 3. **View Related Issues Route**: "View related issues" CTA routes to Issues Engine (`/projects/:id/issues?mode=detected&pillar=:pillarId`), NOT to product `tab=issues`.
 4. **Issues Engine DIAGNOSTIC**: Issues Engine page now derives fixKind from config, shows "Review" CTA for DIAGNOSTIC, suppresses "Fixes one affected product at a time" text.
 5. **Strict Test Assertions**: Playwright tests fail if preconditions aren't met (no no-op guards).
+6. **[AUDIT-3] fixKind Not Emitted**: `buildIssueFixHref()` no longer emits `fixKind` in URL - it is derived from config only, URL does not include it.
+
+#### FIXUP-2 (2026-01-14)
+
+Aggregation surfaces (Products list, Work Queue) now use fixKind-aware semantics:
+1. **Products List "Review" CTA**: Added `fixNextIsDiagnostic?: boolean` to `RowNextActionInput`. Products list passes flag when deterministic next issue is DIAGNOSTIC. CTA shows "Review" instead of "Fix next".
+2. **Work Queue Banner Wording**: Work Queue derives `fixKind` from `getIssueFixConfig(issueIdParam)`. DIAGNOSTIC issues render blue banner with "You're here to review:" wording (not indigo "You're here to fix:").
+3. **Seed Data Extension**: `seed-first-deo-win` now creates 4 products. Product 4 has SEO populated and is shaped so `not_answer_ready` is the deterministic next issue (for testing DIAGNOSTIC CTA) without competing top issues.
+4. **Playwright Tests**: LAC1-002b (Products list Review CTA), IFKC1-006 (Products list Review CTA), IFKC1-007 (Work Queue DIAGNOSTIC banner).
+5. **Manual Testing**: Scenarios 6 (Products list Review CTA) and 7 (Work Queue DIAGNOSTIC banner) added.
+
+#### FIXUP-2 AUDIT-1 (2026-01-14)
+
+1. **Work Queue helper line semantics**: DIAGNOSTIC issue banner now uses explicit "To review this issue:" helper prefix (never "fix" language); IFKC1-007 asserts this to prevent regression.
 
 #### Core Files
 
@@ -1647,11 +1711,106 @@ Corrections to initial implementation:
 
 #### Test Coverage
 
-- Playwright tests: `apps/web/tests/issue-fix-kind-clarity-1.spec.ts` (5 tests)
+- Playwright tests: `apps/web/tests/issue-fix-kind-clarity-1.spec.ts` (7 tests)
+- Playwright tests: `apps/web/tests/list-actions-clarity-1.spec.ts` - LAC1-002b (DIAGNOSTIC CTA)
 
 #### Manual Testing
 
 - `docs/manual-testing/ISSUE-FIX-KIND-CLARITY-1.md`
+
+---
+
+### Phase ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1: View Affected → Filtered Products List ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-14
+**Activation:** Issue-to-fix path integrity for multi-product issues
+
+#### Goals
+
+1. "View affected" CTA in Issues Engine routes to **Products list** (filtered by issueType), NOT to product detail.
+2. Server-authoritative issueType filtering in Products API.
+3. ScopeBanner shows issueType scope chip for filtered Products list.
+4. Return navigation (Back to Issues Engine) preserved via `returnTo` param.
+
+#### Strict Non-Goals
+
+- No changes to issue detection or scoring logic
+- No changes to single-product "Fix" CTA routing (still goes to product detail)
+- No changes to issue-to-fix anchor mapping
+
+#### Key Changes
+
+1. **Issues Engine "View affected" Routing**: `getFixAction()` in `issues/page.tsx` now builds "View affected" href that routes to `/projects/:id/products` with `issueType`, `from=issues_engine`, and `returnTo` params.
+2. **Server-Authoritative issueType Filtering**: Added `issueType?: string` to `ProductListOptions` in `api.ts`. Products API controller accepts `issueType` query param and passes to service. `ProductsService.getProductsForProject()` filters products by affected issue type using `getProductIdsAffectedByIssueType()` helper (fetches canonical issues via `DeoIssuesService.getIssuesForProjectReadOnly()`).
+3. **Products Page Integration**: Products page reads `issueType` from URL search params, passes to `fetchProducts()`, includes in `hasActiveFilters` check, removes from URL in `handleClearFilters()`.
+4. **ScopeBanner Scope Chip**: `normalizeScopeParams()` already handles `issueType` priority. ScopeBanner renders issueType scope chip when present.
+5. **Return Navigation**: `returnTo` param encodes current Issues Engine path with query params, enabling "Back to Issues Engine" navigation from filtered Products list.
+
+#### Core Files
+
+- `apps/web/src/app/projects/[id]/issues/page.tsx` - View affected href builder
+- `apps/web/src/lib/api.ts` - ProductListOptions.issueType
+- `apps/api/src/products/products.controller.ts` - issueType query param
+- `apps/api/src/products/products.service.ts` - getProductIdsAffectedByIssueType()
+- `apps/web/src/app/projects/[id]/products/page.tsx` - issueType filter integration
+
+#### Test Coverage
+
+- Playwright tests: `apps/web/tests/view-affected-routing-1.spec.ts` (5 tests)
+  - VAR1-001: View affected routes to Products list with issueType filter
+  - VAR1-002: Products list shows ScopeBanner with issueType chip
+  - VAR1-003: issueType filtering excludes non-affected products
+
+#### Manual Testing
+
+- `docs/manual-testing/ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1.md`
+
+---
+
+### Phase MISSING-METADATA-FIX-SURFACE-INTEGRITY-1: Metadata Anchor Mapping ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-14
+**Activation:** "Fix surface not available" error elimination for metadata issues
+
+#### Goals
+
+1. Eliminate "Fix surface not available" error when navigating to metadata issues via issue-to-fix path.
+2. Correct anchor testid mapping for all metadata issues to use real DOM element (`seo-editor-anchor`).
+
+#### Strict Non-Goals
+
+- No changes to issue detection or scoring logic
+- No changes to SEO editor component structure
+- No changes to other pillar anchor mappings
+
+#### Key Changes
+
+1. **Anchor Mapping Correction**: All metadata issue configs in `issue-to-fix-path.ts` now use `seo-editor-anchor` as `fixAnchorTestId`:
+   - `missing_seo_title` → `seo-editor-anchor` (was: `product-metadata-seo-title-module`)
+   - `missing_seo_description` → `seo-editor-anchor` (was: `product-metadata-seo-description-module`)
+   - `missing_metadata` → `seo-editor-anchor` (was: `product-metadata-seo-title-module`)
+   - `seo_title_keyword_stuffing` → `seo-editor-anchor` (was: `product-metadata-seo-title-module`)
+   - `seo_description_keyword_stuffing` → `seo-editor-anchor` (was: `product-metadata-seo-description-module`)
+   - `thin_seo_title` → `seo-editor-anchor` (was: `product-metadata-seo-title-module`)
+   - `thin_seo_description` → `seo-editor-anchor` (was: `product-metadata-seo-description-module`)
+
+2. **Root Cause**: Previous `fixAnchorTestId` values (e.g., `product-metadata-seo-title-module`) did not exist in the DOM. The actual SEO editor uses `data-testid="seo-editor-anchor"`.
+
+#### Core Files
+
+- `apps/web/src/lib/issue-to-fix-path.ts` - Metadata issue fixAnchorTestId values
+
+#### Test Coverage
+
+- Playwright tests: `apps/web/tests/view-affected-routing-1.spec.ts`
+  - MMFSI1-001: Missing Metadata issues land on SEO editor anchor
+  - MMFSI1-002: missing_metadata issue uses seo-editor-anchor
+
+#### Manual Testing
+
+- `docs/manual-testing/MISSING-METADATA-FIX-SURFACE-INTEGRITY-1.md`
 
 ---
 
@@ -1885,3 +2044,14 @@ These invariants MUST be preserved during implementation:
 | 6.44 | 2026-01-12 | **ISSUE-FIX-KIND-CLARITY-1 COMPLETE**: Diagnostic vs fixable issue CTA semantics. (1) Added `IssueFixKind = 'EDIT' | 'AI' | 'DIAGNOSTIC'` type to issue-to-fix-path.ts; (2) Fixed Search & Intent issue configs with correct fixAnchorTestId values; `not_answer_ready` marked as DIAGNOSTIC; (3) Added `diagnostic` variant to arrival callout (blue styling, "You're here to review:"); (4) Product page passes fixKind to callout, shows "View related issues" CTA for DIAGNOSTIC; (5) Issues Engine IssueCard shows "Review →" for DIAGNOSTIC, "Fix →" for others; (6) DEO Overview "Top Recommended Actions" shows "Review" for DIAGNOSTIC, "Fix now" for others; (7) buildIssueFixHref() adds fixKind param, skips fixAnchor for DIAGNOSTIC; (8) Playwright tests issue-fix-kind-clarity-1.spec.ts (5 tests); (9) Manual testing doc ISSUE-FIX-KIND-CLARITY-1.md. |
 | 6.45 | 2026-01-12 | **ISSUE-FIX-KIND-CLARITY-1-FIXUP-1**: Correctness + security hardening. (1) Search & Intent issues now use `search-intent-tab-anchor` as canonical anchor (module-specific testids don't exist); `not_answer_ready` has NO `fixAnchorTestId` (no scroll/highlight for DIAGNOSTIC); (2) Product page derives `fixKind` from config ONLY - removed URL param reading (non-authoritative, spoofable); skips scroll/highlight for DIAGNOSTIC issues; (3) "View related issues" CTA routes to Issues Engine (`/projects/:id/issues?mode=detected&pillar=:pillarId`), NOT product `tab=issues`; (4) Issues Engine page derives `fixKind` via `getIssueFixConfig()`, shows "Review" CTA with blue styling for DIAGNOSTIC, adds `data-fix-kind` attribute, suppresses "Fixes one affected product..." text for DIAGNOSTIC; (5) Playwright tests hardened with strict assertions (no no-op guards), removed URL `fixKind` param from navigation; (6) Documentation corrected to reflect fixKind security model. |
 | 6.46 | 2026-01-12 | **ISSUE-FIX-KIND-CLARITY-1-FIXUP-1-AUDIT-2**: Test contract completion. (1) IFKC1-001 now requires ≥1 DIAGNOSTIC card (not exactly 1) - removes fragile count assertion; (2) IFKC1-004 tightened to assert exact pillar value `pillar=search_intent_fit`, then clicks "View related issues" and asserts browser navigates to Issues Engine with query params preserved (`mode=detected`, `from=product_details`, `pillar=search_intent_fit`). |
+| 6.47 | 2026-01-12 | **ISSUE-FIX-KIND-CLARITY-1-FIXUP-1-AUDIT-3**: Remove fixKind query param emission. (1) Removed `fixKind` query param emission from `buildIssueFixHref()` - URL no longer carries `fixKind` (was non-authoritative, now removed entirely); (2) Manual testing doc updated to reflect "derived from config; not in URL" - Critical Invariant 4 and Notes section clarified. |
+| 6.48 | 2026-01-14 | **ISSUE-FIX-KIND-CLARITY-1-FIXUP-2**: Aggregation CTA and Work Queue banner semantics. (1) Added `fixNextIsDiagnostic?: boolean` to `RowNextActionInput` in list-actions-clarity.ts; Products list shows "Review" CTA when deterministic next issue is DIAGNOSTIC (not "Fix next"); (2) ProductTable.tsx passes `fixNextIsDiagnostic` derived from `getIssueFixConfig()`; (3) Work Queue page derives `fixKind` from `getIssueFixConfig(issueIdParam)`, shows blue banner with "You're here to review:" for DIAGNOSTIC issues (not indigo "You're here to fix:"); (4) `seed-first-deo-win` extended to 4 products - Product 4 has SEO + thin content triggering `not_answer_ready` as top issue; (5) Playwright tests: LAC1-002b, IFKC1-006, IFKC1-007; (6) Manual testing Scenarios 6 and 7. |
+| 6.49 | 2026-01-14 | **ISSUE-FIX-KIND-CLARITY-1-FIXUP-2-AUDIT-1**: Work Queue DIAGNOSTIC helper line wording corrected to explicit "To review this issue:" (never "fix"); updated IFKC1-007 assertion + manual testing Scenario 7 to match shipped behavior. |
+| 6.50 | 2026-01-14 | **ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1 COMPLETE**: "View affected" CTA in Issues Engine now routes to filtered Products list (not product detail). Server-authoritative issueType filtering via Products API (`getProductIdsAffectedByIssueType()` using canonical `getIssuesForProjectReadOnly()`). ScopeBanner shows issueType scope chip. Return navigation via `returnTo` param. Playwright tests VAR1-001/002/003. Manual testing doc. |
+| 6.51 | 2026-01-14 | **MISSING-METADATA-FIX-SURFACE-INTEGRITY-1 COMPLETE**: Fixed "Fix surface not available" error for metadata issues. Corrected anchor testid mapping for all metadata issues to use real DOM element `seo-editor-anchor` (was incorrectly targeting non-existent testids like `product-metadata-seo-title-module`). Playwright tests MMFSI1-001/002. Manual testing doc. |
+| 6.52 | 2026-01-14 | **ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1-AUDIT-1 + MISSING-METADATA-FIX-SURFACE-INTEGRITY-1-AUDIT-1**: Playwright hardening. (1) VAR1-001 no longer uses conditional skip - targets deterministic "Missing titles or descriptions" issue card; (2) Added VAR1-004 for back-navigation contract (ScopeBanner Back returns to Issues Engine with original pillar + mode filters); (3) VAR1-003 now asserts non-empty list before exclusion check; (4) MMFSI1-001 now tests via app-generated link (not direct URL) to verify real anchor mapping; (5) MMFSI1-002 adds explicit fixAnchor URL assertion. Manual testing docs updated with corrected example (missing_metadata) and test coverage. |
+| 6.53 | 2026-01-14 | **ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1-AUDIT-2**: Fixed Playwright selector mismatch. VAR1-001 and VAR1-004 now use canonical Issues Engine card testids (`issue-card-actionable` / `issue-card-informational`) instead of nonexistent `issue-card`. Added `.first()` after filter to force single target. |
+| 6.54 | 2026-01-15 | **ISSUESLIST-VIEW-AFFECTED-CONTEXT-1 COMPLETE**: Secondary "View affected →" link in IssuesList expanded details now preserves full route context. Uses `withRouteContext()` to include `issueType`, `from`, and `returnTo` params. Computed via `getReturnToFromCurrentUrl()` and pathname inference. Playwright test ILVAC1-001 added. Manual testing doc updated with Critical Invariant 5 and test coverage. |
+| 6.55 | 2026-01-15 | **SHOPIFY-SCOPE-RECONSENT-UX-1 COMPLETE**: Explicit Shopify re-consent UX for newly required scopes. Server-authoritative missing scope endpoint (`/projects/:id/shopify/missing-scopes`), user-initiated reconnect (`/shopify/reconnect`) with safe `returnTo`, structured permission notice + Reconnect CTA on Pages/Collections lists, structured `SHOPIFY_MISSING_SCOPES` API payload, auto-sync after reconnect return. Playwright coverage added; manual testing doc + internal permissions doc. |
+| 6.56 | 2026-01-15 | **SHOPIFY-SCOPE-RECONSENT-UX-1-AUDIT-1**: Playwright scope parsing hardened. (1) Reconnect redirect scope assertion now parses OAuth redirect URL properly (`new URL(location).searchParams.get('scope')`) instead of relying on `decodeURIComponent` substring match - avoids false positives from URL-encoded characters; (2) Manual testing doc paths corrected to full relative paths (`docs/testing/...`, `docs/API_SPEC.md`). |
+| 6.57 | 2026-01-15 | **SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1 COMPLETE**: Reconnect CTA never fails silently. (1) Added OWNER-only reconnect URL endpoint (`/projects/:id/shopify/reconnect-url`) so reconnect start is server-authoritative; (2) Permission notice shows inline reconnect errors + "Sign in again" CTA; (3) Pages/Collections parity; (4) Playwright tests for missing-token error and OAuth navigation attempt. |

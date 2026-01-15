@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 import type { DeoIssue, DeoIssueFixType, CanonicalIssueCountsSummary } from '@/lib/deo-issues';
 import { TripletDisplay } from '@/components/issues/TripletDisplay';
@@ -20,7 +20,8 @@ import {
   getIssueFixConfig,
 } from '@/lib/issue-to-fix-path';
 // [ISSUE-FIX-NAV-AND-ANCHORS-1] Navigation utilities available in @/lib/issue-fix-navigation if needed
-import { getSafeReturnTo } from '@/lib/route-context';
+// [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Extended with getReturnToFromCurrentUrl and withRouteContext
+import { getSafeReturnTo, getReturnToFromCurrentUrl, withRouteContext } from '@/lib/route-context';
 // [SCOPE-CLARITY-1] Import scope normalization utilities
 import { normalizeScopeParams, buildClearFiltersHref } from '@/lib/scope-normalization';
 
@@ -110,6 +111,14 @@ export default function IssuesPage() {
 
   // [ROUTE-INTEGRITY-1] Read from context from URL
   const fromParam = searchParams.get('from');
+
+  // [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Get pathname for building returnTo
+  const pathname = usePathname();
+
+  // [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Build current issues URL (sans context params) for View affected returnTo
+  const currentIssuesPathWithQuery = useMemo(() => {
+    return getReturnToFromCurrentUrl(pathname, searchParams);
+  }, [pathname, searchParams]);
 
   // [ROUTE-INTEGRITY-1] Get validated returnTo for ScopeBanner
   const validatedReturnTo = useMemo(() => {
@@ -514,6 +523,7 @@ export default function IssuesPage() {
 
   // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Updated to use href-based actionability
   // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Returns fixKind for card attributes
+  // [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] "View affected" routes to filtered Products list (not product detail)
   const getFixAction = (issue: DeoIssue) => {
     // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Gate all fix CTAs on isActionableNow
     if (!issue.isActionableNow) {
@@ -529,11 +539,47 @@ export default function IssuesPage() {
     const fixConfig = getIssueFixConfig(issueType);
     const fixKind = fixConfig?.fixKind || 'EDIT';
 
+    // [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Build "View affected" href (Products list filtered by issueType)
+    // This CTA is available even when fixHref is null, as long as there are affected products
+    const buildViewAffectedHref = (): string => {
+      return withRouteContext(`/projects/${projectId}/products`, {
+        from: 'issues_engine',
+        returnTo: currentIssuesPathWithQuery,
+        issueType,
+      });
+    };
+
+    // [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] "View affected" available when affectedProducts exist (before fixHref gate)
+    // DIAGNOSTIC issues still use Review CTA (don't convert to View affected)
+    if (fixKind !== 'DIAGNOSTIC' && issue.affectedProducts && issue.affectedProducts.length > 0) {
+      // If this is a multi-product issue (count > 1), always route to list view
+      // Single-product issues with specific fix types get direct routing below
+      if (issue.count > 1 && !primaryProductId) {
+        return {
+          kind: 'link' as const,
+          label: 'View affected',
+          href: buildViewAffectedHref(),
+          variant: 'default' as const,
+          fixKind,
+        };
+      }
+    }
+
     // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Check if issue has a valid fix href (href-based actionability)
     const fixHref = buildIssueFixHref({ projectId, issue, from: 'issues_engine' });
 
-    // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Return null if no valid href (prevents "Fix next" without destination)
+    // [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] If no fixHref but has affected products, use View affected
     if (!fixHref) {
+      if (issue.affectedProducts && issue.affectedProducts.length > 0 && fixKind !== 'DIAGNOSTIC') {
+        return {
+          kind: 'link' as const,
+          label: 'View affected',
+          href: buildViewAffectedHref(),
+          variant: 'default' as const,
+          fixKind,
+        };
+      }
+      // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] No valid href and no affected products - no action
       return null;
     }
 
@@ -588,18 +634,18 @@ export default function IssuesPage() {
       };
     }
 
-    // [ISSUE-TO-FIX-PATH-1 FIXUP-2] For actionable issues with affected products, use pre-computed fixHref
-    if (fixHref && issue.affectedProducts && issue.affectedProducts.length > 0) {
+    // [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Default fallback: View affected routes to filtered Products list
+    if (issue.affectedProducts && issue.affectedProducts.length > 0) {
       return {
         kind: 'link' as const,
         label: 'View affected',
-        href: fixHref,
+        href: buildViewAffectedHref(),
         variant: 'default' as const,
         fixKind,
       };
     }
 
-    // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Orphan issues (no fixHref) - no fix action
+    // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Orphan issues (no fixHref, no affected products) - no fix action
     return null;
   };
 

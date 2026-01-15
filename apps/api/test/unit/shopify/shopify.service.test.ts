@@ -139,8 +139,9 @@ describe('ShopifyService', () => {
 
       expect(state).toBeTruthy();
       // State should be retrievable via validateState
-      const retrievedProjectId = service.validateState(state!);
-      expect(retrievedProjectId).toBe(projectId);
+      const retrievedPayload = service.validateState(state!);
+      expect(retrievedPayload).toBeTruthy();
+      expect(retrievedPayload?.projectId).toBe(projectId);
     });
   });
 
@@ -202,8 +203,9 @@ describe('ShopifyService', () => {
       const urlObj = new URL(url);
       const state = urlObj.searchParams.get('state')!;
 
-      const retrievedProjectId = service.validateState(state);
-      expect(retrievedProjectId).toBe(projectId);
+      const retrievedPayload = service.validateState(state);
+      expect(retrievedPayload).toBeTruthy();
+      expect(retrievedPayload?.projectId).toBe(projectId);
     });
 
     it('should return null for invalid state', () => {
@@ -220,7 +222,8 @@ describe('ShopifyService', () => {
       const state = urlObj.searchParams.get('state')!;
 
       const firstRetrieval = service.validateState(state);
-      expect(firstRetrieval).toBe(projectId);
+      expect(firstRetrieval).toBeTruthy();
+      expect(firstRetrieval?.projectId).toBe(projectId);
 
       const secondRetrieval = service.validateState(state);
       expect(secondRetrieval).toBeNull();
@@ -231,9 +234,10 @@ describe('ShopifyService', () => {
     it('should exchange authorization code for access token', async () => {
       const shop = 'test-shop.myshopify.com';
       const code = 'auth-code';
+      // [SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-4] Test mock now includes read_content for pages_sync
       const mockResponse = {
         access_token: 'access-token-123',
-        scope: 'read_products,write_products',
+        scope: 'read_products,write_products,read_content',
       };
 
       // Ensure global.fetch is not a Jest mock for this test

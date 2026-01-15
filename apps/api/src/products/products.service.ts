@@ -6,6 +6,7 @@ import type { DeoIssue } from '@engineo/shared';
 
 /**
  * [LIST-SEARCH-FILTER-1] Product list filter options
+ * [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Extended with issueType filter
  */
 export interface ProductListFilters {
   /** Case-insensitive search across title and handle */
@@ -14,6 +15,8 @@ export interface ProductListFilters {
   status?: 'optimized' | 'needs_attention';
   /** Filter products that appear in non-applied drafts */
   hasDraft?: boolean;
+  /** [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Filter to products affected by this issue type */
+  issueType?: string;
 }
 
 /**
@@ -123,6 +126,16 @@ export class ProductsService {
       // Has draft filter: products in non-applied drafts
       if (filters.hasDraft) {
         products = products.filter((p) => productIdsWithDrafts.has(p.id));
+      }
+
+      // [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Issue type filter: products affected by this issue
+      if (filters.issueType) {
+        const affectedProductIds = await this.getProductIdsAffectedByIssueType(
+          projectId,
+          userId,
+          filters.issueType,
+        );
+        products = products.filter((p) => affectedProductIds.has(p.id));
       }
     }
 
@@ -315,6 +328,54 @@ export class ProductsService {
     }
 
     return [];
+  }
+
+  /**
+   * [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Get product IDs affected by a specific issue type
+   * Used for server-authoritative filtering in "View affected" routing from Issues Engine.
+   *
+   * @param projectId - The project ID
+   * @param userId - The viewer's user ID (for access control)
+   * @param issueType - The issue type key (e.g., 'missing_seo_title')
+   * @returns Set of product IDs affected by the issue
+   */
+  private async getProductIdsAffectedByIssueType(
+    projectId: string,
+    userId: string,
+    issueType: string,
+  ): Promise<Set<string>> {
+    const affectedSet = new Set<string>();
+
+    try {
+      // Fetch canonical issues from DeoIssuesService
+      const issuesResponse = await this.deoIssuesService.getIssuesForProjectReadOnly(projectId, userId);
+
+      if (!issuesResponse.issues || issuesResponse.issues.length === 0) {
+        return affectedSet;
+      }
+
+      // Find the matching issue by type or id
+      const matchingIssue = issuesResponse.issues.find((issue) => {
+        const key = issue.type ?? issue.id;
+        return key === issueType;
+      });
+
+      if (!matchingIssue) {
+        // No matching issue found - return empty set (deterministic "no affected items")
+        return affectedSet;
+      }
+
+      // Get affected product IDs using existing helper
+      const productIds = this.getProductIdsAffectedByIssue(matchingIssue);
+      for (const id of productIds) {
+        affectedSet.add(id);
+      }
+    } catch (error) {
+      // If issues fetch fails, return empty set (graceful degradation)
+      console.error('[ProductsService] Failed to fetch issues for issueType filter:', error);
+    }
+
+    return affectedSet;
   }
 
   /**

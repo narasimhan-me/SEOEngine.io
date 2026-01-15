@@ -99,7 +99,8 @@ Steps:
 1. Attempt "Sync Pages".
 
 Expected Behavior:
-- Clear error instructing user to reconnect Shopify to grant required permissions.
+- Structured permission notice with "Reconnect Shopify" CTA is shown (not a generic sync error).
+- Reconnect is explicit and user-initiated; no automatic OAuth redirects.
 - No destructive deletes; existing data remains.
 
 ---

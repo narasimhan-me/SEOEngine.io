@@ -368,6 +368,25 @@ Returns a simple success page or redirects back to frontend.
 
 ---
 
+### GET `/shopify/reconnect`
+
+[SHOPIFY-SCOPE-RECONSENT-UX-1] Explicit, user-initiated Shopify re-consent flow for missing scopes.
+
+Query parameters:
+- `projectId` (required)
+- `token` (required, JWT)
+- `capability` (required): `pages_sync` | `collections_sync`
+- `returnTo` (optional): path beginning with `/projects/:projectId/...`
+
+Behavior:
+- Computes missing scopes server-side for the requested capability
+- Redirects to Shopify OAuth with the minimal union of (granted scopes) + (missing required scopes)
+- After OAuth completes, redirects back to `returnTo` (or `/projects/:projectId`) with:
+  - `shopify=reconnected`
+  - `reconnect=<capability>`
+
+---
+
 ### POST `/shopify/sync-products` (auth required)
 
 **Query parameters:**
@@ -421,7 +440,7 @@ Updates Shopify product SEO fields and local DB.
 
 **Errors:**
 - `403 Forbidden` – Only project owners can sync Shopify Pages
-- `400 Bad Request` – read_content scope not granted (requires re-install with updated scopes)
+- `400 Bad Request` – Missing required Shopify scope(s) (code: `SHOPIFY_MISSING_SCOPES`)
 - `404 Not Found` – No Shopify store connected
 
 ---
@@ -445,8 +464,51 @@ Updates Shopify product SEO fields and local DB.
 
 **Errors:**
 - `403 Forbidden` – Only project owners can sync Shopify Collections
-- `400 Bad Request` – read_content scope not granted (requires re-install with updated scopes)
+- `400 Bad Request` – Missing required Shopify scope(s) (code: `SHOPIFY_MISSING_SCOPES`)
 - `404 Not Found` – No Shopify store connected
+
+---
+
+### GET `/projects/:projectId/shopify/missing-scopes` (auth required)
+
+[SHOPIFY-SCOPE-RECONSENT-UX-1] Server-authoritative missing scope detection for a capability.
+
+Query parameters:
+- `capability` (required): `pages_sync` | `collections_sync`
+
+Response:
+
+```json
+{
+  "projectId": "string",
+  "connected": true,
+  "capability": "pages_sync",
+  "requiredScopes": ["read_content"],
+  "grantedScopes": ["read_products", "write_products"],
+  "missingScopes": ["read_content"]
+}
+```
+
+---
+
+### GET `/projects/:projectId/shopify/reconnect-url` (auth required)
+
+**[SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1]** Returns a Shopify OAuth authorize URL for explicit, user-initiated re-consent.
+
+**Query parameters:**
+- `capability` (required): `pages_sync` | `collections_sync`
+- `returnTo` (optional): path beginning with `/projects/:projectId/...`
+
+**Access:**
+- OWNER-only
+
+**Response:**
+
+```json
+{
+  "url": "https://{shop}.myshopify.com/admin/oauth/authorize?client_id=...&scope=...&redirect_uri=...&state=..."
+}
+```
 
 ---
 

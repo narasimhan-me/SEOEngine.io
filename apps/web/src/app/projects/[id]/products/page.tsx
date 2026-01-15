@@ -84,9 +84,12 @@ export default function ProductsPage() {
   const filterQ = searchParams.get('q') || undefined;
   const filterStatus = searchParams.get('status') as 'optimized' | 'needs_attention' | undefined;
   const filterHasDraft = searchParams.get('hasDraft') === 'true' || undefined;
+  // [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Extract issueType from normalized scope
+  const filterIssueType = normalizedScopeResult.normalized.issueType || undefined;
 
   // Check if any filters are active
-  const hasActiveFilters = !!(filterQ || filterStatus || filterHasDraft);
+  // [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Include issueType as an active filter
+  const hasActiveFilters = !!(filterQ || filterStatus || filterHasDraft || filterIssueType);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,6 +110,7 @@ export default function ProductsPage() {
   const feedback = useFeedback();
 
   // [LIST-SEARCH-FILTER-1] Fetch products with filters from URL
+  // [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Extended with issueType filter
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
@@ -115,6 +119,7 @@ export default function ProductsPage() {
         q: filterQ,
         status: filterStatus,
         hasDraft: filterHasDraft,
+        issueType: filterIssueType,
       });
       setProducts(data);
     } catch (err: unknown) {
@@ -123,7 +128,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [projectId, filterQ, filterStatus, filterHasDraft]);
+  }, [projectId, filterQ, filterStatus, filterHasDraft, filterIssueType]);
 
   const fetchProjectInfo = useCallback(async () => {
     try {
@@ -240,11 +245,14 @@ export default function ProductsPage() {
   };
 
   // [LIST-SEARCH-FILTER-1] Clear filters handler for empty state
+  // [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Also clears issueType; preserves from/returnTo for back navigation
   const handleClearFilters = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete('q');
     params.delete('status');
     params.delete('hasDraft');
+    params.delete('issueType');
+    // Keep from and returnTo for back navigation
     const qs = params.toString();
     router.replace(`/projects/${projectId}/products${qs ? `?${qs}` : ''}`, { scroll: false });
   }, [router, projectId, searchParams]);

@@ -91,6 +91,7 @@ export interface CreateTestShopifyStoreConnectionOptions {
   projectId: string;
   shopDomain?: string;
   accessToken?: string;
+  scope?: string;
 }
 
 export async function createTestShopifyStoreConnection(
@@ -110,7 +111,7 @@ export async function createTestShopifyStoreConnection(
       externalId: shopDomain,
       accessToken,
       config: {
-        scope: 'read_products,write_products,read_content',
+        scope: options.scope ?? 'read_products,write_products,read_content',
         installedAt: new Date().toISOString(),
         source: 'testkit',
       } as any,

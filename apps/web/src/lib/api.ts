@@ -568,7 +568,9 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
           typeof (body as Record<string, unknown>).error === 'string' &&
           (body as Record<string, unknown>).error === 'ENTITLEMENTS_LIMIT_REACHED');
 
-      if ((response.status === 401 || response.status === 403) && !isEntitlementsError) {
+      // Only redirect to login on 401 (unauthenticated), not 403 (unauthorized/forbidden)
+      // 403 means the user IS authenticated but lacks permission - redirecting to login is wrong
+      if (response.status === 401 && !isEntitlementsError) {
         if (typeof window !== 'undefined') {
           const next = window.location.pathname + window.location.search;
           redirectToSignIn(next);
@@ -1710,11 +1712,14 @@ export const aiApi = {
 
 /**
  * [LIST-SEARCH-FILTER-1] Product list filter options
+ * [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Extended with issueType filter
  */
 export interface ProductListOptions {
   q?: string;
   status?: 'optimized' | 'needs_attention';
   hasDraft?: boolean;
+  /** [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Filter to products affected by this issue type */
+  issueType?: string;
 }
 
 /**
@@ -1731,12 +1736,14 @@ export interface CrawlPageListOptions {
 export const productsApi = {
   /**
    * [LIST-SEARCH-FILTER-1] List products with optional filtering
+   * [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Extended with issueType filter for Issue→List routing
    */
   list: (projectId: string, opts?: ProductListOptions) => {
     const params = new URLSearchParams();
     if (opts?.q) params.set('q', opts.q);
     if (opts?.status) params.set('status', opts.status);
     if (opts?.hasDraft) params.set('hasDraft', 'true');
+    if (opts?.issueType) params.set('issueType', opts.issueType);
     const qs = params.toString();
     return fetchWithAuth(`/projects/${projectId}/products${qs ? `?${qs}` : ''}`);
   },
@@ -2165,6 +2172,26 @@ export const shopifyApi = {
     fetchWithAuth(`/projects/${projectId}/shopify/sync-status`, {
       method: 'GET',
     }),
+
+  // [SHOPIFY-SCOPE-RECONSENT-UX-1] Server-authoritative missing scope detection
+  getMissingScopes: (projectId: string, capability: 'pages_sync' | 'collections_sync') =>
+    fetchWithAuth(
+      `/projects/${projectId}/shopify/missing-scopes?capability=${encodeURIComponent(capability)}`,
+      { method: 'GET' },
+    ),
+
+  // [SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1] Server-authoritative reconnect URL (avoids localStorage token dependency)
+  getReconnectUrl: (
+    projectId: string,
+    capability: 'pages_sync' | 'collections_sync',
+    returnTo: string,
+  ) =>
+    fetchWithAuth(
+      `/projects/${projectId}/shopify/reconnect-url?capability=${encodeURIComponent(
+        capability,
+      )}&returnTo=${encodeURIComponent(returnTo)}`,
+      { method: 'GET' },
+    ),
 };
 
 /**

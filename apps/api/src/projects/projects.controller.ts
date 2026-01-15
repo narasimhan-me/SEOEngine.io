@@ -51,7 +51,7 @@ import { GovernanceService } from './governance.service';
 import { ApprovalsService } from './approvals.service';
 import { RoleResolutionService } from '../common/role-resolution.service';
 import { WorkQueueService } from './work-queue.service';
-import { ShopifyService } from '../shopify/shopify.service';
+import { ShopifyService, type ShopifyScopeStatus } from '../shopify/shopify.service';
 import type {
   WorkQueueTab,
   WorkQueueBundleType,
@@ -1416,5 +1416,70 @@ export class ProjectsController {
     }
 
     return this.shopifyService.getSyncStatus(projectId);
+  }
+
+  /**
+   * GET /projects/:id/shopify/missing-scopes?capability=pages_sync|collections_sync
+   * [SHOPIFY-SCOPE-RECONSENT-UX-1] Server-authoritative missing scope detection.
+   * Membership-accessible (read-only).
+   */
+  @Get(':id/shopify/missing-scopes')
+  async getShopifyMissingScopes(
+    @Request() req: any,
+    @Param('id') projectId: string,
+    @Query('capability') capability?: string,
+  ): Promise<{ projectId: string; connected: boolean } & ShopifyScopeStatus> {
+    if (!capability) {
+      throw new BadRequestException('Missing capability parameter');
+    }
+    const hasAccess = await this.roleResolutionService.hasProjectAccess(projectId, req.user.id);
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this project');
+    }
+    if (capability !== 'pages_sync' && capability !== 'collections_sync') {
+      throw new BadRequestException('Invalid capability parameter');
+    }
+    return this.shopifyService.getShopifyScopeStatus(projectId, capability);
+  }
+
+  /**
+   * GET /projects/:id/shopify/reconnect-url?capability=pages_sync|collections_sync&returnTo=/projects/...
+   * [SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1] [CRITICAL PATH: CP-006 Shopify Sync]
+   * Returns a Shopify OAuth authorize URL for explicit, user-initiated re-consent.
+   * OWNER-only (matches Shopify mutation posture).
+   */
+  @Get(':id/shopify/reconnect-url')
+  async getShopifyReconnectUrl(
+    @Request() req: any,
+    @Param('id') projectId: string,
+    @Query('capability') capability?: string,
+    @Query('returnTo') returnTo?: string,
+  ) {
+    if (!capability) {
+      throw new BadRequestException('Missing capability parameter');
+    }
+    if (capability !== 'pages_sync' && capability !== 'collections_sync') {
+      throw new BadRequestException('Invalid capability parameter');
+    }
+    const role = await this.roleResolutionService.resolveEffectiveRole(projectId, req.user.id);
+    if (role !== 'OWNER') {
+      throw new ForbiddenException('Only project owners can reconnect Shopify');
+    }
+    const integration = await this.shopifyService.getShopifyIntegration(projectId);
+    if (!integration || !integration.externalId) {
+      throw new BadRequestException('No Shopify integration found for this project');
+    }
+    const scopeStatus = await this.shopifyService.getShopifyScopeStatus(projectId, capability);
+    const desiredScopes = Array.from(
+      new Set([...(scopeStatus.grantedScopes ?? []), ...(scopeStatus.missingScopes ?? [])]),
+    );
+    const safeReturnTo = this.shopifyService.getSafeReturnToForProject(returnTo, projectId);
+    const url = this.shopifyService.generateInstallUrl(integration.externalId, projectId, {
+      scopesCsv: desiredScopes.join(','),
+      source: 'reconnect',
+      capability,
+      returnTo: safeReturnTo,
+    });
+    return { url };
   }
 }

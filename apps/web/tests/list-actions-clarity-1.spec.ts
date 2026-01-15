@@ -162,6 +162,50 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     await expect(needsAttentionRow.locator('[data-testid="row-secondary-action"]:has-text("Apply")')).toHaveCount(0);
   });
 
+  /**
+   * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] LAC1-002b: DIAGNOSTIC issue products show "Review" CTA
+   *
+   * Given: Product 4 has SEO but thin content (top issue is not_answer_ready DIAGNOSTIC)
+   * When: User views the product in Products list
+   * Then: CTA should show "Review" (not "Fix next")
+   *
+   * Uses Product 4 from seed-first-deo-win which has:
+   * - seoTitle and seoDescription populated (no metadata issues)
+   * - Thin content (< 80 words) triggering not_answer_ready as top issue
+   */
+  test('LAC1-002b: DIAGNOSTIC issue product shows Review CTA (not Fix next)', async ({
+    page,
+    request,
+  }) => {
+    // Use seed-first-deo-win which includes Product 4 with DIAGNOSTIC issue
+    const seedRes = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
+      data: {},
+    });
+    expect(seedRes.ok()).toBeTruthy();
+    const { projectId, productIds, accessToken } = await seedRes.json();
+    expect(productIds.length).toBeGreaterThanOrEqual(4);
+
+    await page.goto('/login');
+    await page.evaluate((token: string) => {
+      localStorage.setItem('engineo_token', token);
+    }, accessToken);
+
+    await page.goto(`/projects/${projectId}/products`);
+    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Find Product 4 (DIAGNOSTIC test product)
+    const diagnosticProductRow = getRowByTitle(page, 'Product 4 - DIAGNOSTIC Test');
+    await expect(diagnosticProductRow).toBeVisible();
+
+    // Assert chip shows Needs attention (has actionable issue)
+    const chip = diagnosticProductRow.locator('[data-testid="row-status-chip"]');
+    await expect(chip).toHaveText('⚠ Needs attention');
+
+    // Assert primary action is "Review" (not "Fix next") for DIAGNOSTIC issue
+    const primaryAction = diagnosticProductRow.locator('[data-testid="row-primary-action"]');
+    await expect(primaryAction).toHaveText('Review');
+  });
+
   test('LAC1-003: Draft pending product row (OWNER) shows Draft saved chip and Review drafts action', async ({
     page,
   }) => {

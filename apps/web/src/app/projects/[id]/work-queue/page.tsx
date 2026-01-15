@@ -141,14 +141,16 @@ export default function WorkQueuePage() {
 
   // [ISSUE-TO-FIX-PATH-1] Get safe issue title for display
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Also get nextActionLabel from fix config
-  const { issueTitle, nextActionLabel } = useMemo(() => {
-    if (!issueIdParam) return { issueTitle: null, nextActionLabel: undefined };
+  // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Also get fixKind for semantic wording
+  const { issueTitle, nextActionLabel, fixKind } = useMemo(() => {
+    if (!issueIdParam) return { issueTitle: null, nextActionLabel: undefined, fixKind: undefined };
     // Try to get title from ISSUE_UI_CONFIG
     const uiConfig = ISSUE_UI_CONFIG[issueIdParam];
     const fixConfig = getIssueFixConfig(issueIdParam);
     const title = uiConfig?.label || 'Issue detected';
     const nextAction = fixConfig?.nextActionLabel;
-    return { issueTitle: title, nextActionLabel: nextAction };
+    const kind = fixConfig?.fixKind;
+    return { issueTitle: title, nextActionLabel: nextAction, fixKind: kind };
   }, [issueIdParam]);
 
   // [TRUST-ROUTING-1] Build filter labels for display
@@ -246,16 +248,22 @@ export default function WorkQueuePage() {
 
       {/* [ISSUE-TO-FIX-PATH-1] Issue Fix Context Banner */}
       {/* [ISSUE-FIX-NAV-AND-ANCHORS-1] Enhanced with returnTo-aware back link and fix anchor */}
+      {/* [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] fixKind-aware wording: DIAGNOSTIC uses "review", else "fix" */}
       {isIssueFixMode && issueTitle && !loading && (
         <div
           data-testid="work-queue-issue-fix-context-banner"
-          className="rounded-lg border border-indigo-200 bg-indigo-50 p-4"
+          data-fix-kind={fixKind || 'EDIT'}
+          className={`rounded-lg border p-4 ${
+            fixKind === 'DIAGNOSTIC'
+              ? 'border-blue-200 bg-blue-50'
+              : 'border-indigo-200 bg-indigo-50'
+          }`}
         >
           {/* [ISSUE-FIX-NAV-AND-ANCHORS-1] Stable fix anchor wrapper */}
           <div data-testid="work-queue-fix-anchor" className="flex items-start gap-3">
             <div className="flex-shrink-0">
               <svg
-                className="h-5 w-5 text-indigo-600"
+                className={`h-5 w-5 ${fixKind === 'DIAGNOSTIC' ? 'text-blue-600' : 'text-indigo-600'}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -269,24 +277,30 @@ export default function WorkQueuePage() {
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-semibold text-indigo-900">
-                You&apos;re here to fix: {issueTitle}
+              <h3 className={`text-sm font-semibold ${fixKind === 'DIAGNOSTIC' ? 'text-blue-900' : 'text-indigo-900'}`}>
+                {fixKind === 'DIAGNOSTIC' ? "You're here to review:" : "You're here to fix:"} {issueTitle}
               </h3>
               {nextActionLabel && (
                 <p
                   data-testid="issue-fix-next-action-callout"
-                  className="mt-1 text-xs text-indigo-800"
+                  className={`mt-1 text-xs ${fixKind === 'DIAGNOSTIC' ? 'text-blue-800' : 'text-indigo-800'}`}
                 >
-                  To fix this issue: {nextActionLabel}
+                  {fixKind === 'DIAGNOSTIC'
+                    ? `To review this issue: ${nextActionLabel}`
+                    : `To fix this issue: ${nextActionLabel}`}
                 </p>
               )}
-              <p className="mt-1 text-xs text-indigo-800">
+              <p className={`mt-1 text-xs ${fixKind === 'DIAGNOSTIC' ? 'text-blue-800' : 'text-indigo-800'}`}>
                 Review the action bundles below to address this issue.
               </p>
               <div className="mt-3">
                 <Link
                   href={issueFixBackLink.href}
-                  className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-700"
+                  className={`inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium text-white shadow-sm ${
+                    fixKind === 'DIAGNOSTIC'
+                      ? 'bg-blue-600 hover:bg-blue-700'
+                      : 'bg-indigo-600 hover:bg-indigo-700'
+                  }`}
                 >
                   ← {issueFixBackLink.label}
                 </Link>
