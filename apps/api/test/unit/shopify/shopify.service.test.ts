@@ -234,9 +234,10 @@ describe('ShopifyService', () => {
     it('should exchange authorization code for access token', async () => {
       const shop = 'test-shop.myshopify.com';
       const code = 'auth-code';
+      // [SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-4] Test mock now includes read_content for pages_sync
       const mockResponse = {
         access_token: 'access-token-123',
-        scope: 'read_products,write_products',
+        scope: 'read_products,write_products,read_content',
       };
 
       // Ensure global.fetch is not a Jest mock for this test

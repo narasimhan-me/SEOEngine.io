@@ -215,6 +215,14 @@ export class ShopifyService {
     capability: ShopifyScopeCapability,
   ): Promise<{ projectId: string; connected: boolean } & ShopifyScopeStatus> {
     const integration = await this.getShopifyIntegration(projectId);
+    console.log('[getShopifyScopeStatus] Integration config:', {
+      projectId,
+      capability,
+      hasIntegration: !!integration,
+      externalId: integration?.externalId,
+      hasAccessToken: !!integration?.accessToken,
+      configScope: (integration?.config as any)?.scope,
+    });
     if (!integration || !integration.externalId || !integration.accessToken) {
       return {
         projectId,
@@ -226,6 +234,11 @@ export class ShopifyService {
       };
     }
     const status = this.getScopeStatusFromIntegration(integration, capability);
+    console.log('[getShopifyScopeStatus] Status result:', {
+      projectId,
+      capability,
+      ...status,
+    });
     return { projectId, connected: true, ...status };
   }
 
@@ -704,6 +717,12 @@ export class ShopifyService {
     accessToken: string,
     scope: string,
   ) {
+    console.log('[storeShopifyConnection] Storing connection:', {
+      projectId,
+      shopDomain,
+      scope,
+      hasAccessToken: !!accessToken,
+    });
     const existing = await this.prisma.integration.findUnique({
       where: {
         projectId_type: {
@@ -713,6 +732,11 @@ export class ShopifyService {
       },
     });
     const existingConfig = (existing?.config as any) || {};
+    console.log('[storeShopifyConnection] Existing config:', {
+      projectId,
+      existingScope: existingConfig?.scope,
+      newScope: scope,
+    });
     const integration = await this.prisma.integration.upsert({
       where: {
         projectId_type: {
@@ -740,6 +764,11 @@ export class ShopifyService {
           uninstalledAt: null,
         },
       },
+    });
+
+    console.log('[storeShopifyConnection] Upserted integration config:', {
+      projectId,
+      savedScope: (integration.config as any)?.scope,
     });
 
     // Fire-and-forget ensure of Answer Block metafield definitions for this store.
