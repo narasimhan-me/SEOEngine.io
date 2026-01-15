@@ -18,6 +18,12 @@ import {
 
 class ConnectShopifyBody {
   projectId!: string;
+  scope?: string;
+}
+
+class SetShopifyScopeBody {
+  projectId!: string;
+  scope!: string;
 }
 
 @Controller('testkit/e2e')
@@ -218,6 +224,7 @@ export class E2eTestkitController {
       this.prisma as any,
       {
         projectId: project.id,
+        scope: body.scope,
       },
     );
 
@@ -225,6 +232,43 @@ export class E2eTestkitController {
       projectId: project.id,
       shopDomain: integration.externalId,
     };
+  }
+
+  /**
+   * POST /testkit/e2e/set-shopify-scope
+   * E2E-only helper to simulate a successful scope re-consent by updating the stored scope.
+   */
+  @Post('set-shopify-scope')
+  async setShopifyScope(@Body() body: SetShopifyScopeBody) {
+    this.ensureE2eMode();
+    if (!body?.projectId) {
+      throw new BadRequestException('projectId is required');
+    }
+    if (!body?.scope) {
+      throw new BadRequestException('scope is required');
+    }
+    const integration = await this.prisma.integration.findUnique({
+      where: {
+        projectId_type: {
+          projectId: body.projectId,
+          type: 'SHOPIFY',
+        },
+      },
+    });
+    if (!integration) {
+      throw new NotFoundException('Shopify integration not found');
+    }
+    const existingConfig = (integration.config as any) || {};
+    await this.prisma.integration.update({
+      where: { id: integration.id },
+      data: {
+        config: {
+          ...existingConfig,
+          scope: body.scope,
+        },
+      },
+    });
+    return { projectId: body.projectId, scope: body.scope };
   }
 
   // ==========================================================================

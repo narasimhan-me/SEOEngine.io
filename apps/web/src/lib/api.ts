@@ -2170,6 +2170,13 @@ export const shopifyApi = {
     fetchWithAuth(`/projects/${projectId}/shopify/sync-status`, {
       method: 'GET',
     }),
+
+  // [SHOPIFY-SCOPE-RECONSENT-UX-1] Server-authoritative missing scope detection
+  getMissingScopes: (projectId: string, capability: 'pages_sync' | 'collections_sync') =>
+    fetchWithAuth(
+      `/projects/${projectId}/shopify/missing-scopes?capability=${encodeURIComponent(capability)}`,
+      { method: 'GET' },
+    ),
 };
 
 /**

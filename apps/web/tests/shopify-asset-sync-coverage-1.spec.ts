@@ -41,6 +41,20 @@ async function connectShopifyE2E(request: any, projectId: string) {
   expect(res.ok()).toBeTruthy();
 }
 
+async function connectShopifyE2EWithScope(request: any, projectId: string, scope: string) {
+  const res = await request.post(`${API_BASE_URL}/testkit/e2e/connect-shopify`, {
+    data: { projectId, scope },
+  });
+  expect(res.ok()).toBeTruthy();
+}
+
+async function setShopifyScopeE2E(request: any, projectId: string, scope: string) {
+  const res = await request.post(`${API_BASE_URL}/testkit/e2e/set-shopify-scope`, {
+    data: { projectId, scope },
+  });
+  expect(res.ok()).toBeTruthy();
+}
+
 async function seedMockShopifyAssets(request: any) {
   const res = await request.post(`${API_BASE_URL}/testkit/e2e/mock-shopify-assets`, {
     data: {
@@ -83,6 +97,69 @@ async function seedMockShopifyAssets(request: any) {
 }
 
 test.describe('SHOPIFY-ASSET-SYNC-COVERAGE-1: Shopify Pages + Collections Sync', () => {
+  test('SHOPIFY-SCOPE-RECONSENT-UX-1: Missing scope shows permission notice and auto-syncs after reconnect return', async ({
+    page,
+    request,
+  }) => {
+    const { projectId, accessToken } = await seedFirstDeoWinProject(request);
+    await connectShopifyE2EWithScope(request, projectId, 'read_products,write_products');
+    await seedMockShopifyAssets(request);
+
+    await page.goto('/login');
+    await page.evaluate((token) => {
+      localStorage.setItem('engineo_token', token);
+    }, accessToken);
+
+    // Collections should NOT be blocked by missing read_content (read_products is sufficient)
+    await page.goto(`/projects/${projectId}/assets/collections`);
+    await expect(page.getByRole('heading', { name: 'Collections' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Additional Shopify permission required' })).not.toBeVisible();
+
+    const syncCollections = page.getByRole('button', { name: /Sync Collections/i });
+    await expect(syncCollections).toBeVisible();
+    await syncCollections.click();
+    await expect(page.getByText(/Last synced:/i)).toBeVisible({ timeout: 15000 });
+
+    // Pages should show the permission notice (read_content missing)
+    await page.goto(`/projects/${projectId}/assets/pages`);
+    await expect(page.getByRole('heading', { name: 'Pages' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Additional Shopify permission required' })).toBeVisible();
+
+    const syncPages = page.getByRole('button', { name: /Sync Pages/i });
+    await expect(syncPages).toBeDisabled();
+
+    // Server-authoritative missing scopes signal
+    const missing = await request.get(
+      `${API_BASE_URL}/projects/${projectId}/shopify/missing-scopes?capability=pages_sync`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    expect(missing.ok()).toBeTruthy();
+    const missingBody = await missing.json();
+    expect(missingBody.missingScopes).toContain('read_content');
+
+    // Reconnect redirect requests minimal union (existing + missing)
+    const reconnectRes = await request.get(
+      `${API_BASE_URL}/shopify/reconnect?projectId=${projectId}&token=${accessToken}&capability=pages_sync&returnTo=${encodeURIComponent(
+        `/projects/${projectId}/assets/pages`,
+      )}`,
+      { maxRedirects: 0 },
+    );
+    expect(reconnectRes.status()).toBe(302);
+    const location = reconnectRes.headers()['location'] || '';
+    const redirectUrl = new URL(location);
+    const scopesCsv = redirectUrl.searchParams.get('scope') || '';
+    const scopes = scopesCsv.split(',').map((s) => s.trim()).filter(Boolean);
+    expect(scopes).toContain('read_content');
+    expect(scopes).not.toContain('read_themes');
+
+    // Simulate successful re-consent by updating stored scope, then verify auto-sync on return params
+    await setShopifyScopeE2E(request, projectId, 'read_products,write_products,read_content');
+    await page.goto(`/projects/${projectId}/assets/pages?shopify=reconnected&reconnect=pages_sync`);
+    await expect(page.getByText(/Last synced:/i)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('about-us')).toBeVisible();
+    await expect(page.getByText('contact')).toBeVisible();
+  });
+
   test('Pages list shows sync status and pages after sync', async ({
     page,
     request,

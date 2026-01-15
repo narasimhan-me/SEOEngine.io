@@ -139,8 +139,9 @@ describe('ShopifyService', () => {
 
       expect(state).toBeTruthy();
       // State should be retrievable via validateState
-      const retrievedProjectId = service.validateState(state!);
-      expect(retrievedProjectId).toBe(projectId);
+      const retrievedPayload = service.validateState(state!);
+      expect(retrievedPayload).toBeTruthy();
+      expect(retrievedPayload?.projectId).toBe(projectId);
     });
   });
 
@@ -202,8 +203,9 @@ describe('ShopifyService', () => {
       const urlObj = new URL(url);
       const state = urlObj.searchParams.get('state')!;
 
-      const retrievedProjectId = service.validateState(state);
-      expect(retrievedProjectId).toBe(projectId);
+      const retrievedPayload = service.validateState(state);
+      expect(retrievedPayload).toBeTruthy();
+      expect(retrievedPayload?.projectId).toBe(projectId);
     });
 
     it('should return null for invalid state', () => {
@@ -220,7 +222,8 @@ describe('ShopifyService', () => {
       const state = urlObj.searchParams.get('state')!;
 
       const firstRetrieval = service.validateState(state);
-      expect(firstRetrieval).toBe(projectId);
+      expect(firstRetrieval).toBeTruthy();
+      expect(firstRetrieval?.projectId).toBe(projectId);
 
       const secondRetrieval = service.validateState(state);
       expect(secondRetrieval).toBeNull();

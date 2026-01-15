@@ -1,12 +1,13 @@
 'use client';
 
 import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { projectsApi, shopifyApi, type RoleCapabilities } from '@/lib/api';
 import { ListControls } from '@/components/common/ListControls';
 import { RowStatusChip } from '@/components/common/RowStatusChip';
 import { ScopeBanner } from '@/components/common/ScopeBanner';
+import { ShopifyPermissionNotice } from '@/components/shopify/ShopifyPermissionNotice';
 import {
   resolveRowNextAction,
   buildAssetIssuesHref,
@@ -17,6 +18,7 @@ import {
 } from '@/lib/list-actions-clarity';
 import type { WorkQueueRecommendedActionKey } from '@/lib/work-queue';
 import { getReturnToFromCurrentUrl, getSafeReturnTo } from '@/lib/route-context';
+import { getToken } from '@/lib/auth';
 // [SCOPE-CLARITY-1] Import scope normalization utilities
 import { normalizeScopeParams, buildClearFiltersHref } from '@/lib/scope-normalization';
 
@@ -73,6 +75,12 @@ export default function PagesAssetListPage() {
   }>({ lastPagesSyncAt: null, shopifyConnected: false });
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [scopeStatus, setScopeStatus] = useState<{
+    requiredScopes: string[];
+    grantedScopes: string[];
+    missingScopes: string[];
+  } | null>(null);
+  const autoSyncAfterReconnectRef = useRef(false);
 
   // Get filter from URL (from Work Queue click-through)
   const actionKeyFilter = searchParams.get('actionKey') as WorkQueueRecommendedActionKey | null;
@@ -219,16 +227,24 @@ export default function PagesAssetListPage() {
 
       if (shopifyConnected) {
         const status = await shopifyApi.getSyncStatus(projectId);
+        const scope = await shopifyApi.getMissingScopes(projectId, 'pages_sync');
         setSyncStatus({
           lastPagesSyncAt: status.lastPagesSyncAt,
           shopifyConnected: true,
         });
+        setScopeStatus({
+          requiredScopes: scope.requiredScopes ?? [],
+          grantedScopes: scope.grantedScopes ?? [],
+          missingScopes: scope.missingScopes ?? [],
+        });
       } else {
         setSyncStatus({ lastPagesSyncAt: null, shopifyConnected: false });
+        setScopeStatus(null);
       }
     } catch (err) {
       console.error('Error fetching sync status:', err);
       setSyncStatus({ lastPagesSyncAt: null, shopifyConnected: false });
+      setScopeStatus(null);
     }
   }, [projectId]);
 
@@ -243,6 +259,7 @@ export default function PagesAssetListPage() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Sync failed';
       setSyncError(message);
+      await fetchSyncStatus();
     } finally {
       setSyncing(false);
     }
@@ -253,6 +270,47 @@ export default function PagesAssetListPage() {
     fetchCapabilities();
     fetchSyncStatus();
   }, [fetchPages, fetchCapabilities, fetchSyncStatus]);
+
+  const hasMissingScopes = (scopeStatus?.missingScopes?.length ?? 0) > 0;
+
+  const handleReconnectShopify = useCallback(() => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const token = getToken();
+    if (!token) {
+      setSyncError("Couldn't start Shopify connection. Try again.");
+      return;
+    }
+    const reconnectUrl = `${API_URL}/shopify/reconnect?projectId=${projectId}&token=${token}&capability=pages_sync&returnTo=${encodeURIComponent(
+      currentPathWithQuery,
+    )}`;
+    window.location.href = reconnectUrl;
+  }, [projectId, currentPathWithQuery]);
+
+  // [SHOPIFY-SCOPE-RECONSENT-UX-1] After reconnect return, auto-attempt the previously blocked sync.
+  useEffect(() => {
+    if (autoSyncAfterReconnectRef.current) return;
+    if (searchParams.get('shopify') !== 'reconnected') return;
+    if (searchParams.get('reconnect') !== 'pages_sync') return;
+    if (!syncStatus.shopifyConnected) return;
+    if (hasMissingScopes) return;
+    if (!(capabilities?.canModifySettings ?? false)) return;
+    autoSyncAfterReconnectRef.current = true;
+    handleSyncPages().finally(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('shopify');
+      params.delete('reconnect');
+      const qs = params.toString();
+      router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+    });
+  }, [
+    searchParams,
+    syncStatus.shopifyConnected,
+    hasMissingScopes,
+    capabilities,
+    handleSyncPages,
+    router,
+    pathname,
+  ]);
 
   // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Removed bulk selection handlers (handleSelectAll, handleSelectOne, handleBulkFix)
   // Bulk actions now route through Playbooks/Work Queue directly
@@ -337,7 +395,7 @@ export default function PagesAssetListPage() {
         {capabilities?.canModifySettings && (
           <button
             onClick={handleSyncPages}
-            disabled={syncing || !syncStatus.shopifyConnected}
+            disabled={syncing || !syncStatus.shopifyConnected || hasMissingScopes}
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {syncing ? (
@@ -355,6 +413,16 @@ export default function PagesAssetListPage() {
         )}
       </div>
 
+      {/* [SHOPIFY-SCOPE-RECONSENT-UX-1] Permission notice when required scopes are missing */}
+      {syncStatus.shopifyConnected && hasMissingScopes && (
+        <ShopifyPermissionNotice
+          missingScopes={scopeStatus?.missingScopes ?? []}
+          canReconnect={capabilities?.canModifySettings ?? false}
+          onReconnect={handleReconnectShopify}
+          learnMoreHref="/help/shopify-permissions"
+        />
+      )}
+
       {/* [SHOPIFY-ASSET-SYNC-COVERAGE-1] Sync status line */}
       {syncStatus.shopifyConnected && (
         <div className="text-sm text-gray-500">
@@ -367,7 +435,7 @@ export default function PagesAssetListPage() {
       )}
 
       {/* [SHOPIFY-ASSET-SYNC-COVERAGE-1] Sync error */}
-      {syncError && (
+      {syncError && !hasMissingScopes && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           {syncError}
         </div>

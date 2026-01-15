@@ -61,6 +61,65 @@ export class ShopifyController {
   }
 
   /**
+   * GET /shopify/reconnect?projectId=xxx&token=jwt&capability=pages_sync|collections_sync&returnTo=/projects/...
+   * Explicit, user-initiated Shopify OAuth re-consent flow for missing scopes.
+   * Requests the minimal union of (currently granted scopes) + (missing required scopes for capability).
+   */
+  @Get('reconnect')
+  async reconnect(
+    @Query('projectId') projectId: string,
+    @Query('token') token: string,
+    @Query('capability') capability: string,
+    @Query('returnTo') returnTo: string,
+    @Res() res: Response,
+  ) {
+    if (!projectId) {
+      throw new BadRequestException('Missing projectId parameter');
+    }
+    if (!capability) {
+      throw new BadRequestException('Missing capability parameter');
+    }
+    if (!token) {
+      throw new UnauthorizedException('Authentication token required');
+    }
+    const cap =
+      capability === 'pages_sync' || capability === 'collections_sync'
+        ? capability
+        : null;
+    if (!cap) {
+      throw new BadRequestException('Invalid capability parameter');
+    }
+    let userId: string;
+    try {
+      const payload = this.jwtService.verify(token);
+      userId = payload.sub;
+    } catch {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+    const isOwner = await this.shopifyService.validateProjectOwnership(projectId, userId);
+    if (!isOwner) {
+      throw new UnauthorizedException('You do not own this project');
+    }
+    const integration = await this.shopifyService.getShopifyIntegration(projectId);
+    if (!integration || !integration.externalId) {
+      throw new BadRequestException('No Shopify integration found for this project');
+    }
+    const scopeStatus = await this.shopifyService.getShopifyScopeStatus(projectId, cap);
+    const desiredScopes = [...(scopeStatus.grantedScopes ?? [])];
+    for (const scope of scopeStatus.missingScopes ?? []) {
+      if (!desiredScopes.includes(scope)) desiredScopes.push(scope);
+    }
+    const safeReturnTo = this.shopifyService.getSafeReturnToForProject(returnTo, projectId);
+    const installUrl = this.shopifyService.generateInstallUrl(integration.externalId, projectId, {
+      scopesCsv: desiredScopes.join(','),
+      source: 'reconnect',
+      capability: cap,
+      returnTo: safeReturnTo,
+    });
+    return res.redirect(installUrl);
+  }
+
+  /**
    * GET /shopify/callback
    * Shopify redirects here after user authorizes the app
    */
@@ -78,11 +137,12 @@ export class ShopifyController {
       throw new UnauthorizedException('Invalid HMAC signature');
     }
 
-    // Validate state and get projectId
-    const projectId = this.shopifyService.validateState(state);
-    if (!projectId) {
+    // Validate state and get payload
+    const statePayload = this.shopifyService.validateState(state);
+    if (!statePayload?.projectId) {
       throw new UnauthorizedException('Invalid or expired state parameter');
     }
+    const projectId = statePayload.projectId;
 
     // Exchange code for access token
     const tokenData = await this.shopifyService.exchangeToken(shop, code);
@@ -97,7 +157,17 @@ export class ShopifyController {
 
     // Redirect to frontend with success
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    return res.redirect(`${frontendUrl}/projects/${projectId}?shopify=connected`);
+    const basePath = statePayload.returnTo ?? `/projects/${projectId}`;
+    const redirectUrl = new URL(basePath, frontendUrl);
+    if (statePayload.source === 'reconnect') {
+      redirectUrl.searchParams.set('shopify', 'reconnected');
+      if (statePayload.capability) {
+        redirectUrl.searchParams.set('reconnect', statePayload.capability);
+      }
+    } else {
+      redirectUrl.searchParams.set('shopify', 'connected');
+    }
+    return res.redirect(redirectUrl.toString());
   }
 
   /**

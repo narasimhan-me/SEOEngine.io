@@ -7,6 +7,22 @@ import { AutomationService } from '../projects/automation.service';
 import { RoleResolutionService } from '../common/role-resolution.service';
 import { isE2EMode } from '../config/test-env-guard';
 
+export type ShopifyScopeCapability = 'pages_sync' | 'collections_sync';
+
+interface ShopifyOauthStatePayload {
+  projectId: string;
+  source: 'install' | 'reconnect';
+  returnTo?: string;
+  capability?: ShopifyScopeCapability;
+}
+
+export interface ShopifyScopeStatus {
+  capability: ShopifyScopeCapability;
+  requiredScopes: string[];
+  grantedScopes: string[];
+  missingScopes: string[];
+}
+
 const ANSWER_BLOCK_METAFIELD_DEFINITIONS: {
   questionId: string;
   key: string;
@@ -138,7 +154,7 @@ export class ShopifyService {
   private readonly apiSecret: string;
   private readonly appUrl: string;
   private readonly scopes: string;
-  private readonly stateStore = new Map<string, string>(); // In production, use Redis
+  private readonly stateStore = new Map<string, ShopifyOauthStatePayload>(); // In production, use Redis
 
   private lastShopifyRequestAt = 0;
   private readonly minShopifyIntervalMs = 500;
@@ -159,6 +175,68 @@ export class ShopifyService {
 
   private get isTestEnv(): boolean {
     return process.env.NODE_ENV === 'test';
+  }
+
+  private parseScopeList(scope: unknown): string[] {
+    if (typeof scope !== 'string') return [];
+    const trimmed = scope.trim();
+    if (!trimmed) return [];
+    return trimmed
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  private requiredScopesForCapability(capability: ShopifyScopeCapability): string[] {
+    switch (capability) {
+      case 'pages_sync':
+        return ['read_content'];
+      case 'collections_sync':
+        return ['read_products'];
+      default:
+        return [];
+    }
+  }
+
+  private getScopeStatusFromIntegration(
+    integration: any,
+    capability: ShopifyScopeCapability,
+  ): ShopifyScopeStatus {
+    const storedScope = (integration?.config as any)?.scope ?? '';
+    const grantedScopes = this.parseScopeList(storedScope);
+    const requiredScopes = this.requiredScopesForCapability(capability);
+    const granted = new Set(grantedScopes);
+    const missingScopes = requiredScopes.filter((s) => !granted.has(s));
+    return { capability, requiredScopes, grantedScopes, missingScopes };
+  }
+
+  async getShopifyScopeStatus(
+    projectId: string,
+    capability: ShopifyScopeCapability,
+  ): Promise<{ projectId: string; connected: boolean } & ShopifyScopeStatus> {
+    const integration = await this.getShopifyIntegration(projectId);
+    if (!integration || !integration.externalId || !integration.accessToken) {
+      return {
+        projectId,
+        connected: false,
+        capability,
+        requiredScopes: this.requiredScopesForCapability(capability),
+        grantedScopes: [],
+        missingScopes: [],
+      };
+    }
+    const status = this.getScopeStatusFromIntegration(integration, capability);
+    return { projectId, connected: true, ...status };
+  }
+
+  getSafeReturnToForProject(returnTo: unknown, projectId: string): string | null {
+    if (typeof returnTo !== 'string') return null;
+    const value = returnTo.trim();
+    if (!value) return null;
+    if (!value.startsWith('/')) return null;
+    if (value.startsWith('//')) return null;
+    if (!value.startsWith(`/projects/${projectId}`)) return null;
+    return value;
   }
 
   /**
@@ -521,14 +599,28 @@ export class ShopifyService {
   /**
    * Generate the Shopify OAuth URL for installation
    */
-  generateInstallUrl(shop: string, projectId: string): string {
+  generateInstallUrl(
+    shop: string,
+    projectId: string,
+    opts?: {
+      scopesCsv?: string;
+      returnTo?: string | null;
+      source?: ShopifyOauthStatePayload['source'];
+      capability?: ShopifyScopeCapability;
+    },
+  ): string {
     const state = crypto.randomBytes(16).toString('hex');
-    this.stateStore.set(state, projectId);
+    this.stateStore.set(state, {
+      projectId,
+      source: opts?.source ?? 'install',
+      ...(opts?.returnTo ? { returnTo: opts.returnTo } : {}),
+      ...(opts?.capability ? { capability: opts.capability } : {}),
+    });
 
     const redirectUri = `${this.appUrl}/shopify/callback`;
     const params = new URLSearchParams({
       client_id: this.apiKey,
-      scope: this.scopes,
+      scope: opts?.scopesCsv ?? this.scopes,
       redirect_uri: redirectUri,
       state,
     });
@@ -556,13 +648,13 @@ export class ShopifyService {
   }
 
   /**
-   * Validate state parameter and retrieve projectId
+   * Validate state parameter and retrieve payload
    */
-  validateState(state: string): string | null {
-    const projectId = this.stateStore.get(state);
-    if (projectId) {
+  validateState(state: string): ShopifyOauthStatePayload | null {
+    const payload = this.stateStore.get(state);
+    if (payload) {
       this.stateStore.delete(state);
-      return projectId;
+      return payload;
     }
     return null;
   }
@@ -600,6 +692,15 @@ export class ShopifyService {
     accessToken: string,
     scope: string,
   ) {
+    const existing = await this.prisma.integration.findUnique({
+      where: {
+        projectId_type: {
+          projectId,
+          type: IntegrationType.SHOPIFY,
+        },
+      },
+    });
+    const existingConfig = (existing?.config as any) || {};
     const integration = await this.prisma.integration.upsert({
       where: {
         projectId_type: {
@@ -621,6 +722,7 @@ export class ShopifyService {
         externalId: shopDomain,
         accessToken,
         config: {
+          ...existingConfig,
           scope,
           installedAt: new Date().toISOString(),
           uninstalledAt: null,
@@ -2028,12 +2130,14 @@ export class ShopifyService {
       throw new BadRequestException('No Shopify integration found for this project');
     }
 
-    // Check for read_content scope
-    const storedScope = (integration.config as any)?.scope ?? '';
-    if (!storedScope.includes('read_content')) {
-      throw new BadRequestException(
-        'Missing required Shopify scope: read_content. Please reconnect Shopify to grant Pages access.',
-      );
+    const scopeStatus = this.getScopeStatusFromIntegration(integration, 'pages_sync');
+    if (scopeStatus.missingScopes.length > 0) {
+      throw new BadRequestException({
+        code: 'SHOPIFY_MISSING_SCOPES',
+        message: `Missing required Shopify scope(s): ${scopeStatus.missingScopes.join(', ')}`,
+        projectId,
+        ...scopeStatus,
+      });
     }
 
     const project = await this.prisma.project.findUnique({
@@ -2143,6 +2247,16 @@ export class ShopifyService {
     const integration = await this.getShopifyIntegration(projectId);
     if (!integration || !integration.accessToken || !integration.externalId) {
       throw new BadRequestException('No Shopify integration found for this project');
+    }
+
+    const scopeStatus = this.getScopeStatusFromIntegration(integration, 'collections_sync');
+    if (scopeStatus.missingScopes.length > 0) {
+      throw new BadRequestException({
+        code: 'SHOPIFY_MISSING_SCOPES',
+        message: `Missing required Shopify scope(s): ${scopeStatus.missingScopes.join(', ')}`,
+        projectId,
+        ...scopeStatus,
+      });
     }
 
     const project = await this.prisma.project.findUnique({

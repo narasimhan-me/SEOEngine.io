@@ -51,7 +51,7 @@ import { GovernanceService } from './governance.service';
 import { ApprovalsService } from './approvals.service';
 import { RoleResolutionService } from '../common/role-resolution.service';
 import { WorkQueueService } from './work-queue.service';
-import { ShopifyService } from '../shopify/shopify.service';
+import { ShopifyService, type ShopifyScopeStatus } from '../shopify/shopify.service';
 import type {
   WorkQueueTab,
   WorkQueueBundleType,
@@ -1416,5 +1416,29 @@ export class ProjectsController {
     }
 
     return this.shopifyService.getSyncStatus(projectId);
+  }
+
+  /**
+   * GET /projects/:id/shopify/missing-scopes?capability=pages_sync|collections_sync
+   * [SHOPIFY-SCOPE-RECONSENT-UX-1] Server-authoritative missing scope detection.
+   * Membership-accessible (read-only).
+   */
+  @Get(':id/shopify/missing-scopes')
+  async getShopifyMissingScopes(
+    @Request() req: any,
+    @Param('id') projectId: string,
+    @Query('capability') capability?: string,
+  ): Promise<{ projectId: string; connected: boolean } & ShopifyScopeStatus> {
+    if (!capability) {
+      throw new BadRequestException('Missing capability parameter');
+    }
+    const hasAccess = await this.roleResolutionService.hasProjectAccess(projectId, req.user.id);
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this project');
+    }
+    if (capability !== 'pages_sync' && capability !== 'collections_sync') {
+      throw new BadRequestException('Invalid capability parameter');
+    }
+    return this.shopifyService.getShopifyScopeStatus(projectId, capability);
   }
 }

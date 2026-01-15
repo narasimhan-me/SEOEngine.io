@@ -1599,6 +1599,34 @@ Seeds:
 
 - `docs/manual-testing/SHOPIFY-ASSET-SYNC-COVERAGE-1.md`
 
+### Phase SHOPIFY-SCOPE-RECONSENT-UX-1: Explicit Shopify Re-Consent for New Scopes ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-15
+**Activation:** Trust-preserving remediation path for missing Shopify scopes (Pages / Collections)
+
+#### Goals
+
+1. Expose server-authoritative missing scope detection per capability.
+2. Replace generic "sync failed" messaging with a structured permission notice + explicit remediation CTA.
+3. Ensure re-consent is user-initiated, requests only the minimal additional scopes required, and returns to the originating screen.
+4. Auto-retry the previously blocked sync after successful re-consent return.
+
+#### Key Changes
+
+1. **API:** Added `GET /projects/:id/shopify/missing-scopes?capability=...` and `GET /shopify/reconnect` (user-initiated); OAuth callback now respects safe `returnTo` for reconnect.
+2. **ShopifyService:** Added scope status helpers; Pages/Collections sync throws structured `SHOPIFY_MISSING_SCOPES` payload when blocked.
+3. **Frontend:** Pages/Collections list pages show "Additional Shopify permission required" notice, provide "Reconnect Shopify", and auto-sync on reconnect return.
+4. **Tests:** Added Playwright coverage for missing-scope notice + auto-sync after reconnect return.
+
+#### Manual Testing
+
+- `docs/manual-testing/SHOPIFY-SCOPE-RECONSENT-UX-1.md`
+
+#### Related Documentation
+
+- `docs/SHOPIFY_PERMISSIONS_AND_RECONSENT.md`
+
 ### Phase ISSUE-FIX-KIND-CLARITY-1: Diagnostic vs Fixable Issue CTA Semantics ✅ COMPLETE
 
 **Status:** Complete
@@ -2002,3 +2030,5 @@ These invariants MUST be preserved during implementation:
 | 6.52 | 2026-01-14 | **ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1-AUDIT-1 + MISSING-METADATA-FIX-SURFACE-INTEGRITY-1-AUDIT-1**: Playwright hardening. (1) VAR1-001 no longer uses conditional skip - targets deterministic "Missing titles or descriptions" issue card; (2) Added VAR1-004 for back-navigation contract (ScopeBanner Back returns to Issues Engine with original pillar + mode filters); (3) VAR1-003 now asserts non-empty list before exclusion check; (4) MMFSI1-001 now tests via app-generated link (not direct URL) to verify real anchor mapping; (5) MMFSI1-002 adds explicit fixAnchor URL assertion. Manual testing docs updated with corrected example (missing_metadata) and test coverage. |
 | 6.53 | 2026-01-14 | **ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1-AUDIT-2**: Fixed Playwright selector mismatch. VAR1-001 and VAR1-004 now use canonical Issues Engine card testids (`issue-card-actionable` / `issue-card-informational`) instead of nonexistent `issue-card`. Added `.first()` after filter to force single target. |
 | 6.54 | 2026-01-15 | **ISSUESLIST-VIEW-AFFECTED-CONTEXT-1 COMPLETE**: Secondary "View affected →" link in IssuesList expanded details now preserves full route context. Uses `withRouteContext()` to include `issueType`, `from`, and `returnTo` params. Computed via `getReturnToFromCurrentUrl()` and pathname inference. Playwright test ILVAC1-001 added. Manual testing doc updated with Critical Invariant 5 and test coverage. |
+| 6.55 | 2026-01-15 | **SHOPIFY-SCOPE-RECONSENT-UX-1 COMPLETE**: Explicit Shopify re-consent UX for newly required scopes. Server-authoritative missing scope endpoint (`/projects/:id/shopify/missing-scopes`), user-initiated reconnect (`/shopify/reconnect`) with safe `returnTo`, structured permission notice + Reconnect CTA on Pages/Collections lists, structured `SHOPIFY_MISSING_SCOPES` API payload, auto-sync after reconnect return. Playwright coverage added; manual testing doc + internal permissions doc. |
+| 6.56 | 2026-01-15 | **SHOPIFY-SCOPE-RECONSENT-UX-1-AUDIT-1**: Playwright scope parsing hardened. (1) Reconnect redirect scope assertion now parses OAuth redirect URL properly (`new URL(location).searchParams.get('scope')`) instead of relying on `decodeURIComponent` substring match - avoids false positives from URL-encoded characters; (2) Manual testing doc paths corrected to full relative paths (`docs/testing/...`, `docs/API_SPEC.md`). |
