@@ -76,6 +76,7 @@ export default function PagesAssetListPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [reconnectError, setReconnectError] = useState<string | null>(null);
+  const [reconnecting, setReconnecting] = useState(false);
   const [scopeStatus, setScopeStatus] = useState<{
     requiredScopes: string[];
     grantedScopes: string[];
@@ -275,29 +276,41 @@ export default function PagesAssetListPage() {
   const hasMissingScopes = (scopeStatus?.missingScopes?.length ?? 0) > 0;
 
   const handleReconnectShopify = useCallback(async () => {
+    console.log('[Reconnect] handleReconnectShopify called');
     setReconnectError(null);
+    setReconnecting(true);
     if (!projectId) {
+      console.log('[Reconnect] No projectId');
       setReconnectError(
         "We couldn't start Shopify reconnection because your project ID is missing. Please refresh and try again.",
       );
+      setReconnecting(false);
       return;
     }
     const token = getToken();
     if (!token) {
+      console.log('[Reconnect] No token');
       setReconnectError(
         "We couldn't start Shopify reconnection because your session token is missing. Please sign in again, then retry.",
       );
+      setReconnecting(false);
       return;
     }
     try {
+      console.log('[Reconnect] Calling getReconnectUrl...');
       const result = await shopifyApi.getReconnectUrl(projectId, 'pages_sync', currentPathWithQuery);
+      console.log('[Reconnect] getReconnectUrl result:', result);
       const url = result && typeof (result as any).url === 'string' ? (result as any).url : null;
       if (!url) {
+        console.log('[Reconnect] No URL in result');
         setReconnectError("We couldn't start Shopify reconnection. Please refresh and try again.");
+        setReconnecting(false);
         return;
       }
+      console.log('[Reconnect] Redirecting to:', url);
       window.location.href = url;
     } catch (err: unknown) {
+      console.error('[Reconnect] Error:', err);
       // Prevent fetchWithAuth's automatic redirect to login for 403 errors
       // A 403 here means the user lacks OWNER permission, not that they're unauthenticated
       const message =
@@ -305,6 +318,7 @@ export default function PagesAssetListPage() {
           ? err.message
           : "We couldn't start Shopify reconnection. Please sign in again, then retry.";
       setReconnectError(message);
+      setReconnecting(false);
     }
   }, [projectId, currentPathWithQuery]);
 
@@ -448,6 +462,7 @@ export default function PagesAssetListPage() {
           learnMoreHref="/help/shopify-permissions"
           errorMessage={reconnectError}
           onSignInAgain={handleSignInAgain}
+          isReconnecting={reconnecting}
         />
       )}
 
