@@ -9,8 +9,8 @@ export default function ShopifyPermissionsHelpPage() {
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <h2 className="text-sm font-semibold text-gray-900">What EngineO.ai requests</h2>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-700">
-          <li>Only the minimum scopes required for the feature you're using</li>
-          <li>No silent permission escalation (you must click "Reconnect Shopify")</li>
+          <li>Only the minimum scopes required for the feature you&apos;re using</li>
+          <li>No silent permission escalation (you must click &quot;Reconnect Shopify&quot;)</li>
           <li>Read-only scopes for read-only sync features</li>
         </ul>
       </div>
