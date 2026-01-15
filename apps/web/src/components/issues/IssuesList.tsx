@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useMemo } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import type { DeoIssue } from '@/lib/deo-issues';
 import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
@@ -13,6 +13,11 @@ import {
   getIssueFixConfig,
   type IssueFixKind,
 } from '@/lib/issue-to-fix-path';
+import {
+  getReturnToFromCurrentUrl,
+  withRouteContext,
+  type RouteFrom,
+} from '@/lib/route-context';
 
 // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Re-export ISSUE_UI_CONFIG for backwards compatibility
 export { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
@@ -40,6 +45,27 @@ interface IssuesListProps {
 
 export function IssuesList({ issues, groupByPillar = false, projectId }: IssuesListProps) {
   const [expandedIssueId, setExpandedIssueId] = useState<string | null>(null);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // [ISSUESLIST-VIEW-AFFECTED-CONTEXT-1] Compute returnTo for "View affected" links
+  const viewAffectedReturnTo = useMemo(
+    () => getReturnToFromCurrentUrl(pathname, searchParams),
+    [pathname, searchParams]
+  );
+
+  // [ISSUESLIST-VIEW-AFFECTED-CONTEXT-1] Compute from context for "View affected" links
+  const viewAffectedFrom = useMemo((): RouteFrom => {
+    // If from param exists in URL, use it
+    const existingFrom = searchParams?.get('from');
+    if (existingFrom) {
+      return existingFrom as RouteFrom;
+    }
+    // Infer from pathname
+    if (pathname?.includes('/overview')) return 'overview';
+    if (pathname?.includes('/issues')) return 'issues_engine';
+    return 'issues_engine';
+  }, [pathname, searchParams]);
 
   // Non-grouped view: show "No issues detected" if empty
   if (!groupByPillar && (!issues || issues.length === 0)) {
@@ -97,6 +123,8 @@ export function IssuesList({ issues, groupByPillar = false, projectId }: IssuesL
                         )
                       }
                       projectId={projectId}
+                      viewAffectedFrom={viewAffectedFrom}
+                      viewAffectedReturnTo={viewAffectedReturnTo}
                     />
                   ))}
                 </div>
@@ -126,6 +154,8 @@ export function IssuesList({ issues, groupByPillar = false, projectId }: IssuesL
             )
           }
           projectId={projectId}
+          viewAffectedFrom={viewAffectedFrom}
+          viewAffectedReturnTo={viewAffectedReturnTo}
         />
       ))}
     </div>
@@ -138,12 +168,23 @@ interface IssueCardProps {
   onToggleExpand: () => void;
   /** [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Project ID for deterministic routing */
   projectId?: string;
+  /** [ISSUESLIST-VIEW-AFFECTED-CONTEXT-1] From context for "View affected" links */
+  viewAffectedFrom?: RouteFrom;
+  /** [ISSUESLIST-VIEW-AFFECTED-CONTEXT-1] Return URL for "View affected" links */
+  viewAffectedReturnTo?: string;
 }
 
 // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Removed legacy getIssueDeepLink and PILLAR_TO_TAB_MAP
 // Now uses buildIssueFixHref from issue-to-fix-path.ts for deterministic routing
 
-function IssueCard({ issue, isExpanded, onToggleExpand, projectId }: IssueCardProps) {
+function IssueCard({
+  issue,
+  isExpanded,
+  onToggleExpand,
+  projectId,
+  viewAffectedFrom,
+  viewAffectedReturnTo,
+}: IssueCardProps) {
   const router = useRouter();
 
   // [ISSUE-TO-FIX-PATH-1] Use centralized safe title/description helpers
@@ -245,6 +286,7 @@ function IssueCard({ issue, isExpanded, onToggleExpand, projectId }: IssueCardPr
               {issue.affectedProducts && issue.affectedProducts.length > 0 && (
                 <div>
                   {/* [ISSUE-TO-FIX-PATH-1] Remove internal ID leakage - show count and link instead */}
+                  {/* [ISSUESLIST-VIEW-AFFECTED-CONTEXT-1] Secondary link preserves issueType + context */}
                   <div className="mb-1 font-semibold">
                     Products ({affectedProductCount})
                   </div>
@@ -252,9 +294,18 @@ function IssueCard({ issue, isExpanded, onToggleExpand, projectId }: IssueCardPr
                     <div className="flex items-center gap-2">
                       <span className="text-gray-500">{affectedProductCount} product{affectedProductCount !== 1 ? 's' : ''} affected</span>
                       <Link
-                        href={`/projects/${projectId}/products`}
+                        href={
+                          viewAffectedFrom && viewAffectedReturnTo
+                            ? withRouteContext(`/projects/${projectId}/products`, {
+                                from: viewAffectedFrom,
+                                returnTo: viewAffectedReturnTo,
+                                issueType: issue.type || issue.id,
+                              })
+                            : `/projects/${projectId}/products?issueType=${encodeURIComponent(issue.type || issue.id)}`
+                        }
                         onClick={(e) => e.stopPropagation()}
                         className="text-blue-600 hover:text-blue-800 font-medium"
+                        data-testid="issue-card-view-affected-secondary"
                       >
                         View affected →
                       </Link>

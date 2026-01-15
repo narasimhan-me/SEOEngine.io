@@ -1,6 +1,7 @@
 /**
  * [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Playwright Regression Tests
  * [MISSING-METADATA-FIX-SURFACE-INTEGRITY-1] Missing Metadata anchor integrity
+ * [ISSUESLIST-VIEW-AFFECTED-CONTEXT-1] Secondary "View affected" link context preservation
  * [AUDIT-1] Test contract hardening: deterministic targeting, real-link assertions, back-navigation
  * [AUDIT-2] Fixed selector: use canonical issue-card-actionable/issue-card-informational testids
  *
@@ -11,6 +12,7 @@
  * 4. Back navigation restores Issues Engine with original filters
  * 5. Missing Metadata issues no longer show "Fix surface not available"
  * 6. App-generated deep links include correct anchor mapping
+ * 7. Secondary "View affected →" link in IssuesList preserves issueType + context
  *
  * Critical paths: CP-008 (Issue-to-Fix-Path)
  */
@@ -202,6 +204,85 @@ test.describe('ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1: View affected routes to fi
     expect(returnUrl.pathname).toBe(`/projects/${projectId}/issues`);
     expect(returnUrl.searchParams.get('pillar')).toBe('metadata_snippet_quality');
     expect(returnUrl.searchParams.get('mode')).toBe('detected');
+  });
+});
+
+test.describe('ISSUESLIST-VIEW-AFFECTED-CONTEXT-1: Secondary View affected link preserves context', () => {
+  /**
+   * ILVAC1-001: IssuesList secondary "View affected →" preserves issueType + returnTo
+   * [ISSUESLIST-VIEW-AFFECTED-CONTEXT-1] New test for secondary link in expanded issue details
+   *
+   * Given: Overview page with DEO Score modal open ("Issues identified in your project")
+   * When: User expands an issue card and clicks "View affected →" in the Products section
+   * Then: Browser navigates to Products list with:
+   *   - issueType=missing_metadata
+   *   - from=overview (origin is Overview modal)
+   *   - returnTo decodes to /projects/:id/overview
+   * And: Back button returns to Overview
+   */
+  test('ILVAC1-001: IssuesList secondary "View affected →" preserves issueType + returnTo', async ({
+    page,
+    request,
+  }) => {
+    const { projectId } = await authenticatePage(page, request);
+
+    // Navigate to Overview page
+    await page.goto(`/projects/${projectId}/overview`);
+    await page.waitForLoadState('networkidle');
+
+    // Click the checklist button "View DEO Score" to open the issues modal
+    const viewDeoScoreButton = page.locator('button:has-text("View DEO Score"), a:has-text("View DEO Score")').first();
+    await expect(viewDeoScoreButton).toBeVisible();
+    await viewDeoScoreButton.click();
+
+    // Wait for the modal to appear with issues
+    await page.waitForSelector('[data-testid="issue-card-actionable"], [data-testid="issue-card-informational"]', {
+      timeout: 10000,
+    });
+
+    // Find the "Missing titles or descriptions" issue card
+    const missingMetadataCard = page
+      .locator('[data-testid="issue-card-actionable"], [data-testid="issue-card-informational"]')
+      .filter({ hasText: 'Missing titles or descriptions' })
+      .first();
+    await expect(missingMetadataCard).toBeVisible();
+
+    // Click "Show affected items" to expand the card
+    const showAffectedButton = missingMetadataCard.locator('button:has-text("Show affected items")');
+    await expect(showAffectedButton).toBeVisible();
+    await showAffectedButton.click();
+
+    // Click the secondary "View affected →" link in the expanded Products section
+    const viewAffectedSecondary = missingMetadataCard.locator('[data-testid="issue-card-view-affected-secondary"]');
+    await expect(viewAffectedSecondary).toBeVisible();
+    await viewAffectedSecondary.click();
+    await page.waitForLoadState('networkidle');
+
+    // Assert destination is Products list
+    const url = new URL(page.url());
+    expect(url.pathname).toBe(`/projects/${projectId}/products`);
+
+    // Assert issueType is preserved
+    expect(url.searchParams.get('issueType')).toBe('missing_metadata');
+
+    // Assert from=overview (origin is Overview modal)
+    expect(url.searchParams.get('from')).toBe('overview');
+
+    // Assert returnTo decodes to Overview page
+    const returnTo = url.searchParams.get('returnTo');
+    expect(returnTo).toBeTruthy();
+    const decodedReturnTo = decodeURIComponent(returnTo!);
+    expect(decodedReturnTo).toContain(`/projects/${projectId}/overview`);
+
+    // Click ScopeBanner Back and assert return to Overview
+    const backButton = page.getByTestId('scope-banner-back');
+    await expect(backButton).toBeVisible();
+    await backButton.click();
+    await page.waitForLoadState('networkidle');
+
+    // Assert browser returns to Overview
+    const returnUrl = new URL(page.url());
+    expect(returnUrl.pathname).toBe(`/projects/${projectId}/overview`);
   });
 });
 

@@ -98,6 +98,7 @@ This phase ensures that clicking "View affected" on an issue card in the Issues 
 2. **issueType filtering is server-authoritative** - Products API filters by affected products, not client-side
 3. **returnTo is always present** - Enables reliable back navigation to Issues Engine
 4. **from=issues_engine identifies origin** - ScopeBanner uses this for display and back link
+5. **Secondary "View affected →" in IssuesList also routes correctly** - The secondary link inside expanded affected-items sections (IssuesList details) routes to filtered Products list with `issueType=…` and preserves `from` + `returnTo` params
 
 ---
 
@@ -108,6 +109,7 @@ This phase ensures that clicking "View affected" on an issue card in the Issues 
   - VAR1-002: Products list shows ScopeBanner with issueType chip
   - VAR1-003: issueType filtering excludes non-affected products (asserts non-empty list)
   - VAR1-004: [AUDIT-1] Back returns to Issues Engine with same filters
+  - ILVAC1-001: [ISSUESLIST-VIEW-AFFECTED-CONTEXT-1] Secondary "View affected →" link in IssuesList details preserves issueType + from + returnTo
 
 ---
 
