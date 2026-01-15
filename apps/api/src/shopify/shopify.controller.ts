@@ -147,6 +147,15 @@ export class ShopifyController {
     // Exchange code for access token
     const tokenData = await this.shopifyService.exchangeToken(shop, code);
 
+    console.log('[Shopify Callback] Token exchange result:', {
+      projectId,
+      shop,
+      source: statePayload.source,
+      capability: statePayload.capability,
+      returnTo: statePayload.returnTo,
+      scopeFromShopify: tokenData.scope,
+    });
+
     // Store connection in database
     await this.shopifyService.storeShopifyConnection(
       projectId,
@@ -154,6 +163,8 @@ export class ShopifyController {
       tokenData.access_token,
       tokenData.scope,
     );
+
+    console.log('[Shopify Callback] Connection stored successfully');
 
     // Redirect to frontend with success
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';

@@ -618,11 +618,21 @@ export class ShopifyService {
     });
 
     const redirectUri = `${this.appUrl}/shopify/callback`;
+    const requestedScopes = opts?.scopesCsv ?? this.scopes;
     const params = new URLSearchParams({
       client_id: this.apiKey,
-      scope: opts?.scopesCsv ?? this.scopes,
+      scope: requestedScopes,
       redirect_uri: redirectUri,
       state,
+    });
+
+    console.log('[Shopify] generateInstallUrl:', {
+      shop,
+      projectId,
+      source: opts?.source,
+      capability: opts?.capability,
+      requestedScopes,
+      returnTo: opts?.returnTo,
     });
 
     return `https://${shop}/admin/oauth/authorize?${params.toString()}`;
