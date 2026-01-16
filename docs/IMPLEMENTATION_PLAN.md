@@ -1649,6 +1649,29 @@ Seeds:
 
 - `docs/manual-testing/SHOPIFY-SCOPE-RECONSENT-UX-1.md`
 
+### Phase SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1: Connect / Disconnect Consistency + Working Entry Points ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-16
+**Activation:** Trust-preserving Shopify integration lifecycle across Store Health, Products, Assets, and Project Settings
+
+#### Goals
+
+1. Make "Shopify connected" server-authoritative and consistent everywhere.
+2. Ensure disconnect fully disconnects and removes phantom connected experiences.
+3. Ensure every "connect required" state has a working, user-initiated Connect path.
+4. Fix broken navigation to Project Settings integrations section.
+
+#### Key Changes
+
+1. **API:** GET /projects/:id/integration-status now reports connected state based on usable credentials; added OWNER-only GET /projects/:id/shopify/connect-url.
+2. **Frontend:** Store Health shows Shopify-not-connected notice + Connect path for Shopify projects; Settings includes Connect/Disconnect CTAs and missing-scope reconnect notice; Products empty-state link routes to /settings#integrations; Pages/Collections show connect guidance when not connected.
+3. **Tests:** Added Playwright coverage for disconnect → disconnected everywhere, new project connect path, Products link routing, and Connect CTA non-silent failure.
+
+#### Manual Testing
+
+- `docs/manual-testing/SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1.md`
+
 ### Phase ISSUE-FIX-KIND-CLARITY-1: Diagnostic vs Fixable Issue CTA Semantics ✅ COMPLETE
 
 **Status:** Complete
@@ -2055,3 +2078,5 @@ These invariants MUST be preserved during implementation:
 | 6.55 | 2026-01-15 | **SHOPIFY-SCOPE-RECONSENT-UX-1 COMPLETE**: Explicit Shopify re-consent UX for newly required scopes. Server-authoritative missing scope endpoint (`/projects/:id/shopify/missing-scopes`), user-initiated reconnect (`/shopify/reconnect`) with safe `returnTo`, structured permission notice + Reconnect CTA on Pages/Collections lists, structured `SHOPIFY_MISSING_SCOPES` API payload, auto-sync after reconnect return. Playwright coverage added; manual testing doc + internal permissions doc. |
 | 6.56 | 2026-01-15 | **SHOPIFY-SCOPE-RECONSENT-UX-1-AUDIT-1**: Playwright scope parsing hardened. (1) Reconnect redirect scope assertion now parses OAuth redirect URL properly (`new URL(location).searchParams.get('scope')`) instead of relying on `decodeURIComponent` substring match - avoids false positives from URL-encoded characters; (2) Manual testing doc paths corrected to full relative paths (`docs/testing/...`, `docs/API_SPEC.md`). |
 | 6.57 | 2026-01-15 | **SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1 COMPLETE**: Reconnect CTA never fails silently. (1) Added OWNER-only reconnect URL endpoint (`/projects/:id/shopify/reconnect-url`) so reconnect start is server-authoritative; (2) Permission notice shows inline reconnect errors + "Sign in again" CTA; (3) Pages/Collections parity; (4) Playwright tests for missing-token error and OAuth navigation attempt. |
+| 6.58 | 2026-01-16 | **SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1 COMPLETE**: Connect/disconnect consistency + working entry points. (1) Server-authoritative connected semantics in `/projects/:id/integration-status`; (2) Added OWNER-only `/projects/:id/shopify/connect-url`; (3) Store Health + Settings + Assets show clear "not connected" guidance and working Connect/Disconnect CTAs; (4) Fixed Products empty-state link to `/settings#integrations`; (5) Playwright coverage added. |
+| 6.59 | 2026-01-16 | **SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1-FIXUP-1**: Dead-click and brittle behavior fixes. (1) Settings Connect/Disconnect buttons allow clicks while capabilities loading (no longer disabled when null); (2) Store Health integrationStatus fetch is non-blocking (`.catch(() => null)`); (3) connect-url endpoint validates non-.myshopify.com domains with dots and returns clear error instead of generating invalid OAuth URL. |

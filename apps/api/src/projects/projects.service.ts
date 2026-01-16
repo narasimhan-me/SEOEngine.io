@@ -257,9 +257,22 @@ export class ProjectsService {
     }
 
     // Build integration status map for all types
-    const integrationMap = new Map(
-      project.integrations.map((i) => [i.type, i]),
-    );
+    const integrationMap = new Map(project.integrations.map((i) => [i.type, i]));
+
+    const isIntegrationConnected = (integration: any): boolean => {
+      if (!integration) return false;
+      switch (integration.type) {
+        case IntegrationType.SHOPIFY:
+        case IntegrationType.WOOCOMMERCE:
+        case IntegrationType.BIGCOMMERCE:
+        case IntegrationType.MAGENTO:
+          return !!integration.externalId && !!integration.accessToken;
+        case IntegrationType.CUSTOM_WEBSITE:
+          return !!integration.externalId;
+        default:
+          return !!integration.externalId;
+      }
+    };
 
     const shopifyIntegration = integrationMap.get(IntegrationType.SHOPIFY);
     const woocommerceIntegration = integrationMap.get(IntegrationType.WOOCOMMERCE);
@@ -267,30 +280,34 @@ export class ProjectsService {
     const magentoIntegration = integrationMap.get(IntegrationType.MAGENTO);
     const customWebsiteIntegration = integrationMap.get(IntegrationType.CUSTOM_WEBSITE);
 
+    const activeIntegrations = project.integrations
+      .map((i) => ({
+        type: i.type,
+        externalId: i.externalId,
+        connected: isIntegrationConnected(i),
+        createdAt: i.createdAt,
+        config: i.config,
+      }))
+      .filter((i) => i.connected);
+
+    const shopifyConnected = !!shopifyIntegration && isIntegrationConnected(shopifyIntegration);
+
     return {
       projectId: project.id,
       projectName: project.name,
       projectDomain: project.domain ?? null,
-      integrations: project.integrations.map((i) => ({
-        type: i.type,
-        externalId: i.externalId,
-        connected: true,
-        createdAt: i.createdAt,
-        config: i.config,
-      })),
+      integrations: activeIntegrations,
       shopify: shopifyIntegration
         ? {
-            connected: true,
+            connected: shopifyConnected,
             shopDomain: shopifyIntegration.externalId,
-            installedAt: (shopifyIntegration.config as any)?.installedAt,
-            scope: (shopifyIntegration.config as any)?.scope,
+            installedAt: shopifyConnected ? (shopifyIntegration.config as any)?.installedAt : undefined,
+            scope: shopifyConnected ? (shopifyIntegration.config as any)?.scope : undefined,
           }
-        : {
-            connected: false,
-          },
+        : { connected: false },
       woocommerce: woocommerceIntegration
         ? {
-            connected: true,
+            connected: isIntegrationConnected(woocommerceIntegration),
             storeUrl: woocommerceIntegration.externalId,
             createdAt: woocommerceIntegration.createdAt,
           }
@@ -299,7 +316,7 @@ export class ProjectsService {
           },
       bigcommerce: bigcommerceIntegration
         ? {
-            connected: true,
+            connected: isIntegrationConnected(bigcommerceIntegration),
             storeHash: bigcommerceIntegration.externalId,
             createdAt: bigcommerceIntegration.createdAt,
           }
@@ -308,7 +325,7 @@ export class ProjectsService {
           },
       magento: magentoIntegration
         ? {
-            connected: true,
+            connected: isIntegrationConnected(magentoIntegration),
             storeUrl: magentoIntegration.externalId,
             createdAt: magentoIntegration.createdAt,
           }
@@ -317,7 +334,7 @@ export class ProjectsService {
           },
       customWebsite: customWebsiteIntegration
         ? {
-            connected: true,
+            connected: isIntegrationConnected(customWebsiteIntegration),
             url: customWebsiteIntegration.externalId,
             createdAt: customWebsiteIntegration.createdAt,
           }

@@ -149,7 +149,11 @@ Returns aggregated stats:
 
 ### GET `/projects/:id/integration-status` (auth required)
 
-Returns integration status for all platform types:
+Returns integration status for all platform types.
+
+Connected definition (server-authoritative):
+- connected: true only when the integration has a usable connection credential for that platform (e.g., Shopify requires externalId + accessToken).
+- The integrations[] list reflects active (connected) integrations.
 
 ```json
 {
@@ -503,6 +507,26 @@ Response:
 - OWNER-only
 
 **Response:**
+
+```json
+{
+  "url": "https://{shop}.myshopify.com/admin/oauth/authorize?client_id=...&scope=...&redirect_uri=...&state=..."
+}
+```
+
+---
+
+### GET `/projects/:projectId/shopify/connect-url` (auth required)
+
+[SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1] Returns a Shopify OAuth authorize URL for explicit, user-initiated initial connection.
+
+Query parameters:
+- returnTo (optional): path beginning with /projects/:projectId/...
+
+Access:
+- OWNER-only
+
+Response:
 
 ```json
 {

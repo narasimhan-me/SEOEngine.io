@@ -338,7 +338,11 @@ export class AccountService {
       where: { userId },
       include: {
         integrations: {
-          where: { type: 'SHOPIFY' },
+          where: {
+            type: 'SHOPIFY',
+            accessToken: { not: null },
+            externalId: { not: null },
+          },
         },
       },
     });

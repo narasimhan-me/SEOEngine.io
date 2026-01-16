@@ -1443,6 +1443,58 @@ export class ProjectsController {
   }
 
   /**
+   * GET /projects/:id/shopify/connect-url?returnTo=/projects/...
+   * [SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1] Returns a Shopify OAuth authorize URL for explicit, user-initiated initial connection.
+   * OWNER-only (matches Shopify mutation posture).
+   */
+  @Get(':id/shopify/connect-url')
+  async getShopifyConnectUrl(
+    @Request() req: any,
+    @Param('id') projectId: string,
+    @Query('returnTo') returnTo?: string,
+  ) {
+    const role = await this.roleResolutionService.resolveEffectiveRole(projectId, req.user.id);
+    if (role !== 'OWNER') {
+      throw new ForbiddenException('Only project owners can connect Shopify');
+    }
+
+    const existingIntegration = await this.shopifyService.getShopifyIntegration(projectId);
+    if (existingIntegration?.externalId && existingIntegration?.accessToken) {
+      throw new BadRequestException('Shopify is already connected for this project');
+    }
+
+    const project = await this.projectsService.getProject(projectId, req.user.id);
+    const candidateShop = String(existingIntegration?.externalId ?? (project as any)?.domain ?? '').trim();
+    const cleaned = candidateShop.replace(/^https?:\/\//i, '').split('/')[0].trim();
+
+    if (!cleaned) {
+      throw new BadRequestException('No Shopify shop domain configured for this project');
+    }
+
+    // [SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1-FIXUP-1] Validate shop domain format
+    // Only append .myshopify.com if the value is a bare store handle (no dots)
+    // If it already contains dots but not .myshopify.com, it's an invalid non-Shopify domain
+    let shopDomain: string;
+    if (cleaned.includes('.myshopify.com')) {
+      shopDomain = cleaned;
+    } else if (!cleaned.includes('.')) {
+      shopDomain = `${cleaned}.myshopify.com`;
+    } else {
+      throw new BadRequestException(
+        'Project domain must be a Shopify store (e.g., my-store.myshopify.com or my-store). Custom domains cannot be used for Shopify OAuth.',
+      );
+    }
+    const safeReturnTo = this.shopifyService.getSafeReturnToForProject(returnTo, projectId);
+
+    const url = this.shopifyService.generateInstallUrl(shopDomain, projectId, {
+      source: 'install',
+      returnTo: safeReturnTo,
+    });
+
+    return { url };
+  }
+
+  /**
    * GET /projects/:id/shopify/reconnect-url?capability=pages_sync|collections_sync&returnTo=/projects/...
    * [SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1] [CRITICAL PATH: CP-006 Shopify Sync]
    * Returns a Shopify OAuth authorize URL for explicit, user-initiated re-consent.

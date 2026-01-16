@@ -2192,6 +2192,13 @@ export const shopifyApi = {
       )}&returnTo=${encodeURIComponent(returnTo)}`,
       { method: 'GET' },
     ),
+
+  // [SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1] Server-authoritative connect URL (user-initiated)
+  getConnectUrl: (projectId: string, returnTo: string) =>
+    fetchWithAuth(
+      `/projects/${projectId}/shopify/connect-url?returnTo=${encodeURIComponent(returnTo)}`,
+      { method: 'GET' },
+    ),
 };
 
 /**

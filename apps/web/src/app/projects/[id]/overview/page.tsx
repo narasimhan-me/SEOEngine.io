@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { isAuthenticated, removeToken, getToken } from '@/lib/auth';
-import { projectsApi, seoScanApi, productsApi, billingApi } from '@/lib/api';
+import { projectsApi, seoScanApi, productsApi, billingApi, shopifyApi } from '@/lib/api';
 import type { Product } from '@/lib/products';
 import type {
   DeoScoreLatestResponse,
@@ -336,9 +336,8 @@ export default function ProjectOverviewPage() {
     fetchPlanId,
   ]);
 
-  const startShopifyOAuth = () => {
+  const startShopifyOAuth = async () => {
     setError('');
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
     const token = getToken();
     if (!token) {
       const message = "Couldn't start Shopify connection. Try again.";
@@ -346,37 +345,15 @@ export default function ProjectOverviewPage() {
       feedback.showError(message);
       return;
     }
-    let domain =
-      (status?.shopify.shopDomain ?? '') || (status?.projectDomain ?? '');
-    if (!domain) {
-      const input = window.prompt(
-        'Enter your Shopify store domain (for example, my-store.myshopify.com or my-store)',
-      );
-      if (!input) {
-        const message = "Couldn't start Shopify connection. Try again.";
-        setError(message);
-        feedback.showError(message);
-        return;
-      }
-      domain = input.trim();
-    }
-    if (!domain) {
-      const message = "Couldn't start Shopify connection. Try again.";
-      setError(message);
-      feedback.showError(message);
-      return;
-    }
-    let formattedDomain = domain.trim();
-    formattedDomain = formattedDomain.replace(/^https?:\/\//i, '').split('/')[0];
-    if (!formattedDomain.includes('.myshopify.com')) {
-      formattedDomain = `${formattedDomain}.myshopify.com`;
-    }
     setConnectingSource(true);
     try {
-      const installUrl = `${API_URL}/shopify/install?shop=${encodeURIComponent(
-        formattedDomain,
-      )}&projectId=${projectId}&token=${token}`;
-      window.location.href = installUrl;
+      const returnTo = `/projects/${projectId}/overview`;
+      const result = await shopifyApi.getConnectUrl(projectId, returnTo);
+      const url = result && typeof (result as any).url === 'string' ? (result as any).url : null;
+      if (!url) {
+        throw new Error("Couldn't start Shopify connection. Try again.");
+      }
+      window.location.href = url;
     } catch (err) {
       console.error('Error starting Shopify OAuth:', err);
       setConnectingSource(false);
