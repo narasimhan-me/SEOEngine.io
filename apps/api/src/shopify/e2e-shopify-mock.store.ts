@@ -31,12 +31,26 @@ export interface MockShopifyCollection {
   };
 }
 
+export interface MockShopifyArticle {
+  id: string;
+  title: string;
+  handle: string;
+  blogHandle: string;
+  publishedAt: string | null;
+  updatedAt: string;
+  seo?: {
+    title: string | null;
+    description: string | null;
+  };
+}
+
 /**
  * E2E Shopify Mock Store (singleton)
  */
 class E2EShopifyMockStore {
   private pages: MockShopifyPage[] = [];
   private collections: MockShopifyCollection[] = [];
+  private articles: MockShopifyArticle[] = [];
 
   /**
    * Set mocked Shopify Pages for E2E tests.
@@ -67,11 +81,26 @@ class E2EShopifyMockStore {
   }
 
   /**
+   * Set mocked Shopify Articles (blog posts) for E2E tests.
+   */
+  setArticles(articles: MockShopifyArticle[]): void {
+    this.articles = articles;
+  }
+
+  /**
+   * Get mocked Shopify Articles (blog posts).
+   */
+  getArticles(): MockShopifyArticle[] {
+    return this.articles;
+  }
+
+  /**
    * Reset all mocked data (used per test seed).
    */
   reset(): void {
     this.pages = [];
     this.collections = [];
+    this.articles = [];
   }
 }
 

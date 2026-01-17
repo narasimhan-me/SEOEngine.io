@@ -12,8 +12,8 @@
 - Related phases/sections in docs/IMPLEMENTATION_PLAN.md:
   Phase SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1
 - Related documentation:
-  docs/API_SPEC.md
-  docs/CRITICAL_PATH_MAP.md
+  API_SPEC.md
+  docs/testing/CRITICAL_PATH_MAP.md
 
 ---
 

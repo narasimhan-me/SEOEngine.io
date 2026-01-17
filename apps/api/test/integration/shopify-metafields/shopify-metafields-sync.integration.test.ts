@@ -150,7 +150,8 @@ describe('Shopify Answer Block metafields sync (integration)', () => {
         if (key === 'SHOPIFY_API_KEY') return 'test-api-key';
         if (key === 'SHOPIFY_API_SECRET') return 'test-api-secret';
         if (key === 'SHOPIFY_APP_URL') return 'https://api.example.com';
-        if (key === 'SHOPIFY_SCOPES') return 'read_products,write_products';
+        // [SHOPIFY-SCOPES-MATRIX-1] Include read_content for pages_sync capability
+        if (key === 'SHOPIFY_SCOPES') return 'read_products,write_products,read_themes,read_content';
         return undefined;
       },
     } as any;

@@ -48,8 +48,8 @@ export interface CrawlPageListFilters {
   status?: 'optimized' | 'needs_attention';
   /** Filter pages that appear in non-applied drafts */
   hasDraft?: boolean;
-  /** Filter by page type: 'static' (pages) or 'collection' */
-  pageType?: 'static' | 'collection';
+  /** Filter by page type: 'static' (pages), 'collection' (collections), or 'blog' (blog posts) */
+  pageType?: 'static' | 'collection' | 'blog';
 }
 
 /**
@@ -534,7 +534,10 @@ export class ProjectsService {
         shopifyResourceType: true,
         shopifyResourceId: true,
         shopifyHandle: true,
+        shopifyBlogHandle: true,
         shopifyUpdatedAt: true,
+        // [BLOGS-ASSET-SYNC-COVERAGE-1] Shopify article publish status support
+        shopifyPublishedAt: true,
         shopifySyncedAt: true,
       },
       orderBy: { scannedAt: 'desc' },
@@ -666,7 +669,9 @@ export class ProjectsService {
           shopifyResourceType: result.shopifyResourceType,
           shopifyResourceId: result.shopifyResourceId,
           shopifyHandle: result.shopifyHandle,
+          shopifyBlogHandle: result.shopifyBlogHandle,
           shopifyUpdatedAt: result.shopifyUpdatedAt?.toISOString() ?? null,
+          shopifyPublishedAt: result.shopifyPublishedAt?.toISOString() ?? null,
           shopifySyncedAt: result.shopifySyncedAt?.toISOString() ?? null,
         };
       });

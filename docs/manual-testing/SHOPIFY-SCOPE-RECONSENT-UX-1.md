@@ -15,7 +15,7 @@
   - Phase SHOPIFY-SCOPE-RECONSENT-UX-1
 - Related documentation:
   - docs/testing/CRITICAL_PATH_MAP.md (CP-006 Shopify Sync)
-  - docs/API_SPEC.md
+  - API_SPEC.md
   - docs/SHOPIFY_PERMISSIONS_AND_RECONSENT.md
 
 ---

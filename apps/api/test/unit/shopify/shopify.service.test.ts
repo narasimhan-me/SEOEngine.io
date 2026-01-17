@@ -47,13 +47,14 @@ const createPrismaMock = () => ({
   },
 });
 
+// [SHOPIFY-SCOPES-MATRIX-1] Updated SHOPIFY_SCOPES mock to include read_content for pages_sync
 const createConfigMock = (env: Record<string, string> = {}) => ({
   get: jest.fn((key: string) => {
     const defaults: Record<string, string> = {
       SHOPIFY_API_KEY: 'test-api-key',
       SHOPIFY_API_SECRET: 'test-api-secret',
       SHOPIFY_APP_URL: 'https://app.example.com',
-      SHOPIFY_SCOPES: 'read_products,write_products',
+      SHOPIFY_SCOPES: 'read_products,write_products,read_themes,read_content',
     };
     return env[key] ?? defaults[key];
   }),
@@ -122,11 +123,25 @@ describe('ShopifyService', () => {
 
       expect(url).toContain(`https://${shop}/admin/oauth/authorize`);
       expect(url).toContain('client_id=test-api-key');
-      // URL encoding: comma becomes %2C
-      expect(url).toContain('scope=read_products%2Cwrite_products');
+      // [SHOPIFY-SCOPES-MATRIX-1-FIXUP-1] Scopes now use computed minimal required scopes (not full allowlist)
+      expect(url).toContain('scope=');
+      // Verify computed minimal required scopes (sorted)
+      const urlObj = new URL(url);
+      const scopeParam = urlObj.searchParams.get('scope') || '';
+      const scopes = scopeParam.split(',').sort();
+      // [SHOPIFY-SCOPES-MATRIX-1-FIXUP-2] Minimal required install scopes: read_content, read_products, write_products
+      expect(scopes).toEqual(['read_content', 'read_products', 'write_products']);
       // URL encoding: slashes and colons are encoded
       expect(url).toContain('redirect_uri=https%3A%2F%2Fapp.example.com%2Fshopify%2Fcallback');
       expect(url).toContain('state=');
+    });
+
+    it('should fail fast when SHOPIFY_SCOPES allowlist is missing requested scopes', () => {
+      // Override the scopesAllowlistCsv to be missing read_content
+      (service as any).scopesAllowlistCsv = 'read_products,write_products';
+      expect(() => service.generateInstallUrl('test-shop.myshopify.com', 'proj-1')).toThrow(
+        BadRequestException,
+      );
     });
 
     it('should store state in stateStore', () => {

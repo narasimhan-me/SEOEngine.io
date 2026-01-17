@@ -1729,8 +1729,8 @@ export interface CrawlPageListOptions {
   q?: string;
   status?: 'optimized' | 'needs_attention';
   hasDraft?: boolean;
-  /** Filter by page type: 'static' for /pages/*, 'collection' for /collections/* */
-  pageType?: 'static' | 'collection';
+  /** Filter by page type: 'static' for /pages/*, 'collection' for /collections/*, 'blog' for /blogs/* */
+  pageType?: 'static' | 'collection' | 'blog';
 }
 
 export const productsApi = {
@@ -2168,13 +2168,19 @@ export const shopifyApi = {
       method: 'POST',
     }),
 
+  // [BLOGS-ASSET-SYNC-COVERAGE-1] Project-scoped sync endpoint
+  syncBlogs: (projectId: string) =>
+    fetchWithAuth(`/projects/${projectId}/shopify/sync-blogs`, {
+      method: 'POST',
+    }),
+
   getSyncStatus: (projectId: string) =>
     fetchWithAuth(`/projects/${projectId}/shopify/sync-status`, {
       method: 'GET',
     }),
 
   // [SHOPIFY-SCOPE-RECONSENT-UX-1] Server-authoritative missing scope detection
-  getMissingScopes: (projectId: string, capability: 'pages_sync' | 'collections_sync') =>
+  getMissingScopes: (projectId: string, capability: 'pages_sync' | 'collections_sync' | 'blogs_sync') =>
     fetchWithAuth(
       `/projects/${projectId}/shopify/missing-scopes?capability=${encodeURIComponent(capability)}`,
       { method: 'GET' },
@@ -2183,7 +2189,7 @@ export const shopifyApi = {
   // [SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1] Server-authoritative reconnect URL (avoids localStorage token dependency)
   getReconnectUrl: (
     projectId: string,
-    capability: 'pages_sync' | 'collections_sync',
+    capability: 'pages_sync' | 'collections_sync' | 'blogs_sync',
     returnTo: string,
   ) =>
     fetchWithAuth(

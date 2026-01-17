@@ -473,12 +473,38 @@ Updates Shopify product SEO fields and local DB.
 
 ---
 
+### POST `/projects/:projectId/shopify/sync-blogs` (auth required)
+
+**[BLOGS-ASSET-SYNC-COVERAGE-1]** Sync Shopify Blog Posts (Articles) into CrawlResult table. OWNER-only.
+
+Requires `read_content` scope (same as pages_sync).
+
+**Response:**
+
+```json
+{
+  "projectId": "string",
+  "fetched": 10,
+  "upserted": 10,
+  "skipped": 0,
+  "completedAt": "2026-01-17T00:00:00.000Z",
+  "warnings": []
+}
+```
+
+**Errors:**
+- `403 Forbidden` – Only project owners can sync Shopify Blog Posts
+- `400 Bad Request` – Missing required Shopify scope(s) (code: `SHOPIFY_MISSING_SCOPES`)
+- `404 Not Found` – No Shopify store connected
+
+---
+
 ### GET `/projects/:projectId/shopify/missing-scopes` (auth required)
 
 [SHOPIFY-SCOPE-RECONSENT-UX-1] Server-authoritative missing scope detection for a capability.
 
 Query parameters:
-- `capability` (required): `pages_sync` | `collections_sync`
+- `capability` (required): `pages_sync` | `collections_sync` | `blogs_sync`
 
 Response:
 
@@ -500,7 +526,7 @@ Response:
 **[SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1]** Returns a Shopify OAuth authorize URL for explicit, user-initiated re-consent.
 
 **Query parameters:**
-- `capability` (required): `pages_sync` | `collections_sync`
+- `capability` (required): `pages_sync` | `collections_sync` | `blogs_sync`
 - `returnTo` (optional): path beginning with `/projects/:projectId/...`
 
 **Access:**

@@ -1672,6 +1672,116 @@ Seeds:
 
 - `docs/manual-testing/SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1.md`
 
+### Phase SHOPIFY-SCOPES-MATRIX-1: Authoritative Capability → Scope Mapping ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-17
+**Activation:** Server-authoritative scope computation for Shopify OAuth
+
+#### Goals
+
+1. Define a single capability → required scopes mapping (authoritative).
+2. Ensure install and reconnect flows compute requested scopes server-side.
+3. Validate SHOPIFY_SCOPES as an allowlist (must be superset of required scopes).
+4. Fail fast when misconfigured (non-prod) or return safe error (prod).
+
+#### Key Changes
+
+1. **New File:** `apps/api/src/shopify/shopify-scopes.ts` - Authoritative scope matrix with `ShopifyCapability` type, `SHOPIFY_SCOPE_MATRIX`, `parseShopifyScopesCsv()`, `computeShopifyRequiredScopes()`, and `checkScopeCoverage()` helpers.
+2. **ShopifyService:** Updated `generateInstallUrl()` to request computed minimal `requiredScopes` for install (not the full env allowlist) and to validate the env allowlist covers all requested scopes. OAuth state now includes `enabledCapabilities`, `requiredScopes`, `requestedScopes` metadata.
+3. **ShopifyController:** Callback logs `requiredScopes` and `requestedScopes` for debugging.
+4. **Scope Computation:** Replaced inline `requiredScopesForCapability()` with centralized `computeShopifyRequiredScopes()`.
+
+#### Scope Matrix
+
+| Capability | Required Scopes |
+|------------|-----------------|
+| `products_sync` | `read_products` |
+| `products_apply` | `write_products` |
+| `collections_sync` | `read_products` |
+| `pages_sync` | `read_content` |
+| `blogs_sync` | `read_content` |
+| `themes_read` | `read_themes` |
+
+#### Core Files
+
+- `apps/api/src/shopify/shopify-scopes.ts` (NEW - authoritative scope matrix)
+- `apps/api/src/shopify/shopify.service.ts` (updated scope computation)
+- `apps/api/src/shopify/shopify.controller.ts` (scope logging)
+- `apps/api/test/unit/shopify/shopify-scopes-matrix.test.ts` (NEW - unit tests)
+
+#### Test Coverage
+
+- Unit tests: `apps/api/test/unit/shopify/shopify-scopes-matrix.test.ts`
+- Updated test mocks in: `shopify.service.test.ts`, `shopify-graphql-api.integration.test.ts`, `shopify-metafields-sync.integration.test.ts`
+
+#### Related Documentation
+
+- `docs/SHOPIFY_SCOPES_MATRIX.md` (internal documentation)
+- `docs/SHOPIFY_PERMISSIONS_AND_RECONSENT.md` (existing permissions doc)
+
+### Phase BLOGS-ASSET-SYNC-COVERAGE-1: Shopify Blog Posts (Articles) Ingestion ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-17
+**Activation:** Blog posts visibility as first-class asset type (read + display only)
+
+#### Goals
+
+1. Ingest Shopify Blog Posts (Articles) into EngineO.ai DB with metadata.
+2. Display them in Assets → Blog posts with sync controls.
+3. Show Published/Draft status based on `shopifyPublishedAt` field (null = draft).
+4. Track `lastBlogsSyncAt` in sync status.
+
+#### Strict Non-Goals
+
+- No content-body ingestion/edit/apply for blog posts
+- No new playbooks or playbook IDs for blog posts
+- No apply expansion (read-only visibility)
+
+#### Key Changes
+
+1. **Prisma Schema**: Added `shopifyPublishedAt` and `shopifyBlogHandle` fields to CrawlResult for article published status and parent blog handle.
+2. **API Endpoints**: Added `POST /projects/:id/shopify/sync-blogs` endpoint (OWNER-only).
+3. **ShopifyService**: Added `fetchShopifyArticles()` GraphQL fetcher and `syncBlogPosts()` method with E2E mock handler support. Stores article handle separately from blog handle.
+4. **Sync Status**: `getSyncStatus()` now returns `lastBlogsSyncAt` timestamp.
+5. **Frontend**: Blog posts list page (`/projects/[id]/assets/blogs`) with sync button, Published/Draft badges, "Open" external links, handle display as `{blogHandle}/{handle}` format, and permission gating when `read_content` scope is missing.
+6. **Navigation**: Added "Blog posts" link to ProjectSideNav under ASSETS group.
+7. **Permission Notice**: Updated ShopifyPermissionNotice to mention Blog posts.
+
+#### Capability → Scope
+
+| Capability | Required Scopes |
+|------------|-----------------|
+| `blogs_sync` | `read_content` |
+
+#### Core Files
+
+- `apps/api/prisma/migrations/20260117_blogs_asset_sync_coverage_1/migration.sql` (NEW - shopifyPublishedAt + shopifyBlogHandle)
+- `apps/api/prisma/schema.prisma` (shopifyPublishedAt, shopifyBlogHandle fields)
+- `apps/api/src/projects/projects.controller.ts` (sync-blogs endpoint)
+- `apps/api/src/projects/projects.service.ts` (blog pageType filter)
+- `apps/api/src/shopify/shopify.service.ts` (fetchShopifyArticles, syncBlogPosts)
+- `apps/web/src/app/projects/[id]/assets/blogs/page.tsx` (NEW)
+- `apps/web/src/components/layout/ProjectSideNav.tsx` (Blog posts nav item)
+- `apps/web/src/components/shopify/ShopifyPermissionNotice.tsx` (updated copy)
+- `apps/web/src/lib/api.ts` (syncBlogs method, blogs_sync capability types)
+
+#### Test Coverage
+
+- E2E API test: `apps/api/test/e2e/shopify-asset-sync.e2e-spec.ts` (sync-blogs test)
+- Playwright smoke test: `apps/web/tests/blogs-asset-sync-coverage-1.spec.ts`
+- Nav consistency test: `apps/web/tests/nav-ia-consistency-1.spec.ts` (updated)
+
+#### Manual Testing
+
+- `docs/manual-testing/BLOGS-ASSET-SYNC-COVERAGE-1.md`
+
+#### Related Documentation
+
+- `docs/SHOPIFY_SCOPES_MATRIX.md` (blogs_sync capability)
+- `docs/testing/CRITICAL_PATH_MAP.md` (CP-006 updated)
+
 ### Phase ISSUE-FIX-KIND-CLARITY-1: Diagnostic vs Fixable Issue CTA Semantics ✅ COMPLETE
 
 **Status:** Complete
@@ -2080,3 +2190,10 @@ These invariants MUST be preserved during implementation:
 | 6.57 | 2026-01-15 | **SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1 COMPLETE**: Reconnect CTA never fails silently. (1) Added OWNER-only reconnect URL endpoint (`/projects/:id/shopify/reconnect-url`) so reconnect start is server-authoritative; (2) Permission notice shows inline reconnect errors + "Sign in again" CTA; (3) Pages/Collections parity; (4) Playwright tests for missing-token error and OAuth navigation attempt. |
 | 6.58 | 2026-01-16 | **SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1 COMPLETE**: Connect/disconnect consistency + working entry points. (1) Server-authoritative connected semantics in `/projects/:id/integration-status`; (2) Added OWNER-only `/projects/:id/shopify/connect-url`; (3) Store Health + Settings + Assets show clear "not connected" guidance and working Connect/Disconnect CTAs; (4) Fixed Products empty-state link to `/settings#integrations`; (5) Playwright coverage added. |
 | 6.59 | 2026-01-16 | **SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1-FIXUP-1**: Dead-click and brittle behavior fixes. (1) Settings Connect/Disconnect buttons allow clicks while capabilities loading (no longer disabled when null); (2) Store Health integrationStatus fetch is non-blocking (`.catch(() => null)`); (3) connect-url endpoint validates non-.myshopify.com domains with dots and returns clear error instead of generating invalid OAuth URL. |
+| 6.60 | 2026-01-17 | **SHOPIFY-SCOPES-MATRIX-1 COMPLETE**: Authoritative capability → scope mapping. (1) Created `shopify-scopes.ts` with `SHOPIFY_SCOPE_MATRIX`, `ShopifyCapability` type, and scope computation helpers; (2) Updated `generateInstallUrl()` to compute scopes server-side and validate allowlist; (3) OAuth state now includes `enabledCapabilities`, `requiredScopes`, `requestedScopes`; (4) Callback logs scope metadata; (5) Unit tests for scope matrix; (6) Internal documentation in `SHOPIFY_SCOPES_MATRIX.md`. |
+| 6.61 | 2026-01-17 | **SHOPIFY-SCOPES-MATRIX-1-FIXUP-1**: Install OAuth now requests computed minimal required scopes (not full env allowlist); env allowlist validation now blocks OAuth in production with safe `SHOPIFY_SCOPES_CONFIG_INVALID`; reconnect uses triggering capability for scope computation. |
+| 6.62 | 2026-01-17 | **SHOPIFY-SCOPES-MATRIX-1-FIXUP-2**: Least-privilege default install capabilities - removed `blogs_sync` and `themes_read` from default enabled capabilities (not currently used in-product); install now requests only `read_content`, `read_products`, `write_products`. |
+| 6.63 | 2026-01-17 | **SHOPIFY-SCOPES-MATRIX-1-FIXUP-3**: Wording alignment - error message now says "requested scopes" (not "required scopes") for consistency with OAuth terminology; documentation updated to clarify allowlist must be superset of `requestedScopes`. |
+| 6.64 | 2026-01-17 | **SHOPIFY-SCOPES-MATRIX-1-FIXUP-3-AUDIT-1**: Documentation consistency - SHOPIFY_SCOPES allowlist description now consistently states it must be a superset of server-computed `requestedScopes` (not "computed required scopes"). |
+| 6.65 | 2026-01-17 | **BLOGS-ASSET-SYNC-COVERAGE-1 COMPLETE**: Shopify Blog Posts (Articles) as first-class asset type. (1) Added `shopifyPublishedAt` field to CrawlResult for Published/Draft status; (2) Added `POST /projects/:id/shopify/sync-blogs` endpoint (OWNER-only, requires `read_content`); (3) Added `fetchShopifyArticles()` and `syncBlogPosts()` to ShopifyService with E2E mock support; (4) `getSyncStatus()` returns `lastBlogsSyncAt`; (5) Blog posts list page with Published/Draft badges, "Open" external links, and permission gating; (6) Added "Blog posts" to ProjectSideNav under ASSETS; (7) Updated ShopifyPermissionNotice to mention Blog posts; (8) E2E API test, Playwright smoke test, updated nav-ia-consistency test, manual testing doc, API_SPEC.md, and CRITICAL_PATH_MAP.md CP-006. |
+| 6.66 | 2026-01-17 | **BLOGS-ASSET-SYNC-COVERAGE-1-FIXUP-1**: Blog handle display format. (1) Added `shopifyBlogHandle` field to CrawlResult (migration + schema); (2) Updated `syncBlogPosts()` to store `shopifyHandle` (article handle only) and `shopifyBlogHandle` (parent blog handle) separately; (3) Updated `projects.service.ts` to return `shopifyBlogHandle`; (4) Blog posts list displays handle as `{blogHandle}/{handle}` format (e.g., "news/welcome-to-our-blog"); (5) Updated header count display to include "0 critical • 0 need attention"; (6) Updated Playwright test assertions for blog/handle format and `blogHandle` in mock data. |
