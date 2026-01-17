@@ -17,12 +17,13 @@ export function ShopifyPermissionNotice(props: {
       <h2 className="text-sm font-semibold text-amber-900">Additional Shopify permission required</h2>
       <div className="mt-2 space-y-2 text-sm text-amber-900">
         <p>
-          To sync and analyze Pages and Collections, EngineO.ai needs read-only access to your store content.
+          To sync and analyze Pages, Collections, and Blog posts, EngineO.ai needs read-only access to your store content.
         </p>
         <p>This permission is required to:</p>
         <ul className="list-disc pl-5">
           <li>Sync Pages</li>
           <li>Sync Collections</li>
+          <li>Sync Blog posts</li>
           <li>Detect SEO and AEO issues on content pages</li>
         </ul>
         <p>We never modify content without your approval.</p>

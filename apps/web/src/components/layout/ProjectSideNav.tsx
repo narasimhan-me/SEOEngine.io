@@ -40,6 +40,7 @@ const navSections: NavSection[] = [
       { label: 'Products', path: 'products' },
       { label: 'Pages', path: 'assets/pages' },
       { label: 'Collections', path: 'assets/collections' },
+      { label: 'Blog posts', path: 'assets/blogs' },
     ],
   },
   {

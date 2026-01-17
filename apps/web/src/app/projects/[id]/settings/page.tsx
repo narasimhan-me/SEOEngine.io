@@ -2,18 +2,20 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { isAuthenticated } from '@/lib/auth';
-import { projectsApi, shopifyApi } from '@/lib/api';
+import { isAuthenticated, getToken } from '@/lib/auth';
+import { accountApi, projectsApi, shopifyApi, type RoleCapabilities } from '@/lib/api';
 import { useUnsavedChanges } from '@/components/unsaved-changes/UnsavedChangesProvider';
 import FriendlyError from '@/components/ui/FriendlyError';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { GovernanceSettingsSection } from '@/components/governance';
+import { ShopifyPermissionNotice } from '@/components/shopify/ShopifyPermissionNotice';
 
 type CrawlFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY';
 
 interface IntegrationStatus {
   projectId: string;
   projectName: string;
+  projectDomain?: string | null;
   autoCrawlEnabled: boolean;
   crawlFrequency: CrawlFrequency;
   lastCrawledAt: string | null;
@@ -22,6 +24,12 @@ interface IntegrationStatus {
   autoSuggestThinContent: boolean;
   autoSuggestDailyCap: number;
   aeoSyncToShopifyMetafields: boolean;
+  shopify?: {
+    connected: boolean;
+    shopDomain?: string;
+    installedAt?: string;
+    scope?: string;
+  };
   integrations: Array<{
     type: string;
     externalId: string;
@@ -85,6 +93,15 @@ export default function ProjectSettingsPage() {
   const [settingUpMetafields, setSettingUpMetafields] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [capabilities, setCapabilities] = useState<RoleCapabilities | null>(null);
+  const [connectingShopify, setConnectingShopify] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
+  const [disconnectingShopify, setDisconnectingShopify] = useState(false);
+  const [disconnectError, setDisconnectError] = useState<string | null>(null);
+  const [shopifyMissingScopes, setShopifyMissingScopes] = useState<string[]>([]);
+  const [reconnectCapability, setReconnectCapability] = useState<'pages_sync' | 'collections_sync' | null>(null);
+  const [reconnectingShopify, setReconnectingShopify] = useState(false);
+  const [reconnectError, setReconnectError] = useState<string | null>(null);
 
   // Form state
   const [autoCrawlEnabled, setAutoCrawlEnabled] = useState(true);
@@ -110,6 +127,22 @@ export default function ProjectSettingsPage() {
       setAutoSuggestThinContent(data.autoSuggestThinContent ?? false);
       setAutoSuggestDailyCap(data.autoSuggestDailyCap ?? 50);
       setAeoSyncToShopifyMetafields(data.aeoSyncToShopifyMetafields ?? false);
+      if (data?.shopify?.connected) {
+        const [pagesScope, collectionsScope] = await Promise.all([
+          shopifyApi.getMissingScopes(projectId, 'pages_sync'),
+          shopifyApi.getMissingScopes(projectId, 'collections_sync'),
+        ]);
+        const pagesMissing = (pagesScope as any)?.missingScopes ?? [];
+        const collectionsMissing = (collectionsScope as any)?.missingScopes ?? [];
+        const combined = Array.from(new Set([...(pagesMissing ?? []), ...(collectionsMissing ?? [])]));
+        setShopifyMissingScopes(combined);
+        setReconnectCapability(
+          (pagesMissing?.length ?? 0) > 0 ? 'pages_sync' : (collectionsMissing?.length ?? 0) > 0 ? 'collections_sync' : null,
+        );
+      } else {
+        setShopifyMissingScopes([]);
+        setReconnectCapability(null);
+      }
     } catch (err: unknown) {
       console.error('Error fetching integration status:', err);
       setError(err instanceof Error ? err.message : 'Failed to load project settings');
@@ -118,13 +151,114 @@ export default function ProjectSettingsPage() {
     }
   }, [projectId]);
 
+  const fetchCapabilities = useCallback(async () => {
+    try {
+      const roleResponse = await projectsApi.getUserRole(projectId);
+      setCapabilities(roleResponse.capabilities);
+    } catch (err) {
+      console.error('Error fetching role:', err);
+      setCapabilities(null);
+    }
+  }, [projectId]);
+
+  const returnTo = `/projects/${projectId}/settings#integrations`;
+
+  const handleSignInAgain = useCallback(() => {
+    router.push(`/login?next=${encodeURIComponent(returnTo)}`);
+  }, [router, returnTo]);
+
+  const handleConnectShopify = useCallback(async () => {
+    setConnectError(null);
+    setConnectingShopify(true);
+    const token = getToken();
+    if (!token) {
+      setConnectError(
+        "We couldn't start Shopify connection because your session token is missing. Please sign in again, then retry.",
+      );
+      setConnectingShopify(false);
+      return;
+    }
+    try {
+      const result = await shopifyApi.getConnectUrl(projectId, returnTo);
+      const url = result && typeof (result as any).url === 'string' ? (result as any).url : null;
+      if (!url) {
+        setConnectError("We couldn't start Shopify connection. Please refresh and try again.");
+        setConnectingShopify(false);
+        return;
+      }
+      window.location.href = url;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "We couldn't start Shopify connection. Please try again.";
+      setConnectError(message);
+      setConnectingShopify(false);
+    }
+  }, [projectId, returnTo]);
+
+  const handleDisconnectShopify = useCallback(async () => {
+    setDisconnectError(null);
+    setDisconnectingShopify(true);
+    const token = getToken();
+    if (!token) {
+      setDisconnectError(
+        "We couldn't disconnect Shopify because your session token is missing. Please sign in again, then retry.",
+      );
+      setDisconnectingShopify(false);
+      return;
+    }
+    try {
+      await accountApi.disconnectStore(projectId);
+      const message = 'Shopify disconnected.';
+      setSuccessMessage(message);
+      setTimeout(() => setSuccessMessage(''), 3000);
+      await fetchIntegrationStatus();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "We couldn't disconnect Shopify. Please try again.";
+      setDisconnectError(message);
+    } finally {
+      setDisconnectingShopify(false);
+    }
+  }, [projectId, fetchIntegrationStatus]);
+
+  const handleReconnectShopify = useCallback(async () => {
+    setReconnectError(null);
+    setReconnectingShopify(true);
+    const token = getToken();
+    if (!token) {
+      setReconnectError(
+        "We couldn't start Shopify reconnection because your session token is missing. Please sign in again, then retry.",
+      );
+      setReconnectingShopify(false);
+      return;
+    }
+    if (!reconnectCapability) {
+      setReconnectError("We couldn't determine which Shopify permission is missing. Please refresh and try again.");
+      setReconnectingShopify(false);
+      return;
+    }
+    try {
+      const result = await shopifyApi.getReconnectUrl(projectId, reconnectCapability, returnTo);
+      const url = result && typeof (result as any).url === 'string' ? (result as any).url : null;
+      if (!url) {
+        setReconnectError("We couldn't start Shopify reconnection. Please refresh and try again.");
+        setReconnectingShopify(false);
+        return;
+      }
+      window.location.href = url;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "We couldn't start Shopify reconnection. Please try again.";
+      setReconnectError(message);
+      setReconnectingShopify(false);
+    }
+  }, [projectId, returnTo, reconnectCapability]);
+
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push('/login');
       return;
     }
     fetchIntegrationStatus();
-  }, [router, fetchIntegrationStatus]);
+    fetchCapabilities();
+  }, [router, fetchIntegrationStatus, fetchCapabilities]);
 
   const handleSaveSettings = async () => {
     try {
@@ -533,8 +667,53 @@ export default function ProjectSettingsPage() {
       </div>
 
       {/* Active Integrations Section */}
-      <div className="rounded-lg bg-white p-6 shadow mt-6">
+      <div id="integrations" className="rounded-lg bg-white p-6 shadow mt-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Active Integrations</h2>
+        {status.shopify?.connected !== true && (
+          <div className="mb-4 rounded-md border border-gray-200 bg-gray-50 p-4">
+            <p className="text-sm text-gray-700">
+              Shopify is not connected for this project.
+            </p>
+            <div className="mt-3 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleConnectShopify}
+                disabled={(capabilities ? !capabilities.canModifySettings : false) || connectingShopify}
+                className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {connectingShopify ? 'Connecting...' : 'Connect Shopify'}
+              </button>
+              {capabilities && !capabilities.canModifySettings && (
+                <span className="text-xs text-gray-500">Ask a project owner to connect Shopify.</span>
+              )}
+            </div>
+            {connectError && (
+              <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                <p>{connectError}</p>
+                <button
+                  type="button"
+                  onClick={handleSignInAgain}
+                  className="mt-2 inline-flex items-center rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+                >
+                  Sign in again
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        {status.shopify?.connected === true && shopifyMissingScopes.length > 0 && (
+          <div className="mb-4">
+            <ShopifyPermissionNotice
+              missingScopes={shopifyMissingScopes}
+              canReconnect={capabilities?.canModifySettings ?? true}
+              onReconnect={handleReconnectShopify}
+              learnMoreHref="/help/shopify-permissions"
+              errorMessage={reconnectError}
+              onSignInAgain={handleSignInAgain}
+              isReconnecting={reconnectingShopify}
+            />
+          </div>
+        )}
         {status.integrations.length > 0 ? (
           <div className="space-y-3">
             {status.integrations.map((integration) => (
@@ -603,6 +782,32 @@ export default function ProjectSettingsPage() {
                     <p className="text-xs text-gray-500 mt-1">
                       Creates metafield definitions in Shopify for Answer Block sync.
                     </p>
+
+                    <div className="mt-3 flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={handleDisconnectShopify}
+                        disabled={(capabilities ? !capabilities.canModifySettings : false) || disconnectingShopify}
+                        className="inline-flex items-center rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {disconnectingShopify ? 'Disconnecting...' : 'Disconnect Shopify'}
+                      </button>
+                      {capabilities && !capabilities.canModifySettings && (
+                        <span className="text-xs text-gray-500">Ask a project owner to disconnect Shopify.</span>
+                      )}
+                    </div>
+                    {disconnectError && (
+                      <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                        <p>{disconnectError}</p>
+                        <button
+                          type="button"
+                          onClick={handleSignInAgain}
+                          className="mt-2 inline-flex items-center rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+                        >
+                          Sign in again
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -624,9 +829,7 @@ export default function ProjectSettingsPage() {
               />
             </svg>
             <p className="mt-2 text-sm text-gray-500">No integrations connected yet.</p>
-            <p className="text-xs text-gray-400 mt-1">
-              Connect Shopify or other platforms from the Overview page.
-            </p>
+            <p className="text-xs text-gray-400 mt-1">Connect Shopify to enable sync features.</p>
           </div>
         )}
       </div>

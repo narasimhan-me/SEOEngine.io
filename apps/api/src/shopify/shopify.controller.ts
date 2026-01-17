@@ -61,7 +61,7 @@ export class ShopifyController {
   }
 
   /**
-   * GET /shopify/reconnect?projectId=xxx&token=jwt&capability=pages_sync|collections_sync&returnTo=/projects/...
+   * GET /shopify/reconnect?projectId=xxx&token=jwt&capability=pages_sync|collections_sync|blogs_sync&returnTo=/projects/...
    * Explicit, user-initiated Shopify OAuth re-consent flow for missing scopes.
    * Requests the minimal union of (currently granted scopes) + (missing required scopes for capability).
    */
@@ -83,7 +83,7 @@ export class ShopifyController {
       throw new UnauthorizedException('Authentication token required');
     }
     const cap =
-      capability === 'pages_sync' || capability === 'collections_sync'
+      capability === 'pages_sync' || capability === 'collections_sync' || capability === 'blogs_sync'
         ? capability
         : null;
     if (!cap) {
@@ -147,6 +147,7 @@ export class ShopifyController {
     // Exchange code for access token
     const tokenData = await this.shopifyService.exchangeToken(shop, code);
 
+    // [SHOPIFY-SCOPES-MATRIX-1] Log scope computation metadata for debugging
     console.log('[Shopify Callback] Token exchange result:', {
       projectId,
       shop,
@@ -154,6 +155,8 @@ export class ShopifyController {
       capability: statePayload.capability,
       returnTo: statePayload.returnTo,
       scopeFromShopify: tokenData.scope,
+      requiredScopes: statePayload.requiredScopes,
+      requestedScopes: statePayload.requestedScopes,
     });
 
     // Store connection in database

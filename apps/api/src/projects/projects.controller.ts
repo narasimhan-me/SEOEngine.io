@@ -407,7 +407,7 @@ export class ProjectsController {
     if (q && q.trim()) filters.q = q.trim();
     if (status === 'optimized' || status === 'needs_attention') filters.status = status;
     if (hasDraft === 'true' || hasDraft === '1') filters.hasDraft = true;
-    if (pageType === 'static' || pageType === 'collection') filters.pageType = pageType;
+    if (pageType === 'static' || pageType === 'collection' || pageType === 'blog') filters.pageType = pageType;
 
     // Get base crawl pages from service
     const contentPages = await this.projectsService.getCrawlPages(projectId, req.user.id, filters);
@@ -1396,13 +1396,36 @@ export class ProjectsController {
   }
 
   /**
+   * POST /projects/:id/shopify/sync-blogs
+   * [BLOGS-ASSET-SYNC-COVERAGE-1] [CRITICAL PATH: CP-006 Shopify Sync]
+   *
+   * Triggers Shopify Blog Posts (Articles) sync for this project.
+   * OWNER-only (matches existing Shopify mutation posture).
+   *
+   * Returns: { fetched, upserted, skipped, completedAt, warnings?, projectId }
+   */
+  @Post(':id/shopify/sync-blogs')
+  @HttpCode(HttpStatus.OK)
+  async syncShopifyBlogs(
+    @Request() req: any,
+    @Param('id') projectId: string,
+  ) {
+    const role = await this.roleResolutionService.resolveEffectiveRole(projectId, req.user.id);
+    if (role !== 'OWNER') {
+      throw new ForbiddenException('Only project owners can sync Shopify Blog posts');
+    }
+
+    return this.shopifyService.syncBlogPosts(projectId);
+  }
+
+  /**
    * GET /projects/:id/shopify/sync-status
    * [SHOPIFY-ASSET-SYNC-COVERAGE-1] [CRITICAL PATH: CP-006 Shopify Sync]
    *
    * Returns sync status timestamps for this project.
    * Membership-accessible (read-only).
    *
-   * Returns: { lastProductsSyncAt, lastPagesSyncAt, lastCollectionsSyncAt, projectId }
+   * Returns: { lastProductsSyncAt, lastPagesSyncAt, lastCollectionsSyncAt, lastBlogsSyncAt, projectId }
    */
   @Get(':id/shopify/sync-status')
   async getShopifySyncStatus(
@@ -1419,7 +1442,7 @@ export class ProjectsController {
   }
 
   /**
-   * GET /projects/:id/shopify/missing-scopes?capability=pages_sync|collections_sync
+   * GET /projects/:id/shopify/missing-scopes?capability=pages_sync|collections_sync|blogs_sync
    * [SHOPIFY-SCOPE-RECONSENT-UX-1] Server-authoritative missing scope detection.
    * Membership-accessible (read-only).
    */
@@ -1436,14 +1459,66 @@ export class ProjectsController {
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this project');
     }
-    if (capability !== 'pages_sync' && capability !== 'collections_sync') {
+    if (capability !== 'pages_sync' && capability !== 'collections_sync' && capability !== 'blogs_sync') {
       throw new BadRequestException('Invalid capability parameter');
     }
     return this.shopifyService.getShopifyScopeStatus(projectId, capability);
   }
 
   /**
-   * GET /projects/:id/shopify/reconnect-url?capability=pages_sync|collections_sync&returnTo=/projects/...
+   * GET /projects/:id/shopify/connect-url?returnTo=/projects/...
+   * [SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1] Returns a Shopify OAuth authorize URL for explicit, user-initiated initial connection.
+   * OWNER-only (matches Shopify mutation posture).
+   */
+  @Get(':id/shopify/connect-url')
+  async getShopifyConnectUrl(
+    @Request() req: any,
+    @Param('id') projectId: string,
+    @Query('returnTo') returnTo?: string,
+  ) {
+    const role = await this.roleResolutionService.resolveEffectiveRole(projectId, req.user.id);
+    if (role !== 'OWNER') {
+      throw new ForbiddenException('Only project owners can connect Shopify');
+    }
+
+    const existingIntegration = await this.shopifyService.getShopifyIntegration(projectId);
+    if (existingIntegration?.externalId && existingIntegration?.accessToken) {
+      throw new BadRequestException('Shopify is already connected for this project');
+    }
+
+    const project = await this.projectsService.getProject(projectId, req.user.id);
+    const candidateShop = String(existingIntegration?.externalId ?? (project as any)?.domain ?? '').trim();
+    const cleaned = candidateShop.replace(/^https?:\/\//i, '').split('/')[0].trim();
+
+    if (!cleaned) {
+      throw new BadRequestException('No Shopify shop domain configured for this project');
+    }
+
+    // [SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1-FIXUP-1] Validate shop domain format
+    // Only append .myshopify.com if the value is a bare store handle (no dots)
+    // If it already contains dots but not .myshopify.com, it's an invalid non-Shopify domain
+    let shopDomain: string;
+    if (cleaned.includes('.myshopify.com')) {
+      shopDomain = cleaned;
+    } else if (!cleaned.includes('.')) {
+      shopDomain = `${cleaned}.myshopify.com`;
+    } else {
+      throw new BadRequestException(
+        'Project domain must be a Shopify store (e.g., my-store.myshopify.com or my-store). Custom domains cannot be used for Shopify OAuth.',
+      );
+    }
+    const safeReturnTo = this.shopifyService.getSafeReturnToForProject(returnTo, projectId);
+
+    const url = this.shopifyService.generateInstallUrl(shopDomain, projectId, {
+      source: 'install',
+      returnTo: safeReturnTo,
+    });
+
+    return { url };
+  }
+
+  /**
+   * GET /projects/:id/shopify/reconnect-url?capability=pages_sync|collections_sync|blogs_sync&returnTo=/projects/...
    * [SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1] [CRITICAL PATH: CP-006 Shopify Sync]
    * Returns a Shopify OAuth authorize URL for explicit, user-initiated re-consent.
    * OWNER-only (matches Shopify mutation posture).
@@ -1458,7 +1533,7 @@ export class ProjectsController {
     if (!capability) {
       throw new BadRequestException('Missing capability parameter');
     }
-    if (capability !== 'pages_sync' && capability !== 'collections_sync') {
+    if (capability !== 'pages_sync' && capability !== 'collections_sync' && capability !== 'blogs_sync') {
       throw new BadRequestException('Invalid capability parameter');
     }
     const role = await this.roleResolutionService.resolveEffectiveRole(projectId, req.user.id);

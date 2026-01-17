@@ -2425,10 +2425,12 @@ export class E2eTestkitController {
    * Body:
    * - pages: Array of { id, title, handle, updatedAt, seo? }
    * - collections: Array of { id, title, handle, updatedAt, seo? }
+   * - articles: Array of { id, title, handle, blogHandle, publishedAt, updatedAt, seo? }
    *
    * Returns:
    * - pagesSeeded: number
    * - collectionsSeeded: number
+   * - articlesSeeded: number
    */
   @Post('mock-shopify-assets')
   async mockShopifyAssets(
@@ -2445,6 +2447,15 @@ export class E2eTestkitController {
         id: string;
         title: string;
         handle: string;
+        updatedAt: string;
+        seo?: { title: string | null; description: string | null };
+      }>;
+      articles?: Array<{
+        id: string;
+        title: string;
+        handle: string;
+        blogHandle: string;
+        publishedAt: string | null;
         updatedAt: string;
         seo?: { title: string | null; description: string | null };
       }>;
@@ -2469,9 +2480,14 @@ export class E2eTestkitController {
       e2eShopifyMockStore.setCollections(body.collections);
     }
 
+    if (body.articles) {
+      e2eShopifyMockStore.setArticles(body.articles);
+    }
+
     return {
       pagesSeeded: body.pages?.length ?? 0,
       collectionsSeeded: body.collections?.length ?? 0,
+      articlesSeeded: body.articles?.length ?? 0,
     };
   }
 }

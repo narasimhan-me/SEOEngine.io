@@ -131,7 +131,7 @@ Required if using Shopify integration:
 | `SHOPIFY_API_KEY` | Shopify Partner API key | `src/shopify/shopify.service.ts` |
 | `SHOPIFY_API_SECRET` | Shopify Partner API secret | `src/shopify/shopify.service.ts` |
 | `SHOPIFY_APP_URL` | Your API URL (e.g., `https://api.engineo.ai`) | `src/shopify/shopify.service.ts` |
-| `SHOPIFY_SCOPES` | Comma-separated scopes (default: `read_products,write_products,read_themes`) | `src/shopify/shopify.service.ts` |
+| `SHOPIFY_SCOPES` | Comma-separated scopes (default: `read_products,write_products,read_themes,read_content`) | `src/shopify/shopify.service.ts` |
 
 ### Frontend URL
 
@@ -213,7 +213,7 @@ FRONTEND_URL=https://app.engineo.ai
 SHOPIFY_API_KEY=your-shopify-key
 SHOPIFY_API_SECRET=your-shopify-secret
 SHOPIFY_APP_URL=https://api.engineo.ai
-SHOPIFY_SCOPES=read_products,write_products,read_themes
+SHOPIFY_SCOPES=read_products,write_products,read_themes,read_content
 AI_PROVIDER=gemini
 AI_API_KEY=your-ai-api-key
 CAPTCHA_PROVIDER=turnstile

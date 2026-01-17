@@ -305,10 +305,12 @@ model CrawlResult {
   scannedAt       DateTime @default(now())
 
   // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Shopify identity fields for Pages/Collections
-  shopifyResourceType String?   // "PAGE" | "COLLECTION"
+  shopifyResourceType String?   // "PAGE" | "COLLECTION" | "ARTICLE"
   shopifyResourceId   String?   // Shopify numeric ID extracted from GID
   shopifyHandle       String?   // Handle as returned by Shopify
+  shopifyBlogHandle   String?   // [BLOGS-ASSET-SYNC-COVERAGE-1] Parent blog handle for articles (e.g., "news")
   shopifyUpdatedAt    DateTime? // Shopify object updatedAt
+  shopifyPublishedAt  DateTime? // [BLOGS-ASSET-SYNC-COVERAGE-1] Shopify article publishedAt (null => draft)
   shopifySyncedAt     DateTime? // Last successful sync time for this row
 
   // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Compound unique for upsert identity

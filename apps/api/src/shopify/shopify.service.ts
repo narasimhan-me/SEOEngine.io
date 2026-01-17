@@ -6,14 +6,24 @@ import * as crypto from 'crypto';
 import { AutomationService } from '../projects/automation.service';
 import { RoleResolutionService } from '../common/role-resolution.service';
 import { isE2EMode } from '../config/test-env-guard';
+import {
+  ShopifyCapability,
+  parseShopifyScopesCsv,
+  computeShopifyRequiredScopes,
+} from './shopify-scopes';
 
-export type ShopifyScopeCapability = 'pages_sync' | 'collections_sync';
+// [SHOPIFY-SCOPES-MATRIX-1] Re-export ShopifyCapability for backward compatibility
+export type ShopifyScopeCapability = ShopifyCapability;
 
 interface ShopifyOauthStatePayload {
   projectId: string;
   source: 'install' | 'reconnect';
   returnTo?: string;
   capability?: ShopifyScopeCapability;
+  // [SHOPIFY-SCOPES-MATRIX-1] Server-computed scopes for OAuth
+  enabledCapabilities?: ShopifyCapability[];
+  requiredScopes?: string[];
+  requestedScopes?: string[];
 }
 
 export interface ShopifyScopeStatus {
@@ -154,6 +164,8 @@ export class ShopifyService {
   private readonly apiSecret: string;
   private readonly appUrl: string;
   private readonly scopes: string;
+  // [SHOPIFY-SCOPES-MATRIX-1] Allowlist from environment (must be superset of computed required scopes)
+  private readonly scopesAllowlistCsv: string;
   private readonly stateStore = new Map<string, ShopifyOauthStatePayload>(); // In production, use Redis
 
   private lastShopifyRequestAt = 0;
@@ -171,45 +183,66 @@ export class ShopifyService {
     this.appUrl = this.config.get<string>('SHOPIFY_APP_URL');
     // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Add read_content scope for Pages sync
     this.scopes = this.config.get<string>('SHOPIFY_SCOPES', 'read_products,write_products,read_themes,read_content');
+    // [SHOPIFY-SCOPES-MATRIX-1] Store raw allowlist for validation
+    this.scopesAllowlistCsv = this.scopes;
   }
 
   private get isTestEnv(): boolean {
     return process.env.NODE_ENV === 'test';
   }
 
+  // [SHOPIFY-SCOPES-MATRIX-1] Delegate to shared parser
   private parseScopeList(scope: unknown): string[] {
-    if (typeof scope !== 'string') return [];
-    const trimmed = scope.trim();
-    if (!trimmed) return [];
-    return trimmed
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
+    return parseShopifyScopesCsv(scope);
   }
 
-  private requiredScopesForCapability(capability: ShopifyScopeCapability): string[] {
-    switch (capability) {
-      case 'pages_sync':
-        return ['read_content'];
-      case 'collections_sync':
-        return ['read_products'];
-      default:
-        return [];
+  // [SHOPIFY-SCOPES-MATRIX-1-FIXUP-2] Least-privilege default install capabilities.
+  // Only include capabilities that are actually enabled in-product.
+  private getEnabledCapabilitiesForOauth(): ShopifyCapability[] {
+    return [
+      'products_sync',
+      'products_apply',
+      'collections_sync',
+      'pages_sync',
+    ];
+  }
+
+  // [SHOPIFY-SCOPES-MATRIX-1-FIXUP-1] Validate that SHOPIFY_SCOPES allowlist is a superset of requested scopes
+  private validateScopesAllowlistSuperset(requestedScopes: string[]): void {
+    const allowlist = parseShopifyScopesCsv(this.scopesAllowlistCsv);
+    const allowlistSet = new Set(allowlist);
+    const missingFromAllowlist = requestedScopes.filter((s) => !allowlistSet.has(s));
+
+    if (missingFromAllowlist.length > 0) {
+      const errorMessage = `[SHOPIFY-SCOPES-MATRIX-1] SHOPIFY_SCOPES allowlist is missing requested scopes: ${missingFromAllowlist.join(', ')}. Allowlist: ${this.scopesAllowlistCsv}`;
+      this.logger.error(errorMessage);
+
+      // In non-production, fail fast to catch misconfigurations
+      if (process.env.NODE_ENV !== 'production') {
+        throw new BadRequestException(errorMessage);
+      }
+      // [SHOPIFY-SCOPES-MATRIX-1-FIXUP-1] In production, return safe error (no OAuth redirect)
+      throw new BadRequestException({
+        code: 'SHOPIFY_SCOPES_CONFIG_INVALID',
+        message: 'Shopify scope configuration is invalid. Please contact support.',
+      });
     }
   }
 
+  // [SHOPIFY-SCOPES-MATRIX-1] Use centralized scope computation
   private getScopeStatusFromIntegration(
     integration: any,
     capability: ShopifyScopeCapability,
   ): ShopifyScopeStatus {
     const storedScope = (integration?.config as any)?.scope ?? '';
     const grantedScopes = this.parseScopeList(storedScope);
-    const requiredScopes = this.requiredScopesForCapability(capability);
+    const requiredScopes = computeShopifyRequiredScopes([capability]);
     const granted = new Set(grantedScopes);
     const missingScopes = requiredScopes.filter((s) => !granted.has(s));
     return { capability, requiredScopes, grantedScopes, missingScopes };
   }
 
+  // [SHOPIFY-SCOPES-MATRIX-1] Use centralized scope computation
   async getShopifyScopeStatus(
     projectId: string,
     capability: ShopifyScopeCapability,
@@ -228,7 +261,7 @@ export class ShopifyService {
         projectId,
         connected: false,
         capability,
-        requiredScopes: this.requiredScopesForCapability(capability),
+        requiredScopes: computeShopifyRequiredScopes([capability]),
         grantedScopes: [],
         missingScopes: [],
       };
@@ -452,6 +485,34 @@ export class ShopifyService {
         };
       }
 
+      // [BLOGS-ASSET-SYNC-COVERAGE-1] E2E mock for GetArticles
+      if (operationName === 'GetArticles') {
+        const { e2eShopifyMockStore } = await import('./e2e-shopify-mock.store');
+        const articles = e2eShopifyMockStore.getArticles();
+        return {
+          ok: true,
+          json: async () => ({
+            data: {
+              articles: {
+                edges: articles.map((a: any) => ({
+                  node: {
+                    id: `gid://shopify/Article/${a.id}`,
+                    title: a.title,
+                    handle: a.handle,
+                    publishedAt: a.publishedAt,
+                    updatedAt: a.updatedAt,
+                    blog: { handle: a.blogHandle },
+                    seo: a.seo ?? { title: null, description: null },
+                  },
+                })),
+                pageInfo: { hasNextPage: false, endCursor: null },
+              },
+            },
+          }),
+          text: async () => '',
+        };
+      }
+
       // Fallback: generic success envelope.
       // For OAuth endpoints, return a proper token response
       if (url && typeof url === 'string' && url.includes('/admin/oauth/access_token')) {
@@ -612,7 +673,8 @@ export class ShopifyService {
   }
 
   /**
-   * Generate the Shopify OAuth URL for installation
+   * [SHOPIFY-SCOPES-MATRIX-1] Generate the Shopify OAuth URL for installation.
+   * Scopes are now computed server-side based on enabled capabilities.
    */
   generateInstallUrl(
     shop: string,
@@ -625,18 +687,43 @@ export class ShopifyService {
     },
   ): string {
     const state = crypto.randomBytes(16).toString('hex');
+
+    // [SHOPIFY-SCOPES-MATRIX-1-FIXUP-1] Compute scopes server-side
+    // For reconnect, use only the triggering capability; for install, use all capabilities
+    const enabledCapabilities =
+      opts?.source === 'reconnect' && opts?.capability
+        ? [opts.capability]
+        : this.getEnabledCapabilitiesForOauth();
+    const requiredScopes = computeShopifyRequiredScopes(enabledCapabilities);
+
+    // [SHOPIFY-SCOPES-MATRIX-1-FIXUP-1] Determine requested scopes: explicit override (reconnect) or minimal required scopes (install)
+    let requestedScopes: string[];
+    if (opts?.scopesCsv) {
+      requestedScopes = parseShopifyScopesCsv(opts.scopesCsv);
+    } else {
+      requestedScopes = requiredScopes;
+    }
+    // Deduplicate and sort for deterministic comparison
+    requestedScopes = Array.from(new Set(requestedScopes)).sort();
+    // Validate allowlist covers all requested scopes
+    this.validateScopesAllowlistSuperset(requestedScopes);
+
+    // Store state with server-computed scope metadata
     this.stateStore.set(state, {
       projectId,
       source: opts?.source ?? 'install',
       ...(opts?.returnTo ? { returnTo: opts.returnTo } : {}),
       ...(opts?.capability ? { capability: opts.capability } : {}),
+      enabledCapabilities,
+      requiredScopes,
+      requestedScopes,
     });
 
     const redirectUri = `${this.appUrl}/shopify/callback`;
-    const requestedScopes = opts?.scopesCsv ?? this.scopes;
+    const requestedScopesCsv = requestedScopes.join(',');
     const params = new URLSearchParams({
       client_id: this.apiKey,
-      scope: requestedScopes,
+      scope: requestedScopesCsv,
       redirect_uri: redirectUri,
       state,
     });
@@ -646,6 +733,8 @@ export class ShopifyService {
       projectId,
       source: opts?.source,
       capability: opts?.capability,
+      enabledCapabilities,
+      requiredScopes,
       requestedScopes,
       returnTo: opts?.returnTo,
     });
@@ -2147,6 +2236,87 @@ export class ShopifyService {
   }
 
   /**
+   * [BLOGS-ASSET-SYNC-COVERAGE-1] Fetch Shopify Articles (blog posts) via Admin GraphQL (metadata only).
+   * Uses stable operationName GetArticles for deterministic mocking/tests.
+   */
+  private async fetchShopifyArticles(
+    shopDomain: string,
+    accessToken: string,
+  ): Promise<Array<{
+    id: string;
+    title: string;
+    handle: string;
+    publishedAt: string | null;
+    updatedAt: string;
+    blog: { handle: string } | null;
+    seo: { title: string | null; description: string | null };
+  }>> {
+    const query = `
+      query GetArticles($first: Int!, $after: String) {
+        articles(first: $first, after: $after) {
+          edges {
+            node {
+              id
+              title
+              handle
+              publishedAt
+              updatedAt
+              blog { handle }
+              seo { title description }
+            }
+          }
+          pageInfo { hasNextPage endCursor }
+        }
+      }
+    `;
+
+    const allArticles: Array<{
+      id: string;
+      title: string;
+      handle: string;
+      publishedAt: string | null;
+      updatedAt: string;
+      blog: { handle: string } | null;
+      seo: { title: string | null; description: string | null };
+    }> = [];
+
+    let hasNextPage = true;
+    let cursor: string | null = null;
+
+    while (hasNextPage) {
+      const data = await this.executeShopifyGraphql<{
+        articles: {
+          edges: Array<{
+            node: {
+              id: string;
+              title: string;
+              handle: string;
+              publishedAt: string | null;
+              updatedAt: string;
+              blog: { handle: string } | null;
+              seo: { title: string | null; description: string | null };
+            };
+          }>;
+          pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        };
+      }>(shopDomain, accessToken, {
+        query,
+        variables: { first: 50, after: cursor },
+        operationName: 'GetArticles',
+      });
+
+      for (const edge of data.articles.edges) {
+        allArticles.push(edge.node);
+      }
+
+      hasNextPage = data.articles.pageInfo.hasNextPage;
+      cursor = data.articles.pageInfo.endCursor;
+    }
+
+    return allArticles;
+  }
+
+  /**
    * Extract numeric ID from Shopify GID (e.g., "gid://shopify/Page/123" -> "123")
    */
   private extractShopifyId(gid: string): string {
@@ -2393,14 +2563,139 @@ export class ShopifyService {
   }
 
   /**
+   * [BLOGS-ASSET-SYNC-COVERAGE-1] Sync Shopify Blog Posts (Articles) into CrawlResult (metadata only).
+   * Returns counts + completedAt + warnings.
+   */
+  async syncBlogPosts(projectId: string): Promise<{
+    projectId: string;
+    fetched: number;
+    upserted: number;
+    skipped: number;
+    completedAt: string;
+    warnings?: string[];
+  }> {
+    const integration = await this.getShopifyIntegration(projectId);
+    if (!integration || !integration.accessToken || !integration.externalId) {
+      throw new BadRequestException('No Shopify integration found for this project');
+    }
+
+    const scopeStatus = this.getScopeStatusFromIntegration(integration, 'blogs_sync');
+    if (scopeStatus.missingScopes.length > 0) {
+      throw new BadRequestException({
+        code: 'SHOPIFY_MISSING_SCOPES',
+        message: `Missing required Shopify scope(s): ${scopeStatus.missingScopes.join(', ')}`,
+        projectId,
+        ...scopeStatus,
+      });
+    }
+
+    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) {
+      throw new BadRequestException('Project not found');
+    }
+
+    const shopDomain = integration.externalId;
+    const accessToken = integration.accessToken;
+
+    const articles = await this.fetchShopifyArticles(shopDomain, accessToken);
+
+    const warnings: string[] = [];
+    let upserted = 0;
+    let skipped = 0;
+    const now = new Date();
+
+    for (const article of articles) {
+      if (!article.handle) {
+        warnings.push(`Skipped article ${article.id}: missing handle`);
+        skipped++;
+        continue;
+      }
+
+      const blogHandle = article.blog?.handle;
+      if (!blogHandle) {
+        warnings.push(`Skipped article ${article.id}: missing blog handle`);
+        skipped++;
+        continue;
+      }
+
+      const resourceId = this.extractShopifyId(article.id);
+      const domain = project.domain || shopDomain;
+      const url = `https://${domain}/blogs/${blogHandle}/${article.handle}`;
+
+      await this.prisma.crawlResult.upsert({
+        where: {
+          projectId_shopifyResourceType_shopifyResourceId: {
+            projectId,
+            shopifyResourceType: 'ARTICLE',
+            shopifyResourceId: resourceId,
+          },
+        },
+        create: {
+          projectId,
+          url,
+          statusCode: 200,
+          title: article.title ?? null,
+          metaDescription: article.seo?.description ?? null,
+          h1: article.title ?? null,
+          wordCount: null,
+          loadTimeMs: null,
+          issues: [],
+          scannedAt: now,
+          shopifyResourceType: 'ARTICLE',
+          shopifyResourceId: resourceId,
+          shopifyHandle: article.handle,
+          shopifyBlogHandle: blogHandle,
+          shopifyUpdatedAt: new Date(article.updatedAt),
+          shopifyPublishedAt: article.publishedAt ? new Date(article.publishedAt) : null,
+          shopifySyncedAt: now,
+        },
+        update: {
+          url,
+          title: article.title ?? null,
+          metaDescription: article.seo?.description ?? null,
+          h1: article.title ?? null,
+          shopifyHandle: article.handle,
+          shopifyBlogHandle: blogHandle,
+          shopifyUpdatedAt: new Date(article.updatedAt),
+          shopifyPublishedAt: article.publishedAt ? new Date(article.publishedAt) : null,
+          shopifySyncedAt: now,
+        },
+      });
+
+      upserted++;
+    }
+
+    const existingConfig = (integration.config as any) || {};
+    await this.prisma.integration.update({
+      where: { id: integration.id },
+      data: {
+        config: {
+          ...existingConfig,
+          lastBlogsSyncAt: now.toISOString(),
+        },
+      },
+    });
+
+    return {
+      projectId,
+      fetched: articles.length,
+      upserted,
+      skipped,
+      completedAt: now.toISOString(),
+      ...(warnings.length > 0 && { warnings }),
+    };
+  }
+
+  /**
    * Get sync status timestamps for a project.
-   * Returns lastProductsSyncAt, lastPagesSyncAt, lastCollectionsSyncAt (null when never synced).
+   * Returns lastProductsSyncAt, lastPagesSyncAt, lastCollectionsSyncAt, lastBlogsSyncAt (null when never synced).
    */
   async getSyncStatus(projectId: string): Promise<{
     projectId: string;
     lastProductsSyncAt: string | null;
     lastPagesSyncAt: string | null;
     lastCollectionsSyncAt: string | null;
+    lastBlogsSyncAt: string | null;
   }> {
     const integration = await this.getShopifyIntegration(projectId);
 
@@ -2411,6 +2706,7 @@ export class ShopifyService {
       lastProductsSyncAt: config.lastProductsSyncAt ?? null,
       lastPagesSyncAt: config.lastPagesSyncAt ?? null,
       lastCollectionsSyncAt: config.lastCollectionsSyncAt ?? null,
+      lastBlogsSyncAt: config.lastBlogsSyncAt ?? null,
     };
   }
 }

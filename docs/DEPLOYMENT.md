@@ -173,7 +173,7 @@ In Render's **Environment** tab, add these variables:
 | `SHOPIFY_API_KEY` | From Shopify Partner Dashboard |
 | `SHOPIFY_API_SECRET` | From Shopify Partner Dashboard |
 | `SHOPIFY_APP_URL` | `https://api.engineo.ai` |
-| `SHOPIFY_SCOPES` | `read_products,write_products` |
+| `SHOPIFY_SCOPES` | `read_products,write_products,read_themes,read_content` |
 | `AI_PROVIDER` | `gemini` or `openai` |
 | `AI_API_KEY` | Your AI provider API key |
 | `FRONTEND_URL` | `https://app.engineo.ai` |
@@ -553,7 +553,7 @@ Ensure these are set in Render:
 | `SHOPIFY_API_KEY` | Partners Dashboard → API credentials |
 | `SHOPIFY_API_SECRET` | Partners Dashboard → API credentials |
 | `SHOPIFY_APP_URL` | `https://api.engineo.ai` |
-| `SHOPIFY_SCOPES` | `read_products,write_products` |
+| `SHOPIFY_SCOPES` | `read_products,write_products,read_themes,read_content` |
 
 ### Testing
 

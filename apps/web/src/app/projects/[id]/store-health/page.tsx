@@ -2,12 +2,13 @@
 
 import { useParams, useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { projectsApi, aiApi } from '@/lib/api';
+import { projectsApi, aiApi, shopifyApi } from '@/lib/api';
 import type { WorkQueueResponse, WorkQueueActionBundle } from '@/lib/work-queue';
 import { buildWorkQueueUrl } from '@/lib/work-queue';
 import type { ProjectInsightsResponse } from '@/lib/insights';
 import type { CanonicalIssueCountsSummary } from '@/lib/deo-issues';
 import { getReturnToFromCurrentUrl, withRouteContext } from '@/lib/route-context';
+import { getToken } from '@/lib/auth';
 
 /**
  * [STORE-HEALTH-1.0] Store Health Page
@@ -57,21 +58,27 @@ export default function StoreHealthPage() {
   const [aiQuota, setAiQuota] = useState<{ used: number; limit: number | null; remaining: number | null } | null>(null);
   // [COUNT-INTEGRITY-1.1 PATCH 7] Canonical triplet counts for "Items affected" display
   const [countsSummary, setCountsSummary] = useState<CanonicalIssueCountsSummary | null>(null);
+  const [integrationStatus, setIntegrationStatus] = useState<any | null>(null);
+  const [connectingShopify, setConnectingShopify] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       // [COUNT-INTEGRITY-1.1 PATCH 7] Fetch canonical triplet counts for "Items affected" display
-      const [wqData, insightsData, quotaData, countsData] = await Promise.all([
+      // [SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1-FIXUP-1] integrationStatus is non-blocking: catch errors gracefully
+      const [wqData, insightsData, quotaData, countsData, integrationStatusData] = await Promise.all([
         projectsApi.workQueue(projectId),
         projectsApi.insights(projectId).catch(() => null),
         aiApi.getProjectAiUsageQuota(projectId, { action: 'DRAFT_GENERATE' }).catch(() => null),
         projectsApi.canonicalIssueCountsSummary(projectId).catch(() => null),
+        projectsApi.integrationStatus(projectId).catch(() => null),
       ]);
       setWorkQueue(wqData);
       setInsights(insightsData);
       setCountsSummary(countsData);
+      setIntegrationStatus(integrationStatusData);
       if (quotaData) {
         // Map from AiUsageQuotaEvaluation fields to our internal representation
         setAiQuota({
@@ -91,6 +98,33 @@ export default function StoreHealthPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const handleConnectShopify = useCallback(async () => {
+    setConnectError(null);
+    setConnectingShopify(true);
+    const token = getToken();
+    if (!token) {
+      setConnectError(
+        "We couldn't start Shopify connection because your session token is missing. Please sign in again, then retry.",
+      );
+      setConnectingShopify(false);
+      return;
+    }
+    try {
+      const result = await shopifyApi.getConnectUrl(projectId, returnTo);
+      const url = result && typeof (result as any).url === 'string' ? (result as any).url : null;
+      if (!url) {
+        setConnectError("We couldn't start Shopify connection. Please refresh and try again.");
+        setConnectingShopify(false);
+        return;
+      }
+      window.location.href = url;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "We couldn't start Shopify connection. Please try again.";
+      setConnectError(message);
+      setConnectingShopify(false);
+    }
+  }, [projectId, returnTo]);
 
   // Helper: Get worst health from bundles matching criteria
   const getWorstHealth = (bundles: WorkQueueActionBundle[]): HealthStatus => {
@@ -252,6 +286,11 @@ export default function StoreHealthPage() {
     },
   ];
 
+  const shopifyConnected = integrationStatus?.shopify?.connected === true;
+  const projectDomain = typeof integrationStatus?.projectDomain === 'string' ? integrationStatus.projectDomain : '';
+  const shopDomain = typeof integrationStatus?.shopify?.shopDomain === 'string' ? integrationStatus.shopify.shopDomain : '';
+  const looksLikeShopifyProject = projectDomain.includes('.myshopify.com') || shopDomain.includes('.myshopify.com');
+
   // Health pill styling
   const getHealthStyles = (health: HealthStatus): string => {
     switch (health) {
@@ -291,6 +330,38 @@ export default function StoreHealthPage() {
           >
             Try again
           </button>
+        </div>
+      )}
+
+      {/* [SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1] Shopify connect notice for Shopify projects */}
+      {!loading && !error && looksLikeShopifyProject && !shopifyConnected && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-medium text-amber-900">Shopify is not connected for this project.</p>
+          <p className="mt-1 text-sm text-amber-900">
+            Connect Shopify to enable product sync and content analysis.
+          </p>
+          <div className="mt-3 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleConnectShopify}
+              disabled={connectingShopify}
+              className="inline-flex items-center rounded-md bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {connectingShopify ? 'Connecting...' : 'Connect Shopify'}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push(`/projects/${projectId}/settings#integrations`)}
+              className="text-sm font-medium text-amber-900 underline"
+            >
+              Go to Project Settings
+            </button>
+          </div>
+          {connectError && (
+            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              {connectError}
+            </div>
+          )}
         </div>
       )}
 

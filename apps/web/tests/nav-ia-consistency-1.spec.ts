@@ -185,6 +185,7 @@ test.describe('NAV-IA-CONSISTENCY-1: Project Sidebar', () => {
       'Products',
       'Pages',
       'Collections',
+      'Blog posts',
       'Playbooks',
       'Insights',
       'Project Settings',

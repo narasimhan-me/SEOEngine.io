@@ -453,6 +453,18 @@ export default function PagesAssetListPage() {
         )}
       </div>
 
+      {!syncStatus.shopifyConnected && (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+          <p>Shopify is not connected for this project.</p>
+          <Link
+            href={`/projects/${projectId}/settings#integrations`}
+            className="mt-2 inline-flex text-sm font-medium text-blue-600 hover:text-blue-800"
+          >
+            Connect Shopify in Project Settings
+          </Link>
+        </div>
+      )}
+
       {/* [SHOPIFY-SCOPE-RECONSENT-UX-1] Permission notice when required scopes are missing */}
       {syncStatus.shopifyConnected && hasMissingScopes && (
         <ShopifyPermissionNotice

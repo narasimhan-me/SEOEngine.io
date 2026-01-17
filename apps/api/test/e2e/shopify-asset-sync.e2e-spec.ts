@@ -1,9 +1,10 @@
 /**
- * [SHOPIFY-ASSET-SYNC-COVERAGE-1] API-level E2E tests for Shopify Pages + Collections sync.
+ * [SHOPIFY-ASSET-SYNC-COVERAGE-1] + [BLOGS-ASSET-SYNC-COVERAGE-1] API-level E2E tests for Shopify Pages/Collections/Blog Posts sync.
  *
  * Tests:
  * - POST /projects/:id/shopify/sync-pages
  * - POST /projects/:id/shopify/sync-collections
+ * - POST /projects/:id/shopify/sync-blogs
  * - GET /projects/:id/shopify/sync-status
  *
  * Uses global.fetch stubbing pattern from shopify-update-product-seo.e2e-spec.ts.
@@ -199,6 +200,79 @@ describe('Shopify Asset Sync (SHOPIFY-ASSET-SYNC-COVERAGE-1)', () => {
       expect(summerSale).toBeDefined();
       expect(summerSale?.shopifyResourceId).toBe('333');
       expect(summerSale?.url).toContain('/collections/summer-sale');
+    });
+  });
+
+  describe('POST /projects/:id/shopify/sync-blogs', () => {
+    it('creates CrawlResult rows with Shopify identity fields for articles (blog posts)', async () => {
+      const { user, project } = await seedFirstDeoWinProjectReady(testPrisma, { userPlan: 'pro' });
+
+      const mockArticles = [
+        {
+          id: 'gid://shopify/Article/555',
+          title: 'First Post',
+          handle: 'first-post',
+          publishedAt: '2025-01-05T00:00:00Z',
+          updatedAt: '2025-01-06T00:00:00Z',
+          blog: { handle: 'news' },
+          seo: { title: null, description: null },
+        },
+        {
+          id: 'gid://shopify/Article/556',
+          title: 'Draft Post',
+          handle: 'draft-post',
+          publishedAt: null,
+          updatedAt: '2025-01-07T00:00:00Z',
+          blog: { handle: 'news' },
+          seo: { title: null, description: null },
+        },
+      ];
+
+      (global as any).fetch = jest.fn(async (_url: string, init: any) => {
+        const body = JSON.parse((init?.body as string) ?? '{}');
+        if (body.operationName === 'GetArticles') {
+          return {
+            ok: true,
+            json: async () => ({
+              data: {
+                articles: {
+                  edges: mockArticles.map((a) => ({ node: a })),
+                  pageInfo: { hasNextPage: false, endCursor: null },
+                },
+              },
+            }),
+            text: async () => '',
+          };
+        }
+        throw new Error(`Unexpected operation: ${body.operationName}`);
+      });
+
+      const token = jwtService.sign({ sub: user.id });
+
+      const res = await request(server)
+        .post(`/projects/${project.id}/shopify/sync-blogs`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.projectId).toBe(project.id);
+      expect(res.body.fetched).toBe(2);
+      expect(res.body.upserted).toBe(2);
+
+      const crawlResults = await testPrisma.crawlResult.findMany({
+        where: { projectId: project.id, shopifyResourceType: 'ARTICLE' },
+      });
+
+      expect(crawlResults.length).toBe(2);
+
+      const first = crawlResults.find((r) => r.shopifyHandle === 'news/first-post');
+      expect(first).toBeDefined();
+      expect(first?.shopifyResourceId).toBe('555');
+      expect(first?.url).toContain('/blogs/news/first-post');
+      expect(first?.shopifyPublishedAt).toBeDefined();
+
+      const draft = crawlResults.find((r) => r.shopifyHandle === 'news/draft-post');
+      expect(draft).toBeDefined();
+      expect(draft?.shopifyPublishedAt).toBeNull();
     });
   });
 

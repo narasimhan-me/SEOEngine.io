@@ -443,7 +443,7 @@ export default function ProductsPage() {
               {!projectInfo?.shopify.connected && (
                 <div className="mt-4">
                   <Link
-                    href={`/projects/${projectId}`}
+                    href={`/projects/${projectId}/settings#integrations`}
                     className="text-blue-600 hover:text-blue-800"
                   >
                     Go to project settings to connect Shopify
