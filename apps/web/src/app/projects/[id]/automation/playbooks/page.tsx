@@ -60,6 +60,21 @@ interface PlaybookDefinition {
   field: 'seoTitle' | 'seoDescription';
 }
 
+/**
+ * [PLAYBOOK-STEP-CONTINUITY-1] Draft status values returned by the server.
+ * Used to determine Apply readiness / blocker evaluation in Step 2.
+ */
+type PlaybookDraftStatus = 'READY' | 'PARTIAL' | 'FAILED' | 'EXPIRED';
+
+/**
+ * [PLAYBOOK-STEP-CONTINUITY-1] Draft counts returned by the server.
+ */
+interface PlaybookDraftCounts {
+  affectedTotal: number;
+  draftGenerated: number;
+  noSuggestionCount: number;
+}
+
 interface PlaybookEstimate {
   projectId: string;
   playbookId: PlaybookId;
@@ -78,6 +93,15 @@ interface PlaybookEstimate {
   scopeId: string;
   /** Deterministic hash of rules configuration for binding preview → estimate → apply */
   rulesHash: string;
+  /**
+   * [PLAYBOOK-STEP-CONTINUITY-1] Status of the latest draft for this scope/rules combination.
+   * Used to determine Apply readiness in Step 2.
+   */
+  draftStatus?: PlaybookDraftStatus;
+  /**
+   * [PLAYBOOK-STEP-CONTINUITY-1] Aggregated counts for the latest draft.
+   */
+  draftCounts?: PlaybookDraftCounts;
 }
 
 interface PreviewSample {
@@ -711,7 +735,10 @@ export default function AutomationPlaybooksPage() {
       try {
         setLoadingEstimate(true);
         setError('');
-        setEstimate(null);
+        // [PLAYBOOK-STEP-CONTINUITY-1] Do NOT clear estimate to null while loading.
+        // Keep the last known estimate visible so the UI can show stale data during refresh.
+        // This prevents the "Continue to Apply" button race condition where estimate === null
+        // while loadingEstimate is still true.
         // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Use explicit scope payload (removes positional branching)
         const effectiveAssetType = assetType ?? currentAssetType;
         const effectiveScopeAssetRefs = scopeAssetRefs ?? currentScopeAssetRefs;
@@ -833,13 +860,12 @@ export default function AutomationPlaybooksPage() {
 
         setPreviewSamples(samples);
 
-        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Fix state-integrity bug: estimate must match playbook
-        // Only merge scopeId/rulesHash if estimate belongs to the same playbook
-        if (!estimate || estimate.playbookId !== playbookId) {
-          // Fetch fresh estimate for this playbook
-          await loadEstimate(playbookId);
-        }
-        // Update the estimate with scopeId and rulesHash from preview (after confirming it's for the right playbook)
+        // [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-1] UNCONDITIONAL estimate refresh after preview generation.
+        // This is required so draftStatus/draftCounts are guaranteed to reflect the latest draft,
+        // which unblocks Step 2 after Regenerate/Retry CTAs are clicked.
+        // The previous conditional check caused the blocker state to persist incorrectly.
+        await loadEstimate(playbookId);
+        // Update the estimate with scopeId and rulesHash from preview
         setEstimate((prev) =>
           prev && prev.playbookId === playbookId
             ? { ...prev, scopeId: previewResult.scopeId, rulesHash: previewResult.rulesHash }
@@ -1012,7 +1038,14 @@ export default function AutomationPlaybooksPage() {
   };
 
   const handleNextStep = () => {
-    if (!estimate || !estimate.canProceed) {
+    // [PLAYBOOK-STEP-CONTINUITY-1] Defensive fallback: never return silently.
+    // When required data is missing/stale, show an explicit user-visible message.
+    if (!estimate) {
+      feedback.showError('Estimate data is not available. Please wait for the estimate to load or regenerate the preview.');
+      return;
+    }
+    if (!estimate.canProceed) {
+      feedback.showError('Cannot proceed: the playbook is blocked by plan limits or eligibility requirements.');
       return;
     }
     // Determine active step from flowState
@@ -1030,12 +1063,19 @@ export default function AutomationPlaybooksPage() {
       // Use derived readiness instead of raw flowState
       setFlowState('ESTIMATE_READY');
     } else if (currentStep === 2) {
+      // [PLAYBOOK-STEP-CONTINUITY-1] Deterministic Step 2 → Step 3 transition guarantee.
+      // Always set flowState to APPLY_READY and scroll/focus Step 3 reliably.
       setFlowState('APPLY_READY');
+      // Use requestAnimationFrame to ensure DOM is updated before scrolling
       if (typeof window !== 'undefined') {
-        const el = document.getElementById('automation-playbook-apply-step');
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+        requestAnimationFrame(() => {
+          const el = document.getElementById('automation-playbook-apply-step');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Focus the section for accessibility
+            el.focus({ preventScroll: true });
+          }
+        });
       }
     }
   };
@@ -2704,21 +2744,35 @@ export default function AutomationPlaybooksPage() {
             className="rounded-lg border border-gray-200 bg-white p-6"
             data-testid="playbook-zero-eligible-empty-state"
           >
-            <h2 className="text-lg font-semibold text-gray-900">No eligible items right now</h2>
+            {/* [PLAYBOOK-STEP-CONTINUITY-1] Primary message: "No applicable changes found" */}
+            <h2 className="text-lg font-semibold text-gray-900">No applicable changes found</h2>
             <p className="mt-2 text-sm text-gray-600">
-              No eligible items right now. This playbook only applies to products missing SEO{' '}
+              This playbook only applies to {currentAssetType === 'PRODUCTS' ? 'products' : currentAssetType === 'PAGES' ? 'pages' : 'collections'} missing SEO{' '}
               {selectedDefinition.field === 'seoTitle' ? 'titles' : 'descriptions'} in the current scope.
             </p>
             <p className="mt-2 text-sm text-gray-600">
-              Common reasons: products are already optimized, the selected scope is out of date, or Shopify data hasn&apos;t been synced recently.
+              Common reasons: items are already optimized, the selected scope is out of date, or Shopify data hasn&apos;t been synced recently.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
+              {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-1] Back/Exit path - use canonical /playbooks route */}
+              <button
+                type="button"
+                onClick={() => handleNavigate(`/projects/${projectId}/playbooks`)}
+                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+              >
+                ← Return to Playbooks
+              </button>
+              {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-1] Restore test-stable CTA label for PRODUCTS */}
               <button
                 type="button"
                 onClick={() => handleNavigate(`/projects/${projectId}/products`)}
                 className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                View products that need optimization
+                {currentAssetType === 'PRODUCTS'
+                  ? 'View products that need optimization'
+                  : currentAssetType === 'PAGES'
+                    ? 'View pages that need optimization'
+                    : 'View collections that need optimization'}
               </button>
               <button
                 type="button"
@@ -3379,8 +3433,133 @@ export default function AutomationPlaybooksPage() {
                   </p>
                 )}
                 <p className="mt-2 text-xs text-gray-500">{rulesSummaryLabel}</p>
+                {/* [PLAYBOOK-STEP-CONTINUITY-1] Draft status blocker evaluation */}
+                {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-2] Permission-safe blocker CTAs */}
+                {estimate.draftStatus === 'EXPIRED' && (
+                  <div className="mt-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                    <div className="flex items-start gap-2">
+                      <svg className="h-4 w-4 flex-shrink-0 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <p className="font-semibold">Draft expired</p>
+                        <p className="mt-0.5">
+                          The preview draft has expired. Regenerate the preview to continue with apply.
+                        </p>
+                        {canGenerateDrafts ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (selectedPlaybookId) {
+                                loadPreview(selectedPlaybookId);
+                              }
+                            }}
+                            className="mt-2 inline-flex items-center rounded-md bg-amber-600 px-2 py-1 text-xs font-medium text-white hover:bg-amber-700"
+                          >
+                            Regenerate Preview
+                          </button>
+                        ) : (
+                          <p className="mt-2 text-xs text-gray-600">
+                            Viewer role cannot generate previews.{' '}
+                            <Link
+                              href={`/projects/${projectId}/settings/members`}
+                              className="text-blue-600 hover:underline"
+                            >
+                              Request access
+                            </Link>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {estimate.draftStatus === 'FAILED' && (
+                  <div className="mt-3 rounded border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+                    <div className="flex items-start gap-2">
+                      <svg className="h-4 w-4 flex-shrink-0 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <div>
+                        <p className="font-semibold">Draft generation failed</p>
+                        <p className="mt-0.5">
+                          The preview draft could not be generated. Please try regenerating the preview.
+                        </p>
+                        {canGenerateDrafts ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (selectedPlaybookId) {
+                                loadPreview(selectedPlaybookId);
+                              }
+                            }}
+                            className="mt-2 inline-flex items-center rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700"
+                          >
+                            Retry Preview
+                          </button>
+                        ) : (
+                          <p className="mt-2 text-xs text-gray-600">
+                            Viewer role cannot generate previews.{' '}
+                            <Link
+                              href={`/projects/${projectId}/settings/members`}
+                              className="text-blue-600 hover:underline"
+                            >
+                              Request access
+                            </Link>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-1] Blocker panel for draft missing/unknown */}
+                {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-2] Permission-safe blocker CTA */}
+                {!estimate.draftStatus && (
+                  <div className="mt-3 rounded border border-gray-200 bg-gray-50 p-3 text-xs text-gray-800">
+                    <div className="flex items-start gap-2">
+                      <svg className="h-4 w-4 flex-shrink-0 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <p className="font-semibold">No draft available</p>
+                        <p className="mt-0.5">
+                          Generate a preview first to create a draft before applying.
+                        </p>
+                        {canGenerateDrafts ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (selectedPlaybookId) {
+                                loadPreview(selectedPlaybookId);
+                              }
+                            }}
+                            className="mt-2 inline-flex items-center rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700"
+                          >
+                            Generate Preview
+                          </button>
+                        ) : (
+                          <p className="mt-2 text-xs text-gray-600">
+                            Viewer role cannot generate previews.{' '}
+                            <Link
+                              href={`/projects/${projectId}/settings/members`}
+                              className="text-blue-600 hover:underline"
+                            >
+                              Request access
+                            </Link>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
+            {/* [PLAYBOOK-STEP-CONTINUITY-1] Apply readiness / blocker evaluation
+                EXACTLY ONE outcome at the end of Step 2:
+                A) Actionable items exist + draft is valid → show "Continue to Apply"
+                B) No actionable items → handled by isEligibilityEmptyState (zero-eligible empty state)
+                C) Blocked by permission/scope → handled by role capability checks + inline notices
+                D) Draft missing/invalid/expired/failed → show blocker panel above, hide "Continue to Apply"
+            */}
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
@@ -3391,26 +3570,32 @@ export default function AutomationPlaybooksPage() {
               >
                 Back to Preview
               </button>
-              <button
-                type="button"
-                onClick={handleNextStep}
-                disabled={
-                  flowState !== 'ESTIMATE_READY' ||
-                  step2Locked ||
-                  !estimate ||
-                  !estimate.canProceed
-                }
-                className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Continue to Apply
-              </button>
+              {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-1] Only show "Continue to Apply" when draft has explicit valid status (READY or PARTIAL) */}
+              {(estimate?.draftStatus === 'READY' || estimate?.draftStatus === 'PARTIAL') && (
+                <button
+                  type="button"
+                  onClick={handleNextStep}
+                  disabled={
+                    flowState !== 'ESTIMATE_READY' ||
+                    step2Locked ||
+                    !estimate ||
+                    !estimate.canProceed ||
+                    loadingEstimate
+                  }
+                  className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Continue to Apply
+                </button>
+              )}
             </div>
           </section>
 
           {/* Step 3: Apply */}
+          {/* [PLAYBOOK-STEP-CONTINUITY-1] tabIndex for focus accessibility on scroll */}
           <section
             id="automation-playbook-apply-step"
-            className="rounded-lg border border-gray-200 bg-white p-4"
+            tabIndex={-1}
+            className="rounded-lg border border-gray-200 bg-white p-4 focus:outline-none"
           >
             <div className="mb-3">
               <h2 className="text-sm font-semibold text-gray-900">
@@ -3860,21 +4045,33 @@ export default function AutomationPlaybooksPage() {
                     const hasApprovedApproval = approvalStatus === 'APPROVED' && !approvalConsumed;
                     const needsNewRequest = !pendingApproval || approvalStatus === 'REJECTED' || approvalConsumed;
 
-                    // VIEWER notice
+                    // [PLAYBOOK-STEP-CONTINUITY-1] VIEWER notice with resolution CTA
                     if (!roleCapabilities.canRequestApproval && !roleCapabilities.canApply) {
                       return (
                         <p className="mr-4 text-xs text-gray-500">
-                          Viewer role cannot apply. Preview and export remain available.
+                          Viewer role cannot apply. Preview and export remain available.{' '}
+                          <Link
+                            href={`/projects/${projectId}/settings/members`}
+                            className="text-blue-600 hover:underline"
+                          >
+                            Request access
+                          </Link>
                         </p>
                       );
                     }
 
-                    // EDITOR notices (can request but not apply)
+                    // [PLAYBOOK-STEP-CONTINUITY-1] EDITOR notices with resolution CTA (can request but not apply)
                     if (roleCapabilities.canRequestApproval && !roleCapabilities.canApply) {
                       if (!approvalRequired) {
                         return (
                           <p className="mr-4 text-xs text-gray-500">
-                            Editor role cannot apply. An owner must apply this playbook.
+                            Editor role cannot apply. An owner must apply this playbook.{' '}
+                            <Link
+                              href={`/projects/${projectId}/settings/members`}
+                              className="text-blue-600 hover:underline"
+                            >
+                              Manage members
+                            </Link>
                           </p>
                         );
                       }

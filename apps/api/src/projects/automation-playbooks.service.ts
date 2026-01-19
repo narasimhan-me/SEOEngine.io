@@ -1072,7 +1072,14 @@ export class AutomationPlaybooksService {
 
     if (latestDraft) {
       rulesHash = latestDraft.rulesHash;
-      draftStatus = latestDraft.status as AutomationPlaybookDraftStatus;
+      // [PLAYBOOK-STEP-CONTINUITY-1] Treat expiresAt < now as authoritative "expired"
+      // even if persisted status is not updated, so the web Step 2 can decide outcome deterministically.
+      const now = new Date();
+      if (latestDraft.expiresAt && latestDraft.expiresAt < now) {
+        draftStatus = 'EXPIRED';
+      } else {
+        draftStatus = latestDraft.status as AutomationPlaybookDraftStatus;
+      }
       draftCounts = (latestDraft.counts as unknown as PlaybookDraftCounts | null) ?? undefined;
     }
 
@@ -1254,6 +1261,21 @@ export class AutomationPlaybooksService {
         expectedRulesHash: latestDraft.rulesHash,
         providedRulesHash: rulesHash,
         scopeId,
+      });
+    }
+
+    // [PLAYBOOK-STEP-CONTINUITY-1] Explicit draft-expired guard
+    // After loading latestDraft, if expiresAt < now, return an explicit conflict outcome
+    // with a stable error code that the web already has a dedicated inline panel for.
+    const now = new Date();
+    if (latestDraft.expiresAt && latestDraft.expiresAt < now) {
+      throw new ConflictException({
+        message:
+          'The preview draft has expired. Please regenerate the preview before applying.',
+        error: 'PLAYBOOK_DRAFT_EXPIRED',
+        code: 'PLAYBOOK_DRAFT_EXPIRED',
+        scopeId,
+        expiresAt: latestDraft.expiresAt.toISOString(),
       });
     }
 
