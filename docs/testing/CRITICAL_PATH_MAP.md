@@ -289,7 +289,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/issue-engine-lite.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.1.md` ✅ |
+| **Manual Testing Doc(s)** | `docs/testing/issue-engine-lite.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.1.md`, `docs/manual-testing/DIAGNOSTIC-GUIDANCE-1.md` ✅ |
 | **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/count-integrity-1-1.spec.ts` ✅ (backend API), `apps/web/tests/count-integrity-1-1.ui.spec.ts` ✅ (UI smoke test) |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
@@ -307,7 +307,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] MEDIA-1: missing_image_alt_text, generic_image_alt_text, insufficient_image_coverage, missing_media_context issues generated
 - [ ] DEO-UX-REFRESH-1: Product details Issues tab shows issue count consistent with products list
 - [ ] DEO-UX-REFRESH-1: Issues grouped by pillar with "Fix next" guidance
-- [ ] COUNT-INTEGRITY-1: Technical issues appear as "detected" with "Informational — no action required" badge
+- [ ] COUNT-INTEGRITY-1: Technical issues appear as "detected" with informational badge
 - [ ] COUNT-INTEGRITY-1: Technical issues are NOT clickable (no dead-click risk)
 - [ ] COUNT-INTEGRITY-1: Detected vs actionable semantics consistent across all UI surfaces
 - [ ] COUNT-INTEGRITY-1: VIEWER role sees all issues as detected (actionableCount = 0)
@@ -316,6 +316,10 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [x] COUNT-INTEGRITY-1.1: Backend canonical triplet endpoints complete (products + pages/collections dedup verified) ✅ **BACKEND COMPLETE (PATCH BATCH 4 + FIXUP)**
 - [x] COUNT-INTEGRITY-1.1: Issues Engine displays labeled triplets ("Issue types", "Items affected", "Actionable now") ✅ **GAP 6 COMPLETE (PATCH 5)**
 - [x] COUNT-INTEGRITY-1.1: affectedItemsCount accurate for products (Gap 3a resolved, verified by CANON-009) and pages/collections (Gap 3b resolved, verified by CANON-010 with 30 collections beyond cap-20)
+- [ ] DIAGNOSTIC-GUIDANCE-1: Outside-control issues (actionability='informational') show "Informational — outside EngineO.ai control" badge
+- [ ] DIAGNOSTIC-GUIDANCE-1: Outside-control issues show "How to address this" guidance block with 4 bullets
+- [ ] DIAGNOSTIC-GUIDANCE-1: Outside-control issues have no Fix/Apply/Fix with AI CTAs (no dead-clicks)
+- [ ] DIAGNOSTIC-GUIDANCE-1: Orphan issues (no valid fixHref) still show "Informational — no action required" badge
 
 ---
 
@@ -807,3 +811,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 6.1 | 2026-01-09 | COUNT-INTEGRITY-1.1 UI HARDEN + AUDIT FIX: Multi-action filtering via actionKeys (OR across keys), pillar-aware triplet display (currentTriplet from byPillar), severity-aligned canonical summary (passes severity to API), pillar-aware hasActionableIssues/hasDetectedIssues checks. Fixed UI smoke test auth (localStorage only) and product selection shape ({ products: [...] }). Verification complete (NO-OP) — all audit fixes confirmed implemented. |
 | 6.2 | 2026-01-14 | ISSUE-FIX-KIND-CLARITY-1: Added CP-008 scenarios for DIAGNOSTIC vs EDIT/AI issue CTA semantics. DIAGNOSTIC issues show "Review" CTA (not "Fix"), blue arrival callout (not yellow/indigo), "View related issues" routes to Issues Engine. fixKind derived from config only (never URL). Added issue-fix-kind-clarity-1.spec.ts (7 tests) + LAC1-002b in list-actions-clarity-1.spec.ts. Added manual testing doc. FIXUP-2: Products list shows "Review" for DIAGNOSTIC-topped products, Work Queue shows blue review banner for DIAGNOSTIC issueId. |
 | 6.3 | 2026-01-19 | PLAYBOOK-STEP-CONTINUITY-1: Added CP-012 scenarios for Step 2 → Step 3 deterministic transitions with explicit terminal outcomes. Added draftStatus/draftCounts to estimate response for draft validity reasoning. Added PLAYBOOK_DRAFT_EXPIRED explicit error code for apply. Added PLAYBOOK-STEP-CONTINUITY-1.md manual testing doc. |
+| 6.4 | 2026-01-19 | DIAGNOSTIC-GUIDANCE-1: Added CP-009 scenarios for diagnostic guidance pattern on outside-control issues (actionability='informational'). Issues show "Informational — outside EngineO.ai control" badge, explanation text, and "How to address this" guidance block. No Fix/Apply CTAs on these issues. Added DIAGNOSTIC-GUIDANCE-1.md manual testing doc. |
