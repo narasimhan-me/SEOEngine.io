@@ -198,12 +198,13 @@ export class ShopifyService {
 
   // [SHOPIFY-SCOPES-MATRIX-1-FIXUP-2] Least-privilege default install capabilities.
   // Only include capabilities that are actually enabled in-product.
-  private getEnabledCapabilitiesForOauth(): ShopifyCapability[] {
+  getEnabledCapabilitiesForOauth(): ShopifyCapability[] {
     return [
       'products_sync',
       'products_apply',
       'collections_sync',
       'pages_sync',
+      'blogs_sync', // [BLOGS-ASSET-SYNC-COVERAGE-1] Include blogs_sync to request read_content scope
     ];
   }
 
@@ -2100,10 +2101,6 @@ export class ShopifyService {
               title
               handle
               updatedAt
-              seo {
-                title
-                description
-              }
             }
           }
           pageInfo {
@@ -2134,7 +2131,6 @@ export class ShopifyService {
               title: string;
               handle: string;
               updatedAt: string;
-              seo: { title: string | null; description: string | null };
             };
           }>;
           pageInfo: { hasNextPage: boolean; endCursor: string | null };
@@ -2146,7 +2142,12 @@ export class ShopifyService {
       });
 
       for (const edge of data.pages.edges) {
-        allPages.push(edge.node);
+        // Shopify Page type doesn't have seo field in Admin API
+        // Set seo to null - SEO data will be synced from crawl results
+        allPages.push({
+          ...edge.node,
+          seo: { title: null, description: null },
+        });
       }
 
       hasNextPage = data.pages.pageInfo.hasNextPage;
@@ -2262,7 +2263,6 @@ export class ShopifyService {
               publishedAt
               updatedAt
               blog { handle }
-              seo { title description }
             }
           }
           pageInfo { hasNextPage endCursor }
@@ -2294,7 +2294,6 @@ export class ShopifyService {
               publishedAt: string | null;
               updatedAt: string;
               blog: { handle: string } | null;
-              seo: { title: string | null; description: string | null };
             };
           }>;
           pageInfo: { hasNextPage: boolean; endCursor: string | null };
@@ -2306,7 +2305,12 @@ export class ShopifyService {
       });
 
       for (const edge of data.articles.edges) {
-        allArticles.push(edge.node);
+        // Shopify Article type doesn't have seo field in Admin API
+        // Set seo to null - SEO data will be synced from crawl results
+        allArticles.push({
+          ...edge.node,
+          seo: { title: null, description: null },
+        });
       }
 
       hasNextPage = data.articles.pageInfo.hasNextPage;
