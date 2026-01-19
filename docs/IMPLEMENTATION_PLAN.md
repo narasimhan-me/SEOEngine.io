@@ -1782,6 +1782,76 @@ Seeds:
 - `docs/SHOPIFY_SCOPES_MATRIX.md` (blogs_sync capability)
 - `docs/testing/CRITICAL_PATH_MAP.md` (CP-006 updated)
 
+### Phase PLAYBOOK-STEP-CONTINUITY-1: Playbook Step 2 → Step 3 Deterministic Transitions ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-19
+**Critical Path:** CP-012 Automation Playbooks – preview → estimate → apply
+
+#### Goals
+
+1. Eliminate Step 2 "Continue to Apply" silent no-op race condition.
+2. Enforce explicit terminal outcomes at Step 2 (Ready / NoItems / Blocked / DraftInvalid).
+3. Add deterministic Step 2 → Step 3 transition guarantee (no silent stalls).
+4. Provide resolution CTAs for permission-blocked and draft-invalid states.
+
+#### Strict Non-Goals
+
+- No changes to playbook AI generation logic
+- No changes to scope binding or rules hash computation
+- No new playbook types or capabilities
+
+#### Key Changes
+
+1. **loadEstimate Race Fix**: `loadEstimate()` no longer clears estimate to null while loading. Keeps last known estimate visible during refresh.
+2. **handleNextStep Defensive Fallback**: Never returns silently. Shows explicit toast when required data is missing/stale.
+3. **PlaybookEstimate Interface**: Extended with `draftStatus?: 'READY' | 'PARTIAL' | 'FAILED' | 'EXPIRED'` and `draftCounts` fields.
+4. **Draft Status Evaluation**: Step 2 shows blocker panels for EXPIRED/FAILED drafts with Regenerate/Retry CTAs. "Continue to Apply" hidden for invalid drafts.
+5. **API draftStatus Normalization**: `estimatePlaybook()` returns `draftStatus: 'EXPIRED'` when `expiresAt < now` (even if persisted status differs).
+6. **API PLAYBOOK_DRAFT_EXPIRED**: `applyPlaybook()` returns explicit 409 Conflict with `code: 'PLAYBOOK_DRAFT_EXPIRED'` for expired drafts.
+7. **Zero-Eligible Empty State**: Shows "No applicable changes found" with Back/Exit path ("Return to Playbooks").
+8. **Permission Resolution CTAs**: VIEWER/EDITOR notices include "Request access" / "Manage members" links to `/settings/members`.
+9. **Step 3 Focus Accessibility**: Section has `tabIndex={-1}` for programmatic focus on scroll.
+
+#### Files Changed
+
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx`
+- `apps/api/src/projects/automation-playbooks.service.ts`
+
+#### Manual Testing
+
+- `docs/manual-testing/PLAYBOOK-STEP-CONTINUITY-1.md`
+
+#### Related Documentation
+
+- `docs/testing/CRITICAL_PATH_MAP.md` (CP-012 updated)
+
+#### FIXUP-1 (2026-01-19)
+
+Audit findings and corrections:
+
+1. **loadPreview Estimate Refresh**: Changed from conditional to unconditional estimate refresh after preview generation. This ensures `draftStatus`/`draftCounts` always reflect the latest draft, which is required to clear the Step 2 blocker state after clicking Regenerate/Retry CTAs.
+
+2. **Zero-Eligible CTA Label Regression**: Restored PRODUCTS-specific label to exactly "View products that need optimization" (was changed to generic "View items..." which breaks `zero-affected-suppression-1.spec.ts`). Other asset types now have specific labels.
+
+3. **Zero-Eligible "Return to Playbooks" Route**: Fixed navigation target from `/automation` to canonical `/playbooks` route.
+
+4. **Draft Missing Blocker Panel**: Added blocker panel for when `draftStatus` is undefined (no draft exists), with "Generate Preview" CTA. "Continue to Apply" now requires explicit valid draft status (READY or PARTIAL only).
+
+5. **Manual Testing Doc Restructure**: Aligned PLAYBOOK-STEP-CONTINUITY-1.md with MANUAL_TESTING_TEMPLATE.md structure; corrected API endpoint paths; removed nonexistent seed endpoint reference; fixed VIEWER scenario preconditions.
+
+#### FIXUP-2 (2026-01-19)
+
+Permission-safe Step 2 draft blocker CTAs:
+
+1. **VIEWER Cannot Regenerate/Retry/Generate**: Step 2 draft blocker panels (EXPIRED, FAILED, missing draftStatus) now gate the CTA based on `canGenerateDrafts`. VIEWER role cannot generate previews, so the button is not shown.
+
+2. **Explicit Permission Explanation**: When blocked, panels show "Viewer role cannot generate previews." text instead of the actionable button.
+
+3. **Resolution CTA**: Each blocked panel includes a "Request access" link to `/projects/{projectId}/settings/members`, consistent with Step 3 permission notices.
+
+4. **OWNER/EDITOR Unchanged**: The CTA remains available and functional for roles that can generate drafts.
+
 ### Phase ISSUE-FIX-KIND-CLARITY-1: Diagnostic vs Fixable Issue CTA Semantics ✅ COMPLETE
 
 **Status:** Complete
@@ -2197,3 +2267,6 @@ These invariants MUST be preserved during implementation:
 | 6.64 | 2026-01-17 | **SHOPIFY-SCOPES-MATRIX-1-FIXUP-3-AUDIT-1**: Documentation consistency - SHOPIFY_SCOPES allowlist description now consistently states it must be a superset of server-computed `requestedScopes` (not "computed required scopes"). |
 | 6.65 | 2026-01-17 | **BLOGS-ASSET-SYNC-COVERAGE-1 COMPLETE**: Shopify Blog Posts (Articles) as first-class asset type. (1) Added `shopifyPublishedAt` field to CrawlResult for Published/Draft status; (2) Added `POST /projects/:id/shopify/sync-blogs` endpoint (OWNER-only, requires `read_content`); (3) Added `fetchShopifyArticles()` and `syncBlogPosts()` to ShopifyService with E2E mock support; (4) `getSyncStatus()` returns `lastBlogsSyncAt`; (5) Blog posts list page with Published/Draft badges, "Open" external links, and permission gating; (6) Added "Blog posts" to ProjectSideNav under ASSETS; (7) Updated ShopifyPermissionNotice to mention Blog posts; (8) E2E API test, Playwright smoke test, updated nav-ia-consistency test, manual testing doc, API_SPEC.md, and CRITICAL_PATH_MAP.md CP-006. |
 | 6.66 | 2026-01-17 | **BLOGS-ASSET-SYNC-COVERAGE-1-FIXUP-1**: Blog handle display format. (1) Added `shopifyBlogHandle` field to CrawlResult (migration + schema); (2) Updated `syncBlogPosts()` to store `shopifyHandle` (article handle only) and `shopifyBlogHandle` (parent blog handle) separately; (3) Updated `projects.service.ts` to return `shopifyBlogHandle`; (4) Blog posts list displays handle as `{blogHandle}/{handle}` format (e.g., "news/welcome-to-our-blog"); (5) Updated header count display to include "0 critical • 0 need attention"; (6) Updated Playwright test assertions for blog/handle format and `blogHandle` in mock data. |
+| 6.67 | 2026-01-19 | **PLAYBOOK-STEP-CONTINUITY-1 COMPLETE**: Step 2 → Step 3 deterministic transitions with explicit terminal outcomes. (1) `loadEstimate()` no longer clears estimate to null while loading (prevents race condition); (2) `handleNextStep()` shows explicit toast on missing/stale data (never returns silently); (3) Added `draftStatus` and `draftCounts` to `PlaybookEstimate` interface; (4) Step 2 shows draft expired/failed blocker panels with Regenerate/Retry CTAs; (5) API `estimatePlaybook()` returns `draftStatus: 'EXPIRED'` when `expiresAt < now`; (6) API `applyPlaybook()` returns `PLAYBOOK_DRAFT_EXPIRED` error for expired drafts; (7) Zero-eligible empty state shows "No applicable changes found" with Back CTA; (8) VIEWER/EDITOR notices include resolution CTA links to `/settings/members`; (9) Step 3 section has `tabIndex={-1}` for focus accessibility. **Manual Testing:** PLAYBOOK-STEP-CONTINUITY-1.md |
+| 6.68 | 2026-01-19 | **PLAYBOOK-STEP-CONTINUITY-1-FIXUP-1**: Audit corrections. (1) `loadPreview()` now unconditionally refreshes estimate after preview generation (fixes Regenerate/Retry CTA not clearing blocker state); (2) Zero-eligible CTA label restored to "View products that need optimization" for PRODUCTS asset type (was generic "View items..." breaking test); (3) Zero-eligible "Return to Playbooks" route fixed to canonical `/playbooks` (was `/automation`); (4) Added blocker panel for missing draft status (draftStatus undefined); (5) "Continue to Apply" now requires explicit valid draft status (READY or PARTIAL only); (6) Manual testing doc restructured to match MANUAL_TESTING_TEMPLATE.md; corrected API endpoint paths; removed nonexistent seed endpoint; fixed VIEWER scenario preconditions. |
+| 6.69 | 2026-01-19 | **PLAYBOOK-STEP-CONTINUITY-1-FIXUP-2**: Permission-safe Step 2 draft blocker CTAs. (1) Step 2 draft blocker panels (EXPIRED/FAILED/missing) now gate CTA based on `canGenerateDrafts`; (2) VIEWER sees "Viewer role cannot generate previews." with "Request access" link instead of actionable button; (3) OWNER/EDITOR CTA unchanged. **Manual Testing:** PLAYBOOK-STEP-CONTINUITY-1.md (ERR-004 scenario added). |

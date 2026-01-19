@@ -386,7 +386,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/automation-engine.md`, `docs/testing/automation-engine-product-automations.md`, `docs/manual-testing/phase-ae-1-automation-engine-foundations.md`, `docs/manual-testing/phase-ae-2-product-automations.md`, `docs/manual-testing/phase-aue-1-automation-new-product-seo-title.md`, `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-automation-1-playbooks.md`, `docs/manual-testing/auto-pb-1-1-playbooks-hardening.md`, `docs/manual-testing/auto-pb-1-2-playbooks-ux-coherence.md`, `docs/manual-testing/AUTOMATION-ENTRY-1.md`, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md` |
+| **Manual Testing Doc(s)** | `docs/testing/automation-engine.md`, `docs/testing/automation-engine-product-automations.md`, `docs/manual-testing/phase-ae-1-automation-engine-foundations.md`, `docs/manual-testing/phase-ae-2-product-automations.md`, `docs/manual-testing/phase-aue-1-automation-new-product-seo-title.md`, `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-automation-1-playbooks.md`, `docs/manual-testing/auto-pb-1-1-playbooks-hardening.md`, `docs/manual-testing/auto-pb-1-2-playbooks-ux-coherence.md`, `docs/manual-testing/AUTOMATION-ENTRY-1.md`, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md`, `docs/manual-testing/PLAYBOOK-STEP-CONTINUITY-1.md` |
 | **Automated Tests** | `apps/api/test/e2e/automation-new-product-seo-title.e2e-spec.ts`, `apps/api/test/e2e/automation-playbooks.e2e-spec.ts`, `apps/web/tests/first-deo-win.spec.ts`, `apps/web/tests/automation-entry-1.spec.ts`, `apps/web/tests/zero-affected-suppression-1.spec.ts` ✅ |
 | **Last Verified (Manual)** | 2025-12-14 |
 | **Last Verified (Automated)** | N/A |
@@ -440,6 +440,10 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] AUTOMATION-ENTRY-1: Disable playbook always available and immediate
 - [ ] AUTOMATION-ENTRY-1: Apply does not use AI when a valid draft exists (AUTO-PB-1.3 invariant)
 - [ ] ROLES-3: Multi-user projects do NOT auto-apply; owner approval required before apply
+- [ ] PLAYBOOK-STEP-CONTINUITY-1: Step 2 → Step 3 transition is deterministic (no silent stalls)
+- [ ] PLAYBOOK-STEP-CONTINUITY-1: Explicit terminal outcomes at Step 2 (Ready/NoItems/Blocked/DraftInvalid)
+- [ ] PLAYBOOK-STEP-CONTINUITY-1: Draft expired/failed shows blocker panel with Regenerate CTA
+- [ ] PLAYBOOK-STEP-CONTINUITY-1: Permission blocked shows role notice with resolution CTA link
 
 ---
 
@@ -802,3 +806,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 6.0 | 2026-01-08 | COUNT-INTEGRITY-1.1 COMPLETE: PATCH 5-10 resolved Gap 6 (UI Migration) and Gap 7 (UI Smoke Test). PATCH 5: Issues Engine filter-aligned canonical summary with TripletDisplay data-testid attributes. PATCH 6: Product detail uses assetIssues endpoint with triplet summary. PATCH 7: Store Health tiles use canonical counts. PATCH 8: Work Queue AI badge trust copy ("Does not use AI", "AI used for drafts only"). PATCH 9: Created count-integrity-1-1.ui.spec.ts with 6 cross-surface UI smoke tests. PATCH 10: Documentation updates. Removed ⚠️ warnings from CP-008 and CP-009, marked all COUNT-INTEGRITY-1.1 scenarios complete. |
 | 6.1 | 2026-01-09 | COUNT-INTEGRITY-1.1 UI HARDEN + AUDIT FIX: Multi-action filtering via actionKeys (OR across keys), pillar-aware triplet display (currentTriplet from byPillar), severity-aligned canonical summary (passes severity to API), pillar-aware hasActionableIssues/hasDetectedIssues checks. Fixed UI smoke test auth (localStorage only) and product selection shape ({ products: [...] }). Verification complete (NO-OP) — all audit fixes confirmed implemented. |
 | 6.2 | 2026-01-14 | ISSUE-FIX-KIND-CLARITY-1: Added CP-008 scenarios for DIAGNOSTIC vs EDIT/AI issue CTA semantics. DIAGNOSTIC issues show "Review" CTA (not "Fix"), blue arrival callout (not yellow/indigo), "View related issues" routes to Issues Engine. fixKind derived from config only (never URL). Added issue-fix-kind-clarity-1.spec.ts (7 tests) + LAC1-002b in list-actions-clarity-1.spec.ts. Added manual testing doc. FIXUP-2: Products list shows "Review" for DIAGNOSTIC-topped products, Work Queue shows blue review banner for DIAGNOSTIC issueId. |
+| 6.3 | 2026-01-19 | PLAYBOOK-STEP-CONTINUITY-1: Added CP-012 scenarios for Step 2 → Step 3 deterministic transitions with explicit terminal outcomes. Added draftStatus/draftCounts to estimate response for draft validity reasoning. Added PLAYBOOK_DRAFT_EXPIRED explicit error code for apply. Added PLAYBOOK-STEP-CONTINUITY-1.md manual testing doc. |

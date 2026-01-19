@@ -35,6 +35,17 @@ seoengine/
 pnpm install
 ```
 
+### Environment Setup
+
+Create local `.env` files from the provided examples:
+
+```bash
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+```
+
+Edit these files to add your API keys and configuration. **Important:** `.env` files contain secrets and must never be committed to git. They are gitignored by default.
+
 ### Run Development Servers
 
 ```bash

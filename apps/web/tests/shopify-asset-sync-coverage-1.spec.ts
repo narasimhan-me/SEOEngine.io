@@ -162,7 +162,7 @@ test.describe('SHOPIFY-ASSET-SYNC-COVERAGE-1: Shopify Pages + Collections Sync',
       );
     });
 
-    const oauthNavPromise = page.waitForURL(/**/admin/oauth/authorize**/);
+    const oauthNavPromise = page.waitForURL(/\/admin\/oauth\/authorize/);
 
     await page.getByRole('button', { name: 'Reconnect Shopify' }).click();
 
