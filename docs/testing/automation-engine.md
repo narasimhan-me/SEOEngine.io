@@ -268,6 +268,99 @@
 
 ---
 
+## AUTOMATION-TRIGGER-TRUTHFULNESS-1 (Added 2026-01-20)
+
+### Summary
+
+Automation triggers must be truthful and deterministic:
+- **Page load never triggers AI**: The DEO issues GET endpoint is read-only (no side effects)
+- **Explicit setting gate**: New `autoGenerateAnswerBlocksOnProductSync` project-level setting (default OFF)
+- **DB-backed idempotency**: `AnswerBlockAutomationRun` model tracks fingerprint hashes to prevent duplicate processing
+- **Deterministic UI labels**: Sync CTAs show "+ Generate Answer Blocks" only when setting ON AND paid plan
+
+### New Scenarios
+
+#### Scenario AUT-005: Page load does not trigger AI
+
+**ID:** AUT-005
+
+**Description:** Opening the Issues page must not enqueue any AI automation jobs.
+
+**Steps:**
+1. Navigate to `/projects/{projectId}/issues`
+2. Monitor API server logs
+
+**Expected Results:**
+- No `[AnswerBlockAutomation]` or `[Automation] trigger` log entries
+- No new rows in `AnswerBlockAutomationRun` table
+
+---
+
+#### Scenario AUT-006: Setting gate for product_synced trigger
+
+**ID:** AUT-006
+
+**Description:** The project-level setting gates Answer Block generation on product sync.
+
+**Steps:**
+1. Ensure `autoGenerateAnswerBlocksOnProductSync = false` (default)
+2. Sync products from Shopify
+3. Check API logs
+
+**Expected Results:**
+- Log entry: `suppressedReason=setting_disabled`
+- No Answer Block automation jobs enqueued
+
+---
+
+#### Scenario AUT-007: Idempotency via fingerprint hash
+
+**ID:** AUT-007
+
+**Description:** Identical product content should not re-trigger automation.
+
+**Steps:**
+1. Enable the setting
+2. Sync products (first time)
+3. Wait for job to complete (SUCCEEDED/SKIPPED)
+4. Sync products again (no changes)
+
+**Expected Results:**
+- First sync: Creates `AnswerBlockAutomationRun` with fingerprint hash
+- Second sync: Log shows `suppressedReason=idempotent_already_done`
+- No duplicate processing
+
+---
+
+#### Scenario AUT-008: CTA label truthfulness
+
+**ID:** AUT-008
+
+**Description:** Sync button labels must accurately reflect what will happen.
+
+| Setting | Plan | Expected Label |
+|---------|------|----------------|
+| OFF | Any | "Sync Products" |
+| ON | free | "Sync Products" |
+| ON | pro/business | "Sync Products + Generate Answer Blocks" |
+
+---
+
+### Related Files
+
+- `apps/api/src/projects/automation.service.ts` - Setting gate + idempotency logic
+- `apps/api/src/projects/answer-block-automation.processor.ts` - Worker state management
+- `apps/api/prisma/schema.prisma` - `AnswerBlockAutomationRun` model
+- `apps/web/src/app/projects/[id]/settings/page.tsx` - Settings toggle
+- `apps/web/src/app/projects/[id]/products/page.tsx` - Sync Products CTA
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` - Playbooks Sync CTAs
+
+### Manual Testing Doc
+
+See `docs/manual-testing/AUTOMATION-TRIGGER-TRUTHFULNESS-1.md` for detailed test cases.
+
+---
+
 ## Approval
 
 | Field | Value |

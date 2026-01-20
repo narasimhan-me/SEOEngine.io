@@ -15,6 +15,8 @@ interface AnswerBlockAutomationJobPayload {
   userId: string;
   triggerType: 'product_synced' | 'issue_detected';
   planId: PlanId;
+  // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Run ID for product_synced idempotency tracking
+  runId?: string;
 }
 
 @Injectable()
@@ -48,7 +50,17 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
     this.worker = new Worker<AnswerBlockAutomationJobPayload, void>(
       'answer_block_automation_queue',
       async (job: Job<AnswerBlockAutomationJobPayload>): Promise<void> => {
-        const { projectId, productId, triggerType, planId } = job.data;
+        const { projectId, productId, triggerType, planId, runId } = job.data;
+
+        // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Mark run as RUNNING at job start
+        if (runId) {
+          await this.prisma.answerBlockAutomationRun.update({
+            where: { id: runId },
+            data: { status: 'RUNNING', startedAt: new Date() },
+          }).catch((err) => {
+            this.logger.warn(`[AnswerBlockAutomation] Failed to update run ${runId} to RUNNING: ${err.message}`);
+          });
+        }
 
         try {
           const product = await this.prisma.product.findUnique({
@@ -72,6 +84,13 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
                 status: 'skipped',
               },
             });
+            // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Mark run as SKIPPED
+            if (runId) {
+              await this.prisma.answerBlockAutomationRun.update({
+                where: { id: runId },
+                data: { status: 'SKIPPED', completedAt: new Date() },
+              }).catch(() => {});
+            }
             return;
           }
 
@@ -90,6 +109,13 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
                 beforeAnswerBlocks: beforeBlocks.length ? beforeBlocks : undefined,
               },
             });
+            // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Mark run as SKIPPED
+            if (runId) {
+              await this.prisma.answerBlockAutomationRun.update({
+                where: { id: runId },
+                data: { status: 'SKIPPED', completedAt: new Date() },
+              }).catch(() => {});
+            }
             return;
           }
 
@@ -120,6 +146,13 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
                 beforeAnswerBlocks: beforeBlocks.length ? beforeBlocks : undefined,
               },
             });
+            // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Mark run as SKIPPED
+            if (runId) {
+              await this.prisma.answerBlockAutomationRun.update({
+                where: { id: runId },
+                data: { status: 'SKIPPED', completedAt: new Date() },
+              }).catch(() => {});
+            }
             return;
           }
 
@@ -156,6 +189,13 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
                 beforeAnswerBlocks: beforeBlocks.length ? beforeBlocks : undefined,
               },
             });
+            // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Mark run as SKIPPED
+            if (runId) {
+              await this.prisma.answerBlockAutomationRun.update({
+                where: { id: runId },
+                data: { status: 'SKIPPED', completedAt: new Date() },
+              }).catch(() => {});
+            }
             return;
           }
 
@@ -184,6 +224,14 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
               modelUsed: 'ae_v1',
             },
           });
+
+          // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Mark run as SUCCEEDED
+          if (runId) {
+            await this.prisma.answerBlockAutomationRun.update({
+              where: { id: runId },
+              data: { status: 'SUCCEEDED', completedAt: new Date() },
+            }).catch(() => {});
+          }
 
           this.logger.log(
             `[AnswerBlockAutomation] ${action} completed for product ${productId} (project ${projectId}, trigger=${triggerType})`,
@@ -259,6 +307,19 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
               errorMessage: error instanceof Error ? error.message : String(error),
             },
           });
+
+          // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Mark run as FAILED
+          if (runId) {
+            const safeErrorMessage = error instanceof Error ? error.message : String(error);
+            await this.prisma.answerBlockAutomationRun.update({
+              where: { id: runId },
+              data: {
+                status: 'FAILED',
+                completedAt: new Date(),
+                errorMessage: safeErrorMessage.substring(0, 500), // Truncate for safety
+              },
+            }).catch(() => {});
+          }
 
           throw error;
         }

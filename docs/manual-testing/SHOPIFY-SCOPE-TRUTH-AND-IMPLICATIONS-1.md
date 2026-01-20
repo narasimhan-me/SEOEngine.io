@@ -299,6 +299,19 @@
 - [ ] Server logs show truthSource (oauth_scope or access_scopes_endpoint)
 - [ ] No console errors in OAuth callback
 
+### Regression check (SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1):
+
+For projects with older/legacy Shopify integrations where `integration.config.scope` may be stored as a JSON array or whitespace-delimited string:
+
+- [ ] **Collections page:** Verify `GET /projects/:id/shopify/missing-scopes?capability=collections_sync` does NOT report `read_products` missing when the integration is known to have product permissions (e.g., `write_products` or `read_products` in scope).
+- [ ] **Pages page:** Verify `GET /projects/:id/shopify/missing-scopes?capability=pages_sync` does NOT falsely report `read_content` missing when the integration has content permissions.
+- [ ] **Blogs page:** Verify `GET /projects/:id/shopify/missing-scopes?capability=blogs_sync` does NOT falsely report `read_content` missing when the integration has content permissions.
+
+**To test legacy formats directly:**
+1. Manually update `integration.config.scope` in the database to a JSON array format: `["read_products", "write_products"]`
+2. Reload the Collections page and verify no "Missing permission: read_products" block appears.
+3. Restore the scope to comma-separated format if needed.
+
 ---
 
 ## Post-Conditions

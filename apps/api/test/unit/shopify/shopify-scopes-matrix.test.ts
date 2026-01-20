@@ -53,31 +53,120 @@ describe('Shopify Scope Matrix (SHOPIFY-SCOPES-MATRIX-1)', () => {
     });
   });
 
-  describe('parseShopifyScopesCsv', () => {
+  /**
+   * [SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1] Parser tests for backward compatibility
+   *
+   * The parser must handle:
+   * - Comma-separated strings (standard format)
+   * - Whitespace-separated strings (legacy/alternative format)
+   * - Mixed delimiter strings
+   * - JSON arrays from Prisma Json field (legacy DB storage)
+   * - Arrays with whitespace/empty elements
+   *
+   * TRUST INVARIANT: Legacy scope storage formats must not cause false missing-scope blocks.
+   */
+  describe('parseShopifyScopesCsv (SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1)', () => {
+    // Standard comma-separated format
     it('parses comma-separated scopes', () => {
       const result = parseShopifyScopesCsv('read_products,write_products');
       expect(result).toEqual(['read_products', 'write_products']);
     });
 
-    it('trims whitespace', () => {
+    it('trims whitespace around comma-separated scopes', () => {
       const result = parseShopifyScopesCsv(' read_products , write_products ');
       expect(result).toEqual(['read_products', 'write_products']);
     });
 
-    it('filters empty strings', () => {
+    it('filters empty strings from comma-separated input', () => {
       const result = parseShopifyScopesCsv('read_products,,write_products');
       expect(result).toEqual(['read_products', 'write_products']);
     });
 
-    it('returns empty array for non-string input', () => {
+    // [SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1] Whitespace-separated format (legacy/alternative)
+    it('parses whitespace-separated scopes (space)', () => {
+      const result = parseShopifyScopesCsv('read_products write_products');
+      expect(result).toEqual(['read_products', 'write_products']);
+    });
+
+    it('parses whitespace-separated scopes (multiple spaces)', () => {
+      const result = parseShopifyScopesCsv('read_products   write_products   read_content');
+      expect(result).toEqual(['read_products', 'write_products', 'read_content']);
+    });
+
+    it('parses whitespace-separated scopes (tabs)', () => {
+      const result = parseShopifyScopesCsv('read_products\twrite_products');
+      expect(result).toEqual(['read_products', 'write_products']);
+    });
+
+    it('parses whitespace-separated scopes (newlines)', () => {
+      const result = parseShopifyScopesCsv('read_products\nwrite_products');
+      expect(result).toEqual(['read_products', 'write_products']);
+    });
+
+    // [SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1] Mixed delimiters
+    it('parses mixed comma and whitespace delimiters', () => {
+      const result = parseShopifyScopesCsv('read_products, write_products read_content');
+      expect(result).toEqual(['read_products', 'write_products', 'read_content']);
+    });
+
+    it('handles complex mixed delimiter strings', () => {
+      const result = parseShopifyScopesCsv('  read_products,  write_products \n read_content,read_themes  ');
+      expect(result).toEqual(['read_products', 'write_products', 'read_content', 'read_themes']);
+    });
+
+    // [SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1] Array input (legacy JSON from Prisma)
+    it('parses array of scope strings', () => {
+      const result = parseShopifyScopesCsv(['read_products', 'write_products']);
+      expect(result).toEqual(['read_products', 'write_products']);
+    });
+
+    it('parses array with whitespace in elements', () => {
+      const result = parseShopifyScopesCsv(['read_products', ' write_products ', '', 'read_content']);
+      expect(result).toEqual(['read_products', 'write_products', 'read_content']);
+    });
+
+    it('parses array where elements contain multiple scopes (delimiter in element)', () => {
+      const result = parseShopifyScopesCsv(['read_products,write_products', 'read_content']);
+      expect(result).toEqual(['read_products', 'write_products', 'read_content']);
+    });
+
+    it('parses array with mixed string types and empty elements', () => {
+      const result = parseShopifyScopesCsv(['read_products', '', '  ', 'write_products read_content', 'read_themes']);
+      expect(result).toEqual(['read_products', 'write_products', 'read_content', 'read_themes']);
+    });
+
+    it('skips non-string elements in array', () => {
+      const result = parseShopifyScopesCsv(['read_products', 123, null, 'write_products', undefined, {}] as unknown[]);
+      expect(result).toEqual(['read_products', 'write_products']);
+    });
+
+    // Non-parseable inputs (returns empty)
+    it('returns empty array for null', () => {
       expect(parseShopifyScopesCsv(null)).toEqual([]);
+    });
+
+    it('returns empty array for undefined', () => {
       expect(parseShopifyScopesCsv(undefined)).toEqual([]);
+    });
+
+    it('returns empty array for number', () => {
       expect(parseShopifyScopesCsv(123)).toEqual([]);
+    });
+
+    it('returns empty array for plain object', () => {
+      expect(parseShopifyScopesCsv({ scope: 'read_products' })).toEqual([]);
     });
 
     it('returns empty array for empty string', () => {
       expect(parseShopifyScopesCsv('')).toEqual([]);
+    });
+
+    it('returns empty array for whitespace-only string', () => {
       expect(parseShopifyScopesCsv('   ')).toEqual([]);
+    });
+
+    it('returns empty array for empty array', () => {
+      expect(parseShopifyScopesCsv([])).toEqual([]);
     });
   });
 

@@ -91,20 +91,48 @@ export function expandGrantedScopesWithImplications(grantedScopes: string[]): Se
 }
 
 /**
- * Parse a comma-separated scope string into a normalized array.
- * Handles undefined, empty strings, and whitespace gracefully.
+ * [SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1] Parse scope value into a normalized array.
  *
- * @param value - Raw scope string (e.g., "read_products,write_products")
- * @returns Array of trimmed scope strings
+ * Supports multiple input formats for backward compatibility with legacy DB storage:
+ * - Comma-separated string: "read_products,write_products"
+ * - Whitespace-separated string: "read_products write_products"
+ * - Mixed delimiters: "read_products, write_products read_content"
+ * - JSON array (from Prisma Json field): ["read_products", "write_products"]
+ * - Array with mixed elements: ["read_products", " write_products ", "", "read_content"]
+ *
+ * Returns [] for null, undefined, numbers, plain objects, or other non-parseable inputs.
+ *
+ * @param value - Raw scope value (string, string[], or unknown)
+ * @returns Array of trimmed, non-empty scope strings
  */
 export function parseShopifyScopesCsv(value: unknown): string[] {
-  if (typeof value !== 'string') return [];
-  const trimmed = value.trim();
-  if (!trimmed) return [];
-  return trimmed
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
+  // Handle string input: split on commas and/or whitespace
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    // Split on any combination of commas and whitespace
+    return trimmed
+      .split(/[\s,]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  // Handle array input (legacy JSON array format from Prisma Json field)
+  if (Array.isArray(value)) {
+    const result: string[] = [];
+    for (const element of value) {
+      if (typeof element === 'string') {
+        // Each string element may itself contain delimiters, so parse recursively
+        const parsed = parseShopifyScopesCsv(element);
+        result.push(...parsed);
+      }
+      // Skip non-string elements silently
+    }
+    return result;
+  }
+
+  // Return empty for null, undefined, numbers, objects, etc.
+  return [];
 }
 
 /**

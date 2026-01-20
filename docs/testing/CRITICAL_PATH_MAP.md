@@ -172,7 +172,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/shopify-integration.md`, `docs/testing/product-sync.md`, `docs/testing/metadata-sync-seo-fields.md`, `docs/testing/sync-status-and-progress-feedback.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-shop-api-1-graphql-migration.md`, `docs/manual-testing/phase-shop-ux-cta-1-connect-shopify.md`, `docs/manual-testing/phase-shop-ux-cta-1-1-dedup-connect-shopify.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/SHOPIFY-ASSET-SYNC-COVERAGE-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-RECONSENT-UX-1.md`, `docs/manual-testing/SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1.md`, `docs/manual-testing/BLOGS-ASSET-SYNC-COVERAGE-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-IMPLICATIONS-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1.md` |
+| **Manual Testing Doc(s)** | `docs/testing/shopify-integration.md`, `docs/testing/product-sync.md`, `docs/testing/metadata-sync-seo-fields.md`, `docs/testing/sync-status-and-progress-feedback.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-shop-api-1-graphql-migration.md`, `docs/manual-testing/phase-shop-ux-cta-1-connect-shopify.md`, `docs/manual-testing/phase-shop-ux-cta-1-1-dedup-connect-shopify.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/SHOPIFY-ASSET-SYNC-COVERAGE-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-RECONSENT-UX-1.md`, `docs/manual-testing/SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1.md`, `docs/manual-testing/BLOGS-ASSET-SYNC-COVERAGE-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-IMPLICATIONS-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-2.md`, `docs/manual-testing/SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-4.md` |
 | **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/api/test/e2e/shopify-asset-sync.e2e-spec.ts`, `apps/web/tests/shopify-asset-sync-coverage-1.spec.ts`, `apps/web/tests/shopify-integration-lifecycle-integrity-1.spec.ts`, `apps/web/tests/blogs-asset-sync-coverage-1.spec.ts` |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
@@ -208,6 +208,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] SHOPIFY-SCOPE-TRUTH-1: Permission notice shows content wording when read_content missing
 - [ ] SHOPIFY-SCOPE-TRUTH-1: Permission notice shows combined wording when both missing
 - [ ] SHOPIFY-SCOPE-TRUTH-1 FIXUP-1: Partial/suspicious OAuth scope triggers Access Scopes endpoint fallback (truthSource=access_scopes_endpoint_suspicious)
+- [ ] SHOPIFY-SCOPE-TRUTH-1 FIXUP-2: Reconnect cannot downgrade existing scope storage (existing_scope_retained fallback)
+- [ ] SHOPIFY-SCOPE-TRUTH-1 FIXUP-2: Never persist empty scopes (SHOPIFY_SCOPE_VERIFICATION_FAILED error)
+- [ ] SHOPIFY-SCOPE-TRUTH-1 FIXUP-2: verify_failed UI shows clear error message with retry button
+- [ ] SHOPIFY-SCOPE-TRUTH-1 FIXUP-3: verify_failed UI suppresses missing-scope list (no fake "Missing permission: ..." warnings)
+- [ ] SHOPIFY-SCOPE-TRUTH-1 FIXUP-4: Suspicious OAuth + Access Scopes fails + existing scope = existing retained (no downgrade)
+- [ ] SHOPIFY-SCOPE-TRUTH-1 FIXUP-4: Suspicious OAuth + Access Scopes fails + fresh install = verify_failed (explicit failure)
+- [ ] SHOPIFY-SCOPE-TRUTH-1 FIXUP-4: Non-suspicious OAuth + Access Scopes fails = OAuth scope trusted as fallback
+- [ ] SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1: Legacy scope storage formats (JSON array / whitespace-delimited) must not cause false missing-scope blocks
+- [ ] SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1: Collections page does not show "Missing permission: read_products" when write_products is stored in any format
+- [ ] SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1: Pages/Blogs pages do not show "Missing permission: read_content" when read_content is stored in any format
 
 ---
 
@@ -399,7 +409,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/automation-engine.md`, `docs/testing/automation-engine-product-automations.md`, `docs/manual-testing/phase-ae-1-automation-engine-foundations.md`, `docs/manual-testing/phase-ae-2-product-automations.md`, `docs/manual-testing/phase-aue-1-automation-new-product-seo-title.md`, `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-automation-1-playbooks.md`, `docs/manual-testing/auto-pb-1-1-playbooks-hardening.md`, `docs/manual-testing/auto-pb-1-2-playbooks-ux-coherence.md`, `docs/manual-testing/AUTOMATION-ENTRY-1.md`, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md`, `docs/manual-testing/PLAYBOOK-STEP-CONTINUITY-1.md` |
+| **Manual Testing Doc(s)** | `docs/testing/automation-engine.md`, `docs/testing/automation-engine-product-automations.md`, `docs/manual-testing/phase-ae-1-automation-engine-foundations.md`, `docs/manual-testing/phase-ae-2-product-automations.md`, `docs/manual-testing/phase-aue-1-automation-new-product-seo-title.md`, `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-automation-1-playbooks.md`, `docs/manual-testing/auto-pb-1-1-playbooks-hardening.md`, `docs/manual-testing/auto-pb-1-2-playbooks-ux-coherence.md`, `docs/manual-testing/AUTOMATION-ENTRY-1.md`, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md`, `docs/manual-testing/PLAYBOOK-STEP-CONTINUITY-1.md`, `docs/manual-testing/AUTOMATION-TRIGGER-TRUTHFULNESS-1.md` |
 | **Automated Tests** | `apps/api/test/e2e/automation-new-product-seo-title.e2e-spec.ts`, `apps/api/test/e2e/automation-playbooks.e2e-spec.ts`, `apps/web/tests/first-deo-win.spec.ts`, `apps/web/tests/automation-entry-1.spec.ts`, `apps/web/tests/zero-affected-suppression-1.spec.ts` ✅ |
 | **Last Verified (Manual)** | 2025-12-14 |
 | **Last Verified (Automated)** | N/A |
@@ -457,6 +467,14 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] PLAYBOOK-STEP-CONTINUITY-1: Explicit terminal outcomes at Step 2 (Ready/NoItems/Blocked/DraftInvalid)
 - [ ] PLAYBOOK-STEP-CONTINUITY-1: Draft expired/failed shows blocker panel with Regenerate CTA
 - [ ] PLAYBOOK-STEP-CONTINUITY-1: Permission blocked shows role notice with resolution CTA link
+- [ ] AUTOMATION-TRIGGER-TRUTHFULNESS-1: Page load never triggers AI (DEO issues GET is read-only)
+- [ ] AUTOMATION-TRIGGER-TRUTHFULNESS-1: Project-level setting `autoGenerateAnswerBlocksOnProductSync` (default OFF)
+- [ ] AUTOMATION-TRIGGER-TRUTHFULNESS-1: Setting gate suppresses Answer Block generation when OFF
+- [ ] AUTOMATION-TRIGGER-TRUTHFULNESS-1: DB-backed idempotency via AnswerBlockAutomationRun model
+- [ ] AUTOMATION-TRIGGER-TRUTHFULNESS-1: Sync CTA label shows "+ Generate Answer Blocks" only when setting ON + paid plan
+- [ ] AUTOMATION-TRIGGER-TRUTHFULNESS-1: Playbooks Sync CTAs use same deterministic labeling
+- [ ] AUTOMATION-TRIGGER-TRUTHFULNESS-1: Worker marks run state (QUEUED → RUNNING → SUCCEEDED/SKIPPED/FAILED)
+- [ ] AUTOMATION-TRIGGER-TRUTHFULNESS-1: Diagnostic safety logs with suppressedReason for debugging
 
 ---
 
@@ -823,3 +841,9 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 6.4 | 2026-01-19 | DIAGNOSTIC-GUIDANCE-1: Added CP-009 scenarios for diagnostic guidance pattern on outside-control issues (actionability='informational'). Issues show "Informational — outside EngineO.ai control" badge, explanation text, and "How to address this" guidance block. No Fix/Apply CTAs on these issues. Added DIAGNOSTIC-GUIDANCE-1.md manual testing doc. |
 | 6.5 | 2026-01-20 | SHOPIFY-SCOPE-IMPLICATIONS-1: Added CP-006 scenarios for scope implication rules. write_products satisfies read_products, write_content satisfies read_content, write_themes satisfies read_themes (no false missing scope warnings). Regression: read scopes do NOT imply write. Added SHOPIFY-SCOPE-IMPLICATIONS-1.md manual testing doc, updated SHOPIFY_SCOPES_MATRIX.md. |
 | 6.6 | 2026-01-20 | SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1: Added CP-006 scenarios for authoritative granted-scope derivation (oauth_scope vs access_scopes_endpoint fallback), normalized scope storage (deduplicated, sorted), and capability-aware permission notice copy (catalog vs content vs combined wording). Added SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1.md manual testing doc. |
+| 6.7 | 2026-01-20 | SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-2: Added CP-006 scenarios for empty-scope persistence guard (reconnect cannot downgrade, never persist empty scopes, verify_failed UI). Added SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-2.md manual testing doc. |
+| 6.8 | 2026-01-20 | SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-3: Added CP-006 scenario for verify_failed UI suppressing missing-scope list (no fake warnings from empty data). |
+| 6.9 | 2026-01-20 | SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-4: Added CP-006 scenarios for suspicious OAuth downgrade prevention. Suspicious OAuth + Access Scopes fails + existing = retain existing (no downgrade). Suspicious OAuth + Access Scopes fails + fresh install = verify_failed (explicit failure). Non-suspicious OAuth fallback unchanged. Added SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-4.md manual testing doc. |
+| 6.10 | 2026-01-20 | SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1: Added CP-006 scenarios for legacy scope storage format compatibility. `parseShopifyScopesCsv()` now handles JSON arrays and whitespace-delimited strings from Prisma Json field. Prevents false "Missing permission: read_products/read_content" blocks when scopes are stored in legacy formats. Updated unit tests, SHOPIFY_SCOPES_MATRIX.md, and SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1.md with regression check steps. |
+| 6.11 | 2026-01-20 | AUTOMATION-TRIGGER-TRUTHFULNESS-1: Added CP-012 scenarios for truthful automation triggers. Page load never triggers AI (DEO issues read-only), project-level setting gate `autoGenerateAnswerBlocksOnProductSync` (default OFF), DB-backed idempotency via AnswerBlockAutomationRun model, deterministic Sync CTA labels ("+ Generate Answer Blocks" only when setting ON + paid plan), worker run state tracking (QUEUED→RUNNING→terminal), diagnostic safety logs with suppressedReason. Added manual testing doc. |
+| 6.12 | 2026-01-20 | AUTOMATION-TRIGGER-TRUTHFULNESS-1 REVIEW-1: Fixed Playbooks CTA labels ("Sync products" not "Sync to Shopify"), neutral toast message, race-safe idempotency (FAILED→QUEUED transition via conditional updateMany, concurrent trigger handling), web API typing for new setting. Rewrote manual test doc to match template structure. |

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { isAuthenticated, getToken } from '@/lib/auth';
 import { accountApi, projectsApi, shopifyApi, type RoleCapabilities } from '@/lib/api';
 import { useUnsavedChanges } from '@/components/unsaved-changes/UnsavedChangesProvider';
@@ -24,6 +24,8 @@ interface IntegrationStatus {
   autoSuggestThinContent: boolean;
   autoSuggestDailyCap: number;
   aeoSyncToShopifyMetafields: boolean;
+  // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Project-level setting for Answer Block generation on product sync
+  autoGenerateAnswerBlocksOnProductSync: boolean;
   shopify?: {
     connected: boolean;
     shopDomain?: string;
@@ -85,6 +87,7 @@ function calculateNextCrawl(
 export default function ProjectSettingsPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const projectId = params.id as string;
 
   const [status, setStatus] = useState<IntegrationStatus | null>(null);
@@ -102,6 +105,8 @@ export default function ProjectSettingsPage() {
   const [reconnectCapability, setReconnectCapability] = useState<'pages_sync' | 'collections_sync' | null>(null);
   const [reconnectingShopify, setReconnectingShopify] = useState(false);
   const [reconnectError, setReconnectError] = useState<string | null>(null);
+  // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-2] Scope verification failure state
+  const [scopeVerifyFailed, setScopeVerifyFailed] = useState(false);
 
   // Form state
   const [autoCrawlEnabled, setAutoCrawlEnabled] = useState(true);
@@ -110,6 +115,8 @@ export default function ProjectSettingsPage() {
   const [autoSuggestThinContent, setAutoSuggestThinContent] = useState(false);
   const [autoSuggestDailyCap, setAutoSuggestDailyCap] = useState(50);
   const [aeoSyncToShopifyMetafields, setAeoSyncToShopifyMetafields] = useState(false);
+  // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Project-level setting for Answer Block generation on product sync
+  const [autoGenerateAnswerBlocksOnProductSync, setAutoGenerateAnswerBlocksOnProductSync] = useState(false);
 
   // Unsaved changes guard
   const { setHasUnsavedChanges } = useUnsavedChanges();
@@ -127,6 +134,7 @@ export default function ProjectSettingsPage() {
       setAutoSuggestThinContent(data.autoSuggestThinContent ?? false);
       setAutoSuggestDailyCap(data.autoSuggestDailyCap ?? 50);
       setAeoSyncToShopifyMetafields(data.aeoSyncToShopifyMetafields ?? false);
+      setAutoGenerateAnswerBlocksOnProductSync(data.autoGenerateAnswerBlocksOnProductSync ?? false);
       if (data?.shopify?.connected) {
         const [pagesScope, collectionsScope] = await Promise.all([
           shopifyApi.getMissingScopes(projectId, 'pages_sync'),
@@ -260,6 +268,22 @@ export default function ProjectSettingsPage() {
     fetchCapabilities();
   }, [router, fetchIntegrationStatus, fetchCapabilities]);
 
+  // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-2] Handle shopify=verify_failed query param
+  // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-3] Clear stale missing-scope state to suppress fake warnings
+  useEffect(() => {
+    const shopifyParam = searchParams.get('shopify');
+    if (shopifyParam === 'verify_failed') {
+      setScopeVerifyFailed(true);
+      // Clear any stale missing-scope state so no fake "Missing permission" list is shown
+      setShopifyMissingScopes([]);
+      setReconnectCapability(null);
+      // Clear the query param so it doesn't persist on refresh
+      const url = new URL(window.location.href);
+      url.searchParams.delete('shopify');
+      router.replace(url.pathname + url.search + url.hash, { scroll: false });
+    }
+  }, [searchParams, router]);
+
   const handleSaveSettings = async () => {
     try {
       setSaving(true);
@@ -271,6 +295,7 @@ export default function ProjectSettingsPage() {
         autoSuggestThinContent,
         autoSuggestDailyCap,
         aeoSyncToShopifyMetafields,
+        autoGenerateAnswerBlocksOnProductSync,
       });
       const message = 'Settings saved successfully';
       setSuccessMessage(message);
@@ -315,7 +340,8 @@ export default function ProjectSettingsPage() {
       autoSuggestMissingMetadata !== status.autoSuggestMissingMetadata ||
       autoSuggestThinContent !== status.autoSuggestThinContent ||
       autoSuggestDailyCap !== status.autoSuggestDailyCap ||
-      aeoSyncToShopifyMetafields !== status.aeoSyncToShopifyMetafields);
+      aeoSyncToShopifyMetafields !== status.aeoSyncToShopifyMetafields ||
+      autoGenerateAnswerBlocksOnProductSync !== (status.autoGenerateAnswerBlocksOnProductSync ?? false));
 
   // Sync local hasChanges with global unsaved changes context
   useEffect(() => {
@@ -580,6 +606,40 @@ export default function ProjectSettingsPage() {
             </button>
           </div>
 
+          {/* [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Generate Answer Blocks on product sync Toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <label
+                htmlFor="autoGenerateAnswerBlocksOnProductSync"
+                className="text-sm font-medium text-gray-900"
+              >
+                Generate Answer Blocks on product sync
+              </label>
+              <p className="text-sm text-gray-500 mt-0.5">
+                When enabled, syncing products from Shopify may enqueue AI generation for Answer Blocks.
+              </p>
+            </div>
+            <button
+              id="autoGenerateAnswerBlocksOnProductSync"
+              type="button"
+              role="switch"
+              aria-checked={autoGenerateAnswerBlocksOnProductSync}
+              onClick={() =>
+                setAutoGenerateAnswerBlocksOnProductSync(!autoGenerateAnswerBlocksOnProductSync)
+              }
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                autoGenerateAnswerBlocksOnProductSync ? 'bg-blue-600' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  autoGenerateAnswerBlocksOnProductSync ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+
           {/* Daily Cap */}
           <div>
             <label htmlFor="autoSuggestDailyCap" className="block text-sm font-medium text-gray-900">
@@ -669,6 +729,36 @@ export default function ProjectSettingsPage() {
       {/* Active Integrations Section */}
       <div id="integrations" className="rounded-lg bg-white p-6 shadow mt-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Active Integrations</h2>
+        {/* [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-2] Scope verification failure notice */}
+        {scopeVerifyFailed && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Could not verify Shopify permissions</h3>
+                <p className="mt-1 text-sm text-red-700">
+                  We were unable to verify the permissions granted by Shopify. This is usually temporary.
+                  Please try connecting again.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScopeVerifyFailed(false);
+                    handleConnectShopify();
+                  }}
+                  disabled={connectingShopify}
+                  className="mt-3 inline-flex items-center rounded-md bg-red-100 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-200 disabled:opacity-50"
+                >
+                  {connectingShopify ? 'Connecting...' : 'Try again'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {status.shopify?.connected !== true && (
           <div className="mb-4 rounded-md border border-gray-200 bg-gray-50 p-4">
             <p className="text-sm text-gray-700">
@@ -701,7 +791,8 @@ export default function ProjectSettingsPage() {
             )}
           </div>
         )}
-        {status.shopify?.connected === true && shopifyMissingScopes.length > 0 && (
+        {/* [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-3] Don't show missing-scope notice when verify_failed */}
+        {status.shopify?.connected === true && shopifyMissingScopes.length > 0 && !scopeVerifyFailed && (
           <div className="mb-4">
             <ShopifyPermissionNotice
               missingScopes={shopifyMissingScopes}

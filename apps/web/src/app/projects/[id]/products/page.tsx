@@ -30,6 +30,8 @@ interface IntegrationStatus {
   };
   crawlFrequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY';
   lastCrawledAt?: string | null;
+  // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Pre-computed flag for CTA label truthfulness
+  willGenerateAnswerBlocksOnProductSync?: boolean;
 }
 
 interface ProjectOverview {
@@ -362,6 +364,7 @@ export default function ProductsPage() {
               : 'Sync products from your connected Shopify store'}
           </p>
         </div>
+        {/* [AUTOMATION-TRIGGER-TRUTHFULNESS-1] CTA label is deterministic based on willGenerateAnswerBlocksOnProductSync */}
         <button
           onClick={handleSyncProducts}
           disabled={syncing || !projectInfo?.shopify.connected}
@@ -380,7 +383,9 @@ export default function ProductsPage() {
               <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              Sync Products
+              {projectInfo?.willGenerateAnswerBlocksOnProductSync
+                ? 'Sync Products + Generate Answer Blocks'
+                : 'Sync Products'}
             </>
           )}
         </button>

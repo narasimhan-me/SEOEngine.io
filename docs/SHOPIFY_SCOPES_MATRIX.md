@@ -38,6 +38,20 @@ Key behaviors:
 - **Deduplicated**: Shared scopes (e.g., `read_content` for pages and blogs) are only included once
 - **Minimal**: Only scopes actually required by enabled capabilities are computed
 
+### Scope Parsing (SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1)
+
+The `parseShopifyScopesCsv()` function handles multiple input formats for backward compatibility with legacy DB storage:
+
+| Format | Example | Notes |
+|--------|---------|-------|
+| Comma-separated string | `"read_products,write_products"` | Standard format |
+| Whitespace-separated string | `"read_products write_products"` | Legacy/alternative format |
+| Mixed delimiters | `"read_products, write_products read_content"` | Any combination |
+| JSON array | `["read_products", "write_products"]` | Legacy Prisma Json field format |
+| Array with nested delimiters | `["read_products,write_products", "read_content"]` | Elements may contain delimiters |
+
+**Trust Invariant**: Legacy scope storage formats (JSON array, whitespace-delimited) must not cause false missing-scope blocks. The parser silently handles all formats and returns `[]` for non-parseable inputs (null, undefined, numbers, plain objects).
+
 ## Environment Configuration
 
 ### SHOPIFY_SCOPES (Allowlist)

@@ -363,6 +363,9 @@ export default function AutomationPlaybooksPage() {
   // [ROLES-3 PENDING-1] Members list for approval attribution UI
   const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
 
+  // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Pre-computed flag for CTA label truthfulness
+  const [willGenerateAnswerBlocksOnProductSync, setWillGenerateAnswerBlocksOnProductSync] = useState(false);
+
   // [DRAFT-ROUTING-INTEGRITY-1] Draft Review mode state
   const [draftReviewLoading, setDraftReviewLoading] = useState(false);
   const [draftReviewData, setDraftReviewData] = useState<AssetScopedDraftsResponse | null>(null);
@@ -442,6 +445,17 @@ export default function AutomationPlaybooksPage() {
       } catch {
         // Silent fail - attribution will show user IDs instead of names
         setProjectMembers([]);
+      }
+
+      // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Fetch integration status for CTA label truthfulness
+      try {
+        const integrationStatus = await projectsApi.integrationStatus(projectId);
+        setWillGenerateAnswerBlocksOnProductSync(
+          (integrationStatus as any).willGenerateAnswerBlocksOnProductSync ?? false,
+        );
+      } catch {
+        // Silent fail - default to false (no Answer Block generation)
+        setWillGenerateAnswerBlocksOnProductSync(false);
       }
     } catch (err: unknown) {
       console.error('Error loading automation playbooks data:', err);
@@ -1303,16 +1317,18 @@ export default function AutomationPlaybooksPage() {
     currentScopeAssetRefs,
   ]);
 
-  const handleSyncToShopify = useCallback(async () => {
+  // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Renamed from handleSyncProducts for clarity
+  const handleSyncProducts = useCallback(async () => {
     try {
       await shopifyApi.syncProducts(projectId);
-      feedback.showSuccess('Shopify sync triggered for updated products.');
+      // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Neutral toast - no misleading "updated products" or "to Shopify" claims
+      feedback.showSuccess('Products sync triggered.');
     } catch (err: unknown) {
-      console.error('Error triggering Shopify sync:', err);
+      console.error('Error triggering products sync:', err);
       const message =
         err instanceof ApiError
           ? err.message
-          : 'Failed to trigger Shopify sync. Please try again.';
+          : 'Failed to trigger products sync. Please try again.';
       setError(message);
       feedback.showError(message);
     }
@@ -2601,11 +2617,14 @@ export default function AutomationPlaybooksPage() {
                     type="button"
                     onClick={() => {
                       setCnabDismissed(true);
-                      handleSyncToShopify();
+                      handleSyncProducts();
                     }}
                     className="inline-flex items-center rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
                   >
-                    Sync changes to Shopify
+                    {/* [AUTOMATION-TRIGGER-TRUTHFULNESS-1] CTA label is deterministic */}
+                    {willGenerateAnswerBlocksOnProductSync
+                      ? 'Sync products + Generate Answer Blocks'
+                      : 'Sync products'}
                   </button>
                   <button
                     type="button"
@@ -2774,12 +2793,15 @@ export default function AutomationPlaybooksPage() {
                     ? 'View pages that need optimization'
                     : 'View collections that need optimization'}
               </button>
+              {/* [AUTOMATION-TRIGGER-TRUTHFULNESS-1] CTA label is deterministic */}
               <button
                 type="button"
-                onClick={() => handleSyncToShopify()}
+                onClick={() => handleSyncProducts()}
                 className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
               >
-                Sync from Shopify
+                {willGenerateAnswerBlocksOnProductSync
+                  ? 'Sync products + Generate Answer Blocks'
+                  : 'Sync products'}
               </button>
             </div>
           </div>
@@ -4014,12 +4036,15 @@ export default function AutomationPlaybooksPage() {
                     >
                       View updated products
                     </button>
+                    {/* [AUTOMATION-TRIGGER-TRUTHFULNESS-1] CTA label is deterministic */}
                     <button
                       type="button"
-                      onClick={handleSyncToShopify}
+                      onClick={handleSyncProducts}
                       className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
                     >
-                      Sync to Shopify
+                      {willGenerateAnswerBlocksOnProductSync
+                        ? 'Sync products + Generate Answer Blocks'
+                        : 'Sync products'}
                     </button>
                     {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2] Use canonical /playbooks route */}
                     <button
