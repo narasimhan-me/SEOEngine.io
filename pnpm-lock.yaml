@@ -198,6 +198,9 @@ importers:
       '@marsidev/react-turnstile':
         specifier: ^1.3.1
         version: 1.3.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@shopify/app-bridge-react':
+        specifier: ^4.2.8
+        version: 4.2.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       next:
         specifier: ^15.1.3
         version: 15.5.9(@playwright/test@1.57.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1056,6 +1059,15 @@ packages:
 
   '@rushstack/eslint-patch@1.15.0':
     resolution: {integrity: sha512-ojSshQPKwVvSMR8yT2L/QtUkV5SXi/IfDiJ4/8d6UbTPjiHVmxZzUAzGD8Tzks1b9+qQkZa0isUOvYObedITaw==}
+
+  '@shopify/app-bridge-react@4.2.8':
+    resolution: {integrity: sha512-SvCXPiNFhNkICPoh2eRUOaC1VSWdLKKxpeevfciMTh/j7JzDvrb8zokWpg+YCsLe5oP7r97TCs3svOVqk+Qo4Q==}
+    peerDependencies:
+      react: '*'
+      react-dom: '*'
+
+  '@shopify/app-bridge-types@0.5.3':
+    resolution: {integrity: sha512-wj5pPqk4bQsFU6AQUo6SwyQ3zqBgodvxt7fWzRYakeHGG/YWeDv1uoNYjhSVm0jT80Wy18EObSMQTocUSgpqPA==}
 
   '@sinclair/typebox@0.27.8':
     resolution: {integrity: sha512-+Fj43pSMwJs4KRrH/938Uf+uAELIgVBmQzg/q1YG10djyfA3TnrU8N8XzqCh/okZdszqBQTZf96idMfE5lnwTA==}
@@ -5690,6 +5702,16 @@ snapshots:
   '@rtsao/scc@1.1.0': {}
 
   '@rushstack/eslint-patch@1.15.0': {}
+
+  '@shopify/app-bridge-react@4.2.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@shopify/app-bridge-types': 0.5.3
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  '@shopify/app-bridge-types@0.5.3':
+    dependencies:
+      '@standard-schema/spec': 1.0.0
 
   '@sinclair/typebox@0.27.8': {}
 

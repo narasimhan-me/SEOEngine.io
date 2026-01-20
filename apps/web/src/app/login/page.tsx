@@ -14,8 +14,22 @@ const Captcha = lazy(() =>
 // Session storage key for 2FA temp token
 const TEMP_2FA_TOKEN_KEY = 'engineo_temp_2fa_token';
 
+// [SHOPIFY-EMBEDDED-SHELL-1] Session storage key for post-auth redirect
+const AUTH_NEXT_URL_KEY = 'engineo_auth_next_url';
+
 // Sensitive query params that should never appear in URLs
 const SENSITIVE_PARAMS = ['password', 'pass', 'pwd', 'email'];
+
+/**
+ * [SHOPIFY-EMBEDDED-SHELL-1] Validate that a next URL is safe to redirect to.
+ * Must be a relative path starting with / to prevent open redirect attacks.
+ */
+function isSafeNextUrl(url: string | null): url is string {
+  if (!url) return false;
+  // Must be a relative path starting with /
+  // Reject protocol-relative URLs (//evil.com) and absolute URLs (https://evil.com)
+  return url.startsWith('/') && !url.startsWith('//');
+}
 
 function LoginForm() {
   const router = useRouter();
@@ -72,10 +86,18 @@ function LoginForm() {
         captchaToken: captchaToken || undefined,
       });
 
+      // [SHOPIFY-EMBEDDED-SHELL-1] Get the next param for post-auth redirect
+      const nextParam = searchParams.get('next');
+      const safeNextUrl = isSafeNextUrl(nextParam) ? nextParam : null;
+
       // Check if 2FA is required
       if (response.requires2FA && response.tempToken) {
         // Store temp token in sessionStorage (cleared when tab closes)
         sessionStorage.setItem(TEMP_2FA_TOKEN_KEY, response.tempToken);
+        // [SHOPIFY-EMBEDDED-SHELL-1] Store next URL for 2FA completion
+        if (safeNextUrl) {
+          sessionStorage.setItem(AUTH_NEXT_URL_KEY, safeNextUrl);
+        }
         // Redirect to 2FA verification page
         router.push('/2fa');
         return;
@@ -83,7 +105,8 @@ function LoginForm() {
 
       // Normal login (no 2FA)
       setToken(response.accessToken);
-      router.push('/projects');
+      // [SHOPIFY-EMBEDDED-SHELL-1] Redirect to next if present and safe, else /projects
+      router.push(safeNextUrl || '/projects');
     } catch (err: unknown) {
       // Check if CAPTCHA is now required due to failed attempts
       if (err instanceof ApiError && err.code === 'CAPTCHA_REQUIRED') {

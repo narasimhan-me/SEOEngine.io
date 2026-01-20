@@ -1,287 +1,202 @@
-# EngineO.ai – Shopify Integration Guide
+# Shopify Integration Guide
 
-This document describes how EngineO.ai integrates with Shopify, including OAuth, data sync, and SEO updates.
-
----
-
-## 1. Overview
-
-EngineO.ai integrates with Shopify as a **public app** installed by merchants.
-Once connected, it can:
-
-- Read product and collection data.
-- Generate AI-driven SEO recommendations.
-- Write SEO-optimized titles and meta descriptions back to Shopify.
+> **Canonical documentation for Shopify app integration, Partner configuration, embedded app setup, and environment variables.**
 
 ---
 
-## 2. Shopify App Setup
+## Overview
 
-1. Create a Shopify Partner account.
-2. Create a new **public app**.
-3. Configure:
-   - App URL: `https://<your-backend>/shopify/callback` (for OAuth).
-   - Allowed redirection URLs: include `/shopify/callback`.
-4. Obtain:
-   - `API key` (client ID)
-   - `API secret key`
+EngineO.ai integrates with Shopify as both a standalone web app and an embedded app within Shopify Admin. This document covers:
 
-These are stored as:
+1. Shopify Partner App Configuration
+2. OAuth Flow
+3. Embedded App Setup (App Bridge v4)
+4. Required Environment Variables
+5. Troubleshooting
 
-- `SHOPIFY_API_KEY`
-- `SHOPIFY_API_SECRET`
-- `SHOPIFY_APP_URL` (your backend base URL)
-- `SHOPIFY_SCOPES`
+For permissions, re-consent UX, and safety contracts, see `docs/SHOPIFY_PERMISSIONS_AND_RECONSENT.md`.
 
 ---
 
-## 3. Required Scopes
+## Shopify Partner App Configuration
 
-Example minimal scopes:
+Configure these settings in your Shopify Partner Dashboard → Apps → [Your App] → Configuration.
 
-- `read_products`
-- `write_products`
-- `read_themes` (optional, for schema injection)
-- `write_themes` (optional)
-- `read_content` – **Required for Pages ingestion** [SHOPIFY-ASSET-SYNC-COVERAGE-1]
-- `write_content` (future, if writing blogs)
+### App URLs
 
-> **Note [SHOPIFY-ASSET-SYNC-COVERAGE-1]:** The `read_content` scope is required to ingest Shopify Pages via the project-scoped sync endpoints (`POST /projects/:projectId/shopify/sync-pages`, `POST /projects/:projectId/shopify/sync-collections`). Stores connected before this scope was added will need to re-install to grant the additional permission. Pages and Collections sync is metadata-only (title, handle, SEO fields) – no content body ingestion or editing.
+| Setting | Value | Notes |
+|---------|-------|-------|
+| **App URL** | `https://app.engineo.ai` | Frontend app URL (Next.js). Supports embedded context. |
+| **Allowed redirection URL(s)** | `https://api.engineo.ai/shopify/callback` | Backend OAuth callback (NestJS API). Different subdomain! |
+| **Embedded app home URL** | `https://app.engineo.ai/projects` | Entry point when opened from Shopify Admin. Shopify appends `host`, `embedded=1`, `shop`, etc. |
 
----
+**Important:** The App URL (`app.engineo.ai`) and OAuth callback URL (`api.engineo.ai/shopify/callback`) intentionally use different subdomains:
+- **App URL** → Next.js frontend (`apps/web`)
+- **OAuth callback** → NestJS API (`apps/api`)
 
-## 4. OAuth Flow
+### GDPR Webhooks (Required for App Store)
 
-### Step 1 – Install Redirect
+| Endpoint | URL |
+|----------|-----|
+| Customer data request | `https://api.engineo.ai/shopify/webhooks/customers/data_request` |
+| Customer data erasure | `https://api.engineo.ai/shopify/webhooks/customers/redact` |
+| Shop data erasure | `https://api.engineo.ai/shopify/webhooks/shop/redact` |
 
-Endpoint: `GET /shopify/install?projectId=...`
+### Required Scopes
 
-- Validates that the authenticated user owns the project.
-- Generates the Shopify OAuth URL:
+See `docs/SHOPIFY_SCOPES_MATRIX.md` for the full scope matrix. Key scopes:
 
-  - `client_id`: `SHOPIFY_API_KEY`
-  - `scope`: `SHOPIFY_SCOPES`
-  - `redirect_uri`: `SHOPIFY_APP_URL + "/shopify/callback"`
-  - `state`: random string + encoded `projectId`
-
-- Redirects the browser to Shopify.
-
-### Step 2 – Callback
-
-Endpoint: `GET /shopify/callback`
-
-- Shopify redirects back with:
-
-  - `code`
-  - `shop`
-  - `state`
-  - `hmac`
-
-- Steps:
-
-  1. Validate `hmac` using `API_SECRET`.
-  2. Validate `state` matches a stored state, and extract `projectId`.
-  3. Exchange `code` for access token using Shopify OAuth endpoint.
-  4. Persist `ShopifyStore` record in DB:
-     - `shopDomain = shop`
-     - `accessToken`
-     - `scope`
-     - `projectId`
-  5. Redirect user back to frontend (e.g. project page) with success message.
+- `read_products` – Product catalog access (implied by `write_products`)
+- `read_content` – Pages and blog posts access (implied by `write_content`)
+- `write_products` – SEO metadata push to products
+- `write_content` – SEO metadata push to pages
 
 ---
 
-## 5. Data Sync – Products (GraphQL)
+## OAuth Flow
 
-Endpoint: `POST /shopify/sync-products?projectId=...`
+### Standard OAuth (Standalone Installation)
 
-- Uses `Project` → `ShopifyStore` to retrieve:
-  - `shopDomain`
-  - `accessToken`
+1. User visits `/connect-shopify` or clicks "Connect Shopify" CTA
+2. Backend redirects to Shopify OAuth authorization URL
+3. Merchant approves scopes on Shopify
+4. Shopify redirects to `https://api.engineo.ai/shopify/callback` with authorization code
+5. Backend exchanges code for access token
+6. Backend stores integration with normalized scopes
+7. User redirected to project settings
 
-- Calls Shopify Admin GraphQL API to fetch products.
+### Embedded OAuth
 
-Example GraphQL endpoint:
+When the app is opened from Shopify Admin, OAuth may be triggered if:
+- User is not authenticated in EngineO.ai
+- Store is not connected to current project
 
-- `POST https://{shopDomain}/admin/api/2024-01/graphql.json`
+The embedded OAuth flow uses App Bridge for top-level navigation:
 
-Example GraphQL query (paginated):
+1. `ShopifyEmbeddedShell` detects unauthenticated state
+2. User clicks "Reconnect Shopify" button
+3. App performs top-level redirect to `/login?next=...` (embedded return URL preserved)
+4. After login, user is redirected back to embedded context with `host` and `embedded=1` params
 
-```graphql
-query GetProducts($first: Int!, $after: String) {
-  products(first: $first, after: $after, sortKey: ID) {
-    pageInfo {
-      hasNextPage
-      endCursor
-    }
-    edges {
-      node {
-        id
-        title
-        handle
-        descriptionHtml
-        status
-        productType
-        vendor
-        seo {
-          title
-          description
-        }
-        images(first: 10) {
-          edges {
-            node {
-              id
-              altText
-              url
-            }
-          }
-        }
-        variants(first: 10) {
-          edges {
-            node {
-              id
-              title
-              price
-            }
-          }
-        }
-      }
-    }
-  }
-}
+---
+
+## Embedded App Setup (SHOPIFY-EMBEDDED-SHELL-1)
+
+EngineO.ai uses Shopify App Bridge v4 for embedded app functionality.
+
+### Required Environment Variable (Frontend)
+
+```bash
+# apps/web/.env.local
+NEXT_PUBLIC_SHOPIFY_API_KEY=your_shopify_client_id_here
 ```
 
-For each product:
+This must match the Shopify app's **Client ID** from the Partner Dashboard.
 
-- Extract:
+### App Bridge v4 Components
 
-  - `id`
-  - `title`
-  - `descriptionHtml` (mapped to local `description`/`body_html`)
-  - SEO title / description from `seo { title, description }`
-  - Image URLs from `images.edges[].node.url`
-  - (Optionally) `status`, `productType`, `vendor`, basic variant data for future use
+App Bridge v4 uses a CDN-hosted script approach (not an npm provider).
 
-- Upsert into `Product` table by `shopifyId`.
+1. **Meta tag** (in `<head>` of `layout.tsx`):
+   ```html
+   <meta name="shopify-api-key" content="YOUR_SHOPIFY_API_KEY" />
+   ```
 
----
+2. **App Bridge script** (in `<head>` of `layout.tsx`):
+   ```html
+   <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+   ```
 
-## 6. SEO Updates – Products (GraphQL)
+3. **ShopifyEmbeddedShell wrapper** (`apps/web/src/components/shopify/ShopifyEmbeddedShell.tsx`):
+   - Detects embedded context (`embedded=1`, `host` param, or stored host in sessionStorage)
+   - Persists `host`/`shop` to sessionStorage for navigation continuity
+   - Auto-repairs URLs when host is missing but stored
+   - Shows never-blank fallbacks for all error states
 
-Endpoint: `POST /shopify/update-product-seo`
+### Embedded Context Query Parameters
 
-**Body:**
+When opened from Shopify Admin, these params are appended to the App URL:
 
-```json
-{
-  "productId": "local-product-id",
-  "seoTitle": "SEO Title",
-  "seoDescription": "SEO Description"
-}
+| Param | Description |
+|-------|-------------|
+| `host` | Base64-encoded Shopify Admin host (required for App Bridge) |
+| `shop` | Shop domain (e.g., `mystore.myshopify.com`) |
+| `embedded` | Set to `1` when in embedded context |
+| `hmac` | HMAC signature for request validation |
+| `timestamp` | Request timestamp |
+| `locale` | Merchant's locale |
+
+### Frame Embedding Headers
+
+The Next.js middleware (`apps/web/src/middleware.ts`) adds a CSP `frame-ancestors` header when embedded context is detected:
+
+```
+Content-Security-Policy: frame-ancestors 'self' https://admin.shopify.com https://*.myshopify.com;
 ```
 
-Steps:
+This allows the app to be iframed by Shopify Admin while blocking other origins.
 
-1. Load `Product` by local `productId`.
-2. Load related `ShopifyStore`.
-3. Call Shopify Admin GraphQL API to update product SEO fields.
+---
 
-Example GraphQL mutation:
+## Required Environment Variables
 
-```graphql
-mutation UpdateProductSeo($input: ProductInput!) {
-  productUpdate(input: $input) {
-    product {
-      id
-      seo {
-        title
-        description
-      }
-    }
-    userErrors {
-      field
-      message
-    }
-  }
-}
+### Backend (apps/api)
+
+```bash
+# Shopify App Credentials
+SHOPIFY_API_KEY=your_client_id_here
+SHOPIFY_API_SECRET=your_client_secret_here
+
+# OAuth Configuration
+SHOPIFY_REDIRECT_URI=https://api.engineo.ai/shopify/callback
+SHOPIFY_SCOPES=read_products,write_products,read_content,write_content
 ```
 
-Example variables:
+### Frontend (apps/web)
 
-```json
-{
-  "input": {
-    "id": "gid://shopify/Product/1234567890",
-    "seo": {
-      "title": "SEO Title",
-      "description": "SEO Description"
-    }
-  }
-}
+```bash
+# Required for App Bridge embedded context
+NEXT_PUBLIC_SHOPIFY_API_KEY=your_client_id_here
 ```
 
-4. On success, EngineO.ai updates the local `Product` row with the new `seoTitle` and `seoDescription`.
+**Note:** `NEXT_PUBLIC_SHOPIFY_API_KEY` must match the backend `SHOPIFY_API_KEY`. Both are the Shopify app's Client ID from the Partner Dashboard.
 
 ---
 
-## 7. Answer Block Metafield Sync (AEO-2)
+## Troubleshooting
 
-EngineO.ai syncs Answer Blocks into Shopify metafields using Shopify's GraphQL metafield APIs:
+### "Missing Shopify context" Error
 
-- **Namespace and keys:**
-  - Namespace: `engineo`
-  - Keys (mapped from Answer Block question IDs):
-    - `answer_what_is_it`
-    - `answer_key_features`
-    - `answer_how_it_works`
-    - `answer_materials`
-    - `answer_benefits`
-    - `answer_dimensions`
-    - `answer_usage`
-    - `answer_warranty`
-    - `answer_faq`
-    - `answer_care_instructions`
+**Cause:** Embedded context detected but no `host` available.
 
-- **Metafield definitions (per store):**
-  - Uses `metafieldDefinitions(ownerType: PRODUCT, namespace: "engineo")` to list existing definitions.
-  - Uses `metafieldDefinitionCreate` to create definitions for Answer Block keys under the `engineo` namespace when missing.
-  - Definitions are created once per store and reused across all products.
+**Solutions:**
+1. Reopen the app from Shopify Admin
+2. Check that `NEXT_PUBLIC_SHOPIFY_API_KEY` is set correctly
+3. Clear browser sessionStorage and retry
 
-- **Metafield values (per product):**
-  - Uses `metafieldsSet` to upsert metafields for each Answer Block.
-  - Each metafield contains the `answerText` from the corresponding Answer Block.
-  - Type: `multi_line_text_field` for all Answer Block metafields.
+### "Unable to load inside Shopify" Error
 
-> Note: Previous REST-based metafield endpoints (`/metafields.json`, `/metafield_definitions.json`) are deprecated for product flows and have been replaced with GraphQL Admin APIs in EngineO.ai.
+**Cause:** App Bridge failed to initialize (e.g., missing API key).
 
----
+**Solutions:**
+1. Verify `NEXT_PUBLIC_SHOPIFY_API_KEY` matches Partner Dashboard Client ID
+2. Check that App Bridge CDN script loads (Network tab)
+3. Use standalone mode as fallback
 
-## 8. Webhooks (Future)
+### OAuth Callback Errors
 
-To keep data in sync automatically, consider subscribing to webhooks:
+**Cause:** OAuth flow failed during token exchange.
 
-- `products/create`
-- `products/update`
-- `products/delete`
-- `app/uninstalled`
-
-Webhook handler endpoints (e.g. `/shopify/webhooks/products-update`) should:
-
-- Verify HMAC header.
-- Process the payload.
-- Update the `Product` table or mark store uninstalled.
+**Solutions:**
+1. Verify `SHOPIFY_API_SECRET` is correct
+2. Check that callback URL matches Partner Dashboard configuration exactly
+3. Review API server logs for specific error
 
 ---
 
-## 9. Embedded App (Future)
+## Related Documentation
 
-EngineO.ai can optionally be embedded inside Shopify Admin using:
-
-- Shopify App Bridge
-- Polaris (Shopify's React component library)
-
-The MVP can live as a standalone app; embedding is optional but improves UX.
-
----
-
-END OF SHOPIFY INTEGRATION GUIDE
+- `docs/SHOPIFY_PERMISSIONS_AND_RECONSENT.md` – Re-consent UX and safety contracts
+- `docs/SHOPIFY_SCOPES_MATRIX.md` – Scope matrix and capability mapping
+- `docs/manual-testing/SHOPIFY-EMBEDDED-SHELL-1.md` – Manual testing for embedded launch
+- `docs/testing/CRITICAL_PATH_MAP.md` – CP-006 Shopify Sync critical path

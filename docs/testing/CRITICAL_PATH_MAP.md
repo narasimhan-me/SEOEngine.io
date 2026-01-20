@@ -172,7 +172,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/shopify-integration.md`, `docs/testing/product-sync.md`, `docs/testing/metadata-sync-seo-fields.md`, `docs/testing/sync-status-and-progress-feedback.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-shop-api-1-graphql-migration.md`, `docs/manual-testing/phase-shop-ux-cta-1-connect-shopify.md`, `docs/manual-testing/phase-shop-ux-cta-1-1-dedup-connect-shopify.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/SHOPIFY-ASSET-SYNC-COVERAGE-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-RECONSENT-UX-1.md`, `docs/manual-testing/SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1.md`, `docs/manual-testing/BLOGS-ASSET-SYNC-COVERAGE-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-IMPLICATIONS-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-2.md`, `docs/manual-testing/SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-4.md` |
+| **Manual Testing Doc(s)** | `docs/testing/shopify-integration.md`, `docs/testing/product-sync.md`, `docs/testing/metadata-sync-seo-fields.md`, `docs/testing/sync-status-and-progress-feedback.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-shop-api-1-graphql-migration.md`, `docs/manual-testing/phase-shop-ux-cta-1-connect-shopify.md`, `docs/manual-testing/phase-shop-ux-cta-1-1-dedup-connect-shopify.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/SHOPIFY-ASSET-SYNC-COVERAGE-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-RECONSENT-UX-1.md`, `docs/manual-testing/SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1.md`, `docs/manual-testing/BLOGS-ASSET-SYNC-COVERAGE-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-IMPLICATIONS-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-2.md`, `docs/manual-testing/SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-4.md`, `docs/manual-testing/SHOPIFY-EMBEDDED-SHELL-1.md` |
 | **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/api/test/e2e/shopify-asset-sync.e2e-spec.ts`, `apps/web/tests/shopify-asset-sync-coverage-1.spec.ts`, `apps/web/tests/shopify-integration-lifecycle-integrity-1.spec.ts`, `apps/web/tests/blogs-asset-sync-coverage-1.spec.ts` |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
@@ -218,6 +218,17 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1: Legacy scope storage formats (JSON array / whitespace-delimited) must not cause false missing-scope blocks
 - [ ] SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1: Collections page does not show "Missing permission: read_products" when write_products is stored in any format
 - [ ] SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1: Pages/Blogs pages do not show "Missing permission: read_content" when read_content is stored in any format
+- [ ] SHOPIFY-EMBEDDED-SHELL-1: App loads from Shopify Admin iframe without blank screens
+- [ ] SHOPIFY-EMBEDDED-SHELL-1: Embedded context detection (embedded=1, host param, or stored host)
+- [ ] SHOPIFY-EMBEDDED-SHELL-1: Host/shop persisted to sessionStorage for navigation continuity
+- [ ] SHOPIFY-EMBEDDED-SHELL-1: URL auto-repaired when host missing but stored (router.replace)
+- [ ] SHOPIFY-EMBEDDED-SHELL-1: Auth required fallback shows "Connecting to Shopify..." + Reconnect button
+- [ ] SHOPIFY-EMBEDDED-SHELL-1: Missing context fallback shows "Please reopen from Shopify Admin" + Retry
+- [ ] SHOPIFY-EMBEDDED-SHELL-1: Bootstrap error fallback shows "Open in EngineO.ai" standalone link
+- [ ] SHOPIFY-EMBEDDED-SHELL-1: Login `next` param redirects to embedded URL after auth
+- [ ] SHOPIFY-EMBEDDED-SHELL-1: 2FA flow preserves and uses stored next URL
+- [ ] SHOPIFY-EMBEDDED-SHELL-1: frame-ancestors CSP header allows admin.shopify.com + *.myshopify.com
+- [ ] SHOPIFY-EMBEDDED-SHELL-1: Standalone access unchanged (no embedded UI/notices)
 
 ---
 
@@ -847,3 +858,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 6.10 | 2026-01-20 | SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1: Added CP-006 scenarios for legacy scope storage format compatibility. `parseShopifyScopesCsv()` now handles JSON arrays and whitespace-delimited strings from Prisma Json field. Prevents false "Missing permission: read_products/read_content" blocks when scopes are stored in legacy formats. Updated unit tests, SHOPIFY_SCOPES_MATRIX.md, and SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1.md with regression check steps. |
 | 6.11 | 2026-01-20 | AUTOMATION-TRIGGER-TRUTHFULNESS-1: Added CP-012 scenarios for truthful automation triggers. Page load never triggers AI (DEO issues read-only), project-level setting gate `autoGenerateAnswerBlocksOnProductSync` (default OFF), DB-backed idempotency via AnswerBlockAutomationRun model, deterministic Sync CTA labels ("+ Generate Answer Blocks" only when setting ON + paid plan), worker run state tracking (QUEUED→RUNNING→terminal), diagnostic safety logs with suppressedReason. Added manual testing doc. |
 | 6.12 | 2026-01-20 | AUTOMATION-TRIGGER-TRUTHFULNESS-1 REVIEW-1: Fixed Playbooks CTA labels ("Sync products" not "Sync to Shopify"), neutral toast message, race-safe idempotency (FAILED→QUEUED transition via conditional updateMany, concurrent trigger handling), web API typing for new setting. Rewrote manual test doc to match template structure. |
+| 6.13 | 2026-01-20 | SHOPIFY-EMBEDDED-SHELL-1: Added CP-006 scenarios for Shopify embedded app launch. ShopifyEmbeddedShell wrapper with never-blank fallbacks, host/shop persistence to sessionStorage, URL auto-repair, frame-ancestors CSP headers, auth flow with next param preservation (login + 2FA). Added @shopify/app-bridge-react dep, NEXT_PUBLIC_SHOPIFY_API_KEY env var. Added SHOPIFY-EMBEDDED-SHELL-1.md manual testing doc. |

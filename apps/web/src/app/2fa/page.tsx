@@ -8,6 +8,20 @@ import { setToken } from '@/lib/auth';
 // Session storage key for 2FA temp token (must match login page)
 const TEMP_2FA_TOKEN_KEY = 'engineo_temp_2fa_token';
 
+// [SHOPIFY-EMBEDDED-SHELL-1] Session storage key for post-auth redirect (must match login page)
+const AUTH_NEXT_URL_KEY = 'engineo_auth_next_url';
+
+/**
+ * [SHOPIFY-EMBEDDED-SHELL-1] Validate that a next URL is safe to redirect to.
+ * Must be a relative path starting with / to prevent open redirect attacks.
+ */
+function isSafeNextUrl(url: string | null): url is string {
+  if (!url) return false;
+  // Must be a relative path starting with /
+  // Reject protocol-relative URLs (//evil.com) and absolute URLs (https://evil.com)
+  return url.startsWith('/') && !url.startsWith('//');
+}
+
 export default function TwoFactorPage() {
   const router = useRouter();
   const [code, setCode] = useState('');
@@ -46,11 +60,16 @@ export default function TwoFactorPage() {
       // Clear temp token from sessionStorage
       sessionStorage.removeItem(TEMP_2FA_TOKEN_KEY);
 
+      // [SHOPIFY-EMBEDDED-SHELL-1] Get and clear stored next URL
+      const storedNextUrl = sessionStorage.getItem(AUTH_NEXT_URL_KEY);
+      sessionStorage.removeItem(AUTH_NEXT_URL_KEY);
+      const safeNextUrl = isSafeNextUrl(storedNextUrl) ? storedNextUrl : null;
+
       // Store the final access token
       setToken(response.accessToken);
 
-      // Redirect to projects
-      router.push('/projects');
+      // [SHOPIFY-EMBEDDED-SHELL-1] Redirect to stored next if present and safe, else /projects
+      router.push(safeNextUrl || '/projects');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Invalid or expired code. Please try again.');
     } finally {
@@ -59,8 +78,10 @@ export default function TwoFactorPage() {
   };
 
   const handleBackToLogin = () => {
-    // Clear temp token and go back to login
+    // Clear temp token and stored next URL, then go back to login
     sessionStorage.removeItem(TEMP_2FA_TOKEN_KEY);
+    // [SHOPIFY-EMBEDDED-SHELL-1] Clear stored next URL on back to login
+    sessionStorage.removeItem(AUTH_NEXT_URL_KEY);
     router.push('/login');
   };
 
