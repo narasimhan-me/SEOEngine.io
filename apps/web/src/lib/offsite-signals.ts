@@ -10,10 +10,10 @@
  * Describes the categories of off-site trust signals.
  */
 export type OffsiteSignalType =
-  | 'brand_mention'           // Brand referenced in articles, blogs, news
-  | 'authoritative_listing'   // Presence in industry directories, marketplaces
-  | 'trust_proof'             // Reviews, testimonials, certifications
-  | 'reference_content';      // Guides, comparisons, studies that cite the brand
+  | 'brand_mention' // Brand referenced in articles, blogs, news
+  | 'authoritative_listing' // Presence in industry directories, marketplaces
+  | 'trust_proof' // Reviews, testimonials, certifications
+  | 'reference_content'; // Guides, comparisons, studies that cite the brand
 
 /**
  * Human-readable labels for off-site signal types.
@@ -30,7 +30,8 @@ export const OFFSITE_SIGNAL_LABELS: Record<OffsiteSignalType, string> = {
  */
 export const OFFSITE_SIGNAL_DESCRIPTIONS: Record<OffsiteSignalType, string> = {
   brand_mention: 'Articles, blogs, or news that mention your brand',
-  authoritative_listing: 'Presence in industry directories, marketplaces, or app stores',
+  authoritative_listing:
+    'Presence in industry directories, marketplaces, or app stores',
   trust_proof: 'Third-party reviews, testimonials, or certifications',
   reference_content: 'Guides, comparisons, or studies that cite your brand',
 };
@@ -40,10 +41,10 @@ export const OFFSITE_SIGNAL_DESCRIPTIONS: Record<OffsiteSignalType, string> = {
  * Higher weights mean more impact on overall presence score.
  */
 export const OFFSITE_SIGNAL_WEIGHTS: Record<OffsiteSignalType, number> = {
-  trust_proof: 10,              // Reviews and certifications are highest value
-  authoritative_listing: 9,     // Directory presence is highly valuable
-  brand_mention: 7,             // Brand mentions build awareness
-  reference_content: 6,         // Reference content supports authority
+  trust_proof: 10, // Reviews and certifications are highest value
+  authoritative_listing: 9, // Directory presence is highly valuable
+  brand_mention: 7, // Brand mentions build awareness
+  reference_content: 6, // Reference content supports authority
 };
 
 /**
@@ -111,10 +112,10 @@ export interface ProjectOffsiteCoverage {
  * Off-site gap type enumeration reflecting the issue taxonomy.
  */
 export type OffsiteGapType =
-  | 'missing_brand_mentions'           // No brand mentions signals exist
-  | 'missing_trust_proof'              // No review/testimonial/certification signals
-  | 'missing_authoritative_listing'    // Key directories or marketplaces are empty
-  | 'competitor_has_offsite_signal';   // Competitors assumed to have this class of signal
+  | 'missing_brand_mentions' // No brand mentions signals exist
+  | 'missing_trust_proof' // No review/testimonial/certification signals
+  | 'missing_authoritative_listing' // Key directories or marketplaces are empty
+  | 'competitor_has_offsite_signal'; // Competitors assumed to have this class of signal
 
 /**
  * Human-readable labels for gap types.
@@ -150,10 +151,10 @@ export interface OffsiteGap {
  * Off-site fix draft types.
  */
 export type OffsiteFixDraftType =
-  | 'outreach_email'           // Email template for outreach
-  | 'pr_pitch'                 // PR pitch paragraphs
-  | 'brand_profile_snippet'    // Brand profile / About text
-  | 'review_request_copy';     // Polite review solicitation copy
+  | 'outreach_email' // Email template for outreach
+  | 'pr_pitch' // PR pitch paragraphs
+  | 'brand_profile_snippet' // Brand profile / About text
+  | 'review_request_copy'; // Polite review solicitation copy
 
 /**
  * Human-readable labels for draft types.
@@ -169,9 +170,9 @@ export const OFFSITE_FIX_DRAFT_LABELS: Record<OffsiteFixDraftType, string> = {
  * Apply target for off-site fixes.
  */
 export type OffsiteFixApplyTarget =
-  | 'NOTES'                // Save to notes for later use
-  | 'CONTENT_WORKSPACE'    // Create content snippet for About/FAQ pages
-  | 'OUTREACH_DRAFTS';     // Save to outreach drafts queue
+  | 'NOTES' // Save to notes for later use
+  | 'CONTENT_WORKSPACE' // Create content snippet for About/FAQ pages
+  | 'OUTREACH_DRAFTS'; // Save to outreach drafts queue
 
 /**
  * Off-site fix draft structure (draft-first pattern).
@@ -241,7 +242,9 @@ export interface ProjectOffsiteSignalsResponse {
 /**
  * Get presence status from score.
  */
-export function getOffsitePresenceStatusFromScore(score: number): OffsitePresenceStatus {
+export function getOffsitePresenceStatusFromScore(
+  score: number
+): OffsitePresenceStatus {
   if (score >= 70) return 'Strong';
   if (score >= 40) return 'Medium';
   return 'Low';
@@ -290,7 +293,9 @@ export function computeOffsiteFixWorkKey(
 /**
  * Get gap type for missing signal type.
  */
-export function getGapTypeForMissingSignal(signalType: OffsiteSignalType): OffsiteGapType {
+export function getGapTypeForMissingSignal(
+  signalType: OffsiteSignalType
+): OffsiteGapType {
   const mapping: Record<OffsiteSignalType, OffsiteGapType> = {
     brand_mention: 'missing_brand_mentions',
     authoritative_listing: 'missing_authoritative_listing',

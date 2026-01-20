@@ -77,7 +77,10 @@ describe('AiUsageLedger Integration', () => {
           if (args.where.projectId_playbookId_scopeId_rulesHash) {
             const key = args.where.projectId_playbookId_scopeId_rulesHash;
             // Return draft if it matches the existing draft we set up
-            if (key.scopeId === 'e4a4d4c8f8bfccfb' && key.rulesHash === '39c4bcfbb8c41ddd') {
+            if (
+              key.scopeId === 'e4a4d4c8f8bfccfb' &&
+              key.rulesHash === '39c4bcfbb8c41ddd'
+            ) {
               return Promise.resolve({
                 id: 'draft-ready-1',
                 projectId: key.projectId,
@@ -94,7 +97,11 @@ describe('AiUsageLedger Integration', () => {
                     ruleWarnings: [],
                   },
                 ],
-                counts: { affectedTotal: 2, draftGenerated: 2, noSuggestionCount: 0 },
+                counts: {
+                  affectedTotal: 2,
+                  draftGenerated: 2,
+                  noSuggestionCount: 0,
+                },
                 rules: { enabled: false },
               });
             }
@@ -125,21 +132,30 @@ describe('AiUsageLedger Integration', () => {
         }),
         findMany: jest.fn().mockImplementation((args) => {
           // Filter runs by projectId and optional filters
-          let filtered = createdRuns.filter((r) => r.projectId === args.where.projectId);
+          let filtered = createdRuns.filter(
+            (r) => r.projectId === args.where.projectId
+          );
           if (args.where.runType) {
             filtered = filtered.filter((r) => r.runType === args.where.runType);
           }
           if (args.where.createdAt) {
             filtered = filtered.filter((r) => {
               const createdAt = new Date(r.createdAt);
-              return createdAt >= args.where.createdAt.gte && createdAt <= args.where.createdAt.lte;
+              return (
+                createdAt >= args.where.createdAt.gte &&
+                createdAt <= args.where.createdAt.lte
+              );
             });
           }
           return filtered;
         }),
         create: jest.fn().mockImplementation((args) => {
           const run = {
-            id: 'run-ledger-' + Date.now() + '-' + Math.random().toString(36).slice(2),
+            id:
+              'run-ledger-' +
+              Date.now() +
+              '-' +
+              Math.random().toString(36).slice(2),
             ...args.data,
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -170,7 +186,9 @@ describe('AiUsageLedger Integration', () => {
 
     // Entitlements mock
     const entitlementsMock = {
-      getAiSuggestionLimit: jest.fn().mockResolvedValue({ planId: 'pro', limit: 100 }),
+      getAiSuggestionLimit: jest
+        .fn()
+        .mockResolvedValue({ planId: 'pro', limit: 100 }),
       getDailyAiUsage: jest.fn().mockResolvedValue(0),
       getUserPlan: jest.fn().mockResolvedValue('pro'),
       ensureCanCreateProject: jest.fn().mockResolvedValue(undefined),
@@ -217,12 +235,19 @@ describe('AiUsageLedger Integration', () => {
       tokenUsageMock as any,
       aiServiceMock as any,
       quotaServiceMock as any,
-      roleResolutionMock as any,
+      roleResolutionMock as any
     );
 
-    processor = new AutomationPlaybookRunProcessor(prismaMock, playbooksService);
+    processor = new AutomationPlaybookRunProcessor(
+      prismaMock,
+      playbooksService
+    );
 
-    runsService = new AutomationPlaybookRunsService(prismaMock, processor, roleResolutionMock as any);
+    runsService = new AutomationPlaybookRunsService(
+      prismaMock,
+      processor,
+      roleResolutionMock as any
+    );
 
     ledgerService = new AiUsageLedgerService(prismaMock);
   });
@@ -234,7 +259,8 @@ describe('AiUsageLedger Integration', () => {
   describe('Preview + DraftGenerate increment usage', () => {
     it('should show increased AI usage after PREVIEW_GENERATE run', async () => {
       // Get baseline summary
-      const baselineSummary = await ledgerService.getProjectSummary('proj-ledger-1');
+      const baselineSummary =
+        await ledgerService.getProjectSummary('proj-ledger-1');
       expect(baselineSummary.previewRuns).toBe(0);
       expect(baselineSummary.totalAiRuns).toBe(0);
 
@@ -256,7 +282,8 @@ describe('AiUsageLedger Integration', () => {
       await processor.processJob(run.id);
 
       // Get summary after run
-      const afterSummary = await ledgerService.getProjectSummary('proj-ledger-1');
+      const afterSummary =
+        await ledgerService.getProjectSummary('proj-ledger-1');
       expect(afterSummary.previewRuns).toBe(1);
       expect(afterSummary.totalAiRuns).toBe(1);
       expect(afterSummary.applyAiRuns).toBe(0);
@@ -298,7 +325,9 @@ describe('AiUsageLedger Integration', () => {
         rules: { enabled: false },
       };
 
-      prismaMock.automationPlaybookDraft.findFirst.mockResolvedValue(existingDraft);
+      prismaMock.automationPlaybookDraft.findFirst.mockResolvedValue(
+        existingDraft
+      );
 
       // Reset AI mock to verify no calls
       aiServiceMock.generateMetadata.mockClear();
@@ -320,7 +349,8 @@ describe('AiUsageLedger Integration', () => {
       await processor.processJob(previewRun.id);
 
       // Now the run should show aiUsed=true
-      const previewSummary = await ledgerService.getProjectSummary('proj-ledger-1');
+      const previewSummary =
+        await ledgerService.getProjectSummary('proj-ledger-1');
       expect(previewSummary.previewRuns).toBe(1);
       expect(previewSummary.totalAiRuns).toBe(1);
 
@@ -340,7 +370,8 @@ describe('AiUsageLedger Integration', () => {
       await processor.processJob(applyRun.id);
 
       // Get summary after APPLY
-      const afterApplySummary = await ledgerService.getProjectSummary('proj-ledger-1');
+      const afterApplySummary =
+        await ledgerService.getProjectSummary('proj-ledger-1');
 
       // APPLY run should have been created with aiUsed=false
       expect(afterApplySummary.applyRuns).toBe(1);
@@ -385,7 +416,8 @@ describe('AiUsageLedger Integration', () => {
       }
 
       // Get run summaries
-      const summaries = await ledgerService.getProjectRunSummaries('proj-ledger-1');
+      const summaries =
+        await ledgerService.getProjectRunSummaries('proj-ledger-1');
 
       expect(summaries.length).toBeGreaterThanOrEqual(2);
 
@@ -423,9 +455,12 @@ describe('AiUsageLedger Integration', () => {
       });
 
       // Get only PREVIEW_GENERATE runs
-      const previewSummaries = await ledgerService.getProjectRunSummaries('proj-ledger-1', {
-        runType: 'PREVIEW_GENERATE',
-      });
+      const previewSummaries = await ledgerService.getProjectRunSummaries(
+        'proj-ledger-1',
+        {
+          runType: 'PREVIEW_GENERATE',
+        }
+      );
 
       // All returned summaries should be PREVIEW_GENERATE
       for (const summary of previewSummaries) {

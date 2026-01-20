@@ -118,7 +118,7 @@ describe('Shopify GraphQL product APIs (integration)', () => {
       }
 
       throw new Error(
-        `Unexpected GraphQL operation in product sync test: ${operationName}`,
+        `Unexpected GraphQL operation in product sync test: ${operationName}`
       );
     });
 
@@ -128,14 +128,17 @@ describe('Shopify GraphQL product APIs (integration)', () => {
         if (key === 'SHOPIFY_API_SECRET') return 'test-api-secret';
         if (key === 'SHOPIFY_APP_URL') return 'https://api.example.com';
         // [SHOPIFY-SCOPES-MATRIX-1] Include read_content for pages_sync capability
-        if (key === 'SHOPIFY_SCOPES') return 'read_products,write_products,read_themes,read_content';
+        if (key === 'SHOPIFY_SCOPES')
+          return 'read_products,write_products,read_themes,read_content';
         return undefined;
       },
     };
 
     const automationServiceStub: any = {
       runNewProductSeoTitleAutomation: jest.fn().mockResolvedValue(undefined),
-      triggerAnswerBlockAutomationForProduct: jest.fn().mockResolvedValue(undefined),
+      triggerAnswerBlockAutomationForProduct: jest
+        .fn()
+        .mockResolvedValue(undefined),
     };
 
     const roleResolutionService = new RoleResolutionService(testPrisma as any);
@@ -143,7 +146,7 @@ describe('Shopify GraphQL product APIs (integration)', () => {
       testPrisma as any,
       configServiceStub,
       automationServiceStub,
-      roleResolutionService,
+      roleResolutionService
     );
 
     const result = await shopifyService.syncProducts(project.id, user.id);
@@ -230,7 +233,7 @@ describe('Shopify GraphQL product APIs (integration)', () => {
       }
 
       throw new Error(
-        `Unexpected GraphQL operation in SEO update test: ${operationName}`,
+        `Unexpected GraphQL operation in SEO update test: ${operationName}`
       );
     });
 
@@ -240,14 +243,17 @@ describe('Shopify GraphQL product APIs (integration)', () => {
         if (key === 'SHOPIFY_API_SECRET') return 'test-api-secret';
         if (key === 'SHOPIFY_APP_URL') return 'https://api.example.com';
         // [SHOPIFY-SCOPES-MATRIX-1] Include read_content for pages_sync capability
-        if (key === 'SHOPIFY_SCOPES') return 'read_products,write_products,read_themes,read_content';
+        if (key === 'SHOPIFY_SCOPES')
+          return 'read_products,write_products,read_themes,read_content';
         return undefined;
       },
     };
 
     const automationServiceStub: any = {
       runNewProductSeoTitleAutomation: jest.fn().mockResolvedValue(undefined),
-      triggerAnswerBlockAutomationForProduct: jest.fn().mockResolvedValue(undefined),
+      triggerAnswerBlockAutomationForProduct: jest
+        .fn()
+        .mockResolvedValue(undefined),
     };
 
     const roleResolutionService = new RoleResolutionService(testPrisma as any);
@@ -255,14 +261,14 @@ describe('Shopify GraphQL product APIs (integration)', () => {
       testPrisma as any,
       configServiceStub,
       automationServiceStub,
-      roleResolutionService,
+      roleResolutionService
     );
 
     await shopifyService.updateProductSeo(
       product.id,
       'Updated SEO Title',
       'Updated SEO Description',
-      user.id,
+      user.id
     );
 
     const updated = await testPrisma.product.findUnique({

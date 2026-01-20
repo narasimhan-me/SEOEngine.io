@@ -15,7 +15,7 @@ import { getSafeInsightsIssueTitle } from '@/lib/issue-to-fix-path';
 // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Get human-readable pillar label
 function getPillarLabel(pillarId: string | undefined): string {
   if (!pillarId) return 'Unknown';
-  const pillar = DEO_PILLARS.find(p => p.id === pillarId);
+  const pillar = DEO_PILLARS.find((p) => p.id === pillarId);
   return pillar?.shortName ?? pillar?.label ?? 'Unknown';
 }
 
@@ -29,7 +29,9 @@ export default function IssueResolutionPage() {
   const params = useParams();
   const projectId = params.id as string;
 
-  const [insights, setInsights] = useState<ProjectInsightsResponse | null>(null);
+  const [insights, setInsights] = useState<ProjectInsightsResponse | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,19 +92,27 @@ export default function IssueResolutionPage() {
       {/* Summary Stats */}
       <section className="mt-6 grid gap-4 sm:grid-cols-4">
         <div className="rounded-lg border border-gray-200 bg-white p-4 text-center">
-          <p className="text-3xl font-bold text-gray-900">{progress.openIssuesNow.total}</p>
+          <p className="text-3xl font-bold text-gray-900">
+            {progress.openIssuesNow.total}
+          </p>
           <p className="text-sm text-gray-500">Total Open</p>
         </div>
         <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-center">
-          <p className="text-3xl font-bold text-red-600">{progress.openIssuesNow.critical}</p>
+          <p className="text-3xl font-bold text-red-600">
+            {progress.openIssuesNow.critical}
+          </p>
           <p className="text-sm text-red-700">Critical</p>
         </div>
         <div className="rounded-lg border border-yellow-100 bg-yellow-50 p-4 text-center">
-          <p className="text-3xl font-bold text-yellow-600">{progress.openIssuesNow.warning}</p>
+          <p className="text-3xl font-bold text-yellow-600">
+            {progress.openIssuesNow.warning}
+          </p>
           <p className="text-sm text-yellow-700">Warning</p>
         </div>
         <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-center">
-          <p className="text-3xl font-bold text-blue-600">{progress.openIssuesNow.info}</p>
+          <p className="text-3xl font-bold text-blue-600">
+            {progress.openIssuesNow.info}
+          </p>
           <p className="text-sm text-blue-700">Info</p>
         </div>
       </section>
@@ -111,7 +121,9 @@ export default function IssueResolutionPage() {
       {issueResolution.avgTimeToFixHours !== null && (
         <section className="mt-6">
           <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h3 className="text-sm font-medium text-gray-500">Average Time to Fix</h3>
+            <h3 className="text-sm font-medium text-gray-500">
+              Average Time to Fix
+            </h3>
             <p className="mt-2 text-3xl font-bold text-gray-900">
               {issueResolution.avgTimeToFixHours < 24
                 ? `${issueResolution.avgTimeToFixHours.toFixed(1)} hours`
@@ -123,16 +135,24 @@ export default function IssueResolutionPage() {
 
       {/* By Pillar */}
       <section className="mt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Resolution by Pillar</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Resolution by Pillar
+        </h3>
         <div className="space-y-3">
-          {issueResolution.byPillar.map(pillar => {
-            const resolvedPercent = pillar.total > 0
-              ? Math.round((pillar.resolved / pillar.total) * 100)
-              : 0;
+          {issueResolution.byPillar.map((pillar) => {
+            const resolvedPercent =
+              pillar.total > 0
+                ? Math.round((pillar.resolved / pillar.total) * 100)
+                : 0;
             return (
-              <div key={pillar.pillarId} className="rounded-lg border border-gray-200 bg-white p-4">
+              <div
+                key={pillar.pillarId}
+                className="rounded-lg border border-gray-200 bg-white p-4"
+              >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-900">{pillar.label}</span>
+                  <span className="text-sm font-medium text-gray-900">
+                    {pillar.label}
+                  </span>
                   <span className="text-sm text-gray-500">
                     {pillar.resolved} / {pillar.total} fixed
                   </span>
@@ -155,12 +175,14 @@ export default function IssueResolutionPage() {
 
       {/* Recent Fixes */}
       <section className="mt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recently Resolved</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Recently Resolved
+        </h3>
         {issueResolution.topRecent.length === 0 ? (
           <p className="text-sm text-gray-500">No recent resolutions</p>
         ) : (
           <div className="rounded-lg border border-gray-200 bg-white divide-y divide-gray-100">
-            {issueResolution.topRecent.map(issue => (
+            {issueResolution.topRecent.map((issue) => (
               // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Clickable row with human pillar label
               <Link
                 key={issue.issueId}
@@ -169,8 +191,12 @@ export default function IssueResolutionPage() {
               >
                 <div>
                   {/* [ISSUE-TO-FIX-PATH-1 FIXUP-2] Use safe title to prevent internal ID leakage */}
-                  <p className="text-sm font-medium text-gray-900">{getSafeInsightsIssueTitle(issue)}</p>
-                  <p className="text-xs text-gray-500">{getPillarLabel(issue.pillarId)}</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {getSafeInsightsIssueTitle(issue)}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {getPillarLabel(issue.pillarId)}
+                  </p>
                 </div>
                 <p className="text-xs text-gray-400">
                   {new Date(issue.resolvedAt).toLocaleDateString()}
@@ -183,12 +209,14 @@ export default function IssueResolutionPage() {
 
       {/* High Impact Open */}
       <section className="mt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">High-Impact Open Issues</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          High-Impact Open Issues
+        </h3>
         {issueResolution.openHighImpact.length === 0 ? (
           <p className="text-sm text-gray-500">No high-impact issues open</p>
         ) : (
           <div className="rounded-lg border border-gray-200 bg-white divide-y divide-gray-100">
-            {issueResolution.openHighImpact.map(issue => (
+            {issueResolution.openHighImpact.map((issue) => (
               // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Clickable row with human pillar label
               <Link
                 key={issue.issueId}
@@ -197,18 +225,28 @@ export default function IssueResolutionPage() {
               >
                 <div>
                   {/* [ISSUE-TO-FIX-PATH-1 FIXUP-2] Use safe title to prevent internal ID leakage */}
-                  <p className="text-sm font-medium text-gray-900">{getSafeInsightsIssueTitle(issue)}</p>
-                  <p className="text-xs text-gray-500">{getPillarLabel(issue.pillarId)}</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {getSafeInsightsIssueTitle(issue)}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {getPillarLabel(issue.pillarId)}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    issue.severity === 'critical' ? 'bg-red-100 text-red-700' :
-                    issue.severity === 'warning' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-blue-100 text-blue-700'
-                  }`}>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full ${
+                      issue.severity === 'critical'
+                        ? 'bg-red-100 text-red-700'
+                        : issue.severity === 'warning'
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : 'bg-blue-100 text-blue-700'
+                    }`}
+                  >
                     {issue.severity}
                   </span>
-                  <span className="text-xs text-gray-500">{issue.affectedCount} affected</span>
+                  <span className="text-xs text-gray-500">
+                    {issue.affectedCount} affected
+                  </span>
                 </div>
               </Link>
             ))}

@@ -3,6 +3,7 @@
 ## Pre-Test Checklist
 
 ### ✅ Migration Status
+
 - [x] Migration `add_two_factor_auth` exists and is applied
 - [x] Database schema includes `twoFactorEnabled` and `twoFactorSecret` fields
 
@@ -11,10 +12,12 @@
 **Before testing, verify these in `apps/api/.env`:**
 
 1. **JWT_SECRET** - Must be strong (at least 32 random characters)
+
    ```bash
    # Generate a strong secret:
    openssl rand -base64 32
    ```
+
    - ❌ **DO NOT USE:** `default-secret-change-in-production`
    - ✅ **USE:** A long, random string (32+ characters)
 
@@ -27,6 +30,7 @@
 3. **Database URL** - Ensure production DB URL is not in `.env` if committing
 
 **Action Items:**
+
 - [ ] Verify `JWT_SECRET` is set and strong (not default)
 - [ ] Rotate any real API keys if this repo will be public
 - [ ] Ensure `.env` is in `.gitignore` (verify it's not committed)
@@ -136,6 +140,7 @@ curl -X POST http://localhost:3001/2fa/setup-init \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "otpauthUrl": "otpauth://totp/EngineO.ai:user@example.com?secret=...&issuer=EngineO.ai",
@@ -154,6 +159,7 @@ curl -X POST http://localhost:3001/2fa/enable \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "success": true
@@ -169,6 +175,7 @@ curl -X POST http://localhost:3001/auth/login \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "requires2FA": true,
@@ -192,6 +199,7 @@ curl -X POST http://localhost:3001/auth/2fa/verify \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "accessToken": "eyJhbGc...",
@@ -217,6 +225,7 @@ curl -X POST http://localhost:3001/2fa/disable \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "success": true
@@ -251,6 +260,7 @@ curl -X POST http://localhost:3001/2fa/disable \
 ## Known TODOs (Future Enhancements)
 
 From code comments:
+
 - [ ] Add rate limiting to prevent brute-force attacks on TOTP codes
 - [ ] Add rate limiting to login endpoint
 - [ ] Implement backup codes generation and verification
@@ -261,20 +271,24 @@ From code comments:
 ## Troubleshooting
 
 ### Issue: QR code not displaying
+
 - **Check:** Browser console for errors
 - **Verify:** `qrcode` package is installed in `apps/api`
 - **Test:** `otpauthUrl` can be manually entered in authenticator app
 
 ### Issue: Invalid code even with correct code
+
 - **Check:** Clock sync between server and device
 - **Verify:** Code is entered within 30-second window
 - **Note:** Window is ±1 step (allows slight clock drift)
 
 ### Issue: Temp token expires too quickly
+
 - **Check:** Token expiry is set to 10 minutes in `auth.service.ts`
 - **Verify:** System clock is accurate
 
 ### Issue: Can't disable 2FA
+
 - **Check:** User is authenticated (valid JWT)
 - **Verify:** Optional code verification if code is provided
 
@@ -304,4 +318,3 @@ Notes:
 _______________________________________
 _______________________________________
 ```
-

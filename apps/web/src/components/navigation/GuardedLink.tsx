@@ -13,7 +13,7 @@ export function GuardedLink(props: GuardedLinkProps) {
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     if (hasUnsavedChanges) {
       const shouldLeave = window.confirm(
-        'You have unsaved changes. If you leave this page, they will be lost. Continue without saving?',
+        'You have unsaved changes. If you leave this page, they will be lost. Continue without saving?'
       );
 
       if (!shouldLeave) {

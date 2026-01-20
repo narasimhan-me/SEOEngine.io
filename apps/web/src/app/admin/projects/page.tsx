@@ -52,7 +52,11 @@ export default function AdminProjectsPage() {
   }
 
   async function handleResync(projectId: string) {
-    if (!confirm('Trigger safe resync for this project? This will NOT trigger any AI work.')) {
+    if (
+      !confirm(
+        'Trigger safe resync for this project? This will NOT trigger any AI work.'
+      )
+    ) {
       return;
     }
     setResyncLoading(projectId);
@@ -97,14 +101,30 @@ export default function AdminProjectsPage() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Project</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Shopify</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">DEO</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Products</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Sync</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Run</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                User
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Project
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Shopify
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                DEO
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Products
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Last Sync
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Last Run
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -114,7 +134,9 @@ export default function AdminProjectsPage() {
                   {project.user.email}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{project.name}</div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {project.name}
+                  </div>
                   <div className="text-xs text-gray-500">{project.domain}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -122,11 +144,15 @@ export default function AdminProjectsPage() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   {project.deoScore !== null ? (
-                    <span className={`font-medium ${
-                      project.deoScore >= 80 ? 'text-green-600' :
-                      project.deoScore >= 60 ? 'text-yellow-600' :
-                      'text-red-600'
-                    }`}>
+                    <span
+                      className={`font-medium ${
+                        project.deoScore >= 80
+                          ? 'text-green-600'
+                          : project.deoScore >= 60
+                            ? 'text-yellow-600'
+                            : 'text-red-600'
+                      }`}
+                    >
                       {project.deoScore}
                     </span>
                   ) : (
@@ -141,11 +167,15 @@ export default function AdminProjectsPage() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   {project.lastRunStatus && (
-                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                      project.lastRunStatus === 'SUCCEEDED' ? 'bg-green-100 text-green-800' :
-                      project.lastRunStatus === 'FAILED' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                        project.lastRunStatus === 'SUCCEEDED'
+                          ? 'bg-green-100 text-green-800'
+                          : project.lastRunStatus === 'FAILED'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
                       {project.lastRunStatus}
                     </span>
                   )}
@@ -170,7 +200,8 @@ export default function AdminProjectsPage() {
       {pagination && pagination.pages > 1 && (
         <div className="mt-4 flex justify-between items-center">
           <p className="text-sm text-gray-500">
-            Page {pagination.page} of {pagination.pages} ({pagination.total} total)
+            Page {pagination.page} of {pagination.pages} ({pagination.total}{' '}
+            total)
           </p>
           <div className="flex gap-2">
             <button
@@ -181,7 +212,9 @@ export default function AdminProjectsPage() {
               Previous
             </button>
             <button
-              onClick={() => setCurrentPage((p) => Math.min(pagination.pages, p + 1))}
+              onClick={() =>
+                setCurrentPage((p) => Math.min(pagination.pages, p + 1))
+              }
               disabled={currentPage === pagination.pages}
               className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50"
             >

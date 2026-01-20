@@ -10,10 +10,7 @@ import {
   getRoleDisplayLabel,
   getRoleCapabilities,
 } from '@/lib/api';
-import type {
-  ProjectMember,
-  EffectiveProjectRole,
-} from '@/lib/api';
+import type { ProjectMember, EffectiveProjectRole } from '@/lib/api';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 
 /**
@@ -90,20 +87,26 @@ export default function MembersPage() {
     try {
       setAdding(true);
       await projectsApi.addMember(projectId, addEmail.trim(), addRole);
-      feedback.showSuccess(`Added ${addEmail} as ${getRoleDisplayLabel(addRole)}`);
+      feedback.showSuccess(
+        `Added ${addEmail} as ${getRoleDisplayLabel(addRole)}`
+      );
       setAddEmail('');
       setShowAddForm(false);
       await fetchData();
     } catch (err: unknown) {
       console.error('Error adding member:', err);
-      const message = err instanceof Error ? err.message : 'Failed to add member';
+      const message =
+        err instanceof Error ? err.message : 'Failed to add member';
       feedback.showError(message);
     } finally {
       setAdding(false);
     }
   };
 
-  const handleChangeRole = async (memberId: string, newRole: EffectiveProjectRole) => {
+  const handleChangeRole = async (
+    memberId: string,
+    newRole: EffectiveProjectRole
+  ) => {
     try {
       setChangingRoleFor(memberId);
       await projectsApi.changeMemberRole(projectId, memberId, newRole);
@@ -111,7 +114,8 @@ export default function MembersPage() {
       await fetchData();
     } catch (err: unknown) {
       console.error('Error changing role:', err);
-      const message = err instanceof Error ? err.message : 'Failed to change role';
+      const message =
+        err instanceof Error ? err.message : 'Failed to change role';
       feedback.showError(message);
     } finally {
       setChangingRoleFor(null);
@@ -128,14 +132,17 @@ export default function MembersPage() {
       await fetchData();
     } catch (err: unknown) {
       console.error('Error removing member:', err);
-      const message = err instanceof Error ? err.message : 'Failed to remove member';
+      const message =
+        err instanceof Error ? err.message : 'Failed to remove member';
       feedback.showError(message);
     } finally {
       setRemovingMember(null);
     }
   };
 
-  const canManageMembers = userRole ? getRoleCapabilities(userRole).canManageMembers : false;
+  const canManageMembers = userRole
+    ? getRoleCapabilities(userRole).canManageMembers
+    : false;
 
   if (loading) {
     return (
@@ -157,13 +164,19 @@ export default function MembersPage() {
           </li>
           <li>/</li>
           <li>
-            <Link href={`/projects/${projectId}/store-health`} className="hover:text-gray-700">
+            <Link
+              href={`/projects/${projectId}/store-health`}
+              className="hover:text-gray-700"
+            >
               {projectName || 'Project'}
             </Link>
           </li>
           <li>/</li>
           <li>
-            <Link href={`/projects/${projectId}/settings`} className="hover:text-gray-700">
+            <Link
+              href={`/projects/${projectId}/settings`}
+              className="hover:text-gray-700"
+            >
               Settings
             </Link>
           </li>
@@ -206,10 +219,15 @@ export default function MembersPage() {
       {/* Add member form */}
       {showAddForm && canManageMembers && (
         <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Add existing user</h2>
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">
+            Add existing user
+          </h2>
           <form onSubmit={handleAddMember} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email address
               </label>
               <input
@@ -223,16 +241,23 @@ export default function MembersPage() {
               />
             </div>
             <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="role"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Role
               </label>
               <select
                 id="role"
                 value={addRole}
-                onChange={(e) => setAddRole(e.target.value as 'EDITOR' | 'VIEWER')}
+                onChange={(e) =>
+                  setAddRole(e.target.value as 'EDITOR' | 'VIEWER')
+                }
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               >
-                <option value="EDITOR">Editor - Can generate drafts, request approvals</option>
+                <option value="EDITOR">
+                  Editor - Can generate drafts, request approvals
+                </option>
                 <option value="VIEWER">Viewer - Read-only access</option>
               </select>
             </div>
@@ -265,12 +290,16 @@ export default function MembersPage() {
         </div>
         {members.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
-            No members found. This shouldn&apos;t happen - at least the project owner should be listed.
+            No members found. This shouldn&apos;t happen - at least the project
+            owner should be listed.
           </div>
         ) : (
           <ul className="divide-y divide-gray-200">
             {members.map((member) => (
-              <li key={member.id} className="flex items-center justify-between px-6 py-4">
+              <li
+                key={member.id}
+                className="flex items-center justify-between px-6 py-4"
+              >
                 <div className="flex items-center gap-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-sm font-medium text-gray-600">
                     {member.email?.[0]?.toUpperCase() || '?'}
@@ -288,7 +317,12 @@ export default function MembersPage() {
                   {canManageMembers && member.role !== 'OWNER' ? (
                     <select
                       value={member.role}
-                      onChange={(e) => handleChangeRole(member.id, e.target.value as EffectiveProjectRole)}
+                      onChange={(e) =>
+                        handleChangeRole(
+                          member.id,
+                          e.target.value as EffectiveProjectRole
+                        )
+                      }
                       disabled={changingRoleFor === member.id}
                       className="rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     >
@@ -327,7 +361,9 @@ export default function MembersPage() {
 
       {/* Permissions reference */}
       <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-6">
-        <h3 className="mb-4 text-sm font-semibold text-gray-900">Role permissions</h3>
+        <h3 className="mb-4 text-sm font-semibold text-gray-900">
+          Role permissions
+        </h3>
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <h4 className="text-sm font-medium text-purple-800">Owner</h4>

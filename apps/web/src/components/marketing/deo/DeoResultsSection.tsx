@@ -16,7 +16,8 @@ export function DeoResultsSection() {
             <li>Conversion from inbound channels</li>
           </ul>
           <p className="mt-4 text-sm text-muted-foreground">
-            Your website becomes understandable to all discovery systems &mdash; human or machine.
+            Your website becomes understandable to all discovery systems &mdash;
+            human or machine.
           </p>
         </div>
       </div>

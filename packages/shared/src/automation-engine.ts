@@ -68,9 +68,11 @@ export type AutomationRuleId =
  * Human-readable names for automation rules.
  */
 export const AUTOMATION_RULE_NAMES: Record<AutomationRuleId, string> = {
-  AUTO_GENERATE_METADATA_ON_NEW_PRODUCT: 'Auto-generate metadata for new products',
+  AUTO_GENERATE_METADATA_ON_NEW_PRODUCT:
+    'Auto-generate metadata for new products',
   AUTO_GENERATE_METADATA_FOR_MISSING_METADATA: 'Auto-generate missing metadata',
-  AUTO_GENERATE_METADATA_FOR_THIN_CONTENT: 'Auto-generate metadata for thin content',
+  AUTO_GENERATE_METADATA_FOR_THIN_CONTENT:
+    'Auto-generate metadata for thin content',
   AUTO_REFRESH_DEO_SCORE_AFTER_CRAWL: 'Refresh DEO Score after crawl',
   AUTO_REFRESH_ANSWER_BLOCKS: 'Refresh Answer Blocks',
   AUTO_RECRAWL_HIGH_IMPACT_PAGES: 'Re-crawl high-impact pages',
@@ -290,7 +292,10 @@ export const DEFAULT_AUTOMATION_CATEGORIES: AutomationCategories = {
 /**
  * Default automation settings for a new project.
  */
-export const DEFAULT_AUTOMATION_SETTINGS: Omit<AutomationSettings, 'projectId'> = {
+export const DEFAULT_AUTOMATION_SETTINGS: Omit<
+  AutomationSettings,
+  'projectId'
+> = {
   enabled: true,
   mode: 'review_before_apply',
   categories: DEFAULT_AUTOMATION_CATEGORIES,

@@ -34,7 +34,7 @@ export class ProductAnswerBlocksController {
   constructor(
     private readonly productsService: ProductsService,
     private readonly answerBlockService: AnswerBlockService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   /**
@@ -59,10 +59,13 @@ export class ProductAnswerBlocksController {
   async upsertAnswerBlocks(
     @Request() req: any,
     @Param('id') productId: string,
-    @Body() dto: UpsertAnswerBlocksDto,
+    @Body() dto: UpsertAnswerBlocksDto
   ) {
     // Get product to access projectId
-    const product = await this.productsService.getProduct(productId, req.user.id);
+    const product = await this.productsService.getProduct(
+      productId,
+      req.user.id
+    );
 
     // [ROLES-3 FIXUP-2] Enforce OWNER-only for mutations
     await this.roleResolution.assertOwnerRole(product.projectId, req.user.id);
@@ -71,6 +74,9 @@ export class ProductAnswerBlocksController {
       throw new BadRequestException('blocks must be an array');
     }
 
-    return this.answerBlockService.createOrUpdateAnswerBlocks(productId, dto.blocks);
+    return this.answerBlockService.createOrUpdateAnswerBlocks(
+      productId,
+      dto.blocks
+    );
   }
 }

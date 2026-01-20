@@ -35,7 +35,7 @@ describe('AiUsageQuotaService', () => {
     service = new AiUsageQuotaService(
       entitlementsStub,
       ledgerStub,
-      prismaMock as unknown as PrismaService,
+      prismaMock as unknown as PrismaService
     );
   });
 

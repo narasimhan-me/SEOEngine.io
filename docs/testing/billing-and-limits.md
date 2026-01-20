@@ -54,10 +54,12 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - User is on Free tier with no active subscription
 - Stripe test mode is active
 
 **Steps:**
+
 1. Log in as a Free tier user
 2. Navigate to Settings > Billing
 3. Click "Upgrade to Pro"
@@ -65,6 +67,7 @@
 5. Complete checkout
 
 **Expected Results:**
+
 - **UI:** Success message shown, billing page updates to show Pro subscription
 - **API:** `POST /api/stripe/create-checkout-session` returns redirect URL
 - **Database:** User's subscription record updated with `plan: PRO`, `stripeSubscriptionId` populated
@@ -77,15 +80,18 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - User has active Pro subscription
 
 **Steps:**
+
 1. Log in as Pro tier user
 2. Navigate to Settings > Billing
 3. Click "Upgrade to Business"
 4. Confirm upgrade
 
 **Expected Results:**
+
 - **UI:** Confirmation shown, plan changes to Business
 - **API:** Subscription updated via Stripe API
 - **Database:** Subscription plan updated to `BUSINESS`
@@ -98,14 +104,17 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - User has active paid subscription
 
 **Steps:**
+
 1. Navigate to Settings > Billing
 2. Click "Cancel Subscription"
 3. Confirm cancellation
 
 **Expected Results:**
+
 - **UI:** Shows subscription will end at period end
 - **Database:** `cancelAtPeriodEnd: true` set
 - **Stripe:** Subscription marked for cancellation
@@ -117,14 +126,17 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Stripe CLI forwarding webhooks to local API
 - User has active subscription
 
 **Steps:**
+
 1. In Stripe dashboard, manually update subscription (change plan or cancel)
 2. Observe webhook delivery
 
 **Expected Results:**
+
 - **API:** Webhook endpoint returns 200
 - **Database:** Subscription record updated to match Stripe state
 - **Logs:** Webhook processing logged
@@ -138,11 +150,13 @@
 **Description:** Free user at 1 project limit tries to create a second project.
 
 **Steps:**
+
 1. Log in as Free user with 1 existing project
 2. Click "New Project"
 3. Attempt to create project
 
 **Expected Behavior:**
+
 - Upgrade prompt shown
 - Project not created
 - API returns 403 with `LIMIT_REACHED` error code
@@ -154,10 +168,12 @@
 **Description:** User has exhausted daily AI call quota.
 
 **Steps:**
+
 1. Use AI features until daily limit reached
 2. Attempt another AI operation
 
 **Expected Behavior:**
+
 - Toast message: "Daily AI limit reached. Resets at midnight UTC."
 - Operation blocked
 - Upgrade prompt shown for higher tier
@@ -169,10 +185,12 @@
 **Description:** Subscription expires while user is actively using the app.
 
 **Steps:**
+
 1. Simulate subscription expiration via Stripe webhook
 2. User attempts to use Pro feature
 
 **Expected Behavior:**
+
 - Feature gated, upgrade prompt shown
 - Graceful degradation, no crashes
 
@@ -185,10 +203,12 @@
 **Scenario:** User's card is declined during checkout.
 
 **Steps:**
+
 1. Start checkout flow
 2. Use test card 4000 0000 0000 0002 (decline)
 
 **Expected Behavior:**
+
 - Error message: "Your card was declined. Please try another payment method."
 - User remains on checkout page
 - No subscription created
@@ -200,9 +220,11 @@
 **Scenario:** Webhook received with invalid signature.
 
 **Steps:**
+
 1. Send POST to `/api/stripe/webhook` without valid signature
 
 **Expected Behavior:**
+
 - API returns 400
 - Event not processed
 - Error logged
@@ -214,10 +236,12 @@
 **Scenario:** Stripe API is slow or unreachable.
 
 **Steps:**
+
 1. Simulate network issue to Stripe
 2. User attempts to start checkout
 
 **Expected Behavior:**
+
 - User-friendly error message
 - Retry option shown
 - Error logged for monitoring
@@ -230,17 +254,19 @@
 
 **Scenario:** Verify each plan's project limit is enforced.
 
-| Plan | Limit |
-|------|-------|
-| Free | 1 |
-| Pro | 5 |
+| Plan     | Limit     |
+| -------- | --------- |
+| Free     | 1         |
+| Pro      | 5         |
 | Business | Unlimited |
 
 **Steps:**
+
 1. For each plan, create projects up to and beyond limit
 2. Verify enforcement
 
 **Expected Behavior:**
+
 - At limit: Upgrade prompt shown
 - API returns 403 with appropriate error
 
@@ -250,17 +276,19 @@
 
 **Scenario:** Verify AI usage limits per plan.
 
-| Plan | Daily Limit |
-|------|-------------|
-| Free | 10 |
-| Pro | 100 |
-| Business | 500 |
+| Plan     | Daily Limit |
+| -------- | ----------- |
+| Free     | 10          |
+| Pro      | 100         |
+| Business | 500         |
 
 **Steps:**
+
 1. Track AI usage via `AiUsageEvent` count
 2. Attempt operations at and beyond limit
 
 **Expected Behavior:**
+
 - Limit enforced, clear messaging shown
 - Usage resets at midnight UTC
 
@@ -315,9 +343,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Cross-cutting system-level tests for billing |
+| Field              | Value                                        |
+| ------------------ | -------------------------------------------- |
+| **Tester Name**    | [Pending]                                    |
+| **Date**           | [YYYY-MM-DD]                                 |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed        |
+| **Notes**          | Cross-cutting system-level tests for billing |

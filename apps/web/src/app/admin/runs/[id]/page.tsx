@@ -93,12 +93,17 @@ export default function AdminRunDetailPage() {
     return <p className="text-gray-600">Run not found</p>;
   }
 
-  const canRetry = ['FAILED', 'STALE'].includes(run.status) && run.runType === 'PREVIEW_GENERATE';
+  const canRetry =
+    ['FAILED', 'STALE'].includes(run.status) &&
+    run.runType === 'PREVIEW_GENERATE';
 
   return (
     <div>
       <div className="mb-6">
-        <Link href="/admin/runs" className="text-blue-600 hover:text-blue-800 text-sm">
+        <Link
+          href="/admin/runs"
+          className="text-blue-600 hover:text-blue-800 text-sm"
+        >
           &larr; Back to Runs
         </Link>
       </div>
@@ -113,11 +118,15 @@ export default function AdminRunDetailPage() {
           </div>
           <div>
             <p className="text-sm text-gray-500">Status</p>
-            <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-              run.status === 'SUCCEEDED' ? 'bg-green-100 text-green-800' :
-              run.status === 'FAILED' ? 'bg-red-100 text-red-800' :
-              'bg-gray-100 text-gray-800'
-            }`}>
+            <span
+              className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                run.status === 'SUCCEEDED'
+                  ? 'bg-green-100 text-green-800'
+                  : run.status === 'FAILED'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-gray-100 text-gray-800'
+              }`}
+            >
               {run.status}
             </span>
           </div>
@@ -165,12 +174,18 @@ export default function AdminRunDetailPage() {
       {/* Error Details */}
       {run.errorCode || run.errorMessage ? (
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-medium text-red-900 mb-2">Error Details</h2>
+          <h2 className="text-lg font-medium text-red-900 mb-2">
+            Error Details
+          </h2>
           {run.errorCode && (
-            <p className="text-sm"><span className="font-medium">Code:</span> {run.errorCode}</p>
+            <p className="text-sm">
+              <span className="font-medium">Code:</span> {run.errorCode}
+            </p>
           )}
           {run.errorMessage && (
-            <p className="text-sm mt-1"><span className="font-medium">Message:</span> {run.errorMessage}</p>
+            <p className="text-sm mt-1">
+              <span className="font-medium">Message:</span> {run.errorMessage}
+            </p>
           )}
         </div>
       ) : null}
@@ -178,7 +193,9 @@ export default function AdminRunDetailPage() {
       {/* Metadata (redacted) */}
       {run.meta && (
         <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Metadata (Redacted)</h2>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">
+            Metadata (Redacted)
+          </h2>
           <pre className="bg-gray-50 p-4 rounded text-xs overflow-auto">
             {JSON.stringify(run.meta, null, 2)}
           </pre>
@@ -196,7 +213,9 @@ export default function AdminRunDetailPage() {
           >
             {retryLoading ? 'Retrying...' : 'Retry Run'}
           </button>
-          <p className="text-sm text-gray-500 mt-2">This action will be logged.</p>
+          <p className="text-sm text-gray-500 mt-2">
+            This action will be logged.
+          </p>
         </div>
       )}
     </div>

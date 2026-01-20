@@ -24,7 +24,9 @@ export function NextDeoWinCard({ projectId, planId }: NextDeoWinCardProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [missingTitles, setMissingTitles] = useState<number | null>(null);
-  const [missingDescriptions, setMissingDescriptions] = useState<number | null>(null);
+  const [missingDescriptions, setMissingDescriptions] = useState<number | null>(
+    null
+  );
   const [estimateError, setEstimateError] = useState(false);
 
   const fetchEstimates = useCallback(async () => {
@@ -43,12 +45,12 @@ export function NextDeoWinCard({ projectId, planId }: NextDeoWinCardProps) {
 
       if (titleEstimate) {
         setMissingTitles(
-          (titleEstimate as PlaybookEstimate).totalAffectedProducts ?? null,
+          (titleEstimate as PlaybookEstimate).totalAffectedProducts ?? null
         );
       }
       if (descEstimate) {
         setMissingDescriptions(
-          (descEstimate as PlaybookEstimate).totalAffectedProducts ?? null,
+          (descEstimate as PlaybookEstimate).totalAffectedProducts ?? null
         );
       }
 
@@ -84,7 +86,9 @@ export function NextDeoWinCard({ projectId, planId }: NextDeoWinCardProps) {
         source: 'next_deo_win',
       });
     } else {
-      router.push(buildPlaybooksListHref({ projectId, source: 'next_deo_win' }));
+      router.push(
+        buildPlaybooksListHref({ projectId, source: 'next_deo_win' })
+      );
     }
   };
 
@@ -149,14 +153,17 @@ export function NextDeoWinCard({ projectId, planId }: NextDeoWinCardProps) {
               </span>
             ) : estimateError ? (
               <span className="text-purple-600 italic">
-                We&apos;ll scan for missing SEO metadata when you open Playbooks.
+                We&apos;ll scan for missing SEO metadata when you open
+                Playbooks.
               </span>
             ) : (
               <span>
                 {missingTitles !== null && (
                   <>Missing SEO titles: {missingTitles} products</>
                 )}
-                {missingTitles !== null && missingDescriptions !== null && ' • '}
+                {missingTitles !== null &&
+                  missingDescriptions !== null &&
+                  ' • '}
                 {missingDescriptions !== null && (
                   <>Missing descriptions: {missingDescriptions} products</>
                 )}

@@ -29,7 +29,9 @@ export interface AllModelsExhaustedError extends Error {
   lastError?: unknown;
 }
 
-export function isAllModelsExhaustedError(err: unknown): err is AllModelsExhaustedError {
+export function isAllModelsExhaustedError(
+  err: unknown
+): err is AllModelsExhaustedError {
   return (
     err instanceof Error &&
     (err as AllModelsExhaustedError).code === 'ALL_MODELS_EXHAUSTED'
@@ -104,7 +106,7 @@ export class GeminiClient {
         .filter(Boolean);
     } else if (legacyModel) {
       priority = [legacyModel, ...DEFAULT_GEMINI_MODEL_PRIORITY].filter(
-        (value, index, self) => self.indexOf(value) === index,
+        (value, index, self) => self.indexOf(value) === index
       );
     }
 
@@ -116,11 +118,11 @@ export class GeminiClient {
    * automatic model discovery and failover.
    */
   async generateWithFallback(
-    request: GeminiGenerateRequest,
+    request: GeminiGenerateRequest
   ): Promise<GeminiGenerateResponse> {
     if (!this.apiKey) {
       throw new Error(
-        '[Gemini] AI_API_KEY is not configured; cannot call Gemini API.',
+        '[Gemini] AI_API_KEY is not configured; cannot call Gemini API.'
       );
     }
 
@@ -166,10 +168,13 @@ export class GeminiClient {
 
         if (retryable && attemptIndex < chain.length - 1) {
           // eslint-disable-next-line no-console
-          console.warn('[Gemini] Retryable model error; failing over to next model', {
-            model,
-            attemptIndex,
-          });
+          console.warn(
+            '[Gemini] Retryable model error; failing over to next model',
+            {
+              model,
+              attemptIndex,
+            }
+          );
           continue;
         }
 
@@ -181,7 +186,7 @@ export class GeminiClient {
             model,
             attemptIndex,
             retryable,
-          },
+          }
         );
         throw error;
       }
@@ -195,7 +200,7 @@ export class GeminiClient {
 
     // Create a specific error for all models exhausted
     const exhaustedError = new Error(
-      `[Gemini] All ${chain.length} models in fallback chain failed. Tried: ${chain.join(', ')}. Please try again later or contact support.`,
+      `[Gemini] All ${chain.length} models in fallback chain failed. Tried: ${chain.join(', ')}. Please try again later or contact support.`
     ) as AllModelsExhaustedError;
     exhaustedError.code = 'ALL_MODELS_EXHAUSTED';
     exhaustedError.triedModels = [...chain];
@@ -234,7 +239,7 @@ export class GeminiClient {
         const body = await response.text();
         // eslint-disable-next-line no-console
         console.error(
-          `[Gemini] Failed to list models (status ${response.status}): ${body}`,
+          `[Gemini] Failed to list models (status ${response.status}): ${body}`
         );
         this.availableModels = null;
         this.fallbackChain = this.desiredModels;
@@ -250,12 +255,12 @@ export class GeminiClient {
       const models = data.models ?? [];
 
       const usable = models.filter((model) =>
-        (model.supportedGenerationMethods || []).includes('generateContent'),
+        (model.supportedGenerationMethods || []).includes('generateContent')
       );
 
       // Normalize model names from "models/gemini-1.5-flash" → "gemini-1.5-flash"
       this.availableModels = usable.map((m) =>
-        m.name.startsWith('models/') ? m.name.replace(/^models\//, '') : m.name,
+        m.name.startsWith('models/') ? m.name.replace(/^models\//, '') : m.name
       );
 
       const availableSet = new Set(this.availableModels);
@@ -265,7 +270,10 @@ export class GeminiClient {
       // API's model list (they may not be advertised but still work reliably).
       // Use versioned model names (e.g., gemini-2.0-flash-lite-001) as these
       // tend to be more stable fallbacks when unversioned names hit rate limits.
-      const safeFallbacks = ['gemini-2.0-flash-lite-001', 'gemini-2.0-flash-001'];
+      const safeFallbacks = [
+        'gemini-2.0-flash-lite-001',
+        'gemini-2.0-flash-001',
+      ];
 
       // Ensure safe fallbacks are always at the end of the chain
       for (const safeModel of safeFallbacks) {
@@ -282,12 +290,12 @@ export class GeminiClient {
           // eslint-disable-next-line no-console
           console.warn(
             '[Gemini] No desired models matched available models. Falling back to safe default model:',
-            safeDefault,
+            safeDefault
           );
         } else {
           // eslint-disable-next-line no-console
           console.warn(
-            '[Gemini] No desired models matched available models and safe default is unavailable. Using desired priority list as-is; calls may still fail.',
+            '[Gemini] No desired models matched available models and safe default is unavailable. Using desired priority list as-is; calls may still fail.'
           );
           chain = this.desiredModels;
         }
@@ -313,7 +321,7 @@ export class GeminiClient {
 
   private async callModel(
     model: string,
-    request: GeminiGenerateRequest,
+    request: GeminiGenerateRequest
   ): Promise<GeminiGenerateResponse> {
     const url = `https://generativelanguage.googleapis.com/${this.apiVersion}/models/${model}:generateContent?key=${this.apiKey}`;
 
@@ -331,7 +339,7 @@ export class GeminiClient {
     if (!response.ok) {
       const body = await response.text();
       const error: GeminiApiError = new Error(
-        `[Gemini] generateContent error (status ${response.status}) for model ${model}: ${body}`,
+        `[Gemini] generateContent error (status ${response.status}) for model ${model}: ${body}`
       );
       error.status = response.status;
       throw error;
@@ -340,4 +348,3 @@ export class GeminiClient {
     return (await response.json()) as GeminiGenerateResponse;
   }
 }
-

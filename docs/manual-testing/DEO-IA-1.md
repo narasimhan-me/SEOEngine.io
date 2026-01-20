@@ -17,10 +17,12 @@
 **Objective:** Verify pillar-centric navigation is present and functional
 
 **Steps:**
+
 1. Log in and navigate to any project
 2. Observe the sidebar navigation
 
 **Expected:**
+
 - [ ] "DEO Overview" appears in nav (links to `/projects/[id]/deo`)
 - [ ] "Metadata" appears in nav (links to `/projects/[id]/metadata`)
 - [ ] "Content" appears in nav
@@ -36,10 +38,12 @@
 **Objective:** Verify DEO Overview displays pillar scorecards
 
 **Steps:**
+
 1. Navigate to `/projects/[id]/deo`
 2. Review the page content
 
 **Expected:**
+
 - [ ] Page header shows "DEO Overview"
 - [ ] Overall health summary card is visible
 - [ ] Shows total issue count
@@ -58,12 +62,14 @@
 **Objective:** Verify pillar filtering works correctly
 
 **Steps:**
+
 1. Navigate to Issues Engine (`/projects/[id]/issues`)
 2. Observe the filter area
 3. Click on a pillar filter button
 4. Click "All pillars"
 
 **Expected:**
+
 - [ ] "Filter by DEO Pillar" label is visible
 - [ ] "All pillars" button is first
 - [ ] Each active pillar has a filter button with issue count
@@ -82,11 +88,13 @@
 **Objective:** Verify pillar filter from URL parameter
 
 **Steps:**
+
 1. Navigate to `/projects/[id]/deo`
 2. Click "View issues" on any pillar card
 3. Observe Issues Engine
 
 **Expected:**
+
 - [ ] URL contains `?pillar=X` parameter
 - [ ] Issues are filtered to that pillar
 - [ ] Pillar filter button is highlighted
@@ -100,6 +108,7 @@
 >
 > The Products list no longer uses metadata status filters or labels in the default row view.
 > Instead, PRODUCTS-LIST-2.0 introduces:
+>
 > - **Health filter**: All, Critical, Needs Attention, Healthy (based on issue presence/severity)
 > - **Health pill per row**: Healthy (green), Needs Attention (yellow), Critical (red) - no numbers
 > - **Recommended action per row**: Single deterministic action under the product title
@@ -117,9 +126,9 @@
 ~~**Expected:**~~
 ~~- [ ] Filter buttons say "Metadata OK", "Metadata needs work", "Metadata missing"~~
 ~~- [ ] Status chips on product rows say:~~
-~~  - "Metadata optimized" (not just "optimized")~~
-~~  - "Metadata needs work"~~
-~~  - "Metadata missing"~~
+~~ - "Metadata optimized" (not just "optimized")~~
+~~ - "Metadata needs work"~~
+~~ - "Metadata missing"~~
 ~~- [ ] Helper text mentions "Metadata status does not reflect DEO issues"~~
 
 ---
@@ -129,11 +138,13 @@
 **Objective:** Verify issue badge is clickable and navigates correctly
 
 **Steps:**
+
 1. Find a product with DEO issues on the Products page
 2. Observe the issue badge
 3. Click the badge
 
 **Expected:**
+
 - [ ] Badge shows "X DEO issues" (not "X issues")
 - [ ] Badge color reflects max severity
 - [ ] Badge is visible even if metadata is "optimized"
@@ -148,10 +159,12 @@
 **Objective:** Verify focus parameters scroll to correct sections
 
 **Steps:**
+
 1. Navigate to a product workspace with `?focus=metadata`
 2. Navigate to same product with `?focus=deo-issues`
 
 **Expected:**
+
 - [ ] `?focus=metadata` scrolls to metadata section
 - [ ] `?focus=deo-issues` scrolls to DEO issues section
 - [ ] Scrolling happens after brief delay (200ms)
@@ -164,11 +177,13 @@
 **Objective:** Verify status vs health separation
 
 **Steps:**
+
 1. Find a product with optimized metadata but DEO issues
 2. Open the product workspace
 3. Review the DEO Insights panel
 
 **Expected:**
+
 - [ ] Panel header says "Metadata & Content Status"
 - [ ] Shows warning message:
   > "Metadata is optimized but this product has DEO issues. Review the issues below."
@@ -182,10 +197,12 @@
 **Objective:** Verify content page shows pillar information
 
 **Steps:**
+
 1. Navigate to Content page (`/projects/[id]/content`)
 2. Review the page header and context sections
 
 **Expected:**
+
 - [ ] Page title uses pillar name ("Content & Commerce Signals")
 - [ ] Description comes from pillar definition
 - [ ] "About this DEO Pillar" section visible
@@ -198,10 +215,12 @@
 **Objective:** Verify technical page shows pillar information
 
 **Steps:**
+
 1. Navigate to Technical page (`/projects/[id]/performance`)
 2. Review the page content
 
 **Expected:**
+
 - [ ] Page title is "Technical & Indexability"
 - [ ] Description references Core Web Vitals, crawl health, indexability
 - [ ] Link to Issues Engine with `?pillar=technical_indexability`
@@ -213,10 +232,12 @@
 **Objective:** Verify overview links to DEO Overview
 
 **Steps:**
+
 1. Navigate to Project Overview (`/projects/[id]/overview`)
 2. Find the DEO-related link in the header
 
 **Expected:**
+
 - [ ] "View DEO pillars" link in header description
 - [ ] Link goes to `/projects/[id]/deo`
 - [ ] "View all issues" links go to `/projects/[id]/issues`
@@ -228,10 +249,12 @@
 **Objective:** Verify metadata placeholder displays correctly
 
 **Steps:**
+
 1. Navigate to Metadata page (`/projects/[id]/metadata`)
 2. Review the page content
 
 **Expected:**
+
 - [ ] Shows pillar name in header
 - [ ] Shows pillar description
 - [ ] Links to Products for fixing metadata
@@ -245,10 +268,12 @@
 **Objective:** Verify media placeholder displays correctly
 
 **Steps:**
+
 1. Navigate to Media page (`/projects/[id]/media`)
 2. Review the page content
 
 **Expected:**
+
 - [ ] Shows "Media & Accessibility" header
 - [ ] Shows pillar description
 - [ ] Lists what the pillar covers (alt text, images, etc.)
@@ -259,16 +284,19 @@
 ## Regression Checks
 
 ### RC-001: Existing Issue Display
+
 - [ ] Issues still display correctly without pillar filter
 - [ ] AI fix functionality still works
 - [ ] Issue severity badges show correctly
 
 ### RC-002: Product Optimization Flow
+
 - [ ] Can still optimize products from Products page
 - [ ] "Optimize" button navigates to product workspace
 - [ ] AI suggestions work correctly
 
 ### RC-003: Crawl & Sync
+
 - [ ] Can run crawl from Overview
 - [ ] Product sync still works
 - [ ] Issues update after crawl
@@ -285,5 +313,5 @@
 ## Test Results
 
 | Date | Tester | Pass/Fail | Notes |
-|------|--------|-----------|-------|
+| ---- | ------ | --------- | ----- |
 |      |        |           |       |

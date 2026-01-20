@@ -1,4 +1,8 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { EntitlementsService } from '../billing/entitlements.service';
@@ -114,7 +118,7 @@ export class AccountService {
     private readonly prisma: PrismaService,
     private readonly authService: AuthService,
     private readonly entitlementsService: EntitlementsService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   // ==========================================================================
@@ -146,7 +150,7 @@ export class AccountService {
 
   async updateProfile(
     userId: string,
-    dto: UpdateProfileDto,
+    dto: UpdateProfileDto
   ): Promise<ProfileResponse> {
     const user = await this.prisma.user.update({
       where: { id: userId },
@@ -212,7 +216,7 @@ export class AccountService {
   async updatePreferences(
     userId: string,
     dto: UpdatePreferencesDto,
-    userAccountRole: string,
+    userAccountRole: string
   ): Promise<PreferencesResponse> {
     // VIEWER cannot update preferences
     if (userAccountRole === 'VIEWER') {
@@ -299,15 +303,26 @@ export class AccountService {
 
     // Format period label (e.g., "December 2025")
     const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     const periodLabel = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
 
     // Calculate quota used percentage
-    const quotaUsedPercent = quotaLimit !== null
-      ? Math.min(Math.round((aiUsedRuns / quotaLimit) * 100), 100)
-      : 0;
+    const quotaUsedPercent =
+      quotaLimit !== null
+        ? Math.min(Math.round((aiUsedRuns / quotaLimit) * 100), 100)
+        : 0;
 
     return {
       month,
@@ -368,7 +383,7 @@ export class AccountService {
   async disconnectStore(
     userId: string,
     projectId: string,
-    userAccountRole: string,
+    userAccountRole: string
   ): Promise<{ success: boolean }> {
     // Only account OWNER can disconnect stores (account-level restriction)
     if (userAccountRole !== 'OWNER') {
@@ -389,7 +404,9 @@ export class AccountService {
     try {
       await this.roleResolution.assertOwnerRole(projectId, userId);
     } catch {
-      throw new ForbiddenException('You do not have owner access to this project');
+      throw new ForbiddenException(
+        'You do not have owner access to this project'
+      );
     }
 
     // Delete the Shopify integration (does NOT trigger AI work)
@@ -421,7 +438,7 @@ export class AccountService {
 
   async getActiveSessions(
     userId: string,
-    currentSessionId?: string,
+    currentSessionId?: string
   ): Promise<SessionResponse[]> {
     const sessions = await this.prisma.userSession.findMany({
       where: {

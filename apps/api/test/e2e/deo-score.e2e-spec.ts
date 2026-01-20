@@ -2,12 +2,15 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { createTestApp } from '../utils/test-app';
 import { cleanupTestDb, disconnectTestDb } from '../utils/test-db';
-import { DeoScoreService, DeoSignalsService } from '../../src/projects/deo-score.service';
+import {
+  DeoScoreService,
+  DeoSignalsService,
+} from '../../src/projects/deo-score.service';
 
 async function signupAndLogin(
   server: any,
   email: string,
-  password: string,
+  password: string
 ): Promise<{ token: string; userId: string }> {
   await request(server)
     .post('/auth/signup')
@@ -37,7 +40,7 @@ async function signupAndLogin(
 async function createProject(
   server: any,
   token: string,
-  name = 'DEO Project',
+  name = 'DEO Project'
 ): Promise<string> {
   const res = await request(server)
     .post('/projects')
@@ -74,7 +77,7 @@ describe('DEO Score (e2e)', () => {
     const { token } = await signupAndLogin(
       server,
       'deo-score-owner@example.com',
-      'testpassword123',
+      'testpassword123'
     );
     const projectId = await createProject(server, token, 'DEO Score Project');
 
@@ -96,7 +99,7 @@ describe('DEO Score (e2e)', () => {
     const signals = await deoSignalsService.collectSignalsForProject(projectId);
     const snapshot = await deoScoreService.computeAndPersistScoreFromSignals(
       projectId,
-      signals,
+      signals
     );
 
     expect(snapshot).toHaveProperty('id');
@@ -113,9 +116,9 @@ describe('DEO Score (e2e)', () => {
     expect(getRes.body.latestScore).toBeDefined();
     expect(getRes.body.latestScore.overall).toBe(snapshot.breakdown.overall);
     expect(getRes.body.latestSnapshot.version).toBe('v1');
-    expect(new Date(getRes.body.latestSnapshot.computedAt).getTime()).toBeGreaterThan(
-      0,
-    );
+    expect(
+      new Date(getRes.body.latestSnapshot.computedAt).getTime()
+    ).toBeGreaterThan(0);
 
     // Verify v2 explainability metadata is present
     const metadata = getRes.body.latestSnapshot.metadata;
@@ -164,12 +167,12 @@ describe('DEO Score (e2e)', () => {
     const owner = await signupAndLogin(
       server,
       'deo-owner@example.com',
-      'testpassword123',
+      'testpassword123'
     );
     const other = await signupAndLogin(
       server,
       'deo-other@example.com',
-      'testpassword123',
+      'testpassword123'
     );
 
     const projectId = await createProject(server, owner.token, 'Owner Project');
@@ -186,7 +189,7 @@ describe('DEO Score (e2e)', () => {
     const { token } = await signupAndLogin(
       server,
       'deo-invalid@example.com',
-      'testpassword123',
+      'testpassword123'
     );
 
     const res = await request(server)

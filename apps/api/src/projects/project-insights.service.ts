@@ -27,7 +27,12 @@ export interface ProjectInsightsResponse {
   window: { days: number; from: string; to: string };
   overview: {
     improved: {
-      deoScore: { current: number; previous: number; delta: number; trend: 'up' | 'down' | 'flat' };
+      deoScore: {
+        current: number;
+        previous: number;
+        delta: number;
+        trend: 'up' | 'down' | 'flat';
+      };
       componentDeltas: Array<{
         componentId: string;
         label: string;
@@ -41,7 +46,12 @@ export interface ProjectInsightsResponse {
       aiRunsUsed: number;
       aiRunsAvoidedViaReuse: number;
       reuseRatePercent: number;
-      quota: { limit: number | null; used: number; remaining: number | null; usedPercent: number | null };
+      quota: {
+        limit: number | null;
+        used: number;
+        remaining: number | null;
+        usedPercent: number | null;
+      };
       trust: { applyAiRuns: number; invariantMessage: string };
     };
     resolved: { actionsCount: number; why: string };
@@ -50,13 +60,35 @@ export interface ProjectInsightsResponse {
   progress: {
     deoScoreTrend: Array<{ date: string; score: number }>;
     fixesAppliedTrend: Array<{ date: string; count: number; pillar?: string }>;
-    openIssuesNow: { critical: number; warning: number; info: number; total: number };
+    openIssuesNow: {
+      critical: number;
+      warning: number;
+      info: number;
+      total: number;
+    };
   };
   issueResolution: {
-    byPillar: Array<{ pillarId: string; label: string; open: number; resolved: number; total: number }>;
+    byPillar: Array<{
+      pillarId: string;
+      label: string;
+      open: number;
+      resolved: number;
+      total: number;
+    }>;
     avgTimeToFixHours: number | null;
-    topRecent: Array<{ issueId: string; title: string; resolvedAt: string; pillarId: string }>;
-    openHighImpact: Array<{ issueId: string; title: string; severity: InsightSeverity; pillarId: string; affectedCount: number }>;
+    topRecent: Array<{
+      issueId: string;
+      title: string;
+      resolvedAt: string;
+      pillarId: string;
+    }>;
+    openHighImpact: Array<{
+      issueId: string;
+      title: string;
+      severity: InsightSeverity;
+      pillarId: string;
+      affectedCount: number;
+    }>;
   };
   opportunities: Array<{
     id: string;
@@ -80,7 +112,12 @@ export interface ProjectInsightsResponse {
       answersMultiIntentCount: number;
       reuseRatePercent: number;
       confidenceDistribution: { high: number; medium: number; low: number };
-      trustTrajectory: { improvedProducts: number; improvedEvents: number; windowDays: number; why: string };
+      trustTrajectory: {
+        improvedProducts: number;
+        improvedEvents: number;
+        windowDays: number;
+        why: string;
+      };
       whyThisMatters: string;
     };
     coverage: {
@@ -120,9 +157,18 @@ export interface ProjectInsightsResponse {
       whyThisMatters: string;
     };
     trustSignals: {
-      topBlockers: Array<{ issueType: GeoIssueType; label: string; affectedProducts: number }>;
+      topBlockers: Array<{
+        issueType: GeoIssueType;
+        label: string;
+        affectedProducts: number;
+      }>;
       avgTimeToImproveHours: number | null;
-      mostImproved: Array<{ productId: string; productTitle: string; issuesResolvedCount: number; href: string }>;
+      mostImproved: Array<{
+        productId: string;
+        productTitle: string;
+        issuesResolvedCount: number;
+        href: string;
+      }>;
       whyThisMatters: string;
     };
     opportunities: Array<{
@@ -175,11 +221,16 @@ export class ProjectInsightsService {
     private readonly aiUsageLedgerService: AiUsageLedgerService,
     private readonly aiUsageQuotaService: AiUsageQuotaService,
     private readonly deoIssuesService: DeoIssuesService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
-  async getProjectInsights(projectId: string, userId: string): Promise<ProjectInsightsResponse> {
-    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+  async getProjectInsights(
+    projectId: string,
+    userId: string
+  ): Promise<ProjectInsightsResponse> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
     if (!project) throw new NotFoundException('Project not found');
     // [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can view)
     await this.roleResolution.assertProjectAccess(projectId, userId);
@@ -205,8 +256,14 @@ export class ProjectInsightsService {
       geoFixApps,
     ] = await Promise.all([
       this.deoIssuesService.getIssuesForProjectReadOnly(projectId, userId),
-      this.prisma.deoScoreSnapshot.findFirst({ where: { projectId }, orderBy: { computedAt: 'desc' } }),
-      this.prisma.deoScoreSnapshot.findFirst({ where: { projectId, computedAt: { lte: from } }, orderBy: { computedAt: 'desc' } }),
+      this.prisma.deoScoreSnapshot.findFirst({
+        where: { projectId },
+        orderBy: { computedAt: 'desc' },
+      }),
+      this.prisma.deoScoreSnapshot.findFirst({
+        where: { projectId, computedAt: { lte: from } },
+        orderBy: { computedAt: 'desc' },
+      }),
       this.prisma.deoScoreSnapshot.findMany({
         where: { projectId, computedAt: { gte: from } },
         orderBy: { computedAt: 'asc' },
@@ -214,7 +271,11 @@ export class ProjectInsightsService {
         take: 200,
       }),
       this.aiUsageLedgerService.getProjectSummary(projectId),
-      this.aiUsageQuotaService.evaluateQuotaForAction({ userId, projectId, action: 'PREVIEW_GENERATE' }),
+      this.aiUsageQuotaService.evaluateQuotaForAction({
+        userId,
+        projectId,
+        action: 'PREVIEW_GENERATE',
+      }),
       this.prisma.productIntentFixApplication.findMany({
         where: { product: { projectId }, appliedAt: { gte: from, lte: now } },
         select: {
@@ -274,7 +335,12 @@ export class ProjectInsightsService {
       }),
       this.prisma.automationSuggestion.findMany({
         where: { projectId, applied: true, appliedAt: { gte: from, lte: now } },
-        select: { appliedAt: true, generatedAt: true, issueType: true, targetType: true },
+        select: {
+          appliedAt: true,
+          generatedAt: true,
+          issueType: true,
+          targetType: true,
+        },
         orderBy: { appliedAt: 'desc' },
         take: 200,
       }),
@@ -320,23 +386,33 @@ export class ProjectInsightsService {
     const openInfo = issues.filter((i) => i.severity === 'info');
 
     const nextIssue = openCritical[0] ?? openWarning[0] ?? null;
-    const next =
-      nextIssue
-        ? {
-            title: nextIssue.title,
-            why: nextIssue.whyItMatters || nextIssue.description || 'Addressing high-impact gaps improves discovery coverage.',
-            href: nextIssue.pillarId ? `/projects/${projectId}/issues?pillar=${encodeURIComponent(nextIssue.pillarId)}` : `/projects/${projectId}/issues`,
-          }
-        : null;
+    const next = nextIssue
+      ? {
+          title: nextIssue.title,
+          why:
+            nextIssue.whyItMatters ||
+            nextIssue.description ||
+            'Addressing high-impact gaps improves discovery coverage.',
+          href: nextIssue.pillarId
+            ? `/projects/${projectId}/issues?pillar=${encodeURIComponent(nextIssue.pillarId)}`
+            : `/projects/${projectId}/issues`,
+        }
+      : null;
 
     const latestOverallRaw = latestSnapshot?.overallScore ?? null;
-    const prevOverallRaw = previousSnapshot?.overallScore ?? (scoreTrendRows[0]?.overallScore ?? null);
-    const latestOverall = latestOverallRaw != null ? Math.round(latestOverallRaw) : 0;
-    const prevOverall = prevOverallRaw != null ? Math.round(prevOverallRaw) : latestOverall;
+    const prevOverallRaw =
+      previousSnapshot?.overallScore ?? scoreTrendRows[0]?.overallScore ?? null;
+    const latestOverall =
+      latestOverallRaw != null ? Math.round(latestOverallRaw) : 0;
+    const prevOverall =
+      prevOverallRaw != null ? Math.round(prevOverallRaw) : latestOverall;
     const deoDelta = latestOverall - prevOverall;
 
     const latestV2 = (latestSnapshot?.metadata as any)?.v2?.components ?? null;
-    const prevV2 = ((previousSnapshot?.metadata as any)?.v2?.components ?? (scoreTrendRows[0] as any)?.metadata?.v2?.components) ?? null;
+    const prevV2 =
+      (previousSnapshot?.metadata as any)?.v2?.components ??
+      (scoreTrendRows[0] as any)?.metadata?.v2?.components ??
+      null;
 
     const componentKeys: Array<{ key: string; label: string }> = [
       { key: 'intentMatch', label: 'Search & Intent' },
@@ -348,8 +424,10 @@ export class ProjectInsightsService {
     ];
 
     const componentDeltas = componentKeys.map(({ key, label }) => {
-      const current = typeof latestV2?.[key] === 'number' ? Math.round(latestV2[key]) : 0;
-      const previous = typeof prevV2?.[key] === 'number' ? Math.round(prevV2[key]) : current;
+      const current =
+        typeof latestV2?.[key] === 'number' ? Math.round(latestV2[key]) : 0;
+      const previous =
+        typeof prevV2?.[key] === 'number' ? Math.round(prevV2[key]) : current;
       const delta = current - previous;
       return {
         componentId: key,
@@ -379,21 +457,48 @@ export class ProjectInsightsService {
     };
 
     const durationsHours: number[] = [];
-    for (const a of intentApps) durationsHours.push((a.appliedAt.getTime() - a.draft.createdAt.getTime()) / 3600000);
-    for (const a of competitiveApps) durationsHours.push((a.appliedAt.getTime() - a.draft.createdAt.getTime()) / 3600000);
-    for (const a of mediaApps) durationsHours.push((a.appliedAt.getTime() - a.draft.createdAt.getTime()) / 3600000);
-    for (const a of offsiteApps) durationsHours.push((a.appliedAt.getTime() - a.draft.createdAt.getTime()) / 3600000);
-    for (const a of localApps) durationsHours.push((a.appliedAt.getTime() - a.draft.createdAt.getTime()) / 3600000);
+    for (const a of intentApps)
+      durationsHours.push(
+        (a.appliedAt.getTime() - a.draft.createdAt.getTime()) / 3600000
+      );
+    for (const a of competitiveApps)
+      durationsHours.push(
+        (a.appliedAt.getTime() - a.draft.createdAt.getTime()) / 3600000
+      );
+    for (const a of mediaApps)
+      durationsHours.push(
+        (a.appliedAt.getTime() - a.draft.createdAt.getTime()) / 3600000
+      );
+    for (const a of offsiteApps)
+      durationsHours.push(
+        (a.appliedAt.getTime() - a.draft.createdAt.getTime()) / 3600000
+      );
+    for (const a of localApps)
+      durationsHours.push(
+        (a.appliedAt.getTime() - a.draft.createdAt.getTime()) / 3600000
+      );
     for (const a of appliedSuggestions) {
-      if (a.appliedAt) durationsHours.push((a.appliedAt.getTime() - a.generatedAt.getTime()) / 3600000);
+      if (a.appliedAt)
+        durationsHours.push(
+          (a.appliedAt.getTime() - a.generatedAt.getTime()) / 3600000
+        );
     }
 
     const avgTimeToFixHours =
       durationsHours.length > 0
-        ? Math.round((durationsHours.reduce((sum, v) => sum + v, 0) / durationsHours.length) * 10) / 10
+        ? Math.round(
+            (durationsHours.reduce((sum, v) => sum + v, 0) /
+              durationsHours.length) *
+              10
+          ) / 10
         : null;
 
-    const recentActions: Array<{ id: string; at: Date; title: string; pillarId: string }> = [];
+    const recentActions: Array<{
+      id: string;
+      at: Date;
+      title: string;
+      pillarId: string;
+    }> = [];
     for (const a of intentApps.slice(0, 20)) {
       recentActions.push({
         id: `intent:${a.productId}:${a.appliedAt.toISOString()}`,
@@ -458,7 +563,9 @@ export class ProjectInsightsService {
       ...mediaApps.map((a) => a.appliedAt),
       ...offsiteApps.map((a) => a.appliedAt),
       ...localApps.map((a) => a.appliedAt),
-      ...appliedSuggestions.map((a) => a.appliedAt).filter((d): d is Date => !!d),
+      ...appliedSuggestions
+        .map((a) => a.appliedAt)
+        .filter((d): d is Date => !!d),
     ];
 
     const trendMap = new Map<string, number>();
@@ -483,18 +590,27 @@ export class ProjectInsightsService {
       ...openWarning.slice(0, 4),
     ].map((i) => {
       const impact =
-        i.severity === 'critical' ? 'high' : i.severity === 'warning' ? 'medium' : 'low';
-      const fixType: 'automation' | 'manual' = i.actionability === 'automation' ? 'automation' : 'manual';
+        i.severity === 'critical'
+          ? 'high'
+          : i.severity === 'warning'
+            ? 'medium'
+            : 'low';
+      const fixType: 'automation' | 'manual' =
+        i.actionability === 'automation' ? 'automation' : 'manual';
       const pillarId = (i.pillarId as string) || 'unknown';
       return {
         id: `issue:${i.id}`,
         title: i.title,
-        why: i.whyItMatters || i.description || 'This gap affects discovery coverage.',
+        why:
+          i.whyItMatters ||
+          i.description ||
+          'This gap affects discovery coverage.',
         pillarId,
         estimatedImpact: impact as 'high' | 'medium' | 'low',
-        href: pillarId !== 'unknown'
-          ? `/projects/${projectId}/issues?pillar=${encodeURIComponent(pillarId)}`
-          : `/projects/${projectId}/issues`,
+        href:
+          pillarId !== 'unknown'
+            ? `/projects/${projectId}/issues?pillar=${encodeURIComponent(pillarId)}`
+            : `/projects/${projectId}/issues`,
         fixType,
       };
     });
@@ -502,7 +618,10 @@ export class ProjectInsightsService {
     const aiRunsUsed = quotaEval.currentMonthAiRuns;
     const monthlyLimit = quotaEval.policy.monthlyAiRunsLimit;
     const remaining = quotaEval.remainingAiRuns;
-    const usedPercent = quotaEval.currentUsagePercent != null ? Math.round(quotaEval.currentUsagePercent) : null;
+    const usedPercent =
+      quotaEval.currentUsagePercent != null
+        ? Math.round(quotaEval.currentUsagePercent)
+        : null;
 
     // INSIGHTS-1: Pillar resolution breakdown (open issues + applied actions)
     const openIssuesByPillarId = new Map<string, number>();
@@ -535,7 +654,8 @@ export class ProjectInsightsService {
     // GEO-INSIGHTS-2: Derived GEO insights (read-only)
     const productsTotal = (productsForGeo ?? []).length;
     const productsById = new Map<string, { id: string; title: string }>();
-    for (const p of productsForGeo ?? []) productsById.set(p.id, { id: p.id, title: p.title });
+    for (const p of productsForGeo ?? [])
+      productsById.set(p.id, { id: p.id, title: p.title });
 
     const confidenceDistribution = { high: 0, medium: 0, low: 0 };
     const perProductCoveredIntents = new Map<string, Set<SearchIntentType>>();
@@ -576,7 +696,9 @@ export class ProjectInsightsService {
       const covered = new Set<SearchIntentType>();
       for (const b of blocks) {
         const unitEval = byUnitId.get(b.id) ?? null;
-        const unitLevel = (unitEval?.citationConfidence?.level as 'low' | 'medium' | 'high') ?? 'low';
+        const unitLevel =
+          (unitEval?.citationConfidence?.level as 'low' | 'medium' | 'high') ??
+          'low';
         const mapping = deriveGeoAnswerIntentMapping({
           questionId: b.questionId,
           factsUsed: b.sourceFieldsUsed ?? [],
@@ -602,16 +724,25 @@ export class ProjectInsightsService {
       perProductCoveredIntents.set(p.id, covered);
     }
 
-    const eligibleAnswerUnits = answerUnitRows.filter((u) => u.unitConfidenceLevel !== 'low' && u.mappedIntents.length > 0);
-    const reuseStats = computeGeoReuseStats(eligibleAnswerUnits.map((u) => ({ mappedIntents: u.mappedIntents })));
-    const coverageCounts = computeGeoIntentCoverageCounts(eligibleAnswerUnits.map((u) => ({ mappedIntents: u.mappedIntents })));
+    const eligibleAnswerUnits = answerUnitRows.filter(
+      (u) => u.unitConfidenceLevel !== 'low' && u.mappedIntents.length > 0
+    );
+    const reuseStats = computeGeoReuseStats(
+      eligibleAnswerUnits.map((u) => ({ mappedIntents: u.mappedIntents }))
+    );
+    const coverageCounts = computeGeoIntentCoverageCounts(
+      eligibleAnswerUnits.map((u) => ({ mappedIntents: u.mappedIntents }))
+    );
 
-    const productsCoveredByIntent: Record<SearchIntentType, number> = Object.fromEntries(
-      SEARCH_INTENT_TYPES.map((t) => [t, 0]),
-    ) as Record<SearchIntentType, number>;
+    const productsCoveredByIntent: Record<SearchIntentType, number> =
+      Object.fromEntries(SEARCH_INTENT_TYPES.map((t) => [t, 0])) as Record<
+        SearchIntentType,
+        number
+      >;
     for (const intents of perProductCoveredIntents.values()) {
       for (const intent of intents) {
-        productsCoveredByIntent[intent] = (productsCoveredByIntent[intent] ?? 0) + 1;
+        productsCoveredByIntent[intent] =
+          (productsCoveredByIntent[intent] ?? 0) + 1;
       }
     }
 
@@ -622,11 +753,16 @@ export class ProjectInsightsService {
         label: SEARCH_INTENT_LABELS[intentType],
         productsCovered,
         productsTotal,
-        coveragePercent: productsTotal > 0 ? Math.round((productsCovered / productsTotal) * 100) : 0,
+        coveragePercent:
+          productsTotal > 0
+            ? Math.round((productsCovered / productsTotal) * 100)
+            : 0,
       };
     });
 
-    const gaps = coverageByIntent.filter((r) => r.productsCovered === 0).map((r) => r.intentType);
+    const gaps = coverageByIntent
+      .filter((r) => r.productsCovered === 0)
+      .map((r) => r.intentType);
 
     const topReusedAnswers = [...eligibleAnswerUnits]
       .filter((u) => u.mappedIntents.length >= 2)
@@ -645,7 +781,12 @@ export class ProjectInsightsService {
       }));
 
     const couldBeReusedButArent = answerUnitRows
-      .filter((u) => u.potentialIntents.length >= 2 && u.mappedIntents.length < u.potentialIntents.length && u.blockedBySignals.length > 0)
+      .filter(
+        (u) =>
+          u.potentialIntents.length >= 2 &&
+          u.mappedIntents.length < u.potentialIntents.length &&
+          u.blockedBySignals.length > 0
+      )
       .slice(0, 10)
       .map((u) => ({
         productId: u.productId,
@@ -659,11 +800,15 @@ export class ProjectInsightsService {
         href: `/projects/${projectId}/products/${u.productId}?focus=geo`,
       }));
 
-    const geoIssues = (issuesRes.issues ?? []).filter((i) => !!(i as any).geoIssueType);
+    const geoIssues = (issuesRes.issues ?? []).filter(
+      (i) => !!(i as any).geoIssueType
+    );
     const topBlockers = geoIssues
       .map((i) => ({
         issueType: (i as any).geoIssueType as GeoIssueType,
-        label: GEO_ISSUE_LABELS[(i as any).geoIssueType as GeoIssueType] ?? String((i as any).geoIssueType),
+        label:
+          GEO_ISSUE_LABELS[(i as any).geoIssueType as GeoIssueType] ??
+          String((i as any).geoIssueType),
         affectedProducts: i.count ?? 0,
       }))
       .sort((a, b) => b.affectedProducts - a.affectedProducts)
@@ -673,22 +818,34 @@ export class ProjectInsightsService {
     for (const a of geoFixApps ?? []) {
       const createdAt = a.draft?.createdAt;
       if (!createdAt) continue;
-      geoDurationsHours.push((a.appliedAt.getTime() - createdAt.getTime()) / 3600000);
+      geoDurationsHours.push(
+        (a.appliedAt.getTime() - createdAt.getTime()) / 3600000
+      );
     }
     const avgTimeToImproveHours =
       geoDurationsHours.length > 0
-        ? Math.round((geoDurationsHours.reduce((sum, v) => sum + v, 0) / geoDurationsHours.length) * 10) / 10
+        ? Math.round(
+            (geoDurationsHours.reduce((sum, v) => sum + v, 0) /
+              geoDurationsHours.length) *
+              10
+          ) / 10
         : null;
 
     const improvedApps = (geoFixApps ?? []).filter(
-      (a) => confidenceOrdinal(a.afterConfidence) > confidenceOrdinal(a.beforeConfidence),
+      (a) =>
+        confidenceOrdinal(a.afterConfidence) >
+        confidenceOrdinal(a.beforeConfidence)
     );
     const improvedProducts = new Set(improvedApps.map((a) => a.productId)).size;
     const improvedEvents = improvedApps.length;
 
     const mostImprovedByProduct = new Map<string, number>();
     for (const a of geoFixApps ?? []) {
-      mostImprovedByProduct.set(a.productId, (mostImprovedByProduct.get(a.productId) ?? 0) + (a.issuesResolvedCount ?? 0));
+      mostImprovedByProduct.set(
+        a.productId,
+        (mostImprovedByProduct.get(a.productId) ?? 0) +
+          (a.issuesResolvedCount ?? 0)
+      );
     }
     const mostImproved = [...mostImprovedByProduct.entries()]
       .sort((a, b) => b[1] - a[1])
@@ -700,7 +857,8 @@ export class ProjectInsightsService {
         href: `/projects/${projectId}/products/${productId}?focus=geo`,
       }));
 
-    const geoOpportunities: ProjectInsightsResponse['geoInsights']['opportunities'] = [];
+    const geoOpportunities: ProjectInsightsResponse['geoInsights']['opportunities'] =
+      [];
     for (const u of couldBeReusedButArent.slice(0, 6)) {
       geoOpportunities.push({
         id: `reuse:${u.answerBlockId}`,
@@ -713,7 +871,10 @@ export class ProjectInsightsService {
     }
 
     // Product-level coverage gaps: highlight missing high-value intents first (transactional/comparative)
-    const highValueIntents: SearchIntentType[] = ['transactional', 'comparative'];
+    const highValueIntents: SearchIntentType[] = [
+      'transactional',
+      'comparative',
+    ];
     for (const intent of highValueIntents) {
       const missingProducts: string[] = [];
       for (const [pid, intents] of perProductCoveredIntents.entries()) {
@@ -744,10 +905,16 @@ export class ProjectInsightsService {
 
     const geoInsights: ProjectInsightsResponse['geoInsights'] = {
       overview: {
-        productsAnswerReadyPercent: percent(productsAnswerReadyCount, productsTotal),
+        productsAnswerReadyPercent: percent(
+          productsAnswerReadyCount,
+          productsTotal
+        ),
         productsAnswerReadyCount,
         productsTotal,
-        answersTotal: (productsForGeo ?? []).reduce((sum: number, p: any) => sum + (p.answerBlocks?.length ?? 0), 0),
+        answersTotal: (productsForGeo ?? []).reduce(
+          (sum: number, p: any) => sum + (p.answerBlocks?.length ?? 0),
+          0
+        ),
         answersMultiIntentCount: reuseStats.multiIntentAnswers,
         reuseRatePercent: reuseStats.reuseRatePercent,
         confidenceDistribution,

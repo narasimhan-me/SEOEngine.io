@@ -33,7 +33,8 @@ export class ContactController {
 
     return {
       success: true,
-      message: 'Your message has been received. We will get back to you within 24 hours.',
+      message:
+        'Your message has been received. We will get back to you within 24 hours.',
     };
   }
 }

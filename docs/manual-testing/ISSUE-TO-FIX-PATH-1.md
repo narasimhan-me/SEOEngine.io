@@ -105,15 +105,18 @@ The following refinements were made in FIXUP-2:
 **ID:** HP-001
 
 **Preconditions:**
+
 - Project has at least one product with actionable DEO issues
 - Issues visible on Overview page "Top blockers" section
 
 **Steps:**
+
 1. Navigate to project Overview page (`/projects/{projectId}/overview`)
 2. Locate the "Top blockers" or issue summary section
 3. Click on an issue link (only actionable issues are shown)
 
 **Expected Results:**
+
 - **UI:**
   - Lands on Product workspace with correct tab selected (Metadata, Answers, Search & Intent, etc.)
   - `data-testid="issue-fix-context-banner"` visible at top of tab content
@@ -129,13 +132,16 @@ The following refinements were made in FIXUP-2:
 **ID:** HP-002
 
 **Preconditions:**
+
 - Project has both actionable and orphan issues (if possible)
 
 **Steps:**
+
 1. Navigate to project Issues page (`/projects/{projectId}/issues`)
 2. Observe issue cards
 
 **Expected Results:**
+
 - **Actionable issues:**
   - Have `data-testid="issue-card-actionable"`
   - Clickable (button role, hover affordance)
@@ -154,15 +160,18 @@ The following refinements were made in FIXUP-2:
 **ID:** HP-003
 
 **Preconditions:**
+
 - Project has issues
 
 **Note:** [FIXUP-3] The issue-fix context banner triggers when `issueId` is present in the URL. The `from` parameter is optional and preserves navigation origin context but is NOT required for banner visibility.
 
 **Steps (Product):**
+
 1. Manually navigate to: `/projects/{projectId}/products/{productId}?issueId={validIssueId}&tab=metadata`
 2. Observe the page
 
 **Expected Results:**
+
 - **UI:**
   - Issue fix context banner visible (triggered by `issueId` presence)
   - Banner text: "You're here to fix: {Issue title}"
@@ -170,10 +179,12 @@ The following refinements were made in FIXUP-2:
 - **Optional:** Adding `from=issues` or `from=overview` preserves origin context but doesn't affect banner visibility
 
 **Steps (Work Queue):**
+
 1. Manually navigate to: `/projects/{projectId}/work-queue?issueId={issueId}`
 2. Observe the page
 
 **Expected Results:**
+
 - **UI:**
   - `data-testid="work-queue-issue-fix-context-banner"` visible (triggered by `issueId` alone)
   - Banner text: "You're here to fix: {Issue title}"
@@ -186,15 +197,18 @@ The following refinements were made in FIXUP-2:
 **ID:** HP-004
 
 **Preconditions:**
+
 - Product has DEO issues (some actionable, potentially some not)
 
 **Steps:**
+
 1. Navigate to product workspace (`/projects/{projectId}/products/{productId}`)
 2. Note the count in the Issues tab badge (`data-testid="product-issues-tab-count"`)
 3. Click on the Issues tab
 4. Count the actionable issue rows (`data-testid="product-issue-row-actionable"`)
 
 **Expected Results:**
+
 - **UI:** Tab badge count EQUALS number of actionable rows displayed
 - **Header:** `data-testid="product-issues-actionable-count"` shows same number
 
@@ -205,15 +219,18 @@ The following refinements were made in FIXUP-2:
 **ID:** HP-005
 
 **Preconditions:**
+
 - Project Issues page loaded
 
 **Steps:**
+
 1. Navigate to Issues page
 2. For each issue card, verify:
    - If `data-testid="issue-card-actionable"`: clicking navigates somewhere
    - If `data-testid="issue-card-informational"`: clicking does nothing
 
 **Expected Results:**
+
 - **Actionable cards:** Navigate to fix destination on click
 - **Informational cards:** No navigation, no cursor:pointer, no role="button"
 
@@ -226,9 +243,11 @@ The following refinements were made in FIXUP-2:
 **Description:** Issue exists but has no primaryProductId or affectedProducts
 
 **Steps:**
+
 1. Find or create an issue without product association
 
 **Expected Behavior:**
+
 - Issue appears as informational (no fix path can be determined)
 - No crash or error
 
@@ -239,9 +258,11 @@ The following refinements were made in FIXUP-2:
 **Description:** URL contains issueId that doesn't exist in current product's issues
 
 **Steps:**
+
 1. Navigate to: `/projects/{projectId}/products/{productId}?from=issues&issueId=nonexistent`
 
 **Expected Behavior:**
+
 - Page loads without error
 - No fix context banner shown (issue not found)
 - Product workspace functions normally
@@ -255,9 +276,11 @@ The following refinements were made in FIXUP-2:
 **Scenario:** Issue ID not in ISSUE_UI_CONFIG mapping
 
 **Steps:**
+
 1. Backend returns issue with ID not mapped in frontend config
 
 **Expected Behavior:**
+
 - `getSafeIssueTitle` returns fallback "Issue detected"
 - `getSafeIssueDescription` returns generic description
 - No internal ID exposed to user
@@ -316,9 +339,9 @@ N/A - This feature is about routing, not quotas.
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Name] |
-| **Date** | [YYYY-MM-DD] |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    | [Name]                                |
+| **Date**           | [YYYY-MM-DD]                          |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | [Any additional notes] |
+| **Notes**          | [Any additional notes]                |

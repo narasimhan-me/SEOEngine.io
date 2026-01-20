@@ -1,4 +1,10 @@
-import { Injectable, BadRequestException, Inject, forwardRef, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  Inject,
+  forwardRef,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma.service';
 import { IntegrationType } from '@prisma/client';
@@ -109,10 +115,13 @@ const ANSWER_BLOCK_METAFIELD_DEFINITIONS: {
 ];
 
 const ANSWER_BLOCK_METAFIELD_KEY_BY_QUESTION_ID: Record<string, string> =
-  ANSWER_BLOCK_METAFIELD_DEFINITIONS.reduce((acc, def) => {
-    acc[def.questionId] = def.key;
-    return acc;
-  }, {} as Record<string, string>);
+  ANSWER_BLOCK_METAFIELD_DEFINITIONS.reduce(
+    (acc, def) => {
+      acc[def.questionId] = def.key;
+      return acc;
+    },
+    {} as Record<string, string>
+  );
 
 interface ShopifyGraphqlError {
   message: string;
@@ -136,7 +145,7 @@ interface SyncProductsOptions {
 }
 
 export function mapAnswerBlocksToMetafieldPayloads(
-  blocks: { questionId: string; answerText: string }[],
+  blocks: { questionId: string; answerText: string }[]
 ): {
   mappings: { key: string; value: string }[];
   skippedUnknownQuestionIds: string[];
@@ -177,13 +186,16 @@ export class ShopifyService {
     private readonly config: ConfigService,
     @Inject(forwardRef(() => AutomationService))
     private readonly automationService: AutomationService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {
     this.apiKey = this.config.get<string>('SHOPIFY_API_KEY');
     this.apiSecret = this.config.get<string>('SHOPIFY_API_SECRET');
     this.appUrl = this.config.get<string>('SHOPIFY_APP_URL');
     // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Add read_content scope for Pages sync
-    this.scopes = this.config.get<string>('SHOPIFY_SCOPES', 'read_products,write_products,read_themes,read_content');
+    this.scopes = this.config.get<string>(
+      'SHOPIFY_SCOPES',
+      'read_products,write_products,read_themes,read_content'
+    );
     // [SHOPIFY-SCOPES-MATRIX-1] Store raw allowlist for validation
     this.scopesAllowlistCsv = this.scopes;
   }
@@ -213,7 +225,9 @@ export class ShopifyService {
   private validateScopesAllowlistSuperset(requestedScopes: string[]): void {
     const allowlist = parseShopifyScopesCsv(this.scopesAllowlistCsv);
     const allowlistSet = new Set(allowlist);
-    const missingFromAllowlist = requestedScopes.filter((s) => !allowlistSet.has(s));
+    const missingFromAllowlist = requestedScopes.filter(
+      (s) => !allowlistSet.has(s)
+    );
 
     if (missingFromAllowlist.length > 0) {
       const errorMessage = `[SHOPIFY-SCOPES-MATRIX-1] SHOPIFY_SCOPES allowlist is missing requested scopes: ${missingFromAllowlist.join(', ')}. Allowlist: ${this.scopesAllowlistCsv}`;
@@ -226,7 +240,8 @@ export class ShopifyService {
       // [SHOPIFY-SCOPES-MATRIX-1-FIXUP-1] In production, return safe error (no OAuth redirect)
       throw new BadRequestException({
         code: 'SHOPIFY_SCOPES_CONFIG_INVALID',
-        message: 'Shopify scope configuration is invalid. Please contact support.',
+        message:
+          'Shopify scope configuration is invalid. Please contact support.',
       });
     }
   }
@@ -235,7 +250,7 @@ export class ShopifyService {
   // [SHOPIFY-SCOPE-IMPLICATIONS-1] Use implication-aware coverage for missing scope detection
   private getScopeStatusFromIntegration(
     integration: any,
-    capability: ShopifyScopeCapability,
+    capability: ShopifyScopeCapability
   ): ShopifyScopeStatus {
     const storedScope = (integration?.config as any)?.scope ?? '';
     const grantedScopes = this.parseScopeList(storedScope);
@@ -243,14 +258,16 @@ export class ShopifyService {
     // [SHOPIFY-SCOPE-IMPLICATIONS-1] Expand granted scopes with implied scopes
     // (e.g., write_products ⇒ read_products) to prevent false "missing read_products" warnings
     const effectiveGranted = expandGrantedScopesWithImplications(grantedScopes);
-    const missingScopes = requiredScopes.filter((s) => !effectiveGranted.has(s));
+    const missingScopes = requiredScopes.filter(
+      (s) => !effectiveGranted.has(s)
+    );
     return { capability, requiredScopes, grantedScopes, missingScopes };
   }
 
   // [SHOPIFY-SCOPES-MATRIX-1] Use centralized scope computation
   async getShopifyScopeStatus(
     projectId: string,
-    capability: ShopifyScopeCapability,
+    capability: ShopifyScopeCapability
   ): Promise<{ projectId: string; connected: boolean } & ShopifyScopeStatus> {
     const integration = await this.getShopifyIntegration(projectId);
     console.log('[getShopifyScopeStatus] Integration config:', {
@@ -280,7 +297,10 @@ export class ShopifyService {
     return { projectId, connected: true, ...status };
   }
 
-  getSafeReturnToForProject(returnTo: unknown, projectId: string): string | null {
+  getSafeReturnToForProject(
+    returnTo: unknown,
+    projectId: string
+  ): string | null {
     if (typeof returnTo !== 'string') return null;
     const value = returnTo.trim();
     if (!value) return null;
@@ -302,7 +322,11 @@ export class ShopifyService {
     try {
       // Handle OAuth token exchange endpoint
       // [SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-3] Include read_content for pages_sync capability
-      if (url && typeof url === 'string' && url.includes('/admin/oauth/access_token')) {
+      if (
+        url &&
+        typeof url === 'string' &&
+        url.includes('/admin/oauth/access_token')
+      ) {
         // Return mock token response
         return {
           ok: true,
@@ -316,7 +340,11 @@ export class ShopifyService {
 
       // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1] Handle Access Scopes endpoint
       // This is the fallback truth source when OAuth scope string is empty/suspicious
-      if (url && typeof url === 'string' && url.includes('/admin/oauth/access_scopes.json')) {
+      if (
+        url &&
+        typeof url === 'string' &&
+        url.includes('/admin/oauth/access_scopes.json')
+      ) {
         return {
           ok: true,
           json: async () => ({
@@ -335,7 +363,8 @@ export class ShopifyService {
 
       if (operationName === 'UpdateProductSeo') {
         // Check if test wants to simulate userErrors (via special variable)
-        const simulateErrors = body.variables?.input?.seo?.title === '__SIMULATE_ERRORS__';
+        const simulateErrors =
+          body.variables?.input?.seo?.title === '__SIMULATE_ERRORS__';
         return {
           ok: true,
           json: async () => ({
@@ -347,10 +376,12 @@ export class ShopifyService {
                   }
                 : {
                     product: {
-                      id: body.variables?.input?.id ?? 'gid://shopify/Product/0',
+                      id:
+                        body.variables?.input?.id ?? 'gid://shopify/Product/0',
                       seo: {
                         title: body.variables?.input?.seo?.title ?? null,
-                        description: body.variables?.input?.seo?.description ?? null,
+                        description:
+                          body.variables?.input?.seo?.description ?? null,
                       },
                     },
                     userErrors: [],
@@ -455,7 +486,8 @@ export class ShopifyService {
       // [SHOPIFY-ASSET-SYNC-COVERAGE-1] E2E mock for GetPages
       if (operationName === 'GetPages') {
         // Import mock store and return seeded data
-        const { e2eShopifyMockStore } = await import('./e2e-shopify-mock.store');
+        const { e2eShopifyMockStore } =
+          await import('./e2e-shopify-mock.store');
         const pages = e2eShopifyMockStore.getPages();
         return {
           ok: true,
@@ -482,7 +514,8 @@ export class ShopifyService {
       // [SHOPIFY-ASSET-SYNC-COVERAGE-1] E2E mock for GetCollections
       if (operationName === 'GetCollections') {
         // Import mock store and return seeded data
-        const { e2eShopifyMockStore } = await import('./e2e-shopify-mock.store');
+        const { e2eShopifyMockStore } =
+          await import('./e2e-shopify-mock.store');
         const collections = e2eShopifyMockStore.getCollections();
         return {
           ok: true,
@@ -508,7 +541,8 @@ export class ShopifyService {
 
       // [BLOGS-ASSET-SYNC-COVERAGE-1] E2E mock for GetArticles
       if (operationName === 'GetArticles') {
-        const { e2eShopifyMockStore } = await import('./e2e-shopify-mock.store');
+        const { e2eShopifyMockStore } =
+          await import('./e2e-shopify-mock.store');
         const articles = e2eShopifyMockStore.getArticles();
         return {
           ok: true,
@@ -536,7 +570,11 @@ export class ShopifyService {
 
       // Fallback: generic success envelope.
       // For OAuth endpoints, return a proper token response
-      if (url && typeof url === 'string' && url.includes('/admin/oauth/access_token')) {
+      if (
+        url &&
+        typeof url === 'string' &&
+        url.includes('/admin/oauth/access_token')
+      ) {
         return {
           ok: true,
           json: async () => ({
@@ -553,7 +591,11 @@ export class ShopifyService {
       };
     } catch {
       // For OAuth endpoints in catch block, return a proper token response
-      if (url && typeof url === 'string' && url.includes('/admin/oauth/access_token')) {
+      if (
+        url &&
+        typeof url === 'string' &&
+        url.includes('/admin/oauth/access_token')
+      ) {
         return {
           ok: true,
           json: async () => ({
@@ -576,15 +618,18 @@ export class ShopifyService {
     // Jest mocks have _isMockFunction property or mock property
     // We need to distinguish between native Node.js fetch and Jest mocks
     const fetchFn = (global as any).fetch;
-    
+
     // Only treat as Jest mock if it has explicit Jest mock properties
     // Native Node.js fetch doesn't have these properties
     // Check for Jest mock function indicators
-    const isJestMock = fetchFn && typeof fetchFn === 'function' && (
-      (fetchFn._isMockFunction === true) ||
-      (fetchFn.mock !== undefined && fetchFn.mock !== null && Array.isArray(fetchFn.mock.calls))
-    );
-    
+    const isJestMock =
+      fetchFn &&
+      typeof fetchFn === 'function' &&
+      (fetchFn._isMockFunction === true ||
+        (fetchFn.mock !== undefined &&
+          fetchFn.mock !== null &&
+          Array.isArray(fetchFn.mock.calls)));
+
     // In test mode, always use e2e mock unless fetch is explicitly mocked with Jest
     if (this.isTestEnv) {
       // Check for Jest mock FIRST, so tests can override default behavior
@@ -596,7 +641,11 @@ export class ShopifyService {
       // This bypasses the e2e mock to ensure consistent behavior
       // Unless fetch is explicitly mocked (which allows error testing)
       // [SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-3] Include read_content for pages_sync capability
-      if (url && typeof url === 'string' && url.includes('/admin/oauth/access_token')) {
+      if (
+        url &&
+        typeof url === 'string' &&
+        url.includes('/admin/oauth/access_token')
+      ) {
         return {
           ok: true,
           json: async () => ({
@@ -610,7 +659,11 @@ export class ShopifyService {
       try {
         const mockResponse = await this.e2eMockShopifyFetch(url, init);
         // Ensure we always return a valid response with ok: true
-        if (mockResponse && typeof mockResponse === 'object' && mockResponse.ok === true) {
+        if (
+          mockResponse &&
+          typeof mockResponse === 'object' &&
+          mockResponse.ok === true
+        ) {
           return mockResponse;
         }
       } catch (error) {
@@ -623,7 +676,7 @@ export class ShopifyService {
         text: async () => '',
       };
     }
-    
+
     if (isE2EMode()) {
       // In E2E mode, use e2e mock
       return await this.e2eMockShopifyFetch(url, init);
@@ -633,7 +686,7 @@ export class ShopifyService {
       const elapsed = Date.now() - this.lastShopifyRequestAt;
       if (elapsed < this.minShopifyIntervalMs) {
         await new Promise((resolve) =>
-          setTimeout(resolve, this.minShopifyIntervalMs - elapsed),
+          setTimeout(resolve, this.minShopifyIntervalMs - elapsed)
         );
       }
     }
@@ -644,7 +697,7 @@ export class ShopifyService {
   private async executeShopifyGraphql<T>(
     shopDomain: string,
     accessToken: string,
-    params: { query: string; variables?: any; operationName?: string },
+    params: { query: string; variables?: any; operationName?: string }
   ): Promise<T> {
     const url = `https://${shopDomain}/admin/api/2024-01/graphql.json`;
     const response = await this.rateLimitedFetch(url, {
@@ -665,7 +718,7 @@ export class ShopifyService {
       this.logger.error(
         `[ShopifyGraphQL] HTTP error for operation ${
           params.operationName ?? 'unknown'
-        }: ${errorText}`,
+        }: ${errorText}`
       );
       throw new BadRequestException('Failed to call Shopify GraphQL Admin API');
     }
@@ -676,7 +729,7 @@ export class ShopifyService {
       this.logger.error(
         `[ShopifyGraphQL] GraphQL errors for operation ${
           params.operationName ?? 'unknown'
-        }: ${JSON.stringify(json.errors)}`,
+        }: ${JSON.stringify(json.errors)}`
       );
       throw new BadRequestException('Failed to call Shopify GraphQL Admin API');
     }
@@ -685,7 +738,7 @@ export class ShopifyService {
       this.logger.error(
         `[ShopifyGraphQL] Missing data for operation ${
           params.operationName ?? 'unknown'
-        }`,
+        }`
       );
       throw new BadRequestException('Failed to call Shopify GraphQL Admin API');
     }
@@ -705,7 +758,7 @@ export class ShopifyService {
       returnTo?: string | null;
       source?: ShopifyOauthStatePayload['source'];
       capability?: ShopifyScopeCapability;
-    },
+    }
   ): string {
     const state = crypto.randomBytes(16).toString('hex');
 
@@ -771,7 +824,7 @@ export class ShopifyService {
 
     const sortedParams = Object.keys(params)
       .sort()
-      .map(key => `${key}=${params[key]}`)
+      .map((key) => `${key}=${params[key]}`)
       .join('&');
 
     const hash = crypto
@@ -797,7 +850,10 @@ export class ShopifyService {
   /**
    * Exchange authorization code for access token
    */
-  async exchangeToken(shop: string, code: string): Promise<{ access_token: string; scope: string }> {
+  async exchangeToken(
+    shop: string,
+    code: string
+  ): Promise<{ access_token: string; scope: string }> {
     const url = `https://${shop}/admin/oauth/access_token`;
     const body = {
       client_id: this.apiKey,
@@ -834,8 +890,12 @@ export class ShopifyService {
    */
   private async fetchAccessScopes(
     shopDomain: string,
-    accessToken: string,
-  ): Promise<{ scopes: string[]; status: 'success' | 'http_error' | 'parse_error' | 'empty'; httpStatus?: number }> {
+    accessToken: string
+  ): Promise<{
+    scopes: string[];
+    status: 'success' | 'http_error' | 'parse_error' | 'empty';
+    httpStatus?: number;
+  }> {
     const url = `https://${shopDomain}/admin/oauth/access_scopes.json`;
 
     let response: Response | null = null;
@@ -851,16 +911,18 @@ export class ShopifyService {
       this.logger.warn(
         `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes fetch network error for ${shopDomain}: ${
           err instanceof Error ? err.message : String(err)
-        }`,
+        }`
       );
       return { scopes: [], status: 'http_error' };
     }
 
     if (!response || !response.ok) {
       const statusCode = response?.status;
-      const statusCategory = statusCode ? `${Math.floor(statusCode / 100)}xx` : 'unknown';
+      const statusCategory = statusCode
+        ? `${Math.floor(statusCode / 100)}xx`
+        : 'unknown';
       this.logger.warn(
-        `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes endpoint returned non-OK: shop=${shopDomain}, status=${statusCode ?? 'null'} (${statusCategory})`,
+        `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes endpoint returned non-OK: shop=${shopDomain}, status=${statusCode ?? 'null'} (${statusCategory})`
       );
       return { scopes: [], status: 'http_error', httpStatus: statusCode };
     }
@@ -872,7 +934,7 @@ export class ShopifyService {
       const scopes = data.access_scopes?.map((s) => s.handle) ?? [];
       if (scopes.length === 0) {
         this.logger.warn(
-          `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes endpoint returned empty list: shop=${shopDomain}`,
+          `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes endpoint returned empty list: shop=${shopDomain}`
         );
         return { scopes: [], status: 'empty' };
       }
@@ -881,7 +943,7 @@ export class ShopifyService {
       this.logger.warn(
         `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes JSON parse error for ${shopDomain}: ${
           err instanceof Error ? err.message : String(err)
-        }`,
+        }`
       );
       return { scopes: [], status: 'parse_error' };
     }
@@ -926,7 +988,7 @@ export class ShopifyService {
     shopDomain: string,
     accessToken: string,
     scope: string,
-    expectedScopes?: string | string[],
+    expectedScopes?: string | string[]
   ) {
     // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-2] Read existing integration FIRST
     const existing = await this.prisma.integration.findUnique({
@@ -955,7 +1017,7 @@ export class ShopifyService {
     if (isSuspicious) {
       this.logger.warn(
         `[SHOPIFY-SCOPE-TRUTH-1] OAuth scope suspicious: expected=[${parsedExpectedScopes.join(',')}], ` +
-          `got=[${parsedOauthScopes.join(',')}]. Will try Access Scopes endpoint first.`,
+          `got=[${parsedOauthScopes.join(',')}]. Will try Access Scopes endpoint first.`
       );
     }
 
@@ -969,7 +1031,10 @@ export class ShopifyService {
       | 'oauth_scope'
       | 'existing_scope_retained';
     // Try Access Scopes endpoint first (always attempt for authoritative truth)
-    const accessScopesResult = await this.fetchAccessScopes(shopDomain, accessToken);
+    const accessScopesResult = await this.fetchAccessScopes(
+      shopDomain,
+      accessToken
+    );
     const accessScopesStatus = accessScopesResult.status;
 
     if (accessScopesResult.scopes.length > 0) {
@@ -981,9 +1046,13 @@ export class ShopifyService {
       authoritativeScopes = parsedOauthScopes;
       truthSource = 'oauth_scope';
       this.logger.log(
-        `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes ${accessScopesResult.status}, using OAuth scope as fallback: shop=${shopDomain}`,
+        `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes ${accessScopesResult.status}, using OAuth scope as fallback: shop=${shopDomain}`
       );
-    } else if (isSuspicious && parsedOauthScopes.length > 0 && existingStoredScope.length > 0) {
+    } else if (
+      isSuspicious &&
+      parsedOauthScopes.length > 0 &&
+      existingStoredScope.length > 0
+    ) {
       // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-4] Suspicious OAuth + Access Scopes failed:
       // Retain existing stored scope to prevent accidental downgrade
       authoritativeScopes = existingStoredScope;
@@ -991,9 +1060,13 @@ export class ShopifyService {
       this.logger.warn(
         `[SHOPIFY-SCOPE-TRUTH-1] Suspicious OAuth scope AND Access Scopes ${accessScopesResult.status}. ` +
           `Refusing to downgrade. Retaining existing stored scope: shop=${shopDomain}, ` +
-          `suspiciousOauth=[${parsedOauthScopes.join(',')}], retained=[${existingStoredScope.join(',')}]`,
+          `suspiciousOauth=[${parsedOauthScopes.join(',')}], retained=[${existingStoredScope.join(',')}]`
       );
-    } else if (isSuspicious && parsedOauthScopes.length > 0 && existingStoredScope.length === 0) {
+    } else if (
+      isSuspicious &&
+      parsedOauthScopes.length > 0 &&
+      existingStoredScope.length === 0
+    ) {
       // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-4 HOTFIX] Suspicious OAuth + Access Scopes failed + FRESH INSTALL:
       // On fresh install, accept suspicious OAuth as-is (user may have declined some scopes, which is valid)
       // The FIXUP-4 downgrade protection only applies when there's an existing scope to protect
@@ -1002,7 +1075,7 @@ export class ShopifyService {
       this.logger.warn(
         `[SHOPIFY-SCOPE-TRUTH-1] Suspicious OAuth scope AND Access Scopes ${accessScopesResult.status}, ` +
           `but FRESH INSTALL (no existing scope). Accepting OAuth scope as-is: shop=${shopDomain}, ` +
-          `scopes=[${parsedOauthScopes.join(',')}]`,
+          `scopes=[${parsedOauthScopes.join(',')}]`
       );
     } else if (existingStoredScope.length > 0) {
       // Retain existing stored scope - do not downgrade
@@ -1010,7 +1083,7 @@ export class ShopifyService {
       truthSource = 'existing_scope_retained';
       this.logger.warn(
         `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes ${accessScopesResult.status} AND OAuth scope empty. ` +
-          `Retaining existing stored scope: shop=${shopDomain}, scopes=[${existingStoredScope.join(',')}]`,
+          `Retaining existing stored scope: shop=${shopDomain}, scopes=[${existingStoredScope.join(',')}]`
       );
     }
 
@@ -1019,10 +1092,10 @@ export class ShopifyService {
       this.logger.error(
         `[SHOPIFY-SCOPE-TRUTH-1] SCOPE_VERIFICATION_FAILED: All scope sources empty. ` +
           `shop=${shopDomain}, accessScopesStatus=${accessScopesStatus}, oauthScopeLength=${parsedOauthScopes.length}, ` +
-          `existingStoredScopeLength=${existingStoredScope.length}`,
+          `existingStoredScopeLength=${existingStoredScope.length}`
       );
       const error = new Error(
-        'SHOPIFY_SCOPE_VERIFICATION_FAILED: Could not verify Shopify permissions. Please try reconnecting.',
+        'SHOPIFY_SCOPE_VERIFICATION_FAILED: Could not verify Shopify permissions. Please try reconnecting.'
       );
       (error as any).code = 'SHOPIFY_SCOPE_VERIFICATION_FAILED';
       throw error;
@@ -1033,7 +1106,7 @@ export class ShopifyService {
 
     this.logger.log(
       `[SHOPIFY-SCOPE-TRUTH-1] Storing connection: projectId=${projectId}, shop=${shopDomain}, ` +
-        `truthSource=${truthSource}, accessScopesStatus=${accessScopesStatus}, scopes=${normalizedScope}`,
+        `truthSource=${truthSource}, accessScopesStatus=${accessScopesStatus}, scopes=${normalizedScope}`
     );
 
     const integration = await this.prisma.integration.upsert({
@@ -1068,7 +1141,7 @@ export class ShopifyService {
     // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1] Log authoritative scope storage (no secrets)
     this.logger.log(
       `[SHOPIFY-SCOPE-TRUTH-1] Upserted integration: id=${integration.id}, shop=${shopDomain}, ` +
-        `truthSource=${truthSource}, normalizedScopes=${normalizedScope}`,
+        `truthSource=${truthSource}, normalizedScopes=${normalizedScope}`
     );
 
     // Fire-and-forget ensure of Answer Block metafield definitions for this store.
@@ -1076,7 +1149,7 @@ export class ShopifyService {
       this.logger.warn(
         `[ShopifyMetafields] Failed to ensure metafield definitions for project ${projectId}: ${
           err instanceof Error ? err.message : String(err)
-        }`,
+        }`
       );
     });
 
@@ -1104,7 +1177,7 @@ export class ShopifyService {
   private async ensureMetafieldDefinitionsForStore(
     projectId: string,
     shopDomain: string,
-    accessToken: string,
+    accessToken: string
   ): Promise<{ created: number; existing: number; errors: string[] }> {
     const query = `
       query GetEngineoMetafieldDefinitions(
@@ -1147,15 +1220,19 @@ export class ShopifyService {
       });
 
       existingKeys = new Set(
-        (data.metafieldDefinitions?.edges ?? []).map((edge) => edge.node.key),
+        (data.metafieldDefinitions?.edges ?? []).map((edge) => edge.node.key)
       );
     } catch (err) {
       this.logger.warn(
         `[ShopifyMetafields] Failed to list metafield definitions for project ${projectId} (${shopDomain}): ${
           err instanceof Error ? err.message : String(err)
-        }`,
+        }`
       );
-      return { created: 0, existing: 0, errors: ['metafield_definitions_list_failed'] };
+      return {
+        created: 0,
+        existing: 0,
+        errors: ['metafield_definitions_list_failed'],
+      };
     }
 
     let created = 0;
@@ -1214,7 +1291,7 @@ export class ShopifyService {
           this.logger.warn(
             `[ShopifyMetafields] Failed to create metafield definition ${def.key} for project ${projectId}: ${userErrors
               .map((e) => e.message)
-              .join('; ')}`,
+              .join('; ')}`
           );
           errors.push(`definition:${def.key}`);
           continue;
@@ -1224,7 +1301,7 @@ export class ShopifyService {
         this.logger.warn(
           `[ShopifyMetafields] Error creating metafield definition ${def.key} for project ${projectId}: ${
             error instanceof Error ? error.message : String(error)
-          }`,
+          }`
         );
         errors.push(`definition:${def.key}`);
       }
@@ -1242,7 +1319,7 @@ export class ShopifyService {
     const integration = await this.getShopifyIntegration(projectId);
     if (!integration || !integration.accessToken || !integration.externalId) {
       this.logger.warn(
-        `[ShopifyMetafields] No Shopify integration found for project ${projectId}; skipping metafield definition ensure.`,
+        `[ShopifyMetafields] No Shopify integration found for project ${projectId}; skipping metafield definition ensure.`
       );
       return {
         projectId,
@@ -1255,7 +1332,7 @@ export class ShopifyService {
     const result = await this.ensureMetafieldDefinitionsForStore(
       projectId,
       integration.externalId,
-      integration.accessToken,
+      integration.accessToken
     );
 
     return {
@@ -1278,7 +1355,7 @@ export class ShopifyService {
       key: string;
       type: string;
       value: string;
-    }>,
+    }>
   ): Promise<string[]> {
     if (!metafields.length) {
       return [];
@@ -1324,9 +1401,15 @@ export class ShopifyService {
    * [ROLES-3 FIXUP-5] Uses RoleResolutionService as source of truth.
    * Supports co-owners (any ProjectMember with OWNER role), not just legacy Project.userId.
    */
-  async validateProjectOwnership(projectId: string, userId: string): Promise<boolean> {
+  async validateProjectOwnership(
+    projectId: string,
+    userId: string
+  ): Promise<boolean> {
     try {
-      const role = await this.roleResolution.resolveEffectiveRole(projectId, userId);
+      const role = await this.roleResolution.resolveEffectiveRole(
+        projectId,
+        userId
+      );
       return role === 'OWNER';
     } catch {
       // User is not a project member at all
@@ -1339,7 +1422,7 @@ export class ShopifyService {
    * Respects the engineo namespace and Answer Block → metafield key mapping.
    */
   async syncAnswerBlocksToShopify(
-    productId: string,
+    productId: string
   ): Promise<AnswerBlockMetafieldSyncResult> {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
@@ -1350,7 +1433,7 @@ export class ShopifyService {
 
     if (!product) {
       this.logger.warn(
-        `[ShopifyMetafields] Product ${productId} not found; skipping metafield sync.`,
+        `[ShopifyMetafields] Product ${productId} not found; skipping metafield sync.`
       );
       return {
         productId,
@@ -1365,7 +1448,7 @@ export class ShopifyService {
     const integration = await this.getShopifyIntegration(product.projectId);
     if (!integration || !integration.accessToken || !integration.externalId) {
       this.logger.warn(
-        `[ShopifyMetafields] No Shopify integration for project ${product.projectId}; skipping metafield sync for product ${productId}.`,
+        `[ShopifyMetafields] No Shopify integration for project ${product.projectId}; skipping metafield sync for product ${productId}.`
       );
       return {
         productId,
@@ -1388,7 +1471,7 @@ export class ShopifyService {
 
     if (!answerBlocks.length) {
       this.logger.log(
-        `[ShopifyMetafields] No Answer Blocks to sync for product ${productId}.`,
+        `[ShopifyMetafields] No Answer Blocks to sync for product ${productId}.`
       );
       return {
         productId,
@@ -1405,16 +1488,17 @@ export class ShopifyService {
 
     const ownerId = `gid://shopify/Product/${externalProductId}`;
 
-    const { mappings, skippedUnknownQuestionIds } = mapAnswerBlocksToMetafieldPayloads(
-      answerBlocks.map((block: any) => ({
-        questionId: block.questionId,
-        answerText: block.answerText,
-      })),
-    );
+    const { mappings, skippedUnknownQuestionIds } =
+      mapAnswerBlocksToMetafieldPayloads(
+        answerBlocks.map((block: any) => ({
+          questionId: block.questionId,
+          answerText: block.answerText,
+        }))
+      );
 
     if (!mappings.length) {
       this.logger.log(
-        `[ShopifyMetafields] No mapped Answer Blocks to sync for product ${productId}.`,
+        `[ShopifyMetafields] No mapped Answer Blocks to sync for product ${productId}.`
       );
       return {
         productId,
@@ -1436,11 +1520,11 @@ export class ShopifyService {
     const metafieldErrors = await this.upsertMetafields(
       shopDomain,
       accessToken,
-      metafieldsInput,
+      metafieldsInput
     );
 
     const errors: string[] = metafieldErrors.map(
-      (message) => `metafieldsSet:${message}`,
+      (message) => `metafieldsSet:${message}`
     );
 
     const syncedCount =
@@ -1462,7 +1546,7 @@ export class ShopifyService {
   async syncProducts(
     projectId: string,
     userId: string,
-    options: SyncProductsOptions = {},
+    options: SyncProductsOptions = {}
   ): Promise<{
     projectId: string;
     synced: number;
@@ -1479,7 +1563,9 @@ export class ShopifyService {
     // Get Shopify integration
     const integration = await this.getShopifyIntegration(projectId);
     if (!integration || !integration.accessToken || !integration.externalId) {
-      throw new BadRequestException('No Shopify integration found for this project');
+      throw new BadRequestException(
+        'No Shopify integration found for this project'
+      );
     }
 
     const shopDomain = integration.externalId;
@@ -1543,16 +1629,20 @@ export class ShopifyService {
             .runNewProductSeoTitleAutomation(projectId, newProduct.id, userId)
             .catch((err) => {
               this.logger.warn(
-                `[ShopifySync] Automation failed for new product ${newProduct.id}: ${err.message}`,
+                `[ShopifySync] Automation failed for new product ${newProduct.id}: ${err.message}`
               );
             });
 
           // Trigger Answer Block automation for new products (non-blocking)
           this.automationService
-            .triggerAnswerBlockAutomationForProduct(newProduct.id, userId, 'product_synced')
+            .triggerAnswerBlockAutomationForProduct(
+              newProduct.id,
+              userId,
+              'product_synced'
+            )
             .catch((err) => {
               this.logger.warn(
-                `[ShopifySync] Answer Block automation failed for new product ${newProduct.id}: ${err.message}`,
+                `[ShopifySync] Answer Block automation failed for new product ${newProduct.id}: ${err.message}`
               );
             });
         }
@@ -1588,7 +1678,7 @@ export class ShopifyService {
    */
   private async fetchShopifyProducts(
     shopDomain: string,
-    accessToken: string,
+    accessToken: string
   ): Promise<ShopifyProduct[]> {
     const query = `
       query GetProducts($first: Int!, $after: String) {
@@ -1713,12 +1803,13 @@ export class ShopifyService {
           metafields_global_title_tag: node.seo?.title || undefined,
           metafields_global_description_tag: node.seo?.description || undefined,
           // MEDIA-1: Preserve image ID, src, altText, and position for ProductImage sync
-          images: node.images?.edges.map((imgEdge, index) => ({
-            id: imgEdge.node.id,
-            src: imgEdge.node.url,
-            altText: imgEdge.node.altText ?? null,
-            position: index,
-          })) ?? [],
+          images:
+            node.images?.edges.map((imgEdge, index) => ({
+              id: imgEdge.node.id,
+              src: imgEdge.node.url,
+              altText: imgEdge.node.altText ?? null,
+              position: index,
+            })) ?? [],
           status: node.status ?? undefined,
           productType: node.productType ?? undefined,
           vendor: node.vendor ?? undefined,
@@ -1728,7 +1819,7 @@ export class ShopifyService {
 
       const pageInfo = data.products?.pageInfo;
       after =
-        pageInfo && pageInfo.hasNextPage ? pageInfo.endCursor ?? null : null;
+        pageInfo && pageInfo.hasNextPage ? (pageInfo.endCursor ?? null) : null;
     } while (after);
 
     return allProducts;
@@ -1740,7 +1831,7 @@ export class ShopifyService {
   async fetchShopifyProduct(
     shopDomain: string,
     accessToken: string,
-    productId: string,
+    productId: string
   ): Promise<ShopifyProduct | null> {
     const url = `https://${shopDomain}/admin/api/2023-10/products/${productId}.json`;
 
@@ -1753,7 +1844,10 @@ export class ShopifyService {
     });
 
     if (!response.ok) {
-      console.error('Shopify API error fetching product:', await response.text());
+      console.error(
+        'Shopify API error fetching product:',
+        await response.text()
+      );
       return null;
     }
 
@@ -1769,7 +1863,7 @@ export class ShopifyService {
     productId: string,
     seoTitle: string,
     seoDescription: string,
-    userId: string,
+    userId: string
   ): Promise<{
     productId: string;
     shopDomain: string;
@@ -1794,7 +1888,9 @@ export class ShopifyService {
     // Get Shopify integration
     const integration = await this.getShopifyIntegration(product.projectId);
     if (!integration || !integration.accessToken || !integration.externalId) {
-      throw new BadRequestException('No Shopify integration found for this project');
+      throw new BadRequestException(
+        'No Shopify integration found for this project'
+      );
     }
 
     const shopDomain = integration.externalId;
@@ -1806,7 +1902,7 @@ export class ShopifyService {
       accessToken,
       product.externalId,
       seoTitle,
-      seoDescription,
+      seoDescription
     );
 
     // Update local Product record
@@ -1833,7 +1929,7 @@ export class ShopifyService {
    */
   private async syncProductImages(
     productId: string,
-    images: ShopifyProductImage[],
+    images: ShopifyProductImage[]
   ): Promise<void> {
     // Get current external IDs from the incoming images
     const incomingExternalIds = new Set<string>();
@@ -1896,7 +1992,7 @@ export class ShopifyService {
     accessToken: string,
     externalProductId: string,
     seoTitle: string,
-    seoDescription: string,
+    seoDescription: string
   ): Promise<void> {
     const mutation = `
       mutation UpdateProductSeo($input: ProductInput!) {
@@ -1946,7 +2042,7 @@ export class ShopifyService {
       this.logger.warn(
         `[ShopifyGraphQL] productUpdate returned errors: ${userErrors
           .map((e) => e.message)
-          .join('; ')}`,
+          .join('; ')}`
       );
       throw new BadRequestException('Failed to update product SEO in Shopify');
     }
@@ -1971,7 +2067,7 @@ export class ShopifyService {
     accessToken: string,
     pageHandle: string,
     seoTitle: string,
-    seoDescription: string,
+    seoDescription: string
   ): Promise<{ pageId: string }> {
     // First, look up the page by handle to get its ID
     const lookupQuery = `
@@ -1991,7 +2087,9 @@ export class ShopifyService {
     });
 
     if (!lookupData.pageByHandle) {
-      throw new BadRequestException(`Page not found with handle: ${pageHandle}`);
+      throw new BadRequestException(
+        `Page not found with handle: ${pageHandle}`
+      );
     }
 
     const pageId = lookupData.pageByHandle.id;
@@ -2047,7 +2145,7 @@ export class ShopifyService {
       this.logger.warn(
         `[ShopifyGraphQL] pageUpdate returned errors: ${userErrors
           .map((e) => e.message)
-          .join('; ')}`,
+          .join('; ')}`
       );
       throw new BadRequestException('Failed to update page SEO in Shopify');
     }
@@ -2070,7 +2168,7 @@ export class ShopifyService {
     accessToken: string,
     collectionHandle: string,
     seoTitle: string,
-    seoDescription: string,
+    seoDescription: string
   ): Promise<{ collectionId: string }> {
     // First, look up the collection by handle to get its ID
     const lookupQuery = `
@@ -2090,7 +2188,9 @@ export class ShopifyService {
     });
 
     if (!lookupData.collectionByHandle) {
-      throw new BadRequestException(`Collection not found with handle: ${collectionHandle}`);
+      throw new BadRequestException(
+        `Collection not found with handle: ${collectionHandle}`
+      );
     }
 
     const collectionId = lookupData.collectionByHandle.id;
@@ -2146,9 +2246,11 @@ export class ShopifyService {
       this.logger.warn(
         `[ShopifyGraphQL] collectionUpdate returned errors: ${userErrors
           .map((e) => e.message)
-          .join('; ')}`,
+          .join('; ')}`
       );
-      throw new BadRequestException('Failed to update collection SEO in Shopify');
+      throw new BadRequestException(
+        'Failed to update collection SEO in Shopify'
+      );
     }
 
     return { collectionId };
@@ -2169,7 +2271,7 @@ export class ShopifyService {
     pageHandle: string,
     seoTitle: string,
     seoDescription: string,
-    userId: string,
+    userId: string
   ): Promise<{
     projectId: string;
     pageHandle: string;
@@ -2183,7 +2285,9 @@ export class ShopifyService {
     // Get Shopify integration
     const integration = await this.getShopifyIntegration(projectId);
     if (!integration || !integration.accessToken || !integration.externalId) {
-      throw new BadRequestException('No Shopify integration found for this project');
+      throw new BadRequestException(
+        'No Shopify integration found for this project'
+      );
     }
 
     const shopDomain = integration.externalId;
@@ -2195,7 +2299,7 @@ export class ShopifyService {
       accessToken,
       pageHandle,
       seoTitle,
-      seoDescription,
+      seoDescription
     );
 
     // Update local CrawlResult record
@@ -2234,7 +2338,7 @@ export class ShopifyService {
     collectionHandle: string,
     seoTitle: string,
     seoDescription: string,
-    userId: string,
+    userId: string
   ): Promise<{
     projectId: string;
     collectionHandle: string;
@@ -2248,7 +2352,9 @@ export class ShopifyService {
     // Get Shopify integration
     const integration = await this.getShopifyIntegration(projectId);
     if (!integration || !integration.accessToken || !integration.externalId) {
-      throw new BadRequestException('No Shopify integration found for this project');
+      throw new BadRequestException(
+        'No Shopify integration found for this project'
+      );
     }
 
     const shopDomain = integration.externalId;
@@ -2260,7 +2366,7 @@ export class ShopifyService {
       accessToken,
       collectionHandle,
       seoTitle,
-      seoDescription,
+      seoDescription
     );
 
     // Update local CrawlResult record
@@ -2294,14 +2400,16 @@ export class ShopifyService {
    */
   private async fetchShopifyPages(
     shopDomain: string,
-    accessToken: string,
-  ): Promise<Array<{
-    id: string;
-    title: string;
-    handle: string;
-    updatedAt: string;
-    seo: { title: string | null; description: string | null };
-  }>> {
+    accessToken: string
+  ): Promise<
+    Array<{
+      id: string;
+      title: string;
+      handle: string;
+      updatedAt: string;
+      seo: { title: string | null; description: string | null };
+    }>
+  > {
     const query = `
       query GetPages($first: Int!, $after: String) {
         pages(first: $first, after: $after) {
@@ -2373,14 +2481,16 @@ export class ShopifyService {
    */
   private async fetchShopifyCollections(
     shopDomain: string,
-    accessToken: string,
-  ): Promise<Array<{
-    id: string;
-    title: string;
-    handle: string;
-    updatedAt: string;
-    seo: { title: string | null; description: string | null };
-  }>> {
+    accessToken: string
+  ): Promise<
+    Array<{
+      id: string;
+      title: string;
+      handle: string;
+      updatedAt: string;
+      seo: { title: string | null; description: string | null };
+    }>
+  > {
     const query = `
       query GetCollections($first: Int!, $after: String) {
         collections(first: $first, after: $after) {
@@ -2452,16 +2562,18 @@ export class ShopifyService {
    */
   private async fetchShopifyArticles(
     shopDomain: string,
-    accessToken: string,
-  ): Promise<Array<{
-    id: string;
-    title: string;
-    handle: string;
-    publishedAt: string | null;
-    updatedAt: string;
-    blog: { handle: string } | null;
-    seo: { title: string | null; description: string | null };
-  }>> {
+    accessToken: string
+  ): Promise<
+    Array<{
+      id: string;
+      title: string;
+      handle: string;
+      publishedAt: string | null;
+      updatedAt: string;
+      blog: { handle: string } | null;
+      seo: { title: string | null; description: string | null };
+    }>
+  > {
     const query = `
       query GetArticles($first: Int!, $after: String) {
         articles(first: $first, after: $after) {
@@ -2552,10 +2664,15 @@ export class ShopifyService {
   }> {
     const integration = await this.getShopifyIntegration(projectId);
     if (!integration || !integration.accessToken || !integration.externalId) {
-      throw new BadRequestException('No Shopify integration found for this project');
+      throw new BadRequestException(
+        'No Shopify integration found for this project'
+      );
     }
 
-    const scopeStatus = this.getScopeStatusFromIntegration(integration, 'pages_sync');
+    const scopeStatus = this.getScopeStatusFromIntegration(
+      integration,
+      'pages_sync'
+    );
     if (scopeStatus.missingScopes.length > 0) {
       throw new BadRequestException({
         code: 'SHOPIFY_MISSING_SCOPES',
@@ -2671,10 +2788,15 @@ export class ShopifyService {
   }> {
     const integration = await this.getShopifyIntegration(projectId);
     if (!integration || !integration.accessToken || !integration.externalId) {
-      throw new BadRequestException('No Shopify integration found for this project');
+      throw new BadRequestException(
+        'No Shopify integration found for this project'
+      );
     }
 
-    const scopeStatus = this.getScopeStatusFromIntegration(integration, 'collections_sync');
+    const scopeStatus = this.getScopeStatusFromIntegration(
+      integration,
+      'collections_sync'
+    );
     if (scopeStatus.missingScopes.length > 0) {
       throw new BadRequestException({
         code: 'SHOPIFY_MISSING_SCOPES',
@@ -2695,7 +2817,10 @@ export class ShopifyService {
     const accessToken = integration.accessToken;
 
     // Fetch Collections from Shopify
-    const collections = await this.fetchShopifyCollections(shopDomain, accessToken);
+    const collections = await this.fetchShopifyCollections(
+      shopDomain,
+      accessToken
+    );
 
     const warnings: string[] = [];
     let upserted = 0;
@@ -2790,10 +2915,15 @@ export class ShopifyService {
   }> {
     const integration = await this.getShopifyIntegration(projectId);
     if (!integration || !integration.accessToken || !integration.externalId) {
-      throw new BadRequestException('No Shopify integration found for this project');
+      throw new BadRequestException(
+        'No Shopify integration found for this project'
+      );
     }
 
-    const scopeStatus = this.getScopeStatusFromIntegration(integration, 'blogs_sync');
+    const scopeStatus = this.getScopeStatusFromIntegration(
+      integration,
+      'blogs_sync'
+    );
     if (scopeStatus.missingScopes.length > 0) {
       throw new BadRequestException({
         code: 'SHOPIFY_MISSING_SCOPES',
@@ -2803,7 +2933,9 @@ export class ShopifyService {
       });
     }
 
-    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
     if (!project) {
       throw new BadRequestException('Project not found');
     }
@@ -2860,7 +2992,9 @@ export class ShopifyService {
           shopifyHandle: article.handle,
           shopifyBlogHandle: blogHandle,
           shopifyUpdatedAt: new Date(article.updatedAt),
-          shopifyPublishedAt: article.publishedAt ? new Date(article.publishedAt) : null,
+          shopifyPublishedAt: article.publishedAt
+            ? new Date(article.publishedAt)
+            : null,
           shopifySyncedAt: now,
         },
         update: {
@@ -2871,7 +3005,9 @@ export class ShopifyService {
           shopifyHandle: article.handle,
           shopifyBlogHandle: blogHandle,
           shopifyUpdatedAt: new Date(article.updatedAt),
-          shopifyPublishedAt: article.publishedAt ? new Date(article.publishedAt) : null,
+          shopifyPublishedAt: article.publishedAt
+            ? new Date(article.publishedAt)
+            : null,
           shopifySyncedAt: now,
         },
       });

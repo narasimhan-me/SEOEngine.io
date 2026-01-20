@@ -36,7 +36,7 @@ import type { DeoIssue, DeoIssueSeverity } from '@engineo/shared';
 export class SearchIntentService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   // ============================================================================
@@ -65,7 +65,9 @@ export class SearchIntentService {
     return mapping[type];
   }
 
-  private toPrismaCoverageStatus(status: IntentCoverageStatus): PrismaCoverageStatus {
+  private toPrismaCoverageStatus(
+    status: IntentCoverageStatus
+  ): PrismaCoverageStatus {
     const mapping: Record<IntentCoverageStatus, PrismaCoverageStatus> = {
       none: 'NONE',
       weak: 'WEAK',
@@ -75,7 +77,9 @@ export class SearchIntentService {
     return mapping[status];
   }
 
-  private fromPrismaCoverageStatus(status: PrismaCoverageStatus): IntentCoverageStatus {
+  private fromPrismaCoverageStatus(
+    status: PrismaCoverageStatus
+  ): IntentCoverageStatus {
     const mapping: Record<PrismaCoverageStatus, IntentCoverageStatus> = {
       NONE: 'none',
       WEAK: 'weak',
@@ -96,7 +100,9 @@ export class SearchIntentService {
     product: { title: string; description?: string | null },
     intentType: SearchIntentType
   ): string[] {
-    const templates = DEFAULT_INTENT_TEMPLATES.filter(t => t.intentType === intentType);
+    const templates = DEFAULT_INTENT_TEMPLATES.filter(
+      (t) => t.intentType === intentType
+    );
     const queries: string[] = [];
 
     for (const template of templates) {
@@ -116,7 +122,7 @@ export class SearchIntentService {
    */
   private extractProductType(title: string): string {
     // Simple heuristic: use the last word as the product type
-    const words = title.split(' ').filter(w => w.length > 2);
+    const words = title.split(' ').filter((w) => w.length > 2);
     return words[words.length - 1] || 'product';
   }
 
@@ -144,7 +150,7 @@ export class SearchIntentService {
     }
 
     const coverages: ProductIntentCoverage[] = [];
-    const answerBlockTexts = product.answerBlocks.map(ab =>
+    const answerBlockTexts = product.answerBlocks.map((ab) =>
       `${ab.questionText} ${ab.answerText}`.toLowerCase()
     );
     const productContent = [
@@ -152,7 +158,9 @@ export class SearchIntentService {
       product.description || '',
       product.seoTitle || '',
       product.seoDescription || '',
-    ].join(' ').toLowerCase();
+    ]
+      .join(' ')
+      .toLowerCase();
 
     for (const intentType of SEARCH_INTENT_TYPES) {
       const expectedQueries = this.generateExpectedQueries(product, intentType);
@@ -162,11 +170,11 @@ export class SearchIntentService {
 
       for (const query of expectedQueries) {
         const queryLower = query.toLowerCase();
-        const queryKeywords = queryLower.split(' ').filter(w => w.length > 2);
+        const queryKeywords = queryLower.split(' ').filter((w) => w.length > 2);
 
         // Check Answer Blocks first (strong coverage)
-        const hasAnswerBlock = answerBlockTexts.some(text =>
-          queryKeywords.some(kw => text.includes(kw))
+        const hasAnswerBlock = answerBlockTexts.some((text) =>
+          queryKeywords.some((kw) => text.includes(kw))
         );
 
         if (hasAnswerBlock) {
@@ -175,7 +183,7 @@ export class SearchIntentService {
         }
 
         // Check product content (weaker coverage)
-        const keywordsInContent = queryKeywords.filter(kw =>
+        const keywordsInContent = queryKeywords.filter((kw) =>
           productContent.includes(kw)
         ).length;
         const coverageRatio = keywordsInContent / queryKeywords.length;
@@ -193,9 +201,10 @@ export class SearchIntentService {
       const totalQueries = expectedQueries.length;
       const coveredWeight = coveredQueries.length * 1.0;
       const weakWeight = weakQueries.length * 0.3;
-      const score = totalQueries > 0
-        ? Math.round(((coveredWeight + weakWeight) / totalQueries) * 100)
-        : 0;
+      const score =
+        totalQueries > 0
+          ? Math.round(((coveredWeight + weakWeight) / totalQueries) * 100)
+          : 0;
 
       const coverageStatus = getCoverageStatusFromScore(score);
 
@@ -293,7 +302,7 @@ export class SearchIntentService {
     }
 
     // Convert to shared types
-    const coverage: ProductIntentCoverage[] = coverageRows.map(row => ({
+    const coverage: ProductIntentCoverage[] = coverageRows.map((row) => ({
       productId: row.productId,
       intentType: this.fromPrismaIntentType(row.intentType),
       score: row.score,
@@ -309,25 +318,25 @@ export class SearchIntentService {
     const weightedSum = coverage.reduce((sum, c) => {
       return sum + c.score * SEARCH_INTENT_WEIGHTS[c.intentType];
     }, 0);
-    const totalWeight = Object.values(SEARCH_INTENT_WEIGHTS).reduce((a, b) => a + b, 0);
+    const totalWeight = Object.values(SEARCH_INTENT_WEIGHTS).reduce(
+      (a, b) => a + b,
+      0
+    );
     const overallScore = Math.round(weightedSum / totalWeight);
 
     const missingHighValueIntents = coverage.filter(
-      c => isHighValueIntent(c.intentType) && c.coverageStatus === 'none'
+      (c) => isHighValueIntent(c.intentType) && c.coverageStatus === 'none'
     ).length;
 
     // Get open drafts
     const draftRows = await this.prisma.productIntentFixDraft.findMany({
       where: {
         productId,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } },
-        ],
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
     });
 
-    const openDrafts: IntentFixDraft[] = draftRows.map(row => ({
+    const openDrafts: IntentFixDraft[] = draftRows.map((row) => ({
       id: row.id,
       productId: row.productId,
       intentType: this.fromPrismaIntentType(row.intentType),
@@ -385,7 +394,7 @@ export class SearchIntentService {
     if (products.length === 0) {
       return {
         overallScore: 0,
-        intentBreakdown: SEARCH_INTENT_TYPES.map(intentType => ({
+        intentBreakdown: SEARCH_INTENT_TYPES.map((intentType) => ({
           intentType,
           label: SEARCH_INTENT_LABELS[intentType],
           score: 0,
@@ -400,7 +409,7 @@ export class SearchIntentService {
     }
 
     // Get all coverage rows for project products
-    const productIds = products.map(p => p.id);
+    const productIds = products.map((p) => p.id);
     const coverageRows = await this.prisma.productIntentCoverage.findMany({
       where: {
         productId: { in: productIds },
@@ -408,15 +417,16 @@ export class SearchIntentService {
     });
 
     // Aggregate by intent type
-    const intentBreakdown = SEARCH_INTENT_TYPES.map(intentType => {
+    const intentBreakdown = SEARCH_INTENT_TYPES.map((intentType) => {
       const rows = coverageRows.filter(
-        r => this.fromPrismaIntentType(r.intentType) === intentType
+        (r) => this.fromPrismaIntentType(r.intentType) === intentType
       );
-      const avgScore = rows.length > 0
-        ? Math.round(rows.reduce((sum, r) => sum + r.score, 0) / rows.length)
-        : 0;
+      const avgScore =
+        rows.length > 0
+          ? Math.round(rows.reduce((sum, r) => sum + r.score, 0) / rows.length)
+          : 0;
       const productsWithGaps = rows.filter(
-        r => this.fromPrismaCoverageStatus(r.coverageStatus) !== 'covered'
+        (r) => this.fromPrismaCoverageStatus(r.coverageStatus) !== 'covered'
       ).length;
 
       return {
@@ -432,14 +442,21 @@ export class SearchIntentService {
     const weightedSum = intentBreakdown.reduce((sum, b) => {
       return sum + b.score * SEARCH_INTENT_WEIGHTS[b.intentType];
     }, 0);
-    const totalWeight = Object.values(SEARCH_INTENT_WEIGHTS).reduce((a, b) => a + b, 0);
+    const totalWeight = Object.values(SEARCH_INTENT_WEIGHTS).reduce(
+      (a, b) => a + b,
+      0
+    );
     const overallScore = Math.round(weightedSum / totalWeight);
 
     // Count products with missing high-value intents
-    const highValueIntentTypes: PrismaIntentType[] = ['TRANSACTIONAL', 'COMPARATIVE'];
+    const highValueIntentTypes: PrismaIntentType[] = [
+      'TRANSACTIONAL',
+      'COMPARATIVE',
+    ];
     const missingHighValueIntents = coverageRows.filter(
-      r => highValueIntentTypes.includes(r.intentType) &&
-           r.coverageStatus === 'NONE'
+      (r) =>
+        highValueIntentTypes.includes(r.intentType) &&
+        r.coverageStatus === 'NONE'
     ).length;
 
     return {
@@ -470,7 +487,7 @@ export class SearchIntentService {
       return [];
     }
 
-    const productIds = products.map(p => p.id);
+    const productIds = products.map((p) => p.id);
     const coverageRows = await this.prisma.productIntentCoverage.findMany({
       where: {
         productId: { in: productIds },
@@ -482,19 +499,19 @@ export class SearchIntentService {
     // Group coverage by intent type
     for (const intentType of SEARCH_INTENT_TYPES) {
       const prismaType = this.toPrismaIntentType(intentType);
-      const rows = coverageRows.filter(r => r.intentType === prismaType);
+      const rows = coverageRows.filter((r) => r.intentType === prismaType);
 
       // Find products with missing or weak coverage
-      const missingProducts = rows.filter(r => r.coverageStatus === 'NONE');
-      const weakProducts = rows.filter(r => r.coverageStatus === 'WEAK');
+      const missingProducts = rows.filter((r) => r.coverageStatus === 'NONE');
+      const weakProducts = rows.filter((r) => r.coverageStatus === 'WEAK');
 
       const isHighValue = isHighValueIntent(intentType);
 
       // Generate issue for missing coverage
       if (missingProducts.length > 0) {
         const severity: DeoIssueSeverity = isHighValue ? 'critical' : 'warning';
-        const allMissingQueries = missingProducts.flatMap(
-          r => (r.missingQueries as string[]).slice(0, 2)
+        const allMissingQueries = missingProducts.flatMap((r) =>
+          (r.missingQueries as string[]).slice(0, 2)
         );
         const exampleQueries = [...new Set(allMissingQueries)].slice(0, 5);
 
@@ -504,7 +521,7 @@ export class SearchIntentService {
           description: `${missingProducts.length} products have no coverage for ${intentType} search queries. Users searching with ${intentType} intent may not find your products.`,
           severity,
           count: missingProducts.length,
-          affectedProducts: missingProducts.map(r => r.productId),
+          affectedProducts: missingProducts.map((r) => r.productId),
           pillarId: 'search_intent_fit',
           actionability: 'automation',
           intentType,
@@ -519,8 +536,8 @@ export class SearchIntentService {
       // Generate issue for weak coverage
       if (weakProducts.length > 0) {
         const severity: DeoIssueSeverity = isHighValue ? 'warning' : 'info';
-        const allWeakQueries = weakProducts.flatMap(
-          r => (r.weakQueries as string[]).slice(0, 2)
+        const allWeakQueries = weakProducts.flatMap((r) =>
+          (r.weakQueries as string[]).slice(0, 2)
         );
         const exampleQueries = [...new Set(allWeakQueries)].slice(0, 5);
 
@@ -530,13 +547,14 @@ export class SearchIntentService {
           description: `${weakProducts.length} products have weak coverage for ${intentType} search queries. Content exists but may not fully address user intent.`,
           severity,
           count: weakProducts.length,
-          affectedProducts: weakProducts.map(r => r.productId),
+          affectedProducts: weakProducts.map((r) => r.productId),
           pillarId: 'search_intent_fit',
           actionability: 'automation',
           intentType,
           exampleQueries,
           coverageStatus: 'weak',
-          recommendedAction: 'Strengthen existing content or add targeted Answer Blocks',
+          recommendedAction:
+            'Strengthen existing content or add targeted Answer Blocks',
         });
       }
     }

@@ -27,7 +27,8 @@ const chipStyles: Record<RowChipLabel, string> = {
 };
 
 export function RowStatusChip({ chipLabel }: RowStatusChipProps) {
-  const styles = chipStyles[chipLabel] || 'bg-gray-50 text-gray-700 border-gray-200';
+  const styles =
+    chipStyles[chipLabel] || 'bg-gray-50 text-gray-700 border-gray-200';
 
   return (
     <span

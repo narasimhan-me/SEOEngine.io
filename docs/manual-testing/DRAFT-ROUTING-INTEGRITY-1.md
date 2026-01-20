@@ -1,12 +1,14 @@
 # DRAFT-ROUTING-INTEGRITY-1 Manual Testing Checklist
 
 ## Phase Overview
+
 Ensures "Review drafts" action routes to Draft Review mode (scoped to asset), NOT Work Queue.
 Provides deterministic, scoped draft review with Back navigation via ScopeBanner.
 
 **Locked Rule**: "Review drafts" NEVER routes to Work Queue.
 
 ## Scope
+
 - Products list (/projects/:projectId/products)
 - Pages list (/projects/:projectId/assets/pages)
 - Collections list (/projects/:projectId/assets/collections)
@@ -18,24 +20,26 @@ Provides deterministic, scoped draft review with Back navigation via ScopeBanner
 ## Draft Review Mode URL Structure
 
 **Required URL params for Draft Review mode:**
+
 ```
 /projects/:projectId/automation/playbooks?mode=drafts&assetType=<products|pages|collections>&assetId=<id>&from=asset_list&returnTo=<origin list url>
 ```
 
-| Param | Required | Description |
-|-------|----------|-------------|
-| mode | Yes | Must be `drafts` |
-| assetType | Yes | `products`, `pages`, or `collections` (lowercase) |
-| assetId | Yes | The asset ID (product ID or crawl result ID) |
-| from | Yes | `asset_list` |
-| returnTo | Yes | URL-encoded origin list URL for Back navigation |
-| returnLabel | Optional | Display label for Back link |
+| Param       | Required | Description                                       |
+| ----------- | -------- | ------------------------------------------------- |
+| mode        | Yes      | Must be `drafts`                                  |
+| assetType   | Yes      | `products`, `pages`, or `collections` (lowercase) |
+| assetId     | Yes      | The asset ID (product ID or crawl result ID)      |
+| from        | Yes      | `asset_list`                                      |
+| returnTo    | Yes      | URL-encoded origin list URL for Back navigation   |
+| returnLabel | Optional | Display label for Back link                       |
 
 ---
 
 ## Test Scenarios
 
 ### 1. Products List → Draft Review → Back
+
 - [ ] Navigate to /projects/:projectId/products
 - [ ] Find row with "🟡 Draft saved (not applied)" chip
 - [ ] Click "Review drafts" primary action
@@ -52,6 +56,7 @@ Provides deterministic, scoped draft review with Back navigation via ScopeBanner
 - [ ] **Assert return** to /projects/:projectId/products (NOT Work Queue)
 
 ### 2. Pages List → Draft Review → Back
+
 - [ ] Navigate to /projects/:projectId/assets/pages
 - [ ] Find row with "🟡 Draft saved (not applied)" chip
 - [ ] Click "Review drafts" primary action
@@ -66,6 +71,7 @@ Provides deterministic, scoped draft review with Back navigation via ScopeBanner
 - [ ] **Assert return** to /projects/:projectId/assets/pages
 
 ### 3. Collections List → Draft Review → Back
+
 - [ ] Navigate to /projects/:projectId/assets/collections
 - [ ] Find row with "🟡 Draft saved (not applied)" chip
 - [ ] Click "Review drafts" primary action
@@ -86,6 +92,7 @@ Provides deterministic, scoped draft review with Back navigation via ScopeBanner
 When Draft Review mode has no drafts for the specified asset:
 
 ### Empty State Requirements
+
 - [ ] **Container**: `data-testid="draft-review-empty"` is visible
 - [ ] **Exact copy**: "No drafts available for this item."
 - [ ] **Primary CTA**: "View issues" → Issues Engine filtered to assetType + assetId
@@ -101,12 +108,14 @@ When Draft Review mode has no drafts for the specified asset:
 ### GET /projects/:id/automation-playbooks/drafts
 
 **Request:**
+
 ```
 GET /projects/:id/automation-playbooks/drafts?assetType=products&assetId=<productId>
 Authorization: Bearer <token>
 ```
 
 **Response:**
+
 ```json
 {
   "projectId": "...",
@@ -121,7 +130,11 @@ Authorization: Bearer <token>
       "rulesHash": "...",
       "createdAt": "2024-01-01T00:00:00Z",
       "updatedAt": "2024-01-01T00:00:00Z",
-      "counts": { "affectedTotal": 10, "draftGenerated": 5, "noSuggestionCount": 0 },
+      "counts": {
+        "affectedTotal": 10,
+        "draftGenerated": 5,
+        "noSuggestionCount": 0
+      },
       "filteredItems": [
         {
           "productId": "...",
@@ -137,6 +150,7 @@ Authorization: Bearer <token>
 ```
 
 **Validation:**
+
 - [ ] Returns only pending drafts (status READY or PARTIAL, appliedAt=null, not expired)
 - [ ] `filteredItems` contains only items for the specified assetId
 - [ ] Never returns global/unscoped drafts
@@ -153,6 +167,7 @@ curl -X POST http://localhost:3001/testkit/e2e/seed-list-actions-clarity-1
 ```
 
 Returns:
+
 - `projectId`
 - `accessToken` (OWNER)
 - `draftPendingProductId`

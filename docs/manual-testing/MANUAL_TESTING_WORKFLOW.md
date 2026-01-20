@@ -51,9 +51,11 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - Patch has been applied to the repository
 
 **Steps:**
+
 1. Open `docs/MANUAL_TESTING_TEMPLATE.md`
 2. Verify the file exists and is readable
 3. Confirm the following sections are present:
@@ -69,6 +71,7 @@
    - Approval
 
 **Expected Results:**
+
 - **File:** File exists at `docs/MANUAL_TESTING_TEMPLATE.md`
 - **Structure:** All 10 major sections are present with placeholder content and guidance text
 
@@ -79,9 +82,11 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Patch has been applied
 
 **Steps:**
+
 1. Open `docs/ENGINEO_AI_INSTRUCTIONS.md`
 2. Check the title line for version number
 3. Search for "Manual testing documentation rule (v3.3):" in section 2.2
@@ -92,6 +97,7 @@
 8. Verify section 8 versioning states v3.3
 
 **Expected Results:**
+
 - **Title:** Shows "v3.3"
 - **Section 2.2:** Contains "Manual testing documentation rule (v3.3):" block
 - **Section 2.3:** Lists manual testing doc creation as a responsibility
@@ -108,9 +114,11 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Patch has been applied
 
 **Steps:**
+
 1. Open `docs/SESSION_STARTER.md`
 2. Check title for version
 3. Verify section headings show v3.3:
@@ -121,6 +129,7 @@
 5. In Claude boot prompt, verify "Implementation Plan & Manual Testing Rules (v3.3):" is present
 
 **Expected Results:**
+
 - **Title:** "Session Starter Pack (v3.3)"
 - **Section headers:** All three boot prompts labeled v3.3
 - **Supervisor prompt:** Contains manual testing requirement bullets
@@ -133,9 +142,11 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Patch has been applied
 
 **Steps:**
+
 1. Open `docs/IMPLEMENTATION_PLAN.md`
 2. Search for "## Manual Testing Documentation Workflow"
 3. Verify it appears after "Test Track" section and before "Test Phase 0"
@@ -144,6 +155,7 @@
 6. Verify it references `docs/manual-testing/` directory
 
 **Expected Results:**
+
 - **New section:** "Manual Testing Documentation Workflow" exists between Test Track and Test Phase 0
 - **Content:** References canonical template path and `docs/manual-testing/` directory
 - **Final summary:** Contains bullet about manual testing docs with correct paths
@@ -157,10 +169,12 @@
 **Description:** When a single patch affects multiple phases, determine if one or multiple manual testing docs should be created.
 
 **Steps:**
+
 1. Review guidance in `docs/MANUAL_TESTING_TEMPLATE.md` intro text
 2. Consider patch scope and decide on doc naming
 
 **Expected Behavior:**
+
 - For tightly related changes: Single doc covering all affected areas
 - For distinct features: Separate docs per feature, each named to match the phase
 
@@ -171,10 +185,12 @@
 **Description:** Ensure manual testing is still required for documentation-only patches.
 
 **Steps:**
+
 1. Review this patch (which is docs-only)
 2. Confirm manual testing doc was still required
 
 **Expected Behavior:**
+
 - Manual testing docs are required even for process/documentation changes
 - Tests focus on verifying document structure and content rather than runtime behavior
 
@@ -187,11 +203,13 @@
 **Scenario:** Claude fails to create/update the manual testing doc after a PATCH BATCH
 
 **Steps:**
+
 1. Review Claude's completion summary
 2. Check for manual testing doc path/filename mention
 3. Verify file exists in `docs/manual-testing/`
 
 **Expected Behavior:**
+
 - Claude's summary MUST mention the manual testing doc path
 - If missing, the PATCH BATCH is not considered complete
 - Supervisor should flag incomplete patches in future sessions
@@ -203,10 +221,12 @@
 **Scenario:** `docs/MANUAL_TESTING_TEMPLATE.md` is edited directly instead of cloned
 
 **Steps:**
+
 1. Check git diff for `docs/MANUAL_TESTING_TEMPLATE.md`
 2. Verify only the original canonical content is present
 
 **Expected Behavior:**
+
 - Template should never be modified for specific patches
 - All per-patch docs should be new files in `docs/manual-testing/`
 - If template is modified, it should be reverted unless intentionally updating the standard
@@ -220,10 +240,12 @@
 **Scenario:** This patch does not change any runtime behavior, entitlements, or quotas.
 
 **Steps:**
+
 1. Confirm no code files were modified
 2. Confirm only `.md` documentation files were changed/created
 
 **Expected Behavior:**
+
 - No runtime limit testing applicable
 - Focus is on documentation structure and content accuracy
 
@@ -275,9 +297,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Created as part of v3.3 protocol update |
+| Field              | Value                                   |
+| ------------------ | --------------------------------------- |
+| **Tester Name**    | [Pending]                               |
+| **Date**           | [YYYY-MM-DD]                            |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed   |
+| **Notes**          | Created as part of v3.3 protocol update |

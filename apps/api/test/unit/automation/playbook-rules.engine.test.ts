@@ -25,7 +25,7 @@ describe('Playbook Rules Engine', () => {
     field: 'seoTitle' | 'seoDescription',
     value: string,
     rules: any,
-    ruleWarnings: string[],
+    ruleWarnings: string[]
   ) => string;
   let computeRulesHash: (rules?: any) => string;
   let normalizeRules: (rules?: any) => any;
@@ -36,7 +36,7 @@ describe('Playbook Rules Engine', () => {
       entitlementsStub,
       tokenUsageStub,
       aiServiceStub,
-      aiUsageQuotaStub,
+      aiUsageQuotaStub
     );
     applyRulesToText = (svc as any).applyRulesToText.bind(svc);
     computeRulesHash = (svc as any).computeRulesHash.bind(svc);
@@ -90,9 +90,15 @@ describe('Playbook Rules Engine', () => {
     });
 
     it('handles maxLength <= 0 as undefined', () => {
-      expect(normalizeRules({ enabled: true, maxLength: 0 }).maxLength).toBeUndefined();
-      expect(normalizeRules({ enabled: true, maxLength: -1 }).maxLength).toBeUndefined();
-      expect(normalizeRules({ enabled: true, maxLength: 10 }).maxLength).toBe(10);
+      expect(
+        normalizeRules({ enabled: true, maxLength: 0 }).maxLength
+      ).toBeUndefined();
+      expect(
+        normalizeRules({ enabled: true, maxLength: -1 }).maxLength
+      ).toBeUndefined();
+      expect(normalizeRules({ enabled: true, maxLength: 10 }).maxLength).toBe(
+        10
+      );
     });
 
     it('preserves forbidden phrases array as-is (no filtering)', () => {
@@ -101,7 +107,12 @@ describe('Playbook Rules Engine', () => {
         forbiddenPhrases: ['click here', '', '  ', 'best ever'],
       });
       // Note: The implementation does not filter empty strings - it preserves all values
-      expect(result.forbiddenPhrases).toEqual(['click here', '', '  ', 'best ever']);
+      expect(result.forbiddenPhrases).toEqual([
+        'click here',
+        '',
+        '  ',
+        'best ever',
+      ]);
     });
   });
 
@@ -112,8 +123,15 @@ describe('Playbook Rules Engine', () => {
         const result = applyRulesToText(
           'seoTitle',
           'AI beats AI',
-          { enabled: true, findReplace: { find: 'AI', replace: 'EngineO', caseSensitive: false } },
-          warnings,
+          {
+            enabled: true,
+            findReplace: {
+              find: 'AI',
+              replace: 'EngineO',
+              caseSensitive: false,
+            },
+          },
+          warnings
         );
         expect(result).toBe('EngineO beats EngineO');
         expect(warnings).toEqual([]);
@@ -124,8 +142,15 @@ describe('Playbook Rules Engine', () => {
         const result = applyRulesToText(
           'seoTitle',
           'AI beats ai',
-          { enabled: true, findReplace: { find: 'AI', replace: 'EngineO', caseSensitive: true } },
-          warnings,
+          {
+            enabled: true,
+            findReplace: {
+              find: 'AI',
+              replace: 'EngineO',
+              caseSensitive: true,
+            },
+          },
+          warnings
         );
         expect(result).toBe('EngineO beats ai');
         expect(warnings).toEqual([]);
@@ -136,8 +161,15 @@ describe('Playbook Rules Engine', () => {
         const result = applyRulesToText(
           'seoTitle',
           'Price: $50 (sale)',
-          { enabled: true, findReplace: { find: '$50 (sale)', replace: '$40 (deal)', caseSensitive: false } },
-          warnings,
+          {
+            enabled: true,
+            findReplace: {
+              find: '$50 (sale)',
+              replace: '$40 (deal)',
+              caseSensitive: false,
+            },
+          },
+          warnings
         );
         expect(result).toBe('Price: $40 (deal)');
       });
@@ -150,7 +182,7 @@ describe('Playbook Rules Engine', () => {
           'seoTitle',
           'Classic Snowboard',
           { enabled: true, prefix: 'EngineO | ' },
-          warnings,
+          warnings
         );
         expect(result).toBe('EngineO | Classic Snowboard');
         expect(warnings).toEqual([]);
@@ -162,7 +194,7 @@ describe('Playbook Rules Engine', () => {
           'seoTitle',
           'Classic Snowboard',
           { enabled: true, prefix: '' },
-          warnings,
+          warnings
         );
         expect(result).toBe('Classic Snowboard');
       });
@@ -175,7 +207,7 @@ describe('Playbook Rules Engine', () => {
           'seoTitle',
           'Classic Snowboard',
           { enabled: true, suffix: ' | Official Store' },
-          warnings,
+          warnings
         );
         expect(result).toBe('Classic Snowboard | Official Store');
         expect(warnings).toEqual([]);
@@ -189,7 +221,7 @@ describe('Playbook Rules Engine', () => {
           'seoTitle',
           '123456789012345', // 15 chars
           { enabled: true, maxLength: 10 },
-          warnings,
+          warnings
         );
         expect(result).toBe('1234567890');
         expect(result.length).toBe(10);
@@ -202,7 +234,7 @@ describe('Playbook Rules Engine', () => {
           'seoTitle',
           '12345',
           { enabled: true, maxLength: 10 },
-          warnings,
+          warnings
         );
         expect(result).toBe('12345');
         expect(warnings).not.toContain('trimmed_to_max_length');
@@ -214,7 +246,7 @@ describe('Playbook Rules Engine', () => {
           'seoTitle',
           '1234567890',
           { enabled: true, maxLength: 10 },
-          warnings,
+          warnings
         );
         expect(result).toBe('1234567890');
         expect(warnings).not.toContain('trimmed_to_max_length');
@@ -228,7 +260,7 @@ describe('Playbook Rules Engine', () => {
           'seoTitle',
           'Click here for the best ever board.',
           { enabled: true, forbiddenPhrases: ['click here', 'best ever'] },
-          warnings,
+          warnings
         );
         expect(result).toBe('Click here for the best ever board.');
         expect(warnings).toContain('forbidden_phrase_detected');
@@ -240,7 +272,7 @@ describe('Playbook Rules Engine', () => {
           'seoTitle',
           'CLICK HERE now',
           { enabled: true, forbiddenPhrases: ['click here'] },
-          warnings,
+          warnings
         );
         expect(result).toBe('CLICK HERE now');
         expect(warnings).toContain('forbidden_phrase_detected');
@@ -252,7 +284,7 @@ describe('Playbook Rules Engine', () => {
           'seoTitle',
           'Great product for you',
           { enabled: true, forbiddenPhrases: ['click here', 'best ever'] },
-          warnings,
+          warnings
         );
         expect(result).toBe('Great product for you');
         expect(warnings).not.toContain('forbidden_phrase_detected');
@@ -266,7 +298,7 @@ describe('Playbook Rules Engine', () => {
           'seoTitle',
           'Original text',
           { enabled: false, prefix: 'Should not apply: ' },
-          warnings,
+          warnings
         );
         expect(result).toBe('Original text');
         expect(warnings).toEqual([]);
@@ -274,7 +306,12 @@ describe('Playbook Rules Engine', () => {
 
       it('returns text unchanged when rules are undefined', () => {
         const warnings: string[] = [];
-        const result = applyRulesToText('seoTitle', 'Original text', undefined, warnings);
+        const result = applyRulesToText(
+          'seoTitle',
+          'Original text',
+          undefined,
+          warnings
+        );
         expect(result).toBe('Original text');
       });
     });
@@ -293,12 +330,16 @@ describe('Playbook Rules Engine', () => {
         'AI',
         {
           enabled: true,
-          findReplace: { find: 'AI', replace: 'Snowboard', caseSensitive: false },
+          findReplace: {
+            find: 'AI',
+            replace: 'Snowboard',
+            caseSensitive: false,
+          },
           prefix: 'EngineO | ',
           suffix: ' | Shop',
           maxLength: 20,
         },
-        warnings,
+        warnings
       );
       expect(result).toBe('EngineO | Snowboard ');
       expect(result.length).toBe(20);
@@ -320,7 +361,7 @@ describe('Playbook Rules Engine', () => {
           suffix: '-Suf',
           maxLength: 8,
         },
-        warnings,
+        warnings
       );
       expect(result).toBe('Pre-Test');
       expect(warnings).toContain('trimmed_to_max_length');
@@ -339,7 +380,7 @@ describe('Playbook Rules Engine', () => {
           prefix: 'Click here: ',
           forbiddenPhrases: ['click here'],
         },
-        warnings,
+        warnings
       );
       expect(result).toBe('Click here: Buy now');
       expect(warnings).toContain('forbidden_phrase_detected');
@@ -364,7 +405,7 @@ describe('Playbook Rules Engine', () => {
           maxLength: 30,
           forbiddenPhrases: ['best'],
         },
-        warnings,
+        warnings
       );
       expect(result).toBe('Best SEO Product SEO Ever');
       expect(warnings).toContain('forbidden_phrase_detected');
@@ -416,15 +457,24 @@ describe('Playbook Rules Engine', () => {
 
     it('produces different hash when forbidden phrases change', () => {
       const rulesA = { enabled: true, forbiddenPhrases: ['click here'] };
-      const rulesB = { enabled: true, forbiddenPhrases: ['click here', 'best ever'] };
+      const rulesB = {
+        enabled: true,
+        forbiddenPhrases: ['click here', 'best ever'],
+      };
       const hashA = computeRulesHash(rulesA);
       const hashB = computeRulesHash(rulesB);
       expect(hashA).not.toBe(hashB);
     });
 
     it('produces different hash when forbidden phrase order changes', () => {
-      const rulesC = { enabled: true, forbiddenPhrases: ['click here', 'best ever'] };
-      const rulesD = { enabled: true, forbiddenPhrases: ['best ever', 'click here'] };
+      const rulesC = {
+        enabled: true,
+        forbiddenPhrases: ['click here', 'best ever'],
+      };
+      const rulesD = {
+        enabled: true,
+        forbiddenPhrases: ['best ever', 'click here'],
+      };
       const hashC = computeRulesHash(rulesC);
       const hashD = computeRulesHash(rulesD);
       // Arrays are order-sensitive, so different order = different hash
@@ -459,7 +509,7 @@ describe('Playbook Rules Engine', () => {
         'seoTitle',
         '',
         { enabled: true, prefix: 'Pre-', suffix: '-Suf' },
-        warnings,
+        warnings
       );
       expect(result).toBe('Pre--Suf');
     });
@@ -470,7 +520,7 @@ describe('Playbook Rules Engine', () => {
         'seoTitle',
         '   ',
         { enabled: true, prefix: 'Pre-' },
-        warnings,
+        warnings
       );
       expect(result).toBe('Pre-   ');
     });
@@ -480,8 +530,11 @@ describe('Playbook Rules Engine', () => {
       const result = applyRulesToText(
         'seoTitle',
         'Remove AI from text',
-        { enabled: true, findReplace: { find: 'AI ', replace: '', caseSensitive: false } },
-        warnings,
+        {
+          enabled: true,
+          findReplace: { find: 'AI ', replace: '', caseSensitive: false },
+        },
+        warnings
       );
       expect(result).toBe('Remove from text');
     });
@@ -492,10 +545,12 @@ describe('Playbook Rules Engine', () => {
         'seoTitle',
         'Click here for the best ever deal',
         { enabled: true, forbiddenPhrases: ['click here', 'best ever'] },
-        warnings,
+        warnings
       );
       // Both phrases are present, but we only get one warning
-      expect(warnings.filter((w) => w === 'forbidden_phrase_detected').length).toBe(1);
+      expect(
+        warnings.filter((w) => w === 'forbidden_phrase_detected').length
+      ).toBe(1);
     });
   });
 });

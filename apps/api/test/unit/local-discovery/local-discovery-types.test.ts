@@ -29,19 +29,27 @@ import {
 describe('Local Discovery Types and Helpers', () => {
   describe('isLocalApplicableFromReasons', () => {
     it('should return true for merchant_declared_physical_presence', () => {
-      expect(isLocalApplicableFromReasons(['merchant_declared_physical_presence'])).toBe(true);
+      expect(
+        isLocalApplicableFromReasons(['merchant_declared_physical_presence'])
+      ).toBe(true);
     });
 
     it('should return true for local_intent_product_category', () => {
-      expect(isLocalApplicableFromReasons(['local_intent_product_category'])).toBe(true);
+      expect(
+        isLocalApplicableFromReasons(['local_intent_product_category'])
+      ).toBe(true);
     });
 
     it('should return true for content_mentions_regions', () => {
-      expect(isLocalApplicableFromReasons(['content_mentions_regions'])).toBe(true);
+      expect(isLocalApplicableFromReasons(['content_mentions_regions'])).toBe(
+        true
+      );
     });
 
     it('should return true for manual_override_enabled', () => {
-      expect(isLocalApplicableFromReasons(['manual_override_enabled'])).toBe(true);
+      expect(isLocalApplicableFromReasons(['manual_override_enabled'])).toBe(
+        true
+      );
     });
 
     it('should return true when any applicable reason is present', () => {
@@ -67,7 +75,10 @@ describe('Local Discovery Types and Helpers', () => {
 
     it('should return false when only non-applicable reasons present', () => {
       expect(
-        isLocalApplicableFromReasons(['no_local_indicators', 'global_only_config'])
+        isLocalApplicableFromReasons([
+          'no_local_indicators',
+          'global_only_config',
+        ])
       ).toBe(false);
     });
   });
@@ -104,20 +115,26 @@ describe('Local Discovery Types and Helpers', () => {
 
   describe('calculateLocalSeverity', () => {
     it('should return "critical" for location_presence gaps (weight 10)', () => {
-      expect(calculateLocalSeverity('location_presence', 'missing_location_content')).toBe(
-        'critical'
-      );
+      expect(
+        calculateLocalSeverity('location_presence', 'missing_location_content')
+      ).toBe('critical');
     });
 
     it('should return "critical" for local_intent_coverage gaps (weight 9)', () => {
       expect(
-        calculateLocalSeverity('local_intent_coverage', 'missing_local_intent_coverage')
+        calculateLocalSeverity(
+          'local_intent_coverage',
+          'missing_local_intent_coverage'
+        )
       ).toBe('critical');
     });
 
     it('should return "warning" for local_trust_signals gaps (weight 7)', () => {
       expect(
-        calculateLocalSeverity('local_trust_signals', 'missing_local_trust_signal')
+        calculateLocalSeverity(
+          'local_trust_signals',
+          'missing_local_trust_signal'
+        )
       ).toBe('warning');
     });
 
@@ -130,14 +147,17 @@ describe('Local Discovery Types and Helpers', () => {
     it('should return "warning" for missing_location_content gap type regardless of signal', () => {
       // The gap type override for location content should result in warning
       expect(
-        calculateLocalSeverity('local_trust_signals', 'missing_location_content')
+        calculateLocalSeverity(
+          'local_trust_signals',
+          'missing_location_content'
+        )
       ).toBe('warning');
     });
 
     it('should return "warning" for unclear_service_area gap type', () => {
-      expect(calculateLocalSeverity('local_trust_signals', 'unclear_service_area')).toBe(
-        'warning'
-      );
+      expect(
+        calculateLocalSeverity('local_trust_signals', 'unclear_service_area')
+      ).toBe('warning');
     });
   });
 
@@ -302,9 +322,15 @@ describe('Local Discovery Types and Helpers', () => {
     describe('LOCAL_SIGNAL_LABELS', () => {
       it('should have human-readable labels for all signal types', () => {
         expect(LOCAL_SIGNAL_LABELS.location_presence).toBe('Location Presence');
-        expect(LOCAL_SIGNAL_LABELS.local_intent_coverage).toBe('Local Intent Coverage');
-        expect(LOCAL_SIGNAL_LABELS.local_trust_signals).toBe('Local Trust Signals');
-        expect(LOCAL_SIGNAL_LABELS.local_schema_readiness).toBe('Local Schema Readiness');
+        expect(LOCAL_SIGNAL_LABELS.local_intent_coverage).toBe(
+          'Local Intent Coverage'
+        );
+        expect(LOCAL_SIGNAL_LABELS.local_trust_signals).toBe(
+          'Local Trust Signals'
+        );
+        expect(LOCAL_SIGNAL_LABELS.local_schema_readiness).toBe(
+          'Local Schema Readiness'
+        );
       });
     });
 
@@ -330,8 +356,12 @@ describe('Local Discovery Types and Helpers', () => {
         expect(LOCAL_GAP_LABELS.missing_local_intent_coverage).toBe(
           'Missing Local Intent Coverage'
         );
-        expect(LOCAL_GAP_LABELS.missing_location_content).toBe('Missing Location Content');
-        expect(LOCAL_GAP_LABELS.unclear_service_area).toBe('Unclear Service Area');
+        expect(LOCAL_GAP_LABELS.missing_location_content).toBe(
+          'Missing Location Content'
+        );
+        expect(LOCAL_GAP_LABELS.unclear_service_area).toBe(
+          'Unclear Service Area'
+        );
         expect(LOCAL_GAP_LABELS.missing_local_trust_signal).toBe(
           'Missing Local Trust Signal'
         );
@@ -340,7 +370,9 @@ describe('Local Discovery Types and Helpers', () => {
 
     describe('LOCAL_FIX_DRAFT_LABELS', () => {
       it('should have human-readable labels for all draft types', () => {
-        expect(LOCAL_FIX_DRAFT_LABELS.local_answer_block).toBe('Local Answer Block');
+        expect(LOCAL_FIX_DRAFT_LABELS.local_answer_block).toBe(
+          'Local Answer Block'
+        );
         expect(LOCAL_FIX_DRAFT_LABELS.city_section).toBe('City/Region Section');
         expect(LOCAL_FIX_DRAFT_LABELS.service_area_description).toBe(
           'Service Area Description'

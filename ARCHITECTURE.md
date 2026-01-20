@@ -5,6 +5,7 @@ EngineO.ai is a multi-tenant SaaS platform for **Discovery Engine Optimization (
 DEO (Discovery Engine Optimization) = **SEO + AEO + PEO + VEO**
 
 The architecture is optimized for:
+
 - Running DEO pipelines asynchronously (Score, Entities, Answers, Signals)
 - Multi-tenant workspaces and projects
 - Token-aware AI workloads (OpenAI / LLM calls)
@@ -80,6 +81,7 @@ EngineO.ai uses a modern, cloud‑native infrastructure optimized for scale, cos
 ### Core Infrastructure Components
 
 #### Frontend Hosting (Next.js 14)
+
 - **Vercel**
   - Global edge network
   - Incremental static regeneration
@@ -116,6 +118,7 @@ EngineO.ai uses a modern, cloud‑native infrastructure optimized for scale, cos
   - `develop` → deploys to `staging.engineo.ai`.
 
 #### Backend API (NestJS)
+
 - **Render Web Service**
   - Autoscaling stateless HTTP service
   - Manages build ▶ deploy pipeline
@@ -123,18 +126,21 @@ EngineO.ai uses a modern, cloud‑native infrastructure optimized for scale, cos
   - Environment variable management
 
 #### Background Workers
+
 - **Render Background Worker**
   - Runs BullMQ processors
   - Handles SEO scans, AI tasks, sync tasks
   - Scales independently from the API
 
 #### Cron / Scheduler Jobs
+
 - **Render Cron Jobs**
   - Weekly reports
   - Scheduled SEO scans
   - Automation rule evaluation
 
 #### Database
+
 - **Neon (Serverless PostgreSQL)**
   - Branching for dev environments
   - Auto‑scaling compute
@@ -142,17 +148,20 @@ EngineO.ai uses a modern, cloud‑native infrastructure optimized for scale, cos
   - High‑performance storage
 
 #### Redis (Cache + Queues)
+
 - **Upstash Redis + BullMQ**
   - Low‑latency queue processing
   - Durable queue storage for BullMQ job queues
   - Global multi‑region availability
 
 #### Object Storage
+
 - **AWS S3**
   - Daily / hourly database backups
   - Asset storage (optional future use)
 
 #### Domain & Networking
+
 - **Cloudflare**
   - DNS + CDN edge caching
   - WAF + bot protection
@@ -161,15 +170,15 @@ EngineO.ai uses a modern, cloud‑native infrastructure optimized for scale, cos
 
 ### Infra Summary Diagram (Text)
 
-- Cloudflare → routes `app.engineo.ai` / `staging.engineo.ai` to Vercel  
-- Vercel → Next.js frontend (marketing + app)  
-- Render → NestJS API  
-- Render → Background Worker  
-- Render → Cron Jobs  
-- Neon → Postgres  
-- Upstash → Redis  
-- S3 → Backups  
-- Cloudflare → DNS + Security  
+- Cloudflare → routes `app.engineo.ai` / `staging.engineo.ai` to Vercel
+- Vercel → Next.js frontend (marketing + app)
+- Render → NestJS API
+- Render → Background Worker
+- Render → Cron Jobs
+- Neon → Postgres
+- Upstash → Redis
+- S3 → Backups
+- Cloudflare → DNS + Security
 
 ---
 
@@ -264,6 +273,7 @@ IntegrationType enum:
 ```
 
 Each platform has:
+
 - A unique `externalId` (shop domain, store URL, etc.)
 - An `accessToken` for API authentication
 - A `config` JSON object for platform-specific settings
@@ -354,6 +364,7 @@ In addition to the domain-specific queues above, DEO-specific processing can be 
 - `deo_signal_queue` – Multi-engine visibility signal collection
 
 Each queue is configured with:
+
 - Sensible **concurrency** based on workload.
 - **Retry policies** (exponential backoff, max attempts).
 - **Dead-letter handling** (failed jobs can be inspected from BullMQ UI or a custom admin tool).

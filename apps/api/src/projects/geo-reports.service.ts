@@ -1,4 +1,9 @@
-import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { ProjectInsightsService } from './project-insights.service';
 import { GovernanceService } from './governance.service';
@@ -91,7 +96,13 @@ export interface CreateShareLinkResponse {
 }
 
 export interface PublicShareViewResponse {
-  status: 'valid' | 'expired' | 'revoked' | 'not_found' | 'passcode_required' | 'passcode_invalid';
+  status:
+    | 'valid'
+    | 'expired'
+    | 'revoked'
+    | 'not_found'
+    | 'passcode_required'
+    | 'passcode_invalid';
   report?: GeoReportData;
   expiresAt?: string;
   generatedAt?: string;
@@ -129,14 +140,17 @@ export class GeoReportsService {
     private readonly projectInsightsService: ProjectInsightsService,
     private readonly governanceService: GovernanceService,
     private readonly auditEventsService: AuditEventsService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   /**
    * Assemble GEO report data for export/print
    * Uses existing insights endpoint - no new queries
    */
-  async assembleReport(projectId: string, userId: string): Promise<GeoReportData> {
+  async assembleReport(
+    projectId: string,
+    userId: string
+  ): Promise<GeoReportData> {
     // Get project name
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -151,7 +165,10 @@ export class GeoReportsService {
     await this.roleResolution.assertProjectAccess(projectId, userId);
 
     // Get insights data (already authorized)
-    const insights = await this.projectInsightsService.getProjectInsights(projectId, userId);
+    const insights = await this.projectInsightsService.getProjectInsights(
+      projectId,
+      userId
+    );
     const geo = insights.geoInsights;
 
     // Transform to export-safe format (no internal IDs, no hrefs)
@@ -208,7 +225,7 @@ export class GeoReportsService {
   async createShareLink(
     projectId: string,
     userId: string,
-    dto?: CreateShareLinkDto,
+    dto?: CreateShareLinkDto
   ): Promise<CreateShareLinkResponse> {
     // Verify access
     const project = await this.prisma.project.findUnique({
@@ -224,7 +241,8 @@ export class GeoReportsService {
     await this.roleResolution.assertOwnerRole(projectId, userId);
 
     // [ENTERPRISE-GEO-1] Get governance settings for expiry and restrictions
-    const shareLinkSettings = await this.governanceService.getShareLinkSettings(projectId);
+    const shareLinkSettings =
+      await this.governanceService.getShareLinkSettings(projectId);
 
     // If share links are restricted and audience is not allowed, reject
     if (shareLinkSettings.restricted) {
@@ -233,19 +251,29 @@ export class GeoReportsService {
 
       // PASSCODE > ANYONE_WITH_LINK, ORG_ONLY is most restrictive
       if (allowedAudience === 'ORG_ONLY') {
-        throw new ForbiddenException('Governance policy restricts share links to organization members only');
+        throw new ForbiddenException(
+          'Governance policy restricts share links to organization members only'
+        );
       }
-      if (allowedAudience === 'PASSCODE' && requestedAudience === 'ANYONE_WITH_LINK') {
-        throw new ForbiddenException('Governance policy requires passcode protection for share links');
+      if (
+        allowedAudience === 'PASSCODE' &&
+        requestedAudience === 'ANYONE_WITH_LINK'
+      ) {
+        throw new ForbiddenException(
+          'Governance policy requires passcode protection for share links'
+        );
       }
     }
 
     const now = new Date();
     const expiryDays = shareLinkSettings.expiryDays || DEFAULT_EXPIRY_DAYS;
-    const expiresAt = new Date(now.getTime() + expiryDays * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(
+      now.getTime() + expiryDays * 24 * 60 * 60 * 1000
+    );
 
     // Determine audience
-    const audience: ShareLinkAudience = dto?.audience === 'PASSCODE' ? 'PASSCODE' : 'ANYONE_WITH_LINK';
+    const audience: ShareLinkAudience =
+      dto?.audience === 'PASSCODE' ? 'PASSCODE' : 'ANYONE_WITH_LINK';
 
     // Generate passcode if needed
     let passcode: string | undefined;
@@ -281,7 +309,7 @@ export class GeoReportsService {
       shareLink.id,
       audience,
       expiryDays,
-      passcodeLast4 || undefined,
+      passcodeLast4 || undefined
     );
 
     return {
@@ -293,7 +321,10 @@ export class GeoReportsService {
   /**
    * List all share links for a project
    */
-  async listShareLinks(projectId: string, userId: string): Promise<ShareLinkResponse[]> {
+  async listShareLinks(
+    projectId: string,
+    userId: string
+  ): Promise<ShareLinkResponse[]> {
     // Verify access
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -323,7 +354,7 @@ export class GeoReportsService {
   async revokeShareLink(
     projectId: string,
     linkId: string,
-    userId: string,
+    userId: string
   ): Promise<{ success: true }> {
     // Verify access
     const link = await this.prisma.geoReportShareLink.findFirst({
@@ -351,7 +382,11 @@ export class GeoReportsService {
     });
 
     // [ENTERPRISE-GEO-1] Log audit event for share link revocation
-    await this.auditEventsService.logShareLinkRevoked(projectId, userId, linkId);
+    await this.auditEventsService.logShareLinkRevoked(
+      projectId,
+      userId,
+      linkId
+    );
 
     return { success: true };
   }
@@ -362,7 +397,7 @@ export class GeoReportsService {
    */
   async getPublicShareView(
     shareToken: string,
-    passcode?: string,
+    passcode?: string
   ): Promise<PublicShareViewResponse> {
     const link = await this.prisma.geoReportShareLink.findUnique({
       where: { shareToken },
@@ -411,10 +446,14 @@ export class GeoReportsService {
     }
 
     // Get governance export control settings
-    const exportSettings = await this.governanceService.getExportControlSettings(link.project.id);
+    const exportSettings =
+      await this.governanceService.getExportControlSettings(link.project.id);
 
     // Get report data (using the project owner's userId for authorization)
-    let report = await this.assembleReportInternal(link.project.id, link.project.name);
+    let report = await this.assembleReportInternal(
+      link.project.id,
+      link.project.name
+    );
 
     // [ENTERPRISE-GEO-1] Apply content redaction if competitor mentions are not allowed
     if (!exportSettings.allowCompetitorMentions) {
@@ -438,7 +477,10 @@ export class GeoReportsService {
       // Redact common competitor mention patterns
       // This is a placeholder - in production you'd have a list of known competitors
       return text
-        .replace(/\b(competitor|competing|rival|alternative)\s+\w+/gi, '[REDACTED]')
+        .replace(
+          /\b(competitor|competing|rival|alternative)\s+\w+/gi,
+          '[REDACTED]'
+        )
         .replace(/\bvs\.?\s+\w+/gi, 'vs. [REDACTED]')
         .replace(/\bcompared\s+to\s+\w+/gi, 'compared to [REDACTED]');
     };
@@ -465,7 +507,10 @@ export class GeoReportsService {
   /**
    * Internal method to assemble report without auth checks (for public share view)
    */
-  private async assembleReportInternal(projectId: string, projectName: string): Promise<GeoReportData> {
+  private async assembleReportInternal(
+    projectId: string,
+    projectName: string
+  ): Promise<GeoReportData> {
     // Get project owner
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -477,7 +522,10 @@ export class GeoReportsService {
     }
 
     // Get insights with owner's userId
-    const insights = await this.projectInsightsService.getProjectInsights(projectId, project.userId);
+    const insights = await this.projectInsightsService.getProjectInsights(
+      projectId,
+      project.userId
+    );
     const geo = insights.geoInsights;
 
     return {
@@ -538,7 +586,10 @@ export class GeoReportsService {
     const shareUrl = `${baseUrl}/share/geo-report/${link.shareToken}`;
 
     // [ENTERPRISE-GEO-1] Map audience and passcode fields
-    const audienceMap: Record<string, 'ANYONE_WITH_LINK' | 'PASSCODE' | 'ORG_ONLY'> = {
+    const audienceMap: Record<
+      string,
+      'ANYONE_WITH_LINK' | 'PASSCODE' | 'ORG_ONLY'
+    > = {
       ANYONE_WITH_LINK: 'ANYONE_WITH_LINK',
       PASSCODE: 'PASSCODE',
       ORG_ONLY: 'ORG_ONLY',

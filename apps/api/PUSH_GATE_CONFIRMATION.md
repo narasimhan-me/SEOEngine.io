@@ -12,6 +12,7 @@
 ## Outcome 1: Tagged "Critical Integration Suite" ✅ **COMPLETE**
 
 ### Test Suite Location
+
 - **Directory:** `test/integration/critical/`
 - **Jest Config:** `jest.critical-integration.config.ts`
 - **Test Command:** `pnpm test:api:critical`
@@ -24,12 +25,14 @@
 **Test File:** `test/integration/critical/auth-entitlements.test.ts`
 
 **Coverage:**
+
 - ✅ Unauthenticated requests return 401
 - ✅ Free plan users cannot access paid-only endpoints
 - ✅ Entitlement gating enforced (`ENTITLEMENTS_LIMIT_REACHED` error code)
 - ✅ API-level permission enforcement
 
 **Tests:**
+
 - `unauthenticated request to protected endpoint returns 401`
 - `Free plan user cannot call paid-only Issue Engine Lite fix endpoint`
 
@@ -40,6 +43,7 @@
 **Test File:** `test/integration/critical/onboarding-checklist.test.ts`
 
 **Coverage:**
+
 - ✅ Baseline new project state verification
 - ✅ Integration status transitions (Shopify connection)
 - ✅ Crawl state transitions (first crawl reflected)
@@ -47,6 +51,7 @@
 - ✅ Product optimization state transitions (applied SEO count)
 
 **Tests:**
+
 - `baseline new project: no integrations, no crawls, no score, no optimized products`
 - `connected Shopify store is reflected via integration-status`
 - `first crawl is reflected via overview metrics (crawlCount > 0)`
@@ -54,16 +59,19 @@
 - `productsWithAppliedSeo >= 3 when three products are optimized`
 
 **State Integrity:**
+
 - ✅ Uses test fixtures: `seedConnectedStoreProject`, `seedCrawledProject`, `seedReviewedDeoProject`, `seedOptimizedProducts`
 - ✅ Verifies state transitions across key onboarding steps
 
 #### ✅ 3. Preview → Apply Semantics and Persistence
 
 **Test Files:**
+
 1. `test/integration/critical/automation-playbook-runs.test.ts`
 2. `test/integration/critical/seo-apply-persistence.test.ts`
 
 **Coverage:**
+
 - ✅ **Preview Generation:** `PREVIEW_GENERATE` run creation and processing
 - ✅ **Draft Persistence:** Draft is created and stored in database
 - ✅ **Apply Uses Draft:** Apply reads from draft, NOT from AI
@@ -73,6 +81,7 @@
 - ✅ **Validations:** Scope validation, ownership validation
 
 **Tests:**
+
 - `should create run, process it, and track AI usage` (Preview generation)
 - `should apply using draft without AI calls` (Apply workflow)
 - `applies SEO to a product and calls Shopify mock exactly once` (Persistence)
@@ -83,6 +92,7 @@
 **Test File:** `test/integration/critical/billing-webhook-idempotency.test.ts`
 
 **Coverage:**
+
 - ✅ **Webhook Idempotency:** Duplicate event handling (same `event.id` processed twice)
 - ✅ **Concurrent Processing:** Race condition prevention
 - ✅ **Double-Charging Prevention:** Ensures only one subscription per user
@@ -91,6 +101,7 @@
 - ✅ **Subscription State Integrity:** Correct state transitions
 
 **Test Coverage (14 tests):**
+
 1. `checkout.session.completed` idempotency (3 tests)
    - Creates subscription on first event
    - Idempotent when same event processed twice (with event ID tracking)
@@ -113,6 +124,7 @@
    - Multiple different events processed concurrently
 
 **Implementation:**
+
 - ✅ `handleCheckoutCompleted()` tracks event IDs for full idempotency
 - ✅ `handleSubscriptionUpdated()` uses `lastStripeEventId` for idempotency
 - ✅ `handleSubscriptionDeleted()` uses `lastStripeEventId` for idempotency
@@ -120,11 +132,13 @@
 #### ✅ 5. Idempotency for Key Jobs/Sync/Webhook Operations
 
 **Coverage:**
+
 - ✅ **Billing Webhooks:** Event ID tracking prevents duplicate processing
 - ✅ **Automation Playbook Runs:** Idempotency key prevents duplicate run creation
 - ✅ **SEO Apply:** Shopify API called exactly once per apply operation
 
 **Test Files:**
+
 - `test/integration/critical/billing-webhook-idempotency.test.ts` - Webhook idempotency (14 tests)
 - `test/integration/critical/automation-playbook-runs.test.ts` - Job idempotency (1 test)
 - `test/integration/critical/seo-apply-persistence.test.ts` - Sync idempotency (1 test)
@@ -167,6 +181,7 @@
    - Behavior: Fails push on test failures
 
 **Hook Features:**
+
 - ✅ Prevents push if any check fails
 - ✅ Provides clear error messages
 - ✅ Runs sequentially (maxWorkers: 1 for tests)
@@ -178,13 +193,13 @@
 
 ### Critical Integration Test Files (5 files, 26 tests)
 
-| File | Focus Area | Tests | Status |
-|------|-----------|-------|--------|
-| `auth-entitlements.test.ts` | Permissions & Scoping | 2 | ✅ |
-| `onboarding-checklist.test.ts` | Onboarding Transitions | 5 | ✅ |
-| `automation-playbook-runs.test.ts` | Preview → Apply | 3 | ✅ |
-| `seo-apply-persistence.test.ts` | Preview → Apply Persistence | 2 | ✅ |
-| `billing-webhook-idempotency.test.ts` | Billing/Entitlements/Idempotency | 14 | ✅ |
+| File                                  | Focus Area                       | Tests | Status |
+| ------------------------------------- | -------------------------------- | ----- | ------ |
+| `auth-entitlements.test.ts`           | Permissions & Scoping            | 2     | ✅     |
+| `onboarding-checklist.test.ts`        | Onboarding Transitions           | 5     | ✅     |
+| `automation-playbook-runs.test.ts`    | Preview → Apply                  | 3     | ✅     |
+| `seo-apply-persistence.test.ts`       | Preview → Apply Persistence      | 2     | ✅     |
+| `billing-webhook-idempotency.test.ts` | Billing/Entitlements/Idempotency | 14    | ✅     |
 
 **Total:** 26 critical integration tests
 
@@ -266,4 +281,3 @@ The push gate is fully implemented and ready to protect service/API boundaries a
 4. **Linting:** Only source files are linted in pre-push hook to avoid tsconfig conflicts with test files. Use `pnpm lint:all` for full linting.
 
 5. **Event ID Tracking:** `handleCheckoutCompleted()` now tracks event IDs for full idempotency, matching the pattern used in `handleSubscriptionUpdated()` and `handleSubscriptionDeleted()`.
-

@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import type { DeoScoreSignals } from '@/lib/deo-issues';
-import { HEALTH_CARD_TO_WORK_QUEUE_MAP, buildWorkQueueUrl } from '@/lib/work-queue';
+import {
+  HEALTH_CARD_TO_WORK_QUEUE_MAP,
+  buildWorkQueueUrl,
+} from '@/lib/work-queue';
 
 interface ProjectHealthCardsProps {
   signals: DeoScoreSignals | null;
@@ -10,7 +13,10 @@ interface ProjectHealthCardsProps {
 /**
  * [WORK-QUEUE-1] Updated: Cards are now clickable and route to Work Queue filters.
  */
-export function ProjectHealthCards({ signals, projectId }: ProjectHealthCardsProps) {
+export function ProjectHealthCards({
+  signals,
+  projectId,
+}: ProjectHealthCardsProps) {
   const s = signals ?? {};
 
   const missingMetadataSeverity = 1 - (s.contentCoverage ?? 0);
@@ -36,7 +42,8 @@ export function ProjectHealthCards({ signals, projectId }: ProjectHealthCardsPro
       key: 'weak-entities',
       label: 'Weak entity coverage',
       severity: weakEntitySeverity,
-      description: 'Surfaces missing clear entity hints (title + H1 / metadata).',
+      description:
+        'Surfaces missing clear entity hints (title + H1 / metadata).',
     },
     {
       key: 'low-visibility',
@@ -85,8 +92,9 @@ export function ProjectHealthCards({ signals, projectId }: ProjectHealthCardsPro
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
       <h3 className="text-sm font-medium text-gray-700">Issues by Category</h3>
       <p className="mt-1 text-xs text-gray-500">
-        High-level DEO issue categories derived from normalized signals (0-1). Higher severity
-        indicates more work needed. Click a card to view in Work Queue.
+        High-level DEO issue categories derived from normalized signals (0-1).
+        Higher severity indicates more work needed. Click a card to view in Work
+        Queue.
       </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         {cards.map((card) => {

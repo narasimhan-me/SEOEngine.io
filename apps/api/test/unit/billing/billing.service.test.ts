@@ -56,7 +56,9 @@ const createPrismaMock = () => ({
   },
 });
 
-const createConfigMock = (overrides: Record<string, string | undefined> = {}) => {
+const createConfigMock = (
+  overrides: Record<string, string | undefined> = {}
+) => {
   const defaults = {
     STRIPE_SECRET_KEY: 'sk_test_key',
     STRIPE_PRICE_PRO: 'price_pro',
@@ -92,7 +94,7 @@ describe('BillingService', () => {
     service = new BillingService(
       prismaMock as unknown as PrismaService,
       configMock,
-      entitlementsServiceMock as unknown as EntitlementsService,
+      entitlementsServiceMock as unknown as EntitlementsService
     );
   });
 
@@ -163,7 +165,9 @@ describe('BillingService', () => {
       };
 
       prismaMock.subscription.findUnique.mockResolvedValue(mockSubscription);
-      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(mockEntitlements);
+      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(
+        mockEntitlements
+      );
 
       const result = await service.getBillingSummary('user-1');
 
@@ -181,20 +185,20 @@ describe('BillingService', () => {
       const serviceWithoutStripe = new BillingService(
         prismaMock as unknown as PrismaService,
         config,
-        entitlementsServiceMock as unknown as EntitlementsService,
+        entitlementsServiceMock as unknown as EntitlementsService
       );
 
       // The check happens at the start of createCheckoutSession (line 82)
       // It checks if (!this.stripe) and throws BadRequestException
       await expect(
-        serviceWithoutStripe.createCheckoutSession('user-1', 'pro'),
+        serviceWithoutStripe.createCheckoutSession('user-1', 'pro')
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException for free plan', async () => {
-      await expect(service.createCheckoutSession('user-1', 'free')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.createCheckoutSession('user-1', 'free')
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should redirect to portal if active subscription exists', async () => {
@@ -216,7 +220,9 @@ describe('BillingService', () => {
       const result = await service.createCheckoutSession('user-1', 'pro');
 
       expect(result.url).toBe('https://billing.stripe.com/portal');
-      expect(mockStripeInstance.checkout.sessions.create).not.toHaveBeenCalled();
+      expect(
+        mockStripeInstance.checkout.sessions.create
+      ).not.toHaveBeenCalled();
     });
 
     it('should create checkout session when no active subscription exists', async () => {
@@ -253,11 +259,11 @@ describe('BillingService', () => {
       const service = new BillingService(
         prismaMock as unknown as PrismaService,
         config,
-        entitlementsServiceMock as unknown as EntitlementsService,
+        entitlementsServiceMock as unknown as EntitlementsService
       );
 
       await expect(service.createPortalSession('user-1')).rejects.toThrow(
-        BadRequestException,
+        BadRequestException
       );
     });
 
@@ -265,7 +271,7 @@ describe('BillingService', () => {
       prismaMock.subscription.findUnique.mockResolvedValue(null);
 
       await expect(service.createPortalSession('user-1')).rejects.toThrow(
-        BadRequestException,
+        BadRequestException
       );
     });
 
@@ -285,7 +291,9 @@ describe('BillingService', () => {
       const result = await service.createPortalSession('user-1');
 
       expect(result.url).toBe('https://billing.stripe.com/portal');
-      expect(mockStripeInstance.billingPortal.sessions.create).toHaveBeenCalledWith({
+      expect(
+        mockStripeInstance.billingPortal.sessions.create
+      ).toHaveBeenCalledWith({
         customer: 'cus_123',
         return_url: 'http://localhost:3000/settings/billing',
       });
@@ -294,16 +302,16 @@ describe('BillingService', () => {
 
   describe('updateSubscription', () => {
     it('should throw BadRequestException for invalid plan', async () => {
-      await expect(service.updateSubscription('user-1', 'invalid-plan')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.updateSubscription('user-1', 'invalid-plan')
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw NotFoundException when user not found', async () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
 
       await expect(service.updateSubscription('user-1', 'pro')).rejects.toThrow(
-        NotFoundException,
+        NotFoundException
       );
     });
 
@@ -359,7 +367,9 @@ describe('BillingService', () => {
     it('should throw NotFoundException when subscription not found', async () => {
       prismaMock.subscription.findUnique.mockResolvedValue(null);
 
-      await expect(service.cancelSubscription('user-1')).rejects.toThrow(NotFoundException);
+      await expect(service.cancelSubscription('user-1')).rejects.toThrow(
+        NotFoundException
+      );
     });
 
     it('should cancel subscription', async () => {
@@ -386,4 +396,3 @@ describe('BillingService', () => {
     });
   });
 });
-

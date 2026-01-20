@@ -1,6 +1,11 @@
 'use client';
 
-import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
+import {
+  useParams,
+  useSearchParams,
+  useRouter,
+  usePathname,
+} from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { projectsApi, shopifyApi, type RoleCapabilities } from '@/lib/api';
@@ -17,10 +22,16 @@ import {
   type NavigationContext,
 } from '@/lib/list-actions-clarity';
 import type { WorkQueueRecommendedActionKey } from '@/lib/work-queue';
-import { getReturnToFromCurrentUrl, getSafeReturnTo } from '@/lib/route-context';
+import {
+  getReturnToFromCurrentUrl,
+  getSafeReturnTo,
+} from '@/lib/route-context';
 import { getToken } from '@/lib/auth';
 // [SCOPE-CLARITY-1] Import scope normalization utilities
-import { normalizeScopeParams, buildClearFiltersHref } from '@/lib/scope-normalization';
+import {
+  normalizeScopeParams,
+  buildClearFiltersHref,
+} from '@/lib/scope-normalization';
 
 /**
  * [ASSETS-PAGES-1] [LIST-SEARCH-FILTER-1.1] [LIST-ACTIONS-CLARITY-1] Collections Asset List
@@ -65,7 +76,9 @@ export default function CollectionsAssetListPage() {
   const [collections, setCollections] = useState<CollectionAsset[]>([]);
 
   // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Role capabilities state
-  const [capabilities, setCapabilities] = useState<RoleCapabilities | null>(null);
+  const [capabilities, setCapabilities] = useState<RoleCapabilities | null>(
+    null
+  );
 
   // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Sync status state
   const [syncStatus, setSyncStatus] = useState<{
@@ -84,11 +97,16 @@ export default function CollectionsAssetListPage() {
   const autoSyncAfterReconnectRef = useRef(false);
 
   // Get filter from URL (from Work Queue click-through)
-  const actionKeyFilter = searchParams.get('actionKey') as WorkQueueRecommendedActionKey | null;
+  const actionKeyFilter = searchParams.get(
+    'actionKey'
+  ) as WorkQueueRecommendedActionKey | null;
 
   // [LIST-SEARCH-FILTER-1.1] Extract filter params from URL
   const filterQ = searchParams.get('q') || undefined;
-  const filterStatus = searchParams.get('status') as 'optimized' | 'needs_attention' | undefined;
+  const filterStatus = searchParams.get('status') as
+    | 'optimized'
+    | 'needs_attention'
+    | undefined;
   const filterHasDraft = searchParams.get('hasDraft') === 'true' || undefined;
 
   // Check if any filters are active (for empty state)
@@ -138,60 +156,78 @@ export default function CollectionsAssetListPage() {
       // Health/action derivation kept for legacy display only; chip uses canonical issue counts
       const collectionAssets: CollectionAsset[] = crawlPages
         .filter((p: { pageType: string }) => p.pageType === 'collection')
-        .map((p: { id: string; url: string; path: string; title: string | null; metaDescription: string | null; statusCode: number | null; wordCount: number | null; scannedAt: string; hasDraftPendingApply?: boolean; actionableNowCount?: number; blockedByApproval?: boolean }) => {
-          // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Health/action derivation for legacy display only
-          // RowStatusChip and resolveRowNextAction use server-derived actionableNowCount
-          let health: 'Healthy' | 'Needs Attention' | 'Critical' = 'Healthy';
-          let recommendedActionKey: WorkQueueRecommendedActionKey | null = null;
-          let recommendedActionLabel: string | null = null;
+        .map(
+          (p: {
+            id: string;
+            url: string;
+            path: string;
+            title: string | null;
+            metaDescription: string | null;
+            statusCode: number | null;
+            wordCount: number | null;
+            scannedAt: string;
+            hasDraftPendingApply?: boolean;
+            actionableNowCount?: number;
+            blockedByApproval?: boolean;
+          }) => {
+            // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Health/action derivation for legacy display only
+            // RowStatusChip and resolveRowNextAction use server-derived actionableNowCount
+            let health: 'Healthy' | 'Needs Attention' | 'Critical' = 'Healthy';
+            let recommendedActionKey: WorkQueueRecommendedActionKey | null =
+              null;
+            let recommendedActionLabel: string | null = null;
 
-          // Missing metadata = Critical (legacy health display only)
-          if (!p.title || !p.metaDescription) {
-            health = 'Critical';
-            recommendedActionKey = 'FIX_MISSING_METADATA';
-            recommendedActionLabel = 'Fix missing metadata';
-          }
-          // Technical issues (4xx/5xx status) = Critical (legacy health display only)
-          else if (p.statusCode && p.statusCode >= 400) {
-            health = 'Critical';
-            recommendedActionKey = 'RESOLVE_TECHNICAL_ISSUES';
-            recommendedActionLabel = 'Resolve technical issues';
-          }
-          // Thin content = Needs Attention (legacy health display only)
-          else if (p.wordCount !== null && p.wordCount < 300) {
-            health = 'Needs Attention';
-            recommendedActionKey = 'OPTIMIZE_CONTENT';
-            recommendedActionLabel = 'Optimize content';
-          }
+            // Missing metadata = Critical (legacy health display only)
+            if (!p.title || !p.metaDescription) {
+              health = 'Critical';
+              recommendedActionKey = 'FIX_MISSING_METADATA';
+              recommendedActionLabel = 'Fix missing metadata';
+            }
+            // Technical issues (4xx/5xx status) = Critical (legacy health display only)
+            else if (p.statusCode && p.statusCode >= 400) {
+              health = 'Critical';
+              recommendedActionKey = 'RESOLVE_TECHNICAL_ISSUES';
+              recommendedActionLabel = 'Resolve technical issues';
+            }
+            // Thin content = Needs Attention (legacy health display only)
+            else if (p.wordCount !== null && p.wordCount < 300) {
+              health = 'Needs Attention';
+              recommendedActionKey = 'OPTIMIZE_CONTENT';
+              recommendedActionLabel = 'Optimize content';
+            }
 
-          return {
-            id: p.id,
-            url: p.url,
-            path: p.path,
-            title: p.title,
-            metaDescription: p.metaDescription,
-            statusCode: p.statusCode,
-            wordCount: p.wordCount,
-            scannedAt: p.scannedAt,
-            health,
-            recommendedActionKey,
-            recommendedActionLabel,
-            // [LIST-ACTIONS-CLARITY-1] Include server-derived draft flag
-            hasDraftPendingApply: p.hasDraftPendingApply ?? false,
-            // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Use server-derived canonical issue counts and blocked state
-            actionableNowCount: p.actionableNowCount ?? 0,
-            blockedByApproval: p.blockedByApproval ?? false,
-          };
-        });
+            return {
+              id: p.id,
+              url: p.url,
+              path: p.path,
+              title: p.title,
+              metaDescription: p.metaDescription,
+              statusCode: p.statusCode,
+              wordCount: p.wordCount,
+              scannedAt: p.scannedAt,
+              health,
+              recommendedActionKey,
+              recommendedActionLabel,
+              // [LIST-ACTIONS-CLARITY-1] Include server-derived draft flag
+              hasDraftPendingApply: p.hasDraftPendingApply ?? false,
+              // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Use server-derived canonical issue counts and blocked state
+              actionableNowCount: p.actionableNowCount ?? 0,
+              blockedByApproval: p.blockedByApproval ?? false,
+            };
+          }
+        );
 
       // Apply actionKey filter if present (from Work Queue click-through)
       const filtered = actionKeyFilter
-        ? collectionAssets.filter((c) => c.recommendedActionKey === actionKeyFilter)
+        ? collectionAssets.filter(
+            (c) => c.recommendedActionKey === actionKeyFilter
+          )
         : collectionAssets;
 
       setCollections(filtered);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load collections';
+      const message =
+        err instanceof Error ? err.message : 'Failed to load collections';
       setError(message);
     } finally {
       setLoading(false);
@@ -227,7 +263,10 @@ export default function CollectionsAssetListPage() {
 
       if (shopifyConnected) {
         const status = await shopifyApi.getSyncStatus(projectId);
-        const scope = await shopifyApi.getMissingScopes(projectId, 'collections_sync');
+        const scope = await shopifyApi.getMissingScopes(
+          projectId,
+          'collections_sync'
+        );
         setSyncStatus({
           lastCollectionsSyncAt: status.lastCollectionsSyncAt,
           shopifyConnected: true,
@@ -280,7 +319,7 @@ export default function CollectionsAssetListPage() {
     if (!projectId) {
       console.log('[Reconnect] No projectId');
       setReconnectError(
-        "We couldn't start Shopify reconnection because your project ID is missing. Please refresh and try again.",
+        "We couldn't start Shopify reconnection because your project ID is missing. Please refresh and try again."
       );
       setReconnecting(false);
       return;
@@ -289,7 +328,7 @@ export default function CollectionsAssetListPage() {
     if (!token) {
       console.log('[Reconnect] No token');
       setReconnectError(
-        "We couldn't start Shopify reconnection because your session token is missing. Please sign in again, then retry.",
+        "We couldn't start Shopify reconnection because your session token is missing. Please sign in again, then retry."
       );
       setReconnecting(false);
       return;
@@ -299,13 +338,18 @@ export default function CollectionsAssetListPage() {
       const result = await shopifyApi.getReconnectUrl(
         projectId,
         'collections_sync',
-        currentPathWithQuery,
+        currentPathWithQuery
       );
       console.log('[Reconnect] getReconnectUrl result:', result);
-      const url = result && typeof (result as any).url === 'string' ? (result as any).url : null;
+      const url =
+        result && typeof (result as any).url === 'string'
+          ? (result as any).url
+          : null;
       if (!url) {
         console.log('[Reconnect] No URL in result');
-        setReconnectError("We couldn't start Shopify reconnection. Please refresh and try again.");
+        setReconnectError(
+          "We couldn't start Shopify reconnection. Please refresh and try again."
+        );
         setReconnecting(false);
         return;
       }
@@ -381,8 +425,18 @@ export default function CollectionsAssetListPage() {
 
     for (const collection of collections) {
       // [DRAFT-LIST-PARITY-1] Build separate hrefs for asset detail and Issues Engine
-      const openHref = buildAssetWorkspaceHref(projectId, 'collections', collection.id, navContext);
-      const issuesHref = buildAssetIssuesHref(projectId, 'collections', collection.id, navContext);
+      const openHref = buildAssetWorkspaceHref(
+        projectId,
+        'collections',
+        collection.id,
+        navContext
+      );
+      const issuesHref = buildAssetIssuesHref(
+        projectId,
+        'collections',
+        collection.id,
+        navContext
+      );
 
       // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Pass server-derived blockedByApproval
       // [DRAFT-LIST-PARITY-1] Pass issuesHref for "View issues" + "Open" dual actions
@@ -396,7 +450,12 @@ export default function CollectionsAssetListPage() {
         fixNextHref: null, // Collections don't have deterministic "Fix next"
         openHref,
         issuesHref,
-        reviewDraftsHref: buildAssetDraftsTabHref(projectId, 'collections', collection.id, navContext),
+        reviewDraftsHref: buildAssetDraftsTabHref(
+          projectId,
+          'collections',
+          collection.id,
+          navContext
+        ),
       });
 
       map.set(collection.id, resolved);
@@ -424,8 +483,12 @@ export default function CollectionsAssetListPage() {
     return match ? match[1] : path;
   };
 
-  const criticalCount = collections.filter((c) => c.health === 'Critical').length;
-  const needsAttentionCount = collections.filter((c) => c.health === 'Needs Attention').length;
+  const criticalCount = collections.filter(
+    (c) => c.health === 'Critical'
+  ).length;
+  const needsAttentionCount = collections.filter(
+    (c) => c.health === 'Needs Attention'
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -435,7 +498,8 @@ export default function CollectionsAssetListPage() {
           {/* [SHOPIFY-ASSET-SYNC-COVERAGE-1] Label under heading */}
           <p className="text-xs text-gray-400 mt-0.5">Shopify Collections</p>
           <p className="mt-1 text-sm text-gray-500">
-            {collections.length} collections • {criticalCount} critical • {needsAttentionCount} need attention
+            {collections.length} collections • {criticalCount} critical •{' '}
+            {needsAttentionCount} need attention
           </p>
         </div>
         {/* [SHOPIFY-ASSET-SYNC-COVERAGE-1] Sync button (OWNER-only) */}
@@ -443,14 +507,32 @@ export default function CollectionsAssetListPage() {
         {capabilities?.canModifySettings && (
           <button
             onClick={handleSyncCollections}
-            disabled={syncing || !syncStatus.shopifyConnected || hasMissingScopes}
+            disabled={
+              syncing || !syncStatus.shopifyConnected || hasMissingScopes
+            }
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {syncing ? (
               <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
                 Syncing...
               </>
@@ -490,7 +572,10 @@ export default function CollectionsAssetListPage() {
       {syncStatus.shopifyConnected && (
         <div className="text-sm text-gray-500">
           {syncStatus.lastCollectionsSyncAt ? (
-            <>Last synced: {new Date(syncStatus.lastCollectionsSyncAt).toLocaleString()}</>
+            <>
+              Last synced:{' '}
+              {new Date(syncStatus.lastCollectionsSyncAt).toLocaleString()}
+            </>
           ) : (
             <>Not yet synced. Click Sync to import from Shopify.</>
           )}
@@ -508,9 +593,13 @@ export default function CollectionsAssetListPage() {
       {/* Uses normalized scope chips for explicit scope display */}
       <ScopeBanner
         from={fromParam}
-        returnTo={validatedReturnTo || `/projects/${projectId}/assets/collections`}
+        returnTo={
+          validatedReturnTo || `/projects/${projectId}/assets/collections`
+        }
         showingText={showingText}
-        onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/assets/collections`)}
+        onClearFiltersHref={buildClearFiltersHref(
+          `/projects/${projectId}/assets/collections`
+        )}
         chips={normalizedScopeResult.chips}
         wasAdjusted={normalizedScopeResult.wasAdjusted}
       />
@@ -518,9 +607,13 @@ export default function CollectionsAssetListPage() {
       {/* Filter indicator (from Work Queue click-through) */}
       {actionKeyFilter && (
         <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm text-blue-700">
-          <span>Filtered by: {actionKeyFilter.replace(/_/g, ' ').toLowerCase()}</span>
+          <span>
+            Filtered by: {actionKeyFilter.replace(/_/g, ' ').toLowerCase()}
+          </span>
           <button
-            onClick={() => router.push(`/projects/${projectId}/assets/collections`)}
+            onClick={() =>
+              router.push(`/projects/${projectId}/assets/collections`)
+            }
             className="font-medium underline"
           >
             Clear filter
@@ -565,10 +658,22 @@ export default function CollectionsAssetListPage() {
             hasActiveFilters ? (
               // [LIST-SEARCH-FILTER-1.1] Filtered empty state
               <div className="text-center py-12">
-                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
                 </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No collections match your filters.</h3>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                  No collections match your filters.
+                </h3>
                 <p className="mt-1 text-sm text-gray-500">
                   Try adjusting your search or filter criteria.
                 </p>
@@ -584,12 +689,17 @@ export default function CollectionsAssetListPage() {
             ) : (
               // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Unfiltered empty state - distinguish never synced vs synced but empty
               <div className="px-4 py-8 text-center text-sm text-gray-500">
-                {syncStatus.shopifyConnected && !syncStatus.lastCollectionsSyncAt ? (
+                {syncStatus.shopifyConnected &&
+                !syncStatus.lastCollectionsSyncAt ? (
                   <>
                     <p>Not yet synced.</p>
-                    <p className="mt-2">Click &quot;Sync Collections&quot; to import collections from Shopify.</p>
+                    <p className="mt-2">
+                      Click &quot;Sync Collections&quot; to import collections
+                      from Shopify.
+                    </p>
                   </>
-                ) : syncStatus.shopifyConnected && syncStatus.lastCollectionsSyncAt ? (
+                ) : syncStatus.shopifyConnected &&
+                  syncStatus.lastCollectionsSyncAt ? (
                   <p>No collections found in Shopify for this store.</p>
                 ) : (
                   <p>No collections found</p>
@@ -638,7 +748,9 @@ export default function CollectionsAssetListPage() {
                         </code>
                       </td>
                       <td className="max-w-xs truncate px-4 py-3 text-sm text-gray-900">
-                        {collection.title || <span className="italic text-gray-400">No title</span>}
+                        {collection.title || (
+                          <span className="italic text-gray-400">No title</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         {/* [LIST-ACTIONS-CLARITY-1] Use resolved actions */}
@@ -651,7 +763,12 @@ export default function CollectionsAssetListPage() {
                             {resolved.primaryAction.label}
                           </Link>
                         ) : resolved?.helpText ? (
-                          <span className="text-gray-500" data-testid="row-help-text">{resolved.helpText}</span>
+                          <span
+                            className="text-gray-500"
+                            data-testid="row-help-text"
+                          >
+                            {resolved.helpText}
+                          </span>
                         ) : (
                           <span className="text-gray-400">—</span>
                         )}

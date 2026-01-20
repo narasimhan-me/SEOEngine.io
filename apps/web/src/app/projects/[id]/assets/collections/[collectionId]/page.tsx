@@ -9,7 +9,12 @@
  */
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
+import {
+  useParams,
+  useSearchParams,
+  useRouter,
+  usePathname,
+} from 'next/navigation';
 import Link from 'next/link';
 
 import { isAuthenticated } from '@/lib/auth';
@@ -65,8 +70,12 @@ export default function CollectionDetailPage() {
       setError(null);
       try {
         // Fetch all collection pages and find the one matching collectionId
-        const collections = await projectsApi.crawlPages(projectId, { pageType: 'collection' });
-        const foundCollection = (collections as CollectionAsset[]).find((c: CollectionAsset) => c.id === collectionId);
+        const collections = await projectsApi.crawlPages(projectId, {
+          pageType: 'collection',
+        });
+        const foundCollection = (collections as CollectionAsset[]).find(
+          (c: CollectionAsset) => c.id === collectionId
+        );
         if (!foundCollection) {
           setError('Collection not found');
           setCollection(null);
@@ -74,8 +83,13 @@ export default function CollectionDetailPage() {
           setCollection(foundCollection);
         }
       } catch (err) {
-        console.error('[DRAFT-FIELD-COVERAGE-1] Failed to fetch collection:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load collection');
+        console.error(
+          '[DRAFT-FIELD-COVERAGE-1] Failed to fetch collection:',
+          err
+        );
+        setError(
+          err instanceof Error ? err.message : 'Failed to load collection'
+        );
       } finally {
         setLoading(false);
       }
@@ -87,16 +101,19 @@ export default function CollectionDetailPage() {
   /**
    * Switch tabs while preserving other URL params
    */
-  const handleTabChange = useCallback((newTab: CollectionDetailTab) => {
-    const newParams = new URLSearchParams(searchParams.toString());
-    if (newTab === 'overview') {
-      newParams.delete('tab');
-    } else {
-      newParams.set('tab', newTab);
-    }
-    const qs = newParams.toString();
-    router.push(`${pathname}${qs ? `?${qs}` : ''}`);
-  }, [router, pathname, searchParams]);
+  const handleTabChange = useCallback(
+    (newTab: CollectionDetailTab) => {
+      const newParams = new URLSearchParams(searchParams.toString());
+      if (newTab === 'overview') {
+        newParams.delete('tab');
+      } else {
+        newParams.set('tab', newTab);
+      }
+      const qs = newParams.toString();
+      router.push(`${pathname}${qs ? `?${qs}` : ''}`);
+    },
+    [router, pathname, searchParams]
+  );
 
   // Loading state
   if (loading) {
@@ -111,8 +128,12 @@ export default function CollectionDetailPage() {
   if (error || !collection) {
     return (
       <div className="rounded-lg border border-gray-200 bg-white p-8">
-        <h1 className="text-lg font-semibold text-gray-900 mb-4">Collection Not Found</h1>
-        <p className="text-gray-600 mb-4">{error || 'The requested collection could not be found.'}</p>
+        <h1 className="text-lg font-semibold text-gray-900 mb-4">
+          Collection Not Found
+        </h1>
+        <p className="text-gray-600 mb-4">
+          {error || 'The requested collection could not be found.'}
+        </p>
         <Link
           href={`/projects/${projectId}/assets/collections`}
           className="text-indigo-600 hover:text-indigo-800"
@@ -127,7 +148,8 @@ export default function CollectionDetailPage() {
   const urlPath = new URL(collection.url).pathname;
 
   // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Derive handle from Shopify field or URL path segment
-  const displayHandle = collection.shopifyHandle || urlPath.split('/').pop() || urlPath;
+  const displayHandle =
+    collection.shopifyHandle || urlPath.split('/').pop() || urlPath;
 
   // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Use Shopify updatedAt if present, otherwise scannedAt
   const displayUpdatedAt = collection.shopifyUpdatedAt || collection.scannedAt;
@@ -147,9 +169,19 @@ export default function CollectionDetailPage() {
         </h1>
         {/* [SHOPIFY-ASSET-SYNC-COVERAGE-1] Display handle and updated timestamp */}
         <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-gray-500">
-          <span>Handle: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">{displayHandle}</code></span>
+          <span>
+            Handle:{' '}
+            <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">
+              {displayHandle}
+            </code>
+          </span>
           <span className="text-gray-300">|</span>
-          <span>Updated: {displayUpdatedAt ? new Date(displayUpdatedAt).toLocaleString() : '-'}</span>
+          <span>
+            Updated:{' '}
+            {displayUpdatedAt
+              ? new Date(displayUpdatedAt).toLocaleString()
+              : '-'}
+          </span>
         </div>
         <p className="text-sm text-gray-400 mt-1">{collection.url}</p>
       </div>
@@ -185,14 +217,18 @@ export default function CollectionDetailPage() {
       {/* Tab Content */}
       {activeTab === 'overview' && (
         <section aria-label="Overview">
-          <h2 className="text-base font-semibold text-gray-900 mb-4">Collection Details</h2>
+          <h2 className="text-base font-semibold text-gray-900 mb-4">
+            Collection Details
+          </h2>
           <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-4">
             <div>
               <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
                 Title
               </div>
               <div className="text-gray-900">
-                {collection.title || <span className="italic text-gray-400">(empty)</span>}
+                {collection.title || (
+                  <span className="italic text-gray-400">(empty)</span>
+                )}
               </div>
             </div>
             <div>
@@ -200,7 +236,9 @@ export default function CollectionDetailPage() {
                 Meta Description
               </div>
               <div className="text-gray-900">
-                {collection.metaDescription || <span className="italic text-gray-400">(empty)</span>}
+                {collection.metaDescription || (
+                  <span className="italic text-gray-400">(empty)</span>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
@@ -208,13 +246,17 @@ export default function CollectionDetailPage() {
                 <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
                   Status Code
                 </div>
-                <div className="text-gray-900">{collection.statusCode ?? '-'}</div>
+                <div className="text-gray-900">
+                  {collection.statusCode ?? '-'}
+                </div>
               </div>
               <div>
                 <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
                   Word Count
                 </div>
-                <div className="text-gray-900">{collection.wordCount ?? '-'}</div>
+                <div className="text-gray-900">
+                  {collection.wordCount ?? '-'}
+                </div>
               </div>
               <div>
                 <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
@@ -227,7 +269,9 @@ export default function CollectionDetailPage() {
                   Last Scanned
                 </div>
                 <div className="text-gray-900">
-                  {collection.scannedAt ? new Date(collection.scannedAt).toLocaleDateString() : '-'}
+                  {collection.scannedAt
+                    ? new Date(collection.scannedAt).toLocaleDateString()
+                    : '-'}
                 </div>
               </div>
             </div>

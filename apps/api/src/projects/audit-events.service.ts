@@ -1,4 +1,8 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { GovernanceAuditEventType, Prisma } from '@prisma/client';
 import { RoleResolutionService } from '../common/role-resolution.service';
@@ -57,7 +61,7 @@ const FORBIDDEN_METADATA_KEYS = [
 export class AuditEventsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   /**
@@ -70,7 +74,7 @@ export class AuditEventsService {
     eventType: GovernanceAuditEventType,
     resourceType?: string,
     resourceId?: string,
-    metadata?: Record<string, unknown>,
+    metadata?: Record<string, unknown>
   ): Promise<AuditEventResponse> {
     // Sanitize metadata to prevent accidental secret storage
     const sanitizedMetadata = metadata
@@ -103,7 +107,7 @@ export class AuditEventsService {
       page?: number;
       pageSize?: number;
       eventType?: GovernanceAuditEventType;
-    } = {},
+    } = {}
   ): Promise<AuditEventListResponse> {
     // [ROLES-3] Verify membership (any role can view)
     await this.roleResolution.assertProjectAccess(projectId, userId);
@@ -144,7 +148,7 @@ export class AuditEventsService {
     projectId: string,
     actorUserId: string,
     oldValues: Record<string, unknown>,
-    newValues: Record<string, unknown>,
+    newValues: Record<string, unknown>
   ): Promise<AuditEventResponse> {
     return this.writeEvent(
       projectId,
@@ -152,7 +156,7 @@ export class AuditEventsService {
       'POLICY_CHANGED',
       'POLICY',
       projectId,
-      { oldValues, newValues },
+      { oldValues, newValues }
     );
   }
 
@@ -161,7 +165,7 @@ export class AuditEventsService {
     actorUserId: string,
     resourceType: string,
     resourceId: string,
-    approvalId: string,
+    approvalId: string
   ): Promise<AuditEventResponse> {
     return this.writeEvent(
       projectId,
@@ -169,7 +173,7 @@ export class AuditEventsService {
       'APPROVAL_REQUESTED',
       resourceType,
       resourceId,
-      { approvalId },
+      { approvalId }
     );
   }
 
@@ -179,7 +183,7 @@ export class AuditEventsService {
     resourceType: string,
     resourceId: string,
     approvalId: string,
-    reason?: string,
+    reason?: string
   ): Promise<AuditEventResponse> {
     return this.writeEvent(
       projectId,
@@ -187,7 +191,7 @@ export class AuditEventsService {
       'APPROVAL_APPROVED',
       resourceType,
       resourceId,
-      { approvalId, reason },
+      { approvalId, reason }
     );
   }
 
@@ -197,7 +201,7 @@ export class AuditEventsService {
     resourceType: string,
     resourceId: string,
     approvalId: string,
-    reason?: string,
+    reason?: string
   ): Promise<AuditEventResponse> {
     return this.writeEvent(
       projectId,
@@ -205,7 +209,7 @@ export class AuditEventsService {
       'APPROVAL_REJECTED',
       resourceType,
       resourceId,
-      { approvalId, reason },
+      { approvalId, reason }
     );
   }
 
@@ -214,7 +218,7 @@ export class AuditEventsService {
     actorUserId: string,
     resourceType: string,
     resourceId: string,
-    additionalMetadata?: Record<string, unknown>,
+    additionalMetadata?: Record<string, unknown>
   ): Promise<AuditEventResponse> {
     return this.writeEvent(
       projectId,
@@ -222,7 +226,7 @@ export class AuditEventsService {
       'APPLY_EXECUTED',
       resourceType,
       resourceId,
-      additionalMetadata,
+      additionalMetadata
     );
   }
 
@@ -232,7 +236,7 @@ export class AuditEventsService {
     linkId: string,
     audience: string,
     expiryDays: number,
-    passcodeLast4?: string,
+    passcodeLast4?: string
   ): Promise<AuditEventResponse> {
     return this.writeEvent(
       projectId,
@@ -245,41 +249,47 @@ export class AuditEventsService {
         expiryDays,
         // Only store last4 hint, never the actual passcode
         ...(passcodeLast4 && { passcodeLast4 }),
-      },
+      }
     );
   }
 
   async logShareLinkRevoked(
     projectId: string,
     actorUserId: string,
-    linkId: string,
+    linkId: string
   ): Promise<AuditEventResponse> {
     return this.writeEvent(
       projectId,
       actorUserId,
       'SHARE_LINK_REVOKED',
       'SHARE_LINK',
-      linkId,
+      linkId
     );
   }
 
   /**
    * Sanitize metadata to remove any potential secrets
    */
-  private sanitizeMetadata(metadata: Record<string, unknown>): Record<string, unknown> {
+  private sanitizeMetadata(
+    metadata: Record<string, unknown>
+  ): Record<string, unknown> {
     const sanitized: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(metadata)) {
       // Skip forbidden keys
-      if (FORBIDDEN_METADATA_KEYS.some((forbidden) =>
-        key.toLowerCase().includes(forbidden.toLowerCase())
-      )) {
+      if (
+        FORBIDDEN_METADATA_KEYS.some((forbidden) =>
+          key.toLowerCase().includes(forbidden.toLowerCase())
+        )
+      ) {
         continue;
       }
 
       // Recursively sanitize nested objects
       if (value && typeof value === 'object' && !Array.isArray(value)) {
-        sanitized[key] = this.sanitizeMetadata(value as Record<string, unknown>);
+        sanitized[key] = this.sanitizeMetadata(
+          value as Record<string, unknown>
+        );
       } else {
         sanitized[key] = value;
       }

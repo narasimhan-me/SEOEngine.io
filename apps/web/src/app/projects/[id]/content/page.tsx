@@ -13,7 +13,9 @@ import { getContentStatus } from '@/lib/content';
 import { ContentRow } from '@/components/content/ContentRow';
 import { GuardedLink } from '@/components/navigation/GuardedLink';
 
-const CONTENT_PILLAR = DEO_PILLARS.find((p) => p.id === 'content_commerce_signals')!;
+const CONTENT_PILLAR = DEO_PILLARS.find(
+  (p) => p.id === 'content_commerce_signals'
+)!;
 
 type StatusFilter = 'all' | ContentStatus;
 type PageTypeFilter = 'all' | PageType;
@@ -50,7 +52,9 @@ export default function ContentListPage() {
       setDeoIssues((issuesResponse.issues as DeoIssue[]) ?? []);
     } catch (err) {
       console.error('Error fetching content pages:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load content pages');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load content pages'
+      );
     } finally {
       setLoading(false);
     }
@@ -66,7 +70,10 @@ export default function ContentListPage() {
 
   // Build a map of issues by page URL for quick lookup
   const issuesByPageUrl = useMemo(() => {
-    const map = new Map<string, { count: number; maxSeverity: DeoIssueSeverity | null }>();
+    const map = new Map<
+      string,
+      { count: number; maxSeverity: DeoIssueSeverity | null }
+    >();
 
     for (const issue of deoIssues) {
       for (const affectedUrl of issue.affectedPages ?? []) {
@@ -109,9 +116,9 @@ export default function ContentListPage() {
           'missing-metadata': 0,
           'thin-content': 0,
           error: 0,
-        } as Record<StatusFilter, number>,
+        } as Record<StatusFilter, number>
       ),
-    [pages],
+    [pages]
   );
 
   // Calculate page type counts
@@ -130,9 +137,9 @@ export default function ContentListPage() {
           blog: 0,
           static: 0,
           misc: 0,
-        } as Record<PageTypeFilter, number>,
+        } as Record<PageTypeFilter, number>
       ),
-    [pages],
+    [pages]
   );
 
   // Filter pages
@@ -140,7 +147,8 @@ export default function ContentListPage() {
     return pages.filter((page) => {
       const status = getContentStatus(page);
       const matchesStatus = statusFilter === 'all' || status === statusFilter;
-      const matchesPageType = pageTypeFilter === 'all' || page.pageType === pageTypeFilter;
+      const matchesPageType =
+        pageTypeFilter === 'all' || page.pageType === pageTypeFilter;
       return matchesStatus && matchesPageType;
     });
   }, [pages, statusFilter, pageTypeFilter]);
@@ -174,7 +182,10 @@ export default function ContentListPage() {
         <div className="rounded-lg border border-gray-200 bg-white">
           <div className="space-y-3 p-4">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-16 animate-pulse rounded-lg bg-gray-100" />
+              <div
+                key={i}
+                className="h-16 animate-pulse rounded-lg bg-gray-100"
+              />
             ))}
           </div>
         </div>
@@ -217,7 +228,9 @@ export default function ContentListPage() {
               {projectName}
             </Link>
             <span className="text-gray-300">/</span>
-            <h1 className="text-2xl font-bold text-gray-900">{CONTENT_PILLAR.label}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {CONTENT_PILLAR.label}
+            </h1>
           </div>
           <p className="mt-1 text-sm text-gray-500">
             {CONTENT_PILLAR.description}
@@ -230,9 +243,12 @@ export default function ContentListPage() {
         <h3 className="text-sm font-semibold text-gray-900">
           About this DEO Pillar
         </h3>
-        <p className="mt-2 text-sm text-gray-600">{CONTENT_PILLAR.whyItMatters}</p>
+        <p className="mt-2 text-sm text-gray-600">
+          {CONTENT_PILLAR.whyItMatters}
+        </p>
         <p className="mt-3 text-xs text-gray-500">
-          Content-related DEO issues are tracked under this pillar. View them in the{' '}
+          Content-related DEO issues are tracked under this pillar. View them in
+          the{' '}
           <GuardedLink
             href={`/projects/${projectId}/issues?pillar=content_commerce_signals`}
             className="font-medium text-blue-600 hover:underline"
@@ -277,7 +293,9 @@ export default function ContentListPage() {
           <div className="flex items-center gap-3">
             <select
               value={pageTypeFilter}
-              onChange={(e) => setPageTypeFilter(e.target.value as PageTypeFilter)}
+              onChange={(e) =>
+                setPageTypeFilter(e.target.value as PageTypeFilter)
+              }
               className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
             >
               {pageTypeFilters.map(({ id, label }) => (
@@ -308,7 +326,9 @@ export default function ContentListPage() {
                 d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
               />
             </svg>
-            <h3 className="mt-4 text-sm font-medium text-gray-900">No content pages found</h3>
+            <h3 className="mt-4 text-sm font-medium text-gray-900">
+              No content pages found
+            </h3>
             <p className="mt-2 text-sm text-gray-500">
               No non-product pages have been crawled yet for this project.
             </p>

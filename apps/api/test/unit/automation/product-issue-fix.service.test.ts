@@ -1,7 +1,4 @@
-import {
-  ForbiddenException,
-  HttpException,
-} from '@nestjs/common';
+import { ForbiddenException, HttpException } from '@nestjs/common';
 import { EntitlementsService } from '../../../src/billing/entitlements.service';
 import { ProductIssueFixService } from '../../../src/ai/product-issue-fix.service';
 import { RoleResolutionService } from '../../../src/common/role-resolution.service';
@@ -10,9 +7,7 @@ import {
   disconnectTestDb,
   testPrisma,
 } from '../../utils/test-db';
-import {
-  shopifyProductMissingSeo,
-} from '../../fixtures/shopify-product.fixtures';
+import { shopifyProductMissingSeo } from '../../fixtures/shopify-product.fixtures';
 
 describe('ProductIssueFixService – Issue Engine Lite AI fixes', () => {
   let entitlementsService: EntitlementsService;
@@ -31,7 +26,7 @@ describe('ProductIssueFixService – Issue Engine Lite AI fixes', () => {
       prisma,
       aiServiceStub as any,
       entitlementsService,
-      roleResolutionService,
+      roleResolutionService
     );
   });
 
@@ -45,7 +40,9 @@ describe('ProductIssueFixService – Issue Engine Lite AI fixes', () => {
     aiServiceStub.generateMetadata.mockReset();
   });
 
-  async function createUserProjectAndProduct(plan: 'free' | 'pro' | 'business') {
+  async function createUserProjectAndProduct(
+    plan: 'free' | 'pro' | 'business'
+  ) {
     const user = await testPrisma.user.create({
       data: {
         email: `issue-fix-${plan}-${Date.now()}@example.com`,
@@ -130,7 +127,7 @@ describe('ProductIssueFixService – Issue Engine Lite AI fixes', () => {
         userId: otherUser.id,
         productId: product.id,
         issueType: 'missing_seo_title',
-      }),
+      })
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(aiServiceStub.generateMetadata).not.toHaveBeenCalled();
   });
@@ -144,14 +141,13 @@ describe('ProductIssueFixService – Issue Engine Lite AI fixes', () => {
         userId: freeUser.id,
         productId: freeProduct.id,
         issueType: 'missing_seo_title',
-      }),
+      })
     ).rejects.toBeInstanceOf(ForbiddenException);
     expect(aiServiceStub.generateMetadata).not.toHaveBeenCalled();
   });
 
   it('propagates AI daily limit errors from EntitlementsService', async () => {
-    const { user, project, product } =
-      await createUserProjectAndProduct('pro');
+    const { user, project, product } = await createUserProjectAndProduct('pro');
 
     const entitlementsStub = {
       getUserPlan: jest.fn().mockResolvedValue('pro'),
@@ -167,8 +163,8 @@ describe('ProductIssueFixService – Issue Engine Lite AI fixes', () => {
             allowed: 5,
             current: 5,
           },
-          429,
-        ),
+          429
+        )
       ),
       recordAiUsage: jest.fn(),
     };
@@ -178,7 +174,7 @@ describe('ProductIssueFixService – Issue Engine Lite AI fixes', () => {
       testPrisma as any,
       aiServiceStub as any,
       entitlementsStub as any,
-      roleResolutionStub,
+      roleResolutionStub
     );
 
     await expect(
@@ -186,13 +182,13 @@ describe('ProductIssueFixService – Issue Engine Lite AI fixes', () => {
         userId: user.id,
         productId: product.id,
         issueType: 'missing_seo_title',
-      }),
+      })
     ).rejects.toBeInstanceOf(HttpException);
 
     expect(entitlementsStub.ensureWithinDailyAiLimit).toHaveBeenCalledWith(
       user.id,
       project.id,
-      'product_optimize',
+      'product_optimize'
     );
     expect(aiServiceStub.generateMetadata).not.toHaveBeenCalled();
   });

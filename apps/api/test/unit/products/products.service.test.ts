@@ -47,7 +47,9 @@ const createDeoIssuesServiceMock = () => ({
 describe('ProductsService', () => {
   let service: ProductsService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
-  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
+  let roleResolutionServiceMock: ReturnType<
+    typeof createRoleResolutionServiceMock
+  >;
   let deoIssuesServiceMock: ReturnType<typeof createDeoIssuesServiceMock>;
 
   beforeEach(() => {
@@ -57,7 +59,7 @@ describe('ProductsService', () => {
     service = new ProductsService(
       prismaMock as unknown as PrismaService,
       roleResolutionServiceMock as unknown as RoleResolutionService,
-      deoIssuesServiceMock as any,
+      deoIssuesServiceMock as any
     );
   });
 
@@ -114,7 +116,9 @@ describe('ProductsService', () => {
         detectedIssueCount: 0,
         blockedByApproval: false,
       });
-      expect(roleResolutionServiceMock.assertProjectAccess).toHaveBeenCalledWith('proj-1', 'user-1');
+      expect(
+        roleResolutionServiceMock.assertProjectAccess
+      ).toHaveBeenCalledWith('proj-1', 'user-1');
       expect(prismaMock.product.findMany).toHaveBeenCalledWith({
         where: { projectId: 'proj-1' },
         orderBy: { lastSyncedAt: 'desc' },
@@ -135,12 +139,12 @@ describe('ProductsService', () => {
     it('should throw NotFoundException when project does not exist', async () => {
       prismaMock.project.findUnique.mockResolvedValue(null);
       roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
-        new NotFoundException('Project not found'),
+        new NotFoundException('Project not found')
       );
 
-      await expect(service.getProductsForProject('proj-1', 'user-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.getProductsForProject('proj-1', 'user-1')
+      ).rejects.toThrow(NotFoundException);
       expect(prismaMock.product.findMany).not.toHaveBeenCalled();
     });
 
@@ -153,12 +157,12 @@ describe('ProductsService', () => {
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
       roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
-        new ForbiddenException('You do not have access to this project'),
+        new ForbiddenException('You do not have access to this project')
       );
 
-      await expect(service.getProductsForProject('proj-1', 'user-1')).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.getProductsForProject('proj-1', 'user-1')
+      ).rejects.toThrow(ForbiddenException);
       expect(prismaMock.product.findMany).not.toHaveBeenCalled();
     });
   });
@@ -193,7 +197,9 @@ describe('ProductsService', () => {
     it('should throw NotFoundException when product does not exist', async () => {
       prismaMock.product.findUnique.mockResolvedValue(null);
 
-      await expect(service.getProduct('prod-1', 'user-1')).rejects.toThrow(NotFoundException);
+      await expect(service.getProduct('prod-1', 'user-1')).rejects.toThrow(
+        NotFoundException
+      );
     });
 
     it('should throw ForbiddenException when user does not own the project', async () => {
@@ -207,11 +213,12 @@ describe('ProductsService', () => {
 
       prismaMock.product.findUnique.mockResolvedValue(mockProduct);
       roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
-        new ForbiddenException('You do not have access to this project'),
+        new ForbiddenException('You do not have access to this project')
       );
 
-      await expect(service.getProduct('prod-1', 'user-1')).rejects.toThrow(ForbiddenException);
+      await expect(service.getProduct('prod-1', 'user-1')).rejects.toThrow(
+        ForbiddenException
+      );
     });
   });
 });
-

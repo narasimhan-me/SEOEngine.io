@@ -3,6 +3,7 @@
 ## ✅ Linting Errors Fixed
 
 I've fixed the linting errors in:
+
 - `apps/api/src/admin/admin.service.ts` - Removed unused `BadRequestException` import
 - `apps/api/src/projects/answer-engine.service.ts` - Prefixed unused `missingCount` parameter with `_`
 - `apps/api/src/projects/deo-issues.service.ts` - Prefixed unused `signals` parameter with `_`
@@ -14,6 +15,7 @@ I've fixed the linting errors in:
 ### Step 1: Open Terminal
 
 Open your terminal and navigate to the project:
+
 ```bash
 cd /Users/lavanya/engineo/EngineO.ai
 ```
@@ -26,6 +28,7 @@ git checkout -b feature/Lavanya
 ```
 
 If the branch already exists, you'll see:
+
 ```
 Switched to branch 'feature/Lavanya'
 ```
@@ -43,6 +46,7 @@ git status
 ```
 
 You should see files like:
+
 - `apps/api/jest.unit.config.ts` (new)
 - `apps/api/jest.critical-integration.config.ts` (new)
 - `.husky/pre-commit` (new)
@@ -57,6 +61,7 @@ You should see files like:
 ### Step 5: Commit
 
 The pre-commit hook will run automatically. It will:
+
 1. Run ESLint on source files ✅ (should pass now)
 2. Run TypeScript type checks
 3. Run unit tests
@@ -88,6 +93,7 @@ Push Gate:
 If the pre-commit hook fails, you'll see error messages. Common issues:
 
 **TypeScript errors:**
+
 ```bash
 cd apps/api
 pnpm exec tsc --noEmit
@@ -95,12 +101,14 @@ pnpm exec tsc --noEmit
 ```
 
 **Unit test failures:**
+
 ```bash
 pnpm test:unit
 # Fix any failing tests
 ```
 
 Then retry the commit:
+
 ```bash
 git add -A
 git commit -m "feat: Add commit gate and push gate infrastructure"
@@ -120,6 +128,7 @@ git status
 ```
 
 You should see:
+
 - Latest commit shows your commit message
 - Current branch is `feature/Lavanya`
 - `git status` shows "nothing to commit, working tree clean"
@@ -131,6 +140,7 @@ git push origin feature/Lavanya
 ```
 
 **Note:** The pre-push hook will run automatically and will:
+
 1. Run linting
 2. Run formatting check
 3. Run TypeScript type checks
@@ -144,6 +154,7 @@ If any of these fail, the push will be blocked. Fix the issues and retry.
 ### If Commit Still Fails
 
 **Option 1: Skip Pre-commit Hook (Not Recommended)**
+
 ```bash
 git commit --no-verify -m "feat: Add commit gate and push gate infrastructure"
 ```
@@ -151,6 +162,7 @@ git commit --no-verify -m "feat: Add commit gate and push gate infrastructure"
 ⚠️ **Warning:** This bypasses all safety checks. Only use for WIP commits.
 
 **Option 2: Check What's Failing**
+
 ```bash
 # Run linting manually
 cd apps/api
@@ -174,4 +186,3 @@ Fix any errors, then retry the commit.
 ✅ **Pre-push hook configured**
 
 **Next:** Run the commit command in your terminal. The pre-commit hook will automatically validate your code before allowing the commit.
-

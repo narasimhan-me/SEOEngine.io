@@ -93,13 +93,13 @@ export class AccountController {
   @Put('preferences')
   async updatePreferences(
     @Request() req: any,
-    @Body() dto: UpdatePreferencesDto,
+    @Body() dto: UpdatePreferencesDto
   ) {
     this.validateNotReadOnlyImpersonation(req.user);
     return this.accountService.updatePreferences(
       req.user.id,
       dto,
-      req.user.accountRole,
+      req.user.accountRole
     );
   }
 
@@ -140,13 +140,13 @@ export class AccountController {
   @Post('stores/:projectId/disconnect')
   async disconnectStore(
     @Request() req: any,
-    @Param('projectId') projectId: string,
+    @Param('projectId') projectId: string
   ) {
     this.validateNotReadOnlyImpersonation(req.user);
     return this.accountService.disconnectStore(
       req.user.id,
       projectId,
-      req.user.accountRole,
+      req.user.accountRole
     );
   }
 

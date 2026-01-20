@@ -45,7 +45,9 @@ export function DraftAiBoundaryNote({ mode }: DraftAiBoundaryNoteProps) {
         <span>
           <strong>Review &amp; edit (no AI on this step)</strong>
           <span className="hidden sm:inline">
-            {' '}— AI may have been used earlier to generate drafts. Editing and approval are manual.
+            {' '}
+            — AI may have been used earlier to generate drafts. Editing and
+            approval are manual.
           </span>
         </span>
       </div>

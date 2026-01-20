@@ -13,7 +13,8 @@ export function PricingHero() {
           DEO plans that grow with your business
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          Optimize your site for search and AI discovery. Reuse saves AI runs. Apply is always free.
+          Optimize your site for search and AI discovery. Reuse saves AI runs.
+          Apply is always free.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <Link

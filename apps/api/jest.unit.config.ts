@@ -46,7 +46,11 @@ const config: Config = {
     '^@nestjs/(.*)$': '<rootDir>/apps/api/node_modules/@nestjs/$1',
   },
   // Resolve modules from both root and apps/api node_modules (pnpm workspace)
-  moduleDirectories: ['node_modules', '<rootDir>/node_modules', '<rootDir>/apps/api/node_modules'],
+  moduleDirectories: [
+    'node_modules',
+    '<rootDir>/node_modules',
+    '<rootDir>/apps/api/node_modules',
+  ],
   // Display test names for better visibility
   verbose: true,
   // Tag for CI/CD: unit tests
@@ -54,4 +58,3 @@ const config: Config = {
 };
 
 export default config;
-

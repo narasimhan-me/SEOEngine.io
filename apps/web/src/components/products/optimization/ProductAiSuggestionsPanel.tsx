@@ -47,7 +47,8 @@ export function ProductAiSuggestionsPanel({
   // Check if we have a valid automation suggestion
   const hasAutomationSuggestion =
     automationSuggestion &&
-    (automationSuggestion.suggestedTitle || automationSuggestion.suggestedDescription);
+    (automationSuggestion.suggestedTitle ||
+      automationSuggestion.suggestedDescription);
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -65,7 +66,9 @@ export function ProductAiSuggestionsPanel({
             d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
           />
         </svg>
-        <h3 className="text-sm font-semibold text-gray-900">AI SEO Suggestions</h3>
+        <h3 className="text-sm font-semibold text-gray-900">
+          AI SEO Suggestions
+        </h3>
       </div>
 
       {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Corrected inline guidance */}
@@ -74,7 +77,10 @@ export function ProductAiSuggestionsPanel({
         <ul className="list-disc list-inside space-y-0.5">
           <li>Generate creates suggestions (uses AI)</li>
           <li>Click &quot;Add to draft&quot; to stage changes (not applied)</li>
-          <li>Save draft enables Apply; Apply uses saved drafts only and does not auto-save or use AI</li>
+          <li>
+            Save draft enables Apply; Apply uses saved drafts only and does not
+            auto-save or use AI
+          </li>
         </ul>
       </div>
 
@@ -100,7 +106,9 @@ export function ProductAiSuggestionsPanel({
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
-          <p className="mt-2 text-sm text-gray-500">Generating suggestions...</p>
+          <p className="mt-2 text-sm text-gray-500">
+            Generating suggestions...
+          </p>
         </div>
       )}
 
@@ -123,16 +131,29 @@ export function ProductAiSuggestionsPanel({
               />
             </svg>
             <span className="text-xs font-medium text-green-700">
-              Auto-generated suggestion ({automationSuggestion!.issueType === 'missing_metadata' ? 'Missing Metadata' : 'Thin Content'})
+              Auto-generated suggestion (
+              {automationSuggestion!.issueType === 'missing_metadata'
+                ? 'Missing Metadata'
+                : 'Thin Content'}
+              )
             </span>
-            {automationSuggestion!.applied && automationSuggestion!.appliedAt && (
-              <span className="ml-auto inline-flex items-center gap-1 rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                Applied by Automation Engine
-              </span>
-            )}
+            {automationSuggestion!.applied &&
+              automationSuggestion!.appliedAt && (
+                <span className="ml-auto inline-flex items-center gap-1 rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                  <svg
+                    className="h-3 w-3"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Applied by Automation Engine
+                </span>
+              )}
           </div>
 
           {/* Suggested title */}
@@ -149,10 +170,14 @@ export function ProductAiSuggestionsPanel({
                 </span>
               </div>
               <div className="rounded border border-green-200 bg-green-50 px-3 py-2">
-                <p className="text-sm text-gray-900">{automationSuggestion!.suggestedTitle}</p>
+                <p className="text-sm text-gray-900">
+                  {automationSuggestion!.suggestedTitle}
+                </p>
               </div>
               <button
-                onClick={() => onApply({ title: automationSuggestion!.suggestedTitle! })}
+                onClick={() =>
+                  onApply({ title: automationSuggestion!.suggestedTitle! })
+                }
                 className="mt-2 text-xs font-medium text-green-600 hover:text-green-800"
               >
                 Add to draft
@@ -174,10 +199,16 @@ export function ProductAiSuggestionsPanel({
                 </span>
               </div>
               <div className="rounded border border-green-200 bg-green-50 px-3 py-2">
-                <p className="text-sm text-gray-900">{automationSuggestion!.suggestedDescription}</p>
+                <p className="text-sm text-gray-900">
+                  {automationSuggestion!.suggestedDescription}
+                </p>
               </div>
               <button
-                onClick={() => onApply({ description: automationSuggestion!.suggestedDescription! })}
+                onClick={() =>
+                  onApply({
+                    description: automationSuggestion!.suggestedDescription!,
+                  })
+                }
                 className="mt-2 text-xs font-medium text-green-600 hover:text-green-800"
               >
                 Add to draft
@@ -214,7 +245,8 @@ export function ProductAiSuggestionsPanel({
       {!loading && !suggestion && !hasAutomationSuggestion && (
         <div className="flex flex-col items-center justify-center py-6">
           <p className="mb-4 text-center text-sm text-gray-500">
-            Generate AI-powered SEO suggestions for this product&apos;s title and description.
+            Generate AI-powered SEO suggestions for this product&apos;s title
+            and description.
           </p>
           <button
             onClick={onGenerate}
@@ -256,9 +288,12 @@ export function ProductAiSuggestionsPanel({
               />
             </svg>
           </div>
-          <h4 className="mb-2 text-sm font-medium text-gray-900">AI suggestions unavailable</h4>
+          <h4 className="mb-2 text-sm font-medium text-gray-900">
+            AI suggestions unavailable
+          </h4>
           <p className="mb-4 max-w-xs text-center text-sm text-gray-500">
-            The AI service is currently unavailable. You can still edit the SEO fields manually below, or try again later.
+            The AI service is currently unavailable. You can still edit the SEO
+            fields manually below, or try again later.
           </p>
           <button
             onClick={onGenerate}
@@ -298,7 +333,9 @@ export function ProductAiSuggestionsPanel({
               </span>
             </div>
             <div className="rounded border border-purple-200 bg-purple-50 px-3 py-2">
-              <p className="text-sm text-gray-900">{suggestion.suggested.title}</p>
+              <p className="text-sm text-gray-900">
+                {suggestion.suggested.title}
+              </p>
             </div>
             <button
               onClick={() => onApply({ title: suggestion.suggested.title })}
@@ -321,10 +358,14 @@ export function ProductAiSuggestionsPanel({
               </span>
             </div>
             <div className="rounded border border-purple-200 bg-purple-50 px-3 py-2">
-              <p className="text-sm text-gray-900">{suggestion.suggested.description}</p>
+              <p className="text-sm text-gray-900">
+                {suggestion.suggested.description}
+              </p>
             </div>
             <button
-              onClick={() => onApply({ description: suggestion.suggested.description })}
+              onClick={() =>
+                onApply({ description: suggestion.suggested.description })
+              }
               className="mt-2 text-xs font-medium text-purple-600 hover:text-purple-800"
             >
               Add to draft

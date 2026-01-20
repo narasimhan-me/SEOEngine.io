@@ -5,7 +5,7 @@ import { AutomationService } from '../../src/projects/automation.service';
 import { AutomationIssueType, AutomationTargetType } from '@prisma/client';
 
 async function createUserAndProject(
-  prisma: typeof testPrisma,
+  prisma: typeof testPrisma
 ): Promise<{ userId: string; projectId: string }> {
   const user = await prisma.user.create({
     data: {
@@ -66,7 +66,7 @@ describe('Automation New Product SEO Title (e2e)', () => {
       await automationService.runNewProductSeoTitleAutomation(
         projectId,
         product.id,
-        userId,
+        userId
       );
 
       // Verify AutomationSuggestion was created
@@ -104,7 +104,7 @@ describe('Automation New Product SEO Title (e2e)', () => {
       await automationService.runNewProductSeoTitleAutomation(
         projectId,
         product.id,
-        userId,
+        userId
       );
 
       // Verify no AutomationSuggestion was created
@@ -137,7 +137,7 @@ describe('Automation New Product SEO Title (e2e)', () => {
       await automationService.runNewProductSeoTitleAutomation(
         projectId,
         product.id,
-        userId,
+        userId
       );
 
       // Verify AI usage was recorded
@@ -183,7 +183,7 @@ describe('Automation New Product SEO Title (e2e)', () => {
       await automationService.runNewProductSeoTitleAutomation(
         projectId,
         product.id,
-        userId,
+        userId
       );
 
       // Verify AutomationSuggestion was created AND applied
@@ -220,7 +220,8 @@ describe('Automation New Product SEO Title (e2e)', () => {
           projectId,
           externalId: 'shopify-free-123',
           title: 'Basic Cotton T-Shirt',
-          description: 'Simple and comfortable cotton t-shirt. Available in multiple colors.',
+          description:
+            'Simple and comfortable cotton t-shirt. Available in multiple colors.',
         },
       });
 
@@ -228,7 +229,7 @@ describe('Automation New Product SEO Title (e2e)', () => {
       await automationService.runNewProductSeoTitleAutomation(
         projectId,
         product.id,
-        userId,
+        userId
       );
 
       // Verify AutomationSuggestion was created but NOT applied
@@ -262,8 +263,8 @@ describe('Automation New Product SEO Title (e2e)', () => {
         automationService.runNewProductSeoTitleAutomation(
           projectId,
           'non-existent-product-id',
-          userId,
-        ),
+          userId
+        )
       ).resolves.not.toThrow();
 
       // Verify no suggestion was created

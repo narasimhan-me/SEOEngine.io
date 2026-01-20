@@ -14,11 +14,11 @@ Competitive gaps are areas where your product page lacks content that similar pr
 
 ### Gap Types
 
-| Gap Type | Description | Example |
-|----------|-------------|---------|
-| **Intent Gap** | Missing coverage for a search intent that competitors typically address | "Similar products answer 'Is this good for beginners?' — your page does not" |
-| **Content Section Gap** | Missing a content section that's standard in your category | "No comparison section explaining why to choose this product over alternatives" |
-| **Trust Signal Gap** | Missing trust-building content that competitors provide | "No FAQ addressing common purchase concerns" |
+| Gap Type                | Description                                                             | Example                                                                         |
+| ----------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| **Intent Gap**          | Missing coverage for a search intent that competitors typically address | "Similar products answer 'Is this good for beginners?' — your page does not"    |
+| **Content Section Gap** | Missing a content section that's standard in your category              | "No comparison section explaining why to choose this product over alternatives" |
+| **Trust Signal Gap**    | Missing trust-building content that competitors provide                 | "No FAQ addressing common purchase concerns"                                    |
 
 ---
 
@@ -32,6 +32,7 @@ For v1, competitors are identified through:
 2. **Merchant Configuration** — Merchants can optionally configure specific competitor references
 
 **Important:** We do NOT:
+
 - Scrape competitor websites
 - Track competitor prices or inventory
 - Copy or store any competitor content
@@ -40,6 +41,7 @@ For v1, competitors are identified through:
 ### Competitor References
 
 Each product can have up to **3 competitor references** stored. These contain only:
+
 - Display name (e.g., "Leading Brand A")
 - Optional logo URL (if merchant-provided)
 - Optional homepage URL (for reference only)
@@ -54,7 +56,9 @@ Each product can have up to **3 competitor references** stored. These contain on
 The competitive coverage analysis evaluates three dimensions:
 
 #### 1. Intent Coverage (from SEARCH-INTENT-1)
+
 Reuses the Search Intent taxonomy to identify intent gaps:
+
 - **Transactional** — Buy, price, order queries
 - **Comparative** — vs, alternatives, best queries
 - **Problem/Use Case** — for beginners, how to use queries
@@ -62,14 +66,18 @@ Reuses the Search Intent taxonomy to identify intent gaps:
 - **Informational** — what is, how it works queries
 
 #### 2. Content Sections
+
 Detects presence/absence of key content sections:
+
 - Comparison section ("Which product is right for me?")
 - "Why choose this product" section
 - Buying guide or usage guidance
 - Feature highlights with benefits
 
 #### 3. Trust Signals
+
 Analyzes trust-building content:
+
 - FAQ/Answer Blocks coverage
 - Satisfaction guarantee mentions
 - Reviews or testimonials sections
@@ -79,6 +87,7 @@ Analyzes trust-building content:
 
 **Per-Product Competitive Score (0-100):**
 Weighted average of coverage areas where:
+
 - High-value intents (transactional, comparative) weight more heavily
 - Areas where multiple competitors are expected to have coverage weight more
 
@@ -95,11 +104,11 @@ Weighted average of coverage areas where:
 
 ### Issue Types
 
-| Issue ID | Description | Severity Factors |
-|----------|-------------|------------------|
-| `competitive_missing_intent` | Missing intent coverage that competitors likely have | Intent importance + competitor count |
-| `competitive_missing_section` | Missing content section standard in category | Section importance + competitor count |
-| `competitive_missing_trust_signal` | Missing trust-building content | Trust signal type + competitor count |
+| Issue ID                           | Description                                          | Severity Factors                      |
+| ---------------------------------- | ---------------------------------------------------- | ------------------------------------- |
+| `competitive_missing_intent`       | Missing intent coverage that competitors likely have | Intent importance + competitor count  |
+| `competitive_missing_section`      | Missing content section standard in category         | Section importance + competitor count |
+| `competitive_missing_trust_signal` | Missing trust-building content                       | Trust signal type + competitor count  |
 
 ### Severity Rules
 
@@ -137,15 +146,16 @@ Competitive fixes follow the same draft-first pattern as Search Intent fixes:
 
 ### Fix Types
 
-| Draft Type | Description | Apply Target |
-|------------|-------------|--------------|
-| Answer Block | Q&A addressing the competitive gap | Product Answer Blocks |
-| Comparison Copy | "Why choose this product vs others" text | Product description or dedicated section |
-| Positioning Section | "Why choose this product" content | Product content section |
+| Draft Type          | Description                              | Apply Target                             |
+| ------------------- | ---------------------------------------- | ---------------------------------------- |
+| Answer Block        | Q&A addressing the competitive gap       | Product Answer Blocks                    |
+| Comparison Copy     | "Why choose this product vs others" text | Product description or dedicated section |
+| Positioning Section | "Why choose this product" content        | Product content section                  |
 
 ### AI Content Generation
 
 All AI-generated content:
+
 - Uses only the merchant's product data (title, description, features)
 - References generic category patterns, not specific competitors
 - Uses neutral positioning language ("Compared to similar products...")
@@ -156,12 +166,14 @@ All AI-generated content:
 ## Ethical Boundaries
 
 ### What We Do
+
 - Analyze coverage patterns using industry baselines
 - Identify gaps based on what comprehensive product pages typically include
 - Generate original content using merchant's own product information
 - Provide actionable recommendations for improvement
 
 ### What We Don't Do
+
 - Scrape competitor websites or content
 - Store or expose competitor text, prices, or offers
 - Make specific claims about named competitors
@@ -171,6 +183,7 @@ All AI-generated content:
 ### Why This Matters
 
 Search engines and AI systems reward comprehensive, original content. By focusing on coverage gaps rather than competitive copying, merchants:
+
 - Build genuine content authority
 - Avoid duplicate content penalties
 - Create sustainable competitive advantages
@@ -181,28 +194,36 @@ Search engines and AI systems reward comprehensive, original content. By focusin
 ## Integration Points
 
 ### DEO Overview
+
 The Competitive Positioning pillar card shows:
+
 - Overall competitive score
 - Status classification (Ahead/On Par/Behind)
 - Count of products behind on high-impact areas
 - Link to Issues page with pillar filter
 
 ### Product Workspace
+
 The Competitors tab provides:
+
 - Per-product competitive scorecard
 - Competitor references (up to 3)
 - Gap cards with severity and recommendations
 - Preview/apply fix flows
 
 ### Issues Engine
+
 Competitive issues appear with:
+
 - Gap type badges
 - Competitor count indicators
 - Intent type (where applicable)
 - "Fix" link to product Competitors tab
 
 ### Automation Integration
+
 The draft-first pattern integrates with:
+
 - AI usage quota enforcement (on preview only)
 - CACHE/REUSE v2 for draft reuse
 - Automation history logging
@@ -216,16 +237,19 @@ The draft-first pattern integrates with:
 ```
 GET /products/:productId/competitors
 ```
+
 Returns product competitive data, scorecard, gaps, and open drafts.
 
 ```
 POST /products/:productId/competitors/preview
 ```
+
 Generate or retrieve a cached fix draft for a competitive gap.
 
 ```
 POST /products/:productId/competitors/apply
 ```
+
 Apply a draft without AI call; creates Answer Blocks or content sections.
 
 ### Project-Level
@@ -233,6 +257,7 @@ Apply a draft without AI call; creates Answer Blocks or content sections.
 ```
 GET /projects/:projectId/competitors/summary
 ```
+
 Returns project-level competitive scorecard aggregated across products.
 
 ---

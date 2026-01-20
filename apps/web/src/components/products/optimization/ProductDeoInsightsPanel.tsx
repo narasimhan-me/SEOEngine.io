@@ -5,14 +5,20 @@ import { getProductStatus } from '@/lib/products';
 // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Import from lib module
 import { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
 // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Import safe title/description helpers to prevent internal ID leakage
-import { getSafeIssueTitle, getSafeIssueDescription } from '@/lib/issue-to-fix-path';
+import {
+  getSafeIssueTitle,
+  getSafeIssueDescription,
+} from '@/lib/issue-to-fix-path';
 
 interface ProductDeoInsightsPanelProps {
   product: Product;
   productIssues?: DeoIssue[];
 }
 
-export function ProductDeoInsightsPanel({ product, productIssues }: ProductDeoInsightsPanelProps) {
+export function ProductDeoInsightsPanel({
+  product,
+  productIssues,
+}: ProductDeoInsightsPanelProps) {
   // Calculate word count from description
   const wordCount = product.description
     ? product.description.trim().split(/\s+/).filter(Boolean).length
@@ -34,16 +40,26 @@ export function ProductDeoInsightsPanel({ product, productIssues }: ProductDeoIn
 
   // Thin content flag
   const isThinContent =
-    wordCount < 100 && (!product.seoDescription?.trim() || product.seoDescription.length < 50);
+    wordCount < 100 &&
+    (!product.seoDescription?.trim() || product.seoDescription.length < 50);
 
   // Overall status
   const status = getProductStatus(product);
   const statusInfoMap: Record<string, { label: string; color: string }> = {
-    'missing-metadata': { label: 'Missing key metadata', color: 'text-red-600' },
-    'needs-optimization': { label: 'Needs optimization', color: 'text-yellow-600' },
+    'missing-metadata': {
+      label: 'Missing key metadata',
+      color: 'text-red-600',
+    },
+    'needs-optimization': {
+      label: 'Needs optimization',
+      color: 'text-yellow-600',
+    },
     optimized: { label: 'Looks good', color: 'text-green-600' },
   };
-  const statusInfo = statusInfoMap[status] ?? { label: 'Unknown', color: 'text-gray-600' };
+  const statusInfo = statusInfoMap[status] ?? {
+    label: 'Unknown',
+    color: 'text-gray-600',
+  };
 
   const [expanded, setExpanded] = useState(false);
 
@@ -59,20 +75,29 @@ export function ProductDeoInsightsPanel({ product, productIssues }: ProductDeoIn
       className="rounded-lg border border-gray-200 bg-white p-4"
     >
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h3 className="text-base font-semibold text-gray-900">DEO / SEO Insights</h3>
+        <h3 className="text-base font-semibold text-gray-900">
+          DEO / SEO Insights
+        </h3>
         <button
           type="button"
           onClick={() => setExpanded((prev) => !prev)}
           className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700"
         >
-          {expanded ? 'Collapse issues & recommendations' : 'Expand issues & recommendations'}
+          {expanded
+            ? 'Collapse issues & recommendations'
+            : 'Expand issues & recommendations'}
           <svg
             className={`h-4 w-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
           </svg>
         </button>
       </div>
@@ -80,23 +105,24 @@ export function ProductDeoInsightsPanel({ product, productIssues }: ProductDeoIn
       <div className="space-y-4">
         <div className="rounded-md bg-gray-50 p-3">
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-700">Metadata & Content Status</span>
+            <span className="text-xs font-medium text-gray-700">
+              Metadata & Content Status
+            </span>
             <span className={`text-xs font-medium ${statusInfo.color}`}>
               {statusInfo.label}
             </span>
           </div>
-          <div className="text-xs text-gray-600">
-            {contentDepthSummary}
-          </div>
-          <div className="mt-1 text-xs text-gray-600">
-            {metadataSummary}
-          </div>
+          <div className="text-xs text-gray-600">{contentDepthSummary}</div>
+          <div className="mt-1 text-xs text-gray-600">{metadataSummary}</div>
           {/* Note about overall status not being global DEO verdict */}
-          {productIssues && productIssues.length > 0 && status === 'optimized' && (
-            <div className="mt-2 rounded border border-yellow-200 bg-yellow-50 px-2 py-1 text-[10px] text-yellow-800">
-              DEO issues present — see below. Metadata may look good, but other DEO signals need attention.
-            </div>
-          )}
+          {productIssues &&
+            productIssues.length > 0 &&
+            status === 'optimized' && (
+              <div className="mt-2 rounded border border-yellow-200 bg-yellow-50 px-2 py-1 text-[10px] text-yellow-800">
+                DEO issues present — see below. Metadata may look good, but
+                other DEO signals need attention.
+              </div>
+            )}
         </div>
 
         {expanded && (
@@ -213,7 +239,9 @@ export function ProductDeoInsightsPanel({ product, productIssues }: ProductDeoIn
                           severityColors[issue.severity]
                         }`}
                       >
-                        <div className="text-xs font-medium">{config.label}</div>
+                        <div className="text-xs font-medium">
+                          {config.label}
+                        </div>
                         {config.description && (
                           <div className="mt-0.5 text-[10px] opacity-80">
                             {config.description}
@@ -228,7 +256,9 @@ export function ProductDeoInsightsPanel({ product, productIssues }: ProductDeoIn
 
             {/* Coming Soon / Roadmap */}
             <div className="rounded-md border border-dashed border-gray-300 bg-gray-50 p-3">
-              <p className="mb-1 text-xs font-medium text-gray-600">Coming Soon</p>
+              <p className="mb-1 text-xs font-medium text-gray-600">
+                Coming Soon
+              </p>
               <ul className="space-y-0.5 text-xs text-gray-500">
                 <li>- Crawl health signals</li>
                 <li>- Indexability analysis</li>

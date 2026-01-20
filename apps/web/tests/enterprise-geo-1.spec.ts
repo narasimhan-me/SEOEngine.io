@@ -13,7 +13,7 @@ test.describe('ENTERPRISE-GEO-1: Enterprise Governance', () => {
   test.beforeEach(async ({ page }) => {
     // Seed test data using existing geo-insights-2 seeder
     const seedResponse = await page.request.post(
-      'http://localhost:3001/testkit/e2e/seed-geo-insights-2',
+      'http://localhost:3001/testkit/e2e/seed-geo-insights-2'
     );
     const seedData = await seedResponse.json();
 
@@ -32,7 +32,9 @@ test.describe('ENTERPRISE-GEO-1: Enterprise Governance', () => {
     }, seedData);
   });
 
-  test('Governance settings section appears on project settings page', async ({ page }) => {
+  test('Governance settings section appears on project settings page', async ({
+    page,
+  }) => {
     const testData = await page.evaluate(() => (window as any).__testData);
     await page.goto(`/projects/${testData.project.id}/settings`);
 
@@ -52,22 +54,31 @@ test.describe('ENTERPRISE-GEO-1: Enterprise Governance', () => {
     await page.waitForSelector('text=Governance & Approvals');
 
     // Find and click the approval toggle
-    const approvalToggle = page.getByRole('switch', { name: /Require Approval/i });
+    const approvalToggle = page.getByRole('switch', {
+      name: /Require Approval/i,
+    });
     await expect(approvalToggle).toBeVisible();
 
     // Toggle it on
     await approvalToggle.click();
 
     // Save button should be enabled now
-    const saveButton = page.getByRole('button', { name: /Save Governance Settings/i });
+    const saveButton = page.getByRole('button', {
+      name: /Save Governance Settings/i,
+    });
     await expect(saveButton).not.toBeDisabled();
   });
 
-  test('Passcode-protected link shows passcode entry on public view', async ({ page, request }) => {
+  test('Passcode-protected link shows passcode entry on public view', async ({
+    page,
+    request,
+  }) => {
     const testData = await page.evaluate(() => (window as any).__testData);
 
     // Create a passcode-protected share link via API
-    const token = await page.evaluate(() => localStorage.getItem('engineo_token'));
+    const token = await page.evaluate(() =>
+      localStorage.getItem('engineo_token')
+    );
     const createResponse = await request.post(
       `http://localhost:3001/projects/${testData.project.id}/geo-reports/share-links`,
       {
@@ -78,7 +89,7 @@ test.describe('ENTERPRISE-GEO-1: Enterprise Governance', () => {
         data: {
           audience: 'PASSCODE',
         },
-      },
+      }
     );
 
     const linkData = await createResponse.json();
@@ -105,7 +116,9 @@ test.describe('ENTERPRISE-GEO-1: Enterprise Governance', () => {
     const testData = await page.evaluate(() => (window as any).__testData);
 
     // Create a passcode-protected share link via API
-    const token = await page.evaluate(() => localStorage.getItem('engineo_token'));
+    const token = await page.evaluate(() =>
+      localStorage.getItem('engineo_token')
+    );
     const createResponse = await request.post(
       `http://localhost:3001/projects/${testData.project.id}/geo-reports/share-links`,
       {
@@ -116,7 +129,7 @@ test.describe('ENTERPRISE-GEO-1: Enterprise Governance', () => {
         data: {
           audience: 'PASSCODE',
         },
-      },
+      }
     );
 
     const linkData = await createResponse.json();
@@ -135,11 +148,16 @@ test.describe('ENTERPRISE-GEO-1: Enterprise Governance', () => {
     await page.waitForSelector('text=Invalid passcode');
   });
 
-  test('Share link expiry days respect governance policy', async ({ page, request }) => {
+  test('Share link expiry days respect governance policy', async ({
+    page,
+    request,
+  }) => {
     const testData = await page.evaluate(() => (window as any).__testData);
 
     // First update governance policy to set custom expiry
-    const token = await page.evaluate(() => localStorage.getItem('engineo_token'));
+    const token = await page.evaluate(() =>
+      localStorage.getItem('engineo_token')
+    );
     await request.put(
       `http://localhost:3001/projects/${testData.project.id}/governance/policy`,
       {
@@ -150,7 +168,7 @@ test.describe('ENTERPRISE-GEO-1: Enterprise Governance', () => {
         data: {
           shareLinkExpiryDays: 3,
         },
-      },
+      }
     );
 
     // Create a share link
@@ -162,23 +180,30 @@ test.describe('ENTERPRISE-GEO-1: Enterprise Governance', () => {
           'Content-Type': 'application/json',
         },
         data: {},
-      },
+      }
     );
 
     const linkData = await createResponse.json();
     const expiresAt = new Date(linkData.shareLink.expiresAt);
     const createdAt = new Date(linkData.shareLink.createdAt);
-    const diffDays = Math.round((expiresAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+    const diffDays = Math.round(
+      (expiresAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
+    );
 
     // Should be 3 days per the policy we set
     expect(diffDays).toBe(3);
   });
 
-  test('Restricted share links block unauthorized audience', async ({ page, request }) => {
+  test('Restricted share links block unauthorized audience', async ({
+    page,
+    request,
+  }) => {
     const testData = await page.evaluate(() => (window as any).__testData);
 
     // Enable restrictions with passcode requirement
-    const token = await page.evaluate(() => localStorage.getItem('engineo_token'));
+    const token = await page.evaluate(() =>
+      localStorage.getItem('engineo_token')
+    );
     await request.put(
       `http://localhost:3001/projects/${testData.project.id}/governance/policy`,
       {
@@ -190,7 +215,7 @@ test.describe('ENTERPRISE-GEO-1: Enterprise Governance', () => {
           restrictShareLinks: true,
           allowedExportAudience: 'PASSCODE',
         },
-      },
+      }
     );
 
     // Try to create a public link - should fail
@@ -204,7 +229,7 @@ test.describe('ENTERPRISE-GEO-1: Enterprise Governance', () => {
         data: {
           audience: 'ANYONE_WITH_LINK',
         },
-      },
+      }
     );
 
     expect(createResponse.status()).toBe(403);

@@ -22,7 +22,8 @@ import {
 import type { LocalSignalType } from '@engineo/shared';
 
 // Skip these tests if not running in E2E mode (requires test DB)
-const describeIfE2E = process.env.ENGINEO_E2E === '1' ? describe : describe.skip;
+const describeIfE2E =
+  process.env.ENGINEO_E2E === '1' ? describe : describe.skip;
 
 describeIfE2E('LocalDiscoveryService (integration)', () => {
   let service: LocalDiscoveryService;
@@ -560,7 +561,10 @@ describeIfE2E('LocalDiscoveryService (integration)', () => {
         description: 'Present',
       });
 
-      const data = await service.getProjectLocalData(testProject.id, testUser.id);
+      const data = await service.getProjectLocalData(
+        testProject.id,
+        testUser.id
+      );
 
       expect(data.projectId).toBe(testProject.id);
       expect(data.signals).toHaveLength(1);
@@ -610,7 +614,9 @@ describeIfE2E('LocalDiscoveryService (integration)', () => {
       });
 
       // Get issues for global store
-      const globalIssues = await service.buildLocalIssuesForProject(globalProject.id);
+      const globalIssues = await service.buildLocalIssuesForProject(
+        globalProject.id
+      );
       expect(globalIssues).toHaveLength(0); // No penalty for global stores
 
       // Create a local project with same lack of signals
@@ -629,11 +635,15 @@ describeIfE2E('LocalDiscoveryService (integration)', () => {
       });
 
       // Get issues for local store
-      const localIssues = await service.buildLocalIssuesForProject(localProject.id);
+      const localIssues = await service.buildLocalIssuesForProject(
+        localProject.id
+      );
       expect(localIssues.length).toBeGreaterThan(0); // Issues for missing signals
 
       // Verify scorecards reflect this difference
-      const globalScorecard = await service.getProjectScorecard(globalProject.id);
+      const globalScorecard = await service.getProjectScorecard(
+        globalProject.id
+      );
       expect(globalScorecard.applicabilityStatus).toBe('not_applicable');
       expect(globalScorecard.score).toBeUndefined();
       expect(globalScorecard.missingLocalSignalsCount).toBe(0);

@@ -25,11 +25,11 @@ Answer Blocks must be:
 
 ### Scope
 
-| Phase | Scope |
-|-------|-------|
-| **AE 1.0** | Model + detection concepts + generation rules (this spec) |
-| **AE 1.1** | Detection implementation + API endpoints |
-| **AE 1.2** | Generation pipeline + UI integration |
+| Phase      | Scope                                                                                 |
+| ---------- | ------------------------------------------------------------------------------------- |
+| **AE 1.0** | Model + detection concepts + generation rules (this spec)                             |
+| **AE 1.1** | Detection implementation + API endpoints                                              |
+| **AE 1.2** | Generation pipeline + UI integration                                                  |
 | **AE 2.x** | Deep integration with DEO Score v2, Issue Engine, Automation Engine, and Shopify sync |
 
 ---
@@ -42,40 +42,41 @@ The `AnswerBlock` interface represents a single structured answer:
 
 ```typescript
 interface AnswerBlock {
-  id: string;                    // Stable identifier
-  projectId: string;             // Owning project
-  productId?: string;            // Primary product (optional for page-level)
-  questionId: AnswerBlockQuestionId;  // Question category
-  question: string;              // Human-readable question
-  answer: string;                // Factual answer (~80-120 words)
-  confidence: number;            // 0-1 confidence score
-  sourceType: AnswerBlockSourceType;  // generated | userEdited | legacy
-  factsUsed: string[];           // Attribute keys used
-  deoImpactEstimate?: {          // Optional DEO Score impact
+  id: string; // Stable identifier
+  projectId: string; // Owning project
+  productId?: string; // Primary product (optional for page-level)
+  questionId: AnswerBlockQuestionId; // Question category
+  question: string; // Human-readable question
+  answer: string; // Factual answer (~80-120 words)
+  confidence: number; // 0-1 confidence score
+  sourceType: AnswerBlockSourceType; // generated | userEdited | legacy
+  factsUsed: string[]; // Attribute keys used
+  deoImpactEstimate?: {
+    // Optional DEO Score impact
     answerability?: number;
     entityStrength?: number;
     intentMatch?: number;
   };
-  version: string;               // Engine version (e.g., 'ae_v1')
-  createdAt: string;             // ISO timestamp
-  updatedAt: string;             // ISO timestamp
+  version: string; // Engine version (e.g., 'ae_v1')
+  createdAt: string; // ISO timestamp
+  updatedAt: string; // ISO timestamp
 }
 ```
 
 ### Canonical Phase 1 Question Set
 
-| Question ID | Human-Readable Question | Purpose |
-|-------------|-------------------------|---------|
-| `what_is_it` | What is this? | Core product identification |
-| `who_is_it_for` | Who is it for? | Target audience/use case |
-| `why_choose_this` | Why choose this? | Value proposition |
-| `key_features` | What are the key features? | Feature highlights |
-| `how_is_it_used` | How is it used? | Usage instructions |
-| `problems_it_solves` | What problems does it solve? | Pain points addressed |
-| `what_makes_it_different` | What makes it different? | Differentiation |
-| `whats_included` | What's included? | Contents/components |
-| `materials_and_specs` | Materials / Specs | Technical details |
-| `care_safety_instructions` | Care / safety / instructions | Maintenance/safety |
+| Question ID                | Human-Readable Question      | Purpose                     |
+| -------------------------- | ---------------------------- | --------------------------- |
+| `what_is_it`               | What is this?                | Core product identification |
+| `who_is_it_for`            | Who is it for?               | Target audience/use case    |
+| `why_choose_this`          | Why choose this?             | Value proposition           |
+| `key_features`             | What are the key features?   | Feature highlights          |
+| `how_is_it_used`           | How is it used?              | Usage instructions          |
+| `problems_it_solves`       | What problems does it solve? | Pain points addressed       |
+| `what_makes_it_different`  | What makes it different?     | Differentiation             |
+| `whats_included`           | What's included?             | Contents/components         |
+| `materials_and_specs`      | Materials / Specs            | Technical details           |
+| `care_safety_instructions` | Care / safety / instructions | Maintenance/safety          |
 
 ### Behavioral Requirements
 
@@ -127,12 +128,12 @@ The detection system analyzes:
 
 ### Detection Signals
 
-| Signal | Description | Weight |
-|--------|-------------|--------|
-| Answer Block presence | Does a high-confidence answer exist? | High |
-| Description quality | Is the description detailed and specific? | Medium |
-| Attribute coverage | Are key attributes populated? | Medium |
-| Content consistency | Do descriptions and attributes align? | Low |
+| Signal                | Description                               | Weight |
+| --------------------- | ----------------------------------------- | ------ |
+| Answer Block presence | Does a high-confidence answer exist?      | High   |
+| Description quality   | Is the description detailed and specific? | Medium |
+| Attribute coverage    | Are key attributes populated?             | Medium |
+| Content consistency   | Do descriptions and attributes align?     | Low    |
 
 ### Detection Output
 
@@ -141,19 +142,19 @@ The detection system outputs an `AnswerabilityStatus`:
 ```typescript
 interface AnswerabilityStatus {
   status: 'answer_ready' | 'partially_answer_ready' | 'needs_answers';
-  missingQuestions: AnswerBlockQuestionId[];  // No answer at all
-  weakQuestions: AnswerBlockQuestionId[];     // Low-confidence answer
-  answerabilityScore?: number;                // 0-100 normalized
+  missingQuestions: AnswerBlockQuestionId[]; // No answer at all
+  weakQuestions: AnswerBlockQuestionId[]; // Low-confidence answer
+  answerabilityScore?: number; // 0-100 normalized
 }
 ```
 
 ### Status Definitions
 
-| Status | Criteria |
-|--------|----------|
-| `answer_ready` | All 10 questions have high-confidence answers |
-| `partially_answer_ready` | 5-9 questions answered, some missing/weak |
-| `needs_answers` | Fewer than 5 questions answered |
+| Status                   | Criteria                                      |
+| ------------------------ | --------------------------------------------- |
+| `answer_ready`           | All 10 questions have high-confidence answers |
+| `partially_answer_ready` | 5-9 questions answered, some missing/weak     |
+| `needs_answers`          | Fewer than 5 questions answered               |
 
 ### Integration with DEO Score v2
 
@@ -218,10 +219,10 @@ Answerability signals map into DEO Score v2's Answerability component:
 
 Answer Blocks feed into multiple DEO Score v2 components:
 
-| Component | How Answer Blocks Contribute |
-|-----------|------------------------------|
-| **Answerability** | Primary input; high answer coverage = higher score |
-| **Intent Match** | Well-matched answers improve intent signals |
+| Component           | How Answer Blocks Contribute                        |
+| ------------------- | --------------------------------------------------- |
+| **Answerability**   | Primary input; high answer coverage = higher score  |
+| **Intent Match**    | Well-matched answers improve intent signals         |
 | **Entity Strength** | Clear entity definitions strengthen entity coverage |
 
 For now, v2 uses Answerability-related signals; Answer Blocks provide richer data for future weighting refinements.
@@ -230,10 +231,10 @@ For now, v2 uses Answerability-related signals; Answer Blocks provide richer dat
 
 Missing/weak Answer Blocks surface as Answerability issues:
 
-| Issue ID Pattern | Description | Severity |
-|------------------|-------------|----------|
-| `missing_answer_<questionId>` | No answer for this question | Warning |
-| `weak_answer_<questionId>` | Low-confidence answer exists | Info |
+| Issue ID Pattern              | Description                  | Severity |
+| ----------------------------- | ---------------------------- | -------- |
+| `missing_answer_<questionId>` | No answer for this question  | Warning  |
+| `weak_answer_<questionId>`    | Low-confidence answer exists | Info     |
 
 **Note:** These issue IDs are reserved for a later Issue Engine patch.
 
@@ -256,11 +257,11 @@ This spec defines UX expectations; actual UI implementation is deferred.
 
 Answer Engine versions follow the pattern: `ae_v{major}` or `ae_v{major}_{minor}`
 
-| Version | Description |
-|---------|-------------|
-| `ae_v1` | Initial Phase 1 implementation |
-| `ae_v1_1` | Minor refinements to detection/generation |
-| `ae_v2` | Major update with new question categories or logic |
+| Version   | Description                                        |
+| --------- | -------------------------------------------------- |
+| `ae_v1`   | Initial Phase 1 implementation                     |
+| `ae_v1_1` | Minor refinements to detection/generation          |
+| `ae_v2`   | Major update with new question categories or logic |
 
 ### Versioning Rules
 
@@ -326,18 +327,18 @@ This phase **excludes**:
 
 The `AnswerEngineService` classifies each of the 10 canonical questions as `missing`, `weak`, or `strong` based on heuristics over product text:
 
-| Question | Detection Approach |
-|----------|-------------------|
-| `what_is_it` | Requires non-empty title and description with concrete nouns; short/generic content is weak |
-| `who_is_it_for` | Looks for audience indicators ("for runners", "for kids", "designed for") |
-| `key_features` | Looks for feature keywords ("features", "built with", "equipped with") and bullet patterns |
-| `how_is_it_used` | Looks for usage verbs ("use it to", "simply plug", "wear this") |
-| `problems_it_solves` | Looks for problem/solution language ("helps reduce", "prevents", "solves") |
-| `what_makes_it_different` | Looks for differentiation indicators ("unlike other", "unique because", "patented") |
-| `whats_included` | Looks for inclusion phrases ("includes", "comes with", "set of") |
-| `materials_and_specs` | Looks for material keywords (cotton, steel, etc.) and dimension patterns |
-| `care_safety_instructions` | Looks for care/safety phrases ("machine wash", "warning", "non-toxic") |
-| `why_choose_this` | Looks for value proposition language and overall content quality |
+| Question                   | Detection Approach                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------- |
+| `what_is_it`               | Requires non-empty title and description with concrete nouns; short/generic content is weak |
+| `who_is_it_for`            | Looks for audience indicators ("for runners", "for kids", "designed for")                   |
+| `key_features`             | Looks for feature keywords ("features", "built with", "equipped with") and bullet patterns  |
+| `how_is_it_used`           | Looks for usage verbs ("use it to", "simply plug", "wear this")                             |
+| `problems_it_solves`       | Looks for problem/solution language ("helps reduce", "prevents", "solves")                  |
+| `what_makes_it_different`  | Looks for differentiation indicators ("unlike other", "unique because", "patented")         |
+| `whats_included`           | Looks for inclusion phrases ("includes", "comes with", "set of")                            |
+| `materials_and_specs`      | Looks for material keywords (cotton, steel, etc.) and dimension patterns                    |
+| `care_safety_instructions` | Looks for care/safety phrases ("machine wash", "warning", "non-toxic")                      |
+| `why_choose_this`          | Looks for value proposition language and overall content quality                            |
 
 **Answerability Score Computation:**
 
@@ -364,12 +365,12 @@ GET /projects/:projectId/answerability
 ```typescript
 interface ProjectAnswerabilityResponse {
   projectId: string;
-  generatedAt: string;  // ISO timestamp
+  generatedAt: string; // ISO timestamp
   overallStatus: {
     status: 'answer_ready' | 'partially_answer_ready' | 'needs_answers';
     missingQuestions: AnswerBlockQuestionId[];
     weakQuestions: AnswerBlockQuestionId[];
-    answerabilityScore: number;  // 0-100
+    answerabilityScore: number; // 0-100
   };
   products: Array<{
     productId: string;
@@ -436,6 +437,7 @@ POST /ai/product-answers
 ```
 
 **Request Body:**
+
 ```json
 {
   "productId": "string"
@@ -443,13 +445,14 @@ POST /ai/product-answers
 ```
 
 **Response Shape (ProductAnswersResponse):**
+
 ```typescript
 interface ProductAnswersResponse {
   projectId: string;
   productId: string;
-  generatedAt: string;  // ISO timestamp
+  generatedAt: string; // ISO timestamp
   answerabilityStatus: AnswerabilityStatus;
-  answers: AnswerBlock[];  // Ephemeral, not persisted
+  answers: AnswerBlock[]; // Ephemeral, not persisted
 }
 ```
 
@@ -549,9 +552,9 @@ Make persisted Answer Blocks the canonical source for:
 
 ## Document History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2025-12-08 | Initial Answer Engine specification (Phase AE 1.0) |
-| 1.1 | 2025-12-09 | Added Phase AE-1.1 Answerability detection implementation and /projects/:id/answerability API |
-| 1.2 | 2025-12-09 | Added Phase AE-1.2 Answer Generation & UI Integration with POST /ai/product-answers endpoint |
-| 1.3 | 2025-12-10 | Added Phase AE-1.3 Answer Block Persistence specification for v1 launch |
+| Version | Date       | Changes                                                                                       |
+| ------- | ---------- | --------------------------------------------------------------------------------------------- |
+| 1.0     | 2025-12-08 | Initial Answer Engine specification (Phase AE 1.0)                                            |
+| 1.1     | 2025-12-09 | Added Phase AE-1.1 Answerability detection implementation and /projects/:id/answerability API |
+| 1.2     | 2025-12-09 | Added Phase AE-1.2 Answer Generation & UI Integration with POST /ai/product-answers endpoint  |
+| 1.3     | 2025-12-10 | Added Phase AE-1.3 Answer Block Persistence specification for v1 launch                       |

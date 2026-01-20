@@ -25,11 +25,13 @@ This document covers manual testing for DRAFT-ENTRYPOINT-UNIFICATION-1, which un
 ### 1. Products List "Review drafts" Routing
 
 **Steps:**
+
 1. Navigate to Products list (`/projects/{projectId}/products`)
 2. Find a product with "🟡 Draft saved (not applied)" chip
 3. Click the "Review drafts" action button
 
 **Expected:**
+
 - Navigates to `/projects/{projectId}/products/{productId}?tab=drafts&from=asset_list&returnTo=...`
 - Does NOT navigate to `/automation/playbooks?mode=drafts`
 - Product detail page opens with Drafts tab selected
@@ -37,20 +39,24 @@ This document covers manual testing for DRAFT-ENTRYPOINT-UNIFICATION-1, which un
 ### 2. Drafts Tab Visibility
 
 **Steps:**
+
 1. Navigate to a product detail page (`/projects/{projectId}/products/{productId}`)
 2. Look at the tab bar
 
 **Expected:**
+
 - "Drafts" tab is visible in the tab bar (after Metadata, Answers, etc.)
 - Tab is clickable
 
 ### 3. Drafts Tab Content - With Drafts
 
 **Steps:**
+
 1. Navigate to product detail for a product with pending draft
 2. Click the "Drafts" tab (or arrive via `?tab=drafts`)
 
 **Expected:**
+
 - Draft list is visible (`data-testid="drafts-tab-list"`)
 - Each draft item shows:
   - Field name (e.g., "SEO Description")
@@ -62,10 +68,12 @@ This document covers manual testing for DRAFT-ENTRYPOINT-UNIFICATION-1, which un
 ### 3a. [FIXUP-1] Non-AI Surface Verification (Drafts Tab)
 
 **Steps:**
+
 1. Navigate to Product detail Drafts tab (`?tab=drafts`)
 2. Inspect the page header and banners
 
 **Expected:**
+
 - No "Generate drafts, review, then apply to Shopify" copy appears
 - No "Automate this fix" button in the header
 - No "Apply to Shopify" button in the header
@@ -76,10 +84,12 @@ This document covers manual testing for DRAFT-ENTRYPOINT-UNIFICATION-1, which un
 ### 4. Drafts Tab Content - No Drafts
 
 **Steps:**
+
 1. Navigate to product detail for a product WITHOUT pending draft
 2. Click the "Drafts" tab
 
 **Expected:**
+
 - Empty state is visible (`data-testid="drafts-tab-empty"`)
 - Message: "No drafts saved for this product."
 - Optional: Link to Issues Engine for the product
@@ -87,10 +97,12 @@ This document covers manual testing for DRAFT-ENTRYPOINT-UNIFICATION-1, which un
 ### 5. Inline Edit Mode
 
 **Steps:**
+
 1. Navigate to Drafts tab for a product with pending draft
 2. Click "Edit" button on a draft item
 
 **Expected:**
+
 - Input field appears with current finalSuggestion value
 - "Save changes" button is visible
 - "Cancel" button is visible
@@ -99,11 +111,13 @@ This document covers manual testing for DRAFT-ENTRYPOINT-UNIFICATION-1, which un
 ### 6. Save Edit
 
 **Steps:**
+
 1. Enter inline edit mode (click Edit)
 2. Modify the text in the input field
 3. Click "Save changes"
 
 **Expected:**
+
 - Loading state appears briefly
 - Draft item updates with new value
 - Edit mode exits
@@ -112,11 +126,13 @@ This document covers manual testing for DRAFT-ENTRYPOINT-UNIFICATION-1, which un
 ### 7. Cancel Edit
 
 **Steps:**
+
 1. Enter inline edit mode (click Edit)
 2. Modify the text in the input field
 3. Click "Cancel"
 
 **Expected:**
+
 - Edit mode exits
 - Original value is restored (changes discarded)
 - No API call is made
@@ -124,10 +140,12 @@ This document covers manual testing for DRAFT-ENTRYPOINT-UNIFICATION-1, which un
 ### 8. Back Navigation
 
 **Steps:**
+
 1. From Products list, click "Review drafts" on a product
 2. On the Product detail Drafts tab, look for back navigation
 
 **Expected:**
+
 - ScopeBanner shows navigation context (if `from` param present)
 - Back link returns to Products list
 - Filter context (if any) is preserved in returnTo
@@ -135,11 +153,13 @@ This document covers manual testing for DRAFT-ENTRYPOINT-UNIFICATION-1, which un
 ### 9. Pages/Collections Review Drafts (Unchanged)
 
 **Steps:**
+
 1. Navigate to Pages list (`/projects/{projectId}/assets/pages`)
 2. Find a page with "🟡 Draft saved (not applied)" chip
 3. Click "Review drafts" action
 
 **Expected:**
+
 - Navigates to `/automation/playbooks?mode=drafts&assetType=pages&assetId={pageId}`
 - Does NOT navigate to any Pages detail page
 - This confirms Pages/Collections still use Automation Draft Review
@@ -147,19 +167,23 @@ This document covers manual testing for DRAFT-ENTRYPOINT-UNIFICATION-1, which un
 ### 10. Permission Enforcement
 
 **Steps (OWNER):**
+
 1. Log in as OWNER
 2. Navigate to Drafts tab
 3. Click Edit on a draft item
 
 **Expected:**
+
 - Edit button is clickable
 - Can modify and save
 
 **Steps (VIEWER):**
+
 1. Log in as VIEWER
 2. Navigate to Drafts tab
 
 **Expected:**
+
 - Edit button is NOT shown (or disabled)
 - Cannot modify drafts
 
@@ -170,6 +194,7 @@ This document covers manual testing for DRAFT-ENTRYPOINT-UNIFICATION-1, which un
 If a draft was created before DRAFT-ENTRYPOINT-UNIFICATION-1 (using `suggestedTitle`/`suggestedDescription` instead of `field`/`finalSuggestion`):
 
 **Expected:**
+
 - UI renders the draft correctly
 - "Suggested Title" or "Suggested Description" is shown
 - Edit may not work for legacy-shape drafts (expected limitation)
@@ -179,6 +204,7 @@ If a draft was created before DRAFT-ENTRYPOINT-UNIFICATION-1 (using `suggestedTi
 If a draft has expired (`expiresAt < now`):
 
 **Expected:**
+
 - Draft is NOT shown in the Drafts tab
 - Empty state appears if no other drafts
 
@@ -187,6 +213,7 @@ If a draft has expired (`expiresAt < now`):
 If a product appears in multiple drafts (e.g., missing_seo_title and missing_seo_description):
 
 **Expected:**
+
 - All draft items are shown
 - Each item is editable independently
 - itemIndex ensures correct API calls
@@ -194,11 +221,13 @@ If a product appears in multiple drafts (e.g., missing_seo_title and missing_seo
 ## Test Data Setup
 
 For E2E testing, use the seed endpoint:
+
 ```
 POST /testkit/e2e/seed-list-actions-clarity-1
 ```
 
 This creates:
+
 - Product 3 ("Product With Pending Draft") with pending draft
 - Draft uses canonical shape (field/rawSuggestion/finalSuggestion)
 

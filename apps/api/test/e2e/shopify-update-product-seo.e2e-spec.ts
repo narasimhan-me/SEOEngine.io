@@ -2,11 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import { createTestApp } from '../utils/test-app';
-import {
-  cleanupTestDb,
-  disconnectTestDb,
-  testPrisma,
-} from '../utils/test-db';
+import { cleanupTestDb, disconnectTestDb, testPrisma } from '../utils/test-db';
 import { seedFirstDeoWinProjectReady } from '../../src/testkit';
 
 describe('Shopify Update Product SEO (golden path e2e)', () => {
@@ -72,7 +68,7 @@ describe('Shopify Update Product SEO (golden path e2e)', () => {
       }
 
       throw new Error(
-        `Unexpected Shopify operation in golden path test: ${body.operationName}`,
+        `Unexpected Shopify operation in golden path test: ${body.operationName}`
       );
     });
 
@@ -107,4 +103,3 @@ describe('Shopify Update Product SEO (golden path e2e)', () => {
     expect(lastOperationName).toBe('UpdateProductSeo');
   });
 });
-

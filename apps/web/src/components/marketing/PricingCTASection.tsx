@@ -9,8 +9,8 @@ export function PricingCTASection() {
             Ready to improve your visibility across search &amp; AI?
           </h2>
           <p className="text-sm text-primary-foreground/80">
-            Start Free Today and see where your discovery footprint stands across content, entities,
-            technical health, and visibility.
+            Start Free Today and see where your discovery footprint stands
+            across content, entities, technical health, and visibility.
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Link

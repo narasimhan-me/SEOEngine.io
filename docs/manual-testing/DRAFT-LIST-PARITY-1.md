@@ -16,12 +16,13 @@ This phase ensures "Review drafts" actions on Pages and Collections list views r
 
 ## Locked Routing (Do Not Modify Without Phase Approval)
 
-| Asset Type | "Review drafts" Routes To |
-|------------|---------------------------|
-| Pages | `/projects/{projectId}/assets/pages/{pageId}?tab=drafts&from=asset_list` |
+| Asset Type  | "Review drafts" Routes To                                                            |
+| ----------- | ------------------------------------------------------------------------------------ |
+| Pages       | `/projects/{projectId}/assets/pages/{pageId}?tab=drafts&from=asset_list`             |
 | Collections | `/projects/{projectId}/assets/collections/{collectionId}?tab=drafts&from=asset_list` |
 
 **MUST NOT route to:**
+
 - `/automation/playbooks` (any mode)
 - `/work-queue`
 
@@ -93,15 +94,15 @@ This phase ensures "Review drafts" actions on Pages and Collections list views r
 
 ## Parity Verification Checklist
 
-| Feature | Pages | Collections |
-|---------|-------|-------------|
-| "Review drafts" routes to asset detail | [ ] | [ ] |
-| URL contains `tab=drafts` | [ ] | [ ] |
-| URL contains `from=asset_list` | [ ] | [ ] |
-| Drafts tab panel visible | [ ] | [ ] |
-| Diff display visible | [ ] | [ ] |
-| Does NOT route to Work Queue | [ ] | [ ] |
-| Does NOT route to Playbooks | [ ] | [ ] |
+| Feature                                | Pages | Collections |
+| -------------------------------------- | ----- | ----------- |
+| "Review drafts" routes to asset detail | [ ]   | [ ]         |
+| URL contains `tab=drafts`              | [ ]   | [ ]         |
+| URL contains `from=asset_list`         | [ ]   | [ ]         |
+| Drafts tab panel visible               | [ ]   | [ ]         |
+| Diff display visible                   | [ ]   | [ ]         |
+| Does NOT route to Work Queue           | [ ]   | [ ]         |
+| Does NOT route to Playbooks            | [ ]   | [ ]         |
 
 ---
 

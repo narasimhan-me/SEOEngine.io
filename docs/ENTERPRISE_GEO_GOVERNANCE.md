@@ -17,14 +17,14 @@ ENTERPRISE-GEO-1 adds enterprise-grade governance controls to the GEO (Generativ
 
 Each project can define governance settings via `GovernancePolicy`:
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `requireApproval` | boolean | false | Require approval before applying GEO fixes or syncing Answer Blocks |
-| `restrictShareLinks` | boolean | false | Enforce audience restrictions on share links |
-| `allowedExportAudience` | enum | ANYONE_WITH_LINK | Minimum audience for share links (ANYONE_WITH_LINK, PASSCODE, ORG_ONLY) |
-| `shareLinkExpiryDays` | number | 14 | Default expiry for new share links |
-| `allowCompetitorMentions` | boolean | true | Allow competitor mentions in exported reports |
-| `allowPII` | boolean | false | **Always false** - PII export is never allowed |
+| Field                     | Type    | Default          | Description                                                             |
+| ------------------------- | ------- | ---------------- | ----------------------------------------------------------------------- |
+| `requireApproval`         | boolean | false            | Require approval before applying GEO fixes or syncing Answer Blocks     |
+| `restrictShareLinks`      | boolean | false            | Enforce audience restrictions on share links                            |
+| `allowedExportAudience`   | enum    | ANYONE_WITH_LINK | Minimum audience for share links (ANYONE_WITH_LINK, PASSCODE, ORG_ONLY) |
+| `shareLinkExpiryDays`     | number  | 14               | Default expiry for new share links                                      |
+| `allowCompetitorMentions` | boolean | true             | Allow competitor mentions in exported reports                           |
+| `allowPII`                | boolean | false            | **Always false** - PII export is never allowed                          |
 
 ### 2. Approval Workflow
 
@@ -34,6 +34,7 @@ When `requireApproval` is enabled:
 - **Answer Block Sync** (`syncAnswerBlocksToShopify`) requires a valid approval
 
 Approval lifecycle:
+
 1. Request approval via `POST /projects/:id/governance/approvals`
 2. Approval is created with `status: PENDING`
 3. Approver approves/rejects via `PATCH /projects/:id/governance/approvals/:approvalId`
@@ -53,19 +54,20 @@ Share links can be protected with an 8-character alphanumeric passcode:
 
 All governance-related actions are logged to `GovernanceAuditEvent`:
 
-| Event Type | Description |
-|------------|-------------|
-| `POLICY_UPDATED` | Governance policy was modified |
-| `APPROVAL_REQUESTED` | New approval request created |
-| `APPROVAL_APPROVED` | Approval was granted |
-| `APPROVAL_REJECTED` | Approval was denied |
-| `SHARE_LINK_CREATED` | New share link generated |
-| `SHARE_LINK_REVOKED` | Share link manually revoked |
-| `APPLY_EXECUTED` | GEO fix or sync action was executed |
+| Event Type           | Description                         |
+| -------------------- | ----------------------------------- |
+| `POLICY_UPDATED`     | Governance policy was modified      |
+| `APPROVAL_REQUESTED` | New approval request created        |
+| `APPROVAL_APPROVED`  | Approval was granted                |
+| `APPROVAL_REJECTED`  | Approval was denied                 |
+| `SHARE_LINK_CREATED` | New share link generated            |
+| `SHARE_LINK_REVOKED` | Share link manually revoked         |
+| `APPLY_EXECUTED`     | GEO fix or sync action was executed |
 
 ### 5. Content Redaction
 
 When `allowCompetitorMentions: false`:
+
 - Export reports have competitor-related text patterns redacted
 - Patterns like "competitor X", "vs. X", "compared to X" become "[REDACTED]"
 
@@ -217,6 +219,7 @@ enum GovernanceEventType {
 ### Backend Integration Tests
 
 `apps/api/test/integration/enterprise-geo-1.test.ts`:
+
 - Governance policy CRUD
 - Approval workflow (request → approve → consume)
 - Share link creation with passcode
@@ -228,6 +231,7 @@ enum GovernanceEventType {
 ### Playwright E2E Tests
 
 `apps/web/tests/enterprise-geo-1.spec.ts`:
+
 - Governance settings section visibility
 - Approval toggle interaction
 - Passcode-protected link flow (create → enter passcode → view)

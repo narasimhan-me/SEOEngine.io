@@ -48,14 +48,17 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - Project with signals ready for scoring
 
 **Steps:**
+
 1. Trigger score computation
 2. Query database for DeoScoreSnapshot
 3. Verify snapshot record
 
 **Expected Results:**
+
 - **Snapshot:** New record created
 - **Fields:** projectId, overall score, component scores, computedAt, scoreVersion
 - **Timing:** computedAt matches computation time
@@ -67,13 +70,16 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - DEO_SCORE_VERSION is set
 
 **Steps:**
+
 1. Compute score
 2. Inspect snapshot version field
 
 **Expected Results:**
+
 - **Version:** Matches current DEO_SCORE_VERSION
 - **Storage:** Version persisted with snapshot
 - **Query:** Can filter/sort by version
@@ -85,15 +91,18 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Project with data that changes over time
 
 **Steps:**
+
 1. Compute score (creates snapshot 1)
 2. Change data, recompute (creates snapshot 2)
 3. Repeat for snapshot 3
 4. Query history
 
 **Expected Results:**
+
 - **History:** 3 distinct snapshots
 - **Order:** Chronologically sorted by computedAt
 - **Data:** Each snapshot preserves its point-in-time values
@@ -105,13 +114,16 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Project with multiple snapshots
 
 **Steps:**
+
 1. Call score API endpoint
 2. Verify returns latest snapshot
 
 **Expected Results:**
+
 - **Response:** Contains most recent score
 - **Timestamp:** computedAt is most recent
 - **Values:** Match latest computation
@@ -123,14 +135,17 @@
 **ID:** HP-005
 
 **Preconditions:**
+
 - Project with signals ready for scoring (Phase 2.6+)
 
 **Steps:**
+
 1. Trigger score computation
 2. Query snapshot from database
 3. Inspect `metadata` JSON field
 
 **Expected Results:**
+
 - **metadata.v1:** Contains `modelVersion` ("1.1.0") and `breakdown` (v1 components)
 - **metadata.v2:** Contains `modelVersion` ("v2") and `breakdown` (overall + 6 components)
 - **metadata.v2.components:** Object with `entityStrength`, `intentMatch`, `answerability`, `aiVisibility`, `contentCompleteness`, `technicalQuality` keys
@@ -145,14 +160,17 @@
 **ID:** HP-006
 
 **Preconditions:**
+
 - Project with multiple v2-era snapshots
 
 **Steps:**
+
 1. Compute score multiple times
 2. Query snapshot history
 3. Verify each snapshot has v2 metadata
 
 **Expected Results:**
+
 - **All Snapshots:** Each snapshot contains `metadata.v2` structure
 - **Consistency:** v2 model version consistent across snapshots
 - **Independence:** Each snapshot's v2 breakdown reflects point-in-time signal values
@@ -166,10 +184,12 @@
 **Description:** Project's first-ever score computation.
 
 **Steps:**
+
 1. New project with no history
 2. First score computation
 
 **Expected Behavior:**
+
 - Single snapshot created
 - History API returns 1 item
 - No errors about missing history
@@ -181,11 +201,13 @@
 **Description:** Recomputation yields same score.
 
 **Steps:**
+
 1. Compute score
 2. Recompute without data changes
 3. Check snapshots
 
 **Expected Behavior:**
+
 - New snapshot still created (different timestamp)
 - Scores may be identical
 - History grows (deduplication is optional)
@@ -197,11 +219,13 @@
 **Description:** Project with many snapshots over time.
 
 **Steps:**
+
 1. Project with 100+ snapshots
 2. Query history
 3. Check performance
 
 **Expected Behavior:**
+
 - History query performs well (pagination)
 - No storage issues
 - Archival/cleanup strategy if applicable
@@ -213,11 +237,13 @@
 **Description:** DEO_SCORE_VERSION changes between snapshots.
 
 **Steps:**
+
 1. Compute with version 1.0
 2. Update to version 2.0
 3. Compute again
 
 **Expected Behavior:**
+
 - Old snapshots retain version 1.0
 - New snapshot has version 2.0
 - Both accessible in history
@@ -231,10 +257,12 @@
 **Scenario:** Cannot write snapshot to database.
 
 **Steps:**
+
 1. Simulate database write failure
 2. Attempt score computation
 
 **Expected Behavior:**
+
 - Score computed but not persisted
 - Error logged
 - User notified of issue
@@ -247,10 +275,12 @@
 **Scenario:** Cannot retrieve snapshots from database.
 
 **Steps:**
+
 1. Simulate database read failure
 2. Request score history
 
 **Expected Behavior:**
+
 - API returns error gracefully
 - No crash
 - User sees "Unable to load history"
@@ -262,10 +292,12 @@
 **Scenario:** Snapshot record has invalid/corrupted data.
 
 **Steps:**
+
 1. Introduce corrupted snapshot record
 2. Query history
 
 **Expected Behavior:**
+
 - Corrupted record skipped or flagged
 - Valid records still returned
 - Error logged
@@ -279,9 +311,11 @@
 **Scenario:** Maximum snapshots per project (if applicable).
 
 **Steps:**
+
 1. Exceed snapshot limit (if one exists)
 
 **Expected Behavior:**
+
 - Oldest snapshots archived or deleted
 - Limit enforced gracefully
 - User informed if applicable
@@ -293,10 +327,12 @@
 **Scenario:** Requesting large history sets.
 
 **Steps:**
+
 1. Query history with many records
 2. Use pagination parameters
 
 **Expected Behavior:**
+
 - Pagination works correctly
 - No performance degradation
 - All records accessible
@@ -352,9 +388,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Cross-cutting system-level tests for DEO score snapshots |
+| Field              | Value                                                    |
+| ------------------ | -------------------------------------------------------- |
+| **Tester Name**    | [Pending]                                                |
+| **Date**           | [YYYY-MM-DD]                                             |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed                    |
+| **Notes**          | Cross-cutting system-level tests for DEO score snapshots |

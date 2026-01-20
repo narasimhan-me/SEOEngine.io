@@ -250,15 +250,15 @@ These features directly justify raising prices later:
 
 ## 9. Competitor Pricing Comparison
 
-| Tool | Price Range | Notes |
-|------|-------------|-------|
-| Surfer | $59–$239 | No multi-engine DEO |
-| Frase | $14–$115 | Content-focused |
-| Clearscope | $170–$350 | No automation |
-| Ahrefs | $99–$999 | Analysis only |
-| DeepCrawl | $49–$299 | Technical SEO only |
-| MarketMuse | $149–$399 | Content only |
-| BrightEdge | Enterprise | Metadata + SEO only |
+| Tool       | Price Range | Notes               |
+| ---------- | ----------- | ------------------- |
+| Surfer     | $59–$239    | No multi-engine DEO |
+| Frase      | $14–$115    | Content-focused     |
+| Clearscope | $170–$350   | No automation       |
+| Ahrefs     | $99–$999    | Analysis only       |
+| DeepCrawl  | $49–$299    | Technical SEO only  |
+| MarketMuse | $149–$399   | Content only        |
+| BrightEdge | Enterprise  | Metadata + SEO only |
 
 EngineO.ai positions above all of them in automation and multi-engine coverage.
 
@@ -268,13 +268,13 @@ EngineO.ai positions above all of them in automation and multi-engine coverage.
 
 ### ARR multiplier by tier
 
-| Tier | Average Users | Monthly Price | ARR per user |
-|------|--------------|--------------|--------------|
-| Starter | High | $19–$29 | $228–$348 |
-| Pro | Medium | $59–$79 | $708–$948 |
-| Business | Low-med | $149 | $1,788 |
-| Agency | Low | $199–$299 | $2,388–$3,588 |
-| Enterprise | Very low | $399–$799 | $4,788–$9,588 |
+| Tier       | Average Users | Monthly Price | ARR per user  |
+| ---------- | ------------- | ------------- | ------------- |
+| Starter    | High          | $19–$29       | $228–$348     |
+| Pro        | Medium        | $59–$79       | $708–$948     |
+| Business   | Low-med       | $149          | $1,788        |
+| Agency     | Low           | $199–$299     | $2,388–$3,588 |
+| Enterprise | Very low      | $399–$799     | $4,788–$9,588 |
 
 ### Revenue mix target (12–24 months)
 

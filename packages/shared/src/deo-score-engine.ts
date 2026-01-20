@@ -5,7 +5,11 @@ import {
   type DeoScoreComponents,
   type DeoScoreV2Components,
 } from './deo-score-config';
-import { type DeoScoreBreakdown, type DeoScoreSignals, type DeoScoreV2Breakdown } from './deo-score';
+import {
+  type DeoScoreBreakdown,
+  type DeoScoreSignals,
+  type DeoScoreV2Breakdown,
+} from './deo-score';
 
 /**
  * Normalize a 0–1 score into 0–100, with a safe fallback.
@@ -20,8 +24,12 @@ function normalize01To100(value: number | null | undefined): number {
  * Helper: average a list of optional 0–1 scores, ignoring null/undefined.
  * Returns null if no usable values.
  */
-function averageNullable(values: Array<number | null | undefined>): number | null {
-  const valid = values.filter((v): v is number => v != null && !Number.isNaN(v));
+function averageNullable(
+  values: Array<number | null | undefined>
+): number | null {
+  const valid = values.filter(
+    (v): v is number => v != null && !Number.isNaN(v)
+  );
   if (valid.length === 0) return null;
   const sum = valid.reduce((acc, v) => acc + v, 0);
   return sum / valid.length;
@@ -40,7 +48,7 @@ export function normalizeSignal(value: number | null | undefined): number {
  * This is a simple v1 heuristics-based model.
  */
 export function computeDeoComponentsFromSignals(
-  signals: DeoScoreSignals,
+  signals: DeoScoreSignals
 ): DeoScoreComponents {
   // Content: coverage, depth, freshness
   const content = normalizeSignal(
@@ -48,7 +56,7 @@ export function computeDeoComponentsFromSignals(
       signals.contentCoverage,
       signals.contentDepth,
       signals.contentFreshness,
-    ]),
+    ])
   );
 
   // Entities: coverage, accuracy, linkage
@@ -57,7 +65,7 @@ export function computeDeoComponentsFromSignals(
       signals.entityCoverage,
       signals.entityAccuracy,
       signals.entityLinkage,
-    ]),
+    ])
   );
 
   // Technical: crawl health, CWV, indexability
@@ -66,7 +74,7 @@ export function computeDeoComponentsFromSignals(
       signals.crawlHealth,
       signals.coreWebVitals,
       signals.indexability,
-    ]),
+    ])
   );
 
   // Visibility: SERP, answer surfaces, brand
@@ -75,7 +83,7 @@ export function computeDeoComponentsFromSignals(
       signals.serpPresence,
       signals.answerSurfacePresence,
       signals.brandNavigationalStrength,
-    ]),
+    ])
   );
 
   return { content, entities, technical, visibility };
@@ -86,7 +94,7 @@ export function computeDeoComponentsFromSignals(
  */
 export function computeDeoComponentScore(
   signals: DeoScoreSignals,
-  component: keyof DeoScoreComponents,
+  component: keyof DeoScoreComponents
 ): number {
   const components = computeDeoComponentsFromSignals(signals);
   return components[component];
@@ -100,7 +108,7 @@ export function computeOverallDeoScore(components: DeoScoreComponents): number {
     components.content * DEO_SCORE_WEIGHTS.content +
       components.entities * DEO_SCORE_WEIGHTS.entities +
       components.technical * DEO_SCORE_WEIGHTS.technical +
-      components.visibility * DEO_SCORE_WEIGHTS.visibility,
+      components.visibility * DEO_SCORE_WEIGHTS.visibility
   );
 }
 
@@ -108,7 +116,7 @@ export function computeOverallDeoScore(components: DeoScoreComponents): number {
  * Compute overall DEO score and breakdown from signals using DEO_SCORE_WEIGHTS.
  */
 export function computeDeoScoreFromSignals(
-  signals: DeoScoreSignals,
+  signals: DeoScoreSignals
 ): DeoScoreBreakdown {
   const components = computeDeoComponentsFromSignals(signals);
   const overall = computeOverallDeoScore(components);
@@ -133,7 +141,7 @@ export { DEO_SCORE_VERSION };
  * Maps existing signals to six v2 components using heuristic averages.
  */
 export function computeDeoComponentsV2FromSignals(
-  signals: DeoScoreSignals,
+  signals: DeoScoreSignals
 ): DeoScoreV2Components {
   // Entity Strength: how clearly the product/page defines what it is
   const entityStrength = normalizeSignal(
@@ -144,7 +152,7 @@ export function computeDeoComponentsV2FromSignals(
       signals.entityStructureAccuracy,
       signals.entityLinkage,
       signals.entityLinkageDensity,
-    ]),
+    ])
   );
 
   // Intent Match Quality: how well metadata/content align with user/buyer intent
@@ -155,7 +163,7 @@ export function computeDeoComponentsV2FromSignals(
       signals.serpPresence,
       signals.answerSurfacePresence,
       signals.brandNavigationalStrength,
-    ]),
+    ])
   );
 
   // Answerability: how easily an AI assistant can answer core buyer questions
@@ -165,7 +173,7 @@ export function computeDeoComponentsV2FromSignals(
       signals.contentCoverage,
       signals.answerSurfacePresence,
       signals.thinContentQuality,
-    ]),
+    ])
   );
 
   // AI Visibility Factors: cleanliness and consistency of signals used by AI assistants
@@ -175,7 +183,7 @@ export function computeDeoComponentsV2FromSignals(
       signals.answerSurfacePresence,
       signals.brandNavigationalStrength,
       signals.indexability,
-    ]),
+    ])
   );
 
   // Content Completeness: presence of core content elements
@@ -185,7 +193,7 @@ export function computeDeoComponentsV2FromSignals(
       signals.contentDepth,
       signals.contentFreshness,
       signals.entityCoverage,
-    ]),
+    ])
   );
 
   // Technical Quality: basic technical health
@@ -196,7 +204,7 @@ export function computeDeoComponentsV2FromSignals(
       signals.htmlStructuralQuality,
       signals.thinContentQuality,
       signals.coreWebVitals,
-    ]),
+    ])
   );
 
   return {
@@ -212,14 +220,17 @@ export function computeDeoComponentsV2FromSignals(
 /**
  * Compute the overall v2 DEO score (0–100) from v2 component scores.
  */
-export function computeOverallDeoScoreV2(components: DeoScoreV2Components): number {
+export function computeOverallDeoScoreV2(
+  components: DeoScoreV2Components
+): number {
   return Math.round(
     components.entityStrength * DEO_SCORE_WEIGHTS_V2.entityStrength +
       components.intentMatch * DEO_SCORE_WEIGHTS_V2.intentMatch +
       components.answerability * DEO_SCORE_WEIGHTS_V2.answerability +
       components.aiVisibility * DEO_SCORE_WEIGHTS_V2.aiVisibility +
-      components.contentCompleteness * DEO_SCORE_WEIGHTS_V2.contentCompleteness +
-      components.technicalQuality * DEO_SCORE_WEIGHTS_V2.technicalQuality,
+      components.contentCompleteness *
+        DEO_SCORE_WEIGHTS_V2.contentCompleteness +
+      components.technicalQuality * DEO_SCORE_WEIGHTS_V2.technicalQuality
   );
 }
 
@@ -227,7 +238,7 @@ export function computeOverallDeoScoreV2(components: DeoScoreV2Components): numb
  * Compute overall v2 DEO score and breakdown from signals.
  */
 export function computeDeoScoreV2FromSignals(
-  signals: DeoScoreSignals,
+  signals: DeoScoreSignals
 ): DeoScoreV2Breakdown {
   const components = computeDeoComponentsV2FromSignals(signals);
   const overall = computeOverallDeoScoreV2(components);
@@ -242,4 +253,3 @@ export function computeDeoScoreV2FromSignals(
     technicalQuality: components.technicalQuality,
   };
 }
-

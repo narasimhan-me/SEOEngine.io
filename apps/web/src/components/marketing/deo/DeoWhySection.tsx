@@ -26,7 +26,8 @@ export function DeoWhySection() {
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">
-              Search engines are now discovery engines &mdash; and they evaluate:
+              Search engines are now discovery engines &mdash; and they
+              evaluate:
             </p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
               <li>Metadata completeness</li>

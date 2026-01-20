@@ -30,7 +30,10 @@ export type ShopifyCapability =
  *
  * LOCKED: Do not modify without phase approval.
  */
-export const SHOPIFY_SCOPE_MATRIX: Record<ShopifyCapability, readonly string[]> = {
+export const SHOPIFY_SCOPE_MATRIX: Record<
+  ShopifyCapability,
+  readonly string[]
+> = {
   products_sync: ['read_products'],
   products_apply: ['write_products'],
   collections_sync: ['read_products'],
@@ -42,9 +45,8 @@ export const SHOPIFY_SCOPE_MATRIX: Record<ShopifyCapability, readonly string[]> 
 /**
  * All defined capabilities for iteration.
  */
-export const ALL_SHOPIFY_CAPABILITIES: readonly ShopifyCapability[] = Object.keys(
-  SHOPIFY_SCOPE_MATRIX,
-) as ShopifyCapability[];
+export const ALL_SHOPIFY_CAPABILITIES: readonly ShopifyCapability[] =
+  Object.keys(SHOPIFY_SCOPE_MATRIX) as ShopifyCapability[];
 
 /**
  * [SHOPIFY-SCOPE-IMPLICATIONS-1] Scope implication rules for coverage checks.
@@ -77,7 +79,9 @@ export const SHOPIFY_SCOPE_IMPLICATIONS: Record<string, string[]> = {
  * @param grantedScopes - Raw scopes granted by Shopify
  * @returns Expanded set including implied scopes
  */
-export function expandGrantedScopesWithImplications(grantedScopes: string[]): Set<string> {
+export function expandGrantedScopesWithImplications(
+  grantedScopes: string[]
+): Set<string> {
   const expanded = new Set(grantedScopes);
   for (const scope of grantedScopes) {
     const implied = SHOPIFY_SCOPE_IMPLICATIONS[scope];
@@ -142,7 +146,9 @@ export function parseShopifyScopesCsv(value: unknown): string[] {
  * @param capabilities - Array of capability identifiers
  * @returns Sorted, deduplicated array of required scopes
  */
-export function computeShopifyRequiredScopes(capabilities: ShopifyCapability[]): string[] {
+export function computeShopifyRequiredScopes(
+  capabilities: ShopifyCapability[]
+): string[] {
   const required = new Set<string>();
   for (const cap of capabilities) {
     const scopes = SHOPIFY_SCOPE_MATRIX[cap];
@@ -167,7 +173,7 @@ export function computeShopifyRequiredScopes(capabilities: ShopifyCapability[]):
  */
 export function checkScopeCoverage(
   grantedScopes: string[],
-  capabilities: ShopifyCapability[],
+  capabilities: ShopifyCapability[]
 ): { covered: boolean; missingScopes: string[] } {
   const required = computeShopifyRequiredScopes(capabilities);
   // [SHOPIFY-SCOPE-IMPLICATIONS-1] Expand granted scopes with implied scopes

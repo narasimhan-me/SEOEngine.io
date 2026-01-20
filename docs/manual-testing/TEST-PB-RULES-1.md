@@ -9,6 +9,7 @@ Status: Implementation Complete (2025-12-17)
 This manual testing guide validates the Playbook Rules v1 semantics and stale-preview UX behavior.
 
 **Depends on:**
+
 - DOC-AUTO-PB-1.3 – Preview persistence & draft lifecycle
 - AUTO-PB-1.3 backend (scopeId + rulesHash + draftKey enforcement)
 - AUTO-PB-1.3-UX.1 – Resume, Explain Gating, and Derived State
@@ -184,7 +185,6 @@ This manual testing guide validates the Playbook Rules v1 semantics and stale-pr
 Use this section to record any mismatches between behavior and the TEST-PB-RULES-1 contract:
 
 - **Example format:**
-
   - Scenario: TC-3 – Draft Validity vs Rules Changes
     Observed: Apply returned 200 even with mismatched rulesHash.
     Expected: 409 `PLAYBOOK_RULES_CHANGED` with no updates.

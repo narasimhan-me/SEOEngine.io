@@ -64,7 +64,9 @@ export class TwoFactorAuthService {
     }
 
     if (!user.twoFactorSecret) {
-      throw new BadRequestException('2FA setup not initialized. Please call setup-init first.');
+      throw new BadRequestException(
+        '2FA setup not initialized. Please call setup-init first.'
+      );
     }
 
     // Verify the TOTP code

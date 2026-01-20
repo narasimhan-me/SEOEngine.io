@@ -42,6 +42,7 @@
 **ID:** DASH1.1-HP-001
 
 **Preconditions:**
+
 - A brand-new project with:
   - No integrations
   - No crawls
@@ -49,10 +50,12 @@
   - No Answer Blocks
 
 **Steps:**
+
 1. Log in as the test user.
 2. Navigate to the new project's Overview dashboard.
 
 **Expected Results:**
+
 - UI:
   - First DEO Win checklist is visible with initial steps marked "Not started".
   - No status ribbon is visible (First DEO Win not yet completed).
@@ -68,6 +71,7 @@
 **ID:** DASH1.1-HP-002
 
 **Preconditions:**
+
 - Project with:
   - Shopify integration connected
   - At least one crawl completed
@@ -76,10 +80,12 @@
   - Fewer than 3 products optimized
 
 **Steps:**
+
 1. Log in as a user with access to this project.
 2. Open the Project Overview dashboard.
 
 **Expected Results:**
+
 - UI:
   - First DEO Win checklist shows some steps "In progress" and later steps "Not started".
   - No "First DEO Win" status ribbon yet (because not all steps are complete).
@@ -100,6 +106,7 @@
 **ID:** DASH1.1-HP-003
 
 **Preconditions:**
+
 - Project with:
   - Connected integration
   - At least one successful crawl
@@ -107,9 +114,11 @@
   - At least 3 products optimized (First DEO Win path completed)
 
 **Steps:**
+
 1. Open the Project Overview dashboard for this project.
 
 **Expected Results:**
+
 - UI:
   - First DEO Win checklist is no longer shown (or all steps marked completed).
   - A slim status ribbon appears near the top with copy:
@@ -125,12 +134,14 @@
 **ID:** DASH1.1-HP-004
 
 **Preconditions:**
+
 - Project with:
   - Multiple crawls
   - DEO Score and detailed signals
   - Answer Blocks, issues, and Auto Crawl enabled
 
 **Steps:**
+
 1. Open the Project Overview dashboard.
 2. Expand the Diagnostics & reference section.
 3. Interact with:
@@ -142,6 +153,7 @@
    - Auto Crawl card
 
 **Expected Results:**
+
 - UI:
   - Diagnostics & reference is visually muted compared to "What Matters Right Now".
   - All prior functionality (links, buttons, details) remains accessible once expanded.
@@ -155,13 +167,16 @@
 ### EC-001: No issues but products to fix present
 
 **Description:**
+
 - Project where AI-optimizable products exist but DEO issues list is empty or minimal.
 
 **Steps:**
+
 1. Prepare or identify such a project.
 2. Open the dashboard.
 
 **Expected Behavior:**
+
 - Top Products to Fix still shows up to 3 products if derivable from existing logic.
 - Top blockers panel shows a friendly "No major blockers found yet" message.
 
@@ -170,12 +185,15 @@
 ### EC-002: AEO sync never run
 
 **Description:**
+
 - Project with Answer Blocks but no Shopify metafield sync yet.
 
 **Steps:**
+
 1. Open the dashboard for this project.
 
 **Expected Behavior:**
+
 - AEO Status card shows:
   - Products with Answer Blocks > 0.
   - Last Answer Blocks sync: "No sync yet".
@@ -188,12 +206,15 @@
 ### ERR-001: API failure for overview/DEO/issues
 
 **Scenario:**
+
 - Simulate API failure for overview or issues endpoints (e.g., temporarily misconfigure or intercept responses in dev).
 
 **Steps:**
+
 1. Trigger the failure while loading the dashboard.
 
 **Expected Behavior:**
+
 - Error banner appears (existing behavior from DASH-1).
 - No new, broken UI states are introduced by v1.1 (layout remains robust even when some cards cannot load).
 
@@ -202,13 +223,16 @@
 ### ERR-002: Permission failures
 
 **Scenario:**
+
 - Non-owner user attempts to access a project dashboard.
 
 **Steps:**
+
 1. Log in as a user without access to the project.
 2. Attempt to open the project overview URL.
 
 **Expected Behavior:**
+
 - Existing auth/permission handling remains unchanged (redirect or error message).
 - v1.1 UX changes do not alter permission behavior.
 
@@ -219,14 +243,17 @@
 ### LIM-001: Many issues and products
 
 **Scenario:**
+
 - Project with a large number of issues and affected products.
 
 **Steps:**
+
 1. Open the dashboard and observe:
    - Top blockers list
    - Top Products to Fix
 
 **Expected Behavior:**
+
 - Dashboard still shows only:
   - Top 3 blockers
   - Top 3 products to fix
@@ -284,9 +311,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| Tester Name | [Name] |
-| Date | [YYYY-MM-DD] |
+| Field          | Value                                 |
+| -------------- | ------------------------------------- |
+| Tester Name    | [Name]                                |
+| Date           | [YYYY-MM-DD]                          |
 | Overall Status | [ ] Passed / [ ] Blocked / [ ] Failed |
-| Notes | [Any additional notes] |
+| Notes          | [Any additional notes]                |

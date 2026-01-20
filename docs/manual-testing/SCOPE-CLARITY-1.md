@@ -155,17 +155,17 @@ interface ScopeChip {
 
 ## Test Hooks Reference
 
-| Element | Test ID | Additional Attributes |
-|---------|---------|----------------------|
-| Chips container | `scope-chips` | - |
-| Individual chip | `scope-chip` | `data-scope-chip-type="{type}"` |
-| Adjusted note | `scope-banner-adjusted-note` | - |
-| Outer banner | `filter-context-banner` | - |
-| Inner banner | `scope-banner` | - |
-| Back button | `scope-banner-back` | - |
-| Clear filters | `scope-banner-clear` | - |
-| Pillar filter: All | `pillar-filter-all` | `aria-pressed="{true\|false}"` |
-| Pillar filter: Specific | `pillar-filter-{pillar.id}` | `aria-pressed="{true\|false}"` |
+| Element                 | Test ID                      | Additional Attributes           |
+| ----------------------- | ---------------------------- | ------------------------------- |
+| Chips container         | `scope-chips`                | -                               |
+| Individual chip         | `scope-chip`                 | `data-scope-chip-type="{type}"` |
+| Adjusted note           | `scope-banner-adjusted-note` | -                               |
+| Outer banner            | `filter-context-banner`      | -                               |
+| Inner banner            | `scope-banner`               | -                               |
+| Back button             | `scope-banner-back`          | -                               |
+| Clear filters           | `scope-banner-clear`         | -                               |
+| Pillar filter: All      | `pillar-filter-all`          | `aria-pressed="{true\|false}"`  |
+| Pillar filter: Specific | `pillar-filter-{pillar.id}`  | `aria-pressed="{true\|false}"`  |
 
 ---
 

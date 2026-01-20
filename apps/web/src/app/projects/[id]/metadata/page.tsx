@@ -11,10 +11,12 @@ export default function MetadataPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Metadata & Snippet Quality</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Metadata & Snippet Quality
+        </h1>
         <p className="mt-1 text-sm text-gray-600">
-          Manage SEO titles, meta descriptions, and structured data across all your
-          products and content pages.
+          Manage SEO titles, meta descriptions, and structured data across all
+          your products and content pages.
         </p>
       </div>
 
@@ -24,8 +26,9 @@ export default function MetadataPage() {
           Unified Metadata Workspace Coming Soon
         </h2>
         <p className="mt-2 text-sm text-blue-800">
-          This view will become the cross-surface Metadata & Snippet Quality workspace,
-          aggregating metadata issues across products and content pages in one place.
+          This view will become the cross-surface Metadata & Snippet Quality
+          workspace, aggregating metadata issues across products and content
+          pages in one place.
         </p>
 
         <div className="mt-4 space-y-3">
@@ -50,8 +53,8 @@ export default function MetadataPage() {
         </div>
 
         <p className="mt-4 text-xs text-blue-700">
-          All metadata-related DEO issues are already tracked under the Metadata &
-          Snippet Quality pillar. View them in the{' '}
+          All metadata-related DEO issues are already tracked under the Metadata
+          & Snippet Quality pillar. View them in the{' '}
           <GuardedLink
             href={`/projects/${projectId}/issues?pillar=metadata_snippet_quality`}
             className="font-medium underline"
@@ -68,10 +71,10 @@ export default function MetadataPage() {
           About the Metadata & Snippet Quality Pillar
         </h3>
         <p className="mt-2 text-sm text-gray-600">
-          This pillar covers SEO titles, meta descriptions, and structured data that
-          control how your pages appear in search results and AI answer engines.
-          Well-crafted metadata improves click-through rates from search results and
-          helps AI engines accurately summarize your content.
+          This pillar covers SEO titles, meta descriptions, and structured data
+          that control how your pages appear in search results and AI answer
+          engines. Well-crafted metadata improves click-through rates from
+          search results and helps AI engines accurately summarize your content.
         </p>
       </div>
     </div>

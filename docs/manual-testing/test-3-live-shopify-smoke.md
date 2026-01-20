@@ -89,15 +89,15 @@ LIMIT 10;
 
 ### Common Failure Causes
 
-| Error | Likely Cause | Resolution |
-|-------|--------------|------------|
-| `ENGINEO_LIVE_SHOPIFY_TEST must be set` | Missing env var | Add to GitHub Secrets |
-| `DATABASE_URL_LIVE_TEST must be set` | Missing database URL | Configure secret |
-| `SHOPIFY_TEST_STORE_ALLOWLIST must be set` | Missing allowlist | Add comma-separated store list |
-| `is not in the allowlist` | Store not allowed | Add store to allowlist or use allowed store |
-| `Shopify GraphQL HTTP error: 401` | Invalid access token | Re-generate token |
-| `Shopify GraphQL HTTP error: 403` | Insufficient scopes | Check app permissions |
-| `SEO title mismatch` | Shopify didn't persist SEO | Check product exists and is editable |
+| Error                                      | Likely Cause               | Resolution                                  |
+| ------------------------------------------ | -------------------------- | ------------------------------------------- |
+| `ENGINEO_LIVE_SHOPIFY_TEST must be set`    | Missing env var            | Add to GitHub Secrets                       |
+| `DATABASE_URL_LIVE_TEST must be set`       | Missing database URL       | Configure secret                            |
+| `SHOPIFY_TEST_STORE_ALLOWLIST must be set` | Missing allowlist          | Add comma-separated store list              |
+| `is not in the allowlist`                  | Store not allowed          | Add store to allowlist or use allowed store |
+| `Shopify GraphQL HTTP error: 401`          | Invalid access token       | Re-generate token                           |
+| `Shopify GraphQL HTTP error: 403`          | Insufficient scopes        | Check app permissions                       |
+| `SEO title mismatch`                       | Shopify didn't persist SEO | Check product exists and is editable        |
 
 ---
 
@@ -168,24 +168,24 @@ LIMIT 10;
 
 Configure these secrets in **Settings** > **Secrets and variables** > **Actions**:
 
-| Secret Name | Description | Example |
-|-------------|-------------|---------|
-| `DATABASE_URL_LIVE_TEST` | Live-test database connection string | `postgresql://...` |
-| `SHOPIFY_API_KEY_TEST` | Test Shopify app API key | `abc123...` |
-| `SHOPIFY_API_SECRET_TEST` | Test Shopify app API secret | `shpss_...` |
-| `SHOPIFY_TEST_STORE_ALLOWLIST` | Comma-separated dev store domains | `store1.myshopify.com,store2.myshopify.com` |
-| `SHOPIFY_TEST_STORE_PRIMARY` | Default store to test against | `store1.myshopify.com` |
-| `SHOPIFY_TEST_ACCESS_TOKEN` | Offline access token for test store | `shpat_...` |
+| Secret Name                    | Description                          | Example                                     |
+| ------------------------------ | ------------------------------------ | ------------------------------------------- |
+| `DATABASE_URL_LIVE_TEST`       | Live-test database connection string | `postgresql://...`                          |
+| `SHOPIFY_API_KEY_TEST`         | Test Shopify app API key             | `abc123...`                                 |
+| `SHOPIFY_API_SECRET_TEST`      | Test Shopify app API secret          | `shpss_...`                                 |
+| `SHOPIFY_TEST_STORE_ALLOWLIST` | Comma-separated dev store domains    | `store1.myshopify.com,store2.myshopify.com` |
+| `SHOPIFY_TEST_STORE_PRIMARY`   | Default store to test against        | `store1.myshopify.com`                      |
+| `SHOPIFY_TEST_ACCESS_TOKEN`    | Offline access token for test store  | `shpat_...`                                 |
 
 ---
 
 ## 8. File Locations Reference
 
-| File | Purpose |
-|------|---------|
-| `apps/api/src/config/test-env-guard.ts` | `assertLiveShopifyTestEnv()` guard |
-| `apps/api/scripts/shopify-live-smoke.ts` | Live smoke test runner |
-| `.github/workflows/shopify-live-smoke.yml` | CI workflow |
-| `apps/api/test/integration/live-shopify-test-guard.test.ts` | Guard unit tests |
-| `apps/api/test/integration/live-shopify-smoke-runner.test.ts` | Runner tests |
-| `docs/TESTING.md` (section 12) | Full TEST-3 documentation |
+| File                                                          | Purpose                            |
+| ------------------------------------------------------------- | ---------------------------------- |
+| `apps/api/src/config/test-env-guard.ts`                       | `assertLiveShopifyTestEnv()` guard |
+| `apps/api/scripts/shopify-live-smoke.ts`                      | Live smoke test runner             |
+| `.github/workflows/shopify-live-smoke.yml`                    | CI workflow                        |
+| `apps/api/test/integration/live-shopify-test-guard.test.ts`   | Guard unit tests                   |
+| `apps/api/test/integration/live-shopify-smoke-runner.test.ts` | Runner tests                       |
+| `docs/TESTING.md` (section 12)                                | Full TEST-3 documentation          |

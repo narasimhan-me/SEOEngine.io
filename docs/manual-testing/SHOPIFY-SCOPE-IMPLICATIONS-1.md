@@ -54,14 +54,17 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - Shopify store connected with `write_products` scope (but NOT explicit `read_products`)
 
 **Steps:**
+
 1. Navigate to `/projects/{projectId}/overview` or trigger products sync
 2. Check for any "Missing read_products" warnings or permission notices
 3. Verify products sync completes successfully
 
 **Expected Results:**
+
 - **UI:** No "Missing read_products" warning displayed
 - **API:** `GET /projects/:id/shopify/missing-scopes?capability=products_sync` returns `{ missingScopes: [] }`
 - **Logs:** No scope coverage errors for products_sync
@@ -73,14 +76,17 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Shopify store connected with `write_products` scope (but NOT explicit `read_products`)
 
 **Steps:**
+
 1. Navigate to `/projects/{projectId}/collections` or trigger collections sync
 2. Check for any "Missing read_products" warnings or permission notices
 3. Verify collections sync completes successfully
 
 **Expected Results:**
+
 - **UI:** No "Missing read_products" warning displayed
 - **API:** `GET /projects/:id/shopify/missing-scopes?capability=collections_sync` returns `{ missingScopes: [] }`
 - **Logs:** No scope coverage errors for collections_sync
@@ -92,14 +98,17 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Shopify store connected with `read_products` scope only (no `write_products`)
 
 **Steps:**
+
 1. Navigate to `/projects/{projectId}/products`
 2. Attempt to apply SEO changes to a product
 3. Check for "Missing write_products" warning or reconnect prompt
 
 **Expected Results:**
+
 - **UI:** "Missing write_products" warning or reconnect prompt displayed
 - **API:** `GET /projects/:id/shopify/missing-scopes?capability=products_apply` returns `{ missingScopes: ['write_products'] }`
 - **Behavior:** Write → Read implication is one-directional; read does NOT imply write
@@ -111,14 +120,17 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Shopify store connected with `write_content` scope (but NOT explicit `read_content`)
 
 **Steps:**
+
 1. Navigate to `/projects/{projectId}/pages` or trigger pages sync
 2. Check for any "Missing read_content" warnings or permission notices
 3. Verify pages sync completes successfully
 
 **Expected Results:**
+
 - **UI:** No "Missing read_content" warning displayed
 - **API:** `GET /projects/:id/shopify/missing-scopes?capability=pages_sync` returns `{ missingScopes: [] }`
 
@@ -129,14 +141,17 @@
 **ID:** HP-005
 
 **Preconditions:**
+
 - Shopify store connected with `write_content` scope (but NOT explicit `read_content`)
 
 **Steps:**
+
 1. Navigate to `/projects/{projectId}/blogs` or trigger blogs sync
 2. Check for any "Missing read_content" warnings or permission notices
 3. Verify blogs sync completes successfully
 
 **Expected Results:**
+
 - **UI:** No "Missing read_content" warning displayed
 - **API:** `GET /projects/:id/shopify/missing-scopes?capability=blogs_sync` returns `{ missingScopes: [] }`
 
@@ -149,10 +164,12 @@
 **Description:** User has explicitly granted both scopes (common in upgraded installs)
 
 **Steps:**
+
 1. Connect Shopify store with both `read_products` and `write_products`
 2. Verify products_sync and products_apply both work without warnings
 
 **Expected Behavior:**
+
 - No duplicate scope expansion
 - Both capabilities work correctly
 - No warnings or errors
@@ -164,10 +181,12 @@
 **Description:** User has multiple write scopes (e.g., `write_products`, `write_content`)
 
 **Steps:**
+
 1. Connect Shopify store with `write_products` and `write_content`
 2. Trigger products_sync, collections_sync, pages_sync, blogs_sync
 
 **Expected Behavior:**
+
 - All four capabilities covered by expanded scopes
 - `checkScopeCoverage` returns `{ covered: true, missingScopes: [] }` for each
 
@@ -178,10 +197,12 @@
 **Description:** User only has read scopes granted
 
 **Steps:**
+
 1. Connect Shopify store with `read_products`, `read_content`, `read_themes` only
 2. Attempt products_apply
 
 **Expected Behavior:**
+
 - `products_apply` shows "Missing write_products" warning
 - No false positive for read capabilities
 - Sync operations (products_sync, pages_sync, blogs_sync) work correctly
@@ -195,9 +216,11 @@
 **Scenario:** This feature has no specific error handling scenarios (it's a coverage check enhancement)
 
 **Steps:**
+
 - N/A
 
 **Expected Behavior:**
+
 - N/A
 
 ---
@@ -209,9 +232,11 @@
 **Scenario:** This feature has no entitlement/quota limits
 
 **Steps:**
+
 - N/A
 
 **Expected Behavior:**
+
 - N/A
 
 ---
@@ -267,17 +292,17 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Name] |
-| **Date** | [YYYY-MM-DD] |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    | [Name]                                |
+| **Date**           | [YYYY-MM-DD]                          |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | [Any additional notes] |
+| **Notes**          | [Any additional notes]                |
 
 ---
 
 ## Document History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2026-01-20 | Initial SHOPIFY-SCOPE-IMPLICATIONS-1 manual testing guide |
+| Version | Date       | Changes                                                   |
+| ------- | ---------- | --------------------------------------------------------- |
+| 1.0     | 2026-01-20 | Initial SHOPIFY-SCOPE-IMPLICATIONS-1 manual testing guide |

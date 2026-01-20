@@ -6,6 +6,7 @@
 ## Requirements Summary
 
 ### Intent
+
 Protect service/API boundaries and persistence (DB, jobs, webhooks) on every push to a feature branch.
 
 ### Outcomes
@@ -25,6 +26,7 @@ Protect service/API boundaries and persistence (DB, jobs, webhooks) on every pus
 **Test File:** `test/integration/critical/auth-entitlements.test.ts`
 
 **Coverage:**
+
 - ✅ Unauthenticated requests return 401
 - ✅ Free plan users cannot access paid-only endpoints
 - ✅ Entitlement gating enforced (`ENTITLEMENTS_LIMIT_REACHED`)
@@ -36,6 +38,7 @@ Protect service/API boundaries and persistence (DB, jobs, webhooks) on every pus
 **Test File:** `test/integration/critical/onboarding-checklist.test.ts`
 
 **Coverage:**
+
 - ✅ Baseline new project state (no integrations, no crawls, no score, no optimized products)
 - ✅ Connected Shopify store reflected via `integration-status` endpoint
 - ✅ First crawl reflected via `overview` metrics (`crawlCount > 0`)
@@ -43,16 +46,19 @@ Protect service/API boundaries and persistence (DB, jobs, webhooks) on every pus
 - ✅ `productsWithAppliedSeo >= 3` when three products are optimized
 
 **State Integrity:**
+
 - ✅ Tests verify state transitions across key onboarding steps
 - ✅ Uses test fixtures: `seedConnectedStoreProject`, `seedCrawledProject`, `seedReviewedDeoProject`, `seedOptimizedProducts`
 
 ##### ✅ **Preview → Apply Semantics and Persistence**
 
 **Test Files:**
+
 1. `test/integration/critical/automation-playbook-runs.test.ts`
 2. `test/integration/critical/seo-apply-persistence.test.ts`
 
 **Coverage:**
+
 - ✅ **Preview Generation:** `PREVIEW_GENERATE` run creation and processing
 - ✅ **Draft Persistence:** Draft is created and stored in database
 - ✅ **Apply Uses Draft:** Apply reads from draft, NOT from AI
@@ -61,6 +67,7 @@ Protect service/API boundaries and persistence (DB, jobs, webhooks) on every pus
 - ✅ **Idempotency:** Duplicate create run returns existing run (idempotency key)
 
 **Key Tests:**
+
 - `should create run, process it, and track AI usage` - Preview generation
 - `should apply using draft without AI calls` - Apply workflow
 - `should return existing run when idempotency key matches` - Idempotency
@@ -71,6 +78,7 @@ Protect service/API boundaries and persistence (DB, jobs, webhooks) on every pus
 **Test File:** `test/integration/critical/billing-webhook-idempotency.test.ts`
 
 **Coverage:**
+
 - ✅ **Webhook Idempotency:** Duplicate event handling (same `event.id` processed twice)
 - ✅ **Concurrent Processing:** Race condition prevention
 - ✅ **Double-Charging Prevention:** Ensures only one subscription per user
@@ -79,6 +87,7 @@ Protect service/API boundaries and persistence (DB, jobs, webhooks) on every pus
 - ✅ **Subscription State Integrity:** Correct state transitions
 
 **Test Coverage (14 tests):**
+
 1. `checkout.session.completed` idempotency (3 tests)
 2. `customer.subscription.updated` idempotency (3 tests)
 3. `customer.subscription.deleted` idempotency (2 tests)
@@ -87,6 +96,7 @@ Protect service/API boundaries and persistence (DB, jobs, webhooks) on every pus
 6. Concurrent processing stress test (1 test)
 
 **Implementation:**
+
 - ✅ `handleCheckoutCompleted()` tracks event IDs
 - ✅ `handleSubscriptionUpdated()` uses `lastStripeEventId` for idempotency
 - ✅ `handleSubscriptionDeleted()` uses `lastStripeEventId` for idempotency
@@ -94,11 +104,13 @@ Protect service/API boundaries and persistence (DB, jobs, webhooks) on every pus
 ##### ✅ **Idempotency for Key Jobs/Sync/Webhook Operations**
 
 **Coverage:**
+
 - ✅ **Billing Webhooks:** Event ID tracking prevents duplicate processing
 - ✅ **Automation Playbook Runs:** Idempotency key prevents duplicate run creation
 - ✅ **SEO Apply:** Shopify API called exactly once per apply operation
 
 **Test Files:**
+
 - `test/integration/critical/billing-webhook-idempotency.test.ts` - Webhook idempotency
 - `test/integration/critical/automation-playbook-runs.test.ts` - Job idempotency
 - `test/integration/critical/seo-apply-persistence.test.ts` - Sync idempotency
@@ -110,6 +122,7 @@ Protect service/API boundaries and persistence (DB, jobs, webhooks) on every pus
 **Hook File:** `.husky/pre-push`
 
 **Runs Before Push:**
+
 1. ✅ **Linting:** `eslint "src/**/*.ts" --fix` (source files only)
 2. ✅ **Formatting:** `pnpm format --check` (warns, doesn't fail)
 3. ✅ **Type Checks:** `tsc --noEmit` (TypeScript compilation check)
@@ -117,6 +130,7 @@ Protect service/API boundaries and persistence (DB, jobs, webhooks) on every pus
 5. ✅ **Critical Integration Suite:** `pnpm test:api:critical` (critical integration tests)
 
 **Hook Behavior:**
+
 - ✅ Prevents push if any check fails
 - ✅ Provides clear error messages
 - ✅ Runs sequentially (maxWorkers: 1 for tests)
@@ -223,4 +237,3 @@ All requirements achieved. The push gate is ready to protect service/API boundar
 3. **Formatting Check:** The pre-push hook warns on formatting issues but doesn't fail. This can be changed to `exit 1` if strict formatting is required.
 
 4. **Linting:** Only source files are linted in pre-push hook to avoid tsconfig conflicts with test files. Use `pnpm lint:all` for full linting.
-

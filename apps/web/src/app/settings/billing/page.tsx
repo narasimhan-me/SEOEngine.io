@@ -55,7 +55,9 @@ function BillingSettingsContent() {
   const [updating, setUpdating] = useState(false);
   const [pollingForUpdate, setPollingForUpdate] = useState(false);
   // [SELF-SERVICE-1] Account role for owner-only billing actions
-  const [accountRole, setAccountRole] = useState<'OWNER' | 'EDITOR' | 'VIEWER'>('OWNER');
+  const [accountRole, setAccountRole] = useState<'OWNER' | 'EDITOR' | 'VIEWER'>(
+    'OWNER'
+  );
   // [SELF-SERVICE-1] [BILLING-GTM-1] AI usage data with trust messaging
   const [aiUsage, setAiUsage] = useState<{
     periodLabel: string;
@@ -80,12 +82,13 @@ function BillingSettingsContent() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [plansData, summaryData, profileData, aiUsageData] = await Promise.all([
-        billingApi.getPlans(),
-        billingApi.getSummary(),
-        accountApi.getProfile(),
-        accountApi.getAiUsage(),
-      ]);
+      const [plansData, summaryData, profileData, aiUsageData] =
+        await Promise.all([
+          billingApi.getPlans(),
+          billingApi.getSummary(),
+          accountApi.getProfile(),
+          accountApi.getAiUsage(),
+        ]);
       setPlans(plansData);
       setSummary(summaryData);
       // [SELF-SERVICE-1] Set account role for role-safe UI
@@ -157,7 +160,7 @@ function BillingSettingsContent() {
         if (!warningShownRef.current) {
           warningShownRef.current = true;
           feedback.showWarning(
-            'Your subscription is being processed. Please refresh the page in a moment.',
+            'Your subscription is being processed. Please refresh the page in a moment.'
           );
         }
       }
@@ -290,15 +293,17 @@ function BillingSettingsContent() {
 
       <h1 className="text-3xl font-bold text-gray-900 mb-2">Plan & Billing</h1>
       <p className="text-gray-600 mb-6">
-        View your subscription plan and usage. Billing is handled securely via Stripe portal &mdash; we never store your card details.
+        View your subscription plan and usage. Billing is handled securely via
+        Stripe portal &mdash; we never store your card details.
       </p>
 
       {/* [SELF-SERVICE-1] Role-based access notice */}
       {!isOwner && (
         <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
           <p className="text-amber-800 text-sm">
-            <strong>Read-only access:</strong> Only account owners can manage billing and change plans.
-            Contact your account owner if you need to make changes.
+            <strong>Read-only access:</strong> Only account owners can manage
+            billing and change plans. Contact your account owner if you need to
+            make changes.
           </p>
         </div>
       )}
@@ -312,9 +317,25 @@ function BillingSettingsContent() {
       {success && (
         <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded flex items-center gap-2">
           {pollingForUpdate && (
-            <svg className="animate-spin h-4 w-4 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <svg
+              className="animate-spin h-4 w-4 text-green-600"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
             </svg>
           )}
           {success}
@@ -323,7 +344,9 @@ function BillingSettingsContent() {
 
       {/* Current Subscription */}
       <div className="bg-white shadow rounded-lg p-6 mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Current Plan</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          Current Plan
+        </h2>
         <div className="flex items-center gap-4">
           <span className="text-2xl font-bold text-gray-900 capitalize">
             {effectivePlanId}
@@ -334,8 +357,8 @@ function BillingSettingsContent() {
                 effectiveStatus === 'active'
                   ? 'bg-green-100 text-green-800'
                   : effectiveStatus === 'canceled'
-                  ? 'bg-yellow-100 text-yellow-800'
-                  : 'bg-gray-100 text-gray-800'
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : 'bg-gray-100 text-gray-800'
               }`}
             >
               {effectiveStatus}
@@ -349,7 +372,8 @@ function BillingSettingsContent() {
             <h3 className="text-sm font-medium text-gray-700 mb-2">Usage</h3>
             <div className="text-sm text-gray-600 space-y-1">
               <p>
-                Projects: {summary.usage.projects} / {formatLimit(summary.limits.projects)}
+                Projects: {summary.usage.projects} /{' '}
+                {formatLimit(summary.limits.projects)}
               </p>
             </div>
           </div>
@@ -358,11 +382,14 @@ function BillingSettingsContent() {
         {/* [SELF-SERVICE-1] [BILLING-GTM-1] AI Usage Quota with Trust Messaging */}
         {aiUsage && (
           <div className="mt-4 p-4 bg-blue-50 rounded-md">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">AI Usage ({aiUsage.periodLabel})</h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">
+              AI Usage ({aiUsage.periodLabel})
+            </h3>
             <div className="text-sm text-gray-600 space-y-2">
               {/* [BILLING-GTM-1] Fix: Show aiUsedRuns as numerator, not totalRuns */}
               <p>
-                AI runs used: {aiUsage.aiUsedRuns} / {aiUsage.quotaLimit !== null ? aiUsage.quotaLimit : 'Unlimited'}
+                AI runs used: {aiUsage.aiUsedRuns} /{' '}
+                {aiUsage.quotaLimit !== null ? aiUsage.quotaLimit : 'Unlimited'}
               </p>
               {/* [BILLING-GTM-1] Show runs avoided via reuse */}
               <p className="text-green-700">
@@ -376,10 +403,12 @@ function BillingSettingsContent() {
                         aiUsage.quotaUsedPercent >= 90
                           ? 'bg-red-500'
                           : aiUsage.quotaUsedPercent >= 70
-                          ? 'bg-yellow-500'
-                          : 'bg-blue-500'
+                            ? 'bg-yellow-500'
+                            : 'bg-blue-500'
                       }`}
-                      style={{ width: `${Math.min(aiUsage.quotaUsedPercent, 100)}%` }}
+                      style={{
+                        width: `${Math.min(aiUsage.quotaUsedPercent, 100)}%`,
+                      }}
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
@@ -390,10 +419,17 @@ function BillingSettingsContent() {
             </div>
             {/* [BILLING-GTM-1] Trust invariant display */}
             <div className="mt-3 pt-3 border-t border-blue-200">
-              <p className="text-xs text-blue-800 font-medium">{aiUsage.applyInvariantMessage}</p>
-              <p className="text-xs text-blue-700 mt-1">{aiUsage.reuseMessage}</p>
+              <p className="text-xs text-blue-800 font-medium">
+                {aiUsage.applyInvariantMessage}
+              </p>
+              <p className="text-xs text-blue-700 mt-1">
+                {aiUsage.reuseMessage}
+              </p>
             </div>
-            <Link href="/settings/ai-usage" className="text-xs text-blue-600 hover:text-blue-800 mt-2 inline-block">
+            <Link
+              href="/settings/ai-usage"
+              className="text-xs text-blue-600 hover:text-blue-800 mt-2 inline-block"
+            >
               View detailed AI usage &rarr;
             </Link>
           </div>
@@ -401,7 +437,9 @@ function BillingSettingsContent() {
 
         {summary?.currentPeriodEnd && (
           <p className="text-sm text-gray-500 mt-4">
-            {effectiveStatus === 'canceled' ? 'Access until: ' : 'Next billing date: '}
+            {effectiveStatus === 'canceled'
+              ? 'Access until: '
+              : 'Next billing date: '}
             {new Date(summary.currentPeriodEnd).toLocaleDateString()}
           </p>
         )}
@@ -421,14 +459,18 @@ function BillingSettingsContent() {
               {updating ? 'Processing...' : 'Manage Billing'}
             </button>
             {!isOwner && (
-              <p className="text-xs text-gray-500 mt-1">Only account owners can manage billing</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Only account owners can manage billing
+              </p>
             )}
           </div>
         )}
       </div>
 
       {/* Plans Grid */}
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">Available Plans</h2>
+      <h2 className="text-xl font-semibold text-gray-900 mb-4">
+        Available Plans
+      </h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {plans.map((plan) => {
           const isCurrent = effectivePlanId === plan.id;
@@ -440,14 +482,14 @@ function BillingSettingsContent() {
           const buttonLabel = isCurrent
             ? 'Current Plan'
             : !isOwner
-            ? 'Owner Only'
-            : updating
-            ? 'Processing...'
-            : isHigher
-            ? 'Upgrade'
-            : isLower
-            ? 'Downgrade'
-            : 'Change Plan';
+              ? 'Owner Only'
+              : updating
+                ? 'Processing...'
+                : isHigher
+                  ? 'Upgrade'
+                  : isLower
+                    ? 'Downgrade'
+                    : 'Change Plan';
 
           return (
             <div
@@ -457,14 +499,19 @@ function BillingSettingsContent() {
               }`}
             >
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {plan.name}
+                </h3>
                 <p className="text-3xl font-bold text-gray-900 mt-2">
                   {plan.price === 0 ? 'Free' : `${formatPrice(plan.price)}/mo`}
                 </p>
 
                 <ul className="mt-4 space-y-2">
                   {plan.features.map((feature, idx) => (
-                    <li key={idx} className="text-sm text-gray-600 flex items-start gap-2">
+                    <li
+                      key={idx}
+                      className="text-sm text-gray-600 flex items-start gap-2"
+                    >
                       <span className="text-green-500">✓</span>
                       {feature}
                     </li>
@@ -479,11 +526,15 @@ function BillingSettingsContent() {
                     {formatLimit(plan.limits.crawledPages)} crawled pages
                   </p>
                   <p className="text-xs text-gray-500">
-                    {formatLimit(plan.limits.automationSuggestionsPerDay)} suggestions/day
+                    {formatLimit(plan.limits.automationSuggestionsPerDay)}{' '}
+                    suggestions/day
                   </p>
                   {/* [BILLING-GTM-1] Monthly AI runs quota */}
                   <p className="text-xs text-gray-500">
-                    {plan.aiQuotaMonthlyRuns === null ? 'Unlimited' : plan.aiQuotaMonthlyRuns} AI runs/month
+                    {plan.aiQuotaMonthlyRuns === null
+                      ? 'Unlimited'
+                      : plan.aiQuotaMonthlyRuns}{' '}
+                    AI runs/month
                   </p>
                 </div>
               </div>
@@ -512,11 +563,13 @@ function BillingSettingsContent() {
 
 export default function BillingSettingsPage() {
   return (
-    <Suspense fallback={
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <p className="text-gray-600">Loading...</p>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      }
+    >
       <BillingSettingsContent />
     </Suspense>
   );

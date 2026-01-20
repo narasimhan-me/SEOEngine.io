@@ -20,7 +20,10 @@ import * as path from 'path';
 function resolveAssetDraftsTabPath(): string {
   const possiblePaths = [
     // From repo root
-    path.join(process.cwd(), 'apps/web/src/components/products/AssetDraftsTab.tsx'),
+    path.join(
+      process.cwd(),
+      'apps/web/src/components/products/AssetDraftsTab.tsx'
+    ),
     // From apps/web
     path.join(process.cwd(), 'src/components/products/AssetDraftsTab.tsx'),
     // Absolute fallback using __dirname
@@ -76,7 +79,11 @@ test.describe('DRAFT-REVIEW-ISOLATION-1: No-AI Import Guard', () => {
           continue;
         }
         // Check for actual import or usage
-        if (line.includes(token) && !line.trim().startsWith('*') && !line.trim().startsWith('//')) {
+        if (
+          line.includes(token) &&
+          !line.trim().startsWith('*') &&
+          !line.trim().startsWith('//')
+        ) {
           foundForbidden = true;
           foundLine = i + 1;
           break;
@@ -86,7 +93,7 @@ test.describe('DRAFT-REVIEW-ISOLATION-1: No-AI Import Guard', () => {
       expect(
         foundForbidden,
         `Forbidden AI token "${token}" found in AssetDraftsTab.tsx at line ${foundLine}. ` +
-        `This violates the NON-AI BOUNDARY contract. Draft Review must remain human-only.`
+          `This violates the NON-AI BOUNDARY contract. Draft Review must remain human-only.`
       ).toBe(false);
     }
   });
@@ -106,7 +113,7 @@ test.describe('DRAFT-REVIEW-ISOLATION-1: No-AI Import Guard', () => {
     expect(
       fileContent.includes(requiredHeader),
       `AssetDraftsTab.tsx must contain the NON-AI BOUNDARY header comment: "${requiredHeader}". ` +
-      `This header documents the isolation contract.`
+        `This header documents the isolation contract.`
     ).toBe(true);
   });
 
@@ -132,7 +139,7 @@ test.describe('DRAFT-REVIEW-ISOLATION-1: No-AI Import Guard', () => {
       expect(
         match,
         `Forbidden AI import pattern found: ${match?.[0]}. ` +
-        `AssetDraftsTab must not import AI-related modules.`
+          `AssetDraftsTab must not import AI-related modules.`
       ).toBeNull();
     }
   });

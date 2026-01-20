@@ -3,6 +3,7 @@
 ## Problem
 
 The integration tests are failing with:
+
 ```
 Database `lavanya` does not exist on the database server
 ```
@@ -60,11 +61,13 @@ cd /Users/lavanya/engineo/EngineO.ai/apps/api
 ## Connection String Format
 
 The connection string format is:
+
 ```
 postgresql://[username]@[host]:[port]/[database_name]
 ```
 
 For your setup:
+
 - Username: `lavanya`
 - Host: `localhost`
 - Port: `5432` (default)
@@ -81,11 +84,13 @@ psql -d postgres -c "CREATE DATABASE engineo_test;"
 ### If connection fails:
 
 1. Check PostgreSQL is running:
+
    ```bash
    pg_isready
    ```
 
 2. Check database exists:
+
    ```bash
    psql -l | grep engineo_test
    ```
@@ -98,4 +103,3 @@ psql -d postgres -c "CREATE DATABASE engineo_test;"
    ```env
    DATABASE_URL_TEST=postgresql://postgres@localhost:5432/engineo_test
    ```
-

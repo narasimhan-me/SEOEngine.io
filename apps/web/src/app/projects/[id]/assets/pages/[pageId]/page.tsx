@@ -9,7 +9,12 @@
  */
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
+import {
+  useParams,
+  useSearchParams,
+  useRouter,
+  usePathname,
+} from 'next/navigation';
 import Link from 'next/link';
 
 import { isAuthenticated } from '@/lib/auth';
@@ -65,8 +70,12 @@ export default function PageDetailPage() {
       setError(null);
       try {
         // Fetch all static pages and find the one matching pageId
-        const pages = await projectsApi.crawlPages(projectId, { pageType: 'static' });
-        const foundPage = (pages as PageAsset[]).find((p: PageAsset) => p.id === pageId);
+        const pages = await projectsApi.crawlPages(projectId, {
+          pageType: 'static',
+        });
+        const foundPage = (pages as PageAsset[]).find(
+          (p: PageAsset) => p.id === pageId
+        );
         if (!foundPage) {
           setError('Page not found');
           setPage(null);
@@ -87,16 +96,19 @@ export default function PageDetailPage() {
   /**
    * Switch tabs while preserving other URL params
    */
-  const handleTabChange = useCallback((newTab: PageDetailTab) => {
-    const newParams = new URLSearchParams(searchParams.toString());
-    if (newTab === 'overview') {
-      newParams.delete('tab');
-    } else {
-      newParams.set('tab', newTab);
-    }
-    const qs = newParams.toString();
-    router.push(`${pathname}${qs ? `?${qs}` : ''}`);
-  }, [router, pathname, searchParams]);
+  const handleTabChange = useCallback(
+    (newTab: PageDetailTab) => {
+      const newParams = new URLSearchParams(searchParams.toString());
+      if (newTab === 'overview') {
+        newParams.delete('tab');
+      } else {
+        newParams.set('tab', newTab);
+      }
+      const qs = newParams.toString();
+      router.push(`${pathname}${qs ? `?${qs}` : ''}`);
+    },
+    [router, pathname, searchParams]
+  );
 
   // Loading state
   if (loading) {
@@ -111,8 +123,12 @@ export default function PageDetailPage() {
   if (error || !page) {
     return (
       <div className="rounded-lg border border-gray-200 bg-white p-8">
-        <h1 className="text-lg font-semibold text-gray-900 mb-4">Page Not Found</h1>
-        <p className="text-gray-600 mb-4">{error || 'The requested page could not be found.'}</p>
+        <h1 className="text-lg font-semibold text-gray-900 mb-4">
+          Page Not Found
+        </h1>
+        <p className="text-gray-600 mb-4">
+          {error || 'The requested page could not be found.'}
+        </p>
         <Link
           href={`/projects/${projectId}/assets/pages`}
           className="text-indigo-600 hover:text-indigo-800"
@@ -127,7 +143,8 @@ export default function PageDetailPage() {
   const urlPath = new URL(page.url).pathname;
 
   // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Derive handle from Shopify field or URL path segment
-  const displayHandle = page.shopifyHandle || urlPath.split('/').pop() || urlPath;
+  const displayHandle =
+    page.shopifyHandle || urlPath.split('/').pop() || urlPath;
 
   // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Use Shopify updatedAt if present, otherwise scannedAt
   const displayUpdatedAt = page.shopifyUpdatedAt || page.scannedAt;
@@ -147,9 +164,19 @@ export default function PageDetailPage() {
         </h1>
         {/* [SHOPIFY-ASSET-SYNC-COVERAGE-1] Display handle and updated timestamp */}
         <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-gray-500">
-          <span>Handle: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">{displayHandle}</code></span>
+          <span>
+            Handle:{' '}
+            <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">
+              {displayHandle}
+            </code>
+          </span>
           <span className="text-gray-300">|</span>
-          <span>Updated: {displayUpdatedAt ? new Date(displayUpdatedAt).toLocaleString() : '-'}</span>
+          <span>
+            Updated:{' '}
+            {displayUpdatedAt
+              ? new Date(displayUpdatedAt).toLocaleString()
+              : '-'}
+          </span>
         </div>
         <p className="text-sm text-gray-400 mt-1">{page.url}</p>
       </div>
@@ -185,14 +212,18 @@ export default function PageDetailPage() {
       {/* Tab Content */}
       {activeTab === 'overview' && (
         <section aria-label="Overview">
-          <h2 className="text-base font-semibold text-gray-900 mb-4">Page Details</h2>
+          <h2 className="text-base font-semibold text-gray-900 mb-4">
+            Page Details
+          </h2>
           <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-4">
             <div>
               <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
                 Title
               </div>
               <div className="text-gray-900">
-                {page.title || <span className="italic text-gray-400">(empty)</span>}
+                {page.title || (
+                  <span className="italic text-gray-400">(empty)</span>
+                )}
               </div>
             </div>
             <div>
@@ -200,7 +231,9 @@ export default function PageDetailPage() {
                 Meta Description
               </div>
               <div className="text-gray-900">
-                {page.metaDescription || <span className="italic text-gray-400">(empty)</span>}
+                {page.metaDescription || (
+                  <span className="italic text-gray-400">(empty)</span>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
@@ -227,7 +260,9 @@ export default function PageDetailPage() {
                   Last Scanned
                 </div>
                 <div className="text-gray-900">
-                  {page.scannedAt ? new Date(page.scannedAt).toLocaleDateString() : '-'}
+                  {page.scannedAt
+                    ? new Date(page.scannedAt).toLocaleDateString()
+                    : '-'}
                 </div>
               </div>
             </div>

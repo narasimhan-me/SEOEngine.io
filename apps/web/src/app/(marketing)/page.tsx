@@ -30,9 +30,10 @@ export default function MarketingHomePage() {
             </h1>
 
             <p className="max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-              EngineO.ai is the Discovery Engine Optimization (DEO) platform that unifies SEO, AEO,
-              PEO, and VEO so any site — ecommerce, SaaS, content, or blog — can be optimized for
-              search results and AI answers from one place.
+              EngineO.ai is the Discovery Engine Optimization (DEO) platform
+              that unifies SEO, AEO, PEO, and VEO so any site — ecommerce, SaaS,
+              content, or blog — can be optimized for search results and AI
+              answers from one place.
             </p>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -56,7 +57,9 @@ export default function MarketingHomePage() {
                   🔍
                 </span>
                 <div>
-                  <dt className="font-semibold text-foreground">Instant discovery audit</dt>
+                  <dt className="font-semibold text-foreground">
+                    Instant discovery audit
+                  </dt>
                   <dd>Scan pages, products, and entities in a few clicks.</dd>
                 </div>
               </div>
@@ -65,9 +68,12 @@ export default function MarketingHomePage() {
                   🤖
                 </span>
                 <div>
-                  <dt className="font-semibold text-foreground">AI metadata &amp; answer content</dt>
+                  <dt className="font-semibold text-foreground">
+                    AI metadata &amp; answer content
+                  </dt>
                   <dd>
-                    Titles, descriptions, alt text, FAQs, and answer blocks generated for you.
+                    Titles, descriptions, alt text, FAQs, and answer blocks
+                    generated for you.
                   </dd>
                 </div>
               </div>
@@ -76,10 +82,12 @@ export default function MarketingHomePage() {
                   🛒
                 </span>
                 <div>
-                  <dt className="font-semibold text-foreground">Store, site &amp; content discovery</dt>
+                  <dt className="font-semibold text-foreground">
+                    Store, site &amp; content discovery
+                  </dt>
                   <dd>
-                    Sync, optimize, and push changes back to your storefronts, sites, and content
-                    — across ecommerce, SaaS, and media.
+                    Sync, optimize, and push changes back to your storefronts,
+                    sites, and content — across ecommerce, SaaS, and media.
                   </dd>
                 </div>
               </div>
@@ -88,8 +96,12 @@ export default function MarketingHomePage() {
                   🚀
                 </span>
                 <div>
-                  <dt className="font-semibold text-foreground">Automated DEO improvements</dt>
-                  <dd>Ongoing automations keep your discovery footprint improving.</dd>
+                  <dt className="font-semibold text-foreground">
+                    Automated DEO improvements
+                  </dt>
+                  <dd>
+                    Ongoing automations keep your discovery footprint improving.
+                  </dd>
                 </div>
               </div>
             </dl>
@@ -99,34 +111,58 @@ export default function MarketingHomePage() {
           <div className="flex-1">
             <div className="mx-auto max-w-md rounded-2xl border border-border bg-background p-4 shadow-sm sm:p-6 lg:max-w-lg">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-foreground">DEO Summary</h3>
+                <h3 className="text-sm font-semibold text-foreground">
+                  DEO Summary
+                </h3>
                 <span className="rounded-full bg-signal/10 px-2 py-0.5 text-xs font-medium text-signal">
                   Live preview
                 </span>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-xl bg-primary/10 p-3">
-                  <p className="text-[11px] font-medium text-primary">Store Health</p>
-                  <p className="mt-1 text-xl font-semibold text-foreground">82</p>
-                  <p className="mt-1 text-[11px] text-primary/80">+17 in last 30 days</p>
+                  <p className="text-[11px] font-medium text-primary">
+                    Store Health
+                  </p>
+                  <p className="mt-1 text-xl font-semibold text-foreground">
+                    82
+                  </p>
+                  <p className="mt-1 text-[11px] text-primary/80">
+                    +17 in last 30 days
+                  </p>
                 </div>
                 <div className="rounded-xl bg-muted p-3">
-                  <p className="text-[11px] font-medium text-muted-foreground">Products optimized</p>
-                  <p className="mt-1 text-xl font-semibold text-foreground">134</p>
-                  <p className="mt-1 text-[11px] text-muted-foreground/80">of 500 total</p>
+                  <p className="text-[11px] font-medium text-muted-foreground">
+                    Products optimized
+                  </p>
+                  <p className="mt-1 text-xl font-semibold text-foreground">
+                    134
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground/80">
+                    of 500 total
+                  </p>
                 </div>
                 <div className="rounded-xl bg-muted p-3">
-                  <p className="text-[11px] font-medium text-muted-foreground">Issues fixed</p>
-                  <p className="mt-1 text-xl font-semibold text-foreground">312</p>
-                  <p className="mt-1 text-[11px] text-muted-foreground/80">titles, metas &amp; links</p>
+                  <p className="text-[11px] font-medium text-muted-foreground">
+                    Issues fixed
+                  </p>
+                  <p className="mt-1 text-xl font-semibold text-foreground">
+                    312
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground/80">
+                    titles, metas &amp; links
+                  </p>
                 </div>
               </div>
 
               <div className="mt-4 space-y-3">
                 <div className="flex items-center justify-between rounded-lg border border-border bg-muted px-3 py-2">
                   <div>
-                    <p className="text-xs font-semibold text-foreground">Run full store audit</p>
-                    <p className="text-[11px] text-muted-foreground">Scan products, pages &amp; blog posts.</p>
+                    <p className="text-xs font-semibold text-foreground">
+                      Run full store audit
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Scan products, pages &amp; blog posts.
+                    </p>
                   </div>
                   <span className="rounded-md bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
                     Scan now
@@ -134,7 +170,9 @@ export default function MarketingHomePage() {
                 </div>
                 <div className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2">
                   <div>
-                    <p className="text-xs font-semibold text-foreground">Apply AI metadata</p>
+                    <p className="text-xs font-semibold text-foreground">
+                      Apply AI metadata
+                    </p>
                     <p className="text-[11px] text-muted-foreground">
                       Approve &amp; publish AI titles in bulk.
                     </p>
@@ -146,8 +184,8 @@ export default function MarketingHomePage() {
               </div>
 
               <p className="mt-4 text-[11px] text-muted-foreground">
-                Mock data shown. Real dashboards appear after connecting your sites and data
-                sources.
+                Mock data shown. Real dashboards appear after connecting your
+                sites and data sources.
               </p>
             </div>
           </div>
@@ -161,37 +199,43 @@ export default function MarketingHomePage() {
             What DEO optimizes
           </h2>
           <p className="mt-2 text-center text-sm text-muted-foreground">
-            EngineO.ai looks at your discovery footprint across four pillars so you can see where
-            to improve first.
+            EngineO.ai looks at your discovery footprint across four pillars so
+            you can see where to improve first.
           </p>
 
           <div className="mt-10 grid gap-6 md:grid-cols-4">
             <div className="rounded-2xl border border-border bg-muted p-4">
               <h3 className="text-sm font-semibold text-foreground">Content</h3>
               <p className="mt-2 text-xs text-muted-foreground">
-                Page copy, product descriptions, and answer-ready content that determine how well
-                you explain what you do.
+                Page copy, product descriptions, and answer-ready content that
+                determine how well you explain what you do.
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-muted p-4">
-              <h3 className="text-sm font-semibold text-foreground">Entities</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                Entities
+              </h3>
               <p className="mt-2 text-xs text-muted-foreground">
-                Brands, products, services, and topics that AI assistants and search engines use to
-                understand your business.
+                Brands, products, services, and topics that AI assistants and
+                search engines use to understand your business.
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-muted p-4">
-              <h3 className="text-sm font-semibold text-foreground">Technical</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                Technical
+              </h3>
               <p className="mt-2 text-xs text-muted-foreground">
-                Crawl health, indexability, and on-page structure that determine whether you&apos;re
-                even eligible to show up.
+                Crawl health, indexability, and on-page structure that determine
+                whether you&apos;re even eligible to show up.
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-muted p-4">
-              <h3 className="text-sm font-semibold text-foreground">Visibility</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                Visibility
+              </h3>
               <p className="mt-2 text-xs text-muted-foreground">
-                How often you appear across search results, answer boxes, AI assistants, and other
-                discovery surfaces.
+                How often you appear across search results, answer boxes, AI
+                assistants, and other discovery surfaces.
               </p>
             </div>
           </div>
@@ -205,16 +249,18 @@ export default function MarketingHomePage() {
             Issues Engine: see what to fix first
           </h2>
           <p className="mt-2 text-center text-sm text-muted-foreground">
-            EngineO.ai turns crawls, DEO signals, and product data into an actionable Issues
-            Engine so you always know where to focus.
+            EngineO.ai turns crawls, DEO signals, and product data into an
+            actionable Issues Engine so you always know where to focus.
           </p>
 
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             <div className="rounded-2xl border border-border bg-background p-4">
-              <h3 className="text-sm font-semibold text-foreground">Metadata &amp; thin content</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                Metadata &amp; thin content
+              </h3>
               <p className="mt-2 text-xs text-muted-foreground">
-                Missing titles and descriptions, short product copy, and weak landing pages surfaced
-                in one place — with counts and examples.
+                Missing titles and descriptions, short product copy, and weak
+                landing pages surfaced in one place — with counts and examples.
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-background p-4">
@@ -222,15 +268,17 @@ export default function MarketingHomePage() {
                 Crawl, indexability &amp; answer gaps
               </h3>
               <p className="mt-2 text-xs text-muted-foreground">
-                Broken pages, HTTP errors, missing H1s, and weak answer surfaces flagged before
-                they hurt search and AI visibility.
+                Broken pages, HTTP errors, missing H1s, and weak answer surfaces
+                flagged before they hurt search and AI visibility.
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-background p-4">
-              <h3 className="text-sm font-semibold text-foreground">Prioritized, not overwhelming</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                Prioritized, not overwhelming
+              </h3>
               <p className="mt-2 text-xs text-muted-foreground">
-                Issues are grouped and prioritized so you can fix a handful of high-impact problems
-                instead of wading through endless audits.
+                Issues are grouped and prioritized so you can fix a handful of
+                high-impact problems instead of wading through endless audits.
               </p>
             </div>
           </div>
@@ -244,23 +292,29 @@ export default function MarketingHomePage() {
             Optimization workspaces you can actually live in
           </h2>
           <p className="mt-2 text-center text-sm text-muted-foreground">
-            Instead of generic forms, EngineO.ai gives you dedicated workspaces for each surface
-            that matters.
+            Instead of generic forms, EngineO.ai gives you dedicated workspaces
+            for each surface that matters.
           </p>
 
           <div className="mt-10 grid gap-6 md:grid-cols-2">
             <div className="rounded-2xl border border-border bg-muted p-4">
-              <h3 className="text-sm font-semibold text-foreground">Product Optimization Workspace</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                Product Optimization Workspace
+              </h3>
               <p className="mt-2 text-xs text-muted-foreground">
-                See DEO signals, issues, and AI suggestions for each product in one place. Approve
-                titles and descriptions, then push updates back to your storefront.
+                See DEO signals, issues, and AI suggestions for each product in
+                one place. Approve titles and descriptions, then push updates
+                back to your storefront.
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-muted p-4">
-              <h3 className="text-sm font-semibold text-foreground">Content Optimization Workspace</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                Content Optimization Workspace
+              </h3>
               <p className="mt-2 text-xs text-muted-foreground">
-                Optimize landing pages, blog posts, docs, and static pages with AI metadata, DEO
-                insights, and thin-content checks tailored to each URL.
+                Optimize landing pages, blog posts, docs, and static pages with
+                AI metadata, DEO insights, and thin-content checks tailored to
+                each URL.
               </p>
             </div>
           </div>
@@ -274,30 +328,39 @@ export default function MarketingHomePage() {
             Works with the stack you already have
           </h2>
           <p className="mt-2 text-center text-sm text-muted-foreground">
-            EngineO.ai is designed to sit above your existing ecommerce, CMS, and web stack — not
-            replace it.
+            EngineO.ai is designed to sit above your existing ecommerce, CMS,
+            and web stack — not replace it.
           </p>
 
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             <div className="rounded-2xl border border-border bg-background p-4">
-              <h3 className="text-sm font-semibold text-foreground">Ecommerce</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                Ecommerce
+              </h3>
               <p className="mt-2 text-xs text-muted-foreground">
-                Online stores running on modern platforms — from Shopify and WooCommerce to
-                headless storefronts — can plug into DEO scoring and product workspaces.
+                Online stores running on modern platforms — from Shopify and
+                WooCommerce to headless storefronts — can plug into DEO scoring
+                and product workspaces.
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-background p-4">
-              <h3 className="text-sm font-semibold text-foreground">CMS &amp; marketing sites</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                CMS &amp; marketing sites
+              </h3>
               <p className="mt-2 text-xs text-muted-foreground">
-                Blogs, docs, and marketing pages powered by WordPress, Webflow, headless CMSs, or
-                custom Next.js apps get the same DEO audits and content workspaces.
+                Blogs, docs, and marketing pages powered by WordPress, Webflow,
+                headless CMSs, or custom Next.js apps get the same DEO audits
+                and content workspaces.
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-background p-4">
-              <h3 className="text-sm font-semibold text-foreground">Headless &amp; custom</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                Headless &amp; custom
+              </h3>
               <p className="mt-2 text-xs text-muted-foreground">
-                Bring your own APIs, data sources, and multi-brand sites. EngineO.ai focuses on
-                crawl results and entities, not a single platform.
+                Bring your own APIs, data sources, and multi-brand sites.
+                EngineO.ai focuses on crawl results and entities, not a single
+                platform.
               </p>
             </div>
           </div>
@@ -313,8 +376,8 @@ export default function MarketingHomePage() {
                 Who EngineO.ai is for
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                EngineO.ai is built for teams who need to keep multiple surfaces discoverable
-                without adding headcount.
+                EngineO.ai is built for teams who need to keep multiple surfaces
+                discoverable without adding headcount.
               </p>
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 <div className="rounded-xl border border-border bg-muted p-4">
@@ -322,29 +385,35 @@ export default function MarketingHomePage() {
                     Ecommerce &amp; retail brands
                   </h3>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Optimize products, collections, and content to win discovery across search,
-                    marketplaces, and AI assistants.
+                    Optimize products, collections, and content to win discovery
+                    across search, marketplaces, and AI assistants.
                   </p>
                 </div>
                 <div className="rounded-xl border border-border bg-muted p-4">
-                  <h3 className="text-sm font-semibold text-foreground">SaaS &amp; B2B teams</h3>
+                  <h3 className="text-sm font-semibold text-foreground">
+                    SaaS &amp; B2B teams
+                  </h3>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Make docs, feature pages, and solution content easier to find for both humans
-                    and AI copilots.
+                    Make docs, feature pages, and solution content easier to
+                    find for both humans and AI copilots.
                   </p>
                 </div>
                 <div className="rounded-xl border border-border bg-muted p-4">
-                  <h3 className="text-sm font-semibold text-foreground">Publishers &amp; media</h3>
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Publishers &amp; media
+                  </h3>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Keep high-value content, hubs, and evergreen articles tuned for search and
-                    answer surfaces.
+                    Keep high-value content, hubs, and evergreen articles tuned
+                    for search and answer surfaces.
                   </p>
                 </div>
                 <div className="rounded-xl border border-border bg-muted p-4">
-                  <h3 className="text-sm font-semibold text-foreground">Agencies &amp; partners</h3>
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Agencies &amp; partners
+                  </h3>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Standardize DEO audits, workspaces, and reporting across multiple clients
-                    without building your own tooling.
+                    Standardize DEO audits, workspaces, and reporting across
+                    multiple clients without building your own tooling.
                   </p>
                 </div>
               </div>
@@ -355,8 +424,9 @@ export default function MarketingHomePage() {
                 Ready to make your brand discoverable everywhere?
               </h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                Start with a single project, connect your sites, and see your DEO issues,
-                workspaces, and scores in one place — in under an hour.
+                Start with a single project, connect your sites, and see your
+                DEO issues, workspaces, and scores in one place — in under an
+                hour.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
@@ -384,7 +454,8 @@ export default function MarketingHomePage() {
             How EngineO.ai works
           </h2>
           <p className="mt-2 text-center text-sm text-muted-foreground">
-            From connection to ongoing Discovery Engine Optimization in four simple steps.
+            From connection to ongoing Discovery Engine Optimization in four
+            simple steps.
           </p>
 
           <div className="mt-10 grid gap-6 md:grid-cols-4">
@@ -418,8 +489,12 @@ export default function MarketingHomePage() {
                   <span className="mr-1 h-1.5 w-1.5 rounded-full bg-primary" />
                   {item.step}
                 </div>
-                <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
-                <p className="mt-2 text-xs text-muted-foreground">{item.desc}</p>
+                <h3 className="text-sm font-semibold text-foreground">
+                  {item.title}
+                </h3>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {item.desc}
+                </p>
                 <span className="absolute right-4 top-4 text-xs font-semibold text-muted-foreground/30">
                   {i + 1}
                 </span>

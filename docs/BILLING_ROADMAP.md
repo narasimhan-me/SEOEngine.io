@@ -46,16 +46,16 @@ Billing must be modular, configurable, and Stripe-first.
 
 ## 3. Billing Phases Overview
 
-| Phase | Goal | Status |
-|-------|------|--------|
-| 0 | Stripe project setup | Not started |
-| 1 | Simple subscription billing | Planned |
-| 2 | Full subscription sync + plan gating | Planned |
-| 3 | Usage tracking (AI tokens, items, automations) | Planned |
-| 4 | Add-ons (extra tokens, extra projects, reporting) | Planned |
-| 5 | Annual billing, coupons, trials | Planned |
-| 6 | Enterprise SSO, invoice-based billing | Planned |
-| 7 | Usage forecasting & DEO-based pricing | Future |
+| Phase | Goal                                              | Status      |
+| ----- | ------------------------------------------------- | ----------- |
+| 0     | Stripe project setup                              | Not started |
+| 1     | Simple subscription billing                       | Planned     |
+| 2     | Full subscription sync + plan gating              | Planned     |
+| 3     | Usage tracking (AI tokens, items, automations)    | Planned     |
+| 4     | Add-ons (extra tokens, extra projects, reporting) | Planned     |
+| 5     | Annual billing, coupons, trials                   | Planned     |
+| 6     | Enterprise SSO, invoice-based billing             | Planned     |
+| 7     | Usage forecasting & DEO-based pricing             | Future      |
 
 Each phase includes backend, frontend, and Stripe configuration tasks.
 
@@ -387,13 +387,13 @@ This tells your dev team EXACTLY how to implement billing.
 
 ## 14. Risks & Mitigations
 
-| Risk | Mitigation |
-|------|------------|
-| Underbilling heavy AI usage | Token metering + soft/hard caps |
+| Risk                            | Mitigation                                  |
+| ------------------------------- | ------------------------------------------- |
+| Underbilling heavy AI usage     | Token metering + soft/hard caps             |
 | Agency abuse (unlimited stores) | Track total items synced + automation usage |
-| Webhook failures | Retry logic + idempotency keys |
-| Plan mismatch (Stripe vs DB) | Stripe → DB sync as source of truth |
-| Chargebacks | Clear refund/usage logs + audit trails |
+| Webhook failures                | Retry logic + idempotency keys              |
+| Plan mismatch (Stripe vs DB)    | Stripe → DB sync as source of truth         |
+| Chargebacks                     | Clear refund/usage logs + audit trails      |
 
 ---
 

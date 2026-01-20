@@ -18,7 +18,10 @@ type QuestionClassification = 'missing' | 'weak' | 'strong';
 /**
  * Per-question classification for a product.
  */
-type ProductQuestionClassifications = Record<AnswerBlockQuestionId, QuestionClassification>;
+type ProductQuestionClassifications = Record<
+  AnswerBlockQuestionId,
+  QuestionClassification
+>;
 
 /**
  * Generic phrase patterns that indicate vague, non-specific content.
@@ -247,7 +250,7 @@ const CARE_SAFETY_INDICATORS = [
 export class AnswerEngineService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   /**
@@ -256,7 +259,7 @@ export class AnswerEngineService {
    */
   async getProjectAnswerability(
     projectId: string,
-    userId: string,
+    userId: string
   ): Promise<ProjectAnswerabilityResponse> {
     // 1. Project ownership validation
     const project = await this.prisma.project.findUnique({
@@ -283,14 +286,16 @@ export class AnswerEngineService {
     });
 
     // 3. Analyze each product
-    const productSummaries: ProductAnswerabilitySummary[] = products.map((product) => {
-      const status = this.computeAnswerabilityForProduct(product);
-      return {
-        productId: product.id,
-        productTitle: product.title || 'Untitled Product',
-        status,
-      };
-    });
+    const productSummaries: ProductAnswerabilitySummary[] = products.map(
+      (product) => {
+        const status = this.computeAnswerabilityForProduct(product);
+        return {
+          productId: product.id,
+          productTitle: product.title || 'Untitled Product',
+          status,
+        };
+      }
+    );
 
     // 4. Compute project-level aggregate
     const overallStatus = this.computeOverallStatus(productSummaries);
@@ -324,7 +329,13 @@ export class AnswerEngineService {
     const isVague = this.isVagueContent(combinedText, wordCount);
 
     // Classify each question
-    const classifications = this.classifyAllQuestions(title, description, combinedText, wordCount, isVague);
+    const classifications = this.classifyAllQuestions(
+      title,
+      description,
+      combinedText,
+      wordCount,
+      isVague
+    );
 
     // Build AnswerabilityStatus from classifications
     const missingQuestions: AnswerBlockQuestionId[] = [];
@@ -343,10 +354,18 @@ export class AnswerEngineService {
     }
 
     // Compute answerability score
-    const answerabilityScore = this.computeAnswerabilityScore(strongCount, weakQuestions.length, missingQuestions.length);
+    const answerabilityScore = this.computeAnswerabilityScore(
+      strongCount,
+      weakQuestions.length,
+      missingQuestions.length
+    );
 
     // Determine status level
-    const status = this.determineStatusLevel(strongCount, missingQuestions.length, weakQuestions.length);
+    const status = this.determineStatusLevel(
+      strongCount,
+      missingQuestions.length,
+      weakQuestions.length
+    );
 
     return {
       status,
@@ -364,22 +383,44 @@ export class AnswerEngineService {
     description: string,
     combinedText: string,
     wordCount: number,
-    isVague: boolean,
+    isVague: boolean
   ): ProductQuestionClassifications {
     const descLower = description.toLowerCase();
     const titleLower = title.toLowerCase();
 
     return {
-      what_is_it: this.classifyWhatIsIt(titleLower, descLower, wordCount, isVague),
+      what_is_it: this.classifyWhatIsIt(
+        titleLower,
+        descLower,
+        wordCount,
+        isVague
+      ),
       who_is_it_for: this.classifyWhoIsItFor(descLower, combinedText),
-      why_choose_this: this.classifyWhyChooseThis(descLower, combinedText, wordCount, isVague),
+      why_choose_this: this.classifyWhyChooseThis(
+        descLower,
+        combinedText,
+        wordCount,
+        isVague
+      ),
       key_features: this.classifyKeyFeatures(descLower, combinedText),
       how_is_it_used: this.classifyHowIsItUsed(descLower, combinedText),
-      problems_it_solves: this.classifyProblemsItSolves(descLower, combinedText),
-      what_makes_it_different: this.classifyWhatMakesItDifferent(descLower, combinedText),
+      problems_it_solves: this.classifyProblemsItSolves(
+        descLower,
+        combinedText
+      ),
+      what_makes_it_different: this.classifyWhatMakesItDifferent(
+        descLower,
+        combinedText
+      ),
       whats_included: this.classifyWhatsIncluded(descLower, combinedText),
-      materials_and_specs: this.classifyMaterialsAndSpecs(descLower, combinedText),
-      care_safety_instructions: this.classifyCareSafetyInstructions(descLower, combinedText),
+      materials_and_specs: this.classifyMaterialsAndSpecs(
+        descLower,
+        combinedText
+      ),
+      care_safety_instructions: this.classifyCareSafetyInstructions(
+        descLower,
+        combinedText
+      ),
     };
   }
 
@@ -390,7 +431,7 @@ export class AnswerEngineService {
     title: string,
     description: string,
     wordCount: number,
-    isVague: boolean,
+    isVague: boolean
   ): QuestionClassification {
     if (!title.trim() && !description.trim()) {
       return 'missing';
@@ -418,9 +459,12 @@ export class AnswerEngineService {
   /**
    * who_is_it_for: Strong if description contains audience indicators.
    */
-  private classifyWhoIsItFor(description: string, combinedText: string): QuestionClassification {
+  private classifyWhoIsItFor(
+    description: string,
+    combinedText: string
+  ): QuestionClassification {
     const hasStrongIndicator = AUDIENCE_INDICATORS.some((phrase) =>
-      combinedText.includes(phrase),
+      combinedText.includes(phrase)
     );
 
     if (hasStrongIndicator) {
@@ -445,7 +489,7 @@ export class AnswerEngineService {
     description: string,
     combinedText: string,
     wordCount: number,
-    isVague: boolean,
+    isVague: boolean
   ): QuestionClassification {
     // Look for value proposition indicators
     const valueIndicators = [
@@ -465,7 +509,9 @@ export class AnswerEngineService {
       'warranty',
     ];
 
-    const hasValueIndicator = valueIndicators.some((ind) => combinedText.includes(ind));
+    const hasValueIndicator = valueIndicators.some((ind) =>
+      combinedText.includes(ind)
+    );
 
     if (hasValueIndicator && wordCount >= 20 && !isVague) {
       return 'strong';
@@ -485,7 +531,10 @@ export class AnswerEngineService {
   /**
    * key_features: Strong if description includes multiple feature-like phrases.
    */
-  private classifyKeyFeatures(description: string, combinedText: string): QuestionClassification {
+  private classifyKeyFeatures(
+    description: string,
+    combinedText: string
+  ): QuestionClassification {
     const featureIndicators = [
       'feature',
       'features',
@@ -501,7 +550,9 @@ export class AnswerEngineService {
       'specs',
     ];
 
-    const matchCount = featureIndicators.filter((ind) => combinedText.includes(ind)).length;
+    const matchCount = featureIndicators.filter((ind) =>
+      combinedText.includes(ind)
+    ).length;
 
     // Check for bullet-like patterns (common in descriptions)
     const hasBulletPattern = /[-•*]\s*\w+/.test(description);
@@ -515,7 +566,9 @@ export class AnswerEngineService {
     }
 
     // Check for enumeration patterns
-    const hasEnumeration = /\d+\s*(features?|items?|things?)/.test(combinedText);
+    const hasEnumeration = /\d+\s*(features?|items?|things?)/.test(
+      combinedText
+    );
     if (hasEnumeration) {
       return 'weak';
     }
@@ -526,8 +579,13 @@ export class AnswerEngineService {
   /**
    * how_is_it_used: Strong if description contains usage verbs and phrases.
    */
-  private classifyHowIsItUsed(description: string, combinedText: string): QuestionClassification {
-    const matchCount = USAGE_INDICATORS.filter((ind) => combinedText.includes(ind)).length;
+  private classifyHowIsItUsed(
+    description: string,
+    combinedText: string
+  ): QuestionClassification {
+    const matchCount = USAGE_INDICATORS.filter((ind) =>
+      combinedText.includes(ind)
+    ).length;
 
     if (matchCount >= 2) {
       return 'strong';
@@ -543,9 +601,12 @@ export class AnswerEngineService {
   /**
    * problems_it_solves: Strong if description mentions pain points and solutions.
    */
-  private classifyProblemsItSolves(description: string, combinedText: string): QuestionClassification {
+  private classifyProblemsItSolves(
+    description: string,
+    combinedText: string
+  ): QuestionClassification {
     const matchCount = PROBLEM_SOLUTION_INDICATORS.filter((ind) =>
-      combinedText.includes(ind),
+      combinedText.includes(ind)
     ).length;
 
     if (matchCount >= 2) {
@@ -557,8 +618,15 @@ export class AnswerEngineService {
     }
 
     // Check for generic benefit language
-    const genericBenefits = ["you'll feel", 'feel better', 'feel great', 'improve your'];
-    const hasGenericBenefit = genericBenefits.some((phrase) => combinedText.includes(phrase));
+    const genericBenefits = [
+      "you'll feel",
+      'feel better',
+      'feel great',
+      'improve your',
+    ];
+    const hasGenericBenefit = genericBenefits.some((phrase) =>
+      combinedText.includes(phrase)
+    );
 
     if (hasGenericBenefit) {
       return 'weak';
@@ -572,10 +640,10 @@ export class AnswerEngineService {
    */
   private classifyWhatMakesItDifferent(
     description: string,
-    combinedText: string,
+    combinedText: string
   ): QuestionClassification {
     const matchCount = DIFFERENTIATION_INDICATORS.filter((ind) =>
-      combinedText.includes(ind),
+      combinedText.includes(ind)
     ).length;
 
     if (matchCount >= 1) {
@@ -583,8 +651,15 @@ export class AnswerEngineService {
     }
 
     // Check for generic "best in class" without specifics
-    const genericClaims = ['best in class', 'industry leading', 'world class', 'top of the line'];
-    const hasGenericClaim = genericClaims.some((phrase) => combinedText.includes(phrase));
+    const genericClaims = [
+      'best in class',
+      'industry leading',
+      'world class',
+      'top of the line',
+    ];
+    const hasGenericClaim = genericClaims.some((phrase) =>
+      combinedText.includes(phrase)
+    );
 
     if (hasGenericClaim) {
       return 'weak';
@@ -596,8 +671,13 @@ export class AnswerEngineService {
   /**
    * whats_included: Strong if description lists contents/components.
    */
-  private classifyWhatsIncluded(description: string, combinedText: string): QuestionClassification {
-    const matchCount = INCLUSION_INDICATORS.filter((ind) => combinedText.includes(ind)).length;
+  private classifyWhatsIncluded(
+    description: string,
+    combinedText: string
+  ): QuestionClassification {
+    const matchCount = INCLUSION_INDICATORS.filter((ind) =>
+      combinedText.includes(ind)
+    ).length;
 
     if (matchCount >= 2) {
       return 'strong';
@@ -615,17 +695,21 @@ export class AnswerEngineService {
    */
   private classifyMaterialsAndSpecs(
     description: string,
-    combinedText: string,
+    combinedText: string
   ): QuestionClassification {
-    const materialMatches = MATERIAL_KEYWORDS.filter((kw) => combinedText.includes(kw)).length;
+    const materialMatches = MATERIAL_KEYWORDS.filter((kw) =>
+      combinedText.includes(kw)
+    ).length;
 
     // Check for dimensions/measurements
-    const hasDimensions = /\d+\s*(cm|mm|in|inch|inches|ft|feet|m|kg|g|lb|lbs|oz|ml|l|liters?|gallons?)/.test(
-      combinedText,
-    );
+    const hasDimensions =
+      /\d+\s*(cm|mm|in|inch|inches|ft|feet|m|kg|g|lb|lbs|oz|ml|l|liters?|gallons?)/.test(
+        combinedText
+      );
 
     // Check for generic "high-quality materials"
-    const hasGenericMaterial = combinedText.includes('high-quality material') ||
+    const hasGenericMaterial =
+      combinedText.includes('high-quality material') ||
       combinedText.includes('quality materials') ||
       combinedText.includes('premium material');
 
@@ -649,9 +733,11 @@ export class AnswerEngineService {
    */
   private classifyCareSafetyInstructions(
     description: string,
-    combinedText: string,
+    combinedText: string
   ): QuestionClassification {
-    const matchCount = CARE_SAFETY_INDICATORS.filter((ind) => combinedText.includes(ind)).length;
+    const matchCount = CARE_SAFETY_INDICATORS.filter((ind) =>
+      combinedText.includes(ind)
+    ).length;
 
     if (matchCount >= 2) {
       return 'strong';
@@ -668,7 +754,10 @@ export class AnswerEngineService {
    * Computes the word count of a text string.
    */
   private getWordCount(text: string): number {
-    return text.trim().split(/\s+/).filter((word) => word.length > 0).length;
+    return text
+      .trim()
+      .split(/\s+/)
+      .filter((word) => word.length > 0).length;
   }
 
   /**
@@ -677,12 +766,16 @@ export class AnswerEngineService {
   private isVagueContent(text: string, wordCount: number): boolean {
     if (wordCount < 15) {
       // Short content is more likely to be vague
-      const genericCount = GENERIC_PHRASES.filter((phrase) => text.includes(phrase)).length;
+      const genericCount = GENERIC_PHRASES.filter((phrase) =>
+        text.includes(phrase)
+      ).length;
       return genericCount >= 1;
     }
 
     // For longer content, check ratio of generic phrases
-    const genericCount = GENERIC_PHRASES.filter((phrase) => text.includes(phrase)).length;
+    const genericCount = GENERIC_PHRASES.filter((phrase) =>
+      text.includes(phrase)
+    ).length;
     return genericCount >= 3;
   }
 
@@ -692,7 +785,7 @@ export class AnswerEngineService {
   private computeAnswerabilityScore(
     strongCount: number,
     weakCount: number,
-    _missingCount: number,
+    _missingCount: number
   ): number {
     const totalQuestions = ANSWER_QUESTION_IDS.length; // 10
 
@@ -704,7 +797,7 @@ export class AnswerEngineService {
     const qualityScore = (strongCount + weakCount * 0.5) / totalQuestions;
 
     // Combine coverage and quality
-    const rawScore = (coverageRatio * 40) + (qualityScore * 60);
+    const rawScore = coverageRatio * 40 + qualityScore * 60;
 
     // Clamp to 0-100
     return Math.max(0, Math.min(100, Math.round(rawScore)));
@@ -716,7 +809,7 @@ export class AnswerEngineService {
   private determineStatusLevel(
     strongCount: number,
     missingCount: number,
-    weakCount: number,
+    weakCount: number
   ): AnswerabilityStatusLevel {
     const totalQuestions = ANSWER_QUESTION_IDS.length; // 10
     const answeredCount = strongCount + weakCount;
@@ -738,7 +831,9 @@ export class AnswerEngineService {
   /**
    * Computes the overall project-level status from all products.
    */
-  private computeOverallStatus(products: ProductAnswerabilitySummary[]): AnswerabilityStatus {
+  private computeOverallStatus(
+    products: ProductAnswerabilitySummary[]
+  ): AnswerabilityStatus {
     if (products.length === 0) {
       return {
         status: 'needs_answers',

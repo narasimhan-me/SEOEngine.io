@@ -32,7 +32,7 @@ class ProductIssueFixServiceStub {
           error: 'RATE_LIMIT',
           code: 'RATE_LIMIT',
         },
-        HttpStatus.TOO_MANY_REQUESTS,
+        HttpStatus.TOO_MANY_REQUESTS
       );
     }
 
@@ -43,7 +43,7 @@ class ProductIssueFixServiceStub {
           error: 'AI_DAILY_LIMIT_REACHED',
           code: 'AI_DAILY_LIMIT_REACHED',
         },
-        HttpStatus.TOO_MANY_REQUESTS,
+        HttpStatus.TOO_MANY_REQUESTS
       );
     }
 
@@ -76,7 +76,7 @@ const aiServiceStub = new AiServiceStub();
 async function signupAndLogin(
   server: any,
   email: string,
-  password: string,
+  password: string
 ): Promise<{ token: string; userId: string }> {
   await request(server)
     .post('/auth/signup')
@@ -107,7 +107,7 @@ async function createProject(
   server: any,
   token: string,
   name: string,
-  domain: string,
+  domain: string
 ): Promise<string> {
   const res = await request(server)
     .post('/projects')
@@ -124,7 +124,7 @@ async function createProduct(
     externalId: string;
     seoTitle?: string | null;
     seoDescription?: string | null;
-  },
+  }
 ): Promise<string> {
   const product = await testPrisma.product.create({
     data: {
@@ -148,7 +148,7 @@ describe('Automation Playbooks (e2e)', () => {
         .overrideProvider(ProductIssueFixService)
         .useValue(productIssueFixServiceStub)
         .overrideProvider(AiService)
-        .useValue(aiServiceStub),
+        .useValue(aiServiceStub)
     );
     server = app.getHttpServer();
   });
@@ -171,13 +171,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token } = await signupAndLogin(
         server,
         'playbook-estimate@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Playbook Test Project',
-        'playbook-test.com',
+        'playbook-test.com'
       );
 
       // Create products: 2 without SEO title, 1 with SEO title
@@ -225,13 +225,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token } = await signupAndLogin(
         server,
         'playbook-estimate-desc@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Description Test Project',
-        'desc-test.com',
+        'desc-test.com'
       );
 
       // Create products: 1 without SEO description, 2 with SEO description
@@ -268,13 +268,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token } = await signupAndLogin(
         server,
         'playbook-no-affected@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'All Complete Project',
-        'all-complete.com',
+        'all-complete.com'
       );
 
       // Create products with all SEO fields filled
@@ -299,13 +299,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token } = await signupAndLogin(
         server,
         'playbook-missing-id@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Missing ID Project',
-        'missing-id.com',
+        'missing-id.com'
       );
 
       const res = await request(server)
@@ -319,19 +319,19 @@ describe('Automation Playbooks (e2e)', () => {
       const user1 = await signupAndLogin(
         server,
         'playbook-owner@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const user2 = await signupAndLogin(
         server,
         'playbook-other@example.com',
-        'testpassword123',
+        'testpassword123'
       );
 
       const projectId = await createProject(
         server,
         user1.token,
         'Owner Project',
-        'owner.com',
+        'owner.com'
       );
 
       const res = await request(server)
@@ -346,13 +346,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token } = await signupAndLogin(
         server,
         'playbook-free-plan@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Free Plan Project',
-        'free-plan.com',
+        'free-plan.com'
       );
 
       await createProduct(projectId, {
@@ -380,13 +380,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token } = await signupAndLogin(
         server,
         'playbook-apply-free@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Apply Free Project',
-        'apply-free.com',
+        'apply-free.com'
       );
 
       await createProduct(projectId, {
@@ -409,13 +409,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token } = await signupAndLogin(
         server,
         'playbook-apply-missing@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Apply Missing ID Project',
-        'apply-missing.com',
+        'apply-missing.com'
       );
 
       const res = await request(server)
@@ -430,13 +430,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token } = await signupAndLogin(
         server,
         'playbook-apply-missing-scope@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Apply Missing Scope Project',
-        'apply-missing-scope.com',
+        'apply-missing-scope.com'
       );
 
       const res = await request(server)
@@ -451,19 +451,19 @@ describe('Automation Playbooks (e2e)', () => {
       const user1 = await signupAndLogin(
         server,
         'playbook-apply-owner@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const user2 = await signupAndLogin(
         server,
         'playbook-apply-other@example.com',
-        'testpassword123',
+        'testpassword123'
       );
 
       const projectId = await createProject(
         server,
         user1.token,
         'Apply Owner Project',
-        'apply-owner.com',
+        'apply-owner.com'
       );
 
       const res = await request(server)
@@ -478,13 +478,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'playbook-apply-empty@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Apply Empty Project',
-        'apply-empty.com',
+        'apply-empty.com'
       );
 
       // Upgrade user to pro plan for this test
@@ -534,13 +534,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'playbook-apply-success@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Apply Success Project',
-        'apply-success.com',
+        'apply-success.com'
       );
 
       await testPrisma.subscription.create({
@@ -593,24 +593,22 @@ describe('Automation Playbooks (e2e)', () => {
       expect(res.body.results).toHaveLength(2);
 
       const statuses = (res.body.results as Array<{ status: string }>).map(
-        (r) => r.status,
+        (r) => r.status
       );
-      expect(statuses).toEqual(
-        expect.arrayContaining(['UPDATED', 'UPDATED']),
-      );
+      expect(statuses).toEqual(expect.arrayContaining(['UPDATED', 'UPDATED']));
     });
 
     it('stops on first non-retryable failure and returns FAILED status', async () => {
       const { token, userId } = await signupAndLogin(
         server,
         'playbook-apply-fail@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Apply Fail Project',
-        'apply-fail.com',
+        'apply-fail.com'
       );
 
       await testPrisma.subscription.create({
@@ -676,13 +674,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'playbook-apply-rate-limit@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Apply Rate Limit Project',
-        'apply-rate-limit.com',
+        'apply-rate-limit.com'
       );
 
       await testPrisma.subscription.create({
@@ -737,13 +735,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'playbook-apply-daily-limit@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Apply Daily Limit Project',
-        'apply-daily-limit.com',
+        'apply-daily-limit.com'
       );
 
       await testPrisma.subscription.create({
@@ -798,13 +796,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'playbook-apply-scope-mismatch@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Apply Scope Mismatch Project',
-        'apply-scope-mismatch.com',
+        'apply-scope-mismatch.com'
       );
 
       await testPrisma.subscription.create({
@@ -861,13 +859,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token } = await signupAndLogin(
         server,
         'playbook-auth-test@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Auth Test Project',
-        'auth-test.com',
+        'auth-test.com'
       );
 
       const res = await request(server)
@@ -881,13 +879,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token } = await signupAndLogin(
         server,
         'playbook-apply-auth@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Apply Auth Project',
-        'apply-auth.com',
+        'apply-auth.com'
       );
 
       const res = await request(server)
@@ -908,13 +906,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'playbook-rules-changed@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Rules Changed Project',
-        'rules-changed.com',
+        'rules-changed.com'
       );
 
       await testPrisma.subscription.create({
@@ -945,7 +943,9 @@ describe('Automation Playbooks (e2e)', () => {
 
       // Create a draft with specific rules (establish baseline rulesHash)
       const previewRes = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'Buy ' }, sampleSize: 1 });
       expect(previewRes.status).toBe(200);
@@ -981,13 +981,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'playbook-no-draft@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'No Draft Project',
-        'no-draft.com',
+        'no-draft.com'
       );
 
       await testPrisma.subscription.create({
@@ -1045,13 +1045,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'playbook-scope-invalid@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Scope Invalid Project',
-        'scope-invalid.com',
+        'scope-invalid.com'
       );
 
       await testPrisma.subscription.create({
@@ -1075,7 +1075,9 @@ describe('Automation Playbooks (e2e)', () => {
 
       // Get estimate and create preview
       const previewRes = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'Shop ' }, sampleSize: 1 });
       expect(previewRes.status).toBe(200);
@@ -1103,13 +1105,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'playbook-no-ai-apply@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'No AI Apply Project',
-        'no-ai-apply.com',
+        'no-ai-apply.com'
       );
 
       await testPrisma.subscription.create({
@@ -1133,7 +1135,9 @@ describe('Automation Playbooks (e2e)', () => {
 
       // Generate preview first (this creates the draft and uses AI)
       const previewRes = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'Buy ' }, sampleSize: 1 });
       expect(previewRes.status).toBe(200);
@@ -1142,7 +1146,7 @@ describe('Automation Playbooks (e2e)', () => {
       // Generate full draft (uses AI as well)
       await request(server)
         .post(
-          `/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`,
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`
         )
         .set('Authorization', `Bearer ${token}`)
         .send({ scopeId, rulesHash });
@@ -1170,13 +1174,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'playbook-draft-updated-vs-skipped@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Draft UPDATED vs SKIPPED Project',
-        'draft-updated-vs-skipped.com',
+        'draft-updated-vs-skipped.com'
       );
 
       await testPrisma.subscription.create({
@@ -1281,15 +1285,21 @@ describe('Automation Playbooks (e2e)', () => {
       expect(body.skippedCount).toBe(2);
 
       const statusesByProduct = new Map(
-        body.results.map((r: any) => [r.productId, r.status]),
+        body.results.map((r: any) => [r.productId, r.status])
       );
       expect(statusesByProduct.get(productId1)).toBe('UPDATED');
       expect(statusesByProduct.get(productId2)).toBe('SKIPPED');
       expect(statusesByProduct.get(productId3)).toBe('SKIPPED');
 
-      const p1 = await testPrisma.product.findUnique({ where: { id: productId1 } });
-      const p2 = await testPrisma.product.findUnique({ where: { id: productId2 } });
-      const p3 = await testPrisma.product.findUnique({ where: { id: productId3 } });
+      const p1 = await testPrisma.product.findUnique({
+        where: { id: productId1 },
+      });
+      const p2 = await testPrisma.product.findUnique({
+        where: { id: productId2 },
+      });
+      const p3 = await testPrisma.product.findUnique({
+        where: { id: productId3 },
+      });
 
       expect(p1?.seoTitle).toBe('Draft Title 1');
       expect(p2?.seoTitle).toBeNull();
@@ -1300,13 +1310,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'playbook-resume-apply@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Resume Apply Project',
-        'resume-apply.com',
+        'resume-apply.com'
       );
 
       await testPrisma.subscription.create({
@@ -1330,7 +1340,9 @@ describe('Automation Playbooks (e2e)', () => {
 
       // Preview + full draft generation (acts as "initial session")
       const previewRes = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'Buy ' }, sampleSize: 1 });
       expect(previewRes.status).toBe(200);
@@ -1341,7 +1353,7 @@ describe('Automation Playbooks (e2e)', () => {
 
       await request(server)
         .post(
-          `/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`,
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`
         )
         .set('Authorization', `Bearer ${token}`)
         .send({ scopeId, rulesHash });
@@ -1388,13 +1400,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'ai-usage-ledger@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'AI Usage Ledger Project',
-        'ai-usage-ledger.com',
+        'ai-usage-ledger.com'
       );
 
       await testPrisma.subscription.create({
@@ -1427,7 +1439,9 @@ describe('Automation Playbooks (e2e)', () => {
 
       // Generate preview (uses AI)
       const previewRes = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: false }, sampleSize: 1 });
       expect(previewRes.status).toBe(200);
@@ -1436,7 +1450,7 @@ describe('Automation Playbooks (e2e)', () => {
       // Generate full draft (uses AI)
       await request(server)
         .post(
-          `/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`,
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`
         )
         .set('Authorization', `Bearer ${token}`)
         .send({ scopeId, rulesHash });
@@ -1476,13 +1490,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'ai-usage-runs@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'AI Usage Runs Project',
-        'ai-usage-runs.com',
+        'ai-usage-runs.com'
       );
 
       await testPrisma.subscription.create({
@@ -1506,7 +1520,9 @@ describe('Automation Playbooks (e2e)', () => {
 
       // Generate preview
       const previewRes = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: false }, sampleSize: 1 });
       expect(previewRes.status).toBe(200);
@@ -1538,13 +1554,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'ai-usage-quota-soft@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'AI Quota Soft Project',
-        'ai-quota-soft.com',
+        'ai-quota-soft.com'
       );
 
       await testPrisma.subscription.create({
@@ -1605,7 +1621,9 @@ describe('Automation Playbooks (e2e)', () => {
 
       // Preview should still be allowed (predict before prevent; warning only).
       const previewRes = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: false }, sampleSize: 1 });
 
@@ -1618,13 +1636,13 @@ describe('Automation Playbooks (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'ai-usage-quota-hard@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'AI Quota Hard Project',
-        'ai-quota-hard.com',
+        'ai-quota-hard.com'
       );
 
       await testPrisma.subscription.create({
@@ -1675,7 +1693,9 @@ describe('Automation Playbooks (e2e)', () => {
       aiServiceStub.generateMetadataCallCount = 0;
 
       const previewRes = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: false }, sampleSize: 1 });
 

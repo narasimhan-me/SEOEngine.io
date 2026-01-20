@@ -20,8 +20,8 @@ export function WebsitesFAQ() {
           Frequently asked questions
         </h2>
         <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-          Common questions about how EngineO.ai works with WordPress, Webflow, and other website
-          platforms.
+          Common questions about how EngineO.ai works with WordPress, Webflow,
+          and other website platforms.
         </p>
 
         <div className="mt-8 grid gap-8 md:grid-cols-2">

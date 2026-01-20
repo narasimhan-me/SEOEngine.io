@@ -48,14 +48,17 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - Shopify connected with products
 
 **Steps:**
+
 1. Click "Sync Products"
 2. Observe UI during sync
 3. Wait for completion
 
 **Expected Results:**
+
 - **Button:** Shows loading/spinner state
 - **Progress:** "Syncing..." or progress indicator visible
 - **Completion:** Success message with counts
@@ -68,14 +71,17 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Project with crawlable domain
 
 **Steps:**
+
 1. Start crawl
 2. Observe status changes
 3. Wait for completion
 
 **Expected Results:**
+
 - **Status:** PENDING → RUNNING → COMPLETE shown
 - **UI:** Status badge updates in real-time or on poll
 - **Completion:** Results available, status shows "Complete"
@@ -87,14 +93,17 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - AI suggestion ready to apply
 
 **Steps:**
+
 1. Click "Apply to Shopify"
 2. Observe feedback
 3. Note completion
 
 **Expected Results:**
+
 - **Loading:** Button shows applying state
 - **Success:** Toast/message confirms apply
 - **Product:** Updated status indicator
@@ -106,14 +115,17 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Multiple items selected for bulk operation
 
 **Steps:**
+
 1. Select 10 products
 2. Bulk apply AI suggestions
 3. Observe progress
 
 **Expected Results:**
+
 - **Progress:** "3 of 10 complete" or progress bar
 - **Updates:** Real-time progress updates
 - **Completion:** Summary of results
@@ -127,11 +139,13 @@
 **Description:** User refreshes page while sync in progress.
 
 **Steps:**
+
 1. Start long sync operation
 2. Refresh browser page
 3. Return to sync page
 
 **Expected Behavior:**
+
 - Sync continues in background
 - Refreshed page shows current status
 - No duplicate sync started
@@ -144,11 +158,13 @@
 **Description:** User navigates to different page during sync.
 
 **Steps:**
+
 1. Start sync
 2. Navigate to different section
 3. Return to sync page
 
 **Expected Behavior:**
+
 - Sync continues
 - Status accurate when returning
 - No disruption to operation
@@ -160,10 +176,12 @@
 **Description:** Sync takes extended time.
 
 **Steps:**
+
 1. Large catalog sync
 2. Monitor for extended period
 
 **Expected Behavior:**
+
 - Progress updates continue
 - No timeout on UI side
 - User can do other tasks
@@ -176,11 +194,13 @@
 **Description:** User triggers multiple sync types simultaneously.
 
 **Steps:**
+
 1. Start product sync
 2. Start crawl while sync running
 3. Observe both
 
 **Expected Behavior:**
+
 - Both operations proceed (or queued)
 - Independent status for each
 - No conflicts or data corruption
@@ -195,10 +215,12 @@
 **Scenario:** Some items in batch fail.
 
 **Steps:**
+
 1. Bulk operation with some failures
 2. Observe completion message
 
 **Expected Behavior:**
+
 - Summary: "8 succeeded, 2 failed"
 - Failed items identifiable
 - Retry option for failures
@@ -211,9 +233,11 @@
 **Scenario:** Entire sync operation fails.
 
 **Steps:**
+
 1. Trigger sync when backend has issues
 
 **Expected Behavior:**
+
 - Error message shown
 - Reason if available
 - Retry button
@@ -226,11 +250,13 @@
 **Scenario:** Connection lost mid-sync.
 
 **Steps:**
+
 1. Start sync
 2. Disconnect network
 3. Observe behavior
 
 **Expected Behavior:**
+
 - Error detected and shown
 - "Network error" message
 - Retry when connection restored
@@ -243,9 +269,11 @@
 **Scenario:** Sync times out.
 
 **Steps:**
+
 1. Very slow sync hits timeout
 
 **Expected Behavior:**
+
 - Timeout message shown
 - Partial results if any
 - Can retry
@@ -260,6 +288,7 @@
 **Scenario:** How often UI checks status.
 
 **Expected Behavior:**
+
 - Reasonable polling interval (e.g., 2-5 seconds)
 - No excessive API calls
 - Real-time feel without overload
@@ -271,6 +300,7 @@
 **Scenario:** Granularity of progress updates.
 
 **Expected Behavior:**
+
 - Count-based for discrete items
 - Percentage for continuous operations
 - Consistent across similar operations
@@ -326,9 +356,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Cross-cutting system-level tests for sync status feedback |
+| Field              | Value                                                     |
+| ------------------ | --------------------------------------------------------- |
+| **Tester Name**    | [Pending]                                                 |
+| **Date**           | [YYYY-MM-DD]                                              |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed                     |
+| **Notes**          | Cross-cutting system-level tests for sync status feedback |

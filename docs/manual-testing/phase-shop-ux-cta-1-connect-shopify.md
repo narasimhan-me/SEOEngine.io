@@ -41,15 +41,18 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - [ ] Project has `shopify.shopDomain` populated (from previous attempt or project setup)
 - [ ] Shopify integration NOT yet connected
 
 **Steps:**
+
 1. Log in and navigate to project overview.
 2. Observe the First DEO Win checklist.
 3. Click the "Connect {store-domain}" button.
 
 **Expected Results:**
+
 - [ ] Button label shows "Connect {store-domain}.myshopify.com" (personalized).
 - [ ] Clicking immediately redirects to Shopify OAuth flow (no scroll/focus).
 - [ ] Button shows "Connecting…" state briefly before redirect.
@@ -61,15 +64,18 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - [ ] Project has NO `shopify.shopDomain` (fresh project)
 - [ ] Shopify integration NOT yet connected
 
 **Steps:**
+
 1. Log in and navigate to project overview.
 2. Observe the First DEO Win checklist.
 3. Click the "Connect Shopify" button.
 
 **Expected Results:**
+
 - [ ] Button label shows generic "Connect Shopify".
 - [ ] Clicking scrolls to the Shopify integration section in Diagnostics.
 - [ ] Store domain input is focused after scroll.
@@ -81,14 +87,17 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - [ ] OAuth flow initiated from checklist
 - [ ] Valid Shopify store credentials
 
 **Steps:**
+
 1. Complete OAuth flow in Shopify admin.
 2. Return to EngineO app via callback.
 
 **Expected Results:**
+
 - [ ] "Successfully connected to Shopify!" toast appears.
 - [ ] First DEO Win checklist updates: "Connect your store" step shows as completed.
 - [ ] Shopify integration section shows connected status with store domain.
@@ -102,11 +111,13 @@
 **Description:** User starts OAuth but cancels in Shopify admin.
 
 **Steps:**
+
 1. Click "Connect {domain}" in checklist.
 2. Cancel OAuth in Shopify admin or close the browser tab.
 3. Return to EngineO project overview.
 
 **Expected Behavior:**
+
 - [ ] No error state persists on page reload.
 - [ ] Checklist still shows "Connect your store" as incomplete.
 - [ ] User can retry connection.
@@ -118,10 +129,12 @@
 **Description:** Stored domain is invalid or unreachable.
 
 **Steps:**
+
 1. (Setup) Manually set an invalid `shopDomain` in the database.
 2. Click the "Connect {invalid-domain}" button.
 
 **Expected Behavior:**
+
 - [ ] OAuth flow fails gracefully at Shopify.
 - [ ] User returns to EngineO with appropriate error handling.
 
@@ -161,9 +174,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Phase SHOP-UX-CTA-1 Connect Shopify CTA manual testing |
+| Field              | Value                                                  |
+| ------------------ | ------------------------------------------------------ |
+| **Tester Name**    | [Pending]                                              |
+| **Date**           | [YYYY-MM-DD]                                           |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed                  |
+| **Notes**          | Phase SHOP-UX-CTA-1 Connect Shopify CTA manual testing |

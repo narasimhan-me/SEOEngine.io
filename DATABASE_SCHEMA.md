@@ -97,11 +97,11 @@ model Integration {
 
 **Field descriptions:**
 
-| Field | Description |
-|-------|-------------|
-| `externalId` | Platform-specific identifier (Shopify: shop domain, WooCommerce: store URL, BigCommerce: store hash) |
-| `accessToken` | OAuth token or API key for the platform |
-| `config` | JSON object for platform-specific settings (scopes, webhooks, etc.) |
+| Field         | Description                                                                                          |
+| ------------- | ---------------------------------------------------------------------------------------------------- |
+| `externalId`  | Platform-specific identifier (Shopify: shop domain, WooCommerce: store URL, BigCommerce: store hash) |
+| `accessToken` | OAuth token or API key for the platform                                                              |
+| `config`      | JSON object for platform-specific settings (scopes, webhooks, etc.)                                  |
 
 **Example config by platform:**
 
@@ -195,6 +195,7 @@ model ProductImage {
 ```
 
 **Notes:**
+
 - `ProductImage` is the canonical source for per-image alt text and captions.
 - `Product.imageUrls` remains as a convenience array of URLs for existing UI compatibility.
 - Images are synced from Shopify during product sync, preserving the Shopify image ID as `externalId`.
@@ -251,6 +252,7 @@ model ProductMediaFixDraft {
 ```
 
 **Notes:**
+
 - Follows the same draft-first pattern as `ProductIntentFixDraft` and `ProductCompetitiveFixDraft`.
 - `aiWorkKey` enables CACHE/REUSE v2 for deduplicating AI work.
 - Drafts expire after a configurable TTL (default 7 days).

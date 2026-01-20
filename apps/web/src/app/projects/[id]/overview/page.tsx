@@ -4,7 +4,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { isAuthenticated, removeToken, getToken } from '@/lib/auth';
-import { projectsApi, seoScanApi, productsApi, billingApi, shopifyApi } from '@/lib/api';
+import {
+  projectsApi,
+  seoScanApi,
+  productsApi,
+  billingApi,
+  shopifyApi,
+} from '@/lib/api';
 import type { Product } from '@/lib/products';
 import type {
   DeoScoreLatestResponse,
@@ -12,7 +18,11 @@ import type {
   DeoIssue,
 } from '@/lib/deo-issues';
 // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Import deterministic routing helpers
-import { buildIssueFixHref, getSafeIssueTitle, getSafeIssueDescription } from '@/lib/issue-to-fix-path';
+import {
+  buildIssueFixHref,
+  getSafeIssueTitle,
+  getSafeIssueDescription,
+} from '@/lib/issue-to-fix-path';
 
 interface DeoIssuesResponse {
   projectId: string;
@@ -136,7 +146,8 @@ export default function ProjectOverviewPage() {
 
   // AI Suggestions state
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
-  const [currentSuggestion, setCurrentSuggestion] = useState<MetadataSuggestion | null>(null);
+  const [currentSuggestion, setCurrentSuggestion] =
+    useState<MetadataSuggestion | null>(null);
 
   // Project overview state
   const [overview, setOverview] = useState<ProjectOverview | null>(null);
@@ -158,7 +169,8 @@ export default function ProjectOverviewPage() {
   const [hasReviewedDeoScore, setHasReviewedDeoScore] = useState(false);
   const [connectingSource, setConnectingSource] = useState(false);
   const [planId, setPlanId] = useState<string | null>(null);
-  const [dailyCrawlUiState, setDailyCrawlUiState] = useState<DailyCrawlUiState>('IDLE');
+  const [dailyCrawlUiState, setDailyCrawlUiState] =
+    useState<DailyCrawlUiState>('IDLE');
 
   const feedback = useFeedback();
 
@@ -166,15 +178,19 @@ export default function ProjectOverviewPage() {
     try {
       setLoading(true);
       setError('');
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const API_URL =
+        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
       const token = getToken();
 
-      const response = await fetch(`${API_URL}/projects/${projectId}/integration-status`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(
+        `${API_URL}/projects/${projectId}/integration-status`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
       if (response.status === 401) {
         removeToken();
@@ -184,7 +200,9 @@ export default function ProjectOverviewPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to fetch integration status');
+        throw new Error(
+          errorData.message || 'Failed to fetch integration status'
+        );
       }
 
       const data = await response.json();
@@ -257,7 +275,7 @@ export default function ProjectOverviewPage() {
     } catch (err: unknown) {
       console.error('Error fetching DEO issues:', err);
       setDeoIssuesError(
-        err instanceof Error ? err.message : 'Failed to fetch DEO issues',
+        err instanceof Error ? err.message : 'Failed to fetch DEO issues'
       );
     } finally {
       setDeoIssuesLoading(false);
@@ -267,7 +285,10 @@ export default function ProjectOverviewPage() {
   const fetchPlanId = useCallback(async () => {
     try {
       const entitlements = await billingApi.getEntitlements();
-      if (entitlements && typeof (entitlements as { plan?: string }).plan === 'string') {
+      if (
+        entitlements &&
+        typeof (entitlements as { plan?: string }).plan === 'string'
+      ) {
         setPlanId((entitlements as { plan: string }).plan);
       }
     } catch (err: unknown) {
@@ -349,7 +370,10 @@ export default function ProjectOverviewPage() {
     try {
       const returnTo = `/projects/${projectId}/overview`;
       const result = await shopifyApi.getConnectUrl(projectId, returnTo);
-      const url = result && typeof (result as any).url === 'string' ? (result as any).url : null;
+      const url =
+        result && typeof (result as any).url === 'string'
+          ? (result as any).url
+          : null;
       if (!url) {
         throw new Error("Couldn't start Shopify connection. Try again.");
       }
@@ -368,7 +392,8 @@ export default function ProjectOverviewPage() {
       setScanning(true);
       setError('');
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const API_URL =
+        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
       const token = getToken();
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -383,7 +408,9 @@ export default function ProjectOverviewPage() {
       });
 
       if (!res.ok) {
-        const body = await res.json().catch(() => ({} as Record<string, unknown>));
+        const body = await res
+          .json()
+          .catch(() => ({}) as Record<string, unknown>);
         if (
           body &&
           (body.code === 'ENTITLEMENTS_LIMIT_REACHED' ||
@@ -396,7 +423,9 @@ export default function ProjectOverviewPage() {
             const plan =
               body && typeof body.plan === 'string' ? body.plan : 'current';
             const allowed =
-              body && typeof body.allowed === 'number' ? body.allowed : undefined;
+              body && typeof body.allowed === 'number'
+                ? body.allowed
+                : undefined;
             if (allowed !== undefined) {
               const plural = allowed === 1 ? 'page' : 'pages';
               limitMessage = `You've reached the ${plan} plan crawl limit (${allowed} ${plural} per crawl). Upgrade your plan to run more crawls.`;
@@ -440,17 +469,16 @@ export default function ProjectOverviewPage() {
   const handleManualSyncAnswerBlocks = async () => {
     if (!status?.shopify.connected) {
       feedback.showInfo(
-        'Connect your Shopify store to sync Answer Blocks to Shopify metafields.',
+        'Connect your Shopify store to sync Answer Blocks to Shopify metafields.'
       );
       return;
     }
 
-    const candidateProduct =
-      topProductsToFix[0]?.product ?? products[0];
+    const candidateProduct = topProductsToFix[0]?.product ?? products[0];
 
     if (!candidateProduct) {
       feedback.showInfo(
-        'No products are available to sync yet. Once products have Answer Blocks, they can be synced to Shopify metafields.',
+        'No products are available to sync yet. Once products have Answer Blocks, they can be synced to Shopify metafields.'
       );
       return;
     }
@@ -459,7 +487,7 @@ export default function ProjectOverviewPage() {
       setSyncingAeoToShopify(true);
       setError('');
       const result: any = await productsApi.syncAnswerBlocksToShopify(
-        candidateProduct.id,
+        candidateProduct.id
       );
       if (!result) {
         const message =
@@ -546,14 +574,18 @@ export default function ProjectOverviewPage() {
 
   const hasDeoScore = typeof deoScore?.latestScore?.overall === 'number';
 
-  const hasOptimizedThreeProducts = (overview?.productsWithAppliedSeo ?? 0) >= 3;
+  const hasOptimizedThreeProducts =
+    (overview?.productsWithAppliedSeo ?? 0) >= 3;
 
   const optimizedProductsCount = overview?.productsWithAppliedSeo ?? 0;
 
   const aeoSyncEnabled = status?.aeoSyncToShopifyMetafields ?? false;
   // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Filter to actionable issues only (have deterministic fix path)
   const issuesForCards: DeoIssue[] = ((deoIssues?.issues as DeoIssue[]) ?? [])
-    .filter((issue) => buildIssueFixHref({ projectId, issue, from: 'overview' }) !== null)
+    .filter(
+      (issue) =>
+        buildIssueFixHref({ projectId, issue, from: 'overview' }) !== null
+    )
     .slice(0, 3);
   const topProductsToFix = (() => {
     if (!deoIssues?.issues || !products.length) {
@@ -617,7 +649,8 @@ export default function ProjectOverviewPage() {
       };
     });
     return top.filter(
-      (entry): entry is { product: Product; reasons: string[] } => entry !== null,
+      (entry): entry is { product: Product; reasons: string[] } =>
+        entry !== null
     );
   })();
 
@@ -634,7 +667,7 @@ export default function ProjectOverviewPage() {
       return [] as Product[];
     }
     const prioritizedIds = new Set(
-      topProductsToFix.map(({ product }) => product.id),
+      topProductsToFix.map(({ product }) => product.id)
     );
     const prioritized = [
       ...missingMetadata.filter((product) => prioritizedIds.has(product.id)),
@@ -666,15 +699,19 @@ export default function ProjectOverviewPage() {
   const handleSetupDailyCrawls = async () => {
     try {
       setDailyCrawlUiState('SETTING_UP');
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const API_URL =
+        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
       const token = getToken();
       const response = await fetch(`${API_URL}/projects/${projectId}`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ autoCrawlEnabled: true, crawlFrequency: 'DAILY' }),
+        body: JSON.stringify({
+          autoCrawlEnabled: true,
+          crawlFrequency: 'DAILY',
+        }),
       });
       if (!response.ok) {
         throw new Error('Failed to enable daily crawls');
@@ -722,7 +759,8 @@ export default function ProjectOverviewPage() {
             {status?.projectName || 'Project Overview'}
           </h1>
           <p className="text-gray-600">
-            DEO intelligence for your project across content, entities, technical, and visibility.{' '}
+            DEO intelligence for your project across content, entities,
+            technical, and visibility.{' '}
             <Link
               href={`/projects/${projectId}/deo`}
               className="text-blue-600 hover:text-blue-800"
@@ -746,7 +784,10 @@ export default function ProjectOverviewPage() {
       )}
 
       {/* First DEO Win Checklist */}
-      {(!hasConnectedSource || !hasRunCrawl || !hasDeoScore || !hasOptimizedThreeProducts) && (
+      {(!hasConnectedSource ||
+        !hasRunCrawl ||
+        !hasDeoScore ||
+        !hasOptimizedThreeProducts) && (
         <FirstDeoWinChecklist
           projectName={status?.projectName}
           hasConnectedSource={!!hasConnectedSource}
@@ -764,93 +805,145 @@ export default function ProjectOverviewPage() {
       )}
 
       {/* First DEO Win Status Ribbon */}
-      {hasRunCrawl && hasDeoScore && hasOptimizedThreeProducts && showFirstWinCard && (() => {
-        const autoCrawlEffectiveState: DailyCrawlUiState =
-          dailyCrawlUiState !== 'IDLE'
-            ? dailyCrawlUiState
-            : status?.autoCrawlEnabled && status?.crawlFrequency === 'DAILY'
-              ? 'ENABLED'
-              : 'IDLE';
-        return (
-          <div className="mb-4 rounded-md border border-green-100 bg-green-50 px-3 py-2 text-xs text-green-800">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <p className="font-medium">
-                  You&apos;ve completed your first DEO win. Your visibility is improving.
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  {autoCrawlEffectiveState === 'IDLE' && (
-                    <button
-                      type="button"
-                      onClick={handleSetupDailyCrawls}
+      {hasRunCrawl &&
+        hasDeoScore &&
+        hasOptimizedThreeProducts &&
+        showFirstWinCard &&
+        (() => {
+          const autoCrawlEffectiveState: DailyCrawlUiState =
+            dailyCrawlUiState !== 'IDLE'
+              ? dailyCrawlUiState
+              : status?.autoCrawlEnabled && status?.crawlFrequency === 'DAILY'
+                ? 'ENABLED'
+                : 'IDLE';
+          return (
+            <div className="mb-4 rounded-md border border-green-100 bg-green-50 px-3 py-2 text-xs text-green-800">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="font-medium">
+                    You&apos;ve completed your first DEO win. Your visibility is
+                    improving.
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {autoCrawlEffectiveState === 'IDLE' && (
+                      <button
+                        type="button"
+                        onClick={handleSetupDailyCrawls}
+                        className="inline-flex items-center text-[11px] font-medium text-green-700 hover:text-green-900"
+                      >
+                        Set up daily crawls
+                      </button>
+                    )}
+                    {autoCrawlEffectiveState === 'SETTING_UP' && (
+                      <span className="inline-flex items-center text-[11px] font-medium text-green-600">
+                        <svg
+                          className="mr-1 h-3 w-3 animate-spin"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                          />
+                        </svg>
+                        Setting up daily crawls…
+                      </span>
+                    )}
+                    {autoCrawlEffectiveState === 'ENABLED' && (
+                      <span className="inline-flex items-center text-[11px] font-medium text-green-700">
+                        <svg
+                          className="mr-1 h-3 w-3 text-green-500"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Daily crawls enabled
+                      </span>
+                    )}
+                    {autoCrawlEffectiveState === 'ERROR' && (
+                      <button
+                        type="button"
+                        onClick={handleSetupDailyCrawls}
+                        className="inline-flex items-center text-[11px] font-medium text-red-600 hover:text-red-800"
+                      >
+                        <svg
+                          className="mr-1 h-3 w-3"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Retry daily crawls setup
+                      </button>
+                    )}
+                    <Link
+                      href={`/projects/${projectId}/issues`}
                       className="inline-flex items-center text-[11px] font-medium text-green-700 hover:text-green-900"
                     >
-                      Set up daily crawls
-                    </button>
-                  )}
-                  {autoCrawlEffectiveState === 'SETTING_UP' && (
-                    <span className="inline-flex items-center text-[11px] font-medium text-green-600">
-                      <svg className="mr-1 h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Setting up daily crawls…
-                    </span>
-                  )}
-                  {autoCrawlEffectiveState === 'ENABLED' && (
-                    <span className="inline-flex items-center text-[11px] font-medium text-green-700">
-                      <svg className="mr-1 h-3 w-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      Daily crawls enabled
-                    </span>
-                  )}
-                  {autoCrawlEffectiveState === 'ERROR' && (
-                    <button
-                      type="button"
-                      onClick={handleSetupDailyCrawls}
-                      className="inline-flex items-center text-[11px] font-medium text-red-600 hover:text-red-800"
-                    >
-                      <svg className="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                      Retry daily crawls setup
-                    </button>
-                  )}
-                  <Link
-                    href={`/projects/${projectId}/issues`}
-                    className="inline-flex items-center text-[11px] font-medium text-green-700 hover:text-green-900"
-                  >
-                    View issues
-                  </Link>
+                      View issues
+                    </Link>
+                  </div>
                 </div>
+                <button
+                  onClick={() => setShowFirstWinCard(false)}
+                  className="mt-0.5 text-green-600 hover:text-green-800"
+                >
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
               </div>
-              <button
-                onClick={() => setShowFirstWinCard(false)}
-                className="mt-0.5 text-green-600 hover:text-green-800"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
       {/* Next DEO Win Card - shown when First DEO Win checklist is fully complete */}
-      {hasConnectedSource && hasRunCrawl && hasDeoScore && hasOptimizedThreeProducts && (
-        <NextDeoWinCard projectId={projectId} planId={planId} />
-      )}
+      {hasConnectedSource &&
+        hasRunCrawl &&
+        hasDeoScore &&
+        hasOptimizedThreeProducts && (
+          <NextDeoWinCard projectId={projectId} planId={planId} />
+        )}
 
       {/* Primary Focus Section: What Matters Right Now */}
       <section className="mt-6">
         <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4 sm:p-5">
           <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-indigo-900">What Matters Right Now</h2>
+              <h2 className="text-sm font-semibold text-indigo-900">
+                What Matters Right Now
+              </h2>
               <p className="mt-1 text-xs text-indigo-800">
-                Focus on Answer Block readiness and quick wins for your key products.
+                Focus on Answer Block readiness and quick wins for your key
+                products.
               </p>
             </div>
           </div>
@@ -858,7 +951,9 @@ export default function ProjectOverviewPage() {
             {/* AEO Status (primary card) */}
             <div className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-indigo-100">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-900">AEO Status</h3>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  AEO Status
+                </h3>
                 <span
                   className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide ${
                     aeoSyncEnabled
@@ -871,7 +966,9 @@ export default function ProjectOverviewPage() {
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Products with Answer Blocks</span>
+                  <span className="text-gray-600">
+                    Products with Answer Blocks
+                  </span>
                   <span className="font-medium text-gray-900">
                     {overview?.productsWithAnswerBlocks ?? 0}
                   </span>
@@ -881,7 +978,7 @@ export default function ProjectOverviewPage() {
                   <span className="font-medium text-gray-900">
                     {overview?.lastAnswerBlockSyncAt
                       ? new Date(
-                          overview.lastAnswerBlockSyncAt as string,
+                          overview.lastAnswerBlockSyncAt as string
                         ).toLocaleString()
                       : 'No sync yet'}
                   </span>
@@ -916,7 +1013,9 @@ export default function ProjectOverviewPage() {
                   {syncingAeoToShopify ? 'Syncing…' : 'Sync answers to Shopify'}
                 </button>
                 {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Inline guidance */}
-                <span className="text-[10px] text-gray-500">Does not change metadata or product content.</span>
+                <span className="text-[10px] text-gray-500">
+                  Does not change metadata or product content.
+                </span>
               </div>
             </div>
             {/* Top Products to Fix (primary action area) */}
@@ -927,13 +1026,15 @@ export default function ProjectOverviewPage() {
                     Top Products to Fix
                   </h3>
                   <p className="mt-1 text-xs text-gray-500">
-                    Quick wins where better answers and metadata can improve visibility.
+                    Quick wins where better answers and metadata can improve
+                    visibility.
                   </p>
                 </div>
               </div>
               {topProductsToFix.length === 0 ? (
                 <p className="text-xs text-gray-500">
-                  Once issues are detected, you&apos;ll see the easiest products to improve here.
+                  Once issues are detected, you&apos;ll see the easiest products
+                  to improve here.
                 </p>
               ) : (
                 <ul className="space-y-3">
@@ -947,7 +1048,7 @@ export default function ProjectOverviewPage() {
                           type="button"
                           onClick={() =>
                             router.push(
-                              `/projects/${projectId}/products/${product.id}`,
+                              `/projects/${projectId}/products/${product.id}`
                             )
                           }
                           className="truncate text-sm font-medium text-blue-700 hover:text-blue-900"
@@ -981,7 +1082,8 @@ export default function ProjectOverviewPage() {
             onRunFirstCrawl={hasRunCrawl ? undefined : handleRunScan}
           />
           <p className="text-xs text-gray-600">
-            Your biggest growth opportunities are Answer Readiness and Visibility.
+            Your biggest growth opportunities are Answer Readiness and
+            Visibility.
           </p>
           {/* First DEO Win: Optimize 3 products (guided quick win) */}
           {!hasOptimizedThreeProducts && (
@@ -995,21 +1097,23 @@ export default function ProjectOverviewPage() {
                     Preview and apply SEO improvements — one product at a time.
                   </p>
                   <p className="mt-2 text-[11px] font-medium text-blue-900">
-                    {Math.min(optimizedProductsCount, 3)} of 3 products optimized
+                    {Math.min(optimizedProductsCount, 3)} of 3 products
+                    optimized
                   </p>
                 </div>
               </div>
               <div className="mt-3">
                 {optimizeThreeSuggestions.length === 0 ? (
                   <p className="text-xs text-blue-800">
-                    All products already have SEO titles and descriptions. Check back here after
-                    syncing new products.
+                    All products already have SEO titles and descriptions. Check
+                    back here after syncing new products.
                   </p>
                 ) : (
                   <ul className="space-y-3">
                     {optimizeThreeSuggestions.map((product) => {
                       const missingTitle = !product.seoTitle?.trim();
-                      const missingDescription = !product.seoDescription?.trim();
+                      const missingDescription =
+                        !product.seoDescription?.trim();
                       return (
                         <li
                           key={product.id}
@@ -1036,7 +1140,7 @@ export default function ProjectOverviewPage() {
                             type="button"
                             onClick={() =>
                               router.push(
-                                `/projects/${projectId}/products/${product.id}?focus=metadata`,
+                                `/projects/${projectId}/products/${product.id}?focus=metadata`
                               )
                             }
                             className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
@@ -1054,9 +1158,12 @@ export default function ProjectOverviewPage() {
           <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-sm font-medium text-gray-700">DEO Score breakdown</h3>
+                <h3 className="text-sm font-medium text-gray-700">
+                  DEO Score breakdown
+                </h3>
                 <p className="mt-1 text-xs text-gray-500">
-                  See how content, answer readiness, and visibility contribute to your score.
+                  See how content, answer readiness, and visibility contribute
+                  to your score.
                 </p>
               </div>
               <button
@@ -1076,10 +1183,12 @@ export default function ProjectOverviewPage() {
           <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-sm font-medium text-gray-700">DEO Freshness</h3>
+                <h3 className="text-sm font-medium text-gray-700">
+                  DEO Freshness
+                </h3>
                 <p className="mt-1 text-xs text-gray-500">
-                  Recompute to refresh crawl and product signals when your site or catalog
-                  changes.
+                  Recompute to refresh crawl and product signals when your site
+                  or catalog changes.
                 </p>
               </div>
               <button
@@ -1087,7 +1196,9 @@ export default function ProjectOverviewPage() {
                 onClick={() => setShowDeoFreshness((prev) => !prev)}
                 className="text-xs font-medium text-blue-600 hover:text-blue-800"
               >
-                {showDeoFreshness ? 'Hide freshness controls' : 'Show freshness controls'}
+                {showDeoFreshness
+                  ? 'Hide freshness controls'
+                  : 'Show freshness controls'}
               </button>
             </div>
             {showDeoFreshness && (
@@ -1132,7 +1243,9 @@ export default function ProjectOverviewPage() {
         <div className="space-y-4">
           <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900">Top blockers</h3>
+              <h3 className="text-sm font-semibold text-gray-900">
+                Top blockers
+              </h3>
               <Link
                 href={`/projects/${projectId}/issues`}
                 className="text-xs font-medium text-blue-600 hover:text-blue-800"
@@ -1150,7 +1263,11 @@ export default function ProjectOverviewPage() {
               <ul className="space-y-2">
                 {issuesForCards.map((issue) => {
                   // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Use deterministic routing with safe titles
-                  const href = buildIssueFixHref({ projectId, issue, from: 'overview' });
+                  const href = buildIssueFixHref({
+                    projectId,
+                    issue,
+                    from: 'overview',
+                  });
                   const safeTitle = getSafeIssueTitle(issue);
                   const safeDescription = getSafeIssueDescription(issue);
                   return (
@@ -1187,7 +1304,9 @@ export default function ProjectOverviewPage() {
         <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-gray-900">Diagnostics & system details</h2>
+              <h2 className="text-sm font-semibold text-gray-900">
+                Diagnostics & system details
+              </h2>
               <p className="mt-1 text-xs text-gray-500">
                 Signals, integrations, crawl config, and system status.
               </p>
@@ -1196,25 +1315,35 @@ export default function ProjectOverviewPage() {
               type="button"
               onClick={() => setShowDiagnostics((prev) => !prev)}
               className="text-xs font-medium text-blue-600 hover:text-blue-800"
-              >
-                {showDiagnostics ? 'Hide details' : 'Show details'}
-              </button>
+            >
+              {showDiagnostics ? 'Hide details' : 'Show details'}
+            </button>
           </div>
           {showDiagnostics && (
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
               {/* Left column: Evidence (signals and crawl tools) */}
               <div className="space-y-4">
                 <div className="rounded-lg border border-gray-200 bg-white p-4">
-                  <h3 className="mb-3 text-sm font-semibold text-gray-900">Signals summary</h3>
-                  <DeoSignalsSummary signals={deoSignals} loading={deoSignalsLoading} />
+                  <h3 className="mb-3 text-sm font-semibold text-gray-900">
+                    Signals summary
+                  </h3>
+                  <DeoSignalsSummary
+                    signals={deoSignals}
+                    loading={deoSignalsLoading}
+                  />
                   <div className="mt-4">
-                    <ProjectHealthCards signals={deoSignals} projectId={projectId} />
+                    <ProjectHealthCards
+                      signals={deoSignals}
+                      projectId={projectId}
+                    />
                   </div>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-white p-4">
                   <div className="flex flex-col gap-4">
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-900">Crawl & DEO Issues</h3>
+                      <h3 className="text-sm font-semibold text-gray-900">
+                        Crawl & DEO Issues
+                      </h3>
                       <p className="mt-1 text-xs text-gray-600">
                         {hasRunCrawl
                           ? 'View full crawl results, per-page issues, and detailed SEO/DEO diagnostics.'
@@ -1330,7 +1459,7 @@ export default function ProjectOverviewPage() {
                           <p>
                             <span className="font-medium">Connected:</span>{' '}
                             {new Date(
-                              status.shopify.installedAt,
+                              status.shopify.installedAt
                             ).toLocaleDateString()}
                           </p>
                         )}
@@ -1340,18 +1469,29 @@ export default function ProjectOverviewPage() {
                 )}
                 {status.integrations.length > 0 && (
                   <div className="rounded-lg border border-gray-200 bg-white p-4">
-                    <h3 className="mb-4 text-sm font-semibold text-gray-900">Active Integrations</h3>
+                    <h3 className="mb-4 text-sm font-semibold text-gray-900">
+                      Active Integrations
+                    </h3>
                     <div className="space-y-3 text-sm">
                       {status.integrations.map((integration) => (
-                        <div key={integration.type} className="flex items-center gap-2">
-                          <svg className="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                        <div
+                          key={integration.type}
+                          className="flex items-center gap-2"
+                        >
+                          <svg
+                            className="h-4 w-4 text-green-500"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
                             <path
                               fillRule="evenodd"
                               d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
                               clipRule="evenodd"
                             />
                           </svg>
-                          <span className="text-gray-700">{integration.type}</span>
+                          <span className="text-gray-700">
+                            {integration.type}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -1361,13 +1501,16 @@ export default function ProjectOverviewPage() {
                   const autoCrawlEffectiveState: DailyCrawlUiState =
                     dailyCrawlUiState !== 'IDLE'
                       ? dailyCrawlUiState
-                      : status.autoCrawlEnabled && status.crawlFrequency === 'DAILY'
+                      : status.autoCrawlEnabled &&
+                          status.crawlFrequency === 'DAILY'
                         ? 'ENABLED'
                         : 'IDLE';
                   return (
                     <div className="rounded-lg border border-gray-200 bg-white p-4">
                       <div className="mb-3 flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-gray-900">Auto Crawl</h3>
+                        <h3 className="text-sm font-semibold text-gray-900">
+                          Auto Crawl
+                        </h3>
                         <Link
                           href={`/projects/${projectId}/settings`}
                           className="text-xs text-blue-600 hover:text-blue-800"
@@ -1378,28 +1521,65 @@ export default function ProjectOverviewPage() {
                       <div className="space-y-2">
                         {autoCrawlEffectiveState === 'ENABLED' && (
                           <div className="flex items-center gap-2">
-                            <svg className="h-4 w-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            <svg
+                              className="h-4 w-4 text-green-500"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clipRule="evenodd"
+                              />
                             </svg>
-                            <span className="text-sm text-gray-700">Enabled (Daily)</span>
+                            <span className="text-sm text-gray-700">
+                              Enabled (Daily)
+                            </span>
                           </div>
                         )}
                         {autoCrawlEffectiveState === 'SETTING_UP' && (
                           <div className="flex items-center gap-2">
-                            <svg className="h-4 w-4 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            <svg
+                              className="h-4 w-4 animate-spin text-blue-500"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              />
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                              />
                             </svg>
-                            <span className="text-sm text-blue-700">Setting up daily crawls…</span>
+                            <span className="text-sm text-blue-700">
+                              Setting up daily crawls…
+                            </span>
                           </div>
                         )}
                         {autoCrawlEffectiveState === 'ERROR' && (
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                              <svg className="h-4 w-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                              <svg
+                                className="h-4 w-4 text-red-500"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
                               </svg>
-                              <span className="text-sm text-red-700">Failed to enable</span>
+                              <span className="text-sm text-red-700">
+                                Failed to enable
+                              </span>
                             </div>
                             <button
                               type="button"
@@ -1413,10 +1593,20 @@ export default function ProjectOverviewPage() {
                         {autoCrawlEffectiveState === 'IDLE' && (
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                              <svg className="h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                              <svg
+                                className="h-4 w-4 text-gray-400"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                  clipRule="evenodd"
+                                />
                               </svg>
-                              <span className="text-sm text-gray-500">Disabled</span>
+                              <span className="text-sm text-gray-500">
+                                Disabled
+                              </span>
                             </div>
                             <button
                               type="button"
@@ -1432,10 +1622,14 @@ export default function ProjectOverviewPage() {
                   );
                 })()}
                 <div className="rounded-lg border border-gray-200 bg-white p-4">
-                  <h3 className="mb-4 text-sm font-semibold text-gray-900">Project Stats</h3>
+                  <h3 className="mb-4 text-sm font-semibold text-gray-900">
+                    Project Stats
+                  </h3>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Total Crawls</span>
+                      <span className="text-sm text-gray-600">
+                        Total Crawls
+                      </span>
                       <span className="text-sm font-medium text-gray-900">
                         {overview?.crawlCount ?? 0}
                       </span>
@@ -1447,7 +1641,9 @@ export default function ProjectOverviewPage() {
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Products with SEO</span>
+                      <span className="text-sm text-gray-600">
+                        Products with SEO
+                      </span>
                       <span className="text-sm font-medium text-gray-900">
                         {overview?.productsWithAppliedSeo ?? 0}
                       </span>
@@ -1456,7 +1652,9 @@ export default function ProjectOverviewPage() {
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-600">Last Scan</span>
                         <span className="text-sm font-medium text-gray-900">
-                          {new Date(scanResults[0].scannedAt).toLocaleDateString()}
+                          {new Date(
+                            scanResults[0].scannedAt
+                          ).toLocaleDateString()}
                         </span>
                       </div>
                     )}
@@ -1491,11 +1689,15 @@ export default function ProjectOverviewPage() {
               {/* Header - sticky */}
               <div className="sticky top-0 z-10 flex items-start justify-between border-b bg-white px-6 py-4 rounded-t-lg">
                 <div>
-                  <h3 id="issues-modal-title" className="text-lg font-semibold text-gray-900">
+                  <h3
+                    id="issues-modal-title"
+                    className="text-lg font-semibold text-gray-900"
+                  >
                     Issues identified in your project
                   </h3>
                   <p className="mt-1 text-sm text-gray-500">
-                    Based on the latest crawl, DEO signals, and product metadata.
+                    Based on the latest crawl, DEO signals, and product
+                    metadata.
                   </p>
                 </div>
                 <button
@@ -1521,7 +1723,10 @@ export default function ProjectOverviewPage() {
               {/* Content - scrollable */}
               <div className="max-h-[calc(90vh-100px)] overflow-y-auto px-6 py-5">
                 {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-2] Pass projectId for deep-linking */}
-                <IssuesList issues={(deoIssues?.issues as DeoIssue[]) ?? []} projectId={projectId} />
+                <IssuesList
+                  issues={(deoIssues?.issues as DeoIssue[]) ?? []}
+                  projectId={projectId}
+                />
               </div>
             </div>
           </div>
@@ -1535,8 +1740,12 @@ export default function ProjectOverviewPage() {
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">AI Metadata Suggestions</h3>
-                  <p className="text-sm text-gray-500 truncate max-w-md">{currentSuggestion.url}</p>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    AI Metadata Suggestions
+                  </h3>
+                  <p className="text-sm text-gray-500 truncate max-w-md">
+                    {currentSuggestion.url}
+                  </p>
                 </div>
                 <button
                   onClick={() => {
@@ -1545,26 +1754,46 @@ export default function ProjectOverviewPage() {
                   }}
                   className="text-gray-400 hover:text-gray-600"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
 
               {/* Current Metadata */}
               <div className="mb-6">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">Current Metadata</h4>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">
+                  Current Metadata
+                </h4>
                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                   <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase">Title</label>
+                    <label className="text-xs font-medium text-gray-500 uppercase">
+                      Title
+                    </label>
                     <p className="text-sm text-gray-900 mt-1">
-                      {currentSuggestion.current.title || <span className="text-red-500 italic">Missing</span>}
+                      {currentSuggestion.current.title || (
+                        <span className="text-red-500 italic">Missing</span>
+                      )}
                     </p>
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-gray-500 uppercase">Meta Description</label>
+                    <label className="text-xs font-medium text-gray-500 uppercase">
+                      Meta Description
+                    </label>
                     <p className="text-sm text-gray-900 mt-1">
-                      {currentSuggestion.current.description || <span className="text-red-500 italic">Missing</span>}
+                      {currentSuggestion.current.description || (
+                        <span className="text-red-500 italic">Missing</span>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -1573,44 +1802,93 @@ export default function ProjectOverviewPage() {
               {/* Suggested Metadata */}
               <div className="mb-6">
                 <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
-                  <svg className="w-4 h-4 mr-1.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  <svg
+                    className="w-4 h-4 mr-1.5 text-purple-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                    />
                   </svg>
                   AI Suggested Metadata
                 </h4>
                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 space-y-4">
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <label className="text-xs font-medium text-purple-700 uppercase">Suggested Title</label>
-                      <span className="text-xs text-gray-500">{currentSuggestion.suggested.title.length}/60 chars</span>
+                      <label className="text-xs font-medium text-purple-700 uppercase">
+                        Suggested Title
+                      </label>
+                      <span className="text-xs text-gray-500">
+                        {currentSuggestion.suggested.title.length}/60 chars
+                      </span>
                     </div>
                     <p className="text-sm text-gray-900 bg-white rounded px-3 py-2 border border-purple-200">
                       {currentSuggestion.suggested.title}
                     </p>
                     <button
-                      onClick={() => copyToClipboard(currentSuggestion.suggested.title, 'Title')}
+                      onClick={() =>
+                        copyToClipboard(
+                          currentSuggestion.suggested.title,
+                          'Title'
+                        )
+                      }
                       className="mt-2 text-xs text-purple-600 hover:text-purple-800 flex items-center"
                     >
-                      <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      <svg
+                        className="w-3.5 h-3.5 mr-1"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                        />
                       </svg>
                       Copy to clipboard
                     </button>
                   </div>
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <label className="text-xs font-medium text-purple-700 uppercase">Suggested Description</label>
-                      <span className="text-xs text-gray-500">{currentSuggestion.suggested.description.length}/155 chars</span>
+                      <label className="text-xs font-medium text-purple-700 uppercase">
+                        Suggested Description
+                      </label>
+                      <span className="text-xs text-gray-500">
+                        {currentSuggestion.suggested.description.length}/155
+                        chars
+                      </span>
                     </div>
                     <p className="text-sm text-gray-900 bg-white rounded px-3 py-2 border border-purple-200">
                       {currentSuggestion.suggested.description}
                     </p>
                     <button
-                      onClick={() => copyToClipboard(currentSuggestion.suggested.description, 'Description')}
+                      onClick={() =>
+                        copyToClipboard(
+                          currentSuggestion.suggested.description,
+                          'Description'
+                        )
+                      }
                       className="mt-2 text-xs text-purple-600 hover:text-purple-800 flex items-center"
                     >
-                      <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      <svg
+                        className="w-3.5 h-3.5 mr-1"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                        />
                       </svg>
                       Copy to clipboard
                     </button>

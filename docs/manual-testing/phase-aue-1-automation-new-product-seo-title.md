@@ -31,6 +31,7 @@ Phase AUE-1 implements:
 ### Scenario 1: New product sync triggers automation (Free plan)
 
 **Steps:**
+
 1. Log in as a Free plan user
 2. Navigate to Projects → Select project with Shopify integration
 3. Go to Integrations → Shopify
@@ -42,6 +43,7 @@ Phase AUE-1 implements:
 5. Click "Sync Products" in EngineO.ai
 
 **Expected Results:**
+
 - [ ] Sync completes successfully
 - [ ] New product appears in Products list
 - [ ] `AutomationSuggestion` created in database (check Automation Activity page)
@@ -51,6 +53,7 @@ Phase AUE-1 implements:
 - [ ] Server logs show: `[Automation] Created suggestion for new product ... (Free plan: manual apply required)`
 
 **Verification:**
+
 ```sql
 SELECT * FROM "AutomationSuggestion"
 WHERE source = 'automation_new_product_v1'
@@ -62,6 +65,7 @@ ORDER BY "generatedAt" DESC LIMIT 1;
 ### Scenario 2: New product sync triggers automation (Pro plan)
 
 **Steps:**
+
 1. Log in as a Pro plan user (or upgrade test user to Pro)
 2. Navigate to Projects → Select project with Shopify integration
 3. Add a NEW product to Shopify with:
@@ -72,6 +76,7 @@ ORDER BY "generatedAt" DESC LIMIT 1;
 4. Click "Sync Products" in EngineO.ai
 
 **Expected Results:**
+
 - [ ] Sync completes successfully
 - [ ] New product appears in Products list
 - [ ] `AutomationSuggestion` created in database
@@ -80,6 +85,7 @@ ORDER BY "generatedAt" DESC LIMIT 1;
 - [ ] Server logs show: `[Automation] Auto-applied metadata for new product ... (AUTO_GENERATE_METADATA_ON_NEW_PRODUCT)`
 
 **Verification:**
+
 ```sql
 SELECT id, "seoTitle", "seoDescription" FROM "Product"
 WHERE title = 'Premium Widget Pro';
@@ -94,6 +100,7 @@ ORDER BY "appliedAt" DESC LIMIT 1;
 ### Scenario 3: Product with existing SEO fields skips automation
 
 **Steps:**
+
 1. Add a NEW product to Shopify with:
    - Title: "Pre-Optimized Product"
    - SEO Title: "Pre-Optimized Product | Best Quality"
@@ -101,6 +108,7 @@ ORDER BY "appliedAt" DESC LIMIT 1;
 2. Sync products in EngineO.ai
 
 **Expected Results:**
+
 - [ ] Sync completes successfully
 - [ ] Product appears with existing SEO fields preserved
 - [ ] NO `AutomationSuggestion` created for this product
@@ -111,12 +119,14 @@ ORDER BY "appliedAt" DESC LIMIT 1;
 ### Scenario 4: Daily AI limit enforcement
 
 **Steps:**
+
 1. Use a Free plan account with limited daily AI usage
 2. Exhaust the daily AI limit by generating suggestions/answers
 3. Add a NEW product to Shopify
 4. Sync products in EngineO.ai
 
 **Expected Results:**
+
 - [ ] Sync completes successfully (automation doesn't block sync)
 - [ ] NO `AutomationSuggestion` created
 - [ ] Server logs show: `[Automation] Skipping new product automation for ...: daily AI limit reached`
@@ -127,11 +137,13 @@ ORDER BY "appliedAt" DESC LIMIT 1;
 ### Scenario 5: Automation failure doesn't block sync
 
 **Steps:**
+
 1. Temporarily disable AI provider (e.g., set invalid API key)
 2. Add a NEW product to Shopify
 3. Sync products in EngineO.ai
 
 **Expected Results:**
+
 - [ ] Sync completes successfully
 - [ ] New product appears in Products list
 - [ ] Server logs show warning: `[ShopifySync] Automation failed for new product ...: ...`
@@ -142,11 +154,13 @@ ORDER BY "appliedAt" DESC LIMIT 1;
 ### Scenario 6: AI usage is recorded
 
 **Steps:**
+
 1. Note the current AI usage count for the user
 2. Add a NEW product to Shopify
 3. Sync products in EngineO.ai
 
 **Expected Results:**
+
 - [ ] `AiUsageEvent` created with:
   - `feature: 'automation_new_product'`
   - `projectId` matching the synced project
@@ -154,6 +168,7 @@ ORDER BY "appliedAt" DESC LIMIT 1;
 - [ ] AI usage count incremented by 1
 
 **Verification:**
+
 ```sql
 SELECT * FROM "AiUsageEvent"
 WHERE feature = 'automation_new_product'
@@ -165,11 +180,13 @@ ORDER BY "createdAt" DESC LIMIT 1;
 ### Scenario 7: Updating existing product doesn't trigger automation
 
 **Steps:**
+
 1. Sync products to ensure an existing product is in the database
 2. Update that product in Shopify (change title or description)
 3. Sync products again in EngineO.ai
 
 **Expected Results:**
+
 - [ ] Sync completes successfully
 - [ ] Product updated, but NO new `AutomationSuggestion` created
 - [ ] Server logs do NOT show automation being triggered for this product
@@ -186,6 +203,7 @@ pnpm test:e2e -- --grep "Automation New Product SEO Title"
 ```
 
 **Expected Results:**
+
 - [ ] All 6 tests pass:
   - Creates suggestion for missing SEO
   - Skips when SEO populated
@@ -220,9 +238,9 @@ pnpm test:e2e -- --grep "Automation New Product SEO Title"
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    | [Pending]                             |
+| **Date**           | [YYYY-MM-DD]                          |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Phase AUE-1 manual testing |
+| **Notes**          | Phase AUE-1 manual testing            |

@@ -9,6 +9,7 @@
 ### Purpose of the Feature/Patch
 
 COUNT-INTEGRITY-1.1 establishes canonical triplet count semantics with explicit UX labels across all surfaces:
+
 - **issueTypesCount**: Count of distinct issue types in scope
 - **affectedItemsCount**: Deduped unique assets affected (UEP decision: backend computes)
 - **actionableNowCount**: Deduped unique actionable assets (role-gated)
@@ -18,6 +19,7 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 ### Implementation Status
 
 **COMPLETED (PATCH 0 + PATCH BATCH 2 + PATCH BATCH 3):**
+
 - ✅ PATCH 0: Endpoint naming fixed (`/summary` primary, `/canonical-summary` alias)
 - ✅ PATCH 1-3: Canonical triplet types + backend endpoints + web client (initial delivery)
 - ✅ PATCH 2.1: Media issues count bug fixed (true counts, not capped sample length)
@@ -41,6 +43,7 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 - ✅ PATCH 4.4-FIXUP-1: Documentation updates (Gap 3b marked resolved)
 
 **COMPLETED (UI Migration - Gap 6 + Gap 7 + Enterprise Trust Hardening):**
+
 - ✅ PATCH 5: Issues Engine filter-aligned canonical summary + labeled triplet with data-testid
 - ✅ PATCH 6: Product detail Issues tab uses assetIssues endpoint + labeled triplet
 - ✅ PATCH 7: Store Health tiles show Items affected from canonical summary
@@ -52,6 +55,7 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 ### High-Level User Impact
 
 **Backend (COMPLETE - All asset types verified):**
+
 - New API endpoints provide canonical triplet counts for any filter combination
 - ActionKey filtering works (shared mapper ensures consistency with Work Queue)
 - Zero-affected suppression semantics built-in (affectedItemsCount = 0 when no items)
@@ -61,6 +65,7 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 - Backend has NO known limitations for deduplication
 
 **UI Updates (COMPLETE):**
+
 - ✅ All count displays show explicit labels ("Issue types", "Items affected", "Actionable now")
 - ✅ No naked numbers or ambiguous parenthetical counts
 - ✅ Cross-surface consistency for matching filter sets
@@ -87,6 +92,7 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 **GET** `/projects/:projectId/issues/canonical-summary` (backward-compatible alias)
 
 **Query Params:**
+
 - `actionKey` (WorkQueueRecommendedActionKey, optional): Filter by single action key [PATCH 2.4]
 - `actionKeys` (WorkQueueRecommendedActionKey[], optional): Filter by multiple action keys [PATCH 2.4]
 - `scopeType` (IssueAssetTypeKey, optional): Filter by asset type (products/pages/collections)
@@ -95,6 +101,7 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 - `severity` ('critical' | 'warning' | 'info', optional): Filter by severity
 
 **Response:**
+
 ```typescript
 {
   projectId: string;
@@ -120,15 +127,18 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 **GET** `/projects/:projectId/assets/:assetType/:assetId/issues`
 
 **Path Params:**
+
 - `assetType`: 'products' | 'pages' | 'collections'
 - `assetId`: Asset ID (product ID, page URL, or collection ID)
 
 **Query Params:**
+
 - `pillar` (DeoPillarId, optional): Filter by single pillar
 - `pillars` (DeoPillarId[], optional): Filter by multiple pillars
 - `severity` ('critical' | 'warning' | 'info', optional): Filter by severity
 
 **Response:**
+
 ```typescript
 {
   projectId: string;
@@ -156,10 +166,12 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 **ID:** CANON-001
 
 **Preconditions:**
+
 - User authenticated
 - Test project exists with issues detected
 
 **Steps:**
+
 1. Call `GET /projects/{projectId}/issues/summary`
 2. Verify response has `detected` and `actionable` triplets
 3. Verify each triplet has `issueTypesCount`, `affectedItemsCount`, `actionableNowCount`
@@ -168,6 +180,7 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 6. Verify `actionable.affectedItemsCount <= detected.affectedItemsCount`
 
 **Expected Results:**
+
 - ✅ Valid triplet structure returned
 - ✅ Actionable counts never exceed detected counts
 - ✅ `byPillar` and `bySeverity` breakdowns present
@@ -179,15 +192,18 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 **ID:** CANON-002
 
 **Preconditions:**
+
 - User authenticated
 - Test project has issues in multiple pillars
 
 **Steps:**
+
 1. Call `GET /projects/{projectId}/issues/summary?pillar=metadata_snippet_quality`
 2. Verify `filters.pillar` echoed back in response
 3. Verify triplet counts reflect only metadata issues
 
 **Expected Results:**
+
 - ✅ Filters echoed in response
 - ✅ Counts filtered to specified pillar
 - ✅ Triplet structure valid
@@ -199,15 +215,18 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 **ID:** CANON-003
 
 **Preconditions:**
+
 - User authenticated
 - Test project has issues at multiple severity levels
 
 **Steps:**
+
 1. Call `GET /projects/{projectId}/issues/summary?severity=critical`
 2. Verify `filters.severity` echoed back
 3. Verify triplet counts reflect only critical issues
 
 **Expected Results:**
+
 - ✅ Severity filter applied correctly
 - ✅ Triplet structure valid
 
@@ -218,15 +237,18 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 **ID:** CANON-004
 
 **Preconditions:**
+
 - User authenticated
 - Test project exists
 
 **Steps:**
+
 1. Call `GET /projects/{projectId}/issues/summary`
 2. Verify `byPillar` contains entries for all 10 pillars
 3. Verify each pillar has `detected` and `actionable` triplets
 
 **Expected Results:**
+
 - ✅ All pillars present in breakdown (even if counts = 0)
 - ✅ Each pillar has valid triplet structure
 
@@ -237,15 +259,18 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 **ID:** CANON-005
 
 **Preconditions:**
+
 - User authenticated
 - Test project exists
 
 **Steps:**
+
 1. Call `GET /projects/{projectId}/issues/summary`
 2. Verify `bySeverity` contains entries for critical, warning, info
 3. Verify each severity has `detected` and `actionable` triplets
 
 **Expected Results:**
+
 - ✅ All severities present in breakdown
 - ✅ Each severity has valid triplet structure
 
@@ -256,10 +281,12 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 **ID:** CANON-006
 
 **Preconditions:**
+
 - User authenticated
 - Test project has at least one product with issues
 
 **Steps:**
+
 1. Get product ID from `/projects/{projectId}/products`
 2. Call `GET /projects/{projectId}/assets/products/{productId}/issues`
 3. Verify response has `issues` array and `summary` with triplet structure
@@ -267,6 +294,7 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 5. Verify `assetType` is 'products' and `assetId` matches
 
 **Expected Results:**
+
 - ✅ Issues array contains only issues affecting this product
 - ✅ Summary has valid triplet structure
 - ✅ affectedItemsCount is 0 (no issues) or 1 (this asset only)
@@ -278,15 +306,18 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 **ID:** CANON-007
 
 **Preconditions:**
+
 - User authenticated
 - Test product with issues in multiple pillars
 
 **Steps:**
+
 1. Call `GET /projects/{projectId}/assets/products/{productId}/issues?pillar=metadata_snippet_quality`
 2. Verify `issues` array contains only metadata issues
 3. Verify summary counts reflect filtered issues
 
 **Expected Results:**
+
 - ✅ Issues filtered to specified pillar
 - ✅ Summary triplet reflects filtered subset
 
@@ -298,12 +329,14 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 **UI Smoke Test File:** `apps/web/tests/count-integrity-1-1.ui.spec.ts` [PATCH 9]
 
 **Test Infrastructure:**
+
 - ✅ Uses `/testkit/e2e/seed-first-deo-win` for deterministic test data
 - ✅ Corrected token field (`accessToken` not `authToken`) [FIXUP-1]
 - ✅ No environment variable dependencies (TEST_USER, TEST_PASSWORD removed)
 - ✅ Independent of "first project" discovery pattern
 
 **Test Coverage (Backend API Complete):**
+
 - ✅ CANON-001: Valid triplet structure
 - ✅ CANON-002: Pillar filter support
 - ✅ CANON-003: Severity filter support
@@ -316,6 +349,7 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 - ✅ CANON-010: affectedItemsCount accuracy beyond cap-20 for collections [PATCH 4.3 - Gap 3b]
 
 **Test Coverage (UI Smoke Test Complete - Gap 7 + Enterprise Trust Hardening + FIXUP-2):**
+
 - ✅ Single end-to-end test: Store Health → Issues Engine → Asset Detail (FIXUP-2: Work Queue step removed)
 - ✅ Store Health shows "X items affected" with pillar-scoped counts (Discoverability/Technical)
 - ✅ STRICT parsing: requires "items affected" text + numeric value (no fallbacks)
@@ -325,6 +359,7 @@ Replaces mixed v1 "groups/instances" semantics with consistent labeled counts.
 - ✅ Asset Detail navigation REQUIRED (no optional branches)
 
 **Run Tests:**
+
 ```bash
 cd apps/web
 # Backend API tests
@@ -340,6 +375,7 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 ### PATCH 5: Issues Engine Filter-Aligned Canonical Summary (✅ COMPLETE)
 
 **Scope:**
+
 - ✅ Issues page passes actionKey, scopeType filters to canonical summary endpoint
 - ✅ TripletDisplay component with data-testid attributes for UI testing
 - ✅ Mode toggles exist for actionable/detected switching
@@ -352,6 +388,7 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 ### PATCH 6: Product Detail Asset-Specific Issues (✅ COMPLETE)
 
 **Scope:**
+
 - ✅ Product detail page uses `assetIssues` endpoint instead of project-wide issues
 - ✅ ProductIssuesPanel receives summary prop with triplet counts
 - ✅ Triplet display shows issue types, items affected, actionable now
@@ -364,6 +401,7 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 ### PATCH 7: Store Health Canonical Counts (✅ COMPLETE)
 
 **Scope:**
+
 - ✅ Store Health uses `canonicalIssueCountsSummary` endpoint
 - ✅ Tiles show "N items affected" with canonical counts
 - ✅ Data-testid attributes for UI testing
@@ -375,6 +413,7 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 ### PATCH 8: Work Queue Trust Fixes (✅ COMPLETE)
 
 **Scope:**
+
 - ✅ AI badge shows "Does not use AI" (was "No AI")
 - ✅ AI badge shows "AI used for drafts only" (was "AI Drafts")
 - ✅ Data-testid attributes for UI testing
@@ -428,6 +467,7 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 ## Sign-Off (COMPLETE)
 
 **Backend (COMPLETE - All asset types verified):**
+
 - [x] PATCH 0: Endpoint naming fixed (`/summary` primary path)
 - [x] PATCH 1-3: Backend foundation + types + web client
 - [x] PATCH 2.1: Media count bug fixed (true counts)
@@ -445,16 +485,19 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 - [x] PATCH 4.4-FIXUP-1: Documentation updates (Gap 3b marked resolved)
 
 **UI Migration (COMPLETE - Gap 6):**
+
 - [x] PATCH 5: Issues Engine filter-aligned canonical summary + labeled triplet with data-testid
 - [x] PATCH 6: Product detail Issues tab uses assetIssues endpoint + labeled triplet
 - [x] PATCH 7: Store Health tiles show Items affected from canonical summary
 - [x] PATCH 8: Work Queue trust fixes + canonical Actionable now display + AI badge copy
 
 **Testing (COMPLETE):**
+
 - [x] Backend API tests (10 tests: CANON-001 through CANON-010)
 - [x] UI smoke test (1 end-to-end test: Store Health → Issues Engine → Asset Detail)
 
 **UI Hardening (COMPLETE):**
+
 - [x] UI HARDEN: Multi-action filtering via actionKeys URL param (OR across keys)
 - [x] UI HARDEN: Pillar-aware triplet display (currentTriplet from byPillar when filtered)
 - [x] UI HARDEN: Fixed UI smoke test auth pattern (localStorage only)
@@ -464,6 +507,7 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 - [x] VERIFICATION (NO-OP): All audit fixes confirmed implemented 2026-01-09
 
 **Ready for:**
+
 - ✅ Backend API consumption for all asset types (all dedup verified)
 - ✅ Work Queue → Issues click-integrity (actionKey filtering works)
 - ✅ Asset detail pages filtering (ID→URL resolution works, project-scoped)
@@ -492,6 +536,7 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 #### Scenario ETH-001: Discoverability Click-Integrity
 
 **Steps:**
+
 1. Navigate to Store Health page
 2. Verify Discoverability tile displays "X items affected" (pillar-scoped from `metadata_snippet_quality`)
 3. Click Discoverability tile
@@ -509,6 +554,7 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 #### Scenario ETH-002: Technical Readiness Click-Integrity
 
 **Steps:**
+
 1. Navigate to Store Health page
 2. Verify Technical Readiness tile displays "Y items affected" (pillar-scoped from `technical_indexability`)
 3. Click Technical Readiness tile
@@ -526,6 +572,7 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 #### Scenario ETH-003: Work Queue Zero-Actionable Suppression (ASSET_OPTIMIZATION)
 
 **Steps:**
+
 1. Navigate to Work Queue
 2. Find an ASSET_OPTIMIZATION bundle with scopeCount = 0
 3. Verify bundle displays "No items currently eligible for action."
@@ -538,6 +585,7 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 #### Scenario ETH-004: Work Queue Zero-Actionable Suppression (AUTOMATION_RUN)
 
 **Steps:**
+
 1. Navigate to Work Queue
 2. Find an AUTOMATION_RUN bundle with scopeCount = 0
 3. Verify bundle displays "No items currently eligible for action."
@@ -550,6 +598,7 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 #### Scenario ETH-005: Product Issues Tab Zero-Actionable Suppression
 
 **Steps:**
+
 1. Navigate to a product with detected issues but zero actionable issues
 2. Click the Issues tab
 3. Verify triplet is VISIBLE (shows Issue types, Items affected, Actionable now)
@@ -564,13 +613,13 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 
 ### Locked Semantics (Enterprise Trust Hardening)
 
-| Surface | Count Semantics | Routing | Copy |
-|---------|-----------------|---------|------|
-| Store Health Discoverability | pillar-scoped `affectedItemsCount` from `byPillar['metadata_snippet_quality'].detected` | Issues Engine with `pillar=metadata_snippet_quality&mode=detected` | "X items affected" |
-| Store Health Technical | pillar-scoped `affectedItemsCount` from `byPillar['technical_indexability'].detected` | Issues Engine with `pillar=technical_indexability&mode=detected` | "X items affected" |
-| Work Queue bundles | `scopeCount` (actionable now) | Issues Engine (ASSET_OPTIMIZATION) or Playbooks (AUTOMATION_RUN) | "X actionable now" |
-| Zero-actionable bundles | scopeCount = 0 | No CTA (suppressed) | "No items currently eligible for action." |
-| Product Issues tab | asset-scoped triplet from `detected` + `actionable` | N/A | Triplet labels + neutral message |
+| Surface                      | Count Semantics                                                                         | Routing                                                            | Copy                                      |
+| ---------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------- |
+| Store Health Discoverability | pillar-scoped `affectedItemsCount` from `byPillar['metadata_snippet_quality'].detected` | Issues Engine with `pillar=metadata_snippet_quality&mode=detected` | "X items affected"                        |
+| Store Health Technical       | pillar-scoped `affectedItemsCount` from `byPillar['technical_indexability'].detected`   | Issues Engine with `pillar=technical_indexability&mode=detected`   | "X items affected"                        |
+| Work Queue bundles           | `scopeCount` (actionable now)                                                           | Issues Engine (ASSET_OPTIMIZATION) or Playbooks (AUTOMATION_RUN)   | "X actionable now"                        |
+| Zero-actionable bundles      | scopeCount = 0                                                                          | No CTA (suppressed)                                                | "No items currently eligible for action." |
+| Product Issues tab           | asset-scoped triplet from `detected` + `actionable`                                     | N/A                                                                | Triplet labels + neutral message          |
 
 ---
 
@@ -578,17 +627,18 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 
 #### FIXUP-2 Changes Summary
 
-| Patch | Component | Before | After |
-|-------|-----------|--------|-------|
-| PATCH 1 | Store Health tiles | Could show "Counts unavailable" or store-wide totals | Always shows numeric pillar-scoped "items affected" (0 fallback) |
-| PATCH 2 | Playwright test | Optional branches, fallback text parsing | STRICT: requires numeric parsing, requires asset-detail navigation |
-| PATCH 3 | Test chain | "Store Health → Issues Engine → Product Issues → Work Queue" | "Store Health → Issues Engine → Asset Detail" (Work Queue step removed) |
+| Patch   | Component          | Before                                                       | After                                                                   |
+| ------- | ------------------ | ------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| PATCH 1 | Store Health tiles | Could show "Counts unavailable" or store-wide totals         | Always shows numeric pillar-scoped "items affected" (0 fallback)        |
+| PATCH 2 | Playwright test    | Optional branches, fallback text parsing                     | STRICT: requires numeric parsing, requires asset-detail navigation      |
+| PATCH 3 | Test chain         | "Store Health → Issues Engine → Product Issues → Work Queue" | "Store Health → Issues Engine → Asset Detail" (Work Queue step removed) |
 
 #### FIXUP-2 Regression Validation Scenarios
 
 ##### FIXUP-2-RV-001: Store Health Always-Numeric Display
 
 **Steps:**
+
 1. Navigate to Store Health page
 2. Verify Discoverability tile displays "N items affected" where N is a number (never "Counts unavailable")
 3. Verify Technical Readiness tile displays "N items affected" where N is a number (never "Counts unavailable")
@@ -601,6 +651,7 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 ##### FIXUP-2-RV-002: Playwright Test Strict Parsing
 
 **Steps:**
+
 1. Run `npx playwright test count-integrity-1-1.ui.spec.ts`
 2. Verify test FAILS if "items affected" text is missing from Store Health summary
 3. Verify test FAILS if "items affected" value cannot be parsed as a number
@@ -614,6 +665,7 @@ npx playwright test count-integrity-1-1.ui.spec.ts
 ##### FIXUP-2-RV-003: Click-Integrity Chain Ends at Asset Detail
 
 **Steps:**
+
 1. Navigate to Store Health page
 2. Click Discoverability tile
 3. Verify landing page is Issues Engine (URL contains `/issues`)

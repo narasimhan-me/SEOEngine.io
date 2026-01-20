@@ -53,12 +53,12 @@
 
 At the end of Step 2 (Estimate), EXACTLY ONE of these outcomes must be visible:
 
-| Outcome | Condition | UI Result |
-|---------|-----------|-----------|
-| **A) Ready to Apply** | Actionable items exist + draft is valid (READY or PARTIAL) | "Continue to Apply" button (enabled) |
-| **B) No Actionable Items** | totalAffectedProducts = 0 | Zero-eligible empty state with "No applicable changes found" |
-| **C) Permission Blocked** | VIEWER or EDITOR role without apply permission | Explicit role notice + resolution CTA |
-| **D) Draft Invalid** | draftStatus = EXPIRED, FAILED, or undefined | Blocker panel with explanation + Retry/Regenerate CTA |
+| Outcome                    | Condition                                                  | UI Result                                                    |
+| -------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------ |
+| **A) Ready to Apply**      | Actionable items exist + draft is valid (READY or PARTIAL) | "Continue to Apply" button (enabled)                         |
+| **B) No Actionable Items** | totalAffectedProducts = 0                                  | Zero-eligible empty state with "No applicable changes found" |
+| **C) Permission Blocked**  | VIEWER or EDITOR role without apply permission             | Explicit role notice + resolution CTA                        |
+| **D) Draft Invalid**       | draftStatus = EXPIRED, FAILED, or undefined                | Blocker panel with explanation + Retry/Regenerate CTA        |
 
 ---
 
@@ -69,10 +69,12 @@ At the end of Step 2 (Estimate), EXACTLY ONE of these outcomes must be visible:
 **ID:** HP-001
 
 **Preconditions:**
+
 - Products with missing SEO titles/descriptions
 - User is OWNER with Pro/Business plan
 
 **Steps:**
+
 1. Navigate to `/projects/{projectId}/playbooks`
 2. Select "Fix missing SEO titles" playbook
 3. Click "Generate Preview"
@@ -82,6 +84,7 @@ At the end of Step 2 (Estimate), EXACTLY ONE of these outcomes must be visible:
 7. Click "Continue to Apply"
 
 **Expected Results:**
+
 - **UI:** Step 3 becomes visible immediately; page scrolls to Step 3; Step 3 section receives focus (accessibility)
 - **API:** N/A (no direct API call on "Continue to Apply" click — state transition only)
 - **Logs:** No console errors or uncaught promise rejections
@@ -93,13 +96,16 @@ At the end of Step 2 (Estimate), EXACTLY ONE of these outcomes must be visible:
 **ID:** HP-002
 
 **Preconditions:**
+
 - Products with all SEO titles/descriptions already filled
 
 **Steps:**
+
 1. Navigate to `/projects/{projectId}/playbooks`
 2. Select "Fix missing SEO titles" playbook (or whichever has zero eligible)
 
 **Expected Results:**
+
 - **UI:**
   - Zero-eligible empty state appears (`data-testid="playbook-zero-eligible-empty-state"`)
   - Primary message: **"No applicable changes found"** (exact phrase)
@@ -118,11 +124,13 @@ At the end of Step 2 (Estimate), EXACTLY ONE of these outcomes must be visible:
 **Description:** Draft exists but `expiresAt < now`. Step 2 must show blocker panel, not "Continue to Apply".
 
 **Steps:**
+
 1. Generate a preview to create a draft
 2. Manually set `expiresAt` to a past date in the database (or wait for natural expiry)
 3. Refresh the page and navigate to Step 2 (Estimate)
 
 **Expected Behavior:**
+
 - Amber blocker panel appears with title "Draft expired"
 - Message: "The preview draft has expired. Regenerate the preview to continue with apply."
 - "Regenerate Preview" button is visible and functional
@@ -136,10 +144,12 @@ At the end of Step 2 (Estimate), EXACTLY ONE of these outcomes must be visible:
 **Description:** Draft exists with `status = 'FAILED'`. Step 2 must show blocker panel.
 
 **Steps:**
+
 1. Manually set a draft's `status` to `'FAILED'` in the database
 2. Navigate to Step 2 (Estimate)
 
 **Expected Behavior:**
+
 - Red blocker panel appears with title "Draft generation failed"
 - "Retry Preview" button visible and functional
 - "Continue to Apply" button is NOT visible
@@ -151,10 +161,12 @@ At the end of Step 2 (Estimate), EXACTLY ONE of these outcomes must be visible:
 **Description:** No draft exists for the current scope (draftStatus is undefined). Step 2 must show blocker panel.
 
 **Steps:**
+
 1. Navigate to a playbook with eligible items but no draft generated yet
 2. Navigate to Step 2 (Estimate) without generating a preview first
 
 **Expected Behavior:**
+
 - Gray blocker panel appears with title "No draft available"
 - "Generate Preview" button visible and functional
 - "Continue to Apply" button is NOT visible
@@ -166,11 +178,13 @@ At the end of Step 2 (Estimate), EXACTLY ONE of these outcomes must be visible:
 **Description:** Rapidly clicking "Continue to Apply" while estimate is loading should never silently fail.
 
 **Steps:**
+
 1. Generate a preview
 2. Navigate to Step 2 (Estimate)
 3. While estimate is loading (`loadingEstimate = true`), rapidly click "Continue to Apply"
 
 **Expected Behavior:**
+
 - Button is disabled during loading (no click possible)
 - If click somehow occurs, toast shows: "Estimate data is not available. Please wait..."
 - No silent navigation to Step 3 with null estimate
@@ -184,11 +198,13 @@ At the end of Step 2 (Estimate), EXACTLY ONE of these outcomes must be visible:
 **Scenario:** Force an apply attempt with an expired draft (bypass UI checks)
 
 **Steps:**
+
 1. Complete preview → estimate flow
 2. Manually expire the draft (set `expiresAt` to past in DB)
 3. Attempt to apply (via direct API call: `POST /projects/:id/automation-playbooks/apply`)
 
 **Expected Behavior:**
+
 - API returns 409 Conflict with `code: 'PLAYBOOK_DRAFT_EXPIRED'`
 - Error message instructs to regenerate preview
 - UI shows inline error panel for PLAYBOOK_DRAFT_EXPIRED if error is caught
@@ -200,9 +216,11 @@ At the end of Step 2 (Estimate), EXACTLY ONE of these outcomes must be visible:
 **Scenario:** Apply attempt when no draft exists for the scope
 
 **Steps:**
+
 1. Attempt apply via API without generating a preview first
 
 **Expected Behavior:**
+
 - API returns 409 Conflict with `code: 'PLAYBOOK_DRAFT_NOT_FOUND'`
 - Error message instructs to generate preview before applying
 
@@ -213,11 +231,13 @@ At the end of Step 2 (Estimate), EXACTLY ONE of these outcomes must be visible:
 **Scenario:** Non-OWNER attempts to apply
 
 **Steps:**
+
 1. Log in as VIEWER or EDITOR
 2. Navigate to Step 3 (Apply)
 3. Attempt to apply
 
 **Expected Behavior:**
+
 - VIEWER: Notice shows "Viewer role cannot apply. Preview and export remain available." with "Request access" link to `/projects/{projectId}/settings/members`
 - EDITOR: Notice shows "Editor role cannot apply. An owner must apply this playbook." with "Manage members" link
 - Apply button is disabled or hidden
@@ -230,11 +250,13 @@ At the end of Step 2 (Estimate), EXACTLY ONE of these outcomes must be visible:
 **Scenario:** VIEWER encounters expired/failed/missing draft in Step 2
 
 **Steps:**
+
 1. Log in as VIEWER
 2. Navigate to a playbook with an expired draft (or failed draft, or no draft)
 3. Navigate to Step 2 (Estimate)
 
 **Expected Behavior:**
+
 - Draft blocker panel appears (EXPIRED / FAILED / No draft available)
 - **No actionable "Regenerate Preview" / "Retry Preview" / "Generate Preview" CTA is shown**
 - Panel shows: "Viewer role cannot generate previews."
@@ -242,6 +264,7 @@ At the end of Step 2 (Estimate), EXACTLY ONE of these outcomes must be visible:
 - No dead-click scenario where clicking a button fails silently
 
 **Variants to test:**
+
 1. **Expired draft:** Amber panel with "Draft expired" title shows permission message instead of "Regenerate Preview" button
 2. **Failed draft:** Red panel with "Draft generation failed" title shows permission message instead of "Retry Preview" button
 3. **No draft:** Gray panel with "No draft available" title shows permission message instead of "Generate Preview" button
@@ -255,11 +278,13 @@ At the end of Step 2 (Estimate), EXACTLY ONE of these outcomes must be visible:
 **Scenario:** Free plan user attempts playbook apply
 
 **Steps:**
+
 1. Log in as free plan user
 2. Navigate to Step 3 (Apply)
 3. Attempt to apply
 
 **Expected Behavior:**
+
 - Apply blocked with upgrade prompt
 - User remains on current page/state
 
@@ -352,19 +377,19 @@ Response should include:
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Name] |
-| **Date** | [YYYY-MM-DD] |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    | [Name]                                |
+| **Date**           | [YYYY-MM-DD]                          |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | [Any additional notes] |
+| **Notes**          | [Any additional notes]                |
 
 ---
 
 ## Document History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2026-01-19 | Initial PLAYBOOK-STEP-CONTINUITY-1 manual testing guide |
-| 1.1 | 2026-01-19 | FIXUP-1: Restructured to match MANUAL_TESTING_TEMPLATE.md; corrected API endpoint paths; removed nonexistent seed endpoint; fixed VIEWER scenario preconditions |
-| 1.2 | 2026-01-19 | FIXUP-2: Added ERR-004 scenario for VIEWER permission-blocked draft blocker CTAs (no actionable regenerate/retry/generate buttons; shows permission explanation + Request access link) |
+| Version | Date       | Changes                                                                                                                                                                                |
+| ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0     | 2026-01-19 | Initial PLAYBOOK-STEP-CONTINUITY-1 manual testing guide                                                                                                                                |
+| 1.1     | 2026-01-19 | FIXUP-1: Restructured to match MANUAL_TESTING_TEMPLATE.md; corrected API endpoint paths; removed nonexistent seed endpoint; fixed VIEWER scenario preconditions                        |
+| 1.2     | 2026-01-19 | FIXUP-2: Added ERR-004 scenario for VIEWER permission-blocked draft blocker CTAs (no actionable regenerate/retry/generate buttons; shows permission explanation + Request access link) |

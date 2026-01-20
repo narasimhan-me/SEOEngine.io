@@ -2,11 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import { createTestApp } from '../utils/test-app';
-import {
-  cleanupTestDb,
-  disconnectTestDb,
-  testPrisma,
-} from '../utils/test-db';
+import { cleanupTestDb, disconnectTestDb, testPrisma } from '../utils/test-db';
 import { seedConnectedStoreProject } from '../../src/testkit';
 
 describe('TEST-1 – Project overview metrics', () => {

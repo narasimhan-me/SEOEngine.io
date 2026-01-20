@@ -49,10 +49,12 @@ describe('TwoFactorAuthService', () => {
 
       const mockSecret = {
         base32: 'MFRGG43FMFRGG43FMFRGG43FMFRGG43F',
-        otpauth_url: 'otpauth://totp/SEOEngine.io:test@example.com?secret=MFRGG43FMFRGG43FMFRGG43FMFRGG43F&issuer=SEOEngine.io',
+        otpauth_url:
+          'otpauth://totp/SEOEngine.io:test@example.com?secret=MFRGG43FMFRGG43FMFRGG43FMFRGG43F&issuer=SEOEngine.io',
       };
 
-      const mockQrCode = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      const mockQrCode =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
       prismaMock.user.findUnique.mockResolvedValue(mockUser);
       (speakeasy.generateSecret as jest.Mock).mockReturnValue(mockSecret);
@@ -83,8 +85,12 @@ describe('TwoFactorAuthService', () => {
     it('should throw BadRequestException when user not found', async () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.setupInit('user-1')).rejects.toThrow(BadRequestException);
-      await expect(service.setupInit('user-1')).rejects.toThrow('User not found');
+      await expect(service.setupInit('user-1')).rejects.toThrow(
+        BadRequestException
+      );
+      await expect(service.setupInit('user-1')).rejects.toThrow(
+        'User not found'
+      );
     });
   });
 
@@ -124,8 +130,12 @@ describe('TwoFactorAuthService', () => {
     it('should throw BadRequestException when user not found', async () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.enable('user-1', '123456')).rejects.toThrow(BadRequestException);
-      await expect(service.enable('user-1', '123456')).rejects.toThrow('User not found');
+      await expect(service.enable('user-1', '123456')).rejects.toThrow(
+        BadRequestException
+      );
+      await expect(service.enable('user-1', '123456')).rejects.toThrow(
+        'User not found'
+      );
     });
 
     it('should throw BadRequestException when setup not initialized', async () => {
@@ -138,9 +148,11 @@ describe('TwoFactorAuthService', () => {
 
       prismaMock.user.findUnique.mockResolvedValue(mockUser);
 
-      await expect(service.enable('user-1', '123456')).rejects.toThrow(BadRequestException);
       await expect(service.enable('user-1', '123456')).rejects.toThrow(
-        '2FA setup not initialized',
+        BadRequestException
+      );
+      await expect(service.enable('user-1', '123456')).rejects.toThrow(
+        '2FA setup not initialized'
       );
     });
 
@@ -156,10 +168,10 @@ describe('TwoFactorAuthService', () => {
       (speakeasy.totp.verify as jest.Mock).mockReturnValue(false);
 
       await expect(service.enable('user-1', 'invalid-code')).rejects.toThrow(
-        BadRequestException,
+        BadRequestException
       );
       await expect(service.enable('user-1', 'invalid-code')).rejects.toThrow(
-        'Invalid verification code',
+        'Invalid verification code'
       );
     });
   });
@@ -231,17 +243,19 @@ describe('TwoFactorAuthService', () => {
       (speakeasy.totp.verify as jest.Mock).mockReturnValue(false);
 
       await expect(service.disable('user-1', 'invalid-code')).rejects.toThrow(
-        BadRequestException,
+        BadRequestException
       );
       await expect(service.disable('user-1', 'invalid-code')).rejects.toThrow(
-        'Invalid verification code',
+        'Invalid verification code'
       );
     });
 
     it('should throw BadRequestException when user not found', async () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.disable('user-1')).rejects.toThrow(BadRequestException);
+      await expect(service.disable('user-1')).rejects.toThrow(
+        BadRequestException
+      );
       await expect(service.disable('user-1')).rejects.toThrow('User not found');
     });
   });
@@ -250,7 +264,10 @@ describe('TwoFactorAuthService', () => {
     it('should verify valid TOTP token', () => {
       (speakeasy.totp.verify as jest.Mock).mockReturnValue(true);
 
-      const result = service.verifyToken('MFRGG43FMFRGG43FMFRGG43FMFRGG43F', '123456');
+      const result = service.verifyToken(
+        'MFRGG43FMFRGG43FMFRGG43FMFRGG43F',
+        '123456'
+      );
 
       expect(result).toBe(true);
       expect(speakeasy.totp.verify).toHaveBeenCalledWith({
@@ -264,10 +281,12 @@ describe('TwoFactorAuthService', () => {
     it('should return false for invalid token', () => {
       (speakeasy.totp.verify as jest.Mock).mockReturnValue(false);
 
-      const result = service.verifyToken('MFRGG43FMFRGG43FMFRGG43FMFRGG43F', 'invalid');
+      const result = service.verifyToken(
+        'MFRGG43FMFRGG43FMFRGG43FMFRGG43F',
+        'invalid'
+      );
 
       expect(result).toBe(false);
     });
   });
 });
-

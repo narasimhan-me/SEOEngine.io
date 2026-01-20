@@ -117,10 +117,15 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white shadow rounded-lg p-6 space-y-6"
+      >
         {/* Email (read-only) */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Email</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Email
+          </label>
           <input
             type="email"
             value={profile.email}
@@ -132,7 +137,9 @@ export default function ProfilePage() {
 
         {/* Name */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Name</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Name
+          </label>
           <input
             type="text"
             value={profile.name}
@@ -144,23 +151,33 @@ export default function ProfilePage() {
 
         {/* Avatar URL */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Avatar URL</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Avatar URL
+          </label>
           <input
             type="url"
             value={profile.avatarUrl}
-            onChange={(e) => setProfile({ ...profile, avatarUrl: e.target.value })}
+            onChange={(e) =>
+              setProfile({ ...profile, avatarUrl: e.target.value })
+            }
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             placeholder="https://example.com/avatar.jpg"
           />
-          <p className="mt-1 text-xs text-gray-500">Optional. URL to your avatar image.</p>
+          <p className="mt-1 text-xs text-gray-500">
+            Optional. URL to your avatar image.
+          </p>
         </div>
 
         {/* Timezone */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Timezone</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Timezone
+          </label>
           <select
             value={profile.timezone}
-            onChange={(e) => setProfile({ ...profile, timezone: e.target.value })}
+            onChange={(e) =>
+              setProfile({ ...profile, timezone: e.target.value })
+            }
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Select timezone</option>
@@ -178,7 +195,9 @@ export default function ProfilePage() {
 
         {/* Locale */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Locale</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Locale
+          </label>
           <select
             value={profile.locale}
             onChange={(e) => setProfile({ ...profile, locale: e.target.value })}
@@ -197,14 +216,18 @@ export default function ProfilePage() {
 
         {/* Account Role (read-only) */}
         <div>
-          <label className="block text-sm font-medium text-gray-700">Account Role</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Account Role
+          </label>
           <input
             type="text"
             value={profile.accountRole}
             disabled
             className="mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-500 cursor-not-allowed"
           />
-          <p className="mt-1 text-xs text-gray-500">Contact support to change account roles</p>
+          <p className="mt-1 text-xs text-gray-500">
+            Contact support to change account roles
+          </p>
         </div>
 
         {/* Submit */}

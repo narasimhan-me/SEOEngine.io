@@ -4,6 +4,7 @@
 >
 > The Products list layout described in this document has been updated by **PRODUCTS-LIST-2.0** (2025-12-21).
 > Key changes:
+>
 > - **Row Structure**: Now shows Health pill + Recommended action instead of status chip + metadata indicators + pillar chips
 > - **Filters**: Health filter (All/Critical/Needs Attention/Healthy) replaces metadata status filter
 > - **Progressive Disclosure**: Row is clickable to expand/collapse details; no overflow menu
@@ -170,6 +171,7 @@ Provide a full-screen workspace for optimizing individual product SEO metadata w
 The workspace uses a responsive 3-panel layout:
 
 ### Left Panel (260px on desktop)
+
 - **Product Overview Panel**
   - Product thumbnail (40×40)
   - Product title (bold, truncated)
@@ -181,6 +183,7 @@ The workspace uses a responsive 3-panel layout:
   - Status chip (Optimized / Needs optimization / Missing metadata)
 
 ### Center Panel (flexible width)
+
 - **AI Suggestions Panel**
   - Generate AI-powered SEO suggestions
   - Display suggested title with character count (X/60)
@@ -197,6 +200,7 @@ The workspace uses a responsive 3-panel layout:
   - "Apply to Shopify" button
 
 ### Right Panel (260px on desktop)
+
 - **DEO / SEO Insights Panel**
   - Content depth (word count with label: Very short/Short/Moderate/Rich)
   - Metadata completeness (SEO title and description presence indicators)
@@ -245,6 +249,7 @@ apps/web/src/components/products/optimization/
 ```
 
 Page route:
+
 ```
 apps/web/src/app/projects/[id]/products/[productId]/page.tsx
 ```
@@ -319,6 +324,7 @@ This phase addresses mobile responsiveness issues in the Products page and relat
 ### `ProductRow.tsx` Mobile Stacking
 
 On mobile (`<sm`):
+
 1. **Header section**: Thumbnail + title (2-line clamp) + handle + status chip under title
 2. **Metadata indicators**: Title/Description/Alt text badges in one row
 3. **Actions section**:
@@ -326,6 +332,7 @@ On mobile (`<sm`):
    - Scan SEO + Overflow menu: Below Optimize in a secondary row
 
 On tablet/desktop (`≥sm`):
+
 - Horizontal 3-zone layout preserved
 - Status chip and Scan SEO button in middle section (hidden on mobile)
 
@@ -363,14 +370,14 @@ Desktop (≥640px):
 
 ## Component Updates
 
-| File | Changes |
-|------|---------|
-| `apps/web/src/app/projects/[id]/layout.tsx` | Client component + mobile drawer |
-| `apps/web/src/app/admin/layout.tsx` | Mobile drawer pattern |
-| `apps/web/src/components/layout/ProjectSideNav.tsx` | `onNavigate` prop, responsive width |
-| `apps/web/src/components/layout/AdminSideNav.tsx` | `onNavigate` prop, responsive width |
-| `apps/web/src/components/products/ProductRow.tsx` | Mobile stacking, split actions |
-| `apps/web/src/app/projects/[id]/products/page.tsx` | Responsive header, overflow-x-hidden |
+| File                                                | Changes                              |
+| --------------------------------------------------- | ------------------------------------ |
+| `apps/web/src/app/projects/[id]/layout.tsx`         | Client component + mobile drawer     |
+| `apps/web/src/app/admin/layout.tsx`                 | Mobile drawer pattern                |
+| `apps/web/src/components/layout/ProjectSideNav.tsx` | `onNavigate` prop, responsive width  |
+| `apps/web/src/components/layout/AdminSideNav.tsx`   | `onNavigate` prop, responsive width  |
+| `apps/web/src/components/products/ProductRow.tsx`   | Mobile stacking, split actions       |
+| `apps/web/src/app/projects/[id]/products/page.tsx`  | Responsive header, overflow-x-hidden |
 
 ## Breakpoints Used
 
@@ -401,21 +408,27 @@ Connect the backend DEO Issues Engine (`GET /projects/:id/deo-issues`) to the fr
 
 ### `apps/web/src/components/issues/`
 
-| Component | Description |
-|-----------|-------------|
-| `IssueBadge.tsx` | Compact badge showing issue count with severity-based coloring (critical=red, warning=orange, info=blue) |
-| `IssuesSummaryCard.tsx` | Summary card for Overview page with Critical/Warning/Info counts and "View All Issues" button |
-| `IssuesList.tsx` | Expandable list of issue categories with affected pages/products; maps issue IDs to friendly labels via `ISSUE_UI_CONFIG` |
+| Component               | Description                                                                                                               |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `IssueBadge.tsx`        | Compact badge showing issue count with severity-based coloring (critical=red, warning=orange, info=blue)                  |
+| `IssuesSummaryCard.tsx` | Summary card for Overview page with Critical/Warning/Info counts and "View All Issues" button                             |
+| `IssuesList.tsx`        | Expandable list of issue categories with affected pages/products; maps issue IDs to friendly labels via `ISSUE_UI_CONFIG` |
 
 ### Issue ID to Label Mapping
 
 The `ISSUE_UI_CONFIG` object in `IssuesList.tsx` provides user-friendly labels and descriptions:
 
 ```typescript
-export const ISSUE_UI_CONFIG: Record<string, { label: string; description: string }> = {
-  'missing_meta_title': { label: 'Missing Meta Title', description: '...' },
-  'missing_meta_description': { label: 'Missing Meta Description', description: '...' },
-  'thin_content': { label: 'Thin Content', description: '...' },
+export const ISSUE_UI_CONFIG: Record<
+  string,
+  { label: string; description: string }
+> = {
+  missing_meta_title: { label: 'Missing Meta Title', description: '...' },
+  missing_meta_description: {
+    label: 'Missing Meta Description',
+    description: '...',
+  },
+  thin_content: { label: 'Thin Content', description: '...' },
   // ... additional issue types
 };
 ```
@@ -458,6 +471,7 @@ export const projectsApi = {
 ```
 
 Response type:
+
 ```typescript
 interface DeoIssuesResponse {
   issues: DeoIssue[];
@@ -488,11 +502,11 @@ Issues are fetched alongside other page data using `Promise.all` for parallel lo
 
 Consistent across all components:
 
-| Severity | Background | Border | Text |
-|----------|------------|--------|------|
-| Critical | `bg-red-50` | `border-red-200` | `text-red-700` |
-| Warning | `bg-yellow-50` | `border-yellow-200` | `text-yellow-700` |
-| Info | `bg-blue-50` | `border-blue-200` | `text-blue-700` |
+| Severity | Background     | Border              | Text              |
+| -------- | -------------- | ------------------- | ----------------- |
+| Critical | `bg-red-50`    | `border-red-200`    | `text-red-700`    |
+| Warning  | `bg-yellow-50` | `border-yellow-200` | `text-yellow-700` |
+| Info     | `bg-blue-50`   | `border-blue-200`   | `text-blue-700`   |
 
 ## Constraints
 

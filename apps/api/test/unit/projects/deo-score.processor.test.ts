@@ -10,7 +10,10 @@
  * - onModuleDestroy() closes worker
  */
 import { DeoScoreProcessor } from '../../../src/projects/deo-score.processor';
-import { DeoScoreService, DeoSignalsService } from '../../../src/projects/deo-score.service';
+import {
+  DeoScoreService,
+  DeoSignalsService,
+} from '../../../src/projects/deo-score.service';
 import { redisConfig } from '../../../src/config/redis.config';
 import { DeoScoreSignals } from '@engineo/shared';
 
@@ -41,7 +44,7 @@ describe('DeoScoreProcessor', () => {
     deoSignalsServiceMock = createDeoSignalsServiceMock();
     processor = new DeoScoreProcessor(
       deoScoreServiceMock as unknown as DeoScoreService,
-      deoSignalsServiceMock as unknown as DeoSignalsService,
+      deoSignalsServiceMock as unknown as DeoSignalsService
     );
 
     // Save original config
@@ -106,7 +109,7 @@ describe('DeoScoreProcessor', () => {
         {
           connection: redisConfig.connection,
           prefix: redisConfig.prefix,
-        },
+        }
       );
     });
   });
@@ -166,8 +169,12 @@ describe('DeoScoreProcessor', () => {
         },
       };
 
-      deoSignalsServiceMock.collectSignalsForProject.mockResolvedValue(mockSignals);
-      deoScoreServiceMock.computeAndPersistScoreFromSignals.mockResolvedValue(mockSnapshot);
+      deoSignalsServiceMock.collectSignalsForProject.mockResolvedValue(
+        mockSignals
+      );
+      deoScoreServiceMock.computeAndPersistScoreFromSignals.mockResolvedValue(
+        mockSnapshot
+      );
 
       const jobHandler = (processor as any).jobHandler;
       const mockJob = {
@@ -180,22 +187,32 @@ describe('DeoScoreProcessor', () => {
         projectId: 'proj-1',
         snapshotId: 'snapshot-1',
       });
-      expect(deoSignalsServiceMock.collectSignalsForProject).toHaveBeenCalledWith('proj-1');
-      expect(deoScoreServiceMock.computeAndPersistScoreFromSignals).toHaveBeenCalledWith(
-        'proj-1',
-        mockSignals,
-      );
+      expect(
+        deoSignalsServiceMock.collectSignalsForProject
+      ).toHaveBeenCalledWith('proj-1');
+      expect(
+        deoScoreServiceMock.computeAndPersistScoreFromSignals
+      ).toHaveBeenCalledWith('proj-1', mockSignals);
     });
 
     it('should throw error when score computation fails', async () => {
       deoSignalsServiceMock.collectSignalsForProject.mockResolvedValue({
-        content: { totalPages: 0, pagesWithMetadata: 0, avgWordCount: 0, pagesWithThinContent: 0 },
-        entities: { totalProducts: 0, productsWithAnswerBlocks: 0, answerabilityScore: 0 },
+        content: {
+          totalPages: 0,
+          pagesWithMetadata: 0,
+          avgWordCount: 0,
+          pagesWithThinContent: 0,
+        },
+        entities: {
+          totalProducts: 0,
+          productsWithAnswerBlocks: 0,
+          answerabilityScore: 0,
+        },
         technical: { crawlablePages: 0, indexablePages: 0, avgLoadTime: 0 },
         visibility: { offsitePresenceScore: 0, localDiscoveryScore: null },
       });
       deoScoreServiceMock.computeAndPersistScoreFromSignals.mockRejectedValue(
-        new Error('Computation failed'),
+        new Error('Computation failed')
       );
 
       const jobHandler = (processor as any).jobHandler;
@@ -236,4 +253,3 @@ describe('DeoScoreProcessor', () => {
     });
   });
 });
-

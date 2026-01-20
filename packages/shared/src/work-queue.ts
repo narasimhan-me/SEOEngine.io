@@ -15,86 +15,86 @@
  * Determines derivation source and available actions.
  */
 export type WorkQueueBundleType =
-  | 'ASSET_OPTIMIZATION'     // Issue-derived bundles (from DeoIssuesService)
-  | 'AUTOMATION_RUN'         // Playbook-derived bundles (from AutomationPlaybooksService)
-  | 'GEO_EXPORT';            // GEO export/share bundle (from GeoReportsService)
+  | 'ASSET_OPTIMIZATION' // Issue-derived bundles (from DeoIssuesService)
+  | 'AUTOMATION_RUN' // Playbook-derived bundles (from AutomationPlaybooksService)
+  | 'GEO_EXPORT'; // GEO export/share bundle (from GeoReportsService)
 
 /**
  * Recommended action keys map to specific fix workflows.
  * Verb-first labels for clarity.
  */
 export type WorkQueueRecommendedActionKey =
-  | 'FIX_MISSING_METADATA'       // Missing SEO titles/descriptions
-  | 'RESOLVE_TECHNICAL_ISSUES'   // Technical/indexability issues
-  | 'IMPROVE_SEARCH_INTENT'      // Search intent fit gaps
-  | 'OPTIMIZE_CONTENT'           // Content/commerce signal improvements
-  | 'SHARE_LINK_GOVERNANCE';     // GEO export share link management
+  | 'FIX_MISSING_METADATA' // Missing SEO titles/descriptions
+  | 'RESOLVE_TECHNICAL_ISSUES' // Technical/indexability issues
+  | 'IMPROVE_SEARCH_INTENT' // Search intent fit gaps
+  | 'OPTIMIZE_CONTENT' // Content/commerce signal improvements
+  | 'SHARE_LINK_GOVERNANCE'; // GEO export share link management
 
 /**
  * Health status derived from underlying issue severity.
  */
 export type WorkQueueHealth =
-  | 'CRITICAL'        // Requires immediate attention (critical severity)
+  | 'CRITICAL' // Requires immediate attention (critical severity)
   | 'NEEDS_ATTENTION' // Should be addressed (warning severity)
-  | 'HEALTHY';        // No action needed (info severity, typically omitted)
+  | 'HEALTHY'; // No action needed (info severity, typically omitted)
 
 /**
  * Bundle state machine.
  * Derived from underlying artifact states.
  */
 export type WorkQueueState =
-  | 'NEW'              // No action taken yet
-  | 'PREVIEWED'        // Preview generated (partial draft)
-  | 'DRAFTS_READY'     // Full drafts generated, ready for apply
+  | 'NEW' // No action taken yet
+  | 'PREVIEWED' // Preview generated (partial draft)
+  | 'DRAFTS_READY' // Full drafts generated, ready for apply
   | 'PENDING_APPROVAL' // Awaiting approval (governance-gated)
-  | 'APPROVED'         // Approved, ready to apply
-  | 'APPLIED'          // Successfully applied (Applied Recently tab)
-  | 'FAILED'           // Draft generation failed
-  | 'BLOCKED';         // Cannot proceed (expired drafts, missing requirements)
+  | 'APPROVED' // Approved, ready to apply
+  | 'APPLIED' // Successfully applied (Applied Recently tab)
+  | 'FAILED' // Draft generation failed
+  | 'BLOCKED'; // Cannot proceed (expired drafts, missing requirements)
 
 /**
  * AI usage disclosure levels.
  */
 export type WorkQueueAiUsage =
-  | 'NONE'        // No AI used for this action
+  | 'NONE' // No AI used for this action
   | 'DRAFTS_ONLY' // AI used for draft generation, apply does not use AI
-  | 'FULL';       // AI used throughout (not currently used in v1)
+  | 'FULL'; // AI used throughout (not currently used in v1)
 
 /**
  * Scope type for affected items.
  * [ASSETS-PAGES-1] Extended to include PAGES and COLLECTIONS as first-class asset types.
  */
 export type WorkQueueScopeType =
-  | 'PRODUCTS'     // Affects specific products
-  | 'PAGES'        // Affects Shopify pages (/pages/*)
-  | 'COLLECTIONS'  // Affects Shopify collections (/collections/*)
-  | 'STORE_WIDE';  // Affects the entire store/project
+  | 'PRODUCTS' // Affects specific products
+  | 'PAGES' // Affects Shopify pages (/pages/*)
+  | 'COLLECTIONS' // Affects Shopify collections (/collections/*)
+  | 'STORE_WIDE'; // Affects the entire store/project
 
 /**
  * Approval status for governance-gated actions.
  */
 export type WorkQueueApprovalStatus =
   | 'NOT_REQUESTED' // No approval request exists
-  | 'PENDING'       // Approval request pending
-  | 'APPROVED'      // Approved (unconsumed)
-  | 'REJECTED';     // Rejected
+  | 'PENDING' // Approval request pending
+  | 'APPROVED' // Approved (unconsumed)
+  | 'REJECTED'; // Rejected
 
 /**
  * Draft status for automation bundles.
  */
 export type WorkQueueDraftStatus =
-  | 'NONE'     // No draft exists
-  | 'PARTIAL'  // Preview-only draft (sample products)
-  | 'READY'    // Full draft ready for apply
-  | 'FAILED'   // Draft generation failed
+  | 'NONE' // No draft exists
+  | 'PARTIAL' // Preview-only draft (sample products)
+  | 'READY' // Full draft ready for apply
+  | 'FAILED' // Draft generation failed
   | 'EXPIRED'; // Draft expired, needs regeneration
 
 /**
  * Share link status for GEO export bundles.
  */
 export type WorkQueueShareLinkStatus =
-  | 'NONE'    // No share links exist
-  | 'ACTIVE'  // At least one active share link
+  | 'NONE' // No share links exist
+  | 'ACTIVE' // At least one active share link
   | 'EXPIRED' // All links expired
   | 'REVOKED'; // All links revoked
 
@@ -108,8 +108,8 @@ export type WorkQueueShareLinkStatus =
 export interface WorkQueueApprovalInfo {
   approvalRequired: boolean;
   approvalStatus: WorkQueueApprovalStatus;
-  requestedBy?: string;       // userId who requested approval
-  requestedAt?: string;       // ISO timestamp
+  requestedBy?: string; // userId who requested approval
+  requestedAt?: string; // ISO timestamp
   approvedBy?: string | null; // userId who approved (null if not approved)
   approvedAt?: string | null; // ISO timestamp (null if not approved)
 }
@@ -119,9 +119,9 @@ export interface WorkQueueApprovalInfo {
  */
 export interface WorkQueueDraftInfo {
   draftStatus: WorkQueueDraftStatus;
-  draftCount: number;          // Number of products with drafts
-  draftCoverage: number;       // Percentage of affected products with drafts (0-100)
-  lastDraftRunId?: string;     // Reference to last draft generation run
+  draftCount: number; // Number of products with drafts
+  draftCoverage: number; // Percentage of affected products with drafts (0-100)
+  lastDraftRunId?: string; // Reference to last draft generation run
 }
 
 /**
@@ -129,9 +129,9 @@ export interface WorkQueueDraftInfo {
  */
 export interface WorkQueueGeoExportInfo {
   exportType?: string;
-  mutationFreeView: true;                    // Always true - viewing doesn't trigger mutations
+  mutationFreeView: true; // Always true - viewing doesn't trigger mutations
   shareLinkStatus: WorkQueueShareLinkStatus;
-  passcodeShownOnce: true;                   // Always true - passcode is never returned after creation
+  passcodeShownOnce: true; // Always true - passcode is never returned after creation
 }
 
 /**
@@ -142,29 +142,29 @@ export interface WorkQueueGeoExportInfo {
  */
 export interface WorkQueueActionBundle {
   // --- Core identity ---
-  bundleId: string;                          // Deterministic ID (e.g., `{bundleType}:{recommendedActionKey}:{scopeId}`)
+  bundleId: string; // Deterministic ID (e.g., `{bundleType}:{recommendedActionKey}:{scopeId}`)
   bundleType: WorkQueueBundleType;
-  createdAt: string;                         // ISO timestamp (stable, from persisted artifact)
-  updatedAt: string;                         // ISO timestamp (stable, from persisted artifact)
+  createdAt: string; // ISO timestamp (stable, from persisted artifact)
+  updatedAt: string; // ISO timestamp (stable, from persisted artifact)
 
   // --- Scope ---
   scopeType: WorkQueueScopeType;
-  scopeCount: number;                        // For ASSET_OPTIMIZATION: actionable issue-group count; for other types: affected item count
-  scopeDetectedCount?: number;               // COUNT-INTEGRITY-1: For ASSET_OPTIMIZATION: detected issue-group count (may exceed scopeCount)
-  scopePreviewList: string[];                // Top 5 item names + "+N more" if applicable
-  scopeQueryRef?: string;                    // Optional reference for scope resolution (e.g., scopeId)
+  scopeCount: number; // For ASSET_OPTIMIZATION: actionable issue-group count; for other types: affected item count
+  scopeDetectedCount?: number; // COUNT-INTEGRITY-1: For ASSET_OPTIMIZATION: detected issue-group count (may exceed scopeCount)
+  scopePreviewList: string[]; // Top 5 item names + "+N more" if applicable
+  scopeQueryRef?: string; // Optional reference for scope resolution (e.g., scopeId)
 
   // --- Health + priority ---
   health: WorkQueueHealth;
-  impactRank: number;                        // Lower = higher priority (for sorting)
+  impactRank: number; // Lower = higher priority (for sorting)
 
   // --- Recommended action ---
   recommendedActionKey: WorkQueueRecommendedActionKey;
-  recommendedActionLabel: string;            // Verb-first label (e.g., "Fix missing metadata")
+  recommendedActionLabel: string; // Verb-first label (e.g., "Fix missing metadata")
 
   // --- AI disclosure ---
   aiUsage: WorkQueueAiUsage;
-  aiDisclosureText: string;                  // Exact copy for UI display
+  aiDisclosureText: string; // Exact copy for UI display
 
   // --- State machine ---
   state: WorkQueueState;
@@ -228,7 +228,7 @@ export interface WorkQueueViewer {
  * GET /projects/:id/work-queue response shape.
  */
 export interface WorkQueueResponse {
-  viewer?: WorkQueueViewer;                  // Included for role-aware UI
+  viewer?: WorkQueueViewer; // Included for role-aware UI
   items: WorkQueueActionBundle[];
 }
 
@@ -263,7 +263,9 @@ export type AssetRef = string;
  * Parse an asset reference into its components.
  * Returns null if the format is invalid.
  */
-export function parseAssetRef(ref: AssetRef): { type: 'page' | 'collection'; handle: string } | null {
+export function parseAssetRef(
+  ref: AssetRef
+): { type: 'page' | 'collection'; handle: string } | null {
   const pageMatch = ref.match(/^page_handle:(.+)$/);
   if (pageMatch) {
     return { type: 'page', handle: pageMatch[1] };
@@ -278,7 +280,10 @@ export function parseAssetRef(ref: AssetRef): { type: 'page' | 'collection'; han
 /**
  * Create an asset reference from type and handle.
  */
-export function createAssetRef(type: 'page' | 'collection', handle: string): AssetRef {
+export function createAssetRef(
+  type: 'page' | 'collection',
+  handle: string
+): AssetRef {
   return `${type}_handle:${handle}`;
 }
 
@@ -287,7 +292,7 @@ export function createAssetRef(type: 'page' | 'collection', handle: string): Ass
  */
 export function validateAssetRefsForType(
   assetType: AutomationAssetType,
-  refs: AssetRef[],
+  refs: AssetRef[]
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
@@ -299,11 +304,14 @@ export function validateAssetRefsForType(
     return { valid: errors.length === 0, errors };
   }
 
-  const expectedPrefix = assetType === 'PAGES' ? 'page_handle:' : 'collection_handle:';
+  const expectedPrefix =
+    assetType === 'PAGES' ? 'page_handle:' : 'collection_handle:';
 
   for (const ref of refs) {
     if (!ref.startsWith(expectedPrefix)) {
-      errors.push(`Invalid ref "${ref}" for assetType ${assetType}. Expected prefix "${expectedPrefix}"`);
+      errors.push(
+        `Invalid ref "${ref}" for assetType ${assetType}. Expected prefix "${expectedPrefix}"`
+      );
     }
   }
 
@@ -317,7 +325,9 @@ export function validateAssetRefsForType(
  * CANONICAL INVARIANT: Only two playbook IDs exist: missing_seo_title, missing_seo_description.
  * Asset type differentiation is done via the assetType parameter, NOT via playbook ID variants.
  */
-export function getPlaybookAssetType(assetType?: AutomationAssetType): AutomationAssetType {
+export function getPlaybookAssetType(
+  assetType?: AutomationAssetType
+): AutomationAssetType {
   return assetType ?? 'PRODUCTS';
 }
 
@@ -339,13 +349,17 @@ export const PLAYBOOK_ASSET_TYPES: Record<string, AutomationAssetType[]> = {
  */
 export const WORK_QUEUE_AI_DISCLOSURE_TEXT = {
   NONE: 'No AI is used for this action.',
-  DRAFTS_ONLY: 'Uses AI to generate drafts. Apply does not use AI when a valid draft exists.',
+  DRAFTS_ONLY:
+    'Uses AI to generate drafts. Apply does not use AI when a valid draft exists.',
 } as const;
 
 /**
  * Recommended action labels (verb-first).
  */
-export const WORK_QUEUE_ACTION_LABELS: Record<WorkQueueRecommendedActionKey, string> = {
+export const WORK_QUEUE_ACTION_LABELS: Record<
+  WorkQueueRecommendedActionKey,
+  string
+> = {
   FIX_MISSING_METADATA: 'Fix missing metadata',
   RESOLVE_TECHNICAL_ISSUES: 'Resolve technical issues',
   IMPROVE_SEARCH_INTENT: 'Improve search intent coverage',
@@ -357,7 +371,10 @@ export const WORK_QUEUE_ACTION_LABELS: Record<WorkQueueRecommendedActionKey, str
  * Impact rank values for deterministic sorting.
  * Lower value = higher priority.
  */
-export const WORK_QUEUE_IMPACT_RANKS: Record<WorkQueueRecommendedActionKey, number> = {
+export const WORK_QUEUE_IMPACT_RANKS: Record<
+  WorkQueueRecommendedActionKey,
+  number
+> = {
   FIX_MISSING_METADATA: 100,
   RESOLVE_TECHNICAL_ISSUES: 200,
   IMPROVE_SEARCH_INTENT: 300,
@@ -376,8 +393,8 @@ export const WORK_QUEUE_STATE_PRIORITY: Record<WorkQueueState, number> = {
   BLOCKED: 350,
   NEW: 400,
   PREVIEWED: 450,
-  APPROVED: 150,  // Between PENDING_APPROVAL and DRAFTS_READY
-  APPLIED: 900,   // Applied Recently tab only
+  APPROVED: 150, // Between PENDING_APPROVAL and DRAFTS_READY
+  APPLIED: 900, // Applied Recently tab only
 } as const;
 
 /**
@@ -408,18 +425,22 @@ export const WORK_QUEUE_HEALTH_PRIORITY: Record<WorkQueueHealth, number> = {
  * @param issue - DeoIssue to classify
  * @returns WorkQueueRecommendedActionKey for this issue
  */
-export function getWorkQueueRecommendedActionKeyForIssue(
-  issue: {
-    pillarId?: string;
-    type?: string;
-    category?: string;
-    intentType?: string;
-  }
-): WorkQueueRecommendedActionKey {
+export function getWorkQueueRecommendedActionKeyForIssue(issue: {
+  pillarId?: string;
+  type?: string;
+  category?: string;
+  intentType?: string;
+}): WorkQueueRecommendedActionKey {
   // Map issue types to action keys based on pillarId and category
-  if (issue.pillarId === 'metadata_snippet_quality' || issue.type?.includes('metadata')) {
+  if (
+    issue.pillarId === 'metadata_snippet_quality' ||
+    issue.type?.includes('metadata')
+  ) {
     return 'FIX_MISSING_METADATA';
-  } else if (issue.pillarId === 'technical_indexability' || issue.category === 'technical') {
+  } else if (
+    issue.pillarId === 'technical_indexability' ||
+    issue.category === 'technical'
+  ) {
     return 'RESOLVE_TECHNICAL_ISSUES';
   } else if (issue.pillarId === 'search_intent_fit' || issue.intentType) {
     return 'IMPROVE_SEARCH_INTENT';

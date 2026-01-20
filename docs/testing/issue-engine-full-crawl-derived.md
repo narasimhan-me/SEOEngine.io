@@ -46,14 +46,17 @@
 **ID:** CRL-001
 
 **Preconditions:**
+
 - Pages with indexability issues exist
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'indexability_problems'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'technical'`
 - **whyItMatters:** Explanation about invisible pages and lost opportunities
 - **recommendedFix:** Guidance about fixing errors and removing noindex
@@ -67,14 +70,17 @@
 **ID:** CRL-002
 
 **Preconditions:**
+
 - Pages with HTTP errors or fetch failures
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'crawl_health_errors'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'technical'`
 - **whyItMatters:** Explanation about accessibility and site health
 - **recommendedFix:** Guidance about identifying and fixing errors
@@ -88,14 +94,17 @@
 **ID:** CRL-003
 
 **Preconditions:**
+
 - Products without images
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'missing_product_image'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'technical'`
 - **whyItMatters:** Explanation about image search and shopping feeds
 - **recommendedFix:** Guidance about uploading high-quality images
@@ -109,14 +118,17 @@
 **ID:** CRL-004
 
 **Preconditions:**
+
 - Products without price data
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'missing_price'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'technical'`
 - **whyItMatters:** Explanation about shopping results exclusion
 - **recommendedFix:** Guidance about re-syncing from Shopify
@@ -132,11 +144,13 @@
 **Description:** Project with 100% healthy crawl.
 
 **Steps:**
+
 1. Create project with all pages returning 200 OK
 2. All pages have complete HTML elements
 3. Call `GET /projects/:id/deo-issues`
 
 **Expected Behavior:**
+
 - No technical category issues from crawl data
 - May still have product structural issues
 
@@ -147,6 +161,7 @@
 **Description:** Project with various error types.
 
 **Steps:**
+
 1. Create crawl results with:
    - Some 404 errors
    - Some 500 errors
@@ -154,6 +169,7 @@
 2. Call `GET /projects/:id/deo-issues`
 
 **Expected Behavior:**
+
 - `affectedPages` includes representatives of all error types
 - `count` reflects total pages with any issue
 
@@ -178,9 +194,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Issue Engine Full - Crawl-Derived issues (Phase UX-8) |
+| Field              | Value                                                 |
+| ------------------ | ----------------------------------------------------- |
+| **Tester Name**    | [Pending]                                             |
+| **Date**           | [YYYY-MM-DD]                                          |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed                 |
+| **Notes**          | Issue Engine Full - Crawl-Derived issues (Phase UX-8) |

@@ -9,6 +9,7 @@
 This document covers testing for **Phase AE-2 – Product Automation Library**, which introduces product-level automations for metadata, content, drift correction, and Shopify sync operations.
 
 **Reference Documents:**
+
 - `docs/AUTOMATION_ENGINE_SPEC.md` (Section 8 – Product Automations)
 - `docs/testing/automation-engine.md` (AE-1 Framework testing)
 - `docs/ENTITLEMENTS_MATRIX.md` (Section 4.4 Automations)
@@ -20,72 +21,73 @@ This document covers testing for **Phase AE-2 – Product Automation Library**, 
 ### 2.1 Metadata Automations
 
 **Rules:**
+
 - `AUTO_GENERATE_METADATA_ON_NEW_PRODUCT` (✅ Implemented in AUE-1)
 - `AUTO_GENERATE_METADATA_FOR_MISSING_METADATA`
 - `AUTO_GENERATE_METADATA_FOR_THIN_CONTENT`
 
 **Test Scenarios:**
 
-| ID | Scenario | Expected Behavior | Status |
-|----|----------|-------------------|--------|
-| META-001 | New product synced with missing SEO title | Automation triggers, generates title based on product data | ✅ AUE-1 |
+| ID       | Scenario                                        | Expected Behavior                                                | Status   |
+| -------- | ----------------------------------------------- | ---------------------------------------------------------------- | -------- |
+| META-001 | New product synced with missing SEO title       | Automation triggers, generates title based on product data       | ✅ AUE-1 |
 | META-002 | New product synced with missing SEO description | Automation triggers, generates description based on product data | ✅ AUE-1 |
-| META-003 | Product has weak/short title (< 30 chars) | Automation detects and improves title | Pending |
-| META-004 | Product has thin description (< 40 words) | Automation detects and expands description | Pending |
-| META-005 | Product has insufficient data for generation | Automation skips with logged reason ("insufficient_data") | ✅ AUE-1 |
-| META-006 | Daily automation limit reached | Automation skips with logged reason ("daily_limit_reached") | ✅ AUE-1 |
-| META-007 | User on Free plan hits automation cap | Automation blocked, user notified | ✅ AUE-1 |
+| META-003 | Product has weak/short title (< 30 chars)       | Automation detects and improves title                            | Pending  |
+| META-004 | Product has thin description (< 40 words)       | Automation detects and expands description                       | Pending  |
+| META-005 | Product has insufficient data for generation    | Automation skips with logged reason ("insufficient_data")        | ✅ AUE-1 |
+| META-006 | Daily automation limit reached                  | Automation skips with logged reason ("daily_limit_reached")      | ✅ AUE-1 |
+| META-007 | User on Free plan hits automation cap           | Automation blocked, user notified                                | ✅ AUE-1 |
 
 #### AUE-1 Specific Test Scenarios
 
-| ID | Scenario | Expected Behavior |
-|----|----------|-------------------|
+| ID       | Scenario                                              | Expected Behavior                                                           |
+| -------- | ----------------------------------------------------- | --------------------------------------------------------------------------- |
 | AUE1-001 | New product created during Shopify sync (missing SEO) | `runNewProductSeoTitleAutomation` triggered, `AutomationSuggestion` created |
-| AUE1-002 | New product created (SEO already populated) | Automation skips, no suggestion created |
-| AUE1-003 | Pro plan user: new product synced | Metadata auto-applied to product, suggestion marked `applied: true` |
-| AUE1-004 | Free plan user: new product synced | Suggestion created but NOT applied, user must manually apply |
-| AUE1-005 | AI usage recorded | `AiUsageEvent` created with feature `automation_new_product` |
-| AUE1-006 | Daily AI limit exceeded | Automation skips gracefully, logged |
-| AUE1-007 | Non-existent product ID | Automation handles gracefully, no error thrown |
-| AUE1-008 | Shopify sync continues if automation fails | Sync completes successfully, automation error logged |
+| AUE1-002 | New product created (SEO already populated)           | Automation skips, no suggestion created                                     |
+| AUE1-003 | Pro plan user: new product synced                     | Metadata auto-applied to product, suggestion marked `applied: true`         |
+| AUE1-004 | Free plan user: new product synced                    | Suggestion created but NOT applied, user must manually apply                |
+| AUE1-005 | AI usage recorded                                     | `AiUsageEvent` created with feature `automation_new_product`                |
+| AUE1-006 | Daily AI limit exceeded                               | Automation skips gracefully, logged                                         |
+| AUE1-007 | Non-existent product ID                               | Automation handles gracefully, no error thrown                              |
+| AUE1-008 | Shopify sync continues if automation fails            | Sync completes successfully, automation error logged                        |
 
 ### 2.2 Content Automations
 
 **Test Scenarios:**
 
-| ID | Scenario | Expected Behavior |
-|----|----------|-------------------|
-| CONT-001 | Product missing long description | Automation generates long description from available data |
-| CONT-002 | Product has thin description (< 60 words) | Automation expands description with factual content |
-| CONT-003 | Product missing feature bullet list | Automation generates bullets from specs/attributes |
-| CONT-004 | Source data insufficient for content | Automation skips rather than hallucinating |
-| CONT-005 | Generated content reviewed for factual accuracy | Content traces back to source product data |
+| ID       | Scenario                                        | Expected Behavior                                         |
+| -------- | ----------------------------------------------- | --------------------------------------------------------- |
+| CONT-001 | Product missing long description                | Automation generates long description from available data |
+| CONT-002 | Product has thin description (< 60 words)       | Automation expands description with factual content       |
+| CONT-003 | Product missing feature bullet list             | Automation generates bullets from specs/attributes        |
+| CONT-004 | Source data insufficient for content            | Automation skips rather than hallucinating                |
+| CONT-005 | Generated content reviewed for factual accuracy | Content traces back to source product data                |
 
 ### 2.3 Drift Correction Automations
 
 **Test Scenarios:**
 
-| ID | Scenario | Expected Behavior |
-|----|----------|-------------------|
-| DRIFT-001 | Shopify overwrites optimized SEO title | Drift detected, logged in automation run |
-| DRIFT-002 | Manual edit removes required field | Drift detected, flagged for review |
-| DRIFT-003 | Free plan user with drift detected | Notify-only, no auto-correction |
-| DRIFT-004 | Pro plan user with drift detected | Auto-correct when allowed by settings |
-| DRIFT-005 | Business plan with proactive drift scanning | Scheduled drift scan runs, corrections applied |
-| DRIFT-006 | Drift correction respects user settings | If mode is `review_before_apply`, suggestion created instead |
+| ID        | Scenario                                    | Expected Behavior                                            |
+| --------- | ------------------------------------------- | ------------------------------------------------------------ |
+| DRIFT-001 | Shopify overwrites optimized SEO title      | Drift detected, logged in automation run                     |
+| DRIFT-002 | Manual edit removes required field          | Drift detected, flagged for review                           |
+| DRIFT-003 | Free plan user with drift detected          | Notify-only, no auto-correction                              |
+| DRIFT-004 | Pro plan user with drift detected           | Auto-correct when allowed by settings                        |
+| DRIFT-005 | Business plan with proactive drift scanning | Scheduled drift scan runs, corrections applied               |
+| DRIFT-006 | Drift correction respects user settings     | If mode is `review_before_apply`, suggestion created instead |
 
 ### 2.4 Shopify Sync Automations
 
 **Test Scenarios:**
 
-| ID | Scenario | Expected Behavior |
-|----|----------|-------------------|
-| SYNC-001 | Metadata automation completes, write-back needed | Auto-sync triggers for Shopify metafields |
-| SYNC-002 | Free plan user attempts auto-sync | Blocked, suggestions created instead |
-| SYNC-003 | Pro plan user with auto-sync enabled | Limited sync operations allowed |
-| SYNC-004 | Business plan with full sync | Unrestricted sync for products, pages, answers |
-| SYNC-005 | Sync failure due to Shopify API error | Error logged, user notified, retry scheduled |
-| SYNC-006 | Sync respects daily execution caps | Sync blocked when cap reached |
+| ID       | Scenario                                         | Expected Behavior                              |
+| -------- | ------------------------------------------------ | ---------------------------------------------- |
+| SYNC-001 | Metadata automation completes, write-back needed | Auto-sync triggers for Shopify metafields      |
+| SYNC-002 | Free plan user attempts auto-sync                | Blocked, suggestions created instead           |
+| SYNC-003 | Pro plan user with auto-sync enabled             | Limited sync operations allowed                |
+| SYNC-004 | Business plan with full sync                     | Unrestricted sync for products, pages, answers |
+| SYNC-005 | Sync failure due to Shopify API error            | Error logged, user notified, retry scheduled   |
+| SYNC-006 | Sync respects daily execution caps               | Sync blocked when cap reached                  |
 
 ---
 
@@ -93,28 +95,28 @@ This document covers testing for **Phase AE-2 – Product Automation Library**, 
 
 ### 3.1 No-Hallucination Rule
 
-| ID | Scenario | Expected Behavior |
-|----|----------|-------------------|
+| ID       | Scenario                                   | Expected Behavior                               |
+| -------- | ------------------------------------------ | ----------------------------------------------- |
 | SAFE-001 | Generate content with minimal product data | Automation skips, logs "cannot_generate_safely" |
-| SAFE-002 | Verify generated content sources | All facts traceable to product attributes |
-| SAFE-003 | Confidence score below threshold | Content flagged for review, not auto-applied |
+| SAFE-002 | Verify generated content sources           | All facts traceable to product attributes       |
+| SAFE-003 | Confidence score below threshold           | Content flagged for review, not auto-applied    |
 
 ### 3.2 Data Safety
 
-| ID | Scenario | Expected Behavior |
-|----|----------|-------------------|
-| SAFE-004 | User-written content exists | Never overwritten without high confidence + rule allowance |
-| SAFE-005 | Automation fails mid-execution | Graceful failure, no partial writes, error logged |
-| SAFE-006 | Rollback capability | Before/after snapshots stored for audit |
+| ID       | Scenario                       | Expected Behavior                                          |
+| -------- | ------------------------------ | ---------------------------------------------------------- |
+| SAFE-004 | User-written content exists    | Never overwritten without high confidence + rule allowance |
+| SAFE-005 | Automation fails mid-execution | Graceful failure, no partial writes, error logged          |
+| SAFE-006 | Rollback capability            | Before/after snapshots stored for audit                    |
 
 ### 3.3 Plan Limit Enforcement
 
-| ID | Scenario | Expected Behavior |
-|----|----------|-------------------|
-| LIMIT-001 | Free: >5 automations/day attempted | 6th automation blocked |
-| LIMIT-002 | Pro: >25 automations/day attempted | 26th automation blocked |
-| LIMIT-003 | Business: high volume automations | Allowed up to safety limits |
-| LIMIT-004 | Token limit reached | AI automations blocked, user notified |
+| ID        | Scenario                           | Expected Behavior                     |
+| --------- | ---------------------------------- | ------------------------------------- |
+| LIMIT-001 | Free: >5 automations/day attempted | 6th automation blocked                |
+| LIMIT-002 | Pro: >25 automations/day attempted | 26th automation blocked               |
+| LIMIT-003 | Business: high volume automations  | Allowed up to safety limits           |
+| LIMIT-004 | Token limit reached                | AI automations blocked, user notified |
 
 ---
 
@@ -122,39 +124,39 @@ This document covers testing for **Phase AE-2 – Product Automation Library**, 
 
 ### 4.1 Crawl Pipeline Integration
 
-| ID | Scenario | Expected Behavior |
-|----|----------|-------------------|
-| INT-001 | Crawl completes for project | Eligible metadata automations triggered |
-| INT-002 | Crawl detects thin content | `AUTO_GENERATE_METADATA_FOR_THIN_CONTENT` eligible to run |
-| INT-003 | Multiple products need automation | Queue processes within daily limits |
+| ID      | Scenario                          | Expected Behavior                                         |
+| ------- | --------------------------------- | --------------------------------------------------------- |
+| INT-001 | Crawl completes for project       | Eligible metadata automations triggered                   |
+| INT-002 | Crawl detects thin content        | `AUTO_GENERATE_METADATA_FOR_THIN_CONTENT` eligible to run |
+| INT-003 | Multiple products need automation | Queue processes within daily limits                       |
 
 ### 4.2 Issue Engine Integration
 
-| ID | Scenario | Expected Behavior |
-|----|----------|-------------------|
-| INT-004 | Issue `missing_seo_title` detected | Metadata automation eligible |
-| INT-005 | Issue `thin_content` detected | Content automation eligible |
+| ID      | Scenario                             | Expected Behavior                              |
+| ------- | ------------------------------------ | ---------------------------------------------- |
+| INT-004 | Issue `missing_seo_title` detected   | Metadata automation eligible                   |
+| INT-005 | Issue `thin_content` detected        | Content automation eligible                    |
 | INT-006 | AI-fixable issue fixed by automation | Issue marked resolved after automation success |
 
 ### 4.3 Entitlements Integration
 
-| ID | Scenario | Expected Behavior |
-|----|----------|-------------------|
-| INT-007 | EntitlementsService queried before AI call | Entitlements checked, limits enforced |
+| ID      | Scenario                                   | Expected Behavior                              |
+| ------- | ------------------------------------------ | ---------------------------------------------- |
+| INT-007 | EntitlementsService queried before AI call | Entitlements checked, limits enforced          |
 | INT-008 | TokenUsageService tracks automation tokens | Usage logged with source `automation:{ruleId}` |
-| INT-009 | Plan upgrade mid-month | New limits immediately available |
+| INT-009 | Plan upgrade mid-month                     | New limits immediately available               |
 
 ---
 
 ## 5. Logging & Audit Tests
 
-| ID | Scenario | Expected Behavior |
-|----|----------|-------------------|
-| LOG-001 | Successful automation run | AutomationRun created with status `succeeded` |
-| LOG-002 | Skipped automation | AutomationRun created with status `skipped`, `reasonSkipped` populated |
-| LOG-003 | Failed automation | AutomationRun created with status `failed`, error details logged |
-| LOG-004 | Before/after snapshots | Snapshots stored for audit trail |
-| LOG-005 | Token usage logged | TokenUsage record created with automation source label |
+| ID      | Scenario                  | Expected Behavior                                                      |
+| ------- | ------------------------- | ---------------------------------------------------------------------- |
+| LOG-001 | Successful automation run | AutomationRun created with status `succeeded`                          |
+| LOG-002 | Skipped automation        | AutomationRun created with status `skipped`, `reasonSkipped` populated |
+| LOG-003 | Failed automation         | AutomationRun created with status `failed`, error details logged       |
+| LOG-004 | Before/after snapshots    | Snapshots stored for audit trail                                       |
+| LOG-005 | Token usage logged        | TokenUsage record created with automation source label                 |
 
 ---
 
@@ -162,12 +164,12 @@ This document covers testing for **Phase AE-2 – Product Automation Library**, 
 
 These tests are placeholders for when Automation Center UI is implemented:
 
-| ID | Scenario | Expected Behavior |
-|----|----------|-------------------|
-| UI-001 | Automation Activity Log displays runs | All automation runs visible with status |
-| UI-002 | User can enable/disable automation categories | Settings persist and affect automation behavior |
-| UI-003 | User can switch between auto_apply and review modes | Mode change reflected in automation execution |
-| UI-004 | Daily limit usage displayed | Progress bar shows automations used/remaining |
+| ID     | Scenario                                            | Expected Behavior                               |
+| ------ | --------------------------------------------------- | ----------------------------------------------- |
+| UI-001 | Automation Activity Log displays runs               | All automation runs visible with status         |
+| UI-002 | User can enable/disable automation categories       | Settings persist and affect automation behavior |
+| UI-003 | User can switch between auto_apply and review modes | Mode change reflected in automation execution   |
+| UI-004 | Daily limit usage displayed                         | Progress bar shows automations used/remaining   |
 
 ---
 
@@ -207,7 +209,7 @@ After any changes to automation logic, verify:
 
 ## Document History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2025-12-08 | Initial Product Automations testing document (Phase AE-2) |
-| 1.1 | 2025-12-09 | Added AUE-1 specific test scenarios for new product SEO title automation |
+| Version | Date       | Changes                                                                  |
+| ------- | ---------- | ------------------------------------------------------------------------ |
+| 1.0     | 2025-12-08 | Initial Product Automations testing document (Phase AE-2)                |
+| 1.1     | 2025-12-09 | Added AUE-1 specific test scenarios for new product SEO title automation |

@@ -10,6 +10,7 @@
 **Intent:** Protect critical rules and contracts while staying fast enough to run on every commit.
 
 **Outcomes:**
+
 1. ✅/⚠️ A clearly defined "unit suite" completes in ~1–2 minutes locally
 2. ✅ Critical domains have strong unit coverage for happy-path, edge cases, and failure modes
 3. ❌ Local commit hooks (Husky or equivalent) run lint/format, type checks, and the unit suite before allowing a commit
@@ -21,16 +22,19 @@
 ### Current State
 
 **Test Structure:**
+
 - ✅ Unit tests are clearly separated in `test/unit/` directory
 - ✅ Integration tests are in `test/integration/` directory
 - ✅ E2E tests are in `test/e2e/` directory
 
 **Test Command:**
+
 - ✅ `pnpm test:unit` runs only unit tests (new)
 - ✅ `pnpm test:unit:watch` for watch mode (new)
 - ✅ `pnpm test:api` still runs all tests (unit + integration)
 
 **Jest Configuration:**
+
 - ✅ `jest.unit.config.ts` created - runs only `test/unit/` tests
 - ✅ `testPathIgnorePatterns` excludes integration and e2e tests
 - ✅ Separate coverage directory: `coverage-unit`
@@ -38,12 +42,14 @@
 ### Implementation
 
 **Created `jest.unit.config.ts`:**
+
 - ✅ Only matches `test/unit/.*\\.(spec|test)\\.ts$`
 - ✅ Excludes integration and e2e tests
 - ✅ Separate coverage directory
 - ✅ Display name: "Unit Tests"
 
 **Added to package.json:**
+
 - ✅ `test:unit` script in `apps/api/package.json`
 - ✅ `test:unit:watch` script in `apps/api/package.json`
 - ✅ `test:unit` script in root `package.json` (filters to api)
@@ -63,6 +69,7 @@
 #### ✅ **Auth/Scoping** - **STRONG COVERAGE**
 
 **Test Files:**
+
 - `test/unit/auth/auth.service.test.ts` ✅
   - signup() with duplicate email handling
   - validateUser() with valid/invalid credentials
@@ -72,6 +79,7 @@
   - Edge cases: password validation, JWT expiration
 
 **Coverage Status:**
+
 - ✅ Happy path: Complete
 - ✅ Edge cases: Covered
 - ✅ Failure modes: Covered
@@ -80,6 +88,7 @@
 #### ✅ **Billing/Entitlements** - **STRONG COVERAGE**
 
 **Test Files:**
+
 - `test/unit/billing/billing.service.test.ts` ✅
   - getPlans(), getSubscription(), getBillingSummary()
   - createCheckoutSession() with Stripe integration
@@ -97,6 +106,7 @@
   - ensureCanCreateProject() throws when project limit reached
 
 **Coverage Status:**
+
 - ✅ Happy path: Complete
 - ✅ Edge cases: Covered
 - ✅ Failure modes: Covered
@@ -105,6 +115,7 @@
 #### ✅ **Onboarding** - **STRONG COVERAGE**
 
 **Test Files:**
+
 - `test/unit/projects/projects.service.test.ts` ✅
   - getProjectsForUser()
   - getProject() with ownership validation
@@ -113,6 +124,7 @@
   - deleteProject() with cascade deletion
 
 **Coverage Status:**
+
 - ✅ Happy path: Complete
 - ✅ Edge cases: Covered
 - ✅ Failure modes: Covered
@@ -121,6 +133,7 @@
 #### ✅ **Preview → Apply Workflow** - **STRONG COVERAGE**
 
 **Test Files:**
+
 - `test/unit/projects/automation-playbooks.service.test.ts` ✅
   - estimatePlaybook() with plan validation
   - previewPlaybook() with scope validation
@@ -138,6 +151,7 @@
   - Edge cases: daily AI limits, plan validation, ownership
 
 **Coverage Status:**
+
 - ✅ Happy path: Complete
 - ✅ Edge cases: Covered
 - ✅ Failure modes: Covered
@@ -146,6 +160,7 @@
 #### ✅ **Data Integrity** - **STRONG COVERAGE**
 
 **Test Files:**
+
 - `test/unit/products/products.service.test.ts` ✅
   - Ownership validation
   - Error handling (NotFoundException, ForbiddenException)
@@ -163,6 +178,7 @@
   - Ownership validation
 
 **Coverage Status:**
+
 - ✅ Happy path: Complete
 - ✅ Edge cases: Covered
 - ✅ Failure modes: Covered
@@ -183,12 +199,14 @@
 ### Implementation
 
 **Husky Setup:**
+
 - ✅ Added `husky` to root `package.json` devDependencies
 - ✅ Added `prepare` script: `"prepare": "husky install"`
 - ✅ Created `.husky/pre-commit` hook
 - ✅ Created `.husky/_/husky.sh` helper script
 
 **Pre-commit Hook (`.husky/pre-commit`):**
+
 ```bash
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
@@ -204,6 +222,7 @@ pnpm test:unit
 ```
 
 **Hook Behavior:**
+
 - ✅ Runs linting on all staged files
 - ✅ Runs TypeScript type checks (with fallback if tsc not found)
 - ✅ Runs unit tests
@@ -245,6 +264,7 @@ pnpm test:unit
 ### 📋 Completed Action Items
 
 **Priority 1 (Required for Commit Gate):**
+
 1. ✅ Create `jest.unit.config.ts` for unit-only tests
 2. ✅ Add `test:unit` script to `package.json`
 3. ⚠️ Measure and verify unit test execution time (~1-2 minutes) - Ready for measurement
@@ -252,6 +272,7 @@ pnpm test:unit
 5. ✅ Create pre-commit hook with lint, type-check, and unit tests
 
 **Priority 2 (Nice to have):**
+
 1. ✅ Add `test:unit:watch` for development
 2. ⚠️ Configure lint-staged for staged files only - Can be added later
 3. ⚠️ Add pre-push hook for integration tests - Can be added later
@@ -283,6 +304,7 @@ Verify the implementation:
 - [x] All critical domain tests pass ✅
 
 **To verify:**
+
 1. Run `pnpm install` to install Husky
 2. Run `pnpm test:unit` to verify unit tests work
 3. Make a test commit to verify pre-commit hook triggers
@@ -290,4 +312,3 @@ Verify the implementation:
 ---
 
 **Status:** ✅ **COMPLETE** - All infrastructure implemented, ready for verification
-

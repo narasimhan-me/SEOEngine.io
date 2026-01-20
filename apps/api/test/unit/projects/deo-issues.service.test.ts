@@ -43,7 +43,9 @@ const createDeoSignalsServiceMock = () => ({
 
 const createServiceMocks = () => ({
   automationService: {
-    triggerAnswerBlockAutomationForProduct: jest.fn().mockResolvedValue(undefined),
+    triggerAnswerBlockAutomationForProduct: jest
+      .fn()
+      .mockResolvedValue(undefined),
   },
   searchIntentService: {
     buildSearchIntentIssues: jest.fn().mockResolvedValue([]),
@@ -80,7 +82,9 @@ describe('DeoIssuesService', () => {
   let prismaMock: ReturnType<typeof createPrismaMock>;
   let deoSignalsServiceMock: ReturnType<typeof createDeoSignalsServiceMock>;
   let serviceMocks: ReturnType<typeof createServiceMocks>;
-  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
+  let roleResolutionServiceMock: ReturnType<
+    typeof createRoleResolutionServiceMock
+  >;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
@@ -97,7 +101,7 @@ describe('DeoIssuesService', () => {
       serviceMocks.offsiteSignalsService as unknown as OffsiteSignalsService,
       serviceMocks.localDiscoveryService as unknown as LocalDiscoveryService,
       serviceMocks.mediaAccessibilityService as unknown as MediaAccessibilityService,
-      roleResolutionServiceMock as unknown as RoleResolutionService,
+      roleResolutionServiceMock as unknown as RoleResolutionService
     );
   });
 
@@ -148,7 +152,9 @@ describe('DeoIssuesService', () => {
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
       prismaMock.crawlResult.findMany.mockResolvedValue(mockCrawlResults);
       prismaMock.product.findMany.mockResolvedValue(mockProducts);
-      deoSignalsServiceMock.collectSignalsForProject.mockResolvedValue(mockSignals);
+      deoSignalsServiceMock.collectSignalsForProject.mockResolvedValue(
+        mockSignals
+      );
 
       const result = await service.getIssuesForProject('proj-1', 'user-1');
 
@@ -163,9 +169,9 @@ describe('DeoIssuesService', () => {
     it('should throw NotFoundException when project does not exist', async () => {
       prismaMock.project.findUnique.mockResolvedValue(null);
 
-      await expect(service.getIssuesForProject('proj-1', 'user-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.getIssuesForProject('proj-1', 'user-1')
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException when user does not own project', async () => {
@@ -176,12 +182,12 @@ describe('DeoIssuesService', () => {
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
       roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
-        new ForbiddenException('You do not have access to this project'),
+        new ForbiddenException('You do not have access to this project')
       );
 
-      await expect(service.getIssuesForProject('proj-1', 'user-1')).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.getIssuesForProject('proj-1', 'user-1')
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('should include issues from various services', async () => {
@@ -223,20 +229,20 @@ describe('DeoIssuesService', () => {
         brandNavigationalStrength: 0,
       });
       serviceMocks.searchIntentService.buildSearchIntentIssues.mockResolvedValue(
-        mockSearchIntentIssues,
+        mockSearchIntentIssues
       );
       serviceMocks.competitorsService.buildCompetitiveIssues.mockResolvedValue(
-        mockCompetitiveIssues,
+        mockCompetitiveIssues
       );
 
       const result = await service.getIssuesForProject('proj-1', 'user-1');
 
       expect(result.issues.length).toBeGreaterThanOrEqual(2);
       expect(
-        result.issues.some((issue) => issue.pillarId === 'search_intent'),
+        result.issues.some((issue) => issue.pillarId === 'search_intent')
       ).toBe(true);
       expect(
-        result.issues.some((issue) => issue.pillarId === 'competitors'),
+        result.issues.some((issue) => issue.pillarId === 'competitors')
       ).toBe(true);
     });
 
@@ -263,7 +269,7 @@ describe('DeoIssuesService', () => {
         brandNavigationalStrength: 0,
       });
       serviceMocks.searchIntentService.buildSearchIntentIssues.mockRejectedValue(
-        new Error('Service error'),
+        new Error('Service error')
       );
 
       // Should not throw, but log error and continue
@@ -327,7 +333,9 @@ describe('DeoIssuesService', () => {
 
       const result = await service.getIssuesForProject('proj-1', 'user-1');
 
-      const missingMetadataIssue = result.issues.find((issue) => issue.id === 'missing_metadata');
+      const missingMetadataIssue = result.issues.find(
+        (issue) => issue.id === 'missing_metadata'
+      );
       expect(missingMetadataIssue).toBeDefined();
       expect(missingMetadataIssue?.count).toBeGreaterThan(0);
     });
@@ -387,7 +395,9 @@ describe('DeoIssuesService', () => {
 
       const result = await service.getIssuesForProject('proj-1', 'user-1');
 
-      const thinContentIssue = result.issues.find((issue) => issue.id === 'thin_content');
+      const thinContentIssue = result.issues.find(
+        (issue) => issue.id === 'thin_content'
+      );
       expect(thinContentIssue).toBeDefined();
       expect(thinContentIssue?.count).toBeGreaterThan(0);
     });
@@ -434,7 +444,9 @@ describe('DeoIssuesService', () => {
 
       const result = await service.getIssuesForProject('proj-1', 'user-1');
 
-      const missingSeoTitleIssue = result.issues.find((issue) => issue.id === 'missing_seo_title');
+      const missingSeoTitleIssue = result.issues.find(
+        (issue) => issue.id === 'missing_seo_title'
+      );
       expect(missingSeoTitleIssue).toBeDefined();
       expect(missingSeoTitleIssue?.count).toBe(2);
       expect(missingSeoTitleIssue?.aiFixable).toBe(true);
@@ -476,7 +488,7 @@ describe('DeoIssuesService', () => {
       const result = await service.getIssuesForProject('proj-1', 'user-1');
 
       const missingSeoDescIssue = result.issues.find(
-        (issue) => issue.id === 'missing_seo_description',
+        (issue) => issue.id === 'missing_seo_description'
       );
       expect(missingSeoDescIssue).toBeDefined();
       expect(missingSeoDescIssue?.count).toBe(1);
@@ -525,7 +537,9 @@ describe('DeoIssuesService', () => {
 
       const result = await service.getIssuesForProject('proj-1', 'user-1');
 
-      const weakTitleIssue = result.issues.find((issue) => issue.id === 'weak_title');
+      const weakTitleIssue = result.issues.find(
+        (issue) => issue.id === 'weak_title'
+      );
       expect(weakTitleIssue).toBeDefined();
       expect(weakTitleIssue?.count).toBeGreaterThanOrEqual(1);
     });
@@ -565,7 +579,9 @@ describe('DeoIssuesService', () => {
 
       const result = await service.getIssuesForProject('proj-1', 'user-1');
 
-      const weakDescIssue = result.issues.find((issue) => issue.id === 'weak_description');
+      const weakDescIssue = result.issues.find(
+        (issue) => issue.id === 'weak_description'
+      );
       expect(weakDescIssue).toBeDefined();
       expect(weakDescIssue?.count).toBe(1);
     });
@@ -576,7 +592,8 @@ describe('DeoIssuesService', () => {
         userId: 'user-1',
       };
 
-      const duplicateDescription = 'This is a duplicate product description that appears multiple times';
+      const duplicateDescription =
+        'This is a duplicate product description that appears multiple times';
       const mockProducts = [
         {
           id: 'prod-1',
@@ -624,7 +641,7 @@ describe('DeoIssuesService', () => {
       const result = await service.getIssuesForProject('proj-1', 'user-1');
 
       const duplicateIssue = result.issues.find(
-        (issue) => issue.id === 'duplicate_product_content',
+        (issue) => issue.id === 'duplicate_product_content'
       );
       expect(duplicateIssue).toBeDefined();
       expect(duplicateIssue?.count).toBeGreaterThanOrEqual(2);
@@ -666,7 +683,9 @@ describe('DeoIssuesService', () => {
 
       const result = await service.getIssuesForProject('proj-1', 'user-1');
 
-      const notAnswerReadyIssue = result.issues.find((issue) => issue.id === 'not_answer_ready');
+      const notAnswerReadyIssue = result.issues.find(
+        (issue) => issue.id === 'not_answer_ready'
+      );
       expect(notAnswerReadyIssue).toBeDefined();
       expect(notAnswerReadyIssue?.count).toBe(1);
     });
@@ -716,7 +735,7 @@ describe('DeoIssuesService', () => {
       const result = await service.getIssuesForProject('proj-1', 'user-1');
 
       const missingImageIssue = result.issues.find(
-        (issue) => issue.id === 'missing_product_image',
+        (issue) => issue.id === 'missing_product_image'
       );
       expect(missingImageIssue).toBeDefined();
       expect(missingImageIssue?.count).toBe(2);
@@ -766,7 +785,9 @@ describe('DeoIssuesService', () => {
 
       const result = await service.getIssuesForProject('proj-1', 'user-1');
 
-      const missingPriceIssue = result.issues.find((issue) => issue.id === 'missing_price');
+      const missingPriceIssue = result.issues.find(
+        (issue) => issue.id === 'missing_price'
+      );
       expect(missingPriceIssue).toBeDefined();
       expect(missingPriceIssue?.count).toBe(2);
     });
@@ -833,7 +854,7 @@ describe('DeoIssuesService', () => {
       const result = await service.getIssuesForProject('proj-1', 'user-1');
 
       const indexabilityIssue = result.issues.find(
-        (issue) => issue.id === 'indexability_problems',
+        (issue) => issue.id === 'indexability_problems'
       );
       expect(indexabilityIssue).toBeDefined();
       expect(indexabilityIssue?.count).toBeGreaterThan(0);
@@ -889,7 +910,9 @@ describe('DeoIssuesService', () => {
 
       const result = await service.getIssuesForProject('proj-1', 'user-1');
 
-      const crawlHealthIssue = result.issues.find((issue) => issue.id === 'crawl_health_errors');
+      const crawlHealthIssue = result.issues.find(
+        (issue) => issue.id === 'crawl_health_errors'
+      );
       expect(crawlHealthIssue).toBeDefined();
       expect(crawlHealthIssue?.count).toBe(2);
     });
@@ -945,7 +968,7 @@ describe('DeoIssuesService', () => {
       const result = await service.getIssuesForProject('proj-1', 'user-1');
 
       const answerSurfaceIssue = result.issues.find(
-        (issue) => issue.id === 'answer_surface_weakness',
+        (issue) => issue.id === 'answer_surface_weakness'
       );
       expect(answerSurfaceIssue).toBeDefined();
       expect(answerSurfaceIssue?.count).toBeGreaterThan(0);
@@ -991,11 +1014,10 @@ describe('DeoIssuesService', () => {
       const result = await service.getIssuesForProject('proj-1', 'user-1');
 
       const brandNavIssue = result.issues.find(
-        (issue) => issue.id === 'brand_navigational_weakness',
+        (issue) => issue.id === 'brand_navigational_weakness'
       );
       expect(brandNavIssue).toBeDefined();
       expect(brandNavIssue?.count).toBeGreaterThan(0);
     });
   });
 });
-

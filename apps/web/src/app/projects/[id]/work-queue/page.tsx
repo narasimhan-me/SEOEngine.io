@@ -49,15 +49,21 @@ export default function WorkQueuePage() {
 
   // Get filter params from URL
   const currentTab = (searchParams.get('tab') as WorkQueueTab) || undefined;
-  const bundleType = (searchParams.get('bundleType') as WorkQueueBundleType) || undefined;
-  const actionKey = (searchParams.get('actionKey') as WorkQueueRecommendedActionKey) || undefined;
+  const bundleType =
+    (searchParams.get('bundleType') as WorkQueueBundleType) || undefined;
+  const actionKey =
+    (searchParams.get('actionKey') as WorkQueueRecommendedActionKey) ||
+    undefined;
   // [TRUST-ROUTING-1] Parse actionKeys (comma-separated multi-key filter)
   const actionKeysParam = searchParams.get('actionKeys');
   const actionKeys: WorkQueueRecommendedActionKey[] = useMemo(() => {
     if (!actionKeysParam) return [];
-    return actionKeysParam.split(',').filter(Boolean) as WorkQueueRecommendedActionKey[];
+    return actionKeysParam
+      .split(',')
+      .filter(Boolean) as WorkQueueRecommendedActionKey[];
   }, [actionKeysParam]);
-  const scopeType = (searchParams.get('scopeType') as WorkQueueScopeType) || undefined;
+  const scopeType =
+    (searchParams.get('scopeType') as WorkQueueScopeType) || undefined;
   const highlightBundleId = searchParams.get('bundleId') || undefined;
   // [TRUST-ROUTING-1] Read from context param
   const fromContext = searchParams.get('from') as FromContext | null;
@@ -80,8 +86,10 @@ export default function WorkQueuePage() {
     return buildBackLink({
       projectId,
       returnTo: validatedNavContext.returnTo,
-      returnLabel: validatedNavContext.returnLabel || returnLabelParam || undefined,
-      from: validatedNavContext.from || (fromContext as FromContext | undefined),
+      returnLabel:
+        validatedNavContext.returnLabel || returnLabelParam || undefined,
+      from:
+        validatedNavContext.from || (fromContext as FromContext | undefined),
       fallback: 'issues',
     });
   }, [projectId, validatedNavContext, returnLabelParam, fromContext]);
@@ -100,12 +108,20 @@ export default function WorkQueuePage() {
       });
       setResponse(data);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load work queue';
+      const message =
+        err instanceof Error ? err.message : 'Failed to load work queue';
       setError(message);
     } finally {
       setLoading(false);
     }
-  }, [projectId, currentTab, bundleType, actionKey, actionKeys.length, scopeType]);
+  }, [
+    projectId,
+    currentTab,
+    bundleType,
+    actionKey,
+    actionKeys.length,
+    scopeType,
+  ]);
 
   useEffect(() => {
     fetchWorkQueue();
@@ -134,7 +150,8 @@ export default function WorkQueuePage() {
   };
 
   // [TRUST-ROUTING-1] Check if any filter context is active
-  const hasFilterContext = fromContext === 'store_health' || actionKeys.length > 0 || !!actionKey;
+  const hasFilterContext =
+    fromContext === 'store_health' || actionKeys.length > 0 || !!actionKey;
 
   // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Trigger issue fix mode on issueId only (not requiring from=issues)
   const isIssueFixMode = !!issueIdParam;
@@ -143,7 +160,12 @@ export default function WorkQueuePage() {
   // [ISSUE-FIX-NAV-AND-ANCHORS-1] Also get nextActionLabel from fix config
   // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Also get fixKind for semantic wording
   const { issueTitle, nextActionLabel, fixKind } = useMemo(() => {
-    if (!issueIdParam) return { issueTitle: null, nextActionLabel: undefined, fixKind: undefined };
+    if (!issueIdParam)
+      return {
+        issueTitle: null,
+        nextActionLabel: undefined,
+        fixKind: undefined,
+      };
     // Try to get title from ISSUE_UI_CONFIG
     const uiConfig = ISSUE_UI_CONFIG[issueIdParam];
     const fixConfig = getIssueFixConfig(issueIdParam);
@@ -179,7 +201,9 @@ export default function WorkQueuePage() {
       return rawItems;
     }
     // Client-side filter to those matching any of the specified action keys
-    return rawItems.filter((bundle) => actionKeys.includes(bundle.recommendedActionKey));
+    return rawItems.filter((bundle) =>
+      actionKeys.includes(bundle.recommendedActionKey)
+    );
   }, [rawItems, actionKeys]);
 
   // [TRUST-ROUTING-1] Calculate bundle counts for explainability
@@ -194,7 +218,8 @@ export default function WorkQueuePage() {
     for (const bundle of items) {
       if (bundle.bundleType === 'ASSET_OPTIMIZATION') {
         assetOptActionableIssues += bundle.scopeCount;
-        assetOptDetectedIssues += (bundle.scopeDetectedCount ?? bundle.scopeCount);
+        assetOptDetectedIssues +=
+          bundle.scopeDetectedCount ?? bundle.scopeCount;
       } else {
         nonAssetOptItems += bundle.scopeCount;
       }
@@ -217,7 +242,9 @@ export default function WorkQueuePage() {
     setTimeout(() => {
       const targetId = highlightBundleId || items[0]?.bundleId;
       if (targetId) {
-        const element = document.querySelector(`[data-bundle-id="${targetId}"]`);
+        const element = document.querySelector(
+          `[data-bundle-id="${targetId}"]`
+        );
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
@@ -231,7 +258,8 @@ export default function WorkQueuePage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Work Queue</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Prioritized action items derived from your store&apos;s optimization status.
+            Prioritized action items derived from your store&apos;s optimization
+            status.
           </p>
         </div>
         {response?.viewer && (
@@ -260,7 +288,10 @@ export default function WorkQueuePage() {
           }`}
         >
           {/* [ISSUE-FIX-NAV-AND-ANCHORS-1] Stable fix anchor wrapper */}
-          <div data-testid="work-queue-fix-anchor" className="flex items-start gap-3">
+          <div
+            data-testid="work-queue-fix-anchor"
+            className="flex items-start gap-3"
+          >
             <div className="flex-shrink-0">
               <svg
                 className={`h-5 w-5 ${fixKind === 'DIAGNOSTIC' ? 'text-blue-600' : 'text-indigo-600'}`}
@@ -277,8 +308,13 @@ export default function WorkQueuePage() {
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className={`text-sm font-semibold ${fixKind === 'DIAGNOSTIC' ? 'text-blue-900' : 'text-indigo-900'}`}>
-                {fixKind === 'DIAGNOSTIC' ? "You're here to review:" : "You're here to fix:"} {issueTitle}
+              <h3
+                className={`text-sm font-semibold ${fixKind === 'DIAGNOSTIC' ? 'text-blue-900' : 'text-indigo-900'}`}
+              >
+                {fixKind === 'DIAGNOSTIC'
+                  ? "You're here to review:"
+                  : "You're here to fix:"}{' '}
+                {issueTitle}
               </h3>
               {nextActionLabel && (
                 <p
@@ -290,7 +326,9 @@ export default function WorkQueuePage() {
                     : `To fix this issue: ${nextActionLabel}`}
                 </p>
               )}
-              <p className={`mt-1 text-xs ${fixKind === 'DIAGNOSTIC' ? 'text-blue-800' : 'text-indigo-800'}`}>
+              <p
+                className={`mt-1 text-xs ${fixKind === 'DIAGNOSTIC' ? 'text-blue-800' : 'text-indigo-800'}`}
+              >
                 Review the action bundles below to address this issue.
               </p>
               <div className="mt-3">
@@ -319,7 +357,9 @@ export default function WorkQueuePage() {
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-blue-900">Showing:</span>
+                <span className="text-sm font-medium text-blue-900">
+                  Showing:
+                </span>
                 {fromContext === 'store_health' && (
                   <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
                     Store Health → Work Queue
@@ -340,27 +380,40 @@ export default function WorkQueuePage() {
               )}
               {/* [COUNT-INTEGRITY-1.1 Step 2D] Add "now" to actionable semantics */}
               <p className="mt-2 text-xs text-blue-700">
-                {totalBundleCount} action bundle{totalBundleCount !== 1 ? 's' : ''} affecting{' '}
+                {totalBundleCount} action bundle
+                {totalBundleCount !== 1 ? 's' : ''} affecting{' '}
                 {bundleCounts.hasAssetOpt && !bundleCounts.hasNonAssetOpt ? (
                   // Only ASSET_OPTIMIZATION bundles
                   <>
                     {bundleCounts.assetOptActionableIssues} actionable now
-                    {bundleCounts.assetOptDetectedIssues !== bundleCounts.assetOptActionableIssues && (
-                      <span className="text-blue-600"> ({bundleCounts.assetOptDetectedIssues} detected)</span>
+                    {bundleCounts.assetOptDetectedIssues !==
+                      bundleCounts.assetOptActionableIssues && (
+                      <span className="text-blue-600">
+                        {' '}
+                        ({bundleCounts.assetOptDetectedIssues} detected)
+                      </span>
                     )}
                   </>
                 ) : bundleCounts.hasNonAssetOpt && !bundleCounts.hasAssetOpt ? (
                   // Only non-ASSET_OPTIMIZATION bundles
-                  <>{bundleCounts.nonAssetOptItems} {bundleCounts.nonAssetOptItems === 1 ? 'item' : 'items'}</>
+                  <>
+                    {bundleCounts.nonAssetOptItems}{' '}
+                    {bundleCounts.nonAssetOptItems === 1 ? 'item' : 'items'}
+                  </>
                 ) : (
                   // Mixed bundles
                   <>
                     {bundleCounts.assetOptActionableIssues} actionable now
-                    {bundleCounts.assetOptDetectedIssues !== bundleCounts.assetOptActionableIssues && (
-                      <span className="text-blue-600"> ({bundleCounts.assetOptDetectedIssues} detected)</span>
+                    {bundleCounts.assetOptDetectedIssues !==
+                      bundleCounts.assetOptActionableIssues && (
+                      <span className="text-blue-600">
+                        {' '}
+                        ({bundleCounts.assetOptDetectedIssues} detected)
+                      </span>
                     )}
                     {' and '}
-                    {bundleCounts.nonAssetOptItems} {bundleCounts.nonAssetOptItems === 1 ? 'item' : 'items'}
+                    {bundleCounts.nonAssetOptItems}{' '}
+                    {bundleCounts.nonAssetOptItems === 1 ? 'item' : 'items'}
                   </>
                 )}
               </p>

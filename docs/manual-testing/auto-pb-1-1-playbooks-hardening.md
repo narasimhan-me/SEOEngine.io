@@ -54,10 +54,12 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - [ ] Pro-plan project with at least 5 products missing seoTitle
 - [ ] Daily AI limit not exceeded
 
 **Steps:**
+
 1. Log in as Pro plan user and open the project.
 2. Navigate to Automation → Playbooks tab.
 3. Select the "Fix missing SEO titles" playbook card.
@@ -67,6 +69,7 @@
 7. Wait for completion.
 
 **Expected Results:**
+
 - [ ] Summary shows updatedCount, skippedCount, attemptedCount / totalAffectedProducts.
 - [ ] "View per-product results (N items)" expandable panel is visible.
 - [ ] Clicking the panel reveals a table with columns: Product, Status, Message.
@@ -80,15 +83,18 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - [ ] Pro-plan project with at least 5 products missing seoTitle
 
 **Steps:**
+
 1. Navigate to Automation → Playbooks tab.
 2. Select the "Fix missing SEO titles" playbook card.
 3. Click "Generate preview".
 4. Wait for preview to load.
 
 **Expected Results:**
+
 - [ ] Preview section shows label: "Sample preview (showing up to 3 products)".
 - [ ] Up to 3 products are displayed with Before/After comparison.
 - [ ] No changes are persisted to the database.
@@ -100,16 +106,19 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - [ ] Pro-plan project with 10+ products missing seoTitle
 - [ ] Daily AI limit configured to allow only 3 updates
 
 **Steps:**
+
 1. Navigate to Automation → Playbooks tab.
 2. Select "Fix missing SEO titles" playbook.
 3. Proceed through Preview and Estimate steps.
 4. Apply playbook.
 
 **Expected Results:**
+
 - [ ] Playbook stops after 3 products.
 - [ ] "Stopped safely" banner (amber) is displayed.
 - [ ] Banner text indicates: "Daily AI limit was reached during execution..."
@@ -124,14 +133,17 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - [ ] Pro-plan project with products missing seoTitle
 - [ ] AI service configured to fail on a specific product (via test stub or network mock)
 
 **Steps:**
+
 1. Apply "Fix missing SEO titles" playbook.
 2. Observe behavior when AI service fails mid-run.
 
 **Expected Results:**
+
 - [ ] Playbook stops at the failing product.
 - [ ] "Stopped safely" banner is displayed.
 - [ ] Banner text shows: "Playbook stopped due to: [error reason]".
@@ -146,9 +158,11 @@
 **ID:** HP-005
 
 **Preconditions:**
+
 - [ ] Pro-plan project
 
 **Steps:**
+
 1. Apply playbook with various outcomes:
    - All products updated successfully
    - Some products skipped (already have values)
@@ -156,6 +170,7 @@
    - Stopped due to error
 
 **Expected Results:**
+
 - [ ] Success: Toast shows "Automation Playbook applied to X product(s)."
 - [ ] Partial with limit: Toast shows "Updated X product(s). Daily AI limit reached during execution."
 - [ ] Partial with error: Toast shows "Updated X product(s). Playbook stopped early due to an error."
@@ -172,10 +187,12 @@
 **Description:** Playbook applied but all candidate products already have the field populated.
 
 **Steps:**
+
 1. Ensure all "missing" products now have seoTitle populated.
 2. Apply "Fix missing SEO titles" playbook.
 
 **Expected Behavior:**
+
 - [ ] Summary shows updatedCount = 0, skippedCount = N.
 - [ ] Per-item results show SKIPPED with message "Skipped: field already had a value."
 - [ ] No "Stopped safely" banner (completed normally).
@@ -187,10 +204,12 @@
 **Description:** Initial request hits rate limit but retry succeeds.
 
 **Steps:**
+
 1. Configure AI service to return 429 on first request, then succeed on retry.
 2. Apply playbook.
 
 **Expected Behavior:**
+
 - [ ] Product is marked as UPDATED with message "Updated SEO title after retry."
 - [ ] Playbook continues to next product.
 - [ ] No "Stopped safely" banner if all retries succeed.
@@ -202,10 +221,12 @@
 **Description:** Rate limit persists through all retry attempts.
 
 **Steps:**
+
 1. Configure AI service to return 429 on all requests (no AI_DAILY_LIMIT_REACHED code).
 2. Apply playbook.
 
 **Expected Behavior:**
+
 - [ ] Playbook stops after retry exhaustion.
 - [ ] "Stopped safely" banner with failureReason = "RATE_LIMIT".
 - [ ] Message: "Stopped due to repeated rate limit errors while applying this playbook."
@@ -217,10 +238,12 @@
 **Description:** Apply playbook with no affected products.
 
 **Steps:**
+
 1. Select playbook for an issue type with 0 affected products.
 2. Attempt to apply (should be blocked at estimate step).
 
 **Expected Behavior:**
+
 - [ ] Estimate shows totalAffectedProducts = 0.
 - [ ] canProceed = false.
 - [ ] Apply button disabled.
@@ -235,6 +258,7 @@
 **Scenario:** Network drops mid-apply call.
 
 **Expected Behavior:**
+
 - [ ] Frontend shows error toast: "Failed to apply Automation Playbook. Please try again later."
 - [ ] User can retry after network recovery.
 
@@ -245,6 +269,7 @@
 **Scenario:** Free plan user attempts apply via API bypass.
 
 **Expected Behavior:**
+
 - [ ] 403 response with code: "ENTITLEMENTS_LIMIT_REACHED".
 - [ ] Toast shows limit message with upgrade link.
 
@@ -302,9 +327,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | AUTO-PB-1.1 – Automation Playbooks v1 Hardening manual testing |
+| Field              | Value                                                          |
+| ------------------ | -------------------------------------------------------------- |
+| **Tester Name**    | [Pending]                                                      |
+| **Date**           | [YYYY-MM-DD]                                                   |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed                          |
+| **Notes**          | AUTO-PB-1.1 – Automation Playbooks v1 Hardening manual testing |

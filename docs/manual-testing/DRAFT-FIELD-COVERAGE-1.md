@@ -18,23 +18,23 @@ This phase generalizes Draft Review from Products-only to all asset types (Produ
 
 These strings are locked across all asset types:
 
-| Element | Text |
-|---------|------|
-| Current label | "Current (live)" |
-| Draft label | "Draft (staged)" |
-| No draft message | "No draft generated yet" |
-| Clear warning | "Draft will clear this field when applied" |
+| Element             | Text                                                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Current label       | "Current (live)"                                                                                             |
+| Draft label         | "Draft (staged)"                                                                                             |
+| No draft message    | "No draft generated yet"                                                                                     |
+| Clear warning       | "Draft will clear this field when applied"                                                                   |
 | Confirmation dialog | "Saving an empty draft will clear this field when applied.\n\nAre you sure you want to save an empty draft?" |
 
 ---
 
 ## Field Label Mapping by Asset Type
 
-| Asset Type | SEO Title Field Label | SEO Description Field Label |
-|------------|----------------------|----------------------------|
-| Products | SEO Title | SEO Description |
-| Pages | Page Title | Meta Description |
-| Collections | Collection Title | Meta Description |
+| Asset Type  | SEO Title Field Label | SEO Description Field Label |
+| ----------- | --------------------- | --------------------------- |
+| Products    | SEO Title             | SEO Description             |
+| Pages       | Page Title            | Meta Description            |
+| Collections | Collection Title      | Meta Description            |
 
 ---
 
@@ -60,7 +60,7 @@ These strings are locked across all asset types:
 ### Scenario 2: Pages Drafts Tab
 
 **Route:** `/projects/{projectId}/pages/{pageId}?tab=drafts`
-*(Canonical route - redirects to `/assets/pages/...`)*
+_(Canonical route - redirects to `/assets/pages/...`)_
 
 1. Navigate to a page with pending drafts
 2. Click the "Drafts" tab
@@ -78,7 +78,7 @@ These strings are locked across all asset types:
 ### Scenario 3: Collections Drafts Tab
 
 **Route:** `/projects/{projectId}/collections/{collectionId}?tab=drafts`
-*(Canonical route - redirects to `/assets/collections/...`)*
+_(Canonical route - redirects to `/assets/collections/...`)_
 
 1. Navigate to a collection with pending drafts
 2. Click the "Drafts" tab
@@ -124,11 +124,13 @@ For assets with explicitly cleared drafts (user emptied the draft):
 5. Click "Save changes"
 6. **Verify:**
    - [ ] Confirmation dialog appears with exact message:
+
      ```
      Saving an empty draft will clear this field when applied.
 
      Are you sure you want to save an empty draft?
      ```
+
 7. Click "Cancel" to dismiss
 8. **Verify:**
    - [ ] Draft is NOT saved
@@ -165,16 +167,19 @@ For assets with explicitly cleared drafts (user emptied the draft):
 ### Scenario 9: Empty State CTA Routing
 
 **For Products:**
+
 1. Navigate to product Drafts tab with no drafts
 2. Click "View issues"
 3. **Verify:** Routes to `/projects/{projectId}/products/{productId}?tab=issues`
 
 **For Pages:**
+
 1. Navigate to page Drafts tab with no drafts
 2. Click "View issues"
 3. **Verify:** Routes to `/projects/{projectId}/issues?assetType=pages&assetId={pageId}`
 
 **For Collections:**
+
 1. Navigate to collection Drafts tab with no drafts
 2. Click "View issues"
 3. **Verify:** Routes to `/projects/{projectId}/issues?assetType=collections&assetId={collectionId}`
@@ -198,18 +203,18 @@ For ALL asset types:
 
 Complete this checklist to verify feature parity:
 
-| Feature | Products | Pages | Collections |
-|---------|----------|-------|-------------|
-| Drafts tab panel visible | ☐ | ☐ | ☐ |
-| AI boundary note visible | ☐ | ☐ | ☐ |
-| Current (live) block | ☐ | ☐ | ☐ |
-| Draft (staged) block | ☐ | ☐ | ☐ |
-| Correct field labels | ☐ | ☐ | ☐ |
-| Edit functionality | ☐ | ☐ | ☐ |
-| No draft message | ☐ | ☐ | ☐ |
-| Clear warning | ☐ | ☐ | ☐ |
-| Confirmation dialog | ☐ | ☐ | ☐ |
-| Empty state | ☐ | ☐ | ☐ |
+| Feature                  | Products | Pages | Collections |
+| ------------------------ | -------- | ----- | ----------- |
+| Drafts tab panel visible | ☐        | ☐     | ☐           |
+| AI boundary note visible | ☐        | ☐     | ☐           |
+| Current (live) block     | ☐        | ☐     | ☐           |
+| Draft (staged) block     | ☐        | ☐     | ☐           |
+| Correct field labels     | ☐        | ☐     | ☐           |
+| Edit functionality       | ☐        | ☐     | ☐           |
+| No draft message         | ☐        | ☐     | ☐           |
+| Clear warning            | ☐        | ☐     | ☐           |
+| Confirmation dialog      | ☐        | ☐     | ☐           |
+| Empty state              | ☐        | ☐     | ☐           |
 
 ---
 
@@ -222,6 +227,7 @@ POST /testkit/e2e/seed-draft-field-coverage-1
 ```
 
 Returns:
+
 - `projectId`, `accessToken`
 - Product IDs: `productDiffId`, `productClearId`, `productNoDraftId`
 - Page IDs: `pageDiffId`, `pageClearId`, `pageNoDraftId`

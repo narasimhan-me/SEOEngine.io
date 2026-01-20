@@ -32,10 +32,12 @@ interface SeedResponse {
 /**
  * Seed test data via E2E testkit endpoint
  */
-async function seedDraftAiEntrypointClarity1Data(request: any): Promise<SeedResponse> {
+async function seedDraftAiEntrypointClarity1Data(
+  request: any
+): Promise<SeedResponse> {
   const response = await request.post(
     `${API_BASE_URL}/testkit/e2e/seed-draft-ai-entrypoint-clarity-1`,
-    { data: {} },
+    { data: {} }
   );
   expect(response.ok()).toBeTruthy();
   return response.json();
@@ -71,7 +73,7 @@ test.describe('DRAFT-AI-ENTRYPOINT-CLARITY-1: AI Boundary Notes', () => {
 
     // Navigate to Product detail Drafts tab
     await page.goto(
-      `/projects/${seedData.projectId}/products/${seedData.productWithDraftId}?tab=drafts`,
+      `/projects/${seedData.projectId}/products/${seedData.productWithDraftId}?tab=drafts`
     );
 
     // Wait for Drafts tab panel
@@ -86,13 +88,23 @@ test.describe('DRAFT-AI-ENTRYPOINT-CLARITY-1: AI Boundary Notes', () => {
     await expect(boundaryNote).toHaveAttribute('data-mode', 'review');
 
     // Assert locked copy text (review mode)
-    await expect(boundaryNote).toContainText('Review & edit (no AI on this step)');
+    await expect(boundaryNote).toContainText(
+      'Review & edit (no AI on this step)'
+    );
 
     // [FIXUP-1] Assert no AI creep in the Drafts tab panel
-    await expect(draftsTabPanel.locator('button:has-text("Improve with AI")')).toHaveCount(0);
-    await expect(draftsTabPanel.locator('button:has-text("Use AI")')).toHaveCount(0);
-    await expect(draftsTabPanel.locator('button:has-text("Generate")')).toHaveCount(0);
-    await expect(draftsTabPanel.locator('button:has-text("Regenerate")')).toHaveCount(0);
+    await expect(
+      draftsTabPanel.locator('button:has-text("Improve with AI")')
+    ).toHaveCount(0);
+    await expect(
+      draftsTabPanel.locator('button:has-text("Use AI")')
+    ).toHaveCount(0);
+    await expect(
+      draftsTabPanel.locator('button:has-text("Generate")')
+    ).toHaveCount(0);
+    await expect(
+      draftsTabPanel.locator('button:has-text("Regenerate")')
+    ).toHaveCount(0);
   });
 
   /**
@@ -113,7 +125,7 @@ test.describe('DRAFT-AI-ENTRYPOINT-CLARITY-1: AI Boundary Notes', () => {
     // Navigate to Playbooks Draft Review mode
     // Need to pass mode=drafts and assetId for the product with draft
     await page.goto(
-      `/projects/${seedData.projectId}/automation/playbooks?mode=drafts&assetType=products&assetId=${seedData.productWithDraftId}`,
+      `/projects/${seedData.projectId}/automation/playbooks?mode=drafts&assetType=products&assetId=${seedData.productWithDraftId}`
     );
 
     // Wait for Draft Review panel
@@ -128,13 +140,23 @@ test.describe('DRAFT-AI-ENTRYPOINT-CLARITY-1: AI Boundary Notes', () => {
     await expect(boundaryNote).toHaveAttribute('data-mode', 'review');
 
     // Assert locked copy text (review mode)
-    await expect(boundaryNote).toContainText('Review & edit (no AI on this step)');
+    await expect(boundaryNote).toContainText(
+      'Review & edit (no AI on this step)'
+    );
 
     // [FIXUP-1] Assert no AI creep in the Draft Review panel
-    await expect(draftReviewPanel.locator('button:has-text("Improve with AI")')).toHaveCount(0);
-    await expect(draftReviewPanel.locator('button:has-text("Use AI")')).toHaveCount(0);
-    await expect(draftReviewPanel.locator('button:has-text("Generate")')).toHaveCount(0);
-    await expect(draftReviewPanel.locator('button:has-text("Regenerate")')).toHaveCount(0);
+    await expect(
+      draftReviewPanel.locator('button:has-text("Improve with AI")')
+    ).toHaveCount(0);
+    await expect(
+      draftReviewPanel.locator('button:has-text("Use AI")')
+    ).toHaveCount(0);
+    await expect(
+      draftReviewPanel.locator('button:has-text("Generate")')
+    ).toHaveCount(0);
+    await expect(
+      draftReviewPanel.locator('button:has-text("Regenerate")')
+    ).toHaveCount(0);
   });
 
   // ==========================================================================
@@ -156,9 +178,7 @@ test.describe('DRAFT-AI-ENTRYPOINT-CLARITY-1: AI Boundary Notes', () => {
     }, seedData.accessToken);
 
     // Navigate to Playbooks page (default mode is generation)
-    await page.goto(
-      `/projects/${seedData.projectId}/automation/playbooks`,
-    );
+    await page.goto(`/projects/${seedData.projectId}/automation/playbooks`);
 
     // Wait for Playbooks page to load (playbook selector or step 1)
     await page.waitForSelector('text=Step 1', { timeout: 10000 });
@@ -194,7 +214,7 @@ test.describe('DRAFT-AI-ENTRYPOINT-CLARITY-1: AI Boundary Notes', () => {
     }, seedData.accessToken);
 
     await page.goto(
-      `/projects/${seedData.projectId}/products/${seedData.productWithDraftId}?tab=drafts`,
+      `/projects/${seedData.projectId}/products/${seedData.productWithDraftId}?tab=drafts`
     );
 
     const draftsTabPanel = page.locator('[data-testid="drafts-tab-panel"]');
@@ -261,15 +281,21 @@ test.describe('DRAFT-AI-ENTRYPOINT-CLARITY-1: AI Boundary Notes', () => {
     await page.goto(`/projects/${seedData.projectId}/work-queue`);
 
     // Wait for action bundle cards to load
-    await page.waitForSelector('[data-testid="action-bundle-card"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="action-bundle-card"]', {
+      timeout: 10000,
+    });
 
     // Find the card with "Generate Full Drafts" CTA
     // The seed creates a PARTIAL draft which triggers this CTA
-    const generateCard = page.locator('[data-testid="action-bundle-card"]:has-text("Generate Full Drafts")');
+    const generateCard = page.locator(
+      '[data-testid="action-bundle-card"]:has-text("Generate Full Drafts")'
+    );
     await expect(generateCard).toBeVisible();
 
     // Assert boundary note is visible within the card
-    const boundaryNote = generateCard.locator('[data-testid="draft-ai-boundary-note"]');
+    const boundaryNote = generateCard.locator(
+      '[data-testid="draft-ai-boundary-note"]'
+    );
     await expect(boundaryNote).toBeVisible();
 
     // Assert data-mode attribute

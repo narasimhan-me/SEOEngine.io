@@ -159,7 +159,7 @@ export default function ContentWorkspacePage() {
         feedback.showError(message);
       }
     },
-    [feedback],
+    [feedback]
   );
 
   useEffect(() => {
@@ -533,8 +533,8 @@ export default function ContentWorkspacePage() {
 
                   {!suggestion && !loadingSuggestion && (
                     <div className="p-4 text-center text-sm text-gray-500">
-                      Click &quot;Generate Suggestions&quot; to get AI-powered metadata
-                      recommendations.
+                      Click &quot;Generate Suggestions&quot; to get AI-powered
+                      metadata recommendations.
                     </div>
                   )}
                 </div>
@@ -564,8 +564,8 @@ export default function ContentWorkspacePage() {
                             editorTitle.length > 60
                               ? 'text-red-500'
                               : editorTitle.length > 50
-                              ? 'text-yellow-500'
-                              : 'text-gray-400'
+                                ? 'text-yellow-500'
+                                : 'text-gray-400'
                           }`}
                         >
                           {editorTitle.length}/60
@@ -595,8 +595,8 @@ export default function ContentWorkspacePage() {
                             editorDescription.length > 155
                               ? 'text-red-500'
                               : editorDescription.length > 140
-                              ? 'text-yellow-500'
-                              : 'text-gray-400'
+                                ? 'text-yellow-500'
+                                : 'text-gray-400'
                           }`}
                         >
                           {editorDescription.length}/155

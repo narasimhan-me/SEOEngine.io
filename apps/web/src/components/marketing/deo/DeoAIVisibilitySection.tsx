@@ -7,8 +7,8 @@ export function DeoAIVisibilitySection() {
             How AI models &ldquo;see&rdquo; your website
           </h2>
           <p className="text-sm text-muted-foreground">
-            LLMs don&apos;t &ldquo;rank&rdquo; websites like Google. They consume, interpret, and
-            summarize content.
+            LLMs don&apos;t &ldquo;rank&rdquo; websites like Google. They
+            consume, interpret, and summarize content.
           </p>
           <p className="text-sm text-muted-foreground">They rely heavily on:</p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
@@ -20,7 +20,8 @@ export function DeoAIVisibilitySection() {
             <li>Crawl-accessible pages</li>
           </ul>
           <p className="pt-2 text-sm text-muted-foreground">
-            DEO ensures your content is structured for both search engines and AI models.
+            DEO ensures your content is structured for both search engines and
+            AI models.
           </p>
         </div>
       </div>

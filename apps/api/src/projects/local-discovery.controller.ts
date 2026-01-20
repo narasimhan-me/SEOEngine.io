@@ -92,7 +92,7 @@ export class LocalDiscoveryController {
     private readonly aiService: AiService,
     private readonly aiUsageQuotaService: AiUsageQuotaService,
     private readonly aiUsageLedgerService: AiUsageLedgerService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   // ============================================================================
@@ -176,7 +176,7 @@ export class LocalDiscoveryController {
   @Get('projects/:projectId/local-discovery')
   async getProjectLocalDiscovery(
     @Request() req: any,
-    @Param('projectId') projectId: string,
+    @Param('projectId') projectId: string
   ): Promise<ProjectLocalDiscoveryResponse> {
     const userId = req.user.id;
     return this.localDiscoveryService.getProjectLocalData(projectId, userId);
@@ -189,7 +189,7 @@ export class LocalDiscoveryController {
   @Get('projects/:projectId/local-discovery/scorecard')
   async getProjectLocalScorecard(
     @Request() req: any,
-    @Param('projectId') projectId: string,
+    @Param('projectId') projectId: string
   ): Promise<LocalDiscoveryScorecard> {
     const userId = req.user.id;
 
@@ -206,7 +206,7 @@ export class LocalDiscoveryController {
   @Get('projects/:projectId/local-discovery/config')
   async getProjectLocalConfig(
     @Request() req: any,
-    @Param('projectId') projectId: string,
+    @Param('projectId') projectId: string
   ): Promise<ProjectLocalConfig | null> {
     const userId = req.user.id;
 
@@ -224,7 +224,7 @@ export class LocalDiscoveryController {
   async updateProjectLocalConfig(
     @Request() req: any,
     @Param('projectId') projectId: string,
-    @Body() dto: UpdateLocalConfigDto,
+    @Body() dto: UpdateLocalConfigDto
   ): Promise<ProjectLocalConfig> {
     const userId = req.user.id;
 
@@ -248,14 +248,14 @@ export class LocalDiscoveryController {
   async previewLocalFix(
     @Request() req: any,
     @Param('projectId') projectId: string,
-    @Body() dto: LocalFixPreviewDto,
+    @Body() dto: LocalFixPreviewDto
   ): Promise<LocalFixPreviewResponse> {
     const userId = req.user.id;
 
     // Validate required fields
     if (!dto.gapType || !dto.signalType || !dto.focusKey || !dto.draftType) {
       throw new BadRequestException(
-        'gapType, signalType, focusKey, and draftType are required',
+        'gapType, signalType, focusKey, and draftType are required'
       );
     }
 
@@ -278,7 +278,7 @@ export class LocalDiscoveryController {
       dto.gapType,
       dto.signalType,
       dto.focusKey,
-      dto.draftType,
+      dto.draftType
     );
 
     // Check for existing unexpired draft
@@ -328,7 +328,7 @@ export class LocalDiscoveryController {
 
     if (quotaEval.status === 'blocked') {
       throw new ForbiddenException(
-        'AI usage quota exceeded. Please wait until next month or upgrade your plan.',
+        'AI usage quota exceeded. Please wait until next month or upgrade your plan.'
       );
     }
 
@@ -369,11 +369,13 @@ export class LocalDiscoveryController {
           body: result.body,
         };
       } else if (dto.draftType === 'service_area_description') {
-        const result = await this.aiService.generateServiceAreaDescriptionDraft({
-          brandName: project.name,
-          domain: project.domain || '',
-          focusKey: dto.focusKey,
-        });
+        const result = await this.aiService.generateServiceAreaDescriptionDraft(
+          {
+            brandName: project.name,
+            domain: project.domain || '',
+            focusKey: dto.focusKey,
+          }
+        );
         draftPayload = {
           summary: result.summary,
           bullets: result.bullets,
@@ -474,7 +476,7 @@ export class LocalDiscoveryController {
   async applyLocalFix(
     @Request() req: any,
     @Param('projectId') projectId: string,
-    @Body() dto: LocalFixApplyDto,
+    @Body() dto: LocalFixApplyDto
   ): Promise<LocalFixApplyResponse> {
     const userId = req.user.id;
 

@@ -50,11 +50,13 @@
 ID: HP-REDIS-001
 
 Preconditions:
+
 - [ ] Staging environment with API + worker deployed.
 - [ ] REDIS_PREFIX set to a staging-specific value (e.g., engineo_staging).
 - [ ] ENABLE_CRON=false configured in the staging API environment.
 
 Steps:
+
 1. Deploy or restart the staging API so new env vars take effect.
 2. Inspect API logs on startup and confirm a line similar to:
    - `[Runtime] api startup { NODE_ENV=..., REDIS_PREFIX=engineo_staging, ENABLE_CRON='false', ... }`
@@ -63,6 +65,7 @@ Steps:
 5. In Upstash metrics, observe command rate before and after disabling cron.
 
 Expected Results:
+
 - Logs:
   - On each cron tick, a log such as:
     - `[CrawlScheduler] Cron flags: NODE_ENV=..., REDIS_PREFIX=engineo_staging, ENABLE_CRON=false`
@@ -81,6 +84,7 @@ Expected Results:
 ID: HP-REDIS-002
 
 Preconditions:
+
 - [ ] Staging worker deployed with:
   - ENABLE_QUEUE_PROCESSORS=true
   - ENABLE_QUEUE_EVENTS=false
@@ -89,6 +93,7 @@ Preconditions:
 - [ ] At least one project where Answer Block automation and crawl/DEO jobs can be triggered.
 
 Steps:
+
 1. Restart the staging worker process.
 2. Inspect worker logs on startup:
    - Look for `[Runtime] worker startup` with the runtime flags object showing:
@@ -100,6 +105,7 @@ Steps:
 5. Trigger Answer Block automation for a product (e.g., via the Product Workspace UI).
 
 Expected Results:
+
 - Worker behavior:
   - Jobs are processed as before:
     - DeoScoreProcessor consumes deo_score_queue jobs.
@@ -119,15 +125,17 @@ Expected Results:
 ID: HP-REDIS-003
 
 Preconditions:
+
 - [ ] Production API + worker using:
   - REDIS_PREFIX=engineo_prod (or equivalent production prefix).
-  - No ENABLE_* flags set or all set to their default/true values:
+  - No ENABLE\_\* flags set or all set to their default/true values:
     - ENABLE_CRON unset or true
     - ENABLE_QUEUE_PROCESSORS unset or true
     - ENABLE_QUEUE_EVENTS as appropriate (future use)
     - ENABLE_QUEUE_SCHEDULERS as appropriate (future use).
 
 Steps:
+
 1. Restart production API and worker with the new image/config.
 2. Inspect startup logs for API and worker:
    - Confirm `[Runtime] api startup` and `[Runtime] worker startup` lines show REDIS_PREFIX=engineo_prod and ENABLE_CRON / ENABLE_QUEUE_PROCESSORS resolved to true/undefined.
@@ -139,6 +147,7 @@ Steps:
    - Answer Block automation for a product.
 
 Expected Results:
+
 - Cron:
   - Nightly scheduler runs as before:
     - Logs show the cron flags with ENABLE_CRON=true.
@@ -158,10 +167,12 @@ Expected Results:
 Description: Validate behavior when ENABLE_CRON is not defined at all.
 
 Steps:
+
 1. In a test environment, remove ENABLE_CRON from the API env.
 2. Restart the API and observe logs.
 
 Expected Behavior:
+
 - [CrawlScheduler] Cron flags log shows ENABLE_CRON=undefined.
 - Cron behaves as previously (enabled by default); nightly scheduling still occurs.
 
@@ -172,11 +183,13 @@ Expected Behavior:
 Description: Staging worker with queue processors fully disabled.
 
 Steps:
+
 1. Set ENABLE_QUEUE_PROCESSORS=false for the staging worker.
 2. Restart the worker and observe logs.
 3. Trigger DEO recompute / crawl / Answer Block automation jobs from the API.
 
 Expected Behavior:
+
 - Worker logs show that each BullMQ processor logs a message indicating workers are disabled and no Worker instances are created.
 - Jobs are enqueued but remain unprocessed until the flag is turned back on.
 - Production worker behavior is unaffected.
@@ -190,10 +203,12 @@ Expected Behavior:
 Scenario: REDIS_URL is missing or invalid but feature flags are enabled.
 
 Steps:
+
 1. In a test environment, intentionally misconfigure REDIS_URL.
 2. Start API + worker.
 
 Expected Behavior:
+
 - Queue initialization logs warn that Redis is not configured and queue functionality is disabled.
 - Cron logs may still run but skip queue enqueues when crawlQueue is null.
 - API endpoints that depend on queues fall back to documented behavior (e.g., sync operations where supported).
@@ -207,10 +222,12 @@ Expected Behavior:
 Scenario: Staging with background workers and cron disabled.
 
 Steps:
+
 1. Run staging with ENABLE_CRON=false and ENABLE_QUEUE_PROCESSORS=false.
 2. Execute only API-level tests (no background workers).
 
 Expected Behavior:
+
 - Upstash commands drop to near-zero when no tests are running.
 - Some background flows (nightly crawls, async automations) are not exercised in this configuration and must be validated in a production-like environment or via dedicated test runs with flags enabled.
 
@@ -260,9 +277,9 @@ Expected Behavior:
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| Tester Name | [Name] |
-| Date | [YYYY-MM-DD] |
+| Field          | Value                                 |
+| -------------- | ------------------------------------- |
+| Tester Name    | [Name]                                |
+| Date           | [YYYY-MM-DD]                          |
 | Overall Status | [ ] Passed / [ ] Blocked / [ ] Failed |
-| Notes | [Any additional notes] |
+| Notes          | [Any additional notes]                |

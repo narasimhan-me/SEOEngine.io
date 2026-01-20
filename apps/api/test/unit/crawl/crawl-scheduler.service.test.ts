@@ -10,7 +10,10 @@
 import { CrawlSchedulerService } from '../../../src/crawl/crawl-scheduler.service';
 import { PrismaService } from '../../../src/prisma.service';
 import { SeoScanService } from '../../../src/seo-scan/seo-scan.service';
-import { DeoScoreService, DeoSignalsService } from '../../../src/projects/deo-score.service';
+import {
+  DeoScoreService,
+  DeoSignalsService,
+} from '../../../src/projects/deo-score.service';
 import { AutomationService } from '../../../src/projects/automation.service';
 import { CrawlFrequency } from '@prisma/client';
 
@@ -63,7 +66,7 @@ describe('CrawlSchedulerService', () => {
       seoScanServiceMock as unknown as SeoScanService,
       deoSignalsServiceMock as unknown as DeoSignalsService,
       deoScoreServiceMock as unknown as DeoScoreService,
-      automationServiceMock as unknown as AutomationService,
+      automationServiceMock as unknown as AutomationService
     );
 
     originalEnv = {
@@ -177,8 +180,17 @@ describe('CrawlSchedulerService', () => {
       ];
 
       const mockSignals = {
-        content: { totalPages: 1, pagesWithMetadata: 1, avgWordCount: 100, pagesWithThinContent: 0 },
-        entities: { totalProducts: 0, productsWithAnswerBlocks: 0, answerabilityScore: 0 },
+        content: {
+          totalPages: 1,
+          pagesWithMetadata: 1,
+          avgWordCount: 100,
+          pagesWithThinContent: 0,
+        },
+        entities: {
+          totalProducts: 0,
+          productsWithAnswerBlocks: 0,
+          answerabilityScore: 0,
+        },
         technical: { crawlablePages: 1, indexablePages: 1, avgLoadTime: 1 },
         visibility: { offsitePresenceScore: 0, localDiscoveryScore: null },
       };
@@ -186,25 +198,40 @@ describe('CrawlSchedulerService', () => {
       const mockSnapshot = {
         id: 'snapshot-1',
         projectId: 'proj-1',
-        breakdown: { overall: 70, content: 70, entities: 60, technical: 80, visibility: 60 },
+        breakdown: {
+          overall: 70,
+          content: 70,
+          entities: 60,
+          technical: 80,
+          visibility: 60,
+        },
       };
 
       prismaMock.project.findMany.mockResolvedValue(mockProjects);
       seoScanServiceMock.runFullProjectCrawl.mockResolvedValue(new Date());
-      deoSignalsServiceMock.collectSignalsForProject.mockResolvedValue(mockSignals);
-      deoScoreServiceMock.computeAndPersistScoreFromSignals.mockResolvedValue(mockSnapshot);
+      deoSignalsServiceMock.collectSignalsForProject.mockResolvedValue(
+        mockSignals
+      );
+      deoScoreServiceMock.computeAndPersistScoreFromSignals.mockResolvedValue(
+        mockSnapshot
+      );
       prismaMock.project.update.mockResolvedValue({});
 
       await service.scheduleProjectCrawls();
 
       expect(prismaMock.project.findMany).toHaveBeenCalled();
-      expect(seoScanServiceMock.runFullProjectCrawl).toHaveBeenCalledWith('proj-1');
-      expect(deoSignalsServiceMock.collectSignalsForProject).toHaveBeenCalledWith('proj-1');
-      expect(deoScoreServiceMock.computeAndPersistScoreFromSignals).toHaveBeenCalledWith(
-        'proj-1',
-        mockSignals,
+      expect(seoScanServiceMock.runFullProjectCrawl).toHaveBeenCalledWith(
+        'proj-1'
       );
-      expect(automationServiceMock.scheduleSuggestionsForProject).toHaveBeenCalledWith('proj-1');
+      expect(
+        deoSignalsServiceMock.collectSignalsForProject
+      ).toHaveBeenCalledWith('proj-1');
+      expect(
+        deoScoreServiceMock.computeAndPersistScoreFromSignals
+      ).toHaveBeenCalledWith('proj-1', mockSignals);
+      expect(
+        automationServiceMock.scheduleSuggestionsForProject
+      ).toHaveBeenCalledWith('proj-1');
     });
 
     it('should skip projects that are not due', async () => {
@@ -230,4 +257,3 @@ describe('CrawlSchedulerService', () => {
     });
   });
 });
-

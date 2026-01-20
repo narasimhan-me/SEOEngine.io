@@ -79,7 +79,7 @@ describe('AdminService', () => {
     service = new AdminService(
       prismaMock as unknown as PrismaService,
       jwtServiceMock as unknown as JwtService,
-      shopifyServiceMock as any,
+      shopifyServiceMock as any
     );
   });
 
@@ -161,7 +161,13 @@ describe('AdminService', () => {
         updatedAt: new Date(),
         subscription: { plan: 'free', status: 'active' },
         projects: [
-          { id: 'proj-1', name: 'Project 1', domain: 'example.com', createdAt: new Date(), _count: { products: 5 } },
+          {
+            id: 'proj-1',
+            name: 'Project 1',
+            domain: 'example.com',
+            createdAt: new Date(),
+            _count: { products: 5 },
+          },
         ],
       };
 
@@ -185,7 +191,9 @@ describe('AdminService', () => {
     it('should throw NotFoundException when user not found', async () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.getUser('user-1')).rejects.toThrow(NotFoundException);
+      await expect(service.getUser('user-1')).rejects.toThrow(
+        NotFoundException
+      );
       await expect(service.getUser('user-1')).rejects.toThrow('User not found');
     });
   });
@@ -219,7 +227,7 @@ describe('AdminService', () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
 
       await expect(service.updateUserRole('user-1', 'ADMIN')).rejects.toThrow(
-        NotFoundException,
+        NotFoundException
       );
     });
   });
@@ -275,9 +283,9 @@ describe('AdminService', () => {
     it('should throw NotFoundException when user not found', async () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.updateUserSubscription('user-1', 'pro')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.updateUserSubscription('user-1', 'pro')
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -310,4 +318,3 @@ describe('AdminService', () => {
     });
   });
 });
-

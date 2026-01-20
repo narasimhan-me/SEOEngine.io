@@ -55,28 +55,51 @@ describe('Off-site Signals Types and Helpers', () => {
 
   describe('calculateOffsiteSeverity', () => {
     it('should return "critical" for trust_proof gaps (weight 10)', () => {
-      expect(calculateOffsiteSeverity('trust_proof', 'missing_trust_proof')).toBe('critical');
-      expect(calculateOffsiteSeverity('trust_proof', 'competitor_has_offsite_signal')).toBe('critical');
+      expect(
+        calculateOffsiteSeverity('trust_proof', 'missing_trust_proof')
+      ).toBe('critical');
+      expect(
+        calculateOffsiteSeverity('trust_proof', 'competitor_has_offsite_signal')
+      ).toBe('critical');
     });
 
     it('should return "critical" for authoritative_listing gaps (weight 9)', () => {
-      expect(calculateOffsiteSeverity('authoritative_listing', 'missing_authoritative_listing')).toBe('critical');
+      expect(
+        calculateOffsiteSeverity(
+          'authoritative_listing',
+          'missing_authoritative_listing'
+        )
+      ).toBe('critical');
     });
 
     it('should return "warning" for brand_mention gaps (weight 7)', () => {
-      expect(calculateOffsiteSeverity('brand_mention', 'missing_brand_mentions')).toBe('warning');
+      expect(
+        calculateOffsiteSeverity('brand_mention', 'missing_brand_mentions')
+      ).toBe('warning');
     });
 
     it('should return "warning" for competitor gaps on brand_mention (weight 7)', () => {
-      expect(calculateOffsiteSeverity('brand_mention', 'competitor_has_offsite_signal')).toBe('warning');
+      expect(
+        calculateOffsiteSeverity(
+          'brand_mention',
+          'competitor_has_offsite_signal'
+        )
+      ).toBe('warning');
     });
 
     it('should return "info" for reference_content gaps (weight 6)', () => {
-      expect(calculateOffsiteSeverity('reference_content', 'missing_brand_mentions')).toBe('info');
+      expect(
+        calculateOffsiteSeverity('reference_content', 'missing_brand_mentions')
+      ).toBe('info');
     });
 
     it('should return "info" for competitor gaps on reference_content (weight 6)', () => {
-      expect(calculateOffsiteSeverity('reference_content', 'competitor_has_offsite_signal')).toBe('info');
+      expect(
+        calculateOffsiteSeverity(
+          'reference_content',
+          'competitor_has_offsite_signal'
+        )
+      ).toBe('info');
     });
   });
 
@@ -87,7 +110,7 @@ describe('Off-site Signals Types and Helpers', () => {
         'missing_trust_proof',
         'trust_proof',
         'reviews/trustpilot',
-        'outreach_email',
+        'outreach_email'
       );
 
       const key2 = computeOffsiteFixWorkKey(
@@ -95,7 +118,7 @@ describe('Off-site Signals Types and Helpers', () => {
         'missing_trust_proof',
         'trust_proof',
         'reviews/trustpilot',
-        'outreach_email',
+        'outreach_email'
       );
 
       expect(key1).toBe(key2);
@@ -107,7 +130,7 @@ describe('Off-site Signals Types and Helpers', () => {
         'missing_trust_proof',
         'trust_proof',
         'reviews/trustpilot',
-        'outreach_email',
+        'outreach_email'
       );
 
       const key2 = computeOffsiteFixWorkKey(
@@ -115,7 +138,7 @@ describe('Off-site Signals Types and Helpers', () => {
         'missing_trust_proof',
         'trust_proof',
         'reviews/trustpilot',
-        'outreach_email',
+        'outreach_email'
       );
 
       const key3 = computeOffsiteFixWorkKey(
@@ -123,7 +146,7 @@ describe('Off-site Signals Types and Helpers', () => {
         'missing_brand_mentions', // Different gap type
         'brand_mention',
         'reviews/trustpilot',
-        'outreach_email',
+        'outreach_email'
       );
 
       expect(key1).not.toBe(key2);
@@ -136,29 +159,39 @@ describe('Off-site Signals Types and Helpers', () => {
         'missing_trust_proof',
         'trust_proof',
         'reviews/g2',
-        'pr_pitch',
+        'pr_pitch'
       );
 
-      expect(key).toBe('offsite-fix:proj-123:missing_trust_proof:trust_proof:reviews/g2:pr_pitch');
+      expect(key).toBe(
+        'offsite-fix:proj-123:missing_trust_proof:trust_proof:reviews/g2:pr_pitch'
+      );
     });
   });
 
   describe('getGapTypeForMissingSignal', () => {
     it('should map brand_mention to missing_brand_mentions', () => {
-      expect(getGapTypeForMissingSignal('brand_mention')).toBe('missing_brand_mentions');
+      expect(getGapTypeForMissingSignal('brand_mention')).toBe(
+        'missing_brand_mentions'
+      );
     });
 
     it('should map authoritative_listing to missing_authoritative_listing', () => {
-      expect(getGapTypeForMissingSignal('authoritative_listing')).toBe('missing_authoritative_listing');
+      expect(getGapTypeForMissingSignal('authoritative_listing')).toBe(
+        'missing_authoritative_listing'
+      );
     });
 
     it('should map trust_proof to missing_trust_proof', () => {
-      expect(getGapTypeForMissingSignal('trust_proof')).toBe('missing_trust_proof');
+      expect(getGapTypeForMissingSignal('trust_proof')).toBe(
+        'missing_trust_proof'
+      );
     });
 
     it('should map reference_content to missing_brand_mentions (grouped)', () => {
       // Reference content gaps are grouped with brand mentions per spec
-      expect(getGapTypeForMissingSignal('reference_content')).toBe('missing_brand_mentions');
+      expect(getGapTypeForMissingSignal('reference_content')).toBe(
+        'missing_brand_mentions'
+      );
     });
   });
 
@@ -198,18 +231,30 @@ describe('Off-site Signals Types and Helpers', () => {
     describe('OFFSITE_SIGNAL_LABELS', () => {
       it('should have human-readable labels for all signal types', () => {
         expect(OFFSITE_SIGNAL_LABELS.trust_proof).toBe('Trust Proof');
-        expect(OFFSITE_SIGNAL_LABELS.authoritative_listing).toBe('Authoritative Listing');
+        expect(OFFSITE_SIGNAL_LABELS.authoritative_listing).toBe(
+          'Authoritative Listing'
+        );
         expect(OFFSITE_SIGNAL_LABELS.brand_mention).toBe('Brand Mention');
-        expect(OFFSITE_SIGNAL_LABELS.reference_content).toBe('Reference Content');
+        expect(OFFSITE_SIGNAL_LABELS.reference_content).toBe(
+          'Reference Content'
+        );
       });
     });
 
     describe('OFFSITE_GAP_LABELS', () => {
       it('should have human-readable labels for all gap types', () => {
-        expect(OFFSITE_GAP_LABELS.missing_brand_mentions).toBe('Missing Brand Mentions');
-        expect(OFFSITE_GAP_LABELS.missing_trust_proof).toBe('Missing Trust Proof');
-        expect(OFFSITE_GAP_LABELS.missing_authoritative_listing).toBe('Missing Authoritative Listing');
-        expect(OFFSITE_GAP_LABELS.competitor_has_offsite_signal).toBe('Competitors Have This Signal');
+        expect(OFFSITE_GAP_LABELS.missing_brand_mentions).toBe(
+          'Missing Brand Mentions'
+        );
+        expect(OFFSITE_GAP_LABELS.missing_trust_proof).toBe(
+          'Missing Trust Proof'
+        );
+        expect(OFFSITE_GAP_LABELS.missing_authoritative_listing).toBe(
+          'Missing Authoritative Listing'
+        );
+        expect(OFFSITE_GAP_LABELS.competitor_has_offsite_signal).toBe(
+          'Competitors Have This Signal'
+        );
       });
     });
 
@@ -217,8 +262,12 @@ describe('Off-site Signals Types and Helpers', () => {
       it('should have human-readable labels for all draft types', () => {
         expect(OFFSITE_FIX_DRAFT_LABELS.outreach_email).toBe('Outreach Email');
         expect(OFFSITE_FIX_DRAFT_LABELS.pr_pitch).toBe('PR Pitch');
-        expect(OFFSITE_FIX_DRAFT_LABELS.brand_profile_snippet).toBe('Brand Profile Snippet');
-        expect(OFFSITE_FIX_DRAFT_LABELS.review_request_copy).toBe('Review Request Copy');
+        expect(OFFSITE_FIX_DRAFT_LABELS.brand_profile_snippet).toBe(
+          'Brand Profile Snippet'
+        );
+        expect(OFFSITE_FIX_DRAFT_LABELS.review_request_copy).toBe(
+          'Review Request Copy'
+        );
       });
     });
 

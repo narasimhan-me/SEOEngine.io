@@ -3,7 +3,10 @@ import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import { createTestApp } from '../utils/test-app';
 import { cleanupTestDb, disconnectTestDb, testPrisma } from '../utils/test-db';
-import { seedConnectedStoreProject, createTestProducts } from '../../src/testkit';
+import {
+  seedConnectedStoreProject,
+  createTestProducts,
+} from '../../src/testkit';
 
 /**
  * [ROLES-2] Project Roles & Approval Foundations
@@ -46,7 +49,11 @@ describe('ROLES-2 – Project Roles & Approval Foundations', () => {
         const { user, project } = await seedConnectedStoreProject(testPrisma, {
           plan: 'pro',
         });
-        await createTestProducts(testPrisma, { projectId: project.id, count: 3, withIssues: true });
+        await createTestProducts(testPrisma, {
+          projectId: project.id,
+          count: 3,
+          withIssues: true,
+        });
 
         // Ensure policy is off (default)
         const policyRes = await request(server)
@@ -58,7 +65,9 @@ describe('ROLES-2 – Project Roles & Approval Foundations', () => {
 
         // Generate a preview first (required for apply)
         const previewRes = await request(server)
-          .post(`/projects/${project.id}/automation-playbooks/missing_seo_title/preview`)
+          .post(
+            `/projects/${project.id}/automation-playbooks/missing_seo_title/preview`
+          )
           .set(authHeader(user.id))
           .send({ sampleSize: 1 })
           .expect(201);
@@ -85,7 +94,11 @@ describe('ROLES-2 – Project Roles & Approval Foundations', () => {
         const { user, project } = await seedConnectedStoreProject(testPrisma, {
           plan: 'pro',
         });
-        await createTestProducts(testPrisma, { projectId: project.id, count: 3, withIssues: true });
+        await createTestProducts(testPrisma, {
+          projectId: project.id,
+          count: 3,
+          withIssues: true,
+        });
 
         // Enable approval requirement
         await request(server)
@@ -96,7 +109,9 @@ describe('ROLES-2 – Project Roles & Approval Foundations', () => {
 
         // Generate a preview first
         const previewRes = await request(server)
-          .post(`/projects/${project.id}/automation-playbooks/missing_seo_title/preview`)
+          .post(
+            `/projects/${project.id}/automation-playbooks/missing_seo_title/preview`
+          )
           .set(authHeader(user.id))
           .send({ sampleSize: 1 })
           .expect(201);
@@ -135,7 +150,9 @@ describe('ROLES-2 – Project Roles & Approval Foundations', () => {
 
         // Approve the request
         await request(server)
-          .post(`/projects/${project.id}/governance/approvals/${approvalId}/approve`)
+          .post(
+            `/projects/${project.id}/governance/approvals/${approvalId}/approve`
+          )
           .set(authHeader(user.id))
           .expect(201);
 
@@ -158,7 +175,11 @@ describe('ROLES-2 – Project Roles & Approval Foundations', () => {
         const { user, project } = await seedConnectedStoreProject(testPrisma, {
           plan: 'pro',
         });
-        await createTestProducts(testPrisma, { projectId: project.id, count: 2, withIssues: true });
+        await createTestProducts(testPrisma, {
+          projectId: project.id,
+          count: 2,
+          withIssues: true,
+        });
 
         // Enable approval requirement
         await request(server)
@@ -169,7 +190,9 @@ describe('ROLES-2 – Project Roles & Approval Foundations', () => {
 
         // Generate a preview
         const previewRes = await request(server)
-          .post(`/projects/${project.id}/automation-playbooks/missing_seo_title/preview`)
+          .post(
+            `/projects/${project.id}/automation-playbooks/missing_seo_title/preview`
+          )
           .set(authHeader(user.id))
           .send({ sampleSize: 1 })
           .expect(201);
@@ -202,7 +225,11 @@ describe('ROLES-2 – Project Roles & Approval Foundations', () => {
         const { user, project } = await seedConnectedStoreProject(testPrisma, {
           plan: 'pro',
         });
-        await createTestProducts(testPrisma, { projectId: project.id, count: 2, withIssues: true });
+        await createTestProducts(testPrisma, {
+          projectId: project.id,
+          count: 2,
+          withIssues: true,
+        });
 
         // Set user to VIEWER role
         await testPrisma.user.update({
@@ -232,10 +259,17 @@ describe('ROLES-2 – Project Roles & Approval Foundations', () => {
 
       it('VIEWER cannot approve approval requests (blocked with 403)', async () => {
         // Create an OWNER to set up the approval request
-        const { user: owner, project } = await seedConnectedStoreProject(testPrisma, {
-          plan: 'pro',
+        const { user: owner, project } = await seedConnectedStoreProject(
+          testPrisma,
+          {
+            plan: 'pro',
+          }
+        );
+        await createTestProducts(testPrisma, {
+          projectId: project.id,
+          count: 2,
+          withIssues: true,
         });
-        await createTestProducts(testPrisma, { projectId: project.id, count: 2, withIssues: true });
 
         // Enable approval requirement
         await request(server)
@@ -265,7 +299,9 @@ describe('ROLES-2 – Project Roles & Approval Foundations', () => {
 
         // VIEWER should not be able to approve
         const res = await request(server)
-          .post(`/projects/${project.id}/governance/approvals/${approvalId}/approve`)
+          .post(
+            `/projects/${project.id}/governance/approvals/${approvalId}/approve`
+          )
           .set(authHeader(owner.id))
           .expect(403);
 
@@ -301,7 +337,9 @@ describe('ROLES-2 – Project Roles & Approval Foundations', () => {
 
         // Approve the request
         await request(server)
-          .post(`/projects/${project.id}/governance/approvals/${approvalId}/approve`)
+          .post(
+            `/projects/${project.id}/governance/approvals/${approvalId}/approve`
+          )
           .set(authHeader(user.id))
           .expect(201);
 
@@ -312,7 +350,7 @@ describe('ROLES-2 – Project Roles & Approval Foundations', () => {
           .expect(200);
 
         const approvalEvents = auditRes.body.events.filter(
-          (e: any) => e.eventType === 'APPROVAL_APPROVED',
+          (e: any) => e.eventType === 'APPROVAL_APPROVED'
         );
 
         expect(approvalEvents.length).toBeGreaterThan(0);
@@ -330,7 +368,11 @@ describe('ROLES-2 – Project Roles & Approval Foundations', () => {
       const { user, project } = await seedConnectedStoreProject(testPrisma, {
         plan: 'pro',
       });
-      await createTestProducts(testPrisma, { projectId: project.id, count: 2, withIssues: true });
+      await createTestProducts(testPrisma, {
+        projectId: project.id,
+        count: 2,
+        withIssues: true,
+      });
 
       // Set user to VIEWER role via ProjectMember (proper multi-user setup)
       // First, create a ProjectMember with VIEWER role
@@ -344,7 +386,9 @@ describe('ROLES-2 – Project Roles & Approval Foundations', () => {
 
       // VIEWER should be blocked from generating previews
       const res = await request(server)
-        .post(`/projects/${project.id}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${project.id}/automation-playbooks/missing_seo_title/preview`
+        )
         .set(authHeader(user.id))
         .send({ sampleSize: 1 })
         .expect(403);
@@ -356,7 +400,11 @@ describe('ROLES-2 – Project Roles & Approval Foundations', () => {
       const { user, project } = await seedConnectedStoreProject(testPrisma, {
         plan: 'pro',
       });
-      await createTestProducts(testPrisma, { projectId: project.id, count: 2, withIssues: true });
+      await createTestProducts(testPrisma, {
+        projectId: project.id,
+        count: 2,
+        withIssues: true,
+      });
 
       // Set user to VIEWER role via ProjectMember (proper multi-user setup)
       await testPrisma.projectMember.create({
@@ -369,7 +417,9 @@ describe('ROLES-2 – Project Roles & Approval Foundations', () => {
 
       // Estimate should still work (read-only operation)
       const res = await request(server)
-        .get(`/projects/${project.id}/automation-playbooks/estimate?playbookId=missing_seo_title`)
+        .get(
+          `/projects/${project.id}/automation-playbooks/estimate?playbookId=missing_seo_title`
+        )
         .set(authHeader(user.id))
         .expect(200);
 

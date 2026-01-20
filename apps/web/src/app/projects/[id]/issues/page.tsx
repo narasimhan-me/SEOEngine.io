@@ -1,9 +1,18 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigation';
+import {
+  useParams,
+  useRouter,
+  useSearchParams,
+  usePathname,
+} from 'next/navigation';
 
-import type { DeoIssue, DeoIssueFixType, CanonicalIssueCountsSummary } from '@/lib/deo-issues';
+import type {
+  DeoIssue,
+  DeoIssueFixType,
+  CanonicalIssueCountsSummary,
+} from '@/lib/deo-issues';
 import { TripletDisplay } from '@/components/issues/TripletDisplay';
 import { ScopeBanner } from '@/components/common/ScopeBanner';
 import { DEO_PILLARS, type DeoPillarId } from '@/lib/deo-pillars';
@@ -21,9 +30,16 @@ import {
 } from '@/lib/issue-to-fix-path';
 // [ISSUE-FIX-NAV-AND-ANCHORS-1] Navigation utilities available in @/lib/issue-fix-navigation if needed
 // [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] Extended with getReturnToFromCurrentUrl and withRouteContext
-import { getSafeReturnTo, getReturnToFromCurrentUrl, withRouteContext } from '@/lib/route-context';
+import {
+  getSafeReturnTo,
+  getReturnToFromCurrentUrl,
+  withRouteContext,
+} from '@/lib/route-context';
 // [SCOPE-CLARITY-1] Import scope normalization utilities
-import { normalizeScopeParams, buildClearFiltersHref } from '@/lib/scope-normalization';
+import {
+  normalizeScopeParams,
+  buildClearFiltersHref,
+} from '@/lib/scope-normalization';
 
 type SeverityFilter = 'all' | 'critical' | 'warning' | 'info';
 type PillarFilter = 'all' | DeoPillarId;
@@ -43,12 +59,22 @@ interface IssueDraft {
 }
 
 // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] SessionStorage key for issue drafts
-function getIssueDraftKey(projectId: string, issueId: string, productId: string, fieldLabel: string): string {
+function getIssueDraftKey(
+  projectId: string,
+  issueId: string,
+  productId: string,
+  fieldLabel: string
+): string {
   return `issue_draft:${projectId}:${issueId}:${productId}:${fieldLabel}`;
 }
 
 // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Load saved draft from sessionStorage
-function loadIssueDraft(projectId: string, issueId: string, productId: string, fieldLabel: string): IssueDraft | null {
+function loadIssueDraft(
+  projectId: string,
+  issueId: string,
+  productId: string,
+  fieldLabel: string
+): IssueDraft | null {
   try {
     const key = getIssueDraftKey(projectId, issueId, productId, fieldLabel);
     const stored = sessionStorage.getItem(key);
@@ -64,7 +90,12 @@ function loadIssueDraft(projectId: string, issueId: string, productId: string, f
 // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Save draft to sessionStorage
 function saveIssueDraftToStorage(projectId: string, draft: IssueDraft): void {
   try {
-    const key = getIssueDraftKey(projectId, draft.issueId, draft.productId, draft.fieldLabel);
+    const key = getIssueDraftKey(
+      projectId,
+      draft.issueId,
+      draft.productId,
+      draft.fieldLabel
+    );
     sessionStorage.setItem(key, JSON.stringify(draft));
   } catch {
     // Ignore storage errors
@@ -72,7 +103,12 @@ function saveIssueDraftToStorage(projectId: string, draft: IssueDraft): void {
 }
 
 // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Delete draft from sessionStorage
-function deleteIssueDraftFromStorage(projectId: string, issueId: string, productId: string, fieldLabel: string): void {
+function deleteIssueDraftFromStorage(
+  projectId: string,
+  issueId: string,
+  productId: string,
+  fieldLabel: string
+): void {
   try {
     const key = getIssueDraftKey(projectId, issueId, productId, fieldLabel);
     sessionStorage.removeItem(key);
@@ -91,7 +127,10 @@ export default function IssuesPage() {
   const pillarParam = searchParams.get('pillar') as DeoPillarId | null;
 
   // [COUNT-INTEGRITY-1 PATCH 6] Read click-integrity filter params from Work Queue routing
-  const modeParam = searchParams.get('mode') as 'actionable' | 'detected' | null;
+  const modeParam = searchParams.get('mode') as
+    | 'actionable'
+    | 'detected'
+    | null;
   const actionKeyParam = searchParams.get('actionKey');
   // [COUNT-INTEGRITY-1.1 UI HARDEN] Support actionKeys for multi-action filtering (OR across keys)
   // Accepts repeated params (?actionKeys=KEY1&actionKeys=KEY2) or comma-separated (?actionKeys=KEY1,KEY2)
@@ -99,14 +138,25 @@ export default function IssuesPage() {
     const repeatedParams = searchParams.getAll('actionKeys');
     if (repeatedParams.length > 0) {
       // Handle repeated params - flatten any comma-separated values
-      return repeatedParams.flatMap(p => p.split(',').map(k => k.trim())).filter(Boolean);
+      return repeatedParams
+        .flatMap((p) => p.split(',').map((k) => k.trim()))
+        .filter(Boolean);
     }
     return null;
   }, [searchParams]);
-  const scopeTypeParam = searchParams.get('scopeType') as 'PRODUCTS' | 'PAGES' | 'COLLECTIONS' | 'STORE_WIDE' | null;
+  const scopeTypeParam = searchParams.get('scopeType') as
+    | 'PRODUCTS'
+    | 'PAGES'
+    | 'COLLECTIONS'
+    | 'STORE_WIDE'
+    | null;
 
   // [LIST-ACTIONS-CLARITY-1] Read asset filter params for asset-specific issue views
-  const assetTypeParam = searchParams.get('assetType') as 'products' | 'pages' | 'collections' | null;
+  const assetTypeParam = searchParams.get('assetType') as
+    | 'products'
+    | 'pages'
+    | 'collections'
+    | null;
   const assetIdParam = searchParams.get('assetId');
 
   // [ROUTE-INTEGRITY-1] Read from context from URL
@@ -154,9 +204,12 @@ export default function IssuesPage() {
 
   const [issues, setIssues] = useState<DeoIssue[]>([]);
   // [COUNT-INTEGRITY-1.1 Step 2A] Migrated to canonical triplet counts
-  const [countsSummary, setCountsSummary] = useState<CanonicalIssueCountsSummary | null>(null);
+  const [countsSummary, setCountsSummary] =
+    useState<CanonicalIssueCountsSummary | null>(null);
   // [COUNT-INTEGRITY-1 PATCH ERR-001] Graceful degradation for counts-summary API failures
-  const [countsSummaryWarning, setCountsSummaryWarning] = useState<string | null>(null);
+  const [countsSummaryWarning, setCountsSummaryWarning] = useState<
+    string | null
+  >(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -165,7 +218,13 @@ export default function IssuesPage() {
   // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Don't auto-apply pillar param when click-integrity filters present
   // [COUNT-INTEGRITY-1.1 UI HARDEN] Include actionKeys in filter detection
   // [LIST-ACTIONS-CLARITY-1] Include assetType/assetId in filter detection
-  const hasClickIntegrityFilters = !!(actionKeyParam || (actionKeysParam && actionKeysParam.length > 0) || scopeTypeParam || assetTypeParam || assetIdParam);
+  const hasClickIntegrityFilters = !!(
+    actionKeyParam ||
+    (actionKeysParam && actionKeysParam.length > 0) ||
+    scopeTypeParam ||
+    assetTypeParam ||
+    assetIdParam
+  );
   // [SCOPE-CLARITY-1 FIXUP-1] Use normalized pillar (prevents hidden stacking when issueType overrides pillar)
   // normalizedScopeResult.normalized.pillar will be undefined if issueType or asset scope took priority
   const normalizedPillar = normalizedScopeResult.normalized.pillar;
@@ -182,7 +241,10 @@ export default function IssuesPage() {
       return issues.some((i) => i.isActionableNow === true);
     }
     if (pillarFilter !== 'all' && countsSummary.byPillar?.[pillarFilter]) {
-      return (countsSummary.byPillar[pillarFilter].actionable?.issueTypesCount ?? 0) > 0;
+      return (
+        (countsSummary.byPillar[pillarFilter].actionable?.issueTypesCount ??
+          0) > 0
+      );
     }
     return (countsSummary.actionable.issueTypesCount ?? 0) > 0;
   }, [countsSummary, pillarFilter, issues]);
@@ -192,7 +254,10 @@ export default function IssuesPage() {
       return issues.length > 0;
     }
     if (pillarFilter !== 'all' && countsSummary.byPillar?.[pillarFilter]) {
-      return (countsSummary.byPillar[pillarFilter].detected?.issueTypesCount ?? 0) > 0;
+      return (
+        (countsSummary.byPillar[pillarFilter].detected?.issueTypesCount ?? 0) >
+        0
+      );
     }
     return (countsSummary.detected.issueTypesCount ?? 0) > 0;
   }, [countsSummary, pillarFilter, issues]);
@@ -200,8 +265,8 @@ export default function IssuesPage() {
   const effectiveMode: 'actionable' | 'detected' =
     modeParam === 'detected'
       ? 'detected'
-      : (!hasActionableIssues && hasDetectedIssues)
-        ? 'detected'  // Force detected when no actionable but detected exist
+      : !hasActionableIssues && hasDetectedIssues
+        ? 'detected' // Force detected when no actionable but detected exist
         : 'actionable';
   const [rescanning, setRescanning] = useState(false);
   const [fixingIssueId, setFixingIssueId] = useState<string | null>(null);
@@ -209,11 +274,19 @@ export default function IssuesPage() {
   const [previewIssueId, setPreviewIssueId] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
-  const [previewProductName, setPreviewProductName] = useState<string | null>(null);
-  const [previewFieldLabel, setPreviewFieldLabel] = useState<'SEO title' | 'SEO description' | null>(null);
+  const [previewProductName, setPreviewProductName] = useState<string | null>(
+    null
+  );
+  const [previewFieldLabel, setPreviewFieldLabel] = useState<
+    'SEO title' | 'SEO description' | null
+  >(null);
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Store both current title and description for field preservation
-  const [previewCurrentTitle, setPreviewCurrentTitle] = useState<string | null>(null);
-  const [previewCurrentDescription, setPreviewCurrentDescription] = useState<string | null>(null);
+  const [previewCurrentTitle, setPreviewCurrentTitle] = useState<string | null>(
+    null
+  );
+  const [previewCurrentDescription, setPreviewCurrentDescription] = useState<
+    string | null
+  >(null);
   const [previewValue, setPreviewValue] = useState<string | null>(null);
   const previewPanelRef = useRef<HTMLDivElement | null>(null);
 
@@ -229,7 +302,11 @@ export default function IssuesPage() {
     if (appliedAt && !savedDraft) {
       return 'applied';
     }
-    if (savedDraft && previewIssueId === savedDraft.issueId && previewValue === savedDraft.value) {
+    if (
+      savedDraft &&
+      previewIssueId === savedDraft.issueId &&
+      previewValue === savedDraft.value
+    ) {
       return 'saved';
     }
     if (previewValue) {
@@ -277,8 +354,13 @@ export default function IssuesPage() {
       }
       if (scopeTypeParam) {
         // Normalize scopeType to lowercase for API
-        const normalizedScopeType = scopeTypeParam.toLowerCase() as 'products' | 'pages' | 'collections';
-        if (['products', 'pages', 'collections'].includes(normalizedScopeType)) {
+        const normalizedScopeType = scopeTypeParam.toLowerCase() as
+          | 'products'
+          | 'pages'
+          | 'collections';
+        if (
+          ['products', 'pages', 'collections'].includes(normalizedScopeType)
+        ) {
           summaryFilters.scopeType = normalizedScopeType;
         }
       }
@@ -294,7 +376,7 @@ export default function IssuesPage() {
           projectId,
           assetTypeParam,
           assetIdParam,
-          severityFilter !== 'all' ? { severity: severityFilter } : undefined,
+          severityFilter !== 'all' ? { severity: severityFilter } : undefined
         );
         // assetIssues returns { issues: DeoIssue[], summary?: CanonicalIssueCountsSummary }
         setIssues(assetIssuesResult.issues ?? []);
@@ -308,7 +390,10 @@ export default function IssuesPage() {
         // [COUNT-INTEGRITY-1 PATCH ERR-001] Graceful degradation: always load issues even if counts-summary fails
         const results = await Promise.allSettled([
           projectsApi.deoIssuesReadOnly(projectId),
-          projectsApi.canonicalIssueCountsSummary(projectId, Object.keys(summaryFilters).length > 0 ? summaryFilters : undefined),
+          projectsApi.canonicalIssueCountsSummary(
+            projectId,
+            Object.keys(summaryFilters).length > 0 ? summaryFilters : undefined
+          ),
         ]);
 
         // Handle issues response
@@ -316,7 +401,11 @@ export default function IssuesPage() {
           setIssues(results[0].value.issues ?? []);
         } else {
           console.error('Error fetching issues:', results[0].reason);
-          setError(results[0].reason instanceof Error ? results[0].reason.message : 'Failed to load issues');
+          setError(
+            results[0].reason instanceof Error
+              ? results[0].reason.message
+              : 'Failed to load issues'
+          );
         }
 
         // Handle counts-summary response (non-blocking)
@@ -325,7 +414,9 @@ export default function IssuesPage() {
         } else {
           console.warn('Counts summary unavailable:', results[1].reason);
           setCountsSummary(null);
-          setCountsSummaryWarning('Issue counts unavailable. Displaying issues list without summary statistics.');
+          setCountsSummaryWarning(
+            'Issue counts unavailable. Displaying issues list without summary statistics.'
+          );
         }
       }
     } catch (err: unknown) {
@@ -334,20 +425,32 @@ export default function IssuesPage() {
     } finally {
       setLoading(false);
     }
-  // [COUNT-INTEGRITY-1.1 AUDIT FIX] Include severityFilter to refresh summary when severity changes
-  // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Include assetTypeParam/assetIdParam for per-asset fetching
-  }, [projectId, actionKeyParam, actionKeysParam, scopeTypeParam, severityFilter, assetTypeParam, assetIdParam]);
+    // [COUNT-INTEGRITY-1.1 AUDIT FIX] Include severityFilter to refresh summary when severity changes
+    // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Include assetTypeParam/assetIdParam for per-asset fetching
+  }, [
+    projectId,
+    actionKeyParam,
+    actionKeysParam,
+    scopeTypeParam,
+    severityFilter,
+    assetTypeParam,
+    assetIdParam,
+  ]);
 
   const fetchProjectInfo = useCallback(async () => {
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const API_URL =
+        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
       const token = getToken();
-      const response = await fetch(`${API_URL}/projects/${projectId}/integration-status`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(
+        `${API_URL}/projects/${projectId}/integration-status`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
       if (response.ok) {
         const data = await response.json();
         setProjectName(data.projectName ?? null);
@@ -380,7 +483,11 @@ export default function IssuesPage() {
 
   // [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] URL normalization: force mode=detected when no actionable issues
   useEffect(() => {
-    if (modeParam === 'actionable' && !hasActionableIssues && hasDetectedIssues) {
+    if (
+      modeParam === 'actionable' &&
+      !hasActionableIssues &&
+      hasDetectedIssues
+    ) {
       const params = new URLSearchParams(searchParams.toString());
       params.set('mode', 'detected');
       const newUrl = `?${params.toString()}`;
@@ -413,39 +520,54 @@ export default function IssuesPage() {
     if (!countsSummary) return null;
     if (pillarFilter !== 'all' && countsSummary.byPillar?.[pillarFilter]) {
       const pillarData = countsSummary.byPillar[pillarFilter];
-      return effectiveMode === 'actionable' ? pillarData.actionable : pillarData.detected;
+      return effectiveMode === 'actionable'
+        ? pillarData.actionable
+        : pillarData.detected;
     }
-    return effectiveMode === 'actionable' ? countsSummary.actionable : countsSummary.detected;
+    return effectiveMode === 'actionable'
+      ? countsSummary.actionable
+      : countsSummary.detected;
   }, [countsSummary, pillarFilter, effectiveMode]);
 
   // [COUNT-INTEGRITY-1.1 Step 2A] Use canonical triplet counts for severity badges
   // [COUNT-INTEGRITY-1 PATCH ERR-001] When countsSummary is null (API failure), counts are unavailable (not 0)
   const criticalCount = countsSummary
-    ? (effectiveMode === 'actionable'
-        ? (countsSummary.bySeverity?.critical?.actionable?.issueTypesCount ?? 0)
-        : (countsSummary.bySeverity?.critical?.detected?.issueTypesCount ?? 0))
+    ? effectiveMode === 'actionable'
+      ? (countsSummary.bySeverity?.critical?.actionable?.issueTypesCount ?? 0)
+      : (countsSummary.bySeverity?.critical?.detected?.issueTypesCount ?? 0)
     : null;
   const warningCount = countsSummary
-    ? (effectiveMode === 'actionable'
-        ? (countsSummary.bySeverity?.warning?.actionable?.issueTypesCount ?? 0)
-        : (countsSummary.bySeverity?.warning?.detected?.issueTypesCount ?? 0))
+    ? effectiveMode === 'actionable'
+      ? (countsSummary.bySeverity?.warning?.actionable?.issueTypesCount ?? 0)
+      : (countsSummary.bySeverity?.warning?.detected?.issueTypesCount ?? 0)
     : null;
   const infoCount = countsSummary
-    ? (effectiveMode === 'actionable'
-        ? (countsSummary.bySeverity?.info?.actionable?.issueTypesCount ?? 0)
-        : (countsSummary.bySeverity?.info?.detected?.issueTypesCount ?? 0))
+    ? effectiveMode === 'actionable'
+      ? (countsSummary.bySeverity?.info?.actionable?.issueTypesCount ?? 0)
+      : (countsSummary.bySeverity?.info?.detected?.issueTypesCount ?? 0)
     : null;
 
   // [COUNT-INTEGRITY-1.1 UI HARDEN] Helper to check if issue matches a single action key
   const issueMatchesActionKey = (issue: DeoIssue, key: string): boolean => {
     if (key === 'FIX_MISSING_METADATA') {
-      return issue.pillarId === 'metadata_snippet_quality' || (issue.type?.includes('metadata') ?? false);
+      return (
+        issue.pillarId === 'metadata_snippet_quality' ||
+        (issue.type?.includes('metadata') ?? false)
+      );
     } else if (key === 'RESOLVE_TECHNICAL_ISSUES') {
-      return issue.pillarId === 'technical_indexability' || issue.category === 'technical';
+      return (
+        issue.pillarId === 'technical_indexability' ||
+        issue.category === 'technical'
+      );
     } else if (key === 'IMPROVE_SEARCH_INTENT') {
-      return issue.pillarId === 'search_intent_fit' || Boolean(issue.intentType);
+      return (
+        issue.pillarId === 'search_intent_fit' || Boolean(issue.intentType)
+      );
     } else if (key === 'OPTIMIZE_CONTENT') {
-      return issue.pillarId === 'content_commerce_signals' || issue.category === 'content_entity';
+      return (
+        issue.pillarId === 'content_commerce_signals' ||
+        issue.category === 'content_entity'
+      );
     }
     return false;
   };
@@ -462,7 +584,9 @@ export default function IssuesPage() {
     // [COUNT-INTEGRITY-1.1 UI HARDEN] Support actionKeys (OR across keys) with actionKey as fallback
     if (actionKeysParam && actionKeysParam.length > 0) {
       // OR across multiple action keys
-      const matchesAnyKey = actionKeysParam.some(key => issueMatchesActionKey(issue, key));
+      const matchesAnyKey = actionKeysParam.some((key) =>
+        issueMatchesActionKey(issue, key)
+      );
       if (!matchesAnyKey) {
         return false;
       }
@@ -475,7 +599,10 @@ export default function IssuesPage() {
 
     // 3. Scope type filter (PRODUCTS/PAGES/COLLECTIONS/STORE_WIDE)
     if (scopeTypeParam && scopeTypeParam !== 'STORE_WIDE') {
-      const assetTypeKey = scopeTypeParam.toLowerCase() as 'products' | 'pages' | 'collections';
+      const assetTypeKey = scopeTypeParam.toLowerCase() as
+        | 'products'
+        | 'pages'
+        | 'collections';
       if (!issue.assetTypeCounts || issue.assetTypeCounts[assetTypeKey] === 0) {
         return false;
       }
@@ -517,7 +644,9 @@ export default function IssuesPage() {
       params.delete('assetType');
       params.delete('assetId');
     }
-    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+    const newUrl = params.toString()
+      ? `?${params.toString()}`
+      : window.location.pathname;
     router.replace(newUrl, { scroll: false });
   };
 
@@ -556,7 +685,11 @@ export default function IssuesPage() {
 
     // [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] "View affected" available when affectedProducts exist (before fixHref gate)
     // DIAGNOSTIC issues still use Review CTA (don't convert to View affected)
-    if (fixKind !== 'DIAGNOSTIC' && issue.affectedProducts && issue.affectedProducts.length > 0) {
+    if (
+      fixKind !== 'DIAGNOSTIC' &&
+      issue.affectedProducts &&
+      issue.affectedProducts.length > 0
+    ) {
       // If this is a multi-product issue (count > 1), always route to list view
       // Single-product issues with specific fix types get direct routing below
       if (issue.count > 1 && !primaryProductId) {
@@ -571,11 +704,19 @@ export default function IssuesPage() {
     }
 
     // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Check if issue has a valid fix href (href-based actionability)
-    const fixHref = buildIssueFixHref({ projectId, issue, from: 'issues_engine' });
+    const fixHref = buildIssueFixHref({
+      projectId,
+      issue,
+      from: 'issues_engine',
+    });
 
     // [ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1] If no fixHref but has affected products, use View affected
     if (!fixHref) {
-      if (issue.affectedProducts && issue.affectedProducts.length > 0 && fixKind !== 'DIAGNOSTIC') {
+      if (
+        issue.affectedProducts &&
+        issue.affectedProducts.length > 0 &&
+        fixKind !== 'DIAGNOSTIC'
+      ) {
         return {
           kind: 'link' as const,
           label: 'View affected',
@@ -602,7 +743,8 @@ export default function IssuesPage() {
     // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Reuse fixHref computed above - no dead-click risk
     if (fixType === 'aiFix' && fixReady && primaryProductId && fixHref) {
       const supportsInlineFix =
-        issueType === 'missing_seo_title' || issueType === 'missing_seo_description';
+        issueType === 'missing_seo_title' ||
+        issueType === 'missing_seo_description';
       if (supportsInlineFix) {
         return {
           kind: 'ai-fix-now' as const,
@@ -661,7 +803,9 @@ export default function IssuesPage() {
     // [ISSUE-TO-FIX-PATH-1 FIXUP-2] href is pre-validated - if we're here, navigation is guaranteed
     const draftState = getDraftState();
     if (draftState === 'unsaved') {
-      const confirmed = window.confirm('You have unsaved changes. Are you sure you want to leave?');
+      const confirmed = window.confirm(
+        'You have unsaved changes. Are you sure you want to leave?'
+      );
       if (!confirmed) {
         return;
       }
@@ -687,7 +831,9 @@ export default function IssuesPage() {
     const issueType = (issue.type as string | undefined) || issue.id;
 
     if (!primaryProductId) {
-      feedback.showError('Cannot run AI fix: no primary product found for this issue.');
+      feedback.showError(
+        'Cannot run AI fix: no primary product found for this issue.'
+      );
       return;
     }
 
@@ -696,7 +842,11 @@ export default function IssuesPage() {
       issueType !== 'missing_seo_description'
     ) {
       // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Compute href for navigation
-      const href = buildIssueFixHref({ projectId, issue, from: 'issues_engine' });
+      const href = buildIssueFixHref({
+        projectId,
+        issue,
+        from: 'issues_engine',
+      });
       if (href) {
         handleIssueClick(href);
       }
@@ -707,13 +857,20 @@ export default function IssuesPage() {
       issueType === 'missing_seo_title' ? 'SEO title' : 'SEO description';
 
     // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Check sessionStorage for existing draft
-    const storedDraft = loadIssueDraft(projectId, issue.id, primaryProductId, fieldLabel);
+    const storedDraft = loadIssueDraft(
+      projectId,
+      issue.id,
+      primaryProductId,
+      fieldLabel
+    );
     if (storedDraft) {
       // Restore draft from sessionStorage without calling AI
       setPreviewIssueId(issue.id);
       setPreviewLoading(false);
       setPreviewError(null);
-      setPreviewProductName(storedDraft.currentTitle || `Product ${primaryProductId}`);
+      setPreviewProductName(
+        storedDraft.currentTitle || `Product ${primaryProductId}`
+      );
       setPreviewFieldLabel(storedDraft.fieldLabel);
       setPreviewCurrentTitle(storedDraft.currentTitle ?? '');
       setPreviewCurrentDescription(storedDraft.currentDescription ?? '');
@@ -724,7 +881,10 @@ export default function IssuesPage() {
       // Scroll preview panel into view
       setTimeout(() => {
         if (previewPanelRef.current) {
-          previewPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          previewPanelRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          });
         }
       }, 100);
       return;
@@ -769,7 +929,10 @@ export default function IssuesPage() {
       // Scroll preview panel into view
       setTimeout(() => {
         if (previewPanelRef.current) {
-          previewPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          previewPanelRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          });
         }
       }, 100);
     } catch (err: unknown) {
@@ -792,25 +955,42 @@ export default function IssuesPage() {
 
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Save draft handler
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Persist draft to sessionStorage
-  const handleSaveDraft = useCallback((issue: DeoIssue) => {
-    if (!previewValue || !previewFieldLabel || !previewProductId || previewIssueId !== issue.id) {
-      return;
-    }
-    const draft: IssueDraft = {
-      issueId: issue.id,
-      productId: previewProductId,
-      fieldLabel: previewFieldLabel,
-      value: previewValue,
-      savedAt: new Date().toISOString(),
-      // Store current values for field preservation on Apply
-      currentTitle: previewCurrentTitle ?? undefined,
-      currentDescription: previewCurrentDescription ?? undefined,
-    };
-    setSavedDraft(draft);
-    // Persist to sessionStorage for cross-navigation persistence
-    saveIssueDraftToStorage(projectId, draft);
-    feedback.showSuccess('Draft saved. You can now apply it to Shopify.');
-  }, [previewValue, previewFieldLabel, previewProductId, previewIssueId, previewCurrentTitle, previewCurrentDescription, projectId, feedback]);
+  const handleSaveDraft = useCallback(
+    (issue: DeoIssue) => {
+      if (
+        !previewValue ||
+        !previewFieldLabel ||
+        !previewProductId ||
+        previewIssueId !== issue.id
+      ) {
+        return;
+      }
+      const draft: IssueDraft = {
+        issueId: issue.id,
+        productId: previewProductId,
+        fieldLabel: previewFieldLabel,
+        value: previewValue,
+        savedAt: new Date().toISOString(),
+        // Store current values for field preservation on Apply
+        currentTitle: previewCurrentTitle ?? undefined,
+        currentDescription: previewCurrentDescription ?? undefined,
+      };
+      setSavedDraft(draft);
+      // Persist to sessionStorage for cross-navigation persistence
+      saveIssueDraftToStorage(projectId, draft);
+      feedback.showSuccess('Draft saved. You can now apply it to Shopify.');
+    },
+    [
+      previewValue,
+      previewFieldLabel,
+      previewProductId,
+      previewIssueId,
+      previewCurrentTitle,
+      previewCurrentDescription,
+      projectId,
+      feedback,
+    ]
+  );
 
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Updated to apply saved draft only, no AI call
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Delete stored draft from sessionStorage on success
@@ -830,10 +1010,18 @@ export default function IssuesPage() {
       // Use stored current values to preserve the other field correctly
       if (fieldLabel === 'SEO title') {
         // Apply title only, preserve current description
-        await shopifyApi.updateProductSeo(productId, value, previewCurrentDescription ?? '');
+        await shopifyApi.updateProductSeo(
+          productId,
+          value,
+          previewCurrentDescription ?? ''
+        );
       } else {
         // Apply description only, preserve current title
-        await shopifyApi.updateProductSeo(productId, previewCurrentTitle ?? '', value);
+        await shopifyApi.updateProductSeo(
+          productId,
+          previewCurrentTitle ?? '',
+          value
+        );
       }
 
       const applyTimestamp = new Date().toISOString();
@@ -854,7 +1042,10 @@ export default function IssuesPage() {
     } catch (err: unknown) {
       console.error('Error applying fix to Shopify:', err);
 
-      if (err instanceof ApiError && err.code === 'ENTITLEMENTS_LIMIT_REACHED') {
+      if (
+        err instanceof ApiError &&
+        err.code === 'ENTITLEMENTS_LIMIT_REACHED'
+      ) {
         const message = 'Upgrade to apply fixes to Shopify.';
         feedback.showLimit(message, '/settings/billing');
         return;
@@ -881,7 +1072,7 @@ export default function IssuesPage() {
     setAppliedAt(null);
 
     const button = document.getElementById(
-      `issue-fix-next-${issue.id}`,
+      `issue-fix-next-${issue.id}`
     ) as HTMLButtonElement | null;
     if (button) {
       button.focus();
@@ -915,10 +1106,23 @@ export default function IssuesPage() {
 
       {/* [COUNT-INTEGRITY-1 PATCH ERR-001] Counts-summary warning banner (non-blocking) */}
       {countsSummaryWarning && !error && (
-        <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4" data-testid="counts-summary-warning-banner">
+        <div
+          className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4"
+          data-testid="counts-summary-warning-banner"
+        >
           <div className="flex items-start gap-3">
-            <svg className="h-5 w-5 flex-shrink-0 text-yellow-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            <svg
+              className="h-5 w-5 flex-shrink-0 text-yellow-600 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
             </svg>
             <div className="flex-1">
               <p className="text-sm text-yellow-800">{countsSummaryWarning}</p>
@@ -938,9 +1142,7 @@ export default function IssuesPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Issues Engine</h1>
-            {projectName && (
-              <p className="text-gray-600">{projectName}</p>
-            )}
+            {projectName && <p className="text-gray-600">{projectName}</p>}
           </div>
           <button
             onClick={handleRescan}
@@ -997,7 +1199,9 @@ export default function IssuesPage() {
           from={fromParam}
           returnTo={validatedReturnTo || `/projects/${projectId}/issues`}
           showingText={scopeBannerShowingText}
-          onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/issues`)}
+          onClearFiltersHref={buildClearFiltersHref(
+            `/projects/${projectId}/issues`
+          )}
           chips={normalizedScopeResult.chips}
           wasAdjusted={normalizedScopeResult.wasAdjusted}
         />
@@ -1014,36 +1218,48 @@ export default function IssuesPage() {
           </div>
         ) : (
           <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-6 text-center">
-            <div className="text-sm text-gray-500">Issue counts unavailable</div>
+            <div className="text-sm text-gray-500">
+              Issue counts unavailable
+            </div>
           </div>
         )}
 
         {/* [COUNT-INTEGRITY-1.1 PATCH 5] Zero-actionable suppression message */}
         {/* [COUNT-INTEGRITY-1.1 UI HARDEN] Use currentTriplet for pillar-aware suppression */}
-        {currentTriplet && effectiveMode === 'actionable' && currentTriplet.actionableNowCount === 0 && (
-          <div
-            className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-center"
-            data-testid="no-eligible-items-message"
-          >
-            <p className="text-sm text-amber-800">No items currently eligible for action.</p>
-            <p className="mt-1 text-xs text-amber-600">
-              Switch to Detected mode to view all detected issues.
-            </p>
-          </div>
-        )}
+        {currentTriplet &&
+          effectiveMode === 'actionable' &&
+          currentTriplet.actionableNowCount === 0 && (
+            <div
+              className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-center"
+              data-testid="no-eligible-items-message"
+            >
+              <p className="text-sm text-amber-800">
+                No items currently eligible for action.
+              </p>
+              <p className="mt-1 text-xs text-amber-600">
+                Switch to Detected mode to view all detected issues.
+              </p>
+            </div>
+          )}
 
         {/* Severity Breakdown Cards */}
         <div className="mt-4 grid grid-cols-3 gap-4">
           <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-            <div className="text-2xl font-bold text-red-700">{criticalCount !== null ? criticalCount : '—'}</div>
+            <div className="text-2xl font-bold text-red-700">
+              {criticalCount !== null ? criticalCount : '—'}
+            </div>
             <div className="text-sm text-red-600">Critical issue types</div>
           </div>
           <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
-            <div className="text-2xl font-bold text-orange-700">{warningCount !== null ? warningCount : '—'}</div>
+            <div className="text-2xl font-bold text-orange-700">
+              {warningCount !== null ? warningCount : '—'}
+            </div>
             <div className="text-sm text-orange-600">Warning issue types</div>
           </div>
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <div className="text-2xl font-bold text-blue-700">{infoCount !== null ? infoCount : '—'}</div>
+            <div className="text-2xl font-bold text-blue-700">
+              {infoCount !== null ? infoCount : '—'}
+            </div>
             <div className="text-sm text-blue-600">Info issue types</div>
           </div>
         </div>
@@ -1074,9 +1290,9 @@ export default function IssuesPage() {
               // [COUNT-INTEGRITY-1 PATCH ERR-001] Handle null countsSummary (hide badge when unavailable)
               const pillarTriplet = countsSummary?.byPillar[pillar.id];
               const pillarIssueCount = countsSummary
-                ? (effectiveMode === 'actionable'
-                    ? (pillarTriplet?.actionable?.issueTypesCount ?? 0)
-                    : (pillarTriplet?.detected?.issueTypesCount ?? 0))
+                ? effectiveMode === 'actionable'
+                  ? (pillarTriplet?.actionable?.issueTypesCount ?? 0)
+                  : (pillarTriplet?.detected?.issueTypesCount ?? 0)
                 : null;
               return (
                 <button
@@ -1092,7 +1308,9 @@ export default function IssuesPage() {
                 >
                   {pillar.shortName}
                   {pillarIssueCount !== null && pillarIssueCount > 0 && (
-                    <span className="ml-1 text-xs opacity-75">({pillarIssueCount} issue types)</span>
+                    <span className="ml-1 text-xs opacity-75">
+                      ({pillarIssueCount} issue types)
+                    </span>
                   )}
                 </button>
               );
@@ -1152,14 +1370,24 @@ export default function IssuesPage() {
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {filter === 'all' ? 'All severities' : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                {filter === 'all'
+                  ? 'All severities'
+                  : filter.charAt(0).toUpperCase() + filter.slice(1)}
                 {/* [COUNT-INTEGRITY-1.1 Step 2A] Show explicit "issue types" label */}
-                {filter !== 'all' && (
+                {filter !== 'all' &&
                   (() => {
-                    const count = filter === 'critical' ? criticalCount : filter === 'warning' ? warningCount : infoCount;
-                    return count !== null && count > 0 ? <span className="ml-1 text-xs">({count} issue types)</span> : null;
-                  })()
-                )}
+                    const count =
+                      filter === 'critical'
+                        ? criticalCount
+                        : filter === 'warning'
+                          ? warningCount
+                          : infoCount;
+                    return count !== null && count > 0 ? (
+                      <span className="ml-1 text-xs">
+                        ({count} issue types)
+                      </span>
+                    ) : null;
+                  })()}
               </button>
             ))}
           </div>
@@ -1185,7 +1413,9 @@ export default function IssuesPage() {
           {/* [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] Mode-aware empty state text */}
           <h3 className="mt-2 text-sm font-medium text-green-800">
             {severityFilter === 'all' && pillarFilter === 'all'
-              ? (effectiveMode === 'actionable' ? 'No actionable issues' : 'No issues detected')
+              ? effectiveMode === 'actionable'
+                ? 'No actionable issues'
+                : 'No issues detected'
               : pillarFilter !== 'all'
                 ? `No ${effectiveMode === 'actionable' ? 'actionable ' : ''}issues for ${DEO_PILLARS.find((p) => p.id === pillarFilter)?.shortName ?? pillarFilter}`
                 : `No ${effectiveMode === 'actionable' ? 'actionable ' : ''}${severityFilter} issues`}
@@ -1205,20 +1435,30 @@ export default function IssuesPage() {
 
             // [DIAGNOSTIC-GUIDANCE-1 FIXUP-1] Hard-gate for outside-control issues (trust principle)
             // Frontend explicitly prevents clickability regardless of backend isActionableNow flag
-            const isOutsideEngineControl = issue.actionability === 'informational';
+            const isOutsideEngineControl =
+              issue.actionability === 'informational';
 
             // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Compute fixHref unconditionally, then define isClickableIssue
             // [DIAGNOSTIC-GUIDANCE-1 FIXUP-1] Outside-control issues always yield null fixHref
-            const fixHref = isOutsideEngineControl ? null : buildIssueFixHref({ projectId, issue, from: 'issues_engine' });
+            const fixHref = isOutsideEngineControl
+              ? null
+              : buildIssueFixHref({ projectId, issue, from: 'issues_engine' });
             // [DIAGNOSTIC-GUIDANCE-1 FIXUP-1] Outside-control issues are never clickable, even if isActionableNow is true
-            const isClickableIssue = !isOutsideEngineControl && (issue.isActionableNow === true) && (fixHref !== null);
+            const isClickableIssue =
+              !isOutsideEngineControl &&
+              issue.isActionableNow === true &&
+              fixHref !== null;
             const fixAction = getFixAction(issue);
 
             return (
               <div
                 key={issue.id}
                 // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Test hooks use isClickableIssue (both isActionableNow AND fixHref)
-                data-testid={isClickableIssue ? 'issue-card-actionable' : 'issue-card-informational'}
+                data-testid={
+                  isClickableIssue
+                    ? 'issue-card-actionable'
+                    : 'issue-card-informational'
+                }
                 // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Expose fixKind for test hooks
                 data-fix-kind={fixAction?.fixKind}
                 className="rounded-lg border border-gray-200 bg-white p-4"
@@ -1244,18 +1484,24 @@ export default function IssuesPage() {
                                 : 'border border-blue-200 bg-blue-50 text-blue-700'
                           }`}
                         >
-                          {issue.severity.charAt(0).toUpperCase() + issue.severity.slice(1)}
+                          {issue.severity.charAt(0).toUpperCase() +
+                            issue.severity.slice(1)}
                         </span>
                       </div>
-                      <p className="mt-1 text-sm text-gray-600">{safeDescription}</p>
+                      <p className="mt-1 text-sm text-gray-600">
+                        {safeDescription}
+                      </p>
                       {/* [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Suppress for DIAGNOSTIC issues */}
-                      {issue.fixType === 'aiFix' && fixAction?.fixKind !== 'DIAGNOSTIC' && (
-                        <p className="mt-1 text-xs text-gray-500">
-                          Fixes one affected product at a time for safe review.
-                        </p>
-                      )}
+                      {issue.fixType === 'aiFix' &&
+                        fixAction?.fixKind !== 'DIAGNOSTIC' && (
+                          <p className="mt-1 text-xs text-gray-500">
+                            Fixes one affected product at a time for safe
+                            review.
+                          </p>
+                        )}
                       <p className="mt-1 text-xs text-gray-500">
-                        {issue.count} {issue.count === 1 ? 'item' : 'items'} affected
+                        {issue.count} {issue.count === 1 ? 'item' : 'items'}{' '}
+                        affected
                       </p>
                     </button>
                   ) : (
@@ -1273,7 +1519,8 @@ export default function IssuesPage() {
                                 : 'border border-blue-200 bg-blue-50 text-blue-700'
                           }`}
                         >
-                          {issue.severity.charAt(0).toUpperCase() + issue.severity.slice(1)}
+                          {issue.severity.charAt(0).toUpperCase() +
+                            issue.severity.slice(1)}
                         </span>
                         {/* [DIAGNOSTIC-GUIDANCE-1] Outside-control issues get specific label */}
                         {/* [ISSUE-TO-FIX-PATH-1] Informational badge for orphan issues (non-outside-control) */}
@@ -1283,23 +1530,37 @@ export default function IssuesPage() {
                             : 'Informational — no action required'}
                         </span>
                       </div>
-                      <p className="mt-1 text-sm text-gray-600">{safeDescription}</p>
+                      <p className="mt-1 text-sm text-gray-600">
+                        {safeDescription}
+                      </p>
                       <p className="mt-1 text-xs text-gray-500">
-                        {issue.count} {issue.count === 1 ? 'item' : 'items'} affected
+                        {issue.count} {issue.count === 1 ? 'item' : 'items'}{' '}
+                        affected
                       </p>
                       {/* [DIAGNOSTIC-GUIDANCE-1] Diagnostic guidance block for outside-control issues */}
                       {issue.actionability === 'informational' && (
-                        <div className="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3" data-testid="diagnostic-guidance-block">
+                        <div
+                          className="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3"
+                          data-testid="diagnostic-guidance-block"
+                        >
                           <p className="text-xs text-gray-600">
-                            EngineO.ai cannot directly fix this issue because it depends on your theme, hosting, or Shopify configuration.
+                            EngineO.ai cannot directly fix this issue because it
+                            depends on your theme, hosting, or Shopify
+                            configuration.
                           </p>
                           <div className="mt-2">
-                            <p className="text-xs font-semibold text-gray-700">How to address this</p>
+                            <p className="text-xs font-semibold text-gray-700">
+                              How to address this
+                            </p>
                             <ul className="mt-1 list-disc list-inside text-xs text-gray-600 space-y-0.5">
                               <li>Check your Shopify theme settings</li>
                               <li>Verify robots.txt and meta tags</li>
-                              <li>Use Google Search Console → Pages → Indexing</li>
-                              <li>Validate structured data using Rich Results Test</li>
+                              <li>
+                                Use Google Search Console → Pages → Indexing
+                              </li>
+                              <li>
+                                Validate structured data using Rich Results Test
+                              </li>
                             </ul>
                           </div>
                         </div>
@@ -1309,120 +1570,139 @@ export default function IssuesPage() {
 
                   {/* Preview panel for actionable issues */}
                   {isClickableIssue && previewIssueId === issue.id && (
-                      <div
-                        ref={previewPanelRef}
-                        tabIndex={-1}
-                        data-testid="issue-preview-draft-panel"
-                        className="mt-3 rounded-md border border-purple-100 bg-purple-50 p-3 text-xs text-gray-800 focus:outline-none"
-                      >
-                        {previewLoading ? (
-                          <p className="text-xs text-gray-600">Generating preview…</p>
-                        ) : previewError ? (
-                          <p className="text-xs text-red-600">{previewError}</p>
-                        ) : previewValue ? (
-                          <>
-                            {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft state banner */}
-                            <div
-                              data-testid="issue-draft-state-banner"
-                              className={`mb-2 rounded px-2 py-1 text-[11px] font-medium ${
-                                getDraftState() === 'unsaved'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : getDraftState() === 'saved'
-                                    ? 'bg-blue-100 text-blue-800'
-                                    : 'bg-green-100 text-green-800'
-                              }`}
-                            >
-                              {getDraftState() === 'unsaved' && 'Draft — not applied'}
-                              {getDraftState() === 'saved' && 'Draft saved — not applied'}
-                              {getDraftState() === 'applied' && (
-                                <>Applied to Shopify on {appliedAt ? new Date(appliedAt).toLocaleString() : 'unknown date'}</>
-                              )}
-                            </div>
-                            <p className="text-xs font-semibold">
-                              {previewProductName || 'Selected product'}
-                            </p>
-                            <p className="mt-1 text-xs text-gray-700">
-                              Field: {previewFieldLabel ?? 'SEO field'}
-                            </p>
-                            <div className="mt-2 grid gap-3 md:grid-cols-2">
-                              <div>
-                                <p className="text-[11px] font-semibold text-gray-700">
-                                  Current value
-                                </p>
-                                <p className="mt-1 rounded bg-white px-2 py-1 text-[11px] text-gray-700">
-                                  {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Show correct current value for the field being edited */}
-                                  {previewFieldLabel === 'SEO title' ? (
-                                    previewCurrentTitle && previewCurrentTitle.trim().length > 0 ? (
-                                      previewCurrentTitle
-                                    ) : (
-                                      <span className="italic text-gray-500">Missing</span>
-                                    )
+                    <div
+                      ref={previewPanelRef}
+                      tabIndex={-1}
+                      data-testid="issue-preview-draft-panel"
+                      className="mt-3 rounded-md border border-purple-100 bg-purple-50 p-3 text-xs text-gray-800 focus:outline-none"
+                    >
+                      {previewLoading ? (
+                        <p className="text-xs text-gray-600">
+                          Generating preview…
+                        </p>
+                      ) : previewError ? (
+                        <p className="text-xs text-red-600">{previewError}</p>
+                      ) : previewValue ? (
+                        <>
+                          {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft state banner */}
+                          <div
+                            data-testid="issue-draft-state-banner"
+                            className={`mb-2 rounded px-2 py-1 text-[11px] font-medium ${
+                              getDraftState() === 'unsaved'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : getDraftState() === 'saved'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-green-100 text-green-800'
+                            }`}
+                          >
+                            {getDraftState() === 'unsaved' &&
+                              'Draft — not applied'}
+                            {getDraftState() === 'saved' &&
+                              'Draft saved — not applied'}
+                            {getDraftState() === 'applied' && (
+                              <>
+                                Applied to Shopify on{' '}
+                                {appliedAt
+                                  ? new Date(appliedAt).toLocaleString()
+                                  : 'unknown date'}
+                              </>
+                            )}
+                          </div>
+                          <p className="text-xs font-semibold">
+                            {previewProductName || 'Selected product'}
+                          </p>
+                          <p className="mt-1 text-xs text-gray-700">
+                            Field: {previewFieldLabel ?? 'SEO field'}
+                          </p>
+                          <div className="mt-2 grid gap-3 md:grid-cols-2">
+                            <div>
+                              <p className="text-[11px] font-semibold text-gray-700">
+                                Current value
+                              </p>
+                              <p className="mt-1 rounded bg-white px-2 py-1 text-[11px] text-gray-700">
+                                {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Show correct current value for the field being edited */}
+                                {previewFieldLabel === 'SEO title' ? (
+                                  previewCurrentTitle &&
+                                  previewCurrentTitle.trim().length > 0 ? (
+                                    previewCurrentTitle
                                   ) : (
-                                    previewCurrentDescription && previewCurrentDescription.trim().length > 0 ? (
-                                      previewCurrentDescription
-                                    ) : (
-                                      <span className="italic text-gray-500">Missing</span>
-                                    )
-                                  )}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-[11px] font-semibold text-gray-700">
-                                  AI preview
-                                </p>
-                                <p className="mt-1 rounded bg-white px-2 py-1 text-[11px] text-gray-800">
-                                  {previewValue}
-                                </p>
-                              </div>
+                                    <span className="italic text-gray-500">
+                                      Missing
+                                    </span>
+                                  )
+                                ) : previewCurrentDescription &&
+                                  previewCurrentDescription.trim().length >
+                                    0 ? (
+                                  previewCurrentDescription
+                                ) : (
+                                  <span className="italic text-gray-500">
+                                    Missing
+                                  </span>
+                                )}
+                              </p>
                             </div>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Save draft button */}
-                              {getDraftState() === 'unsaved' && (
-                                <button
-                                  type="button"
-                                  data-testid="issue-save-draft-button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSaveDraft(issue);
-                                  }}
-                                  className="inline-flex items-center rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-100"
-                                >
-                                  Save draft
-                                </button>
-                              )}
-                              {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Apply to Shopify button - disabled unless draft is saved */}
+                            <div>
+                              <p className="text-[11px] font-semibold text-gray-700">
+                                AI preview
+                              </p>
+                              <p className="mt-1 rounded bg-white px-2 py-1 text-[11px] text-gray-800">
+                                {previewValue}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Save draft button */}
+                            {getDraftState() === 'unsaved' && (
                               <button
                                 type="button"
-                                data-testid="issue-apply-to-shopify-button"
+                                data-testid="issue-save-draft-button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleApplyFixFromPreview(issue);
+                                  handleSaveDraft(issue);
                                 }}
-                                disabled={fixingIssueId === issue.id || getDraftState() !== 'saved'}
-                                title={
-                                  getDraftState() !== 'saved'
-                                    ? 'Save your draft first before applying to Shopify'
-                                    : 'Applies saved draft only. Does not use AI.'
-                                }
-                                className="inline-flex items-center rounded-md border border-green-600 bg-green-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="inline-flex items-center rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-100"
                               >
-                                {fixingIssueId === issue.id ? 'Applying…' : 'Apply to Shopify'}
+                                Save draft
                               </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCancelPreview(issue);
-                                }}
-                                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </>
-                        ) : null}
-                      </div>
-                    )}
+                            )}
+                            {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Apply to Shopify button - disabled unless draft is saved */}
+                            <button
+                              type="button"
+                              data-testid="issue-apply-to-shopify-button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApplyFixFromPreview(issue);
+                              }}
+                              disabled={
+                                fixingIssueId === issue.id ||
+                                getDraftState() !== 'saved'
+                              }
+                              title={
+                                getDraftState() !== 'saved'
+                                  ? 'Save your draft first before applying to Shopify'
+                                  : 'Applies saved draft only. Does not use AI.'
+                              }
+                              className="inline-flex items-center rounded-md border border-green-600 bg-green-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {fixingIssueId === issue.id
+                                ? 'Applying…'
+                                : 'Apply to Shopify'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCancelPreview(issue);
+                              }}
+                              className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </>
+                      ) : null}
+                    </div>
+                  )}
 
                   {fixAction && fixAction.kind === 'ai-fix-now' && (
                     <button

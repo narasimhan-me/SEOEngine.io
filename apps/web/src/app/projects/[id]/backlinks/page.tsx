@@ -36,7 +36,9 @@ export default function BacklinksPage({
   const [data, setData] = useState<ProjectOffsiteSignalsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [previewDraft, setPreviewDraft] = useState<OffsiteFixDraft | null>(null);
+  const [previewDraft, setPreviewDraft] = useState<OffsiteFixDraft | null>(
+    null
+  );
   const [previewLoading, setPreviewLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -106,12 +108,16 @@ export default function BacklinksPage({
     <div className="max-w-6xl mx-auto">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Off-site Signals</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          Off-site Signals
+        </h1>
         <p className="text-gray-600">
-          Manage brand mentions, authoritative listings, reviews, and reference content that build trust and authority.
+          Manage brand mentions, authoritative listings, reviews, and reference
+          content that build trust and authority.
         </p>
         <p className="text-sm text-gray-500 mt-2">
-          Off-site signals help discovery engines and AI models understand your brand&apos;s authority and relevance.
+          Off-site signals help discovery engines and AI models understand your
+          brand&apos;s authority and relevance.
         </p>
       </div>
 
@@ -119,10 +125,14 @@ export default function BacklinksPage({
 
       {/* Ethical Boundaries Notice */}
       <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <h3 className="font-medium text-blue-900 mb-1">Ethical off-site strategy</h3>
+        <h3 className="font-medium text-blue-900 mb-1">
+          Ethical off-site strategy
+        </h3>
         <p className="text-sm text-blue-800">
-          EngineO.ai helps you identify opportunities and generate outreach drafts, but does not support link buying,
-          spam tactics, or automated outreach. All generated content should be reviewed before sending manually.
+          EngineO.ai helps you identify opportunities and generate outreach
+          drafts, but does not support link buying, spam tactics, or automated
+          outreach. All generated content should be reviewed before sending
+          manually.
         </p>
       </div>
 
@@ -161,7 +171,9 @@ export default function BacklinksPage({
               {previewLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <span className="ml-3 text-gray-600">Generating draft...</span>
+                  <span className="ml-3 text-gray-600">
+                    Generating draft...
+                  </span>
                 </div>
               ) : previewDraft ? (
                 <>
@@ -173,22 +185,35 @@ export default function BacklinksPage({
                       onClick={closePreviewModal}
                       className="text-gray-400 hover:text-gray-600"
                     >
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
                       </svg>
                     </button>
                   </div>
 
                   {previewDraft.generatedWithAi && (
                     <div className="mb-4 px-3 py-2 bg-purple-50 border border-purple-200 rounded text-sm text-purple-800">
-                      This draft was generated with AI. Please review and customize before using.
+                      This draft was generated with AI. Please review and
+                      customize before using.
                     </div>
                   )}
 
                   <div className="space-y-4">
                     {previewDraft.draftPayload.subject && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Subject
+                        </label>
                         <div className="p-3 bg-gray-50 rounded border border-gray-200 text-gray-900">
                           {previewDraft.draftPayload.subject}
                         </div>
@@ -197,7 +222,9 @@ export default function BacklinksPage({
 
                     {previewDraft.draftPayload.body && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Body</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Body
+                        </label>
                         <div className="p-3 bg-gray-50 rounded border border-gray-200 text-gray-900 whitespace-pre-wrap">
                           {previewDraft.draftPayload.body}
                         </div>
@@ -206,27 +233,36 @@ export default function BacklinksPage({
 
                     {previewDraft.draftPayload.summary && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Summary</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Summary
+                        </label>
                         <div className="p-3 bg-gray-50 rounded border border-gray-200 text-gray-900">
                           {previewDraft.draftPayload.summary}
                         </div>
                       </div>
                     )}
 
-                    {previewDraft.draftPayload.bullets && previewDraft.draftPayload.bullets.length > 0 && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Key Points</label>
-                        <ul className="list-disc list-inside p-3 bg-gray-50 rounded border border-gray-200 text-gray-900">
-                          {previewDraft.draftPayload.bullets.map((bullet, i) => (
-                            <li key={i}>{bullet}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                    {previewDraft.draftPayload.bullets &&
+                      previewDraft.draftPayload.bullets.length > 0 && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Key Points
+                          </label>
+                          <ul className="list-disc list-inside p-3 bg-gray-50 rounded border border-gray-200 text-gray-900">
+                            {previewDraft.draftPayload.bullets.map(
+                              (bullet, i) => (
+                                <li key={i}>{bullet}</li>
+                              )
+                            )}
+                          </ul>
+                        </div>
+                      )}
 
                     {previewDraft.draftPayload.message && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Message
+                        </label>
                         <div className="p-3 bg-gray-50 rounded border border-gray-200 text-gray-900">
                           {previewDraft.draftPayload.message}
                         </div>
@@ -235,15 +271,20 @@ export default function BacklinksPage({
 
                     {previewDraft.draftPayload.channel && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Suggested Channel</label>
-                        <div className="text-gray-900">{previewDraft.draftPayload.channel}</div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Suggested Channel
+                        </label>
+                        <div className="text-gray-900">
+                          {previewDraft.draftPayload.channel}
+                        </div>
                       </div>
                     )}
                   </div>
 
                   <div className="mt-6 pt-4 border-t border-gray-200">
                     <p className="text-sm text-gray-500 mb-4">
-                      Save this draft to use later. Automated outreach sending is not available - please review and send manually.
+                      Save this draft to use later. Automated outreach sending
+                      is not available - please review and send manually.
                     </p>
                     <div className="flex space-x-3">
                       <button
@@ -253,7 +294,9 @@ export default function BacklinksPage({
                         Save to Notes
                       </button>
                       <button
-                        onClick={() => handleApplyFix(previewDraft.id, 'OUTREACH_DRAFTS')}
+                        onClick={() =>
+                          handleApplyFix(previewDraft.id, 'OUTREACH_DRAFTS')
+                        }
                         className="flex-1 px-4 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded hover:bg-gray-50"
                       >
                         Add to Outreach Queue
@@ -275,12 +318,25 @@ export default function BacklinksPage({
 
       {/* Note about v1 limitations */}
       <div className="mt-8 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-        <h4 className="font-medium text-gray-900 mb-2">About Off-site Signals</h4>
+        <h4 className="font-medium text-gray-900 mb-2">
+          About Off-site Signals
+        </h4>
         <ul className="text-sm text-gray-600 space-y-1">
-          <li>• Signals are detected through configured sources and heuristics, not external crawling</li>
-          <li>• Generated drafts are starting points that require human review and customization</li>
-          <li>• EngineO.ai does not automatically send outreach or purchase links</li>
-          <li>• Focus is on presence and quality of trust signals, not raw backlink counts or DA scores</li>
+          <li>
+            • Signals are detected through configured sources and heuristics,
+            not external crawling
+          </li>
+          <li>
+            • Generated drafts are starting points that require human review and
+            customization
+          </li>
+          <li>
+            • EngineO.ai does not automatically send outreach or purchase links
+          </li>
+          <li>
+            • Focus is on presence and quality of trust signals, not raw
+            backlink counts or DA scores
+          </li>
         </ul>
       </div>
     </div>

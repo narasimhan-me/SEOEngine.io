@@ -17,12 +17,14 @@ GEO-FOUNDATION-1 introduces explainable answer readiness signals that evaluate A
 ### Test Environment Setup
 
 1. Start API and web servers:
+
    ```bash
    pnpm --filter api dev
    pnpm --filter web dev
    ```
 
 2. Seed test data:
+
    ```bash
    curl -X POST http://localhost:3001/testkit/e2e/seed-geo-insights-2
    ```
@@ -37,12 +39,12 @@ GEO-FOUNDATION-1 introduces explainable answer readiness signals that evaluate A
 
 **Component:** `evaluateGeoAnswerUnit()` in `packages/shared/src/geo.ts`
 
-| Step | Action | Expected Result |
-|------|--------|-----------------|
-| 1 | Create an Answer Block with clear, structured content | All 5 signals return `status: 'pass'` |
-| 2 | Create an Answer Block with a long, unstructured paragraph | `structure` signal returns `status: 'needs_improvement'` |
-| 3 | Create an Answer Block with promotional language ("ultimate best", "guaranteed") | Issue `answer_overly_promotional` is generated |
-| 4 | Create an Answer Block with vague content (no specifics) | `specificity` signal returns `status: 'needs_improvement'` |
+| Step | Action                                                                           | Expected Result                                            |
+| ---- | -------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| 1    | Create an Answer Block with clear, structured content                            | All 5 signals return `status: 'pass'`                      |
+| 2    | Create an Answer Block with a long, unstructured paragraph                       | `structure` signal returns `status: 'needs_improvement'`   |
+| 3    | Create an Answer Block with promotional language ("ultimate best", "guaranteed") | Issue `answer_overly_promotional` is generated             |
+| 4    | Create an Answer Block with vague content (no specifics)                         | `specificity` signal returns `status: 'needs_improvement'` |
 
 **Unit Test Reference:** `packages/shared/src/geo-types.test.ts`
 
@@ -52,12 +54,12 @@ GEO-FOUNDATION-1 introduces explainable answer readiness signals that evaluate A
 
 **Component:** `deriveCitationConfidence()` in `packages/shared/src/geo.ts`
 
-| Step | Action | Expected Result |
-|------|--------|-----------------|
-| 1 | All 5 signals pass | `level: 'high'` |
-| 2 | 1-2 non-core signals need improvement | `level: 'medium'` |
-| 3 | Core signal (clarity or structure) needs improvement | `level: 'low'` |
-| 4 | No Answer Units exist for product | `level: 'low'` with appropriate reason |
+| Step | Action                                               | Expected Result                        |
+| ---- | ---------------------------------------------------- | -------------------------------------- |
+| 1    | All 5 signals pass                                   | `level: 'high'`                        |
+| 2    | 1-2 non-core signals need improvement                | `level: 'medium'`                      |
+| 3    | Core signal (clarity or structure) needs improvement | `level: 'low'`                         |
+| 4    | No Answer Units exist for product                    | `level: 'low'` with appropriate reason |
 
 ---
 
@@ -65,11 +67,11 @@ GEO-FOUNDATION-1 introduces explainable answer readiness signals that evaluate A
 
 **Component:** `evaluateGeoProduct()` in `packages/shared/src/geo.ts`
 
-| Step | Action | Expected Result |
-|------|--------|-----------------|
-| 1 | Product with multiple High-confidence Answer Blocks | Product citationConfidence is `high` |
-| 2 | Product with mixed confidence Answer Blocks | Product citationConfidence reflects aggregate |
-| 3 | Product with no Answer Blocks | `citationConfidence: 'low'`, issue for `no_answer_units` |
+| Step | Action                                              | Expected Result                                          |
+| ---- | --------------------------------------------------- | -------------------------------------------------------- |
+| 1    | Product with multiple High-confidence Answer Blocks | Product citationConfidence is `high`                     |
+| 2    | Product with mixed confidence Answer Blocks         | Product citationConfidence reflects aggregate            |
+| 3    | Product with no Answer Blocks                       | `citationConfidence: 'low'`, issue for `no_answer_units` |
 
 ---
 
@@ -77,12 +79,12 @@ GEO-FOUNDATION-1 introduces explainable answer readiness signals that evaluate A
 
 **Integration with Issue Engine**
 
-| Step | Action | Expected Result |
-|------|--------|-----------------|
-| 1 | View product with GEO issues | Issues appear with `pillarId: 'GEO'` |
-| 2 | GEO issue shows severity badge | Critical/Warning/Info badge displayed |
-| 3 | GEO issue shows fix guidance | `recommendedFix` text is actionable |
-| 4 | Click "Fix with AI" on GEO issue | Routes to product workspace with GEO section focused |
+| Step | Action                           | Expected Result                                      |
+| ---- | -------------------------------- | ---------------------------------------------------- |
+| 1    | View product with GEO issues     | Issues appear with `pillarId: 'GEO'`                 |
+| 2    | GEO issue shows severity badge   | Critical/Warning/Info badge displayed                |
+| 3    | GEO issue shows fix guidance     | `recommendedFix` text is actionable                  |
+| 4    | Click "Fix with AI" on GEO issue | Routes to product workspace with GEO section focused |
 
 ---
 
@@ -90,15 +92,16 @@ GEO-FOUNDATION-1 introduces explainable answer readiness signals that evaluate A
 
 **Draft-First Pattern**
 
-| Step | Action | Expected Result |
-|------|--------|-----------------|
-| 1 | Click "Preview" on a GEO issue | AI generates improvement, draft is created |
-| 2 | View the draft | Shows improved answer text with diff |
-| 3 | Click "Preview" again on same issue | Cached draft is returned (no AI call) |
-| 4 | Click "Apply" | Draft is persisted, no AI call occurs |
-| 5 | Verify AI usage ledger | Only one AI run recorded (for Preview) |
+| Step | Action                              | Expected Result                            |
+| ---- | ----------------------------------- | ------------------------------------------ |
+| 1    | Click "Preview" on a GEO issue      | AI generates improvement, draft is created |
+| 2    | View the draft                      | Shows improved answer text with diff       |
+| 3    | Click "Preview" again on same issue | Cached draft is returned (no AI call)      |
+| 4    | Click "Apply"                       | Draft is persisted, no AI call occurs      |
+| 5    | Verify AI usage ledger              | Only one AI run recorded (for Preview)     |
 
 **cURL Example (Preview):**
+
 ```bash
 curl -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -107,6 +110,7 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 ```
 
 **cURL Example (Apply):**
+
 ```bash
 curl -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -120,12 +124,12 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 
 **Draft Reuse via aiWorkKey**
 
-| Step | Action | Expected Result |
-|------|--------|-----------------|
-| 1 | Generate preview for product A, question Q1 | Draft created with unique aiWorkKey |
-| 2 | Navigate away and return | Same draft is retrievable |
-| 3 | Generate preview for same product A, question Q1 | Same draft returned (reused) |
-| 4 | Generate preview for different question Q2 | New draft created with different aiWorkKey |
+| Step | Action                                           | Expected Result                            |
+| ---- | ------------------------------------------------ | ------------------------------------------ |
+| 1    | Generate preview for product A, question Q1      | Draft created with unique aiWorkKey        |
+| 2    | Navigate away and return                         | Same draft is retrievable                  |
+| 3    | Generate preview for same product A, question Q1 | Same draft returned (reused)               |
+| 4    | Generate preview for different question Q2       | New draft created with different aiWorkKey |
 
 **aiWorkKey Format:** `geo:preview:<projectId>:<productId>:<questionId>:<issueType>:<dateKey>`
 
@@ -135,12 +139,12 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 
 **Critical:** Viewing GEO data never triggers AI or mutations.
 
-| Step | Action | Expected Result |
-|------|--------|-----------------|
-| 1 | Load product page with GEO section | No POST requests to AI endpoints |
-| 2 | View GEO readiness signals | Data is derived from existing Answer Blocks |
-| 3 | Refresh page multiple times | Same signals returned, no DB writes |
-| 4 | Check AI usage ledger | No new entries from viewing |
+| Step | Action                             | Expected Result                             |
+| ---- | ---------------------------------- | ------------------------------------------- |
+| 1    | Load product page with GEO section | No POST requests to AI endpoints            |
+| 2    | View GEO readiness signals         | Data is derived from existing Answer Blocks |
+| 3    | Refresh page multiple times        | Same signals returned, no DB writes         |
+| 4    | Check AI usage ledger              | No new entries from viewing                 |
 
 ---
 
@@ -180,6 +184,6 @@ The `seed-geo-insights-2` endpoint creates:
 
 ## Document History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2025-12-19 | Initial manual testing guide for GEO-FOUNDATION-1 |
+| Version | Date       | Changes                                           |
+| ------- | ---------- | ------------------------------------------------- |
+| 1.0     | 2025-12-19 | Initial manual testing guide for GEO-FOUNDATION-1 |

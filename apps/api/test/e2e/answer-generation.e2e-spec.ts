@@ -6,7 +6,7 @@ import { cleanupTestDb, disconnectTestDb, testPrisma } from '../utils/test-db';
 async function signupAndLogin(
   server: any,
   email: string,
-  password: string,
+  password: string
 ): Promise<{ token: string; userId: string }> {
   await request(server)
     .post('/auth/signup')
@@ -36,7 +36,7 @@ async function signupAndLogin(
 async function createProject(
   server: any,
   token: string,
-  name = 'Answer Generation Project',
+  name = 'Answer Generation Project'
 ): Promise<string> {
   const res = await request(server)
     .post('/projects')
@@ -73,7 +73,7 @@ describe('Answer Generation API (e2e)', () => {
     const { token } = await signupAndLogin(
       server,
       'ag-rich@example.com',
-      'testpassword123',
+      'testpassword123'
     );
     const projectId = await createProject(server, token);
 
@@ -105,13 +105,19 @@ describe('Answer Generation API (e2e)', () => {
     // Verify answerabilityStatus structure
     expect(res.body).toHaveProperty('answerabilityStatus');
     expect(res.body.answerabilityStatus).toHaveProperty('status');
-    expect(['answer_ready', 'partially_answer_ready', 'needs_answers']).toContain(
-      res.body.answerabilityStatus.status,
-    );
+    expect([
+      'answer_ready',
+      'partially_answer_ready',
+      'needs_answers',
+    ]).toContain(res.body.answerabilityStatus.status);
     expect(res.body.answerabilityStatus).toHaveProperty('missingQuestions');
-    expect(Array.isArray(res.body.answerabilityStatus.missingQuestions)).toBe(true);
+    expect(Array.isArray(res.body.answerabilityStatus.missingQuestions)).toBe(
+      true
+    );
     expect(res.body.answerabilityStatus).toHaveProperty('weakQuestions');
-    expect(Array.isArray(res.body.answerabilityStatus.weakQuestions)).toBe(true);
+    expect(Array.isArray(res.body.answerabilityStatus.weakQuestions)).toBe(
+      true
+    );
 
     // Verify answers array structure
     expect(res.body).toHaveProperty('answers');
@@ -140,7 +146,7 @@ describe('Answer Generation API (e2e)', () => {
     const { token } = await signupAndLogin(
       server,
       'ag-minimal@example.com',
-      'testpassword123',
+      'testpassword123'
     );
     const projectId = await createProject(server, token);
 
@@ -165,14 +171,16 @@ describe('Answer Generation API (e2e)', () => {
 
     // Answerability should indicate poor answer readiness
     expect(res.body.answerabilityStatus.status).toBe('needs_answers');
-    expect(res.body.answerabilityStatus.missingQuestions.length).toBeGreaterThanOrEqual(5);
+    expect(
+      res.body.answerabilityStatus.missingQuestions.length
+    ).toBeGreaterThanOrEqual(5);
   });
 
   it('rejects requests for non-existent product', async () => {
     const { token } = await signupAndLogin(
       server,
       'ag-invalid@example.com',
-      'testpassword123',
+      'testpassword123'
     );
 
     const res = await request(server)
@@ -184,16 +192,16 @@ describe('Answer Generation API (e2e)', () => {
     expect(res.body.message).toContain('Product not found');
   });
 
-  it('rejects requests for another user\'s product', async () => {
+  it("rejects requests for another user's product", async () => {
     const owner = await signupAndLogin(
       server,
       'ag-owner@example.com',
-      'testpassword123',
+      'testpassword123'
     );
     const other = await signupAndLogin(
       server,
       'ag-other@example.com',
-      'testpassword123',
+      'testpassword123'
     );
 
     const projectId = await createProject(server, owner.token);
@@ -202,7 +210,7 @@ describe('Answer Generation API (e2e)', () => {
       data: {
         projectId,
         externalId: 'owner-product',
-        title: 'Owner\'s Product',
+        title: "Owner's Product",
         description: 'A product belonging to owner',
       },
     });

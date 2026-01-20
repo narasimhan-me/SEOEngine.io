@@ -39,7 +39,10 @@ export function GovernanceSettingsSection({
   const [allowedExportAudience, setAllowedExportAudience] = useState<
     'ANYONE_WITH_LINK' | 'PASSCODE' | 'ORG_ONLY'
   >('ANYONE_WITH_LINK');
-  const [allowCompetitorMentionsInExports, setAllowCompetitorMentionsInExports] = useState(false);
+  const [
+    allowCompetitorMentionsInExports,
+    setAllowCompetitorMentionsInExports,
+  ] = useState(false);
 
   const fetchPolicy = useCallback(async () => {
     try {
@@ -51,10 +54,16 @@ export function GovernanceSettingsSection({
       setRestrictShareLinks(data.restrictShareLinks);
       setShareLinkExpiryDays(data.shareLinkExpiryDays);
       setAllowedExportAudience(data.allowedExportAudience);
-      setAllowCompetitorMentionsInExports(data.allowCompetitorMentionsInExports);
+      setAllowCompetitorMentionsInExports(
+        data.allowCompetitorMentionsInExports
+      );
     } catch (err) {
       console.error('Error fetching governance policy:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load governance settings');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to load governance settings'
+      );
     } finally {
       setLoading(false);
     }
@@ -70,7 +79,8 @@ export function GovernanceSettingsSection({
       restrictShareLinks !== policy.restrictShareLinks ||
       shareLinkExpiryDays !== policy.shareLinkExpiryDays ||
       allowedExportAudience !== policy.allowedExportAudience ||
-      allowCompetitorMentionsInExports !== policy.allowCompetitorMentionsInExports);
+      allowCompetitorMentionsInExports !==
+        policy.allowCompetitorMentionsInExports);
 
   useEffect(() => {
     onUnsavedChanges?.(!!hasChanges);
@@ -91,7 +101,10 @@ export function GovernanceSettingsSection({
       await fetchPolicy();
     } catch (err) {
       console.error('Error saving governance policy:', err);
-      const message = err instanceof Error ? err.message : 'Failed to save governance settings';
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Failed to save governance settings';
       setError(message);
       feedback.showError(message);
     } finally {
@@ -114,9 +127,12 @@ export function GovernanceSettingsSection({
 
   return (
     <div className="rounded-lg bg-white p-6 shadow">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Governance & Approvals</h2>
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        Governance & Approvals
+      </h2>
       <p className="text-sm text-gray-600 mb-6">
-        Configure approval workflows and export controls for enterprise compliance.
+        Configure approval workflows and export controls for enterprise
+        compliance.
       </p>
 
       {error && (
@@ -136,7 +152,8 @@ export function GovernanceSettingsSection({
               Require Approval for Apply Actions
             </label>
             <p className="text-sm text-gray-500 mt-0.5">
-              When enabled, GEO fixes, Answer Block syncs, and Playbooks apply require approval before execution.
+              When enabled, GEO fixes, Answer Block syncs, and Playbooks apply
+              require approval before execution.
             </p>
           </div>
           <button
@@ -168,7 +185,8 @@ export function GovernanceSettingsSection({
               Restrict Share Links
             </label>
             <p className="text-sm text-gray-500 mt-0.5">
-              When enabled, share links must meet the minimum audience requirement below.
+              When enabled, share links must meet the minimum audience
+              requirement below.
             </p>
           </div>
           <button
@@ -205,14 +223,20 @@ export function GovernanceSettingsSection({
             id="allowedExportAudience"
             value={allowedExportAudience}
             onChange={(e) =>
-              setAllowedExportAudience(e.target.value as 'ANYONE_WITH_LINK' | 'PASSCODE' | 'ORG_ONLY')
+              setAllowedExportAudience(
+                e.target.value as 'ANYONE_WITH_LINK' | 'PASSCODE' | 'ORG_ONLY'
+              )
             }
             disabled={!restrictShareLinks}
             className={`block w-full max-w-xs rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-              !restrictShareLinks ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
+              !restrictShareLinks
+                ? 'opacity-50 cursor-not-allowed bg-gray-100'
+                : ''
             }`}
           >
-            <option value="ANYONE_WITH_LINK">Anyone with link (no restriction)</option>
+            <option value="ANYONE_WITH_LINK">
+              Anyone with link (no restriction)
+            </option>
             <option value="PASSCODE">Passcode required</option>
             <option value="ORG_ONLY">Organization only (disabled)</option>
           </select>
@@ -233,7 +257,9 @@ export function GovernanceSettingsSection({
             type="number"
             id="shareLinkExpiryDays"
             value={shareLinkExpiryDays}
-            onChange={(e) => setShareLinkExpiryDays(Math.max(1, parseInt(e.target.value) || 1))}
+            onChange={(e) =>
+              setShareLinkExpiryDays(Math.max(1, parseInt(e.target.value) || 1))
+            }
             min="1"
             max="365"
             className="block w-full max-w-xs rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
@@ -258,7 +284,11 @@ export function GovernanceSettingsSection({
             type="button"
             role="switch"
             aria-checked={allowCompetitorMentionsInExports}
-            onClick={() => setAllowCompetitorMentionsInExports(!allowCompetitorMentionsInExports)}
+            onClick={() =>
+              setAllowCompetitorMentionsInExports(
+                !allowCompetitorMentionsInExports
+              )
+            }
             className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
               allowCompetitorMentionsInExports ? 'bg-blue-600' : 'bg-gray-200'
             }`}
@@ -266,7 +296,9 @@ export function GovernanceSettingsSection({
             <span
               aria-hidden="true"
               className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                allowCompetitorMentionsInExports ? 'translate-x-5' : 'translate-x-0'
+                allowCompetitorMentionsInExports
+                  ? 'translate-x-5'
+                  : 'translate-x-0'
               }`}
             />
           </button>
@@ -297,8 +329,8 @@ export function GovernanceSettingsSection({
                 </span>
               </label>
               <p className="text-sm text-gray-500 mt-0.5">
-                PII (Personally Identifiable Information) is never included in exports. This setting
-                cannot be changed for compliance reasons.
+                PII (Personally Identifiable Information) is never included in
+                exports. This setting cannot be changed for compliance reasons.
               </p>
             </div>
           </div>

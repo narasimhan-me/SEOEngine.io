@@ -14,24 +14,24 @@ EngineO.ai is a monorepo containing:
 
 ### Production Stack
 
-| Component | Service | Purpose |
-|-----------|---------|---------|
-| Database | Neon | Managed PostgreSQL |
-| API | Render | NestJS backend hosting |
-| Web | Vercel | Next.js frontend hosting |
-| Cache/Queues | Upstash Redis | BullMQ queues & caching |
-| DNS/SSL | Cloudflare | Domain management and SSL |
-| Backups | AWS S3 | Periodic database backups |
-| E-commerce | Shopify | Partner app integration |
+| Component    | Service       | Purpose                   |
+| ------------ | ------------- | ------------------------- |
+| Database     | Neon          | Managed PostgreSQL        |
+| API          | Render        | NestJS backend hosting    |
+| Web          | Vercel        | Next.js frontend hosting  |
+| Cache/Queues | Upstash Redis | BullMQ queues & caching   |
+| DNS/SSL      | Cloudflare    | Domain management and SSL |
+| Backups      | AWS S3        | Periodic database backups |
+| E-commerce   | Shopify       | Partner app integration   |
 
 ### Environments – Production vs Staging
 
 EngineO.ai runs two primary environments backed by Git branches:
 
-| Environment | Git branch | API URL (example) | Web URL (example) |
-|------------|------------|-------------------|-------------------|
-| Production | `main`     | `https://api.engineo.ai` | `https://app.engineo.ai` |
-| Staging    | `develop`  | `https://staging-api.engineo.ai` | `https://staging.engineo.ai` |
+| Environment | Git branch | API URL (example)                | Web URL (example)            |
+| ----------- | ---------- | -------------------------------- | ---------------------------- |
+| Production  | `main`     | `https://api.engineo.ai`         | `https://app.engineo.ai`     |
+| Staging     | `develop`  | `https://staging-api.engineo.ai` | `https://staging.engineo.ai` |
 
 - **Production instances**
   - Render API service: `engineo-api` (branch `main`, domain `api.engineo.ai`)
@@ -138,22 +138,24 @@ Run `npx prisma migrate deploy` against the staging database as well (from the `
 3. Connect to your GitHub repository
 4. Configure the service:
 
-| Setting | Value |
-|---------|-------|
-| Name | `engineo-api` |
-| Region | Same as Neon (e.g., `us-east-1`) |
-| Branch | `main` (production) |
-| Root Directory | _(leave blank – repo root)_ |
-| Runtime | Node |
+| Setting        | Value                            |
+| -------------- | -------------------------------- |
+| Name           | `engineo-api`                    |
+| Region         | Same as Neon (e.g., `us-east-1`) |
+| Branch         | `main` (production)              |
+| Root Directory | _(leave blank – repo root)_      |
+| Runtime        | Node                             |
 
 ### Build & Start Commands
 
 **Build Command:**
+
 ```bash
 pnpm install && pnpm --filter api build
 ```
 
 **Start Command:**
+
 ```bash
 pnpm --filter api start:prod
 ```
@@ -162,27 +164,27 @@ pnpm --filter api start:prod
 
 In Render's **Environment** tab, add these variables:
 
-| Variable | Description |
-|----------|-------------|
-| `NODE_ENV` | `production` |
-| `PORT` | `3001` |
-| `DATABASE_URL` | Neon connection string |
-| `REDIS_URL` | Upstash Redis TLS URL (`UPSTASH_REDIS_URL`) |
-| `REDIS_PREFIX` | Redis key prefix (e.g., `engineo`) |
-| `JWT_SECRET` | Generate with `openssl rand -base64 32` |
-| `SHOPIFY_API_KEY` | From Shopify Partner Dashboard |
-| `SHOPIFY_API_SECRET` | From Shopify Partner Dashboard |
-| `SHOPIFY_APP_URL` | `https://api.engineo.ai` |
-| `SHOPIFY_SCOPES` | `read_products,write_products,read_themes,read_content` |
-| `AI_PROVIDER` | `gemini` or `openai` |
-| `AI_API_KEY` | Your AI provider API key |
-| `FRONTEND_URL` | `https://app.engineo.ai` |
+| Variable             | Description                                             |
+| -------------------- | ------------------------------------------------------- |
+| `NODE_ENV`           | `production`                                            |
+| `PORT`               | `3001`                                                  |
+| `DATABASE_URL`       | Neon connection string                                  |
+| `REDIS_URL`          | Upstash Redis TLS URL (`UPSTASH_REDIS_URL`)             |
+| `REDIS_PREFIX`       | Redis key prefix (e.g., `engineo`)                      |
+| `JWT_SECRET`         | Generate with `openssl rand -base64 32`                 |
+| `SHOPIFY_API_KEY`    | From Shopify Partner Dashboard                          |
+| `SHOPIFY_API_SECRET` | From Shopify Partner Dashboard                          |
+| `SHOPIFY_APP_URL`    | `https://api.engineo.ai`                                |
+| `SHOPIFY_SCOPES`     | `read_products,write_products,read_themes,read_content` |
+| `AI_PROVIDER`        | `gemini` or `openai`                                    |
+| `AI_API_KEY`         | Your AI provider API key                                |
+| `FRONTEND_URL`       | `https://app.engineo.ai`                                |
 
 **Optional (Phase 10B – Stripe):**
 
-| Variable | Description |
-|----------|-------------|
-| `STRIPE_SECRET_KEY` | Stripe secret key |
+| Variable                | Description                   |
+| ----------------------- | ----------------------------- |
+| `STRIPE_SECRET_KEY`     | Stripe secret key             |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
 
 > **Security:** Never commit real secrets to version control. Use Render's environment variables dashboard.
@@ -220,36 +222,36 @@ Configure a health check endpoint:
 3. Import your GitHub repository
 4. Configure the project:
 
-| Setting | Value |
-|---------|-------|
-| Framework Preset | Next.js |
-| Root Directory | `apps/web` |
+| Setting          | Value      |
+| ---------------- | ---------- |
+| Framework Preset | Next.js    |
+| Root Directory   | `apps/web` |
 
 ### Build Settings
 
-| Setting | Value |
-|---------|-------|
-| Build Command | `pnpm install && pnpm build` |
-| Output Directory | `.next` |
-| Install Command | `pnpm install` |
+| Setting          | Value                        |
+| ---------------- | ---------------------------- |
+| Build Command    | `pnpm install && pnpm build` |
+| Output Directory | `.next`                      |
+| Install Command  | `pnpm install`               |
 
 ### Environment Variables
 
 In Vercel's **Settings** → **Environment Variables**, add:
 
-| Variable | Value |
-|----------|-------|
-| `NEXT_PUBLIC_API_URL` | `https://api.engineo.ai` (production) |
-| `NEXT_PUBLIC_APP_URL` | `https://app.engineo.ai` (production) |
-| `NEXT_PUBLIC_CAPTCHA_PROVIDER` | `turnstile` |
-| `NEXT_PUBLIC_CAPTCHA_SITE_KEY` | Cloudflare Turnstile site key |
+| Variable                       | Value                                 |
+| ------------------------------ | ------------------------------------- |
+| `NEXT_PUBLIC_API_URL`          | `https://api.engineo.ai` (production) |
+| `NEXT_PUBLIC_APP_URL`          | `https://app.engineo.ai` (production) |
+| `NEXT_PUBLIC_CAPTCHA_PROVIDER` | `turnstile`                           |
+| `NEXT_PUBLIC_CAPTCHA_SITE_KEY` | Cloudflare Turnstile site key         |
 
 **Optional:**
 
-| Variable | Description |
-|----------|-------------|
+| Variable                         | Description                                            |
+| -------------------------------- | ------------------------------------------------------ |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Legacy Cloudflare Turnstile site key (still supported) |
-| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Google Analytics ID |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID`  | Google Analytics ID                                    |
 
 > **Note:** You must redeploy after changing environment variables for changes to take effect.
 
@@ -288,18 +290,18 @@ For **staging** (branch `develop`), configure a separate Vercel environment:
 
 Add these DNS records for **production**:
 
-| Type | Name | Target | Proxy |
-|------|------|--------|-------|
+| Type  | Name  | Target                     | Proxy            |
+| ----- | ----- | -------------------------- | ---------------- |
 | CNAME | `api` | `engineo-api.onrender.com` | Proxied (orange) |
-| CNAME | `app` | `cname.vercel-dns.com` | Proxied (orange) |
-| CNAME | `@` | Your marketing site | Proxied (orange) |
+| CNAME | `app` | `cname.vercel-dns.com`     | Proxied (orange) |
+| CNAME | `@`   | Your marketing site        | Proxied (orange) |
 
 Add these DNS records for **staging**:
 
-| Type | Name | Target | Proxy |
-|------|------|--------|-------|
-| CNAME | `staging-api` | `engineo-api-staging.onrender.com` | Proxied (orange) |
-| CNAME | `staging` | `cname.vercel-dns.com` (staging project/alias) | Proxied (orange) |
+| Type  | Name          | Target                                         | Proxy            |
+| ----- | ------------- | ---------------------------------------------- | ---------------- |
+| CNAME | `staging-api` | `engineo-api-staging.onrender.com`             | Proxied (orange) |
+| CNAME | `staging`     | `cname.vercel-dns.com` (staging project/alias) | Proxied (orange) |
 
 > **Note:** Replace targets with the actual values from Render and Vercel for both production and staging services.
 
@@ -321,23 +323,23 @@ Protect your API from abuse by limiting requests per IP:
 2. Click **Create rule**
 3. Configure the rule:
 
-| Setting | Value |
-|---------|-------|
-| Rule name | `API Rate Limit` |
+| Setting                       | Value                            |
+| ----------------------------- | -------------------------------- |
+| Rule name                     | `API Rate Limit`                 |
 | If incoming requests match... | `Hostname equals api.engineo.ai` |
-| Rate | `100 requests per 1 minute` |
-| Action | `Block` |
-| Duration | `1 minute` |
+| Rate                          | `100 requests per 1 minute`      |
+| Action                        | `Block`                          |
+| Duration                      | `1 minute`                       |
 
 4. For stricter auth endpoint protection, create another rule:
 
-| Setting | Value |
-|---------|-------|
-| Rule name | `Auth Rate Limit` |
+| Setting    | Value                                                                        |
+| ---------- | ---------------------------------------------------------------------------- |
+| Rule name  | `Auth Rate Limit`                                                            |
 | Expression | `(http.host eq "api.engineo.ai" and http.request.uri.path contains "/auth")` |
-| Rate | `10 requests per 1 minute` |
-| Action | `Block` |
-| Duration | `10 minutes` |
+| Rate       | `10 requests per 1 minute`                                                   |
+| Action     | `Block`                                                                      |
+| Duration   | `10 minutes`                                                                 |
 
 5. Click **Deploy**
 
@@ -349,11 +351,11 @@ Restrict admin access to specific countries:
 2. Click **Create rule**
 3. Configure:
 
-| Setting | Value |
-|---------|-------|
-| Rule name | `Block Admin from Outside US` |
+| Setting    | Value                                                                               |
+| ---------- | ----------------------------------------------------------------------------------- |
+| Rule name  | `Block Admin from Outside US`                                                       |
 | Expression | `(http.request.uri.path contains "/admin" and not ip.geoip.country in {"US" "CA"})` |
-| Action | `Block` |
+| Action     | `Block`                                                                             |
 
 4. Adjust country codes as needed (US, CA, GB, AU, etc.)
 5. Click **Deploy**
@@ -370,11 +372,11 @@ Enable Cloudflare's bot management:
 
 3. For API protection (Pro+ plans only), go to **Security** → **WAF** → **Custom rules**:
 
-| Setting | Value |
-|---------|-------|
-| Rule name | `Block Bad Bots on API` |
+| Setting    | Value                                               |
+| ---------- | --------------------------------------------------- |
+| Rule name  | `Block Bad Bots on API`                             |
 | Expression | `(http.host eq "api.engineo.ai" and cf.client.bot)` |
-| Action | `Managed Challenge` |
+| Action     | `Managed Challenge`                                 |
 
 > **Note:** The `cf.bot_management.verified_bot` field requires a paid Bot Management add-on. On free/Pro plans, use `cf.client.bot` with "Managed Challenge" action to avoid blocking legitimate services. For free tier, rely on Bot Fight Mode instead of custom rules.
 
@@ -386,9 +388,9 @@ Add security headers via Response Header Transform Rules:
 2. Select **Response Header Transform Rules** from the dropdown
 3. Configure:
 
-| Setting | Value |
-|---------|-------|
-| Rule name | `Security Headers` |
+| Setting    | Value                                                              |
+| ---------- | ------------------------------------------------------------------ |
+| Rule name  | `Security Headers`                                                 |
 | Expression | `(http.host eq "app.engineo.ai" or http.host eq "api.engineo.ai")` |
 
 4. Under **Then... Modify response header**, click **+ Set new header** and add each header:
@@ -434,8 +436,8 @@ To restrict staging (`staging.engineo.ai`, `staging-api.engineo.ai`) behind a on
 3. Configure the application:
    - **Application name**: `engineo-staging`
    - **Session duration**: e.g., `8 hours`
-   - **Application domain**:  
-     - `staging.engineo.ai` (web app)  
+   - **Application domain**:
+     - `staging.engineo.ai` (web app)
      - Optionally add `staging-api.engineo.ai` if you want to protect the API UI access as well.
 4. Click **Next** to define **Policies**:
    - Create a policy like:
@@ -448,6 +450,7 @@ To restrict staging (`staging.engineo.ai`, `staging-api.engineo.ai`) behind a on
 6. Save and deploy the application.
 
 After configuration:
+
 - Any visit to `https://staging.engineo.ai` (and optionally `https://staging-api.engineo.ai`) will prompt for the Cloudflare Access one-time PIN before allowing access.
 
 ---
@@ -491,18 +494,19 @@ Even though Neon provides managed backups, we maintain independent backups to S3
 
 Add these variables to your Render API service (or a dedicated cron job):
 
-| Variable | Value |
-|----------|-------|
-| `AWS_ACCESS_KEY_ID` | Your IAM access key |
-| `AWS_SECRET_ACCESS_KEY` | Your IAM secret key |
-| `AWS_REGION` | `us-east-1` |
-| `S3_BACKUP_BUCKET` | `engineo-db-backups-prod` |
+| Variable                | Value                     |
+| ----------------------- | ------------------------- |
+| `AWS_ACCESS_KEY_ID`     | Your IAM access key       |
+| `AWS_SECRET_ACCESS_KEY` | Your IAM secret key       |
+| `AWS_REGION`            | `us-east-1`               |
+| `S3_BACKUP_BUCKET`      | `engineo-db-backups-prod` |
 
 ### Backup Script
 
 The backup script is located at `apps/api/src/scripts/backup-db.ts` (Phase 11.5).
 
 It performs:
+
 1. Runs `pg_dump` against the production database
 2. Compresses the output with gzip
 3. Uploads to S3 with timestamp naming: `db-backup-YYYY-MM-DDTHH-mm-ss.sql.gz`
@@ -513,12 +517,12 @@ It performs:
 2. Connect to the same repository
 3. Configure:
 
-| Setting | Value |
-|---------|-------|
-| Name | `engineo-db-backup` |
-| Schedule | `0 2 * * *` (daily at 2 AM UTC) |
+| Setting       | Value                                     |
+| ------------- | ----------------------------------------- |
+| Name          | `engineo-db-backup`                       |
+| Schedule      | `0 2 * * *` (daily at 2 AM UTC)           |
 | Build Command | `pnpm install && pnpm --filter api build` |
-| Command | `node apps/api/dist/scripts/backup-db.js` |
+| Command       | `node apps/api/dist/scripts/backup-db.js` |
 
 4. Add the same environment variables as the API service
 
@@ -534,9 +538,9 @@ It performs:
 2. Go to **Apps** → Select your app
 3. Configure **App setup**:
 
-| Setting | Value |
-|---------|-------|
-| App URL | `https://app.engineo.ai` |
+| Setting                    | Value                                     |
+| -------------------------- | ----------------------------------------- |
+| App URL                    | `https://app.engineo.ai`                  |
 | Allowed redirection URL(s) | `https://api.engineo.ai/shopify/callback` |
 
 4. Under **API access**, confirm scopes match your environment:
@@ -548,12 +552,12 @@ It performs:
 
 Ensure these are set in Render:
 
-| Variable | Source |
-|----------|--------|
-| `SHOPIFY_API_KEY` | Partners Dashboard → API credentials |
-| `SHOPIFY_API_SECRET` | Partners Dashboard → API credentials |
-| `SHOPIFY_APP_URL` | `https://api.engineo.ai` |
-| `SHOPIFY_SCOPES` | `read_products,write_products,read_themes,read_content` |
+| Variable             | Source                                                  |
+| -------------------- | ------------------------------------------------------- |
+| `SHOPIFY_API_KEY`    | Partners Dashboard → API credentials                    |
+| `SHOPIFY_API_SECRET` | Partners Dashboard → API credentials                    |
+| `SHOPIFY_APP_URL`    | `https://api.engineo.ai`                                |
+| `SHOPIFY_SCOPES`     | `read_products,write_products,read_themes,read_content` |
 
 ### Testing
 
@@ -575,10 +579,10 @@ After deployment, test the OAuth flow:
 
 Set up monitoring with [UptimeRobot](https://uptimerobot.com), [Better Stack](https://betterstack.com), or similar:
 
-| Endpoint | Check |
-|----------|-------|
-| `https://api.engineo.ai/health` | API health |
-| `https://app.engineo.ai` | Web app availability |
+| Endpoint                        | Check                |
+| ------------------------------- | -------------------- |
+| `https://api.engineo.ai/health` | API health           |
+| `https://app.engineo.ai`        | Web app availability |
 
 ### Logging
 
@@ -627,21 +631,25 @@ Stripe billing can be added later:
 ### Common Issues
 
 **API not responding:**
+
 - Check Render logs for startup errors
 - Verify `DATABASE_URL` is correct
 - Ensure migrations have been run
 
 **OAuth callback fails:**
+
 - Verify `SHOPIFY_APP_URL` matches your Render custom domain
 - Check redirect URL in Shopify Partner Dashboard
 - Inspect browser network tab for error details
 
 **Database connection errors:**
+
 - Confirm Neon project is active
 - Check connection string includes `?sslmode=require`
 - Verify IP allowlist in Neon (if configured)
 
 **Build failures:**
+
 - Ensure `pnpm-lock.yaml` is committed
 - Check Node.js version matches local development
 - Review build logs for missing dependencies

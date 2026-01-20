@@ -19,7 +19,9 @@ export default function OpportunitySignalsPage() {
   const params = useParams();
   const projectId = params.id as string;
 
-  const [insights, setInsights] = useState<ProjectInsightsResponse | null>(null);
+  const [insights, setInsights] = useState<ProjectInsightsResponse | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,14 +68,18 @@ export default function OpportunitySignalsPage() {
   const { opportunities, overview } = insights;
 
   // Group opportunities by impact
-  const highImpact = opportunities.filter(o => o.estimatedImpact === 'high');
-  const mediumImpact = opportunities.filter(o => o.estimatedImpact === 'medium');
-  const lowImpact = opportunities.filter(o => o.estimatedImpact === 'low');
+  const highImpact = opportunities.filter((o) => o.estimatedImpact === 'high');
+  const mediumImpact = opportunities.filter(
+    (o) => o.estimatedImpact === 'medium'
+  );
+  const lowImpact = opportunities.filter((o) => o.estimatedImpact === 'low');
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Opportunity Signals</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Opportunity Signals
+        </h1>
         <p className="text-gray-600 mt-1">
           Discover opportunities to improve your DEO score.
         </p>
@@ -91,16 +97,30 @@ export default function OpportunitySignalsPage() {
                 <h3 className="text-sm font-semibold text-green-900 uppercase tracking-wide">
                   Recommended Next Action
                 </h3>
-                <p className="mt-2 text-lg font-bold text-green-800">{overview.next.title}</p>
-                <p className="mt-1 text-sm text-green-700">{overview.next.why}</p>
+                <p className="mt-2 text-lg font-bold text-green-800">
+                  {overview.next.title}
+                </p>
+                <p className="mt-1 text-sm text-green-700">
+                  {overview.next.why}
+                </p>
               </div>
               <Link
                 href={overview.next.href}
                 className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700"
               >
                 Take Action
-                <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                <svg
+                  className="ml-2 h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 7l5 5m0 0l-5 5m5-5H6"
+                  />
                 </svg>
               </Link>
             </div>
@@ -111,11 +131,15 @@ export default function OpportunitySignalsPage() {
       {/* Summary Stats */}
       <section className="mt-6 grid gap-4 sm:grid-cols-3">
         <div className="rounded-lg border border-green-100 bg-green-50 p-4 text-center">
-          <p className="text-3xl font-bold text-green-700">{highImpact.length}</p>
+          <p className="text-3xl font-bold text-green-700">
+            {highImpact.length}
+          </p>
           <p className="text-sm text-green-600">High Impact</p>
         </div>
         <div className="rounded-lg border border-yellow-100 bg-yellow-50 p-4 text-center">
-          <p className="text-3xl font-bold text-yellow-700">{mediumImpact.length}</p>
+          <p className="text-3xl font-bold text-yellow-700">
+            {mediumImpact.length}
+          </p>
           <p className="text-sm text-yellow-600">Medium Impact</p>
         </div>
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-center">
@@ -132,7 +156,7 @@ export default function OpportunitySignalsPage() {
             High Impact
           </h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {highImpact.map(opp => (
+            {highImpact.map((opp) => (
               <OpportunityCard key={opp.id} opportunity={opp} />
             ))}
           </div>
@@ -147,7 +171,7 @@ export default function OpportunitySignalsPage() {
             Medium Impact
           </h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {mediumImpact.map(opp => (
+            {mediumImpact.map((opp) => (
               <OpportunityCard key={opp.id} opportunity={opp} />
             ))}
           </div>
@@ -162,7 +186,7 @@ export default function OpportunitySignalsPage() {
             Low Impact
           </h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {lowImpact.map(opp => (
+            {lowImpact.map((opp) => (
               <OpportunityCard key={opp.id} opportunity={opp} />
             ))}
           </div>
@@ -173,10 +197,22 @@ export default function OpportunitySignalsPage() {
       {opportunities.length === 0 && (
         <section className="mt-6">
           <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="mx-auto h-12 w-12 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
-            <p className="mt-4 text-lg font-medium text-gray-900">Looking good!</p>
+            <p className="mt-4 text-lg font-medium text-gray-900">
+              Looking good!
+            </p>
             <p className="mt-2 text-sm text-gray-500">
               No major opportunities identified. Keep up the great work!
             </p>
@@ -198,16 +234,24 @@ function OpportunityCard({ opportunity }: OpportunityCardProps) {
       className="block rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300 hover:shadow-sm transition-all"
     >
       <div className="flex items-start justify-between">
-        <h4 className="text-sm font-medium text-gray-900">{opportunity.title}</h4>
-        <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-medium ${
-          opportunity.fixType === 'automation' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
-        }`}>
+        <h4 className="text-sm font-medium text-gray-900">
+          {opportunity.title}
+        </h4>
+        <span
+          className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-medium ${
+            opportunity.fixType === 'automation'
+              ? 'bg-purple-100 text-purple-700'
+              : 'bg-gray-100 text-gray-600'
+          }`}
+        >
           {opportunity.fixType}
         </span>
       </div>
       <p className="mt-1 text-xs text-gray-500">{opportunity.why}</p>
       <div className="mt-3 flex items-center justify-between">
-        <span className="text-[10px] text-gray-400 uppercase">{opportunity.pillarId}</span>
+        <span className="text-[10px] text-gray-400 uppercase">
+          {opportunity.pillarId}
+        </span>
         <span className="text-xs text-blue-600 font-medium">View &rarr;</span>
       </div>
     </Link>

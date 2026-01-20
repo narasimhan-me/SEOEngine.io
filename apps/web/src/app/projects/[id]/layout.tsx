@@ -14,7 +14,9 @@ export default function ProjectLayout({
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Mobile top bar - visible only on small screens */}
       <div className="mb-4 flex items-center justify-between md:hidden">
-        <span className="text-sm font-medium text-gray-700">Project navigation</span>
+        <span className="text-sm font-medium text-gray-700">
+          Project navigation
+        </span>
         <button
           onClick={() => setMobileNavOpen(true)}
           className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
@@ -59,7 +61,9 @@ export default function ProjectLayout({
           >
             {/* Drawer header */}
             <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-              <span className="text-sm font-semibold text-gray-900">Navigation</span>
+              <span className="text-sm font-semibold text-gray-900">
+                Navigation
+              </span>
               <button
                 onClick={() => setMobileNavOpen(false)}
                 className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"

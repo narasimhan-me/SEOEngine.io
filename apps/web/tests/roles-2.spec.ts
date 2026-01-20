@@ -21,7 +21,7 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
     test.beforeEach(async ({ page }) => {
       // Seed test data using first-deo-win seeder (OWNER by default)
       const seedResponse = await page.request.post(
-        'http://localhost:3001/testkit/e2e/seed-first-deo-win',
+        'http://localhost:3001/testkit/e2e/seed-first-deo-win'
       );
       seedData = await seedResponse.json();
       accessToken = seedData.accessToken;
@@ -33,7 +33,9 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
       }, accessToken);
     });
 
-    test('Role label shows "Project Owner" on playbooks page', async ({ page }) => {
+    test('Role label shows "Project Owner" on playbooks page', async ({
+      page,
+    }) => {
       await page.goto(`/projects/${seedData.projectId}/automation/playbooks`);
       await page.waitForSelector('h1:has-text("Playbooks")');
 
@@ -42,7 +44,9 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
       await expect(roleLabel).toBeVisible();
     });
 
-    test('Approval required UI appears when policy is enabled', async ({ page }) => {
+    test('Approval required UI appears when policy is enabled', async ({
+      page,
+    }) => {
       // Enable approval requirement via API
       await page.request.put(
         `http://localhost:3001/projects/${seedData.projectId}/governance/policy`,
@@ -54,7 +58,7 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
           data: {
             requireApprovalForApply: true,
           },
-        },
+        }
       );
 
       // Navigate to playbooks
@@ -67,7 +71,9 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
       await expect(page.getByText('Playbooks')).toBeVisible();
     });
 
-    test('Apply flow works without approval when policy is disabled', async ({ page }) => {
+    test('Apply flow works without approval when policy is disabled', async ({
+      page,
+    }) => {
       // Ensure approval is NOT required
       await page.request.put(
         `http://localhost:3001/projects/${seedData.projectId}/governance/policy`,
@@ -79,7 +85,7 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
           data: {
             requireApprovalForApply: false,
           },
-        },
+        }
       );
 
       await page.goto(`/projects/${seedData.projectId}/automation/playbooks`);
@@ -102,7 +108,7 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
     test.beforeEach(async ({ page }) => {
       // Seed test data using self-service-viewer seeder (VIEWER role)
       const seedResponse = await page.request.post(
-        'http://localhost:3001/testkit/e2e/seed-self-service-viewer',
+        'http://localhost:3001/testkit/e2e/seed-self-service-viewer'
       );
       seedData = await seedResponse.json();
       accessToken = seedData.accessToken;
@@ -151,7 +157,7 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
 
     test.beforeEach(async ({ page }) => {
       const seedResponse = await page.request.post(
-        'http://localhost:3001/testkit/e2e/seed-first-deo-win',
+        'http://localhost:3001/testkit/e2e/seed-first-deo-win'
       );
       seedData = await seedResponse.json();
       accessToken = seedData.accessToken;
@@ -162,7 +168,9 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
       }, accessToken);
     });
 
-    test('Preview navigation does not create approval records', async ({ page }) => {
+    test('Preview navigation does not create approval records', async ({
+      page,
+    }) => {
       // Enable approval requirement
       await page.request.put(
         `http://localhost:3001/projects/${seedData.projectId}/governance/policy`,
@@ -174,7 +182,7 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
           data: {
             requireApprovalForApply: true,
           },
-        },
+        }
       );
 
       // Check initial approval count
@@ -184,7 +192,7 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
-        },
+        }
       );
       const initialData = await initialResponse.json();
       const initialCount = initialData.requests?.length || 0;
@@ -203,7 +211,7 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
-        },
+        }
       );
       const afterData = await afterResponse.json();
       const afterCount = afterData.requests?.length || 0;
@@ -211,7 +219,9 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
       expect(afterCount).toBe(initialCount);
     });
 
-    test('Navigating away from playbooks page does not leave approval artifacts', async ({ page }) => {
+    test('Navigating away from playbooks page does not leave approval artifacts', async ({
+      page,
+    }) => {
       // Enable approval requirement
       await page.request.put(
         `http://localhost:3001/projects/${seedData.projectId}/governance/policy`,
@@ -223,7 +233,7 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
           data: {
             requireApprovalForApply: true,
           },
-        },
+        }
       );
 
       // Navigate to playbooks
@@ -241,7 +251,7 @@ test.describe('ROLES-2: Project Roles & Approval Foundations', () => {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
-        },
+        }
       );
       const afterData = await afterResponse.json();
 

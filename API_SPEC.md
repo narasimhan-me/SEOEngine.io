@@ -152,6 +152,7 @@ Returns aggregated stats:
 Returns integration status for all platform types.
 
 Connected definition (server-authoritative):
+
 - connected: true only when the integration has a usable connection credential for that platform (e.g., Shopify requires externalId + accessToken).
 - The integrations[] list reflects active (connected) integrations.
 
@@ -377,12 +378,14 @@ Returns a simple success page or redirects back to frontend.
 [SHOPIFY-SCOPE-RECONSENT-UX-1] Explicit, user-initiated Shopify re-consent flow for missing scopes.
 
 Query parameters:
+
 - `projectId` (required)
 - `token` (required, JWT)
 - `capability` (required): `pages_sync` | `collections_sync`
 - `returnTo` (optional): path beginning with `/projects/:projectId/...`
 
 Behavior:
+
 - Computes missing scopes server-side for the requested capability
 - Redirects to Shopify OAuth with the minimal union of (granted scopes) + (missing required scopes)
 - After OAuth completes, redirects back to `returnTo` (or `/projects/:projectId`) with:
@@ -443,6 +446,7 @@ Updates Shopify product SEO fields and local DB.
 ```
 
 **Errors:**
+
 - `403 Forbidden` – Only project owners can sync Shopify Pages
 - `400 Bad Request` – Missing required Shopify scope(s) (code: `SHOPIFY_MISSING_SCOPES`)
 - `404 Not Found` – No Shopify store connected
@@ -467,6 +471,7 @@ Updates Shopify product SEO fields and local DB.
 ```
 
 **Errors:**
+
 - `403 Forbidden` – Only project owners can sync Shopify Collections
 - `400 Bad Request` – Missing required Shopify scope(s) (code: `SHOPIFY_MISSING_SCOPES`)
 - `404 Not Found` – No Shopify store connected
@@ -493,6 +498,7 @@ Requires `read_content` scope (same as pages_sync).
 ```
 
 **Errors:**
+
 - `403 Forbidden` – Only project owners can sync Shopify Blog Posts
 - `400 Bad Request` – Missing required Shopify scope(s) (code: `SHOPIFY_MISSING_SCOPES`)
 - `404 Not Found` – No Shopify store connected
@@ -504,6 +510,7 @@ Requires `read_content` scope (same as pages_sync).
 [SHOPIFY-SCOPE-RECONSENT-UX-1] Server-authoritative missing scope detection for a capability.
 
 Query parameters:
+
 - `capability` (required): `pages_sync` | `collections_sync` | `blogs_sync`
 
 Response:
@@ -526,10 +533,12 @@ Response:
 **[SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1]** Returns a Shopify OAuth authorize URL for explicit, user-initiated re-consent.
 
 **Query parameters:**
+
 - `capability` (required): `pages_sync` | `collections_sync` | `blogs_sync`
 - `returnTo` (optional): path beginning with `/projects/:projectId/...`
 
 **Access:**
+
 - OWNER-only
 
 **Response:**
@@ -547,9 +556,11 @@ Response:
 [SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1] Returns a Shopify OAuth authorize URL for explicit, user-initiated initial connection.
 
 Query parameters:
+
 - returnTo (optional): path beginning with /projects/:projectId/...
 
 Access:
+
 - OWNER-only
 
 Response:
@@ -695,6 +706,7 @@ Estimate token usage and eligibility for a playbook.
 - `playbookId` (required): `missing_seo_title` | `missing_seo_description`
 
 **[ASSETS-PAGES-1.1] Canonical Playbook IDs Only:**
+
 - Only two playbook IDs exist: `missing_seo_title`, `missing_seo_description`
 - Asset type differentiation (PRODUCTS, PAGES, COLLECTIONS) is done via the `assetType` parameter in POST requests
 
@@ -721,13 +733,15 @@ Scoped estimate for a playbook with explicit asset targeting.
 - `scopeAssetRefs` (optional): Handle-based refs for non-product assets
 
 **Asset reference format:**
+
 - Pages: `page_handle:<handle>` (e.g., `page_handle:about-us`)
 - Collections: `collection_handle:<handle>` (e.g., `collection_handle:summer-sale`)
 
 **Validation rules:**
+
 - `scopeProductIds` can only be used with `assetType: PRODUCTS`
 - `scopeAssetRefs` can only be used with `assetType: PAGES` or `COLLECTIONS`
-- Ref format must match asset type (page_handle:* for PAGES, collection_handle:* for COLLECTIONS)
+- Ref format must match asset type (page_handle:_ for PAGES, collection_handle:_ for COLLECTIONS)
 
 ---
 
@@ -831,6 +845,7 @@ Apply playbook drafts to Shopify.
 **[ASSETS-PAGES-1.1] Supports same asset-scoped parameters as estimate.**
 
 **Access control [ROLES-3]:**
+
 - OWNER: Can apply directly
 - EDITOR: Must request approval first (returns `APPROVAL_REQUIRED` error)
 - VIEWER: Cannot apply (returns `403 Forbidden`)
@@ -889,6 +904,7 @@ Get prioritized action bundles for a project.
 ```
 
 **Notes:**
+
 - All bundles are derived at request time from existing persisted artifacts
 - No new storage tables are created
 - Sorting is deterministic: state priority → health priority → impact rank → updatedAt → bundleId
@@ -991,6 +1007,7 @@ Reject an approval request.
 List approval requests for a project.
 
 **Query parameters:**
+
 - `status` (optional): Filter by status (`PENDING_APPROVAL`, `APPROVED`, `REJECTED`)
 
 ---
@@ -1000,11 +1017,13 @@ List approval requests for a project.
 Get audit events for a project.
 
 **Query parameters:**
+
 - `cursor` (optional): Pagination cursor
 - `limit` (optional): Max results (default 50)
 - `eventType` (optional): Filter by event type
 
 **Event types:**
+
 - `POLICY_CHANGED`
 - `APPROVAL_REQUESTED`
 - `APPROVAL_APPROVED`
@@ -1040,7 +1059,7 @@ Create a share link with optional passcode protection.
     "passcodeLast4": "AB12",
     "expiresAt": "2024-01-14T00:00:00.000Z"
   },
-  "passcode": "AB12XY34"  // Only shown once at creation
+  "passcode": "AB12XY34" // Only shown once at creation
 }
 ```
 
@@ -1104,6 +1123,7 @@ Read-only governance viewer endpoints for viewing approval requests, audit event
 List approval requests for governance viewer with cursor-based pagination.
 
 **Query parameters:**
+
 - `status` (optional): `'pending'` (PENDING_APPROVAL) or `'history'` (APPROVED/REJECTED)
 - `cursor` (optional): Pagination cursor (format: `{timestamp}:{id}`)
 - `limit` (optional): Max results per page (default 50)
@@ -1147,6 +1167,7 @@ List approval requests for governance viewer with cursor-based pagination.
 List audit events for governance viewer with cursor-based pagination. **IMPORTANT: Only returns events in ALLOWED_AUDIT_EVENT_TYPES allowlist.** Any request for other event types is silently filtered.
 
 **Query parameters:**
+
 - `types` (optional): Comma-separated list of event types (e.g., `APPROVAL_REQUESTED,SHARE_LINK_CREATED`)
 - `actor` (optional): Filter by actorUserId
 - `from` (optional): ISO timestamp for date range start
@@ -1177,6 +1198,7 @@ List audit events for governance viewer with cursor-based pagination. **IMPORTAN
 ```
 
 **Allowlist enforcement:** The following event types are NEVER returned even if they exist in storage:
+
 - `POLICY_CHANGED`
 - `APPLY_EXECUTED`
 - Any other event types not in the allowlist
@@ -1190,6 +1212,7 @@ List audit events for governance viewer with cursor-based pagination. **IMPORTAN
 List share links for governance viewer with cursor-based pagination. **IMPORTANT: Passcode is NEVER returned; only `passcodeLast4` is included for display.**
 
 **Query parameters:**
+
 - `status` (optional): `'ACTIVE'`, `'EXPIRED'`, `'REVOKED'`, or `'all'` (default: `'all'`)
 - `cursor` (optional): Pagination cursor (format: `{timestamp}:{id}`)
 - `limit` (optional): Max results per page (default 50)
@@ -1232,11 +1255,13 @@ List share links for governance viewer with cursor-based pagination. **IMPORTANT
 ```
 
 **Status derivation:** Status is derived deterministically:
+
 - `REVOKED`: If `revokedAt` is set (or status enum is REVOKED)
 - `EXPIRED`: If `expiresAt` is in the past
 - `ACTIVE`: Otherwise
 
 **Data minimization:** The following fields are NEVER returned:
+
 - `passcode` (plaintext)
 - `passcodeHash` (bcrypt hash)
 - `shareToken` (only returned at creation, not in list views)
@@ -1254,6 +1279,7 @@ All admin endpoints require JWT authentication and internal admin role (SUPPORT_
 [ENTERPRISE-GEO-1] Read-only access to governance audit events across all projects.
 
 **Query parameters:**
+
 - `projectId` (optional): Filter by project ID
 - `actorUserId` (optional): Filter by actor user ID
 - `eventType` (optional): Filter by event type
@@ -1290,6 +1316,7 @@ All admin endpoints require JWT authentication and internal admin role (SUPPORT_
 ```
 
 **Event types:**
+
 - `POLICY_CHANGED`
 - `APPROVAL_REQUESTED`
 - `APPROVAL_APPROVED`

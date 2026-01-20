@@ -20,7 +20,8 @@ import {
 import type { OffsiteSignalType, OffsiteGapType } from '@engineo/shared';
 
 // Skip these tests if not running in E2E mode (requires test DB)
-const describeIfE2E = process.env.ENGINEO_E2E === '1' ? describe : describe.skip;
+const describeIfE2E =
+  process.env.ENGINEO_E2E === '1' ? describe : describe.skip;
 
 describeIfE2E('OffsiteSignalsService (integration)', () => {
   let service: OffsiteSignalsService;
@@ -108,7 +109,7 @@ describeIfE2E('OffsiteSignalsService (integration)', () => {
       const signals = await service.getProjectSignals(testProject.id);
       expect(signals).toHaveLength(3);
 
-      const signalTypes = signals.map(s => s.signalType);
+      const signalTypes = signals.map((s) => s.signalType);
       expect(signalTypes).toContain('trust_proof');
       expect(signalTypes).toContain('authoritative_listing');
       expect(signalTypes).toContain('brand_mention');
@@ -223,7 +224,7 @@ describeIfE2E('OffsiteSignalsService (integration)', () => {
       // Plus competitor gaps for trust_proof and authoritative_listing
       expect(gaps.length).toBeGreaterThanOrEqual(3);
 
-      const gapTypes = gaps.map(g => g.gapType);
+      const gapTypes = gaps.map((g) => g.gapType);
       expect(gapTypes).toContain('missing_trust_proof');
       expect(gapTypes).toContain('missing_authoritative_listing');
     });
@@ -280,7 +281,9 @@ describeIfE2E('OffsiteSignalsService (integration)', () => {
       const issues = await service.buildOffsiteIssuesForProject(testProject.id);
 
       const competitorIssue = issues.find(
-        i => i.offsiteGapType === 'competitor_has_offsite_signal' && i.signalType === 'trust_proof'
+        (i) =>
+          i.offsiteGapType === 'competitor_has_offsite_signal' &&
+          i.signalType === 'trust_proof'
       );
 
       expect(competitorIssue).toBeDefined();
@@ -362,7 +365,10 @@ describeIfE2E('OffsiteSignalsService (integration)', () => {
         evidence: 'Reviews',
       });
 
-      const data = await service.getProjectOffsiteData(testProject.id, testUser.id);
+      const data = await service.getProjectOffsiteData(
+        testProject.id,
+        testUser.id
+      );
 
       expect(data.projectId).toBe(testProject.id);
       expect(data.signals).toHaveLength(1);

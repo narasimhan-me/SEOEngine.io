@@ -19,29 +19,32 @@ Performance issues that prevent or delay crawling/rendering hurt discoverability
 
 ## Signal Types
 
-| Signal Type | Issue Type | Description |
-|------------|-----------|-------------|
-| `render_blocking` | `render_blocking_resources` | Scripts/styles in `<head>` without async/defer |
-| `indexability_risk` | `indexability_conflict` | noindex directives, canonical pointing elsewhere |
-| `ttfb_proxy` | `slow_initial_response` | HTML >500KB suggesting slow TTFB |
-| `page_weight_risk` | `excessive_page_weight` | HTML >1MB (very problematic) |
-| `mobile_readiness` | `mobile_rendering_risk` | Missing viewport meta, layout issues |
+| Signal Type         | Issue Type                  | Description                                      |
+| ------------------- | --------------------------- | ------------------------------------------------ |
+| `render_blocking`   | `render_blocking_resources` | Scripts/styles in `<head>` without async/defer   |
+| `indexability_risk` | `indexability_conflict`     | noindex directives, canonical pointing elsewhere |
+| `ttfb_proxy`        | `slow_initial_response`     | HTML >500KB suggesting slow TTFB                 |
+| `page_weight_risk`  | `excessive_page_weight`     | HTML >1MB (very problematic)                     |
+| `mobile_readiness`  | `mobile_rendering_risk`     | Missing viewport meta, layout issues             |
 
 ## Detection Logic
 
 ### Render-blocking Resources
 
 Detected during crawl by scanning `<head>` for:
+
 - `<script>` tags without `async`, `defer`, or `type="module"`
 - `<link rel="stylesheet">` tags without `media="print"` or preload hints
 
 **Thresholds:**
+
 - 3+ blocking resources → warning
 - 5+ blocking resources → critical
 
 ### Indexability Conflict
 
 Detected from:
+
 - `<meta name="robots" content="noindex">`
 - `X-Robots-Tag: noindex` response header
 - Canonical URL pointing to different domain/page
@@ -51,29 +54,34 @@ Detected from:
 ### Slow Initial Response (TTFB Proxy)
 
 HTML document size used as TTFB proxy:
+
 - `htmlBytes > 500KB` → LARGE_HTML warning
 - `htmlBytes > 1MB` → VERY_LARGE_HTML warning
 
 **Thresholds:**
-- >10% of pages with large HTML → warning
-- >25% of pages with very large HTML → critical
+
+- > 10% of pages with large HTML → warning
+- > 25% of pages with very large HTML → critical
 
 ### Excessive Page Weight
 
 Same as TTFB proxy but focuses on the >1MB threshold:
-- >5% of pages over 1MB → warning
-- >10% of pages over 1MB → critical
+
+- > 5% of pages over 1MB → warning
+- > 10% of pages over 1MB → critical
 
 ### Mobile Rendering Risk
 
 Detected from:
+
 - Missing `<meta name="viewport">` tag
 - Viewport without `width=device-width`
 - Static viewport widths (potential layout issues)
 
 **Thresholds:**
-- >10% of pages with issues → warning
-- >25% of pages with issues → critical
+
+- > 10% of pages with issues → warning
+- > 25% of pages with issues → critical
 
 ## Scorecard
 
@@ -95,6 +103,7 @@ interface PerformanceSignalStatus {
 ```
 
 **Status Calculation:**
+
 - **Strong**: 0-2 total issues, no critical issues
 - **Needs improvement**: 3-9 issues or 1 risky signal
 - **Risky**: 10+ issues, 2+ risky signals, or any critical issue
@@ -103,20 +112,20 @@ interface PerformanceSignalStatus {
 
 ### Backend (API)
 
-| File | Purpose |
-|------|---------|
-| `apps/api/src/seo-scan/seo-scan.service.ts` | Crawl signal detection (render-blocking, indexability, page weight, mobile) |
-| `apps/api/src/projects/deo-issues.service.ts` | Issue builders (5 PERFORMANCE issue types) |
-| `packages/shared/src/performance-signals.ts` | Shared type definitions |
-| `packages/shared/src/deo-issues.ts` | PerformanceSignalType added to signalType union |
+| File                                          | Purpose                                                                     |
+| --------------------------------------------- | --------------------------------------------------------------------------- |
+| `apps/api/src/seo-scan/seo-scan.service.ts`   | Crawl signal detection (render-blocking, indexability, page weight, mobile) |
+| `apps/api/src/projects/deo-issues.service.ts` | Issue builders (5 PERFORMANCE issue types)                                  |
+| `packages/shared/src/performance-signals.ts`  | Shared type definitions                                                     |
+| `packages/shared/src/deo-issues.ts`           | PerformanceSignalType added to signalType union                             |
 
 ### Frontend (Web)
 
-| File | Purpose |
-|------|---------|
-| `apps/web/src/app/projects/[id]/performance/page.tsx` | Performance scorecard UI |
-| `apps/web/src/components/issues/IssuesList.tsx` | PERFORMANCE issue display configs |
-| `apps/web/src/lib/deo-issues.ts` | Frontend type definitions |
+| File                                                  | Purpose                           |
+| ----------------------------------------------------- | --------------------------------- |
+| `apps/web/src/app/projects/[id]/performance/page.tsx` | Performance scorecard UI          |
+| `apps/web/src/components/issues/IssuesList.tsx`       | PERFORMANCE issue display configs |
+| `apps/web/src/lib/deo-issues.ts`                      | Frontend type definitions         |
 
 ## Crawl Data Captured
 

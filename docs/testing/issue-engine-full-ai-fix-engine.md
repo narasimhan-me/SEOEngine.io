@@ -48,14 +48,17 @@
 **ID:** FIX-001
 
 **Preconditions:**
+
 - Issues with `fixType: 'aiFix'` exist
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Filter issues where `fixType === 'aiFix'`
 3. Verify `aiFixable` and `fixCost` fields
 
 **Expected Results:**
+
 - All should have `aiFixable: true`
 - All should have `fixCost: 'one_click'`
 - `recommendedFix` mentions AI or automated generation
@@ -67,14 +70,17 @@
 **ID:** FIX-002
 
 **Preconditions:**
+
 - Issues with `fixType: 'manualFix'` exist
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Filter issues where `fixType === 'manualFix'`
 3. Verify `aiFixable` and `fixCost` fields
 
 **Expected Results:**
+
 - All should have `aiFixable: false`
 - Most should have `fixCost: 'manual'`
 - `recommendedFix` provides manual editing guidance
@@ -86,14 +92,17 @@
 **ID:** FIX-003
 
 **Preconditions:**
+
 - Issues with `fixType: 'syncFix'` exist
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Filter issues where `fixType === 'syncFix'`
 3. Verify `aiFixable` and `fixCost` fields
 
 **Expected Results:**
+
 - All should have `aiFixable: false`
 - All should have `fixCost: 'one_click'` (sync is fast)
 - `recommendedFix` mentions Shopify sync
@@ -105,14 +114,17 @@
 **ID:** FIX-004
 
 **Preconditions:**
+
 - Phase 3B aggregated issues exist (missing_metadata, thin_content, etc.)
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Filter issues that don't have `fixType` (aggregated issues)
 3. Verify `aiFixable` and `fixCost` fields
 
 **Expected Results:**
+
 - Aggregated issues have `aiFixable: false` (require per-item action)
 - Fix cost varies: `'manual'` or `'advanced'`
 - `recommendedFix` provides general guidance
@@ -124,14 +136,17 @@
 **ID:** FIX-005
 
 **Preconditions:**
+
 - Issues of all fix cost levels exist
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Group issues by `fixCost`
 3. Verify consistency within each group
 
 **Expected Results:**
+
 - `'one_click'`: AI-fixable product issues + sync issues
 - `'manual'`: Content creation issues (long descriptions, images)
 - `'advanced'`: Technical issues (crawl, indexability, brand pages)
@@ -145,10 +160,12 @@
 **Description:** Project with only AI-fixable issues.
 
 **Steps:**
+
 1. Create project with only missing/weak title and description issues
 2. Call `GET /projects/:id/deo-issues`
 
 **Expected Behavior:**
+
 - All returned issues have `aiFixable: true`
 - All have `fixCost: 'one_click'`
 
@@ -159,10 +176,12 @@
 **Description:** Project with only technical/structural issues.
 
 **Steps:**
+
 1. Create project with only crawl errors and missing images
 2. Call `GET /projects/:id/deo-issues`
 
 **Expected Behavior:**
+
 - All returned issues have `aiFixable: false`
 - Fix costs are `'manual'` or `'advanced'`
 
@@ -170,28 +189,28 @@
 
 ## Validation Matrix
 
-| Issue ID | aiFixable | fixCost | fixType |
-|----------|-----------|---------|---------|
-| missing_seo_title | true | one_click | aiFix |
-| missing_seo_description | true | one_click | aiFix |
-| weak_title | true | one_click | aiFix |
-| weak_description | true | one_click | aiFix |
-| missing_long_description | false | manual | manualFix |
-| duplicate_product_content | true | one_click | aiFix |
-| low_product_entity_coverage | true | one_click | aiFix |
-| not_answer_ready | true | one_click | aiFix |
-| weak_intent_match | true | one_click | aiFix |
-| missing_product_image | false | manual | manualFix |
-| missing_price | false | one_click | syncFix |
-| missing_category | false | one_click | syncFix |
-| missing_metadata | false | manual | - |
-| thin_content | false | manual | - |
-| low_entity_coverage | false | manual | - |
-| indexability_problems | false | advanced | - |
-| answer_surface_weakness | false | manual | - |
-| brand_navigational_weakness | false | advanced | - |
-| crawl_health_errors | false | advanced | - |
-| product_content_depth | false | manual | - |
+| Issue ID                    | aiFixable | fixCost   | fixType   |
+| --------------------------- | --------- | --------- | --------- |
+| missing_seo_title           | true      | one_click | aiFix     |
+| missing_seo_description     | true      | one_click | aiFix     |
+| weak_title                  | true      | one_click | aiFix     |
+| weak_description            | true      | one_click | aiFix     |
+| missing_long_description    | false     | manual    | manualFix |
+| duplicate_product_content   | true      | one_click | aiFix     |
+| low_product_entity_coverage | true      | one_click | aiFix     |
+| not_answer_ready            | true      | one_click | aiFix     |
+| weak_intent_match           | true      | one_click | aiFix     |
+| missing_product_image       | false     | manual    | manualFix |
+| missing_price               | false     | one_click | syncFix   |
+| missing_category            | false     | one_click | syncFix   |
+| missing_metadata            | false     | manual    | -         |
+| thin_content                | false     | manual    | -         |
+| low_entity_coverage         | false     | manual    | -         |
+| indexability_problems       | false     | advanced  | -         |
+| answer_surface_weakness     | false     | manual    | -         |
+| brand_navigational_weakness | false     | advanced  | -         |
+| crawl_health_errors         | false     | advanced  | -         |
+| product_content_depth       | false     | manual    | -         |
 
 ---
 
@@ -214,9 +233,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Issue Engine Full - AI Fix Engine (Phase UX-8) |
+| Field              | Value                                          |
+| ------------------ | ---------------------------------------------- |
+| **Tester Name**    | [Pending]                                      |
+| **Date**           | [YYYY-MM-DD]                                   |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed          |
+| **Notes**          | Issue Engine Full - AI Fix Engine (Phase UX-8) |

@@ -37,10 +37,18 @@ describe('Media Accessibility Types', () => {
     });
 
     it("returns 'generic' for title + generic suffix patterns", () => {
-      expect(classifyAltText('Cool Widget image', 'Cool Widget')).toBe('generic');
-      expect(classifyAltText('Cool Widget photo', 'Cool Widget')).toBe('generic');
-      expect(classifyAltText('image of Cool Widget', 'Cool Widget')).toBe('generic');
-      expect(classifyAltText('photo of Cool Widget', 'Cool Widget')).toBe('generic');
+      expect(classifyAltText('Cool Widget image', 'Cool Widget')).toBe(
+        'generic'
+      );
+      expect(classifyAltText('Cool Widget photo', 'Cool Widget')).toBe(
+        'generic'
+      );
+      expect(classifyAltText('image of Cool Widget', 'Cool Widget')).toBe(
+        'generic'
+      );
+      expect(classifyAltText('photo of Cool Widget', 'Cool Widget')).toBe(
+        'generic'
+      );
     });
 
     it("returns 'generic' for very short alt text (< 5 chars)", () => {
@@ -97,9 +105,15 @@ describe('Media Accessibility Types', () => {
     });
 
     it("returns 'Needs improvement' for scores 40-79", () => {
-      expect(getMediaAccessibilityStatusFromScore(40)).toBe('Needs improvement');
-      expect(getMediaAccessibilityStatusFromScore(50)).toBe('Needs improvement');
-      expect(getMediaAccessibilityStatusFromScore(79)).toBe('Needs improvement');
+      expect(getMediaAccessibilityStatusFromScore(40)).toBe(
+        'Needs improvement'
+      );
+      expect(getMediaAccessibilityStatusFromScore(50)).toBe(
+        'Needs improvement'
+      );
+      expect(getMediaAccessibilityStatusFromScore(79)).toBe(
+        'Needs improvement'
+      );
     });
 
     it("returns 'Strong' for scores >= 80", () => {
@@ -110,8 +124,12 @@ describe('Media Accessibility Types', () => {
 
     it('handles boundary values correctly', () => {
       expect(getMediaAccessibilityStatusFromScore(39.9)).toBe('Weak');
-      expect(getMediaAccessibilityStatusFromScore(40)).toBe('Needs improvement');
-      expect(getMediaAccessibilityStatusFromScore(79.9)).toBe('Needs improvement');
+      expect(getMediaAccessibilityStatusFromScore(40)).toBe(
+        'Needs improvement'
+      );
+      expect(getMediaAccessibilityStatusFromScore(79.9)).toBe(
+        'Needs improvement'
+      );
       expect(getMediaAccessibilityStatusFromScore(80)).toBe('Strong');
     });
   });
@@ -253,37 +271,92 @@ describe('Media Accessibility Types', () => {
 
   describe('computeMediaFixWorkKey', () => {
     it('generates deterministic keys with same inputs', () => {
-      const key1 = computeMediaFixWorkKey('proj1', 'prod1', 'img1', 'image_alt_text');
-      const key2 = computeMediaFixWorkKey('proj1', 'prod1', 'img1', 'image_alt_text');
+      const key1 = computeMediaFixWorkKey(
+        'proj1',
+        'prod1',
+        'img1',
+        'image_alt_text'
+      );
+      const key2 = computeMediaFixWorkKey(
+        'proj1',
+        'prod1',
+        'img1',
+        'image_alt_text'
+      );
       expect(key1).toBe(key2);
     });
 
     it('generates different keys for different projectId', () => {
-      const key1 = computeMediaFixWorkKey('proj1', 'prod1', 'img1', 'image_alt_text');
-      const key2 = computeMediaFixWorkKey('proj2', 'prod1', 'img1', 'image_alt_text');
+      const key1 = computeMediaFixWorkKey(
+        'proj1',
+        'prod1',
+        'img1',
+        'image_alt_text'
+      );
+      const key2 = computeMediaFixWorkKey(
+        'proj2',
+        'prod1',
+        'img1',
+        'image_alt_text'
+      );
       expect(key1).not.toBe(key2);
     });
 
     it('generates different keys for different productId', () => {
-      const key1 = computeMediaFixWorkKey('proj1', 'prod1', 'img1', 'image_alt_text');
-      const key2 = computeMediaFixWorkKey('proj1', 'prod2', 'img1', 'image_alt_text');
+      const key1 = computeMediaFixWorkKey(
+        'proj1',
+        'prod1',
+        'img1',
+        'image_alt_text'
+      );
+      const key2 = computeMediaFixWorkKey(
+        'proj1',
+        'prod2',
+        'img1',
+        'image_alt_text'
+      );
       expect(key1).not.toBe(key2);
     });
 
     it('generates different keys for different imageKey', () => {
-      const key1 = computeMediaFixWorkKey('proj1', 'prod1', 'img1', 'image_alt_text');
-      const key2 = computeMediaFixWorkKey('proj1', 'prod1', 'img2', 'image_alt_text');
+      const key1 = computeMediaFixWorkKey(
+        'proj1',
+        'prod1',
+        'img1',
+        'image_alt_text'
+      );
+      const key2 = computeMediaFixWorkKey(
+        'proj1',
+        'prod1',
+        'img2',
+        'image_alt_text'
+      );
       expect(key1).not.toBe(key2);
     });
 
     it('generates different keys for different draftType', () => {
-      const key1 = computeMediaFixWorkKey('proj1', 'prod1', 'img1', 'image_alt_text');
-      const key2 = computeMediaFixWorkKey('proj1', 'prod1', 'img1', 'image_caption');
+      const key1 = computeMediaFixWorkKey(
+        'proj1',
+        'prod1',
+        'img1',
+        'image_alt_text'
+      );
+      const key2 = computeMediaFixWorkKey(
+        'proj1',
+        'prod1',
+        'img1',
+        'image_caption'
+      );
       expect(key1).not.toBe(key2);
     });
 
     it('embeds all components in the key', () => {
-      const key = computeMediaFixWorkKey('proj1', 'prod1', 'img1', 'image_alt_text');
+      const key = computeMediaFixWorkKey(
+        'proj1',
+        'prod1',
+        'img1',
+        'image_alt_text'
+      );
       expect(key).toContain('proj1');
       expect(key).toContain('prod1');
       expect(key).toContain('img1');

@@ -4,7 +4,10 @@ import { getPageTypeLabel } from '@/lib/content';
 // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Import from lib module
 import { ISSUE_UI_CONFIG } from '@/lib/issue-ui-config';
 // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Import safe title/description helpers to prevent internal ID leakage
-import { getSafeIssueTitle, getSafeIssueDescription } from '@/lib/issue-to-fix-path';
+import {
+  getSafeIssueTitle,
+  getSafeIssueDescription,
+} from '@/lib/issue-to-fix-path';
 
 interface ContentDeoInsightsPanelProps {
   page: ContentPage;
@@ -148,8 +151,8 @@ export function ContentDeoInsightsPanel({
                     page.loadTimeMs < 1000
                       ? 'text-green-600'
                       : page.loadTimeMs < 3000
-                      ? 'text-yellow-600'
-                      : 'text-red-600'
+                        ? 'text-yellow-600'
+                        : 'text-red-600'
                   }`}
                 >
                   {page.loadTimeMs}ms

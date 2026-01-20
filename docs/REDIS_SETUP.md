@@ -70,16 +70,16 @@ In production, Redis is provided by **Upstash Redis** (serverless, managed). Ren
 2. Click **Redis** → **Create Database**
 3. Configure:
 
-| Setting | Value |
-|---------|-------|
-| Name | `engineo-redis-prod` (production) / `engineo-redis-staging` (staging) |
-| Region | Closest to your Render region |
-| TLS | Enabled (default for `rediss://` URLs) |
+| Setting | Value                                                                 |
+| ------- | --------------------------------------------------------------------- |
+| Name    | `engineo-redis-prod` (production) / `engineo-redis-staging` (staging) |
+| Region  | Closest to your Render region                                         |
+| TLS     | Enabled (default for `rediss://` URLs)                                |
 
 4. Create the database
 5. In the database view, locate and copy:
    - `UPSTASH_REDIS_URL` – Redis TLS URL, e.g.:  
-     `rediss://default:<password>@<host>.upstash.io:6379`  
+     `rediss://default:<password>@<host>.upstash.io:6379`
    - `UPSTASH_REDIS_REST_URL` – REST URL (not used for BullMQ, but useful for serverless tasks)
 
 > **Important:** For BullMQ and ioredis, we only use the Redis URL (`UPSTASH_REDIS_URL`). The REST URL is **not** used for job queues.
@@ -104,23 +104,23 @@ Use this mapping in:
 2. Connect your GitHub repository
 3. Configure:
 
-| Setting | Value |
-|---------|-------|
-| Name | `engineo-worker` |
-| Language | `Node` |
-| Branch | `main` |
-| Region | Same as Redis |
-| Build Command | `pnpm install && pnpm --filter api build` |
+| Setting       | Value                                            |
+| ------------- | ------------------------------------------------ |
+| Name          | `engineo-worker`                                 |
+| Language      | `Node`                                           |
+| Branch        | `main`                                           |
+| Region        | Same as Redis                                    |
+| Build Command | `pnpm install && pnpm --filter api build`        |
 | Start Command | `node apps/api/dist/apps/api/src/worker-main.js` |
 
 4. Add Environment Variables (same as API service, plus Redis):
 
-| Variable | Value |
-|----------|-------|
-| `NODE_ENV` | `production` |
-| `DATABASE_URL` | Your Neon connection string |
-| `REDIS_URL` | Upstash Redis URL (`UPSTASH_REDIS_URL`) |
-| `REDIS_PREFIX` | `engineo_prod` |
+| Variable       | Value                                   |
+| -------------- | --------------------------------------- |
+| `NODE_ENV`     | `production`                            |
+| `DATABASE_URL` | Your Neon connection string             |
+| `REDIS_URL`    | Upstash Redis URL (`UPSTASH_REDIS_URL`) |
+| `REDIS_PREFIX` | `engineo_prod`                          |
 
 5. Click **Create Background Worker**
 
@@ -131,10 +131,10 @@ Add Redis environment variables to your existing `engineo-api` Web Service:
 1. Go to **engineo-api** → **Environment**
 2. Add:
 
-| Variable | Value |
-|----------|-------|
-| `REDIS_URL` | Upstash Redis URL (`UPSTASH_REDIS_URL`) |
-| `REDIS_PREFIX` | `engineo_prod` |
+| Variable       | Value                                   |
+| -------------- | --------------------------------------- |
+| `REDIS_URL`    | Upstash Redis URL (`UPSTASH_REDIS_URL`) |
+| `REDIS_PREFIX` | `engineo_prod`                          |
 
 3. Click **Save Changes** (triggers redeploy)
 

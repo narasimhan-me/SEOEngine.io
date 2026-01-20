@@ -1,13 +1,24 @@
 'use client';
 
-import { useParams, useRouter, usePathname, useSearchParams } from 'next/navigation';
+import {
+  useParams,
+  useRouter,
+  usePathname,
+  useSearchParams,
+} from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { projectsApi, aiApi, shopifyApi } from '@/lib/api';
-import type { WorkQueueResponse, WorkQueueActionBundle } from '@/lib/work-queue';
+import type {
+  WorkQueueResponse,
+  WorkQueueActionBundle,
+} from '@/lib/work-queue';
 import { buildWorkQueueUrl } from '@/lib/work-queue';
 import type { ProjectInsightsResponse } from '@/lib/insights';
 import type { CanonicalIssueCountsSummary } from '@/lib/deo-issues';
-import { getReturnToFromCurrentUrl, withRouteContext } from '@/lib/route-context';
+import {
+  getReturnToFromCurrentUrl,
+  withRouteContext,
+} from '@/lib/route-context';
 import { getToken } from '@/lib/auth';
 
 /**
@@ -54,10 +65,17 @@ export default function StoreHealthPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [workQueue, setWorkQueue] = useState<WorkQueueResponse | null>(null);
-  const [insights, setInsights] = useState<ProjectInsightsResponse | null>(null);
-  const [aiQuota, setAiQuota] = useState<{ used: number; limit: number | null; remaining: number | null } | null>(null);
+  const [insights, setInsights] = useState<ProjectInsightsResponse | null>(
+    null
+  );
+  const [aiQuota, setAiQuota] = useState<{
+    used: number;
+    limit: number | null;
+    remaining: number | null;
+  } | null>(null);
   // [COUNT-INTEGRITY-1.1 PATCH 7] Canonical triplet counts for "Items affected" display
-  const [countsSummary, setCountsSummary] = useState<CanonicalIssueCountsSummary | null>(null);
+  const [countsSummary, setCountsSummary] =
+    useState<CanonicalIssueCountsSummary | null>(null);
   const [integrationStatus, setIntegrationStatus] = useState<any | null>(null);
   const [connectingShopify, setConnectingShopify] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
@@ -68,10 +86,18 @@ export default function StoreHealthPage() {
     try {
       // [COUNT-INTEGRITY-1.1 PATCH 7] Fetch canonical triplet counts for "Items affected" display
       // [SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1-FIXUP-1] integrationStatus is non-blocking: catch errors gracefully
-      const [wqData, insightsData, quotaData, countsData, integrationStatusData] = await Promise.all([
+      const [
+        wqData,
+        insightsData,
+        quotaData,
+        countsData,
+        integrationStatusData,
+      ] = await Promise.all([
         projectsApi.workQueue(projectId),
         projectsApi.insights(projectId).catch(() => null),
-        aiApi.getProjectAiUsageQuota(projectId, { action: 'DRAFT_GENERATE' }).catch(() => null),
+        aiApi
+          .getProjectAiUsageQuota(projectId, { action: 'DRAFT_GENERATE' })
+          .catch(() => null),
         projectsApi.canonicalIssueCountsSummary(projectId).catch(() => null),
         projectsApi.integrationStatus(projectId).catch(() => null),
       ]);
@@ -88,7 +114,8 @@ export default function StoreHealthPage() {
         });
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load store health';
+      const message =
+        err instanceof Error ? err.message : 'Failed to load store health';
       setError(message);
     } finally {
       setLoading(false);
@@ -105,22 +132,30 @@ export default function StoreHealthPage() {
     const token = getToken();
     if (!token) {
       setConnectError(
-        "We couldn't start Shopify connection because your session token is missing. Please sign in again, then retry.",
+        "We couldn't start Shopify connection because your session token is missing. Please sign in again, then retry."
       );
       setConnectingShopify(false);
       return;
     }
     try {
       const result = await shopifyApi.getConnectUrl(projectId, returnTo);
-      const url = result && typeof (result as any).url === 'string' ? (result as any).url : null;
+      const url =
+        result && typeof (result as any).url === 'string'
+          ? (result as any).url
+          : null;
       if (!url) {
-        setConnectError("We couldn't start Shopify connection. Please refresh and try again.");
+        setConnectError(
+          "We couldn't start Shopify connection. Please refresh and try again."
+        );
         setConnectingShopify(false);
         return;
       }
       window.location.href = url;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "We couldn't start Shopify connection. Please try again.";
+      const message =
+        err instanceof Error
+          ? err.message
+          : "We couldn't start Shopify connection. Please try again.";
       setConnectError(message);
       setConnectingShopify(false);
     }
@@ -129,12 +164,16 @@ export default function StoreHealthPage() {
   // Helper: Get worst health from bundles matching criteria
   const getWorstHealth = (bundles: WorkQueueActionBundle[]): HealthStatus => {
     if (bundles.some((b) => b.health === 'CRITICAL')) return 'Critical';
-    if (bundles.some((b) => b.health === 'NEEDS_ATTENTION')) return 'Needs Attention';
+    if (bundles.some((b) => b.health === 'NEEDS_ATTENTION'))
+      return 'Needs Attention';
     return 'Healthy';
   };
 
   // Helper: Get action label from top bundle
-  const getActionLabel = (bundles: WorkQueueActionBundle[], fallback: string): string => {
+  const getActionLabel = (
+    bundles: WorkQueueActionBundle[],
+    fallback: string
+  ): string => {
     if (bundles.length === 0) return fallback;
     const topBundle = bundles[0];
     return topBundle.recommendedActionLabel || fallback;
@@ -146,43 +185,61 @@ export default function StoreHealthPage() {
   // 1. Discoverability (DEO) - Pillar-scoped "Items affected" with Issues Engine routing
   // [COUNT-INTEGRITY-1.1 FIXUP-2] Always show numeric pillar-scoped affectedItemsCount (0 fallback)
   const deoBundles = items.filter(
-    (b) => b.recommendedActionKey === 'FIX_MISSING_METADATA' ||
-           b.recommendedActionKey === 'RESOLVE_TECHNICAL_ISSUES'
+    (b) =>
+      b.recommendedActionKey === 'FIX_MISSING_METADATA' ||
+      b.recommendedActionKey === 'RESOLVE_TECHNICAL_ISSUES'
   );
   const deoHealth = getWorstHealth(deoBundles);
 
   // Pillar-scoped count: metadata_snippet_quality detected.affectedItemsCount (default 0)
   const discoverabilityItemsAffected =
-    countsSummary?.byPillar?.['metadata_snippet_quality']?.detected?.affectedItemsCount ?? 0;
+    countsSummary?.byPillar?.['metadata_snippet_quality']?.detected
+      ?.affectedItemsCount ?? 0;
 
   // Always include "X items affected" in summary for test capture + semantic integrity
   const deoSummary = `${discoverabilityItemsAffected} items affected across metadata and snippet optimization.`;
   const deoAction = 'View issues';
 
   // 2. Generative Visibility (GEO/AEO) - from insights.geoInsights
-  const geoReadinessPercent = insights?.geoInsights?.overview?.productsAnswerReadyPercent ?? 100;
-  const geoHealth: HealthStatus = geoReadinessPercent < 50 ? 'Critical' : geoReadinessPercent < 80 ? 'Needs Attention' : 'Healthy';
-  const geoSummary = geoHealth === 'Healthy'
-    ? 'Your products are ready for AI-powered search experiences.'
-    : 'Some products may not appear in AI-generated recommendations.';
+  const geoReadinessPercent =
+    insights?.geoInsights?.overview?.productsAnswerReadyPercent ?? 100;
+  const geoHealth: HealthStatus =
+    geoReadinessPercent < 50
+      ? 'Critical'
+      : geoReadinessPercent < 80
+        ? 'Needs Attention'
+        : 'Healthy';
+  const geoSummary =
+    geoHealth === 'Healthy'
+      ? 'Your products are ready for AI-powered search experiences.'
+      : 'Some products may not appear in AI-generated recommendations.';
   const geoAction = 'Review GEO readiness';
 
   // 3. Content Quality - OPTIMIZE_CONTENT
-  const contentBundles = items.filter((b) => b.recommendedActionKey === 'OPTIMIZE_CONTENT');
+  const contentBundles = items.filter(
+    (b) => b.recommendedActionKey === 'OPTIMIZE_CONTENT'
+  );
   const contentHealth = getWorstHealth(contentBundles);
-  const contentSummary = contentBundles.length > 0
-    ? `${contentBundles.reduce((sum, b) => sum + b.scopeCount, 0)} products have content that could be improved.`
-    : 'Your product content meets quality standards.';
-  const contentAction = getActionLabel(contentBundles, 'View content opportunities');
+  const contentSummary =
+    contentBundles.length > 0
+      ? `${contentBundles.reduce((sum, b) => sum + b.scopeCount, 0)} products have content that could be improved.`
+      : 'Your product content meets quality standards.';
+  const contentAction = getActionLabel(
+    contentBundles,
+    'View content opportunities'
+  );
 
   // 4. Technical Readiness - Pillar-scoped "Items affected" with Issues Engine routing
   // [COUNT-INTEGRITY-1.1 FIXUP-2] Always show numeric pillar-scoped affectedItemsCount (0 fallback)
-  const technicalBundles = items.filter((b) => b.recommendedActionKey === 'RESOLVE_TECHNICAL_ISSUES');
+  const technicalBundles = items.filter(
+    (b) => b.recommendedActionKey === 'RESOLVE_TECHNICAL_ISSUES'
+  );
   const technicalHealth = getWorstHealth(technicalBundles);
 
   // Pillar-scoped count: technical_indexability detected.affectedItemsCount (default 0)
   const technicalItemsAffected =
-    countsSummary?.byPillar?.['technical_indexability']?.detected?.affectedItemsCount ?? 0;
+    countsSummary?.byPillar?.['technical_indexability']?.detected
+      ?.affectedItemsCount ?? 0;
 
   // Always include "X items affected" in summary for test capture + semantic integrity
   const technicalSummary = `${technicalItemsAffected} items affected by technical and indexability issues.`;
@@ -190,18 +247,27 @@ export default function StoreHealthPage() {
 
   // 5. Trust & Compliance - IMPROVE_SEARCH_INTENT + governance
   const trustBundles = items.filter(
-    (b) => b.recommendedActionKey === 'IMPROVE_SEARCH_INTENT' ||
-           b.recommendedActionKey === 'SHARE_LINK_GOVERNANCE'
+    (b) =>
+      b.recommendedActionKey === 'IMPROVE_SEARCH_INTENT' ||
+      b.recommendedActionKey === 'SHARE_LINK_GOVERNANCE'
   );
   const trustHealth = getWorstHealth(trustBundles);
-  const trustSummary = trustBundles.length > 0
-    ? 'Review search intent and governance settings.'
-    : 'Trust signals and compliance are in good standing.';
+  const trustSummary =
+    trustBundles.length > 0
+      ? 'Review search intent and governance settings.'
+      : 'Trust signals and compliance are in good standing.';
   const trustAction = getActionLabel(trustBundles, 'Review trust status');
 
   // 6. AI Usage & Quota - from quota API
-  const aiUsedPercent = aiQuota?.limit ? Math.round((aiQuota.used / aiQuota.limit) * 100) : 0;
-  const aiHealth: HealthStatus = aiUsedPercent >= 90 ? 'Critical' : aiUsedPercent >= 70 ? 'Needs Attention' : 'Healthy';
+  const aiUsedPercent = aiQuota?.limit
+    ? Math.round((aiQuota.used / aiQuota.limit) * 100)
+    : 0;
+  const aiHealth: HealthStatus =
+    aiUsedPercent >= 90
+      ? 'Critical'
+      : aiUsedPercent >= 70
+        ? 'Needs Attention'
+        : 'Healthy';
   const aiSummary = aiQuota?.limit
     ? aiHealth === 'Healthy'
       ? 'Your AI usage is within quota limits.'
@@ -218,12 +284,13 @@ export default function StoreHealthPage() {
       summary: deoSummary,
       actionLabel: deoAction,
       // [ROUTE-INTEGRITY-1] Route to Issues Engine with deterministic returnTo via shared builder
-      onClick: () => router.push(
-        withRouteContext(
-          `/projects/${projectId}/issues?pillar=metadata_snippet_quality&mode=detected`,
-          { from: 'store_health', returnTo }
-        )
-      ),
+      onClick: () =>
+        router.push(
+          withRouteContext(
+            `/projects/${projectId}/issues?pillar=metadata_snippet_quality&mode=detected`,
+            { from: 'store_health', returnTo }
+          )
+        ),
     },
     {
       id: 'generative-visibility',
@@ -232,7 +299,8 @@ export default function StoreHealthPage() {
       summary: geoSummary,
       actionLabel: geoAction,
       // [TRUST-ROUTING-1] Fixed: route to /insights/geo-insights instead of ?tab=geo
-      onClick: () => router.push(`/projects/${projectId}/insights/geo-insights`),
+      onClick: () =>
+        router.push(`/projects/${projectId}/insights/geo-insights`),
     },
     {
       id: 'content-quality',
@@ -241,12 +309,13 @@ export default function StoreHealthPage() {
       summary: contentSummary,
       actionLabel: contentAction,
       // [ROUTE-INTEGRITY-1] Wrap Work Queue URL with deterministic returnTo
-      onClick: () => router.push(
-        withRouteContext(
-          buildWorkQueueUrl(projectId, { actionKey: 'OPTIMIZE_CONTENT' }),
-          { from: 'store_health', returnTo }
-        )
-      ),
+      onClick: () =>
+        router.push(
+          withRouteContext(
+            buildWorkQueueUrl(projectId, { actionKey: 'OPTIMIZE_CONTENT' }),
+            { from: 'store_health', returnTo }
+          )
+        ),
     },
     {
       id: 'technical-readiness',
@@ -255,12 +324,13 @@ export default function StoreHealthPage() {
       summary: technicalSummary,
       actionLabel: technicalAction,
       // [ROUTE-INTEGRITY-1] Route to Issues Engine with deterministic returnTo via shared builder
-      onClick: () => router.push(
-        withRouteContext(
-          `/projects/${projectId}/issues?pillar=technical_indexability&mode=detected`,
-          { from: 'store_health', returnTo }
-        )
-      ),
+      onClick: () =>
+        router.push(
+          withRouteContext(
+            `/projects/${projectId}/issues?pillar=technical_indexability&mode=detected`,
+            { from: 'store_health', returnTo }
+          )
+        ),
     },
     {
       id: 'trust-compliance',
@@ -269,12 +339,15 @@ export default function StoreHealthPage() {
       summary: trustSummary,
       actionLabel: trustAction,
       // [ROUTE-INTEGRITY-1] Wrap Work Queue URL with deterministic returnTo
-      onClick: () => router.push(
-        withRouteContext(
-          buildWorkQueueUrl(projectId, { actionKeys: ['IMPROVE_SEARCH_INTENT', 'SHARE_LINK_GOVERNANCE'] }),
-          { from: 'store_health', returnTo }
-        )
-      ),
+      onClick: () =>
+        router.push(
+          withRouteContext(
+            buildWorkQueueUrl(projectId, {
+              actionKeys: ['IMPROVE_SEARCH_INTENT', 'SHARE_LINK_GOVERNANCE'],
+            }),
+            { from: 'store_health', returnTo }
+          )
+        ),
     },
     {
       id: 'ai-usage',
@@ -287,9 +360,17 @@ export default function StoreHealthPage() {
   ];
 
   const shopifyConnected = integrationStatus?.shopify?.connected === true;
-  const projectDomain = typeof integrationStatus?.projectDomain === 'string' ? integrationStatus.projectDomain : '';
-  const shopDomain = typeof integrationStatus?.shopify?.shopDomain === 'string' ? integrationStatus.shopify.shopDomain : '';
-  const looksLikeShopifyProject = projectDomain.includes('.myshopify.com') || shopDomain.includes('.myshopify.com');
+  const projectDomain =
+    typeof integrationStatus?.projectDomain === 'string'
+      ? integrationStatus.projectDomain
+      : '';
+  const shopDomain =
+    typeof integrationStatus?.shopify?.shopDomain === 'string'
+      ? integrationStatus.shopify.shopDomain
+      : '';
+  const looksLikeShopifyProject =
+    projectDomain.includes('.myshopify.com') ||
+    shopDomain.includes('.myshopify.com');
 
   // Health pill styling
   const getHealthStyles = (health: HealthStatus): string => {
@@ -308,7 +389,8 @@ export default function StoreHealthPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Store Health</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Overview of your store&apos;s optimization status. Click any card to take action.
+          Overview of your store&apos;s optimization status. Click any card to
+          take action.
         </p>
       </div>
 
@@ -336,7 +418,9 @@ export default function StoreHealthPage() {
       {/* [SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1] Shopify connect notice for Shopify projects */}
       {!loading && !error && looksLikeShopifyProject && !shopifyConnected && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-          <p className="text-sm font-medium text-amber-900">Shopify is not connected for this project.</p>
+          <p className="text-sm font-medium text-amber-900">
+            Shopify is not connected for this project.
+          </p>
           <p className="mt-1 text-sm text-amber-900">
             Connect Shopify to enable product sync and content analysis.
           </p>
@@ -351,7 +435,9 @@ export default function StoreHealthPage() {
             </button>
             <button
               type="button"
-              onClick={() => router.push(`/projects/${projectId}/settings#integrations`)}
+              onClick={() =>
+                router.push(`/projects/${projectId}/settings#integrations`)
+              }
               className="text-sm font-medium text-amber-900 underline"
             >
               Go to Project Settings
@@ -367,7 +453,10 @@ export default function StoreHealthPage() {
 
       {/* Health cards grid */}
       {!loading && !error && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="store-health-cards">
+        <div
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          data-testid="store-health-cards"
+        >
           {cards.map((card) => (
             <button
               key={card.id}
@@ -384,10 +473,15 @@ export default function StoreHealthPage() {
               </span>
 
               {/* Title */}
-              <h3 className="mt-3 text-lg font-semibold text-gray-900">{card.title}</h3>
+              <h3 className="mt-3 text-lg font-semibold text-gray-900">
+                {card.title}
+              </h3>
 
               {/* Summary - contains Items affected count */}
-              <p className="mt-1 flex-1 text-sm text-gray-600" data-testid={`store-health-card-${card.id}-summary`}>
+              <p
+                className="mt-1 flex-1 text-sm text-gray-600"
+                data-testid={`store-health-card-${card.id}-summary`}
+              >
                 {card.summary}
               </p>
 

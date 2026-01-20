@@ -1,4 +1,9 @@
-import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { ApprovalResourceType, ApprovalStatus } from '@prisma/client';
 import { AuditEventsService } from './audit-events.service';
@@ -42,7 +47,10 @@ export interface ApprovalRequestResponse {
 }
 
 export interface CreateApprovalRequestDto {
-  resourceType: 'GEO_FIX_APPLY' | 'ANSWER_BLOCK_SYNC' | 'AUTOMATION_PLAYBOOK_APPLY';
+  resourceType:
+    | 'GEO_FIX_APPLY'
+    | 'ANSWER_BLOCK_SYNC'
+    | 'AUTOMATION_PLAYBOOK_APPLY';
   resourceId: string;
 }
 
@@ -55,7 +63,7 @@ export class ApprovalsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditEventsService: AuditEventsService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   /**
@@ -68,10 +76,13 @@ export class ApprovalsService {
   async createRequest(
     projectId: string,
     userId: string,
-    dto: CreateApprovalRequestDto,
+    dto: CreateApprovalRequestDto
   ): Promise<ApprovalRequestResponse> {
     // [ROLES-3] Verify membership and role
-    const role = await this.roleResolution.resolveEffectiveRole(projectId, userId);
+    const role = await this.roleResolution.resolveEffectiveRole(
+      projectId,
+      userId
+    );
     if (!role) {
       throw new ForbiddenException('You do not have access to this project');
     }
@@ -88,7 +99,7 @@ export class ApprovalsService {
     // OWNER should apply directly (they have approval authority)
     if (isMultiUser && role === 'OWNER') {
       throw new ForbiddenException(
-        'Owners cannot create approval requests in multi-user projects. Apply directly instead.',
+        'Owners cannot create approval requests in multi-user projects. Apply directly instead.'
       );
     }
 
@@ -109,11 +120,11 @@ export class ApprovalsService {
     if (existingRequest) {
       if (existingRequest.status === 'APPROVED') {
         throw new BadRequestException(
-          'An approved request already exists for this resource. Use the existing approval.',
+          'An approved request already exists for this resource. Use the existing approval.'
         );
       }
       throw new BadRequestException(
-        'A pending request already exists for this resource.',
+        'A pending request already exists for this resource.'
       );
     }
 
@@ -133,7 +144,7 @@ export class ApprovalsService {
       userId,
       dto.resourceType,
       dto.resourceId,
-      request.id,
+      request.id
     );
 
     return this.formatResponse(request);
@@ -147,7 +158,7 @@ export class ApprovalsService {
     projectId: string,
     approvalId: string,
     userId: string,
-    dto: ApproveRejectDto = {},
+    dto: ApproveRejectDto = {}
   ): Promise<ApprovalRequestResponse> {
     // [ROLES-3] Enforce OWNER role via ProjectMember
     await this.roleResolution.assertOwnerRole(projectId, userId);
@@ -156,7 +167,7 @@ export class ApprovalsService {
 
     if (request.status !== 'PENDING_APPROVAL') {
       throw new BadRequestException(
-        `Cannot approve request with status: ${request.status}`,
+        `Cannot approve request with status: ${request.status}`
       );
     }
 
@@ -177,7 +188,7 @@ export class ApprovalsService {
       request.resourceType,
       request.resourceId,
       approvalId,
-      dto.reason,
+      dto.reason
     );
 
     return this.formatResponse(updated);
@@ -191,7 +202,7 @@ export class ApprovalsService {
     projectId: string,
     approvalId: string,
     userId: string,
-    dto: ApproveRejectDto = {},
+    dto: ApproveRejectDto = {}
   ): Promise<ApprovalRequestResponse> {
     // [ROLES-3] Enforce OWNER role via ProjectMember
     await this.roleResolution.assertOwnerRole(projectId, userId);
@@ -200,7 +211,7 @@ export class ApprovalsService {
 
     if (request.status !== 'PENDING_APPROVAL') {
       throw new BadRequestException(
-        `Cannot reject request with status: ${request.status}`,
+        `Cannot reject request with status: ${request.status}`
       );
     }
 
@@ -221,7 +232,7 @@ export class ApprovalsService {
       request.resourceType,
       request.resourceId,
       approvalId,
-      dto.reason,
+      dto.reason
     );
 
     return this.formatResponse(updated);
@@ -235,7 +246,7 @@ export class ApprovalsService {
     projectId: string,
     userId: string,
     resourceType: ApprovalResourceType,
-    resourceId: string,
+    resourceId: string
   ): Promise<ApprovalRequestResponse | null> {
     // [ROLES-3] Verify membership (any role can view)
     await this.roleResolution.assertProjectAccess(projectId, userId);
@@ -265,7 +276,7 @@ export class ApprovalsService {
       status?: ApprovalStatus;
       page?: number;
       pageSize?: number;
-    } = {},
+    } = {}
   ): Promise<{
     requests: ApprovalRequestResponse[];
     total: number;
@@ -311,7 +322,7 @@ export class ApprovalsService {
   async hasValidApproval(
     projectId: string,
     resourceType: ApprovalResourceType,
-    resourceId: string,
+    resourceId: string
   ): Promise<{ valid: boolean; approvalId?: string; status?: string }> {
     const request = await this.prisma.approvalRequest.findFirst({
       where: {
@@ -340,7 +351,11 @@ export class ApprovalsService {
     });
 
     if (pendingRequest) {
-      return { valid: false, approvalId: pendingRequest.id, status: 'PENDING_APPROVAL' };
+      return {
+        valid: false,
+        approvalId: pendingRequest.id,
+        status: 'PENDING_APPROVAL',
+      };
     }
 
     return { valid: false };
@@ -362,7 +377,7 @@ export class ApprovalsService {
 
   private async getRequestOrThrow(
     projectId: string,
-    approvalId: string,
+    approvalId: string
   ): Promise<any> {
     const request = await this.prisma.approvalRequest.findFirst({
       where: { id: approvalId, projectId },

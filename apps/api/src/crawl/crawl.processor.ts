@@ -3,7 +3,10 @@ import { Job, Worker } from 'bullmq';
 import { redisConfig } from '../config/redis.config';
 import { PrismaService } from '../prisma.service';
 import { SeoScanService } from '../seo-scan/seo-scan.service';
-import { DeoScoreService, DeoSignalsService } from '../projects/deo-score.service';
+import {
+  DeoScoreService,
+  DeoSignalsService,
+} from '../projects/deo-score.service';
 import { AutomationService } from '../projects/automation.service';
 
 interface CrawlJobPayload {
@@ -19,7 +22,7 @@ export class CrawlProcessor implements OnModuleInit, OnModuleDestroy {
     private readonly seoScanService: SeoScanService,
     private readonly deoSignalsService: DeoSignalsService,
     private readonly deoScoreService: DeoScoreService,
-    private readonly automationService: AutomationService,
+    private readonly automationService: AutomationService
   ) {}
 
   async onModuleInit() {
@@ -32,7 +35,7 @@ export class CrawlProcessor implements OnModuleInit, OnModuleDestroy {
       process.env.ENABLE_QUEUE_PROCESSORS !== 'false';
     if (!enableQueueProcessors) {
       console.warn(
-        '[CrawlProcessor] ENABLE_QUEUE_PROCESSORS=false - worker disabled',
+        '[CrawlProcessor] ENABLE_QUEUE_PROCESSORS=false - worker disabled'
       );
       return;
     }
@@ -44,11 +47,12 @@ export class CrawlProcessor implements OnModuleInit, OnModuleDestroy {
         const jobStartedAt = Date.now();
 
         try {
-          const crawledAt = await this.seoScanService.runFullProjectCrawl(projectId);
+          const crawledAt =
+            await this.seoScanService.runFullProjectCrawl(projectId);
 
           if (!crawledAt) {
             console.warn(
-              `[CrawlProcessor] Crawl skipped for project ${projectId} (no domain or project not found)`,
+              `[CrawlProcessor] Crawl skipped for project ${projectId} (no domain or project not found)`
             );
             return;
           }
@@ -61,26 +65,28 @@ export class CrawlProcessor implements OnModuleInit, OnModuleDestroy {
           });
 
           console.log(
-            `[CrawlProcessor] Crawl complete for project ${projectId} at ${crawledAt.toISOString()}`,
+            `[CrawlProcessor] Crawl complete for project ${projectId} at ${crawledAt.toISOString()}`
           );
 
           const signalsStartedAt = Date.now();
-          const signals = await this.deoSignalsService.collectSignalsForProject(projectId);
+          const signals =
+            await this.deoSignalsService.collectSignalsForProject(projectId);
           console.log(
             `[CrawlProcessor] Signals computed for project ${projectId} in ${
               Date.now() - signalsStartedAt
-            }ms`,
+            }ms`
           );
 
           const recomputeStartedAt = Date.now();
-          const snapshot = await this.deoScoreService.computeAndPersistScoreFromSignals(
-            projectId,
-            signals,
-          );
+          const snapshot =
+            await this.deoScoreService.computeAndPersistScoreFromSignals(
+              projectId,
+              signals
+            );
           console.log(
             `[CrawlProcessor] DEO recompute complete for project ${projectId} (snapshot ${
               snapshot.id
-            }, overall=${snapshot.breakdown.overall}) in ${Date.now() - recomputeStartedAt}ms`,
+            }, overall=${snapshot.breakdown.overall}) in ${Date.now() - recomputeStartedAt}ms`
           );
 
           // Run automation suggestions after successful crawl + DEO
@@ -89,18 +95,18 @@ export class CrawlProcessor implements OnModuleInit, OnModuleDestroy {
           console.log(
             `[CrawlProcessor] Automation suggestions scheduled for project ${projectId} in ${
               Date.now() - automationStartedAt
-            }ms`,
+            }ms`
           );
 
           console.log(
             `[CrawlProcessor] Crawl + DEO + Automation pipeline for project ${projectId} completed in ${
               Date.now() - jobStartedAt
-            }ms`,
+            }ms`
           );
         } catch (error) {
           console.error(
             `[CrawlProcessor] Failed to crawl project ${projectId}`,
-            error,
+            error
           );
           throw error;
         }
@@ -108,7 +114,7 @@ export class CrawlProcessor implements OnModuleInit, OnModuleDestroy {
       {
         connection: redisConfig.connection,
         prefix: redisConfig.prefix,
-      },
+      }
     );
   }
 

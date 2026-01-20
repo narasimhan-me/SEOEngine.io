@@ -47,7 +47,12 @@ describe('ShopifyService.updateProductSeo (GraphQL productUpdate)', () => {
     };
 
     return {
-      service: new ShopifyService(prismaStub, configStub, automationStub, roleResolutionStub),
+      service: new ShopifyService(
+        prismaStub,
+        configStub,
+        automationStub,
+        roleResolutionStub
+      ),
       prismaStub,
     };
   }
@@ -61,7 +66,7 @@ describe('ShopifyService.updateProductSeo (GraphQL productUpdate)', () => {
       'local-product-id',
       'New Title',
       'New Description',
-      'user-1',
+      'user-1'
     );
 
     // Verify the service returns the expected result
@@ -85,8 +90,8 @@ describe('ShopifyService.updateProductSeo (GraphQL productUpdate)', () => {
         'local-product-id',
         '__SIMULATE_ERRORS__', // Special value to trigger userErrors in e2e mock
         'New Description',
-        'user-1',
-      ),
+        'user-1'
+      )
     ).rejects.toThrow(BadRequestException);
   });
 });

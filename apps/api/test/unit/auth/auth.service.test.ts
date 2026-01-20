@@ -13,7 +13,11 @@
 import { AuthService, JwtPayload } from '../../../src/auth/auth.service';
 import { PrismaService } from '../../../src/prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  ConflictException,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import * as speakeasy from 'speakeasy';
 
@@ -51,7 +55,7 @@ describe('AuthService', () => {
     jwtServiceMock = createJwtServiceMock();
     service = new AuthService(
       prismaMock as unknown as PrismaService,
-      jwtServiceMock as unknown as JwtService,
+      jwtServiceMock as unknown as JwtService
     );
     jest.clearAllMocks();
   });
@@ -76,7 +80,11 @@ describe('AuthService', () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
       prismaMock.user.create.mockResolvedValue(mockUser);
 
-      const result = await service.signup('test@example.com', 'password123', 'Test User');
+      const result = await service.signup(
+        'test@example.com',
+        'password123',
+        'Test User'
+      );
 
       expect(result).toEqual({
         id: 'user-1',
@@ -106,9 +114,9 @@ describe('AuthService', () => {
 
       prismaMock.user.findUnique.mockResolvedValue(existingUser);
 
-      await expect(service.signup('test@example.com', 'password123')).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(
+        service.signup('test@example.com', 'password123')
+      ).rejects.toThrow(ConflictException);
       expect(prismaMock.user.create).not.toHaveBeenCalled();
     });
 
@@ -154,7 +162,10 @@ describe('AuthService', () => {
       prismaMock.user.findUnique.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
-      const result = await service.validateUser('test@example.com', 'password123');
+      const result = await service.validateUser(
+        'test@example.com',
+        'password123'
+      );
 
       expect(result).toEqual({
         id: 'user-1',
@@ -166,15 +177,18 @@ describe('AuthService', () => {
         twoFactorEnabled: false,
         twoFactorSecret: null,
       });
-      expect(bcrypt.compare).toHaveBeenCalledWith('password123', 'hashed-password');
+      expect(bcrypt.compare).toHaveBeenCalledWith(
+        'password123',
+        'hashed-password'
+      );
     });
 
     it('should throw UnauthorizedException when user does not exist', async () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.validateUser('test@example.com', 'password123')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        service.validateUser('test@example.com', 'password123')
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException when password is invalid', async () => {
@@ -187,9 +201,9 @@ describe('AuthService', () => {
       prismaMock.user.findUnique.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(service.validateUser('test@example.com', 'wrong-password')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        service.validateUser('test@example.com', 'wrong-password')
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 
@@ -267,7 +281,7 @@ describe('AuthService', () => {
           role: 'user',
           twoFactor: true,
         },
-        { expiresIn: '10m' },
+        { expiresIn: '10m' }
       );
     });
   });
@@ -323,9 +337,9 @@ describe('AuthService', () => {
         throw new Error('Invalid token');
       });
 
-      await expect(service.verifyTwoFactor('invalid-token', '123456')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.verifyTwoFactor('invalid-token', '123456')
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when temp token is not a 2FA token', async () => {
@@ -338,9 +352,9 @@ describe('AuthService', () => {
 
       jwtServiceMock.verify.mockReturnValue(payload);
 
-      await expect(service.verifyTwoFactor('temp-token', '123456')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.verifyTwoFactor('temp-token', '123456')
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException when TOTP code is invalid', async () => {
@@ -360,9 +374,9 @@ describe('AuthService', () => {
       prismaMock.user.findUnique.mockResolvedValue(mockUser);
       (speakeasy.totp.verify as jest.Mock).mockReturnValue(false);
 
-      await expect(service.verifyTwoFactor('temp-token', 'wrong-code')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.verifyTwoFactor('temp-token', 'wrong-code')
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -404,8 +418,9 @@ describe('AuthService', () => {
 
       prismaMock.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.validateJwtPayload(payload)).rejects.toThrow(UnauthorizedException);
+      await expect(service.validateJwtPayload(payload)).rejects.toThrow(
+        UnauthorizedException
+      );
     });
   });
 });
-

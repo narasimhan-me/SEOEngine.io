@@ -1,4 +1,9 @@
-import { Injectable, ForbiddenException, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { getPlanById, PlanId, PlanLimits, PLANS } from './plans';
 
@@ -80,11 +85,11 @@ export class EntitlementsService {
   async getDailyAiUsage(
     userId: string,
     projectId: string,
-    feature: string,
+    feature: string
   ): Promise<number> {
     const now = new Date();
     const startOfDayUtc = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
     );
 
     return this.prisma.aiUsageEvent.count({
@@ -106,7 +111,7 @@ export class EntitlementsService {
   async ensureWithinDailyAiLimit(
     userId: string,
     projectId: string,
-    feature: string,
+    feature: string
   ): Promise<{ planId: PlanId; limit: number; dailyCount: number }> {
     const { planId, limit } = await this.getAiSuggestionLimit(userId);
     const dailyCount = await this.getDailyAiUsage(userId, projectId, feature);
@@ -138,7 +143,7 @@ export class EntitlementsService {
           allowed: limit,
           current: dailyCount,
         },
-        HttpStatus.TOO_MANY_REQUESTS,
+        HttpStatus.TOO_MANY_REQUESTS
       );
     }
 
@@ -151,7 +156,7 @@ export class EntitlementsService {
   async recordAiUsage(
     userId: string,
     projectId: string,
-    feature: string,
+    feature: string
   ): Promise<void> {
     await this.prisma.aiUsageEvent.create({
       data: {
@@ -170,7 +175,7 @@ export class EntitlementsService {
     userId: string,
     feature: EntitlementFeature,
     current: number,
-    allowedOverride?: number,
+    allowedOverride?: number
   ): Promise<void> {
     const planId = await this.getUserPlan(userId);
     const plan = getPlanById(planId) || PLANS[0];
@@ -237,7 +242,7 @@ export class EntitlementsService {
       userId,
       'projects',
       summary.usage.projects,
-      summary.limits.projects,
+      summary.limits.projects
     );
   }
 

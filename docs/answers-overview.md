@@ -21,17 +21,17 @@ Answer-ready content in EngineO.ai is:
 
 The Answer Engine defines 10 canonical questions that products should be able to answer:
 
-| ID | Question |
-|----|----------|
-| `what_is_it` | What is this? |
-| `who_is_it_for` | Who is it for? |
-| `why_choose_this` | Why choose this? |
-| `key_features` | What are the key features? |
-| `how_is_it_used` | How is it used? |
-| `problems_it_solves` | What problems does it solve? |
-| `what_makes_it_different` | What makes it different? |
-| `whats_included` | What's included? |
-| `materials_and_specs` | Materials / Specs |
+| ID                         | Question                     |
+| -------------------------- | ---------------------------- |
+| `what_is_it`               | What is this?                |
+| `who_is_it_for`            | Who is it for?               |
+| `why_choose_this`          | Why choose this?             |
+| `key_features`             | What are the key features?   |
+| `how_is_it_used`           | How is it used?              |
+| `problems_it_solves`       | What problems does it solve? |
+| `what_makes_it_different`  | What makes it different?     |
+| `whats_included`           | What's included?             |
+| `materials_and_specs`      | Materials / Specs            |
 | `care_safety_instructions` | Care / safety / instructions |
 
 ### Answer Block Properties

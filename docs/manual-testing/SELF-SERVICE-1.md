@@ -21,6 +21,7 @@
 ### D1: Profile Management
 
 #### T1.1: View Profile
+
 1. Login as OWNER user
 2. Navigate to Settings > Profile
 3. **Verify:**
@@ -32,6 +33,7 @@
    - "Changes are audited" copy is visible
 
 #### T1.2: Update Profile
+
 1. Login as OWNER user
 2. Navigate to Settings > Profile
 3. Update name to "Manual Test User"
@@ -43,6 +45,7 @@
    - Page reload preserves changes
 
 #### T1.3: Profile Read-Only for VIEWER
+
 1. Login as VIEWER user (use seed-self-service-viewer)
 2. Navigate to Settings > Profile
 3. **Verify:**
@@ -55,6 +58,7 @@
 ### D2: Organization / Stores
 
 #### T2.1: View Organization
+
 1. Login as OWNER user
 2. Navigate to Settings > Organization
 3. **Verify:**
@@ -63,6 +67,7 @@
    - "Connect New Store" link is visible
 
 #### T2.2: Update Organization Name
+
 1. Login as OWNER user
 2. Navigate to Settings > Organization
 3. Enter a new organization name
@@ -72,6 +77,7 @@
    - Organization name persists on reload
 
 #### T2.3: Disconnect Store (Owner Only)
+
 1. Login as OWNER user with connected store
 2. Navigate to Settings > Organization
 3. Click "Disconnect" on a store
@@ -81,6 +87,7 @@
    - Success message appears
 
 #### T2.4: EDITOR Cannot Disconnect Stores
+
 1. Login as EDITOR user
 2. Navigate to Settings > Organization
 3. **Verify:**
@@ -88,6 +95,7 @@
    - "Only account owners can disconnect" message is visible
 
 #### T2.5: VIEWER Read-Only Organization
+
 1. Login as VIEWER user
 2. Navigate to Settings > Organization
 3. **Verify:**
@@ -100,6 +108,7 @@
 ### D3: Plan & Billing
 
 #### T3.1: View Billing as OWNER
+
 1. Login as OWNER user
 2. Navigate to Settings > Billing
 3. **Verify:**
@@ -109,6 +118,7 @@
    - Plan cards show Upgrade/Downgrade buttons (not "Owner Only")
 
 #### T3.2: Manage Billing as OWNER
+
 1. Login as OWNER user with paid plan
 2. Navigate to Settings > Billing
 3. Click "Manage Billing"
@@ -116,6 +126,7 @@
    - Redirects to Stripe Portal (or error in test mode)
 
 #### T3.3: EDITOR Read-Only Billing
+
 1. Login as EDITOR user
 2. Navigate to Settings > Billing
 3. **Verify:**
@@ -125,6 +136,7 @@
    - "Only account owners can manage billing" text is visible
 
 #### T3.4: VIEWER Read-Only Billing
+
 1. Login as VIEWER user
 2. Navigate to Settings > Billing
 3. **Verify:**
@@ -135,6 +147,7 @@
 ### D4: AI Usage
 
 #### T4.1: View AI Usage
+
 1. Login as OWNER user (with AI runs seeded)
 2. Navigate to Settings > AI Usage
 3. **Verify:**
@@ -146,6 +159,7 @@
    - "APPLY never uses AI" message is visible
 
 #### T4.2: Reuse Metrics Display
+
 1. Login as user with reuse history
 2. Navigate to Settings > AI Usage
 3. **Verify:**
@@ -158,6 +172,7 @@
 ### D5: Preferences
 
 #### T5.1: View Preferences
+
 1. Login as OWNER user
 2. Navigate to Settings > Preferences
 3. **Verify:**
@@ -166,6 +181,7 @@
    - All toggles are enabled (clickable)
 
 #### T5.2: Update Preferences
+
 1. Login as OWNER user
 2. Navigate to Settings > Preferences
 3. Toggle "Quota Warning Notifications" off
@@ -176,6 +192,7 @@
    - Preferences persist on reload
 
 #### T5.3: VIEWER Read-Only Preferences
+
 1. Login as VIEWER user
 2. Navigate to Settings > Preferences
 3. **Verify:**
@@ -188,6 +205,7 @@
 ### D6: Security
 
 #### T6.1: View Sessions
+
 1. Login as OWNER user
 2. Navigate to Settings > Security
 3. **Verify:**
@@ -197,6 +215,7 @@
    - Last seen time is displayed
 
 #### T6.2: Sign Out All Sessions
+
 1. Login as OWNER user from two browsers/devices
 2. Navigate to Settings > Security
 3. Click "Sign Out All Other Sessions"
@@ -210,6 +229,7 @@
 ### D7: Help & Support
 
 #### T7.1: View Help Page
+
 1. Login as any user
 2. Navigate to Settings > Help
 3. **Verify:**
@@ -222,6 +242,7 @@
 ### Account Menu Navigation
 
 #### T8.1: Account Menu Links
+
 1. Login as any user
 2. Click "Account" in top navigation
 3. **Verify:**
@@ -238,6 +259,7 @@
      - Sign out
 
 #### T8.2: Menu Navigation
+
 1. Click each menu item
 2. **Verify:** Each navigates to correct page and menu closes
 
@@ -246,6 +268,7 @@
 ### Settings Hub
 
 #### T9.1: Settings Hub Cards
+
 1. Navigate to /settings
 2. **Verify:**
    - All settings cards are displayed
@@ -257,12 +280,14 @@
 ## API Testing (curl/Postman)
 
 ### Get Profile
+
 ```bash
 curl -H "Authorization: Bearer <token>" \
   http://localhost:3001/account/profile
 ```
 
 ### Update Profile
+
 ```bash
 curl -X PATCH \
   -H "Authorization: Bearer <token>" \
@@ -272,12 +297,14 @@ curl -X PATCH \
 ```
 
 ### Get AI Usage
+
 ```bash
 curl -H "Authorization: Bearer <token>" \
   http://localhost:3001/account/ai-usage
 ```
 
 ### Sign Out All
+
 ```bash
 curl -X POST \
   -H "Authorization: Bearer <token>" \
@@ -288,23 +315,24 @@ curl -X POST \
 
 ## Expected Test Counts
 
-| Category | Tests |
-|----------|-------|
-| Profile | 3 |
-| Organization | 5 |
-| Billing | 4 |
-| AI Usage | 2 |
-| Preferences | 3 |
-| Security | 2 |
-| Help | 1 |
-| Navigation | 3 |
-| **Total** | **23** |
+| Category     | Tests  |
+| ------------ | ------ |
+| Profile      | 3      |
+| Organization | 5      |
+| Billing      | 4      |
+| AI Usage     | 2      |
+| Preferences  | 3      |
+| Security     | 2      |
+| Help         | 1      |
+| Navigation   | 3      |
+| **Total**    | **23** |
 
 ---
 
 ## Bug Reporting
 
 If you find issues:
+
 1. Note the test scenario (e.g., T3.2)
 2. Capture browser console logs
 3. Capture network requests

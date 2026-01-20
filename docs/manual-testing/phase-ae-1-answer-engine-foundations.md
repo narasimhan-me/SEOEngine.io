@@ -52,19 +52,21 @@
 **ID:** AE1-001
 
 **Steps:**
+
 1. Open `packages/shared/src/answer-engine.ts`
 2. Compare types against `docs/ANSWER_ENGINE_SPEC.md` Section 2
 
 **Expected Results:**
 
-| Type | Code | Spec | Match |
-|------|------|------|-------|
-| `AnswerBlockQuestionId` | 10 values | 10 questions | [ ] |
-| `AnswerBlockSourceType` | 3 values | 3 types | [ ] |
-| `AnswerBlock` | All fields | Section 2.1 | [ ] |
-| `AnswerabilityStatus` | All fields | Section 3 | [ ] |
+| Type                    | Code       | Spec         | Match |
+| ----------------------- | ---------- | ------------ | ----- |
+| `AnswerBlockQuestionId` | 10 values  | 10 questions | [ ]   |
+| `AnswerBlockSourceType` | 3 values   | 3 types      | [ ]   |
+| `AnswerBlock`           | All fields | Section 2.1  | [ ]   |
+| `AnswerabilityStatus`   | All fields | Section 3    | [ ]   |
 
 **Verification:**
+
 - [ ] All 10 question IDs present: `what_is_it`, `who_is_it_for`, `why_choose_this`, `key_features`, `how_is_it_used`, `problems_it_solves`, `what_makes_it_different`, `whats_included`, `materials_and_specs`, `care_safety_instructions`
 - [ ] Source types: `generated`, `userEdited`, `legacy`
 - [ ] AnswerBlock includes: `id`, `projectId`, `productId?`, `questionId`, `question`, `answer`, `confidence`, `sourceType`, `factsUsed`, `deoImpactEstimate?`, `version`, `createdAt`, `updatedAt`
@@ -76,11 +78,13 @@
 **ID:** AE1-002
 
 **Steps:**
+
 1. Open `docs/answers-overview.md`
 2. Verify Answer Blocks section exists
 3. Verify question categories listed
 
 **Expected Results:**
+
 - [ ] Document mentions Answer Engine and Answer Blocks in introduction
 - [ ] "Answer Blocks (Concept)" section exists
 - [ ] All 10 question categories listed with descriptions
@@ -95,23 +99,25 @@
 **ID:** AE1-003
 
 **Steps:**
+
 1. Open `docs/ANSWER_ENGINE_SPEC.md`
 2. Verify all required sections present
 
 **Expected Results:**
 
-| Section | Present | Complete |
-|---------|---------|----------|
-| 1. Purpose | [ ] | [ ] |
-| 2. Answer Block Model | [ ] | [ ] |
-| 3. Answerability Detection | [ ] | [ ] |
-| 4. Lifecycle | [ ] | [ ] |
-| 5. Integration Points | [ ] | [ ] |
-| 6. Versioning | [ ] | [ ] |
-| 7. Security & Safety | [ ] | [ ] |
-| 8. Acceptance Criteria | [ ] | [ ] |
+| Section                    | Present | Complete |
+| -------------------------- | ------- | -------- |
+| 1. Purpose                 | [ ]     | [ ]      |
+| 2. Answer Block Model      | [ ]     | [ ]      |
+| 3. Answerability Detection | [ ]     | [ ]      |
+| 4. Lifecycle               | [ ]     | [ ]      |
+| 5. Integration Points      | [ ]     | [ ]      |
+| 6. Versioning              | [ ]     | [ ]      |
+| 7. Security & Safety       | [ ]     | [ ]      |
+| 8. Acceptance Criteria     | [ ]     | [ ]      |
 
 **Key Content Verification:**
+
 - [ ] No-hallucination rule documented in Section 2
 - [ ] "Cannot answer" behavior defined
 - [ ] DEO Score v2 integration described in Section 5
@@ -125,10 +131,12 @@
 **ID:** AE1-004
 
 **Steps:**
+
 1. Open `docs/testing/CRITICAL_PATH_MAP.md`
 2. Find CP-011 entry
 
 **Expected Results:**
+
 - [ ] CP-011 entry exists with title "Answer Engine (Answer Blocks & Answerability)"
 - [ ] Manual Testing Doc(s) references:
   - `docs/testing/answer-engine.md`
@@ -147,10 +155,12 @@
 **ID:** AE1-005
 
 **Steps:**
+
 1. Run `pnpm --filter shared build`
 2. Check for TypeScript errors
 
 **Expected Results:**
+
 - [ ] Build completes successfully
 - [ ] No TypeScript errors related to answer-engine.ts
 - [ ] Types are exported correctly
@@ -164,10 +174,12 @@
 **Description:** Verify types are accessible from other packages.
 
 **Steps:**
+
 1. Check that shared package exports answer-engine types
 2. Verify API package can import types (if needed)
 
 **Expected Behavior:**
+
 - Types are importable: `import { AnswerBlock } from '@engineo/shared'`
 - No circular dependency issues
 
@@ -178,10 +190,12 @@
 **Description:** Verify all internal documentation links are valid.
 
 **Steps:**
+
 1. Check links in `docs/answers-overview.md`
 2. Check links in `docs/ANSWER_ENGINE_SPEC.md`
 
 **Expected Behavior:**
+
 - All referenced files exist
 - No broken internal links
 
@@ -194,6 +208,7 @@
 **Scenario:** Required files don't exist.
 
 **Expected Behavior:**
+
 - Test fails with clear indication of missing file
 - Checklist shows which files are missing
 
@@ -232,9 +247,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Phase AE-1 – Answer Engine Foundations (Model & Spec) |
+| Field              | Value                                                 |
+| ------------------ | ----------------------------------------------------- |
+| **Tester Name**    | [Pending]                                             |
+| **Date**           | [YYYY-MM-DD]                                          |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed                 |
+| **Notes**          | Phase AE-1 – Answer Engine Foundations (Model & Spec) |

@@ -7,6 +7,7 @@
 ## Purpose
 
 This document tracks all critical paths in EngineO.ai that must be verified before any release. Each critical path:
+
 - Links to at least one manual testing document
 - Notes automated test coverage status
 - Tracks last verification date (manual and automated)
@@ -21,15 +22,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** User authentication flows including sign-up, login, logout, session management, sign-out-all, and role-based access control.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/user-profile-and-account-settings.md`, `docs/manual-testing/SELF-SERVICE-1.md`, `docs/manual-testing/SECURITY-LOGIN-QUERY-PARAMS.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md` |
-| **Automated Tests** | `apps/api/test/integration/self-service-1.test.ts`, `apps/web/tests/auth-security.spec.ts`, `apps/web/tests/nav-ia-consistency-1.spec.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Core Team |
+| Field                         | Value                                                                                                                                                                                                                                        |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/user-profile-and-account-settings.md`, `docs/manual-testing/SELF-SERVICE-1.md`, `docs/manual-testing/SECURITY-LOGIN-QUERY-PARAMS.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md` |
+| **Automated Tests**           | `apps/api/test/integration/self-service-1.test.ts`, `apps/web/tests/auth-security.spec.ts`, `apps/web/tests/nav-ia-consistency-1.spec.ts`                                                                                                    |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                                                                                                 |
+| **Last Verified (Automated)** | N/A                                                                                                                                                                                                                                          |
+| **Owner**                     | Core Team                                                                                                                                                                                                                                    |
 
 **Key Scenarios:**
+
 - [ ] New user sign-up flow
 - [ ] Existing user login
 - [ ] Session persistence and expiration
@@ -56,15 +58,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Stripe subscription management, plan entitlements enforcement, project limits, daily AI usage quotas, and owner-only billing restrictions.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/billing-and-limits.md`, `docs/testing/entitlements-matrix.md`, `docs/testing/plan-definitions.md`, `docs/manual-testing/SELF-SERVICE-1.md`, `docs/manual-testing/BILLING-GTM-1.md` |
-| **Automated Tests** | `apps/api/test/integration/self-service-1.test.ts`, `apps/web/tests/self-service-1.spec.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Core Team |
+| Field                         | Value                                                                                                                                                                                            |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Manual Testing Doc(s)**     | `docs/testing/billing-and-limits.md`, `docs/testing/entitlements-matrix.md`, `docs/testing/plan-definitions.md`, `docs/manual-testing/SELF-SERVICE-1.md`, `docs/manual-testing/BILLING-GTM-1.md` |
+| **Automated Tests**           | `apps/api/test/integration/self-service-1.test.ts`, `apps/web/tests/self-service-1.spec.ts`                                                                                                      |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                                                     |
+| **Last Verified (Automated)** | N/A                                                                                                                                                                                              |
+| **Owner**                     | Core Team                                                                                                                                                                                        |
 
 **Key Scenarios:**
+
 - [ ] New subscription creation
 - [ ] Plan upgrade/downgrade
 - [ ] Subscription cancellation
@@ -77,7 +80,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] BILLING-GTM-1: Public pricing page readable without login
 - [ ] BILLING-GTM-1: Billing page shows aiUsedRuns (not totalRuns) in quota display
 - [ ] BILLING-GTM-1: Trust messaging visible: "APPLY never uses AI", "Runs avoided via reuse"
-- [ ] BILLING-GTM-1: Env-driven AI quota limits (AI_USAGE_MONTHLY_RUN_LIMIT_<PLAN>)
+- [ ] BILLING-GTM-1: Env-driven AI quota limits (AI*USAGE_MONTHLY_RUN_LIMIT*<PLAN>)
 - [ ] BILLING-GTM-1: Contextual upgrade prompt on Insights when quota >=80%
 - [ ] BILLING-GTM-1: Limit-style toast with Upgrade CTA on Playbooks quota warning
 - [ ] BILLING-GTM-1: Marketing pricing aligned with backend limits (no mismatched claims)
@@ -88,15 +91,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** AI-powered product optimization including Gemini integration, token tracking, failover logic, and response handling.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/ai-systems.md`, `docs/testing/token-usage-tracking.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/PRODUCTS-LIST-2.0.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md` |
-| **Automated Tests** | `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | AI Team |
+| Field                         | Value                                                                                                                                                                                                                  |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/ai-systems.md`, `docs/testing/token-usage-tracking.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/PRODUCTS-LIST-2.0.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md` |
+| **Automated Tests**           | `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`                                                                                                                                                              |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                                                                           |
+| **Last Verified (Automated)** | N/A                                                                                                                                                                                                                    |
+| **Owner**                     | AI Team                                                                                                                                                                                                                |
 
 **Key Scenarios:**
+
 - [ ] Single product optimization
 - [ ] Batch optimization
 - [ ] Token usage tracking and display
@@ -123,15 +127,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Product crawling system including queue management, worker processing, progress tracking, and error handling.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/deo-pipeline.md`, `docs/testing/signals-collection.md` |
-| **Automated Tests** | Planned |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Pipeline Team |
+| Field                         | Value                                                                |
+| ----------------------------- | -------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/deo-pipeline.md`, `docs/testing/signals-collection.md` |
+| **Automated Tests**           | Planned                                                              |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                         |
+| **Last Verified (Automated)** | N/A                                                                  |
+| **Owner**                     | Pipeline Team                                                        |
 
 **Key Scenarios:**
+
 - [ ] Manual crawl trigger
 - [ ] Scheduled crawl execution
 - [ ] Progress feedback in UI
@@ -144,15 +149,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** DEO score calculation pipeline including signal aggregation, weighting, score persistence, snapshot history, and v2 explainability layer.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/deo-score-compute-pipeline.md`, `docs/testing/deo-score-snapshots.md`, `docs/manual-testing/phase-2.6-deo-score-v2-explainability.md` |
-| **Automated Tests** | Planned |
-| **Last Verified (Manual)** | 2025-12-08 |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | DEO Team |
+| Field                         | Value                                                                                                                                               |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/deo-score-compute-pipeline.md`, `docs/testing/deo-score-snapshots.md`, `docs/manual-testing/phase-2.6-deo-score-v2-explainability.md` |
+| **Automated Tests**           | Planned                                                                                                                                             |
+| **Last Verified (Manual)**    | 2025-12-08                                                                                                                                          |
+| **Last Verified (Automated)** | N/A                                                                                                                                                 |
+| **Owner**                     | DEO Team                                                                                                                                            |
 
 **Key Scenarios:**
+
 - [ ] Score computation after crawl
 - [ ] Score display in UI
 - [ ] Historical snapshot storage
@@ -170,15 +176,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Shopify integration including OAuth, product sync, metadata push, image alt text ingestion, and sync status tracking.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/shopify-integration.md`, `docs/testing/product-sync.md`, `docs/testing/metadata-sync-seo-fields.md`, `docs/testing/sync-status-and-progress-feedback.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-shop-api-1-graphql-migration.md`, `docs/manual-testing/phase-shop-ux-cta-1-connect-shopify.md`, `docs/manual-testing/phase-shop-ux-cta-1-1-dedup-connect-shopify.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/SHOPIFY-ASSET-SYNC-COVERAGE-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-RECONSENT-UX-1.md`, `docs/manual-testing/SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1.md`, `docs/manual-testing/BLOGS-ASSET-SYNC-COVERAGE-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-IMPLICATIONS-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-2.md`, `docs/manual-testing/SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-4.md` |
-| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/api/test/e2e/shopify-asset-sync.e2e-spec.ts`, `apps/web/tests/shopify-asset-sync-coverage-1.spec.ts`, `apps/web/tests/shopify-integration-lifecycle-integrity-1.spec.ts`, `apps/web/tests/blogs-asset-sync-coverage-1.spec.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Integrations Team |
+| Field                         | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/shopify-integration.md`, `docs/testing/product-sync.md`, `docs/testing/metadata-sync-seo-fields.md`, `docs/testing/sync-status-and-progress-feedback.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-shop-api-1-graphql-migration.md`, `docs/manual-testing/phase-shop-ux-cta-1-connect-shopify.md`, `docs/manual-testing/phase-shop-ux-cta-1-1-dedup-connect-shopify.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/SHOPIFY-ASSET-SYNC-COVERAGE-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-RECONSENT-UX-1.md`, `docs/manual-testing/SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1.md`, `docs/manual-testing/BLOGS-ASSET-SYNC-COVERAGE-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-IMPLICATIONS-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-2.md`, `docs/manual-testing/SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-4.md` |
+| **Automated Tests**           | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/api/test/e2e/shopify-asset-sync.e2e-spec.ts`, `apps/web/tests/shopify-asset-sync-coverage-1.spec.ts`, `apps/web/tests/shopify-integration-lifecycle-integrity-1.spec.ts`, `apps/web/tests/blogs-asset-sync-coverage-1.spec.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| **Last Verified (Automated)** | N/A                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| **Owner**                     | Integrations Team                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 **Key Scenarios:**
+
 - [ ] Shopify OAuth connection
 - [ ] Initial product import
 - [ ] Incremental sync
@@ -225,15 +232,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** AI service resilience including primary/fallback provider switching, timeout handling, and graceful degradation.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/ai-systems.md` (Failover section) |
-| **Automated Tests** | Planned |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | AI Team |
+| Field                         | Value                                           |
+| ----------------------------- | ----------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/ai-systems.md` (Failover section) |
+| **Automated Tests**           | Planned                                         |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                    |
+| **Last Verified (Automated)** | N/A                                             |
+| **Owner**                     | AI Team                                         |
 
 **Key Scenarios:**
+
 - [ ] Primary provider timeout triggers failover
 - [ ] Fallback provider success
 - [ ] All providers fail gracefully
@@ -246,15 +254,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Global UI feedback systems including toast notifications, loading states, error displays, inline validation, design tokens, theme support, trust-safe issue routing, and count integrity between Work Queue and Issues page.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.1.md` ✅, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md`, `docs/manual-testing/ISSUE-FIX-KIND-CLARITY-1.md` ✅ |
-| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/web/tests/issue-to-fix-path-1.spec.ts`, `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/count-integrity-1-1.spec.ts` ✅ (backend API), `apps/web/tests/count-integrity-1-1.ui.spec.ts` ✅ (UI smoke test), `apps/web/tests/zero-affected-suppression-1.spec.ts` ✅, `apps/web/tests/issue-fix-kind-clarity-1.spec.ts` ✅, `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-002b) |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Frontend Team |
+| Field                         | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.1.md` ✅, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md`, `docs/manual-testing/ISSUE-FIX-KIND-CLARITY-1.md` ✅  |
+| **Automated Tests**           | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/web/tests/issue-to-fix-path-1.spec.ts`, `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/count-integrity-1-1.spec.ts` ✅ (backend API), `apps/web/tests/count-integrity-1-1.ui.spec.ts` ✅ (UI smoke test), `apps/web/tests/zero-affected-suppression-1.spec.ts` ✅, `apps/web/tests/issue-fix-kind-clarity-1.spec.ts` ✅, `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-002b) |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| **Last Verified (Automated)** | N/A                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **Owner**                     | Frontend Team                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 **Key Scenarios:**
+
 - [ ] Success toast display and auto-dismiss
 - [ ] Error toast with action buttons
 - [ ] Loading spinners during async operations
@@ -306,15 +315,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Product-focused DEO issues with actionable fix buttons (AI fix, manual fix, sync fix) and severity filtering. Includes MEDIA pillar issues and role-based actionability semantics.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/issue-engine-lite.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.1.md`, `docs/manual-testing/DIAGNOSTIC-GUIDANCE-1.md` ✅ |
-| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/count-integrity-1-1.spec.ts` ✅ (backend API), `apps/web/tests/count-integrity-1-1.ui.spec.ts` ✅ (UI smoke test) |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | DEO Team |
+| Field                         | Value                                                                                                                                                                                                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/issue-engine-lite.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.1.md`, `docs/manual-testing/DIAGNOSTIC-GUIDANCE-1.md` ✅ |
+| **Automated Tests**           | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/count-integrity-1-1.spec.ts` ✅ (backend API), `apps/web/tests/count-integrity-1-1.ui.spec.ts` ✅ (UI smoke test)           |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                                                                                                                  |
+| **Last Verified (Automated)** | N/A                                                                                                                                                                                                                                                           |
+| **Owner**                     | DEO Team                                                                                                                                                                                                                                                      |
 
 **Key Scenarios:**
+
 - [ ] Issues page displays all product issues with severity badges
 - [ ] Severity filtering (All/Critical/Warning/Info)
 - [ ] Fix with AI action routes to product workspace
@@ -346,15 +356,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Rich metadata enrichment for all DEO issues with categories, business impact explanations, fix guidance, AI fixability indicators, and effort estimation. Includes MEDIA pillar issue enrichment.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/manual-testing/phase-ux-8-issue-engine-full.md`, `docs/testing/issue-engine-full-*.md`, `docs/manual-testing/MEDIA-1.md` |
-| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1) |
-| **Last Verified (Manual)** | 2025-12-08 |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | DEO Team |
+| Field                         | Value                                                                                                                          |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/phase-ux-8-issue-engine-full.md`, `docs/testing/issue-engine-full-*.md`, `docs/manual-testing/MEDIA-1.md` |
+| **Automated Tests**           | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1)                                                              |
+| **Last Verified (Manual)**    | 2025-12-08                                                                                                                     |
+| **Last Verified (Automated)** | N/A                                                                                                                            |
+| **Owner**                     | DEO Team                                                                                                                       |
 
 **Key Scenarios:**
+
 - [ ] All issues include category field with valid taxonomy value
 - [ ] All issues include whyItMatters explanation
 - [ ] All issues include recommendedFix guidance
@@ -372,15 +383,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Answer Engine foundations including Answer Block model, answerability detection implementation, AI-based answer generation, and integration with DEO Score v2 and Issue Engine.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/answer-engine.md`, `docs/manual-testing/phase-ae-1-answer-engine-foundations.md`, `docs/manual-testing/phase-ae-1.1-answer-engine-detection.md`, `docs/manual-testing/phase-ae-1.2-answer-engine-generation-and-ui.md`, `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md` |
-| **Automated Tests** | `apps/api/test/e2e/answer-engine.e2e-spec.ts`, `apps/api/test/e2e/answer-generation.e2e-spec.ts` |
-| **Last Verified (Manual)** | 2025-12-09 |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | DEO Team |
+| Field                         | Value                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/answer-engine.md`, `docs/manual-testing/phase-ae-1-answer-engine-foundations.md`, `docs/manual-testing/phase-ae-1.1-answer-engine-detection.md`, `docs/manual-testing/phase-ae-1.2-answer-engine-generation-and-ui.md`, `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md` |
+| **Automated Tests**           | `apps/api/test/e2e/answer-engine.e2e-spec.ts`, `apps/api/test/e2e/answer-generation.e2e-spec.ts`                                                                                                                                                                                                                                                                                |
+| **Last Verified (Manual)**    | 2025-12-09                                                                                                                                                                                                                                                                                                                                                                      |
+| **Last Verified (Automated)** | N/A                                                                                                                                                                                                                                                                                                                                                                             |
+| **Owner**                     | DEO Team                                                                                                                                                                                                                                                                                                                                                                        |
 
 **Key Scenarios:**
+
 - [ ] Answer Block model consistency (types match spec)
 - [ ] Canonical 10-question taxonomy defined
 - [ ] Answerability detection rules alignment
@@ -407,15 +419,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Automation Engine framework covering automation rule model, trigger/evaluation/execution/log lifecycle, and entitlements-aware automation behavior across DEO systems. Includes Product Automations (AE-2) for metadata, content, drift correction, and Shopify sync.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/automation-engine.md`, `docs/testing/automation-engine-product-automations.md`, `docs/manual-testing/phase-ae-1-automation-engine-foundations.md`, `docs/manual-testing/phase-ae-2-product-automations.md`, `docs/manual-testing/phase-aue-1-automation-new-product-seo-title.md`, `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-automation-1-playbooks.md`, `docs/manual-testing/auto-pb-1-1-playbooks-hardening.md`, `docs/manual-testing/auto-pb-1-2-playbooks-ux-coherence.md`, `docs/manual-testing/AUTOMATION-ENTRY-1.md`, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md`, `docs/manual-testing/PLAYBOOK-STEP-CONTINUITY-1.md`, `docs/manual-testing/AUTOMATION-TRIGGER-TRUTHFULNESS-1.md` |
-| **Automated Tests** | `apps/api/test/e2e/automation-new-product-seo-title.e2e-spec.ts`, `apps/api/test/e2e/automation-playbooks.e2e-spec.ts`, `apps/web/tests/first-deo-win.spec.ts`, `apps/web/tests/automation-entry-1.spec.ts`, `apps/web/tests/zero-affected-suppression-1.spec.ts` ✅ |
-| **Last Verified (Manual)** | 2025-12-14 |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | DEO Team |
+| Field                         | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/automation-engine.md`, `docs/testing/automation-engine-product-automations.md`, `docs/manual-testing/phase-ae-1-automation-engine-foundations.md`, `docs/manual-testing/phase-ae-2-product-automations.md`, `docs/manual-testing/phase-aue-1-automation-new-product-seo-title.md`, `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-automation-1-playbooks.md`, `docs/manual-testing/auto-pb-1-1-playbooks-hardening.md`, `docs/manual-testing/auto-pb-1-2-playbooks-ux-coherence.md`, `docs/manual-testing/AUTOMATION-ENTRY-1.md`, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md`, `docs/manual-testing/PLAYBOOK-STEP-CONTINUITY-1.md`, `docs/manual-testing/AUTOMATION-TRIGGER-TRUTHFULNESS-1.md` |
+| **Automated Tests**           | `apps/api/test/e2e/automation-new-product-seo-title.e2e-spec.ts`, `apps/api/test/e2e/automation-playbooks.e2e-spec.ts`, `apps/web/tests/first-deo-win.spec.ts`, `apps/web/tests/automation-entry-1.spec.ts`, `apps/web/tests/zero-affected-suppression-1.spec.ts` ✅                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| **Last Verified (Manual)**    | 2025-12-14                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| **Last Verified (Automated)** | N/A                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| **Owner**                     | DEO Team                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 **Key Scenarios:**
+
 - [ ] Automation rule model and lifecycle documented and aligned with shared types
 - [ ] Entitlement and limit interactions for automations specified
 - [ ] Integration points with crawl pipeline and existing AutomationService documented
@@ -482,15 +495,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Internal-only operational control plane for Support Agents, Ops Admins, and Management/CEO with role-based access control, read-only impersonation, quota resets, safe resyncs, and immutable audit logging.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/manual-testing/ADMIN-OPS-1.md`, `docs/ADMIN_OPS.md` |
-| **Automated Tests** | `apps/api/test/integration/admin-ops-1.test.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Core Team |
+| Field                         | Value                                                     |
+| ----------------------------- | --------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/ADMIN-OPS-1.md`, `docs/ADMIN_OPS.md` |
+| **Automated Tests**           | `apps/api/test/integration/admin-ops-1.test.ts`           |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                              |
+| **Last Verified (Automated)** | N/A                                                       |
+| **Owner**                     | Core Team                                                 |
 
 **Key Scenarios:**
+
 - [ ] Internal admin role gating (role=ADMIN + adminRole required)
 - [ ] SUPPORT_AGENT can perform read + support actions (impersonation)
 - [ ] OPS_ADMIN can perform read + support + ops actions (quota reset, plan override, safe resync)
@@ -511,15 +525,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Customer self-service account management including profile, preferences, organization settings, AI usage visibility, session management, and role-based access control (OWNER/EDITOR/VIEWER).
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/manual-testing/SELF-SERVICE-1.md`, `docs/SELF_SERVICE.md` |
-| **Automated Tests** | `apps/api/test/integration/self-service-1.test.ts`, `apps/web/tests/self-service-1.spec.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Core Team |
+| Field                         | Value                                                                                       |
+| ----------------------------- | ------------------------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/SELF-SERVICE-1.md`, `docs/SELF_SERVICE.md`                             |
+| **Automated Tests**           | `apps/api/test/integration/self-service-1.test.ts`, `apps/web/tests/self-service-1.spec.ts` |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                |
+| **Last Verified (Automated)** | N/A                                                                                         |
+| **Owner**                     | Core Team                                                                                   |
 
 **Key Scenarios:**
+
 - [ ] Profile management (name, avatar, timezone, locale)
 - [ ] Preferences persistence (notification toggles, default behaviors)
 - [ ] Organization name editing (OWNER/EDITOR only)
@@ -540,20 +555,21 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Implementation Status:** Docs Complete; Implementation Pending
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/manual-testing/GTM-ONBOARD-1.md`, `docs/GTM_ONBOARDING.md` |
-| **Automated Tests** | Planned |
-| **Last Verified (Manual)** | N/A (Implementation Pending) |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Core Team |
+| Field                         | Value                                                            |
+| ----------------------------- | ---------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/GTM-ONBOARD-1.md`, `docs/GTM_ONBOARDING.md` |
+| **Automated Tests**           | Planned                                                          |
+| **Last Verified (Manual)**    | N/A (Implementation Pending)                                     |
+| **Last Verified (Automated)** | N/A                                                              |
+| **Owner**                     | Core Team                                                        |
 
 **Key Scenarios:**
+
 - [ ] Onboarding eligibility (Shopify connected + no APPLY run)
 - [ ] Issue selection ladder (Search & Intent > Media > Metadata)
 - [ ] Start/advance/skip persistence per user+project
 - [ ] Completion detection via AutomationPlaybookRun APPLY row
-- [ ] Banner visibility under /projects/[id]/* routes only
+- [ ] Banner visibility under /projects/[id]/\* routes only
 - [ ] Session dismissal (sessionStorage) vs persistent skip
 - [ ] Deep-link focus without auto-AI (trust contract)
 - [ ] Preview requires explicit user click (no auto-preview)
@@ -568,15 +584,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Read-only derived insights dashboard showing DEO progress, AI efficiency metrics, issue resolution, opportunity signals, and GEO insights. Never triggers AI or mutations. Extended by ENTERPRISE-GEO-1 for governance-aware share links.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/manual-testing/INSIGHTS-1.md`, `docs/manual-testing/GEO-INSIGHTS-2.md`, `docs/manual-testing/ENTERPRISE-GEO-1.md`, `docs/IMPLEMENTATION_PLAN.md` |
-| **Automated Tests** | `apps/api/test/integration/geo-insights-2.test.ts`, `apps/api/test/integration/enterprise-geo-1.test.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Core Team |
+| Field                         | Value                                                                                                                                                  |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/INSIGHTS-1.md`, `docs/manual-testing/GEO-INSIGHTS-2.md`, `docs/manual-testing/ENTERPRISE-GEO-1.md`, `docs/IMPLEMENTATION_PLAN.md` |
+| **Automated Tests**           | `apps/api/test/integration/geo-insights-2.test.ts`, `apps/api/test/integration/enterprise-geo-1.test.ts`                                               |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                           |
+| **Last Verified (Automated)** | N/A                                                                                                                                                    |
+| **Owner**                     | Core Team                                                                                                                                              |
 
 **Key Scenarios:**
+
 - [ ] Insights endpoint returns ProjectInsightsResponse (read-only)
 - [ ] DEO score trend visualization with sparklines
 - [ ] AI efficiency metrics (runs used, avoided, reuse rate)
@@ -604,15 +621,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** GEO (Generative Engine Optimization) foundation layer providing explainable answer readiness signals (Clarity, Specificity, Structure, Context, Accessibility) and derived Citation Confidence (Low/Medium/High). Includes Preview/Apply flow for answer improvements. Extended by ENTERPRISE-GEO-1 for governance approval gating.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/manual-testing/GEO-FOUNDATION-1.md`, `docs/GEO_FOUNDATION.md`, `docs/GEO_INSIGHTS.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/GEO-EXPORT-1.md`, `docs/manual-testing/ENTERPRISE-GEO-1.md` |
-| **Automated Tests** | `packages/shared/src/geo-types.test.ts`, `apps/api/test/integration/geo-insights-2.test.ts`, `apps/api/test/integration/enterprise-geo-1.test.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | DEO Team |
+| Field                         | Value                                                                                                                                                                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/GEO-FOUNDATION-1.md`, `docs/GEO_FOUNDATION.md`, `docs/GEO_INSIGHTS.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/GEO-EXPORT-1.md`, `docs/manual-testing/ENTERPRISE-GEO-1.md` |
+| **Automated Tests**           | `packages/shared/src/geo-types.test.ts`, `apps/api/test/integration/geo-insights-2.test.ts`, `apps/api/test/integration/enterprise-geo-1.test.ts`                                                                        |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                                                                             |
+| **Last Verified (Automated)** | N/A                                                                                                                                                                                                                      |
+| **Owner**                     | DEO Team                                                                                                                                                                                                                 |
 
 **Key Scenarios:**
+
 - [ ] GEO readiness signals evaluate Answer Blocks correctly
 - [ ] Citation Confidence derived from signals (High/Medium/Low)
 - [ ] GEO issues generated and integrated into Issue Engine
@@ -645,15 +663,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Role-based access control foundations with single-user emulation support. Extends approval workflow to Playbooks apply with role-aware UI affordances.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/manual-testing/ROLES-2.md` |
-| **Automated Tests** | `apps/api/test/integration/roles-2.test.ts`, `apps/web/tests/roles-2.spec.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Core Team |
+| Field                         | Value                                                                         |
+| ----------------------------- | ----------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/ROLES-2.md`                                              |
+| **Automated Tests**           | `apps/api/test/integration/roles-2.test.ts`, `apps/web/tests/roles-2.spec.ts` |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                  |
+| **Last Verified (Automated)** | N/A                                                                           |
+| **Owner**                     | Core Team                                                                     |
 
 **Key Scenarios:**
+
 - [ ] ROLES-2: OWNER can approve and apply playbooks when approval required
 - [ ] ROLES-2: Approval creates audit event (APPROVAL_APPROVED)
 - [ ] ROLES-2: Apply blocked with APPROVAL_REQUIRED error when missing approval (HTTP 400, structured error)
@@ -674,15 +693,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** True multi-user projects with explicit membership management. Extends ROLES-2 with ProjectMember model, OWNER-only apply enforcement, approval chains, and multi-user auto-apply blocking.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/manual-testing/ROLES-3.md` |
-| **Automated Tests** | `apps/api/test/integration/roles-3.test.ts`, `apps/web/tests/roles-3.spec.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Core Team |
+| Field                         | Value                                                                         |
+| ----------------------------- | ----------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/ROLES-3.md`                                              |
+| **Automated Tests**           | `apps/api/test/integration/roles-3.test.ts`, `apps/web/tests/roles-3.spec.ts` |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                  |
+| **Last Verified (Automated)** | N/A                                                                           |
+| **Owner**                     | Core Team                                                                     |
 
 **Key Scenarios:**
+
 - [ ] ROLES-3: Non-owner member can view project (via ProjectMember)
 - [ ] ROLES-3: EDITOR cannot apply automation playbooks (OWNER-only)
 - [ ] ROLES-3: VIEWER cannot generate drafts or apply
@@ -729,29 +749,30 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 ## Coverage Summary
 
-| Critical Path | Manual Docs | Auto Tests | Status |
-|---------------|-------------|------------|--------|
-| CP-001: Auth | ✅ | ✅ | 🟢 Full Coverage |
-| CP-002: Billing & Limits | ✅ | ✅ | 🟢 Full Coverage |
-| CP-003: Product Optimize (AI) | ✅ | Planned | 🟡 Manual Only |
-| CP-004: Crawl Pipeline | ✅ | Planned | 🟡 Manual Only |
-| CP-005: DEO Score Compute | ✅ | Planned | 🟡 Manual Only |
-| CP-006: Shopify Sync | ✅ | Planned | 🟡 Manual Only |
-| CP-007: AI Failover Logic | ✅ | Planned | 🟡 Manual Only |
-| CP-008: Frontend Global UX Feedback | ✅ | ✅ | 🟢 Full Coverage |
-| CP-009: Issue Engine Lite | ✅ | ✅ | 🟢 Full Coverage |
-| CP-010: Issue Engine Full | ✅ | Planned | 🟡 Manual Only |
-| CP-011: Answer Engine | ✅ | Planned | 🟡 Manual Only |
-| CP-012: Automation Engine | ✅ | Planned | 🟡 Manual Only |
-| CP-013: Admin Operations | ✅ | ✅ | 🟢 Full Coverage |
-| CP-014: Self-Service Control Plane | ✅ | ✅ | 🟢 Full Coverage |
-| CP-015: Guided Onboarding | ✅ | Planned | 🟡 Manual Only (Impl Pending) |
-| CP-016: Project Insights | ✅ | ✅ | 🟢 Full Coverage |
-| CP-017: GEO Answer Readiness | ✅ | ✅ | 🟢 Full Coverage |
-| CP-018: ROLES-2 Project Roles | ✅ | ✅ | 🟢 Full Coverage |
-| CP-019: ROLES-3 Multi-User Projects | ✅ | ✅ | 🟢 Full Coverage |
+| Critical Path                       | Manual Docs | Auto Tests | Status                        |
+| ----------------------------------- | ----------- | ---------- | ----------------------------- |
+| CP-001: Auth                        | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-002: Billing & Limits            | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-003: Product Optimize (AI)       | ✅          | Planned    | 🟡 Manual Only                |
+| CP-004: Crawl Pipeline              | ✅          | Planned    | 🟡 Manual Only                |
+| CP-005: DEO Score Compute           | ✅          | Planned    | 🟡 Manual Only                |
+| CP-006: Shopify Sync                | ✅          | Planned    | 🟡 Manual Only                |
+| CP-007: AI Failover Logic           | ✅          | Planned    | 🟡 Manual Only                |
+| CP-008: Frontend Global UX Feedback | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-009: Issue Engine Lite           | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-010: Issue Engine Full           | ✅          | Planned    | 🟡 Manual Only                |
+| CP-011: Answer Engine               | ✅          | Planned    | 🟡 Manual Only                |
+| CP-012: Automation Engine           | ✅          | Planned    | 🟡 Manual Only                |
+| CP-013: Admin Operations            | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-014: Self-Service Control Plane  | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-015: Guided Onboarding           | ✅          | Planned    | 🟡 Manual Only (Impl Pending) |
+| CP-016: Project Insights            | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-017: GEO Answer Readiness        | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-018: ROLES-2 Project Roles       | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-019: ROLES-3 Multi-User Projects | ✅          | ✅         | 🟢 Full Coverage              |
 
 **Legend:**
+
 - 🟢 Full Coverage (Manual + Automated)
 - 🟡 Manual Only
 - 🔴 No Coverage
@@ -782,68 +803,68 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 ## Document History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | [Initial] | Created with 8 critical paths as part of v3.4 verification layer |
-| 1.1 | 2025-12-08 | Added CP-009: Issue Engine Lite (Phase UX-7) |
-| 1.2 | 2025-12-08 | Added CP-010: Issue Engine Full (Phase UX-8) |
-| 1.3 | 2025-12-08 | Added CP-011: Answer Engine (Phase AE-1) |
-| 1.4 | 2025-12-08 | Added CP-012: Automation Engine (Phase AE-1 Framework) |
-| 1.5 | 2025-12-08 | Added AE-2.1 key scenarios to CP-012 (Metadata Product Automations implementation) |
-| 1.6 | 2025-12-08 | Updated CP-005 with DEO Score v2 explainability scenarios (Phase 2.6) |
-| 1.7 | 2025-12-09 | Added AE-1.1 Answer Engine detection implementation scenarios and manual testing doc to CP-011 |
-| 1.8 | 2025-12-09 | Added AE-1.2 Answer Engine generation and UI scenarios to CP-011 (POST /ai/product-answers, ProductAnswersPanel) |
-| 1.9 | 2025-12-09 | Added AUE-1 Automation Engine Vertical Slice scenarios to CP-012 (AUTO_GENERATE_METADATA_ON_NEW_PRODUCT) |
-| 2.0 | 2025-12-11 | Added SHOP-API-1 GraphQL migration scenario and manual testing doc to CP-006 (Shopify Sync) |
-| 2.1 | 2025-12-13 | Added SHOP-UX-CTA-1 and SHOP-UX-CTA-1.1 Connect Shopify CTA improvements to CP-006 (Shopify Sync) |
-| 2.2 | 2025-12-14 | Added AUTO-PB-1 and AUTO-PB-1.1 Automation Playbooks scenarios to CP-012, added E2E tests and manual testing docs |
-| 2.3 | 2025-12-15 | Added AUTO-PB-1.2 UX coherence and navigation safety scenarios to CP-012, including new manual testing doc and Playwright coverage |
-| 2.4 | 2025-12-15 | Added AUTO-PB-1.3 (Planned) Preview Persistence & Cross-Surface Drafts scenario to CP-012 |
-| 2.5 | 2025-12-18 | Added MEDIA-1 scenarios to CP-006 (Shopify Sync), CP-009 (Issue Engine Lite), CP-010 (Issue Engine Full) for Media & Accessibility pillar |
-| 2.6 | 2025-12-19 | Added CP-013: Admin Operations Dashboard (ADMIN-OPS-1) with internal admin roles, impersonation, quota reset, and audit logging |
-| 2.7 | 2025-12-19 | Added CP-014: Customer Self-Service Control Plane (SELF-SERVICE-1) with profile, preferences, sessions, and role-based access; updated CP-001 and CP-002 with SELF-SERVICE-1 scenarios |
-| 2.8 | 2025-12-19 | Added CP-015: Guided Onboarding & First DEO Win (GTM-ONBOARD-1) - Docs Complete; Implementation Pending. Added manual testing guide and spec documentation. |
-| 2.9 | 2025-12-19 | Added CP-016: Project Insights Dashboard (INSIGHTS-1) - Read-only derived insights with DEO progress, AI efficiency, issue resolution, and opportunity signals. |
-| 3.0 | 2025-12-19 | Added BILLING-GTM-1 scenarios to CP-002: env-driven AI quota, trust messaging, contextual upgrade prompts, and marketing alignment. Added manual testing doc and Playwright test file. |
-| 3.1 | 2025-12-19 | SECURITY: Added auth URL sanitization to CP-001. Middleware + client-side defense-in-depth prevents passwords in URL query params. Added manual testing doc and Playwright coverage. |
-| 3.2 | 2025-12-19 | Added CP-017: GEO Answer Readiness & Citation Confidence (GEO-FOUNDATION-1) - Explainable readiness signals, derived citation confidence, Preview/Apply flow for answer improvements. |
-| 3.3 | 2025-12-19 | GEO-INSIGHTS-2: Updated CP-016 and CP-017 with GEO Insights scenarios, added integration tests, upgraded CP-016 to Full Coverage. |
-| 3.4 | 2025-12-20 | DEO-UX-REFRESH-1: Updated CP-001 (login branding), CP-003 (products list CTA/chips, AI labeling), CP-009 (issues tab consistency), CP-017 (shared report branding, print quality). Added manual testing doc. |
-| 3.5 | 2025-12-21 | ENTERPRISE-GEO-1: Extended CP-016 and CP-017 with enterprise governance scenarios (passcode share links, mutation-free views, approval workflows, audit logging). No new CP introduced—governance extends existing GEO paths. |
-| 3.6 | 2025-12-21 | PRODUCTS-LIST-2.0: Updated CP-003 with decision-first Products list scenarios (Health pill, recommended action, progressive disclosure, Rescan gating, Command Bar). Replaced DEO-UX-REFRESH-1 product-list bullets. Added manual testing doc. |
-| 3.7 | 2025-12-21 | PRODUCTS-LIST-2.0: Added Sort by impact scenario to CP-003 (authoritative ladder, deterministic, stable). |
-| 3.8 | 2025-12-21 | PRODUCTS-LIST-2.0: Added Bulk action confirmation scenario to CP-003 (3-step flow, AI disclosure, Apply uses no AI, partial failure handling). |
-| 3.9 | 2025-12-23 | ROLES-2: Added CP-018 for Project Roles & Approval Foundations. Single-user role emulation, approval gating on Playbooks apply, role-aware UI. Added integration tests and Playwright coverage. |
-| 4.0 | 2025-12-23 | ROLES-2 FIXUP-1: Fixed approval gating correctness (hasValidApproval returns object), changed to BadRequestException for APPROVAL_REQUIRED, consume approval after successful apply. Updated integration tests (400 status), Playwright tests (real seed endpoints), frontend (resolve role from profile, approve-and-apply flow). |
-| 4.1 | 2025-12-23 | ROLES-3: Added CP-019 for True Multi-User Projects. ProjectMember model, OWNER-only apply enforcement, membership management API, multi-user auto-apply blocking. Updated CP-012 with multi-user auto-apply blocking scenario. |
-| 4.2 | 2025-12-23 | ROLES-2 FIXUP-2: Frontend structured error parsing for NestJS nested error payloads (e.g., BadRequestException with object message). Prevents "Bad Request" generic message, preserves error codes like APPROVAL_REQUIRED. Added key scenario to CP-018. |
-| 4.3 | 2025-12-23 | ROLES-3 FIXUP-2: Strict approval-chain matrix enforcement. Multi-user OWNER cannot create approval requests (must apply directly), accountRole ignored in multi-user projects (ProjectMember authoritative), isMultiUserProject in API response, Answer Block mutations OWNER-only, Members page "Add member" wording. Updated CP-019 scenarios. |
-| 4.4 | 2025-12-23 | ROLES-3 FIXUP-3: Frontend correction for strict approval-chain matrix. Removed ephemeral approvalRequested flag in favor of derived state from server-sourced pendingApproval object. EDITOR can NEVER apply even if approved—only requests approval. Multi-user OWNER cannot self-request (must wait for EDITOR). Single-user OWNER preserves ROLES-2 convenience (create + approve + apply). Button states and notices derive from pendingApproval?.status. Updated CP-019 with FIXUP-3 test scenarios. |
-| 4.5 | 2025-12-24 | ROLES-3 FIXUP-3 PATCH 4.6: Approval status prefetch and stale-state reset. Approval status auto-fetched when Step 3 visible (no CTA click needed). Stale approval cleared when switching playbooks or when policy changes. Includes stale-response guard for rapid playbook changes. Updated CP-019 verification scenario "UI derives from server state". |
-| 4.6 | 2025-12-24 | ROLES-3 FIXUP-4: Membership + Role Enforcement Beyond projects/*. Eliminated legacy project.userId ownership gates in AI controller, ProductIssueFixService, SEO scan, Integrations, and Shopify services. Replaced with RoleResolutionService assertions (assertProjectAccess, assertOwnerRole, assertCanGenerateDrafts). Added integration tests for AI usage, integrations, and SEO scan endpoints. Updated CP-019 with FIXUP-4 scenarios. |
-| 4.7 | 2025-12-24 | ROLES-3 FIXUP-5: Co-Owner Support for Shopify Actions. Shopify validateProjectOwnership uses RoleResolutionService (supports co-owners). Account disconnectStore uses assertOwnerRole for project-level check. Co-owner can perform install, sync-products, ensure-metafield-definitions, disconnect store. Added integration tests for multi-owner Shopify actions. Updated CP-006 and CP-019 with FIXUP-5 scenarios. |
-| 4.8 | 2025-12-24 | ROLES-2 FIXUP-3: Role-specific apply denial messages. VIEWER apply denial returns "Viewer role cannot apply automation playbooks. Preview and export remain available." EDITOR apply denial returns "Editor role cannot apply automation playbooks. Request approval from an owner." Aligns backend messages with test expectations and manual testing docs. Updated CP-018 with FIXUP-3 scenarios. |
-| 4.9 | 2025-12-24 | ROLES-3 PENDING-1: Approval attribution UI + doc alignment. Playbooks Step 3 shows requester/approver identity + timestamp. Updated CP-019 Auto Tests field (roles-3.test.ts present), Coverage Summary to Full Coverage. Added attribution scenarios to CP-019. |
-| 5.0 | 2025-12-24 | ROLES-3-HARDEN-1: Added Playwright E2E tests (roles-3.spec.ts). Test A: EDITOR+OWNER approval workflow. Test B: VIEWER read-only gating. Test C: Multi-user project detection. Removed (planned) designation from CP-019 Auto Tests. |
-| 5.1 | 2026-01-06 | NAV-IA-CONSISTENCY-1: Updated CP-001 with auth terminology scenarios ("Sign in" not "Log in", "Create account" not "Sign up"). Updated CP-008 with design tokens, dark mode toggle, and token-based styling. Added nav-ia-consistency-1.spec.ts automated tests. Added manual testing doc. |
-| 5.2 | 2026-01-07 | DRAFT-CLARITY-AND-ACTION-TRUST-1: Updated CP-003 with 3-state draft lifecycle, Apply button gating, and inline guidance scenarios. Updated CP-006 with Apply uses saved draft (not AI) scenarios. Updated CP-008 with draft state banner, navigation blocking, GEO explainers, automation history filters, skip explanations, and internal ID leakage prevention scenarios. Added draft-clarity-and-action-trust-1.spec.ts E2E tests. Added manual testing doc. |
-| 5.3 | 2026-01-07 | ISSUE-TO-FIX-PATH-1: Updated CP-008 with trust-safe issue routing scenarios (issue click lands on visible fix with context banner, actionable count parity, orphan suppression, Work Queue context banner). Added issue-to-fix-path-1.spec.ts E2E tests. Added manual testing doc. |
-| 5.4 | 2026-01-07 | ISSUE-TO-FIX-PATH-1 FIXUP-1: Added CP-008 scenarios for circular import fix + orphan/dead-end cleanup. Issue-fix mode triggers on issueId alone, Overview/DEO use actionable-only, Project Issues severity counts are actionable-only, buildIssueFixHref preserves origin (from=overview/deo/issues). Updated ISSUE-TO-FIX-PATH-1.md manual testing doc. |
-| 5.5 | 2026-01-07 | ISSUE-TO-FIX-PATH-1 FIXUP-2: Trust hardening — href-based actionability, dead-click prevention test, ID leakage prevention via safe title helpers. |
-| 5.6 | 2026-01-07 | ISSUE-TO-FIX-PATH-1 FIXUP-3: Doc/test alignment — Work Queue issue-fix banner triggers on issueId (from optional); updated Playwright + manual testing; corrected CP-008 wording. |
-| 5.7 | 2026-01-08 | COUNT-INTEGRITY-1: Updated CP-008 and CP-009 with count integrity scenarios (Work Queue → Issues click integrity, detected vs actionable semantics, role-based actionability, informational issue rendering). Added COUNT-INTEGRITY-1.md manual testing doc and planned count-integrity-1.spec.ts automated tests. |
-| 5.8 | 2026-01-08 | COUNT-INTEGRITY-1 COMPLETE: Implemented all patches (PATCH 6 FIXUP, 7, 9). Created count-integrity-1.spec.ts with 3 smoke tests (click integrity, technical informational, viewer role). Updated Store Health & Work Queue banner terminology. Issues Engine UI corrections (effectiveMode, isClickableIssue semantics, countsSummary for pillar badges, pillar filter alignment). Marked test status as ✅ complete in CP-008 and CP-009. |
-| 5.9 | 2026-01-08 | COUNT-INTEGRITY-1.1 BACKEND COMPLETE: PATCH BATCH 4 + FIXUP resolved Gap 3b (pages/collections dedup beyond cap-20). Updated 7 technical builders to populate full keys (PATCH 4.1), created collections seed with collectionIds (PATCH 4.2-FIXUP-1), added CANON-010 regression test with crawlResult IDs and scopeType=collections filter (PATCH 4.3-FIXUP-1 + FIXUP-2), comprehensive docs sweep (PATCH 4.4-FIXUP-1). Backend verified for all asset types via CANON-009 (products) + CANON-010 (collections). Updated CP-008 and CP-009 with Gap 3b verification. UI migration (Gap 6) + UI smoke test (Gap 7) remain pending. |
-| 6.0 | 2026-01-08 | COUNT-INTEGRITY-1.1 COMPLETE: PATCH 5-10 resolved Gap 6 (UI Migration) and Gap 7 (UI Smoke Test). PATCH 5: Issues Engine filter-aligned canonical summary with TripletDisplay data-testid attributes. PATCH 6: Product detail uses assetIssues endpoint with triplet summary. PATCH 7: Store Health tiles use canonical counts. PATCH 8: Work Queue AI badge trust copy ("Does not use AI", "AI used for drafts only"). PATCH 9: Created count-integrity-1-1.ui.spec.ts with 6 cross-surface UI smoke tests. PATCH 10: Documentation updates. Removed ⚠️ warnings from CP-008 and CP-009, marked all COUNT-INTEGRITY-1.1 scenarios complete. |
-| 6.1 | 2026-01-09 | COUNT-INTEGRITY-1.1 UI HARDEN + AUDIT FIX: Multi-action filtering via actionKeys (OR across keys), pillar-aware triplet display (currentTriplet from byPillar), severity-aligned canonical summary (passes severity to API), pillar-aware hasActionableIssues/hasDetectedIssues checks. Fixed UI smoke test auth (localStorage only) and product selection shape ({ products: [...] }). Verification complete (NO-OP) — all audit fixes confirmed implemented. |
-| 6.2 | 2026-01-14 | ISSUE-FIX-KIND-CLARITY-1: Added CP-008 scenarios for DIAGNOSTIC vs EDIT/AI issue CTA semantics. DIAGNOSTIC issues show "Review" CTA (not "Fix"), blue arrival callout (not yellow/indigo), "View related issues" routes to Issues Engine. fixKind derived from config only (never URL). Added issue-fix-kind-clarity-1.spec.ts (7 tests) + LAC1-002b in list-actions-clarity-1.spec.ts. Added manual testing doc. FIXUP-2: Products list shows "Review" for DIAGNOSTIC-topped products, Work Queue shows blue review banner for DIAGNOSTIC issueId. |
-| 6.3 | 2026-01-19 | PLAYBOOK-STEP-CONTINUITY-1: Added CP-012 scenarios for Step 2 → Step 3 deterministic transitions with explicit terminal outcomes. Added draftStatus/draftCounts to estimate response for draft validity reasoning. Added PLAYBOOK_DRAFT_EXPIRED explicit error code for apply. Added PLAYBOOK-STEP-CONTINUITY-1.md manual testing doc. |
-| 6.4 | 2026-01-19 | DIAGNOSTIC-GUIDANCE-1: Added CP-009 scenarios for diagnostic guidance pattern on outside-control issues (actionability='informational'). Issues show "Informational — outside EngineO.ai control" badge, explanation text, and "How to address this" guidance block. No Fix/Apply CTAs on these issues. Added DIAGNOSTIC-GUIDANCE-1.md manual testing doc. |
-| 6.5 | 2026-01-20 | SHOPIFY-SCOPE-IMPLICATIONS-1: Added CP-006 scenarios for scope implication rules. write_products satisfies read_products, write_content satisfies read_content, write_themes satisfies read_themes (no false missing scope warnings). Regression: read scopes do NOT imply write. Added SHOPIFY-SCOPE-IMPLICATIONS-1.md manual testing doc, updated SHOPIFY_SCOPES_MATRIX.md. |
-| 6.6 | 2026-01-20 | SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1: Added CP-006 scenarios for authoritative granted-scope derivation (oauth_scope vs access_scopes_endpoint fallback), normalized scope storage (deduplicated, sorted), and capability-aware permission notice copy (catalog vs content vs combined wording). Added SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1.md manual testing doc. |
-| 6.7 | 2026-01-20 | SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-2: Added CP-006 scenarios for empty-scope persistence guard (reconnect cannot downgrade, never persist empty scopes, verify_failed UI). Added SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-2.md manual testing doc. |
-| 6.8 | 2026-01-20 | SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-3: Added CP-006 scenario for verify_failed UI suppressing missing-scope list (no fake warnings from empty data). |
-| 6.9 | 2026-01-20 | SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-4: Added CP-006 scenarios for suspicious OAuth downgrade prevention. Suspicious OAuth + Access Scopes fails + existing = retain existing (no downgrade). Suspicious OAuth + Access Scopes fails + fresh install = verify_failed (explicit failure). Non-suspicious OAuth fallback unchanged. Added SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-4.md manual testing doc. |
-| 6.10 | 2026-01-20 | SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1: Added CP-006 scenarios for legacy scope storage format compatibility. `parseShopifyScopesCsv()` now handles JSON arrays and whitespace-delimited strings from Prisma Json field. Prevents false "Missing permission: read_products/read_content" blocks when scopes are stored in legacy formats. Updated unit tests, SHOPIFY_SCOPES_MATRIX.md, and SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1.md with regression check steps. |
-| 6.11 | 2026-01-20 | AUTOMATION-TRIGGER-TRUTHFULNESS-1: Added CP-012 scenarios for truthful automation triggers. Page load never triggers AI (DEO issues read-only), project-level setting gate `autoGenerateAnswerBlocksOnProductSync` (default OFF), DB-backed idempotency via AnswerBlockAutomationRun model, deterministic Sync CTA labels ("+ Generate Answer Blocks" only when setting ON + paid plan), worker run state tracking (QUEUED→RUNNING→terminal), diagnostic safety logs with suppressedReason. Added manual testing doc. |
-| 6.12 | 2026-01-20 | AUTOMATION-TRIGGER-TRUTHFULNESS-1 REVIEW-1: Fixed Playbooks CTA labels ("Sync products" not "Sync to Shopify"), neutral toast message, race-safe idempotency (FAILED→QUEUED transition via conditional updateMany, concurrent trigger handling), web API typing for new setting. Rewrote manual test doc to match template structure. |
+| Version | Date       | Changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.0     | [Initial]  | Created with 8 critical paths as part of v3.4 verification layer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| 1.1     | 2025-12-08 | Added CP-009: Issue Engine Lite (Phase UX-7)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 1.2     | 2025-12-08 | Added CP-010: Issue Engine Full (Phase UX-8)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 1.3     | 2025-12-08 | Added CP-011: Answer Engine (Phase AE-1)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 1.4     | 2025-12-08 | Added CP-012: Automation Engine (Phase AE-1 Framework)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| 1.5     | 2025-12-08 | Added AE-2.1 key scenarios to CP-012 (Metadata Product Automations implementation)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| 1.6     | 2025-12-08 | Updated CP-005 with DEO Score v2 explainability scenarios (Phase 2.6)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 1.7     | 2025-12-09 | Added AE-1.1 Answer Engine detection implementation scenarios and manual testing doc to CP-011                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| 1.8     | 2025-12-09 | Added AE-1.2 Answer Engine generation and UI scenarios to CP-011 (POST /ai/product-answers, ProductAnswersPanel)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| 1.9     | 2025-12-09 | Added AUE-1 Automation Engine Vertical Slice scenarios to CP-012 (AUTO_GENERATE_METADATA_ON_NEW_PRODUCT)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 2.0     | 2025-12-11 | Added SHOP-API-1 GraphQL migration scenario and manual testing doc to CP-006 (Shopify Sync)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 2.1     | 2025-12-13 | Added SHOP-UX-CTA-1 and SHOP-UX-CTA-1.1 Connect Shopify CTA improvements to CP-006 (Shopify Sync)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 2.2     | 2025-12-14 | Added AUTO-PB-1 and AUTO-PB-1.1 Automation Playbooks scenarios to CP-012, added E2E tests and manual testing docs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 2.3     | 2025-12-15 | Added AUTO-PB-1.2 UX coherence and navigation safety scenarios to CP-012, including new manual testing doc and Playwright coverage                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| 2.4     | 2025-12-15 | Added AUTO-PB-1.3 (Planned) Preview Persistence & Cross-Surface Drafts scenario to CP-012                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| 2.5     | 2025-12-18 | Added MEDIA-1 scenarios to CP-006 (Shopify Sync), CP-009 (Issue Engine Lite), CP-010 (Issue Engine Full) for Media & Accessibility pillar                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| 2.6     | 2025-12-19 | Added CP-013: Admin Operations Dashboard (ADMIN-OPS-1) with internal admin roles, impersonation, quota reset, and audit logging                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| 2.7     | 2025-12-19 | Added CP-014: Customer Self-Service Control Plane (SELF-SERVICE-1) with profile, preferences, sessions, and role-based access; updated CP-001 and CP-002 with SELF-SERVICE-1 scenarios                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| 2.8     | 2025-12-19 | Added CP-015: Guided Onboarding & First DEO Win (GTM-ONBOARD-1) - Docs Complete; Implementation Pending. Added manual testing guide and spec documentation.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 2.9     | 2025-12-19 | Added CP-016: Project Insights Dashboard (INSIGHTS-1) - Read-only derived insights with DEO progress, AI efficiency, issue resolution, and opportunity signals.                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| 3.0     | 2025-12-19 | Added BILLING-GTM-1 scenarios to CP-002: env-driven AI quota, trust messaging, contextual upgrade prompts, and marketing alignment. Added manual testing doc and Playwright test file.                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| 3.1     | 2025-12-19 | SECURITY: Added auth URL sanitization to CP-001. Middleware + client-side defense-in-depth prevents passwords in URL query params. Added manual testing doc and Playwright coverage.                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 3.2     | 2025-12-19 | Added CP-017: GEO Answer Readiness & Citation Confidence (GEO-FOUNDATION-1) - Explainable readiness signals, derived citation confidence, Preview/Apply flow for answer improvements.                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 3.3     | 2025-12-19 | GEO-INSIGHTS-2: Updated CP-016 and CP-017 with GEO Insights scenarios, added integration tests, upgraded CP-016 to Full Coverage.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 3.4     | 2025-12-20 | DEO-UX-REFRESH-1: Updated CP-001 (login branding), CP-003 (products list CTA/chips, AI labeling), CP-009 (issues tab consistency), CP-017 (shared report branding, print quality). Added manual testing doc.                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| 3.5     | 2025-12-21 | ENTERPRISE-GEO-1: Extended CP-016 and CP-017 with enterprise governance scenarios (passcode share links, mutation-free views, approval workflows, audit logging). No new CP introduced—governance extends existing GEO paths.                                                                                                                                                                                                                                                                                                                                                                                                                |
+| 3.6     | 2025-12-21 | PRODUCTS-LIST-2.0: Updated CP-003 with decision-first Products list scenarios (Health pill, recommended action, progressive disclosure, Rescan gating, Command Bar). Replaced DEO-UX-REFRESH-1 product-list bullets. Added manual testing doc.                                                                                                                                                                                                                                                                                                                                                                                               |
+| 3.7     | 2025-12-21 | PRODUCTS-LIST-2.0: Added Sort by impact scenario to CP-003 (authoritative ladder, deterministic, stable).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| 3.8     | 2025-12-21 | PRODUCTS-LIST-2.0: Added Bulk action confirmation scenario to CP-003 (3-step flow, AI disclosure, Apply uses no AI, partial failure handling).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| 3.9     | 2025-12-23 | ROLES-2: Added CP-018 for Project Roles & Approval Foundations. Single-user role emulation, approval gating on Playbooks apply, role-aware UI. Added integration tests and Playwright coverage.                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| 4.0     | 2025-12-23 | ROLES-2 FIXUP-1: Fixed approval gating correctness (hasValidApproval returns object), changed to BadRequestException for APPROVAL_REQUIRED, consume approval after successful apply. Updated integration tests (400 status), Playwright tests (real seed endpoints), frontend (resolve role from profile, approve-and-apply flow).                                                                                                                                                                                                                                                                                                           |
+| 4.1     | 2025-12-23 | ROLES-3: Added CP-019 for True Multi-User Projects. ProjectMember model, OWNER-only apply enforcement, membership management API, multi-user auto-apply blocking. Updated CP-012 with multi-user auto-apply blocking scenario.                                                                                                                                                                                                                                                                                                                                                                                                               |
+| 4.2     | 2025-12-23 | ROLES-2 FIXUP-2: Frontend structured error parsing for NestJS nested error payloads (e.g., BadRequestException with object message). Prevents "Bad Request" generic message, preserves error codes like APPROVAL_REQUIRED. Added key scenario to CP-018.                                                                                                                                                                                                                                                                                                                                                                                     |
+| 4.3     | 2025-12-23 | ROLES-3 FIXUP-2: Strict approval-chain matrix enforcement. Multi-user OWNER cannot create approval requests (must apply directly), accountRole ignored in multi-user projects (ProjectMember authoritative), isMultiUserProject in API response, Answer Block mutations OWNER-only, Members page "Add member" wording. Updated CP-019 scenarios.                                                                                                                                                                                                                                                                                             |
+| 4.4     | 2025-12-23 | ROLES-3 FIXUP-3: Frontend correction for strict approval-chain matrix. Removed ephemeral approvalRequested flag in favor of derived state from server-sourced pendingApproval object. EDITOR can NEVER apply even if approved—only requests approval. Multi-user OWNER cannot self-request (must wait for EDITOR). Single-user OWNER preserves ROLES-2 convenience (create + approve + apply). Button states and notices derive from pendingApproval?.status. Updated CP-019 with FIXUP-3 test scenarios.                                                                                                                                    |
+| 4.5     | 2025-12-24 | ROLES-3 FIXUP-3 PATCH 4.6: Approval status prefetch and stale-state reset. Approval status auto-fetched when Step 3 visible (no CTA click needed). Stale approval cleared when switching playbooks or when policy changes. Includes stale-response guard for rapid playbook changes. Updated CP-019 verification scenario "UI derives from server state".                                                                                                                                                                                                                                                                                    |
+| 4.6     | 2025-12-24 | ROLES-3 FIXUP-4: Membership + Role Enforcement Beyond projects/\*. Eliminated legacy project.userId ownership gates in AI controller, ProductIssueFixService, SEO scan, Integrations, and Shopify services. Replaced with RoleResolutionService assertions (assertProjectAccess, assertOwnerRole, assertCanGenerateDrafts). Added integration tests for AI usage, integrations, and SEO scan endpoints. Updated CP-019 with FIXUP-4 scenarios.                                                                                                                                                                                               |
+| 4.7     | 2025-12-24 | ROLES-3 FIXUP-5: Co-Owner Support for Shopify Actions. Shopify validateProjectOwnership uses RoleResolutionService (supports co-owners). Account disconnectStore uses assertOwnerRole for project-level check. Co-owner can perform install, sync-products, ensure-metafield-definitions, disconnect store. Added integration tests for multi-owner Shopify actions. Updated CP-006 and CP-019 with FIXUP-5 scenarios.                                                                                                                                                                                                                       |
+| 4.8     | 2025-12-24 | ROLES-2 FIXUP-3: Role-specific apply denial messages. VIEWER apply denial returns "Viewer role cannot apply automation playbooks. Preview and export remain available." EDITOR apply denial returns "Editor role cannot apply automation playbooks. Request approval from an owner." Aligns backend messages with test expectations and manual testing docs. Updated CP-018 with FIXUP-3 scenarios.                                                                                                                                                                                                                                          |
+| 4.9     | 2025-12-24 | ROLES-3 PENDING-1: Approval attribution UI + doc alignment. Playbooks Step 3 shows requester/approver identity + timestamp. Updated CP-019 Auto Tests field (roles-3.test.ts present), Coverage Summary to Full Coverage. Added attribution scenarios to CP-019.                                                                                                                                                                                                                                                                                                                                                                             |
+| 5.0     | 2025-12-24 | ROLES-3-HARDEN-1: Added Playwright E2E tests (roles-3.spec.ts). Test A: EDITOR+OWNER approval workflow. Test B: VIEWER read-only gating. Test C: Multi-user project detection. Removed (planned) designation from CP-019 Auto Tests.                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 5.1     | 2026-01-06 | NAV-IA-CONSISTENCY-1: Updated CP-001 with auth terminology scenarios ("Sign in" not "Log in", "Create account" not "Sign up"). Updated CP-008 with design tokens, dark mode toggle, and token-based styling. Added nav-ia-consistency-1.spec.ts automated tests. Added manual testing doc.                                                                                                                                                                                                                                                                                                                                                   |
+| 5.2     | 2026-01-07 | DRAFT-CLARITY-AND-ACTION-TRUST-1: Updated CP-003 with 3-state draft lifecycle, Apply button gating, and inline guidance scenarios. Updated CP-006 with Apply uses saved draft (not AI) scenarios. Updated CP-008 with draft state banner, navigation blocking, GEO explainers, automation history filters, skip explanations, and internal ID leakage prevention scenarios. Added draft-clarity-and-action-trust-1.spec.ts E2E tests. Added manual testing doc.                                                                                                                                                                              |
+| 5.3     | 2026-01-07 | ISSUE-TO-FIX-PATH-1: Updated CP-008 with trust-safe issue routing scenarios (issue click lands on visible fix with context banner, actionable count parity, orphan suppression, Work Queue context banner). Added issue-to-fix-path-1.spec.ts E2E tests. Added manual testing doc.                                                                                                                                                                                                                                                                                                                                                           |
+| 5.4     | 2026-01-07 | ISSUE-TO-FIX-PATH-1 FIXUP-1: Added CP-008 scenarios for circular import fix + orphan/dead-end cleanup. Issue-fix mode triggers on issueId alone, Overview/DEO use actionable-only, Project Issues severity counts are actionable-only, buildIssueFixHref preserves origin (from=overview/deo/issues). Updated ISSUE-TO-FIX-PATH-1.md manual testing doc.                                                                                                                                                                                                                                                                                     |
+| 5.5     | 2026-01-07 | ISSUE-TO-FIX-PATH-1 FIXUP-2: Trust hardening — href-based actionability, dead-click prevention test, ID leakage prevention via safe title helpers.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| 5.6     | 2026-01-07 | ISSUE-TO-FIX-PATH-1 FIXUP-3: Doc/test alignment — Work Queue issue-fix banner triggers on issueId (from optional); updated Playwright + manual testing; corrected CP-008 wording.                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 5.7     | 2026-01-08 | COUNT-INTEGRITY-1: Updated CP-008 and CP-009 with count integrity scenarios (Work Queue → Issues click integrity, detected vs actionable semantics, role-based actionability, informational issue rendering). Added COUNT-INTEGRITY-1.md manual testing doc and planned count-integrity-1.spec.ts automated tests.                                                                                                                                                                                                                                                                                                                           |
+| 5.8     | 2026-01-08 | COUNT-INTEGRITY-1 COMPLETE: Implemented all patches (PATCH 6 FIXUP, 7, 9). Created count-integrity-1.spec.ts with 3 smoke tests (click integrity, technical informational, viewer role). Updated Store Health & Work Queue banner terminology. Issues Engine UI corrections (effectiveMode, isClickableIssue semantics, countsSummary for pillar badges, pillar filter alignment). Marked test status as ✅ complete in CP-008 and CP-009.                                                                                                                                                                                                   |
+| 5.9     | 2026-01-08 | COUNT-INTEGRITY-1.1 BACKEND COMPLETE: PATCH BATCH 4 + FIXUP resolved Gap 3b (pages/collections dedup beyond cap-20). Updated 7 technical builders to populate full keys (PATCH 4.1), created collections seed with collectionIds (PATCH 4.2-FIXUP-1), added CANON-010 regression test with crawlResult IDs and scopeType=collections filter (PATCH 4.3-FIXUP-1 + FIXUP-2), comprehensive docs sweep (PATCH 4.4-FIXUP-1). Backend verified for all asset types via CANON-009 (products) + CANON-010 (collections). Updated CP-008 and CP-009 with Gap 3b verification. UI migration (Gap 6) + UI smoke test (Gap 7) remain pending.           |
+| 6.0     | 2026-01-08 | COUNT-INTEGRITY-1.1 COMPLETE: PATCH 5-10 resolved Gap 6 (UI Migration) and Gap 7 (UI Smoke Test). PATCH 5: Issues Engine filter-aligned canonical summary with TripletDisplay data-testid attributes. PATCH 6: Product detail uses assetIssues endpoint with triplet summary. PATCH 7: Store Health tiles use canonical counts. PATCH 8: Work Queue AI badge trust copy ("Does not use AI", "AI used for drafts only"). PATCH 9: Created count-integrity-1-1.ui.spec.ts with 6 cross-surface UI smoke tests. PATCH 10: Documentation updates. Removed ⚠️ warnings from CP-008 and CP-009, marked all COUNT-INTEGRITY-1.1 scenarios complete. |
+| 6.1     | 2026-01-09 | COUNT-INTEGRITY-1.1 UI HARDEN + AUDIT FIX: Multi-action filtering via actionKeys (OR across keys), pillar-aware triplet display (currentTriplet from byPillar), severity-aligned canonical summary (passes severity to API), pillar-aware hasActionableIssues/hasDetectedIssues checks. Fixed UI smoke test auth (localStorage only) and product selection shape ({ products: [...] }). Verification complete (NO-OP) — all audit fixes confirmed implemented.                                                                                                                                                                               |
+| 6.2     | 2026-01-14 | ISSUE-FIX-KIND-CLARITY-1: Added CP-008 scenarios for DIAGNOSTIC vs EDIT/AI issue CTA semantics. DIAGNOSTIC issues show "Review" CTA (not "Fix"), blue arrival callout (not yellow/indigo), "View related issues" routes to Issues Engine. fixKind derived from config only (never URL). Added issue-fix-kind-clarity-1.spec.ts (7 tests) + LAC1-002b in list-actions-clarity-1.spec.ts. Added manual testing doc. FIXUP-2: Products list shows "Review" for DIAGNOSTIC-topped products, Work Queue shows blue review banner for DIAGNOSTIC issueId.                                                                                          |
+| 6.3     | 2026-01-19 | PLAYBOOK-STEP-CONTINUITY-1: Added CP-012 scenarios for Step 2 → Step 3 deterministic transitions with explicit terminal outcomes. Added draftStatus/draftCounts to estimate response for draft validity reasoning. Added PLAYBOOK_DRAFT_EXPIRED explicit error code for apply. Added PLAYBOOK-STEP-CONTINUITY-1.md manual testing doc.                                                                                                                                                                                                                                                                                                       |
+| 6.4     | 2026-01-19 | DIAGNOSTIC-GUIDANCE-1: Added CP-009 scenarios for diagnostic guidance pattern on outside-control issues (actionability='informational'). Issues show "Informational — outside EngineO.ai control" badge, explanation text, and "How to address this" guidance block. No Fix/Apply CTAs on these issues. Added DIAGNOSTIC-GUIDANCE-1.md manual testing doc.                                                                                                                                                                                                                                                                                   |
+| 6.5     | 2026-01-20 | SHOPIFY-SCOPE-IMPLICATIONS-1: Added CP-006 scenarios for scope implication rules. write_products satisfies read_products, write_content satisfies read_content, write_themes satisfies read_themes (no false missing scope warnings). Regression: read scopes do NOT imply write. Added SHOPIFY-SCOPE-IMPLICATIONS-1.md manual testing doc, updated SHOPIFY_SCOPES_MATRIX.md.                                                                                                                                                                                                                                                                |
+| 6.6     | 2026-01-20 | SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1: Added CP-006 scenarios for authoritative granted-scope derivation (oauth_scope vs access_scopes_endpoint fallback), normalized scope storage (deduplicated, sorted), and capability-aware permission notice copy (catalog vs content vs combined wording). Added SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1.md manual testing doc.                                                                                                                                                                                                                                                                       |
+| 6.7     | 2026-01-20 | SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-2: Added CP-006 scenarios for empty-scope persistence guard (reconnect cannot downgrade, never persist empty scopes, verify_failed UI). Added SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-2.md manual testing doc.                                                                                                                                                                                                                                                                                                                                                                             |
+| 6.8     | 2026-01-20 | SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-3: Added CP-006 scenario for verify_failed UI suppressing missing-scope list (no fake warnings from empty data).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| 6.9     | 2026-01-20 | SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-4: Added CP-006 scenarios for suspicious OAuth downgrade prevention. Suspicious OAuth + Access Scopes fails + existing = retain existing (no downgrade). Suspicious OAuth + Access Scopes fails + fresh install = verify_failed (explicit failure). Non-suspicious OAuth fallback unchanged. Added SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-4.md manual testing doc.                                                                                                                                                                                                                        |
+| 6.10    | 2026-01-20 | SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1: Added CP-006 scenarios for legacy scope storage format compatibility. `parseShopifyScopesCsv()` now handles JSON arrays and whitespace-delimited strings from Prisma Json field. Prevents false "Missing permission: read_products/read_content" blocks when scopes are stored in legacy formats. Updated unit tests, SHOPIFY_SCOPES_MATRIX.md, and SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1.md with regression check steps.                                                                                                                                                                                 |
+| 6.11    | 2026-01-20 | AUTOMATION-TRIGGER-TRUTHFULNESS-1: Added CP-012 scenarios for truthful automation triggers. Page load never triggers AI (DEO issues read-only), project-level setting gate `autoGenerateAnswerBlocksOnProductSync` (default OFF), DB-backed idempotency via AnswerBlockAutomationRun model, deterministic Sync CTA labels ("+ Generate Answer Blocks" only when setting ON + paid plan), worker run state tracking (QUEUED→RUNNING→terminal), diagnostic safety logs with suppressedReason. Added manual testing doc.                                                                                                                        |
+| 6.12    | 2026-01-20 | AUTOMATION-TRIGGER-TRUTHFULNESS-1 REVIEW-1: Fixed Playbooks CTA labels ("Sync products" not "Sync to Shopify"), neutral toast message, race-safe idempotency (FAILED→QUEUED transition via conditional updateMany, concurrent trigger handling), web API typing for new setting. Rewrote manual test doc to match template structure.                                                                                                                                                                                                                                                                                                        |

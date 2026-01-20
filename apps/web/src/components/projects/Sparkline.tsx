@@ -36,11 +36,16 @@ export function Sparkline({
   }
 
   const width = 300;
-  const padding = { top: 10, right: 10, bottom: showLabels ? 20 : 10, left: 10 };
+  const padding = {
+    top: 10,
+    right: 10,
+    bottom: showLabels ? 20 : 10,
+    left: 10,
+  };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
-  const values = data.map(d => d.y);
+  const values = data.map((d) => d.y);
   const minValue = Math.min(...values);
   const maxValue = Math.max(...values);
   const valueRange = maxValue - minValue || 1;
@@ -48,7 +53,8 @@ export function Sparkline({
   // Calculate points for the line
   const points = data.map((d, i) => {
     const x = padding.left + (i / (data.length - 1 || 1)) * chartWidth;
-    const y = padding.top + chartHeight - ((d.y - minValue) / valueRange) * chartHeight;
+    const y =
+      padding.top + chartHeight - ((d.y - minValue) / valueRange) * chartHeight;
     return { x, y, value: d.y, label: d.x };
   });
 
@@ -74,7 +80,13 @@ export function Sparkline({
     >
       {/* Gradient for area fill */}
       <defs>
-        <linearGradient id={`sparkline-gradient-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
+        <linearGradient
+          id={`sparkline-gradient-${color.replace('#', '')}`}
+          x1="0"
+          y1="0"
+          x2="0"
+          y2="1"
+        >
           <stop offset="0%" stopColor={color} stopOpacity={0.3} />
           <stop offset="100%" stopColor={color} stopOpacity={0.05} />
         </linearGradient>

@@ -49,13 +49,16 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - Project has no local config, or local config with `hasPhysicalLocation=false` and `enabled=false`
 
 **Steps:**
+
 1. Navigate to DEO Overview for the project
 2. View the Local Discovery pillar tab
 
 **Expected Results:**
+
 - **UI:** Shows "Not Applicable" status badge
 - **API:** `GET /projects/:id/local-discovery/scorecard` returns:
   - `applicabilityStatus: "not_applicable"`
@@ -70,14 +73,17 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Project exists with no local configuration
 
 **Steps:**
+
 1. Navigate to Local Discovery settings
 2. Enable "Has Physical Location" toggle
 3. Save configuration
 
 **Expected Results:**
+
 - **UI:** Local config saved successfully toast
 - **API:** `PUT /projects/:id/local-discovery/config` accepts `{ hasPhysicalLocation: true }`
 - **Scorecard:** Project now shows `applicabilityStatus: "applicable"` with initial score of 0
@@ -89,18 +95,21 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Project configured as local (`hasPhysicalLocation=true`)
 - No local signals present
 
 **Steps:**
+
 1. View Local Discovery scorecard
 2. Verify score is 0 (weak)
 3. Add a location_presence signal (via API or UI)
 4. Refresh scorecard
 
 **Expected Results:**
+
 - **Initial:** Score = 0, Status = "weak"
-- **After adding location_presence:** Score = 31 (10/32 * 100), Status = "weak"
+- **After adding location_presence:** Score = 31 (10/32 \* 100), Status = "weak"
 - **API:** `signalCounts.location_presence` = 1
 
 ---
@@ -110,9 +119,11 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Project configured as local
 
 **Steps:**
+
 1. Add signals for all 4 types:
    - location_presence
    - local_intent_coverage
@@ -121,6 +132,7 @@
 2. View scorecard
 
 **Expected Results:**
+
 - **Score:** 100
 - **Status:** "strong"
 - **Gaps:** Empty (no gaps)
@@ -133,14 +145,17 @@
 **ID:** HP-005
 
 **Preconditions:**
+
 - Project configured as local with missing local_intent_coverage
 
 **Steps:**
+
 1. View gaps in Local Discovery
 2. Click "Preview Fix" for local_intent_coverage gap
 3. Select draft type: `local_answer_block`
 
 **Expected Results:**
+
 - **API:** `POST /projects/:id/local-discovery/preview` returns draft with:
   - `draftPayload.question` and `draftPayload.answer` populated
   - `generatedWithAi: true` (first time)
@@ -153,13 +168,16 @@
 **ID:** HP-006
 
 **Preconditions:**
+
 - Draft from HP-005 exists
 
 **Steps:**
+
 1. Review draft content
 2. Click "Apply" with target `ANSWER_BLOCK`
 
 **Expected Results:**
+
 - **API:** `POST /projects/:id/local-discovery/apply` succeeds
 - **Response:** `success: true`, `issuesResolved: true`
 - **Scorecard:** Updates to reflect new signal
@@ -174,10 +192,12 @@
 **Description:** Project has no local config at all (not even empty config row)
 
 **Steps:**
+
 1. Create new project
 2. Immediately check local discovery scorecard (before any config interaction)
 
 **Expected Behavior:**
+
 - Scorecard returns `applicabilityStatus: "unknown"`
 - `applicabilityReasons: ["no_local_indicators"]`
 - No score (undefined), no penalty
@@ -189,10 +209,12 @@
 **Description:** User enables local discovery manually even without physical location
 
 **Steps:**
+
 1. Set config: `{ hasPhysicalLocation: false, enabled: true }`
 2. Check applicability
 
 **Expected Behavior:**
+
 - `applicabilityStatus: "applicable"`
 - `applicabilityReasons: ["manual_override_enabled"]`
 - Score and gaps computed normally
@@ -204,12 +226,14 @@
 **Description:** Adding multiple signals of same type should have diminishing returns
 
 **Steps:**
+
 1. Add 3 location_presence signals
 2. Check score
 
 **Expected Behavior:**
-- Score = 47 (15/32 * 100), NOT 93 (30/32 * 100)
-- Bonus formula: base + min(count-1, 2) * 0.25 * weight
+
+- Score = 47 (15/32 _ 100), NOT 93 (30/32 _ 100)
+- Bonus formula: base + min(count-1, 2) _ 0.25 _ weight
 
 ---
 
@@ -218,10 +242,12 @@
 **Description:** Same preview request should reuse cached draft
 
 **Steps:**
+
 1. Preview a fix with specific parameters
 2. Preview again with identical parameters
 
 **Expected Behavior:**
+
 - Second request returns `generatedWithAi: false`
 - Same draft content returned (from cache)
 
@@ -234,9 +260,11 @@
 **Scenario:** Accessing local discovery for non-existent project
 
 **Steps:**
+
 1. Call `GET /projects/fake-id/local-discovery`
 
 **Expected Behavior:**
+
 - 404 Not Found response
 - Error message: "Project not found"
 
@@ -247,10 +275,12 @@
 **Scenario:** User tries to access another user's project
 
 **Steps:**
+
 1. Authenticate as User A
 2. Call `GET /projects/{user-b-project-id}/local-discovery`
 
 **Expected Behavior:**
+
 - 403 Forbidden response
 - Error message: "You do not have access to this project"
 
@@ -261,9 +291,11 @@
 **Scenario:** Submitting invalid config payload
 
 **Steps:**
+
 1. Call `PUT /projects/:id/local-discovery/config` with invalid JSON
 
 **Expected Behavior:**
+
 - 400 Bad Request response
 - Validation error message
 
@@ -274,9 +306,11 @@
 **Scenario:** Trying to apply a draft that doesn't exist or is expired
 
 **Steps:**
+
 1. Call `POST /projects/:id/local-discovery/apply` with `draftId: "fake-id"`
 
 **Expected Behavior:**
+
 - 404 Not Found or appropriate error
 - Clear error message about missing draft
 
@@ -289,11 +323,13 @@
 **Scenario:** Local Discovery is available to all subscription tiers
 
 **Steps:**
+
 1. Test with Free tier user
 2. Test with Pro tier user
 3. Test with Business tier user
 
 **Expected Behavior:**
+
 - All tiers can access Local Discovery features
 - No upgrade prompts for basic functionality
 
@@ -304,9 +340,11 @@
 **Scenario:** AI-powered fix previews may be subject to AI usage limits
 
 **Steps:**
+
 1. Generate many fix previews
 
 **Expected Behavior:**
+
 - Respects AI usage quotas from CACHE/REUSE v2
 - Shows appropriate message if quota exceeded
 - (Note: Specific limits depend on tier and AI quota implementation)
@@ -366,9 +404,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Name] |
-| **Date** | [YYYY-MM-DD] |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    | [Name]                                |
+| **Date**           | [YYYY-MM-DD]                          |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | [Any additional notes] |
+| **Notes**          | [Any additional notes]                |

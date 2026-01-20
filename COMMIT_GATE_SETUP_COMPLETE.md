@@ -46,6 +46,7 @@ pnpm install
 ```
 
 This will:
+
 - Install Husky package
 - Run `prepare` script which runs `husky install`
 - Set up Git hooks
@@ -62,6 +63,7 @@ pnpm test:unit
 ```
 
 **Expected:**
+
 - Only unit tests run (from `test/unit/` directory)
 - Execution time should be ~1-2 minutes
 - All tests should pass
@@ -84,6 +86,7 @@ rm test-file.md
 ```
 
 **Expected:**
+
 - Pre-commit hook runs automatically
 - Shows progress messages:
   - 🔍 Running pre-commit checks...
@@ -144,4 +147,3 @@ Make sure TypeScript is installed in `apps/api/package.json`.
 **Verification:** ⚠️ **PENDING** (requires manual execution)
 
 All files are in place and ready. Run the verification steps above to complete the setup.
-

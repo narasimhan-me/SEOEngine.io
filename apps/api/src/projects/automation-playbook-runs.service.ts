@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { AutomationPlaybookId } from './automation-playbooks.service';
 import { playbookRunQueue } from '../queues/queues';
@@ -48,7 +44,7 @@ export class AutomationPlaybookRunsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly runProcessor: AutomationPlaybookRunProcessor,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   /**
@@ -83,7 +79,8 @@ export class AutomationPlaybookRunsService {
 
     // Compute effective idempotency key
     const effectiveIdempotencyKey =
-      idempotencyKey ?? `${runType}:${projectId}:${playbookId}:${scopeId}:${rulesHash}`;
+      idempotencyKey ??
+      `${runType}:${projectId}:${playbookId}:${scopeId}:${rulesHash}`;
 
     // Check for existing run with the same key
     const existingRun = await this.prisma.automationPlaybookRun.findFirst({
@@ -103,7 +100,7 @@ export class AutomationPlaybookRunsService {
       ['QUEUED', 'RUNNING', 'SUCCEEDED'].includes(existingRun.status)
     ) {
       this.logger.log(
-        `[AutomationPlaybookRunsService] Returning existing run ${existingRun.id} (status=${existingRun.status})`,
+        `[AutomationPlaybookRunsService] Returning existing run ${existingRun.id} (status=${existingRun.status})`
       );
       return existingRun;
     }
@@ -124,7 +121,7 @@ export class AutomationPlaybookRunsService {
     });
 
     this.logger.log(
-      `[AutomationPlaybookRunsService] Created run ${run.id} (type=${runType}, playbook=${playbookId})`,
+      `[AutomationPlaybookRunsService] Created run ${run.id} (type=${runType}, playbook=${playbookId})`
     );
 
     return run;
@@ -137,30 +134,31 @@ export class AutomationPlaybookRunsService {
     // Only enqueue QUEUED runs
     if (run.status !== 'QUEUED') {
       this.logger.log(
-        `[AutomationPlaybookRunsService] Run ${run.id} is ${run.status}, not enqueueing`,
+        `[AutomationPlaybookRunsService] Run ${run.id} is ${run.status}, not enqueueing`
       );
       return;
     }
 
-    const enableQueueProcessors = process.env.ENABLE_QUEUE_PROCESSORS !== 'false';
+    const enableQueueProcessors =
+      process.env.ENABLE_QUEUE_PROCESSORS !== 'false';
 
     if (playbookRunQueue && enableQueueProcessors) {
       // Production path: enqueue to BullMQ
       await playbookRunQueue.add('automation_playbook_run', { runId: run.id });
       this.logger.log(
-        `[AutomationPlaybookRunsService] Enqueued run ${run.id} to automation_playbook_run_queue`,
+        `[AutomationPlaybookRunsService] Enqueued run ${run.id} to automation_playbook_run_queue`
       );
     } else {
       // Dev path: execute inline
       this.logger.log(
-        `[AutomationPlaybookRunsService] Executing run ${run.id} inline (no queue available)`,
+        `[AutomationPlaybookRunsService] Executing run ${run.id} inline (no queue available)`
       );
       try {
         await this.runProcessor.processJob(run.id);
       } catch (error) {
         // Error is already logged by the processor; don't re-throw for inline execution
         this.logger.warn(
-          `[AutomationPlaybookRunsService] Inline execution of run ${run.id} failed`,
+          `[AutomationPlaybookRunsService] Inline execution of run ${run.id} failed`
         );
       }
     }

@@ -53,10 +53,12 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - Project has products with missing SEO titles
 - User is authenticated
 
 **Steps:**
+
 1. Send POST request to `/api/projects/:projectId/automation-playbooks/missing_seo_title/runs`
 2. Request body:
    ```json
@@ -69,6 +71,7 @@
 4. Poll GET `/api/projects/:projectId/automation-playbooks/runs/:runId` until status is `SUCCEEDED`
 
 **Expected Results:**
+
 - **UI:** N/A (API only)
 - **API:**
   - POST returns 201 with run object containing `id`, `status: "QUEUED"`
@@ -85,10 +88,12 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - A PREVIEW_GENERATE run has already succeeded (draft exists)
 - Use the same `scopeId` and `rulesHash` from the preview
 
 **Steps:**
+
 1. Retrieve the preview run to get `scopeId` and `rulesHash`
 2. Send POST request to `/api/projects/:projectId/automation-playbooks/missing_seo_title/runs`
 3. Request body:
@@ -102,6 +107,7 @@
 4. Poll GET endpoint until status is `SUCCEEDED`
 
 **Expected Results:**
+
 - **UI:** N/A (API only)
 - **API:**
   - POST returns 201 with run object
@@ -117,14 +123,17 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - No existing run with the same idempotency key
 
 **Steps:**
+
 1. Send POST request with `idempotencyKey: "test-key-123"`
 2. Note the returned `runId`
 3. Send the same POST request again with same `idempotencyKey`
 
 **Expected Results:**
+
 - **API:**
   - First POST returns 201 with new run
   - Second POST returns 200 with the same `runId`
@@ -139,15 +148,18 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Multiple runs exist for the project
 
 **Steps:**
+
 1. Send GET `/api/projects/:projectId/automation-playbooks/runs`
 2. Send GET `/api/projects/:projectId/automation-playbooks/runs?playbookId=missing_seo_title`
 3. Send GET `/api/projects/:projectId/automation-playbooks/runs?runType=APPLY`
 4. Send GET `/api/projects/:projectId/automation-playbooks/runs?limit=5`
 
 **Expected Results:**
+
 - **API:**
   - Returns array of runs sorted by `createdAt` descending
   - Filters are applied correctly
@@ -162,12 +174,14 @@
 **Description:** When Redis is not available, runs execute inline instead of via queue
 
 **Steps:**
+
 1. Stop Redis service
 2. Set `ENABLE_QUEUE_PROCESSORS=false`
 3. Restart API server
 4. Create a PREVIEW_GENERATE run
 
 **Expected Behavior:**
+
 - Run executes synchronously
 - Response includes final status immediately (not QUEUED)
 - Logs show: `[AutomationPlaybookRunsService] Queue not available, executing inline`
@@ -179,9 +193,11 @@
 **Description:** Two simultaneous requests with same idempotency key
 
 **Steps:**
+
 1. Send two POST requests simultaneously with same `idempotencyKey`
 
 **Expected Behavior:**
+
 - Only one run is created
 - Both requests return the same `runId`
 - No database unique constraint errors leak to client
@@ -193,11 +209,13 @@
 **Description:** APPLY run with scopeId that doesn't match current products
 
 **Steps:**
+
 1. Create PREVIEW_GENERATE run
 2. Delete or modify products to change the scope
 3. Attempt APPLY with the old scopeId
 
 **Expected Behavior:**
+
 - Run transitions to STALE status
 - `errorCode: "PLAYBOOK_SCOPE_INVALID"`
 - `errorMessage` explains scope mismatch
@@ -211,11 +229,13 @@
 **Scenario:** AI provider returns error during metadata generation
 
 **Steps:**
+
 1. Configure AI service to fail (e.g., invalid API key)
 2. Create PREVIEW_GENERATE run
 3. Poll until status changes
 
 **Expected Behavior:**
+
 - Run status becomes `FAILED`
 - `errorCode` contains error type
 - `errorMessage` contains details
@@ -228,9 +248,11 @@
 **Scenario:** APPLY run when no draft exists for the scope
 
 **Steps:**
+
 1. Create APPLY run with scopeId/rulesHash that has no existing draft
 
 **Expected Behavior:**
+
 - Run status becomes `STALE`
 - `errorCode: "PLAYBOOK_DRAFT_NOT_FOUND"`
 - User should regenerate preview first
@@ -242,10 +264,12 @@
 **Scenario:** APPLY run when rules have changed since preview
 
 **Steps:**
+
 1. Create PREVIEW_GENERATE with rules `{ enabled: true, maxLength: 60 }`
 2. Attempt APPLY with different rulesHash
 
 **Expected Behavior:**
+
 - Run status becomes `STALE`
 - `errorCode: "PLAYBOOK_RULES_CHANGED"`
 
@@ -258,10 +282,12 @@
 **Scenario:** User exceeds daily AI suggestion limit during PREVIEW_GENERATE
 
 **Steps:**
+
 1. Exhaust daily AI usage limit
 2. Create PREVIEW_GENERATE run
 
 **Expected Behavior:**
+
 - Run fails with entitlement error
 - `errorCode` indicates limit exceeded
 - User prompted to upgrade or wait
@@ -322,6 +348,7 @@
 ## API Reference
 
 ### Create Run
+
 ```
 POST /api/projects/:projectId/automation-playbooks/:playbookId/runs
 
@@ -338,6 +365,7 @@ Response: AutomationPlaybookRun
 ```
 
 ### Get Run
+
 ```
 GET /api/projects/:projectId/automation-playbooks/runs/:runId
 
@@ -345,6 +373,7 @@ Response: AutomationPlaybookRun
 ```
 
 ### List Runs
+
 ```
 GET /api/projects/:projectId/automation-playbooks/runs
   ?playbookId=string
@@ -360,9 +389,9 @@ Response: AutomationPlaybookRun[]
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | |
-| **Date** | |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    |                                       |
+| **Date**           |                                       |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | |
+| **Notes**          |                                       |

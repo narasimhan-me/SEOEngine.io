@@ -57,7 +57,7 @@ import type { DeoIssue, DeoIssueSeverity } from '@engineo/shared';
 export class LocalDiscoveryService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   // ============================================================================
@@ -67,22 +67,24 @@ export class LocalDiscoveryService {
   private toPrismaApplicabilityStatus(
     status: LocalApplicabilityStatus
   ): PrismaApplicabilityStatus {
-    const mapping: Record<LocalApplicabilityStatus, PrismaApplicabilityStatus> = {
-      applicable: 'APPLICABLE',
-      not_applicable: 'NOT_APPLICABLE',
-      unknown: 'UNKNOWN',
-    };
+    const mapping: Record<LocalApplicabilityStatus, PrismaApplicabilityStatus> =
+      {
+        applicable: 'APPLICABLE',
+        not_applicable: 'NOT_APPLICABLE',
+        unknown: 'UNKNOWN',
+      };
     return mapping[status];
   }
 
   private fromPrismaApplicabilityStatus(
     status: PrismaApplicabilityStatus
   ): LocalApplicabilityStatus {
-    const mapping: Record<PrismaApplicabilityStatus, LocalApplicabilityStatus> = {
-      APPLICABLE: 'applicable',
-      NOT_APPLICABLE: 'not_applicable',
-      UNKNOWN: 'unknown',
-    };
+    const mapping: Record<PrismaApplicabilityStatus, LocalApplicabilityStatus> =
+      {
+        APPLICABLE: 'applicable',
+        NOT_APPLICABLE: 'not_applicable',
+        UNKNOWN: 'unknown',
+      };
     return mapping[status];
   }
 
@@ -126,7 +128,9 @@ export class LocalDiscoveryService {
     return mapping[type];
   }
 
-  private toPrismaCoverageStatus(status: LocalCoverageStatus): PrismaCoverageStatus {
+  private toPrismaCoverageStatus(
+    status: LocalCoverageStatus
+  ): PrismaCoverageStatus {
     const mapping: Record<LocalCoverageStatus, PrismaCoverageStatus> = {
       strong: 'STRONG',
       needs_improvement: 'NEEDS_IMPROVEMENT',
@@ -135,7 +139,9 @@ export class LocalDiscoveryService {
     return mapping[status];
   }
 
-  private fromPrismaCoverageStatus(status: PrismaCoverageStatus): LocalCoverageStatus {
+  private fromPrismaCoverageStatus(
+    status: PrismaCoverageStatus
+  ): LocalCoverageStatus {
     const mapping: Record<PrismaCoverageStatus, LocalCoverageStatus> = {
       STRONG: 'strong',
       NEEDS_IMPROVEMENT: 'needs_improvement',
@@ -177,7 +183,9 @@ export class LocalDiscoveryService {
   /**
    * Get local configuration for a project.
    */
-  async getProjectLocalConfig(projectId: string): Promise<ProjectLocalConfig | null> {
+  async getProjectLocalConfig(
+    projectId: string
+  ): Promise<ProjectLocalConfig | null> {
     const row = await this.prisma.projectLocalConfig.findUnique({
       where: { projectId },
     });
@@ -235,7 +243,10 @@ export class LocalDiscoveryService {
    */
   async determineApplicability(
     projectId: string
-  ): Promise<{ status: LocalApplicabilityStatus; reasons: LocalApplicabilityReason[] }> {
+  ): Promise<{
+    status: LocalApplicabilityStatus;
+    reasons: LocalApplicabilityReason[];
+  }> {
     const reasons: LocalApplicabilityReason[] = [];
 
     // Check merchant-declared configuration
@@ -276,7 +287,9 @@ export class LocalDiscoveryService {
 
     // Has local indicators
     return {
-      status: isLocalApplicableFromReasons(reasons) ? 'applicable' : 'not_applicable',
+      status: isLocalApplicableFromReasons(reasons)
+        ? 'applicable'
+        : 'not_applicable',
       reasons,
     };
   }
@@ -346,7 +359,9 @@ export class LocalDiscoveryService {
   /**
    * Compute local discovery scorecard for a project.
    */
-  async computeProjectScorecard(projectId: string): Promise<LocalDiscoveryScorecard> {
+  async computeProjectScorecard(
+    projectId: string
+  ): Promise<LocalDiscoveryScorecard> {
     // Determine applicability first
     const { status: applicabilityStatus, reasons: applicabilityReasons } =
       await this.determineApplicability(projectId);
@@ -372,7 +387,10 @@ export class LocalDiscoveryService {
     // Count missing high-impact signals
     let missingLocalSignalsCount = 0;
     for (const signalType of LOCAL_SIGNAL_TYPES) {
-      if (signalCounts[signalType] === 0 && LOCAL_SIGNAL_WEIGHTS[signalType] >= 8) {
+      if (
+        signalCounts[signalType] === 0 &&
+        LOCAL_SIGNAL_WEIGHTS[signalType] >= 8
+      ) {
         missingLocalSignalsCount++;
       }
     }
@@ -475,7 +493,9 @@ export class LocalDiscoveryService {
   /**
    * Get cached scorecard or compute if not present.
    */
-  async getProjectScorecard(projectId: string): Promise<LocalDiscoveryScorecard> {
+  async getProjectScorecard(
+    projectId: string
+  ): Promise<LocalDiscoveryScorecard> {
     const row = await this.prisma.projectLocalCoverage.findFirst({
       where: { projectId },
       orderBy: { computedAt: 'desc' },
@@ -489,10 +509,15 @@ export class LocalDiscoveryService {
 
     return {
       projectId,
-      applicabilityStatus: this.fromPrismaApplicabilityStatus(row.applicabilityStatus),
-      applicabilityReasons: row.applicabilityReasons as LocalApplicabilityReason[],
+      applicabilityStatus: this.fromPrismaApplicabilityStatus(
+        row.applicabilityStatus
+      ),
+      applicabilityReasons:
+        row.applicabilityReasons as LocalApplicabilityReason[],
       score: row.score ?? undefined,
-      status: row.status ? this.fromPrismaCoverageStatus(row.status) : undefined,
+      status: row.status
+        ? this.fromPrismaCoverageStatus(row.status)
+        : undefined,
       signalCounts,
       missingLocalSignalsCount: row.missingLocalSignalsCount,
       computedAt: row.computedAt.toISOString(),
@@ -503,7 +528,9 @@ export class LocalDiscoveryService {
    * INSIGHTS-1: Read-only scorecard accessor (never computes or persists).
    * Returns null when no cached scorecard exists.
    */
-  async getCachedProjectScorecard(projectId: string): Promise<LocalDiscoveryScorecard | null> {
+  async getCachedProjectScorecard(
+    projectId: string
+  ): Promise<LocalDiscoveryScorecard | null> {
     const row = await this.prisma.projectLocalCoverage.findFirst({
       where: { projectId },
       orderBy: { computedAt: 'desc' },
@@ -515,10 +542,15 @@ export class LocalDiscoveryService {
 
     return {
       projectId,
-      applicabilityStatus: this.fromPrismaApplicabilityStatus(row.applicabilityStatus),
-      applicabilityReasons: row.applicabilityReasons as LocalApplicabilityReason[],
+      applicabilityStatus: this.fromPrismaApplicabilityStatus(
+        row.applicabilityStatus
+      ),
+      applicabilityReasons:
+        row.applicabilityReasons as LocalApplicabilityReason[],
       score: row.score ?? undefined,
-      status: row.status ? this.fromPrismaCoverageStatus(row.status) : undefined,
+      status: row.status
+        ? this.fromPrismaCoverageStatus(row.status)
+        : undefined,
       signalCounts,
       missingLocalSignalsCount: row.missingLocalSignalsCount,
       computedAt: row.computedAt.toISOString(),
@@ -684,7 +716,10 @@ export class LocalDiscoveryService {
     for (const signalType of LOCAL_SIGNAL_TYPES) {
       if (scorecard.signalCounts[signalType] === 0) {
         const gapType = getLocalGapTypeForMissingSignal(signalType);
-        const severity: DeoIssueSeverity = calculateLocalSeverity(signalType, gapType);
+        const severity: DeoIssueSeverity = calculateLocalSeverity(
+          signalType,
+          gapType
+        );
 
         issues.push({
           id: `local_${gapType}_${projectId}`,
@@ -711,7 +746,9 @@ export class LocalDiscoveryService {
    * INSIGHTS-1: Read-only issue generation (never computes or persists scorecard).
    * Returns [] when no cached scorecard exists yet.
    */
-  async buildLocalIssuesForProjectReadOnly(projectId: string): Promise<DeoIssue[]> {
+  async buildLocalIssuesForProjectReadOnly(
+    projectId: string
+  ): Promise<DeoIssue[]> {
     const scorecard = await this.getCachedProjectScorecard(projectId);
     if (!scorecard) return [];
 
@@ -724,7 +761,10 @@ export class LocalDiscoveryService {
     for (const signalType of LOCAL_SIGNAL_TYPES) {
       if (scorecard.signalCounts[signalType] === 0) {
         const gapType = getLocalGapTypeForMissingSignal(signalType);
-        const severity: DeoIssueSeverity = calculateLocalSeverity(signalType, gapType);
+        const severity: DeoIssueSeverity = calculateLocalSeverity(
+          signalType,
+          gapType
+        );
 
         issues.push({
           id: `local_${gapType}_${projectId}`,

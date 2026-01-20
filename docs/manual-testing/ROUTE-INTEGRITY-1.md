@@ -119,26 +119,26 @@ This document provides step-by-step verification for the ROUTE-INTEGRITY-1 trust
 
 For E2E test automation, verify these `data-testid` attributes:
 
-| Element | Test ID |
-|---------|---------|
-| Outer container | `filter-context-banner` |
-| Inner banner | `scope-banner` |
-| Back button | `scope-banner-back` |
-| Clear filters button | `scope-banner-clear` |
+| Element              | Test ID                 |
+| -------------------- | ----------------------- |
+| Outer container      | `filter-context-banner` |
+| Inner banner         | `scope-banner`          |
+| Back button          | `scope-banner-back`     |
+| Clear filters button | `scope-banner-clear`    |
 
 ---
 
 ## Expected Behavior Summary
 
-| Origin | Destination | from param | returnTo contains |
-|--------|-------------|------------|-------------------|
-| Store Health | Issues Engine | `store_health` | `/store-health` |
-| Products List | Product Detail | `asset_list` | Filter params (q, status) |
-| Products List | Issues Engine | `asset_list` | Filter params |
-| Work Queue | Playbooks | `work_queue` | `/work-queue` |
-| Work Queue | Issues Engine | `work_queue` | `/work-queue` |
-| Pages List | Issues Engine | `asset_list` | Filter params |
-| Collections List | Issues Engine | `asset_list` | Filter params |
+| Origin           | Destination    | from param     | returnTo contains         |
+| ---------------- | -------------- | -------------- | ------------------------- |
+| Store Health     | Issues Engine  | `store_health` | `/store-health`           |
+| Products List    | Product Detail | `asset_list`   | Filter params (q, status) |
+| Products List    | Issues Engine  | `asset_list`   | Filter params             |
+| Work Queue       | Playbooks      | `work_queue`   | `/work-queue`             |
+| Work Queue       | Issues Engine  | `work_queue`   | `/work-queue`             |
+| Pages List       | Issues Engine  | `asset_list`   | Filter params             |
+| Collections List | Issues Engine  | `asset_list`   | Filter params             |
 
 ---
 

@@ -51,14 +51,17 @@
 **ID:** MET-001
 
 **Preconditions:**
+
 - Products exist without `seoTitle` set
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'missing_seo_title'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'metadata'`
 - **whyItMatters:** Non-empty explanation about SEO title importance
 - **recommendedFix:** Guidance mentioning AI generation
@@ -72,14 +75,17 @@
 **ID:** MET-002
 
 **Preconditions:**
+
 - Products exist without `seoDescription` set
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'missing_seo_description'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'metadata'`
 - **whyItMatters:** Explanation about meta description importance for CTR
 - **recommendedFix:** Guidance mentioning AI generation
@@ -93,14 +99,17 @@
 **ID:** MET-003
 
 **Preconditions:**
+
 - Products exist with short or unoptimized SEO titles
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'weak_title'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'metadata'`
 - **whyItMatters:** Explanation about weak titles failing to capture attention
 - **recommendedFix:** Guidance about using AI to optimize
@@ -114,14 +123,17 @@
 **ID:** MET-004
 
 **Preconditions:**
+
 - Products exist with short SEO descriptions
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'weak_description'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'metadata'`
 - **whyItMatters:** Explanation about truncation and differentiation
 - **recommendedFix:** Guidance about expanding with AI
@@ -135,14 +147,17 @@
 **ID:** MET-005
 
 **Preconditions:**
+
 - Pages or products missing titles or descriptions
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'missing_metadata'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'metadata'`
 - **whyItMatters:** Explanation about visibility and click-through rates
 - **recommendedFix:** Guidance about adding metadata
@@ -158,10 +173,12 @@
 **Description:** Project has complete, well-optimized metadata.
 
 **Steps:**
+
 1. Create project with all products having optimized titles and descriptions
 2. Call `GET /projects/:id/deo-issues`
 
 **Expected Behavior:**
+
 - No metadata-category issues returned
 - Issues with other categories may still appear
 
@@ -172,10 +189,12 @@
 **Description:** Project has some products with issues, some without.
 
 **Steps:**
+
 1. Create project with mix of optimized and unoptimized products
 2. Call `GET /projects/:id/deo-issues`
 
 **Expected Behavior:**
+
 - Only affected products listed in `affectedProducts`
 - `count` accurately reflects number of affected items
 - Severity reflects proportion of affected items
@@ -201,9 +220,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Issue Engine Full - Metadata issues (Phase UX-8) |
+| Field              | Value                                            |
+| ------------------ | ------------------------------------------------ |
+| **Tester Name**    | [Pending]                                        |
+| **Date**           | [YYYY-MM-DD]                                     |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed            |
+| **Notes**          | Issue Engine Full - Metadata issues (Phase UX-8) |

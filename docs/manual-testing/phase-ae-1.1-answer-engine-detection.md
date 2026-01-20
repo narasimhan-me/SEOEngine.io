@@ -50,14 +50,17 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - Project with synced products
 
 **Steps:**
+
 1. Create a project with at least 2 products (one rich, one minimal)
 2. Call `GET /projects/:id/answerability` with valid auth token
 3. Inspect response structure
 
 **Expected Results:**
+
 - [ ] HTTP 200 OK
 - [ ] Response contains `projectId` matching the project
 - [ ] Response contains `generatedAt` (valid ISO timestamp)
@@ -76,15 +79,18 @@
 **ID:** HP-002
 
 **Test Data:**
+
 - Product A: Rich description with materials, audience, features, usage
 - Product B: Extremely short, vague description ("Great product!")
 
 **Steps:**
+
 1. Set up products as described
 2. Call `GET /projects/:id/answerability`
 3. Compare Product A and Product B statuses
 
 **Expected Results:**
+
 - [ ] Product A has few or no `missingQuestions`
 - [ ] Product A status is NOT `needs_answers`
 - [ ] Product A `answerabilityScore` is higher than Product B
@@ -99,14 +105,17 @@
 **ID:** HP-003
 
 **Test Data:**
+
 - Product C: Description with vague benefit language ("You'll feel amazing!")
 
 **Steps:**
+
 1. Create product with vague but present description
 2. Call answerability endpoint
 3. Inspect classification
 
 **Expected Results:**
+
 - [ ] Affected questions appear in `weakQuestions` (not strong, not missing)
 - [ ] Status is `partially_answer_ready` with mid-range `answerabilityScore`
 - [ ] System does NOT classify vague content as `strong`
@@ -120,10 +129,12 @@
 **Description:** Project has no products synced.
 
 **Steps:**
+
 1. Create project with no products
 2. Call answerability endpoint
 
 **Expected Behavior:**
+
 - [ ] `products` array is empty
 - [ ] `overallStatus.status` is `needs_answers`
 - [ ] `overallStatus.answerabilityScore` is 0
@@ -136,10 +147,12 @@
 **Description:** Product has no description text at all.
 
 **Steps:**
+
 1. Create product with empty `description`, `seoDescription`, and minimal title
 2. Call answerability endpoint
 
 **Expected Behavior:**
+
 - [ ] All 10 questions marked as `missing`
 - [ ] Status is `needs_answers`
 - [ ] `answerabilityScore` is very low (≤10)
@@ -151,11 +164,13 @@
 **Description:** Project has mix of well-described and poorly-described products.
 
 **Steps:**
+
 1. Create project with 3 products: rich, medium, poor
 2. Call answerability endpoint
 3. Verify aggregate calculation
 
 **Expected Behavior:**
+
 - [ ] `overallStatus` reflects aggregate (likely `partially_answer_ready`)
 - [ ] `overallStatus.answerabilityScore` is average of individual scores
 - [ ] `overallStatus.missingQuestions` contains union of all missing questions
@@ -169,9 +184,11 @@
 **Scenario:** Call endpoint without authentication.
 
 **Steps:**
+
 1. Call `GET /projects/:id/answerability` without Authorization header
 
 **Expected Behavior:**
+
 - [ ] HTTP 401 Unauthorized
 
 ---
@@ -181,10 +198,12 @@
 **Scenario:** User B tries to access User A's project.
 
 **Steps:**
+
 1. Create project for User A
 2. With User B's token, call answerability endpoint for A's project
 
 **Expected Behavior:**
+
 - [ ] HTTP 403 Forbidden
 
 ---
@@ -194,9 +213,11 @@
 **Scenario:** Request answerability for non-existent project.
 
 **Steps:**
+
 1. Call `GET /projects/non-existent-id/answerability` with valid token
 
 **Expected Behavior:**
+
 - [ ] HTTP 404 Not Found
 
 ---
@@ -251,9 +272,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Phase AE-1.1 Answer Engine detection and API |
+| Field              | Value                                        |
+| ------------------ | -------------------------------------------- |
+| **Tester Name**    | [Pending]                                    |
+| **Date**           | [YYYY-MM-DD]                                 |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed        |
+| **Notes**          | Phase AE-1.1 Answer Engine detection and API |

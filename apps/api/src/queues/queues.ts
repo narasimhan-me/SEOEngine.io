@@ -38,5 +38,8 @@ export const playbookRunQueue: Queue | null =
 if (!redisConfig.isEnabled) {
   console.warn('[Queues] Redis not configured - queue functionality disabled');
 } else {
-  console.log('[Queues] Redis queues initialized with host:', redisConfig.connection?.host);
+  console.log(
+    '[Queues] Redis queues initialized with host:',
+    redisConfig.connection?.host
+  );
 }

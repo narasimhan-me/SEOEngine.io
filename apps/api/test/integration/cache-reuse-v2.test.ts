@@ -91,16 +91,18 @@ describe('CACHE/REUSE v2: Deterministic AI Work Reuse', () => {
         findFirst: jest.fn().mockImplementation((args) => {
           // CACHE/REUSE v2: Support reuse lookup by aiWorkKey
           if (args.where?.aiWorkKey) {
-            return createdRuns.find(
-              (r) =>
-                r.projectId === args.where.projectId &&
-                r.playbookId === args.where.playbookId &&
-                r.runType === args.where.runType &&
-                r.aiWorkKey === args.where.aiWorkKey &&
-                r.status === 'SUCCEEDED' &&
-                r.aiUsed === true &&
-                r.reused === false,
-            ) || null;
+            return (
+              createdRuns.find(
+                (r) =>
+                  r.projectId === args.where.projectId &&
+                  r.playbookId === args.where.playbookId &&
+                  r.runType === args.where.runType &&
+                  r.aiWorkKey === args.where.aiWorkKey &&
+                  r.status === 'SUCCEEDED' &&
+                  r.aiUsed === true &&
+                  r.reused === false
+              ) || null
+            );
           }
           return null;
         }),
@@ -108,21 +110,30 @@ describe('CACHE/REUSE v2: Deterministic AI Work Reuse', () => {
           return createdRuns.find((r) => r.id === args.where.id) || null;
         }),
         findMany: jest.fn().mockImplementation((args) => {
-          let filtered = createdRuns.filter((r) => r.projectId === args.where.projectId);
+          let filtered = createdRuns.filter(
+            (r) => r.projectId === args.where.projectId
+          );
           if (args.where.runType) {
             filtered = filtered.filter((r) => r.runType === args.where.runType);
           }
           if (args.where.createdAt) {
             filtered = filtered.filter((r) => {
               const createdAt = new Date(r.createdAt);
-              return createdAt >= args.where.createdAt.gte && createdAt <= args.where.createdAt.lte;
+              return (
+                createdAt >= args.where.createdAt.gte &&
+                createdAt <= args.where.createdAt.lte
+              );
             });
           }
           return filtered;
         }),
         create: jest.fn().mockImplementation((args) => {
           const run = {
-            id: 'run-cache-' + Date.now() + '-' + Math.random().toString(36).slice(2),
+            id:
+              'run-cache-' +
+              Date.now() +
+              '-' +
+              Math.random().toString(36).slice(2),
             ...args.data,
             reused: args.data.reused ?? false,
             reusedFromRunId: args.data.reusedFromRunId ?? null,
@@ -154,7 +165,9 @@ describe('CACHE/REUSE v2: Deterministic AI Work Reuse', () => {
     };
 
     const entitlementsMock = {
-      getAiSuggestionLimit: jest.fn().mockResolvedValue({ planId: 'pro', limit: 100 }),
+      getAiSuggestionLimit: jest
+        .fn()
+        .mockResolvedValue({ planId: 'pro', limit: 100 }),
       getDailyAiUsage: jest.fn().mockResolvedValue(0),
       getUserPlan: jest.fn().mockResolvedValue('pro'),
       ensureCanCreateProject: jest.fn().mockResolvedValue(undefined),
@@ -198,10 +211,13 @@ describe('CACHE/REUSE v2: Deterministic AI Work Reuse', () => {
       tokenUsageMock as any,
       aiServiceMock as any,
       quotaServiceMock as any,
-      roleResolutionMock as any,
+      roleResolutionMock as any
     );
 
-    processor = new AutomationPlaybookRunProcessor(prismaMock, playbooksService);
+    processor = new AutomationPlaybookRunProcessor(
+      prismaMock,
+      playbooksService
+    );
     ledgerService = new AiUsageLedgerService(prismaMock);
   });
 
@@ -211,27 +227,58 @@ describe('CACHE/REUSE v2: Deterministic AI Work Reuse', () => {
 
   describe('computeAiWorkKey', () => {
     it('produces deterministic key for same inputs', () => {
-      const key1 = processor.computeAiWorkKey('missing_seo_title', ['prod-1', 'prod-2'], undefined);
-      const key2 = processor.computeAiWorkKey('missing_seo_title', ['prod-1', 'prod-2'], undefined);
+      const key1 = processor.computeAiWorkKey(
+        'missing_seo_title',
+        ['prod-1', 'prod-2'],
+        undefined
+      );
+      const key2 = processor.computeAiWorkKey(
+        'missing_seo_title',
+        ['prod-1', 'prod-2'],
+        undefined
+      );
       expect(key1).toBe(key2);
     });
 
     it('produces different keys for different product order (sorted internally)', () => {
-      const key1 = processor.computeAiWorkKey('missing_seo_title', ['prod-1', 'prod-2'], undefined);
-      const key2 = processor.computeAiWorkKey('missing_seo_title', ['prod-2', 'prod-1'], undefined);
+      const key1 = processor.computeAiWorkKey(
+        'missing_seo_title',
+        ['prod-1', 'prod-2'],
+        undefined
+      );
+      const key2 = processor.computeAiWorkKey(
+        'missing_seo_title',
+        ['prod-2', 'prod-1'],
+        undefined
+      );
       // Keys should be the same because productIds are sorted internally
       expect(key1).toBe(key2);
     });
 
     it('produces different keys for different rules', () => {
-      const key1 = processor.computeAiWorkKey('missing_seo_title', ['prod-1'], undefined);
-      const key2 = processor.computeAiWorkKey('missing_seo_title', ['prod-1'], { enabled: true, prefix: 'Buy' });
+      const key1 = processor.computeAiWorkKey(
+        'missing_seo_title',
+        ['prod-1'],
+        undefined
+      );
+      const key2 = processor.computeAiWorkKey('missing_seo_title', ['prod-1'], {
+        enabled: true,
+        prefix: 'Buy',
+      });
       expect(key1).not.toBe(key2);
     });
 
     it('produces different keys for different playbooks', () => {
-      const key1 = processor.computeAiWorkKey('missing_seo_title', ['prod-1'], undefined);
-      const key2 = processor.computeAiWorkKey('missing_seo_description', ['prod-1'], undefined);
+      const key1 = processor.computeAiWorkKey(
+        'missing_seo_title',
+        ['prod-1'],
+        undefined
+      );
+      const key2 = processor.computeAiWorkKey(
+        'missing_seo_description',
+        ['prod-1'],
+        undefined
+      );
       expect(key1).not.toBe(key2);
     });
   });

@@ -53,9 +53,12 @@ describe('WORK-QUEUE-1 – Unified Action Bundle Work Queue', () => {
    * Helper to create a multi-user project with members and products.
    */
   async function seedMultiUserProject() {
-    const { user: owner, project } = await seedConnectedStoreProject(testPrisma, {
-      plan: 'pro',
-    });
+    const { user: owner, project } = await seedConnectedStoreProject(
+      testPrisma,
+      {
+        plan: 'pro',
+      }
+    );
 
     const { user: editor } = await createTestUser(testPrisma, { plan: 'pro' });
     const { user: viewer } = await createTestUser(testPrisma, { plan: 'pro' });
@@ -140,7 +143,9 @@ describe('WORK-QUEUE-1 – Unified Action Bundle Work Queue', () => {
 
     it('returns 403 for non-member', async () => {
       const { project } = await seedMultiUserProject();
-      const { user: nonMember } = await createTestUser(testPrisma, { plan: 'pro' });
+      const { user: nonMember } = await createTestUser(testPrisma, {
+        plan: 'pro',
+      });
 
       await request(server)
         .get(`/projects/${project.id}/work-queue`)
@@ -164,7 +169,7 @@ describe('WORK-QUEUE-1 – Unified Action Bundle Work Queue', () => {
 
       // Should have automation bundles for missing SEO titles/descriptions
       const automationBundles = res.body.items.filter(
-        (b: any) => b.bundleType === 'AUTOMATION_RUN',
+        (b: any) => b.bundleType === 'AUTOMATION_RUN'
       );
 
       // May have 0-2 automation bundles depending on whether missing_seo_title and missing_seo_description playbooks detect issues
@@ -190,7 +195,9 @@ describe('WORK-QUEUE-1 – Unified Action Bundle Work Queue', () => {
 
       // All bundles should have valid health values
       for (const bundle of res.body.items) {
-        expect(['CRITICAL', 'NEEDS_ATTENTION', 'HEALTHY']).toContain(bundle.health);
+        expect(['CRITICAL', 'NEEDS_ATTENTION', 'HEALTHY']).toContain(
+          bundle.health
+        );
       }
     });
   });
@@ -425,15 +432,18 @@ describe('WORK-QUEUE-1 – Unified Action Bundle Work Queue', () => {
 
       // Automation bundles should have approval info when governance is enabled
       const automationBundles = res.body.items.filter(
-        (b: any) => b.bundleType === 'AUTOMATION_RUN',
+        (b: any) => b.bundleType === 'AUTOMATION_RUN'
       );
 
       for (const bundle of automationBundles) {
         if (bundle.approval) {
           expect(bundle.approval.approvalRequired).toBe(true);
-          expect(['NOT_REQUESTED', 'PENDING', 'APPROVED', 'REJECTED']).toContain(
-            bundle.approval.approvalStatus,
-          );
+          expect([
+            'NOT_REQUESTED',
+            'PENDING',
+            'APPROVED',
+            'REJECTED',
+          ]).toContain(bundle.approval.approvalStatus);
         }
       }
     });
@@ -453,7 +463,7 @@ describe('WORK-QUEUE-1 – Unified Action Bundle Work Queue', () => {
         .expect(200);
 
       const geoBundle = res.body.items.find(
-        (b: any) => b.bundleType === 'GEO_EXPORT',
+        (b: any) => b.bundleType === 'GEO_EXPORT'
       );
 
       if (geoBundle) {
@@ -461,7 +471,7 @@ describe('WORK-QUEUE-1 – Unified Action Bundle Work Queue', () => {
         expect(geoBundle.geoExport.mutationFreeView).toBe(true);
         expect(geoBundle.geoExport.passcodeShownOnce).toBe(true);
         expect(['NONE', 'ACTIVE', 'EXPIRED', 'REVOKED']).toContain(
-          geoBundle.geoExport.shareLinkStatus,
+          geoBundle.geoExport.shareLinkStatus
         );
       }
     });

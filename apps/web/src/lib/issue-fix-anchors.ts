@@ -145,7 +145,9 @@ export interface ArrivalCalloutOutput {
  * @param input - The callout input parameters
  * @returns Callout output with messages and styling
  */
-export function getArrivalCalloutContent(input: ArrivalCalloutInput): ArrivalCalloutOutput {
+export function getArrivalCalloutContent(
+  input: ArrivalCalloutInput
+): ArrivalCalloutOutput {
   const {
     issueTitle,
     nextActionLabel,
@@ -161,7 +163,8 @@ export function getArrivalCalloutContent(input: ArrivalCalloutInput): ArrivalCal
     return {
       variant: 'coming_soon',
       primaryMessage: `Coming soon: ${issueTitle}`,
-      secondaryMessage: 'This fix surface is not yet available. Check back later.',
+      secondaryMessage:
+        'This fix surface is not yet available. Check back later.',
       showBackLink: true,
       containerClass: 'bg-gray-50 border-gray-200 text-gray-700',
     };
@@ -196,7 +199,9 @@ export function getArrivalCalloutContent(input: ArrivalCalloutInput): ArrivalCal
     return {
       variant: 'diagnostic',
       primaryMessage: `You're here to review: ${issueTitle}`,
-      secondaryMessage: nextActionLabel || 'Review the analysis below. No direct fix is available for this issue.',
+      secondaryMessage:
+        nextActionLabel ||
+        'Review the analysis below. No direct fix is available for this issue.',
       showBackLink: true,
       showViewRelatedIssues: true,
       containerClass: 'bg-blue-50 border-blue-200 text-blue-800',
@@ -209,7 +214,8 @@ export function getArrivalCalloutContent(input: ArrivalCalloutInput): ArrivalCal
     return {
       variant: 'anchor_not_found',
       primaryMessage: `You're here to fix: ${issueTitle}`,
-      secondaryMessage: 'Fix surface not available. Use the options below or go back.',
+      secondaryMessage:
+        'Fix surface not available. Use the options below or go back.',
       showBackLink: true,
       containerClass: 'bg-yellow-50 border-yellow-200 text-yellow-800',
     };
@@ -219,7 +225,9 @@ export function getArrivalCalloutContent(input: ArrivalCalloutInput): ArrivalCal
   return {
     variant: 'actionable',
     primaryMessage: `You're here to fix: ${issueTitle}`,
-    secondaryMessage: nextActionLabel ? `To fix this issue: ${nextActionLabel}` : undefined,
+    secondaryMessage: nextActionLabel
+      ? `To fix this issue: ${nextActionLabel}`
+      : undefined,
     showBackLink: true,
     containerClass: 'bg-indigo-50 border-indigo-200 text-indigo-900',
   };

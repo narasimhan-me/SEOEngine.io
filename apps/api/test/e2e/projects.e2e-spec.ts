@@ -6,7 +6,7 @@ import { cleanupTestDb, disconnectTestDb } from '../utils/test-db';
 async function signupAndLogin(
   server: any,
   email: string,
-  password: string,
+  password: string
 ): Promise<{ token: string; userId: string }> {
   await request(server)
     .post('/auth/signup')
@@ -56,7 +56,7 @@ describe('Projects (e2e)', () => {
     const { token } = await signupAndLogin(
       server,
       'proj-create@example.com',
-      'testpassword123',
+      'testpassword123'
     );
 
     const res = await request(server)
@@ -76,12 +76,12 @@ describe('Projects (e2e)', () => {
     const user1 = await signupAndLogin(
       server,
       'user1-projects@example.com',
-      'testpassword123',
+      'testpassword123'
     );
     const user2 = await signupAndLogin(
       server,
       'user2-projects@example.com',
-      'testpassword123',
+      'testpassword123'
     );
 
     // Create two projects for user1
@@ -120,12 +120,12 @@ describe('Projects (e2e)', () => {
     const user1 = await signupAndLogin(
       server,
       'owner-project@example.com',
-      'testpassword123',
+      'testpassword123'
     );
     const user2 = await signupAndLogin(
       server,
       'other-project@example.com',
-      'testpassword123',
+      'testpassword123'
     );
 
     const createRes = await request(server)
@@ -147,7 +147,7 @@ describe('Projects (e2e)', () => {
     const { token } = await signupAndLogin(
       server,
       'invalid-project@example.com',
-      'testpassword123',
+      'testpassword123'
     );
 
     const res = await request(server)

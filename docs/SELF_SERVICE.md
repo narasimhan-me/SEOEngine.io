@@ -5,6 +5,7 @@ This document describes the Customer Self-Service Control Plane feature, which p
 ## Overview
 
 The Self-Service Control Plane enables customers to:
+
 - Manage their profile and preferences
 - View and manage their organization and connected stores
 - View their subscription plan and billing (via Stripe portal)
@@ -17,6 +18,7 @@ The Self-Service Control Plane enables customers to:
 ### Database Models
 
 #### CustomerAccountRole Enum
+
 ```
 OWNER   - Full access to all account settings including billing
 EDITOR  - Can edit profile, organization, preferences (no billing)
@@ -24,6 +26,7 @@ VIEWER  - Read-only access to all settings
 ```
 
 #### UserPreferences (1:1 with User)
+
 ```
 - notifyQuotaWarnings: boolean (default: true)
 - notifyRunFailures: boolean (default: true)
@@ -34,6 +37,7 @@ VIEWER  - Read-only access to all settings
 ```
 
 #### UserSession
+
 ```
 - id: string (cuid)
 - userId: string
@@ -45,6 +49,7 @@ VIEWER  - Read-only access to all settings
 ```
 
 #### User Extensions
+
 ```
 - accountRole: CustomerAccountRole (default: OWNER)
 - tokenInvalidBefore: DateTime? (for sign-out-all)
@@ -57,34 +62,35 @@ VIEWER  - Read-only access to all settings
 
 All endpoints are under `/account/*` and require JWT authentication.
 
-| Endpoint | Method | Description | Access |
-|----------|--------|-------------|--------|
-| `/account/profile` | GET | Get user profile | All |
-| `/account/profile` | PATCH | Update profile | OWNER, EDITOR |
-| `/account/preferences` | GET | Get preferences | All |
-| `/account/preferences` | PATCH | Update preferences | OWNER, EDITOR |
-| `/account/ai-usage` | GET | Get AI usage summary | All |
-| `/account/stores` | GET | List connected stores | All |
-| `/account/stores/:projectId/disconnect` | POST | Disconnect a store | OWNER only |
-| `/account/sessions` | GET | List active sessions | All |
-| `/account/sign-out-all` | POST | Sign out all sessions | All |
+| Endpoint                                | Method | Description           | Access        |
+| --------------------------------------- | ------ | --------------------- | ------------- |
+| `/account/profile`                      | GET    | Get user profile      | All           |
+| `/account/profile`                      | PATCH  | Update profile        | OWNER, EDITOR |
+| `/account/preferences`                  | GET    | Get preferences       | All           |
+| `/account/preferences`                  | PATCH  | Update preferences    | OWNER, EDITOR |
+| `/account/ai-usage`                     | GET    | Get AI usage summary  | All           |
+| `/account/stores`                       | GET    | List connected stores | All           |
+| `/account/stores/:projectId/disconnect` | POST   | Disconnect a store    | OWNER only    |
+| `/account/sessions`                     | GET    | List active sessions  | All           |
+| `/account/sign-out-all`                 | POST   | Sign out all sessions | All           |
 
 ### Frontend Pages
 
-| Path | Description | Role Restrictions |
-|------|-------------|-------------------|
-| `/settings` | Settings hub | None |
-| `/settings/profile` | Profile management | VIEWER: read-only |
-| `/settings/organization` | Organization & stores | VIEWER: read-only, OWNER: disconnect |
-| `/settings/billing` | Plan & billing | VIEWER/EDITOR: read-only |
-| `/settings/ai-usage` | AI usage visibility | None |
-| `/settings/preferences` | Notification toggles | VIEWER: read-only |
-| `/settings/security` | Sessions & sign-out-all | None |
-| `/settings/help` | Help & support | None |
+| Path                     | Description             | Role Restrictions                    |
+| ------------------------ | ----------------------- | ------------------------------------ |
+| `/settings`              | Settings hub            | None                                 |
+| `/settings/profile`      | Profile management      | VIEWER: read-only                    |
+| `/settings/organization` | Organization & stores   | VIEWER: read-only, OWNER: disconnect |
+| `/settings/billing`      | Plan & billing          | VIEWER/EDITOR: read-only             |
+| `/settings/ai-usage`     | AI usage visibility     | None                                 |
+| `/settings/preferences`  | Notification toggles    | VIEWER: read-only                    |
+| `/settings/security`     | Sessions & sign-out-all | None                                 |
+| `/settings/help`         | Help & support          | None                                 |
 
 ## Role-Based Access Control
 
 ### OWNER (Default)
+
 - Full access to all settings
 - Can manage billing (via Stripe portal)
 - Can disconnect stores
@@ -92,6 +98,7 @@ All endpoints are under `/account/*` and require JWT authentication.
 - Can modify preferences
 
 ### EDITOR
+
 - Can view all settings
 - Can update profile (name, avatar, timezone, locale)
 - Can update organization name
@@ -100,6 +107,7 @@ All endpoints are under `/account/*` and require JWT authentication.
 - Cannot disconnect stores
 
 ### VIEWER
+
 - Read-only access to all settings
 - Cannot modify any settings
 - UI displays "read-only access" notices
@@ -107,11 +115,13 @@ All endpoints are under `/account/*` and require JWT authentication.
 ## Session Management
 
 ### Session Tracking
+
 - Sessions are created on login
 - `lastSeenAt` is updated with 5-minute throttling to reduce DB writes
 - Sessions store device info and IP address for visibility
 
 ### Sign Out All Sessions
+
 - Sets `tokenInvalidBefore` to current timestamp
 - All tokens issued before this timestamp are rejected
 - Current session remains valid (user stays logged in)
@@ -120,6 +130,7 @@ All endpoints are under `/account/*` and require JWT authentication.
 ## AI Usage Visibility
 
 The AI Usage page displays:
+
 - **Period Label**: Current billing period (e.g., "December 2024")
 - **Total Runs**: Number of AI runs this period
 - **Quota Limit**: Plan-based AI quota (null = unlimited)
@@ -128,6 +139,7 @@ The AI Usage page displays:
 - **Reuse Percent**: Reuse effectiveness rate
 
 ### APPLY Invariant
+
 The UI prominently displays: "APPLY never uses AI. Applying fixes consumes zero tokens."
 
 This reinforces that only GENERATE/PREVIEW operations consume AI tokens; APPLY operations are deterministic.
@@ -135,11 +147,13 @@ This reinforces that only GENERATE/PREVIEW operations consume AI tokens; APPLY o
 ## Billing Integration
 
 ### Stripe Portal
+
 - Card details are never stored in EngineO
 - All billing changes go through Stripe Portal
 - UI displays: "Billing is handled securely via Stripe portal — we never store your card details."
 
 ### Owner-Only Restrictions
+
 - Only OWNER can create checkout sessions
 - Only OWNER can access billing portal
 - Backend enforces these restrictions at API level
@@ -148,9 +162,11 @@ This reinforces that only GENERATE/PREVIEW operations consume AI tokens; APPLY o
 ## Testing
 
 ### Integration Tests
+
 Located at: `apps/api/test/integration/self-service-1.test.ts`
 
 Tests cover:
+
 - CP-001: Sessions and sign-out-all
 - CP-002: Owner-only billing restrictions
 - Preferences persistence
@@ -158,9 +174,11 @@ Tests cover:
 - AI usage data (no AI side effects)
 
 ### Playwright E2E Tests
+
 Located at: `apps/web/tests/self-service-1.spec.ts`
 
 Tests cover:
+
 - All settings pages load correctly
 - Profile updates work
 - Organization updates work
@@ -169,17 +187,20 @@ Tests cover:
 - Settings hub navigation
 
 ### Critical Path
+
 - CP-014: Self-service account preferences persist
 
 ## Migration Notes
 
 ### Initial Migration
+
 1. Add new enums: `CustomerAccountRole`, `SessionType`
 2. Extend `User` model with new fields
 3. Create `UserPreferences`, `UserSession`, `UserAccountAuditLog` tables
 4. Backfill existing users with `accountRole: 'OWNER'`
 
 ### Backfill Script
+
 ```sql
 UPDATE "User" SET "accountRole" = 'OWNER' WHERE "accountRole" IS NULL;
 ```
@@ -231,6 +252,7 @@ await accountApi.signOutAll();
 ```
 
 ## Related Documents
+
 - [TESTING.md](./TESTING.md) - Testing strategy
 - [STRIPE_SETUP.md](./STRIPE_SETUP.md) - Stripe integration
 - [ADMIN_OPS.md](./ADMIN_OPS.md) - Admin operations

@@ -31,19 +31,20 @@
 
 Issue Engine Lite (UX-7) provides the foundation for product-focused issues with fix actions. Issue Engine Full (UX-8) extends ALL issues (including Lite issues) with additional metadata:
 
-| Field | Lite (UX-7) | Full (UX-8) |
-|-------|-------------|-------------|
-| type | ✅ | ✅ |
-| fixType | ✅ | ✅ |
-| fixReady | ✅ | ✅ |
-| primaryProductId | ✅ | ✅ |
-| category | - | ✅ |
-| whyItMatters | - | ✅ |
-| recommendedFix | - | ✅ |
-| aiFixable | - | ✅ |
-| fixCost | - | ✅ |
+| Field            | Lite (UX-7) | Full (UX-8) |
+| ---------------- | ----------- | ----------- |
+| type             | ✅          | ✅          |
+| fixType          | ✅          | ✅          |
+| fixReady         | ✅          | ✅          |
+| primaryProductId | ✅          | ✅          |
+| category         | -           | ✅          |
+| whyItMatters     | -           | ✅          |
+| recommendedFix   | -           | ✅          |
+| aiFixable        | -           | ✅          |
+| fixCost          | -           | ✅          |
 
 **Testing Note:** If testing Issue Engine Full fields, see:
+
 - `docs/manual-testing/phase-ux-8-issue-engine-full.md`
 - `docs/testing/issue-engine-full-*.md`
 
@@ -79,14 +80,17 @@ Issue Engine Lite (UX-7) provides the foundation for product-focused issues with
 **ID:** HP-001
 
 **Preconditions:**
+
 - User has a project with synced products
 - At least one crawl has been run
 
 **Steps:**
+
 1. Navigate to `/projects/[id]/issues`
 2. Observe the page layout
 
 **Expected Results:**
+
 - **UI:** Page shows "Issues Engine" header with project name
 - **Summary Cards:** Total Issues, Critical, Warning, Info counts displayed
 - **Issue List:** Issues appear with severity badges and fix actions
@@ -99,9 +103,11 @@ Issue Engine Lite (UX-7) provides the foundation for product-focused issues with
 **ID:** HP-002
 
 **Preconditions:**
+
 - Project has issues of multiple severities
 
 **Steps:**
+
 1. Navigate to Issues Engine page
 2. Click "Critical" filter button
 3. Observe filtered list
@@ -110,6 +116,7 @@ Issue Engine Lite (UX-7) provides the foundation for product-focused issues with
 6. Click "All" to reset
 
 **Expected Results:**
+
 - **Filtering:** Only issues matching selected severity shown
 - **Counts:** Filter buttons show issue counts in parentheses
 - **Active State:** Selected filter button highlighted in blue
@@ -121,19 +128,22 @@ Issue Engine Lite (UX-7) provides the foundation for product-focused issues with
 **ID:** HP-003
 
 **Preconditions:**
+
 - Issue with `fixType: 'aiFix'` and `fixReady: true` exists
 
 **Steps:**
+
 1. Find an issue with AI-fixable status (purple "Fix next" action when eligible).
 2. Observe the helper copy under the issue description:
    - "Fixes one affected product at a time for safe review."
 3. Click "Fix next".
 
 **Expected Results:**
+
 - **UI:** Button label reads "Fix next" (not "Fix now").
 - **UX Hint:** Helper copy clearly communicates that each click fixes a single product at a time.
 - **Navigation / Behavior:** Same as previous UX-7 behavior:
-   - Either routes to the product surface or runs an inline AI fix, depending on implementation.
+  - Either routes to the product surface or runs an inline AI fix, depending on implementation.
 
 ---
 
@@ -142,13 +152,16 @@ Issue Engine Lite (UX-7) provides the foundation for product-focused issues with
 **ID:** HP-004
 
 **Preconditions:**
+
 - Issue with `fixType: 'manualFix'` exists
 
 **Steps:**
+
 1. Find an issue with gray "Fix manually" button
 2. Click the button
 
 **Expected Results:**
+
 - **Navigation:** Routes to `/projects/[id]/products/[productId]?from=issues`
 - **Product Page:** Opens to the affected product for manual editing
 
@@ -159,13 +172,16 @@ Issue Engine Lite (UX-7) provides the foundation for product-focused issues with
 **ID:** HP-005
 
 **Preconditions:**
+
 - Issue with `fixType: 'syncFix'` exists (e.g., missing price from stale sync)
 
 **Steps:**
+
 1. Find an issue with green "Re-sync from Shopify" button
 2. Click the button
 
 **Expected Results:**
+
 - **Navigation:** Routes to `/projects/[id]/products?action=sync`
 - **Products Page:** Sync action triggered or user prompted to sync
 
@@ -176,14 +192,17 @@ Issue Engine Lite (UX-7) provides the foundation for product-focused issues with
 **ID:** HP-006
 
 **Preconditions:**
+
 - User on Issues Engine page
 
 **Steps:**
+
 1. Click "Re-scan Issues" button
 2. Observe loading state
 3. Wait for completion
 
 **Expected Results:**
+
 - **Loading:** Button shows spinner with "Scanning..."
 - **Completion:** Success toast shown, issues list refreshed
 - **Error:** If refresh fails, error toast shown
@@ -195,13 +214,16 @@ Issue Engine Lite (UX-7) provides the foundation for product-focused issues with
 **ID:** HP-007
 
 **Preconditions:**
+
 - Project has product issues
 
 **Steps:**
+
 1. Navigate to Products page
 2. Observe header area
 
 **Expected Results:**
+
 - **Issue Badge:** Orange badge showing issue count appears next to "Products" header
 - **Click:** Clicking badge navigates to Issues Engine page
 
@@ -212,13 +234,16 @@ Issue Engine Lite (UX-7) provides the foundation for product-focused issues with
 **ID:** HP-008
 
 **Preconditions:**
+
 - Project with products but no crawl yet
 
 **Steps:**
+
 1. Navigate to Products page
 2. Observe pre-crawl guardrail banner
 
 **Expected Results:**
+
 - **Message:** Banner mentions Issues Engine for diagnosis and AI-powered fixes
 - **Link:** "Issues Engine" is a clickable link to `/projects/[id]/issues`
 
@@ -231,9 +256,11 @@ Issue Engine Lite (UX-7) provides the foundation for product-focused issues with
 **Description:** Project has no product issues.
 
 **Steps:**
+
 1. Navigate to Issues Engine page for healthy project
 
 **Expected Behavior:**
+
 - Green checkmark icon displayed
 - "No issues detected" message shown
 - "Your project looks healthy based on the latest analysis" explanation
@@ -245,10 +272,12 @@ Issue Engine Lite (UX-7) provides the foundation for product-focused issues with
 **Description:** Filter selected shows no matching issues.
 
 **Steps:**
+
 1. Navigate to Issues Engine page
 2. Filter by severity with 0 count
 
 **Expected Behavior:**
+
 - Message: "No [severity] issues"
 - Suggestion to select a different filter
 
@@ -259,9 +288,11 @@ Issue Engine Lite (UX-7) provides the foundation for product-focused issues with
 **Description:** Issue has no viable fix action (no `primaryProductId` or default fallback).
 
 **Steps:**
+
 1. Create scenario with orphan issue
 
 **Expected Behavior:**
+
 - Issue displayed without fix button
 - Or "View affected" button linking to products list
 
@@ -274,10 +305,12 @@ Issue Engine Lite (UX-7) provides the foundation for product-focused issues with
 **Scenario:** Backend returns error when fetching issues.
 
 **Steps:**
+
 1. Simulate API failure
 2. Navigate to Issues Engine page
 
 **Expected Behavior:**
+
 - Error banner displayed with message
 - "Retry" button available
 - User can attempt to reload
@@ -289,10 +322,12 @@ Issue Engine Lite (UX-7) provides the foundation for product-focused issues with
 **Scenario:** Re-scan Issues button fails.
 
 **Steps:**
+
 1. Simulate refresh failure
 2. Click "Re-scan Issues"
 
 **Expected Behavior:**
+
 - Error toast: "Failed to refresh issues"
 - Button returns to idle state
 - User can retry
@@ -301,20 +336,20 @@ Issue Engine Lite (UX-7) provides the foundation for product-focused issues with
 
 ## Issue Types Covered
 
-| Issue ID | Type | Severity | Fix Type |
-|----------|------|----------|----------|
-| `missing_seo_title` | Metadata | Critical | aiFix |
-| `missing_seo_description` | Metadata | Critical | aiFix |
-| `weak_seo_title` | Content Quality | Warning | aiFix |
-| `weak_seo_description` | Content Quality | Warning | aiFix |
-| `missing_long_description` | Content Quality | Warning | manualFix |
-| `duplicate_product_content` | Content Quality | Warning | manualFix |
-| `low_entity_coverage` | AI Visibility | Warning | aiFix |
-| `not_answer_ready` | AI Visibility | Warning | aiFix |
-| `weak_intent_match` | AI Visibility | Info | aiFix |
-| `missing_product_image` | Structural | Critical | syncFix |
-| `missing_price` | Structural | Critical | syncFix |
-| `missing_category` | Structural | Warning | manualFix |
+| Issue ID                    | Type            | Severity | Fix Type  |
+| --------------------------- | --------------- | -------- | --------- |
+| `missing_seo_title`         | Metadata        | Critical | aiFix     |
+| `missing_seo_description`   | Metadata        | Critical | aiFix     |
+| `weak_seo_title`            | Content Quality | Warning  | aiFix     |
+| `weak_seo_description`      | Content Quality | Warning  | aiFix     |
+| `missing_long_description`  | Content Quality | Warning  | manualFix |
+| `duplicate_product_content` | Content Quality | Warning  | manualFix |
+| `low_entity_coverage`       | AI Visibility   | Warning  | aiFix     |
+| `not_answer_ready`          | AI Visibility   | Warning  | aiFix     |
+| `weak_intent_match`         | AI Visibility   | Info     | aiFix     |
+| `missing_product_image`     | Structural      | Critical | syncFix   |
+| `missing_price`             | Structural      | Critical | syncFix   |
+| `missing_category`          | Structural      | Warning  | manualFix |
 
 ---
 
@@ -395,9 +430,9 @@ Issue Engine Lite (UX-7) provides the foundation for product-focused issues with
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Issue Engine Lite (Phase UX-7) manual testing |
+| Field              | Value                                         |
+| ------------------ | --------------------------------------------- |
+| **Tester Name**    | [Pending]                                     |
+| **Date**           | [YYYY-MM-DD]                                  |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed         |
+| **Notes**          | Issue Engine Lite (Phase UX-7) manual testing |

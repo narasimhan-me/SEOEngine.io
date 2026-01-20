@@ -1,4 +1,8 @@
-import { Injectable, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
 @Injectable()
@@ -22,7 +26,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
       if (!safeMethods.includes(method)) {
         throw new ForbiddenException(
-          'Read-only impersonation mode: Only GET, HEAD, and OPTIONS requests are allowed.',
+          'Read-only impersonation mode: Only GET, HEAD, and OPTIONS requests are allowed.'
         );
       }
     }

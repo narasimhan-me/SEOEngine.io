@@ -52,7 +52,11 @@ export default function TwoFactorPage() {
       // Redirect to projects
       router.push('/projects');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Invalid or expired code. Please try again.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Invalid or expired code. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -107,7 +111,9 @@ export default function TwoFactorPage() {
               autoComplete="one-time-code"
               required
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onChange={(e) =>
+                setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+              }
               className="block w-full px-4 py-4 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-center text-3xl tracking-[0.5em] font-mono"
               placeholder="000000"
               maxLength={6}
@@ -138,8 +144,8 @@ export default function TwoFactorPage() {
 
         <div className="text-center">
           <p className="text-xs text-gray-500">
-            Open your authenticator app (Google Authenticator, 1Password, Authy, etc.)
-            and enter the 6-digit code for EngineO.ai
+            Open your authenticator app (Google Authenticator, 1Password, Authy,
+            etc.) and enter the 6-digit code for EngineO.ai
           </p>
         </div>
       </div>

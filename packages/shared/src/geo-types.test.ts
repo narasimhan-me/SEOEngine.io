@@ -66,14 +66,14 @@ describe('GEO-FOUNDATION-1: Answer readiness & citation confidence', () => {
       'prod1',
       'what_is_it',
       'poor_answer_structure',
-      '2025-01-01T00:00:00.000Z',
+      '2025-01-01T00:00:00.000Z'
     );
     const k2 = computeGeoFixWorkKey(
       'p1',
       'prod1',
       'what_is_it',
       'poor_answer_structure',
-      '2025-01-01T00:00:00.000Z',
+      '2025-01-01T00:00:00.000Z'
     );
     expect(k1).toBe(k2);
   });

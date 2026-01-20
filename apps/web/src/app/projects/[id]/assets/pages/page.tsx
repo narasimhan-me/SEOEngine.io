@@ -1,6 +1,11 @@
 'use client';
 
-import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
+import {
+  useParams,
+  useSearchParams,
+  useRouter,
+  usePathname,
+} from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { projectsApi, shopifyApi, type RoleCapabilities } from '@/lib/api';
@@ -17,10 +22,16 @@ import {
   type NavigationContext,
 } from '@/lib/list-actions-clarity';
 import type { WorkQueueRecommendedActionKey } from '@/lib/work-queue';
-import { getReturnToFromCurrentUrl, getSafeReturnTo } from '@/lib/route-context';
+import {
+  getReturnToFromCurrentUrl,
+  getSafeReturnTo,
+} from '@/lib/route-context';
 import { getToken } from '@/lib/auth';
 // [SCOPE-CLARITY-1] Import scope normalization utilities
-import { normalizeScopeParams, buildClearFiltersHref } from '@/lib/scope-normalization';
+import {
+  normalizeScopeParams,
+  buildClearFiltersHref,
+} from '@/lib/scope-normalization';
 
 /**
  * [ASSETS-PAGES-1] [LIST-SEARCH-FILTER-1.1] [LIST-ACTIONS-CLARITY-1] Pages Asset List
@@ -66,7 +77,9 @@ export default function PagesAssetListPage() {
   const [pages, setPages] = useState<PageAsset[]>([]);
 
   // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Role capabilities state
-  const [capabilities, setCapabilities] = useState<RoleCapabilities | null>(null);
+  const [capabilities, setCapabilities] = useState<RoleCapabilities | null>(
+    null
+  );
 
   // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Sync status state
   const [syncStatus, setSyncStatus] = useState<{
@@ -85,11 +98,16 @@ export default function PagesAssetListPage() {
   const autoSyncAfterReconnectRef = useRef(false);
 
   // Get filter from URL (from Work Queue click-through)
-  const actionKeyFilter = searchParams.get('actionKey') as WorkQueueRecommendedActionKey | null;
+  const actionKeyFilter = searchParams.get(
+    'actionKey'
+  ) as WorkQueueRecommendedActionKey | null;
 
   // [LIST-SEARCH-FILTER-1.1] Extract filter params from URL
   const filterQ = searchParams.get('q') || undefined;
-  const filterStatus = searchParams.get('status') as 'optimized' | 'needs_attention' | undefined;
+  const filterStatus = searchParams.get('status') as
+    | 'optimized'
+    | 'needs_attention'
+    | undefined;
   const filterHasDraft = searchParams.get('hasDraft') === 'true' || undefined;
 
   // Check if any filters are active (for empty state)
@@ -138,53 +156,74 @@ export default function PagesAssetListPage() {
       // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Use server-derived actionableNowCount and blockedByApproval
       // Health/action derivation kept for legacy display only; chip uses canonical issue counts
       const pageAssets: PageAsset[] = crawlPages
-        .filter((p: { pageType: string }) => p.pageType === 'static' || p.pageType === 'misc' || p.pageType === 'blog')
-        .map((p: { id: string; url: string; path: string; title: string | null; metaDescription: string | null; pageType: 'home' | 'collection' | 'blog' | 'static' | 'misc'; statusCode: number | null; wordCount: number | null; scannedAt: string; hasDraftPendingApply?: boolean; actionableNowCount?: number; blockedByApproval?: boolean }) => {
-          // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Health/action derivation for legacy display only
-          // RowStatusChip and resolveRowNextAction use server-derived actionableNowCount
-          let health: 'Healthy' | 'Needs Attention' | 'Critical' = 'Healthy';
-          let recommendedActionKey: WorkQueueRecommendedActionKey | null = null;
-          let recommendedActionLabel: string | null = null;
+        .filter(
+          (p: { pageType: string }) =>
+            p.pageType === 'static' ||
+            p.pageType === 'misc' ||
+            p.pageType === 'blog'
+        )
+        .map(
+          (p: {
+            id: string;
+            url: string;
+            path: string;
+            title: string | null;
+            metaDescription: string | null;
+            pageType: 'home' | 'collection' | 'blog' | 'static' | 'misc';
+            statusCode: number | null;
+            wordCount: number | null;
+            scannedAt: string;
+            hasDraftPendingApply?: boolean;
+            actionableNowCount?: number;
+            blockedByApproval?: boolean;
+          }) => {
+            // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Health/action derivation for legacy display only
+            // RowStatusChip and resolveRowNextAction use server-derived actionableNowCount
+            let health: 'Healthy' | 'Needs Attention' | 'Critical' = 'Healthy';
+            let recommendedActionKey: WorkQueueRecommendedActionKey | null =
+              null;
+            let recommendedActionLabel: string | null = null;
 
-          // Missing metadata = Critical (legacy health display only)
-          if (!p.title || !p.metaDescription) {
-            health = 'Critical';
-            recommendedActionKey = 'FIX_MISSING_METADATA';
-            recommendedActionLabel = 'Fix missing metadata';
-          }
-          // Technical issues (4xx/5xx status) = Critical (legacy health display only)
-          else if (p.statusCode && p.statusCode >= 400) {
-            health = 'Critical';
-            recommendedActionKey = 'RESOLVE_TECHNICAL_ISSUES';
-            recommendedActionLabel = 'Resolve technical issues';
-          }
-          // Thin content = Needs Attention (legacy health display only)
-          else if (p.wordCount !== null && p.wordCount < 300) {
-            health = 'Needs Attention';
-            recommendedActionKey = 'OPTIMIZE_CONTENT';
-            recommendedActionLabel = 'Optimize content';
-          }
+            // Missing metadata = Critical (legacy health display only)
+            if (!p.title || !p.metaDescription) {
+              health = 'Critical';
+              recommendedActionKey = 'FIX_MISSING_METADATA';
+              recommendedActionLabel = 'Fix missing metadata';
+            }
+            // Technical issues (4xx/5xx status) = Critical (legacy health display only)
+            else if (p.statusCode && p.statusCode >= 400) {
+              health = 'Critical';
+              recommendedActionKey = 'RESOLVE_TECHNICAL_ISSUES';
+              recommendedActionLabel = 'Resolve technical issues';
+            }
+            // Thin content = Needs Attention (legacy health display only)
+            else if (p.wordCount !== null && p.wordCount < 300) {
+              health = 'Needs Attention';
+              recommendedActionKey = 'OPTIMIZE_CONTENT';
+              recommendedActionLabel = 'Optimize content';
+            }
 
-          return {
-            id: p.id,
-            url: p.url,
-            path: p.path,
-            title: p.title,
-            metaDescription: p.metaDescription,
-            pageType: p.pageType,
-            statusCode: p.statusCode,
-            wordCount: p.wordCount,
-            scannedAt: p.scannedAt,
-            health,
-            recommendedActionKey,
-            recommendedActionLabel,
-            // [LIST-ACTIONS-CLARITY-1] Include server-derived draft flag
-            hasDraftPendingApply: p.hasDraftPendingApply ?? false,
-            // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Use server-derived canonical issue counts and blocked state
-            actionableNowCount: p.actionableNowCount ?? 0,
-            blockedByApproval: p.blockedByApproval ?? false,
-          };
-        });
+            return {
+              id: p.id,
+              url: p.url,
+              path: p.path,
+              title: p.title,
+              metaDescription: p.metaDescription,
+              pageType: p.pageType,
+              statusCode: p.statusCode,
+              wordCount: p.wordCount,
+              scannedAt: p.scannedAt,
+              health,
+              recommendedActionKey,
+              recommendedActionLabel,
+              // [LIST-ACTIONS-CLARITY-1] Include server-derived draft flag
+              hasDraftPendingApply: p.hasDraftPendingApply ?? false,
+              // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Use server-derived canonical issue counts and blocked state
+              actionableNowCount: p.actionableNowCount ?? 0,
+              blockedByApproval: p.blockedByApproval ?? false,
+            };
+          }
+        );
 
       // Apply actionKey filter if present (from Work Queue click-through)
       const filtered = actionKeyFilter
@@ -193,7 +232,8 @@ export default function PagesAssetListPage() {
 
       setPages(filtered);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load pages';
+      const message =
+        err instanceof Error ? err.message : 'Failed to load pages';
       setError(message);
     } finally {
       setLoading(false);
@@ -229,7 +269,10 @@ export default function PagesAssetListPage() {
 
       if (shopifyConnected) {
         const status = await shopifyApi.getSyncStatus(projectId);
-        const scope = await shopifyApi.getMissingScopes(projectId, 'pages_sync');
+        const scope = await shopifyApi.getMissingScopes(
+          projectId,
+          'pages_sync'
+        );
         setSyncStatus({
           lastPagesSyncAt: status.lastPagesSyncAt,
           shopifyConnected: true,
@@ -282,7 +325,7 @@ export default function PagesAssetListPage() {
     if (!projectId) {
       console.log('[Reconnect] No projectId');
       setReconnectError(
-        "We couldn't start Shopify reconnection because your project ID is missing. Please refresh and try again.",
+        "We couldn't start Shopify reconnection because your project ID is missing. Please refresh and try again."
       );
       setReconnecting(false);
       return;
@@ -291,19 +334,28 @@ export default function PagesAssetListPage() {
     if (!token) {
       console.log('[Reconnect] No token');
       setReconnectError(
-        "We couldn't start Shopify reconnection because your session token is missing. Please sign in again, then retry.",
+        "We couldn't start Shopify reconnection because your session token is missing. Please sign in again, then retry."
       );
       setReconnecting(false);
       return;
     }
     try {
       console.log('[Reconnect] Calling getReconnectUrl...');
-      const result = await shopifyApi.getReconnectUrl(projectId, 'pages_sync', currentPathWithQuery);
+      const result = await shopifyApi.getReconnectUrl(
+        projectId,
+        'pages_sync',
+        currentPathWithQuery
+      );
       console.log('[Reconnect] getReconnectUrl result:', result);
-      const url = result && typeof (result as any).url === 'string' ? (result as any).url : null;
+      const url =
+        result && typeof (result as any).url === 'string'
+          ? (result as any).url
+          : null;
       if (!url) {
         console.log('[Reconnect] No URL in result');
-        setReconnectError("We couldn't start Shopify reconnection. Please refresh and try again.");
+        setReconnectError(
+          "We couldn't start Shopify reconnection. Please refresh and try again."
+        );
         setReconnecting(false);
         return;
       }
@@ -379,8 +431,18 @@ export default function PagesAssetListPage() {
 
     for (const page of pages) {
       // [DRAFT-LIST-PARITY-1] Build separate hrefs for asset detail and Issues Engine
-      const openHref = buildAssetWorkspaceHref(projectId, 'pages', page.id, navContext);
-      const issuesHref = buildAssetIssuesHref(projectId, 'pages', page.id, navContext);
+      const openHref = buildAssetWorkspaceHref(
+        projectId,
+        'pages',
+        page.id,
+        navContext
+      );
+      const issuesHref = buildAssetIssuesHref(
+        projectId,
+        'pages',
+        page.id,
+        navContext
+      );
 
       // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Pass server-derived blockedByApproval
       // [DRAFT-LIST-PARITY-1] Pass issuesHref for "View issues" + "Open" dual actions
@@ -394,7 +456,12 @@ export default function PagesAssetListPage() {
         fixNextHref: null, // Pages don't have deterministic "Fix next"
         openHref,
         issuesHref,
-        reviewDraftsHref: buildAssetDraftsTabHref(projectId, 'pages', page.id, navContext),
+        reviewDraftsHref: buildAssetDraftsTabHref(
+          projectId,
+          'pages',
+          page.id,
+          navContext
+        ),
       });
 
       map.set(page.id, resolved);
@@ -417,7 +484,9 @@ export default function PagesAssetListPage() {
   };
 
   const criticalCount = pages.filter((p) => p.health === 'Critical').length;
-  const needsAttentionCount = pages.filter((p) => p.health === 'Needs Attention').length;
+  const needsAttentionCount = pages.filter(
+    (p) => p.health === 'Needs Attention'
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -427,7 +496,8 @@ export default function PagesAssetListPage() {
           {/* [SHOPIFY-ASSET-SYNC-COVERAGE-1] Label under heading */}
           <p className="text-xs text-gray-400 mt-0.5">Shopify Pages</p>
           <p className="mt-1 text-sm text-gray-500">
-            {pages.length} pages • {criticalCount} critical • {needsAttentionCount} need attention
+            {pages.length} pages • {criticalCount} critical •{' '}
+            {needsAttentionCount} need attention
           </p>
         </div>
         {/* [SHOPIFY-ASSET-SYNC-COVERAGE-1] Sync button (OWNER-only) */}
@@ -435,14 +505,32 @@ export default function PagesAssetListPage() {
         {capabilities?.canModifySettings && (
           <button
             onClick={handleSyncPages}
-            disabled={syncing || !syncStatus.shopifyConnected || hasMissingScopes}
+            disabled={
+              syncing || !syncStatus.shopifyConnected || hasMissingScopes
+            }
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {syncing ? (
               <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
                 Syncing...
               </>
@@ -482,7 +570,10 @@ export default function PagesAssetListPage() {
       {syncStatus.shopifyConnected && (
         <div className="text-sm text-gray-500">
           {syncStatus.lastPagesSyncAt ? (
-            <>Last synced: {new Date(syncStatus.lastPagesSyncAt).toLocaleString()}</>
+            <>
+              Last synced:{' '}
+              {new Date(syncStatus.lastPagesSyncAt).toLocaleString()}
+            </>
           ) : (
             <>Not yet synced. Click Sync to import from Shopify.</>
           )}
@@ -502,7 +593,9 @@ export default function PagesAssetListPage() {
         from={fromParam}
         returnTo={validatedReturnTo || `/projects/${projectId}/assets/pages`}
         showingText={showingText}
-        onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/assets/pages`)}
+        onClearFiltersHref={buildClearFiltersHref(
+          `/projects/${projectId}/assets/pages`
+        )}
         chips={normalizedScopeResult.chips}
         wasAdjusted={normalizedScopeResult.wasAdjusted}
       />
@@ -510,7 +603,9 @@ export default function PagesAssetListPage() {
       {/* Filter indicator (from Work Queue click-through) */}
       {actionKeyFilter && (
         <div className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm text-blue-700">
-          <span>Filtered by: {actionKeyFilter.replace(/_/g, ' ').toLowerCase()}</span>
+          <span>
+            Filtered by: {actionKeyFilter.replace(/_/g, ' ').toLowerCase()}
+          </span>
           <button
             onClick={() => router.push(`/projects/${projectId}/assets/pages`)}
             className="font-medium underline"
@@ -557,10 +652,22 @@ export default function PagesAssetListPage() {
             hasActiveFilters ? (
               // [LIST-SEARCH-FILTER-1.1] Filtered empty state
               <div className="text-center py-12">
-                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
                 </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No pages match your filters.</h3>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                  No pages match your filters.
+                </h3>
                 <p className="mt-1 text-sm text-gray-500">
                   Try adjusting your search or filter criteria.
                 </p>
@@ -579,9 +686,12 @@ export default function PagesAssetListPage() {
                 {syncStatus.shopifyConnected && !syncStatus.lastPagesSyncAt ? (
                   <>
                     <p>Not yet synced.</p>
-                    <p className="mt-2">Click &quot;Sync Pages&quot; to import pages from Shopify.</p>
+                    <p className="mt-2">
+                      Click &quot;Sync Pages&quot; to import pages from Shopify.
+                    </p>
                   </>
-                ) : syncStatus.shopifyConnected && syncStatus.lastPagesSyncAt ? (
+                ) : syncStatus.shopifyConnected &&
+                  syncStatus.lastPagesSyncAt ? (
                   <p>No pages found in Shopify for this store.</p>
                 ) : (
                   <p>No pages found</p>
@@ -630,7 +740,9 @@ export default function PagesAssetListPage() {
                         </code>
                       </td>
                       <td className="max-w-xs truncate px-4 py-3 text-sm text-gray-900">
-                        {page.title || <span className="italic text-gray-400">No title</span>}
+                        {page.title || (
+                          <span className="italic text-gray-400">No title</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         {/* [LIST-ACTIONS-CLARITY-1] Use resolved actions */}
@@ -643,7 +755,12 @@ export default function PagesAssetListPage() {
                             {resolved.primaryAction.label}
                           </Link>
                         ) : resolved?.helpText ? (
-                          <span className="text-gray-500" data-testid="row-help-text">{resolved.helpText}</span>
+                          <span
+                            className="text-gray-500"
+                            data-testid="row-help-text"
+                          >
+                            {resolved.helpText}
+                          </span>
                         ) : (
                           <span className="text-gray-400">—</span>
                         )}

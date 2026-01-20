@@ -1,8 +1,21 @@
-import { Controller, Get, Post, Put, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
-import { AdminRolesGuard, RequireAdminCapability } from '../auth/admin-roles.guard';
+import {
+  AdminRolesGuard,
+  RequireAdminCapability,
+} from '../auth/admin-roles.guard';
 
 /**
  * [ADMIN-OPS-1] Admin Controller
@@ -45,13 +58,10 @@ export class AdminController {
    */
   @Get('users')
   @RequireAdminCapability('read')
-  async getUsers(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
+  async getUsers(@Query('page') page?: string, @Query('limit') limit?: string) {
     return this.adminService.getUsers(
       page ? parseInt(page, 10) : 1,
-      limit ? parseInt(limit, 10) : 20,
+      limit ? parseInt(limit, 10) : 20
     );
   }
 
@@ -73,7 +83,7 @@ export class AdminController {
   async impersonateUser(
     @Param('id') id: string,
     @Body() body: { reason?: string },
-    @Req() req: any,
+    @Req() req: any
   ) {
     return this.adminService.impersonateUser(id, req.user, body.reason);
   }
@@ -87,7 +97,7 @@ export class AdminController {
   async updateUserSubscription(
     @Param('id') id: string,
     @Body() body: { planId: string },
-    @Req() req: any,
+    @Req() req: any
   ) {
     return this.adminService.updateUserSubscription(id, body.planId, req.user);
   }
@@ -101,7 +111,7 @@ export class AdminController {
   async resetUserQuota(
     @Param('id') id: string,
     @Body() body: { reason?: string },
-    @Req() req: any,
+    @Req() req: any
   ) {
     return this.adminService.resetUserQuota(id, req.user, body.reason);
   }
@@ -114,8 +124,11 @@ export class AdminController {
   @RequireAdminCapability('ops_action')
   async updateAdminRole(
     @Param('id') id: string,
-    @Body() body: { adminRole: 'SUPPORT_AGENT' | 'OPS_ADMIN' | 'MANAGEMENT_CEO' | null },
-    @Req() req: any,
+    @Body()
+    body: {
+      adminRole: 'SUPPORT_AGENT' | 'OPS_ADMIN' | 'MANAGEMENT_CEO' | null;
+    },
+    @Req() req: any
   ) {
     return this.adminService.updateAdminRole(id, body.adminRole, req.user);
   }
@@ -128,7 +141,7 @@ export class AdminController {
   async updateUserRole(
     @Param('id') id: string,
     @Body() body: { role: 'USER' | 'ADMIN' },
-    @Req() req: any,
+    @Req() req: any
   ) {
     return this.adminService.updateUserRole(id, body.role, req.user);
   }
@@ -144,11 +157,11 @@ export class AdminController {
   @RequireAdminCapability('read')
   async getProjects(
     @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query('limit') limit?: string
   ) {
     return this.adminService.getProjects(
       page ? parseInt(page, 10) : 1,
-      limit ? parseInt(limit, 10) : 20,
+      limit ? parseInt(limit, 10) : 20
     );
   }
 
@@ -158,10 +171,7 @@ export class AdminController {
    */
   @Post('projects/:id/resync')
   @RequireAdminCapability('support_action')
-  async resyncProject(
-    @Param('id') id: string,
-    @Req() req: any,
-  ) {
+  async resyncProject(@Param('id') id: string, @Req() req: any) {
     return this.adminService.resyncProject(id, req.user);
   }
 
@@ -181,7 +191,7 @@ export class AdminController {
     @Query('aiUsed') aiUsed?: string,
     @Query('reused') reused?: string,
     @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query('limit') limit?: string
   ) {
     return this.adminService.getRuns({
       projectId,
@@ -209,10 +219,7 @@ export class AdminController {
    */
   @Post('runs/:id/retry')
   @RequireAdminCapability('support_action')
-  async retryRun(
-    @Param('id') id: string,
-    @Req() req: any,
-  ) {
+  async retryRun(@Param('id') id: string, @Req() req: any) {
     return this.adminService.retryRun(id, req.user);
   }
 
@@ -272,7 +279,7 @@ export class AdminController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query('limit') limit?: string
   ) {
     return this.adminService.getAuditLog({
       actorId,
@@ -303,7 +310,7 @@ export class AdminController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query('limit') limit?: string
   ) {
     return this.adminService.getGovernanceAuditEvents({
       projectId,

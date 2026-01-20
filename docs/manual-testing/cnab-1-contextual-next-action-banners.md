@@ -41,16 +41,19 @@ Path: /projects/{projectId}/automation/playbooks
 Goal: When issues exist but no playbook has run yet, show a banner that clearly points to the next action.
 
 Setup:
+
 - Ensure at least one of:
   - Some products missing SEO descriptions.
   - Some products missing SEO titles.
 - Do not run any playbook apply in this session.
 
 Steps:
+
 1. Navigate to /projects/{id}/automation/playbooks.
 2. Confirm products and issues have loaded (Playbooks cards show non-zero "Affected products").
 
 Expected:
+
 - CNAB banner is visible above the Playbooks tabs with:
   - Headline: "Next step: Fix missing SEO metadata".
   - Body mentions safely generating missing SEO descriptions with a preview-first flow.
@@ -68,15 +71,18 @@ Expected:
 Goal: After successfully fixing descriptions, guide the user to titles.
 
 Setup:
+
 - Project with:
   - Some products missing SEO titles.
   - Some products missing SEO descriptions.
 
 Steps:
+
 1. On the Playbooks page, run the missing_seo_description playbook through preview → estimate → apply so that it updates at least one product.
 2. Wait for the apply step to complete and the page to refresh its state.
 
 Expected:
+
 - CNAB banner appears with:
   - Headline: "SEO descriptions updated — next, fix titles".
   - Primary CTA: "Preview missing SEO titles".
@@ -93,15 +99,18 @@ Expected:
 Goal: Mirror of 1.2 when titles are done but descriptions remain.
 
 Setup:
+
 - Project with:
   - Some products missing SEO descriptions.
   - Some products missing SEO titles.
 
 Steps:
+
 1. Run the missing_seo_title playbook through apply with at least one product updated.
 2. Return to the Playbooks page after completion.
 
 Expected:
+
 - CNAB banner appears with:
   - Headline: "SEO titles updated — next, fix descriptions".
   - Primary CTA: "Preview missing SEO descriptions".
@@ -114,14 +123,17 @@ Expected:
 Goal: When both playbooks report 0 affected products, guide users to safe "what now?" actions.
 
 Setup:
+
 - Ensure both playbooks show 0 affected products (either:
   - Run both playbooks successfully, or
   - Manually fix SEO so no products qualify).
 
 Steps:
+
 1. Navigate to Playbooks.
 
 Expected:
+
 - CNAB banner appears with:
   - Headline: "SEO metadata is up to date".
   - Primary CTA: "Sync changes to Shopify".
@@ -134,9 +146,11 @@ Expected:
 ### 1.5 Dismissal & state transitions
 
 Steps:
+
 1. For any CNAB state, click the X (close) button.
 
 Expected:
+
 - Banner disappears and remains hidden for the current session view.
 - If underlying state changes (e.g., more issues appear) and you reload:
   - Banner re-evaluates based on current state.
@@ -148,6 +162,7 @@ Expected:
 Path: /projects/{projectId}/overview
 
 Setup:
+
 - Project has:
   - Connected source.
   - At least one crawl.
@@ -155,9 +170,11 @@ Setup:
   - Products missing SEO metadata (titles or descriptions).
 
 Steps:
+
 1. Navigate to Project Overview.
 
 Expected:
+
 - CNAB banner (NextDeoWinCard) near the top with:
   - Headline: "Next DEO win: Fix missing SEO metadata".
   - Primary CTA: "Open Automation Playbooks".
@@ -165,6 +182,7 @@ Expected:
   - Navigates to /projects/{id}/automation/playbooks?source=next_deo_win.
 
 Completion behavior:
+
 - Once all products have SEO metadata:
   - CNAB banner no longer appears (or shows 0 affected products).
 
@@ -175,19 +193,23 @@ Completion behavior:
 Path: /projects/{projectId}/products
 
 Setup:
+
 - Project with at least one product-related DEO issue (issues that reference product IDs).
 - At least one crawl has been run.
 
 Steps:
+
 1. Navigate to the Products page.
 
 Expected:
+
 - CNAB banner above the header with:
   - Headline: "Some products need optimization".
   - Body: Shows issue count and links to Automation Playbooks.
   - Link to Automation Playbooks in the body text.
 
 No-conflict behavior:
+
 - If there are no product issues:
   - CNAB banner does not appear.
 - If no crawl has been run:
@@ -200,20 +222,24 @@ No-conflict behavior:
 Path: /projects/{projectId}/products/{productId}
 
 Setup:
+
 - Select a product that:
   - Has DEO issues, and/or
   - Has status 'missing-metadata' or 'needs-optimization'.
 
 Steps:
+
 1. Navigate to the product optimization page.
 
 Expected:
+
 - CNAB banner appears near the top of the page with:
   - Headline: "Optimization suggestions available".
   - Body: Explains issue count (if any) or mentions missing/incomplete SEO metadata.
   - Guidance to use AI suggestions below.
 
 Completion behavior:
+
 - After applying SEO changes and the product status changes to 'optimized', refreshing the page may hide the banner when no suggestions/issues remain.
 
 ---
@@ -234,5 +260,5 @@ For all CNABs:
 ## Sign-off
 
 | Tester | Date | Result |
-|--------|------|--------|
-| | | |
+| ------ | ---- | ------ |
+|        |      |        |

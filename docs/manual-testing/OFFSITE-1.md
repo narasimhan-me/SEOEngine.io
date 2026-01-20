@@ -15,10 +15,12 @@ This document provides a manual testing script for the Off-site Signals pillar i
 ### 1. Off-site Pillar Visibility
 
 **Steps:**
+
 1. Navigate to DEO Overview (`/projects/[id]/deo`)
 2. Locate the "Off-site Signals" pillar card
 
 **Expected:**
+
 - Pillar card is visible (not "Coming Soon")
 - Shows presence score (0-100)
 - Shows status (Low/Medium/Strong)
@@ -29,10 +31,12 @@ This document provides a manual testing script for the Off-site Signals pillar i
 ### 2. Off-site Workspace Display
 
 **Steps:**
+
 1. Navigate to Off-site Signals workspace (`/projects/[id]/backlinks`)
 2. Review the page layout
 
 **Expected:**
+
 - Page header shows "Off-site Signals"
 - Ethical boundaries notice is displayed
 - OffsiteSignalsPanel shows:
@@ -45,10 +49,12 @@ This document provides a manual testing script for the Off-site Signals pillar i
 ### 3. Gap Detection (No Signals)
 
 **Steps:**
+
 1. Use a project with no configured off-site signals
 2. Navigate to Off-site Signals workspace
 
 **Expected:**
+
 - Presence score is low (close to 0)
 - Status shows "Low"
 - Gaps include:
@@ -65,11 +71,13 @@ This document provides a manual testing script for the Off-site Signals pillar i
 ### 4. Preview Fix Flow
 
 **Steps:**
+
 1. Click "Preview Fix" on any gap
 2. Select a draft type (e.g., "Outreach Email")
 3. Wait for draft generation
 
 **Expected:**
+
 - Loading indicator shows while generating
 - Draft preview modal opens
 - Modal shows:
@@ -83,11 +91,13 @@ This document provides a manual testing script for the Off-site Signals pillar i
 ### 5. Draft Reuse (CACHE/REUSE v2)
 
 **Steps:**
+
 1. Preview a fix for a specific gap
 2. Close the modal
 3. Preview the same fix again
 
 **Expected:**
+
 - Second request returns quickly
 - Draft is marked as reused (generatedWithAi = false)
 - Content is identical to first request
@@ -96,10 +106,12 @@ This document provides a manual testing script for the Off-site Signals pillar i
 ### 6. Apply Fix Flow
 
 **Steps:**
+
 1. Preview a fix
 2. Click "Save to Notes" or "Add to Outreach Queue"
 
 **Expected:**
+
 - Apply action completes without error
 - Modal closes
 - Coverage is refreshed
@@ -109,10 +121,12 @@ This document provides a manual testing script for the Off-site Signals pillar i
 ### 7. DEO Issues Integration
 
 **Steps:**
+
 1. Navigate to Issues page (`/projects/[id]/issues`)
 2. Filter by "Off-site Signals" pillar
 
 **Expected:**
+
 - Off-site issues are displayed
 - Each issue shows:
   - Title (e.g., "Missing Trust Proof")
@@ -125,10 +139,12 @@ This document provides a manual testing script for the Off-site Signals pillar i
 ### 8. Off-site Scorecard in DEO Overview
 
 **Steps:**
+
 1. Navigate to DEO Overview
 2. Observe the Off-site Signals pillar card
 
 **Expected:**
+
 - Card shows specific off-site data:
   - Presence score (e.g., "0/100 presence")
   - Signal and gap counts
@@ -138,6 +154,7 @@ This document provides a manual testing script for the Off-site Signals pillar i
 ### 9. Ethical Content Verification
 
 **Steps:**
+
 1. Generate multiple draft types:
    - Outreach Email
    - PR Pitch
@@ -145,6 +162,7 @@ This document provides a manual testing script for the Off-site Signals pillar i
    - Review Request Copy
 
 **Expected:**
+
 - All generated content is:
   - Professional and respectful
   - Free of spam language
@@ -158,10 +176,12 @@ This document provides a manual testing script for the Off-site Signals pillar i
 ### 10. Error Handling
 
 **Steps:**
+
 1. Simulate network error (disconnect)
 2. Attempt to load off-site data
 
 **Expected:**
+
 - Error message is displayed
 - "Try again" option is available
 - No crash or blank screen
@@ -183,6 +203,7 @@ The following functionality is covered by automated tests and does not require m
 ### Unit Tests (47 tests)
 
 **Shared Types (`tests/unit/offsite-signals/offsite-signals-types.test.ts`):**
+
 - Score classification (Low/Medium/Strong thresholds)
 - Severity calculation based on signal/gap types
 - Work key generation for CACHE/REUSE v2
@@ -190,6 +211,7 @@ The following functionality is covered by automated tests and does not require m
 - Type constants validation
 
 **Service Logic (`tests/unit/offsite-signals/offsite-signals.service.test.ts`):**
+
 - Coverage computation with weighted scoring
 - Diminishing returns for multiple signals
 - Gap generation from coverage data
@@ -198,6 +220,7 @@ The following functionality is covered by automated tests and does not require m
 - Coverage caching
 
 ### Integration Tests (`tests/integration/offsite-signals/offsite-signals.integration.test.ts`)
+
 - Signal creation and retrieval
 - Coverage persistence
 - Gap analysis with real data
@@ -216,6 +239,7 @@ ENGINEO_E2E=1 pnpm test:api -- --testPathPattern="offsite-signals"
 ## Future v1.1+ Considerations
 
 Document expected behavior when:
+
 - External data sources are added
 - Product-level signals are implemented
 - Automated detection is improved

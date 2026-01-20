@@ -30,7 +30,7 @@ class SetShopifyScopeBody {
 export class E2eTestkitController {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService,
+    private readonly jwtService: JwtService
   ) {}
 
   private ensureE2eMode(): void {
@@ -225,7 +225,7 @@ export class E2eTestkitController {
       {
         projectId: project.id,
         scope: body.scope,
-      },
+      }
     );
 
     return {
@@ -299,7 +299,7 @@ export class E2eTestkitController {
       plan?: string;
       accountRole?: 'OWNER' | 'EDITOR' | 'VIEWER';
       includeRuns?: boolean;
-    } = {},
+    } = {}
   ) {
     this.ensureE2eMode();
 
@@ -322,7 +322,7 @@ export class E2eTestkitController {
       this.prisma as any,
       {
         projectId: project.id,
-      },
+      }
     );
 
     // Optionally seed some AI usage runs (including reused)
@@ -479,7 +479,7 @@ export class E2eTestkitController {
       this.prisma as any,
       {
         projectId: project.id,
-      },
+      }
     );
 
     // Create products with mixed SEO state
@@ -691,8 +691,13 @@ export class E2eTestkitController {
     this.ensureE2eMode();
 
     const { user } = await createTestUser(this.prisma as any, { plan: 'pro' });
-    const project = await createTestProject(this.prisma as any, { userId: user.id });
-    const integration = await createTestShopifyStoreConnection(this.prisma as any, { projectId: project.id });
+    const project = await createTestProject(this.prisma as any, {
+      userId: user.id,
+    });
+    const integration = await createTestShopifyStoreConnection(
+      this.prisma as any,
+      { projectId: project.id }
+    );
     const products = await createTestProducts(this.prisma as any, {
       projectId: project.id,
       count: 3,
@@ -757,7 +762,8 @@ export class E2eTestkitController {
           productId: products[1].id,
           questionId: 'what_is_it',
           questionText: 'What is this?',
-          answerText: 'A concise, factual description with a clear first sentence and a concrete detail (e.g., 2-step setup).',
+          answerText:
+            'A concise, factual description with a clear first sentence and a concrete detail (e.g., 2-step setup).',
           confidenceScore: 0.8,
           sourceType: 'generated',
           sourceFieldsUsed: ['e.g.'],
@@ -785,7 +791,12 @@ export class E2eTestkitController {
 
     // Apply the improved answer to the Answer Block so current GEO reflects post-fix state
     await this.prisma.answerBlock.update({
-      where: { productId_questionId: { productId: p1.id, questionId: 'why_choose_this' } },
+      where: {
+        productId_questionId: {
+          productId: p1.id,
+          questionId: 'why_choose_this',
+        },
+      },
       data: {
         answerText: (draft.draftPayload as any).improvedAnswer,
         sourceType: 'geo_fix_ai',
@@ -870,7 +881,8 @@ export class E2eTestkitController {
         // SEO title: 30-60 chars (optimized)
         seoTitle: 'Alpine Mountain Boots - Premium Hiking Footwear',
         // SEO description: 70-155 chars (optimized)
-        seoDescription: 'Durable mountain boots designed for serious hikers. Waterproof construction with superior ankle support.',
+        seoDescription:
+          'Durable mountain boots designed for serious hikers. Waterproof construction with superior ankle support.',
       },
     });
 
@@ -894,7 +906,8 @@ export class E2eTestkitController {
         title: 'Summit Backpack',
         handle: 'summit-backpack',
         seoTitle: 'Summit Pack', // Too short (< 30 chars) = needs_attention
-        seoDescription: 'A reliable backpack for day hikes and overnight adventures with ergonomic straps and multiple compartments.',
+        seoDescription:
+          'A reliable backpack for day hikes and overnight adventures with ergonomic straps and multiple compartments.',
       },
     });
 
@@ -989,7 +1002,8 @@ export class E2eTestkitController {
         // SEO title: 30-60 chars (optimized)
         title: 'About Our Company - Learn About Our Story',
         // SEO description: 70-155 chars (optimized)
-        metaDescription: 'Discover our company history, mission, and the team behind our success. Founded with a passion for quality.',
+        metaDescription:
+          'Discover our company history, mission, and the team behind our success. Founded with a passion for quality.',
         h1: 'About Us',
         wordCount: 500,
         loadTimeMs: 250,
@@ -1021,7 +1035,8 @@ export class E2eTestkitController {
         url: `${baseUrl}/pages/faq`,
         statusCode: 200,
         title: 'FAQ', // Too short (< 30 chars) = needs_attention
-        metaDescription: 'Find answers to commonly asked questions about our products, shipping, returns, and customer support.',
+        metaDescription:
+          'Find answers to commonly asked questions about our products, shipping, returns, and customer support.',
         h1: 'Frequently Asked Questions',
         wordCount: 800,
         loadTimeMs: 200,
@@ -1040,7 +1055,8 @@ export class E2eTestkitController {
         // SEO title: 30-60 chars (optimized)
         title: 'Summer Sale Collection - Save Up to 50%',
         // SEO description: 70-155 chars (optimized)
-        metaDescription: 'Shop our summer sale collection with discounts up to 50% off. Limited time offers on seasonal favorites.',
+        metaDescription:
+          'Shop our summer sale collection with discounts up to 50% off. Limited time offers on seasonal favorites.',
         h1: 'Summer Sale',
         wordCount: 300,
         loadTimeMs: 220,
@@ -1072,7 +1088,8 @@ export class E2eTestkitController {
         url: `${baseUrl}/collections/footwear`,
         statusCode: 200,
         title: 'Footwear', // Too short (< 30 chars) = needs_attention
-        metaDescription: 'Browse our complete collection of footwear including boots, sneakers, sandals, and more for all occasions.',
+        metaDescription:
+          'Browse our complete collection of footwear including boots, sneakers, sandals, and more for all occasions.',
         h1: 'Footwear Collection',
         wordCount: 400,
         loadTimeMs: 210,
@@ -1126,7 +1143,8 @@ export class E2eTestkitController {
           {
             crawlResultId: collection2.id,
             suggestedTitle: null,
-            suggestedDescription: 'Generated SEO description for New Arrivals collection',
+            suggestedDescription:
+              'Generated SEO description for New Arrivals collection',
             status: 'READY',
           },
         ] as unknown as any,
@@ -1149,7 +1167,11 @@ export class E2eTestkitController {
       pageIds: [page1.id, page2.id, page3.id],
       collectionIds: [collection1.id, collection2.id, collection3.id],
       pageTitles: [page1.title, page2.title, page3.title],
-      collectionTitles: [collection1.title, collection2.title, collection3.title],
+      collectionTitles: [
+        collection1.title,
+        collection2.title,
+        collection3.title,
+      ],
       optimizedPageId: page1.id,
       needsAttentionPageId: page2.id,
       optimizedCollectionId: collection1.id,
@@ -1271,7 +1293,11 @@ export class E2eTestkitController {
           h1: null, // Missing h1
           wordCount: 50, // Low word count (< 400)
           loadTimeMs: 3000, // Slow load (> 2500ms) triggers slow_initial_response
-          issues: ['MISSING_TITLE', 'MISSING_META_DESCRIPTION', 'SLOW_LOAD_TIME'],
+          issues: [
+            'MISSING_TITLE',
+            'MISSING_META_DESCRIPTION',
+            'SLOW_LOAD_TIME',
+          ],
           scannedAt: new Date(),
         },
       });
@@ -1353,7 +1379,8 @@ export class E2eTestkitController {
         description: 'This product has complete SEO metadata.',
         handle: 'optimized-product',
         seoTitle: 'Optimized Product - Best Quality Item for Your Needs',
-        seoDescription: 'Discover our optimized product with premium quality and excellent features. Perfect for everyday use and great value.',
+        seoDescription:
+          'Discover our optimized product with premium quality and excellent features. Perfect for everyday use and great value.',
         lastSyncedAt: new Date(),
       },
     });
@@ -1402,8 +1429,10 @@ export class E2eTestkitController {
           {
             productId: product3.id,
             field: 'seoDescription',
-            rawSuggestion: 'A comprehensive description for the product that improves search visibility and user experience.',
-            finalSuggestion: 'A comprehensive description for the product that improves search visibility and user experience.',
+            rawSuggestion:
+              'A comprehensive description for the product that improves search visibility and user experience.',
+            finalSuggestion:
+              'A comprehensive description for the product that improves search visibility and user experience.',
             ruleWarnings: [],
           },
         ] as unknown as any,
@@ -1425,7 +1454,8 @@ export class E2eTestkitController {
         url: `${baseUrl}/pages/optimized-page`,
         statusCode: 200,
         title: 'Optimized Page - Everything You Need to Know',
-        metaDescription: 'Discover everything about our optimized page. Complete information with all the details you need for success.',
+        metaDescription:
+          'Discover everything about our optimized page. Complete information with all the details you need for success.',
         h1: 'Optimized Page',
         wordCount: 500,
         loadTimeMs: 200,
@@ -1480,7 +1510,8 @@ export class E2eTestkitController {
           {
             crawlResultId: page3.id,
             suggestedTitle: 'Improved Page Title for Better Visibility',
-            suggestedDescription: 'A comprehensive page description that improves search visibility.',
+            suggestedDescription:
+              'A comprehensive page description that improves search visibility.',
             status: 'READY',
           },
         ] as unknown as any,
@@ -1503,7 +1534,8 @@ export class E2eTestkitController {
         url: `${baseUrl}/collections/optimized-collection`,
         statusCode: 200,
         title: 'Optimized Collection - Premium Products Selection',
-        metaDescription: 'Browse our optimized collection of premium products. Carefully curated selection with the best quality items.',
+        metaDescription:
+          'Browse our optimized collection of premium products. Carefully curated selection with the best quality items.',
         h1: 'Optimized Collection',
         wordCount: 400,
         loadTimeMs: 180,
@@ -1558,7 +1590,8 @@ export class E2eTestkitController {
           {
             crawlResultId: collection3.id,
             suggestedTitle: 'Improved Collection Title for Better Visibility',
-            suggestedDescription: 'A comprehensive collection description that improves search visibility.',
+            suggestedDescription:
+              'A comprehensive collection description that improves search visibility.',
             status: 'READY',
           },
         ] as unknown as any,
@@ -1693,13 +1726,18 @@ export class E2eTestkitController {
         rulesHash: 'draft-ai-entrypoint-clarity-1-hash',
         status: 'PARTIAL', // PARTIAL triggers "Generate Full Drafts" CTA in Work Queue
         createdByUserId: user.id,
-        sampleProductIds: [productWithDraft.id, productWithoutDraft.id] as unknown as any,
+        sampleProductIds: [
+          productWithDraft.id,
+          productWithoutDraft.id,
+        ] as unknown as any,
         draftItems: [
           {
             productId: productWithDraft.id,
             field: 'seoDescription',
-            rawSuggestion: 'AI-generated draft for testing review boundary note visibility.',
-            finalSuggestion: 'AI-generated draft for testing review boundary note visibility.',
+            rawSuggestion:
+              'AI-generated draft for testing review boundary note visibility.',
+            finalSuggestion:
+              'AI-generated draft for testing review boundary note visibility.',
             ruleWarnings: [],
           },
         ] as unknown as any,
@@ -1767,16 +1805,19 @@ export class E2eTestkitController {
 
     // Product 1: Has live SEO + draft with different value (for diff display)
     const liveSeoTitle = 'Original Live SEO Title for Testing';
-    const liveSeoDescription = 'This is the original live SEO description that is currently published on the store.';
+    const liveSeoDescription =
+      'This is the original live SEO description that is currently published on the store.';
     const draftSeoTitle = 'Updated Draft SEO Title - AI Generated';
-    const draftSeoDescription = 'This is the new AI-generated draft SEO description ready to be applied.';
+    const draftSeoDescription =
+      'This is the new AI-generated draft SEO description ready to be applied.';
 
     const productWithDiff = await this.prisma.product.create({
       data: {
         projectId: project.id,
         externalId: 'ddc1-product-with-diff',
         title: 'Product With Diff Values',
-        description: 'This product has live SEO values and a draft with different values.',
+        description:
+          'This product has live SEO values and a draft with different values.',
         handle: 'product-with-diff-values',
         seoTitle: liveSeoTitle,
         seoDescription: liveSeoDescription,
@@ -1790,10 +1831,12 @@ export class E2eTestkitController {
         projectId: project.id,
         externalId: 'ddc1-product-cleared-draft',
         title: 'Product With Cleared Draft',
-        description: 'This product has live SEO values and an explicitly cleared draft.',
+        description:
+          'This product has live SEO values and an explicitly cleared draft.',
         handle: 'product-cleared-draft',
         seoTitle: 'Live Title That Will Be Cleared',
-        seoDescription: 'This description will be cleared when the empty draft is applied.',
+        seoDescription:
+          'This description will be cleared when the empty draft is applied.',
         lastSyncedAt: new Date(),
       },
     });
@@ -1806,10 +1849,12 @@ export class E2eTestkitController {
         projectId: project.id,
         externalId: 'ddc1-product-no-draft',
         title: 'Product Without Draft Generated',
-        description: 'This product has live SEO values but draft field has empty suggestions.',
+        description:
+          'This product has live SEO values but draft field has empty suggestions.',
         handle: 'product-no-draft',
         seoTitle: 'Live Title With No Draft',
-        seoDescription: 'This description has no corresponding draft generated.',
+        seoDescription:
+          'This description has no corresponding draft generated.',
         lastSyncedAt: new Date(),
       },
     });
@@ -1821,7 +1866,8 @@ export class E2eTestkitController {
         url: `${baseUrl}/pages/draft-diff-test`,
         statusCode: 200,
         title: 'Page With Live And Draft Values',
-        metaDescription: 'This is the live page description that will be compared to the draft.',
+        metaDescription:
+          'This is the live page description that will be compared to the draft.',
         h1: 'Draft Diff Test Page',
         wordCount: 300,
         loadTimeMs: 200,
@@ -1840,7 +1886,11 @@ export class E2eTestkitController {
         rulesHash: 'draft-diff-clarity-1-products-hash',
         status: 'READY',
         createdByUserId: user.id,
-        sampleProductIds: [productWithDiff.id, productWithClearedDraft.id, productNoDraft.id] as unknown as any,
+        sampleProductIds: [
+          productWithDiff.id,
+          productWithClearedDraft.id,
+          productNoDraft.id,
+        ] as unknown as any,
         draftItems: [
           // Product 1: Has different draft value (diff display scenario)
           {
@@ -1977,9 +2027,11 @@ export class E2eTestkitController {
 
     // Locked test strings for assertions
     const liveSeoTitle = 'Original Live SEO Title for DFC1 Testing';
-    const liveSeoDescription = 'This is the original live SEO description for DFC1 testing.';
+    const liveSeoDescription =
+      'This is the original live SEO description for DFC1 testing.';
     const draftSeoTitle = 'Updated Draft SEO Title - DFC1 AI Generated';
-    const draftSeoDescription = 'This is the new AI-generated draft SEO description for DFC1 testing.';
+    const draftSeoDescription =
+      'This is the new AI-generated draft SEO description for DFC1 testing.';
 
     // ========================================================================
     // PRODUCTS (3 scenarios)
@@ -2008,7 +2060,8 @@ export class E2eTestkitController {
         description: 'Product with live SEO and explicitly cleared draft.',
         handle: 'dfc1-product-clear',
         seoTitle: 'Live Title That Will Be Cleared',
-        seoDescription: 'This description will be cleared when the empty draft is applied.',
+        seoDescription:
+          'This description will be cleared when the empty draft is applied.',
         lastSyncedAt: new Date(),
       },
     });
@@ -2022,7 +2075,8 @@ export class E2eTestkitController {
         description: 'Product with live SEO but no draft generated yet.',
         handle: 'dfc1-product-no-draft',
         seoTitle: 'Live Title With No Draft',
-        seoDescription: 'This description has no corresponding draft generated.',
+        seoDescription:
+          'This description has no corresponding draft generated.',
         lastSyncedAt: new Date(),
       },
     });
@@ -2036,7 +2090,11 @@ export class E2eTestkitController {
         rulesHash: 'dfc1-products-hash',
         status: 'READY',
         createdByUserId: user.id,
-        sampleProductIds: [productDiff.id, productClear.id, productNoDraft.id] as unknown as any,
+        sampleProductIds: [
+          productDiff.id,
+          productClear.id,
+          productNoDraft.id,
+        ] as unknown as any,
         draftItems: [
           // Product 1: Diff scenario
           {
@@ -2459,14 +2517,13 @@ export class E2eTestkitController {
         updatedAt: string;
         seo?: { title: string | null; description: string | null };
       }>;
-    },
+    }
   ) {
     this.ensureE2eMode();
 
     // Dynamic import to avoid bundling in non-E2E builds
-    const { e2eShopifyMockStore } = await import(
-      '../shopify/e2e-shopify-mock.store'
-    );
+    const { e2eShopifyMockStore } =
+      await import('../shopify/e2e-shopify-mock.store');
 
     // [SHOPIFY-ASSET-SYNC-COVERAGE-1-FIXUP-1] Reset store to prevent cross-test leakage
     // when only one of pages/collections is re-seeded

@@ -44,7 +44,7 @@ describe('CRITICAL – SEO apply persistence via /shopify/update-product-seo', (
       testPrisma,
       {
         userPlan: 'pro',
-      },
+      }
     );
     const product = products[0];
 
@@ -76,7 +76,7 @@ describe('CRITICAL – SEO apply persistence via /shopify/update-product-seo', (
       }
 
       throw new Error(
-        `Unexpected Shopify operation in CRITICAL seo-apply-persistence test: ${body.operationName}`,
+        `Unexpected Shopify operation in CRITICAL seo-apply-persistence test: ${body.operationName}`
       );
     });
 
@@ -107,11 +107,11 @@ describe('CRITICAL – SEO apply persistence via /shopify/update-product-seo', (
     expect((global as any).fetch).toHaveBeenCalledTimes(1);
     expect(lastRequestBody?.operationName).toBe('UpdateProductSeo');
     expect(lastRequestBody?.variables?.input?.id).toBe(
-      `gid://shopify/Product/${product.externalId}`,
+      `gid://shopify/Product/${product.externalId}`
     );
     expect(lastRequestBody?.variables?.input?.seo?.title).toBe(seoTitle);
     expect(lastRequestBody?.variables?.input?.seo?.description).toBe(
-      seoDescription,
+      seoDescription
     );
   });
 
@@ -136,4 +136,3 @@ describe('CRITICAL – SEO apply persistence via /shopify/update-product-seo', (
     expect(res.status).toBeGreaterThanOrEqual(400);
   });
 });
-

@@ -53,7 +53,12 @@ export default function AdminRunsPage() {
         limit: 20,
         runType: filters.runType || undefined,
         status: filters.status || undefined,
-        aiUsed: filters.aiUsed === 'true' ? true : filters.aiUsed === 'false' ? false : undefined,
+        aiUsed:
+          filters.aiUsed === 'true'
+            ? true
+            : filters.aiUsed === 'false'
+              ? false
+              : undefined,
       });
       setRuns(data.runs);
       setPagination(data.pagination);
@@ -128,44 +133,80 @@ export default function AdminRunsPage() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Project</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Run Type</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">AI Used</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reused</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Project
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Run Type
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                AI Used
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Reused
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Created
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {runs.map((run) => (
               <tr key={run.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{run.project.name}</div>
-                  <div className="text-xs text-gray-500">{run.project.user.email}</div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {run.project.name}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {run.project.user.email}
+                  </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{run.runType}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  {run.runType}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                    run.status === 'SUCCEEDED' ? 'bg-green-100 text-green-800' :
-                    run.status === 'FAILED' ? 'bg-red-100 text-red-800' :
-                    run.status === 'RUNNING' ? 'bg-blue-100 text-blue-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
+                  <span
+                    className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                      run.status === 'SUCCEEDED'
+                        ? 'bg-green-100 text-green-800'
+                        : run.status === 'FAILED'
+                          ? 'bg-red-100 text-red-800'
+                          : run.status === 'RUNNING'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-gray-100 text-gray-800'
+                    }`}
+                  >
                     {run.status}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {run.aiUsed ? <span className="text-orange-600">Yes</span> : 'No'}
+                  {run.aiUsed ? (
+                    <span className="text-orange-600">Yes</span>
+                  ) : (
+                    'No'
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {run.reused ? <span className="text-green-600">Yes</span> : 'No'}
+                  {run.reused ? (
+                    <span className="text-green-600">Yes</span>
+                  ) : (
+                    'No'
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {formatDate(run.createdAt)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <Link href={`/admin/runs/${run.id}`} className="text-blue-600 hover:text-blue-800">
+                  <Link
+                    href={`/admin/runs/${run.id}`}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
                     View
                   </Link>
                 </td>
@@ -189,7 +230,9 @@ export default function AdminRunsPage() {
               Previous
             </button>
             <button
-              onClick={() => setCurrentPage((p) => Math.min(pagination.pages, p + 1))}
+              onClick={() =>
+                setCurrentPage((p) => Math.min(pagination.pages, p + 1))
+              }
               disabled={currentPage === pagination.pages}
               className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50"
             >

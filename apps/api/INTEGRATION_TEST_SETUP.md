@@ -3,6 +3,7 @@
 ## Issue
 
 The critical integration tests require a test database to be set up. The error:
+
 ```
 Database `lavanya` does not exist on the database server
 ```
@@ -14,15 +15,17 @@ indicates that the test database hasn't been created or migrated.
 ### Option 1: Set Up Test Database (Recommended)
 
 1. **Create test database:**
+
    ```bash
    # Connect to PostgreSQL
    psql postgres
-   
+
    # Create test database
    CREATE DATABASE engineo_test;
    ```
 
 2. **Set DATABASE_URL_TEST in `.env.test`:**
+
    ```bash
    # In apps/api/.env.test
    DATABASE_URL_TEST=postgresql://lavanya@localhost:5432/engineo_test
@@ -31,6 +34,7 @@ indicates that the test database hasn't been created or migrated.
    ```
 
 3. **Run migrations:**
+
    ```bash
    cd apps/api
    pnpm db:test:migrate
@@ -67,4 +71,3 @@ We can modify the pre-push hook to skip critical integration tests if the databa
 1. Set up the test database (Option 1)
 2. Run `pnpm test:api:critical` to verify
 3. Then push: `git push origin feature/Lavanya`
-

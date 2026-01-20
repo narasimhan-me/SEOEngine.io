@@ -1,15 +1,17 @@
 import { test, expect } from '@playwright/test';
 
-const API_BASE_URL =
-  process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
 
 /**
  * Seed a project for governance viewer testing.
  */
 async function seedProject(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-first-deo-win`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   return {
@@ -33,16 +35,25 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
 
     // Wait for page to load
     await expect(
-      page.getByRole('heading', { name: /Governance/i }),
+      page.getByRole('heading', { name: /Governance/i })
     ).toBeVisible({ timeout: 10000 });
 
     // Three tabs should be visible
-    await expect(page.getByRole('button', { name: /Approvals/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Audit Log/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Sharing & Links/i })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /Approvals/i })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /Audit Log/i })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: /Sharing & Links/i })
+    ).toBeVisible();
   });
 
-  test('Approvals tab shows empty state initially', async ({ page, request }) => {
+  test('Approvals tab shows empty state initially', async ({
+    page,
+    request,
+  }) => {
     const { projectId, accessToken } = await seedProject(request);
 
     await page.goto('/login');
@@ -54,7 +65,7 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
 
     // Wait for page to load
     await expect(
-      page.getByRole('heading', { name: /Governance/i }),
+      page.getByRole('heading', { name: /Governance/i })
     ).toBeVisible({ timeout: 10000 });
 
     // Should show empty state
@@ -73,7 +84,7 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
 
     // Wait for page to load
     await expect(
-      page.getByRole('heading', { name: /Governance/i }),
+      page.getByRole('heading', { name: /Governance/i })
     ).toBeVisible({ timeout: 10000 });
 
     // Status filter buttons should be visible
@@ -81,7 +92,10 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
     await expect(page.getByRole('button', { name: /History/i })).toBeVisible();
   });
 
-  test('Audit Log tab shows allowlist info banner', async ({ page, request }) => {
+  test('Audit Log tab shows allowlist info banner', async ({
+    page,
+    request,
+  }) => {
     const { projectId, accessToken } = await seedProject(request);
 
     await page.goto('/login');
@@ -93,16 +107,19 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
 
     // Wait for page to load
     await expect(
-      page.getByRole('heading', { name: /Governance/i }),
+      page.getByRole('heading', { name: /Governance/i })
     ).toBeVisible({ timeout: 10000 });
 
     // Info banner about filtered events should be visible
     await expect(
-      page.getByText(/approval and share link events only/i),
+      page.getByText(/approval and share link events only/i)
     ).toBeVisible();
   });
 
-  test('Audit Log tab shows empty state initially', async ({ page, request }) => {
+  test('Audit Log tab shows empty state initially', async ({
+    page,
+    request,
+  }) => {
     const { projectId, accessToken } = await seedProject(request);
 
     await page.goto('/login');
@@ -114,7 +131,7 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
 
     // Wait for page to load
     await expect(
-      page.getByRole('heading', { name: /Governance/i }),
+      page.getByRole('heading', { name: /Governance/i })
     ).toBeVisible({ timeout: 10000 });
 
     // Should show empty state
@@ -133,7 +150,7 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
 
     // Wait for page to load
     await expect(
-      page.getByRole('heading', { name: /Governance/i }),
+      page.getByRole('heading', { name: /Governance/i })
     ).toBeVisible({ timeout: 10000 });
 
     // Should show empty state
@@ -152,7 +169,7 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
 
     // Wait for page to load
     await expect(
-      page.getByRole('heading', { name: /Governance/i }),
+      page.getByRole('heading', { name: /Governance/i })
     ).toBeVisible({ timeout: 10000 });
 
     // Status filter buttons should be visible
@@ -175,7 +192,7 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
 
     // Wait for page to load
     await expect(
-      page.getByRole('heading', { name: /Governance/i }),
+      page.getByRole('heading', { name: /Governance/i })
     ).toBeVisible({ timeout: 10000 });
 
     // Audit tab should be active
@@ -202,7 +219,7 @@ test.describe('GOV-AUDIT-VIEWER-1 – Governance Viewer UI (Playwright E2E)', ()
 
     // Wait for page to load
     await expect(
-      page.getByRole('heading', { name: /Governance/i }),
+      page.getByRole('heading', { name: /Governance/i })
     ).toBeVisible({ timeout: 10000 });
 
     // Click Audit Log tab

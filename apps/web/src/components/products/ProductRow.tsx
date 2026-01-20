@@ -82,7 +82,9 @@ export function ProductRow({
   };
 
   // Prevent buttons from triggering row toggle
-  const handleButtonClick = (event: MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
+  const handleButtonClick = (
+    event: MouseEvent<HTMLButtonElement | HTMLAnchorElement>
+  ) => {
     event.stopPropagation();
   };
 
@@ -226,7 +228,9 @@ export function ProductRow({
               {primaryAction.label}
             </Link>
           ) : helpText ? (
-            <span className="text-xs text-gray-500" data-testid="row-help-text">{helpText}</span>
+            <span className="text-xs text-gray-500" data-testid="row-help-text">
+              {helpText}
+            </span>
           ) : null}
 
           {/* [LIST-ACTIONS-CLARITY-1] Secondary action (Open) */}

@@ -13,7 +13,7 @@ class CaptchaServiceStub {
 }
 
 export async function createTestApp(
-  override?: (builder: TestingModuleBuilder) => TestingModuleBuilder,
+  override?: (builder: TestingModuleBuilder) => TestingModuleBuilder
 ): Promise<INestApplication> {
   let moduleBuilder: TestingModuleBuilder = Test.createTestingModule({
     imports: [AppModule],

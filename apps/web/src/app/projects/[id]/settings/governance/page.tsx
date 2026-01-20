@@ -33,29 +33,40 @@ export default function GovernanceViewerPage() {
   const projectId = params.id as string;
 
   // Tab state from URL
-  const currentTab = (searchParams.get('tab') as GovernanceViewerTab) || 'approvals';
+  const currentTab =
+    (searchParams.get('tab') as GovernanceViewerTab) || 'approvals';
 
   // Approvals state
   const [approvalsLoading, setApprovalsLoading] = useState(false);
   const [approvalsError, setApprovalsError] = useState<string | null>(null);
-  const [approvalsData, setApprovalsData] = useState<GovernanceViewerApprovalsResponse | null>(null);
-  const [approvalsStatus, setApprovalsStatus] = useState<'pending' | 'history'>('pending');
+  const [approvalsData, setApprovalsData] =
+    useState<GovernanceViewerApprovalsResponse | null>(null);
+  const [approvalsStatus, setApprovalsStatus] = useState<'pending' | 'history'>(
+    'pending'
+  );
 
   // Audit events state
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
-  const [auditData, setAuditData] = useState<GovernanceViewerAuditEventsResponse | null>(null);
+  const [auditData, setAuditData] =
+    useState<GovernanceViewerAuditEventsResponse | null>(null);
 
   // Share links state
   const [linksLoading, setLinksLoading] = useState(false);
   const [linksError, setLinksError] = useState<string | null>(null);
-  const [linksData, setLinksData] = useState<GovernanceViewerShareLinksResponse | null>(null);
-  const [linksStatus, setLinksStatus] = useState<'ACTIVE' | 'EXPIRED' | 'REVOKED' | 'all'>('all');
+  const [linksData, setLinksData] =
+    useState<GovernanceViewerShareLinksResponse | null>(null);
+  const [linksStatus, setLinksStatus] = useState<
+    'ACTIVE' | 'EXPIRED' | 'REVOKED' | 'all'
+  >('all');
 
   // Selected item for drawer
-  const [selectedApproval, setSelectedApproval] = useState<GovernanceViewerApprovalItem | null>(null);
-  const [selectedAuditEvent, setSelectedAuditEvent] = useState<GovernanceViewerAuditEventItem | null>(null);
-  const [selectedShareLink, setSelectedShareLink] = useState<GovernanceViewerShareLinkItem | null>(null);
+  const [selectedApproval, setSelectedApproval] =
+    useState<GovernanceViewerApprovalItem | null>(null);
+  const [selectedAuditEvent, setSelectedAuditEvent] =
+    useState<GovernanceViewerAuditEventItem | null>(null);
+  const [selectedShareLink, setSelectedShareLink] =
+    useState<GovernanceViewerShareLinkItem | null>(null);
 
   // Fetch approvals
   const fetchApprovals = useCallback(async () => {
@@ -68,7 +79,8 @@ export default function GovernanceViewerPage() {
       });
       setApprovalsData(data);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load approvals';
+      const message =
+        err instanceof Error ? err.message : 'Failed to load approvals';
       setApprovalsError(message);
     } finally {
       setApprovalsLoading(false);
@@ -85,7 +97,8 @@ export default function GovernanceViewerPage() {
       });
       setAuditData(data);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load audit events';
+      const message =
+        err instanceof Error ? err.message : 'Failed to load audit events';
       setAuditError(message);
     } finally {
       setAuditLoading(false);
@@ -103,7 +116,8 @@ export default function GovernanceViewerPage() {
       });
       setLinksData(data);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load share links';
+      const message =
+        err instanceof Error ? err.message : 'Failed to load share links';
       setLinksError(message);
     } finally {
       setLinksLoading(false);
@@ -124,7 +138,9 @@ export default function GovernanceViewerPage() {
   const handleTabChange = (tab: GovernanceViewerTab) => {
     const newParams = new URLSearchParams();
     newParams.set('tab', tab);
-    router.push(`/projects/${projectId}/settings/governance?${newParams.toString()}`);
+    router.push(
+      `/projects/${projectId}/settings/governance?${newParams.toString()}`
+    );
   };
 
   const tabs: { key: GovernanceViewerTab; label: string }[] = [
@@ -316,7 +332,9 @@ function ApprovalsTab({
             />
           </svg>
           <h3 className="mt-4 text-lg font-medium text-gray-900">
-            {status === 'pending' ? 'No pending approvals' : 'No approval history'}
+            {status === 'pending'
+              ? 'No pending approvals'
+              : 'No approval history'}
           </h3>
           <p className="mt-2 text-sm text-gray-500">
             {status === 'pending'
@@ -354,7 +372,9 @@ function ApprovalsTab({
                 <tr key={approval.id} className="hover:bg-gray-50">
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
                     <div>
-                      <div className="font-medium">{formatResourceType(approval.resourceType)}</div>
+                      <div className="font-medium">
+                        {formatResourceType(approval.resourceType)}
+                      </div>
                       <div className="text-xs text-gray-500 truncate max-w-xs">
                         {approval.resourceId}
                       </div>
@@ -413,7 +433,8 @@ function AuditTab({
       {/* Info banner */}
       <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
         <p className="text-sm text-blue-700">
-          Showing approval and share link events only. Other event types are filtered for security.
+          Showing approval and share link events only. Other event types are
+          filtered for security.
         </p>
       </div>
 
@@ -454,7 +475,9 @@ function AuditTab({
               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">No audit events</h3>
+          <h3 className="mt-4 text-lg font-medium text-gray-900">
+            No audit events
+          </h3>
           <p className="mt-2 text-sm text-gray-500">
             Approval and sharing events will appear here as they occur.
           </p>
@@ -562,10 +585,10 @@ function SharingTab({
                 ? s === 'ACTIVE'
                   ? 'bg-green-100 text-green-800'
                   : s === 'EXPIRED'
-                  ? 'bg-yellow-100 text-yellow-800'
-                  : s === 'REVOKED'
-                  ? 'bg-red-100 text-red-800'
-                  : 'bg-gray-700 text-white'
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : s === 'REVOKED'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-gray-700 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
@@ -611,7 +634,9 @@ function SharingTab({
               d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
             />
           </svg>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">No share links</h3>
+          <h3 className="mt-4 text-lg font-medium text-gray-900">
+            No share links
+          </h3>
           <p className="mt-2 text-sm text-gray-500">
             Share links created for reports will appear here.
           </p>
@@ -649,15 +674,22 @@ function SharingTab({
                 <tr key={link.id} className="hover:bg-gray-50">
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
                     <div>
-                      <div className="font-medium">{link.title || 'Untitled'}</div>
-                      <div className="text-xs text-gray-500">{link.reportType}</div>
+                      <div className="font-medium">
+                        {link.title || 'Untitled'}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {link.reportType}
+                      </div>
                     </div>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                     {link.createdByName || 'Unknown'}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm">
-                    <AudienceBadge audience={link.audience} passcodeLast4={link.passcodeLast4} />
+                    <AudienceBadge
+                      audience={link.audience}
+                      passcodeLast4={link.passcodeLast4}
+                    />
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm">
                     <ShareLinkStatusBadge status={link.status} />
@@ -692,7 +724,10 @@ interface ApprovalDetailDrawerProps {
   onClose: () => void;
 }
 
-function ApprovalDetailDrawer({ approval, onClose }: ApprovalDetailDrawerProps) {
+function ApprovalDetailDrawer({
+  approval,
+  onClose,
+}: ApprovalDetailDrawerProps) {
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       <div className="absolute inset-0 overflow-hidden">
@@ -709,14 +744,26 @@ function ApprovalDetailDrawer({ approval, onClose }: ApprovalDetailDrawerProps) 
               {/* Header */}
               <div className="bg-gray-50 px-4 py-6 sm:px-6">
                 <div className="flex items-start justify-between">
-                  <h2 className="text-lg font-medium text-gray-900">Approval Details</h2>
+                  <h2 className="text-lg font-medium text-gray-900">
+                    Approval Details
+                  </h2>
                   <button
                     onClick={onClose}
                     className="rounded-md bg-gray-50 text-gray-400 hover:text-gray-500"
                   >
                     <span className="sr-only">Close</span>
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -726,31 +773,41 @@ function ApprovalDetailDrawer({ approval, onClose }: ApprovalDetailDrawerProps) 
               <div className="relative flex-1 px-4 py-6 sm:px-6">
                 <dl className="space-y-6">
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Status</dt>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Status
+                    </dt>
                     <dd className="mt-1">
                       <ApprovalStatusBadge status={approval.status} />
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Resource Type</dt>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Resource Type
+                    </dt>
                     <dd className="mt-1 text-sm text-gray-900">
                       {formatResourceType(approval.resourceType)}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Resource ID</dt>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Resource ID
+                    </dt>
                     <dd className="mt-1 text-sm text-gray-900 break-all">
                       {approval.resourceId}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Requested By</dt>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Requested By
+                    </dt>
                     <dd className="mt-1 text-sm text-gray-900">
                       {approval.requestedByName || approval.requestedByUserId}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Requested At</dt>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Requested At
+                    </dt>
                     <dd className="mt-1 text-sm text-gray-900">
                       {formatDate(approval.requestedAt)}
                     </dd>
@@ -758,42 +815,63 @@ function ApprovalDetailDrawer({ approval, onClose }: ApprovalDetailDrawerProps) 
                   {approval.decidedByUserId && (
                     <>
                       <div>
-                        <dt className="text-sm font-medium text-gray-500">Decided By</dt>
+                        <dt className="text-sm font-medium text-gray-500">
+                          Decided By
+                        </dt>
                         <dd className="mt-1 text-sm text-gray-900">
                           {approval.decidedByName || approval.decidedByUserId}
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-sm font-medium text-gray-500">Decided At</dt>
+                        <dt className="text-sm font-medium text-gray-500">
+                          Decided At
+                        </dt>
                         <dd className="mt-1 text-sm text-gray-900">
-                          {approval.decidedAt ? formatDate(approval.decidedAt) : '-'}
+                          {approval.decidedAt
+                            ? formatDate(approval.decidedAt)
+                            : '-'}
                         </dd>
                       </div>
                     </>
                   )}
                   {approval.decisionReason && (
                     <div>
-                      <dt className="text-sm font-medium text-gray-500">Decision Reason</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{approval.decisionReason}</dd>
+                      <dt className="text-sm font-medium text-gray-500">
+                        Decision Reason
+                      </dt>
+                      <dd className="mt-1 text-sm text-gray-900">
+                        {approval.decisionReason}
+                      </dd>
                     </div>
                   )}
                   {approval.playbookId && (
                     <div>
-                      <dt className="text-sm font-medium text-gray-500">Playbook ID</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{approval.playbookId}</dd>
+                      <dt className="text-sm font-medium text-gray-500">
+                        Playbook ID
+                      </dt>
+                      <dd className="mt-1 text-sm text-gray-900">
+                        {approval.playbookId}
+                      </dd>
                     </div>
                   )}
                   {approval.assetType && (
                     <div>
-                      <dt className="text-sm font-medium text-gray-500">Asset Type</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{approval.assetType}</dd>
+                      <dt className="text-sm font-medium text-gray-500">
+                        Asset Type
+                      </dt>
+                      <dd className="mt-1 text-sm text-gray-900">
+                        {approval.assetType}
+                      </dd>
                     </div>
                   )}
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Consumed</dt>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Consumed
+                    </dt>
                     <dd className="mt-1 text-sm text-gray-900">
                       {approval.consumed ? 'Yes' : 'No'}
-                      {approval.consumedAt && ` (${formatDate(approval.consumedAt)})`}
+                      {approval.consumedAt &&
+                        ` (${formatDate(approval.consumedAt)})`}
                     </dd>
                   </div>
                 </dl>
@@ -811,7 +889,10 @@ interface AuditEventDetailDrawerProps {
   onClose: () => void;
 }
 
-function AuditEventDetailDrawer({ event, onClose }: AuditEventDetailDrawerProps) {
+function AuditEventDetailDrawer({
+  event,
+  onClose,
+}: AuditEventDetailDrawerProps) {
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       <div className="absolute inset-0 overflow-hidden">
@@ -828,14 +909,26 @@ function AuditEventDetailDrawer({ event, onClose }: AuditEventDetailDrawerProps)
               {/* Header */}
               <div className="bg-gray-50 px-4 py-6 sm:px-6">
                 <div className="flex items-start justify-between">
-                  <h2 className="text-lg font-medium text-gray-900">Audit Event Details</h2>
+                  <h2 className="text-lg font-medium text-gray-900">
+                    Audit Event Details
+                  </h2>
                   <button
                     onClick={onClose}
                     className="rounded-md bg-gray-50 text-gray-400 hover:text-gray-500"
                   >
                     <span className="sr-only">Close</span>
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -845,7 +938,9 @@ function AuditEventDetailDrawer({ event, onClose }: AuditEventDetailDrawerProps)
               <div className="relative flex-1 px-4 py-6 sm:px-6">
                 <dl className="space-y-6">
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Event Type</dt>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Event Type
+                    </dt>
                     <dd className="mt-1">
                       <AuditEventTypeBadge eventType={event.eventType} />
                     </dd>
@@ -858,11 +953,15 @@ function AuditEventDetailDrawer({ event, onClose }: AuditEventDetailDrawerProps)
                   </div>
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Time</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{formatDate(event.createdAt)}</dd>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {formatDate(event.createdAt)}
+                    </dd>
                   </div>
                   {event.resourceType && (
                     <div>
-                      <dt className="text-sm font-medium text-gray-500">Resource Type</dt>
+                      <dt className="text-sm font-medium text-gray-500">
+                        Resource Type
+                      </dt>
                       <dd className="mt-1 text-sm text-gray-900">
                         {formatResourceType(event.resourceType)}
                       </dd>
@@ -870,13 +969,19 @@ function AuditEventDetailDrawer({ event, onClose }: AuditEventDetailDrawerProps)
                   )}
                   {event.resourceId && (
                     <div>
-                      <dt className="text-sm font-medium text-gray-500">Resource ID</dt>
-                      <dd className="mt-1 text-sm text-gray-900 break-all">{event.resourceId}</dd>
+                      <dt className="text-sm font-medium text-gray-500">
+                        Resource ID
+                      </dt>
+                      <dd className="mt-1 text-sm text-gray-900 break-all">
+                        {event.resourceId}
+                      </dd>
                     </div>
                   )}
                   {event.metadata && Object.keys(event.metadata).length > 0 && (
                     <div>
-                      <dt className="text-sm font-medium text-gray-500">Metadata</dt>
+                      <dt className="text-sm font-medium text-gray-500">
+                        Metadata
+                      </dt>
                       <dd className="mt-1">
                         <pre className="rounded-md bg-gray-100 p-3 text-xs text-gray-700 overflow-x-auto">
                           {JSON.stringify(event.metadata, null, 2)}
@@ -916,14 +1021,26 @@ function ShareLinkDetailDrawer({ link, onClose }: ShareLinkDetailDrawerProps) {
               {/* Header */}
               <div className="bg-gray-50 px-4 py-6 sm:px-6">
                 <div className="flex items-start justify-between">
-                  <h2 className="text-lg font-medium text-gray-900">Share Link Details</h2>
+                  <h2 className="text-lg font-medium text-gray-900">
+                    Share Link Details
+                  </h2>
                   <button
                     onClick={onClose}
                     className="rounded-md bg-gray-50 text-gray-400 hover:text-gray-500"
                   >
                     <span className="sr-only">Close</span>
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -933,73 +1050,115 @@ function ShareLinkDetailDrawer({ link, onClose }: ShareLinkDetailDrawerProps) {
               <div className="relative flex-1 px-4 py-6 sm:px-6">
                 <dl className="space-y-6">
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Status</dt>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Status
+                    </dt>
                     <dd className="mt-1">
                       <ShareLinkStatusBadge status={link.status} />
                     </dd>
                   </div>
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Title</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{link.title || 'Untitled'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Report Type</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{link.reportType}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Audience</dt>
-                    <dd className="mt-1">
-                      <AudienceBadge audience={link.audience} passcodeLast4={link.passcodeLast4} />
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {link.title || 'Untitled'}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Created By</dt>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Report Type
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {link.reportType}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Audience
+                    </dt>
+                    <dd className="mt-1">
+                      <AudienceBadge
+                        audience={link.audience}
+                        passcodeLast4={link.passcodeLast4}
+                      />
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Created By
+                    </dt>
                     <dd className="mt-1 text-sm text-gray-900">
                       {link.createdByName || link.createdByUserId}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Created At</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{formatDate(link.createdAt)}</dd>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Created At
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {formatDate(link.createdAt)}
+                    </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Expires At</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{formatDate(link.expiresAt)}</dd>
+                    <dt className="text-sm font-medium text-gray-500">
+                      Expires At
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {formatDate(link.expiresAt)}
+                    </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">View Count</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{link.viewCount}</dd>
+                    <dt className="text-sm font-medium text-gray-500">
+                      View Count
+                    </dt>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      {link.viewCount}
+                    </dd>
                   </div>
                   {link.lastViewedAt && (
                     <div>
-                      <dt className="text-sm font-medium text-gray-500">Last Viewed</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{formatDate(link.lastViewedAt)}</dd>
+                      <dt className="text-sm font-medium text-gray-500">
+                        Last Viewed
+                      </dt>
+                      <dd className="mt-1 text-sm text-gray-900">
+                        {formatDate(link.lastViewedAt)}
+                      </dd>
                     </div>
                   )}
                   {link.revokedAt && (
                     <>
                       <div>
-                        <dt className="text-sm font-medium text-gray-500">Revoked At</dt>
-                        <dd className="mt-1 text-sm text-gray-900">{formatDate(link.revokedAt)}</dd>
+                        <dt className="text-sm font-medium text-gray-500">
+                          Revoked At
+                        </dt>
+                        <dd className="mt-1 text-sm text-gray-900">
+                          {formatDate(link.revokedAt)}
+                        </dd>
                       </div>
                       <div>
-                        <dt className="text-sm font-medium text-gray-500">Revoked By</dt>
+                        <dt className="text-sm font-medium text-gray-500">
+                          Revoked By
+                        </dt>
                         <dd className="mt-1 text-sm text-gray-900">
-                          {link.revokedByName || link.revokedByUserId || 'Unknown'}
+                          {link.revokedByName ||
+                            link.revokedByUserId ||
+                            'Unknown'}
                         </dd>
                       </div>
                     </>
                   )}
                   {link.statusHistory && link.statusHistory.length > 0 && (
                     <div>
-                      <dt className="text-sm font-medium text-gray-500">Status History</dt>
+                      <dt className="text-sm font-medium text-gray-500">
+                        Status History
+                      </dt>
                       <dd className="mt-1">
                         <ul className="space-y-2">
                           {link.statusHistory.map((entry, i) => (
                             <li key={i} className="text-sm text-gray-700">
                               <ShareLinkStatusBadge status={entry.status} /> at{' '}
                               {formatDate(entry.changedAt)}
-                              {entry.changedByName && ` by ${entry.changedByName}`}
+                              {entry.changedByName &&
+                                ` by ${entry.changedByName}`}
                             </li>
                           ))}
                         </ul>
@@ -1022,14 +1181,24 @@ function ShareLinkDetailDrawer({ link, onClose }: ShareLinkDetailDrawerProps) {
 
 function ApprovalStatusBadge({ status }: { status: string }) {
   const config: Record<string, { bg: string; text: string; label: string }> = {
-    PENDING_APPROVAL: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
+    PENDING_APPROVAL: {
+      bg: 'bg-yellow-100',
+      text: 'text-yellow-800',
+      label: 'Pending',
+    },
     APPROVED: { bg: 'bg-green-100', text: 'text-green-800', label: 'Approved' },
     REJECTED: { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
     DRAFT: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Draft' },
   };
-  const c = config[status] || { bg: 'bg-gray-100', text: 'text-gray-800', label: status };
+  const c = config[status] || {
+    bg: 'bg-gray-100',
+    text: 'text-gray-800',
+    label: status,
+  };
   return (
-    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${c.bg} ${c.text}`}>
+    <span
+      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${c.bg} ${c.text}`}
+    >
       {c.label}
     </span>
   );
@@ -1037,22 +1206,56 @@ function ApprovalStatusBadge({ status }: { status: string }) {
 
 function AuditEventTypeBadge({ eventType }: { eventType: string }) {
   const config: Record<string, { bg: string; text: string; label: string }> = {
-    APPROVAL_REQUESTED: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Approval Requested' },
-    APPROVAL_APPROVED: { bg: 'bg-green-100', text: 'text-green-800', label: 'Approved' },
-    APPROVAL_REJECTED: { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
-    SHARE_LINK_CREATED: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Link Created' },
-    SHARE_LINK_REVOKED: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Link Revoked' },
-    SHARE_LINK_EXPIRED: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Link Expired' },
+    APPROVAL_REQUESTED: {
+      bg: 'bg-yellow-100',
+      text: 'text-yellow-800',
+      label: 'Approval Requested',
+    },
+    APPROVAL_APPROVED: {
+      bg: 'bg-green-100',
+      text: 'text-green-800',
+      label: 'Approved',
+    },
+    APPROVAL_REJECTED: {
+      bg: 'bg-red-100',
+      text: 'text-red-800',
+      label: 'Rejected',
+    },
+    SHARE_LINK_CREATED: {
+      bg: 'bg-blue-100',
+      text: 'text-blue-800',
+      label: 'Link Created',
+    },
+    SHARE_LINK_REVOKED: {
+      bg: 'bg-orange-100',
+      text: 'text-orange-800',
+      label: 'Link Revoked',
+    },
+    SHARE_LINK_EXPIRED: {
+      bg: 'bg-gray-100',
+      text: 'text-gray-800',
+      label: 'Link Expired',
+    },
   };
-  const c = config[eventType] || { bg: 'bg-gray-100', text: 'text-gray-800', label: eventType };
+  const c = config[eventType] || {
+    bg: 'bg-gray-100',
+    text: 'text-gray-800',
+    label: eventType,
+  };
   return (
-    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${c.bg} ${c.text}`}>
+    <span
+      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${c.bg} ${c.text}`}
+    >
       {c.label}
     </span>
   );
 }
 
-function ShareLinkStatusBadge({ status }: { status: 'ACTIVE' | 'EXPIRED' | 'REVOKED' }) {
+function ShareLinkStatusBadge({
+  status,
+}: {
+  status: 'ACTIVE' | 'EXPIRED' | 'REVOKED';
+}) {
   const config: Record<string, { bg: string; text: string }> = {
     ACTIVE: { bg: 'bg-green-100', text: 'text-green-800' },
     EXPIRED: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
@@ -1060,7 +1263,9 @@ function ShareLinkStatusBadge({ status }: { status: 'ACTIVE' | 'EXPIRED' | 'REVO
   };
   const c = config[status] || { bg: 'bg-gray-100', text: 'text-gray-800' };
   return (
-    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${c.bg} ${c.text}`}>
+    <span
+      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${c.bg} ${c.text}`}
+    >
       {status.charAt(0) + status.slice(1).toLowerCase()}
     </span>
   );
@@ -1084,7 +1289,9 @@ function AudienceBadge({
     ORG_ONLY: 'bg-gray-100 text-gray-800',
   };
   return (
-    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${colors[audience]}`}>
+    <span
+      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${colors[audience]}`}
+    >
       {labels[audience]}
     </span>
   );

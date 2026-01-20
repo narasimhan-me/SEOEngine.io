@@ -16,10 +16,12 @@ export function DeoFAQSection() {
   return (
     <section className="border-b border-border bg-muted/60">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
-        <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">DEO FAQs</h2>
+        <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+          DEO FAQs
+        </h2>
         <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-          Common questions about DEO (Discovery Engine Optimization) and how it relates to SEO and
-          AI visibility.
+          Common questions about DEO (Discovery Engine Optimization) and how it
+          relates to SEO and AI visibility.
         </p>
         <div className="mt-8 grid gap-8 md:grid-cols-2">
           <DeoFaqItem

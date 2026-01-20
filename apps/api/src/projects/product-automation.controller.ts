@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Request, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AutomationService } from './automation.service';
 
@@ -32,15 +40,17 @@ export class ProductAutomationController {
   async triggerAnswerBlockAutomation(
     @Request() req: any,
     @Param('id') productId: string,
-    @Body() body: TriggerAnswerBlockAutomationDto,
+    @Body() body: TriggerAnswerBlockAutomationDto
   ) {
     const triggerType: 'product_synced' | 'issue_detected' =
-      body?.triggerType === 'product_synced' ? 'product_synced' : 'issue_detected';
+      body?.triggerType === 'product_synced'
+        ? 'product_synced'
+        : 'issue_detected';
 
     await this.automationService.triggerAnswerBlockAutomationForProduct(
       productId,
       req.user.id,
-      triggerType,
+      triggerType
     );
 
     return {
@@ -56,10 +66,13 @@ export class ProductAutomationController {
    * Returns Answer Block automation logs for a product, ordered by recency.
    */
   @Get(':id/automation-logs')
-  async getAnswerBlockAutomationLogs(@Request() req: any, @Param('id') productId: string) {
+  async getAnswerBlockAutomationLogs(
+    @Request() req: any,
+    @Param('id') productId: string
+  ) {
     return this.automationService.getAnswerBlockAutomationLogsForProduct(
       productId,
-      req.user.id,
+      req.user.id
     );
   }
 
@@ -72,11 +85,11 @@ export class ProductAutomationController {
   @Post(':id/answer-blocks/sync-to-shopify')
   async syncAnswerBlocksToShopifyNow(
     @Request() req: any,
-    @Param('id') productId: string,
+    @Param('id') productId: string
   ) {
     return this.automationService.syncAnswerBlocksToShopifyNow(
       productId,
-      req.user.id,
+      req.user.id
     );
   }
 }

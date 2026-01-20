@@ -8,10 +8,10 @@ This guide provides detailed step-by-step instructions for deploying the EngineO
 
 The frontend uses one Vercel project with separate environments:
 
-| Environment | Branch   | Vercel environment | Domain (example)          |
-|------------|----------|--------------------|---------------------------|
-| Production | `main`   | Production         | `https://app.engineo.ai`  |
-| Staging    | `develop`| Preview/Staging    | `https://staging.engineo.ai` |
+| Environment | Branch    | Vercel environment | Domain (example)             |
+| ----------- | --------- | ------------------ | ---------------------------- |
+| Production  | `main`    | Production         | `https://app.engineo.ai`     |
+| Staging     | `develop` | Preview/Staging    | `https://staging.engineo.ai` |
 
 - Both environments use the same project name (for example, `engineo-web`).
 - Environment variables differ per environment, especially URLs and CAPTCHA keys.
@@ -49,14 +49,14 @@ The frontend uses one Vercel project with separate environments:
 
 ### Basic Configuration
 
-| Setting | Value | Notes |
-|---------|-------|-------|
-| **Project Name** | `engineo-web` | Or any name you prefer |
-| **Framework Preset** | `Next.js` | Should auto-detect |
-| **Root Directory** | `apps/web` | **Important:** Set this to the web app directory |
-| **Build Command** | `pnpm install && pnpm --filter web build` | Or use root-level build |
-| **Output Directory** | `.next` | Default for Next.js |
-| **Install Command** | `pnpm install` | Use pnpm for monorepo |
+| Setting              | Value                                     | Notes                                            |
+| -------------------- | ----------------------------------------- | ------------------------------------------------ |
+| **Project Name**     | `engineo-web`                             | Or any name you prefer                           |
+| **Framework Preset** | `Next.js`                                 | Should auto-detect                               |
+| **Root Directory**   | `apps/web`                                | **Important:** Set this to the web app directory |
+| **Build Command**    | `pnpm install && pnpm --filter web build` | Or use root-level build                          |
+| **Output Directory** | `.next`                                   | Default for Next.js                              |
+| **Install Command**  | `pnpm install`                            | Use pnpm for monorepo                            |
 
 ### Advanced Configuration (Optional)
 
@@ -116,13 +116,14 @@ Before deploying, add required environment variables:
 
 These variables are used in the web app code and must be set:
 
-| Variable Name | Default (if not set) | Description | Used In |
-|---------------|---------------------|-------------|---------|
-| `NEXT_PUBLIC_API_URL` | `http://localhost:3001` | Backend API URL | `src/lib/api.ts`, `src/app/projects/[id]/overview/page.tsx`, `src/app/projects/[id]/products/page.tsx` |
-| `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` | Frontend app URL (used for metadata) | `src/app/(marketing)/layout.tsx` |
-| `NEXT_PUBLIC_CAPTCHA_SITE_KEY` | `''` (empty string) | Cloudflare Turnstile site key | `src/components/common/Captcha.tsx` |
+| Variable Name                  | Default (if not set)    | Description                          | Used In                                                                                                |
+| ------------------------------ | ----------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_API_URL`          | `http://localhost:3001` | Backend API URL                      | `src/lib/api.ts`, `src/app/projects/[id]/overview/page.tsx`, `src/app/projects/[id]/products/page.tsx` |
+| `NEXT_PUBLIC_APP_URL`          | `http://localhost:3000` | Frontend app URL (used for metadata) | `src/app/(marketing)/layout.tsx`                                                                       |
+| `NEXT_PUBLIC_CAPTCHA_SITE_KEY` | `''` (empty string)     | Cloudflare Turnstile site key        | `src/components/common/Captcha.tsx`                                                                    |
 
 **Production Values:**
+
 - `NEXT_PUBLIC_API_URL`: `https://api.engineo.ai` (or your production API URL)
 - `NEXT_PUBLIC_APP_URL`: `https://app.engineo.ai` (or your Vercel deployment URL)
 - `NEXT_PUBLIC_CAPTCHA_SITE_KEY`: Your Cloudflare Turnstile site key from the dashboard
@@ -131,10 +132,10 @@ These variables are used in the web app code and must be set:
 
 These variables are not currently used in the codebase but may be added in the future:
 
-| Variable Name | Value | Description |
-|---------------|-------|-------------|
-| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | `G-XXXXXXXXXX` | Google Analytics ID (if using) |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `pk_live_...` | Stripe publishable key (if using Stripe) |
+| Variable Name                        | Value          | Description                              |
+| ------------------------------------ | -------------- | ---------------------------------------- |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID`      | `G-XXXXXXXXXX` | Google Analytics ID (if using)           |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `pk_live_...`  | Stripe publishable key (if using Stripe) |
 
 ### Environment-Specific Variables
 
@@ -218,8 +219,8 @@ Vercel will show you the DNS records to add. Typically:
 3. Go to **DNS** → **Records**
 4. Add a CNAME record:
 
-| Type | Name | Target | Proxy Status |
-|------|------|--------|--------------|
+| Type  | Name  | Target                 | Proxy Status           |
+| ----- | ----- | ---------------------- | ---------------------- |
 | CNAME | `app` | `cname.vercel-dns.com` | Proxied (orange cloud) |
 
 5. Save the record
@@ -271,7 +272,8 @@ Vercel automatically deploys on:
 
 ### Build Fails: TypeScript Errors
 
-**Solution:** 
+**Solution:**
+
 1. Fix TypeScript errors locally first
 2. Run `pnpm --filter web build` locally to verify
 3. Ensure `tsconfig.json` is correct in `apps/web`
@@ -279,6 +281,7 @@ Vercel automatically deploys on:
 ### Environment Variables Not Working
 
 **Solution:**
+
 1. Variables starting with `NEXT_PUBLIC_` are available in browser
 2. Other variables are server-side only
 3. Redeploy after adding/changing environment variables
@@ -286,6 +289,7 @@ Vercel automatically deploys on:
 ### API Calls Failing
 
 **Solution:**
+
 1. Verify `NEXT_PUBLIC_API_URL` is correct
 2. Check CORS settings on API backend
 3. Verify API is deployed and accessible
@@ -294,6 +298,7 @@ Vercel automatically deploys on:
 ### Domain Not Working
 
 **Solution:**
+
 1. Verify DNS records in Cloudflare
 2. Wait for DNS propagation (can take up to 48 hours, usually < 1 hour)
 3. Check domain status in Vercel dashboard

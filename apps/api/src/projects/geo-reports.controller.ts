@@ -29,7 +29,7 @@ export class GeoReportsController {
   @Get('assemble')
   async assembleReport(
     @Request() req: any,
-    @Param('projectId') projectId: string,
+    @Param('projectId') projectId: string
   ) {
     return this.geoReportsService.assembleReport(projectId, req.user.id);
   }
@@ -43,7 +43,7 @@ export class GeoReportsController {
   async createShareLink(
     @Request() req: any,
     @Param('projectId') projectId: string,
-    @Body() body: { title?: string; audience?: 'ANYONE_WITH_LINK' | 'PASSCODE' },
+    @Body() body: { title?: string; audience?: 'ANYONE_WITH_LINK' | 'PASSCODE' }
   ) {
     return this.geoReportsService.createShareLink(projectId, req.user.id, body);
   }
@@ -55,7 +55,7 @@ export class GeoReportsController {
   @Get('share-links')
   async listShareLinks(
     @Request() req: any,
-    @Param('projectId') projectId: string,
+    @Param('projectId') projectId: string
   ) {
     return this.geoReportsService.listShareLinks(projectId, req.user.id);
   }
@@ -68,8 +68,12 @@ export class GeoReportsController {
   async revokeShareLink(
     @Request() req: any,
     @Param('projectId') projectId: string,
-    @Param('linkId') linkId: string,
+    @Param('linkId') linkId: string
   ) {
-    return this.geoReportsService.revokeShareLink(projectId, linkId, req.user.id);
+    return this.geoReportsService.revokeShareLink(
+      projectId,
+      linkId,
+      req.user.id
+    );
   }
 }

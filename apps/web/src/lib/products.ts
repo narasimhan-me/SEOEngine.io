@@ -22,7 +22,10 @@ export interface Product {
   blockedByApproval?: boolean;
 }
 
-export type ProductStatus = 'missing-metadata' | 'needs-optimization' | 'optimized';
+export type ProductStatus =
+  | 'missing-metadata'
+  | 'needs-optimization'
+  | 'optimized';
 
 /**
  * Get the SEO Metadata status for a product.
@@ -45,9 +48,11 @@ export function getProductStatus(product: Product): ProductStatus {
   const titleLength = product.seoTitle?.length ?? 0;
   const descriptionLength = product.seoDescription?.length ?? 0;
 
-  const titleNeedsWork = titleLength > 0 && (titleLength < 30 || titleLength > 60);
+  const titleNeedsWork =
+    titleLength > 0 && (titleLength < 30 || titleLength > 60);
   const descriptionNeedsWork =
-    descriptionLength > 0 && (descriptionLength < 70 || descriptionLength > 155);
+    descriptionLength > 0 &&
+    (descriptionLength < 70 || descriptionLength > 155);
 
   if (!hasTitle || !hasDescription || titleNeedsWork || descriptionNeedsWork) {
     return 'needs-optimization';

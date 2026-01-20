@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { IntegrationType } from '@prisma/client';
 
@@ -61,7 +65,7 @@ export class IntegrationsService {
     const existing = await this.getIntegration(dto.projectId, dto.type);
     if (existing) {
       throw new BadRequestException(
-        `Integration of type ${dto.type} already exists for this project`,
+        `Integration of type ${dto.type} already exists for this project`
       );
     }
 
@@ -82,12 +86,12 @@ export class IntegrationsService {
   async updateIntegration(
     projectId: string,
     type: IntegrationType,
-    dto: UpdateIntegrationDto,
+    dto: UpdateIntegrationDto
   ) {
     const existing = await this.getIntegration(projectId, type);
     if (!existing) {
       throw new NotFoundException(
-        `Integration of type ${type} not found for this project`,
+        `Integration of type ${type} not found for this project`
       );
     }
 
@@ -139,7 +143,7 @@ export class IntegrationsService {
     const existing = await this.getIntegration(projectId, type);
     if (!existing) {
       throw new NotFoundException(
-        `Integration of type ${type} not found for this project`,
+        `Integration of type ${type} not found for this project`
       );
     }
 
@@ -156,7 +160,10 @@ export class IntegrationsService {
   /**
    * Check if a project has a specific integration type
    */
-  async hasIntegration(projectId: string, type: IntegrationType): Promise<boolean> {
+  async hasIntegration(
+    projectId: string,
+    type: IntegrationType
+  ): Promise<boolean> {
     const integration = await this.getIntegration(projectId, type);
     return !!integration;
   }

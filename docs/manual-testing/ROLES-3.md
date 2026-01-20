@@ -3,6 +3,7 @@
 ## Overview
 
 ROLES-3 extends the role-based access control foundations from ROLES-2 to support true multi-user projects:
+
 - **ProjectMember model**: Real project memberships with OWNER/EDITOR/VIEWER roles
 - **Multi-user access**: Non-owner members can access projects they're added to
 - **Locked capability matrix**: EDITOR cannot apply; must request approval
@@ -24,10 +25,12 @@ ROLES-3 extends the role-based access control foundations from ROLES-2 to suppor
 ### 1. Multi-User Membership: Non-Owner Can View Project
 
 **Preconditions:**
+
 - User A is project OWNER
 - User B exists in the system but is not a member of the project
 
 **Steps:**
+
 1. As User A, navigate to Project Settings > Members
 2. Add User B by email with EDITOR role
 3. Verify User B appears in member list
@@ -37,6 +40,7 @@ ROLES-3 extends the role-based access control foundations from ROLES-2 to suppor
 7. Click to open the project
 
 **Expected Results:**
+
 - [ ] Member is added successfully with EDITOR role
 - [ ] Project appears in User B's project list
 - [ ] User B can view project dashboard
@@ -46,10 +50,12 @@ ROLES-3 extends the role-based access control foundations from ROLES-2 to suppor
 ### 2. EDITOR Cannot Apply Automation Playbooks
 
 **Preconditions:**
+
 - User has EDITOR role in the project (via ProjectMember)
 - Project has automation playbooks available
 
 **Steps:**
+
 1. Navigate to Automation Playbooks page
 2. Verify role label shows "Editor"
 3. Select a playbook (e.g., "Fix missing SEO titles")
@@ -57,6 +63,7 @@ ROLES-3 extends the role-based access control foundations from ROLES-2 to suppor
 5. Attempt to click Apply button
 
 **Expected Results:**
+
 - [ ] Role label shows "You are the Editor"
 - [ ] Preview generation works normally
 - [ ] Apply button is disabled or shows "Request Approval"
@@ -66,15 +73,18 @@ ROLES-3 extends the role-based access control foundations from ROLES-2 to suppor
 ### 3. VIEWER Cannot Generate Drafts or Apply
 
 **Preconditions:**
+
 - User has VIEWER role in the project (via ProjectMember)
 
 **Steps:**
+
 1. Navigate to Automation Playbooks page
 2. Verify role label shows "Viewer"
 3. Attempt to generate preview
 4. Attempt to apply
 
 **Expected Results:**
+
 - [ ] Role label shows "You are the Viewer"
 - [ ] Draft generation buttons disabled
 - [ ] Apply button disabled
@@ -84,11 +94,13 @@ ROLES-3 extends the role-based access control foundations from ROLES-2 to suppor
 ### 4. Approval Chain: EDITOR Requests, OWNER Approves, OWNER Applies
 
 **Preconditions:**
+
 - User A is project OWNER
 - User B is project EDITOR
 - Governance policy has `requireApprovalForApply: true`
 
 **Steps:**
+
 1. As User B (EDITOR), navigate to Automation Playbooks
 2. Generate a preview
 3. Click "Request Approval" button
@@ -97,6 +109,7 @@ ROLES-3 extends the role-based access control foundations from ROLES-2 to suppor
 6. As User A (OWNER), click "Apply"
 
 **Expected Results:**
+
 - [ ] EDITOR can generate preview
 - [ ] EDITOR sees "Request Approval" button (not "Apply")
 - [ ] Approval request is created with `PENDING_APPROVAL` status
@@ -109,16 +122,19 @@ ROLES-3 extends the role-based access control foundations from ROLES-2 to suppor
 ### 5. Multi-User Project Blocks Auto-Apply
 
 **Preconditions:**
+
 - Project has 2+ members (multi-user)
 - Auto-apply eligible plan (Pro/Business)
 - New product synced from Shopify
 
 **Steps:**
+
 1. Add a second member to the project
 2. Trigger a new product sync from Shopify
 3. Check if SEO metadata was auto-applied
 
 **Expected Results:**
+
 - [ ] New product has missing metadata suggestion created
 - [ ] Auto-apply is BLOCKED (not executed)
 - [ ] Log message indicates "Multi-user project: auto-apply blocked, requiring OWNER approval"
@@ -127,16 +143,19 @@ ROLES-3 extends the role-based access control foundations from ROLES-2 to suppor
 ### 6. Single-User Project Preserves Existing Auto-Apply Behavior
 
 **Preconditions:**
+
 - Project has only 1 member (single-user)
 - Auto-apply eligible plan (Pro/Business)
 - New product synced from Shopify
 
 **Steps:**
+
 1. Ensure project has only one member
 2. Trigger a new product sync from Shopify
 3. Check if SEO metadata was auto-applied
 
 **Expected Results:**
+
 - [ ] New product has SEO metadata auto-applied (Pro/Business plan)
 - [ ] Suggestion is marked as applied
 - [ ] Existing ROLES-2 behavior preserved
@@ -144,10 +163,12 @@ ROLES-3 extends the role-based access control foundations from ROLES-2 to suppor
 ### 7. Membership Management: Add/Remove/Role Change
 
 **Preconditions:**
+
 - User A is project OWNER
 - User B and User C exist in the system
 
 **Steps:**
+
 1. Navigate to Project Settings > Members
 2. Add User B as EDITOR
 3. Add User C as VIEWER
@@ -156,6 +177,7 @@ ROLES-3 extends the role-based access control foundations from ROLES-2 to suppor
 6. Verify final member list
 
 **Expected Results:**
+
 - [ ] Members added successfully with correct roles
 - [ ] Role change succeeds
 - [ ] Member removal succeeds
@@ -167,13 +189,16 @@ ROLES-3 extends the role-based access control foundations from ROLES-2 to suppor
 ### 8. Cannot Remove Last Owner
 
 **Preconditions:**
+
 - Project has exactly 1 OWNER member
 
 **Steps:**
+
 1. Attempt to change last OWNER to EDITOR
 2. Attempt to remove last OWNER
 
 **Expected Results:**
+
 - [ ] Role change fails with error: "Cannot remove the last owner"
 - [ ] Remove fails with error: "Projects must have at least one owner"
 - [ ] Project remains with at least one OWNER
@@ -181,15 +206,18 @@ ROLES-3 extends the role-based access control foundations from ROLES-2 to suppor
 ### 9. Non-Owner Cannot Manage Members
 
 **Preconditions:**
+
 - User has EDITOR or VIEWER role in the project
 
 **Steps:**
+
 1. Navigate to Project Settings > Members
 2. Attempt to add a new member
 3. Attempt to change another member's role
 4. Attempt to remove a member
 
 **Expected Results:**
+
 - [ ] Members list is visible (read-only)
 - [ ] Add/Edit/Remove controls are hidden or disabled
 - [ ] API calls return 403 Forbidden
@@ -198,14 +226,17 @@ ROLES-3 extends the role-based access control foundations from ROLES-2 to suppor
 ### 10. Data Migration: Existing Projects Have OWNER Membership
 
 **Preconditions:**
+
 - Run ROLES-3 migration on database with existing projects
 
 **Steps:**
+
 1. Check ProjectMember table for existing projects
 2. Verify each project has exactly one OWNER member
 3. Verify OWNER userId matches Project.userId
 
 **Expected Results:**
+
 - [ ] Every existing project has a ProjectMember record
 - [ ] All migrated memberships have role = OWNER
 - [ ] userId matches the legacy Project.userId
@@ -213,22 +244,23 @@ ROLES-3 extends the role-based access control foundations from ROLES-2 to suppor
 
 ## API Endpoints
 
-| Endpoint | ROLES-3 Changes |
-|----------|-----------------|
-| `GET /projects` | Returns projects where user is a member |
-| `GET /projects/:id` | Membership check (not just ownership), includes memberRole |
-| `PUT /projects/:id` | OWNER-only |
-| `DELETE /projects/:id` | OWNER-only |
-| `POST /projects/:id/automation-playbooks/apply` | OWNER-only |
-| `GET /projects/:id/members` | List members (all members can view) |
-| `POST /projects/:id/members` | Add member (OWNER-only) |
-| `PUT /projects/:id/members/:memberId` | Change role (OWNER-only) |
-| `DELETE /projects/:id/members/:memberId` | Remove member (OWNER-only) |
-| `GET /projects/:id/role` | Get current user's role + capabilities |
+| Endpoint                                        | ROLES-3 Changes                                            |
+| ----------------------------------------------- | ---------------------------------------------------------- |
+| `GET /projects`                                 | Returns projects where user is a member                    |
+| `GET /projects/:id`                             | Membership check (not just ownership), includes memberRole |
+| `PUT /projects/:id`                             | OWNER-only                                                 |
+| `DELETE /projects/:id`                          | OWNER-only                                                 |
+| `POST /projects/:id/automation-playbooks/apply` | OWNER-only                                                 |
+| `GET /projects/:id/members`                     | List members (all members can view)                        |
+| `POST /projects/:id/members`                    | Add member (OWNER-only)                                    |
+| `PUT /projects/:id/members/:memberId`           | Change role (OWNER-only)                                   |
+| `DELETE /projects/:id/members/:memberId`        | Remove member (OWNER-only)                                 |
+| `GET /projects/:id/role`                        | Get current user's role + capabilities                     |
 
 ## Database Changes
 
 ### New Enum: ProjectMemberRole
+
 ```prisma
 enum ProjectMemberRole {
   OWNER
@@ -238,6 +270,7 @@ enum ProjectMemberRole {
 ```
 
 ### New Model: ProjectMember
+
 ```prisma
 model ProjectMember {
   id        String            @id @default(cuid())
@@ -255,6 +288,7 @@ model ProjectMember {
 ```
 
 ### Extended Enum: GovernanceAuditEventType
+
 - `PROJECT_MEMBER_ADDED`
 - `PROJECT_MEMBER_REMOVED`
 - `PROJECT_MEMBER_ROLE_CHANGED`
@@ -269,26 +303,28 @@ model ProjectMember {
 
 ## Capability Matrix
 
-| Capability | OWNER | EDITOR | VIEWER |
-|------------|-------|--------|--------|
-| View data | Yes | Yes | Yes |
-| Generate drafts | Yes | Yes | No |
-| Request approval | Yes | Yes | No |
-| Approve actions | Yes | No | No |
-| Apply changes | Yes | No | No |
-| Modify settings | Yes | No | No |
-| Manage members | Yes | No | No |
-| Export/view reports | Yes | Yes | Yes |
+| Capability          | OWNER | EDITOR | VIEWER |
+| ------------------- | ----- | ------ | ------ |
+| View data           | Yes   | Yes    | Yes    |
+| Generate drafts     | Yes   | Yes    | No     |
+| Request approval    | Yes   | Yes    | No     |
+| Approve actions     | Yes   | No     | No     |
+| Apply changes       | Yes   | No     | No     |
+| Modify settings     | Yes   | No     | No     |
+| Manage members      | Yes   | No     | No     |
+| Export/view reports | Yes   | Yes    | Yes    |
 
 ## Test Data Setup
 
 To add a member via SQL:
+
 ```sql
 INSERT INTO "ProjectMember" (id, "projectId", "userId", role, "createdAt")
 VALUES (gen_random_uuid()::text, 'project-id', 'user-id', 'EDITOR', NOW());
 ```
 
 To simulate multi-user for auto-apply testing:
+
 ```sql
 -- Add a second member to make project multi-user
 INSERT INTO "ProjectMember" (id, "projectId", "userId", role, "createdAt")
@@ -314,6 +350,7 @@ This fixup patch ensures ROLES-3 works end-to-end:
 ### Changes Made
 
 **PATCH 1: Membership-aware access for governance services**
+
 - `approvals.service.ts`: Uses `RoleResolutionService` for access control
   - `createRequest`: EDITOR-only (OWNER allowed for single-user backward compat)
   - `approve/reject`: OWNER-only via `assertOwnerRole()`
@@ -325,10 +362,12 @@ This fixup patch ensures ROLES-3 works end-to-end:
   - `listEvents`: Any ProjectMember can view
 
 **PATCH 2: Role resolution correctness**
+
 - Added `assertCanGenerateDrafts()` method for VIEWER blocking
 - Existing methods already support ROLES-2/ROLES-3 compatibility
 
 **PATCH 3: Automation Playbooks service role enforcement**
+
 - `previewPlaybook`: OWNER/EDITOR can generate (VIEWER blocked)
 - `generateDraft`: OWNER/EDITOR can generate (VIEWER blocked)
 - `getLatestDraft`: Any ProjectMember can view
@@ -337,11 +376,13 @@ This fixup patch ensures ROLES-3 works end-to-end:
 - `setAutomationEntryConfig`: OWNER-only
 
 **PATCH 4: Products service membership access**
+
 - `getProductsForProject`: Any ProjectMember can view
 - `getProduct`: Any ProjectMember can view
 - Added `RoleResolutionService` to products module
 
 **PATCH 5: Frontend updates**
+
 - Automation Playbooks page:
   - Uses `projectsApi.getUserRole()` instead of `accountApi.getProfile()`
   - Added `canGenerateDrafts` check for preview button disabling
@@ -373,37 +414,42 @@ This fixup enforces the strict approval-chain matrix and completes membership ac
 ### Key Changes
 
 **PATCH 1: Strict Approval-Chain Matrix**
+
 - `approvals.service.ts`: OWNER cannot create approval requests in multi-user projects
   - Multi-user projects: EDITOR-only can request approvals (OWNER must apply directly)
   - Single-user projects: OWNER allowed for ROLES-2 backward compatibility
   - VIEWER blocked in all cases
 
 **PATCH 2: Role Simulation Correctness**
+
 - `role-resolution.service.ts`: Multi-user projects ignore `User.accountRole`
   - Multi-user: ProjectMember role is authoritative
   - Single-user: accountRole emulation preserved for ROLES-2 compatibility
 - `assertCanRequestApproval()`: Strict matrix enforcement (EDITOR-only in multi-user)
 
 **PATCH 3: isMultiUserProject API Extension**
+
 - `GET /projects/:id/role` now returns `isMultiUserProject: boolean`
 - Frontend can differentiate approval flow behavior based on project type
 
 **PATCH 5: Members UX Copy**
+
 - Changed "Invite member" to "Add member"
 - Changed "Add existing user by email" form heading
 - Changed success message from "Invited" to "Added"
 
 **PATCH 6: Answer Block OWNER-Only Mutations**
+
 - `POST /products/:id/answer-blocks` enforces OWNER-only via `assertOwnerRole()`
 - `GET /products/:id/answer-blocks` remains membership-readable
 
 ### Approval-Chain Matrix (FIXUP-2)
 
-| Action | Multi-User Project | Single-User Project |
-|--------|-------------------|---------------------|
-| Create approval request | EDITOR only | OWNER allowed (ROLES-2 compat) |
-| Approve/reject request | OWNER only | OWNER only |
-| Apply directly | OWNER only | OWNER only |
+| Action                  | Multi-User Project | Single-User Project            |
+| ----------------------- | ------------------ | ------------------------------ |
+| Create approval request | EDITOR only        | OWNER allowed (ROLES-2 compat) |
+| Approve/reject request  | OWNER only         | OWNER only                     |
+| Apply directly          | OWNER only         | OWNER only                     |
 
 ### Test Verification
 
@@ -442,14 +488,17 @@ This fixup enforces the correct approval-chain behavior where **EDITOR can NEVER
 ### Key Changes
 
 **PATCH 4.1: Remove Client-Only "approvalRequested" Flag**
+
 - Deleted `approvalRequested` React state (ephemeral flag violation)
 - All approval UI decisions now derive from server-sourced `pendingApproval` object
 
 **PATCH 4.2: isMultiUserProject State**
+
 - Frontend fetches and stores `isMultiUserProject` from `getUserRole()` response
 - Used to determine OWNER behavior in multi-user vs single-user projects
 
 **PATCH 4.3: EDITOR Never Applies (Even If Approved)**
+
 - `handleApplyPlaybook` completely rewritten with strict role enforcement:
   - EDITOR: Can only request approval (if `requireApprovalForApply=true`)
   - EDITOR: Shows informational message based on approval status (pending/approved)
@@ -458,6 +507,7 @@ This fixup enforces the correct approval-chain behavior where **EDITOR can NEVER
   - OWNER in multi-user project: Cannot self-request; must wait for EDITOR request
 
 **PATCH 4.4: CTA Copy + Disabled States from Server Truth**
+
 - All button text and disabled states derived from `pendingApproval?.status`:
   - `PENDING_APPROVAL`: EDITOR sees "Pending approval" (disabled), OWNER sees "Approve and apply"
   - `APPROVED`: EDITOR sees "Approved — Owner applies" (disabled), OWNER sees "Apply playbook"
@@ -466,12 +516,12 @@ This fixup enforces the correct approval-chain behavior where **EDITOR can NEVER
 
 ### Corrected Approval-Chain Flow
 
-| Step | Actor | Action | Result |
-|------|-------|--------|--------|
-| 1 | EDITOR | Click "Request approval" | Creates PENDING_APPROVAL request |
-| 2 | EDITOR | (Waiting) | Button disabled, shows "Pending approval" |
-| 3 | OWNER | Click "Approve and apply" | Approves request AND applies playbook |
-| 4 | - | Complete | Playbook applied, approval consumed |
+| Step | Actor  | Action                    | Result                                    |
+| ---- | ------ | ------------------------- | ----------------------------------------- |
+| 1    | EDITOR | Click "Request approval"  | Creates PENDING_APPROVAL request          |
+| 2    | EDITOR | (Waiting)                 | Button disabled, shows "Pending approval" |
+| 3    | OWNER  | Click "Approve and apply" | Approves request AND applies playbook     |
+| 4    | -      | Complete                  | Playbook applied, approval consumed       |
 
 **Key Invariant:** EDITOR requests approval; **OWNER approves AND applies**. EDITOR never calls apply API.
 
@@ -516,24 +566,27 @@ Run the following scenarios to verify FIXUP-3:
 
 ---
 
-## ROLES-3 FIXUP-4: Membership + Role Enforcement Beyond projects/* (December 2025)
+## ROLES-3 FIXUP-4: Membership + Role Enforcement Beyond projects/\* (December 2025)
 
 This fixup eliminates legacy `project.userId` ownership gates in services outside `apps/api/src/projects/*`, replacing them with membership-aware access control using RoleResolutionService.
 
 ### Key Changes
 
 **PATCH 1: AI Controller - Membership + Matrix Enforcement**
+
 - `ai.controller.ts`: Injected `RoleResolutionService`
   - Draft generation endpoints use `assertCanGenerateDrafts()` (OWNER/EDITOR only)
   - Usage/quota endpoints use `assertProjectAccess()` (any ProjectMember)
   - Removed legacy `project.userId === userId` checks
 
 **PATCH 2: ProductIssueFixService - OWNER-only Apply**
+
 - `product-issue-fix.service.ts`: Injected `RoleResolutionService`
   - `applyFix()` method uses `assertOwnerRole()` (OWNER-only for mutations)
   - Replaced legacy ownership check
 
 **PATCH 3: SEO Scan Service - View vs Mutation Role Rules**
+
 - `seo-scan.service.ts`: Injected `RoleResolutionService`
   - `startScan()` uses `assertOwnerRole()` (mutations are OWNER-only)
   - `scanProductPage()` uses `assertOwnerRole()` (mutations are OWNER-only)
@@ -541,21 +594,25 @@ This fixup eliminates legacy `project.userId` ownership gates in services outsid
   - Removed legacy ownership check
 
 **PATCH 4: Integrations Controller - Members View, OWNER Mutates**
+
 - `integrations.controller.ts`: Injected `RoleResolutionService`
   - GET endpoints use `assertProjectAccess()` (any member can view)
   - POST/PUT/DELETE endpoints use `assertOwnerRole()` (OWNER-only)
   - Removed `validateProjectOwnership()` helper method
 
 **PATCH 4.1: Integrations Module Wiring**
+
 - `integrations.module.ts`: Added `forwardRef(() => ProjectsModule)` import
   - Enables RoleResolutionService injection via ProjectsModule exports
 
 **PATCH 5: Shopify SEO Update - OWNER-only**
+
 - `shopify.service.ts`: Injected `RoleResolutionService`
   - `updateProductSeo()` uses `assertOwnerRole()` (OWNER-only for mutations)
   - Replaced legacy ownership check
 
 **PATCH 6: Integration Tests - ROLES-3 Coverage**
+
 - `roles-3.test.ts`: Added FIXUP-4 test blocks
   - AI Usage endpoints: all ProjectMembers can view, non-member blocked
   - Integrations endpoints: all members can view, only OWNER can mutate
@@ -563,12 +620,12 @@ This fixup eliminates legacy `project.userId` ownership gates in services outsid
 
 ### Role Resolution Method Summary
 
-| Method | Access Level | Use Case |
-|--------|--------------|----------|
-| `assertProjectAccess(projectId, userId)` | Any ProjectMember | Read/view operations |
-| `assertOwnerRole(projectId, userId)` | OWNER only | Mutations (apply, update, delete) |
-| `assertCanGenerateDrafts(projectId, userId)` | OWNER or EDITOR | AI draft generation |
-| `assertCanRequestApproval(projectId, userId)` | EDITOR only (multi-user) | Approval request creation |
+| Method                                        | Access Level             | Use Case                          |
+| --------------------------------------------- | ------------------------ | --------------------------------- |
+| `assertProjectAccess(projectId, userId)`      | Any ProjectMember        | Read/view operations              |
+| `assertOwnerRole(projectId, userId)`          | OWNER only               | Mutations (apply, update, delete) |
+| `assertCanGenerateDrafts(projectId, userId)`  | OWNER or EDITOR          | AI draft generation               |
+| `assertCanRequestApproval(projectId, userId)` | EDITOR only (multi-user) | Approval request creation         |
 
 ### Test Verification
 
@@ -621,22 +678,26 @@ This fixup enables co-owners (any ProjectMember with OWNER role) to perform Shop
 ### Key Changes
 
 **PATCH 1: Shopify OWNER Gate**
+
 - `shopify.service.ts`: Updated `validateProjectOwnership()` to use `RoleResolutionService.resolveEffectiveRole()`
   - Returns `true` if user's effective role is OWNER
   - Supports co-owners (multiple OWNER members)
   - Removed legacy Prisma query for `{ id: projectId, userId }`
 
 **PATCH 3: Account Disconnect Store**
+
 - `account.service.ts`: Injected `RoleResolutionService`
   - `disconnectStore()` uses `assertOwnerRole()` instead of `project.userId === userId`
   - Preserves account-level restriction (`userAccountRole === 'OWNER'`)
   - Supports co-owner disconnect operations
 
 **PATCH 3.1: Account Module Wiring**
+
 - `account.module.ts`: Added `forwardRef(() => ProjectsModule)` import
   - Enables RoleResolutionService injection via ProjectsModule exports
 
 **PATCH 4: Integration Tests**
+
 - `roles-3.test.ts`: Added FIXUP-5 test block for co-owner Shopify actions
   - Creates multi-owner project (primary + secondary OWNER)
   - Tests secondary OWNER can call ensure-metafield-definitions
@@ -645,12 +706,12 @@ This fixup enables co-owners (any ProjectMember with OWNER role) to perform Shop
 
 ### Endpoints Now Supporting Co-Owners
 
-| Endpoint | Access | Notes |
-|----------|--------|-------|
-| `GET /shopify/install` | Any project OWNER | Initiates Shopify OAuth |
-| `POST /shopify/sync-products` | Any project OWNER | Syncs products from Shopify |
-| `POST /shopify/ensure-metafield-definitions` | Any project OWNER | Creates Answer Block metafield definitions |
-| `DELETE /account/stores/:projectId` | Account OWNER + Project OWNER | Disconnects Shopify store |
+| Endpoint                                     | Access                        | Notes                                      |
+| -------------------------------------------- | ----------------------------- | ------------------------------------------ |
+| `GET /shopify/install`                       | Any project OWNER             | Initiates Shopify OAuth                    |
+| `POST /shopify/sync-products`                | Any project OWNER             | Syncs products from Shopify                |
+| `POST /shopify/ensure-metafield-definitions` | Any project OWNER             | Creates Answer Block metafield definitions |
+| `DELETE /account/stores/:projectId`          | Account OWNER + Project OWNER | Disconnects Shopify store                  |
 
 ### Test Verification
 
@@ -693,10 +754,12 @@ This update adds approval attribution display in the Playbooks page Step 3 (Appl
 ### Key Changes
 
 **PATCH 1: API Type Update**
+
 - `api.ts`: Added `requestedByUserId` and `decidedByUserId` to `ApprovalRequestResponse` type
   - These fields already exist in backend response, now typed in frontend
 
 **PATCH 2: Playbooks Page Attribution UI**
+
 - `page.tsx`: Added `projectMembers` state and fetch in `fetchInitialData()`
 - `page.tsx`: Added `getUserDisplayName()` helper to map userId → name/email
 - `page.tsx`: Added attribution panel in Step 3 showing:
@@ -705,6 +768,7 @@ This update adds approval attribution display in the Playbooks page Step 3 (Appl
 - Falls back to shortened userId if member lookup fails
 
 **PATCH 3: Critical Path Map Update**
+
 - `CRITICAL_PATH_MAP.md`: Updated CP-019 Auto Tests field (roles-3.test.ts present)
 - `CRITICAL_PATH_MAP.md`: Updated Coverage Summary to show Full Coverage
 
@@ -740,6 +804,7 @@ This update adds Playwright E2E test coverage for ROLES-3 and fixes AI usage att
 ### Key Changes
 
 **PATCH 1: Playwright E2E Tests (roles-3.spec.ts)**
+
 - `apps/web/tests/roles-3.spec.ts`: New comprehensive E2E test file
   - **Test A: EDITOR + OWNER Approval Workflow**
     - Seeds OWNER project via `seed-first-deo-win`
@@ -761,10 +826,12 @@ This update adds Playwright E2E test coverage for ROLES-3 and fixes AI usage att
     - Tests adding member changes to `isMultiUserProject: true`
 
 **PATCH 2: Documentation Updates**
+
 - `docs/IMPLEMENTATION_PLAN.md`: Removed "(planned)" from roles-3.spec.ts
 - `docs/testing/CRITICAL_PATH_MAP.md`: Removed "(planned)" from CP-019 Auto Tests
 
 **PATCH 3: AI Usage Attribution Fix**
+
 - `apps/api/src/ai/ai-usage-ledger.service.ts`: Added `actorUserId` parameter to `recordAiRun()`
   - If `actorUserId` provided, uses it for `createdByUserId` (multi-user attribution)
   - Falls back to `project.userId` for backwards compatibility

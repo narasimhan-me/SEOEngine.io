@@ -46,7 +46,11 @@ interface ProductDraftsTabProps {
  * Fetches drafts on mount (standard conditional tab behavior).
  * [DRAFT-DIFF-CLARITY-1] Shows Current (live) vs Draft (staged) diff for each item.
  */
-export function ProductDraftsTab({ projectId, productId, currentFieldValues }: ProductDraftsTabProps) {
+export function ProductDraftsTab({
+  projectId,
+  productId,
+  currentFieldValues,
+}: ProductDraftsTabProps) {
   return (
     <AssetDraftsTab
       projectId={projectId}

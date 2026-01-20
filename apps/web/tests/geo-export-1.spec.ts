@@ -10,7 +10,7 @@ test.describe('GEO-EXPORT-1: GEO Report Export', () => {
   test.beforeEach(async ({ page }) => {
     // Seed test data
     const seedResponse = await page.request.post(
-      'http://localhost:3001/testkit/e2e/seed-geo-insights-2',
+      'http://localhost:3001/testkit/e2e/seed-geo-insights-2'
     );
     const seedData = await seedResponse.json();
 
@@ -29,7 +29,9 @@ test.describe('GEO-EXPORT-1: GEO Report Export', () => {
     }, seedData);
   });
 
-  test('Export Report button appears on GEO Insights page', async ({ page }) => {
+  test('Export Report button appears on GEO Insights page', async ({
+    page,
+  }) => {
     const testData = await page.evaluate(() => (window as any).__testData);
     await page.goto(`/projects/${testData.project.id}/insights/geo-insights`);
 
@@ -43,7 +45,9 @@ test.describe('GEO-EXPORT-1: GEO Report Export', () => {
 
   test('Export page loads with report data', async ({ page }) => {
     const testData = await page.evaluate(() => (window as any).__testData);
-    await page.goto(`/projects/${testData.project.id}/insights/geo-insights/export`);
+    await page.goto(
+      `/projects/${testData.project.id}/insights/geo-insights/export`
+    );
 
     // Wait for page to load
     await page.waitForSelector('h1:has-text("GEO Readiness Report")');
@@ -55,13 +59,15 @@ test.describe('GEO-EXPORT-1: GEO Report Export', () => {
 
     // Verify disclaimer is present
     await expect(
-      page.getByText(/internal content readiness signals/i),
+      page.getByText(/internal content readiness signals/i)
     ).toBeVisible();
   });
 
   test('Print/Save PDF button is visible', async ({ page }) => {
     const testData = await page.evaluate(() => (window as any).__testData);
-    await page.goto(`/projects/${testData.project.id}/insights/geo-insights/export`);
+    await page.goto(
+      `/projects/${testData.project.id}/insights/geo-insights/export`
+    );
 
     await page.waitForSelector('h1:has-text("GEO Readiness Report")');
 
@@ -69,14 +75,20 @@ test.describe('GEO-EXPORT-1: GEO Report Export', () => {
     await expect(printButton).toBeVisible();
   });
 
-  test('Create Share Link button creates a new share link', async ({ page }) => {
+  test('Create Share Link button creates a new share link', async ({
+    page,
+  }) => {
     const testData = await page.evaluate(() => (window as any).__testData);
-    await page.goto(`/projects/${testData.project.id}/insights/geo-insights/export`);
+    await page.goto(
+      `/projects/${testData.project.id}/insights/geo-insights/export`
+    );
 
     await page.waitForSelector('h1:has-text("GEO Readiness Report")');
 
     // Click create share link button
-    const createButton = page.getByRole('button', { name: /Create Share Link/i });
+    const createButton = page.getByRole('button', {
+      name: /Create Share Link/i,
+    });
     await expect(createButton).toBeVisible();
     await createButton.click();
 
@@ -87,12 +99,16 @@ test.describe('GEO-EXPORT-1: GEO Report Export', () => {
 
   test('Share link can be copied and revoked', async ({ page }) => {
     const testData = await page.evaluate(() => (window as any).__testData);
-    await page.goto(`/projects/${testData.project.id}/insights/geo-insights/export`);
+    await page.goto(
+      `/projects/${testData.project.id}/insights/geo-insights/export`
+    );
 
     await page.waitForSelector('h1:has-text("GEO Readiness Report")');
 
     // Create a share link first
-    const createButton = page.getByRole('button', { name: /Create Share Link/i });
+    const createButton = page.getByRole('button', {
+      name: /Create Share Link/i,
+    });
     await createButton.click();
 
     // Wait for share link to appear
@@ -107,7 +123,9 @@ test.describe('GEO-EXPORT-1: GEO Report Export', () => {
     await expect(revokeButton).toBeVisible();
   });
 
-  test('Navigating to export page does not trigger mutations', async ({ page }) => {
+  test('Navigating to export page does not trigger mutations', async ({
+    page,
+  }) => {
     const testData = await page.evaluate(() => (window as any).__testData);
 
     // Track network requests
@@ -119,7 +137,9 @@ test.describe('GEO-EXPORT-1: GEO Report Export', () => {
     });
 
     // Navigate to export page
-    await page.goto(`/projects/${testData.project.id}/insights/geo-insights/export`);
+    await page.goto(
+      `/projects/${testData.project.id}/insights/geo-insights/export`
+    );
     await page.waitForSelector('h1:has-text("GEO Readiness Report")');
 
     // Wait a bit for any async operations
@@ -130,7 +150,7 @@ test.describe('GEO-EXPORT-1: GEO Report Export', () => {
       (req) =>
         !req.includes('/testkit/') &&
         !req.includes('/analytics/') &&
-        !req.includes('/log/'),
+        !req.includes('/log/')
     );
     expect(unexpectedMutations).toHaveLength(0);
   });
@@ -144,10 +164,12 @@ test.describe('GEO-EXPORT-1: Public Share View', () => {
     await expect(page.getByText(/Report Not Found/i)).toBeVisible();
   });
 
-  test('Public share view displays read-only badge and disclaimer', async ({ page }) => {
+  test('Public share view displays read-only badge and disclaimer', async ({
+    page,
+  }) => {
     // First create a share link
     const seedResponse = await page.request.post(
-      'http://localhost:3001/testkit/e2e/seed-geo-insights-2',
+      'http://localhost:3001/testkit/e2e/seed-geo-insights-2'
     );
     const seedData = await seedResponse.json();
 
@@ -158,7 +180,9 @@ test.describe('GEO-EXPORT-1: Public Share View', () => {
     await page.click('button[type="submit"]');
     await page.waitForURL(/\/projects/);
 
-    await page.goto(`/projects/${seedData.project.id}/insights/geo-insights/export`);
+    await page.goto(
+      `/projects/${seedData.project.id}/insights/geo-insights/export`
+    );
     await page.waitForSelector('h1:has-text("GEO Readiness Report")');
 
     // Create share link
@@ -177,7 +201,7 @@ test.describe('GEO-EXPORT-1: Public Share View', () => {
 
     // Should show disclaimer
     await expect(
-      page.getByText(/internal content readiness signals/i),
+      page.getByText(/internal content readiness signals/i)
     ).toBeVisible();
   });
 });

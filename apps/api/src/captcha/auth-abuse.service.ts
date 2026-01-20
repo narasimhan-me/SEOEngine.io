@@ -17,9 +17,11 @@ export class AuthAbuseService {
 
   constructor(private configService: ConfigService) {
     // Number of failed attempts before CAPTCHA is required
-    this.threshold = this.configService.get<number>('CAPTCHA_LOGIN_THRESHOLD') || 2;
+    this.threshold =
+      this.configService.get<number>('CAPTCHA_LOGIN_THRESHOLD') || 2;
     // Time window in seconds to track failed attempts (default 15 minutes)
-    this.windowSeconds = this.configService.get<number>('CAPTCHA_LOGIN_WINDOW_SECONDS') || 900;
+    this.windowSeconds =
+      this.configService.get<number>('CAPTCHA_LOGIN_WINDOW_SECONDS') || 900;
   }
 
   /**

@@ -7,7 +7,10 @@ interface ProductOverviewPanelProps {
   status: ProductStatus;
 }
 
-export function ProductOverviewPanel({ product, status }: ProductOverviewPanelProps) {
+export function ProductOverviewPanel({
+  product,
+  status,
+}: ProductOverviewPanelProps) {
   const statusLabel =
     status === 'optimized'
       ? 'Optimized'
@@ -22,7 +25,10 @@ export function ProductOverviewPanel({ product, status }: ProductOverviewPanelPr
         ? 'bg-yellow-50 text-yellow-800 ring-1 ring-yellow-100'
         : 'bg-red-50 text-red-800 ring-1 ring-red-100';
 
-  const formatPrice = (price: number | null | undefined, currency: string | null | undefined) => {
+  const formatPrice = (
+    price: number | null | undefined,
+    currency: string | null | undefined
+  ) => {
     if (price == null) return 'Not available';
     const currencyCode = currency || 'USD';
     try {
@@ -46,7 +52,9 @@ export function ProductOverviewPanel({ product, status }: ProductOverviewPanelPr
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <h3 className="mb-4 text-sm font-semibold text-gray-900">Product Overview</h3>
+      <h3 className="mb-4 text-sm font-semibold text-gray-900">
+        Product Overview
+      </h3>
 
       {/* Thumbnail and title */}
       <div className="mb-4 flex items-start gap-3">
@@ -77,7 +85,10 @@ export function ProductOverviewPanel({ product, status }: ProductOverviewPanelPr
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium text-gray-900" title={product.title}>
+          <div
+            className="truncate text-sm font-medium text-gray-900"
+            title={product.title}
+          >
             {product.title}
           </div>
           <div className="mt-0.5 truncate text-xs text-gray-500">

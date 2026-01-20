@@ -60,16 +60,19 @@
 **ID:** UX7-HP-001
 
 **Preconditions:**
+
 - [ ] Logged in as Free plan user.
 - [ ] Project has Issues Engine Lite issues including missing_seo_title and/or missing_seo_description.
 
 **Steps:**
+
 1. Navigate to /projects/[id]/issues for the Free-plan project.
 2. Confirm that the issue list shows product-focused issues (including missing SEO title/description).
 3. Locate any issue with fixType: 'aiFix' and fixReady: true (e.g., missing_seo_title).
 4. Attempt to click "Fix next" for that issue.
 
 **Expected Results:**
+
 - UI: Issues page shows the list of issues with severity badges and counts.
 - UI: For AI-fixable issues, either "Fix next" is not available or, when clicked, shows an upgrade-style toast:
   - Message indicates that AI-powered SEO fixes are available on Pro/Business plans.
@@ -83,10 +86,12 @@
 **ID:** UX7-HP-002
 
 **Preconditions:**
+
 - [ ] Logged in as Pro plan user.
 - [ ] Project has a product with missing_seo_title detected by Issues Engine Lite (Issue Engine response includes missing_seo_title with fixType: 'aiFix' and fixReady: true).
 
 **Steps:**
+
 1. Navigate to /projects/[id]/issues.
 2. Find the missing_seo_title issue card.
 3. Click "Fix next" for that issue.
@@ -95,6 +100,7 @@
 6. Optionally, re-run the Issues page (Re-scan Issues) or refresh to confirm the missing SEO title issue count is reduced.
 
 **Expected Results:**
+
 - UI: "Fix next" button shows a spinner ("Fixing…") while the request is in flight.
 - UI: On success, a toast appears: "SEO title generated for one product. X remaining."
 - Backend: The /ai/product-metadata/fix-from-issue endpoint:
@@ -112,15 +118,18 @@
 **ID:** UX7-HP-003
 
 **Preconditions:**
+
 - [ ] Same as Scenario 2, but with a product triggering missing_seo_description.
 
 **Steps:**
+
 1. Navigate to /projects/[id]/issues.
 2. Find the missing_seo_description issue card.
 3. Click "Fix next".
 4. After completion, inspect the product's SEO description in the Product workspace.
 
 **Expected Results:**
+
 - UI: "Fix next" behaves as above with an appropriate success toast (e.g., "SEO description generated for one product. X remaining.").
 - Backend: AI fix endpoint:
   - Persists a non-empty seoDescription for the product.
@@ -134,14 +143,17 @@
 **ID:** UX7-HP-004
 
 **Preconditions:**
+
 - [ ] Pro plan user.
 - [ ] Daily AI limit for product_optimize configured and reachable.
 
 **Steps:**
+
 1. Use product optimization or issue-based "Fix next" actions until AI_DAILY_LIMIT_REACHED is triggered (or simulate via configuration).
 2. Attempt "Fix next" for missing_seo_title or missing_seo_description on Issues page.
 
 **Expected Results:**
+
 - UI: A toast appears: "Token limit reached. Upgrade to continue fixing products."
 - UI: Toast uses limit styling with an Upgrade link to /settings/billing.
 - Backend: Endpoint responds with AI_DAILY_LIMIT_REACHED (HTTP 429); no SEO fields are changed.
@@ -154,14 +166,17 @@
 **ID:** UX7-HP-005
 
 **Preconditions:**
+
 - [ ] At least two users (User A and User B) with separate projects.
 - [ ] User A has a project with Issues Engine Lite data; User B should not own that project.
 
 **Steps:**
+
 1. As User A (Pro plan), confirm Issues appear for a project.
 2. As User B (Pro or Free), attempt to call the AI fix endpoint for a product in User A's project (via UI or direct API call).
 
 **Expected Results:**
+
 - Backend: AI fix endpoint returns a permission error (Forbidden) when user does not own the product's project.
 - UI: If triggered from UI, surfaces a clear error toast and does not update any SEO fields.
 - Data: No unauthorized SEO changes occur on User A's products.
@@ -173,14 +188,17 @@
 **ID:** UX7-HP-006
 
 **Preconditions:**
+
 - [ ] Project with Top blockers on the Overview dashboard.
 
 **Steps:**
+
 1. Navigate to /projects/[id]/overview.
 2. Confirm "Top blockers" section renders the top 3 issues.
 3. Click "View all issues" from the dashboard.
 
 **Expected Results:**
+
 - UI: "Top blockers" continues to render with severity and outcome-style descriptions.
 - Navigation: "View all issues" still navigates to /projects/[id]/issues.
 - Behavior: Issue selection and severity filters on the Issues page behave as before; new "Fix now" wiring does not break dashboard flows.
@@ -194,10 +212,12 @@
 **Description:** The issue says missing_seo_title, but the product's seoTitle is already set (e.g., fixed manually).
 
 **Steps:**
+
 1. Manually set seoTitle on a product that still has a missing_seo_title issue cached.
 2. Click "Fix next" on the corresponding issue.
 
 **Expected Behavior:**
+
 - Backend: AI fix endpoint returns updated: false with reason: 'already_has_value'.
 - UI: Shows an info toast indicating no changes were applied because the field is already set.
 - Issues: After re-scan, missing_seo_title issue disappears.
@@ -209,10 +229,12 @@
 **Description:** AI generates an empty or unusable title/description for the product.
 
 **Steps:**
+
 1. In a controlled environment, force AI to return empty strings (e.g., via stubbing).
 2. Run "Fix next" for missing_seo_description.
 
 **Expected Behavior:**
+
 - Backend: Returns updated: false with reason: 'no_suggestion'.
 - UI: Shows an info toast: AI could not generate a usable suggestion for this field.
 - Data: Product SEO fields remain unchanged.
@@ -226,10 +248,12 @@
 **Scenario:** AI provider call fails (network error or provider-side error) during "Fix next".
 
 **Steps:**
+
 1. Simulate AI provider failure when the fix endpoint calls metadata generation.
 2. Click "Fix next" for missing_seo_title.
 
 **Expected Behavior:**
+
 - UI: Shows a clear error toast: "Failed to run AI fix. Please try again."
 - Backend: Logs the error under [AI][IssueAiFix] fix_product_metadata.failed with context (userId, projectId, productId, issueType).
 - Data: No partial or corrupted SEO values are persisted.
@@ -286,9 +310,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| Tester Name | [Name] |
-| Date | [YYYY-MM-DD] |
+| Field          | Value                                 |
+| -------------- | ------------------------------------- |
+| Tester Name    | [Name]                                |
+| Date           | [YYYY-MM-DD]                          |
 | Overall Status | [ ] Passed / [ ] Blocked / [ ] Failed |
-| Notes | [Any additional notes] |
+| Notes          | [Any additional notes]                |

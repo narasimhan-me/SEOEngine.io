@@ -7,14 +7,16 @@ import { test, expect } from '@playwright/test';
  * supports navigation to product workspace.
  */
 
-const API_BASE_URL =
-  process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
 
 async function seedProductsProject(request: any) {
   // Reuse seed-first-deo-win which creates products
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-first-deo-win`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   return {
@@ -46,17 +48,21 @@ test.describe('PRODUCTS-LIST-2.0 – Products List Smoke Test', () => {
 
     // Assert: Products page heading visible
     await expect(
-      page.getByRole('heading', { name: /Products/i }),
+      page.getByRole('heading', { name: /Products/i })
     ).toBeVisible();
 
     // Assert: At least one "View details" product link is visible
-    const viewDetailsLink = page.getByRole('link', { name: /View details/i }).first();
+    const viewDetailsLink = page
+      .getByRole('link', { name: /View details/i })
+      .first();
     await expect(viewDetailsLink).toBeVisible();
 
     // Click the first "View details" link
     await viewDetailsLink.click();
 
     // Assert: Navigation to product detail URL
-    await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/products/`));
+    await expect(page).toHaveURL(
+      new RegExp(`/projects/${projectId}/products/`)
+    );
   });
 });

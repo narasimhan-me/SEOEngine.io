@@ -68,4 +68,3 @@ describe('CRITICAL – Auth and entitlement gating', () => {
     expect(res.body?.code).toBe('ENTITLEMENTS_LIMIT_REACHED');
   });
 });
-

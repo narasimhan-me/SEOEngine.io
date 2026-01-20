@@ -75,7 +75,10 @@ export interface RouteContextParams {
  * @param ctx - Route context params to append
  * @returns URL with route context appended
  */
-export function withRouteContext(href: string, ctx: RouteContextParams): string {
+export function withRouteContext(
+  href: string,
+  ctx: RouteContextParams
+): string {
   // Parse existing URL parts
   const hasQuery = href.includes('?');
   const [basePath, existingQuery] = hasQuery ? href.split('?', 2) : [href, ''];

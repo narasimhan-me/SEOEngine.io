@@ -1,4 +1,9 @@
-import { IntegrationType, PrismaClient, CustomerAccountRole, UserRole } from '@prisma/client';
+import {
+  IntegrationType,
+  PrismaClient,
+  CustomerAccountRole,
+  UserRole,
+} from '@prisma/client';
 
 let counter = 0;
 
@@ -19,7 +24,7 @@ export interface CreateTestUserOptions {
 
 export async function createTestUser(
   prisma: PrismaClient,
-  options: CreateTestUserOptions = {},
+  options: CreateTestUserOptions = {}
 ) {
   const email =
     options.email ?? `${nextTestSuffix('user')}@example.com`.toLowerCase();
@@ -28,9 +33,7 @@ export async function createTestUser(
   const accountRole = options.accountRole
     ? (options.accountRole as CustomerAccountRole)
     : CustomerAccountRole.OWNER;
-  const role = options.role
-    ? (options.role as UserRole)
-    : UserRole.USER;
+  const role = options.role ? (options.role as UserRole) : UserRole.USER;
 
   const user = await prisma.user.create({
     data: {
@@ -69,12 +72,11 @@ export interface CreateTestProjectOptions {
 
 export async function createTestProject(
   prisma: PrismaClient,
-  options: CreateTestProjectOptions,
+  options: CreateTestProjectOptions
 ) {
   const name = options.name ?? `Test Project ${nextTestSuffix('project')}`;
   const domain =
-    options.domain ??
-    `${nextTestSuffix('project')}.example.com`.toLowerCase();
+    options.domain ?? `${nextTestSuffix('project')}.example.com`.toLowerCase();
 
   const project = await prisma.project.create({
     data: {
@@ -96,7 +98,7 @@ export interface CreateTestShopifyStoreConnectionOptions {
 
 export async function createTestShopifyStoreConnection(
   prisma: PrismaClient,
-  options: CreateTestShopifyStoreConnectionOptions,
+  options: CreateTestShopifyStoreConnectionOptions
 ) {
   const shopDomain =
     options.shopDomain ??
@@ -130,7 +132,7 @@ export interface CreateTestProductsOptions {
 
 export async function createTestProducts(
   prisma: PrismaClient,
-  options: CreateTestProductsOptions,
+  options: CreateTestProductsOptions
 ) {
   const products = [];
   for (let i = 0; i < options.count; i += 1) {
@@ -142,7 +144,11 @@ export async function createTestProducts(
     const hasIssues = options.withIssues ?? true;
 
     const seoTitle =
-      hasSeo && !hasIssues ? `${baseTitle} – SEO` : hasIssues ? null : baseTitle;
+      hasSeo && !hasIssues
+        ? `${baseTitle} – SEO`
+        : hasIssues
+          ? null
+          : baseTitle;
     const seoDescription =
       hasSeo && !hasIssues
         ? `${baseDescription} (SEO)`
@@ -174,7 +180,7 @@ export interface SetTestUserPlanOptions {
 
 export async function setTestUserPlan(
   prisma: PrismaClient,
-  options: SetTestUserPlanOptions,
+  options: SetTestUserPlanOptions
 ) {
   await prisma.subscription.upsert({
     where: { userId: options.userId },
@@ -196,7 +202,7 @@ export interface SeedFirstDeoWinProjectReadyOptions {
 
 export async function seedFirstDeoWinProjectReady(
   prisma: PrismaClient,
-  options: SeedFirstDeoWinProjectReadyOptions,
+  options: SeedFirstDeoWinProjectReadyOptions
 ) {
   const { user } = await createTestUser(prisma, {
     plan: options.userPlan,
@@ -234,7 +240,7 @@ export interface SeedConnectedStoreProjectOptions {
  */
 export async function seedConnectedStoreProject(
   prisma: PrismaClient,
-  options: SeedConnectedStoreProjectOptions = {},
+  options: SeedConnectedStoreProjectOptions = {}
 ) {
   const { user } = await createTestUser(prisma, {
     plan: options.plan ?? 'free',
@@ -264,11 +270,11 @@ export interface SeedCrawledProjectOptions {
  */
 export async function seedCrawledProject(
   prisma: PrismaClient,
-  options: SeedCrawledProjectOptions = {},
+  options: SeedCrawledProjectOptions = {}
 ) {
   const { user, project, shopifyIntegration } = await seedConnectedStoreProject(
     prisma,
-    options,
+    options
   );
 
   const now = new Date();
@@ -314,12 +320,12 @@ export interface SeedReviewedDeoProjectOptions {
  */
 export async function seedReviewedDeoProject(
   prisma: PrismaClient,
-  options: SeedReviewedDeoProjectOptions = {},
+  options: SeedReviewedDeoProjectOptions = {}
 ) {
   const targetScore = typeof options.score === 'number' ? options.score : 82;
   const { user, project, shopifyIntegration } = await seedCrawledProject(
     prisma,
-    options,
+    options
   );
 
   const now = new Date();
@@ -364,7 +370,7 @@ export interface SeedProductsNeedingSeoOptions {
  */
 export async function seedProductsNeedingSeo(
   prisma: PrismaClient,
-  options: SeedProductsNeedingSeoOptions,
+  options: SeedProductsNeedingSeoOptions
 ) {
   const products = [];
   for (let i = 0; i < options.count; i += 1) {
@@ -400,7 +406,7 @@ export interface SeedOptimizedProductsOptions {
  */
 export async function seedOptimizedProducts(
   prisma: PrismaClient,
-  options: SeedOptimizedProductsOptions,
+  options: SeedOptimizedProductsOptions
 ) {
   const count = options.count ?? 3;
   const products = await createTestProducts(prisma, {
@@ -411,4 +417,3 @@ export async function seedOptimizedProducts(
   });
   return products;
 }
-

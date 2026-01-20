@@ -11,7 +11,10 @@
 import { CrawlProcessor } from '../../../src/crawl/crawl.processor';
 import { PrismaService } from '../../../src/prisma.service';
 import { SeoScanService } from '../../../src/seo-scan/seo-scan.service';
-import { DeoScoreService, DeoSignalsService } from '../../../src/projects/deo-score.service';
+import {
+  DeoScoreService,
+  DeoSignalsService,
+} from '../../../src/projects/deo-score.service';
 import { AutomationService } from '../../../src/projects/automation.service';
 import { redisConfig } from '../../../src/config/redis.config';
 
@@ -66,7 +69,7 @@ describe('CrawlProcessor', () => {
       seoScanServiceMock as unknown as SeoScanService,
       deoSignalsServiceMock as unknown as DeoSignalsService,
       deoScoreServiceMock as unknown as DeoScoreService,
-      automationServiceMock as unknown as AutomationService,
+      automationServiceMock as unknown as AutomationService
     );
 
     originalRedisConfig = { ...redisConfig };
@@ -107,14 +110,10 @@ describe('CrawlProcessor', () => {
       const { Worker } = require('bullmq');
       await processor.onModuleInit();
 
-      expect(Worker).toHaveBeenCalledWith(
-        'crawl_queue',
-        expect.any(Function),
-        {
-          connection: redisConfig.connection,
-          prefix: redisConfig.prefix,
-        },
-      );
+      expect(Worker).toHaveBeenCalledWith('crawl_queue', expect.any(Function), {
+        connection: redisConfig.connection,
+        prefix: redisConfig.prefix,
+      });
     });
   });
 
@@ -137,8 +136,17 @@ describe('CrawlProcessor', () => {
 
     it('should process job and run full crawl pipeline', async () => {
       const mockSignals = {
-        content: { totalPages: 1, pagesWithMetadata: 1, avgWordCount: 100, pagesWithThinContent: 0 },
-        entities: { totalProducts: 0, productsWithAnswerBlocks: 0, answerabilityScore: 0 },
+        content: {
+          totalPages: 1,
+          pagesWithMetadata: 1,
+          avgWordCount: 100,
+          pagesWithThinContent: 0,
+        },
+        entities: {
+          totalProducts: 0,
+          productsWithAnswerBlocks: 0,
+          answerabilityScore: 0,
+        },
         technical: { crawlablePages: 1, indexablePages: 1, avgLoadTime: 1 },
         visibility: { offsitePresenceScore: 0, localDiscoveryScore: null },
       };
@@ -146,15 +154,25 @@ describe('CrawlProcessor', () => {
       const mockSnapshot = {
         id: 'snapshot-1',
         projectId: 'proj-1',
-        breakdown: { overall: 70, content: 70, entities: 60, technical: 80, visibility: 60 },
+        breakdown: {
+          overall: 70,
+          content: 70,
+          entities: 60,
+          technical: 80,
+          visibility: 60,
+        },
       };
 
       const crawledAt = new Date();
 
       seoScanServiceMock.runFullProjectCrawl.mockResolvedValue(crawledAt);
       prismaMock.project.update.mockResolvedValue({});
-      deoSignalsServiceMock.collectSignalsForProject.mockResolvedValue(mockSignals);
-      deoScoreServiceMock.computeAndPersistScoreFromSignals.mockResolvedValue(mockSnapshot);
+      deoSignalsServiceMock.collectSignalsForProject.mockResolvedValue(
+        mockSignals
+      );
+      deoScoreServiceMock.computeAndPersistScoreFromSignals.mockResolvedValue(
+        mockSnapshot
+      );
 
       const jobHandler = (processor as any).jobHandler;
       const mockJob = {
@@ -163,17 +181,22 @@ describe('CrawlProcessor', () => {
 
       await jobHandler(mockJob);
 
-      expect(seoScanServiceMock.runFullProjectCrawl).toHaveBeenCalledWith('proj-1');
+      expect(seoScanServiceMock.runFullProjectCrawl).toHaveBeenCalledWith(
+        'proj-1'
+      );
       expect(prismaMock.project.update).toHaveBeenCalledWith({
         where: { id: 'proj-1' },
         data: { lastCrawledAt: crawledAt },
       });
-      expect(deoSignalsServiceMock.collectSignalsForProject).toHaveBeenCalledWith('proj-1');
-      expect(deoScoreServiceMock.computeAndPersistScoreFromSignals).toHaveBeenCalledWith(
-        'proj-1',
-        mockSignals,
-      );
-      expect(automationServiceMock.scheduleSuggestionsForProject).toHaveBeenCalledWith('proj-1');
+      expect(
+        deoSignalsServiceMock.collectSignalsForProject
+      ).toHaveBeenCalledWith('proj-1');
+      expect(
+        deoScoreServiceMock.computeAndPersistScoreFromSignals
+      ).toHaveBeenCalledWith('proj-1', mockSignals);
+      expect(
+        automationServiceMock.scheduleSuggestionsForProject
+      ).toHaveBeenCalledWith('proj-1');
     });
 
     it('should skip when crawl returns null', async () => {
@@ -189,13 +212,17 @@ describe('CrawlProcessor', () => {
       await jobHandler(mockJob);
 
       expect(prismaMock.project.update).not.toHaveBeenCalled();
-      expect(deoSignalsServiceMock.collectSignalsForProject).not.toHaveBeenCalled();
+      expect(
+        deoSignalsServiceMock.collectSignalsForProject
+      ).not.toHaveBeenCalled();
 
       (console.warn as jest.Mock).mockRestore();
     });
 
     it('should throw error when crawl fails', async () => {
-      seoScanServiceMock.runFullProjectCrawl.mockRejectedValue(new Error('Crawl failed'));
+      seoScanServiceMock.runFullProjectCrawl.mockRejectedValue(
+        new Error('Crawl failed')
+      );
 
       const jobHandler = (processor as any).jobHandler;
       const mockJob = {
@@ -229,4 +256,3 @@ describe('CrawlProcessor', () => {
     });
   });
 });
-

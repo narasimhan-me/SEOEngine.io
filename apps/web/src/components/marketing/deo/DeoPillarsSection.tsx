@@ -6,12 +6,18 @@ export function DeoPillarsSection() {
           <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
             What DEO actually measures
           </h2>
-          <p className="mt-3 text-sm text-muted-foreground">DEO consists of four core pillars:</p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            DEO consists of four core pillars:
+          </p>
         </div>
         <dl className="mt-6 grid gap-6 text-sm text-muted-foreground sm:grid-cols-2">
           <div>
-            <dt className="text-sm font-semibold text-foreground">1. Content Quality</dt>
-            <dd className="mt-1">Depth, clarity, completeness, and usefulness.</dd>
+            <dt className="text-sm font-semibold text-foreground">
+              1. Content Quality
+            </dt>
+            <dd className="mt-1">
+              Depth, clarity, completeness, and usefulness.
+            </dd>
           </div>
           <div>
             <dt className="text-sm font-semibold text-foreground">
@@ -22,14 +28,20 @@ export function DeoPillarsSection() {
             </dd>
           </div>
           <div>
-            <dt className="text-sm font-semibold text-foreground">3. Technical Health</dt>
-            <dd className="mt-1">Crawlability, status codes, indexability, metadata presence.</dd>
+            <dt className="text-sm font-semibold text-foreground">
+              3. Technical Health
+            </dt>
+            <dd className="mt-1">
+              Crawlability, status codes, indexability, metadata presence.
+            </dd>
           </div>
           <div>
-            <dt className="text-sm font-semibold text-foreground">4. Visibility Strength</dt>
+            <dt className="text-sm font-semibold text-foreground">
+              4. Visibility Strength
+            </dt>
             <dd className="mt-1">
-              Whether your content can appear in AI answers, summaries, previews, or topical
-              clusters.
+              Whether your content can appear in AI answers, summaries,
+              previews, or topical clusters.
             </dd>
           </div>
         </dl>

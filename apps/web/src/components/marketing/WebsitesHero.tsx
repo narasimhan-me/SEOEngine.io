@@ -8,12 +8,13 @@ export function WebsitesHero() {
           EngineO.ai for WordPress, Webflow, and Every Website.
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">
-          Optimize all your pages, blogs, documentation, and landing pages for search &amp; AI
-          &mdash; automatically.
+          Optimize all your pages, blogs, documentation, and landing pages for
+          search &amp; AI &mdash; automatically.
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
-          EngineO.ai crawls your entire site, detects visibility issues, and generates AI-powered
-          fixes for titles, descriptions, metadata, content depth, entity structure, and more.
+          EngineO.ai crawls your entire site, detects visibility issues, and
+          generates AI-powered fixes for titles, descriptions, metadata, content
+          depth, entity structure, and more.
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
           Works with any CMS. No plugins required.

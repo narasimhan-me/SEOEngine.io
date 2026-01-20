@@ -123,9 +123,13 @@ export default function AdminUsersPage() {
             {users.map((user) => (
               <tr key={user.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{user.email}</div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {user.email}
+                  </div>
                   {user.adminRole && (
-                    <span className="text-xs text-purple-600">{user.adminRole}</span>
+                    <span className="text-xs text-purple-600">
+                      {user.adminRole}
+                    </span>
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -134,10 +138,10 @@ export default function AdminUsersPage() {
                       user.subscription?.plan === 'enterprise'
                         ? 'bg-purple-100 text-purple-800'
                         : user.subscription?.plan === 'pro'
-                        ? 'bg-blue-100 text-blue-800'
-                        : user.subscription?.plan === 'starter'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
+                          ? 'bg-blue-100 text-blue-800'
+                          : user.subscription?.plan === 'starter'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
                     }`}
                   >
                     {user.subscription?.plan || 'free'}
@@ -165,13 +169,17 @@ export default function AdminUsersPage() {
                           user.quotaPercent >= 90
                             ? 'bg-red-500'
                             : user.quotaPercent >= 70
-                            ? 'bg-yellow-500'
-                            : 'bg-green-500'
+                              ? 'bg-yellow-500'
+                              : 'bg-green-500'
                         }`}
-                        style={{ width: `${Math.min(user.quotaPercent, 100)}%` }}
+                        style={{
+                          width: `${Math.min(user.quotaPercent, 100)}%`,
+                        }}
                       />
                     </div>
-                    <span className="text-sm text-gray-500">{user.quotaPercent}%</span>
+                    <span className="text-sm text-gray-500">
+                      {user.quotaPercent}%
+                    </span>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -211,7 +219,9 @@ export default function AdminUsersPage() {
               Previous
             </button>
             <button
-              onClick={() => setCurrentPage((p) => Math.min(pagination.pages, p + 1))}
+              onClick={() =>
+                setCurrentPage((p) => Math.min(pagination.pages, p + 1))
+              }
               disabled={currentPage === pagination.pages}
               className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >

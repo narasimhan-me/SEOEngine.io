@@ -39,7 +39,7 @@ describe('DeoSignalsService', () => {
       prismaMock.project.findUnique.mockResolvedValue(null);
 
       await expect(service.collectSignalsForProject('proj-1')).rejects.toThrow(
-        NotFoundException,
+        NotFoundException
       );
     });
 
@@ -89,7 +89,8 @@ describe('DeoSignalsService', () => {
           projectId: 'proj-1',
           title: 'Product 1',
           seoTitle: 'SEO Title 1',
-          description: 'Product description with enough words to be considered good',
+          description:
+            'Product description with enough words to be considered good',
           seoDescription: 'SEO Description 1',
           lastSyncedAt: recentDate,
         },
@@ -711,4 +712,3 @@ describe('DeoSignalsService', () => {
     });
   });
 });
-

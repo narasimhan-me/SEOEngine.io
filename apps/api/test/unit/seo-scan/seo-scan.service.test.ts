@@ -11,7 +11,10 @@
  */
 import { SeoScanService } from '../../../src/seo-scan/seo-scan.service';
 import { PrismaService } from '../../../src/prisma.service';
-import { DeoScoreService, DeoSignalsService } from '../../../src/projects/deo-score.service';
+import {
+  DeoScoreService,
+  DeoSignalsService,
+} from '../../../src/projects/deo-score.service';
 import { AutomationService } from '../../../src/projects/automation.service';
 import { RoleResolutionService } from '../../../src/common/role-resolution.service';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
@@ -43,7 +46,9 @@ const mockCheerio = jest.fn((selector: string) => {
     return createMockCheerioElement('Test H1');
   }
   if (selector === 'body') {
-    return createMockCheerioElement('Test body content with multiple words for word count');
+    return createMockCheerioElement(
+      'Test body content with multiple words for word count'
+    );
   }
   return createMockCheerioElement('');
 });
@@ -87,7 +92,9 @@ describe('SeoScanService', () => {
   let deoSignalsServiceMock: ReturnType<typeof createDeoSignalsServiceMock>;
   let deoScoreServiceMock: ReturnType<typeof createDeoScoreServiceMock>;
   let automationServiceMock: ReturnType<typeof createAutomationServiceMock>;
-  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
+  let roleResolutionServiceMock: ReturnType<
+    typeof createRoleResolutionServiceMock
+  >;
   let originalFetch: typeof global.fetch;
 
   beforeEach(() => {
@@ -102,7 +109,7 @@ describe('SeoScanService', () => {
       deoSignalsServiceMock as unknown as DeoSignalsService,
       deoScoreServiceMock as unknown as DeoScoreService,
       automationServiceMock as unknown as AutomationService,
-      roleResolutionServiceMock as unknown as RoleResolutionService,
+      roleResolutionServiceMock as unknown as RoleResolutionService
     );
 
     originalFetch = global.fetch;
@@ -140,7 +147,8 @@ describe('SeoScanService', () => {
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        text: async () => '<html><head><title>Test Title</title></head><body><h1>Test H1</h1></body></html>',
+        text: async () =>
+          '<html><head><title>Test Title</title></head><body><h1>Test H1</h1></body></html>',
         headers: new Headers(),
       });
       prismaMock.crawlResult.create.mockResolvedValue(mockCrawlResult);
@@ -194,7 +202,9 @@ describe('SeoScanService', () => {
     it('should throw NotFoundException when project not found', async () => {
       prismaMock.project.findUnique.mockResolvedValue(null);
 
-      await expect(service.startScan('proj-1', 'user-1')).rejects.toThrow(NotFoundException);
+      await expect(service.startScan('proj-1', 'user-1')).rejects.toThrow(
+        NotFoundException
+      );
     });
 
     it('should throw ForbiddenException when user does not own project', async () => {
@@ -207,10 +217,12 @@ describe('SeoScanService', () => {
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
       roleResolutionServiceMock.assertOwnerRole.mockRejectedValue(
-        new ForbiddenException('You do not have access to this project'),
+        new ForbiddenException('You do not have access to this project')
       );
 
-      await expect(service.startScan('proj-1', 'user-1')).rejects.toThrow(ForbiddenException);
+      await expect(service.startScan('proj-1', 'user-1')).rejects.toThrow(
+        ForbiddenException
+      );
     });
 
     it('should throw NotFoundException when no domain configured', async () => {
@@ -223,9 +235,11 @@ describe('SeoScanService', () => {
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
 
-      await expect(service.startScan('proj-1', 'user-1')).rejects.toThrow(NotFoundException);
       await expect(service.startScan('proj-1', 'user-1')).rejects.toThrow(
-        'No domain configured',
+        NotFoundException
+      );
+      await expect(service.startScan('proj-1', 'user-1')).rejects.toThrow(
+        'No domain configured'
       );
     });
   });
@@ -269,4 +283,3 @@ describe('SeoScanService', () => {
     });
   });
 });
-

@@ -173,20 +173,20 @@ Phase 2.2 replaces the placeholder scoring (fixed `overall=50`) with a real v1 e
 
 All signals are hardcoded in `DeoSignalsService`:
 
-| Signal | Stub Value |
-|--------|------------|
-| contentCoverage | 0.65 |
-| contentDepth | 0.55 |
-| contentFreshness | 0.70 |
-| entityCoverage | 0.60 |
-| entityAccuracy | 0.75 |
-| entityLinkage | 0.50 |
-| crawlHealth | 0.80 |
-| coreWebVitals | 0.65 |
-| indexability | 0.70 |
-| serpPresence | 0.45 |
-| answerSurfacePresence | 0.40 |
-| brandNavigationalStrength | 0.55 |
+| Signal                    | Stub Value |
+| ------------------------- | ---------- |
+| contentCoverage           | 0.65       |
+| contentDepth              | 0.55       |
+| contentFreshness          | 0.70       |
+| entityCoverage            | 0.60       |
+| entityAccuracy            | 0.75       |
+| entityLinkage             | 0.50       |
+| crawlHealth               | 0.80       |
+| coreWebVitals             | 0.65       |
+| indexability              | 0.70       |
+| serpPresence              | 0.45       |
+| answerSurfacePresence     | 0.40       |
+| brandNavigationalStrength | 0.55       |
 
 With v1 weights, the computed overall score for stub signals is **~60**.
 
@@ -358,6 +358,7 @@ Entity signals now combine pages and products:
 - **`productCount`** = number of `Product` rows for the project.
 
 All weighted blends use the formula:
+
 ```
 combined = (pageMetric * pageCount + productMetric * productCount) / totalSurfaces
 ```
@@ -365,6 +366,7 @@ combined = (pageMetric * pageCount + productMetric * productCount) / totalSurfac
 ### Technical & Visibility Signals
 
 Technical and Visibility signals remain page-only in Phase 2.5:
+
 - `crawlHealth`, `indexability`, `htmlStructuralQuality`, `thinContentQuality`, `coreWebVitals` – derived from `CrawlResult` only.
 - `serpPresence`, `answerSurfacePresence`, `brandNavigationalStrength` – derived from `CrawlResult` only.
 
@@ -390,14 +392,14 @@ Phase 2.6 introduces DEO Score v2 as an explainability layer that provides riche
 
 DEO Score v2 uses six components with weights defined in `DEO_SCORE_WEIGHTS_V2` (in `packages/shared/src/deo-score-config.ts`):
 
-| Component | Weight | Description |
-|-----------|--------|-------------|
-| **Entity Strength** | 20% | How clearly the product/page defines what it is (entity coverage, attributes, schema hints). |
-| **Intent Match Quality** | 20% | How well metadata/content align with user/buyer intent. |
-| **Answerability** | 20% | How easily an AI assistant can answer core buyer questions. |
-| **AI Visibility Factors** | 20% | Cleanliness and consistency of signals used by AI assistants. |
-| **Content Completeness** | 15% | Presence of core content elements (images, copy, price, availability, etc.). |
-| **Technical Quality** | 5% | Basic technical health (crawl, indexability, structural quality). |
+| Component                 | Weight | Description                                                                                  |
+| ------------------------- | ------ | -------------------------------------------------------------------------------------------- |
+| **Entity Strength**       | 20%    | How clearly the product/page defines what it is (entity coverage, attributes, schema hints). |
+| **Intent Match Quality**  | 20%    | How well metadata/content align with user/buyer intent.                                      |
+| **Answerability**         | 20%    | How easily an AI assistant can answer core buyer questions.                                  |
+| **AI Visibility Factors** | 20%    | Cleanliness and consistency of signals used by AI assistants.                                |
+| **Content Completeness**  | 15%    | Presence of core content elements (images, copy, price, availability, etc.).                 |
+| **Technical Quality**     | 5%     | Basic technical health (crawl, indexability, structural quality).                            |
 
 V1 weights remain unchanged at Content (30%), Entities (25%), Technical (25%), Visibility (20%).
 
@@ -405,14 +407,14 @@ V1 weights remain unchanged at Content (30%), Entities (25%), Technical (25%), V
 
 V2 reuses the normalized `DeoScoreSignals` inputs to derive each component using heuristic averages. The mapping is implemented in `computeDeoComponentsV2FromSignals`:
 
-| V2 Component | Input Signals |
-|--------------|---------------|
-| **Entity Strength** | entityCoverage, entityAccuracy, entityHintCoverage, entityStructureAccuracy, entityLinkage, entityLinkageDensity |
-| **Intent Match Quality** | contentCoverage, contentDepth, serpPresence, answerSurfacePresence, brandNavigationalStrength |
-| **Answerability** | contentDepth, contentCoverage, answerSurfacePresence, thinContentQuality |
-| **AI Visibility Factors** | serpPresence, answerSurfacePresence, brandNavigationalStrength, indexability |
-| **Content Completeness** | contentCoverage, contentDepth, contentFreshness, entityCoverage |
-| **Technical Quality** | crawlHealth, indexability, htmlStructuralQuality, thinContentQuality, coreWebVitals |
+| V2 Component              | Input Signals                                                                                                    |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Entity Strength**       | entityCoverage, entityAccuracy, entityHintCoverage, entityStructureAccuracy, entityLinkage, entityLinkageDensity |
+| **Intent Match Quality**  | contentCoverage, contentDepth, serpPresence, answerSurfacePresence, brandNavigationalStrength                    |
+| **Answerability**         | contentDepth, contentCoverage, answerSurfacePresence, thinContentQuality                                         |
+| **AI Visibility Factors** | serpPresence, answerSurfacePresence, brandNavigationalStrength, indexability                                     |
+| **Content Completeness**  | contentCoverage, contentDepth, contentFreshness, entityCoverage                                                  |
+| **Technical Quality**     | crawlHealth, indexability, htmlStructuralQuality, thinContentQuality, coreWebVitals                              |
 
 V2 is an explanatory layer (not a new DB schema) and uses `normalizeSignal` to map all component values into 0–100.
 
@@ -422,14 +424,20 @@ V2 explainability is stored inside `DeoScoreSnapshot.metadata`:
 
 ```json
 {
-  "signals": { /* DeoScoreSignals */ },
+  "signals": {
+    /* DeoScoreSignals */
+  },
   "v1": {
     "modelVersion": "v1",
-    "breakdown": { /* DeoScoreBreakdown */ }
+    "breakdown": {
+      /* DeoScoreBreakdown */
+    }
   },
   "v2": {
     "modelVersion": "v2",
-    "breakdown": { /* DeoScoreV2Breakdown */ },
+    "breakdown": {
+      /* DeoScoreV2Breakdown */
+    },
     "components": {
       "entityStrength": 75,
       "intentMatch": 68,
@@ -453,6 +461,7 @@ V2 explainability is stored inside `DeoScoreSnapshot.metadata`:
 ```
 
 Notes:
+
 - `DeoScoreSnapshot.version` remains tied to the v1 model (`DEO_SCORE_VERSION = "v1"`).
 - Older snapshots may lack `v1`/`v2` keys and only contain `signals`; consumers must handle this gracefully.
 
@@ -470,4 +479,3 @@ V2 components connect to related systems:
 - **Issue Engine**: Issue metadata (in `docs/deo-issues-spec.md`) will reference v2 components as impact fields (e.g., which component an issue primarily affects).
 
 Phase 2.6 only stores v2 component scores and explainability; dynamic score recalculation based on issue resolution remains a future phase.
-

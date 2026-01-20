@@ -12,13 +12,15 @@
 
 import { test, expect } from '@playwright/test';
 
-const API_BASE_URL =
-  process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
 
 async function seedFirstDeoWinProject(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-first-deo-win`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   return {
@@ -30,9 +32,12 @@ async function seedFirstDeoWinProject(request: any) {
 }
 
 async function connectShopifyE2E(request: any, projectId: string) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/connect-shopify`, {
-    data: { projectId },
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/connect-shopify`,
+    {
+      data: { projectId },
+    }
+  );
   expect(res.ok()).toBeTruthy();
 }
 
@@ -41,7 +46,8 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Draft Lifecycle', () => {
     page,
     request,
   }) => {
-    const { projectId, productIds, accessToken } = await seedFirstDeoWinProject(request);
+    const { projectId, productIds, accessToken } =
+      await seedFirstDeoWinProject(request);
     await connectShopifyE2E(request, projectId);
 
     // Programmatic login
@@ -51,10 +57,14 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Draft Lifecycle', () => {
     }, accessToken);
 
     const productId = productIds[0];
-    await page.goto(`/projects/${projectId}/products/${productId}?tab=metadata`);
+    await page.goto(
+      `/projects/${projectId}/products/${productId}?tab=metadata`
+    );
 
     // Wait for draft state banner
-    await expect(page.locator('[data-testid="draft-state-banner"]')).toBeVisible({
+    await expect(
+      page.locator('[data-testid="draft-state-banner"]')
+    ).toBeVisible({
       timeout: 10000,
     });
 
@@ -82,14 +92,17 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Draft Lifecycle', () => {
     await applyButton.click();
 
     // Verify applied state (with timestamp)
-    await expect(draftBanner).toContainText('Applied to Shopify on', { timeout: 10000 });
+    await expect(draftBanner).toContainText('Applied to Shopify on', {
+      timeout: 10000,
+    });
   });
 
   test('Apply button disabled until draft is saved (Apply gating)', async ({
     page,
     request,
   }) => {
-    const { projectId, productIds, accessToken } = await seedFirstDeoWinProject(request);
+    const { projectId, productIds, accessToken } =
+      await seedFirstDeoWinProject(request);
     await connectShopifyE2E(request, projectId);
 
     await page.goto('/login');
@@ -98,9 +111,13 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Draft Lifecycle', () => {
     }, accessToken);
 
     const productId = productIds[0];
-    await page.goto(`/projects/${projectId}/products/${productId}?tab=metadata`);
+    await page.goto(
+      `/projects/${projectId}/products/${productId}?tab=metadata`
+    );
 
-    await expect(page.locator('[data-testid="draft-state-banner"]')).toBeVisible({
+    await expect(
+      page.locator('[data-testid="draft-state-banner"]')
+    ).toBeVisible({
       timeout: 10000,
     });
 
@@ -128,7 +145,8 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Draft Lifecycle', () => {
     page,
     request,
   }) => {
-    const { projectId, productIds, accessToken } = await seedFirstDeoWinProject(request);
+    const { projectId, productIds, accessToken } =
+      await seedFirstDeoWinProject(request);
     await connectShopifyE2E(request, projectId);
 
     await page.goto('/login');
@@ -137,9 +155,13 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Draft Lifecycle', () => {
     }, accessToken);
 
     const productId = productIds[0];
-    await page.goto(`/projects/${projectId}/products/${productId}?tab=metadata`);
+    await page.goto(
+      `/projects/${projectId}/products/${productId}?tab=metadata`
+    );
 
-    await expect(page.locator('[data-testid="draft-state-banner"]')).toBeVisible({
+    await expect(
+      page.locator('[data-testid="draft-state-banner"]')
+    ).toBeVisible({
       timeout: 10000,
     });
 
@@ -161,12 +183,17 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Draft Lifecycle', () => {
     await page.getByRole('link', { name: /^Projects$/ }).click();
 
     // Should still be on the product page (navigation blocked)
-    await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/products/${productId}`));
+    await expect(page).toHaveURL(
+      new RegExp(`/projects/${projectId}/products/${productId}`)
+    );
   });
 });
 
 test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Issues Page Draft Lifecycle', () => {
-  test('Issue fix preview follows draft lifecycle', async ({ page, request }) => {
+  test('Issue fix preview follows draft lifecycle', async ({
+    page,
+    request,
+  }) => {
     const { projectId, accessToken } = await seedFirstDeoWinProject(request);
 
     await page.goto('/login');
@@ -189,15 +216,21 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Issues Page Draft Lifecycle', (
       ).toBeVisible({ timeout: 30000 });
 
       // Verify draft state banner shows unsaved
-      const draftStateBanner = page.locator('[data-testid="issue-draft-state-banner"]');
+      const draftStateBanner = page.locator(
+        '[data-testid="issue-draft-state-banner"]'
+      );
       await expect(draftStateBanner).toContainText('Draft — not applied');
 
       // Verify Apply button is disabled until draft is saved
-      const applyButton = page.locator('[data-testid="issue-apply-to-shopify-button"]');
+      const applyButton = page.locator(
+        '[data-testid="issue-apply-to-shopify-button"]'
+      );
       await expect(applyButton).toBeDisabled();
 
       // Save the draft
-      const saveDraftButton = page.locator('[data-testid="issue-save-draft-button"]');
+      const saveDraftButton = page.locator(
+        '[data-testid="issue-save-draft-button"]'
+      );
       await expect(saveDraftButton).toBeVisible();
       await saveDraftButton.click();
 
@@ -215,7 +248,8 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Automation History', () => {
     page,
     request,
   }) => {
-    const { projectId, productIds, accessToken } = await seedFirstDeoWinProject(request);
+    const { projectId, productIds, accessToken } =
+      await seedFirstDeoWinProject(request);
     await connectShopifyE2E(request, projectId);
 
     await page.goto('/login');
@@ -224,10 +258,14 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Automation History', () => {
     }, accessToken);
 
     const productId = productIds[0];
-    await page.goto(`/projects/${projectId}/products/${productId}?tab=automations`);
+    await page.goto(
+      `/projects/${projectId}/products/${productId}?tab=automations`
+    );
 
     // Wait for Automation History panel
-    await expect(page.getByText('Automation History')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Automation History')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Expand full history if available
     const expandButton = page.locator('text=View full history');
@@ -235,8 +273,12 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Automation History', () => {
       await expandButton.click();
 
       // Verify filters are present
-      const statusFilter = page.locator('[data-testid="automation-status-filter"]');
-      const initiatorFilter = page.locator('[data-testid="automation-initiator-filter"]');
+      const statusFilter = page.locator(
+        '[data-testid="automation-status-filter"]'
+      );
+      const initiatorFilter = page.locator(
+        '[data-testid="automation-initiator-filter"]'
+      );
 
       await expect(statusFilter).toBeVisible();
       await expect(initiatorFilter).toBeVisible();
@@ -248,7 +290,9 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Automation History', () => {
       await initiatorFilter.selectOption('manual');
 
       // Verify skipped explanation is visible if there are skipped entries
-      const skippedExplanation = page.locator('[data-testid="skipped-row-explanation"]');
+      const skippedExplanation = page.locator(
+        '[data-testid="skipped-row-explanation"]'
+      );
       const count = await skippedExplanation.count();
       if (count > 0) {
         await expect(skippedExplanation.first()).toBeVisible();
@@ -260,7 +304,8 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Automation History', () => {
     page,
     request,
   }) => {
-    const { projectId, productIds, accessToken } = await seedFirstDeoWinProject(request);
+    const { projectId, productIds, accessToken } =
+      await seedFirstDeoWinProject(request);
     // Note: Not connecting Shopify or enabling sync, so sync should be skipped
 
     await page.goto('/login');
@@ -272,10 +317,14 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Automation History', () => {
     await page.goto(`/projects/${projectId}/products/${productId}?tab=answers`);
 
     // Wait for Answer Blocks panel
-    await expect(page.getByText('Answer Blocks')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Answer Blocks')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Click "Sync answers to Shopify" button
-    const syncButton = page.locator('button:has-text("Sync answers to Shopify")');
+    const syncButton = page.locator(
+      'button:has-text("Sync answers to Shopify")'
+    );
     if (await syncButton.isVisible().catch(() => false)) {
       await syncButton.click();
 
@@ -287,8 +336,12 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Automation History', () => {
 });
 
 test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: GEO Explainer', () => {
-  test('GEO explainer renders collapsible sections', async ({ page, request }) => {
-    const { projectId, productIds, accessToken } = await seedFirstDeoWinProject(request);
+  test('GEO explainer renders collapsible sections', async ({
+    page,
+    request,
+  }) => {
+    const { projectId, productIds, accessToken } =
+      await seedFirstDeoWinProject(request);
 
     await page.goto('/login');
     await page.evaluate((token) => {
@@ -299,11 +352,15 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: GEO Explainer', () => {
     await page.goto(`/projects/${projectId}/products/${productId}?tab=geo`);
 
     // Wait for GEO panel to load
-    await expect(page.getByText('What is GEO?')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('What is GEO?')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Verify collapsible explainers are present
     const whatIsGeoExplainer = page.locator('button:has-text("What is GEO?")');
-    const whatIsCitationExplainer = page.locator('button:has-text("What is Citation Confidence?")');
+    const whatIsCitationExplainer = page.locator(
+      'button:has-text("What is Citation Confidence?")'
+    );
 
     await expect(whatIsGeoExplainer).toBeVisible();
     await expect(whatIsCitationExplainer).toBeVisible();
@@ -312,7 +369,9 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: GEO Explainer', () => {
     await whatIsGeoExplainer.click();
 
     // Verify explainer content is visible
-    await expect(page.getByText('Generative Engine Optimization')).toBeVisible();
+    await expect(
+      page.getByText('Generative Engine Optimization')
+    ).toBeVisible();
 
     // Click to expand "What is Citation Confidence?"
     await whatIsCitationExplainer.click();
@@ -323,8 +382,12 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: GEO Explainer', () => {
 });
 
 test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Add to Draft Semantics', () => {
-  test('AI Suggestions panel shows "Add to draft" buttons with correct guidance', async ({ page, request }) => {
-    const { projectId, productIds, accessToken } = await seedFirstDeoWinProject(request);
+  test('AI Suggestions panel shows "Add to draft" buttons with correct guidance', async ({
+    page,
+    request,
+  }) => {
+    const { projectId, productIds, accessToken } =
+      await seedFirstDeoWinProject(request);
 
     await page.goto('/login');
     await page.evaluate((token) => {
@@ -332,10 +395,14 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Add to Draft Semantics', () => 
     }, accessToken);
 
     const productId = productIds[0];
-    await page.goto(`/projects/${projectId}/products/${productId}?tab=metadata`);
+    await page.goto(
+      `/projects/${projectId}/products/${productId}?tab=metadata`
+    );
 
     // Wait for AI Suggestions panel
-    await expect(page.getByText('AI SEO Suggestions')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('AI SEO Suggestions')).toBeVisible({
+      timeout: 10000,
+    });
 
     // [FIXUP-3] Check for corrected inline guidance - "Generate creates suggestions (uses AI)"
     await expect(
@@ -343,19 +410,27 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Add to Draft Semantics', () => 
     ).toBeVisible();
 
     // Verify "Add to draft" button label (not "Apply to editor")
-    const generateButton = page.locator('button:has-text("Generate Suggestions")');
+    const generateButton = page.locator(
+      'button:has-text("Generate Suggestions")'
+    );
     if (await generateButton.isVisible().catch(() => false)) {
       await generateButton.click();
 
       // Wait for generation to complete
-      await expect(page.getByText('Add to draft')).toBeVisible({ timeout: 30000 });
+      await expect(page.getByText('Add to draft')).toBeVisible({
+        timeout: 30000,
+      });
     }
   });
 });
 
 test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3: Session Persistence', () => {
-  test('Saved draft persists across navigation (session)', async ({ page, request }) => {
-    const { projectId, productIds, accessToken } = await seedFirstDeoWinProject(request);
+  test('Saved draft persists across navigation (session)', async ({
+    page,
+    request,
+  }) => {
+    const { projectId, productIds, accessToken } =
+      await seedFirstDeoWinProject(request);
     await connectShopifyE2E(request, projectId);
 
     await page.goto('/login');
@@ -364,10 +439,14 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3: Session Persistence', (
     }, accessToken);
 
     const productId = productIds[0];
-    await page.goto(`/projects/${projectId}/products/${productId}?tab=metadata`);
+    await page.goto(
+      `/projects/${projectId}/products/${productId}?tab=metadata`
+    );
 
     // Wait for draft state banner
-    await expect(page.locator('[data-testid="draft-state-banner"]')).toBeVisible({
+    await expect(
+      page.locator('[data-testid="draft-state-banner"]')
+    ).toBeVisible({
       timeout: 10000,
     });
 
@@ -388,15 +467,21 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3: Session Persistence', (
     await expect(page).toHaveURL(/\/projects$/);
 
     // Step 4: Navigate back to the same product page
-    await page.goto(`/projects/${projectId}/products/${productId}?tab=metadata`);
+    await page.goto(
+      `/projects/${projectId}/products/${productId}?tab=metadata`
+    );
 
     // Wait for page to load
-    await expect(page.locator('[data-testid="draft-state-banner"]')).toBeVisible({
+    await expect(
+      page.locator('[data-testid="draft-state-banner"]')
+    ).toBeVisible({
       timeout: 10000,
     });
 
     // Step 5: Assert draft is restored - banner shows "Draft saved — not applied"
-    await expect(page.locator('[data-testid="draft-state-banner"]')).toContainText('Draft saved — not applied');
+    await expect(
+      page.locator('[data-testid="draft-state-banner"]')
+    ).toContainText('Draft saved — not applied');
 
     // Step 6: Verify Apply to Shopify is enabled (draft was restored)
     const applyButton = page.locator('[data-testid="apply-to-shopify-button"]');
@@ -417,10 +502,14 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3: Issue Deep-Link Routing
     await page.goto(`/projects/${projectId}/overview`);
 
     // Wait for "Top blockers" section to load
-    await expect(page.getByText('Top blockers')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Top blockers')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Find the first issue link in Top Blockers
-    const issueLink = page.locator('section:has-text("Top blockers") a.text-blue-700').first();
+    const issueLink = page
+      .locator('section:has-text("Top blockers") a.text-blue-700')
+      .first();
 
     if (await issueLink.isVisible({ timeout: 5000 }).catch(() => false)) {
       // Click the issue link
@@ -435,18 +524,26 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3: Issue Deep-Link Routing
         // Landed on product page - verify tab param exists
         expect(currentUrl).toMatch(/tab=/);
         // Wait for tab bar to be visible
-        await expect(page.locator('[role="tablist"]')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('[role="tablist"]')).toBeVisible({
+          timeout: 10000,
+        });
       } else if (currentUrl.includes('/issues')) {
         // Landed on Issues page - verify pillar filter if present
-        await expect(page.getByText('Issues Engine')).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText('Issues Engine')).toBeVisible({
+          timeout: 10000,
+        });
       }
     }
   });
 });
 
 test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3: Generated Content Visibility', () => {
-  test('Generated content is immediately visible after Generate', async ({ page, request }) => {
-    const { projectId, productIds, accessToken } = await seedFirstDeoWinProject(request);
+  test('Generated content is immediately visible after Generate', async ({
+    page,
+    request,
+  }) => {
+    const { projectId, productIds, accessToken } =
+      await seedFirstDeoWinProject(request);
 
     await page.goto('/login');
     await page.evaluate((token) => {
@@ -454,18 +551,26 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3: Generated Content Visib
     }, accessToken);
 
     const productId = productIds[0];
-    await page.goto(`/projects/${projectId}/products/${productId}?tab=metadata`);
+    await page.goto(
+      `/projects/${projectId}/products/${productId}?tab=metadata`
+    );
 
     // Wait for AI Suggestions panel
-    await expect(page.getByText('AI SEO Suggestions')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('AI SEO Suggestions')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Click Generate Suggestions button
-    const generateButton = page.locator('button:has-text("Generate Suggestions")');
+    const generateButton = page.locator(
+      'button:has-text("Generate Suggestions")'
+    );
     if (await generateButton.isVisible().catch(() => false)) {
       await generateButton.click();
 
       // Wait for generation completion - "Add to draft" button becomes visible
-      await expect(page.getByText('Add to draft')).toBeVisible({ timeout: 30000 });
+      await expect(page.getByText('Add to draft')).toBeVisible({
+        timeout: 30000,
+      });
 
       // Assert SEO editor anchor is in viewport (auto-scroll behavior)
       const seoEditorAnchor = page.locator('[data-testid="seo-editor-anchor"]');
@@ -476,12 +581,16 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3: Generated Content Visib
           return (
             rect.top >= 0 &&
             rect.left >= 0 &&
-            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-            rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+            rect.bottom <=
+              (window.innerHeight || document.documentElement.clientHeight) &&
+            rect.right <=
+              (window.innerWidth || document.documentElement.clientWidth)
           );
         });
         // The anchor should be visible or near-visible after generation
-        expect(isInViewport || await seoEditorAnchor.isVisible()).toBeTruthy();
+        expect(
+          isInViewport || (await seoEditorAnchor.isVisible())
+        ).toBeTruthy();
       }
     }
   });
@@ -492,7 +601,8 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Header Apply Gating', () => {
     page,
     request,
   }) => {
-    const { projectId, productIds, accessToken } = await seedFirstDeoWinProject(request);
+    const { projectId, productIds, accessToken } =
+      await seedFirstDeoWinProject(request);
     await connectShopifyE2E(request, projectId);
 
     await page.goto('/login');
@@ -501,9 +611,13 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Header Apply Gating', () => {
     }, accessToken);
 
     const productId = productIds[0];
-    await page.goto(`/projects/${projectId}/products/${productId}?tab=metadata`);
+    await page.goto(
+      `/projects/${projectId}/products/${productId}?tab=metadata`
+    );
 
-    await expect(page.locator('[data-testid="draft-state-banner"]')).toBeVisible({
+    await expect(
+      page.locator('[data-testid="draft-state-banner"]')
+    ).toBeVisible({
       timeout: 10000,
     });
 
@@ -516,7 +630,9 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Header Apply Gating', () => {
     await expect(draftBanner).toContainText('Draft — not applied');
 
     // Verify header Apply button exists and check its state
-    const headerApplyButton = page.locator('[data-testid="header-apply-to-shopify-button"]');
+    const headerApplyButton = page.locator(
+      '[data-testid="header-apply-to-shopify-button"]'
+    );
     if (await headerApplyButton.isVisible().catch(() => false)) {
       await expect(headerApplyButton).toBeDisabled();
 
@@ -529,8 +645,12 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Header Apply Gating', () => {
     }
   });
 
-  test('Header shows compact draft state indicator', async ({ page, request }) => {
-    const { projectId, productIds, accessToken } = await seedFirstDeoWinProject(request);
+  test('Header shows compact draft state indicator', async ({
+    page,
+    request,
+  }) => {
+    const { projectId, productIds, accessToken } =
+      await seedFirstDeoWinProject(request);
     await connectShopifyE2E(request, projectId);
 
     await page.goto('/login');
@@ -539,28 +659,37 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Header Apply Gating', () => {
     }, accessToken);
 
     const productId = productIds[0];
-    await page.goto(`/projects/${projectId}/products/${productId}?tab=metadata`);
+    await page.goto(
+      `/projects/${projectId}/products/${productId}?tab=metadata`
+    );
 
-    await expect(page.locator('[data-testid="draft-state-banner"]')).toBeVisible({
+    await expect(
+      page.locator('[data-testid="draft-state-banner"]')
+    ).toBeVisible({
       timeout: 10000,
     });
 
     // Header state indicator should show applied state initially (or match current state)
-    const headerStateIndicator = page.locator('[data-testid="header-draft-state-indicator"]');
+    const headerStateIndicator = page.locator(
+      '[data-testid="header-draft-state-indicator"]'
+    );
     if (await headerStateIndicator.isVisible().catch(() => false)) {
       // Verify it contains one of the expected states
       const text = await headerStateIndicator.textContent();
       expect(
         text?.includes('Draft —') ||
-        text?.includes('Draft saved —') ||
-        text?.includes('Applied to Shopify')
+          text?.includes('Draft saved —') ||
+          text?.includes('Applied to Shopify')
       ).toBeTruthy();
     }
   });
 });
 
 test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-4: No Double Prompt After Confirmed Leave', () => {
-  test('No additional confirmation dialog after confirming leave from Issues page', async ({ page, request }) => {
+  test('No additional confirmation dialog after confirming leave from Issues page', async ({
+    page,
+    request,
+  }) => {
     const { projectId, accessToken } = await seedFirstDeoWinProject(request);
 
     await page.goto('/login');
@@ -570,7 +699,9 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-4: No Double Prompt After 
 
     // Navigate to Issues page
     await page.goto(`/projects/${projectId}/issues`);
-    await expect(page.getByText('Issues Engine')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Issues Engine')).toBeVisible({
+      timeout: 10000,
+    });
 
     // Find "Fix next" button if available
     const fixNextButton = page.locator('button:has-text("Fix next")').first();
@@ -579,7 +710,9 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-4: No Double Prompt After 
       await fixNextButton.click();
 
       // Wait for preview panel to appear
-      await expect(page.locator('[data-testid="issue-preview-draft-panel"]')).toBeVisible({
+      await expect(
+        page.locator('[data-testid="issue-preview-draft-panel"]')
+      ).toBeVisible({
         timeout: 30000,
       });
 

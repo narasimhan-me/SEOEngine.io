@@ -55,19 +55,23 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - Project with products exists
 - User is logged in
 
 **Steps:**
+
 1. Navigate to `/projects/{projectId}/issues` (DEO Issues page)
 2. Monitor API server terminal for logs
 
 **Expected Results:**
+
 - **UI:** Page loads normally with issues displayed
 - **API:** No logs containing `[AnswerBlockAutomation] Allowed/enqueued`
 - **Logs:** No new entries in `AnswerBlockAutomationRun` table
 
 **Verification Query:**
+
 ```sql
 SELECT * FROM "AnswerBlockAutomationRun"
 WHERE "projectId" = '{projectId}'
@@ -82,10 +86,12 @@ LIMIT 5;
 **ID:** HP-002
 
 **Preconditions:**
+
 - Project with Shopify connected
 - `autoGenerateAnswerBlocksOnProductSync` is OFF (default)
 
 **Steps:**
+
 1. Navigate to `/projects/{projectId}/settings`
 2. Confirm "Generate Answer Blocks on product sync" toggle is OFF
 3. Navigate to `/projects/{projectId}/products`
@@ -93,11 +99,13 @@ LIMIT 5;
 5. Monitor API server terminal
 
 **Expected Results:**
+
 - **UI:** Button label is "Sync Products" (no "+ Generate Answer Blocks")
 - **API:** Log shows `suppressedReason=setting_disabled`
 - **Logs:** No entries in `AnswerBlockAutomationRun` table created
 
 **Expected Log Pattern:**
+
 ```
 [AnswerBlockAutomation] Suppressed: automationType=answer_blocks, trigger=product_synced, projectId=..., productId=..., suppressedReason=setting_disabled
 ```
@@ -109,10 +117,12 @@ LIMIT 5;
 **ID:** HP-003
 
 **Preconditions:**
+
 - User has `pro` or `business` plan
 - `autoGenerateAnswerBlocksOnProductSync` is ON
 
 **Steps:**
+
 1. Navigate to `/projects/{projectId}/settings`
 2. Enable "Generate Answer Blocks on product sync" toggle
 3. Click "Save Changes"
@@ -122,11 +132,13 @@ LIMIT 5;
 7. Monitor API server terminal
 
 **Expected Results:**
+
 - **UI:** Button label is "Sync Products + Generate Answer Blocks"
 - **API:** Log shows `[AnswerBlockAutomation] Allowed/enqueued`
 - **Logs:** New row in `AnswerBlockAutomationRun` with `status='QUEUED'`
 
 **Expected Log Pattern:**
+
 ```
 [AnswerBlockAutomation] Allowed/enqueued: automationType=answer_blocks, trigger=product_synced, projectId=..., productId=..., runId=..., idempotencyHash=...
 ```
@@ -138,20 +150,24 @@ LIMIT 5;
 **ID:** HP-004
 
 **Preconditions:**
+
 - Scenario 3 completed (first sync with setting ON)
 - Run status is `SUCCEEDED` or `SKIPPED`
 
 **Steps:**
+
 1. Without changing any product content in Shopify
 2. Click "Sync Products + Generate Answer Blocks" again
 3. Monitor API server terminal
 
 **Expected Results:**
+
 - **UI:** Sync completes without error
 - **API:** Log shows `suppressedReason=idempotent_already_done`
 - **Logs:** NO new rows in `AnswerBlockAutomationRun` table (same fingerprint)
 
 **Expected Log Pattern:**
+
 ```
 [AnswerBlockAutomation] Suppressed: automationType=answer_blocks, trigger=product_synced, projectId=..., productId=..., suppressedReason=idempotent_already_done, existingRunId=..., existingStatus=SUCCEEDED
 ```
@@ -163,15 +179,18 @@ LIMIT 5;
 **ID:** HP-005
 
 **Preconditions:**
+
 - Scenario 4 completed (double-sync suppressed)
 
 **Steps:**
+
 1. In Shopify Admin, edit a product title or description
 2. Navigate to `/projects/{projectId}/products`
 3. Click "Sync Products + Generate Answer Blocks"
 4. Monitor API server terminal
 
 **Expected Results:**
+
 - **UI:** Sync completes
 - **API:** Log shows `[AnswerBlockAutomation] Allowed/enqueued` with new `idempotencyHash`
 - **Logs:** New row in `AnswerBlockAutomationRun` with different `fingerprintHash`
@@ -183,13 +202,16 @@ LIMIT 5;
 **ID:** HP-006
 
 **Preconditions:**
+
 - Setting ON + paid plan (same as Scenario 3)
 
 **Steps:**
+
 1. Navigate to `/projects/{projectId}/playbooks`
 2. Look for any "Sync products" buttons in the UI
 
 **Expected Results:**
+
 - **UI:** Buttons show "Sync products + Generate Answer Blocks" (NOT "Sync to Shopify")
 - **Logs:** Toast message says "Products sync triggered." (neutral, no misleading claims)
 
@@ -202,11 +224,13 @@ LIMIT 5;
 **Description:** Free plan users cannot trigger Answer Block generation even with setting enabled.
 
 **Steps:**
+
 1. As free plan user, enable `autoGenerateAnswerBlocksOnProductSync` in Settings
 2. Navigate to Products page
 3. Click "Sync Products" button
 
 **Expected Behavior:**
+
 - Button label is "Sync Products" (no "+ Generate Answer Blocks")
 - API returns `willGenerateAnswerBlocksOnProductSync: false` in integration-status
 - Log shows `suppressedReason=plan_ineligible`
@@ -218,9 +242,11 @@ LIMIT 5;
 **Description:** Two concurrent sync operations for the same product should not both enqueue.
 
 **Steps:**
+
 1. Trigger two near-simultaneous sync operations (e.g., via two browser tabs)
 
 **Expected Behavior:**
+
 - First trigger creates run record and enqueues
 - Second trigger suppresses with `suppressedReason=in_flight`
 - No unique constraint violations
@@ -232,10 +258,12 @@ LIMIT 5;
 **Description:** A previously failed run can be retried by re-syncing.
 
 **Steps:**
+
 1. Have a run in `FAILED` status (e.g., from Redis being down)
 2. Sync products again with same content
 
 **Expected Behavior:**
+
 - Existing FAILED run is transitioned back to QUEUED
 - Log shows `Retrying FAILED run`
 - No new run record created (reuses existing ID)
@@ -249,10 +277,12 @@ LIMIT 5;
 **Scenario:** Redis is not running when sync is triggered.
 
 **Steps:**
+
 1. Stop Redis server
 2. Enable setting and trigger sync
 
 **Expected Behavior:**
+
 - Run record created with status `QUEUED`
 - Run record updated to `FAILED` with `errorMessage: 'Queue unavailable'`
 - No crash, graceful degradation
@@ -264,10 +294,12 @@ LIMIT 5;
 **Scenario:** Worker encounters error during Answer Block generation.
 
 **Steps:**
+
 1. Simulate AI service failure (e.g., mock error response)
 2. Trigger sync
 
 **Expected Behavior:**
+
 - Run status updated to `FAILED`
 - `errorMessage` field populated (truncated to 500 chars)
 - `completedAt` timestamp set
@@ -281,11 +313,13 @@ LIMIT 5;
 **Scenario:** Free plan user attempts to trigger Answer Block generation.
 
 **Steps:**
+
 1. Downgrade to free plan
 2. Enable `autoGenerateAnswerBlocksOnProductSync`
 3. Sync products
 
 **Expected Behavior:**
+
 - CTA shows "Sync Products" (no mention of Answer Blocks)
 - `willGenerateAnswerBlocksOnProductSync` is `false`
 - Log shows `suppressedReason=plan_ineligible`
@@ -342,9 +376,9 @@ LIMIT 5;
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | AUTOMATION-TRIGGER-TRUTHFULNESS-1 manual testing |
+| Field              | Value                                            |
+| ------------------ | ------------------------------------------------ |
+| **Tester Name**    | [Pending]                                        |
+| **Date**           | [YYYY-MM-DD]                                     |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed            |
+| **Notes**          | AUTOMATION-TRIGGER-TRUTHFULNESS-1 manual testing |

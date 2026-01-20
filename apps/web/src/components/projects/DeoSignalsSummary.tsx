@@ -31,10 +31,11 @@ const productSignals: SignalRowConfig[] = [
 
 function renderSignalRow(
   signals: DeoScoreSignals | null,
-  config: SignalRowConfig,
+  config: SignalRowConfig
 ) {
   const raw = signals?.[config.key] ?? null;
-  const value = raw != null ? Math.round(Math.max(0, Math.min(1, raw)) * 100) : null;
+  const value =
+    raw != null ? Math.round(Math.max(0, Math.min(1, raw)) * 100) : null;
   const barPercent = value != null ? `${value}%` : '0%';
   const barColor =
     value == null
@@ -54,7 +55,9 @@ function renderSignalRow(
           <span className="text-gray-600">{config.label}</span>
           <span className="font-medium text-gray-800">
             {value != null ? `${value}` : '--'}
-            {value != null && <span className="ml-0.5 text-[10px] text-gray-400">/100</span>}
+            {value != null && (
+              <span className="ml-0.5 text-[10px] text-gray-400">/100</span>
+            )}
           </span>
         </div>
         <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-gray-100">
@@ -68,7 +71,10 @@ function renderSignalRow(
   );
 }
 
-export function DeoSignalsSummary({ signals, loading }: DeoSignalsSummaryProps) {
+export function DeoSignalsSummary({
+  signals,
+  loading,
+}: DeoSignalsSummaryProps) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
       <h3 className="text-sm font-medium text-gray-700">DEO Signals Summary</h3>
@@ -79,8 +85,8 @@ export function DeoSignalsSummary({ signals, loading }: DeoSignalsSummaryProps) 
         <div className="mt-4 text-xs text-gray-500">Loading DEO signals...</div>
       ) : !signals ? (
         <div className="mt-4 text-xs text-gray-500">
-          No DEO signals available yet. Run a crawl and recompute the DEO Score to populate this
-          section.
+          No DEO signals available yet. Run a crawl and recompute the DEO Score
+          to populate this section.
         </div>
       ) : (
         <div className="mt-4 space-y-4 text-xs">

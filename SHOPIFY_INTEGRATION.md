@@ -58,7 +58,6 @@ Endpoint: `GET /shopify/install?projectId=...`
 
 - Validates that the authenticated user owns the project.
 - Generates the Shopify OAuth URL:
-
   - `client_id`: `SHOPIFY_API_KEY`
   - `scope`: `SHOPIFY_SCOPES`
   - `redirect_uri`: `SHOPIFY_APP_URL + "/shopify/callback"`
@@ -71,14 +70,12 @@ Endpoint: `GET /shopify/install?projectId=...`
 Endpoint: `GET /shopify/callback`
 
 - Shopify redirects back with:
-
   - `code`
   - `shop`
   - `state`
   - `hmac`
 
 - Steps:
-
   1. Validate `hmac` using `API_SECRET`.
   2. Validate `state` matches a stored state, and extract `projectId`.
   3. Exchange `code` for access token using Shopify OAuth endpoint.
@@ -154,7 +151,6 @@ query GetProducts($first: Int!, $after: String) {
 For each product:
 
 - Extract:
-
   - `id`
   - `title`
   - `descriptionHtml` (mapped to local `description`/`body_html`)

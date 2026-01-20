@@ -114,7 +114,9 @@ export function getQuestionLabel(questionId: string): string {
 /**
  * Get badge color class for confidence level
  */
-export function getConfidenceBadgeClass(level: GeoCitationConfidenceLevel): string {
+export function getConfidenceBadgeClass(
+  level: GeoCitationConfidenceLevel
+): string {
   switch (level) {
     case 'high':
       return 'bg-green-100 text-green-800';

@@ -16,13 +16,14 @@ This phase ensures that DIAGNOSTIC issues (informational, no direct fix availabl
 
 ## IssueFixKind Classification
 
-| fixKind | Meaning | CTA Wording | Arrival Callout |
-|---------|---------|-------------|-----------------|
-| `EDIT` | User edits a field directly | "Fix" / "Fix now" | Indigo "You're here to fix:" |
-| `AI` | User triggers AI generation | "Fix" / "Fix now" | Indigo "You're here to fix:" |
-| `DIAGNOSTIC` | Informational; review data, no direct fix | "Review" | Blue "You're here to review:" |
+| fixKind      | Meaning                                   | CTA Wording       | Arrival Callout               |
+| ------------ | ----------------------------------------- | ----------------- | ----------------------------- |
+| `EDIT`       | User edits a field directly               | "Fix" / "Fix now" | Indigo "You're here to fix:"  |
+| `AI`         | User triggers AI generation               | "Fix" / "Fix now" | Indigo "You're here to fix:"  |
+| `DIAGNOSTIC` | Informational; review data, no direct fix | "Review"          | Blue "You're here to review:" |
 
 **Known DIAGNOSTIC Issues:**
+
 - `not_answer_ready` - Answer readiness analysis (Search & Intent)
 
 ---

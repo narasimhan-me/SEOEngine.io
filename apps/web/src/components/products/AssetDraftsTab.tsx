@@ -76,14 +76,25 @@ const FIELD_LABEL_MAP: Record<AssetType, Record<string, string>> = {
  * [DRAFT-DIFF-CLARITY-1] Shows Current (live) vs Draft (staged) diff for each item.
  * [DRAFT-FIELD-COVERAGE-1] Supports Products, Pages, and Collections asset types.
  */
-export function AssetDraftsTab({ projectId, assetType, assetId, currentFieldValues }: AssetDraftsTabProps) {
+export function AssetDraftsTab({
+  projectId,
+  assetType,
+  assetId,
+  currentFieldValues,
+}: AssetDraftsTabProps) {
   const feedback = useFeedback();
 
   // [DRAFT-FIELD-COVERAGE-1] Asset-specific label
-  const assetLabel = assetType === 'products' ? 'product' : assetType === 'pages' ? 'page' : 'collection';
+  const assetLabel =
+    assetType === 'products'
+      ? 'product'
+      : assetType === 'pages'
+        ? 'page'
+        : 'collection';
 
   // Drafts data state
-  const [draftsData, setDraftsData] = useState<AssetScopedDraftsResponse | null>(null);
+  const [draftsData, setDraftsData] =
+    useState<AssetScopedDraftsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,13 +114,19 @@ export function AssetDraftsTab({ projectId, assetType, assetId, currentFieldValu
       setLoading(true);
       setError(null);
       try {
-        const data = await projectsApi.listAutomationPlaybookDraftsForAsset(projectId, {
-          assetType,
-          assetId,
-        });
+        const data = await projectsApi.listAutomationPlaybookDraftsForAsset(
+          projectId,
+          {
+            assetType,
+            assetId,
+          }
+        );
         setDraftsData(data);
       } catch (err) {
-        console.error('[DRAFT-REVIEW-ISOLATION-1] Failed to fetch drafts:', err);
+        console.error(
+          '[DRAFT-REVIEW-ISOLATION-1] Failed to fetch drafts:',
+          err
+        );
         setError(err instanceof Error ? err.message : 'Failed to load drafts');
       } finally {
         setLoading(false);
@@ -120,12 +137,15 @@ export function AssetDraftsTab({ projectId, assetType, assetId, currentFieldValu
   }, [projectId, assetType, assetId]);
 
   // Edit handlers
-  const handleStartEdit = useCallback((draftId: string, itemIndex: number, currentValue: string) => {
-    const editKey = `${draftId}-${itemIndex}`;
-    setEditingItem(editKey);
-    setEditValue(currentValue);
-    setEditError(null);
-  }, []);
+  const handleStartEdit = useCallback(
+    (draftId: string, itemIndex: number, currentValue: string) => {
+      const editKey = `${draftId}-${itemIndex}`;
+      setEditingItem(editKey);
+      setEditValue(currentValue);
+      setEditError(null);
+    },
+    []
+  );
 
   const handleCancelEdit = useCallback(() => {
     setEditingItem(null);
@@ -133,74 +153,91 @@ export function AssetDraftsTab({ projectId, assetType, assetId, currentFieldValu
     setEditError(null);
   }, []);
 
-  const handleSaveEdit = useCallback(async (draftId: string, itemIndex: number, fieldName?: string) => {
-    // [DRAFT-DIFF-CLARITY-1] Empty draft save confirmation
-    // If Draft (staged) is empty AND Current (live) is non-empty, require confirmation
-    if (editValue.trim() === '' && fieldName && currentFieldValues) {
-      const currentValue = fieldName === 'seoTitle'
-        ? currentFieldValues.seoTitle
-        : currentFieldValues.seoDescription;
+  const handleSaveEdit = useCallback(
+    async (draftId: string, itemIndex: number, fieldName?: string) => {
+      // [DRAFT-DIFF-CLARITY-1] Empty draft save confirmation
+      // If Draft (staged) is empty AND Current (live) is non-empty, require confirmation
+      if (editValue.trim() === '' && fieldName && currentFieldValues) {
+        const currentValue =
+          fieldName === 'seoTitle'
+            ? currentFieldValues.seoTitle
+            : currentFieldValues.seoDescription;
 
-      if (currentValue && currentValue.trim() !== '') {
-        const confirmed = window.confirm(
-          'Saving an empty draft will clear this field when applied.\n\nAre you sure you want to save an empty draft?'
-        );
-        if (!confirmed) {
-          return; // User canceled - do not persist changes
+        if (currentValue && currentValue.trim() !== '') {
+          const confirmed = window.confirm(
+            'Saving an empty draft will clear this field when applied.\n\nAre you sure you want to save an empty draft?'
+          );
+          if (!confirmed) {
+            return; // User canceled - do not persist changes
+          }
         }
       }
-    }
 
-    setEditSaving(true);
-    setEditError(null);
+      setEditSaving(true);
+      setEditError(null);
 
-    try {
-      const response = await projectsApi.updateDraftItem(projectId, draftId, itemIndex, editValue);
+      try {
+        const response = await projectsApi.updateDraftItem(
+          projectId,
+          draftId,
+          itemIndex,
+          editValue
+        );
 
-      // Update local state with the server response
-      // [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Use item.itemIndex for stable matching
-      // (filteredItems is a subset; idx may not equal item.itemIndex)
-      setDraftsData((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          drafts: prev.drafts.map((draft) => {
-            if (draft.id !== draftId) return draft;
-            return {
-              ...draft,
-              updatedAt: response.updatedAt,
-              filteredItems: draft.filteredItems.map((item, idx) => {
-                // Use item.itemIndex for stable comparison; fall back to idx if absent
-                const itemServerIndex = item.itemIndex ?? idx;
-                if (itemServerIndex !== itemIndex) return item;
-                return {
-                  ...item,
-                  finalSuggestion: editValue,
-                };
-              }),
-            };
-          }),
-        };
-      });
+        // Update local state with the server response
+        // [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Use item.itemIndex for stable matching
+        // (filteredItems is a subset; idx may not equal item.itemIndex)
+        setDraftsData((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            drafts: prev.drafts.map((draft) => {
+              if (draft.id !== draftId) return draft;
+              return {
+                ...draft,
+                updatedAt: response.updatedAt,
+                filteredItems: draft.filteredItems.map((item, idx) => {
+                  // Use item.itemIndex for stable comparison; fall back to idx if absent
+                  const itemServerIndex = item.itemIndex ?? idx;
+                  if (itemServerIndex !== itemIndex) return item;
+                  return {
+                    ...item,
+                    finalSuggestion: editValue,
+                  };
+                }),
+              };
+            }),
+          };
+        });
 
-      // Exit edit mode
-      setEditingItem(null);
-      setEditValue('');
-      feedback.showSuccess('Draft saved successfully');
-    } catch (err) {
-      console.error('[DRAFT-REVIEW-ISOLATION-1] Failed to save draft edit:', err);
-      setEditError(err instanceof Error ? err.message : 'Failed to save changes');
-    } finally {
-      setEditSaving(false);
-    }
-  }, [projectId, editValue, feedback, currentFieldValues]);
+        // Exit edit mode
+        setEditingItem(null);
+        setEditValue('');
+        feedback.showSuccess('Draft saved successfully');
+      } catch (err) {
+        console.error(
+          '[DRAFT-REVIEW-ISOLATION-1] Failed to save draft edit:',
+          err
+        );
+        setEditError(
+          err instanceof Error ? err.message : 'Failed to save changes'
+        );
+      } finally {
+        setEditSaving(false);
+      }
+    },
+    [projectId, editValue, feedback, currentFieldValues]
+  );
 
   /**
    * [DRAFT-FIELD-COVERAGE-1] Get field label based on asset type
    */
-  const getFieldLabel = useCallback((field: string): string => {
-    return FIELD_LABEL_MAP[assetType]?.[field] || field;
-  }, [assetType]);
+  const getFieldLabel = useCallback(
+    (field: string): string => {
+      return FIELD_LABEL_MAP[assetType]?.[field] || field;
+    },
+    [assetType]
+  );
 
   /**
    * [DRAFT-FIELD-COVERAGE-1] Build empty state CTA href based on asset type
@@ -219,7 +256,8 @@ export function AssetDraftsTab({ projectId, assetType, assetId, currentFieldValu
       {/* [DRAFT-AI-ENTRYPOINT-CLARITY-1] Human-only review boundary note */}
       <DraftAiBoundaryNote mode="review" />
       <p className="mb-3 text-xs text-gray-500">
-        Review and edit pending drafts for this {assetLabel}. Save changes before applying.
+        Review and edit pending drafts for this {assetLabel}. Save changes
+        before applying.
       </p>
 
       {/* Loading state */}
@@ -278,19 +316,25 @@ export function AssetDraftsTab({ projectId, assetType, assetId, currentFieldValu
                         const itemIndex = item.itemIndex ?? idx;
                         const editKey = `${draft.id}-${itemIndex}`;
                         const isEditing = editingItem === editKey;
-                        const draftValue = item.finalSuggestion || item.rawSuggestion || '';
+                        const draftValue =
+                          item.finalSuggestion || item.rawSuggestion || '';
 
                         if (hasCanonicalShape) {
                           // [DRAFT-DIFF-CLARITY-1] Get current/live value for diff display
-                          const liveValue = item.field === 'seoTitle'
-                            ? (currentFieldValues?.seoTitle || '')
-                            : (currentFieldValues?.seoDescription || '');
+                          const liveValue =
+                            item.field === 'seoTitle'
+                              ? currentFieldValues?.seoTitle || ''
+                              : currentFieldValues?.seoDescription || '';
 
                           // [DRAFT-DIFF-CLARITY-1] Determine empty draft messaging
                           // - No draft generated yet: both raw and final are empty
                           // - Draft will clear this field: rawSuggestion non-empty but finalSuggestion empty (explicitly cleared)
-                          const noDraftGenerated = !item.rawSuggestion && !item.finalSuggestion;
-                          const draftWillClear = !item.finalSuggestion && item.rawSuggestion && liveValue;
+                          const noDraftGenerated =
+                            !item.rawSuggestion && !item.finalSuggestion;
+                          const draftWillClear =
+                            !item.finalSuggestion &&
+                            item.rawSuggestion &&
+                            liveValue;
 
                           return (
                             <div
@@ -306,7 +350,13 @@ export function AssetDraftsTab({ projectId, assetType, assetId, currentFieldValu
                                   <button
                                     type="button"
                                     data-testid={`drafts-tab-item-edit-${draft.id}-${itemIndex}`}
-                                    onClick={() => handleStartEdit(draft.id, itemIndex, draftValue)}
+                                    onClick={() =>
+                                      handleStartEdit(
+                                        draft.id,
+                                        itemIndex,
+                                        draftValue
+                                      )
+                                    }
                                     className="text-xs text-indigo-600 hover:text-indigo-800"
                                   >
                                     Edit
@@ -323,7 +373,11 @@ export function AssetDraftsTab({ projectId, assetType, assetId, currentFieldValu
                                   Current (live)
                                 </div>
                                 <div className="text-gray-700">
-                                  {liveValue || <span className="italic text-gray-400">(empty)</span>}
+                                  {liveValue || (
+                                    <span className="italic text-gray-400">
+                                      (empty)
+                                    </span>
+                                  )}
                                 </div>
                               </div>
 
@@ -341,23 +395,37 @@ export function AssetDraftsTab({ projectId, assetType, assetId, currentFieldValu
                                     <textarea
                                       data-testid={`drafts-tab-item-input-${draft.id}-${itemIndex}`}
                                       value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onChange={(e) =>
+                                        setEditValue(e.target.value)
+                                      }
                                       className="w-full rounded border border-indigo-300 p-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                                      rows={item.field === 'seoDescription' ? 4 : 2}
+                                      rows={
+                                        item.field === 'seoDescription' ? 4 : 2
+                                      }
                                       disabled={editSaving}
                                     />
                                     {editError && (
-                                      <div className="mt-1 text-xs text-red-600">{editError}</div>
+                                      <div className="mt-1 text-xs text-red-600">
+                                        {editError}
+                                      </div>
                                     )}
                                     <div className="mt-2 flex gap-2">
                                       <button
                                         type="button"
                                         data-testid={`drafts-tab-item-save-${draft.id}-${itemIndex}`}
-                                        onClick={() => handleSaveEdit(draft.id, itemIndex, item.field)}
+                                        onClick={() =>
+                                          handleSaveEdit(
+                                            draft.id,
+                                            itemIndex,
+                                            item.field
+                                          )
+                                        }
                                         disabled={editSaving}
                                         className="inline-flex items-center rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
                                       >
-                                        {editSaving ? 'Saving...' : 'Save changes'}
+                                        {editSaving
+                                          ? 'Saving...'
+                                          : 'Save changes'}
                                       </button>
                                       <button
                                         type="button"
@@ -374,18 +442,29 @@ export function AssetDraftsTab({ projectId, assetType, assetId, currentFieldValu
                                   <>
                                     <div className="text-gray-900">
                                       {noDraftGenerated ? (
-                                        <span className="italic text-gray-500">No draft generated yet</span>
+                                        <span className="italic text-gray-500">
+                                          No draft generated yet
+                                        </span>
                                       ) : draftWillClear ? (
-                                        <span className="text-amber-600">Draft will clear this field when applied</span>
+                                        <span className="text-amber-600">
+                                          Draft will clear this field when
+                                          applied
+                                        </span>
                                       ) : (
-                                        draftValue || <span className="italic text-gray-400">(empty)</span>
+                                        draftValue || (
+                                          <span className="italic text-gray-400">
+                                            (empty)
+                                          </span>
+                                        )
                                       )}
                                     </div>
-                                    {item.ruleWarnings && item.ruleWarnings.length > 0 && (
-                                      <div className="mt-1 text-xs text-amber-600">
-                                        Warnings: {item.ruleWarnings.join(', ')}
-                                      </div>
-                                    )}
+                                    {item.ruleWarnings &&
+                                      item.ruleWarnings.length > 0 && (
+                                        <div className="mt-1 text-xs text-amber-600">
+                                          Warnings:{' '}
+                                          {item.ruleWarnings.join(', ')}
+                                        </div>
+                                      )}
                                   </>
                                 )}
                               </div>
@@ -394,17 +473,29 @@ export function AssetDraftsTab({ projectId, assetType, assetId, currentFieldValu
                         } else {
                           // Legacy shape - read only (no diff UI)
                           return (
-                            <div key={idx} data-testid={`drafts-tab-item-${draft.id}-${idx}`} className="space-y-2">
+                            <div
+                              key={idx}
+                              data-testid={`drafts-tab-item-${draft.id}-${idx}`}
+                              className="space-y-2"
+                            >
                               {legacyItem.suggestedTitle && (
                                 <div className="rounded bg-gray-50 p-3 text-sm">
-                                  <div className="font-medium text-gray-700">Title</div>
-                                  <div className="mt-1 text-gray-900">{legacyItem.suggestedTitle}</div>
+                                  <div className="font-medium text-gray-700">
+                                    Title
+                                  </div>
+                                  <div className="mt-1 text-gray-900">
+                                    {legacyItem.suggestedTitle}
+                                  </div>
                                 </div>
                               )}
                               {legacyItem.suggestedDescription && (
                                 <div className="rounded bg-gray-50 p-3 text-sm">
-                                  <div className="font-medium text-gray-700">Description</div>
-                                  <div className="mt-1 text-gray-900">{legacyItem.suggestedDescription}</div>
+                                  <div className="font-medium text-gray-700">
+                                    Description
+                                  </div>
+                                  <div className="mt-1 text-gray-900">
+                                    {legacyItem.suggestedDescription}
+                                  </div>
                                 </div>
                               )}
                             </div>

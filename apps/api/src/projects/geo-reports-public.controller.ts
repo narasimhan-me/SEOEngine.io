@@ -36,7 +36,7 @@ export class GeoReportsPublicController {
   @Post(':shareToken/verify')
   async verifyAndGetPublicShareView(
     @Param('shareToken') shareToken: string,
-    @Body() body: { passcode: string },
+    @Body() body: { passcode: string }
   ) {
     return this.geoReportsService.getPublicShareView(shareToken, body.passcode);
   }

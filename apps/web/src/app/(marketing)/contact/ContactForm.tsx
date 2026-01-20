@@ -45,7 +45,11 @@ export function ContactForm() {
       setMessage('');
       setCaptchaToken(null);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to send message. Please try again.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to send message. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -69,7 +73,10 @@ export function ContactForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-border bg-muted p-6">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 rounded-2xl border border-border bg-muted p-6"
+    >
       {error && (
         <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}

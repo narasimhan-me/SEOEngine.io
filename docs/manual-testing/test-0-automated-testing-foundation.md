@@ -58,13 +58,16 @@
 **Goal:** Verify that the test environment guard refuses to run against unsafe DB URLs.
 
 **Setup:**
+
 - [ ] Temporarily set `DATABASE_URL` in your shell to a clearly non-local URL (do **not** commit this change), e.g.:
   - `export DATABASE_URL="postgresql://user:pass@ep-some-neon-host.neon.tech/db"`
 
 **Steps:**
+
 1. From the repo root, run `pnpm db:test:migrate`.
 
 **Expected Results:**
+
 - [ ] Command fails fast with a clear error mentioning:
   - `[TEST ENV GUARD]`
   - That the DB URL appears to point to a managed/prod host.
@@ -72,6 +75,7 @@
 - [ ] No migrations are applied to the remote database.
 
 **Cleanup:**
+
 - [ ] Unset/restore `DATABASE_URL` in your shell before proceeding:
   - `unset DATABASE_URL`
 
@@ -84,13 +88,16 @@
 **Goal:** Verify that DB helper scripts work correctly with a local test database.
 
 **Preconditions:**
+
 - [ ] `apps/api/.env.test` exists and uses the local `engineo_test` database.
 
 **Steps:**
+
 1. Run `pnpm db:test:reset` from the repo root.
 2. After reset completes, run `pnpm db:test:migrate`.
 
 **Expected Results:**
+
 - [ ] `db:test:reset` completes without error and logs Prisma reset/migrate output.
 - [ ] `db:test:migrate` reports migrations as up-to-date with no errors.
 - [ ] No safety guard errors are thrown when using the local DB URL.
@@ -104,14 +111,17 @@
 **Goal:** Confirm that `pnpm test` / `pnpm test:api` run backend tests successfully against the test DB.
 
 **Preconditions:**
+
 - [ ] Scenario T0-002 completed successfully.
 
 **Steps:**
+
 1. Run `pnpm test:api` from the repo root.
 2. Observe Jest output and ensure tests complete.
 3. Optionally, run `pnpm test` (alias for the backend Jest suite).
 
 **Expected Results:**
+
 - [ ] Jest starts with `NODE_ENV=test`.
 - [ ] No errors from the test env guard (DB URL is accepted).
 - [ ] Existing unit/integration/e2e tests (including automation and DEO flows) pass or clearly fail due to known, unrelated issues.
@@ -129,15 +139,18 @@
 **Goal:** Explicitly validate the “golden path” backend integration test behavior using seeded data and mocks.
 
 **Preconditions:**
+
 - [ ] Scenario T0-003 completed (Jest suite runs).
 
 **Steps:**
+
 1. Run only the golden-path test from the `apps/api` directory:
    - `cd apps/api`
    - `pnpm test:api:e2e -- shopify-update-product-seo.e2e-spec.ts`
 2. Watch test output for the `Shopify Update Product SEO (golden path e2e)` suite.
 
 **Expected Results:**
+
 - [ ] Test passes.
 - [ ] Logs (if any) indicate that:
   - A test user/project/integration/products are created via the `seedFirstDeoWinProjectReady` testkit helper.
@@ -154,15 +167,18 @@
 **Goal:** Verify that the Playwright scaffold is wired and can execute a simple smoke test.
 
 **Preconditions:**
+
 - [ ] Frontend app running locally at `http://localhost:3000`:
   - From repo root: `pnpm dev:web`
 
 **Steps:**
+
 1. In a separate terminal, from the repo root, run:
    - `pnpm test:web`
 2. Observe Playwright output.
 
 **Expected Results:**
+
 - [ ] Playwright starts, using the config in `apps/web/playwright.config.ts`.
 - [ ] The `smoke-homepage.spec.ts` test:
   - Navigates to `/`.
@@ -178,21 +194,24 @@
 **Goal:** Confirm that the CI workflow is correctly wired to run TEST-0 on PRs.
 
 **Preconditions:**
+
 - [ ] GitHub Actions enabled for the repository.
 
 **Steps:**
+
 1. Push a branch with a small, safe change (e.g., comment or docs update).
 2. Open a PR targeting `main`/`master`.
 3. Observe the `TEST-0 - Automated Testing Foundation` workflow run.
 
 **Expected Results:**
+
 - [ ] Workflow starts automatically on the PR.
 - [ ] Postgres service is started in CI.
 - [ ] Steps:
   - `pnpm db:test:migrate`
   - `pnpm test`
   - `pnpm test:web` (allowed to be non-blocking via `continue-on-error`)
-  run in sequence.
+    run in sequence.
 - [ ] If the test env guard detects an unsafe DB URL, the workflow fails with a clear error.
 
 ---
@@ -202,4 +221,3 @@
 - [ ] Changing `DATABASE_URL` to a managed host (Neon/Render/etc.) always triggers the guard and blocks tests.
 - [ ] Running `pnpm db:test:reset` or `pnpm db:test:migrate` without a reachable Postgres instance fails with a clear connection error (not silent).
 - [ ] New tests that use `testPrisma` or the `testkit` helpers behave deterministically across runs (no random ID collisions, no reliance on external services).
-

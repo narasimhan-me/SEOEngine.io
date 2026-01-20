@@ -1,12 +1,14 @@
 import { test, expect } from '@playwright/test';
 
-const API_BASE_URL =
-  process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
 
 async function seedFirstDeoWinProject(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-first-deo-win`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   return {
@@ -18,9 +20,12 @@ async function seedFirstDeoWinProject(request: any) {
 }
 
 async function connectShopifyE2E(request: any, projectId: string) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/connect-shopify`, {
-    data: { projectId },
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/connect-shopify`,
+    {
+      data: { projectId },
+    }
+  );
   expect(res.ok()).toBeTruthy();
 }
 
@@ -54,12 +59,12 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
 
       // Should navigate to automation entry page
       await expect(page).toHaveURL(
-        new RegExp(`/projects/${projectId}/automation/playbooks/entry`),
+        new RegExp(`/projects/${projectId}/automation/playbooks/entry`)
       );
 
       // Entry page header should be visible
       await expect(
-        page.getByRole('heading', { name: /New Playbook/i }),
+        page.getByRole('heading', { name: /New Playbook/i })
       ).toBeVisible();
     }
   });
@@ -95,12 +100,12 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
 
     // Should navigate to automation entry page
     await expect(page).toHaveURL(
-      new RegExp(`/projects/${projectId}/automation/playbooks/entry`),
+      new RegExp(`/projects/${projectId}/automation/playbooks/entry`)
     );
 
     // Entry page should show the correct context
     await expect(
-      page.getByRole('heading', { name: /New Playbook/i }),
+      page.getByRole('heading', { name: /New Playbook/i })
     ).toBeVisible();
   });
 
@@ -120,9 +125,9 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
     await page.goto(`/projects/${projectId}/automation/playbooks`);
 
     // Wait for page to load
-    await expect(
-      page.getByRole('heading', { name: /Playbooks/i }),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /Playbooks/i })).toBeVisible(
+      { timeout: 10000 }
+    );
 
     // Click "Create playbook" button
     const createBtn = page.getByRole('button', {
@@ -133,11 +138,14 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
 
     // Should navigate to automation entry page
     await expect(page).toHaveURL(
-      new RegExp(`/projects/${projectId}/automation/playbooks/entry`),
+      new RegExp(`/projects/${projectId}/automation/playbooks/entry`)
     );
   });
 
-  test('Entry page shows scope selection section', async ({ page, request }) => {
+  test('Entry page shows scope selection section', async ({
+    page,
+    request,
+  }) => {
     const { projectId, accessToken } = await seedFirstDeoWinProject(request);
     await connectShopifyE2E(request, projectId);
 
@@ -151,7 +159,7 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
 
     // Check for scope selection section
     await expect(
-      page.getByRole('heading', { name: /New Playbook/i }),
+      page.getByRole('heading', { name: /New Playbook/i })
     ).toBeVisible();
 
     // Scope options should be visible
@@ -174,7 +182,7 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
     await page.goto(`/projects/${projectId}/automation/playbooks/entry`);
 
     await expect(
-      page.getByRole('heading', { name: /New Playbook/i }),
+      page.getByRole('heading', { name: /New Playbook/i })
     ).toBeVisible();
 
     // Trigger section should show manual-only option (MVP)
@@ -196,7 +204,7 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
     await page.goto(`/projects/${projectId}/automation/playbooks/entry`);
 
     await expect(
-      page.getByRole('heading', { name: /New Playbook/i }),
+      page.getByRole('heading', { name: /New Playbook/i })
     ).toBeVisible();
 
     // Enable button should be disabled before preview is generated
@@ -223,7 +231,7 @@ test.describe('AUTOMATION-ENTRY-1 – Automation Playbook Entry UX (Playwright E
     await page.goto(`/projects/${projectId}/automation/playbooks/entry`);
 
     await expect(
-      page.getByRole('heading', { name: /New Playbook/i }),
+      page.getByRole('heading', { name: /New Playbook/i })
     ).toBeVisible();
 
     // Generate preview

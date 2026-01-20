@@ -136,11 +136,15 @@ describe('AuthAbuseService', () => {
       serviceWithCustomThreshold.recordFailure('test@example.com');
       serviceWithCustomThreshold.recordFailure('test@example.com');
 
-      expect(serviceWithCustomThreshold.isCaptchaRequired('test@example.com')).toBe(false);
+      expect(
+        serviceWithCustomThreshold.isCaptchaRequired('test@example.com')
+      ).toBe(false);
 
       serviceWithCustomThreshold.recordFailure('test@example.com');
 
-      expect(serviceWithCustomThreshold.isCaptchaRequired('test@example.com')).toBe(true);
+      expect(
+        serviceWithCustomThreshold.isCaptchaRequired('test@example.com')
+      ).toBe(true);
     });
   });
 
@@ -235,13 +239,16 @@ describe('AuthAbuseService', () => {
       serviceWithCustomWindow.recordFailure('test@example.com');
       serviceWithCustomWindow.recordFailure('test@example.com');
 
-      expect(serviceWithCustomWindow.isCaptchaRequired('test@example.com')).toBe(true);
+      expect(
+        serviceWithCustomWindow.isCaptchaRequired('test@example.com')
+      ).toBe(true);
 
       // Fast-forward past the custom window (60 seconds)
       jest.advanceTimersByTime(61 * 1000);
 
-      expect(serviceWithCustomWindow.isCaptchaRequired('test@example.com')).toBe(false);
+      expect(
+        serviceWithCustomWindow.isCaptchaRequired('test@example.com')
+      ).toBe(false);
     });
   });
 });
-

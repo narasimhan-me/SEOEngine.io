@@ -80,7 +80,9 @@ describe('AutomationService', () => {
   let governanceServiceMock: ReturnType<typeof createGovernanceServiceMock>;
   let approvalsServiceMock: ReturnType<typeof createApprovalsServiceMock>;
   let auditEventsServiceMock: ReturnType<typeof createAuditEventsServiceMock>;
-  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
+  let roleResolutionServiceMock: ReturnType<
+    typeof createRoleResolutionServiceMock
+  >;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
@@ -100,7 +102,7 @@ describe('AutomationService', () => {
       governanceServiceMock as any,
       approvalsServiceMock as any,
       auditEventsServiceMock as any,
-      roleResolutionServiceMock as any,
+      roleResolutionServiceMock as any
     );
 
     jest.spyOn(service['logger'], 'warn').mockImplementation(() => {});
@@ -154,7 +156,9 @@ describe('AutomationService', () => {
       };
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
-      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(mockEntitlements);
+      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(
+        mockEntitlements
+      );
       prismaMock.automationSuggestion.count.mockResolvedValue(50); // At cap
 
       await service.scheduleSuggestionsForProject('proj-1');
@@ -190,7 +194,9 @@ describe('AutomationService', () => {
       ];
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
-      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(mockEntitlements);
+      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(
+        mockEntitlements
+      );
       prismaMock.automationSuggestion.count.mockResolvedValue(0); // No suggestions today
       prismaMock.automationSuggestion.findMany.mockResolvedValue([]); // No existing suggestions
       // Mock product.findMany for missing metadata check
@@ -210,7 +216,9 @@ describe('AutomationService', () => {
         suggestedTitle: 'Generated Title',
         suggestedDescription: 'Generated Description',
       });
-      entitlementsServiceMock.canAutoApplyMetadataAutomations.mockResolvedValue(false);
+      entitlementsServiceMock.canAutoApplyMetadataAutomations.mockResolvedValue(
+        false
+      );
       prismaMock.product.findUnique.mockResolvedValue({
         id: 'prod-1',
         seoTitle: null,
@@ -246,7 +254,9 @@ describe('AutomationService', () => {
       };
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
-      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(mockEntitlements);
+      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(
+        mockEntitlements
+      );
       prismaMock.automationSuggestion.count.mockResolvedValue(5); // At plan limit
 
       await service.scheduleSuggestionsForProject('proj-1');
@@ -258,25 +268,37 @@ describe('AutomationService', () => {
   describe('runNewProductSeoTitleAutomation', () => {
     it('should skip when daily AI limit is reached', async () => {
       entitlementsServiceMock.ensureWithinDailyAiLimit.mockRejectedValueOnce(
-        new Error('Daily limit reached'),
+        new Error('Daily limit reached')
       );
 
-      await service.runNewProductSeoTitleAutomation('proj-1', 'prod-1', 'user-1');
+      await service.runNewProductSeoTitleAutomation(
+        'proj-1',
+        'prod-1',
+        'user-1'
+      );
 
       expect(prismaMock.product.findUnique).not.toHaveBeenCalled();
     });
 
     it('should skip when product not found', async () => {
-      entitlementsServiceMock.ensureWithinDailyAiLimit.mockResolvedValueOnce(undefined);
+      entitlementsServiceMock.ensureWithinDailyAiLimit.mockResolvedValueOnce(
+        undefined
+      );
       prismaMock.product.findUnique.mockResolvedValue(null);
 
-      await service.runNewProductSeoTitleAutomation('proj-1', 'prod-1', 'user-1');
+      await service.runNewProductSeoTitleAutomation(
+        'proj-1',
+        'prod-1',
+        'user-1'
+      );
 
       expect(aiServiceMock.generateMetadata).not.toHaveBeenCalled();
     });
 
     it('should skip when SEO fields already populated', async () => {
-      entitlementsServiceMock.ensureWithinDailyAiLimit.mockResolvedValueOnce(undefined);
+      entitlementsServiceMock.ensureWithinDailyAiLimit.mockResolvedValueOnce(
+        undefined
+      );
       prismaMock.product.findUnique.mockResolvedValue({
         id: 'prod-1',
         seoTitle: 'Existing Title',
@@ -286,13 +308,19 @@ describe('AutomationService', () => {
         externalId: 'ext-1',
       });
 
-      await service.runNewProductSeoTitleAutomation('proj-1', 'prod-1', 'user-1');
+      await service.runNewProductSeoTitleAutomation(
+        'proj-1',
+        'prod-1',
+        'user-1'
+      );
 
       expect(aiServiceMock.generateMetadata).not.toHaveBeenCalled();
     });
 
     it('should generate and apply metadata when auto-apply is enabled', async () => {
-      entitlementsServiceMock.ensureWithinDailyAiLimit.mockResolvedValueOnce(undefined);
+      entitlementsServiceMock.ensureWithinDailyAiLimit.mockResolvedValueOnce(
+        undefined
+      );
       prismaMock.product.findUnique.mockResolvedValue({
         id: 'prod-1',
         projectId: 'proj-1',
@@ -306,7 +334,9 @@ describe('AutomationService', () => {
         title: 'Generated Title',
         description: 'Generated Description',
       });
-      entitlementsServiceMock.canAutoApplyMetadataAutomations.mockResolvedValue(true);
+      entitlementsServiceMock.canAutoApplyMetadataAutomations.mockResolvedValue(
+        true
+      );
       entitlementsServiceMock.recordAiUsage.mockResolvedValue(undefined);
       prismaMock.automationSuggestion.upsert.mockResolvedValue({
         id: 'suggestion-1',
@@ -321,7 +351,11 @@ describe('AutomationService', () => {
       prismaMock.product.update.mockResolvedValue({} as any);
       prismaMock.automationSuggestion.update.mockResolvedValue({} as any);
 
-      await service.runNewProductSeoTitleAutomation('proj-1', 'prod-1', 'user-1');
+      await service.runNewProductSeoTitleAutomation(
+        'proj-1',
+        'prod-1',
+        'user-1'
+      );
 
       expect(aiServiceMock.generateMetadata).toHaveBeenCalled();
       expect(prismaMock.product.update).toHaveBeenCalled();
@@ -329,12 +363,14 @@ describe('AutomationService', () => {
         expect.objectContaining({
           where: { id: 'suggestion-1' },
           data: { applied: true, appliedAt: expect.any(Date) },
-        }),
+        })
       );
     });
 
     it('should create suggestion but not apply when auto-apply is disabled', async () => {
-      entitlementsServiceMock.ensureWithinDailyAiLimit.mockResolvedValueOnce(undefined);
+      entitlementsServiceMock.ensureWithinDailyAiLimit.mockResolvedValueOnce(
+        undefined
+      );
       prismaMock.product.findUnique.mockResolvedValue({
         id: 'prod-1',
         projectId: 'proj-1',
@@ -348,7 +384,9 @@ describe('AutomationService', () => {
         title: 'Generated Title',
         description: 'Generated Description',
       });
-      entitlementsServiceMock.canAutoApplyMetadataAutomations.mockResolvedValue(false);
+      entitlementsServiceMock.canAutoApplyMetadataAutomations.mockResolvedValue(
+        false
+      );
       entitlementsServiceMock.recordAiUsage.mockResolvedValue(undefined);
       prismaMock.automationSuggestion.upsert.mockResolvedValue({
         id: 'suggestion-1',
@@ -361,7 +399,11 @@ describe('AutomationService', () => {
         applied: false,
       });
 
-      await service.runNewProductSeoTitleAutomation('proj-1', 'prod-1', 'user-1');
+      await service.runNewProductSeoTitleAutomation(
+        'proj-1',
+        'prod-1',
+        'user-1'
+      );
 
       expect(aiServiceMock.generateMetadata).toHaveBeenCalled();
       expect(prismaMock.product.update).not.toHaveBeenCalled();
@@ -394,7 +436,9 @@ describe('AutomationService', () => {
       ];
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
-      prismaMock.automationSuggestion.findMany.mockResolvedValue(mockSuggestions);
+      prismaMock.automationSuggestion.findMany.mockResolvedValue(
+        mockSuggestions
+      );
 
       const result = await service.getSuggestionsForProject('proj-1', 'user-1');
 
@@ -407,11 +451,11 @@ describe('AutomationService', () => {
     it('should throw NotFoundException when project not found', async () => {
       prismaMock.project.findUnique.mockResolvedValue(null);
       roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
-        new NotFoundException('Project not found'),
+        new NotFoundException('Project not found')
       );
 
       await expect(
-        service.getSuggestionsForProject('proj-1', 'user-1'),
+        service.getSuggestionsForProject('proj-1', 'user-1')
       ).rejects.toThrow('Project not found');
     });
 
@@ -423,11 +467,11 @@ describe('AutomationService', () => {
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
       roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
-        new ForbiddenException('You do not have access to this project'),
+        new ForbiddenException('You do not have access to this project')
       );
 
       await expect(
-        service.getSuggestionsForProject('proj-1', 'user-1'),
+        service.getSuggestionsForProject('proj-1', 'user-1')
       ).rejects.toThrow('You do not have access to this project');
     });
   });
@@ -446,7 +490,11 @@ describe('AutomationService', () => {
       entitlementsServiceMock.getUserPlan.mockResolvedValue('free');
       prismaMock.answerBlockAutomationLog.create.mockResolvedValue({} as any);
 
-      await service.triggerAnswerBlockAutomationForProduct('prod-1', 'user-1', 'product_synced');
+      await service.triggerAnswerBlockAutomationForProduct(
+        'prod-1',
+        'user-1',
+        'product_synced'
+      );
 
       expect(prismaMock.answerBlockAutomationLog.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -455,7 +503,7 @@ describe('AutomationService', () => {
             action: 'skip_plan_free',
             planId: 'free',
           }),
-        }),
+        })
       );
     });
 
@@ -470,18 +518,26 @@ describe('AutomationService', () => {
 
       prismaMock.product.findUnique.mockResolvedValue(mockProduct as any);
       roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
-        new ForbiddenException('You do not have access to this project'),
+        new ForbiddenException('You do not have access to this project')
       );
 
       await expect(
-        service.triggerAnswerBlockAutomationForProduct('prod-1', 'user-1', 'product_synced'),
+        service.triggerAnswerBlockAutomationForProduct(
+          'prod-1',
+          'user-1',
+          'product_synced'
+        )
       ).rejects.toThrow('You do not have access to this project');
     });
 
     it('should skip when product not found', async () => {
       prismaMock.product.findUnique.mockResolvedValue(null);
 
-      await service.triggerAnswerBlockAutomationForProduct('prod-1', 'user-1', 'product_synced');
+      await service.triggerAnswerBlockAutomationForProduct(
+        'prod-1',
+        'user-1',
+        'product_synced'
+      );
 
       expect(entitlementsServiceMock.getUserPlan).not.toHaveBeenCalled();
     });
@@ -519,7 +575,9 @@ describe('AutomationService', () => {
       ];
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
-      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(mockEntitlements);
+      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(
+        mockEntitlements
+      );
       prismaMock.automationSuggestion.count.mockResolvedValue(0);
       prismaMock.automationSuggestion.findMany.mockResolvedValue([]);
       prismaMock.product.findMany.mockResolvedValueOnce([]); // For missing metadata (disabled)
@@ -545,7 +603,9 @@ describe('AutomationService', () => {
         metaDescription: null,
         h1: null,
       });
-      entitlementsServiceMock.canAutoApplyMetadataAutomations.mockResolvedValue(false);
+      entitlementsServiceMock.canAutoApplyMetadataAutomations.mockResolvedValue(
+        false
+      );
 
       await service.scheduleSuggestionsForProject('proj-1');
 
@@ -555,7 +615,7 @@ describe('AutomationService', () => {
             projectId: 'proj-1',
             wordCount: expect.objectContaining({ lt: 200 }),
           }),
-        }),
+        })
       );
       expect(prismaMock.automationSuggestion.upsert).toHaveBeenCalled();
     });
@@ -578,7 +638,8 @@ describe('AutomationService', () => {
       };
 
       // Create a description with exactly 15 words (definitely < 80)
-      const thinDescription = 'One two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen';
+      const thinDescription =
+        'One two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen';
       const mockProducts = [
         {
           id: 'prod-1',
@@ -588,7 +649,9 @@ describe('AutomationService', () => {
       ];
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
-      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(mockEntitlements);
+      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(
+        mockEntitlements
+      );
       prismaMock.automationSuggestion.count.mockResolvedValue(0);
       prismaMock.automationSuggestion.findMany.mockResolvedValue([]);
       prismaMock.product.findMany.mockResolvedValueOnce([]); // For missing metadata (disabled)
@@ -616,7 +679,9 @@ describe('AutomationService', () => {
         suggestedTitle: 'Generated Title',
         suggestedDescription: 'Generated Description',
       });
-      entitlementsServiceMock.canAutoApplyMetadataAutomations.mockResolvedValue(false);
+      entitlementsServiceMock.canAutoApplyMetadataAutomations.mockResolvedValue(
+        false
+      );
 
       await service.scheduleSuggestionsForProject('proj-1');
 
@@ -626,7 +691,7 @@ describe('AutomationService', () => {
       expect(prismaMock.product.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { projectId: 'proj-1' },
-        }),
+        })
       );
     });
 
@@ -664,9 +729,13 @@ describe('AutomationService', () => {
       ];
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
-      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(mockEntitlements);
+      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(
+        mockEntitlements
+      );
       prismaMock.automationSuggestion.count.mockResolvedValue(0);
-      prismaMock.automationSuggestion.findMany.mockResolvedValue(existingSuggestions);
+      prismaMock.automationSuggestion.findMany.mockResolvedValue(
+        existingSuggestions
+      );
       prismaMock.product.findMany.mockResolvedValueOnce(mockProducts);
       prismaMock.crawlResult.findMany.mockResolvedValueOnce([]);
 
@@ -700,7 +769,9 @@ describe('AutomationService', () => {
       }));
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
-      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(mockEntitlements);
+      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(
+        mockEntitlements
+      );
       prismaMock.automationSuggestion.count.mockResolvedValue(45); // 5 slots remaining
       prismaMock.automationSuggestion.findMany.mockResolvedValue([]);
       prismaMock.product.findMany.mockResolvedValueOnce(mockProducts);
@@ -726,7 +797,9 @@ describe('AutomationService', () => {
         title: 'Product 1',
         description: 'Description',
       });
-      entitlementsServiceMock.canAutoApplyMetadataAutomations.mockResolvedValue(false);
+      entitlementsServiceMock.canAutoApplyMetadataAutomations.mockResolvedValue(
+        false
+      );
 
       await service.scheduleSuggestionsForProject('proj-1');
 
@@ -762,7 +835,9 @@ describe('AutomationService', () => {
       ];
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
-      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(mockEntitlements);
+      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(
+        mockEntitlements
+      );
       prismaMock.automationSuggestion.count.mockResolvedValue(0);
       prismaMock.automationSuggestion.findMany.mockResolvedValue([]);
       prismaMock.product.findMany.mockResolvedValueOnce(mockProducts);
@@ -789,7 +864,9 @@ describe('AutomationService', () => {
         title: 'Product 1',
         description: 'Description',
       });
-      entitlementsServiceMock.canAutoApplyMetadataAutomations.mockResolvedValue(true);
+      entitlementsServiceMock.canAutoApplyMetadataAutomations.mockResolvedValue(
+        true
+      );
       prismaMock.product.update.mockResolvedValue({} as any);
       prismaMock.automationSuggestion.update.mockResolvedValue({} as any);
 
@@ -801,7 +878,7 @@ describe('AutomationService', () => {
           data: expect.objectContaining({
             seoTitle: 'Generated Title',
           }),
-        }),
+        })
       );
     });
 
@@ -831,7 +908,9 @@ describe('AutomationService', () => {
       ];
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
-      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(mockEntitlements);
+      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(
+        mockEntitlements
+      );
       prismaMock.automationSuggestion.count.mockResolvedValue(0);
       prismaMock.automationSuggestion.findMany.mockResolvedValue([]);
       prismaMock.product.findMany.mockResolvedValueOnce(mockProducts);
@@ -858,7 +937,9 @@ describe('AutomationService', () => {
         title: 'Product 1',
         description: 'Description',
       });
-      entitlementsServiceMock.canAutoApplyMetadataAutomations.mockResolvedValue(true);
+      entitlementsServiceMock.canAutoApplyMetadataAutomations.mockResolvedValue(
+        true
+      );
       prismaMock.product.update.mockResolvedValue({} as any);
       prismaMock.automationSuggestion.update.mockResolvedValue({} as any);
 
@@ -870,7 +951,7 @@ describe('AutomationService', () => {
           data: expect.objectContaining({
             seoDescription: 'Generated Description',
           }),
-        }),
+        })
       );
     });
 
@@ -900,7 +981,9 @@ describe('AutomationService', () => {
       ];
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
-      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(mockEntitlements);
+      entitlementsServiceMock.getEntitlementsSummary.mockResolvedValue(
+        mockEntitlements
+      );
       prismaMock.automationSuggestion.count.mockResolvedValue(0);
       prismaMock.automationSuggestion.findMany.mockResolvedValue([]);
       prismaMock.product.findMany.mockResolvedValueOnce(mockProducts);
@@ -927,7 +1010,9 @@ describe('AutomationService', () => {
         title: 'Product 1',
         description: 'Description',
       });
-      entitlementsServiceMock.canAutoApplyMetadataAutomations.mockResolvedValue(true);
+      entitlementsServiceMock.canAutoApplyMetadataAutomations.mockResolvedValue(
+        true
+      );
 
       await service.scheduleSuggestionsForProject('proj-1');
 
@@ -936,4 +1021,3 @@ describe('AutomationService', () => {
     });
   });
 });
-

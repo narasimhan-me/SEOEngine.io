@@ -13,7 +13,11 @@ interface WorkQueueTabsProps {
  *
  * Tab navigation: Critical | Needs Attention | Pending Approval | Drafts Ready | Applied Recently
  */
-export function WorkQueueTabs({ tabs, currentTab, onTabChange }: WorkQueueTabsProps) {
+export function WorkQueueTabs({
+  tabs,
+  currentTab,
+  onTabChange,
+}: WorkQueueTabsProps) {
   return (
     <div className="border-b border-gray-200">
       <nav className="-mb-px flex space-x-8" aria-label="Work Queue Tabs">

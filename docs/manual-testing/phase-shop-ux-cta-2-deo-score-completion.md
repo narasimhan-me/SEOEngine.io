@@ -49,16 +49,19 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - [ ] Project meets the preconditions above and shows the First DEO Win checklist.
 - [ ] "Connect your store" and "Run your first crawl" steps are already completed.
 
 **Steps:**
+
 1. Navigate to /projects/[id]/overview for the prepared project.
 2. Locate the First DEO Win checklist.
 3. Confirm the "Review your DEO Score" step is currently not marked as completed.
 4. Click the "View DEO Score" CTA on that step.
 
 **Expected Results:**
+
 - **UI:**
   - [ ] The page scrolls to the top / DEO Score area.
   - [ ] The DEO Score & issues banner (All Issues modal) opens.
@@ -72,12 +75,15 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - [ ] Continuation of HP-001 with the banner/modal still open.
 
 **Steps:**
+
 1. Close the banner/modal by clicking the "X" close button in the header or clicking on the backdrop.
 
 **Expected Results:**
+
 - **UI:**
   - [ ] The banner/modal closes.
   - [ ] The First DEO Win checklist remains visible.
@@ -92,13 +98,16 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - [ ] HP-002 completed; the DEO Score step is marked complete.
 
 **Steps:**
+
 1. Interact with the page (scroll, open/close other panels such as DEO breakdown or freshness).
 2. Optionally re-open and close the issues banner via "View all issues".
 
 **Expected Results:**
+
 - [ ] The "Review your DEO Score" step remains completed.
 - [ ] The progress text continues to show 3 of 4 steps complete.
 
@@ -111,11 +120,13 @@
 **Description:** Ensure both close interactions update the step.
 
 **Steps:**
+
 1. Open the issues banner using "View DEO Score".
 2. Close the banner by clicking on the darkened backdrop.
 3. Repeat by opening it again and closing via the "X" close icon.
 
 **Expected Behavior:**
+
 - [ ] In both cases, the "Review your DEO Score" step becomes (or remains) completed.
 - [ ] Checklist progress reflects 3 of 4 steps complete.
 
@@ -126,10 +137,12 @@
 **Description:** Opening the issues banner from the "Top blockers" card should also count as reviewing DEO Score.
 
 **Steps:**
+
 1. With the checklist visible, click "View all issues" in the "Top blockers" card (instead of the checklist CTA).
 2. Close the banner using either close method.
 
 **Expected Behavior:**
+
 - [ ] After closing, the "Review your DEO Score" step is marked as completed.
 - [ ] Progress shows 3 of 4 steps complete.
 
@@ -142,10 +155,12 @@
 **Scenario:** Project has no DEO Score yet, but user tries to open the issues banner.
 
 **Steps:**
+
 1. (Setup) Use a project without a DEO Score.
 2. Attempt to open the issues banner from either "View DEO Score" or "View all issues".
 
 **Expected Behavior:**
+
 - [ ] UI handles the case gracefully (e.g., shows empty state for issues or score).
 - [ ] The checklist only marks "Review your DEO Score" as completed once the banner has actually been opened and closed.
 
@@ -158,10 +173,12 @@
 **Scenario:** User reloads the page after completing the DEO Score step.
 
 **Steps:**
+
 1. Complete HP-002 so that the DEO Score step is marked complete.
 2. Refresh the browser on /projects/[id]/overview.
 
 **Expected Behavior:**
+
 - [ ] Checklist state continues to derive from backend data (integrations, crawls, DEO Score, optimization).
 - [ ] It is acceptable if the "Review your DEO Score" step reverts to relying on backend-derived completion rules after a full reload (no new backend persistence is introduced in this phase).
 
@@ -213,9 +230,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Name] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Phase SHOP-UX-CTA-2 DEO Score step completion |
+| Field              | Value                                         |
+| ------------------ | --------------------------------------------- |
+| **Tester Name**    | [Name]                                        |
+| **Date**           | [YYYY-MM-DD]                                  |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed         |
+| **Notes**          | Phase SHOP-UX-CTA-2 DEO Score step completion |

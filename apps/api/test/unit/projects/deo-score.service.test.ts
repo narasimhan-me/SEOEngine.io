@@ -34,14 +34,16 @@ const createRoleResolutionServiceMock = () => ({
 describe('DeoScoreService', () => {
   let service: DeoScoreService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
-  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
+  let roleResolutionServiceMock: ReturnType<
+    typeof createRoleResolutionServiceMock
+  >;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
     roleResolutionServiceMock = createRoleResolutionServiceMock();
     service = new DeoScoreService(
       prismaMock as unknown as PrismaService,
-      roleResolutionServiceMock as unknown as RoleResolutionService,
+      roleResolutionServiceMock as unknown as RoleResolutionService
     );
   });
 
@@ -103,9 +105,9 @@ describe('DeoScoreService', () => {
     it('should throw NotFoundException when project does not exist', async () => {
       prismaMock.project.findUnique.mockResolvedValue(null);
 
-      await expect(service.getLatestForProject('proj-1', 'user-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.getLatestForProject('proj-1', 'user-1')
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException when user does not own project', async () => {
@@ -116,12 +118,12 @@ describe('DeoScoreService', () => {
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
       roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
-        new ForbiddenException('You do not have access to this project'),
+        new ForbiddenException('You do not have access to this project')
       );
 
-      await expect(service.getLatestForProject('proj-1', 'user-1')).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.getLatestForProject('proj-1', 'user-1')
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -171,7 +173,10 @@ describe('DeoScoreService', () => {
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
       prismaMock.deoScoreSnapshot.create.mockResolvedValue(mockSnapshot);
 
-      const result = await service.computeAndPersistScoreFromSignals('proj-1', mockSignals);
+      const result = await service.computeAndPersistScoreFromSignals(
+        'proj-1',
+        mockSignals
+      );
 
       expect(result).toHaveProperty('id', 'snapshot-1');
       expect(result).toHaveProperty('projectId', 'proj-1');
@@ -182,16 +187,24 @@ describe('DeoScoreService', () => {
       prismaMock.project.findUnique.mockResolvedValue(null);
 
       const mockSignals: DeoScoreSignals = {
-        content: { totalPages: 10, pagesWithMetadata: 8, avgWordCount: 500, pagesWithThinContent: 2 },
-        entities: { totalProducts: 20, productsWithAnswerBlocks: 15, answerabilityScore: 75 },
+        content: {
+          totalPages: 10,
+          pagesWithMetadata: 8,
+          avgWordCount: 500,
+          pagesWithThinContent: 2,
+        },
+        entities: {
+          totalProducts: 20,
+          productsWithAnswerBlocks: 15,
+          answerabilityScore: 75,
+        },
         technical: { crawlablePages: 10, indexablePages: 9, avgLoadTime: 1.5 },
         visibility: { offsitePresenceScore: 60, localDiscoveryScore: null },
       };
 
       await expect(
-        service.computeAndPersistScoreFromSignals('proj-1', mockSignals),
+        service.computeAndPersistScoreFromSignals('proj-1', mockSignals)
       ).rejects.toThrow(NotFoundException);
     });
   });
 });
-

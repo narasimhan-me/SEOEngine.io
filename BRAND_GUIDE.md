@@ -113,15 +113,15 @@ Do not:
 
 Primary palette:
 
-- **Primary Blue:** `#2563EB`  
+- **Primary Blue:** `#2563EB`
   - Used for CTAs, links, key highlights.
-- **Dark Slate:** `#111827`  
+- **Dark Slate:** `#111827`
   - Main text, nav bars.
-- **Soft Gray:** `#6B7280`  
+- **Soft Gray:** `#6B7280`
   - Secondary text.
-- **Background Light:** `#F9FAFB`  
+- **Background Light:** `#F9FAFB`
   - Page backgrounds.
-- **Accent Green:** `#16A34A`  
+- **Accent Green:** `#16A34A`
   - Success states, positive indicators.
 
 Usage examples:

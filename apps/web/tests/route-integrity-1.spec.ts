@@ -29,9 +29,12 @@ const API_BASE_URL = process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
  * Seed user and project via seed-first-deo-win
  */
 async function seedFirstDeoWin(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-first-deo-win`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   return {
@@ -46,9 +49,12 @@ async function seedFirstDeoWin(request: any) {
  * Seed user and project via seed-list-actions-clarity-1
  */
 async function seedListActionsClarity1(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-list-actions-clarity-1`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-list-actions-clarity-1`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   return {
@@ -63,9 +69,12 @@ async function seedListActionsClarity1(request: any) {
  * Guarantees Work Queue has Playbooks CTAs with playbookId param
  */
 async function seedListSearchFilter1(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-list-search-filter-1`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-list-search-filter-1`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   return {
@@ -85,7 +94,10 @@ async function authenticatePage(page: any, accessToken: string) {
 }
 
 test.describe('ROUTE-INTEGRITY-1: Store Health -> Issues Engine', () => {
-  test('Store Health -> Discoverability card -> Issues Engine with scope banner', async ({ page, request }) => {
+  test('Store Health -> Discoverability card -> Issues Engine with scope banner', async ({
+    page,
+    request,
+  }) => {
     const { accessToken, projectId } = await seedFirstDeoWin(request);
     await authenticatePage(page, accessToken);
 
@@ -94,7 +106,9 @@ test.describe('ROUTE-INTEGRITY-1: Store Health -> Issues Engine', () => {
     await page.waitForLoadState('networkidle');
 
     // [FIXUP-1] Use correct test ID for store health card
-    const discoverabilityCard = page.locator('[data-testid="store-health-card-discoverability"]');
+    const discoverabilityCard = page.locator(
+      '[data-testid="store-health-card-discoverability"]'
+    );
     await expect(discoverabilityCard).toBeVisible();
 
     // Click Discoverability card
@@ -124,7 +138,10 @@ test.describe('ROUTE-INTEGRITY-1: Store Health -> Issues Engine', () => {
     expect(page.url()).toContain('/store-health');
   });
 
-  test('Store Health -> Discoverability -> Clear filters resets URL', async ({ page, request }) => {
+  test('Store Health -> Discoverability -> Clear filters resets URL', async ({
+    page,
+    request,
+  }) => {
     const { accessToken, projectId } = await seedFirstDeoWin(request);
     await authenticatePage(page, accessToken);
 
@@ -133,7 +150,9 @@ test.describe('ROUTE-INTEGRITY-1: Store Health -> Issues Engine', () => {
     await page.waitForLoadState('networkidle');
 
     // Click Discoverability card
-    const discoverabilityCard = page.locator('[data-testid="store-health-card-discoverability"]');
+    const discoverabilityCard = page.locator(
+      '[data-testid="store-health-card-discoverability"]'
+    );
     await expect(discoverabilityCard).toBeVisible();
     await discoverabilityCard.click();
     await page.waitForLoadState('networkidle');
@@ -154,7 +173,10 @@ test.describe('ROUTE-INTEGRITY-1: Store Health -> Issues Engine', () => {
 });
 
 test.describe('ROUTE-INTEGRITY-1: Products List -> Fix Next -> Back', () => {
-  test('Products list (with filter) -> Fix next -> Back preserves filter', async ({ page, request }) => {
+  test('Products list (with filter) -> Fix next -> Back preserves filter', async ({
+    page,
+    request,
+  }) => {
     const { accessToken, projectId } = await seedListActionsClarity1(request);
     await authenticatePage(page, accessToken);
 
@@ -164,7 +186,8 @@ test.describe('ROUTE-INTEGRITY-1: Products List -> Fix Next -> Back', () => {
     await page.waitForLoadState('networkidle');
 
     // Find a row with "Fix next" action - use strict assertion
-    const fixNextLink = page.locator('[data-testid="row-primary-action"]')
+    const fixNextLink = page
+      .locator('[data-testid="row-primary-action"]')
       .filter({ hasText: /Fix next/i })
       .first();
     await expect(fixNextLink).toBeVisible();
@@ -201,7 +224,10 @@ test.describe('ROUTE-INTEGRITY-1: Products List -> Fix Next -> Back', () => {
 });
 
 test.describe('ROUTE-INTEGRITY-1: Work Queue -> Playbooks -> Back', () => {
-  test('Work Queue -> Playbooks link -> Back returns to Work Queue', async ({ page, request }) => {
+  test('Work Queue -> Playbooks link -> Back returns to Work Queue', async ({
+    page,
+    request,
+  }) => {
     // [FIXUP-2] Use seed-list-search-filter-1 which guarantees Playbooks CTAs
     const { accessToken, projectId } = await seedListSearchFilter1(request);
     await authenticatePage(page, accessToken);
@@ -211,7 +237,9 @@ test.describe('ROUTE-INTEGRITY-1: Work Queue -> Playbooks -> Back', () => {
     await page.waitForLoadState('networkidle');
 
     // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Target Work Queue card CTA with canonical route
-    const playbooksLink = page.locator('a[href*="/playbooks/"][href*="step=preview"]').first();
+    const playbooksLink = page
+      .locator('a[href*="/playbooks/"][href*="step=preview"]')
+      .first();
     await expect(playbooksLink).toBeVisible();
 
     await playbooksLink.click();
@@ -238,7 +266,10 @@ test.describe('ROUTE-INTEGRITY-1: Work Queue -> Playbooks -> Back', () => {
     expect(page.url()).toContain('/work-queue');
   });
 
-  test('Work Queue -> Playbooks -> Clear filters resets URL', async ({ page, request }) => {
+  test('Work Queue -> Playbooks -> Clear filters resets URL', async ({
+    page,
+    request,
+  }) => {
     // [FIXUP-2] Use seed-list-search-filter-1 which guarantees Playbooks CTAs
     const { accessToken, projectId } = await seedListSearchFilter1(request);
     await authenticatePage(page, accessToken);
@@ -248,7 +279,9 @@ test.describe('ROUTE-INTEGRITY-1: Work Queue -> Playbooks -> Back', () => {
     await page.waitForLoadState('networkidle');
 
     // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Target Work Queue card CTA with canonical route
-    const playbooksLink = page.locator('a[href*="/playbooks/"][href*="step=preview"]').first();
+    const playbooksLink = page
+      .locator('a[href*="/playbooks/"][href*="step=preview"]')
+      .first();
     await expect(playbooksLink).toBeVisible();
     await playbooksLink.click();
     await page.waitForLoadState('networkidle');
@@ -268,7 +301,10 @@ test.describe('ROUTE-INTEGRITY-1: Work Queue -> Playbooks -> Back', () => {
 });
 
 test.describe('ROUTE-INTEGRITY-1: Scope Banner Visibility', () => {
-  test('Scope banner only renders when from param is present', async ({ page, request }) => {
+  test('Scope banner only renders when from param is present', async ({
+    page,
+    request,
+  }) => {
     const { accessToken, projectId } = await seedFirstDeoWin(request);
     await authenticatePage(page, accessToken);
 
@@ -281,7 +317,9 @@ test.describe('ROUTE-INTEGRITY-1: Scope Banner Visibility', () => {
     await expect(scopeBanner).not.toBeVisible();
 
     // Navigate with from param
-    await page.goto(`/projects/${projectId}/issues?from=store_health&returnTo=${encodeURIComponent(`/projects/${projectId}/store-health`)}`);
+    await page.goto(
+      `/projects/${projectId}/issues?from=store_health&returnTo=${encodeURIComponent(`/projects/${projectId}/store-health`)}`
+    );
     await page.waitForLoadState('networkidle');
 
     // Assert scope-banner IS visible

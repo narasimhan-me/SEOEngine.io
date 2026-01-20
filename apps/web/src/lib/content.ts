@@ -16,7 +16,11 @@ export interface ContentPage {
   scannedAt: string;
 }
 
-export type ContentStatus = 'healthy' | 'missing-metadata' | 'thin-content' | 'error';
+export type ContentStatus =
+  | 'healthy'
+  | 'missing-metadata'
+  | 'thin-content'
+  | 'error';
 
 export function getContentStatus(page: ContentPage): ContentStatus {
   const hasTitle = !!page.title?.trim();

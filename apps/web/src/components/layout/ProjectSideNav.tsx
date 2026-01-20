@@ -45,21 +45,15 @@ const navSections: NavSection[] = [
   },
   {
     heading: 'AUTOMATION',
-    items: [
-      { label: 'Playbooks', path: 'automation' },
-    ],
+    items: [{ label: 'Playbooks', path: 'automation' }],
   },
   {
     heading: 'INSIGHTS',
-    items: [
-      { label: 'Insights', path: 'insights' },
-    ],
+    items: [{ label: 'Insights', path: 'insights' }],
   },
   {
     heading: 'PROJECT',
-    items: [
-      { label: 'Project Settings', path: 'settings' },
-    ],
+    items: [{ label: 'Project Settings', path: 'settings' }],
   },
 ];
 
@@ -90,7 +84,10 @@ export default function ProjectSideNav({ onNavigate }: ProjectSideNavProps) {
     if (path === 'insights') {
       return insightsPillarRoutes.some((pillarPath) => {
         const pillarFullPath = `/projects/${projectId}/${pillarPath}`;
-        return pathname === pillarFullPath || pathname.startsWith(`${pillarFullPath}/`);
+        return (
+          pathname === pillarFullPath ||
+          pathname.startsWith(`${pillarFullPath}/`)
+        );
       });
     }
 
@@ -98,7 +95,10 @@ export default function ProjectSideNav({ onNavigate }: ProjectSideNavProps) {
   };
 
   return (
-    <nav className="w-full max-w-xs flex-shrink-0 md:w-48" data-testid="project-sidenav">
+    <nav
+      className="w-full max-w-xs flex-shrink-0 md:w-48"
+      data-testid="project-sidenav"
+    >
       <div className="space-y-6">
         {navSections.map((section) => (
           <div key={section.heading}>

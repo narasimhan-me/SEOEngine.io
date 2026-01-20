@@ -16,11 +16,11 @@ This phase fixes the "Fix surface not available" error that occurred when naviga
 
 ## Key Behavior Changes
 
-| Before | After |
-|--------|-------|
-| fixAnchorTestId: `product-metadata-seo-title-module` | fixAnchorTestId: `seo-editor-anchor` |
-| "Fix surface not available" banner shown | SEO editor scrolls into view and highlights |
-| User stranded on page | User lands exactly on fix surface |
+| Before                                               | After                                       |
+| ---------------------------------------------------- | ------------------------------------------- |
+| fixAnchorTestId: `product-metadata-seo-title-module` | fixAnchorTestId: `seo-editor-anchor`        |
+| "Fix surface not available" banner shown             | SEO editor scrolls into view and highlights |
+| User stranded on page                                | User lands exactly on fix surface           |
 
 ---
 
@@ -28,13 +28,13 @@ This phase fixes the "Fix surface not available" error that occurred when naviga
 
 The following issue types had incorrect anchor mappings that are now fixed:
 
-| Issue Type | Old Anchor (incorrect) | New Anchor (correct) |
-|------------|------------------------|----------------------|
-| `missing_seo_title` | `product-metadata-seo-title-module` | `seo-editor-anchor` |
-| `missing_seo_description` | `product-metadata-seo-description-module` | `seo-editor-anchor` |
-| `weak_title` | `product-metadata-seo-title-module` | `seo-editor-anchor` |
-| `weak_description` | `product-metadata-seo-description-module` | `seo-editor-anchor` |
-| `missing_metadata` | `product-metadata-seo-title-module` | `seo-editor-anchor` |
+| Issue Type                | Old Anchor (incorrect)                    | New Anchor (correct) |
+| ------------------------- | ----------------------------------------- | -------------------- |
+| `missing_seo_title`       | `product-metadata-seo-title-module`       | `seo-editor-anchor`  |
+| `missing_seo_description` | `product-metadata-seo-description-module` | `seo-editor-anchor`  |
+| `weak_title`              | `product-metadata-seo-title-module`       | `seo-editor-anchor`  |
+| `weak_description`        | `product-metadata-seo-description-module` | `seo-editor-anchor`  |
+| `missing_metadata`        | `product-metadata-seo-title-module`       | `seo-editor-anchor`  |
 
 ---
 

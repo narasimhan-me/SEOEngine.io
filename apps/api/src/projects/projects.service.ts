@@ -1,7 +1,20 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { IntegrationType, CrawlFrequency, ProjectMemberRole, GovernanceAuditEventType } from '@prisma/client';
-import { RoleResolutionService, EffectiveProjectRole } from '../common/role-resolution.service';
+import {
+  IntegrationType,
+  CrawlFrequency,
+  ProjectMemberRole,
+  GovernanceAuditEventType,
+} from '@prisma/client';
+import {
+  RoleResolutionService,
+  EffectiveProjectRole,
+} from '../common/role-resolution.service';
 
 export interface CreateProjectDto {
   name: string;
@@ -66,7 +79,7 @@ const CRAWL_PAGE_SEO_DESC_MAX = 155;
 export class ProjectsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   /**
@@ -119,13 +132,19 @@ export class ProjectsService {
     }
 
     // [ROLES-3] Check membership instead of ownership
-    const hasAccess = await this.roleResolution.hasProjectAccess(projectId, userId);
+    const hasAccess = await this.roleResolution.hasProjectAccess(
+      projectId,
+      userId
+    );
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this project');
     }
 
     // Include user's role in the response
-    const role = await this.roleResolution.resolveEffectiveRole(projectId, userId);
+    const role = await this.roleResolution.resolveEffectiveRole(
+      projectId,
+      userId
+    );
 
     return {
       ...project,
@@ -163,7 +182,11 @@ export class ProjectsService {
   /**
    * [ROLES-3] Update a project (OWNER-only)
    */
-  async updateProject(projectId: string, userId: string, dto: UpdateProjectDto) {
+  async updateProject(
+    projectId: string,
+    userId: string,
+    dto: UpdateProjectDto
+  ) {
     // Verify project exists and user has OWNER role
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -180,7 +203,9 @@ export class ProjectsService {
     if (dto.crawlFrequency !== undefined) {
       const validFrequencies = Object.values(CrawlFrequency);
       if (!validFrequencies.includes(dto.crawlFrequency)) {
-        throw new BadRequestException(`Invalid crawlFrequency. Must be one of: ${validFrequencies.join(', ')}`);
+        throw new BadRequestException(
+          `Invalid crawlFrequency. Must be one of: ${validFrequencies.join(', ')}`
+        );
       }
     }
 
@@ -189,17 +214,28 @@ export class ProjectsService {
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.domain !== undefined && { domain: dto.domain }),
-        ...(dto.autoCrawlEnabled !== undefined && { autoCrawlEnabled: dto.autoCrawlEnabled }),
-        ...(dto.crawlFrequency !== undefined && { crawlFrequency: dto.crawlFrequency }),
-        ...(dto.autoSuggestMissingMetadata !== undefined && { autoSuggestMissingMetadata: dto.autoSuggestMissingMetadata }),
-        ...(dto.autoSuggestThinContent !== undefined && { autoSuggestThinContent: dto.autoSuggestThinContent }),
-        ...(dto.autoSuggestDailyCap !== undefined && { autoSuggestDailyCap: dto.autoSuggestDailyCap }),
+        ...(dto.autoCrawlEnabled !== undefined && {
+          autoCrawlEnabled: dto.autoCrawlEnabled,
+        }),
+        ...(dto.crawlFrequency !== undefined && {
+          crawlFrequency: dto.crawlFrequency,
+        }),
+        ...(dto.autoSuggestMissingMetadata !== undefined && {
+          autoSuggestMissingMetadata: dto.autoSuggestMissingMetadata,
+        }),
+        ...(dto.autoSuggestThinContent !== undefined && {
+          autoSuggestThinContent: dto.autoSuggestThinContent,
+        }),
+        ...(dto.autoSuggestDailyCap !== undefined && {
+          autoSuggestDailyCap: dto.autoSuggestDailyCap,
+        }),
         ...(dto.aeoSyncToShopifyMetafields !== undefined && {
           aeoSyncToShopifyMetafields: dto.aeoSyncToShopifyMetafields,
         }),
         // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Persist Answer Block automation setting
         ...(dto.autoGenerateAnswerBlocksOnProductSync !== undefined && {
-          autoGenerateAnswerBlocksOnProductSync: dto.autoGenerateAnswerBlocksOnProductSync,
+          autoGenerateAnswerBlocksOnProductSync:
+            dto.autoGenerateAnswerBlocksOnProductSync,
         }),
       },
     });
@@ -257,13 +293,18 @@ export class ProjectsService {
     }
 
     // [ROLES-3] Check membership instead of ownership
-    const hasAccess = await this.roleResolution.hasProjectAccess(projectId, userId);
+    const hasAccess = await this.roleResolution.hasProjectAccess(
+      projectId,
+      userId
+    );
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this project');
     }
 
     // Build integration status map for all types
-    const integrationMap = new Map(project.integrations.map((i) => [i.type, i]));
+    const integrationMap = new Map(
+      project.integrations.map((i) => [i.type, i])
+    );
 
     const isIntegrationConnected = (integration: any): boolean => {
       if (!integration) return false;
@@ -281,10 +322,16 @@ export class ProjectsService {
     };
 
     const shopifyIntegration = integrationMap.get(IntegrationType.SHOPIFY);
-    const woocommerceIntegration = integrationMap.get(IntegrationType.WOOCOMMERCE);
-    const bigcommerceIntegration = integrationMap.get(IntegrationType.BIGCOMMERCE);
+    const woocommerceIntegration = integrationMap.get(
+      IntegrationType.WOOCOMMERCE
+    );
+    const bigcommerceIntegration = integrationMap.get(
+      IntegrationType.BIGCOMMERCE
+    );
     const magentoIntegration = integrationMap.get(IntegrationType.MAGENTO);
-    const customWebsiteIntegration = integrationMap.get(IntegrationType.CUSTOM_WEBSITE);
+    const customWebsiteIntegration = integrationMap.get(
+      IntegrationType.CUSTOM_WEBSITE
+    );
 
     const activeIntegrations = project.integrations
       .map((i) => ({
@@ -296,7 +343,8 @@ export class ProjectsService {
       }))
       .filter((i) => i.connected);
 
-    const shopifyConnected = !!shopifyIntegration && isIntegrationConnected(shopifyIntegration);
+    const shopifyConnected =
+      !!shopifyIntegration && isIntegrationConnected(shopifyIntegration);
 
     return {
       projectId: project.id,
@@ -307,8 +355,12 @@ export class ProjectsService {
         ? {
             connected: shopifyConnected,
             shopDomain: shopifyIntegration.externalId,
-            installedAt: shopifyConnected ? (shopifyIntegration.config as any)?.installedAt : undefined,
-            scope: shopifyConnected ? (shopifyIntegration.config as any)?.scope : undefined,
+            installedAt: shopifyConnected
+              ? (shopifyIntegration.config as any)?.installedAt
+              : undefined,
+            scope: shopifyConnected
+              ? (shopifyIntegration.config as any)?.scope
+              : undefined,
           }
         : { connected: false },
       woocommerce: woocommerceIntegration
@@ -358,7 +410,8 @@ export class ProjectsService {
       autoSuggestDailyCap: project.autoSuggestDailyCap,
       aeoSyncToShopifyMetafields: project.aeoSyncToShopifyMetafields ?? false,
       // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Answer Block automation on product sync setting
-      autoGenerateAnswerBlocksOnProductSync: project.autoGenerateAnswerBlocksOnProductSync ?? false,
+      autoGenerateAnswerBlocksOnProductSync:
+        project.autoGenerateAnswerBlocksOnProductSync ?? false,
     };
   }
 
@@ -378,7 +431,10 @@ export class ProjectsService {
     }
 
     // [ROLES-3] Check membership instead of ownership
-    const hasAccess = await this.roleResolution.hasProjectAccess(projectId, userId);
+    const hasAccess = await this.roleResolution.hasProjectAccess(
+      projectId,
+      userId
+    );
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this project');
     }
@@ -389,14 +445,20 @@ export class ProjectsService {
   /**
    * [ROLES-3] Validate project access (replaces validateProjectOwnership for read paths)
    */
-  async validateProjectAccess(projectId: string, userId: string): Promise<boolean> {
+  async validateProjectAccess(
+    projectId: string,
+    userId: string
+  ): Promise<boolean> {
     return this.roleResolution.hasProjectAccess(projectId, userId);
   }
 
   /**
    * Legacy: Validate project ownership (kept for backward compatibility)
    */
-  async validateProjectOwnership(projectId: string, userId: string): Promise<boolean> {
+  async validateProjectOwnership(
+    projectId: string,
+    userId: string
+  ): Promise<boolean> {
     const project = await this.prisma.project.findFirst({
       where: {
         id: projectId,
@@ -409,7 +471,10 @@ export class ProjectsService {
   /**
    * [ROLES-3] Get project overview stats for dashboard (membership check)
    */
-  async getProjectOverview(projectId: string, userId: string): Promise<{
+  async getProjectOverview(
+    projectId: string,
+    userId: string
+  ): Promise<{
     crawlCount: number;
     issueCount: number;
     avgSeoScore: number | null;
@@ -429,7 +494,10 @@ export class ProjectsService {
     }
 
     // [ROLES-3] Check membership instead of ownership
-    const hasAccess = await this.roleResolution.hasProjectAccess(projectId, userId);
+    const hasAccess = await this.roleResolution.hasProjectAccess(
+      projectId,
+      userId
+    );
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this project');
     }
@@ -453,7 +521,8 @@ export class ProjectsService {
       totalScore += Math.max(0, 100 - issues.length * 10);
     }
 
-    const avgSeoScore = crawlCount > 0 ? Math.round(totalScore / crawlCount) : null;
+    const avgSeoScore =
+      crawlCount > 0 ? Math.round(totalScore / crawlCount) : null;
 
     // Get product counts
     const productCount = await this.prisma.product.count({
@@ -463,10 +532,7 @@ export class ProjectsService {
     const productsWithAppliedSeo = await this.prisma.product.count({
       where: {
         projectId,
-        OR: [
-          { seoTitle: { not: null } },
-          { seoDescription: { not: null } },
-        ],
+        OR: [{ seoTitle: { not: null } }, { seoDescription: { not: null } }],
       },
     });
 
@@ -479,15 +545,16 @@ export class ProjectsService {
       },
     });
 
-    const lastAnswerBlockSync = await this.prisma.answerBlockAutomationLog.findFirst({
-      where: {
-        projectId,
-        action: 'answer_blocks_synced_to_shopify',
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    const lastAnswerBlockSync =
+      await this.prisma.answerBlockAutomationLog.findFirst({
+        where: {
+          projectId,
+          action: 'answer_blocks_synced_to_shopify',
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
 
     return {
       crawlCount,
@@ -506,7 +573,11 @@ export class ProjectsService {
    * Supports filtering by q, status, hasDraft, pageType
    * [LIST-ACTIONS-CLARITY-1] Always returns hasDraftPendingApply for each page
    */
-  async getCrawlPages(projectId: string, userId: string, filters?: CrawlPageListFilters) {
+  async getCrawlPages(
+    projectId: string,
+    userId: string,
+    filters?: CrawlPageListFilters
+  ) {
     // Validate project access
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -517,7 +588,10 @@ export class ProjectsService {
     }
 
     // [ROLES-3] Check membership instead of ownership
-    const hasAccess = await this.roleResolution.hasProjectAccess(projectId, userId);
+    const hasAccess = await this.roleResolution.hasProjectAccess(
+      projectId,
+      userId
+    );
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this project');
     }
@@ -568,7 +642,7 @@ export class ProjectsService {
 
     // Helper to determine pageType from URL path
     const getPageType = (
-      path: string,
+      path: string
     ): 'home' | 'collection' | 'blog' | 'static' | 'misc' => {
       const normalizedPath = path.toLowerCase();
 
@@ -600,22 +674,30 @@ export class ProjectsService {
     };
 
     // [LIST-SEARCH-FILTER-1.1] Helper to determine SEO status
-    const getCrawlPageStatus = (page: { title: string | null; metaDescription: string | null }): 'optimized' | 'needs_attention' => {
+    const getCrawlPageStatus = (page: {
+      title: string | null;
+      metaDescription: string | null;
+    }): 'optimized' | 'needs_attention' => {
       const titleLen = page.title?.length ?? 0;
       const descLen = page.metaDescription?.length ?? 0;
 
-      const titleOk = titleLen >= CRAWL_PAGE_SEO_TITLE_MIN && titleLen <= CRAWL_PAGE_SEO_TITLE_MAX;
-      const descOk = descLen >= CRAWL_PAGE_SEO_DESC_MIN && descLen <= CRAWL_PAGE_SEO_DESC_MAX;
+      const titleOk =
+        titleLen >= CRAWL_PAGE_SEO_TITLE_MIN &&
+        titleLen <= CRAWL_PAGE_SEO_TITLE_MAX;
+      const descOk =
+        descLen >= CRAWL_PAGE_SEO_DESC_MIN &&
+        descLen <= CRAWL_PAGE_SEO_DESC_MAX;
 
       return titleOk && descOk ? 'optimized' : 'needs_attention';
     };
 
     // [LIST-ACTIONS-CLARITY-1] Always compute pending draft set for hasDraftPendingApply field
-    const crawlPageIdsWithDrafts = await this.getCrawlPageIdsWithPendingDrafts(projectId);
+    const crawlPageIdsWithDrafts =
+      await this.getCrawlPageIdsWithPendingDrafts(projectId);
 
     // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Deduplicate by URL, preferring Shopify-identified rows
     // Build a map of URL -> best candidate (Shopify-identified preferred, then most recent)
-    const urlToBestResult = new Map<string, typeof crawlResults[0]>();
+    const urlToBestResult = new Map<string, (typeof crawlResults)[0]>();
 
     for (const result of crawlResults) {
       try {
@@ -646,69 +728,73 @@ export class ProjectsService {
     }
 
     // Convert map values to array
-    let contentPages = Array.from(urlToBestResult.values())
-      .map((result) => {
-        let path = '/';
-        try {
-          const urlObj = new URL(result.url);
-          path = urlObj.pathname || '/';
-        } catch {
-          // If URL parsing fails, use the full URL as path
-          path = result.url;
-        }
+    let contentPages = Array.from(urlToBestResult.values()).map((result) => {
+      let path = '/';
+      try {
+        const urlObj = new URL(result.url);
+        path = urlObj.pathname || '/';
+      } catch {
+        // If URL parsing fails, use the full URL as path
+        path = result.url;
+      }
 
-        return {
-          id: result.id,
-          projectId: result.projectId,
-          url: result.url,
-          path,
-          pageType: getPageType(path),
-          statusCode: result.statusCode,
-          title: result.title,
-          metaDescription: result.metaDescription,
-          h1: result.h1,
-          wordCount: result.wordCount,
-          loadTimeMs: result.loadTimeMs,
-          issues: result.issues as string[],
-          scannedAt: result.scannedAt.toISOString(),
-          // [LIST-ACTIONS-CLARITY-1] Add hasDraftPendingApply
-          hasDraftPendingApply: crawlPageIdsWithDrafts.has(result.id),
-          // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Include Shopify identity fields
-          shopifyResourceType: result.shopifyResourceType,
-          shopifyResourceId: result.shopifyResourceId,
-          shopifyHandle: result.shopifyHandle,
-          shopifyBlogHandle: result.shopifyBlogHandle,
-          shopifyUpdatedAt: result.shopifyUpdatedAt?.toISOString() ?? null,
-          shopifyPublishedAt: result.shopifyPublishedAt?.toISOString() ?? null,
-          shopifySyncedAt: result.shopifySyncedAt?.toISOString() ?? null,
-        };
-      });
+      return {
+        id: result.id,
+        projectId: result.projectId,
+        url: result.url,
+        path,
+        pageType: getPageType(path),
+        statusCode: result.statusCode,
+        title: result.title,
+        metaDescription: result.metaDescription,
+        h1: result.h1,
+        wordCount: result.wordCount,
+        loadTimeMs: result.loadTimeMs,
+        issues: result.issues as string[],
+        scannedAt: result.scannedAt.toISOString(),
+        // [LIST-ACTIONS-CLARITY-1] Add hasDraftPendingApply
+        hasDraftPendingApply: crawlPageIdsWithDrafts.has(result.id),
+        // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Include Shopify identity fields
+        shopifyResourceType: result.shopifyResourceType,
+        shopifyResourceId: result.shopifyResourceId,
+        shopifyHandle: result.shopifyHandle,
+        shopifyBlogHandle: result.shopifyBlogHandle,
+        shopifyUpdatedAt: result.shopifyUpdatedAt?.toISOString() ?? null,
+        shopifyPublishedAt: result.shopifyPublishedAt?.toISOString() ?? null,
+        shopifySyncedAt: result.shopifySyncedAt?.toISOString() ?? null,
+      };
+    });
 
     // [LIST-SEARCH-FILTER-1.1] Apply filters
     if (filters) {
       // Filter by pageType
       if (filters.pageType) {
-        contentPages = contentPages.filter(page => page.pageType === filters.pageType);
+        contentPages = contentPages.filter(
+          (page) => page.pageType === filters.pageType
+        );
       }
 
       // Filter by search query (q) - search in path and title
       if (filters.q) {
         const searchLower = filters.q.toLowerCase();
-        contentPages = contentPages.filter(page => {
+        contentPages = contentPages.filter((page) => {
           const pathMatch = page.path.toLowerCase().includes(searchLower);
-          const titleMatch = page.title?.toLowerCase().includes(searchLower) ?? false;
+          const titleMatch =
+            page.title?.toLowerCase().includes(searchLower) ?? false;
           return pathMatch || titleMatch;
         });
       }
 
       // Filter by status
       if (filters.status) {
-        contentPages = contentPages.filter(page => getCrawlPageStatus(page) === filters.status);
+        contentPages = contentPages.filter(
+          (page) => getCrawlPageStatus(page) === filters.status
+        );
       }
 
       // Filter by hasDraft
       if (filters.hasDraft) {
-        contentPages = contentPages.filter(page => page.hasDraftPendingApply);
+        contentPages = contentPages.filter((page) => page.hasDraftPendingApply);
       }
     }
 
@@ -719,17 +805,16 @@ export class ProjectsService {
    * [LIST-SEARCH-FILTER-1.1] Get crawl page IDs that appear in non-applied drafts
    * Checks draftItems Json array for items with crawlResultId field
    */
-  private async getCrawlPageIdsWithPendingDrafts(projectId: string): Promise<Set<string>> {
+  private async getCrawlPageIdsWithPendingDrafts(
+    projectId: string
+  ): Promise<Set<string>> {
     const now = new Date();
     const drafts = await this.prisma.automationPlaybookDraft.findMany({
       where: {
         projectId,
         status: { in: ['READY', 'PARTIAL'] },
         appliedAt: null,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: now } },
-        ],
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
       },
       select: {
         draftItems: true,
@@ -757,7 +842,10 @@ export class ProjectsService {
   /**
    * [ROLES-3] List all members of a project (read-only for all members)
    */
-  async listMembers(projectId: string, userId: string): Promise<ProjectMemberInfo[]> {
+  async listMembers(
+    projectId: string,
+    userId: string
+  ): Promise<ProjectMemberInfo[]> {
     // Verify project exists and user has access
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -799,7 +887,7 @@ export class ProjectsService {
   async addMember(
     projectId: string,
     actorUserId: string,
-    dto: AddMemberDto,
+    dto: AddMemberDto
   ): Promise<ProjectMemberInfo> {
     // Verify project exists
     const project = await this.prisma.project.findUnique({
@@ -876,7 +964,7 @@ export class ProjectsService {
     projectId: string,
     memberId: string,
     actorUserId: string,
-    dto: ChangeMemberRoleDto,
+    dto: ChangeMemberRoleDto
   ): Promise<ProjectMemberInfo> {
     // Verify project exists
     const project = await this.prisma.project.findUnique({
@@ -905,12 +993,17 @@ export class ProjectsService {
     }
 
     // If changing from OWNER to non-OWNER, ensure at least one OWNER remains
-    if (member.role === ProjectMemberRole.OWNER && dto.role !== ProjectMemberRole.OWNER) {
+    if (
+      member.role === ProjectMemberRole.OWNER &&
+      dto.role !== ProjectMemberRole.OWNER
+    ) {
       const ownerCount = await this.prisma.projectMember.count({
         where: { projectId, role: ProjectMemberRole.OWNER },
       });
       if (ownerCount <= 1) {
-        throw new BadRequestException('Cannot remove the last owner. Projects must have at least one owner.');
+        throw new BadRequestException(
+          'Cannot remove the last owner. Projects must have at least one owner.'
+        );
       }
     }
 
@@ -955,7 +1048,7 @@ export class ProjectsService {
   async removeMember(
     projectId: string,
     memberId: string,
-    actorUserId: string,
+    actorUserId: string
   ): Promise<void> {
     // Verify project exists
     const project = await this.prisma.project.findUnique({
@@ -989,7 +1082,9 @@ export class ProjectsService {
         where: { projectId, role: ProjectMemberRole.OWNER },
       });
       if (ownerCount <= 1) {
-        throw new BadRequestException('Cannot remove the last owner. Projects must have at least one owner.');
+        throw new BadRequestException(
+          'Cannot remove the last owner. Projects must have at least one owner.'
+        );
       }
     }
 
@@ -1018,7 +1113,10 @@ export class ProjectsService {
   /**
    * [ROLES-3] Get user's role in a project
    */
-  async getUserRole(projectId: string, userId: string): Promise<EffectiveProjectRole | null> {
+  async getUserRole(
+    projectId: string,
+    userId: string
+  ): Promise<EffectiveProjectRole | null> {
     return this.roleResolution.resolveEffectiveRole(projectId, userId);
   }
 }

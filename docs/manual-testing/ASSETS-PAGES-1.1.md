@@ -56,7 +56,7 @@ These constraints are authoritative and override any conflicting information:
   - [ ] API server running with database connection
   - [ ] Web app running and connected to API
   - [ ] Project with Shopify integration (access token and shop domain)
-  - [ ] Project with crawl data including /pages/* and /collections/* URLs
+  - [ ] Project with crawl data including /pages/_ and /collections/_ URLs
 
 - **Test accounts and sample data:**
   - [ ] OWNER user account with project access
@@ -80,9 +80,11 @@ These constraints are authoritative and override any conflicting information:
 **ID:** HP-001
 
 **Preconditions:**
-- Project with crawled /pages/* URLs, some with missing title
+
+- Project with crawled /pages/\* URLs, some with missing title
 
 **Steps:**
+
 1. Login as OWNER or EDITOR
 2. Call POST `/projects/:id/automation-playbooks/estimate` with:
    ```json
@@ -94,6 +96,7 @@ These constraints are authoritative and override any conflicting information:
 3. Observe the response
 
 **Expected Results:**
+
 - **API Response:**
   - `totalAffectedProducts` > 0 (count of pages with missing title)
   - `scopeId` is a 16-character hex hash including assetType
@@ -101,6 +104,7 @@ These constraints are authoritative and override any conflicting information:
   - `canProceed` is true if quota not exceeded
 
 **Verification:**
+
 ```bash
 curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/estimate \
   -H "Authorization: Bearer TOKEN" \
@@ -115,9 +119,11 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 **ID:** HP-002
 
 **Preconditions:**
-- Project with crawled /collections/* URLs, some with missing metaDescription
+
+- Project with crawled /collections/\* URLs, some with missing metaDescription
 
 **Steps:**
+
 1. Login as OWNER or EDITOR
 2. Call POST `/projects/:id/automation-playbooks/estimate` with:
    ```json
@@ -129,6 +135,7 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 3. Observe the response
 
 **Expected Results:**
+
 - **API Response:**
   - `totalAffectedProducts` reflects collections with missing description
   - `scopeId` is different from PRODUCTS or PAGES estimates for same playbookId
@@ -141,9 +148,11 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 **ID:** HP-003
 
 **Preconditions:**
+
 - Project with multiple pages, user wants to target specific ones
 
 **Steps:**
+
 1. Login as OWNER or EDITOR
 2. Call POST `/projects/:id/automation-playbooks/estimate` with:
    ```json
@@ -156,6 +165,7 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 3. Observe the response
 
 **Expected Results:**
+
 - **API Response:**
   - `totalAffectedProducts` <= 2 (only includes specified pages with missing title)
   - `scopeId` reflects the scoped subset
@@ -167,15 +177,18 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 **ID:** HP-004
 
 **Preconditions:**
+
 - Project with pages/collections having missing SEO metadata
 
 **Steps:**
+
 1. Login as any user with project access
 2. Call GET `/projects/:id/work-queue`
 3. Filter for `bundleType=AUTOMATION_RUN`
 4. Observe bundles with different scopeTypes
 
 **Expected Results:**
+
 - **API Response:**
   - Bundles with `scopeType: "PAGES"` for page issues
   - Bundles with `scopeType: "COLLECTIONS"` for collection issues
@@ -189,15 +202,18 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 **ID:** HP-005
 
 **Preconditions:**
+
 - Project with Shopify integration
 - Page exists in Shopify store with known handle
 
 **Steps:**
+
 1. Login as OWNER
 2. Call `updatePageSeo()` via internal service (not exposed as endpoint yet)
 3. Verify Shopify page is updated
 
 **Expected Results:**
+
 - **Shopify:**
   - Page SEO title updated
   - Page SEO description updated
@@ -213,15 +229,18 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 **ID:** HP-006
 
 **Preconditions:**
+
 - Project with Shopify integration
 - Collection exists in Shopify store with known handle
 
 **Steps:**
+
 1. Login as OWNER
 2. Call `updateCollectionSeo()` via internal service
 3. Verify Shopify collection is updated
 
 **Expected Results:**
+
 - **Shopify:**
   - Collection SEO title updated
   - Collection SEO description updated
@@ -237,9 +256,11 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 **ID:** EC-001
 
 **Preconditions:**
+
 - User attempts to use invalid scopeAssetRefs format
 
 **Steps:**
+
 1. Call POST `/projects/:id/automation-playbooks/estimate` with:
    ```json
    {
@@ -250,6 +271,7 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
    ```
 
 **Expected Results:**
+
 - **API Response:**
   - 400 Bad Request
   - Error message indicates invalid ref format
@@ -261,9 +283,11 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 **ID:** EC-002
 
 **Preconditions:**
+
 - User attempts to use collection refs for PAGES asset type
 
 **Steps:**
+
 1. Call POST `/projects/:id/automation-playbooks/estimate` with:
    ```json
    {
@@ -274,6 +298,7 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
    ```
 
 **Expected Results:**
+
 - **API Response:**
   - 400 Bad Request
   - Error: `Invalid ref "collection_handle:summer-sale" for assetType PAGES. Expected prefix "page_handle:"`
@@ -285,9 +310,11 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 **ID:** EC-003
 
 **Preconditions:**
+
 - User attempts to use scopeProductIds with PAGES asset type
 
 **Steps:**
+
 1. Call POST `/projects/:id/automation-playbooks/estimate` with:
    ```json
    {
@@ -298,6 +325,7 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
    ```
 
 **Expected Results:**
+
 - **API Response:**
   - 400 Bad Request
   - Error: `scopeProductIds cannot be used with assetType PAGES. Use scopeAssetRefs instead.`
@@ -309,12 +337,15 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 **ID:** EC-004
 
 **Preconditions:**
+
 - Handle doesn't exist in Shopify store
 
 **Steps:**
+
 1. Attempt to update SEO for non-existent page handle
 
 **Expected Results:**
+
 - **API Response:**
   - 400 Bad Request
   - Error: `Page not found with handle: {handle}`
@@ -326,12 +357,15 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 **ID:** EC-005
 
 **Preconditions:**
+
 - Project without Shopify integration
 
 **Steps:**
+
 1. Attempt to update Page/Collection SEO
 
 **Expected Results:**
+
 - **API Response:**
   - 400 Bad Request
   - Error: `No Shopify integration found for this project`
@@ -343,13 +377,16 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 **ID:** EC-006
 
 **Preconditions:**
+
 - EDITOR user attempting apply operation
 
 **Steps:**
+
 1. Login as EDITOR
 2. Attempt to call apply endpoint for Page/Collection
 
 **Expected Results:**
+
 - **API Response:**
   - 403 Forbidden
   - Role-specific denial message
@@ -363,9 +400,11 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 **ID:** ERR-001
 
 **Preconditions:**
+
 - Shopify API returns 429 Too Many Requests
 
 **Expected Results:**
+
 - **Behavior:**
   - Error logged with Shopify error details
   - User-friendly error message returned
@@ -378,9 +417,11 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 **ID:** ERR-002
 
 **Preconditions:**
+
 - Shopify mutation returns userErrors
 
 **Expected Results:**
+
 - **Behavior:**
   - Warning logged with error messages
   - 400 Bad Request returned
@@ -399,20 +440,20 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 
 ## Test Coverage Status
 
-| Scenario | Backend | Frontend | E2E |
-|----------|---------|----------|-----|
-| HP-001 Estimate Pages | ✅ Manual | ✅ | ✅ |
-| HP-002 Estimate Collections | ✅ Manual | ✅ | ✅ |
-| HP-003 Scoped Asset Refs | ✅ Manual | ✅ | ✅ |
-| HP-004 Work Queue Bundles | ✅ Manual | ✅ | ✅ |
-| HP-005 Page SEO Update | ✅ Manual | ⏳ | ⏳ |
-| HP-006 Collection SEO Update | ✅ Manual | ⏳ | ⏳ |
-| EC-001 Invalid Ref Format | ✅ Manual | ✅ | ✅ |
-| EC-002 Wrong Ref Type | ✅ Manual | ✅ | ✅ |
-| EC-003 Wrong Scope Param | ✅ Manual | ✅ | ✅ |
-| EC-004 Page Not Found | ✅ Manual | ⏳ | ⏳ |
-| EC-005 No Integration | ✅ Manual | ⏳ | ⏳ |
-| EC-006 Non-OWNER Apply | ✅ Manual | ⏳ | ⏳ |
+| Scenario                     | Backend   | Frontend | E2E |
+| ---------------------------- | --------- | -------- | --- |
+| HP-001 Estimate Pages        | ✅ Manual | ✅       | ✅  |
+| HP-002 Estimate Collections  | ✅ Manual | ✅       | ✅  |
+| HP-003 Scoped Asset Refs     | ✅ Manual | ✅       | ✅  |
+| HP-004 Work Queue Bundles    | ✅ Manual | ✅       | ✅  |
+| HP-005 Page SEO Update       | ✅ Manual | ⏳       | ⏳  |
+| HP-006 Collection SEO Update | ✅ Manual | ⏳       | ⏳  |
+| EC-001 Invalid Ref Format    | ✅ Manual | ✅       | ✅  |
+| EC-002 Wrong Ref Type        | ✅ Manual | ✅       | ✅  |
+| EC-003 Wrong Scope Param     | ✅ Manual | ✅       | ✅  |
+| EC-004 Page Not Found        | ✅ Manual | ⏳       | ⏳  |
+| EC-005 No Integration        | ✅ Manual | ⏳       | ⏳  |
+| EC-006 Non-OWNER Apply       | ✅ Manual | ⏳       | ⏳  |
 
 ---
 
@@ -421,11 +462,13 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 ### FE-001: Work Queue CTA Deep Link to Playbooks
 
 **Steps:**
+
 1. Navigate to Work Queue page
 2. Find an AUTOMATION_RUN bundle for PAGES or COLLECTIONS
 3. Click the CTA button
 
 **Expected Results:**
+
 - Navigates to `/projects/{id}/automation/playbooks?playbookId={id}&assetType={PAGES|COLLECTIONS}`
 - Playbooks page shows asset type badge ("pages" or "collections")
 - Estimate is fetched with correct assetType
@@ -433,20 +476,24 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 ### FE-002: Playbooks Page Asset Type Badge
 
 **Steps:**
+
 1. Navigate directly to `/projects/{id}/automation/playbooks?assetType=PAGES`
 2. Observe the header
 
 **Expected Results:**
+
 - Header shows "Automation Playbooks" with "pages" badge
 - Estimate requests include assetType=PAGES
 
 ### FE-003: Playbooks Page Default to PRODUCTS
 
 **Steps:**
+
 1. Navigate directly to `/projects/{id}/automation/playbooks` (no assetType param)
 2. Observe the header
 
 **Expected Results:**
+
 - No asset type badge shown (PRODUCTS is default)
 - Estimate requests use standard PRODUCTS scope
 
@@ -457,10 +504,12 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 ### UEV-001: Missing Scope Safety Block for PAGES
 
 **Steps:**
+
 1. Navigate to `/projects/{id}/automation/playbooks?assetType=PAGES` (no scopeAssetRefs)
 2. Observe the page
 
 **Expected Results:**
+
 - Red banner: "Missing scope for pages. Return to Work Queue."
 - Explanation text about project-wide changes
 - "Return to Work Queue" link visible
@@ -471,10 +520,12 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 ### UEV-002: Missing Scope Safety Block for COLLECTIONS
 
 **Steps:**
+
 1. Navigate to `/projects/{id}/automation/playbooks?assetType=COLLECTIONS` (no scopeAssetRefs)
 2. Observe the page
 
 **Expected Results:**
+
 - Red banner: "Missing scope for collections. Return to Work Queue."
 - Same structure as UEV-001
 
@@ -483,10 +534,12 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 ### UEV-003: Scope Summary Renders for Valid Scope
 
 **Steps:**
+
 1. Navigate to `/projects/{id}/automation/playbooks?playbookId=missing_seo_title&assetType=PAGES&scopeAssetRefs=page_handle:about,page_handle:contact`
 2. Observe the page
 
 **Expected Results:**
+
 - Blue "Scope summary" banner visible
 - Asset type badge ("pages")
 - Handles shown: "about, contact"
@@ -497,10 +550,12 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 ### UEV-004: Scope Summary "+N more" for Many Refs
 
 **Steps:**
+
 1. Navigate with 5+ scopeAssetRefs
 2. Observe the scope summary
 
 **Expected Results:**
+
 - First 3 handles shown
 - "+2 more" (or appropriate count) shown
 
@@ -509,11 +564,13 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 ### UEV-005: Work Queue CTA Includes scopeAssetRefs
 
 **Steps:**
+
 1. Navigate to Work Queue
 2. Find an AUTOMATION_RUN bundle for PAGES/COLLECTIONS
 3. Inspect the CTA link (without clicking)
 
 **Expected Results:**
+
 - URL includes `playbookId`, `assetType`, and `scopeAssetRefs` params
 - scopeAssetRefs are comma-separated handle refs
 
@@ -522,10 +579,12 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 ### UEV-006: Work Queue CTA Disabled for Missing Scope
 
 **Steps:**
+
 1. Navigate to Work Queue
 2. Find an AUTOMATION_RUN bundle for PAGES/COLLECTIONS that lacks deterministic scope refs
 
 **Expected Results:**
+
 - CTA shows "View Details" instead of action
 - disabledReason: "Missing scope for pages/collections. Return to Work Queue."
 
@@ -534,10 +593,12 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 ### UEV-007: PRODUCTS Flow Unchanged (Backwards Compatibility)
 
 **Steps:**
+
 1. Navigate to `/projects/{id}/automation/playbooks` (default PRODUCTS)
 2. Run through preview → generate drafts → apply flow
 
 **Expected Results:**
+
 - No missing scope block
 - No scope summary (PRODUCTS doesn't need it)
 - Flow works exactly as before
@@ -555,8 +616,8 @@ curl -X POST http://localhost:3001/projects/PROJECT_ID/automation-playbooks/esti
 
 ## Document History
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0 | 2025-12-24 | Narasimhan Mahendrakumar | Initial draft for ASSETS-PAGES-1.1 execution phase |
-| 1.1 | 2025-12-24 | Narasimhan Mahendrakumar | Added Frontend Test Scenarios (PATCH 5), updated Test Coverage Status with E2E completion |
-| 1.2 | 2025-12-24 | Narasimhan Mahendrakumar | Added UI Execution Verification scenarios (ASSETS-PAGES-1.1-UI-HARDEN) - missing scope blocks, scope summary, Work Queue CTA completeness, backwards compatibility |
+| Version | Date       | Author                   | Changes                                                                                                                                                            |
+| ------- | ---------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1.0     | 2025-12-24 | Narasimhan Mahendrakumar | Initial draft for ASSETS-PAGES-1.1 execution phase                                                                                                                 |
+| 1.1     | 2025-12-24 | Narasimhan Mahendrakumar | Added Frontend Test Scenarios (PATCH 5), updated Test Coverage Status with E2E completion                                                                          |
+| 1.2     | 2025-12-24 | Narasimhan Mahendrakumar | Added UI Execution Verification scenarios (ASSETS-PAGES-1.1-UI-HARDEN) - missing scope blocks, scope summary, Work Queue CTA completeness, backwards compatibility |

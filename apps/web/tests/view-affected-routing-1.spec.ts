@@ -26,9 +26,12 @@ const API_BASE_URL = process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
  * Uses the existing /testkit/e2e/seed-first-deo-win pattern.
  */
 async function seedTestProject(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-first-deo-win`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   return {
@@ -66,7 +69,10 @@ test.describe('ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1: View affected routes to fi
    * And: from=issues_engine in query params
    * And: returnTo encodes original Issues Engine path with filters
    */
-  test('VAR1-001: View affected routes to Products list with issueType filter', async ({ page, request }) => {
+  test('VAR1-001: View affected routes to Products list with issueType filter', async ({
+    page,
+    request,
+  }) => {
     const { projectId } = await authenticatePage(page, request);
 
     // Navigate to Issues Engine with explicit pillar filter
@@ -78,13 +84,17 @@ test.describe('ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1: View affected routes to fi
     // [AUDIT-2] Use canonical issue card testids (issue-card-actionable / issue-card-informational)
     // This issue card MUST exist in seed-first-deo-win and expose "View affected" CTA
     const missingMetadataCard = page
-      .locator('[data-testid="issue-card-actionable"], [data-testid="issue-card-informational"]')
+      .locator(
+        '[data-testid="issue-card-actionable"], [data-testid="issue-card-informational"]'
+      )
       .filter({ hasText: 'Missing titles or descriptions' })
       .first();
     await expect(missingMetadataCard).toBeVisible();
 
     // Find and click the "View affected" CTA within this specific card
-    const viewAffectedCta = missingMetadataCard.locator('[data-testid="issue-card-cta"]:has-text("View affected")');
+    const viewAffectedCta = missingMetadataCard.locator(
+      '[data-testid="issue-card-cta"]:has-text("View affected")'
+    );
     await expect(viewAffectedCta).toBeVisible();
     await viewAffectedCta.click();
     await page.waitForLoadState('networkidle');
@@ -113,11 +123,16 @@ test.describe('ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1: View affected routes to fi
    * When: Products list loads
    * Then: ScopeBanner is visible with issueType scope chip
    */
-  test('VAR1-002: Products list shows ScopeBanner with issueType chip', async ({ page, request }) => {
+  test('VAR1-002: Products list shows ScopeBanner with issueType chip', async ({
+    page,
+    request,
+  }) => {
     const { projectId } = await authenticatePage(page, request);
 
     // Navigate directly to Products list with issueType filter
-    await page.goto(`/projects/${projectId}/products?issueType=missing_seo_title&from=issues_engine`);
+    await page.goto(
+      `/projects/${projectId}/products?issueType=missing_seo_title&from=issues_engine`
+    );
     await page.waitForLoadState('networkidle');
 
     // Assert ScopeBanner is visible
@@ -125,7 +140,9 @@ test.describe('ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1: View affected routes to fi
     await expect(scopeBanner).toBeVisible();
 
     // Assert issueType chip is present
-    const issueTypeChip = page.locator('[data-testid="scope-chip"][data-scope-chip-type="issueType"]');
+    const issueTypeChip = page.locator(
+      '[data-testid="scope-chip"][data-scope-chip-type="issueType"]'
+    );
     await expect(issueTypeChip).toBeVisible();
   });
 
@@ -139,15 +156,22 @@ test.describe('ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1: View affected routes to fi
    * And: Product 4 (DIAGNOSTIC test product) is NOT in the list
    *      (since it doesn't have missing_seo_title issue)
    */
-  test('VAR1-003: issueType filtering excludes non-affected products', async ({ page, request }) => {
+  test('VAR1-003: issueType filtering excludes non-affected products', async ({
+    page,
+    request,
+  }) => {
     const { projectId } = await authenticatePage(page, request);
 
     // Navigate to Products list filtered by missing_seo_title
-    await page.goto(`/projects/${projectId}/products?issueType=missing_seo_title&from=issues_engine`);
+    await page.goto(
+      `/projects/${projectId}/products?issueType=missing_seo_title&from=issues_engine`
+    );
     await page.waitForLoadState('networkidle');
 
     // Wait for products to load
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // [AUDIT-1] Assert at least 1 product row is visible (avoid false positive on empty list)
     const productRows = page.locator('[data-testid="row-status-chip"]');
@@ -170,7 +194,10 @@ test.describe('ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1: View affected routes to fi
    * Then: Browser returns to Issues Engine
    * And: URL contains original pillar + mode filters
    */
-  test('VAR1-004: Back returns to Issues Engine with same filters', async ({ page, request }) => {
+  test('VAR1-004: Back returns to Issues Engine with same filters', async ({
+    page,
+    request,
+  }) => {
     const { projectId } = await authenticatePage(page, request);
 
     // Navigate to Issues Engine with explicit filters
@@ -180,12 +207,16 @@ test.describe('ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1: View affected routes to fi
 
     // [AUDIT-2] Target "Missing titles or descriptions" issue using canonical card testids
     const missingMetadataCard = page
-      .locator('[data-testid="issue-card-actionable"], [data-testid="issue-card-informational"]')
+      .locator(
+        '[data-testid="issue-card-actionable"], [data-testid="issue-card-informational"]'
+      )
       .filter({ hasText: 'Missing titles or descriptions' })
       .first();
     await expect(missingMetadataCard).toBeVisible();
 
-    const viewAffectedCta = missingMetadataCard.locator('[data-testid="issue-card-cta"]:has-text("View affected")');
+    const viewAffectedCta = missingMetadataCard.locator(
+      '[data-testid="issue-card-cta"]:has-text("View affected")'
+    );
     await viewAffectedCta.click();
     await page.waitForLoadState('networkidle');
 
@@ -202,7 +233,9 @@ test.describe('ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1: View affected routes to fi
     // Assert browser returns to Issues Engine with original filters
     const returnUrl = new URL(page.url());
     expect(returnUrl.pathname).toBe(`/projects/${projectId}/issues`);
-    expect(returnUrl.searchParams.get('pillar')).toBe('metadata_snippet_quality');
+    expect(returnUrl.searchParams.get('pillar')).toBe(
+      'metadata_snippet_quality'
+    );
     expect(returnUrl.searchParams.get('mode')).toBe('detected');
   });
 });
@@ -231,29 +264,42 @@ test.describe('ISSUESLIST-VIEW-AFFECTED-CONTEXT-1: Secondary View affected link 
     await page.waitForLoadState('networkidle');
 
     // Click the checklist button "View DEO Score" to open the issues modal
-    const viewDeoScoreButton = page.locator('button:has-text("View DEO Score"), a:has-text("View DEO Score")').first();
+    const viewDeoScoreButton = page
+      .locator(
+        'button:has-text("View DEO Score"), a:has-text("View DEO Score")'
+      )
+      .first();
     await expect(viewDeoScoreButton).toBeVisible();
     await viewDeoScoreButton.click();
 
     // Wait for the modal to appear with issues
-    await page.waitForSelector('[data-testid="issue-card-actionable"], [data-testid="issue-card-informational"]', {
-      timeout: 10000,
-    });
+    await page.waitForSelector(
+      '[data-testid="issue-card-actionable"], [data-testid="issue-card-informational"]',
+      {
+        timeout: 10000,
+      }
+    );
 
     // Find the "Missing titles or descriptions" issue card
     const missingMetadataCard = page
-      .locator('[data-testid="issue-card-actionable"], [data-testid="issue-card-informational"]')
+      .locator(
+        '[data-testid="issue-card-actionable"], [data-testid="issue-card-informational"]'
+      )
       .filter({ hasText: 'Missing titles or descriptions' })
       .first();
     await expect(missingMetadataCard).toBeVisible();
 
     // Click "Show affected items" to expand the card
-    const showAffectedButton = missingMetadataCard.locator('button:has-text("Show affected items")');
+    const showAffectedButton = missingMetadataCard.locator(
+      'button:has-text("Show affected items")'
+    );
     await expect(showAffectedButton).toBeVisible();
     await showAffectedButton.click();
 
     // Click the secondary "View affected →" link in the expanded Products section
-    const viewAffectedSecondary = missingMetadataCard.locator('[data-testid="issue-card-view-affected-secondary"]');
+    const viewAffectedSecondary = missingMetadataCard.locator(
+      '[data-testid="issue-card-view-affected-secondary"]'
+    );
     await expect(viewAffectedSecondary).toBeVisible();
     await viewAffectedSecondary.click();
     await page.waitForLoadState('networkidle');
@@ -297,17 +343,24 @@ test.describe('MISSING-METADATA-FIX-SURFACE-INTEGRITY-1: Metadata anchor integri
    * And: SEO editor anchor is visible
    * And: "Fix surface not available" message is NOT shown
    */
-  test('MMFSI1-001: App-generated metadata issue link includes correct anchor', async ({ page, request }) => {
+  test('MMFSI1-001: App-generated metadata issue link includes correct anchor', async ({
+    page,
+    request,
+  }) => {
     const { projectId } = await authenticatePage(page, request);
 
     // Navigate to Products list
     await page.goto(`/projects/${projectId}/products`);
     await page.waitForLoadState('networkidle');
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // [AUDIT-1] Find a row with "Fix next" action whose href contains a metadata issue
     // Products 1-3 in seed-first-deo-win have missing SEO, so their Fix next links target metadata issues
-    const fixNextLinks = page.locator('[data-testid="row-primary-action"]:has-text("Fix next")');
+    const fixNextLinks = page.locator(
+      '[data-testid="row-primary-action"]:has-text("Fix next")'
+    );
     const linkCount = await fixNextLinks.count();
     expect(linkCount).toBeGreaterThan(0);
 
@@ -316,7 +369,11 @@ test.describe('MISSING-METADATA-FIX-SURFACE-INTEGRITY-1: Metadata anchor integri
     for (let i = 0; i < linkCount; i++) {
       const link = fixNextLinks.nth(i);
       const href = await link.getAttribute('href');
-      if (href && (href.includes('issueId=missing_seo_title') || href.includes('issueId=missing_seo_description'))) {
+      if (
+        href &&
+        (href.includes('issueId=missing_seo_title') ||
+          href.includes('issueId=missing_seo_description'))
+      ) {
         targetLink = link;
         break;
       }
@@ -336,7 +393,9 @@ test.describe('MISSING-METADATA-FIX-SURFACE-INTEGRITY-1: Metadata anchor integri
     await expect(seoEditorAnchor).toBeVisible();
 
     // Assert "Fix surface not available" message is NOT present
-    const fixSurfaceNotAvailable = page.locator('text="Fix surface not available"');
+    const fixSurfaceNotAvailable = page.locator(
+      'text="Fix surface not available"'
+    );
     await expect(fixSurfaceNotAvailable).toHaveCount(0);
   });
 
@@ -350,7 +409,10 @@ test.describe('MISSING-METADATA-FIX-SURFACE-INTEGRITY-1: Metadata anchor integri
    * And: Page loads successfully with SEO editor visible
    * And: Fix context banner shows correct messaging
    */
-  test('MMFSI1-002: missing_metadata issue uses seo-editor-anchor', async ({ page, request }) => {
+  test('MMFSI1-002: missing_metadata issue uses seo-editor-anchor', async ({
+    page,
+    request,
+  }) => {
     const { projectId, productIds } = await authenticatePage(page, request);
 
     const productWithMissingMetadata = productIds[0];
@@ -377,7 +439,9 @@ test.describe('MISSING-METADATA-FIX-SURFACE-INTEGRITY-1: Metadata anchor integri
     await expect(fixBanner).toContainText("You're here to fix:");
 
     // Assert "Fix surface not available" message is NOT present
-    const fixSurfaceNotAvailable = page.locator('text="Fix surface not available"');
+    const fixSurfaceNotAvailable = page.locator(
+      'text="Fix surface not available"'
+    );
     await expect(fixSurfaceNotAvailable).toHaveCount(0);
   });
 });

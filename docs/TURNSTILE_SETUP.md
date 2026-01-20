@@ -7,6 +7,7 @@ This guide provides step-by-step instructions for setting up Cloudflare Turnstil
 ## What is Cloudflare Turnstile?
 
 Cloudflare Turnstile is a privacy-friendly CAPTCHA alternative that:
+
 - Protects forms from bots and spam
 - Works invisibly for most users (no puzzles to solve)
 - Is free to use
@@ -47,11 +48,11 @@ Cloudflare Turnstile is a privacy-friendly CAPTCHA alternative that:
 1. Click **Add Site** button
 2. Fill in the form:
 
-| Field | Value | Notes |
-|-------|-------|-------|
-| **Site Name** | `EngineO.ai Production` | Descriptive name for your reference |
-| **Domain** | `app.engineo.ai` | Your production domain (or `localhost` for dev) |
-| **Widget Mode** | `Managed` | Recommended for most use cases |
+| Field           | Value                   | Notes                                           |
+| --------------- | ----------------------- | ----------------------------------------------- |
+| **Site Name**   | `EngineO.ai Production` | Descriptive name for your reference             |
+| **Domain**      | `app.engineo.ai`        | Your production domain (or `localhost` for dev) |
+| **Widget Mode** | `Managed`               | Recommended for most use cases                  |
 
 ### Widget Mode Options
 
@@ -69,12 +70,14 @@ Cloudflare Turnstile is a privacy-friendly CAPTCHA alternative that:
 After creating a site, you'll see two keys:
 
 ### Site Key (Public Key)
+
 - **Format**: Starts with `0x` followed by alphanumeric characters
 - **Example**: `0x4AAAAAAABkMYinukVXMcR5`
 - **Usage**: Used in frontend (Next.js app)
 - **Security**: Safe to expose publicly (it's meant to be in client-side code)
 
 ### Secret Key (Private Key)
+
 - **Format**: Starts with `0x` followed by longer alphanumeric string
 - **Example**: `0x4AAAAAAABkMYinukVXMcR5abcdefghijklmnopqrstuvwxyz123456`
 - **Usage**: Used in backend (NestJS API)
@@ -115,6 +118,7 @@ NEXT_PUBLIC_CAPTCHA_PROVIDER=turnstile
 The frontend is already set up to use Turnstile. The `Captcha` component in `apps/web/src/components/common/Captcha.tsx` will automatically use your site key.
 
 **Test it:**
+
 1. Start your Next.js dev server: `pnpm --filter web dev`
 2. Navigate to `/contact` page
 3. You should see the Turnstile widget
@@ -143,10 +147,10 @@ CAPTCHA_PROVIDER=turnstile
 3. Go to **Environment** tab
 4. Add environment variables:
 
-| Variable | Value |
-|----------|-------|
+| Variable             | Value                     |
+| -------------------- | ------------------------- |
 | `CAPTCHA_SECRET_KEY` | Your Turnstile Secret Key |
-| `CAPTCHA_PROVIDER` | `turnstile` |
+| `CAPTCHA_PROVIDER`   | `turnstile`               |
 
 5. Click **Save Changes**
 6. **Important**: Restart your service for changes to take effect
@@ -156,6 +160,7 @@ CAPTCHA_PROVIDER=turnstile
 The backend is already set up. The `CaptchaService` in `apps/api/src/captcha/captcha.service.ts` will automatically verify tokens using your secret key.
 
 **Test it:**
+
 1. Submit a form with a valid CAPTCHA token
 2. Check API logs to ensure verification succeeds
 3. Try submitting without a token - should fail with error
@@ -169,11 +174,13 @@ Cloudflare provides test keys for development that always pass/fail:
 ### Always Passes (Development)
 
 **Site Key:**
+
 ```
 1x00000000000000000000AA
 ```
 
 **Secret Key:**
+
 ```
 1x0000000000000000000000000000000AA
 ```
@@ -181,11 +188,13 @@ Cloudflare provides test keys for development that always pass/fail:
 ### Always Fails (Testing Error Handling)
 
 **Site Key:**
+
 ```
 2x00000000000000000000AB
 ```
 
 **Secret Key:**
+
 ```
 2x0000000000000000000000000000000AB
 ```
@@ -278,6 +287,7 @@ If you have multiple environments (dev, staging, production), you can:
 ### Check Logs
 
 Monitor your backend logs for:
+
 - CAPTCHA verification failures
 - Error patterns
 - Unusual activity
@@ -291,6 +301,7 @@ Monitor your backend logs for:
 **Symptoms:** Turnstile widget doesn't show on the page
 
 **Solutions:**
+
 1. Check `NEXT_PUBLIC_CAPTCHA_SITE_KEY` is set correctly
 2. Verify the site key is valid in Cloudflare dashboard
 3. Check browser console for errors
@@ -302,6 +313,7 @@ Monitor your backend logs for:
 **Symptoms:** Forms always fail CAPTCHA verification
 
 **Solutions:**
+
 1. Check `CAPTCHA_SECRET_KEY` is set correctly in backend
 2. Verify secret key matches the site key in Cloudflare
 3. Check backend logs for Turnstile API errors
@@ -313,6 +325,7 @@ Monitor your backend logs for:
 **Symptoms:** Error message about invalid site key
 
 **Solutions:**
+
 1. Verify site key is copied correctly (no extra spaces)
 2. Check domain matches in Turnstile dashboard
 3. Ensure you're using the correct key (site key for frontend, secret key for backend)
@@ -323,6 +336,7 @@ Monitor your backend logs for:
 **Symptoms:** Widget displays error message
 
 **Solutions:**
+
 1. Check internet connectivity
 2. Verify Cloudflare services are operational
 3. Check if domain is blocked or restricted
@@ -334,6 +348,7 @@ Monitor your backend logs for:
 **Symptoms:** Test keys don't work in development
 
 **Solutions:**
+
 1. Verify you're using the correct test keys:
    - Site: `1x00000000000000000000AA`
    - Secret: `1x0000000000000000000000000000000AA`
@@ -408,19 +423,23 @@ CAPTCHA_SECRET_KEY=1x0000000000000000000000000000000AA
 ## Quick Reference
 
 ### Turnstile Dashboard
+
 - **URL**: https://dash.cloudflare.com → Turnstile
 - **Documentation**: https://developers.cloudflare.com/turnstile/
 
 ### Test Keys
+
 - **Always Passes**: Site `1x00000000000000000000AA`, Secret `1x0000000000000000000000000000000AA`
 - **Always Fails**: Site `2x00000000000000000000AB`, Secret `2x0000000000000000000000000000000AB`
 
 ### Verification Endpoint
+
 - **URL**: `https://challenges.cloudflare.com/turnstile/v0/siteverify`
 - **Method**: POST
 - **Content-Type**: `application/x-www-form-urlencoded`
 
 ### React Component
+
 - **Package**: `@marsidev/react-turnstile`
 - **Component**: `<Turnstile />`
 - **Location**: `apps/web/src/components/common/Captcha.tsx`
@@ -440,5 +459,3 @@ After setting up Turnstile:
 ---
 
 **Author:** Narasimhan Mahendrakumar
-
-

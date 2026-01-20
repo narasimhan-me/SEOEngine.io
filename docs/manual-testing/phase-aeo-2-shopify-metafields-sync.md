@@ -56,9 +56,11 @@
 ID: AEO2-HP-001
 
 Preconditions:
+
 - [ ] New or existing EngineO.ai project without prior Shopify metafield definitions for engineo namespace.
 
 Steps:
+
 1. Log in as a Pro/Business user and create a new project (or reuse an existing one) suitable for Shopify integration.
 2. From the project overview, initiate the Shopify connect flow (Connect Shopify → /shopify/install).
 3. Complete the Shopify OAuth flow and confirm redirect back to the project page.
@@ -67,6 +69,7 @@ Steps:
    Inspect metafield definitions under namespace engineo.
 
 Expected Results:
+
 - UI: Project shows Shopify as connected without regressions to the existing sync UX.
 - API: An Integration row exists for the project with type SHOPIFY, populated externalId and accessToken.
 - Shopify Admin: Metafield definitions exist for the following keys (type multi_line_text_field, owner/product-level):
@@ -88,9 +91,11 @@ Expected Results:
 ID: AEO2-HP-002
 
 Preconditions:
+
 - [ ] Project connected to Shopify as in AEO2-HP-001.
 
 Steps:
+
 1. Open Project Settings for the connected project (/projects/:id/settings).
 2. Locate the AI Automation Rules section.
 3. Toggle "Sync Answer Blocks to Shopify metafields" on.
@@ -98,6 +103,7 @@ Steps:
 5. Refresh the page and confirm the toggle persists in the enabled state.
 
 Expected Results:
+
 - UI: New toggle is present, labeled clearly with minimal copy, and persists after page reload.
 - API: PUT /projects/:id includes aeoSyncToShopifyMetafields: true and the response reflects the new value.
 - Database: Project.aeoSyncToShopifyMetafields is true for the project.
@@ -109,11 +115,13 @@ Expected Results:
 ID: AEO2-HP-003
 
 Preconditions:
+
 - [ ] Project connected to Shopify.
 - [ ] aeoSyncToShopifyMetafields enabled in settings.
 - [ ] Redis/queues or equivalent automation processing enabled.
 
 Steps:
+
 1. In Shopify, ensure a product has rich title/description content suitable for Answer Engine.
 2. From EngineO.ai, run a product sync (via Products UI or /shopify/sync-products).
 3. In the Product Workspace for that product:
@@ -124,6 +132,7 @@ Steps:
 6. In Shopify Admin → Product → Metafields, inspect the engineo namespace values.
 
 Expected Results:
+
 - UI (EngineO):
   - Answer Blocks render in the AEO tab with reasonable content.
   - The small text under "Answers (AEO)" mentions that answers can be synced as metafields when enabled in Settings.
@@ -141,9 +150,11 @@ Expected Results:
 ID: AEO2-HP-004
 
 Preconditions:
+
 - [ ] All from AEO2-HP-003.
 
 Steps:
+
 1. In Product Workspace → Answers (AEO), manually edit one or more Answer Blocks (e.g., "What is it?" or "Key features").
 2. Click Save Answer Blocks and wait for confirmation.
 3. Trigger the Answer Block automation again (if applicable) or wait for the next automation run that updates the same product.
@@ -152,6 +163,7 @@ Steps:
    - Metafields in Shopify update to reflect the latest canonical answer text.
 
 Expected Results:
+
 - UI: Edited Answer Blocks remain consistent with user expectations and are not regressed by automation.
 - Shopify Admin: Metafields reflect the updated answers after sync, matching the persisted state in EngineO rather than an older version.
 
@@ -162,24 +174,28 @@ Expected Results:
 ID: AEO2-HP-005
 
 Preconditions:
+
 - [ ] All from AEO2-HP-003 (Shopify connected, metafield definitions present, aeoSyncToShopifyMetafields enabled).
 - [ ] Workspace on Pro or Business plan.
 - [ ] At least one product with persisted Answer Blocks.
 
 Steps:
+
 1. In Product Workspace → Answers (AEO), open a product that already has Answer Blocks.
 2. Confirm the "Answer Blocks (Canonical Answers)" panel is visible and shows at least one block.
 3. Click the "Sync now" button in the Answer Blocks panel.
 4. Wait for the toast/notification indicating the result of the sync.
-5. In Shopify Admin, open the same product and inspect Product → Metafields → engineo.* values.
+5. In Shopify Admin, open the same product and inspect Product → Metafields → engineo.\* values.
 
 Expected Results:
+
 - UI: "Sync now" button is visible whenever Answer Blocks exist and shows a short loading state while the request is in flight.
 - UI: On success, a success toast appears (optionally mentioning the number of Answer Blocks synced) and no validation errors are shown.
 - Shopify Admin: Metafields under the engineo namespace update to match the latest Answer Block content for the product (only keys with Answer Blocks are written).
 - Automation history: AnswerBlockAutomationLog contains an entry with triggerType = 'manual_sync', action = 'answer_blocks_synced_to_shopify', and status = 'succeeded'.
 
 Variants:
+
 - **Toggle OFF:**
   - aeoSyncToShopifyMetafields is disabled in Project Settings.
   - "Sync now" still appears in the Answer Blocks panel.
@@ -208,11 +224,13 @@ Variants:
 Description: Answer Blocks exist with questionId values not in the canonical 10-question set.
 
 Steps:
+
 1. Using a controlled environment or DB seeding, create AnswerBlock rows with an unknown questionId (e.g., legacy_custom_question).
 2. Ensure the rest of the setup is as in AEO2-HP-003 (flag enabled, Shopify connected).
 3. Trigger Answer Block automation and metafield sync for the affected product.
 
 Expected Behavior:
+
 - Unknown questionId values are skipped for metafield sync.
 - Automation logs may record that some question IDs were skipped, but no errors are thrown.
 - Shopify metafields remain unchanged for unknown IDs; no unexpected keys appear.
@@ -224,11 +242,13 @@ Expected Behavior:
 Description: Project has metafield sync enabled but no Answer Blocks exist yet.
 
 Steps:
+
 1. Enable aeoSyncToShopifyMetafields in settings.
 2. Pick a product with no Answer Blocks (newly synced or manually cleared).
 3. Trigger metafield sync indirectly by running Answer Block automation and confirming it skips generation (e.g., insufficient data).
 
 Expected Behavior:
+
 - Metafield sync returns gracefully with syncedCount = 0.
 - No metafields are created in Shopify for that product.
 - Logs indicate "no Answer Blocks to sync" rather than an error.
@@ -242,10 +262,12 @@ Expected Behavior:
 Scenario: Shopify metafield_definitions endpoint fails (e.g., 5xx or auth error).
 
 Steps:
+
 1. In a test environment, misconfigure the Shopify app or mock Shopify to return a failing response for metafield_definitions calls.
 2. Attempt to connect a Shopify store or explicitly trigger metafield definition ensure logic.
 
 Expected Behavior:
+
 - EngineO logs a clear warning about failing to list or create metafield definitions.
 - Project connection remains valid; user is not blocked from using the app.
 - Metafield sync for Answer Blocks may skip due to missing definitions, but does not crash the automation worker.
@@ -257,10 +279,12 @@ Expected Behavior:
 Scenario: Shopify products/{id}/metafields call fails for one or more keys.
 
 Steps:
+
 1. Configure or mock Shopify to return an error for the metafield POST/PUT calls.
 2. Trigger Answer Block automation and metafield sync as in AEO2-HP-003.
 
 Expected Behavior:
+
 - Automation log records answer_blocks_synced_to_shopify with status = 'failed' and an error message from Shopify.
 - Core Answer Block automation log (generate_missing / regenerate_weak) remains succeeded.
 - No partial data corruption; either specific keys fail gracefully or are retried in a controlled way in future runs.
@@ -274,11 +298,13 @@ Expected Behavior:
 Scenario: Multiple products are processed in quick succession, ensuring the 2 requests/sec guideline is respected.
 
 Steps:
+
 1. Enable aeoSyncToShopifyMetafields on a project with multiple products.
 2. Trigger Answer Block automation for several products at once (e.g., via product sync).
 3. Monitor logs and any observability around Shopify API usage.
 
 Expected Behavior:
+
 - Shopify calls from the metafield sync layer are rate-limit aware (no obvious 429s from Shopify).
 - EngineO logs do not show bursty or unbounded Shopify request patterns.
 
@@ -334,9 +360,9 @@ Expected Behavior:
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| Tester Name | [Name] |
-| Date | [YYYY-MM-DD] |
+| Field          | Value                                 |
+| -------------- | ------------------------------------- |
+| Tester Name    | [Name]                                |
+| Date           | [YYYY-MM-DD]                          |
 | Overall Status | [ ] Passed / [ ] Blocked / [ ] Failed |
-| Notes | [Any additional notes] |
+| Notes          | [Any additional notes]                |

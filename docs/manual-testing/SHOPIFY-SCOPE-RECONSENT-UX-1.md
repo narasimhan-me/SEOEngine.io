@@ -1,4 +1,5 @@
 # SHOPIFY-SCOPE-RECONSENT-UX-1 — Manual Testing
+
 > Clone of MANUAL_TESTING_TEMPLATE.md (structure preserved).
 
 ---
@@ -39,16 +40,19 @@
 ID: HP-001
 
 Preconditions:
+
 - Shopify connected
 - Stored scope does NOT include `read_content`
 
 Steps:
+
 1. Go to Assets > Pages.
 2. Confirm the notice title "Additional Shopify permission required" is visible.
 3. Confirm the notice includes "Reconnect Shopify".
 4. Confirm "Sync Pages" is disabled while scopes are missing.
 
 Expected Results:
+
 - UI: Structured permission notice is shown (not a generic error banner).
 - API: GET `/projects/:id/shopify/missing-scopes?capability=pages_sync` returns `missingScopes` including `read_content`.
 
@@ -59,15 +63,18 @@ Expected Results:
 ID: HP-002
 
 Preconditions:
+
 - Same as HP-001
 
 Steps:
+
 1. On Assets > Pages, click "Reconnect Shopify".
 2. Complete Shopify OAuth consent.
 3. Confirm you return to Assets > Pages.
 4. Confirm Pages sync runs automatically and completes successfully.
 
 Expected Results:
+
 - UI: Pages list shows "Last synced: ..." and imported Pages appear.
 - API: Sync endpoint succeeds (no `SHOPIFY_MISSING_SCOPES` error).
 
@@ -78,14 +85,17 @@ Expected Results:
 ID: HP-003
 
 Preconditions:
+
 - Shopify connected
 - Stored scope includes `read_products` but does NOT include `read_content`
 
 Steps:
+
 1. Go to Assets > Collections.
 2. Confirm Collections sync can still run (no permission notice for collections).
 
 Expected Results:
+
 - UI: Collections are not blocked by missing `read_content`.
 - API: GET `/projects/:id/shopify/missing-scopes?capability=collections_sync` returns empty `missingScopes`.
 
@@ -98,9 +108,11 @@ Expected Results:
 Description: Prevent open redirect / cross-project redirect.
 
 Steps:
+
 1. Attempt reconnect with `returnTo` not starting with `/projects/:projectId`.
 
 Expected Behavior:
+
 - Redirect after OAuth falls back to `/projects/:projectId` (no external or cross-project redirect).
 
 ---
@@ -112,9 +124,11 @@ Expected Behavior:
 Scenario: User triggers sync while missing scopes.
 
 Steps:
+
 1. Attempt "Sync Pages" while missing `read_content`.
 
 Expected Behavior:
+
 - API responds 400 with `code: SHOPIFY_MISSING_SCOPES` and `missingScopes`.
 - UI shows the permission notice with "Reconnect Shopify".
 
@@ -125,12 +139,14 @@ Expected Behavior:
 Scenario: User clicks "Reconnect Shopify" but the session token is missing/expired.
 
 Steps:
+
 1. Go to Assets > Pages (with missing scopes so the permission notice is visible).
 2. Clear the local session token (localStorage `engineo_token`) or let the session expire.
 3. Click "Reconnect Shopify".
 
 Expected Behavior:
-- UI shows an inline error *within the permission notice* explaining what to do next.
+
+- UI shows an inline error _within the permission notice_ explaining what to do next.
 - Primary remediation action is visible ("Sign in again").
 - No silent failures (click always causes redirect OR visible error).
 

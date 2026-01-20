@@ -49,14 +49,17 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - [Any additional preconditions specific to this scenario]
 
 **Steps:**
+
 1. [Step 1 action]
 2. [Step 2 action]
 3. [Step 3 action]
 
 **Expected Results:**
+
 - **UI:** [Expected UI behavior]
 - **API:** [Expected API response/behavior]
 - **Logs:** [Expected log output, if relevant]
@@ -68,13 +71,16 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - [Any additional preconditions]
 
 **Steps:**
+
 1. [Step 1 action]
 2. [Step 2 action]
 
 **Expected Results:**
+
 - **UI:** [Expected UI behavior]
 - **API:** [Expected API response]
 
@@ -87,9 +93,11 @@
 **Description:** [Describe the unusual input, boundary value, or multi-tenant case]
 
 **Steps:**
+
 1. [Step to trigger edge case]
 
 **Expected Behavior:**
+
 - [How the system should handle this case]
 
 ---
@@ -99,9 +107,11 @@
 **Description:** [Description]
 
 **Steps:**
+
 1. [Steps]
 
 **Expected Behavior:**
+
 - [Expected behavior]
 
 ---
@@ -113,9 +123,11 @@
 **Scenario:** [Describe the failure scenario, e.g., Stripe API timeout]
 
 **Steps:**
+
 1. [How to simulate or trigger the failure]
 
 **Expected Behavior:**
+
 - [Error message shown to user]
 - [Fallback behavior]
 - [Logging/monitoring behavior]
@@ -127,9 +139,11 @@
 **Scenario:** [Describe invalid input scenario]
 
 **Steps:**
+
 1. [Steps to submit invalid data]
 
 **Expected Behavior:**
+
 - [Validation error message]
 - [Form state after error]
 
@@ -140,9 +154,11 @@
 **Scenario:** [Describe unauthorized access attempt]
 
 **Steps:**
+
 1. [Steps to attempt unauthorized action]
 
 **Expected Behavior:**
+
 - [403/401 response or redirect]
 - [UI feedback]
 
@@ -155,10 +171,12 @@
 **Scenario:** [Describe hitting a plan limit, e.g., "Free plan user tries to create 2nd project"]
 
 **Steps:**
+
 1. [Steps to reach the limit]
 2. [Steps to exceed the limit]
 
 **Expected Behavior:**
+
 - [Upgrade prompt or toast message]
 - [API error payload (code, message)]
 - [User remains on current page/state]
@@ -170,9 +188,11 @@
 **Scenario:** [Description]
 
 **Steps:**
+
 1. [Steps]
 
 **Expected Behavior:**
+
 - [Expected behavior]
 
 ---
@@ -223,9 +243,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Name] |
-| **Date** | [YYYY-MM-DD] |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    | [Name]                                |
+| **Date**           | [YYYY-MM-DD]                          |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | [Any additional notes] |
+| **Notes**          | [Any additional notes]                |

@@ -24,7 +24,7 @@ interface ProductScanDto {
 export class SeoScanController {
   constructor(
     private readonly seoScanService: SeoScanService,
-    private readonly entitlementsService: EntitlementsService,
+    private readonly entitlementsService: EntitlementsService
   ) {}
 
   /**

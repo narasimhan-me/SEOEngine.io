@@ -39,15 +39,18 @@
 ### Scenario DASH1-HP-001: Brand-new project (no integration)
 
 **Preconditions:**
+
 - [ ] New project created with no integrations configured.
 - [ ] No crawl has been run; no DEO score exists.
 
 **Steps:**
+
 1. Log in as a Pro or Business user.
 2. Create a new project or select a project with no integrations and no crawl history.
 3. Navigate to /projects/:id/overview.
 
 **Expected Results:**
+
 - The "First DEO win" checklist appears at the top of the Project Overview.
 - Step 1 ("Connect your store") is marked as Not started; all other steps show Not started as well.
 - Project Stats card shows:
@@ -68,15 +71,18 @@
 ### Scenario DASH1-HP-002: Connected but no crawl
 
 **Preconditions:**
+
 - [ ] Project has a Shopify integration connected (Integration row exists).
 - [ ] No crawl results; ProjectOverview.crawlCount = 0.
 - [ ] No DEO score snapshots.
 
 **Steps:**
+
 1. Connect a Shopify store for the project via the Shopify integration flow.
 2. Navigate to /projects/:id/overview.
 
 **Expected Results:**
+
 - First DEO win checklist:
   - Step 1 ("Connect your store") is Completed.
   - Step 2 ("Run your first crawl") is marked In progress (first incomplete step).
@@ -96,15 +102,18 @@
 ### Scenario DASH1-HP-003: Crawled but no DEO score
 
 **Preconditions:**
+
 - [ ] Project connected to Shopify with products synced.
 - [ ] A crawl has been run at least once (crawl results exist).
 - [ ] DEO score snapshot not yet computed or intentionally cleared.
 
 **Steps:**
+
 1. Ensure at least one crawl run has completed for the project.
 2. Navigate to /projects/:id/overview.
 
 **Expected Results:**
+
 - First DEO win checklist:
   - Step 1 ("Connect your store") = Completed.
   - Step 2 ("Run your first crawl") = Completed.
@@ -124,17 +133,20 @@
 ### Scenario DASH1-HP-004: DEO score exists but fewer than 3 products optimized
 
 **Preconditions:**
+
 - [ ] Project with:
   - At least one crawl.
   - At least one DEO score snapshot (overall score set).
   - Fewer than 3 products with applied SEO (ProjectOverview.productsWithAppliedSeo < 3).
 
 **Steps:**
+
 1. Navigate to /projects/:id/overview.
 2. Confirm DEO Score card shows a latest score.
 3. Confirm there are fewer than 3 products with applied SEO on the Products page or via test data.
 
 **Expected Results:**
+
 - First DEO win checklist:
   - Steps 1–3 are Completed.
   - Step 4 ("Optimize 3 key products") is In progress / Not started depending on prior optimizations.
@@ -152,6 +164,7 @@
 ### Scenario DASH1-HP-005: Fully completed First DEO Win (all steps done, stepper collapsed)
 
 **Preconditions:**
+
 - [ ] Project with:
   - Shopify connected.
   - At least one crawl.
@@ -159,10 +172,12 @@
   - At least 3 products with applied SEO (via metadata optimizations).
 
 **Steps:**
+
 1. Navigate to /projects/:id/overview.
 2. Confirm that at least 3 products are considered optimized (as per the Products view).
 
 **Expected Results:**
+
 - First DEO win checklist:
   - All four steps are Completed.
   - The checklist component auto-collapses (not rendered) once all steps are complete.
@@ -182,10 +197,12 @@
 ### DASH1-EC-001: Mixed integrations and non-Shopify projects
 
 **Steps:**
+
 1. Create a project configured as a non-Shopify integration (e.g., custom website).
 2. Navigate to /projects/:id/overview.
 
 **Expected Results:**
+
 - First DEO win checklist still behaves deterministically based on:
   - Integrations count.
   - Crawl history.
@@ -196,10 +213,12 @@
 ### DASH1-EC-002: No DEO issues returned
 
 **Steps:**
+
 1. Configure a project such that the DEO Issues API returns an empty issues array.
 2. Navigate to /projects/:id/overview.
 
 **Expected Results:**
+
 - IssuesSummaryCard shows zero or an appropriate empty state.
 - Top Issues card shows a succinct message indicating no issues rather than rendering empty rows.
 - Top Products to Fix either:
@@ -213,6 +232,7 @@
 ### DASH1-ERR-001: API failures (overview / issues / products)
 
 **Steps:**
+
 1. Temporarily misconfigure the backend or simulate failures for:
    - /projects/:id/overview
    - /projects/:id/deo-issues
@@ -220,6 +240,7 @@
 2. Reload /projects/:id/overview.
 
 **Expected Results:**
+
 - Each failed API call surfaces a non-technical, user-friendly error message.
 - The rest of the dashboard degrades gracefully (e.g., some cards can render while others show an inline error).
 - No uncaught errors appear in the browser console for expected failure modes.
@@ -239,9 +260,9 @@ Areas to sanity check for regressions:
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| Tester Name | [Name] |
-| Date | [YYYY-MM-DD] |
+| Field          | Value                                 |
+| -------------- | ------------------------------------- |
+| Tester Name    | [Name]                                |
+| Date           | [YYYY-MM-DD]                          |
 | Overall Status | [ ] Passed / [ ] Blocked / [ ] Failed |
-| Notes | [Any additional notes] |
+| Notes          | [Any additional notes]                |

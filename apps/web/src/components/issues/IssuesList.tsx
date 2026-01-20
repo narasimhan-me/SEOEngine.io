@@ -43,7 +43,11 @@ interface IssuesListProps {
   projectId?: string;
 }
 
-export function IssuesList({ issues, groupByPillar = false, projectId }: IssuesListProps) {
+export function IssuesList({
+  issues,
+  groupByPillar = false,
+  projectId,
+}: IssuesListProps) {
   const [expandedIssueId, setExpandedIssueId] = useState<string | null>(null);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -119,7 +123,7 @@ export function IssuesList({ issues, groupByPillar = false, projectId }: IssuesL
                       isExpanded={expandedIssueId === issue.id}
                       onToggleExpand={() =>
                         setExpandedIssueId((current) =>
-                          current === issue.id ? null : issue.id,
+                          current === issue.id ? null : issue.id
                         )
                       }
                       projectId={projectId}
@@ -150,7 +154,7 @@ export function IssuesList({ issues, groupByPillar = false, projectId }: IssuesL
           isExpanded={expandedIssueId === issue.id}
           onToggleExpand={() =>
             setExpandedIssueId((current) =>
-              current === issue.id ? null : issue.id,
+              current === issue.id ? null : issue.id
             )
           }
           projectId={projectId}
@@ -196,7 +200,10 @@ function IssueCard({
 
   // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Actionable = has a real href from buildIssueFixHref
   // [DIAGNOSTIC-GUIDANCE-1] Outside-control issues are never actionable (no Fix/Review CTA)
-  const fixHref = projectId && !isOutsideEngineControl ? buildIssueFixHref({ projectId, issue }) : null;
+  const fixHref =
+    projectId && !isOutsideEngineControl
+      ? buildIssueFixHref({ projectId, issue })
+      : null;
   const actionable = Boolean(fixHref) && !isOutsideEngineControl;
 
   // [ISSUE-FIX-KIND-CLARITY-1] Get fixKind to determine CTA wording
@@ -224,21 +231,33 @@ function IssueCard({
     <div
       // [ISSUE-TO-FIX-PATH-1] Test hooks for actionable vs informational cards
       // [ISSUE-FIX-KIND-CLARITY-1] Added fixKind test attribute for DIAGNOSTIC detection
-      data-testid={actionable ? 'issue-card-actionable' : 'issue-card-informational'}
+      data-testid={
+        actionable ? 'issue-card-actionable' : 'issue-card-informational'
+      }
       data-fix-kind={fixKind}
       role={actionable ? 'button' : undefined}
       tabIndex={actionable ? 0 : undefined}
       onClick={actionable ? handleCardClick : undefined}
-      onKeyDown={actionable ? (e) => { if (e.key === 'Enter' || e.key === ' ') handleCardClick(); } : undefined}
+      onKeyDown={
+        actionable
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') handleCardClick();
+            }
+          : undefined
+      }
       className={`rounded-md border border-gray-200 bg-white p-3 text-sm text-gray-700 ${
-        actionable ? 'cursor-pointer hover:border-blue-300 hover:bg-blue-50/50 transition-colors' : ''
+        actionable
+          ? 'cursor-pointer hover:border-blue-300 hover:bg-blue-50/50 transition-colors'
+          : ''
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold">{safeTitle}</span>
-            <span className={severityBadge.className}>{severityBadge.label}</span>
+            <span className={severityBadge.className}>
+              {severityBadge.label}
+            </span>
             {/* [DIAGNOSTIC-GUIDANCE-1] Outside-control issues get specific label */}
             {/* [ISSUE-TO-FIX-PATH-1] Informational badge for orphan issues (non-outside-control) */}
             {!actionable && (
@@ -255,12 +274,18 @@ function IssueCard({
           </p>
           {/* [DIAGNOSTIC-GUIDANCE-1] Diagnostic guidance block for outside-control issues */}
           {isOutsideEngineControl && (
-            <div className="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3" data-testid="diagnostic-guidance-block">
+            <div
+              className="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3"
+              data-testid="diagnostic-guidance-block"
+            >
               <p className="text-xs text-gray-600">
-                EngineO.ai cannot directly fix this issue because it depends on your theme, hosting, or Shopify configuration.
+                EngineO.ai cannot directly fix this issue because it depends on
+                your theme, hosting, or Shopify configuration.
               </p>
               <div className="mt-2">
-                <p className="text-xs font-semibold text-gray-700">How to address this</p>
+                <p className="text-xs font-semibold text-gray-700">
+                  How to address this
+                </p>
                 <ul className="mt-1 list-disc list-inside text-xs text-gray-600 space-y-0.5">
                   <li>Check your Shopify theme settings</li>
                   <li>Verify robots.txt and meta tags</li>
@@ -286,7 +311,10 @@ function IssueCard({
         <div className="mt-2">
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleExpand();
+            }}
             className="text-xs font-medium text-blue-600 hover:text-blue-800"
           >
             {isExpanded ? 'Hide affected items' : 'Show affected items'}
@@ -316,15 +344,21 @@ function IssueCard({
                   </div>
                   {projectId ? (
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-500">{affectedProductCount} product{affectedProductCount !== 1 ? 's' : ''} affected</span>
+                      <span className="text-gray-500">
+                        {affectedProductCount} product
+                        {affectedProductCount !== 1 ? 's' : ''} affected
+                      </span>
                       <Link
                         href={
                           viewAffectedFrom && viewAffectedReturnTo
-                            ? withRouteContext(`/projects/${projectId}/products`, {
-                                from: viewAffectedFrom,
-                                returnTo: viewAffectedReturnTo,
-                                issueType: issue.type || issue.id,
-                              })
+                            ? withRouteContext(
+                                `/projects/${projectId}/products`,
+                                {
+                                  from: viewAffectedFrom,
+                                  returnTo: viewAffectedReturnTo,
+                                  issueType: issue.type || issue.id,
+                                }
+                              )
                             : `/projects/${projectId}/products?issueType=${encodeURIComponent(issue.type || issue.id)}`
                         }
                         onClick={(e) => e.stopPropagation()}
@@ -335,7 +369,10 @@ function IssueCard({
                       </Link>
                     </div>
                   ) : (
-                    <span className="text-gray-500">{affectedProductCount} product{affectedProductCount !== 1 ? 's' : ''} affected</span>
+                    <span className="text-gray-500">
+                      {affectedProductCount} product
+                      {affectedProductCount !== 1 ? 's' : ''} affected
+                    </span>
                   )}
                 </div>
               )}

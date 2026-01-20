@@ -1,4 +1,11 @@
-import { Controller, Get, Param, Query, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ProductsService, ProductListFilters } from './products.service';
 
@@ -25,7 +32,7 @@ export class ProductsController {
     @Query('q') q?: string,
     @Query('status') status?: string,
     @Query('hasDraft') hasDraft?: string,
-    @Query('issueType') issueType?: string,
+    @Query('issueType') issueType?: string
   ) {
     // [LIST-SEARCH-FILTER-1] Build filters object from query params
     const filters: ProductListFilters = {};
@@ -47,6 +54,10 @@ export class ProductsController {
       filters.issueType = issueType.trim();
     }
 
-    return this.productsService.getProductsForProject(projectId, req.user.id, filters);
+    return this.productsService.getProductsForProject(
+      projectId,
+      req.user.id,
+      filters
+    );
   }
 }

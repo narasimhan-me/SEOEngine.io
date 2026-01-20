@@ -81,13 +81,17 @@ export default function AdminAuditLogPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Audit Log</h1>
-      <p className="text-sm text-gray-500 mb-4">Immutable audit records of admin actions.</p>
+      <p className="text-sm text-gray-500 mb-4">
+        Immutable audit records of admin actions.
+      </p>
 
       {/* Filters */}
       <div className="bg-white shadow rounded-lg p-4 mb-6 flex gap-4">
         <select
           value={filters.actionType}
-          onChange={(e) => setFilters({ ...filters, actionType: e.target.value })}
+          onChange={(e) =>
+            setFilters({ ...filters, actionType: e.target.value })
+          }
           className="border border-gray-300 rounded-md px-3 py-2 text-sm"
         >
           <option value="">All Action Types</option>
@@ -104,11 +108,21 @@ export default function AdminAuditLogPage() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actor</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Target</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Time
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Actor
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Role
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Action
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Target
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -129,7 +143,10 @@ export default function AdminAuditLogPage() {
                   {log.actionType.replace(/_/g, ' ')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {log.targetUser?.email || log.targetProject?.name || log.targetRunId || '-'}
+                  {log.targetUser?.email ||
+                    log.targetProject?.name ||
+                    log.targetRunId ||
+                    '-'}
                 </td>
               </tr>
             ))}
@@ -140,7 +157,8 @@ export default function AdminAuditLogPage() {
       {pagination && pagination.pages > 1 && (
         <div className="mt-4 flex justify-between items-center">
           <p className="text-sm text-gray-500">
-            Page {pagination.page} of {pagination.pages} ({pagination.total} total)
+            Page {pagination.page} of {pagination.pages} ({pagination.total}{' '}
+            total)
           </p>
           <div className="flex gap-2">
             <button
@@ -151,7 +169,9 @@ export default function AdminAuditLogPage() {
               Previous
             </button>
             <button
-              onClick={() => setCurrentPage((p) => Math.min(pagination.pages, p + 1))}
+              onClick={() =>
+                setCurrentPage((p) => Math.min(pagination.pages, p + 1))
+              }
               disabled={currentPage === pagination.pages}
               className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50"
             >

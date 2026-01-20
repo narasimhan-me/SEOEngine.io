@@ -52,19 +52,25 @@ describe('AutomationPlaybooksService.applyPlaybook – no AI contract', () => {
           useValue: {
             enforceEntitlement: jest.fn().mockResolvedValue(undefined),
             getEffectivePlanId: jest.fn().mockResolvedValue('pro'),
-            getDailyAiUsage: jest.fn().mockResolvedValue({ used: 0, limit: 100 }),
+            getDailyAiUsage: jest
+              .fn()
+              .mockResolvedValue({ used: 0, limit: 100 }),
           },
         },
         {
           provide: ProjectsService,
           useValue: {
-            getProject: jest.fn().mockResolvedValue({ id: 'test-project', name: 'Test' }),
+            getProject: jest
+              .fn()
+              .mockResolvedValue({ id: 'test-project', name: 'Test' }),
           },
         },
         {
           provide: ProductIssueFixService,
           useValue: {
-            fixMissingSeoFieldFromIssue: jest.fn().mockResolvedValue({ updated: true }),
+            fixMissingSeoFieldFromIssue: jest
+              .fn()
+              .mockResolvedValue({ updated: true }),
           },
         },
         {
@@ -106,7 +112,9 @@ describe('AutomationPlaybooksService.applyPlaybook – no AI contract', () => {
       ],
     }).compile();
 
-    service = module.get<AutomationPlaybooksService>(AutomationPlaybooksService);
+    service = module.get<AutomationPlaybooksService>(
+      AutomationPlaybooksService
+    );
   });
 
   beforeEach(() => {
@@ -124,7 +132,7 @@ describe('AutomationPlaybooksService.applyPlaybook – no AI contract', () => {
         'project-456',
         'missing_seo_title',
         'scope-abc',
-        'rules-hash-xyz',
+        'rules-hash-xyz'
       );
     } catch {
       // Expected – the mock doesn't have a real draft

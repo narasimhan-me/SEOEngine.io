@@ -183,14 +183,20 @@ export function PricingTable() {
                   Most Popular
                 </div>
               )}
-              <h2 className="text-lg font-semibold text-foreground">{plan.name}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
+              <h2 className="text-lg font-semibold text-foreground">
+                {plan.name}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {plan.tagline}
+              </p>
 
               <div className="mt-4 flex items-baseline gap-1">
                 <span className="text-3xl font-semibold text-foreground">
                   {plan.price}
                 </span>
-                <span className="text-xs text-muted-foreground">{plan.period}</span>
+                <span className="text-xs text-muted-foreground">
+                  {plan.period}
+                </span>
               </div>
 
               <Link
@@ -234,8 +240,12 @@ export function PricingTable() {
                   <td className="px-4 py-2 text-xs font-medium text-foreground">
                     {row.label}
                   </td>
-                  <td className="px-4 py-2 text-xs text-muted-foreground">{row.free}</td>
-                  <td className="px-4 py-2 text-xs text-muted-foreground">{row.pro}</td>
+                  <td className="px-4 py-2 text-xs text-muted-foreground">
+                    {row.free}
+                  </td>
+                  <td className="px-4 py-2 text-xs text-muted-foreground">
+                    {row.pro}
+                  </td>
                   <td className="px-4 py-2 text-xs text-muted-foreground">
                     {row.business}
                   </td>

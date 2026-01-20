@@ -9,7 +9,8 @@ export function DeoComponentBreakdown({ score }: DeoComponentBreakdownProps) {
     {
       key: 'content' as const,
       label: 'Content',
-      description: 'Coverage, depth, and freshness of content across pages and products.',
+      description:
+        'Coverage, depth, and freshness of content across pages and products.',
     },
     {
       key: 'entities' as const,

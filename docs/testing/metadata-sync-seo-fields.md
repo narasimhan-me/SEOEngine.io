@@ -49,15 +49,18 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - Product has AI-generated SEO suggestion
 
 **Steps:**
+
 1. Navigate to product optimization workspace
 2. Generate AI suggestion
 3. Click "Apply" or "Push to Shopify"
 4. Wait for sync confirmation
 
 **Expected Results:**
+
 - **EngineO:** Product's seoTitle/seoDescription updated
 - **Shopify:** Product's SEO fields updated via API
 - **UI:** Success message shown
@@ -70,14 +73,17 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Product in optimization workspace
 
 **Steps:**
+
 1. Manually edit SEO title and description
 2. Click "Save & Sync" or "Apply"
 3. Verify in Shopify
 
 **Expected Results:**
+
 - **EngineO:** Local record updated
 - **Shopify:** SEO fields match manual edits
 - **Timestamp:** lastSyncedAt updated
@@ -89,14 +95,17 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Multiple products with AI suggestions
 
 **Steps:**
+
 1. Select multiple products
 2. Generate suggestions for all
 3. Bulk apply to Shopify
 
 **Expected Results:**
+
 - **Progress:** Batch progress shown
 - **Completion:** All products updated
 - **Summary:** "X products updated successfully"
@@ -108,14 +117,17 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - SEO sync completed
 
 **Steps:**
+
 1. Open Shopify admin
 2. Navigate to synced product
 3. Check SEO fields in product editor
 
 **Expected Results:**
+
 - **Title:** Matches EngineO seoTitle
 - **Description:** Matches EngineO seoDescription
 - **Preview:** Google preview shows updated content
@@ -129,11 +141,13 @@
 **Description:** Content includes quotes, HTML entities, or unicode.
 
 **Steps:**
+
 1. Generate/edit SEO with special characters
 2. Apply to Shopify
 3. Verify characters preserved
 
 **Expected Behavior:**
+
 - Characters properly escaped/encoded
 - Displayed correctly in Shopify
 - No truncation or corruption
@@ -145,10 +159,12 @@
 **Description:** Title or description exceeds recommended limits.
 
 **Steps:**
+
 1. Enter SEO title > 60 chars or description > 160 chars
 2. Attempt sync
 
 **Expected Behavior:**
+
 - Warning about length (or truncation)
 - Sync proceeds with full content
 - User informed of SEO best practices
@@ -160,11 +176,13 @@
 **Description:** Product had SEO content in Shopify before EngineO.
 
 **Steps:**
+
 1. Product with existing SEO in Shopify
 2. Generate new AI suggestion
 3. Apply
 
 **Expected Behavior:**
+
 - New content overwrites old
 - No merge (replace behavior)
 - User warned before overwrite (optional)
@@ -176,10 +194,12 @@
 **Description:** Product no longer exists in Shopify.
 
 **Steps:**
+
 1. Delete product from Shopify
 2. Attempt to sync SEO from EngineO
 
 **Expected Behavior:**
+
 - 404 error from Shopify API
 - User informed product not found
 - Suggestion to remove from EngineO
@@ -193,9 +213,11 @@
 **Scenario:** Shopify returns error on update.
 
 **Steps:**
+
 1. Trigger sync when Shopify API has issues
 
 **Expected Behavior:**
+
 - Error message shown
 - Local changes preserved
 - Retry option available
@@ -208,9 +230,11 @@
 **Scenario:** Content violates Shopify validation.
 
 **Steps:**
+
 1. Attempt sync with invalid content (if any restrictions)
 
 **Expected Behavior:**
+
 - Validation error from Shopify
 - User informed of issue
 - Suggestion to fix content
@@ -222,10 +246,12 @@
 **Scenario:** Some products fail in bulk operation.
 
 **Steps:**
+
 1. Bulk apply to 10 products
 2. 2 fail due to errors
 
 **Expected Behavior:**
+
 - 8 products succeed
 - 2 failures reported
 - User can retry failed items
@@ -238,9 +264,11 @@
 **Scenario:** App doesn't have write permissions.
 
 **Steps:**
+
 1. Attempt sync without write scope
 
 **Expected Behavior:**
+
 - 403 error from Shopify
 - User informed of permission issue
 - Reconnect flow suggested
@@ -254,10 +282,12 @@
 **Scenario:** Applying AI SEO counts toward daily AI usage.
 
 **Steps:**
+
 1. Track AI usage before/after apply
 2. Verify usage incremented
 
 **Expected Behavior:**
+
 - Usage counted correctly
 - Limit enforced if reached
 - Clear messaging about usage
@@ -269,9 +299,11 @@
 **Scenario:** Maximum products per bulk operation.
 
 **Steps:**
+
 1. Attempt bulk apply on large selection
 
 **Expected Behavior:**
+
 - Batch size limits enforced (if any)
 - Pagination/chunking handled
 - All products eventually synced
@@ -328,9 +360,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Cross-cutting system-level tests for metadata sync |
+| Field              | Value                                              |
+| ------------------ | -------------------------------------------------- |
+| **Tester Name**    | [Pending]                                          |
+| **Date**           | [YYYY-MM-DD]                                       |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed              |
+| **Notes**          | Cross-cutting system-level tests for metadata sync |

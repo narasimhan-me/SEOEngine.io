@@ -401,13 +401,13 @@ TEST-3 adds a separate, non-blocking live Shopify smoke lane that runs against a
 
 ### Live-Test Database vs Regular Test Database
 
-| Aspect | Regular Test DB (`DATABASE_URL_TEST`) | Live-Test DB (`DATABASE_URL_LIVE_TEST`) |
-|--------|---------------------------------------|----------------------------------------|
-| Purpose | Unit/integration tests, E2E (mocked) | Live Shopify smoke tests |
-| Shopify calls | Mocked / stubbed | Real GraphQL Admin API |
-| Store connections | Fake / stubbed | Real allowlisted dev stores |
-| CI trigger | Every PR, push to main | Nightly schedule, manual dispatch |
-| Guard | `assertTestEnv()` | `assertLiveShopifyTestEnv()` |
+| Aspect            | Regular Test DB (`DATABASE_URL_TEST`) | Live-Test DB (`DATABASE_URL_LIVE_TEST`) |
+| ----------------- | ------------------------------------- | --------------------------------------- |
+| Purpose           | Unit/integration tests, E2E (mocked)  | Live Shopify smoke tests                |
+| Shopify calls     | Mocked / stubbed                      | Real GraphQL Admin API                  |
+| Store connections | Fake / stubbed                        | Real allowlisted dev stores             |
+| CI trigger        | Every PR, push to main                | Nightly schedule, manual dispatch       |
+| Guard             | `assertTestEnv()`                     | `assertLiveShopifyTestEnv()`            |
 
 ### Required Environment Variables
 
@@ -508,4 +508,3 @@ Run with:
 ```bash
 pnpm test:api -- live-shopify
 ```
-

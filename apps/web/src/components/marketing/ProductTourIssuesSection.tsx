@@ -26,7 +26,9 @@ export function ProductTourIssuesSection() {
           </div>
 
           <div>
-            <p className="text-sm text-muted-foreground">Each issue clearly explains:</p>
+            <p className="text-sm text-muted-foreground">
+              Each issue clearly explains:
+            </p>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
               <li>What it is</li>
               <li>Why it matters</li>

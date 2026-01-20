@@ -33,14 +33,17 @@ Path: /projects/{projectId}/overview
 Goal: When daily crawls are not enabled, show a button to set them up.
 
 Setup:
+
 - Ensure project has `autoCrawlEnabled: false` or `crawlFrequency` is not `'DAILY'`.
 - Complete the First DEO Win checklist (connect source, run crawl, get DEO score, optimize 3 products).
 
 Steps:
+
 1. Navigate to Project Overview.
 2. Confirm the green "First DEO Win" ribbon appears.
 
 Expected:
+
 - Ribbon shows "Set up daily crawls" as a clickable button.
 - Clicking the button:
   - Shows "Setting up daily crawls…" with spinner (SETTING_UP state).
@@ -52,9 +55,11 @@ Expected:
 Goal: While the API request is pending, show loading state.
 
 Steps:
+
 1. Click "Set up daily crawls" button.
 
 Expected:
+
 - Button is replaced with "Setting up daily crawls…" text and spinner.
 - No duplicate actions can be triggered during this state.
 
@@ -63,12 +68,15 @@ Expected:
 Goal: When daily crawls are already enabled, show confirmation.
 
 Setup:
+
 - Project has `autoCrawlEnabled: true` and `crawlFrequency: 'DAILY'`.
 
 Steps:
+
 1. Navigate to Project Overview.
 
 Expected:
+
 - Ribbon shows "Daily crawls enabled" with green checkmark.
 - No setup button is visible.
 
@@ -77,13 +85,16 @@ Expected:
 Goal: When setup fails, allow retry.
 
 Setup:
+
 - Simulate a failure (e.g., network error or API issue).
 
 Steps:
+
 1. Click "Set up daily crawls" button.
 2. Observe failure.
 
 Expected:
+
 - Ribbon shows "Retry daily crawls setup" in red with warning icon.
 - Clicking retry attempts the setup again.
 
@@ -96,13 +107,16 @@ Path: /projects/{projectId}/overview → Diagnostics & system details → Auto C
 ### 2.1 ENABLED state
 
 Setup:
+
 - Project has daily crawls enabled.
 
 Steps:
+
 1. Navigate to Project Overview.
 2. Expand "Diagnostics & system details".
 
 Expected:
+
 - Auto Crawl card shows:
   - Green checkmark icon.
   - "Enabled (Daily)" text.
@@ -111,21 +125,26 @@ Expected:
 ### 2.2 SETTING_UP state
 
 Steps:
+
 1. Click "Enable daily crawls" button in the Auto Crawl card (if visible).
 
 Expected:
+
 - Shows spinner with "Setting up daily crawls…" text.
 - Transitions to ENABLED on success, ERROR on failure.
 
 ### 2.3 ERROR state
 
 Setup:
+
 - Trigger a setup failure.
 
 Steps:
+
 1. Observe the Auto Crawl card after failure.
 
 Expected:
+
 - Shows red warning icon.
 - "Failed to enable" text.
 - "Retry" button to attempt setup again.
@@ -133,13 +152,16 @@ Expected:
 ### 2.4 IDLE state (Disabled)
 
 Setup:
+
 - Project has `autoCrawlEnabled: false`.
 
 Steps:
+
 1. Navigate to Project Overview.
 2. Expand "Diagnostics & system details".
 
 Expected:
+
 - Auto Crawl card shows:
   - Gray X icon.
   - "Disabled" text.
@@ -164,5 +186,5 @@ For all surfaces:
 ## Sign-off
 
 | Tester | Date | Result |
-|--------|------|--------|
-| | | |
+| ------ | ---- | ------ |
+|        |      |        |

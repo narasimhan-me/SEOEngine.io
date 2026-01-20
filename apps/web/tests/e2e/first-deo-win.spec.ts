@@ -1,12 +1,14 @@
 import { test, expect } from '@playwright/test';
 
-const API_BASE_URL =
-  process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
 
 async function seedFirstDeoWinProject(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-first-deo-win`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   return {
@@ -22,7 +24,7 @@ async function seedPlaybookNoEligibleProductsProject(request: any) {
     `${API_BASE_URL}/testkit/e2e/seed-playbook-no-eligible-products`,
     {
       data: {},
-    },
+    }
   );
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
@@ -34,9 +36,12 @@ async function seedPlaybookNoEligibleProductsProject(request: any) {
 }
 
 async function connectShopifyE2E(request: any, projectId: string) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/connect-shopify`, {
-    data: { projectId },
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/connect-shopify`,
+    {
+      data: { projectId },
+    }
+  );
   expect(res.ok()).toBeTruthy();
 }
 
@@ -45,9 +50,8 @@ test.describe('TEST-2 – First DEO Win (Playwright E2E)', () => {
     page,
     request,
   }) => {
-    const { projectId, productIds, accessToken } = await seedFirstDeoWinProject(
-      request,
-    );
+    const { projectId, productIds, accessToken } =
+      await seedFirstDeoWinProject(request);
 
     // Programmatic login: set token in localStorage.
     await page.goto('/login');
@@ -60,32 +64,37 @@ test.describe('TEST-2 – First DEO Win (Playwright E2E)', () => {
 
     // Checklist initially shows all steps incomplete.
     await expect(
-      page.getByRole('heading', { name: /First DEO win/i }),
+      page.getByRole('heading', { name: /First DEO win/i })
     ).toBeVisible();
-    await expect(
-      page.getByText(/0 of 4 steps complete/i),
-    ).toBeVisible();
+    await expect(page.getByText(/0 of 4 steps complete/i)).toBeVisible();
 
     // Step 1: Connect store via E2E testkit, then refresh UI.
     await connectShopifyE2E(request, projectId);
     await page.reload();
+    await expect(page.getByText(/Connect your store/i)).toBeVisible();
     await expect(
-      page.getByText(/Connect your store/i),
-    ).toBeVisible();
-    await expect(
-      page.getByText(/Connect your store/i).locator('..').getByText(/Completed/i),
+      page
+        .getByText(/Connect your store/i)
+        .locator('..')
+        .getByText(/Completed/i)
     ).toBeVisible();
 
     // Step 2: Run first crawl (uses SEO scan stub in E2E mode).
     await page.getByRole('button', { name: /Run crawl/i }).click();
     await expect(
-      page.getByText(/Run your first crawl/i).locator('..').getByText(/Completed/i),
+      page
+        .getByText(/Run your first crawl/i)
+        .locator('..')
+        .getByText(/Completed/i)
     ).toBeVisible();
 
     // Step 3: Review DEO Score.
     await page.getByRole('button', { name: /View DEO Score/i }).click();
     await expect(
-      page.getByText(/Review your DEO Score/i).locator('..').getByText(/Completed/i),
+      page
+        .getByText(/Review your DEO Score/i)
+        .locator('..')
+        .getByText(/Completed/i)
     ).toBeVisible();
 
     // Step 4: Optimize 3 products via product workspace (single-item flow).
@@ -93,15 +102,15 @@ test.describe('TEST-2 – First DEO Win (Playwright E2E)', () => {
       const productId = productIds[i];
 
       await page.goto(
-        `/projects/${projectId}/products/${productId}?focus=metadata`,
+        `/projects/${projectId}/products/${productId}?focus=metadata`
       );
 
       // Metadata section visible and focused.
       await expect(
-        page.getByRole('heading', { name: /Metadata/i }),
+        page.getByRole('heading', { name: /Metadata/i })
       ).toBeVisible();
       await expect(
-        page.getByRole('heading', { name: /SEO Metadata/i }),
+        page.getByRole('heading', { name: /SEO Metadata/i })
       ).toBeVisible();
 
       // Apply manual optimization: edit fields and apply to Shopify.
@@ -113,7 +122,7 @@ test.describe('TEST-2 – First DEO Win (Playwright E2E)', () => {
       await page.getByRole('button', { name: /Apply to Shopify/i }).click();
 
       await expect(
-        page.getByText(/Applied to Shopify and saved in EngineO/i),
+        page.getByText(/Applied to Shopify and saved in EngineO/i)
       ).toBeVisible();
     }
 
@@ -121,23 +130,18 @@ test.describe('TEST-2 – First DEO Win (Playwright E2E)', () => {
     await page.goto(`/projects/${projectId}/overview`);
 
     // First DEO Win checklist should be fully complete (all steps).
-    await expect(
-      page.getByText(/First DEO win/i),
-    ).not.toBeVisible();
+    await expect(page.getByText(/First DEO win/i)).not.toBeVisible();
 
     // "Next DEO Win" card should be visible once First DEO Win is complete.
-    await expect(
-      page.getByText(/Next DEO Win/i),
-    ).toBeVisible();
+    await expect(page.getByText(/Next DEO Win/i)).toBeVisible();
   });
 
   test('Optimize workspace exposes only single-item apply (no bulk apply)', async ({
     page,
     request,
   }) => {
-    const { projectId, productIds, accessToken } = await seedFirstDeoWinProject(
-      request,
-    );
+    const { projectId, productIds, accessToken } =
+      await seedFirstDeoWinProject(request);
 
     await page.goto('/login');
     await page.evaluate((token) => {
@@ -146,21 +150,17 @@ test.describe('TEST-2 – First DEO Win (Playwright E2E)', () => {
 
     const productId = productIds[0];
     await page.goto(
-      `/projects/${projectId}/products/${productId}?focus=metadata`,
+      `/projects/${projectId}/products/${productId}?focus=metadata`
     );
 
     // Metadata editor is present.
     await expect(
-      page.getByRole('heading', { name: /SEO Metadata/i }),
+      page.getByRole('heading', { name: /SEO Metadata/i })
     ).toBeVisible();
 
     // Ensure the page does NOT expose bulk apply CTAs like "Apply to all".
-    await expect(
-      page.getByText(/Apply to all/i),
-    ).toHaveCount(0);
-    await expect(
-      page.getByText(/Bulk apply/i),
-    ).toHaveCount(0);
+    await expect(page.getByText(/Apply to all/i)).toHaveCount(0);
+    await expect(page.getByText(/Bulk apply/i)).toHaveCount(0);
   });
 });
 
@@ -182,36 +182,26 @@ test.describe('AUTO-PB-1.1 – Playbooks Hardening (Playwright E2E)', () => {
     await page.goto(`/projects/${projectId}/automation/playbooks`);
 
     // Playbook cards should be visible
-    await expect(
-      page.getByText(/Fix missing SEO titles/i),
-    ).toBeVisible();
-    await expect(
-      page.getByText(/Fix missing SEO descriptions/i),
-    ).toBeVisible();
+    await expect(page.getByText(/Fix missing SEO titles/i)).toBeVisible();
+    await expect(page.getByText(/Fix missing SEO descriptions/i)).toBeVisible();
 
     // Select the missing_seo_title playbook
     await page.getByText(/Fix missing SEO titles/i).click();
 
     // Step 1 - Preview section should be visible
-    await expect(
-      page.getByText(/Step 1 – Preview changes/i),
-    ).toBeVisible();
+    await expect(page.getByText(/Step 1 – Preview changes/i)).toBeVisible();
 
     // Continue to Estimate
     await page.getByRole('button', { name: /Continue to Estimate/i }).click();
 
     // Step 2 - Estimate should be visible
-    await expect(
-      page.getByText(/Step 2 – Estimate impact/i),
-    ).toBeVisible();
+    await expect(page.getByText(/Step 2 – Estimate impact/i)).toBeVisible();
 
     // Continue to Apply
     await page.getByRole('button', { name: /Continue to Apply/i }).click();
 
     // Step 3 - Apply section should be visible
-    await expect(
-      page.getByText(/Step 3 – Apply playbook/i),
-    ).toBeVisible();
+    await expect(page.getByText(/Step 3 – Apply playbook/i)).toBeVisible();
 
     // Confirm checkbox
     await page.getByRole('checkbox').check();
@@ -220,27 +210,25 @@ test.describe('AUTO-PB-1.1 – Playbooks Hardening (Playwright E2E)', () => {
     await page.getByRole('button', { name: /Apply playbook/i }).click();
 
     // Wait for results to appear
-    await expect(
-      page.getByText(/Updated products:/i),
-    ).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText(/Updated products:/i)).toBeVisible({
+      timeout: 30000,
+    });
 
     // Per-item results panel should be expandable
-    await expect(
-      page.getByText(/View per-product results/i),
-    ).toBeVisible();
+    await expect(page.getByText(/View per-product results/i)).toBeVisible();
 
     // Expand results panel
     await page.getByText(/View per-product results/i).click();
 
     // Table headers should be visible
     await expect(
-      page.getByRole('columnheader', { name: /Product/i }),
+      page.getByRole('columnheader', { name: /Product/i })
     ).toBeVisible();
     await expect(
-      page.getByRole('columnheader', { name: /Status/i }),
+      page.getByRole('columnheader', { name: /Status/i })
     ).toBeVisible();
     await expect(
-      page.getByRole('columnheader', { name: /Message/i }),
+      page.getByRole('columnheader', { name: /Message/i })
     ).toBeVisible();
   });
 
@@ -290,7 +278,7 @@ test.describe('AUTO-PB-1.1 – Playbooks Hardening (Playwright E2E)', () => {
 
     // Wait for preview to load and verify label
     await expect(
-      page.getByText(/Sample preview \(up to 3 products\)/i),
+      page.getByText(/Sample preview \(up to 3 products\)/i)
     ).toBeVisible({ timeout: 30000 });
   });
 });
@@ -313,16 +301,14 @@ test.describe('AUTO-PB-1.2 – Playbooks UX Coherence (Playwright E2E)', () => {
     await page.getByText(/Fix missing SEO titles/i).click();
 
     await expect(
-      page.getByText(/No products currently qualify for this playbook/i),
+      page.getByText(/No products currently qualify for this playbook/i)
     ).toBeVisible();
 
     // Steps 2 and 3 should not be actionable
     await expect(
-      page.getByText(/Step 2 – Estimate impact & tokens/i),
+      page.getByText(/Step 2 – Estimate impact & tokens/i)
     ).toHaveCount(0);
-    await expect(
-      page.getByText(/Step 3 – Apply playbook/i),
-    ).toHaveCount(0);
+    await expect(page.getByText(/Step 3 – Apply playbook/i)).toHaveCount(0);
 
     // Only primary CTA should be the eligibility CTA
     const viewProductsButton = page.getByRole('button', {
@@ -331,9 +317,7 @@ test.describe('AUTO-PB-1.2 – Playbooks UX Coherence (Playwright E2E)', () => {
     await expect(viewProductsButton).toBeVisible();
     await viewProductsButton.click();
 
-    await expect(page).toHaveURL(
-      new RegExp(`/projects/${projectId}/products`),
-    );
+    await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/products`));
   });
 
   test('Wizard enforces step gating, navigation warning, and post-apply persistence', async ({
@@ -354,21 +338,21 @@ test.describe('AUTO-PB-1.2 – Playbooks UX Coherence (Playwright E2E)', () => {
 
     // Step 1: no Continue to Estimate before preview
     await expect(
-      page.getByRole('button', { name: /Continue to Estimate/i }),
+      page.getByRole('button', { name: /Continue to Estimate/i })
     ).toHaveCount(0);
 
     // Step 2 / 3 CTAs should not allow apply before preview
     await expect(
-      page.getByRole('button', { name: /Continue to Apply/i }),
+      page.getByRole('button', { name: /Continue to Apply/i })
     ).toBeDisabled();
     await expect(
-      page.getByRole('button', { name: /Apply playbook/i }),
+      page.getByRole('button', { name: /Apply playbook/i })
     ).toBeDisabled();
 
     // Generate preview → unlock Continue to Estimate
     await page.getByRole('button', { name: /Generate preview/i }).click();
     await expect(
-      page.getByText(/Sample preview \(up to 3 products\)/i),
+      page.getByText(/Sample preview \(up to 3 products\)/i)
     ).toBeVisible({ timeout: 30000 });
 
     const continueToEstimate = page.getByRole('button', {
@@ -391,35 +375,31 @@ test.describe('AUTO-PB-1.2 – Playbooks UX Coherence (Playwright E2E)', () => {
     await dialog.dismiss();
 
     // Still on Playbooks page
-    await expect(
-      page.getByText(/Step 1 – Preview changes/i),
-    ).toBeVisible();
+    await expect(page.getByText(/Step 1 – Preview changes/i)).toBeVisible();
 
     // Continue to Apply and run the playbook
     await continueToApply.click();
     await page.getByRole('checkbox').check();
     await page.getByRole('button', { name: /Apply playbook/i }).click();
 
-    await expect(
-      page.getByText(/Updated products:/i),
-    ).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText(/Updated products:/i)).toBeVisible({
+      timeout: 30000,
+    });
 
     // Reload and verify results persist
     await page.reload();
-    await expect(
-      page.getByText(/Updated products:/i),
-    ).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText(/Updated products:/i)).toBeVisible({
+      timeout: 30000,
+    });
 
     // View updated products → Back to Playbook results works
     await page.getByRole('button', { name: /View updated products/i }).click();
-    await expect(
-      page.getByText(/Back to Playbook results/i),
-    ).toBeVisible();
+    await expect(page.getByText(/Back to Playbook results/i)).toBeVisible();
     await page
       .getByRole('button', { name: /Back to Playbook results/i })
       .click();
-    await expect(
-      page.getByText(/Updated products:/i),
-    ).toBeVisible({ timeout: 30000 });
+    await expect(page.getByText(/Updated products:/i)).toBeVisible({
+      timeout: 30000,
+    });
   });
 });

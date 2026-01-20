@@ -16,11 +16,11 @@ const sessionUpdateCache = new Map<string, number>();
  * NOT persisted to DB - only exists in the JWT session.
  */
 export interface ImpersonationPayload {
-  actorUserId: string;      // The internal admin initiating impersonation
-  actorAdminRole: string;   // Admin role at time of impersonation
-  mode: 'readOnly';         // Always read-only for ADMIN-OPS-1
-  issuedAt: number;         // Timestamp when impersonation was initiated
-  reason?: string;          // Optional reason for impersonation
+  actorUserId: string; // The internal admin initiating impersonation
+  actorAdminRole: string; // Admin role at time of impersonation
+  mode: 'readOnly'; // Always read-only for ADMIN-OPS-1
+  issuedAt: number; // Timestamp when impersonation was initiated
+  reason?: string; // Optional reason for impersonation
 }
 
 /**
@@ -35,12 +35,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private readonly configService: ConfigService,
     private readonly authService: AuthService,
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET') || 'default-secret-change-in-production',
+      secretOrKey:
+        configService.get<string>('JWT_SECRET') ||
+        'default-secret-change-in-production',
     });
   }
 
@@ -48,7 +50,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // Reject temp 2FA tokens - they should only be used for /auth/2fa/verify
     // This ensures temp tokens cannot grant normal API access
     if (payload.twoFactor === true) {
-      throw new UnauthorizedException('Invalid token - 2FA verification required');
+      throw new UnauthorizedException(
+        'Invalid token - 2FA verification required'
+      );
     }
 
     const user = await this.authService.validateJwtPayload(payload);
@@ -61,7 +65,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!payload.impersonation && user.tokenInvalidBefore) {
       const tokenIssuedAt = payload.iat ? payload.iat * 1000 : 0; // JWT iat is in seconds
       if (tokenIssuedAt < user.tokenInvalidBefore.getTime()) {
-        throw new UnauthorizedException('Token has been invalidated. Please log in again.');
+        throw new UnauthorizedException(
+          'Token has been invalidated. Please log in again.'
+        );
       }
     }
 
@@ -70,7 +76,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!payload.impersonation && payload.sessionId) {
       const isValid = await this.authService.isSessionValid(payload.sessionId);
       if (!isValid) {
-        throw new UnauthorizedException('Session has been revoked. Please log in again.');
+        throw new UnauthorizedException(
+          'Session has been revoked. Please log in again.'
+        );
       }
 
       // Update session lastSeenAt on a safe cadence (throttled to avoid DB pressure)

@@ -28,7 +28,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
     test.beforeEach(async ({ page }) => {
       // 1. Seed OWNER with a project
       const ownerResponse = await page.request.post(
-        `${API_BASE}/testkit/e2e/seed-first-deo-win`,
+        `${API_BASE}/testkit/e2e/seed-first-deo-win`
       );
       ownerData = await ownerResponse.json();
       projectId = ownerData.projectId;
@@ -41,7 +41,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
 
       // 3. Seed an EDITOR user
       const editorResponse = await page.request.post(
-        `${API_BASE}/testkit/e2e/seed-self-service-editor`,
+        `${API_BASE}/testkit/e2e/seed-self-service-editor`
       );
       editorData = await editorResponse.json();
       editorToken = editorData.accessToken;
@@ -69,11 +69,13 @@ test.describe('ROLES-3: Project Member Roles', () => {
           data: {
             requireApprovalForApply: true,
           },
-        },
+        }
       );
     });
 
-    test('EDITOR can view playbooks page but cannot apply', async ({ page }) => {
+    test('EDITOR can view playbooks page but cannot apply', async ({
+      page,
+    }) => {
       // Login as EDITOR
       await page.goto('/');
       await page.evaluate((token) => {
@@ -129,7 +131,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
             resourceType: 'AUTOMATION_PLAYBOOK_APPLY',
             resourceId: 'shopify_product_seo_update:project:' + projectId,
           },
-        },
+        }
       );
 
       if (approvalResponse.ok()) {
@@ -146,7 +148,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
             data: {
               reason: 'Approved for E2E test',
             },
-          },
+          }
         );
       }
 
@@ -169,7 +171,9 @@ test.describe('ROLES-3: Project Member Roles', () => {
       await expect(page.getByText('Playbooks')).toBeVisible();
     });
 
-    test('Approval attribution shows requester and approver', async ({ page }) => {
+    test('Approval attribution shows requester and approver', async ({
+      page,
+    }) => {
       // Create and approve a request via API
       const approvalResponse = await page.request.post(
         `${API_BASE}/projects/${projectId}/governance/approvals`,
@@ -182,7 +186,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
             resourceType: 'AUTOMATION_PLAYBOOK_APPLY',
             resourceId: 'shopify_product_seo_update:project:' + projectId,
           },
-        },
+        }
       );
 
       if (approvalResponse.ok()) {
@@ -199,7 +203,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
             data: {
               reason: 'Approved for E2E attribution test',
             },
-          },
+          }
         );
       }
 
@@ -229,7 +233,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
     test.beforeEach(async ({ page }) => {
       // 1. Seed OWNER with a project
       const ownerResponse = await page.request.post(
-        `${API_BASE}/testkit/e2e/seed-first-deo-win`,
+        `${API_BASE}/testkit/e2e/seed-first-deo-win`
       );
       ownerData = await ownerResponse.json();
       projectId = ownerData.projectId;
@@ -242,7 +246,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
 
       // 3. Seed a VIEWER user
       const viewerResponse = await page.request.post(
-        `${API_BASE}/testkit/e2e/seed-self-service-viewer`,
+        `${API_BASE}/testkit/e2e/seed-self-service-viewer`
       );
       viewerData = await viewerResponse.json();
       viewerToken = viewerData.accessToken;
@@ -338,7 +342,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
           data: {
             requireApprovalForApply: true,
           },
-        },
+        }
       );
 
       // Login as VIEWER
@@ -371,7 +375,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
     test.beforeEach(async ({ page }) => {
       // Seed OWNER with a project
       const ownerResponse = await page.request.post(
-        `${API_BASE}/testkit/e2e/seed-first-deo-win`,
+        `${API_BASE}/testkit/e2e/seed-first-deo-win`
       );
       ownerData = await ownerResponse.json();
       projectId = ownerData.projectId;
@@ -394,7 +398,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
           headers: {
             Authorization: `Bearer ${ownerToken}`,
           },
-        },
+        }
       );
       const roleData = await roleResponse.json();
 
@@ -403,10 +407,12 @@ test.describe('ROLES-3: Project Member Roles', () => {
       expect(roleData.role).toBe('OWNER');
     });
 
-    test('Multi-user project shows appropriate UI elements', async ({ page }) => {
+    test('Multi-user project shows appropriate UI elements', async ({
+      page,
+    }) => {
       // Add another user to make it multi-user
       const editorResponse = await page.request.post(
-        `${API_BASE}/testkit/e2e/seed-self-service-editor`,
+        `${API_BASE}/testkit/e2e/seed-self-service-editor`
       );
       const editorData = await editorResponse.json();
 
@@ -434,7 +440,7 @@ test.describe('ROLES-3: Project Member Roles', () => {
           headers: {
             Authorization: `Bearer ${ownerToken}`,
           },
-        },
+        }
       );
       const roleData = await roleResponse.json();
 

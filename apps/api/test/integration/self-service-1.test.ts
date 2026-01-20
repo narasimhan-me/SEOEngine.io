@@ -18,7 +18,11 @@ import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { createTestUser, createTestProject, createTestShopifyStoreConnection } from '../../src/testkit';
+import {
+  createTestUser,
+  createTestProject,
+  createTestShopifyStoreConnection,
+} from '../../src/testkit';
 
 describe('SELF-SERVICE-1 Integration Tests', () => {
   let app: INestApplication;
@@ -42,10 +46,12 @@ describe('SELF-SERVICE-1 Integration Tests', () => {
   });
 
   // Helper to create test user with JWT
-  async function createTestUserWithToken(options: {
-    accountRole?: 'OWNER' | 'EDITOR' | 'VIEWER';
-    plan?: string;
-  } = {}) {
+  async function createTestUserWithToken(
+    options: {
+      accountRole?: 'OWNER' | 'EDITOR' | 'VIEWER';
+      plan?: string;
+    } = {}
+  ) {
     const { user } = await createTestUser(prisma as any, {
       plan: options.plan ?? 'pro',
       accountRole: options.accountRole ?? 'OWNER',
@@ -136,7 +142,9 @@ describe('SELF-SERVICE-1 Integration Tests', () => {
 
   describe('CP-002: Billing Owner-Only Writes', () => {
     it('should allow OWNER to call create-checkout-session', async () => {
-      const { accessToken } = await createTestUserWithToken({ accountRole: 'OWNER' });
+      const { accessToken } = await createTestUserWithToken({
+        accountRole: 'OWNER',
+      });
 
       // Note: This may fail if Stripe is not configured, but should not return 403
       const response = await request(app.getHttpServer())
@@ -149,7 +157,9 @@ describe('SELF-SERVICE-1 Integration Tests', () => {
     });
 
     it('should deny EDITOR from calling create-checkout-session', async () => {
-      const { accessToken } = await createTestUserWithToken({ accountRole: 'EDITOR' });
+      const { accessToken } = await createTestUserWithToken({
+        accountRole: 'EDITOR',
+      });
 
       const response = await request(app.getHttpServer())
         .post('/billing/create-checkout-session')
@@ -161,7 +171,9 @@ describe('SELF-SERVICE-1 Integration Tests', () => {
     });
 
     it('should deny VIEWER from calling create-checkout-session', async () => {
-      const { accessToken } = await createTestUserWithToken({ accountRole: 'VIEWER' });
+      const { accessToken } = await createTestUserWithToken({
+        accountRole: 'VIEWER',
+      });
 
       const response = await request(app.getHttpServer())
         .post('/billing/create-checkout-session')
@@ -173,7 +185,9 @@ describe('SELF-SERVICE-1 Integration Tests', () => {
     });
 
     it('should allow EDITOR/VIEWER to read billing summary', async () => {
-      const { accessToken } = await createTestUserWithToken({ accountRole: 'EDITOR' });
+      const { accessToken } = await createTestUserWithToken({
+        accountRole: 'EDITOR',
+      });
 
       const response = await request(app.getHttpServer())
         .get('/billing/summary')
@@ -190,7 +204,9 @@ describe('SELF-SERVICE-1 Integration Tests', () => {
 
   describe('Preferences Persistence', () => {
     it('should allow OWNER to read and write preferences', async () => {
-      const { accessToken } = await createTestUserWithToken({ accountRole: 'OWNER' });
+      const { accessToken } = await createTestUserWithToken({
+        accountRole: 'OWNER',
+      });
 
       // Read preferences
       const readResponse = await request(app.getHttpServer())
@@ -211,7 +227,9 @@ describe('SELF-SERVICE-1 Integration Tests', () => {
     });
 
     it('should deny VIEWER from writing preferences', async () => {
-      const { accessToken } = await createTestUserWithToken({ accountRole: 'VIEWER' });
+      const { accessToken } = await createTestUserWithToken({
+        accountRole: 'VIEWER',
+      });
 
       // Read should work
       await request(app.getHttpServer())
@@ -236,11 +254,17 @@ describe('SELF-SERVICE-1 Integration Tests', () => {
 
   describe('Stores Disconnect', () => {
     it('should allow OWNER to disconnect store', async () => {
-      const { user, accessToken } = await createTestUserWithToken({ accountRole: 'OWNER' });
+      const { user, accessToken } = await createTestUserWithToken({
+        accountRole: 'OWNER',
+      });
 
       // Create project with Shopify connection
-      const project = await createTestProject(prisma as any, { userId: user.id });
-      await createTestShopifyStoreConnection(prisma as any, { projectId: project.id });
+      const project = await createTestProject(prisma as any, {
+        userId: user.id,
+      });
+      await createTestShopifyStoreConnection(prisma as any, {
+        projectId: project.id,
+      });
 
       // Count AI runs before
       const runsBefore = await prisma.automationPlaybookRun.count({
@@ -271,10 +295,16 @@ describe('SELF-SERVICE-1 Integration Tests', () => {
     });
 
     it('should deny EDITOR from disconnecting store', async () => {
-      const { user, accessToken } = await createTestUserWithToken({ accountRole: 'EDITOR' });
+      const { user, accessToken } = await createTestUserWithToken({
+        accountRole: 'EDITOR',
+      });
 
-      const project = await createTestProject(prisma as any, { userId: user.id });
-      await createTestShopifyStoreConnection(prisma as any, { projectId: project.id });
+      const project = await createTestProject(prisma as any, {
+        userId: user.id,
+      });
+      await createTestShopifyStoreConnection(prisma as any, {
+        projectId: project.id,
+      });
 
       const response = await request(app.getHttpServer())
         .post(`/account/stores/${project.id}/disconnect`)
@@ -310,7 +340,9 @@ describe('SELF-SERVICE-1 Integration Tests', () => {
       });
 
       // Create some runs - mix of AI used, reused, and APPLY
-      const project = await createTestProject(prisma as any, { userId: user.id });
+      const project = await createTestProject(prisma as any, {
+        userId: user.id,
+      });
 
       const testPlaybookId = 'test_playbook';
       const testScopeId = `project:${project.id}`;
@@ -381,7 +413,9 @@ describe('SELF-SERVICE-1 Integration Tests', () => {
       expect(response.body.applyInvariantViolations).toBe(0);
 
       // Trust messages should be present
-      expect(response.body.applyInvariantMessage).toContain('APPLY never uses AI');
+      expect(response.body.applyInvariantMessage).toContain(
+        'APPLY never uses AI'
+      );
       expect(response.body.reuseMessage).toContain('Reuse');
     });
 
@@ -439,8 +473,12 @@ describe('SELF-SERVICE-1 Integration Tests', () => {
       const { user, accessToken } = await createTestUserWithToken();
 
       // Create a project for stores endpoint
-      const project = await createTestProject(prisma as any, { userId: user.id });
-      await createTestShopifyStoreConnection(prisma as any, { projectId: project.id });
+      const project = await createTestProject(prisma as any, {
+        userId: user.id,
+      });
+      await createTestShopifyStoreConnection(prisma as any, {
+        projectId: project.id,
+      });
 
       // Count AI usage events before
       const aiEventsBefore = await prisma.aiUsageEvent.count({

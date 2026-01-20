@@ -1,16 +1,18 @@
 import { test, expect } from '@playwright/test';
 
-const API_BASE_URL =
-  process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
 
 /**
  * Seed a project with Pages/Collections for ASSETS-PAGES-1.1 testing.
  * Uses the existing first-deo-win seeder and adds page/collection data.
  */
 async function seedAssetsProject(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-first-deo-win`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   return {
@@ -22,9 +24,12 @@ async function seedAssetsProject(request: any) {
 }
 
 async function connectShopifyE2E(request: any, projectId: string) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/connect-shopify`, {
-    data: { projectId },
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/connect-shopify`,
+    {
+      data: { projectId },
+    }
+  );
   expect(res.ok()).toBeTruthy();
 }
 
@@ -46,9 +51,9 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
     await page.goto(playbookUrl);
 
     // Wait for page to load
-    await expect(
-      page.getByRole('heading', { name: /Playbooks/i }),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /Playbooks/i })).toBeVisible(
+      { timeout: 10000 }
+    );
 
     // Asset type badge should render ("Pages")
     await expect(page.getByText('pages', { exact: false })).toBeVisible();
@@ -71,9 +76,9 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
     await page.goto(playbookUrl);
 
     // Wait for page to load
-    await expect(
-      page.getByRole('heading', { name: /Playbooks/i }),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /Playbooks/i })).toBeVisible(
+      { timeout: 10000 }
+    );
 
     // Scope summary should render with handle names
     await expect(page.getByText(/Scope summary/i)).toBeVisible();
@@ -98,18 +103,16 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
     await page.goto(playbookUrl);
 
     // Wait for page to load
-    await expect(
-      page.getByRole('heading', { name: /Playbooks/i }),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /Playbooks/i })).toBeVisible(
+      { timeout: 10000 }
+    );
 
     // Missing scope block should be visible
-    await expect(
-      page.getByText(/Missing scope for pages/i),
-    ).toBeVisible();
+    await expect(page.getByText(/Missing scope for pages/i)).toBeVisible();
 
     // Return to Work Queue link should be visible
     await expect(
-      page.getByRole('link', { name: /Return to Work Queue/i }),
+      page.getByRole('link', { name: /Return to Work Queue/i })
     ).toBeVisible();
   });
 
@@ -130,13 +133,13 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
     await page.goto(playbookUrl);
 
     // Wait for page to load
-    await expect(
-      page.getByRole('heading', { name: /Playbooks/i }),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /Playbooks/i })).toBeVisible(
+      { timeout: 10000 }
+    );
 
     // Missing scope block should be visible
     await expect(
-      page.getByText(/Missing scope for collections/i),
+      page.getByText(/Missing scope for collections/i)
     ).toBeVisible();
   });
 
@@ -157,9 +160,9 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
     await page.goto(playbookUrl);
 
     // Wait for page to load
-    await expect(
-      page.getByRole('heading', { name: /Playbooks/i }),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /Playbooks/i })).toBeVisible(
+      { timeout: 10000 }
+    );
 
     // NO missing scope block should appear
     await expect(page.getByText(/Missing scope for/i)).not.toBeVisible();
@@ -186,9 +189,9 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
     await page.goto(deepLinkUrl);
 
     // Wait for page to load
-    await expect(
-      page.getByRole('heading', { name: /Playbooks/i }),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /Playbooks/i })).toBeVisible(
+      { timeout: 10000 }
+    );
 
     // Verify URL params are preserved
     expect(page.url()).toContain('playbookId=missing_seo_description');
@@ -197,7 +200,9 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
 
     // Scope summary should show the handle
     await expect(page.getByText(/Scope summary/i)).toBeVisible();
-    await expect(page.getByText('shipping-policy', { exact: false })).toBeVisible();
+    await expect(
+      page.getByText('shipping-policy', { exact: false })
+    ).toBeVisible();
   });
 
   test('Scope summary shows "+N more" for multiple refs', async ({
@@ -224,9 +229,9 @@ test.describe('ASSETS-PAGES-1.1-UI-HARDEN – Playbooks UI for Pages/Collections
     await page.goto(playbookUrl);
 
     // Wait for page to load
-    await expect(
-      page.getByRole('heading', { name: /Playbooks/i }),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /Playbooks/i })).toBeVisible(
+      { timeout: 10000 }
+    );
 
     // Scope summary should show first 3 handles and "+N more"
     await expect(page.getByText(/Scope summary/i)).toBeVisible();

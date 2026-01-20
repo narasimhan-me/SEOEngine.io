@@ -80,7 +80,9 @@ describe('AutomationPlaybooksService', () => {
   let tokenUsageServiceMock: ReturnType<typeof createTokenUsageServiceMock>;
   let aiServiceMock: ReturnType<typeof createAiServiceMock>;
   let aiUsageQuotaServiceMock: ReturnType<typeof createAiUsageQuotaServiceMock>;
-  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
+  let roleResolutionServiceMock: ReturnType<
+    typeof createRoleResolutionServiceMock
+  >;
 
   beforeEach(async () => {
     prismaMock = createPrismaMock();
@@ -102,7 +104,9 @@ describe('AutomationPlaybooksService', () => {
       ],
     }).compile();
 
-    service = module.get<AutomationPlaybooksService>(AutomationPlaybooksService);
+    service = module.get<AutomationPlaybooksService>(
+      AutomationPlaybooksService
+    );
     jest.spyOn(global.console, 'log').mockImplementation(() => {});
   });
 
@@ -131,7 +135,7 @@ describe('AutomationPlaybooksService', () => {
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
       // getAffectedProductIds uses getPlaybookWhere which finds products with null or empty seoTitle
       prismaMock.product.findMany.mockResolvedValue(
-        mockProducts.filter(p => !p.seoTitle || p.seoTitle === '') as any,
+        mockProducts.filter((p) => !p.seoTitle || p.seoTitle === '') as any
       );
       prismaMock.automationPlaybookDraft.findFirst.mockResolvedValue(null);
       entitlementsServiceMock.getAiSuggestionLimit.mockResolvedValue({
@@ -140,7 +144,11 @@ describe('AutomationPlaybooksService', () => {
       });
       entitlementsServiceMock.getDailyAiUsage.mockResolvedValue(10);
 
-      const result = await service.estimatePlaybook(userId, projectId, playbookId);
+      const result = await service.estimatePlaybook(
+        userId,
+        projectId,
+        playbookId
+      );
 
       expect(result.projectId).toBe(projectId);
       expect(result.playbookId).toBe(playbookId);
@@ -148,7 +156,9 @@ describe('AutomationPlaybooksService', () => {
       expect(result.planId).toBe('pro');
       expect(result.eligible).toBe(true);
       expect(result.canProceed).toBe(true);
-      expect(result.estimatedTokens).toBe(2 * ESTIMATED_METADATA_TOKENS_PER_CALL);
+      expect(result.estimatedTokens).toBe(
+        2 * ESTIMATED_METADATA_TOKENS_PER_CALL
+      );
       expect(result.aiDailyLimit.remaining).toBe(90); // 100 - 10
     });
 
@@ -163,7 +173,9 @@ describe('AutomationPlaybooksService', () => {
       };
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
-      prismaMock.product.findMany.mockResolvedValue([{ id: 'prod-1', seoTitle: null }] as any);
+      prismaMock.product.findMany.mockResolvedValue([
+        { id: 'prod-1', seoTitle: null },
+      ] as any);
       prismaMock.automationPlaybookDraft.findFirst.mockResolvedValue(null);
       entitlementsServiceMock.getAiSuggestionLimit.mockResolvedValue({
         planId: 'free',
@@ -171,7 +183,11 @@ describe('AutomationPlaybooksService', () => {
       });
       entitlementsServiceMock.getDailyAiUsage.mockResolvedValue(0);
 
-      const result = await service.estimatePlaybook(userId, projectId, playbookId);
+      const result = await service.estimatePlaybook(
+        userId,
+        projectId,
+        playbookId
+      );
 
       expect(result.planId).toBe('free');
       expect(result.eligible).toBe(false);
@@ -198,7 +214,11 @@ describe('AutomationPlaybooksService', () => {
       });
       entitlementsServiceMock.getDailyAiUsage.mockResolvedValue(0);
 
-      const result = await service.estimatePlaybook(userId, projectId, playbookId);
+      const result = await service.estimatePlaybook(
+        userId,
+        projectId,
+        playbookId
+      );
 
       expect(result.totalAffectedProducts).toBe(0);
       expect(result.eligible).toBe(false);
@@ -216,7 +236,9 @@ describe('AutomationPlaybooksService', () => {
       };
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
-      prismaMock.product.findMany.mockResolvedValue([{ id: 'prod-1', seoTitle: null }] as any);
+      prismaMock.product.findMany.mockResolvedValue([
+        { id: 'prod-1', seoTitle: null },
+      ] as any);
       prismaMock.automationPlaybookDraft.findFirst.mockResolvedValue(null);
       entitlementsServiceMock.getAiSuggestionLimit.mockResolvedValue({
         planId: 'pro',
@@ -224,7 +246,11 @@ describe('AutomationPlaybooksService', () => {
       });
       entitlementsServiceMock.getDailyAiUsage.mockResolvedValue(100); // Limit reached
 
-      const result = await service.estimatePlaybook(userId, projectId, playbookId);
+      const result = await service.estimatePlaybook(
+        userId,
+        projectId,
+        playbookId
+      );
 
       expect(result.eligible).toBe(false);
       expect(result.reasons).toContain('ai_daily_limit_reached');
@@ -237,12 +263,12 @@ describe('AutomationPlaybooksService', () => {
 
       prismaMock.project.findUnique.mockResolvedValue(null);
       roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
-        new NotFoundException('Project not found'),
+        new NotFoundException('Project not found')
       );
 
-      await expect(service.estimatePlaybook(userId, projectId, playbookId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.estimatePlaybook(userId, projectId, playbookId)
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException when user does not own project', async () => {
@@ -257,12 +283,12 @@ describe('AutomationPlaybooksService', () => {
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
       roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
-        new ForbiddenException('You do not have access to this project'),
+        new ForbiddenException('You do not have access to this project')
       );
 
-      await expect(service.estimatePlaybook(userId, projectId, playbookId)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.estimatePlaybook(userId, projectId, playbookId)
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -279,8 +305,18 @@ describe('AutomationPlaybooksService', () => {
       };
 
       const mockProducts = [
-        { id: 'prod-1', seoTitle: null, title: 'Product 1', description: 'Desc 1' },
-        { id: 'prod-2', seoTitle: '', title: 'Product 2', description: 'Desc 2' },
+        {
+          id: 'prod-1',
+          seoTitle: null,
+          title: 'Product 1',
+          description: 'Desc 1',
+        },
+        {
+          id: 'prod-2',
+          seoTitle: '',
+          title: 'Product 2',
+          description: 'Desc 2',
+        },
       ];
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
@@ -306,8 +342,14 @@ describe('AutomationPlaybooksService', () => {
       });
 
       aiServiceMock.generateMetadata
-        .mockResolvedValueOnce({ title: 'AI Title 1', description: 'AI Desc 1' })
-        .mockResolvedValueOnce({ title: 'AI Title 2', description: 'AI Desc 2' });
+        .mockResolvedValueOnce({
+          title: 'AI Title 1',
+          description: 'AI Desc 1',
+        })
+        .mockResolvedValueOnce({
+          title: 'AI Title 2',
+          description: 'AI Desc 2',
+        });
 
       prismaMock.automationPlaybookDraft.upsert.mockResolvedValue({
         id: 'draft-1',
@@ -318,7 +360,13 @@ describe('AutomationPlaybooksService', () => {
         status: 'PARTIAL',
       } as any);
 
-      const result = await service.previewPlaybook(userId, projectId, playbookId, undefined, sampleSize);
+      const result = await service.previewPlaybook(
+        userId,
+        projectId,
+        playbookId,
+        undefined,
+        sampleSize
+      );
 
       expect(result.projectId).toBe(projectId);
       expect(result.playbookId).toBe(playbookId);
@@ -339,7 +387,9 @@ describe('AutomationPlaybooksService', () => {
       };
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
-      prismaMock.product.findMany.mockResolvedValue([{ id: 'prod-1', seoTitle: null }] as any);
+      prismaMock.product.findMany.mockResolvedValue([
+        { id: 'prod-1', seoTitle: null },
+      ] as any);
 
       aiUsageQuotaServiceMock.evaluateQuotaForAction.mockResolvedValue({
         projectId,
@@ -357,9 +407,9 @@ describe('AutomationPlaybooksService', () => {
         reason: 'quota_exceeded',
       });
 
-      await expect(service.previewPlaybook(userId, projectId, playbookId)).rejects.toThrow(
-        HttpException,
-      );
+      await expect(
+        service.previewPlaybook(userId, projectId, playbookId)
+      ).rejects.toThrow(HttpException);
     });
 
     it('should apply rules to suggestions', async () => {
@@ -419,7 +469,13 @@ describe('AutomationPlaybooksService', () => {
         status: 'PARTIAL',
       } as any);
 
-      const result = await service.previewPlaybook(userId, projectId, playbookId, rules, 1);
+      const result = await service.previewPlaybook(
+        userId,
+        projectId,
+        playbookId,
+        rules,
+        1
+      );
 
       expect(result.samples).toHaveLength(1);
       const sample = result.samples[0];
@@ -463,9 +519,15 @@ describe('AutomationPlaybooksService', () => {
       };
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
-      prismaMock.automationPlaybookDraft.findFirst.mockResolvedValue(mockDraft as any);
+      prismaMock.automationPlaybookDraft.findFirst.mockResolvedValue(
+        mockDraft as any
+      );
 
-      const result = await service.getLatestDraft(userId, projectId, playbookId);
+      const result = await service.getLatestDraft(
+        userId,
+        projectId,
+        playbookId
+      );
 
       expect(result).not.toBeNull();
       expect(result?.draftId).toBe('draft-1');
@@ -486,7 +548,11 @@ describe('AutomationPlaybooksService', () => {
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
       prismaMock.automationPlaybookDraft.findFirst.mockResolvedValue(null);
 
-      const result = await service.getLatestDraft(userId, projectId, playbookId);
+      const result = await service.getLatestDraft(
+        userId,
+        projectId,
+        playbookId
+      );
 
       expect(result).toBeNull();
     });
@@ -510,8 +576,12 @@ describe('AutomationPlaybooksService', () => {
       ];
 
       // Compute actual scopeId from affected products
-      const affectedProductIds = mockProducts.map(p => p.id);
-      const actualScopeId = (service as any).computeScopeId(projectId, playbookId, affectedProductIds);
+      const affectedProductIds = mockProducts.map((p) => p.id);
+      const actualScopeId = (service as any).computeScopeId(
+        projectId,
+        playbookId,
+        affectedProductIds
+      );
 
       const mockDraft = {
         id: 'draft-1',
@@ -540,12 +610,20 @@ describe('AutomationPlaybooksService', () => {
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
       prismaMock.product.findMany.mockResolvedValue(mockProducts as any);
-      prismaMock.automationPlaybookDraft.findFirst.mockResolvedValue(mockDraft as any);
+      prismaMock.automationPlaybookDraft.findFirst.mockResolvedValue(
+        mockDraft as any
+      );
       prismaMock.product.update.mockResolvedValue({} as any);
       entitlementsServiceMock.getUserPlan.mockResolvedValue('pro');
       tokenUsageServiceMock.log.mockResolvedValue(undefined);
 
-      const result = await service.applyPlaybook(userId, projectId, playbookId, actualScopeId, rulesHash);
+      const result = await service.applyPlaybook(
+        userId,
+        projectId,
+        playbookId,
+        actualScopeId,
+        rulesHash
+      );
 
       expect(result.projectId).toBe(projectId);
       expect(result.playbookId).toBe(playbookId);
@@ -573,8 +651,12 @@ describe('AutomationPlaybooksService', () => {
       ];
 
       // Compute actual scopeId from affected products
-      const affectedProductIds = mockProducts.map(p => p.id);
-      const actualScopeId = (service as any).computeScopeId(projectId, playbookId, affectedProductIds);
+      const affectedProductIds = mockProducts.map((p) => p.id);
+      const actualScopeId = (service as any).computeScopeId(
+        projectId,
+        playbookId,
+        affectedProductIds
+      );
 
       const mockDraft = {
         id: 'draft-1',
@@ -603,16 +685,26 @@ describe('AutomationPlaybooksService', () => {
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
       prismaMock.product.findMany.mockResolvedValue(mockProducts as any);
-      prismaMock.automationPlaybookDraft.findFirst.mockResolvedValue(mockDraft as any);
+      prismaMock.automationPlaybookDraft.findFirst.mockResolvedValue(
+        mockDraft as any
+      );
       prismaMock.product.update.mockResolvedValue({} as any);
       entitlementsServiceMock.getUserPlan.mockResolvedValue('pro');
       tokenUsageServiceMock.log.mockResolvedValue(undefined);
 
-      const result = await service.applyPlaybook(userId, projectId, playbookId, actualScopeId, rulesHash);
+      const result = await service.applyPlaybook(
+        userId,
+        projectId,
+        playbookId,
+        actualScopeId,
+        rulesHash
+      );
 
       expect(result.updatedCount).toBe(1);
       expect(result.skippedCount).toBe(1);
-      expect(result.results.find(r => r.productId === 'prod-2')?.status).toBe('SKIPPED');
+      expect(result.results.find((r) => r.productId === 'prod-2')?.status).toBe(
+        'SKIPPED'
+      );
     });
 
     it('should throw ForbiddenException for free plan', async () => {
@@ -631,7 +723,7 @@ describe('AutomationPlaybooksService', () => {
       entitlementsServiceMock.getUserPlan.mockResolvedValue('free');
 
       await expect(
-        service.applyPlaybook(userId, projectId, playbookId, scopeId, rulesHash),
+        service.applyPlaybook(userId, projectId, playbookId, scopeId, rulesHash)
       ).rejects.toThrow(ForbiddenException);
     });
 
@@ -655,7 +747,7 @@ describe('AutomationPlaybooksService', () => {
 
       // Current scope will be different from provided scopeId
       await expect(
-        service.applyPlaybook(userId, projectId, playbookId, scopeId, rulesHash),
+        service.applyPlaybook(userId, projectId, playbookId, scopeId, rulesHash)
       ).rejects.toThrow(ConflictException);
     });
 
@@ -679,13 +771,22 @@ describe('AutomationPlaybooksService', () => {
       entitlementsServiceMock.getUserPlan.mockResolvedValue('pro');
 
       // Compute current scopeId to match
-      const affectedProductIds = mockProducts.map(p => p.id);
-      const currentScopeId = (service as any).computeScopeId(projectId, playbookId, affectedProductIds);
+      const affectedProductIds = mockProducts.map((p) => p.id);
+      const currentScopeId = (service as any).computeScopeId(
+        projectId,
+        playbookId,
+        affectedProductIds
+      );
 
       await expect(
-        service.applyPlaybook(userId, projectId, playbookId, currentScopeId, rulesHash),
+        service.applyPlaybook(
+          userId,
+          projectId,
+          playbookId,
+          currentScopeId,
+          rulesHash
+        )
       ).rejects.toThrow(ConflictException);
     });
   });
 });
-

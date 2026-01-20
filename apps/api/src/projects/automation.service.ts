@@ -6,10 +6,7 @@ import {
   NotFoundException,
   forwardRef,
 } from '@nestjs/common';
-import {
-  AutomationIssueType,
-  AutomationTargetType,
-} from '@prisma/client';
+import { AutomationIssueType, AutomationTargetType } from '@prisma/client';
 import { createHash } from 'crypto';
 import { PrismaService } from '../prisma.service';
 import { AiService } from '../ai/ai.service';
@@ -44,7 +41,7 @@ export class AutomationService {
     private readonly governanceService: GovernanceService,
     private readonly approvalsService: ApprovalsService,
     private readonly auditEventsService: AuditEventsService,
-    private readonly roleResolutionService: RoleResolutionService,
+    private readonly roleResolutionService: RoleResolutionService
   ) {}
 
   /**
@@ -57,7 +54,7 @@ export class AutomationService {
     });
     if (!project) {
       this.logger.warn(
-        `[Automation] Project ${projectId} not found; skipping automation.`,
+        `[Automation] Project ${projectId} not found; skipping automation.`
       );
       return;
     }
@@ -72,7 +69,7 @@ export class AutomationService {
     const projectDailyCap = project.autoSuggestDailyCap ?? 50;
 
     const entitlements = await this.entitlementsService.getEntitlementsSummary(
-      project.userId,
+      project.userId
     );
     const planLimit = entitlements.limits.automationSuggestionsPerDay;
 
@@ -87,12 +84,17 @@ export class AutomationService {
 
     const now = new Date();
     // Use UTC for consistent daily reset behavior across timezones
-    const startOfDayUTC = new Date(Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-      0, 0, 0, 0
-    ));
+    const startOfDayUTC = new Date(
+      Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        0,
+        0,
+        0,
+        0
+      )
+    );
 
     const generatedToday = await this.prisma.automationSuggestion.count({
       where: {
@@ -105,7 +107,7 @@ export class AutomationService {
 
     if (generatedToday >= effectiveDailyCap) {
       this.logger.log(
-        `[Automation] Project ${projectId} reached daily suggestion cap (${generatedToday}/${effectiveDailyCap}), skipping automation.`,
+        `[Automation] Project ${projectId} reached daily suggestion cap (${generatedToday}/${effectiveDailyCap}), skipping automation.`
       );
       return;
     }
@@ -122,9 +124,7 @@ export class AutomationService {
     });
 
     const existingKeys = new Set(
-      existing.map(
-        (s) => `${s.targetType}:${s.targetId}:${s.issueType}`,
-      ),
+      existing.map((s) => `${s.targetType}:${s.targetId}:${s.issueType}`)
     );
 
     let remaining = remainingCap;
@@ -133,7 +133,7 @@ export class AutomationService {
       remaining = await this.generateMissingMetadataSuggestions(
         projectId,
         existingKeys,
-        remaining,
+        remaining
       );
     }
 
@@ -141,13 +141,13 @@ export class AutomationService {
       remaining = await this.generateThinContentSuggestions(
         projectId,
         existingKeys,
-        remaining,
+        remaining
       );
     }
 
     if (remainingCap !== remaining) {
       this.logger.log(
-        `[Automation] Generated ${remainingCap - remaining} suggestion(s) for project ${projectId} (cap ${effectiveDailyCap}).`,
+        `[Automation] Generated ${remainingCap - remaining} suggestion(s) for project ${projectId} (cap ${effectiveDailyCap}).`
       );
     }
   }
@@ -155,7 +155,7 @@ export class AutomationService {
   private async generateMissingMetadataSuggestions(
     projectId: string,
     existingKeys: Set<string>,
-    slotsLeft: number,
+    slotsLeft: number
   ): Promise<number> {
     if (slotsLeft <= 0) return slotsLeft;
 
@@ -219,7 +219,7 @@ export class AutomationService {
   private async generateThinContentSuggestions(
     projectId: string,
     existingKeys: Set<string>,
-    slotsLeft: number,
+    slotsLeft: number
   ): Promise<number> {
     if (slotsLeft <= 0) return slotsLeft;
 
@@ -301,7 +301,7 @@ export class AutomationService {
    */
   private async shouldAutoApplyMetadataForProject(
     projectId: string,
-    issueType: AutomationIssueType,
+    issueType: AutomationIssueType
   ): Promise<boolean> {
     // Only auto-apply for MISSING_METADATA in AE-2.1
     if (issueType !== AutomationIssueType.MISSING_METADATA) {
@@ -319,20 +319,23 @@ export class AutomationService {
     }
 
     // [ROLES-3] Multi-user projects block auto-apply; require OWNER approval
-    const isMultiUser = await this.roleResolutionService.isMultiUserProject(projectId);
+    const isMultiUser =
+      await this.roleResolutionService.isMultiUserProject(projectId);
     if (isMultiUser) {
       this.logger.log(
-        `[Automation] Multi-user project ${projectId}: auto-apply blocked, requiring OWNER approval`,
+        `[Automation] Multi-user project ${projectId}: auto-apply blocked, requiring OWNER approval`
       );
       return false;
     }
 
     // Check entitlements
-    return this.entitlementsService.canAutoApplyMetadataAutomations(project.userId);
+    return this.entitlementsService.canAutoApplyMetadataAutomations(
+      project.userId
+    );
   }
 
   private async createProductSuggestion(
-    ctx: AutomationSuggestionJobContext,
+    ctx: AutomationSuggestionJobContext
   ): Promise<void> {
     const product = await this.prisma.product.findUnique({
       where: { id: ctx.targetId },
@@ -340,7 +343,7 @@ export class AutomationService {
 
     if (!product) {
       this.logger.warn(
-        `[Automation] Product ${ctx.targetId} not found for project ${ctx.projectId}, skipping suggestion.`,
+        `[Automation] Product ${ctx.targetId} not found for project ${ctx.projectId}, skipping suggestion.`
       );
       return;
     }
@@ -390,20 +393,34 @@ export class AutomationService {
     // Check if we should auto-apply
     const shouldAutoApply = await this.shouldAutoApplyMetadataForProject(
       ctx.projectId,
-      ctx.issueType,
+      ctx.issueType
     );
 
-    if (shouldAutoApply && ctx.issueType === AutomationIssueType.MISSING_METADATA) {
+    if (
+      shouldAutoApply &&
+      ctx.issueType === AutomationIssueType.MISSING_METADATA
+    ) {
       // Only auto-apply if the product's fields are currently empty
-      const titleIsMissing = !product.seoTitle || product.seoTitle.trim() === '';
-      const descriptionIsMissing = !product.seoDescription || product.seoDescription.trim() === '';
+      const titleIsMissing =
+        !product.seoTitle || product.seoTitle.trim() === '';
+      const descriptionIsMissing =
+        !product.seoDescription || product.seoDescription.trim() === '';
 
-      const suggestedTitleValid = metadata.title && metadata.title.trim() !== '';
-      const suggestedDescriptionValid = metadata.description && metadata.description.trim() !== '';
+      const suggestedTitleValid =
+        metadata.title && metadata.title.trim() !== '';
+      const suggestedDescriptionValid =
+        metadata.description && metadata.description.trim() !== '';
 
       // Only apply if at least one field needs updating and we have valid suggestions
-      if ((titleIsMissing && suggestedTitleValid) || (descriptionIsMissing && suggestedDescriptionValid)) {
-        const updateData: { seoTitle?: string; seoDescription?: string; lastSyncedAt: Date } = {
+      if (
+        (titleIsMissing && suggestedTitleValid) ||
+        (descriptionIsMissing && suggestedDescriptionValid)
+      ) {
+        const updateData: {
+          seoTitle?: string;
+          seoDescription?: string;
+          lastSyncedAt: Date;
+        } = {
           lastSyncedAt: new Date(),
         };
 
@@ -430,14 +447,14 @@ export class AutomationService {
         });
 
         this.logger.log(
-          `[Automation] Auto-applied metadata suggestion for product ${ctx.targetId} (missing_metadata)`,
+          `[Automation] Auto-applied metadata suggestion for product ${ctx.targetId} (missing_metadata)`
         );
       }
     }
   }
 
   private async createPageSuggestion(
-    ctx: AutomationSuggestionJobContext,
+    ctx: AutomationSuggestionJobContext
   ): Promise<void> {
     const page = await this.prisma.crawlResult.findFirst({
       where: {
@@ -448,7 +465,7 @@ export class AutomationService {
 
     if (!page) {
       this.logger.warn(
-        `[Automation] CrawlResult ${ctx.targetId} not found for project ${ctx.projectId}, skipping suggestion.`,
+        `[Automation] CrawlResult ${ctx.targetId} not found for project ${ctx.projectId}, skipping suggestion.`
       );
       return;
     }
@@ -504,18 +521,18 @@ export class AutomationService {
   async runNewProductSeoTitleAutomation(
     projectId: string,
     productId: string,
-    userId: string,
+    userId: string
   ): Promise<void> {
     // Check entitlements - ensure user is within daily AI limit
     try {
       await this.entitlementsService.ensureWithinDailyAiLimit(
         userId,
         projectId,
-        'automation_new_product',
+        'automation_new_product'
       );
     } catch {
       this.logger.log(
-        `[Automation] Skipping new product automation for ${productId}: daily AI limit reached`,
+        `[Automation] Skipping new product automation for ${productId}: daily AI limit reached`
       );
       return;
     }
@@ -527,18 +544,19 @@ export class AutomationService {
 
     if (!product) {
       this.logger.warn(
-        `[Automation] Product ${productId} not found for automation`,
+        `[Automation] Product ${productId} not found for automation`
       );
       return;
     }
 
     // Only run if SEO fields are missing
     const titleIsMissing = !product.seoTitle || product.seoTitle.trim() === '';
-    const descriptionIsMissing = !product.seoDescription || product.seoDescription.trim() === '';
+    const descriptionIsMissing =
+      !product.seoDescription || product.seoDescription.trim() === '';
 
     if (!titleIsMissing && !descriptionIsMissing) {
       this.logger.log(
-        `[Automation] Skipping new product automation for ${productId}: SEO fields already populated`,
+        `[Automation] Skipping new product automation for ${productId}: SEO fields already populated`
       );
       return;
     }
@@ -558,7 +576,7 @@ export class AutomationService {
     await this.entitlementsService.recordAiUsage(
       userId,
       projectId,
-      'automation_new_product',
+      'automation_new_product'
     );
 
     // Create the automation suggestion
@@ -595,23 +613,34 @@ export class AutomationService {
 
     // Check if we should auto-apply (Pro/Business plans only)
     // [ROLES-3] Multi-user projects block auto-apply; require OWNER approval
-    const isMultiUser = await this.roleResolutionService.isMultiUserProject(projectId);
-    const canAutoApplyPlan = await this.entitlementsService.canAutoApplyMetadataAutomations(userId);
+    const isMultiUser =
+      await this.roleResolutionService.isMultiUserProject(projectId);
+    const canAutoApplyPlan =
+      await this.entitlementsService.canAutoApplyMetadataAutomations(userId);
     const shouldAutoApply = canAutoApplyPlan && !isMultiUser;
 
     if (isMultiUser && canAutoApplyPlan) {
       this.logger.log(
-        `[Automation] Multi-user project ${projectId}: auto-apply blocked for new product ${productId}, requiring OWNER approval`,
+        `[Automation] Multi-user project ${projectId}: auto-apply blocked for new product ${productId}, requiring OWNER approval`
       );
     }
 
     if (shouldAutoApply) {
-      const suggestedTitleValid = metadata.title && metadata.title.trim() !== '';
-      const suggestedDescriptionValid = metadata.description && metadata.description.trim() !== '';
+      const suggestedTitleValid =
+        metadata.title && metadata.title.trim() !== '';
+      const suggestedDescriptionValid =
+        metadata.description && metadata.description.trim() !== '';
 
       // Only apply if at least one field needs updating and we have valid suggestions
-      if ((titleIsMissing && suggestedTitleValid) || (descriptionIsMissing && suggestedDescriptionValid)) {
-        const updateData: { seoTitle?: string; seoDescription?: string; lastSyncedAt: Date } = {
+      if (
+        (titleIsMissing && suggestedTitleValid) ||
+        (descriptionIsMissing && suggestedDescriptionValid)
+      ) {
+        const updateData: {
+          seoTitle?: string;
+          seoDescription?: string;
+          lastSyncedAt: Date;
+        } = {
           lastSyncedAt: new Date(),
         };
 
@@ -638,12 +667,12 @@ export class AutomationService {
         });
 
         this.logger.log(
-          `[Automation] Auto-applied metadata for new product ${productId} (AUTO_GENERATE_METADATA_ON_NEW_PRODUCT)`,
+          `[Automation] Auto-applied metadata for new product ${productId} (AUTO_GENERATE_METADATA_ON_NEW_PRODUCT)`
         );
       }
     } else {
       this.logger.log(
-        `[Automation] Created suggestion for new product ${productId} (Free plan: manual apply required)`,
+        `[Automation] Created suggestion for new product ${productId} (Free plan: manual apply required)`
       );
     }
   }
@@ -695,7 +724,7 @@ export class AutomationService {
   async triggerAnswerBlockAutomationForProduct(
     productId: string,
     userId: string,
-    triggerType: 'product_synced' | 'issue_detected',
+    triggerType: 'product_synced' | 'issue_detected'
   ): Promise<void> {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
@@ -706,13 +735,16 @@ export class AutomationService {
 
     if (!product) {
       this.logger.warn(
-        `[AnswerBlockAutomation] Product ${productId} not found; skipping trigger for ${triggerType}`,
+        `[AnswerBlockAutomation] Product ${productId} not found; skipping trigger for ${triggerType}`
       );
       return;
     }
 
     // [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can trigger)
-    await this.roleResolutionService.assertProjectAccess(product.projectId, userId);
+    await this.roleResolutionService.assertProjectAccess(
+      product.projectId,
+      userId
+    );
 
     const planId: PlanId = await this.entitlementsService.getUserPlan(userId);
 
@@ -721,7 +753,7 @@ export class AutomationService {
       // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Log suppression with reason
       this.logger.log(
         `[AnswerBlockAutomation] Suppressed: automationType=answer_blocks, trigger=${triggerType}, ` +
-          `projectId=${product.projectId}, productId=${productId}, suppressedReason=plan_ineligible`,
+          `projectId=${product.projectId}, productId=${productId}, suppressedReason=plan_ineligible`
       );
       await this.prisma.answerBlockAutomationLog.create({
         data: {
@@ -742,7 +774,7 @@ export class AutomationService {
       if (!product.project.autoGenerateAnswerBlocksOnProductSync) {
         this.logger.log(
           `[AnswerBlockAutomation] Suppressed: automationType=answer_blocks, trigger=${triggerType}, ` +
-            `projectId=${product.projectId}, productId=${productId}, suppressedReason=setting_disabled`,
+            `projectId=${product.projectId}, productId=${productId}, suppressedReason=setting_disabled`
         );
         return;
       }
@@ -754,12 +786,21 @@ export class AutomationService {
         handle: product.handle,
         // Add other stable product fields as needed
       });
-      const fingerprintHash = createHash('sha256').update(fingerprintData).digest('hex');
+      const fingerprintHash = createHash('sha256')
+        .update(fingerprintData)
+        .digest('hex');
       const idempotencyKey = `${product.projectId}:${productId}:answer_blocks:${fingerprintHash}`;
 
       // [AUTOMATION-TRIGGER-TRUTHFULNESS-1 REVIEW-1] Race-safe idempotency handling
       // Helper to check status and decide action
-      const handleExistingRun = async (run: { id: string; status: string }): Promise<{ action: 'suppress' | 'retry'; runId?: string; reason?: string }> => {
+      const handleExistingRun = async (run: {
+        id: string;
+        status: string;
+      }): Promise<{
+        action: 'suppress' | 'retry';
+        runId?: string;
+        reason?: string;
+      }> => {
         if (run.status === 'SUCCEEDED' || run.status === 'SKIPPED') {
           return { action: 'suppress', reason: 'idempotent_already_done' };
         }
@@ -819,7 +860,7 @@ export class AutomationService {
           this.logger.log(
             `[AnswerBlockAutomation] Suppressed: automationType=answer_blocks, trigger=${triggerType}, ` +
               `projectId=${product.projectId}, productId=${productId}, suppressedReason=${result.reason}, ` +
-              `existingRunId=${existingRun.id}, existingStatus=${existingRun.status}`,
+              `existingRunId=${existingRun.id}, existingStatus=${existingRun.status}`
           );
           return;
         }
@@ -827,7 +868,7 @@ export class AutomationService {
         runId = result.runId!;
         this.logger.log(
           `[AnswerBlockAutomation] Retrying FAILED run: automationType=answer_blocks, trigger=${triggerType}, ` +
-            `projectId=${product.projectId}, productId=${productId}, runId=${runId}`,
+            `projectId=${product.projectId}, productId=${productId}, runId=${runId}`
         );
       } else {
         // No existing run: attempt to create new one
@@ -870,7 +911,7 @@ export class AutomationService {
             // Extremely rare: created then deleted - treat as already done
             this.logger.log(
               `[AnswerBlockAutomation] Suppressed: automationType=answer_blocks, trigger=${triggerType}, ` +
-                `projectId=${product.projectId}, productId=${productId}, suppressedReason=idempotent_already_done (race)`,
+                `projectId=${product.projectId}, productId=${productId}, suppressedReason=idempotent_already_done (race)`
             );
             return;
           }
@@ -880,7 +921,7 @@ export class AutomationService {
             this.logger.log(
               `[AnswerBlockAutomation] Suppressed: automationType=answer_blocks, trigger=${triggerType}, ` +
                 `projectId=${product.projectId}, productId=${productId}, suppressedReason=${result.reason}, ` +
-                `existingRunId=${existingRun.id}, existingStatus=${existingRun.status} (race recovery)`,
+                `existingRunId=${existingRun.id}, existingStatus=${existingRun.status} (race recovery)`
             );
             return;
           }
@@ -888,19 +929,23 @@ export class AutomationService {
           runId = result.runId!;
           this.logger.log(
             `[AnswerBlockAutomation] Retrying FAILED run (race recovery): automationType=answer_blocks, trigger=${triggerType}, ` +
-              `projectId=${product.projectId}, productId=${productId}, runId=${runId}`,
+              `projectId=${product.projectId}, productId=${productId}, runId=${runId}`
           );
         }
       }
 
       if (!answerBlockAutomationQueue) {
         this.logger.warn(
-          '[AnswerBlockAutomation] Queue not available (Redis disabled); skipping enqueue',
+          '[AnswerBlockAutomation] Queue not available (Redis disabled); skipping enqueue'
         );
         // Update run record to FAILED
         await this.prisma.answerBlockAutomationRun.update({
           where: { id: runId },
-          data: { status: 'FAILED', completedAt: new Date(), errorMessage: 'Queue unavailable' },
+          data: {
+            status: 'FAILED',
+            completedAt: new Date(),
+            errorMessage: 'Queue unavailable',
+          },
         });
         return;
       }
@@ -919,13 +964,13 @@ export class AutomationService {
         },
         {
           priority,
-        },
+        }
       );
 
       this.logger.log(
         `[AnswerBlockAutomation] Allowed/enqueued: automationType=answer_blocks, trigger=${triggerType}, ` +
           `projectId=${product.projectId}, productId=${productId}, runId=${runId}, ` +
-          `idempotencyHash=${fingerprintHash.substring(0, 16)}...`,
+          `idempotencyHash=${fingerprintHash.substring(0, 16)}...`
       );
       return;
     }
@@ -946,14 +991,14 @@ export class AutomationService {
 
     if (recentSuccess) {
       this.logger.log(
-        `[AnswerBlockAutomation] Skipping duplicate automation for product ${productId} (trigger=${triggerType}) due to recent success`,
+        `[AnswerBlockAutomation] Skipping duplicate automation for product ${productId} (trigger=${triggerType}) due to recent success`
       );
       return;
     }
 
     if (!answerBlockAutomationQueue) {
       this.logger.warn(
-        '[AnswerBlockAutomation] Queue not available (Redis disabled); skipping enqueue',
+        '[AnswerBlockAutomation] Queue not available (Redis disabled); skipping enqueue'
       );
       return;
     }
@@ -971,11 +1016,11 @@ export class AutomationService {
       },
       {
         priority,
-      },
+      }
     );
 
     this.logger.log(
-      `[AnswerBlockAutomation] Enqueued job for product ${product.id} (project ${product.projectId}, trigger=${triggerType}, plan=${planId})`,
+      `[AnswerBlockAutomation] Enqueued job for product ${product.id} (project ${product.projectId}, trigger=${triggerType}, plan=${planId})`
     );
   }
 
@@ -985,7 +1030,7 @@ export class AutomationService {
    */
   async getAnswerBlockAutomationLogsForProduct(
     productId: string,
-    userId: string,
+    userId: string
   ): Promise<{
     productId: string;
     projectId: string;
@@ -1012,7 +1057,10 @@ export class AutomationService {
     }
 
     // [ROLES-3 FIXUP-3] Membership-aware access (any ProjectMember can view logs)
-    await this.roleResolutionService.assertProjectAccess(product.projectId, userId);
+    await this.roleResolutionService.assertProjectAccess(
+      product.projectId,
+      userId
+    );
 
     const logs = await this.prisma.answerBlockAutomationLog.findMany({
       where: { productId: product.id },
@@ -1044,7 +1092,7 @@ export class AutomationService {
    */
   async syncAnswerBlocksToShopifyNow(
     productId: string,
-    userId: string,
+    userId: string
   ): Promise<{
     productId: string;
     projectId: string;
@@ -1117,7 +1165,7 @@ export class AutomationService {
       await this.entitlementsService.ensureWithinDailyAiLimit(
         userId,
         product.projectId,
-        'shopify_answer_block_sync',
+        'shopify_answer_block_sync'
       );
     } catch (err: unknown) {
       const message =
@@ -1144,14 +1192,16 @@ export class AutomationService {
     }
 
     // [ENTERPRISE-GEO-1] Check approval requirement for ANSWER_BLOCK_SYNC
-    const approvalRequired = await this.governanceService.isApprovalRequired(product.projectId);
+    const approvalRequired = await this.governanceService.isApprovalRequired(
+      product.projectId
+    );
     let approvalId: string | undefined;
 
     if (approvalRequired) {
       const approvalStatus = await this.approvalsService.hasValidApproval(
         product.projectId,
         'ANSWER_BLOCK_SYNC',
-        productId,
+        productId
       );
 
       if (!approvalStatus.valid) {
@@ -1168,13 +1218,13 @@ export class AutomationService {
 
     try {
       const syncResult = await this.shopifyService.syncAnswerBlocksToShopify(
-        product.id,
+        product.id
       );
       // Record usage only when we actually attempted a sync.
       await this.entitlementsService.recordAiUsage(
         userId,
         product.projectId,
-        'shopify_answer_block_sync',
+        'shopify_answer_block_sync'
       );
       const status: 'succeeded' | 'failed' =
         syncResult.errors.length > 0 ? 'failed' : 'succeeded';
@@ -1208,7 +1258,7 @@ export class AutomationService {
           syncedCount: syncResult.syncedCount,
           errors: syncResult.errors,
           status,
-        },
+        }
       );
 
       return {

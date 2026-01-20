@@ -1,4 +1,8 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { ShareLinkAudience } from '@prisma/client';
 import { RoleResolutionService } from '../common/role-resolution.service';
@@ -39,7 +43,10 @@ export interface UpdateGovernancePolicyDto {
 }
 
 // Default policy values for projects without explicit policy
-const DEFAULT_POLICY: Omit<GovernancePolicyResponse, 'projectId' | 'createdAt' | 'updatedAt'> = {
+const DEFAULT_POLICY: Omit<
+  GovernancePolicyResponse,
+  'projectId' | 'createdAt' | 'updatedAt'
+> = {
   requireApprovalForApply: false,
   restrictShareLinks: false,
   shareLinkExpiryDays: 14,
@@ -52,7 +59,7 @@ const DEFAULT_POLICY: Omit<GovernancePolicyResponse, 'projectId' | 'createdAt' |
 export class GovernanceService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   /**
@@ -60,7 +67,10 @@ export class GovernanceService {
    * Returns default values if no policy exists
    * [ROLES-3] Any ProjectMember can view (read-only)
    */
-  async getPolicy(projectId: string, userId: string): Promise<GovernancePolicyResponse> {
+  async getPolicy(
+    projectId: string,
+    userId: string
+  ): Promise<GovernancePolicyResponse> {
     // [ROLES-3] Verify membership (any role can view)
     await this.roleResolution.assertProjectAccess(projectId, userId);
 
@@ -90,7 +100,7 @@ export class GovernanceService {
   async updatePolicy(
     projectId: string,
     userId: string,
-    updates: UpdateGovernancePolicyDto,
+    updates: UpdateGovernancePolicyDto
   ): Promise<GovernancePolicyResponse> {
     // [ROLES-3] Enforce OWNER role via ProjectMember
     await this.roleResolution.assertOwnerRole(projectId, userId);
@@ -102,12 +112,18 @@ export class GovernanceService {
 
     // Validate shareLinkExpiryDays (max 14, min 1)
     if (updates.shareLinkExpiryDays !== undefined) {
-      updates.shareLinkExpiryDays = Math.max(1, Math.min(14, updates.shareLinkExpiryDays));
+      updates.shareLinkExpiryDays = Math.max(
+        1,
+        Math.min(14, updates.shareLinkExpiryDays)
+      );
     }
 
     // If restrictShareLinks is being enabled, cap expiry to 7 days
     if (updates.restrictShareLinks === true) {
-      if (updates.shareLinkExpiryDays === undefined || updates.shareLinkExpiryDays > 7) {
+      if (
+        updates.shareLinkExpiryDays === undefined ||
+        updates.shareLinkExpiryDays > 7
+      ) {
         updates.shareLinkExpiryDays = 7;
       }
     }
@@ -121,19 +137,38 @@ export class GovernanceService {
       where: { projectId },
       create: {
         projectId,
-        requireApprovalForApply: updates.requireApprovalForApply ?? DEFAULT_POLICY.requireApprovalForApply,
-        restrictShareLinks: updates.restrictShareLinks ?? DEFAULT_POLICY.restrictShareLinks,
-        shareLinkExpiryDays: updates.shareLinkExpiryDays ?? DEFAULT_POLICY.shareLinkExpiryDays,
-        allowedExportAudience: audienceEnum ?? (DEFAULT_POLICY.allowedExportAudience as ShareLinkAudience),
-        allowCompetitorMentionsInExports: updates.allowCompetitorMentionsInExports ?? DEFAULT_POLICY.allowCompetitorMentionsInExports,
+        requireApprovalForApply:
+          updates.requireApprovalForApply ??
+          DEFAULT_POLICY.requireApprovalForApply,
+        restrictShareLinks:
+          updates.restrictShareLinks ?? DEFAULT_POLICY.restrictShareLinks,
+        shareLinkExpiryDays:
+          updates.shareLinkExpiryDays ?? DEFAULT_POLICY.shareLinkExpiryDays,
+        allowedExportAudience:
+          audienceEnum ??
+          (DEFAULT_POLICY.allowedExportAudience as ShareLinkAudience),
+        allowCompetitorMentionsInExports:
+          updates.allowCompetitorMentionsInExports ??
+          DEFAULT_POLICY.allowCompetitorMentionsInExports,
         allowPIIInExports: false, // Always false, never updatable
       },
       update: {
-        ...(updates.requireApprovalForApply !== undefined && { requireApprovalForApply: updates.requireApprovalForApply }),
-        ...(updates.restrictShareLinks !== undefined && { restrictShareLinks: updates.restrictShareLinks }),
-        ...(updates.shareLinkExpiryDays !== undefined && { shareLinkExpiryDays: updates.shareLinkExpiryDays }),
-        ...(audienceEnum !== undefined && { allowedExportAudience: audienceEnum }),
-        ...(updates.allowCompetitorMentionsInExports !== undefined && { allowCompetitorMentionsInExports: updates.allowCompetitorMentionsInExports }),
+        ...(updates.requireApprovalForApply !== undefined && {
+          requireApprovalForApply: updates.requireApprovalForApply,
+        }),
+        ...(updates.restrictShareLinks !== undefined && {
+          restrictShareLinks: updates.restrictShareLinks,
+        }),
+        ...(updates.shareLinkExpiryDays !== undefined && {
+          shareLinkExpiryDays: updates.shareLinkExpiryDays,
+        }),
+        ...(audienceEnum !== undefined && {
+          allowedExportAudience: audienceEnum,
+        }),
+        ...(updates.allowCompetitorMentionsInExports !== undefined && {
+          allowCompetitorMentionsInExports:
+            updates.allowCompetitorMentionsInExports,
+        }),
         // allowPIIInExports intentionally omitted - never updatable
       },
     });
@@ -213,7 +248,8 @@ export class GovernanceService {
     });
 
     return {
-      allowCompetitorMentions: policy?.allowCompetitorMentionsInExports ?? false,
+      allowCompetitorMentions:
+        policy?.allowCompetitorMentionsInExports ?? false,
       allowPII: policy?.allowPIIInExports ?? false, // Always false in v1
     };
   }

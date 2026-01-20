@@ -37,6 +37,7 @@
 **Goal:** Verify the Next DEO Win card links to Automation Playbooks.
 
 **Preconditions:**
+
 - User has completed the First DEO Win checklist (connected store, ran crawl, reviewed DEO score, optimized 3 products).
 
 **Steps:**
@@ -85,6 +86,7 @@
 **Goal:** Verify AI preview generation for sample products.
 
 **Preconditions:**
+
 - At least 3 products with missing SEO title or description.
 - User is on a paid plan (Pro/Business) to generate previews.
 
@@ -140,6 +142,7 @@
 **Goal:** Verify Free plan users cannot apply playbooks.
 
 **Preconditions:**
+
 - User is on the Free plan.
 - Products exist with missing SEO metadata.
 
@@ -164,6 +167,7 @@
 **Goal:** Verify playbook application updates products correctly.
 
 **Preconditions:**
+
 - User is on Pro or Business plan.
 - At least 2 products with missing SEO titles.
 
@@ -195,6 +199,7 @@
 **Goal:** Verify Shopify sync option after playbook application.
 
 **Preconditions:**
+
 - Shopify integration connected.
 - User successfully applied a playbook.
 
@@ -217,6 +222,7 @@
 **Goal:** Verify playbook respects daily AI limits.
 
 **Preconditions:**
+
 - User has nearly exhausted daily AI limit.
 - Multiple products with missing SEO metadata.
 
@@ -323,9 +329,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Name] |
-| **Date** | [YYYY-MM-DD] |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    | [Name]                                |
+| **Date**           | [YYYY-MM-DD]                          |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | AUTO-PB-1 Automation Playbooks v1 |
+| **Notes**          | AUTO-PB-1 Automation Playbooks v1     |

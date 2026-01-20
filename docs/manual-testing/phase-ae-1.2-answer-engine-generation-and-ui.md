@@ -30,6 +30,7 @@ Phase AE-1.2 implements:
 ### Scenario 1: Generate answers for a product with rich content
 
 **Steps:**
+
 1. Navigate to Projects → Select project → Products
 2. Click on a product with a detailed description (materials, features, usage info)
 3. In the Product Optimization workspace, find the "AI Answers" panel
@@ -37,6 +38,7 @@ Phase AE-1.2 implements:
 5. Wait for generation to complete
 
 **Expected Results:**
+
 - [ ] Loading spinner appears during generation
 - [ ] Success toast shows "Generated X answer(s) for this product"
 - [ ] Answerability status badge shows (Answer Ready / Partially Ready / Needs Answers)
@@ -46,6 +48,7 @@ Phase AE-1.2 implements:
 - [ ] Expanded answers show the answer text, confidence badge, and facts used
 
 **Verification:**
+
 - [ ] Answers are factual and based on product data
 - [ ] Confidence badges show High/Medium as appropriate
 - [ ] Facts used lists the sources (title, description)
@@ -55,11 +58,13 @@ Phase AE-1.2 implements:
 ### Scenario 2: Generate answers for a product with minimal content
 
 **Steps:**
+
 1. Navigate to a product with minimal description (e.g., "Great product!")
 2. Click "Generate Answers"
 3. Review the response
 
 **Expected Results:**
+
 - [ ] Answerability status shows "Needs Answers"
 - [ ] Answerability score is low (< 30)
 - [ ] Warning message: "X question(s) cannot be answered"
@@ -71,10 +76,12 @@ Phase AE-1.2 implements:
 ### Scenario 3: Regenerate answers
 
 **Steps:**
+
 1. With answers already displayed, click "Regenerate Answers"
 2. Confirm new generation starts
 
 **Expected Results:**
+
 - [ ] Loading state replaces existing answers
 - [ ] New answers appear after generation completes
 - [ ] Previous answers are replaced
@@ -84,10 +91,12 @@ Phase AE-1.2 implements:
 ### Scenario 4: Daily AI limit enforcement
 
 **Steps:**
+
 1. Exhaust daily AI limit by generating answers multiple times
 2. Attempt one more generation
 
 **Expected Results:**
+
 - [ ] 429 error returned from API
 - [ ] Error message: "Daily AI limit reached..."
 - [ ] Upgrade link provided in error message
@@ -98,10 +107,12 @@ Phase AE-1.2 implements:
 ### Scenario 5: Answer confidence display
 
 **Steps:**
+
 1. Generate answers for any product
 2. Expand each answer to view details
 
 **Expected Results:**
+
 - [ ] High confidence (≥ 0.8): Green "High confidence" badge
 - [ ] Medium confidence (0.5-0.79): Yellow "Medium confidence" badge
 - [ ] Low confidence (< 0.5): Red "Low confidence" badge (if any appear)
@@ -111,11 +122,13 @@ Phase AE-1.2 implements:
 ### Scenario 6: API authorization
 
 **Steps:**
+
 1. Using API client or curl, call `POST /ai/product-answers` with:
    a. No auth token
    b. Another user's product ID
 
 **Expected Results:**
+
 - [ ] No auth: 401 Unauthorized
 - [ ] Other user's product: 400 Bad Request (Access denied)
 
@@ -125,13 +138,13 @@ Phase AE-1.2 implements:
 
 ### ProductAnswersPanel States
 
-| State | Expected Display |
-|-------|-----------------|
-| Empty (no response) | "Generate AI-powered answers..." prompt with Generate button |
-| Loading | Spinner with "Generating answers..." text |
-| Error | Red error box with message |
+| State                  | Expected Display                                              |
+| ---------------------- | ------------------------------------------------------------- |
+| Empty (no response)    | "Generate AI-powered answers..." prompt with Generate button  |
+| Loading                | Spinner with "Generating answers..." text                     |
+| Error                  | Red error box with message                                    |
 | Success (with answers) | Answerability status, score, answer list with expand/collapse |
-| Success (no answers) | "No answers could be generated" message |
+| Success (no answers)   | "No answers could be generated" message                       |
 
 ---
 
@@ -194,9 +207,9 @@ Phase AE-1.2 implements:
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    | [Pending]                             |
+| **Date**           | [YYYY-MM-DD]                          |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Phase AE-1.2 manual testing |
+| **Notes**          | Phase AE-1.2 manual testing           |

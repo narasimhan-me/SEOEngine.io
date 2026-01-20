@@ -6,9 +6,7 @@ import {
   disconnectTestDb,
   testPrisma,
 } from '../../utils/test-db';
-import {
-  shopifyProductMissingSeo,
-} from '../../fixtures/shopify-product.fixtures';
+import { shopifyProductMissingSeo } from '../../fixtures/shopify-product.fixtures';
 
 describe('Issue Engine Lite – AI Fix integration', () => {
   let entitlementsService: EntitlementsService;
@@ -29,7 +27,7 @@ describe('Issue Engine Lite – AI Fix integration', () => {
       prisma,
       aiServiceStub as any,
       entitlementsService,
-      roleResolutionService,
+      roleResolutionService
     );
   });
 
@@ -43,7 +41,9 @@ describe('Issue Engine Lite – AI Fix integration', () => {
     aiServiceStub.generateMetadata.mockClear();
   });
 
-  async function createUserProjectAndProduct(plan: 'free' | 'pro' | 'business') {
+  async function createUserProjectAndProduct(
+    plan: 'free' | 'pro' | 'business'
+  ) {
     const user = await testPrisma.user.create({
       data: {
         email: `issue-fix-int-${plan}-${Date.now()}@example.com`,
@@ -92,8 +92,7 @@ describe('Issue Engine Lite – AI Fix integration', () => {
   }
 
   it('fills missing SEO title for missing_seo_title issue on Pro plan', async () => {
-    const { user, project, product } =
-      await createUserProjectAndProduct('pro');
+    const { user, project, product } = await createUserProjectAndProduct('pro');
 
     // Ensure SEO title is initially missing
     const before = await testPrisma.product.findUnique({

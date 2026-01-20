@@ -36,22 +36,27 @@
 ## Critical Services Needing More Coverage
 
 ### 1. BillingService (60% → Target 90%)
+
 - Missing: Webhook handling, private helper methods
 - Critical: `handleWebhook()`, `handleCheckoutCompleted()`, `handleSubscriptionUpdated()`
 
 ### 2. DeoScoreService (70% → Target 90%)
+
 - Missing: DeoSignalsService methods, edge cases
 - Critical: `collectSignalsForProject()`, signal normalization
 
 ### 3. ProjectsService (75% → Target 90%)
+
 - Missing: 4 public methods
 - Methods: `getIntegrationStatus()`, `getProjectWithIntegrations()`, `getProjectOverview()`, `getCrawlPages()`
 
 ### 4. DeoIssuesService (40% → Target 85%)
+
 - Missing: Issue building methods (6+ private methods)
 - Critical: `buildMissingMetadataIssue()`, `buildThinContentIssue()`, `buildLowEntityCoverageIssue()`
 
 ### 5. AuthService (85% → Target 95%)
+
 - Missing: Edge cases, error scenarios
 - Priority: LOW - Good coverage, polish needed
 

@@ -33,7 +33,11 @@ describe('AiUsageQuotaService (integration with AiUsageLedgerService)', () => {
       getUserPlan: jest.fn().mockResolvedValue('pro'),
     };
 
-    quotaService = new AiUsageQuotaService(entitlementsMock, ledgerService, prismaMock);
+    quotaService = new AiUsageQuotaService(
+      entitlementsMock,
+      ledgerService,
+      prismaMock
+    );
   });
 
   afterEach(() => {
@@ -83,25 +87,27 @@ describe('AiUsageQuotaService (integration with AiUsageLedgerService)', () => {
     previousMonth.setMonth(previousMonth.getMonth() - 1);
 
     // The mock returns runs, but the ledger service filters by date range
-    prismaMock.automationPlaybookRun.findMany.mockImplementation((args: any) => {
-      // Simulate the date filtering that happens in the real service
-      const from = args.where?.createdAt?.gte;
-      const to = args.where?.createdAt?.lte;
+    prismaMock.automationPlaybookRun.findMany.mockImplementation(
+      (args: any) => {
+        // Simulate the date filtering that happens in the real service
+        const from = args.where?.createdAt?.gte;
+        const to = args.where?.createdAt?.lte;
 
-      if (from && to && previousMonth < from) {
-        return []; // Previous month runs would be filtered out
+        if (from && to && previousMonth < from) {
+          return []; // Previous month runs would be filtered out
+        }
+
+        return [
+          {
+            projectId: 'proj-1',
+            runType: 'PREVIEW_GENERATE',
+            aiUsed: true,
+            reused: false,
+            createdAt: previousMonth,
+          },
+        ];
       }
-
-      return [
-        {
-          projectId: 'proj-1',
-          runType: 'PREVIEW_GENERATE',
-          aiUsed: true,
-          reused: false,
-          createdAt: previousMonth,
-        },
-      ];
-    });
+    );
 
     process.env.AI_USAGE_MONTHLY_RUN_LIMIT_PRO = '5';
 

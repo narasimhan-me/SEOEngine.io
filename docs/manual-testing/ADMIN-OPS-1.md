@@ -54,14 +54,16 @@
 **ID:** HP-001
 
 **Steps:**
+
 1. Login as role=ADMIN, adminRole=null.
 2. Attempt to access /admin.
 3. Login as role=ADMIN, adminRole=SUPPORT_AGENT.
 4. Access /admin.
 
 **Expected Results:**
+
 - UI: Non-internal admin is blocked/redirected; internal roles can access.
-- API: /admin/* returns 403 when adminRole missing.
+- API: /admin/\* returns 403 when adminRole missing.
 
 ---
 
@@ -70,12 +72,14 @@
 **ID:** HP-002
 
 **Steps:**
+
 1. Login as SUPPORT_AGENT.
 2. Visit /admin/users and open a user detail.
 3. Click "Impersonate (Read-only)" and obtain token.
 4. Use impersonation token to load /projects.
 
 **Expected Results:**
+
 - UI: Admin pages render; impersonation action requires confirmation and indicates it is logged.
 - API: Impersonation returns a token with mode=readOnly.
 - Logs: Audit log contains an impersonation entry.
@@ -87,12 +91,14 @@
 **ID:** HP-003
 
 **Steps:**
+
 1. Login as OPS_ADMIN.
 2. Open a user detail page.
 3. Reset quota with a reason.
 4. Open /admin/audit-log and filter by quota reset.
 
 **Expected Results:**
+
 - UI: Quota reset succeeds and shows success feedback.
 - API: Offset record is created; ledger is not deleted.
 - Logs: Audit entry exists for quota reset.
@@ -104,10 +110,12 @@
 **ID:** HP-004
 
 **Steps:**
+
 1. Login as MANAGEMENT_CEO.
 2. Visit all admin views: Overview, Users, Projects, Runs, Issues, AI Usage, System Health, Audit Log.
 
 **Expected Results:**
+
 - UI: All views render; no action controls are available.
 - API: Any admin write action returns 403.
 
@@ -120,9 +128,11 @@
 **Description:** Admin pages with no users/projects/runs in DB.
 
 **Steps:**
+
 1. Load admin pages in a clean environment.
 
 **Expected Behavior:**
+
 - Pages render without crashes and show empty-state messaging.
 
 ---
@@ -131,13 +141,15 @@
 
 ### ERR-001: Permission failures
 
-**Scenario:** Non-admin or non-internal admin attempts /admin/*.
+**Scenario:** Non-admin or non-internal admin attempts /admin/\*.
 
 **Steps:**
+
 1. Use a normal user token to access /admin/overview.
 2. Use role=ADMIN, adminRole=null token to access /admin/overview.
 
 **Expected Behavior:**
+
 - 403 returned; user is not granted access.
 
 ---
@@ -147,10 +159,12 @@
 **Scenario:** Read-only impersonation attempts a write request.
 
 **Steps:**
+
 1. Obtain impersonation token.
 2. Attempt POST/PUT/PATCH/DELETE on any authenticated endpoint.
 
 **Expected Behavior:**
+
 - 403 returned with read-only messaging; no mutations occur.
 
 ---
@@ -162,10 +176,12 @@
 **Scenario:** User near plan quota should appear in quota pressure.
 
 **Steps:**
+
 1. Create runs to approach quota.
 2. View /admin/overview quota pressure section.
 
 **Expected Behavior:**
+
 - Quota pressure counts reflect derived usage.
 
 ---
@@ -180,8 +196,8 @@
 
 ### Quick sanity checks:
 
-- [ ] Normal users cannot access /admin/*
-- [ ] Internal admin users can access /admin/*
+- [ ] Normal users cannot access /admin/\*
+- [ ] Internal admin users can access /admin/\*
 - [ ] Customer flows unchanged
 
 ---

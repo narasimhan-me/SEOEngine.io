@@ -19,15 +19,15 @@ The Automation Engine is the "DEO autopilot" — a platform layer that powers in
 
 The Automation Engine is not a standalone feature but a platform layer that powers automations across:
 
-| System | Automation Examples |
-|--------|---------------------|
-| **Product & Content Workspaces** | Auto-generate metadata for thin content |
-| **Answer Engine** | Auto-refresh Answer Blocks after product changes |
-| **Issues Engine** | Auto-fix or suggest fixes for detected issues |
-| **Entities System** | Auto-enrich entity definitions from crawl data |
-| **DEO Score Pipeline** | Auto-recompute scores after significant changes |
-| **Crawl Pipeline** | Auto-recrawl high-impact pages on schedule |
-| **Shopify Sync** | Auto-apply metadata changes to Shopify metafields |
+| System                           | Automation Examples                               |
+| -------------------------------- | ------------------------------------------------- |
+| **Product & Content Workspaces** | Auto-generate metadata for thin content           |
+| **Answer Engine**                | Auto-refresh Answer Blocks after product changes  |
+| **Issues Engine**                | Auto-fix or suggest fixes for detected issues     |
+| **Entities System**              | Auto-enrich entity definitions from crawl data    |
+| **DEO Score Pipeline**           | Auto-recompute scores after significant changes   |
+| **Crawl Pipeline**               | Auto-recrawl high-impact pages on schedule        |
+| **Shopify Sync**                 | Auto-apply metadata changes to Shopify metafields |
 
 ### Design Principles
 
@@ -44,24 +44,24 @@ The Automation Engine is not a standalone feature but a platform layer that powe
 
 The Automation Engine classifies automations into three kinds based on timing and trigger behavior:
 
-| Kind | Description | Examples |
-|------|-------------|----------|
-| **Immediate** | Reactive, event-triggered automations that run as soon as a trigger occurs | Auto-generate metadata on new product sync, refresh DEO Score after crawl |
-| **Scheduled** | Proactive automations that run on cadences (daily/weekly/monthly) | Weekly re-crawl of high-impact pages, monthly structured data refresh |
-| **Background** | Low-noise, continuous improvements that run opportunistically | Fill missing alt text, detect low visibility signals |
+| Kind           | Description                                                                | Examples                                                                  |
+| -------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **Immediate**  | Reactive, event-triggered automations that run as soon as a trigger occurs | Auto-generate metadata on new product sync, refresh DEO Score after crawl |
+| **Scheduled**  | Proactive automations that run on cadences (daily/weekly/monthly)          | Weekly re-crawl of high-impact pages, monthly structured data refresh     |
+| **Background** | Low-noise, continuous improvements that run opportunistically              | Fill missing alt text, detect low visibility signals                      |
 
 ### Target Surfaces
 
 Automations can target different surfaces in the system:
 
-| Target Surface | Description |
-|----------------|-------------|
-| `product` | Shopify products and their metadata |
-| `page` | Non-product pages (content pages, blog posts) |
-| `answer_block` | Answer Engine Answer Blocks |
-| `entity` | Entity definitions and enrichments |
-| `project` | Project-level settings and configurations |
-| `deo_score` | DEO Score computations and snapshots |
+| Target Surface | Description                                   |
+| -------------- | --------------------------------------------- |
+| `product`      | Shopify products and their metadata           |
+| `page`         | Non-product pages (content pages, blog posts) |
+| `answer_block` | Answer Engine Answer Blocks                   |
+| `entity`       | Entity definitions and enrichments            |
+| `project`      | Project-level settings and configurations     |
+| `deo_score`    | DEO Score computations and snapshots          |
 
 ### Type Mapping
 
@@ -69,7 +69,7 @@ These concepts map directly to the shared types in `@engineo/shared`:
 
 ```typescript
 import {
-  AutomationKind,        // 'immediate' | 'scheduled' | 'background'
+  AutomationKind, // 'immediate' | 'scheduled' | 'background'
   AutomationTargetSurface,
   AutomationRuleId,
   AutomationRuleConfig,
@@ -95,14 +95,14 @@ Every automation follows a four-stage lifecycle:
 
 Triggers are events that initiate automation evaluation:
 
-| Trigger Type | Source | Example |
-|--------------|--------|---------|
-| `crawl_completed` | Crawl Pipeline | Crawl finished for a project |
-| `product_synced` | Shopify Sync | New product synced from Shopify |
-| `issue_detected` | Issues Engine | New DEO issue detected |
-| `schedule` | Scheduler | Daily/weekly/monthly cadence |
-| `manual` | User Action | User clicks "Run Automations" |
-| `drift_detected` | Answer Engine | Content drift detected for answers |
+| Trigger Type      | Source         | Example                            |
+| ----------------- | -------------- | ---------------------------------- |
+| `crawl_completed` | Crawl Pipeline | Crawl finished for a project       |
+| `product_synced`  | Shopify Sync   | New product synced from Shopify    |
+| `issue_detected`  | Issues Engine  | New DEO issue detected             |
+| `schedule`        | Scheduler      | Daily/weekly/monthly cadence       |
+| `manual`          | User Action    | User clicks "Run Automations"      |
+| `drift_detected`  | Answer Engine  | Content drift detected for answers |
 
 #### Stage 2: Evaluate
 
@@ -140,12 +140,12 @@ If evaluation passes, the automation executes:
 
 Execution delegates to existing services:
 
-| Automation | Delegated To |
-|------------|--------------|
+| Automation          | Delegated To                                      |
+| ------------------- | ------------------------------------------------- |
 | Metadata generation | `AutomationService.scheduleSuggestionsForProject` |
-| Shopify sync | `ShopifyMetadataService.syncMetadata` |
-| Answer refresh | Answer Engine (future) |
-| DEO recompute | `DeoScoreService.computeScore` |
+| Shopify sync        | `ShopifyMetadataService.syncMetadata`             |
+| Answer refresh      | Answer Engine (future)                            |
+| DEO recompute       | `DeoScoreService.computeScore`                    |
 
 #### Stage 4: Log
 
@@ -282,11 +282,11 @@ Future rules (Phase AE-2) will:
 
 Automation Engine behavior is constrained by plan entitlements:
 
-| Plan | Automation Capabilities |
-|------|------------------------|
-| **Free** | Reactive metadata-only automations, very limited daily cap, no scheduled/background |
-| **Pro** | Reactive + scheduled automations, moderate daily caps, Shopify metadata auto-sync |
-| **Business** | Full Automation Engine: all kinds, all surfaces, higher/uncapped executions |
+| Plan         | Automation Capabilities                                                             |
+| ------------ | ----------------------------------------------------------------------------------- |
+| **Free**     | Reactive metadata-only automations, very limited daily cap, no scheduled/background |
+| **Pro**      | Reactive + scheduled automations, moderate daily caps, Shopify metadata auto-sync   |
+| **Business** | Full Automation Engine: all kinds, all surfaces, higher/uncapped executions         |
 
 ### Entitlement References
 
@@ -309,14 +309,14 @@ All automation rules must:
 
 ### AE Phase Sequence
 
-| Phase | Focus | Deliverables |
-|-------|-------|--------------|
-| **AE-1** | Framework | Shared types, spec, decision model, critical path docs |
-| **AE-2** | Product Automation Library | Metadata rules, drift detection, Shopify sync |
-| **AE-3** | DEO Score Automations | Score refresh, freshness, triggers |
-| **AE-4** | Issues Engine Automations | Auto-fix, suggestion generation |
-| **AE-5** | Answer Engine Automations | Answer Block generation, refresh |
-| **AE-6** | Automation Center UI | Settings UI, activity log, controls |
+| Phase    | Focus                      | Deliverables                                           |
+| -------- | -------------------------- | ------------------------------------------------------ |
+| **AE-1** | Framework                  | Shared types, spec, decision model, critical path docs |
+| **AE-2** | Product Automation Library | Metadata rules, drift detection, Shopify sync          |
+| **AE-3** | DEO Score Automations      | Score refresh, freshness, triggers                     |
+| **AE-4** | Issues Engine Automations  | Auto-fix, suggestion generation                        |
+| **AE-5** | Answer Engine Automations  | Answer Block generation, refresh                       |
+| **AE-6** | Automation Center UI       | Settings UI, activity log, controls                    |
 
 ### AE-1 Scope (This Phase)
 
@@ -357,6 +357,7 @@ The following automation categories are defined for products, with links to conc
 #### A. Metadata Automations (High Priority)
 
 **Automations:**
+
 - Auto-generate missing SEO Titles
 - Auto-generate missing SEO Descriptions
 - Auto-improve weak titles (short, generic, keyword-stuffed)
@@ -365,18 +366,21 @@ The following automation categories are defined for products, with links to conc
 - Auto-populate missing product type / category when inferable
 
 **Triggers:**
+
 - New product detected (Shopify sync)
 - Product updated with missing/changed metadata
 - Crawl signals indicate missing/weak metadata
 - Issue Engine flags metadata issues (e.g., `missing_seo_title`, `weak_description`)
 
 **Safety:**
+
 - Use internal AI engines and existing product data only
 - **No hallucination:** skip if insufficient input data
 - Respect daily automation limits and entitlements
 - Log all generation attempts with confidence scores
 
 **Automation Engine Mapping:**
+
 - `AUTO_GENERATE_METADATA_ON_NEW_PRODUCT`
 - `AUTO_GENERATE_METADATA_FOR_MISSING_METADATA`
 - `AUTO_GENERATE_METADATA_FOR_THIN_CONTENT`
@@ -384,17 +388,20 @@ The following automation categories are defined for products, with links to conc
 #### B. Content Automations (Medium Priority)
 
 **Automations:**
+
 - Auto-generate a long description when absent
 - Auto-expand thin descriptions (< 40–60 words)
 - Auto-enhance entity completeness (add missing factual details)
 - Auto-generate feature/benefit bullet lists
 
 **Triggers:**
+
 - Product creation or sync with insufficient description
 - Thin Content issues raised by Issue Engine (`thin_content`, `missing_long_description`)
 - Entity System signals missing attributes
 
 **Safety:**
+
 - Only factual content based on structured product data and existing descriptions
 - Avoid promotional tone; aim for clear, answer-ready text
 - Skip when source data is insufficient for confident generation
@@ -402,16 +409,19 @@ The following automation categories are defined for products, with links to conc
 #### C. Drift Correction Automations (High Trust)
 
 **Definition of "Drift":**
+
 - Shopify overwriting optimized metadata with original/inferior values
 - Manual edits that remove required fields or degrade quality
 - External tools reverting metadata changes
 
 **Automations:**
+
 - Detect metadata drift (compare local optimized state vs remote Shopify state)
 - Optionally reverse regressions (depending on plan and settings)
 - Notify users when regressions are detected or prevented
 
 **Triggers:**
+
 - Sync mismatch detected (local vs remote)
 - Periodic drift scan (e.g., daily scheduled job)
 
@@ -425,12 +435,14 @@ The following automation categories are defined for products, with links to conc
 #### D. Shopify Sync Automations
 
 **Automations:**
+
 - Auto-sync metadata after automation-generated changes
 - Auto-sync Answer Blocks to Shopify metafields (in AE-5, once Answer Engine automations exist)
 - Auto-sync structured data via Shopify metafields
 - Attempt to repair missing Shopify fields when possible (e.g., categories)
 
 **Triggers:**
+
 - Successful metadata/content automation output that requires write-back
 - Drift detection and reconciliation runs
 - Scheduled sync checks
@@ -447,6 +459,7 @@ The following automation categories are defined for products, with links to conc
 #### Data Safety
 
 Never overwrite user-written content without:
+
 1. Reliable confidence in the new content (confidence score threshold)
 2. Applicable rule allowing correction (and appropriate mode: `auto_apply` vs `review_before_apply`)
 3. A recorded log entry describing the change (before/after snapshots)
@@ -459,15 +472,16 @@ Never overwrite user-written content without:
 
 #### Plan Limits
 
-| Plan | Automation Limits |
-|------|-------------------|
-| **Free** | Minimal automations (reactive metadata-only, small caps) |
-| **Pro** | Moderate daily caps; access to drift corrections for metadata |
+| Plan         | Automation Limits                                                         |
+| ------------ | ------------------------------------------------------------------------- |
+| **Free**     | Minimal automations (reactive metadata-only, small caps)                  |
+| **Pro**      | Moderate daily caps; access to drift corrections for metadata             |
 | **Business** | Higher or unlimited daily automation executions (subject to safety rules) |
 
 #### Testing Expectations
 
 The following must be covered by manual testing docs:
+
 - Metadata automations (titles, descriptions, alt text)
 - Content automations (long descriptions, feature bullets)
 - Drift detection and correction flows
@@ -477,12 +491,12 @@ The following must be covered by manual testing docs:
 
 ### 8.4 AE-2 Sub-Phases
 
-| Sub-Phase | Focus | Scope |
-|-----------|-------|-------|
-| **AE-2.1** | Metadata Automations | Titles, descriptions, weak content improvements, alt-text scaffolding, entity enrichers |
-| **AE-2.2** | Content Automations | Long descriptions, bullet lists, thin-content expansion |
-| **AE-2.3** | Drift Correction System | Detect mismatch → correct (when allowed) → log → notify |
-| **AE-2.4** | Shopify Sync Automations | Write-back and reconciliation actions, constrained by entitlements and safety |
+| Sub-Phase  | Focus                    | Scope                                                                                   |
+| ---------- | ------------------------ | --------------------------------------------------------------------------------------- |
+| **AE-2.1** | Metadata Automations     | Titles, descriptions, weak content improvements, alt-text scaffolding, entity enrichers |
+| **AE-2.2** | Content Automations      | Long descriptions, bullet lists, thin-content expansion                                 |
+| **AE-2.3** | Drift Correction System  | Detect mismatch → correct (when allowed) → log → notify                                 |
+| **AE-2.4** | Shopify Sync Automations | Write-back and reconciliation actions, constrained by entitlements and safety           |
 
 ---
 
@@ -551,6 +565,7 @@ Enhanced with auto-apply logic:
 #### Automation Activity Page
 
 New page at `/projects/[id]/automation/` showing:
+
 - Summary stats (Total, Applied, Pending)
 - List of applied suggestions with timestamps and details
 - List of pending suggestions with review links
@@ -558,10 +573,10 @@ New page at `/projects/[id]/automation/` showing:
 
 ### Plan Behavior Matrix
 
-| Plan | Metadata Automation Behavior |
-|------|------------------------------|
-| **Free** | Suggestions only; user must manually apply |
-| **Pro** | Auto-apply for missing metadata; suggestions for thin content |
+| Plan         | Metadata Automation Behavior                                  |
+| ------------ | ------------------------------------------------------------- |
+| **Free**     | Suggestions only; user must manually apply                    |
+| **Pro**      | Auto-apply for missing metadata; suggestions for thin content |
 | **Business** | Auto-apply for missing metadata; suggestions for thin content |
 
 ### Safety Rules
@@ -592,13 +607,13 @@ Phase AUE-1 implements the first immediate automation rule: `AUTO_GENERATE_METAD
 
 ### Rule Definition
 
-| Field | Value |
-|-------|-------|
-| **Rule ID** | `AUTO_GENERATE_METADATA_ON_NEW_PRODUCT` |
-| **Kind** | Immediate |
-| **Trigger** | New product synced from Shopify |
-| **Target Surface** | `product` |
-| **Action** | Generate SEO title and description |
+| Field              | Value                                   |
+| ------------------ | --------------------------------------- |
+| **Rule ID**        | `AUTO_GENERATE_METADATA_ON_NEW_PRODUCT` |
+| **Kind**           | Immediate                               |
+| **Trigger**        | New product synced from Shopify         |
+| **Target Surface** | `product`                               |
+| **Action**         | Generate SEO title and description      |
 
 ### Trigger Flow
 
@@ -684,11 +699,11 @@ async runNewProductSeoTitleAutomation(
 
 ### Plan Behavior
 
-| Plan | Behavior |
-|------|----------|
-| **Free** | Creates suggestion only; user must manually apply |
-| **Pro** | Auto-applies generated metadata to product |
-| **Business** | Auto-applies generated metadata to product |
+| Plan         | Behavior                                          |
+| ------------ | ------------------------------------------------- |
+| **Free**     | Creates suggestion only; user must manually apply |
+| **Pro**      | Auto-applies generated metadata to product        |
+| **Business** | Auto-applies generated metadata to product        |
 
 ### Safety Features
 
@@ -702,14 +717,14 @@ async runNewProductSeoTitleAutomation(
 
 File: `apps/api/test/e2e/automation-new-product-seo-title.e2e-spec.ts`
 
-| Test | Description |
-|------|-------------|
+| Test                               | Description                                                         |
+| ---------------------------------- | ------------------------------------------------------------------- |
 | Creates suggestion for missing SEO | Verifies suggestion created with `automation_new_product_v1` source |
-| Skips when SEO populated | Verifies no suggestion created when fields already exist |
-| Records AI usage | Verifies `AiUsageEvent` created |
-| Auto-applies for Pro plan | Verifies metadata applied and suggestion marked `applied: true` |
-| Does not auto-apply for Free | Verifies suggestion created but not applied |
-| Handles non-existent product | Verifies graceful handling without throwing |
+| Skips when SEO populated           | Verifies no suggestion created when fields already exist            |
+| Records AI usage                   | Verifies `AiUsageEvent` created                                     |
+| Auto-applies for Pro plan          | Verifies metadata applied and suggestion marked `applied: true`     |
+| Does not auto-apply for Free       | Verifies suggestion created but not applied                         |
+| Handles non-existent product       | Verifies graceful handling without throwing                         |
 
 ### AUE-1 Acceptance Criteria
 
@@ -739,19 +754,19 @@ For the EngineO.ai v1 Shopify-only launch, Automation Engine v1 must include Ans
 
 Enforce tier limits (see `docs/ENTITLEMENTS_MATRIX.md` and `docs/TOKEN_USAGE_MODEL.md`):
 
-| Plan | Answer Block Automation Behavior |
-|------|----------------------------------|
-| **Free** | No Answer Block automations (UI-triggered, ephemeral answers only) |
-| **Pro** | Full Answer Block automations within AI token and automation execution caps |
+| Plan         | Answer Block Automation Behavior                                            |
+| ------------ | --------------------------------------------------------------------------- |
+| **Free**     | No Answer Block automations (UI-triggered, ephemeral answers only)          |
+| **Pro**      | Full Answer Block automations within AI token and automation execution caps |
 | **Business** | Full Answer Block automations within AI token and automation execution caps |
 
 ### Supported Triggers
 
 Support at least the following triggers:
 
-| Trigger | Description |
-|---------|-------------|
-| `product_synced` | New or updated Shopify products with eligible data |
+| Trigger          | Description                                                            |
+| ---------------- | ---------------------------------------------------------------------- |
+| `product_synced` | New or updated Shopify products with eligible data                     |
 | `issue_detected` | Answerability-related issues raised by the Issues Engine for a product |
 
 ### Critical Path Integration
@@ -819,10 +834,10 @@ Treat Shopify Answer Block automations as part of the **Product Optimize / AI Sy
 
 ## Document History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2025-12-08 | Initial Automation Engine specification (Phase AE-1 Framework) |
-| 1.1 | 2025-12-08 | Added Section 8: Product Automations (Phase AE-2) |
-| 1.2 | 2025-12-08 | Added Section 8.5: AE-2.1 Implementation (Metadata Product Automations) |
-| 1.3 | 2025-12-09 | Added Section 8.6: Phase AUE-1 (New Product SEO Title Auto-Generation) |
-| 1.4 | 2025-12-10 | Added Section 8.7: Automation Engine v1 Shopify Answer Block Automations (v1 Launch Requirement) |
+| Version | Date       | Changes                                                                                          |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------ |
+| 1.0     | 2025-12-08 | Initial Automation Engine specification (Phase AE-1 Framework)                                   |
+| 1.1     | 2025-12-08 | Added Section 8: Product Automations (Phase AE-2)                                                |
+| 1.2     | 2025-12-08 | Added Section 8.5: AE-2.1 Implementation (Metadata Product Automations)                          |
+| 1.3     | 2025-12-09 | Added Section 8.6: Phase AUE-1 (New Product SEO Title Auto-Generation)                           |
+| 1.4     | 2025-12-10 | Added Section 8.7: Automation Engine v1 Shopify Answer Block Automations (v1 Launch Requirement) |

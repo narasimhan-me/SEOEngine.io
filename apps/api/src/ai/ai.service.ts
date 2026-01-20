@@ -45,12 +45,14 @@ export class AiService {
   constructor(
     private readonly configService: ConfigService,
     private readonly geminiClient: GeminiClient,
-    private readonly answerGenerationService: AnswerGenerationService,
+    private readonly answerGenerationService: AnswerGenerationService
   ) {
     this.apiKey = this.configService.get<string>('AI_API_KEY') || '';
     this.provider =
-      (this.configService.get<string>('AI_PROVIDER') as 'openai' | 'anthropic' | 'gemini') ||
-      'openai';
+      (this.configService.get<string>('AI_PROVIDER') as
+        | 'openai'
+        | 'anthropic'
+        | 'gemini') || 'openai';
   }
 
   async generateMetadata(input: MetadataInput): Promise<MetadataOutput> {
@@ -94,19 +96,22 @@ Respond in JSON format only:
     }
 
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.7,
-          max_tokens: 200,
-        }),
-      });
+      const response = await fetch(
+        'https://api.openai.com/v1/chat/completions',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-3.5-turbo',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.7,
+            max_tokens: 200,
+          }),
+        }
+      );
 
       if (!response.ok) {
         console.error('OpenAI API error:', await response.text());
@@ -197,7 +202,7 @@ Respond in JSON format only:
       // Check if all models have been exhausted
       if (isAllModelsExhaustedError(error)) {
         throw new Error(
-          `AI_ALL_MODELS_EXHAUSTED: All AI models have been tried and all are currently unavailable. Tried ${error.triedModels.length} models: ${error.triedModels.join(', ')}. Please wait a few minutes and try again.`,
+          `AI_ALL_MODELS_EXHAUSTED: All AI models have been tried and all are currently unavailable. Tried ${error.triedModels.length} models: ${error.triedModels.join(', ')}. Please wait a few minutes and try again.`
         );
       }
 
@@ -210,7 +215,7 @@ Respond in JSON format only:
           anyError.message?.includes('RESOURCE_EXHAUSTED');
         if (isQuotaExhausted) {
           throw new Error(
-            'AI_QUOTA_EXHAUSTED: The AI service quota has been exceeded. Please wait a few minutes and try again, or contact support if this persists.',
+            'AI_QUOTA_EXHAUSTED: The AI service quota has been exceeded. Please wait a few minutes and try again, or contact support if this persists.'
           );
         }
       }
@@ -237,7 +242,8 @@ Respond in JSON format only:
         });
         return {
           title: parsed.title || 'Suggested Title',
-          description: parsed.description || 'Suggested meta description for this page.',
+          description:
+            parsed.description || 'Suggested meta description for this page.',
         };
       }
     } catch (err) {
@@ -265,11 +271,11 @@ Respond in JSON format only:
    */
   async generateProductAnswers(
     product: ProductForAnswerGeneration,
-    answerabilityStatus: AnswerabilityStatus,
+    answerabilityStatus: AnswerabilityStatus
   ): Promise<AnswerBlock[]> {
     return this.answerGenerationService.generateAnswersForProduct(
       product,
-      answerabilityStatus,
+      answerabilityStatus
     );
   }
 
@@ -342,7 +348,9 @@ Respond in JSON format only:
     // Fallback
     return {
       question: `What is ${input.product.title}?`,
-      answer: input.product.description || `${input.product.title} is a quality product.`,
+      answer:
+        input.product.description ||
+        `${input.product.title} is a quality product.`,
     };
   }
 
@@ -371,9 +379,10 @@ Respond in JSON format only:
       | 'missing_examples_or_facts';
     factsUsed?: string[];
   }): Promise<{ improvedAnswer: string }> {
-    const facts = Array.isArray(input.factsUsed) && input.factsUsed.length > 0
-      ? input.factsUsed.join(', ')
-      : 'None provided';
+    const facts =
+      Array.isArray(input.factsUsed) && input.factsUsed.length > 0
+        ? input.factsUsed.join(', ')
+        : 'None provided';
 
     const prompt = `You are helping improve an Answer Block for "Answer Readiness" and "Citation Confidence".
 
@@ -417,7 +426,10 @@ Respond in JSON only:
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed?.improvedAnswer && typeof parsed.improvedAnswer === 'string') {
+        if (
+          parsed?.improvedAnswer &&
+          typeof parsed.improvedAnswer === 'string'
+        ) {
           return { improvedAnswer: parsed.improvedAnswer.trim() };
         }
       }
@@ -539,8 +551,7 @@ Respond in JSON format only:
         const parsed = JSON.parse(jsonMatch[0]);
         return {
           titleSuggestion:
-            parsed.titleSuggestion ||
-            `${input.product.title} - Shop Now`,
+            parsed.titleSuggestion || `${input.product.title} - Shop Now`,
           descriptionSuggestion:
             parsed.descriptionSuggestion ||
             `Discover ${input.product.title}. Find out why customers love it and shop with confidence today.`,
@@ -565,7 +576,10 @@ Respond in JSON format only:
   /**
    * Human-readable labels for coverage areas.
    */
-  private readonly COVERAGE_AREA_LABELS: Record<CompetitiveCoverageAreaId, string> = {
+  private readonly COVERAGE_AREA_LABELS: Record<
+    CompetitiveCoverageAreaId,
+    string
+  > = {
     transactional_intent: 'Transactional Intent',
     comparative_intent: 'Comparative Intent',
     problem_use_case_intent: 'Problem/Use Case Intent',
@@ -597,7 +611,9 @@ Respond in JSON format only:
   }): Promise<{ question: string; answer: string }> {
     const gapLabel = COMPETITOR_GAP_LABELS[input.gapType];
     const areaLabel = this.COVERAGE_AREA_LABELS[input.areaId] || input.areaId;
-    const intentLabel = input.intentType ? SEARCH_INTENT_LABELS[input.intentType] : '';
+    const intentLabel = input.intentType
+      ? SEARCH_INTENT_LABELS[input.intentType]
+      : '';
 
     const prompt = `You are an SEO and competitive positioning specialist. Generate a FAQ-style question and answer for a product that addresses a competitive gap.
 
@@ -653,7 +669,9 @@ Respond in JSON format only:
     // Fallback
     return {
       question: `Why choose ${input.product.title}?`,
-      answer: input.product.description || `${input.product.title} delivers quality you can trust.`,
+      answer:
+        input.product.description ||
+        `${input.product.title} delivers quality you can trust.`,
     };
   }
 
@@ -870,7 +888,8 @@ Respond in JSON format only:
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         return {
-          subject: parsed.subject || `Partnership Inquiry from ${input.brandName}`,
+          subject:
+            parsed.subject || `Partnership Inquiry from ${input.brandName}`,
           body:
             parsed.body ||
             `Hello,\n\nI'm reaching out on behalf of ${input.brandName}. We're interested in exploring opportunities for collaboration.\n\nWould you be open to a brief conversation?\n\nBest regards`,
@@ -1107,7 +1126,9 @@ Respond in JSON format only:
     // Parse focusKey to extract location info (e.g., "city:denver" or "service_area:front_range")
     const [locationType, locationValue] = input.focusKey.split(':');
     const locationDisplay = locationValue
-      ? locationValue.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+      ? locationValue
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (c) => c.toUpperCase())
       : 'your area';
 
     const prompt = `You are a local SEO specialist. Generate a Q&A Answer Block for a business with local presence.
@@ -1144,7 +1165,8 @@ Respond in JSON format only:
         const parsed = JSON.parse(jsonMatch[0]);
         return {
           question:
-            parsed.question || `Does ${input.brandName} serve ${locationDisplay}?`,
+            parsed.question ||
+            `Does ${input.brandName} serve ${locationDisplay}?`,
           answer:
             parsed.answer ||
             `Yes, ${input.brandName} proudly serves customers in ${locationDisplay}. Visit our website or contact us for more information about our local services.`,
@@ -1173,7 +1195,9 @@ Respond in JSON format only:
     // Parse focusKey to extract location info
     const [locationType, locationValue] = input.focusKey.split(':');
     const locationDisplay = locationValue
-      ? locationValue.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+      ? locationValue
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, (c) => c.toUpperCase())
       : 'Your City';
 
     const prompt = `You are a local content specialist. Generate a city/region section for a business webpage.
@@ -1432,7 +1456,8 @@ Respond in JSON format only:
 
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
-        let caption = parsed.caption || `${input.productTitle} shown in detail.`;
+        let caption =
+          parsed.caption || `${input.productTitle} shown in detail.`;
         if (caption.length > 150) {
           caption = caption.substring(0, 147) + '...';
         }

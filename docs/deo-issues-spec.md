@@ -13,11 +13,11 @@ It powers:
 
 ## Evolution
 
-| Phase | Name | Scope |
-|-------|------|-------|
-| 3B | Issues Engine Core | Backend-only aggregated issues |
-| UX-7 | Issue Engine Lite | Product-focused issues with fix actions |
-| UX-8 | Issue Engine Full | Rich metadata, categories, and AI fix guidance |
+| Phase | Name               | Scope                                          |
+| ----- | ------------------ | ---------------------------------------------- |
+| 3B    | Issues Engine Core | Backend-only aggregated issues                 |
+| UX-7  | Issue Engine Lite  | Product-focused issues with fix actions        |
+| UX-8  | Issue Engine Full  | Rich metadata, categories, and AI fix guidance |
 
 ## 1. Issue Model
 
@@ -389,20 +389,20 @@ Issue Engine Lite extends the base issue model with product-focused issues and a
 
 ### 7.1 Additional Issue Types
 
-| Issue ID | Type | Severity | Fix Type |
-|----------|------|----------|----------|
-| `missing_seo_title` | Metadata | Critical | aiFix |
-| `missing_seo_description` | Metadata | Critical | aiFix |
-| `weak_seo_title` | Content Quality | Warning | aiFix |
-| `weak_seo_description` | Content Quality | Warning | aiFix |
-| `missing_long_description` | Content Quality | Warning | manualFix |
-| `duplicate_product_content` | Content Quality | Warning | aiFix |
-| `low_entity_coverage` | AI Visibility | Warning | aiFix |
-| `not_answer_ready` | AI Visibility | Warning | aiFix |
-| `weak_intent_match` | AI Visibility | Info | aiFix |
-| `missing_product_image` | Structural | Critical | manualFix |
-| `missing_price` | Structural | Critical | syncFix |
-| `missing_category` | Structural | Warning | syncFix |
+| Issue ID                    | Type            | Severity | Fix Type  |
+| --------------------------- | --------------- | -------- | --------- |
+| `missing_seo_title`         | Metadata        | Critical | aiFix     |
+| `missing_seo_description`   | Metadata        | Critical | aiFix     |
+| `weak_seo_title`            | Content Quality | Warning  | aiFix     |
+| `weak_seo_description`      | Content Quality | Warning  | aiFix     |
+| `missing_long_description`  | Content Quality | Warning  | manualFix |
+| `duplicate_product_content` | Content Quality | Warning  | aiFix     |
+| `low_entity_coverage`       | AI Visibility   | Warning  | aiFix     |
+| `not_answer_ready`          | AI Visibility   | Warning  | aiFix     |
+| `weak_intent_match`         | AI Visibility   | Info     | aiFix     |
+| `missing_product_image`     | Structural      | Critical | manualFix |
+| `missing_price`             | Structural      | Critical | syncFix   |
+| `missing_category`          | Structural      | Warning  | syncFix   |
 
 ### 7.2 Fix Action Types
 
@@ -425,21 +425,21 @@ Issue Engine Full extends all issues with rich metadata for better context, prio
 
 ### 8.1 Issue Categories
 
-| Category | Description | Example Issues |
-|----------|-------------|----------------|
-| `metadata` | SEO titles, descriptions, meta tags | missing_seo_title, weak_title |
-| `content_entity` | Content depth, entity coverage | thin_content, low_entity_coverage |
-| `answerability` | AI answer readiness | not_answer_ready, weak_intent_match |
-| `technical` | Crawl health, indexability | crawl_health_errors, indexability_problems |
-| `schema_visibility` | Entity signals, brand pages | brand_navigational_weakness |
+| Category            | Description                         | Example Issues                             |
+| ------------------- | ----------------------------------- | ------------------------------------------ |
+| `metadata`          | SEO titles, descriptions, meta tags | missing_seo_title, weak_title              |
+| `content_entity`    | Content depth, entity coverage      | thin_content, low_entity_coverage          |
+| `answerability`     | AI answer readiness                 | not_answer_ready, weak_intent_match        |
+| `technical`         | Crawl health, indexability          | crawl_health_errors, indexability_problems |
+| `schema_visibility` | Entity signals, brand pages         | brand_navigational_weakness                |
 
 ### 8.2 Fix Cost Levels
 
-| Fix Cost | Description | Time Estimate |
-|----------|-------------|---------------|
-| `one_click` | AI-fixable with single action | < 1 minute |
-| `manual` | Requires human content creation | 10-30 minutes |
-| `advanced` | Technical or structural changes | 30+ minutes |
+| Fix Cost    | Description                     | Time Estimate |
+| ----------- | ------------------------------- | ------------- |
+| `one_click` | AI-fixable with single action   | < 1 minute    |
+| `manual`    | Requires human content creation | 10-30 minutes |
+| `advanced`  | Technical or structural changes | 30+ minutes   |
 
 ### 8.3 New Fields
 
@@ -454,26 +454,31 @@ Each issue now includes:
 ### 8.4 Issue Enrichment by Category
 
 **Metadata Issues:**
+
 - category: `'metadata'`
 - aiFixable: `true` (for missing/weak titles and descriptions)
 - fixCost: `'one_click'`
 
 **Content/Entity Issues:**
+
 - category: `'content_entity'`
 - aiFixable: varies (some require manual content)
 - fixCost: `'manual'` or `'one_click'`
 
 **Answerability Issues:**
+
 - category: `'answerability'`
 - aiFixable: `true`
 - fixCost: `'one_click'`
 
 **Technical Issues:**
+
 - category: `'technical'`
 - aiFixable: `false`
 - fixCost: `'advanced'`
 
 **Schema/Visibility Issues:**
+
 - category: `'schema_visibility'`
 - aiFixable: varies
 - fixCost: `'manual'` or `'advanced'`
@@ -508,23 +513,25 @@ export type PerformanceSignalType =
 
 ### 9.2 Performance Issue Types
 
-| Issue ID | Signal Type | Severity Thresholds | Description |
-|----------|-------------|---------------------|-------------|
-| `render_blocking_resources` | `render_blocking` | warning: ≥3 pages, critical: ≥5 pages | Scripts/styles in `<head>` without async/defer |
-| `indexability_conflict` | `indexability_risk` | Always critical | noindex directives, canonical conflicts |
-| `slow_initial_response` | `ttfb_proxy` | warning: >10% pages, critical: >25% pages | HTML >500KB indicating slow TTFB |
-| `excessive_page_weight` | `page_weight_risk` | warning: >5% pages, critical: >10% pages | HTML >1MB (very large) |
-| `mobile_rendering_risk` | `mobile_readiness` | warning: >10% pages, critical: >25% pages | Missing viewport meta, layout issues |
+| Issue ID                    | Signal Type         | Severity Thresholds                       | Description                                    |
+| --------------------------- | ------------------- | ----------------------------------------- | ---------------------------------------------- |
+| `render_blocking_resources` | `render_blocking`   | warning: ≥3 pages, critical: ≥5 pages     | Scripts/styles in `<head>` without async/defer |
+| `indexability_conflict`     | `indexability_risk` | Always critical                           | noindex directives, canonical conflicts        |
+| `slow_initial_response`     | `ttfb_proxy`        | warning: >10% pages, critical: >25% pages | HTML >500KB indicating slow TTFB               |
+| `excessive_page_weight`     | `page_weight_risk`  | warning: >5% pages, critical: >10% pages  | HTML >1MB (very large)                         |
+| `mobile_rendering_risk`     | `mobile_readiness`  | warning: >10% pages, critical: >25% pages | Missing viewport meta, layout issues           |
 
 ### 9.3 Detection Rules
 
 #### Render-blocking Resources
 
 **Detection (during crawl):**
+
 - Scan `<head>` for `<script>` tags without `async`, `defer`, or `type="module"`
 - Scan `<head>` for `<link rel="stylesheet">` without `media="print"` or preload hints
 
 **Issue fields:**
+
 - `pillarId`: `'technical_indexability'`
 - `signalType`: `'render_blocking'`
 - `category`: `'technical'`
@@ -534,11 +541,13 @@ export type PerformanceSignalType =
 #### Indexability Conflict
 
 **Detection (during crawl):**
+
 - `<meta name="robots" content="noindex">`
 - `X-Robots-Tag: noindex` response header
 - Canonical URL pointing to different domain/page
 
 **Issue fields:**
+
 - `pillarId`: `'technical_indexability'`
 - `signalType`: `'indexability_risk'`
 - `category`: `'technical'`
@@ -549,11 +558,13 @@ export type PerformanceSignalType =
 #### Slow Initial Response (TTFB Proxy)
 
 **Detection (during crawl):**
+
 - HTML bytes captured via `Buffer.byteLength(html, 'utf-8')`
 - `htmlBytes > 500KB` → LARGE_HTML
 - `htmlBytes > 1MB` → VERY_LARGE_HTML
 
 **Issue fields:**
+
 - `pillarId`: `'technical_indexability'`
 - `signalType`: `'ttfb_proxy'`
 - `category`: `'technical'`
@@ -563,10 +574,12 @@ export type PerformanceSignalType =
 #### Excessive Page Weight
 
 **Detection:**
+
 - Same as Slow Initial Response but focuses on >1MB threshold
 - Indicates pages that are problematic for crawlers and users
 
 **Issue fields:**
+
 - `pillarId`: `'technical_indexability'`
 - `signalType`: `'page_weight_risk'`
 - `category`: `'technical'`
@@ -576,11 +589,13 @@ export type PerformanceSignalType =
 #### Mobile Rendering Risk
 
 **Detection (during crawl):**
+
 - Missing `<meta name="viewport">` tag
 - Viewport without `width=device-width`
 - Static viewport widths (e.g., `width=1024`)
 
 **Issue fields:**
+
 - `pillarId`: `'technical_indexability'`
 - `signalType`: `'mobile_readiness'`
 - `category`: `'technical'`
@@ -622,6 +637,7 @@ interface PerformanceSignalStatus {
 ```
 
 **Status Calculation:**
+
 - **Strong**: 0-2 total issues, no critical issues
 - **Needs improvement**: 3-9 issues or 1 risky signal
 - **Risky**: 10+ issues, 2+ risky signals, or any critical issue

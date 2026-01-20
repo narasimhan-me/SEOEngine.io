@@ -40,22 +40,27 @@ This document tracks the public marketing surface for EngineO.ai, including the 
 **Sections:**
 
 ### Shopify Hero
+
 - **Heading:** "EngineO.ai for Shopify".
 - **Subheading:** "Optimize your products, collections, pages & blogs for search and AI — automatically."
 - Copy explains connection to the Shopify store, full-store crawl, DEO issues, and AI-powered fixes.
 - **CTAs:** Start Free (`/signup`) and Connect Your Store (`/login`).
 
 ### Why Shopify Stores Need DEO (not SEO)
+
 - Explains that customers search across Google, TikTok, YouTube, ChatGPT, Shopping AI, and retail AI engines.
 - Lists the DEO pillars: Content, Entities, Technical health, Visibility signals, Answer-surface readiness.
 - Emphasizes that this goes beyond traditional SEO apps.
 
 ### Deep Crawl of Your Shopify Store
+
 - Details coverage: product pages, collections, home, blogs, About/Contact/Policies, and SEO liquid-generated pages.
 - Clarifies that DEO signals are computed for the entire storefront, not just products.
 
 ### Product Optimization Workspace (Shopify Edition)
+
 Shopify-focused workspace with:
+
 - Product-level DEO score.
 - AI-generated titles & descriptions.
 - Alt text + metadata analysis.
@@ -65,7 +70,9 @@ Shopify-focused workspace with:
 Highlights strengths: AI Metadata Generator, DEO-driven insights, Shopify sync, variant-aware crawling, mobile/desktop UX.
 
 ### Collection & Blog Optimization (Content Workspace)
+
 Describes support for:
+
 - Collection page optimization.
 - Blog post metadata optimization.
 - Home page insights and landing page DEO.
@@ -73,7 +80,9 @@ Describes support for:
 Positions EngineO.ai against Shopify SEO apps by covering the full content surface.
 
 ### Issues Engine for Shopify
+
 Explains detection of:
+
 - Missing product metadata.
 - Thin/duplicate descriptions.
 - Weak entity structure.
@@ -83,13 +92,16 @@ Explains detection of:
 Each issue links to the relevant workspace for fixes.
 
 ### Auto-Crawl + Auto-Recompute (Shopify Edition)
+
 - Nightly store crawl and automatic DEO scoring.
 - Automatic issue updates and Shopify metadata drift detection.
 - Trendlines noted as "coming soon".
 - Reinforces that merchants never have to rescan manually.
 
 ### Supported Shopify Themes, Apps, & Stacks
+
 Works with:
+
 - Any Shopify theme.
 - Online Store 2.0.
 - Hydrogen storefronts.
@@ -98,7 +110,9 @@ Works with:
 - Shopify Flow (future automation phases).
 
 ### Shopify-Specific FAQ
+
 Answers:
+
 - Does EngineO.ai modify my theme?
 - Does it affect store speed?
 - Do I need theme access?
@@ -108,6 +122,7 @@ Answers:
 Clarifies that DEO optimizes for both search engines and AI engines.
 
 ### Final CTA
+
 - Restates value: DEO Score, issues list, AI-powered product fixes, collection/page metadata, and automated daily updates.
 - **CTAs:** Start Free (`/signup`) and Connect Your Store (`/login`).
 
@@ -127,6 +142,7 @@ Clarifies that DEO optimizes for both search engines and AI engines.
 **Sections:**
 
 ### Pricing Hero
+
 - **Heading:** "Simple pricing for every website."
 - **Subheading:** "Choose a plan that grows with your business."
 - **CTAs:**
@@ -138,6 +154,7 @@ Clarifies that DEO optimizes for both search engines and AI engines.
 Plans implemented via `PricingTable`:
 
 **Free — $0/mo**
+
 - 1 project
 - 100 crawled pages
 - Weekly crawl
@@ -149,6 +166,7 @@ Plans implemented via `PricingTable`:
 - CTA: Start Free (`/signup`)
 
 **Pro — $29/mo (Most Popular)**
+
 - 5 projects
 - 5,000 crawled pages
 - Daily crawl
@@ -162,6 +180,7 @@ Plans implemented via `PricingTable`:
 - CTA: Get Pro (`/signup`)
 
 **Business — $99/mo**
+
 - 20 projects
 - 25,000 crawled pages
 - Hourly crawl scheduling (coming soon)
@@ -172,10 +191,12 @@ Plans implemented via `PricingTable`:
 - CTA: Contact Sales (`/contact`)
 
 **Optional Enterprise**
+
 - Custom pricing
 - CTA: Book Demo (`/contact`)
 
 ### Feature comparison table
+
 - One table row per key capability (projects, crawled pages, crawl frequency, Issues Engine, Product Workspace, Content Workspace, AI suggestions, Shopify SEO sync, DEO Trends, support level).
 - Columns: Free, Pro, Business.
 - Values match the bullets above.
@@ -183,6 +204,7 @@ Plans implemented via `PricingTable`:
 ### Pricing FAQs
 
 Implemented via `PricingFAQ` with common questions:
+
 - Free plan behavior.
 - Impact on themes / site code.
 - Whether a developer is required.
@@ -191,6 +213,7 @@ Implemented via `PricingFAQ` with common questions:
 - Discounts for agencies and annual billing.
 
 ### Final CTA
+
 - Copy: "Ready to improve your visibility across search & AI? Start Free Today."
 - CTA button: Start Free (`/signup`).
 - Secondary CTA: Talk to Sales (`/contact`).
@@ -211,6 +234,7 @@ Implemented via `PricingFAQ` with common questions:
 **Sections:**
 
 ### Websites Hero
+
 - **Heading:** "EngineO.ai for WordPress, Webflow, and Every Website."
 - **Subheading:** "Optimize all your pages, blogs, documentation, and landing pages for search & AI — automatically."
 - Copy explains full-site crawling, visibility issues detection, AI-powered fixes for titles/descriptions/metadata/content depth/entity structure.
@@ -218,17 +242,21 @@ Implemented via `PricingFAQ` with common questions:
 - **CTAs:** Start Free (`/signup`) and Try Demo (`/contact`).
 
 ### Why DEO Matters for All Websites (not just ecommerce)
+
 - Explains that search is no longer the only discovery channel.
 - AI assistants, chatbots, and answer engines rely on: Structured content, Entities, Metadata, Crawlability, Semantic clarity.
 - EngineO.ai helps any website become discoverable across: Google, ChatGPT, Gemini, Perplexity, AI agents, Vertical search systems.
 - DEO is the new foundation of visibility.
 
 ### Full-Site Crawling
+
 - EngineO.ai analyzes all URLs: Home page, About/Contact/Pricing, Blog index + blog posts, Documentation pages, Landing pages, Category/tag taxonomies, Custom routes.
 - No plugin or script required — just enter your domain.
 
 ### Content Workspace (Non-Ecommerce Edition)
+
 A dedicated workspace for optimizing any page:
+
 - Extracted metadata (Title, H1, Description).
 - AI-generated suggestions.
 - Content depth analysis.
@@ -240,7 +268,9 @@ A dedicated workspace for optimizing any page:
 This is the equivalent of your Product Workspace — but built for all website types.
 
 ### Issues Engine for Content Sites
+
 EngineO.ai detects the issues that most CMS sites struggle with:
+
 - Thin content.
 - Missing or duplicate metadata.
 - Weak H1/H2 structure.
@@ -253,7 +283,9 @@ EngineO.ai detects the issues that most CMS sites struggle with:
 Each issue links to the affected pages → workspace → fix.
 
 ### AI-Powered Metadata Generation
+
 Generate optimized:
+
 - Titles.
 - Meta descriptions.
 - H1 headings.
@@ -263,27 +295,34 @@ Generate optimized:
 AI suggestions are tuned for both search engines AND AI models.
 
 ### Supported Platforms
+
 Works with every platform:
 
 **Website & blog CMS:**
+
 - WordPress, Webflow, Wix, Squarespace, Ghost, HubSpot CMS, Drupal, Blogger.
 
 **Modern headless frameworks:**
+
 - Next.js, Remix, Astro, Gatsby, Nuxt, SvelteKit, Custom frameworks.
 
 **Custom sites:**
+
 - Static sites, Server-rendered apps, Hybrid architectures.
 
 If your website is crawlable, EngineO.ai can analyze it and surface DEO insights.
 
 ### Websites FAQ
+
 Answers:
+
 - Do I need a plugin for WordPress or Webflow? → No — EngineO.ai crawls your public site directly.
 - Can it optimize blog metadata? → Yes — blog posts are first-class in the Content Workspace.
 - Does it rewrite my actual page content? → No — it generates recommendations. You stay in control.
 - How often does it crawl my site? → Depending on your plan, daily, weekly, or custom schedule.
 
 ### Final CTA
+
 - Copy: "Ready to make your website visible across search & AI?"
 - **CTAs:** Start Free (`/signup`) and Talk to the founder (`/contact`).
 
@@ -304,13 +343,16 @@ Answers:
 **Sections:**
 
 ### Product Tour Hero
+
 - **Heading:** "A complete visibility engine for your entire website."
 - Copy: "EngineO.ai crawls your site, analyzes signals, detects issues, computes a DEO Score, and gives you AI-powered workflows to fix anything blocking your visibility."
 - "One platform. Every page. All your discovery signals."
 - **CTAs:** Start Free (`/signup`) and Try Demo (`/contact`).
 
 ### What EngineO.ai Actually Does + DEO Score
+
 Implemented via `ProductTourDEOSection`:
+
 - Clarifies that EngineO.ai is not an SEO tool, but a DEO platform for the search + AI era.
 - Steps: Crawls your entire website, Extracts visibility signals, Computes a DEO Score, Detects issues, Generates AI fixes, Automates rescans and recompute, Helps you optimize products/pages/blogs/collections.
 - Shows four DEO components: Content Quality, Entities & Semantic Signals, Technical Health, Visibility Strength.
@@ -318,47 +360,63 @@ Implemented via `ProductTourDEOSection`:
 - Includes a placeholder visualization for a DEO Score dial/card.
 
 ### Full-Site Crawling Engine
+
 Implemented via `ProductTourCrawlSection`:
+
 - Lists URL types crawled: product pages, collections/categories, blog posts, landing pages, home, documentation, custom routes, hub pages, navigation pages.
 - Copy: "We crawl your entire website automatically. No setup. No plugins. No code."
 - Includes a "Crawl graph" visual placeholder card.
 
 ### Issues Engine
+
 Implemented via `ProductTourIssuesSection`:
+
 - Issues detected: Missing metadata, Thin content, Weak structure, Answer-surface gaps, Low entity coverage, Crawl failures, Navigation gaps, Shallow product content, Broken links.
 - Each issue explains: What it is, Why it matters, How to fix it, Which pages/products are affected.
 - CTA button: "View all issues" leading into the app.
 
 ### Product Optimization Workspace
+
 Implemented via `ProductTourProductWorkspace`:
+
 - For ecommerce stores: Product overview, AI metadata suggestions, SEO + DEO insights, Shopify sync, Variant-aware crawling, Issue badges, Optimization history (future).
 - Includes a screenshot placeholder for the Product Workspace.
 
 ### Content Optimization Workspace
+
 Implemented via `ProductTourContentWorkspace`:
+
 - For all non-product pages: Title + description editing, AI suggestions, Thin content detector, Entity structure insights, Crawl health, Page-level issue list.
 - Support for: WordPress, Webflow, Wix, Squarespace, Ghost, Custom sites.
 - Includes a screenshot placeholder for the Content Workspace.
 
 ### DEO Automation
+
 Implemented via `ProductTourAutomation`:
+
 - Copy: "Your website changes. Your visibility shouldn't break."
 - EngineO.ai automates: Scheduled crawls, DEO recompute, Issue re-evaluation, Drift detection (Shopify metadata changes), Trend snapshots (coming soon).
 
 ### Supported Platforms
+
 Implemented via `ProductTourPlatforms`:
+
 - Small section linking out to the Websites / CMS vertical page.
 - Platforms listed: WordPress, Webflow, Wix, Squarespace, Shopify, Ghost, Custom, Static headless sites.
 - CTA: "View supported platforms" linking to `/websites`.
 
 ### DEO vs SEO
+
 Implemented via `ProductTourSEOComparison`:
+
 - Clarifies: SEO focuses on keywords and SERP ranking. DEO focuses on visibility across search engines, AI assistants, and answer engines.
 - EngineO.ai evaluates: Discovery surface, Entity relevance, Answer readiness, Crawl accessibility.
 - Positions EngineO.ai as the visibility layer for the AI era.
 
 ### Final CTA
+
 Implemented via `ProductTourCTASection`:
+
 - Copy: "Everything you need to understand and improve your website. Get your DEO Score, issues, and AI-powered fixes in minutes."
 - CTA button: Start Free (`/signup`).
 
@@ -378,6 +436,7 @@ Implemented via `ProductTourCTASection`:
 **Sections:**
 
 ### DEO Hero
+
 - **Heading:** "What is DEO?"
 - **Subheading:** "Discovery Engine Optimization is SEO + AEO + PEO + VEO."
 - Short copy defining DEO as the practice of optimizing websites for discovery across search engines, AI assistants, and answer engines.
@@ -385,31 +444,39 @@ Implemented via `ProductTourCTASection`:
 - **CTAs:** See your DEO Score (`/signup`) and Learn More (anchor to next section).
 
 ### Why DEO Exists
+
 - Copy explaining that traditional SEO was built for a world where Google was the only discovery channel.
 - Lists new discovery surfaces: ChatGPT, Gemini, Perplexity, voice assistants, in-app AI, vertical search systems.
 - Positions DEO as the framework for multi-channel visibility.
 
 ### The Four DEO Pillars
+
 Lists the four optimization layers that make up DEO:
+
 1. **Content Quality** — deep, unique, authoritative content.
 2. **Entities & Semantics** — structured data, schema, entity linkage.
 3. **Technical Health** — crawlability, speed, indexability, mobile-readiness.
 4. **Visibility Signals** — mentions, citations, answer-surface appearance.
 
 ### How AI "Sees" Your Website
+
 - Explains that AI models and retrieval systems extract entities, evaluate structure, and score answer-worthiness.
 - Notes that traditional SEO metrics (backlinks, keyword density) are less relevant than semantic clarity and entity coverage.
 - Positions DEO as the framework for AI-age visibility.
 
 ### DEO Results
+
 Lists outcomes from implementing DEO:
+
 - Higher organic traffic.
 - Increased AI citations and mentions.
 - Improved answer-surface presence.
 - More consistent brand visibility across platforms.
 
 ### DEO vs SEO Comparison Table
+
 A side-by-side comparison:
+
 - SEO: Keyword-focused → DEO: Entity & structure-focused.
 - SEO: SERP-only → DEO: Multi-platform discoverability.
 - SEO: Optimizes a few pages → DEO: Optimizes entire site.
@@ -418,6 +485,7 @@ A side-by-side comparison:
 - SEO: Rank-based → DEO: Visibility-based.
 
 ### How EngineO.ai Implements DEO
+
 - Full-site crawl and signal extraction.
 - DEO Score as the universal visibility metric.
 - Issues Engine for clear, actionable problem detection.
@@ -426,7 +494,9 @@ A side-by-side comparison:
 - CMS-agnostic — works with Shopify, WordPress, Webflow, SaaS sites, blogs, custom stacks.
 
 ### Who DEO Is For
+
 Lists target audiences:
+
 - SaaS companies.
 - Ecommerce brands.
 - Publishers & bloggers.
@@ -438,13 +508,16 @@ Lists target audiences:
 Positions DEO as the visibility foundation for the AI era.
 
 ### DEO FAQs
+
 Answers:
+
 - Is DEO meant to replace SEO? → No — it expands SEO to include AI and non-SERP discovery systems.
 - Does DEO help with AI visibility? → Yes — DEO measures and improves answer-surface potential.
 - Do I need technical skills? → No — EngineO.ai automates most DEO evaluation.
 - Is DEO only for big websites? → No — DEO benefits any website with content meant to be found.
 
 ### Final CTA
+
 - **Heading:** "Ready to see your DEO Score?"
 - Copy: "Get your visibility analysis and AI-powered fixes in seconds."
 - **CTA:** Start Free (`/signup`).

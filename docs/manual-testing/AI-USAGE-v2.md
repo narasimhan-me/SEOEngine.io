@@ -60,17 +60,20 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - `AI_USAGE_MONTHLY_RUN_LIMIT_PRO=10`
 - `AI_USAGE_SOFT_THRESHOLD_PERCENT=80`
 - `AI_USAGE_HARD_ENFORCEMENT_PRO` unset or `false`
 - Ledger already has 8 AI runs for this project (PREVIEW_GENERATE/DRAFT_GENERATE combined), created via AutomationPlaybookRun rows.
 
 **Steps:**
+
 1. Log in as Pro user and open the Playbooks page (`/projects/:id/automation/playbooks`).
 2. Ensure at least one product qualifies for the playbook.
 3. Click "Generate preview (uses AI)".
 
 **Expected Results:**
+
 - **API:**
   - `GET /ai/projects/:projectId/usage/quota?action=PREVIEW_GENERATE` returns:
     - `status = "warning"`
@@ -89,16 +92,19 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - `AI_USAGE_MONTHLY_RUN_LIMIT_PRO=5`
 - `AI_USAGE_SOFT_THRESHOLD_PERCENT=80`
 - `AI_USAGE_HARD_ENFORCEMENT_PRO=true`
 - Ledger has 5 AI runs (at or above limit) for the project.
 
 **Steps:**
+
 1. Log in as Pro user and open the Playbooks page.
 2. Attempt to generate a new preview ("Generate preview (uses AI)").
 
 **Expected Results:**
+
 - **API:**
   - `GET /ai/projects/:projectId/usage/quota?action=PREVIEW_GENERATE` returns:
     - `status = "blocked"`
@@ -119,16 +125,19 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Valid preview + draft already exist and are stored in session (resumedFromSession banner appears).
 - Monthly quota has been exceeded (Scenario 2 conditions) so new previews would be blocked.
 
 **Steps:**
+
 1. Generate preview and progress into estimate/apply at least once (ensure preview samples exist).
 2. Refresh the Playbooks page (session restore triggers "Saved preview found").
 3. Without clicking any "(uses AI)" CTAs:
    - Click "Recalculate estimate" (if offered) or "Continue".
 
 **Expected Results:**
+
 - **UI:**
   - "Saved preview found" banner appears.
   - User can proceed through estimate and apply using the saved draft, with no additional AI usage.
@@ -144,13 +153,16 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Monthly quota is fully exhausted; Scenario 2 verified for preview.
 - Valid READY draft exists for the playbook (generated before quota exhaustion).
 
 **Steps:**
+
 1. From an APPLY_READY state, click "Apply" to run the playbook.
 
 **Expected Results:**
+
 - **UI:**
   - Apply works exactly as before quotas (success/partial/stop states unchanged).
   - No "(uses AI)" label on apply CTAs (AI-USAGE-1 contract).
@@ -166,15 +178,18 @@
 **ID:** HP-005
 
 **Preconditions:**
+
 - Project is at hard limit with enforcement enabled.
 - Tester can manipulate the system date or DB to simulate month boundary (or wait for a real boundary).
 
 **Steps:**
+
 1. Confirm `GET /ai/projects/:projectId/usage/quota` reports `status = "blocked"`.
 2. Adjust data so all existing AutomationPlaybookRun rows fall into the previous calendar month (or advance system date into next month).
 3. Call `GET /ai/projects/:projectId/usage/summary` and `GET /ai/projects/:projectId/usage/quota` again.
 
 **Expected Results:**
+
 - **API:**
   - New month summary shows `totalAiRuns = 0`.
   - Quota evaluation returns `status = "allowed"` or `status = "warning"` depending on new usage.
@@ -189,10 +204,12 @@
 **Description:** Quota evaluation endpoint fails, but AI preview still works (no silent blocking due to quota errors).
 
 **Steps:**
+
 1. Temporarily break `/ai/projects/:projectId/usage/quota` (e.g., by proxying to a non-responsive host).
 2. Attempt to generate a preview.
 
 **Expected Behavior:**
+
 - **UI:**
   - Preview CTA still works as pre-AI-USAGE v2.
   - No quota warnings are shown (fallback behavior).
@@ -207,10 +224,12 @@
 **Description:** Misconfiguration where monthlyAiRunsLimit is set but ledger returns unexpected data.
 
 **Steps:**
+
 1. Configure `AI_USAGE_MONTHLY_RUN_LIMIT_PRO` with a non-zero value.
 2. Simulate a scenario where ledger returns zero runs but environment variables are mis-set.
 
 **Expected Behavior:**
+
 - Quota evaluation remains conservative but non-blocking.
 - Warning text remains truthful (no misleading percentages).
 
@@ -223,9 +242,11 @@
 **Scenario:** Backend has hard enforcement enabled and returns `AI_QUOTA_EXCEEDED`.
 
 **Steps:**
+
 1. Trigger preview when at/above quota with hard enforcement enabled.
 
 **Expected Behavior:**
+
 - **UI:** Shows clear, blocking message with Upgrade CTA.
 - **API:** 429 response with `code = "AI_QUOTA_EXCEEDED"`.
 - **AI:** No provider calls (verified in tests).
@@ -239,6 +260,7 @@
 **Scenario:** Verify quota applies only to AI-triggering Automation Playbook actions.
 
 **Scope:**
+
 - **Applies To:**
   - Preview generation (PREVIEW_GENERATE)
   - Full draft generation (DRAFT_GENERATE)
@@ -249,6 +271,7 @@
   - Non-AI actions (navigation, settings, manual editing)
 
 **Expected Behavior:**
+
 - Only preview/draft actions are subject to plan-aware quota warnings/blocks.
 - All other actions behave exactly as in AI-USAGE-1 / AUTO-PB-1.3.
 
@@ -307,9 +330,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Plan-aware Automation Playbooks AI quota enforcement (AI-USAGE v2) |
+| Field              | Value                                                              |
+| ------------------ | ------------------------------------------------------------------ |
+| **Tester Name**    | [Pending]                                                          |
+| **Date**           | [YYYY-MM-DD]                                                       |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed                              |
+| **Notes**          | Plan-aware Automation Playbooks AI quota enforcement (AI-USAGE v2) |

@@ -8,8 +8,9 @@ export function ProductTourHero() {
           A complete visibility engine for your entire website.
         </h1>
         <p className="mt-3 max-w-2xl mx-auto text-sm text-muted-foreground">
-          EngineO.ai crawls your site, analyzes signals, detects issues, computes a DEO Score, and
-          gives you AI-powered workflows to fix anything blocking your visibility.
+          EngineO.ai crawls your site, analyzes signals, detects issues,
+          computes a DEO Score, and gives you AI-powered workflows to fix
+          anything blocking your visibility.
         </p>
         <p className="mt-2 max-w-2xl mx-auto text-sm text-muted-foreground">
           One platform. Every page. All your discovery signals.
@@ -21,7 +22,10 @@ export function ProductTourHero() {
           >
             Start Free
           </Link>
-          <Link href="/contact" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+          <Link
+            href="/contact"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
             Try Demo &rarr;
           </Link>
         </div>

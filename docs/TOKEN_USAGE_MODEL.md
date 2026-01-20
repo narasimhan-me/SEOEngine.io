@@ -64,18 +64,18 @@ We must meter tokens for:
 
 Tokens must be counted for:
 
-| Feature | Tokens Count? | Notes |
-|---------|---------------|-------|
-| Metadata generation | ✅ | Titles, descriptions, alt text |
-| FAQ / answer blocks | ✅ | Completion-heavy |
-| Schema generation | ✅ | Typically < 300 tokens |
-| DEO audit | ⚠️ Mixed | Only LLM components (classification, interpretation) |
-| Product sync | ❌ No | Does not use AI |
-| Page crawl | ❌ No | Uses scraper / fetch |
-| Entity graph (future) | ✅ | LLM-based |
-| Visibility analysis | ⚠️ Partial | If LLM used for interpretation |
-| Automations | ✅ | If they trigger AI tasks via the Automation Engine |
-| AI-powered fixes | ✅ | Each fix consumes tokens |
+| Feature               | Tokens Count? | Notes                                                |
+| --------------------- | ------------- | ---------------------------------------------------- |
+| Metadata generation   | ✅            | Titles, descriptions, alt text                       |
+| FAQ / answer blocks   | ✅            | Completion-heavy                                     |
+| Schema generation     | ✅            | Typically < 300 tokens                               |
+| DEO audit             | ⚠️ Mixed      | Only LLM components (classification, interpretation) |
+| Product sync          | ❌ No         | Does not use AI                                      |
+| Page crawl            | ❌ No         | Uses scraper / fetch                                 |
+| Entity graph (future) | ✅            | LLM-based                                            |
+| Visibility analysis   | ⚠️ Partial    | If LLM used for interpretation                       |
+| Automations           | ✅            | If they trigger AI tasks via the Automation Engine   |
+| AI-powered fixes      | ✅            | Each fix consumes tokens                             |
 
 ## 3.1 DEO Pillar Token Categories
 
@@ -106,13 +106,13 @@ Model responses including:
 **Token formula:**
 
 ```typescript
-tokensUsed = response.usage.total_tokens
+tokensUsed = response.usage.total_tokens;
 ```
 
 If the provider doesn't provide totals:
 
 ```typescript
-tokensUsed = promptTokens + completionTokens
+tokensUsed = promptTokens + completionTokens;
 ```
 
 ### Multi-step operations
@@ -195,10 +195,15 @@ Repeat for:
 The Automation Engine and `AutomationService` must call the token logger with a distinct source label for automation-triggered AI operations, in line with the Automation Engine spec (`docs/AUTOMATION_ENGINE_SPEC.md`). For example:
 
 ```typescript
-await this.tokenLogger.log(userId, tokens, 'automation:auto_generate_metadata_for_missing_metadata');
+await this.tokenLogger.log(
+  userId,
+  tokens,
+  'automation:auto_generate_metadata_for_missing_metadata'
+);
 ```
 
 This enables:
+
 - Tracking automation-specific token consumption
 - Distinguishing manual vs automated AI usage
 - Per-rule token budgeting (future)
@@ -253,7 +258,7 @@ Every new Stripe billing period:
 
 ```typescript
 await prisma.tokenUsage.deleteMany({
-  where: { userId }
+  where: { userId },
 });
 ```
 
@@ -355,11 +360,11 @@ This allows:
 
 Stripe → create metered products:
 
-| Add-on | Price |
-|--------|-------|
-| +100k tokens | $8 |
-| +500k tokens | $30 |
-| +1M tokens | $55 |
+| Add-on       | Price |
+| ------------ | ----- |
+| +100k tokens | $8    |
+| +500k tokens | $30   |
+| +1M tokens   | $55   |
 
 ### Implementation
 
@@ -386,7 +391,6 @@ Required safeguards:
 1. **Rate-limiting AI calls**
 
    Per user:
-
    - 10 calls/minute (Starter)
    - 30 calls/minute (Pro)
    - 60 calls/minute (Agency)
@@ -402,7 +406,6 @@ Required safeguards:
 4. **Abuse patterns**
 
    Detect:
-
    - Repetitive low-quality generation
    - Token stuffing
    - Excessive retries

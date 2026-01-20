@@ -68,13 +68,22 @@ export default function AdminUserDetailPage() {
   }
 
   async function handleImpersonate() {
-    if (!confirm('Start read-only impersonation for this user? This action will be logged.')) {
+    if (
+      !confirm(
+        'Start read-only impersonation for this user? This action will be logged.'
+      )
+    ) {
       return;
     }
     setActionLoading(true);
     try {
-      const result = await adminApi.impersonateUser(userId, 'Admin panel impersonation');
-      alert(`Impersonation token generated. Mode: ${result.mode}\n\nToken (copy and use in another browser):\n${result.token}`);
+      const result = await adminApi.impersonateUser(
+        userId,
+        'Admin panel impersonation'
+      );
+      alert(
+        `Impersonation token generated. Mode: ${result.mode}\n\nToken (copy and use in another browser):\n${result.token}`
+      );
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to impersonate');
     } finally {
@@ -141,7 +150,10 @@ export default function AdminUserDetailPage() {
   return (
     <div>
       <div className="mb-6">
-        <Link href="/admin/users" className="text-blue-600 hover:text-blue-800 text-sm">
+        <Link
+          href="/admin/users"
+          className="text-blue-600 hover:text-blue-800 text-sm"
+        >
           &larr; Back to Users
         </Link>
       </div>
@@ -161,19 +173,27 @@ export default function AdminUserDetailPage() {
           </div>
           <div>
             <p className="text-sm text-gray-500">Plan</p>
-            <p className="font-medium capitalize">{user.subscription?.plan || 'free'}</p>
+            <p className="font-medium capitalize">
+              {user.subscription?.plan || 'free'}
+            </p>
           </div>
           <div>
             <p className="text-sm text-gray-500">Status</p>
-            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-              user.accountStatus === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-            }`}>
+            <span
+              className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                user.accountStatus === 'ACTIVE'
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
+              }`}
+            >
               {user.accountStatus}
             </span>
           </div>
           <div>
             <p className="text-sm text-gray-500">AI Usage This Month</p>
-            <p className="font-medium">{user.usageSummary.aiUsageThisMonth} runs</p>
+            <p className="font-medium">
+              {user.usageSummary.aiUsageThisMonth} runs
+            </p>
           </div>
           <div>
             <p className="text-sm text-gray-500">Last Activity</p>
@@ -185,7 +205,9 @@ export default function AdminUserDetailPage() {
       {/* Actions (role-gated on backend) */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Actions</h2>
-        <p className="text-sm text-gray-500 mb-4">All actions are logged in the audit log.</p>
+        <p className="text-sm text-gray-500 mb-4">
+          All actions are logged in the audit log.
+        </p>
         <div className="flex gap-3">
           <button
             onClick={handleImpersonate}
@@ -213,20 +235,29 @@ export default function AdminUserDetailPage() {
 
       {/* Projects */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Projects ({user.projects.length})</h2>
+        <h2 className="text-lg font-medium text-gray-900 mb-4">
+          Projects ({user.projects.length})
+        </h2>
         {user.projects.length === 0 ? (
           <p className="text-gray-500 text-sm">No projects</p>
         ) : (
           <div className="space-y-3">
             {user.projects.map((project) => (
-              <div key={project.id} className="flex justify-between items-center border-b border-gray-100 pb-2">
+              <div
+                key={project.id}
+                className="flex justify-between items-center border-b border-gray-100 pb-2"
+              >
                 <div>
                   <p className="font-medium">{project.name}</p>
                   <p className="text-sm text-gray-500">{project.domain}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm">DEO: {project.currentDeoScore ?? 'N/A'}</p>
-                  <p className="text-xs text-gray-500">{project._count.products} products</p>
+                  <p className="text-sm">
+                    DEO: {project.currentDeoScore ?? 'N/A'}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {project._count.products} products
+                  </p>
                 </div>
               </div>
             ))}
@@ -243,10 +274,18 @@ export default function AdminUserDetailPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead>
               <tr>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase">Run Type</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase">AI Used</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase">Created</th>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase">
+                  Run Type
+                </th>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase">
+                  Status
+                </th>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase">
+                  AI Used
+                </th>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase">
+                  Created
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -255,7 +294,9 @@ export default function AdminUserDetailPage() {
                   <td className="py-2 text-sm">{run.runType}</td>
                   <td className="py-2 text-sm">{run.status}</td>
                   <td className="py-2 text-sm">{run.aiUsed ? 'Yes' : 'No'}</td>
-                  <td className="py-2 text-sm text-gray-500">{formatDate(run.createdAt)}</td>
+                  <td className="py-2 text-sm text-gray-500">
+                    {formatDate(run.createdAt)}
+                  </td>
                 </tr>
               ))}
             </tbody>

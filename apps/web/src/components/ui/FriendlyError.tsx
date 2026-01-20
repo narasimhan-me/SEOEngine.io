@@ -10,7 +10,7 @@ interface FriendlyErrorProps {
 
 export default function FriendlyError({
   title = 'Something went wrong',
-  message = "Oops, our SEO robot tripped over a cable. Please try again in a few seconds.",
+  message = 'Oops, our SEO robot tripped over a cable. Please try again in a few seconds.',
   onRetry,
 }: FriendlyErrorProps) {
   const router = useRouter();

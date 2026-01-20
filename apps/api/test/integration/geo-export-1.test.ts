@@ -33,7 +33,9 @@ describe('GEO-EXPORT-1 – GEO Report Export and Share Links', () => {
 
   describe('GET /projects/:id/geo-reports/assemble', () => {
     it('returns export-safe GEO report data', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       const product = await testPrisma.product.create({
         data: {
@@ -79,11 +81,15 @@ describe('GEO-EXPORT-1 – GEO Report Export and Share Links', () => {
       }
 
       // Verify disclaimer text
-      expect(res.body.disclaimer).toContain('internal content readiness signals');
+      expect(res.body.disclaimer).toContain(
+        'internal content readiness signals'
+      );
     });
 
     it('returns 403 for unauthorized user', async () => {
-      const { project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
       const otherUser = await testPrisma.user.create({
         data: { email: 'other@test.com', password: 'hashed' },
       });
@@ -97,7 +103,9 @@ describe('GEO-EXPORT-1 – GEO Report Export and Share Links', () => {
 
   describe('Share Link Management', () => {
     it('POST /projects/:id/geo-reports/share-links creates a share link', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       const res = await request(server)
         .post(`/projects/${project.id}/geo-reports/share-links`)
@@ -114,13 +122,16 @@ describe('GEO-EXPORT-1 – GEO Report Export and Share Links', () => {
       // Verify expiry is ~14 days from now
       const expiresAt = new Date(res.body.shareLink.expiresAt);
       const now = new Date();
-      const daysDiff = (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+      const daysDiff =
+        (expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
       expect(daysDiff).toBeGreaterThan(13);
       expect(daysDiff).toBeLessThan(15);
     });
 
     it('GET /projects/:id/geo-reports/share-links lists share links', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       // Create a share link
       await testPrisma.geoReportShareLink.create({
@@ -143,7 +154,9 @@ describe('GEO-EXPORT-1 – GEO Report Export and Share Links', () => {
     });
 
     it('DELETE /projects/:id/geo-reports/share-links/:linkId revokes a share link', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       const link = await testPrisma.geoReportShareLink.create({
         data: {
@@ -169,7 +182,9 @@ describe('GEO-EXPORT-1 – GEO Report Export and Share Links', () => {
 
   describe('Public Share View', () => {
     it('GET /public/geo-reports/:shareToken returns valid report for active link', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       await testPrisma.product.create({
         data: {
@@ -202,7 +217,9 @@ describe('GEO-EXPORT-1 – GEO Report Export and Share Links', () => {
     });
 
     it('GET /public/geo-reports/:shareToken returns revoked status for revoked link', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       const link = await testPrisma.geoReportShareLink.create({
         data: {
@@ -224,7 +241,9 @@ describe('GEO-EXPORT-1 – GEO Report Export and Share Links', () => {
     });
 
     it('GET /public/geo-reports/:shareToken returns expired status for expired link', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       const link = await testPrisma.geoReportShareLink.create({
         data: {

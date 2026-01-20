@@ -2,7 +2,7 @@
 
 > Read-only GEO metrics derived from Answer Units and fix applications.
 >
-> **Mental Model**: GEO Insights measure *internal readiness* – how well your content is structured for potential extraction by answer engines. These are explainable, auditable signals, **not** external citation guarantees.
+> **Mental Model**: GEO Insights measure _internal readiness_ – how well your content is structured for potential extraction by answer engines. These are explainable, auditable signals, **not** external citation guarantees.
 
 ---
 
@@ -11,21 +11,25 @@
 The following decisions are locked for v1 and must not be changed without explicit approval:
 
 ### Mental Model
+
 - GEO Insights measure **internal readiness signals**, not external citation guarantees
 - All copy must avoid implying causation between readiness scores and actual citations
 - Use "may," "can help," "supports" – never "will," "guarantees," "ensures"
 
 ### Competitor Handling
+
 - Competitor visibility is opt-in only
 - When displayed, use aggregated anonymized form (e.g., "Competitors average: Medium")
 - Never expose specific competitor product names in dashboards
 
 ### Required Micro-Sections
+
 - Every metric card includes a "Why this matters" explanation
 - Every section includes a "What to do next" action or link
 - Explainer text uses hedged language (see Mental Model)
 
 ### Trust Language
+
 - "Attribution readiness" instead of "citation confidence" in exports
 - "Answer engines" instead of specific vendor names (ChatGPT, Perplexity)
 - Include disclaimer: "These metrics reflect internal content readiness signals. Actual citations by AI systems depend on many factors outside your control."
@@ -137,15 +141,15 @@ interface GeoInsights {
 
 ### Overview Metrics
 
-| Metric | Source | Computation |
-|--------|--------|-------------|
-| `productsAnswerReadyCount` | Product + AnswerBlock | Products with at least one High-confidence Answer Block |
-| `productsAnswerReadyPercent` | Derived | `(productsAnswerReadyCount / productsTotal) * 100` |
-| `answersTotal` | AnswerBlock | Count of all Answer Blocks in project |
-| `answersMultiIntentCount` | AnswerBlock + intent mapping | Answer Blocks serving 2+ intents (clarity+structure pass) |
-| `reuseRatePercent` | Derived | `(answersMultiIntentCount / answersTotal) * 100` |
-| `confidenceDistribution` | AnswerBlock | Aggregate of all Answer Block confidence levels |
-| `trustTrajectory` | ProductGeoFixApplication | Count of products/events with improved confidence |
+| Metric                       | Source                       | Computation                                               |
+| ---------------------------- | ---------------------------- | --------------------------------------------------------- |
+| `productsAnswerReadyCount`   | Product + AnswerBlock        | Products with at least one High-confidence Answer Block   |
+| `productsAnswerReadyPercent` | Derived                      | `(productsAnswerReadyCount / productsTotal) * 100`        |
+| `answersTotal`               | AnswerBlock                  | Count of all Answer Blocks in project                     |
+| `answersMultiIntentCount`    | AnswerBlock + intent mapping | Answer Blocks serving 2+ intents (clarity+structure pass) |
+| `reuseRatePercent`           | Derived                      | `(answersMultiIntentCount / answersTotal) * 100`          |
+| `confidenceDistribution`     | AnswerBlock                  | Aggregate of all Answer Block confidence levels           |
+| `trustTrajectory`            | ProductGeoFixApplication     | Count of products/events with improved confidence         |
 
 ### Coverage by Intent
 
@@ -157,6 +161,7 @@ Coverage is computed using `computeGeoIntentCoverageCounts()`:
 4. Generate gaps for intents with low coverage
 
 All 5 SearchIntentTypes must appear in `byIntent`:
+
 - `transactional`
 - `comparative`
 - `problem_use_case`
@@ -214,6 +219,7 @@ Each section includes `whyThisMatters` explaining the metric's value using hedge
 **URL:** `/projects/:projectId/insights/geo-insights`
 
 Displays:
+
 - Overview cards (answer-ready %, confidence distribution)
 - Intent coverage chart
 - Top reused answers
@@ -225,6 +231,7 @@ Displays:
 **URL:** `/projects/:projectId/products/:productId` (GEO section)
 
 Displays:
+
 - Product-level readiness signals
 - Answer Units with signal evaluations
 - Citation confidence badge
@@ -241,6 +248,7 @@ Returns full `ProjectInsightsResponse` including `geoInsights` block.
 **Authorization:** JWT required, project membership
 
 **Response:**
+
 ```json
 {
   "projectId": "...",
@@ -262,6 +270,7 @@ Returns full `ProjectInsightsResponse` including `geoInsights` block.
 ### Unit Tests
 
 `packages/shared/src/geo-types.test.ts`:
+
 - `deriveGeoAnswerIntentMapping()` – intent derivation
 - `computeGeoReuseStats()` – reuse metrics
 - `computeGeoIntentCoverageCounts()` – coverage counts
@@ -269,6 +278,7 @@ Returns full `ProjectInsightsResponse` including `geoInsights` block.
 ### Integration Tests
 
 `apps/api/test/integration/geo-insights-2.test.ts`:
+
 - Full `geoInsights` response shape validation
 - All 5 intents present in `byIntent`
 - Trust trajectory reflects `ProductGeoFixApplication` records
@@ -285,6 +295,6 @@ Creates test data for GEO Insights validation.
 
 ## Document History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2025-12-19 | Initial GEO Insights documentation (GEO-INSIGHTS-2) |
+| Version | Date       | Changes                                             |
+| ------- | ---------- | --------------------------------------------------- |
+| 1.0     | 2025-12-19 | Initial GEO Insights documentation (GEO-INSIGHTS-2) |

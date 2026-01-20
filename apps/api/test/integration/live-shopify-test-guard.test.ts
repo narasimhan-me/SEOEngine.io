@@ -35,7 +35,7 @@ describe('TEST-3 – assertLiveShopifyTestEnv()', () => {
       delete process.env.ENGINEO_LIVE_SHOPIFY_TEST;
 
       expect(() => assertLiveShopifyTestEnv('test')).toThrow(
-        /ENGINEO_LIVE_SHOPIFY_TEST must be set to "1"/,
+        /ENGINEO_LIVE_SHOPIFY_TEST must be set to "1"/
       );
     });
 
@@ -44,7 +44,7 @@ describe('TEST-3 – assertLiveShopifyTestEnv()', () => {
       process.env.ENGINEO_LIVE_SHOPIFY_TEST = 'true';
 
       expect(() => assertLiveShopifyTestEnv('test')).toThrow(
-        /ENGINEO_LIVE_SHOPIFY_TEST must be set to "1"/,
+        /ENGINEO_LIVE_SHOPIFY_TEST must be set to "1"/
       );
     });
   });
@@ -55,7 +55,7 @@ describe('TEST-3 – assertLiveShopifyTestEnv()', () => {
       process.env.NODE_ENV = 'production';
 
       expect(() => assertLiveShopifyTestEnv('test')).toThrow(
-        /NODE_ENV must NOT be "production"/,
+        /NODE_ENV must NOT be "production"/
       );
     });
   });
@@ -66,7 +66,7 @@ describe('TEST-3 – assertLiveShopifyTestEnv()', () => {
       delete process.env.DATABASE_URL_LIVE_TEST;
 
       expect(() => assertLiveShopifyTestEnv('test')).toThrow(
-        /DATABASE_URL_LIVE_TEST must be set/,
+        /DATABASE_URL_LIVE_TEST must be set/
       );
     });
 
@@ -76,7 +76,7 @@ describe('TEST-3 – assertLiveShopifyTestEnv()', () => {
         'postgresql://user:pass@ep-xyz.us-east-2.aws.neon.tech/engineo';
 
       expect(() => assertLiveShopifyTestEnv('test')).toThrow(
-        /does not contain a safe live-test pattern/,
+        /does not contain a safe live-test pattern/
       );
     });
 
@@ -86,7 +86,7 @@ describe('TEST-3 – assertLiveShopifyTestEnv()', () => {
         'postgresql://user:pass@dpg-xyz.oregon-postgres.render.com/engineo';
 
       expect(() => assertLiveShopifyTestEnv('test')).toThrow(
-        /does not contain a safe live-test pattern/,
+        /does not contain a safe live-test pattern/
       );
     });
 
@@ -113,7 +113,7 @@ describe('TEST-3 – assertLiveShopifyTestEnv()', () => {
       delete process.env.SHOPIFY_API_KEY_TEST;
 
       expect(() => assertLiveShopifyTestEnv('test')).toThrow(
-        /SHOPIFY_API_KEY_TEST must be set/,
+        /SHOPIFY_API_KEY_TEST must be set/
       );
     });
 
@@ -122,7 +122,7 @@ describe('TEST-3 – assertLiveShopifyTestEnv()', () => {
       delete process.env.SHOPIFY_API_SECRET_TEST;
 
       expect(() => assertLiveShopifyTestEnv('test')).toThrow(
-        /SHOPIFY_API_SECRET_TEST must be set/,
+        /SHOPIFY_API_SECRET_TEST must be set/
       );
     });
 
@@ -131,7 +131,7 @@ describe('TEST-3 – assertLiveShopifyTestEnv()', () => {
       process.env.SHOPIFY_API_KEY_TEST = 'engineo_prod_api_key';
 
       expect(() => assertLiveShopifyTestEnv('test')).toThrow(
-        /appears to be a production key/,
+        /appears to be a production key/
       );
     });
   });
@@ -142,7 +142,7 @@ describe('TEST-3 – assertLiveShopifyTestEnv()', () => {
       delete process.env.SHOPIFY_TEST_STORE_ALLOWLIST;
 
       expect(() => assertLiveShopifyTestEnv('test')).toThrow(
-        /SHOPIFY_TEST_STORE_ALLOWLIST must be set/,
+        /SHOPIFY_TEST_STORE_ALLOWLIST must be set/
       );
     });
 
@@ -151,7 +151,7 @@ describe('TEST-3 – assertLiveShopifyTestEnv()', () => {
       process.env.SHOPIFY_TEST_STORE_ALLOWLIST = '';
 
       expect(() => assertLiveShopifyTestEnv('test')).toThrow(
-        /SHOPIFY_TEST_STORE_ALLOWLIST must be set/,
+        /SHOPIFY_TEST_STORE_ALLOWLIST must be set/
       );
     });
 
@@ -160,7 +160,7 @@ describe('TEST-3 – assertLiveShopifyTestEnv()', () => {
       process.env.SHOPIFY_TEST_STORE_ALLOWLIST = 'invalid-store.com';
 
       expect(() => assertLiveShopifyTestEnv('test')).toThrow(
-        /Invalid store domain in SHOPIFY_TEST_STORE_ALLOWLIST/,
+        /Invalid store domain in SHOPIFY_TEST_STORE_ALLOWLIST/
       );
     });
   });
@@ -171,7 +171,7 @@ describe('TEST-3 – assertLiveShopifyTestEnv()', () => {
       process.env.SHOPIFY_TEST_STORE_PRIMARY = 'other-store.myshopify.com';
 
       expect(() => assertLiveShopifyTestEnv('test')).toThrow(
-        /is not in SHOPIFY_TEST_STORE_ALLOWLIST/,
+        /is not in SHOPIFY_TEST_STORE_ALLOWLIST/
       );
     });
 
@@ -192,7 +192,7 @@ describe('TEST-3 – assertLiveShopifyTestEnv()', () => {
       const config = assertLiveShopifyTestEnv('test');
 
       expect(config.databaseUrl).toBe(
-        'postgresql://user:pass@localhost:5432/engineo_live_test',
+        'postgresql://user:pass@localhost:5432/engineo_live_test'
       );
       expect(config.shopifyApiKey).toBe('test_api_key_12345');
       expect(config.shopifyApiSecret).toBe('test_api_secret_67890');
@@ -214,32 +214,33 @@ describe('TEST-3 – assertLiveShopifyTestEnv()', () => {
 });
 
 describe('TEST-3 – validateStoreInAllowlist()', () => {
-  const allowlist = [
-    'store-one.myshopify.com',
-    'store-two.myshopify.com',
-  ];
+  const allowlist = ['store-one.myshopify.com', 'store-two.myshopify.com'];
 
   it('does not throw for store in allowlist', () => {
     expect(() =>
-      validateStoreInAllowlist('store-one.myshopify.com', allowlist, 'test'),
+      validateStoreInAllowlist('store-one.myshopify.com', allowlist, 'test')
     ).not.toThrow();
   });
 
   it('handles case-insensitive matching', () => {
     expect(() =>
-      validateStoreInAllowlist('STORE-ONE.MYSHOPIFY.COM', allowlist, 'test'),
+      validateStoreInAllowlist('STORE-ONE.MYSHOPIFY.COM', allowlist, 'test')
     ).not.toThrow();
   });
 
   it('throws for store not in allowlist', () => {
     expect(() =>
-      validateStoreInAllowlist('other-store.myshopify.com', allowlist, 'test'),
+      validateStoreInAllowlist('other-store.myshopify.com', allowlist, 'test')
     ).toThrow(/is not in the allowlist/);
   });
 
   it('includes context in error message', () => {
     expect(() =>
-      validateStoreInAllowlist('bad-store.myshopify.com', allowlist, 'my-context'),
+      validateStoreInAllowlist(
+        'bad-store.myshopify.com',
+        allowlist,
+        'my-context'
+      )
     ).toThrow(/context=my-context/);
   });
 });

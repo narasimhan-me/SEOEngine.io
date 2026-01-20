@@ -87,7 +87,10 @@ describe('AnswerBlockService', () => {
 
       prismaMock.answerBlock.upsert.mockResolvedValue(mockUpserted);
 
-      const result = await service.createOrUpdateAnswerBlocks('prod-1', mockBlocks);
+      const result = await service.createOrUpdateAnswerBlocks(
+        'prod-1',
+        mockBlocks
+      );
 
       expect(result).toHaveLength(1);
       expect(prismaMock.answerBlock.upsert).toHaveBeenCalledWith({
@@ -142,7 +145,10 @@ describe('AnswerBlockService', () => {
 
       prismaMock.answerBlock.upsert.mockResolvedValue(mockUpserted);
 
-      const result = await service.createOrUpdateAnswerBlocks('prod-1', mockBlocks);
+      const result = await service.createOrUpdateAnswerBlocks(
+        'prod-1',
+        mockBlocks
+      );
 
       // Only valid block should be processed
       expect(result).toHaveLength(1);
@@ -161,7 +167,10 @@ describe('AnswerBlockService', () => {
 
       prismaMock.answerBlock.deleteMany.mockResolvedValue({ count: 0 });
 
-      const result = await service.createOrUpdateAnswerBlocks('prod-1', mockBlocks);
+      const result = await service.createOrUpdateAnswerBlocks(
+        'prod-1',
+        mockBlocks
+      );
 
       expect(result).toEqual([]);
       expect(prismaMock.answerBlock.deleteMany).toHaveBeenCalledWith({
@@ -203,7 +212,7 @@ describe('AnswerBlockService', () => {
       await service.createOrUpdateAnswerBlocks('prod-1', mockBlocks);
 
       expect(prismaMock.answerBlock.upsert).toHaveBeenCalledTimes(2);
-      
+
       // Check first call (confidence 1.5 clamped to 1)
       expect(prismaMock.answerBlock.upsert).toHaveBeenNthCalledWith(
         1,
@@ -211,7 +220,7 @@ describe('AnswerBlockService', () => {
           create: expect.objectContaining({
             confidenceScore: 1, // Clamped to 1
           }),
-        }),
+        })
       );
 
       // Check second call (confidence -0.5 clamped to 0)
@@ -221,7 +230,7 @@ describe('AnswerBlockService', () => {
           create: expect.objectContaining({
             confidenceScore: 0, // Clamped to 0
           }),
-        }),
+        })
       );
     });
   });
@@ -238,4 +247,3 @@ describe('AnswerBlockService', () => {
     });
   });
 });
-

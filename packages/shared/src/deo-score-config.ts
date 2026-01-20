@@ -52,4 +52,3 @@ export type DeoScoreV2Components = {
   contentCompleteness: number; // 0–100
   technicalQuality: number; // 0–100
 };
-

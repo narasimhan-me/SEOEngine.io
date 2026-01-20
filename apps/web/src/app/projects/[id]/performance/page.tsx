@@ -10,7 +10,10 @@ import { getDeoPillarById } from '@/lib/deo-pillars';
 import type { DeoIssue, PerformanceSignalType } from '@/lib/deo-issues';
 import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
 // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Import safe title/description helpers to prevent internal ID leakage
-import { getSafeIssueTitle, getSafeIssueDescription } from '@/lib/issue-to-fix-path';
+import {
+  getSafeIssueTitle,
+  getSafeIssueDescription,
+} from '@/lib/issue-to-fix-path';
 
 // PERFORMANCE-1 signal types for filtering
 const PERFORMANCE_SIGNAL_TYPES: PerformanceSignalType[] = [
@@ -107,8 +110,11 @@ function computePerformanceScorecard(issues: DeoIssue[]): PerformanceScorecard {
   // Filter to PERFORMANCE-1 issues (either by signalType or issue type)
   const performanceIssues = issues.filter(
     (issue) =>
-      (issue.signalType && PERFORMANCE_SIGNAL_TYPES.includes(issue.signalType as PerformanceSignalType)) ||
-      (issue.type && PERFORMANCE_ISSUE_TYPES.includes(issue.type)),
+      (issue.signalType &&
+        PERFORMANCE_SIGNAL_TYPES.includes(
+          issue.signalType as PerformanceSignalType
+        )) ||
+      (issue.type && PERFORMANCE_ISSUE_TYPES.includes(issue.type))
   );
 
   // Map issue types to signal types
@@ -121,7 +127,10 @@ function computePerformanceScorecard(issues: DeoIssue[]): PerformanceScorecard {
   };
 
   // Build signal status map
-  const signalStats = new Map<PerformanceSignalType, { count: number; hasCritical: boolean }>();
+  const signalStats = new Map<
+    PerformanceSignalType,
+    { count: number; hasCritical: boolean }
+  >();
 
   for (const signalType of PERFORMANCE_SIGNAL_TYPES) {
     signalStats.set(signalType, { count: 0, hasCritical: false });
@@ -130,7 +139,12 @@ function computePerformanceScorecard(issues: DeoIssue[]): PerformanceScorecard {
   for (const issue of performanceIssues) {
     // Determine signal type from issue
     let signalType: PerformanceSignalType | undefined;
-    if (issue.signalType && PERFORMANCE_SIGNAL_TYPES.includes(issue.signalType as PerformanceSignalType)) {
+    if (
+      issue.signalType &&
+      PERFORMANCE_SIGNAL_TYPES.includes(
+        issue.signalType as PerformanceSignalType
+      )
+    ) {
       signalType = issue.signalType as PerformanceSignalType;
     } else if (issue.type && issueTypeToSignal[issue.type]) {
       signalType = issueTypeToSignal[issue.type];
@@ -162,8 +176,13 @@ function computePerformanceScorecard(issues: DeoIssue[]): PerformanceScorecard {
   });
 
   // Compute overall status
-  const totalIssues = performanceIssues.reduce((sum, issue) => sum + issue.count, 0);
-  const hasCritical = performanceIssues.some((issue) => issue.severity === 'critical');
+  const totalIssues = performanceIssues.reduce(
+    (sum, issue) => sum + issue.count,
+    0
+  );
+  const hasCritical = performanceIssues.some(
+    (issue) => issue.severity === 'critical'
+  );
   const riskySignals = signals.filter((s) => s.status === 'risky').length;
 
   let status: PerformanceStatus = 'Strong';
@@ -215,14 +234,17 @@ export default function TechnicalPerformancePage() {
 
       // Filter issues to technical pillar and compute scorecard
       const technicalIssues = issuesData.issues.filter(
-        (issue: DeoIssue) => issue.pillarId === 'technical_indexability',
+        (issue: DeoIssue) => issue.pillarId === 'technical_indexability'
       );
 
       // Further filter to PERFORMANCE-1 specific issues
       const perfIssues = technicalIssues.filter(
         (issue: DeoIssue) =>
-          (issue.signalType && PERFORMANCE_SIGNAL_TYPES.includes(issue.signalType as PerformanceSignalType)) ||
-          (issue.type && PERFORMANCE_ISSUE_TYPES.includes(issue.type)),
+          (issue.signalType &&
+            PERFORMANCE_SIGNAL_TYPES.includes(
+              issue.signalType as PerformanceSignalType
+            )) ||
+          (issue.type && PERFORMANCE_ISSUE_TYPES.includes(issue.type))
       );
 
       setPerformanceIssues(perfIssues);
@@ -282,7 +304,10 @@ export default function TechnicalPerformancePage() {
           </li>
           <li>/</li>
           <li>
-            <Link href={`/projects/${projectId}/store-health`} className="hover:text-gray-700">
+            <Link
+              href={`/projects/${projectId}/store-health`}
+              className="hover:text-gray-700"
+            >
               {projectName || 'Project'}
             </Link>
           </li>
@@ -293,7 +318,9 @@ export default function TechnicalPerformancePage() {
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Technical & Indexability</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Technical & Indexability
+        </h1>
         <p className="mt-1 text-sm text-gray-600">
           {pillar?.description ||
             'Monitor crawl health, indexability status, page weight, and discovery-critical performance signals.'}
@@ -315,9 +342,12 @@ export default function TechnicalPerformancePage() {
         <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Performance for Discovery</h2>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Performance for Discovery
+              </h2>
               <p className="text-sm text-gray-500">
-                Signals that affect crawlability, rendering, and user-perceived speed
+                Signals that affect crawlability, rendering, and user-perceived
+                speed
               </p>
             </div>
             <div className="text-right">
@@ -328,14 +358,17 @@ export default function TechnicalPerformancePage() {
               </div>
               <p className="mt-1 text-xs text-gray-500">
                 {scorecard.issuesAffectingDiscovery} issue
-                {scorecard.issuesAffectingDiscovery !== 1 ? 's' : ''} affecting discovery
+                {scorecard.issuesAffectingDiscovery !== 1 ? 's' : ''} affecting
+                discovery
               </p>
             </div>
           </div>
 
           {/* Signal Breakdown */}
           <div className="mt-6">
-            <h3 className="mb-3 text-sm font-medium text-gray-700">Signal Breakdown</h3>
+            <h3 className="mb-3 text-sm font-medium text-gray-700">
+              Signal Breakdown
+            </h3>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {scorecard.signals.map((signal) => {
                 const config = SIGNAL_CONFIG[signal.signalType];
@@ -360,11 +393,17 @@ export default function TechnicalPerformancePage() {
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{config.icon}</span>
-                      <span className={`text-sm font-medium ${textColor}`}>{config.label}</span>
+                      <span className={`text-sm font-medium ${textColor}`}>
+                        {config.label}
+                      </span>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">{config.description}</p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {config.description}
+                    </p>
                     <div className="mt-2 flex items-end justify-between">
-                      <span className={`text-2xl font-bold ${textColor}`}>{signal.issueCount}</span>
+                      <span className={`text-2xl font-bold ${textColor}`}>
+                        {signal.issueCount}
+                      </span>
                       <span className="text-xs text-gray-500">
                         {signalStatus === 'ok'
                           ? 'OK'
@@ -383,9 +422,11 @@ export default function TechnicalPerformancePage() {
           {scorecard.issuesAffectingDiscovery > 0 && (
             <div className="mt-4 rounded-md border border-orange-200 bg-orange-50 px-3 py-2">
               <p className="text-sm text-orange-800">
-                <strong>{scorecard.issuesAffectingDiscovery}</strong> performance issue
-                {scorecard.issuesAffectingDiscovery !== 1 ? 's' : ''} may affect how search engines
-                and AI systems discover and render your content.
+                <strong>{scorecard.issuesAffectingDiscovery}</strong>{' '}
+                performance issue
+                {scorecard.issuesAffectingDiscovery !== 1 ? 's' : ''} may affect
+                how search engines and AI systems discover and render your
+                content.
               </p>
               <Link
                 href={`/projects/${projectId}/issues?pillar=technical_indexability`}
@@ -399,10 +440,13 @@ export default function TechnicalPerformancePage() {
       ) : (
         /* No Data State */
         <div className="mb-8 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6">
-          <h3 className="text-sm font-medium text-gray-700">No Performance Data Available</h3>
+          <h3 className="text-sm font-medium text-gray-700">
+            No Performance Data Available
+          </h3>
           <p className="mt-2 text-sm text-gray-500">
-            Performance signals will appear here once your site has been crawled. Run a crawl to
-            detect render-blocking resources, indexability issues, and page weight concerns.
+            Performance signals will appear here once your site has been
+            crawled. Run a crawl to detect render-blocking resources,
+            indexability issues, and page weight concerns.
           </p>
           <Link
             href={`/projects/${projectId}/settings`}
@@ -416,7 +460,9 @@ export default function TechnicalPerformancePage() {
       {/* Performance Issues List */}
       {performanceIssues.length > 0 && (
         <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Performance Issues</h2>
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">
+            Performance Issues
+          </h2>
           <div className="space-y-3">
             {performanceIssues.map((issue) => (
               <div
@@ -427,7 +473,9 @@ export default function TechnicalPerformancePage() {
                   <div>
                     <div className="flex items-center gap-2">
                       {/* [ISSUE-TO-FIX-PATH-1 FIXUP-2] Use safe title to prevent internal ID leakage */}
-                      <span className="font-semibold">{getSafeIssueTitle(issue)}</span>
+                      <span className="font-semibold">
+                        {getSafeIssueTitle(issue)}
+                      </span>
                       <span
                         className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                           issue.severity === 'critical'
@@ -445,7 +493,9 @@ export default function TechnicalPerformancePage() {
                       </span>
                     </div>
                     {/* [ISSUE-TO-FIX-PATH-1 FIXUP-2] Use safe description to prevent internal ID leakage */}
-                    <p className="mt-1 text-xs text-gray-500">{getSafeIssueDescription(issue)}</p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {getSafeIssueDescription(issue)}
+                    </p>
                     <p className="mt-1 text-xs text-gray-500">
                       {issue.count} page{issue.count !== 1 ? 's' : ''} affected
                     </p>
@@ -459,7 +509,9 @@ export default function TechnicalPerformancePage() {
 
       {/* Quick Actions */}
       <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Quick Actions</h2>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">
+          Quick Actions
+        </h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Link
             href={`/projects/${projectId}/issues?pillar=technical_indexability`}
@@ -467,7 +519,9 @@ export default function TechnicalPerformancePage() {
           >
             <span className="text-2xl">🔍</span>
             <div>
-              <p className="text-sm font-medium text-gray-900">View All Technical Issues</p>
+              <p className="text-sm font-medium text-gray-900">
+                View All Technical Issues
+              </p>
               <p className="text-xs text-gray-500">
                 See indexability, crawl, and performance issues
               </p>
@@ -480,7 +534,9 @@ export default function TechnicalPerformancePage() {
             <span className="text-2xl">🔄</span>
             <div>
               <p className="text-sm font-medium text-gray-900">Run New Crawl</p>
-              <p className="text-xs text-gray-500">Re-scan pages for fresh performance data</p>
+              <p className="text-xs text-gray-500">
+                Re-scan pages for fresh performance data
+              </p>
             </div>
           </Link>
         </div>
@@ -488,37 +544,46 @@ export default function TechnicalPerformancePage() {
 
       {/* Score Model Info */}
       <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
-        <h3 className="text-sm font-medium text-gray-700">About Performance for Discovery</h3>
+        <h3 className="text-sm font-medium text-gray-700">
+          About Performance for Discovery
+        </h3>
         <p className="mt-1 text-xs text-gray-500">
-          The Performance for Discovery score is a heuristic based on signals that affect how
-          search engines and AI systems can crawl, render, and index your pages:
+          The Performance for Discovery score is a heuristic based on signals
+          that affect how search engines and AI systems can crawl, render, and
+          index your pages:
         </p>
         <ul className="mt-2 space-y-1 text-xs text-gray-500">
           <li>
-            <strong className="text-gray-700">Render-blocking resources</strong> — Scripts/styles
-            in &lt;head&gt; without async/defer
+            <strong className="text-gray-700">Render-blocking resources</strong>{' '}
+            — Scripts/styles in &lt;head&gt; without async/defer
           </li>
           <li>
-            <strong className="text-gray-700">Indexability conflicts</strong> — noindex directives,
-            canonical mismatches
+            <strong className="text-gray-700">Indexability conflicts</strong> —
+            noindex directives, canonical mismatches
           </li>
           <li>
-            <strong className="text-gray-700">Large HTML</strong> — Documents &gt;500KB may
-            indicate slow TTFB
+            <strong className="text-gray-700">Large HTML</strong> — Documents
+            &gt;500KB may indicate slow TTFB
           </li>
           <li>
-            <strong className="text-gray-700">Excessive page weight</strong> — Documents &gt;1MB
-            are problematic
+            <strong className="text-gray-700">Excessive page weight</strong> —
+            Documents &gt;1MB are problematic
           </li>
           <li>
-            <strong className="text-gray-700">Mobile readiness</strong> — Missing viewport meta,
-            layout issues
+            <strong className="text-gray-700">Mobile readiness</strong> —
+            Missing viewport meta, layout issues
           </li>
         </ul>
         <p className="mt-3 text-xs text-gray-500">
-          Status thresholds: <strong className="text-green-600">Strong (0-2 issues)</strong>,{' '}
-          <strong className="text-yellow-600">Needs Improvement (3-9 issues)</strong>, or{' '}
-          <strong className="text-red-600">Risky (10+ issues or critical)</strong>
+          Status thresholds:{' '}
+          <strong className="text-green-600">Strong (0-2 issues)</strong>,{' '}
+          <strong className="text-yellow-600">
+            Needs Improvement (3-9 issues)
+          </strong>
+          , or{' '}
+          <strong className="text-red-600">
+            Risky (10+ issues or critical)
+          </strong>
         </p>
       </div>
     </div>
