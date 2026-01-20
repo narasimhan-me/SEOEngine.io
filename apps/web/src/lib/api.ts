@@ -988,6 +988,8 @@ export const projectsApi = {
     autoSuggestThinContent?: boolean;
     autoSuggestDailyCap?: number;
     aeoSyncToShopifyMetafields?: boolean;
+    // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Project-level setting for Answer Block generation on product sync
+    autoGenerateAnswerBlocksOnProductSync?: boolean;
   }) =>
     fetchWithAuth(`/projects/${id}`, {
       method: 'PUT',

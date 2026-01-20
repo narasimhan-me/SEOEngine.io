@@ -1720,6 +1720,149 @@ Seeds:
 - `docs/SHOPIFY_SCOPES_MATRIX.md` (internal documentation)
 - `docs/SHOPIFY_PERMISSIONS_AND_RECONSENT.md` (existing permissions doc)
 
+### Phase SHOPIFY-SCOPE-IMPLICATIONS-1: Write Scopes Imply Read Access ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-20
+**Activation:** Implication-aware scope coverage checks
+
+#### Goals
+
+1. Eliminate false "missing read_X" warnings when `write_X` is already granted.
+2. Implement implication-aware scope coverage: write scopes implicitly grant read access.
+3. Ensure the Trust Invariant: no false missing scope warnings for covered capabilities.
+
+#### Key Changes
+
+1. **Implication Rules:** Added `SHOPIFY_SCOPE_IMPLICATIONS` constant mapping write scopes to their implied read scopes (`write_products` → `read_products`, `write_content` → `read_content`, `write_themes` → `read_themes`).
+2. **Expansion Helper:** Added `expandGrantedScopesWithImplications()` function to expand granted scopes with their implied read scopes.
+3. **Coverage Checks:** Updated `checkScopeCoverage()` to use implication-aware expansion so `write_products` satisfies `read_products` requirements.
+4. **Service Update:** Updated `getScopeStatusFromIntegration()` in `shopify.service.ts` to use implication-aware expansion for missing scope detection.
+
+#### Implication Matrix
+
+| Write Scope | Implies |
+|-------------|---------|
+| `write_products` | `read_products` |
+| `write_content` | `read_content` |
+| `write_themes` | `read_themes` |
+
+**Important:** Implications are for COVERAGE CHECKS ONLY — actual OAuth scopes requested/stored are unchanged. Read scopes do NOT imply write scopes (no reverse implication).
+
+#### Core Files
+
+- `apps/api/src/shopify/shopify-scopes.ts` (SHOPIFY_SCOPE_IMPLICATIONS, expandGrantedScopesWithImplications, updated checkScopeCoverage)
+- `apps/api/src/shopify/shopify.service.ts` (getScopeStatusFromIntegration uses implication-aware expansion)
+- `apps/api/test/unit/shopify/shopify-scopes-matrix.test.ts` (implication contract tests)
+
+#### Test Coverage
+
+- Unit tests: `apps/api/test/unit/shopify/shopify-scopes-matrix.test.ts` (Scope Implications describe block)
+
+#### Manual Testing
+
+- `docs/manual-testing/SHOPIFY-SCOPE-IMPLICATIONS-1.md`
+
+#### Related Documentation
+
+- `docs/SHOPIFY_SCOPES_MATRIX.md` (updated with Scope Implications section)
+- `docs/testing/CRITICAL_PATH_MAP.md` (CP-006 updated with implication scenarios)
+
+### Phase SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1: Authoritative Granted-Scope Truth Source ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-20
+**Activation:** Authoritative scope derivation and capability-aware messaging
+
+#### Goals
+
+1. Establish authoritative granted-scope derivation after OAuth callback.
+2. Implement fallback to Access Scopes endpoint when OAuth scope string is empty/suspicious.
+3. Normalize stored scopes (deduplicated, sorted, comma-separated).
+4. Provide capability-aware permission notice messaging (catalog vs content vs combined).
+
+#### Key Changes
+
+1. **Authoritative Truth Source:** `storeShopifyConnection()` now derives granted scopes from:
+   - Primary: OAuth token exchange `scope` string (if present and parseable)
+   - Fallback: Shopify Admin Access Scopes endpoint (`/admin/oauth/access_scopes.json`)
+2. **Access Scopes Fetcher:** Added `fetchAccessScopes()` private helper to call Shopify Admin API.
+3. **Scope Normalization:** Added `normalizeScopes()` helper for deduplicated, sorted, comma-separated storage.
+4. **Server Logging:** Added minimal safe logs (no secrets) showing integration ID, shop domain, truth source used, and normalized scopes.
+5. **E2E Mock Support:** Added mock handler for `access_scopes.json` endpoint in test mode.
+6. **Permission Notice Copy:** Updated `ShopifyPermissionNotice.tsx` with capability-aware messaging:
+   - `read_products` missing → catalog wording (products & collections)
+   - `read_content` missing → content wording (pages & blog posts)
+   - Both missing → combined wording
+
+#### Truth Source Logic
+
+| OAuth Scope | Action |
+|-------------|--------|
+| Present, non-empty, parseable | Use as `oauth_scope` truth source |
+| Empty, null, or unparseable | Fallback to `access_scopes_endpoint` |
+
+**Explicit Separation:**
+- `grantedScopes` = factual scopes stored in DB (from truth source)
+- `effectiveGranted` = expanded set for coverage checks (includes implications from SHOPIFY-SCOPE-IMPLICATIONS-1)
+
+#### Core Files
+
+- `apps/api/src/shopify/shopify.service.ts` (storeShopifyConnection, fetchAccessScopes, normalizeScopes, e2eMockShopifyFetch)
+- `apps/web/src/components/shopify/ShopifyPermissionNotice.tsx` (capability-aware messaging)
+
+#### Test Coverage
+
+- E2E mock: `apps/api/src/shopify/shopify.service.ts` (access_scopes.json mock in e2eMockShopifyFetch)
+
+#### Manual Testing
+
+- `docs/manual-testing/SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1.md`
+
+#### Related Documentation
+
+- `docs/testing/CRITICAL_PATH_MAP.md` (CP-006 updated with truth source scenarios)
+- `docs/SHOPIFY_SCOPES_MATRIX.md`
+
+#### FIXUP-1: Partial OAuth Scope Detection + Catalog-Safe Copy (2026-01-20)
+
+**Problem:** OAuth token exchange may return fewer scopes than requested. The original implementation only fell back to Access Scopes endpoint when OAuth scope was empty, not when it was "suspicious" (missing expected scopes).
+
+**Changes:**
+1. **Suspicious-Scope Detection:** `storeShopifyConnection()` now accepts optional `expectedScopes` parameter. If OAuth scope is present but missing expected scopes, treats it as "suspicious" and falls back to Access Scopes endpoint.
+2. **Controller Pass-Through:** `shopify.controller.ts` callback now passes `statePayload.requestedScopes` to `storeShopifyConnection()`.
+3. **New Truth Source Value:** Added `access_scopes_endpoint_suspicious` to distinguish suspicious-scope fallback from empty-scope fallback in logs.
+4. **Catalog-Safe Copy:** Updated permission notice approval copy from "We never modify content without your approval" to "We never modify your store without your explicit approval" (catalog-safe, since products/collections are not "content").
+5. **Manual Testing:** Added EC-004 edge case for partial/suspicious OAuth scope scenario.
+6. **Critical Path Map:** Added FIXUP-1 scenario to CP-006 (SHOPIFY-SCOPE-TRUTH-1 FIXUP-1).
+
+#### FIXUP-2: Empty-Scope Persistence Guard (2026-01-20)
+
+**Problem:** Original implementation could persist empty scopes if both Access Scopes endpoint AND OAuth scope were empty, potentially causing incorrect missing-scope warnings. Reconnect could accidentally downgrade existing stored scopes.
+
+**Changes:**
+1. **Safe Fallback Source Order:** `storeShopifyConnection()` now uses priority order:
+   - Access Scopes endpoint (if non-empty)
+   - OAuth token exchange scope (even if previously marked "suspicious")
+   - Existing stored `integration.config.scope` (retain if non-empty)
+2. **Explicit Failure:** If final scope would be empty AND no existing scope exists, throws `SHOPIFY_SCOPE_VERIFICATION_FAILED` error instead of creating integration with empty scope.
+3. **Callback Error Handling:** `shopify.controller.ts` catches `SHOPIFY_SCOPE_VERIFICATION_FAILED` and redirects to `/projects/{projectId}/settings#integrations?shopify=verify_failed`.
+4. **UI Verification Failure Notice:** Settings page reads `shopify=verify_failed` query param and shows "Could not verify Shopify permissions" error with retry button.
+5. **Enhanced Observability:** `fetchAccessScopes()` returns structured status (`success`|`http_error`|`parse_error`|`empty`) with HTTP status code category logged (no secrets).
+6. **Truth Source Values:** Added `oauth_scope_fallback` and `existing_scope_retained` to distinguish fallback scenarios in logs.
+7. **Manual Testing:** Created `SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-2.md` with fresh install, reconnect, and failure scenarios.
+8. **Critical Path Map:** Added FIXUP-2 scenarios to CP-006.
+
+#### FIXUP-3: Suppress Fake Missing-Scope List on Verification Failure (2026-01-20)
+
+**Problem:** When `shopify=verify_failed` is shown, stale or empty missing-scope state could cause the "Missing permission: ..." notice to also render, showing misleading "missing all permissions" output.
+
+**Changes:**
+1. **Clear Stale State:** On `verify_failed` detection, clear `shopifyMissingScopes` and `reconnectCapability` state to prevent fake warnings from stale data.
+2. **Render Guard:** Added `!scopeVerifyFailed` condition to `ShopifyPermissionNotice` render block so verify_failed banner is mutually exclusive with missing-scope notice.
+3. **Manual Testing:** Updated FIXUP-2 doc (ERR-001) with explicit assertion that verify_failed suppresses missing-scope list.
+4. **Critical Path Map:** Added FIXUP-3 scenario to CP-006.
+
 ### Phase BLOGS-ASSET-SYNC-COVERAGE-1: Shopify Blog Posts (Articles) Ingestion ✅ COMPLETE
 
 **Status:** Complete
@@ -2327,3 +2470,12 @@ These invariants MUST be preserved during implementation:
 | 6.69 | 2026-01-19 | **PLAYBOOK-STEP-CONTINUITY-1-FIXUP-2**: Permission-safe Step 2 draft blocker CTAs. (1) Step 2 draft blocker panels (EXPIRED/FAILED/missing) now gate CTA based on `canGenerateDrafts`; (2) VIEWER sees "Viewer role cannot generate previews." with "Request access" link instead of actionable button; (3) OWNER/EDITOR CTA unchanged. **Manual Testing:** PLAYBOOK-STEP-CONTINUITY-1.md (ERR-004 scenario added). |
 | 6.70 | 2026-01-19 | **DIAGNOSTIC-GUIDANCE-1 COMPLETE**: Diagnostic guidance pattern for outside-control issues. Issues with `actionability === 'informational'` now show "Informational — outside EngineO.ai control" badge, explanation text, and "How to address this" guidance block with 4 actionable bullets. No Fix/Apply/Review CTAs on these issues; cards are non-clickable. Distinct from orphan issues (which show "no action required" without guidance). UI/copy only; no backend changes. Core files: IssuesList.tsx, issues/page.tsx. **Manual Testing:** DIAGNOSTIC-GUIDANCE-1.md |
 | 6.71 | 2026-01-19 | **DIAGNOSTIC-GUIDANCE-1-FIXUP-1**: Trust hardening for outside-control issues. Issues Engine (page.tsx) now explicitly gates clickability and fixHref for `actionability === 'informational'` issues at the frontend level. (1) Added `isOutsideEngineControl` boolean; (2) `fixHref` forced to null for outside-control issues; (3) `isClickableIssue` forced to false regardless of backend `isActionableNow` flag. Prevents accidental actionable navigation even under inconsistent backend flags. Added EC-003 scenario to manual testing doc. |
+| 6.72 | 2026-01-20 | **SHOPIFY-SCOPE-IMPLICATIONS-1 COMPLETE**: Write scopes imply read access for coverage checks. (1) Added `SHOPIFY_SCOPE_IMPLICATIONS` mapping (`write_products` → `read_products`, `write_content` → `read_content`, `write_themes` → `read_themes`); (2) Added `expandGrantedScopesWithImplications()` helper; (3) Updated `checkScopeCoverage()` to use implication-aware expansion; (4) Updated `getScopeStatusFromIntegration()` in shopify.service.ts. Eliminates false "missing read_products" warnings when `write_products` is granted. Core files: shopify-scopes.ts, shopify.service.ts, shopify-scopes-matrix.test.ts. **Manual Testing:** SHOPIFY-SCOPE-IMPLICATIONS-1.md |
+| 6.73 | 2026-01-20 | **SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 COMPLETE**: Authoritative granted-scope truth source. (1) `storeShopifyConnection()` derives scopes from OAuth string (primary) or Access Scopes endpoint (fallback); (2) Added `fetchAccessScopes()` helper for Shopify Admin API; (3) Added `normalizeScopes()` for deduplicated, sorted, comma-separated storage; (4) Server logs truth source (oauth_scope vs access_scopes_endpoint) without secrets; (5) E2E mock support for access_scopes.json; (6) Capability-aware permission notice copy (catalog vs content vs combined wording based on missing scopes). Core files: shopify.service.ts, ShopifyPermissionNotice.tsx. **Manual Testing:** SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1.md |
+| 6.74 | 2026-01-20 | **SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-2**: Empty-scope persistence guard. (1) Safe fallback source order: Access Scopes → OAuth scope → Existing stored scope; (2) Never persist empty scopes (throws `SHOPIFY_SCOPE_VERIFICATION_FAILED`); (3) Reconnect cannot downgrade existing scope storage; (4) Callback redirects to `?shopify=verify_failed` on failure; (5) Settings page shows verification failure UI with retry; (6) Enhanced `fetchAccessScopes()` observability (HTTP status category, failure mode). Core files: shopify.service.ts, shopify.controller.ts, settings/page.tsx. **Manual Testing:** SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-2.md |
+| 6.75 | 2026-01-20 | **SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-3**: Suppress fake missing-scope list on verify_failed. (1) Clear stale `shopifyMissingScopes` and `reconnectCapability` state on verify_failed detection; (2) Add `!scopeVerifyFailed` render guard to ShopifyPermissionNotice; (3) verify_failed banner is mutually exclusive with missing-scope notice. Core files: settings/page.tsx. |
+| 6.76 | 2026-01-20 | **SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-4**: Suspicious OAuth must not downgrade scopes. (1) When OAuth is suspicious AND Access Scopes fails/empty, do NOT persist suspicious OAuth; (2) If existing stored scope is non-empty, retain it (truthSource=existing_scope_retained); (3) If fresh install (no existing scope), throw SHOPIFY_SCOPE_VERIFICATION_FAILED; (4) Non-suspicious OAuth fallback behavior unchanged; (5) Enhanced logging for suspicious-downgrade prevention. Core files: shopify.service.ts. **Manual Testing:** SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1-FIXUP-4.md |
+| 6.77 | 2026-01-20 | **SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-4 HOTFIX**: Fresh install with suspicious OAuth now accepted. (1) FIXUP-4 downgrade protection only applies to reconnects (when existing scope is present); (2) Fresh installs accept suspicious OAuth as-is (user may have legitimately declined scopes); (3) Prevents server error on first-time store connections when Access Scopes fails. Core files: shopify.service.ts. |
+| 6.78 | 2026-01-20 | **SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1**: Fix false "Missing permission: read_products/read_content" blocks caused by legacy scope storage formats. **Root cause:** `parseShopifyScopesCsv()` only parsed comma-separated strings; legacy DB storage (Prisma Json field) could contain JSON arrays or whitespace-delimited strings, causing parser to return `[]` and trigger false missing-scope warnings. **Fix:** Updated parser to handle: (1) Comma-separated strings; (2) Whitespace-separated strings; (3) Mixed delimiters; (4) JSON arrays from Prisma Json field; (5) Arrays with nested delimiters. **Trust invariant restored:** Legacy scope storage formats never cause false missing-scope blocks. Core files: shopify-scopes.ts. **Unit tests:** shopify-scopes-matrix.test.ts (20+ new parser tests). **Docs:** SHOPIFY_SCOPES_MATRIX.md, SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1.md (regression check), CRITICAL_PATH_MAP.md. |
+| 6.79 | 2026-01-20 | **AUTOMATION-TRIGGER-TRUTHFULNESS-1**: Automation triggers must be truthful and deterministic. **Key changes:** (1) Page load never triggers AI - DEO issues GET endpoint is read-only (removed automation side-effects); (2) Project-level setting gate `autoGenerateAnswerBlocksOnProductSync` (default OFF); (3) DB-backed idempotency via `AnswerBlockAutomationRun` model with fingerprint hashing; (4) UI label truthfulness - Sync CTAs show "+ Generate Answer Blocks" only when setting ON AND paid plan; (5) Worker marks run state (QUEUED→RUNNING→SUCCEEDED/SKIPPED/FAILED); (6) Diagnostic safety logs with suppressedReason for debugging. **Core files:** automation.service.ts, answer-block-automation.processor.ts, projects.controller.ts, projects.service.ts, schema.prisma, settings/page.tsx, products/page.tsx, automation/playbooks/page.tsx. **Manual Testing:** AUTOMATION-TRIGGER-TRUTHFULNESS-1.md |
+| 6.80 | 2026-01-20 | **AUTOMATION-TRIGGER-TRUTHFULNESS-1 REVIEW-1**: Remaining gaps addressed. (1) Fixed Playbooks CTA labels from "Sync to Shopify" → "Sync products" with deterministic "+ Generate Answer Blocks" suffix; (2) Fixed toast from "Shopify sync triggered for updated products" → "Products sync triggered." (neutral); (3) Made idempotency race-safe: FAILED runs use conditional `updateMany` to transition back to QUEUED (no unique constraint crashes), concurrent triggers handled via re-read fallback with suppress rules (in_flight/idempotent_already_done); (4) Added `autoGenerateAnswerBlocksOnProductSync` to web API typing in api.ts; (5) Rewrote manual test doc to match MANUAL_TESTING_TEMPLATE.md structure (Overview/Preconditions/Test Scenarios/Edge Cases/Error Handling/Limits/Regression/Post-Conditions/Approval). **Core files:** automation/playbooks/page.tsx, automation.service.ts, api.ts. **Manual Testing:** AUTOMATION-TRIGGER-TRUTHFULNESS-1.md (rewritten). |

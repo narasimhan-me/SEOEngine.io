@@ -169,6 +169,9 @@ model Project {
 
   aeoSyncToShopifyMetafields Boolean            @default(false)
 
+  // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Project-level gate for Answer Block automation on product sync
+  autoGenerateAnswerBlocksOnProductSync Boolean @default(false)
+
   integrations               Integration[]
   crawlResults               CrawlResult[]
   products                   Product[]
@@ -447,6 +450,41 @@ model AutomationPlaybookRun {
   @@index([projectId, scopeId, runType, createdAt(sort: Desc)])
   @@index([projectId, playbookId, runType, aiWorkKey])
   @@unique([projectId, playbookId, runType, scopeId, rulesHash, idempotencyKey])
+}
+
+// ============================================================================
+// [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Answer Block Automation Run Tracking
+// ============================================================================
+
+enum AnswerBlockAutomationRunStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  SKIPPED
+  FAILED
+}
+
+/// [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Durable idempotency storage for Answer Block automation runs.
+/// Prevents duplicate AI generation for the same product state on product_synced trigger.
+model AnswerBlockAutomationRun {
+  id              String                         @id @default(cuid())
+  projectId       String
+  productId       String
+  triggerType     String                         // 'product_synced' | 'issue_detected' | 'manual'
+  idempotencyKey  String                         // Derived from {projectId, productId, automationType, fingerprintHash}
+  fingerprintHash String                         // SHA-256 hash of stable product state (no timestamps)
+  status          AnswerBlockAutomationRunStatus @default(QUEUED)
+  planId          String?                        // Plan at time of enqueue (for audit)
+  errorMessage    String?                        // Safe error message (no prompts/content)
+  createdAt       DateTime                       @default(now())
+  updatedAt       DateTime                       @updatedAt
+  startedAt       DateTime?
+  completedAt     DateTime?
+
+  @@unique([projectId, productId, idempotencyKey])
+  @@index([projectId, productId])
+  @@index([idempotencyKey])
+  @@index([projectId, status])
 }
 
 // ============================================================================

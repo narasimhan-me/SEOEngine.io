@@ -10,6 +10,7 @@ import {
   ShopifyCapability,
   parseShopifyScopesCsv,
   computeShopifyRequiredScopes,
+  expandGrantedScopesWithImplications,
 } from './shopify-scopes';
 
 // [SHOPIFY-SCOPES-MATRIX-1] Re-export ShopifyCapability for backward compatibility
@@ -231,6 +232,7 @@ export class ShopifyService {
   }
 
   // [SHOPIFY-SCOPES-MATRIX-1] Use centralized scope computation
+  // [SHOPIFY-SCOPE-IMPLICATIONS-1] Use implication-aware coverage for missing scope detection
   private getScopeStatusFromIntegration(
     integration: any,
     capability: ShopifyScopeCapability,
@@ -238,8 +240,10 @@ export class ShopifyService {
     const storedScope = (integration?.config as any)?.scope ?? '';
     const grantedScopes = this.parseScopeList(storedScope);
     const requiredScopes = computeShopifyRequiredScopes([capability]);
-    const granted = new Set(grantedScopes);
-    const missingScopes = requiredScopes.filter((s) => !granted.has(s));
+    // [SHOPIFY-SCOPE-IMPLICATIONS-1] Expand granted scopes with implied scopes
+    // (e.g., write_products ⇒ read_products) to prevent false "missing read_products" warnings
+    const effectiveGranted = expandGrantedScopesWithImplications(grantedScopes);
+    const missingScopes = requiredScopes.filter((s) => !effectiveGranted.has(s));
     return { capability, requiredScopes, grantedScopes, missingScopes };
   }
 
@@ -305,6 +309,22 @@ export class ShopifyService {
           json: async () => ({
             access_token: 'access-token-123',
             scope: 'read_products,write_products,read_content',
+          }),
+          text: async () => '',
+        };
+      }
+
+      // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1] Handle Access Scopes endpoint
+      // This is the fallback truth source when OAuth scope string is empty/suspicious
+      if (url && typeof url === 'string' && url.includes('/admin/oauth/access_scopes.json')) {
+        return {
+          ok: true,
+          json: async () => ({
+            access_scopes: [
+              { handle: 'read_products' },
+              { handle: 'write_products' },
+              { handle: 'read_content' },
+            ],
           }),
           text: async () => '',
         };
@@ -799,20 +819,116 @@ export class ShopifyService {
   }
 
   /**
+   * [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1] Fetch access scopes from Shopify Admin API.
+   *
+   * Uses the Access Scopes endpoint to get the authoritative list of granted scopes.
+   * This is the fallback when OAuth token exchange scope string is empty/suspicious.
+   *
+   * [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-2] Enhanced observability:
+   * - Logs HTTP status code category on failure (no response body, no token)
+   * - Distinguishes failure modes: HTTP non-200 vs JSON parse failure vs empty list
+   *
+   * @param shopDomain - The shop domain (e.g., "mystore.myshopify.com")
+   * @param accessToken - The freshly issued access token
+   * @returns Object with scopes array and fetch status for fallback logic
+   */
+  private async fetchAccessScopes(
+    shopDomain: string,
+    accessToken: string,
+  ): Promise<{ scopes: string[]; status: 'success' | 'http_error' | 'parse_error' | 'empty'; httpStatus?: number }> {
+    const url = `https://${shopDomain}/admin/oauth/access_scopes.json`;
+
+    let response: Response | null = null;
+    try {
+      response = await this.rateLimitedFetch(url, {
+        method: 'GET',
+        headers: {
+          'X-Shopify-Access-Token': accessToken,
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch (err) {
+      this.logger.warn(
+        `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes fetch network error for ${shopDomain}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      return { scopes: [], status: 'http_error' };
+    }
+
+    if (!response || !response.ok) {
+      const statusCode = response?.status;
+      const statusCategory = statusCode ? `${Math.floor(statusCode / 100)}xx` : 'unknown';
+      this.logger.warn(
+        `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes endpoint returned non-OK: shop=${shopDomain}, status=${statusCode ?? 'null'} (${statusCategory})`,
+      );
+      return { scopes: [], status: 'http_error', httpStatus: statusCode };
+    }
+
+    try {
+      const data = (await response.json()) as {
+        access_scopes?: Array<{ handle: string }>;
+      };
+      const scopes = data.access_scopes?.map((s) => s.handle) ?? [];
+      if (scopes.length === 0) {
+        this.logger.warn(
+          `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes endpoint returned empty list: shop=${shopDomain}`,
+        );
+        return { scopes: [], status: 'empty' };
+      }
+      return { scopes, status: 'success' };
+    } catch (err) {
+      this.logger.warn(
+        `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes JSON parse error for ${shopDomain}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      return { scopes: [], status: 'parse_error' };
+    }
+  }
+
+  /**
+   * [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1] Normalize and deduplicate scopes.
+   *
+   * Returns a comma-separated string of scopes in canonical sorted order.
+   *
+   * @param scopes - Array of scope strings
+   * @returns Normalized, deduplicated, sorted, comma-separated scope string
+   */
+  private normalizeScopes(scopes: string[]): string {
+    const unique = [...new Set(scopes.map((s) => s.trim()).filter(Boolean))];
+    unique.sort();
+    return unique.join(',');
+  }
+
+  /**
    * Persist Shopify integration in database
+   *
+   * [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1] Authoritative granted-scope derivation:
+   * 1. If OAuth scope string is present, non-empty, and parseable → use it (oauth_scope)
+   * 2. Otherwise → call Access Scopes endpoint with fresh token (access_scopes_endpoint)
+   * 3. Persist normalized (deduplicated, sorted, comma-separated) scope string
+   *
+   * [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-1] Suspicious-scope detection:
+   * If expectedScopes is provided and OAuth scope string doesn't include all expected scopes,
+   * treat OAuth scope as "suspicious" and fall back to Access Scopes endpoint.
+   * This handles edge cases where Shopify returns a partial OAuth scope string.
+   *
+   * [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-2] Empty-scope persistence guard:
+   * NEVER persist empty scopes. Fallback source order:
+   * 1. Access Scopes endpoint (if non-empty)
+   * 2. OAuth token exchange scope (even if previously marked "suspicious")
+   * 3. Existing stored integration.config.scope (retain if non-empty)
+   * 4. If all are empty AND no existing scope: throw SHOPIFY_SCOPE_VERIFICATION_FAILED
    */
   async storeShopifyConnection(
     projectId: string,
     shopDomain: string,
     accessToken: string,
     scope: string,
+    expectedScopes?: string | string[],
   ) {
-    console.log('[storeShopifyConnection] Storing connection:', {
-      projectId,
-      shopDomain,
-      scope,
-      hasAccessToken: !!accessToken,
-    });
+    // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-2] Read existing integration FIRST
     const existing = await this.prisma.integration.findUnique({
       where: {
         projectId_type: {
@@ -822,11 +938,104 @@ export class ShopifyService {
       },
     });
     const existingConfig = (existing?.config as any) || {};
-    console.log('[storeShopifyConnection] Existing config:', {
-      projectId,
-      existingScope: existingConfig?.scope,
-      newScope: scope,
-    });
+    const existingStoredScope = parseShopifyScopesCsv(existingConfig?.scope);
+
+    // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-1] Handle expectedScopes as string or string[]
+    const parsedExpectedScopes = Array.isArray(expectedScopes)
+      ? expectedScopes.filter(Boolean)
+      : parseShopifyScopesCsv(expectedScopes);
+    const parsedOauthScopes = parseShopifyScopesCsv(scope);
+
+    // Check if OAuth scope is suspicious (missing expected scopes)
+    const isSuspicious =
+      parsedExpectedScopes.length > 0 &&
+      parsedOauthScopes.length > 0 &&
+      !parsedExpectedScopes.every((s) => parsedOauthScopes.includes(s));
+
+    if (isSuspicious) {
+      this.logger.warn(
+        `[SHOPIFY-SCOPE-TRUTH-1] OAuth scope suspicious: expected=[${parsedExpectedScopes.join(',')}], ` +
+          `got=[${parsedOauthScopes.join(',')}]. Will try Access Scopes endpoint first.`,
+      );
+    }
+
+    // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-2/4] Safe fallback source order
+    // Priority: Access Scopes endpoint > OAuth scope (only if not suspicious OR fresh install) > Existing stored scope
+    // [FIXUP-4] Suspicious OAuth on RECONNECT: retain existing scope (do not downgrade)
+    // [FIXUP-4 HOTFIX] Suspicious OAuth on FRESH INSTALL: accept as-is (user may have declined scopes)
+    let authoritativeScopes: string[] = [];
+    let truthSource:
+      | 'access_scopes_endpoint'
+      | 'oauth_scope'
+      | 'existing_scope_retained';
+    // Try Access Scopes endpoint first (always attempt for authoritative truth)
+    const accessScopesResult = await this.fetchAccessScopes(shopDomain, accessToken);
+    const accessScopesStatus = accessScopesResult.status;
+
+    if (accessScopesResult.scopes.length > 0) {
+      // Access Scopes endpoint returned valid data - use it
+      authoritativeScopes = accessScopesResult.scopes;
+      truthSource = 'access_scopes_endpoint';
+    } else if (parsedOauthScopes.length > 0 && !isSuspicious) {
+      // Fallback to OAuth scope ONLY if not suspicious
+      authoritativeScopes = parsedOauthScopes;
+      truthSource = 'oauth_scope';
+      this.logger.log(
+        `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes ${accessScopesResult.status}, using OAuth scope as fallback: shop=${shopDomain}`,
+      );
+    } else if (isSuspicious && parsedOauthScopes.length > 0 && existingStoredScope.length > 0) {
+      // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-4] Suspicious OAuth + Access Scopes failed:
+      // Retain existing stored scope to prevent accidental downgrade
+      authoritativeScopes = existingStoredScope;
+      truthSource = 'existing_scope_retained';
+      this.logger.warn(
+        `[SHOPIFY-SCOPE-TRUTH-1] Suspicious OAuth scope AND Access Scopes ${accessScopesResult.status}. ` +
+          `Refusing to downgrade. Retaining existing stored scope: shop=${shopDomain}, ` +
+          `suspiciousOauth=[${parsedOauthScopes.join(',')}], retained=[${existingStoredScope.join(',')}]`,
+      );
+    } else if (isSuspicious && parsedOauthScopes.length > 0 && existingStoredScope.length === 0) {
+      // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-4 HOTFIX] Suspicious OAuth + Access Scopes failed + FRESH INSTALL:
+      // On fresh install, accept suspicious OAuth as-is (user may have declined some scopes, which is valid)
+      // The FIXUP-4 downgrade protection only applies when there's an existing scope to protect
+      authoritativeScopes = parsedOauthScopes;
+      truthSource = 'oauth_scope';
+      this.logger.warn(
+        `[SHOPIFY-SCOPE-TRUTH-1] Suspicious OAuth scope AND Access Scopes ${accessScopesResult.status}, ` +
+          `but FRESH INSTALL (no existing scope). Accepting OAuth scope as-is: shop=${shopDomain}, ` +
+          `scopes=[${parsedOauthScopes.join(',')}]`,
+      );
+    } else if (existingStoredScope.length > 0) {
+      // Retain existing stored scope - do not downgrade
+      authoritativeScopes = existingStoredScope;
+      truthSource = 'existing_scope_retained';
+      this.logger.warn(
+        `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes ${accessScopesResult.status} AND OAuth scope empty. ` +
+          `Retaining existing stored scope: shop=${shopDomain}, scopes=[${existingStoredScope.join(',')}]`,
+      );
+    }
+
+    // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-2] Explicit failure if final scope would be empty
+    if (authoritativeScopes.length === 0) {
+      this.logger.error(
+        `[SHOPIFY-SCOPE-TRUTH-1] SCOPE_VERIFICATION_FAILED: All scope sources empty. ` +
+          `shop=${shopDomain}, accessScopesStatus=${accessScopesStatus}, oauthScopeLength=${parsedOauthScopes.length}, ` +
+          `existingStoredScopeLength=${existingStoredScope.length}`,
+      );
+      const error = new Error(
+        'SHOPIFY_SCOPE_VERIFICATION_FAILED: Could not verify Shopify permissions. Please try reconnecting.',
+      );
+      (error as any).code = 'SHOPIFY_SCOPE_VERIFICATION_FAILED';
+      throw error;
+    }
+
+    // Normalize: deduplicate, sort, join
+    const normalizedScope = this.normalizeScopes(authoritativeScopes);
+
+    this.logger.log(
+      `[SHOPIFY-SCOPE-TRUTH-1] Storing connection: projectId=${projectId}, shop=${shopDomain}, ` +
+        `truthSource=${truthSource}, accessScopesStatus=${accessScopesStatus}, scopes=${normalizedScope}`,
+    );
+
     const integration = await this.prisma.integration.upsert({
       where: {
         projectId_type: {
@@ -840,7 +1049,7 @@ export class ShopifyService {
         externalId: shopDomain,
         accessToken,
         config: {
-          scope,
+          scope: normalizedScope,
           installedAt: new Date().toISOString(),
         },
       },
@@ -849,17 +1058,18 @@ export class ShopifyService {
         accessToken,
         config: {
           ...existingConfig,
-          scope,
+          scope: normalizedScope,
           installedAt: new Date().toISOString(),
           uninstalledAt: null,
         },
       },
     });
 
-    console.log('[storeShopifyConnection] Upserted integration config:', {
-      projectId,
-      savedScope: (integration.config as any)?.scope,
-    });
+    // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1] Log authoritative scope storage (no secrets)
+    this.logger.log(
+      `[SHOPIFY-SCOPE-TRUTH-1] Upserted integration: id=${integration.id}, shop=${shopDomain}, ` +
+        `truthSource=${truthSource}, normalizedScopes=${normalizedScope}`,
+    );
 
     // Fire-and-forget ensure of Answer Block metafield definitions for this store.
     this.ensureMetafieldDefinitions(projectId).catch((err) => {

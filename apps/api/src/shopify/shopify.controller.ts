@@ -173,29 +173,51 @@ export class ShopifyController {
       requestedScopes: statePayload.requestedScopes,
     });
 
-    // Store connection in database
-    await this.shopifyService.storeShopifyConnection(
-      projectId,
-      shop,
-      tokenData.access_token,
-      tokenData.scope,
-    );
-
-    console.log('[Shopify Callback] Connection stored successfully');
-
-    // Redirect to frontend with success
+    // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-2] Store connection with scope verification
+    // Wrap in try/catch to handle SHOPIFY_SCOPE_VERIFICATION_FAILED error
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const basePath = statePayload.returnTo ?? `/projects/${projectId}`;
-    const redirectUrl = new URL(basePath, frontendUrl);
-    if (statePayload.source === 'reconnect') {
-      redirectUrl.searchParams.set('shopify', 'reconnected');
-      if (statePayload.capability) {
-        redirectUrl.searchParams.set('reconnect', statePayload.capability);
+    const basePath = statePayload.returnTo ?? `/projects/${projectId}/settings#integrations`;
+
+    try {
+      await this.shopifyService.storeShopifyConnection(
+        projectId,
+        shop,
+        tokenData.access_token,
+        tokenData.scope,
+        statePayload.requestedScopes,
+      );
+
+      console.log('[Shopify Callback] Connection stored successfully');
+
+      // Redirect to frontend with success
+      const redirectUrl = new URL(basePath, frontendUrl);
+      if (statePayload.source === 'reconnect') {
+        redirectUrl.searchParams.set('shopify', 'reconnected');
+        if (statePayload.capability) {
+          redirectUrl.searchParams.set('reconnect', statePayload.capability);
+        }
+      } else {
+        redirectUrl.searchParams.set('shopify', 'connected');
       }
-    } else {
-      redirectUrl.searchParams.set('shopify', 'connected');
+      return res.redirect(redirectUrl.toString());
+    } catch (err) {
+      // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-2] Handle scope verification failure
+      const errorCode = (err as any)?.code;
+      if (errorCode === 'SHOPIFY_SCOPE_VERIFICATION_FAILED') {
+        console.error('[Shopify Callback] Scope verification failed:', {
+          projectId,
+          shop,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        // Redirect to settings page with verify_failed signal
+        const failureUrl = new URL(`/projects/${projectId}/settings`, frontendUrl);
+        failureUrl.hash = 'integrations';
+        failureUrl.searchParams.set('shopify', 'verify_failed');
+        return res.redirect(failureUrl.toString());
+      }
+      // Re-throw other errors
+      throw err;
     }
-    return res.redirect(redirectUrl.toString());
   }
 
   /**

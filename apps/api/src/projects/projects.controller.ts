@@ -141,11 +141,27 @@ export class ProjectsController {
 
   /**
    * GET /projects/:id/integration-status
-   * Returns integration status for a project
+   * Returns integration status for a project.
+   * [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Includes planId and willGenerateAnswerBlocksOnProductSync
+   * for deterministic UI truthfulness (so UI does not re-encode eligibility rules).
    */
   @Get(':id/integration-status')
   async getIntegrationStatus(@Request() req: any, @Param('id') projectId: string) {
-    return this.projectsService.getIntegrationStatus(projectId, req.user.id);
+    const status = await this.projectsService.getIntegrationStatus(projectId, req.user.id);
+
+    // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Get user's plan for eligibility determination
+    const planId = await this.entitlementsService.getUserPlan(req.user.id);
+
+    // Derived: will Answer Blocks be generated on product sync?
+    // Requires: (1) planId !== 'free' AND (2) autoGenerateAnswerBlocksOnProductSync === true
+    const willGenerateAnswerBlocksOnProductSync =
+      planId !== 'free' && (status.autoGenerateAnswerBlocksOnProductSync ?? false);
+
+    return {
+      ...status,
+      planId,
+      willGenerateAnswerBlocksOnProductSync,
+    };
   }
 
   /**
@@ -168,14 +184,17 @@ export class ProjectsController {
 
   /**
    * GET /projects/:id/deo-issues
+   * [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Read-only (no automation triggers / no side effects).
    * Returns aggregated DEO issues for a project.
+   * Multiple UI pages call this on page load; must never trigger Answer Block automation.
    */
   @Get(':id/deo-issues')
   async getDeoIssues(
     @Request() req: any,
     @Param('id') projectId: string,
   ): Promise<DeoIssuesResponse> {
-    return this.deoIssuesService.getIssuesForProject(projectId, req.user.id);
+    // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Use read-only variant to prevent automation side-effects on page load
+    return this.deoIssuesService.getIssuesForProjectReadOnly(projectId, req.user.id);
   }
 
   /**

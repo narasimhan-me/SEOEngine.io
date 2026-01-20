@@ -17,6 +17,8 @@ export interface UpdateProjectDto {
   autoSuggestThinContent?: boolean;
   autoSuggestDailyCap?: number;
   aeoSyncToShopifyMetafields?: boolean;
+  // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Project-level gate for Answer Block automation on product sync
+  autoGenerateAnswerBlocksOnProductSync?: boolean;
 }
 
 // [ROLES-3] Project member DTOs
@@ -195,6 +197,10 @@ export class ProjectsService {
         ...(dto.aeoSyncToShopifyMetafields !== undefined && {
           aeoSyncToShopifyMetafields: dto.aeoSyncToShopifyMetafields,
         }),
+        // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Persist Answer Block automation setting
+        ...(dto.autoGenerateAnswerBlocksOnProductSync !== undefined && {
+          autoGenerateAnswerBlocksOnProductSync: dto.autoGenerateAnswerBlocksOnProductSync,
+        }),
       },
     });
   }
@@ -351,6 +357,8 @@ export class ProjectsService {
       autoSuggestThinContent: project.autoSuggestThinContent,
       autoSuggestDailyCap: project.autoSuggestDailyCap,
       aeoSyncToShopifyMetafields: project.aeoSyncToShopifyMetafields ?? false,
+      // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Answer Block automation on product sync setting
+      autoGenerateAnswerBlocksOnProductSync: project.autoGenerateAnswerBlocksOnProductSync ?? false,
     };
   }
 

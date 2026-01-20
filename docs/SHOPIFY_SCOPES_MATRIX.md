@@ -38,6 +38,20 @@ Key behaviors:
 - **Deduplicated**: Shared scopes (e.g., `read_content` for pages and blogs) are only included once
 - **Minimal**: Only scopes actually required by enabled capabilities are computed
 
+### Scope Parsing (SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1)
+
+The `parseShopifyScopesCsv()` function handles multiple input formats for backward compatibility with legacy DB storage:
+
+| Format | Example | Notes |
+|--------|---------|-------|
+| Comma-separated string | `"read_products,write_products"` | Standard format |
+| Whitespace-separated string | `"read_products write_products"` | Legacy/alternative format |
+| Mixed delimiters | `"read_products, write_products read_content"` | Any combination |
+| JSON array | `["read_products", "write_products"]` | Legacy Prisma Json field format |
+| Array with nested delimiters | `["read_products,write_products", "read_content"]` | Elements may contain delimiters |
+
+**Trust Invariant**: Legacy scope storage formats (JSON array, whitespace-delimited) must not cause false missing-scope blocks. The parser silently handles all formats and returns `[]` for non-parseable inputs (null, undefined, numbers, plain objects).
+
 ## Environment Configuration
 
 ### SHOPIFY_SCOPES (Allowlist)
@@ -67,17 +81,65 @@ SHOPIFY_SCOPES=read_products,write_products,read_themes,read_content
 
 Reconnect requests `grantedScopes ∪ missingRequiredScopes` for the triggering capability (user-initiated) and still validates the env allowlist is a superset of requested scopes.
 
+## Scope Implications (SHOPIFY-SCOPE-IMPLICATIONS-1)
+
+Shopify write scopes implicitly grant read access. The scope coverage system accounts for this to prevent false "missing read_X" warnings when `write_X` is already granted.
+
+### Implication Rules
+
+| Write Scope | Implies |
+|-------------|---------|
+| `write_products` | `read_products` |
+| `write_content` | `read_content` |
+| `write_themes` | `read_themes` |
+
+### How It Works
+
+The `expandGrantedScopesWithImplications()` function expands granted scopes with their implied read scopes:
+
+```typescript
+import { expandGrantedScopesWithImplications } from './shopify-scopes';
+
+const granted = ['write_products'];
+const expanded = expandGrantedScopesWithImplications(granted);
+// Set { 'write_products', 'read_products' }
+```
+
+This is used by `checkScopeCoverage()` and `getScopeStatusFromIntegration()` to compute effective scope coverage.
+
+### Trust Invariant
+
+**No false "missing read_X" warnings when `write_X` is granted.**
+
+If a user has `write_products`, they should never see "Missing read_products" warnings because write access implicitly includes read access.
+
+### Important Notes
+
+1. **Implications are for COVERAGE CHECKS ONLY** — The actual OAuth scopes requested/stored are unchanged
+2. **Write → Read only** — Read scopes do NOT imply write access (no reverse implication)
+3. **Future-proof** — `write_content` and `write_themes` implications are defined for when those capabilities are added
+
 ## Missing Scope Detection
 
-The `checkScopeCoverage()` function detects when granted scopes don't cover required capabilities:
+The `checkScopeCoverage()` function detects when granted scopes don't cover required capabilities.
+
+**[SHOPIFY-SCOPE-IMPLICATIONS-1]** Coverage checks use implication-aware expansion: `write_products` satisfies `read_products` requirements.
 
 ```typescript
 import { checkScopeCoverage } from './shopify-scopes';
 
-const granted = ['read_products', 'write_products'];
-const capabilities = ['pages_sync']; // requires read_content
+// Example: write_products covers collections_sync (requires read_products)
+const granted = ['write_products'];
+const capabilities = ['collections_sync'];
 
 const result = checkScopeCoverage(granted, capabilities);
+// { covered: true, missingScopes: [] }
+
+// Example: Missing read_content for pages_sync
+const granted2 = ['read_products', 'write_products'];
+const capabilities2 = ['pages_sync']; // requires read_content
+
+const result2 = checkScopeCoverage(granted2, capabilities2);
 // { covered: false, missingScopes: ['read_content'] }
 ```
 
@@ -100,6 +162,7 @@ This is used by:
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2026-01-17 | Initial version with SHOPIFY-SCOPES-MATRIX-1 |
+| 1.1 | 2026-01-20 | Added SHOPIFY-SCOPE-IMPLICATIONS-1: Scope implication rules for coverage checks |
 
 ## Locked Contract
 

@@ -10,6 +10,7 @@ import {
   AutomationIssueType,
   AutomationTargetType,
 } from '@prisma/client';
+import { createHash } from 'crypto';
 import { PrismaService } from '../prisma.service';
 import { AiService } from '../ai/ai.service';
 import { EntitlementsService } from '../billing/entitlements.service';
@@ -686,6 +687,10 @@ export class AutomationService {
    * for the same product + trigger type.
    * Enqueues a job onto answer_block_automation_queue for Pro/Business plans
    * (Business may use higher priority).
+   *
+   * [AUTOMATION-TRIGGER-TRUTHFULNESS-1] For triggerType='product_synced':
+   * - Setting gate: autoGenerateAnswerBlocksOnProductSync must be true
+   * - DB-backed idempotency: uses AnswerBlockAutomationRun table with fingerprint hash
    */
   async triggerAnswerBlockAutomationForProduct(
     productId: string,
@@ -711,8 +716,13 @@ export class AutomationService {
 
     const planId: PlanId = await this.entitlementsService.getUserPlan(userId);
 
-    // Free plan: log and exit (no Answer Block automations for Free tier)
+    // Free plan: log suppression and exit (no Answer Block automations for Free tier)
     if (planId === 'free') {
+      // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Log suppression with reason
+      this.logger.log(
+        `[AnswerBlockAutomation] Suppressed: automationType=answer_blocks, trigger=${triggerType}, ` +
+          `projectId=${product.projectId}, productId=${productId}, suppressedReason=plan_ineligible`,
+      );
       await this.prisma.answerBlockAutomationLog.create({
         data: {
           projectId: product.projectId,
@@ -726,6 +736,201 @@ export class AutomationService {
       return;
     }
 
+    // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] For product_synced: check setting gate + DB-backed idempotency
+    if (triggerType === 'product_synced') {
+      // Setting gate: check if autoGenerateAnswerBlocksOnProductSync is enabled
+      if (!product.project.autoGenerateAnswerBlocksOnProductSync) {
+        this.logger.log(
+          `[AnswerBlockAutomation] Suppressed: automationType=answer_blocks, trigger=${triggerType}, ` +
+            `projectId=${product.projectId}, productId=${productId}, suppressedReason=setting_disabled`,
+        );
+        return;
+      }
+
+      // Compute stable fingerprint from product state (no timestamps)
+      const fingerprintData = JSON.stringify({
+        title: product.title,
+        description: product.description,
+        handle: product.handle,
+        // Add other stable product fields as needed
+      });
+      const fingerprintHash = createHash('sha256').update(fingerprintData).digest('hex');
+      const idempotencyKey = `${product.projectId}:${productId}:answer_blocks:${fingerprintHash}`;
+
+      // [AUTOMATION-TRIGGER-TRUTHFULNESS-1 REVIEW-1] Race-safe idempotency handling
+      // Helper to check status and decide action
+      const handleExistingRun = async (run: { id: string; status: string }): Promise<{ action: 'suppress' | 'retry'; runId?: string; reason?: string }> => {
+        if (run.status === 'SUCCEEDED' || run.status === 'SKIPPED') {
+          return { action: 'suppress', reason: 'idempotent_already_done' };
+        }
+        if (run.status === 'QUEUED' || run.status === 'RUNNING') {
+          return { action: 'suppress', reason: 'in_flight' };
+        }
+        // FAILED status: attempt conditional transition back to QUEUED
+        const updated = await this.prisma.answerBlockAutomationRun.updateMany({
+          where: {
+            id: run.id,
+            status: 'FAILED', // Conditional: only update if still FAILED
+          },
+          data: {
+            status: 'QUEUED',
+            startedAt: null,
+            completedAt: null,
+            errorMessage: null,
+            updatedAt: new Date(),
+          },
+        });
+
+        if (updated.count === 1) {
+          // Successfully transitioned to QUEUED for retry
+          return { action: 'retry', runId: run.id };
+        }
+
+        // Race condition: another caller already transitioned it
+        // Re-read the current status and apply suppress rules
+        const reread = await this.prisma.answerBlockAutomationRun.findUnique({
+          where: { id: run.id },
+        });
+        if (!reread) {
+          // Extremely rare: run was deleted between calls (treat as suppress)
+          return { action: 'suppress', reason: 'idempotent_already_done' };
+        }
+        if (reread.status === 'SUCCEEDED' || reread.status === 'SKIPPED') {
+          return { action: 'suppress', reason: 'idempotent_already_done' };
+        }
+        // QUEUED or RUNNING (another caller is handling it)
+        return { action: 'suppress', reason: 'in_flight' };
+      };
+
+      // Check for existing run in AnswerBlockAutomationRun table
+      let existingRun = await this.prisma.answerBlockAutomationRun.findFirst({
+        where: {
+          projectId: product.projectId,
+          productId: productId,
+          idempotencyKey,
+        },
+      });
+
+      let runId: string;
+
+      if (existingRun) {
+        const result = await handleExistingRun(existingRun);
+        if (result.action === 'suppress') {
+          this.logger.log(
+            `[AnswerBlockAutomation] Suppressed: automationType=answer_blocks, trigger=${triggerType}, ` +
+              `projectId=${product.projectId}, productId=${productId}, suppressedReason=${result.reason}, ` +
+              `existingRunId=${existingRun.id}, existingStatus=${existingRun.status}`,
+          );
+          return;
+        }
+        // result.action === 'retry': use existing run ID
+        runId = result.runId!;
+        this.logger.log(
+          `[AnswerBlockAutomation] Retrying FAILED run: automationType=answer_blocks, trigger=${triggerType}, ` +
+            `projectId=${product.projectId}, productId=${productId}, runId=${runId}`,
+        );
+      } else {
+        // No existing run: attempt to create new one
+        // Wrap in try-catch to handle unique constraint race condition
+        try {
+          const newRun = await this.prisma.answerBlockAutomationRun.create({
+            data: {
+              projectId: product.projectId,
+              productId: productId,
+              triggerType,
+              idempotencyKey,
+              fingerprintHash,
+              status: 'QUEUED',
+              planId,
+            },
+          });
+          runId = newRun.id;
+        } catch (createError: unknown) {
+          // Check if this is a unique constraint violation (P2002)
+          const isPrismaUniqueViolation =
+            createError &&
+            typeof createError === 'object' &&
+            'code' in createError &&
+            createError.code === 'P2002';
+
+          if (!isPrismaUniqueViolation) {
+            throw createError; // Re-throw unexpected errors
+          }
+
+          // Another caller created the run first - re-fetch and handle
+          existingRun = await this.prisma.answerBlockAutomationRun.findFirst({
+            where: {
+              projectId: product.projectId,
+              productId: productId,
+              idempotencyKey,
+            },
+          });
+
+          if (!existingRun) {
+            // Extremely rare: created then deleted - treat as already done
+            this.logger.log(
+              `[AnswerBlockAutomation] Suppressed: automationType=answer_blocks, trigger=${triggerType}, ` +
+                `projectId=${product.projectId}, productId=${productId}, suppressedReason=idempotent_already_done (race)`,
+            );
+            return;
+          }
+
+          const result = await handleExistingRun(existingRun);
+          if (result.action === 'suppress') {
+            this.logger.log(
+              `[AnswerBlockAutomation] Suppressed: automationType=answer_blocks, trigger=${triggerType}, ` +
+                `projectId=${product.projectId}, productId=${productId}, suppressedReason=${result.reason}, ` +
+                `existingRunId=${existingRun.id}, existingStatus=${existingRun.status} (race recovery)`,
+            );
+            return;
+          }
+          // result.action === 'retry'
+          runId = result.runId!;
+          this.logger.log(
+            `[AnswerBlockAutomation] Retrying FAILED run (race recovery): automationType=answer_blocks, trigger=${triggerType}, ` +
+              `projectId=${product.projectId}, productId=${productId}, runId=${runId}`,
+          );
+        }
+      }
+
+      if (!answerBlockAutomationQueue) {
+        this.logger.warn(
+          '[AnswerBlockAutomation] Queue not available (Redis disabled); skipping enqueue',
+        );
+        // Update run record to FAILED
+        await this.prisma.answerBlockAutomationRun.update({
+          where: { id: runId },
+          data: { status: 'FAILED', completedAt: new Date(), errorMessage: 'Queue unavailable' },
+        });
+        return;
+      }
+
+      const priority = planId === 'business' ? 1 : 5;
+
+      await answerBlockAutomationQueue.add(
+        'answer_block_automation',
+        {
+          projectId: product.projectId,
+          productId: product.id,
+          userId,
+          triggerType,
+          planId,
+          runId, // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Include runId for state tracking
+        },
+        {
+          priority,
+        },
+      );
+
+      this.logger.log(
+        `[AnswerBlockAutomation] Allowed/enqueued: automationType=answer_blocks, trigger=${triggerType}, ` +
+          `projectId=${product.projectId}, productId=${productId}, runId=${runId}, ` +
+          `idempotencyHash=${fingerprintHash.substring(0, 16)}...`,
+      );
+      return;
+    }
+
+    // Original logic for issue_detected trigger (unchanged)
     // Idempotency: skip if a successful automation for this product + trigger
     // already exists recently (no advanced time-window logic needed for v1).
     const recentSuccess = await this.prisma.answerBlockAutomationLog.findFirst({
