@@ -1720,6 +1720,54 @@ Seeds:
 - `docs/SHOPIFY_SCOPES_MATRIX.md` (internal documentation)
 - `docs/SHOPIFY_PERMISSIONS_AND_RECONSENT.md` (existing permissions doc)
 
+### Phase SHOPIFY-SCOPE-IMPLICATIONS-1: Write Scopes Imply Read Access ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-20
+**Activation:** Implication-aware scope coverage checks
+
+#### Goals
+
+1. Eliminate false "missing read_X" warnings when `write_X` is already granted.
+2. Implement implication-aware scope coverage: write scopes implicitly grant read access.
+3. Ensure the Trust Invariant: no false missing scope warnings for covered capabilities.
+
+#### Key Changes
+
+1. **Implication Rules:** Added `SHOPIFY_SCOPE_IMPLICATIONS` constant mapping write scopes to their implied read scopes (`write_products` → `read_products`, `write_content` → `read_content`, `write_themes` → `read_themes`).
+2. **Expansion Helper:** Added `expandGrantedScopesWithImplications()` function to expand granted scopes with their implied read scopes.
+3. **Coverage Checks:** Updated `checkScopeCoverage()` to use implication-aware expansion so `write_products` satisfies `read_products` requirements.
+4. **Service Update:** Updated `getScopeStatusFromIntegration()` in `shopify.service.ts` to use implication-aware expansion for missing scope detection.
+
+#### Implication Matrix
+
+| Write Scope | Implies |
+|-------------|---------|
+| `write_products` | `read_products` |
+| `write_content` | `read_content` |
+| `write_themes` | `read_themes` |
+
+**Important:** Implications are for COVERAGE CHECKS ONLY — actual OAuth scopes requested/stored are unchanged. Read scopes do NOT imply write scopes (no reverse implication).
+
+#### Core Files
+
+- `apps/api/src/shopify/shopify-scopes.ts` (SHOPIFY_SCOPE_IMPLICATIONS, expandGrantedScopesWithImplications, updated checkScopeCoverage)
+- `apps/api/src/shopify/shopify.service.ts` (getScopeStatusFromIntegration uses implication-aware expansion)
+- `apps/api/test/unit/shopify/shopify-scopes-matrix.test.ts` (implication contract tests)
+
+#### Test Coverage
+
+- Unit tests: `apps/api/test/unit/shopify/shopify-scopes-matrix.test.ts` (Scope Implications describe block)
+
+#### Manual Testing
+
+- `docs/manual-testing/SHOPIFY-SCOPE-IMPLICATIONS-1.md`
+
+#### Related Documentation
+
+- `docs/SHOPIFY_SCOPES_MATRIX.md` (updated with Scope Implications section)
+- `docs/testing/CRITICAL_PATH_MAP.md` (CP-006 updated with implication scenarios)
+
 ### Phase BLOGS-ASSET-SYNC-COVERAGE-1: Shopify Blog Posts (Articles) Ingestion ✅ COMPLETE
 
 **Status:** Complete
@@ -2327,3 +2375,4 @@ These invariants MUST be preserved during implementation:
 | 6.69 | 2026-01-19 | **PLAYBOOK-STEP-CONTINUITY-1-FIXUP-2**: Permission-safe Step 2 draft blocker CTAs. (1) Step 2 draft blocker panels (EXPIRED/FAILED/missing) now gate CTA based on `canGenerateDrafts`; (2) VIEWER sees "Viewer role cannot generate previews." with "Request access" link instead of actionable button; (3) OWNER/EDITOR CTA unchanged. **Manual Testing:** PLAYBOOK-STEP-CONTINUITY-1.md (ERR-004 scenario added). |
 | 6.70 | 2026-01-19 | **DIAGNOSTIC-GUIDANCE-1 COMPLETE**: Diagnostic guidance pattern for outside-control issues. Issues with `actionability === 'informational'` now show "Informational — outside EngineO.ai control" badge, explanation text, and "How to address this" guidance block with 4 actionable bullets. No Fix/Apply/Review CTAs on these issues; cards are non-clickable. Distinct from orphan issues (which show "no action required" without guidance). UI/copy only; no backend changes. Core files: IssuesList.tsx, issues/page.tsx. **Manual Testing:** DIAGNOSTIC-GUIDANCE-1.md |
 | 6.71 | 2026-01-19 | **DIAGNOSTIC-GUIDANCE-1-FIXUP-1**: Trust hardening for outside-control issues. Issues Engine (page.tsx) now explicitly gates clickability and fixHref for `actionability === 'informational'` issues at the frontend level. (1) Added `isOutsideEngineControl` boolean; (2) `fixHref` forced to null for outside-control issues; (3) `isClickableIssue` forced to false regardless of backend `isActionableNow` flag. Prevents accidental actionable navigation even under inconsistent backend flags. Added EC-003 scenario to manual testing doc. |
+| 6.72 | 2026-01-20 | **SHOPIFY-SCOPE-IMPLICATIONS-1 COMPLETE**: Write scopes imply read access for coverage checks. (1) Added `SHOPIFY_SCOPE_IMPLICATIONS` mapping (`write_products` → `read_products`, `write_content` → `read_content`, `write_themes` → `read_themes`); (2) Added `expandGrantedScopesWithImplications()` helper; (3) Updated `checkScopeCoverage()` to use implication-aware expansion; (4) Updated `getScopeStatusFromIntegration()` in shopify.service.ts. Eliminates false "missing read_products" warnings when `write_products` is granted. Core files: shopify-scopes.ts, shopify.service.ts, shopify-scopes-matrix.test.ts. **Manual Testing:** SHOPIFY-SCOPE-IMPLICATIONS-1.md |

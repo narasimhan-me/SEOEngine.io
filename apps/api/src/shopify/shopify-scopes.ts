@@ -47,6 +47,50 @@ export const ALL_SHOPIFY_CAPABILITIES: readonly ShopifyCapability[] = Object.key
 ) as ShopifyCapability[];
 
 /**
+ * [SHOPIFY-SCOPE-IMPLICATIONS-1] Scope implication rules for coverage checks.
+ *
+ * Shopify write scopes implicitly grant read access. For missing-scope detection
+ * and messaging, we treat write_X as satisfying read_X to prevent false warnings.
+ *
+ * Example: User has write_products but not read_products explicitly.
+ * Without implication: "Missing read_products" (false positive)
+ * With implication: No warning (correct behavior)
+ *
+ * IMPORTANT: These implications are for COVERAGE CHECKS ONLY.
+ * The actual OAuth scopes requested/stored are unchanged.
+ */
+export const SHOPIFY_SCOPE_IMPLICATIONS: Record<string, string[]> = {
+  // write_products grants read_products access
+  write_products: ['read_products'],
+  // write_content grants read_content access (future-proofing)
+  write_content: ['read_content'],
+  // write_themes grants read_themes access (future-proofing)
+  write_themes: ['read_themes'],
+} as const;
+
+/**
+ * [SHOPIFY-SCOPE-IMPLICATIONS-1] Expand granted scopes with implied scopes.
+ *
+ * Returns a new set containing the original granted scopes plus any
+ * scopes that are implicitly granted (e.g., write_products ⇒ read_products).
+ *
+ * @param grantedScopes - Raw scopes granted by Shopify
+ * @returns Expanded set including implied scopes
+ */
+export function expandGrantedScopesWithImplications(grantedScopes: string[]): Set<string> {
+  const expanded = new Set(grantedScopes);
+  for (const scope of grantedScopes) {
+    const implied = SHOPIFY_SCOPE_IMPLICATIONS[scope];
+    if (implied) {
+      for (const impliedScope of implied) {
+        expanded.add(impliedScope);
+      }
+    }
+  }
+  return expanded;
+}
+
+/**
  * Parse a comma-separated scope string into a normalized array.
  * Handles undefined, empty strings, and whitespace gracefully.
  *
@@ -86,6 +130,9 @@ export function computeShopifyRequiredScopes(capabilities: ShopifyCapability[]):
 /**
  * Check if a granted scope set covers all required scopes for given capabilities.
  *
+ * [SHOPIFY-SCOPE-IMPLICATIONS-1] Uses implication-aware expansion:
+ * write_products satisfies read_products, so no false "missing read_products" warnings.
+ *
  * @param grantedScopes - Array of scopes granted by Shopify
  * @param capabilities - Array of capabilities to check
  * @returns Object with missing scopes and whether all are covered
@@ -95,8 +142,9 @@ export function checkScopeCoverage(
   capabilities: ShopifyCapability[],
 ): { covered: boolean; missingScopes: string[] } {
   const required = computeShopifyRequiredScopes(capabilities);
-  const granted = new Set(grantedScopes);
-  const missingScopes = required.filter((s) => !granted.has(s));
+  // [SHOPIFY-SCOPE-IMPLICATIONS-1] Expand granted scopes with implied scopes
+  const effectiveGranted = expandGrantedScopesWithImplications(grantedScopes);
+  const missingScopes = required.filter((s) => !effectiveGranted.has(s));
   return {
     covered: missingScopes.length === 0,
     missingScopes,

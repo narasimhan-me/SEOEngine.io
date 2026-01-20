@@ -10,6 +10,7 @@ import {
   ShopifyCapability,
   parseShopifyScopesCsv,
   computeShopifyRequiredScopes,
+  expandGrantedScopesWithImplications,
 } from './shopify-scopes';
 
 // [SHOPIFY-SCOPES-MATRIX-1] Re-export ShopifyCapability for backward compatibility
@@ -231,6 +232,7 @@ export class ShopifyService {
   }
 
   // [SHOPIFY-SCOPES-MATRIX-1] Use centralized scope computation
+  // [SHOPIFY-SCOPE-IMPLICATIONS-1] Use implication-aware coverage for missing scope detection
   private getScopeStatusFromIntegration(
     integration: any,
     capability: ShopifyScopeCapability,
@@ -238,8 +240,10 @@ export class ShopifyService {
     const storedScope = (integration?.config as any)?.scope ?? '';
     const grantedScopes = this.parseScopeList(storedScope);
     const requiredScopes = computeShopifyRequiredScopes([capability]);
-    const granted = new Set(grantedScopes);
-    const missingScopes = requiredScopes.filter((s) => !granted.has(s));
+    // [SHOPIFY-SCOPE-IMPLICATIONS-1] Expand granted scopes with implied scopes
+    // (e.g., write_products ⇒ read_products) to prevent false "missing read_products" warnings
+    const effectiveGranted = expandGrantedScopesWithImplications(grantedScopes);
+    const missingScopes = requiredScopes.filter((s) => !effectiveGranted.has(s));
     return { capability, requiredScopes, grantedScopes, missingScopes };
   }
 

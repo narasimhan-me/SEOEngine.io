@@ -172,7 +172,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field | Value |
 |-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/shopify-integration.md`, `docs/testing/product-sync.md`, `docs/testing/metadata-sync-seo-fields.md`, `docs/testing/sync-status-and-progress-feedback.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-shop-api-1-graphql-migration.md`, `docs/manual-testing/phase-shop-ux-cta-1-connect-shopify.md`, `docs/manual-testing/phase-shop-ux-cta-1-1-dedup-connect-shopify.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/SHOPIFY-ASSET-SYNC-COVERAGE-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-RECONSENT-UX-1.md`, `docs/manual-testing/SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1.md`, `docs/manual-testing/BLOGS-ASSET-SYNC-COVERAGE-1.md` |
+| **Manual Testing Doc(s)** | `docs/testing/shopify-integration.md`, `docs/testing/product-sync.md`, `docs/testing/metadata-sync-seo-fields.md`, `docs/testing/sync-status-and-progress-feedback.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-shop-api-1-graphql-migration.md`, `docs/manual-testing/phase-shop-ux-cta-1-connect-shopify.md`, `docs/manual-testing/phase-shop-ux-cta-1-1-dedup-connect-shopify.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/SHOPIFY-ASSET-SYNC-COVERAGE-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-RECONSENT-UX-1.md`, `docs/manual-testing/SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1.md`, `docs/manual-testing/BLOGS-ASSET-SYNC-COVERAGE-1.md`, `docs/manual-testing/SHOPIFY-SCOPE-IMPLICATIONS-1.md` |
 | **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/api/test/e2e/shopify-asset-sync.e2e-spec.ts`, `apps/web/tests/shopify-asset-sync-coverage-1.spec.ts`, `apps/web/tests/shopify-integration-lifecycle-integrity-1.spec.ts`, `apps/web/tests/blogs-asset-sync-coverage-1.spec.ts` |
 | **Last Verified (Manual)** | [YYYY-MM-DD] |
 | **Last Verified (Automated)** | N/A |
@@ -199,6 +199,9 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] BLOGS-ASSET-SYNC-COVERAGE-1: Blog posts list shows Published/Draft badges based on publishedAt
 - [ ] BLOGS-ASSET-SYNC-COVERAGE-1: blogs_sync capability requires read_content scope
 - [ ] BLOGS-ASSET-SYNC-COVERAGE-1: lastBlogsSyncAt tracked in sync status
+- [ ] SHOPIFY-SCOPE-IMPLICATIONS-1: write_products satisfies read_products (no false missing scope warnings)
+- [ ] SHOPIFY-SCOPE-IMPLICATIONS-1: write_content satisfies read_content (for pages_sync, blogs_sync)
+- [ ] SHOPIFY-SCOPE-IMPLICATIONS-1: read scopes do NOT imply write scopes (no reverse implication)
 
 ---
 
@@ -812,3 +815,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 6.2 | 2026-01-14 | ISSUE-FIX-KIND-CLARITY-1: Added CP-008 scenarios for DIAGNOSTIC vs EDIT/AI issue CTA semantics. DIAGNOSTIC issues show "Review" CTA (not "Fix"), blue arrival callout (not yellow/indigo), "View related issues" routes to Issues Engine. fixKind derived from config only (never URL). Added issue-fix-kind-clarity-1.spec.ts (7 tests) + LAC1-002b in list-actions-clarity-1.spec.ts. Added manual testing doc. FIXUP-2: Products list shows "Review" for DIAGNOSTIC-topped products, Work Queue shows blue review banner for DIAGNOSTIC issueId. |
 | 6.3 | 2026-01-19 | PLAYBOOK-STEP-CONTINUITY-1: Added CP-012 scenarios for Step 2 → Step 3 deterministic transitions with explicit terminal outcomes. Added draftStatus/draftCounts to estimate response for draft validity reasoning. Added PLAYBOOK_DRAFT_EXPIRED explicit error code for apply. Added PLAYBOOK-STEP-CONTINUITY-1.md manual testing doc. |
 | 6.4 | 2026-01-19 | DIAGNOSTIC-GUIDANCE-1: Added CP-009 scenarios for diagnostic guidance pattern on outside-control issues (actionability='informational'). Issues show "Informational — outside EngineO.ai control" badge, explanation text, and "How to address this" guidance block. No Fix/Apply CTAs on these issues. Added DIAGNOSTIC-GUIDANCE-1.md manual testing doc. |
+| 6.5 | 2026-01-20 | SHOPIFY-SCOPE-IMPLICATIONS-1: Added CP-006 scenarios for scope implication rules. write_products satisfies read_products, write_content satisfies read_content, write_themes satisfies read_themes (no false missing scope warnings). Regression: read scopes do NOT imply write. Added SHOPIFY-SCOPE-IMPLICATIONS-1.md manual testing doc, updated SHOPIFY_SCOPES_MATRIX.md. |

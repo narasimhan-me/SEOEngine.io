@@ -9,9 +9,11 @@ import {
   ShopifyCapability,
   SHOPIFY_SCOPE_MATRIX,
   ALL_SHOPIFY_CAPABILITIES,
+  SHOPIFY_SCOPE_IMPLICATIONS,
   parseShopifyScopesCsv,
   computeShopifyRequiredScopes,
   checkScopeCoverage,
+  expandGrantedScopesWithImplications,
 } from '../../../src/shopify/shopify-scopes';
 
 describe('Shopify Scope Matrix (SHOPIFY-SCOPES-MATRIX-1)', () => {
@@ -167,6 +169,155 @@ describe('Shopify Scope Matrix (SHOPIFY-SCOPES-MATRIX-1)', () => {
       const result = checkScopeCoverage(granted, capabilities);
       expect(result.covered).toBe(true);
       expect(result.missingScopes).toEqual([]);
+    });
+  });
+
+  /**
+   * [SHOPIFY-SCOPE-IMPLICATIONS-1] Scope Implication Tests
+   *
+   * Shopify write scopes implicitly grant read access. These tests verify:
+   * - write_products satisfies read_products requirement
+   * - read_products does NOT satisfy write_products requirement (no reverse implication)
+   *
+   * TRUST INVARIANT: No false "missing read_X" warnings when write_X is granted.
+   */
+  describe('Scope Implications (SHOPIFY-SCOPE-IMPLICATIONS-1)', () => {
+    describe('SHOPIFY_SCOPE_IMPLICATIONS', () => {
+      it('write_products implies read_products', () => {
+        expect(SHOPIFY_SCOPE_IMPLICATIONS.write_products).toContain('read_products');
+      });
+
+      it('write_content implies read_content', () => {
+        expect(SHOPIFY_SCOPE_IMPLICATIONS.write_content).toContain('read_content');
+      });
+
+      it('write_themes implies read_themes', () => {
+        expect(SHOPIFY_SCOPE_IMPLICATIONS.write_themes).toContain('read_themes');
+      });
+    });
+
+    describe('expandGrantedScopesWithImplications', () => {
+      it('expands write_products to include read_products', () => {
+        const expanded = expandGrantedScopesWithImplications(['write_products']);
+        expect(expanded.has('write_products')).toBe(true);
+        expect(expanded.has('read_products')).toBe(true);
+      });
+
+      it('expands write_content to include read_content', () => {
+        const expanded = expandGrantedScopesWithImplications(['write_content']);
+        expect(expanded.has('write_content')).toBe(true);
+        expect(expanded.has('read_content')).toBe(true);
+      });
+
+      it('expands write_themes to include read_themes', () => {
+        const expanded = expandGrantedScopesWithImplications(['write_themes']);
+        expect(expanded.has('write_themes')).toBe(true);
+        expect(expanded.has('read_themes')).toBe(true);
+      });
+
+      it('does not add false implications for read scopes', () => {
+        const expanded = expandGrantedScopesWithImplications(['read_products']);
+        expect(expanded.has('read_products')).toBe(true);
+        expect(expanded.has('write_products')).toBe(false);
+      });
+
+      it('handles multiple scopes with mixed implications', () => {
+        const expanded = expandGrantedScopesWithImplications([
+          'write_products',
+          'read_themes',
+        ]);
+        expect(expanded.has('write_products')).toBe(true);
+        expect(expanded.has('read_products')).toBe(true); // implied
+        expect(expanded.has('read_themes')).toBe(true);
+        expect(expanded.has('write_themes')).toBe(false); // not implied
+      });
+
+      it('handles empty array', () => {
+        const expanded = expandGrantedScopesWithImplications([]);
+        expect(expanded.size).toBe(0);
+      });
+    });
+
+    describe('checkScopeCoverage with implications', () => {
+      /**
+       * CRITICAL TEST: write_products satisfies read_products for collections_sync
+       *
+       * collections_sync requires read_products. If user has write_products,
+       * they implicitly have read_products access, so no missing scope warning.
+       */
+      it('write_products satisfies read_products requirement for collections_sync', () => {
+        const granted = ['write_products'];
+        const capabilities: ShopifyCapability[] = ['collections_sync'];
+        const result = checkScopeCoverage(granted, capabilities);
+        expect(result.covered).toBe(true);
+        expect(result.missingScopes).toEqual([]);
+      });
+
+      /**
+       * CRITICAL TEST: write_products satisfies read_products for products_sync
+       */
+      it('write_products satisfies read_products requirement for products_sync', () => {
+        const granted = ['write_products'];
+        const capabilities: ShopifyCapability[] = ['products_sync'];
+        const result = checkScopeCoverage(granted, capabilities);
+        expect(result.covered).toBe(true);
+        expect(result.missingScopes).toEqual([]);
+      });
+
+      /**
+       * REGRESSION TEST: read_products does NOT satisfy write_products
+       *
+       * products_apply requires write_products. Having read_products alone
+       * should NOT satisfy this requirement (no reverse implication).
+       */
+      it('read_products does NOT satisfy write_products requirement for products_apply', () => {
+        const granted = ['read_products'];
+        const capabilities: ShopifyCapability[] = ['products_apply'];
+        const result = checkScopeCoverage(granted, capabilities);
+        expect(result.covered).toBe(false);
+        expect(result.missingScopes).toEqual(['write_products']);
+      });
+
+      /**
+       * Combined test: write_products covers both sync and apply capabilities
+       */
+      it('write_products covers both products_sync and products_apply', () => {
+        const granted = ['write_products'];
+        const capabilities: ShopifyCapability[] = ['products_sync', 'products_apply'];
+        const result = checkScopeCoverage(granted, capabilities);
+        expect(result.covered).toBe(true);
+        expect(result.missingScopes).toEqual([]);
+      });
+
+      /**
+       * write_content satisfies read_content for pages_sync and blogs_sync
+       */
+      it('write_content satisfies read_content requirement for pages_sync', () => {
+        const granted = ['write_content'];
+        const capabilities: ShopifyCapability[] = ['pages_sync'];
+        const result = checkScopeCoverage(granted, capabilities);
+        expect(result.covered).toBe(true);
+        expect(result.missingScopes).toEqual([]);
+      });
+
+      it('write_content satisfies read_content requirement for blogs_sync', () => {
+        const granted = ['write_content'];
+        const capabilities: ShopifyCapability[] = ['blogs_sync'];
+        const result = checkScopeCoverage(granted, capabilities);
+        expect(result.covered).toBe(true);
+        expect(result.missingScopes).toEqual([]);
+      });
+
+      /**
+       * write_themes satisfies read_themes for themes_read capability
+       */
+      it('write_themes satisfies read_themes requirement for themes_read', () => {
+        const granted = ['write_themes'];
+        const capabilities: ShopifyCapability[] = ['themes_read'];
+        const result = checkScopeCoverage(granted, capabilities);
+        expect(result.covered).toBe(true);
+        expect(result.missingScopes).toEqual([]);
+      });
     });
   });
 });
