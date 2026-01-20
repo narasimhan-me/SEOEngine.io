@@ -191,9 +191,13 @@ function IssueCard({
   const safeTitle = getSafeIssueTitle(issue);
   const safeDescription = getSafeIssueDescription(issue);
 
+  // [DIAGNOSTIC-GUIDANCE-1] Issues with actionability === 'informational' are outside EngineO.ai control
+  const isOutsideEngineControl = issue.actionability === 'informational';
+
   // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Actionable = has a real href from buildIssueFixHref
-  const fixHref = projectId ? buildIssueFixHref({ projectId, issue }) : null;
-  const actionable = Boolean(fixHref);
+  // [DIAGNOSTIC-GUIDANCE-1] Outside-control issues are never actionable (no Fix/Review CTA)
+  const fixHref = projectId && !isOutsideEngineControl ? buildIssueFixHref({ projectId, issue }) : null;
+  const actionable = Boolean(fixHref) && !isOutsideEngineControl;
 
   // [ISSUE-FIX-KIND-CLARITY-1] Get fixKind to determine CTA wording
   const fixConfig = getIssueFixConfig(issue.type || issue.id);
@@ -235,10 +239,13 @@ function IssueCard({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold">{safeTitle}</span>
             <span className={severityBadge.className}>{severityBadge.label}</span>
-            {/* [ISSUE-TO-FIX-PATH-1] Informational badge for orphan issues */}
+            {/* [DIAGNOSTIC-GUIDANCE-1] Outside-control issues get specific label */}
+            {/* [ISSUE-TO-FIX-PATH-1] Informational badge for orphan issues (non-outside-control) */}
             {!actionable && (
               <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 border border-gray-200">
-                Informational — no action required
+                {isOutsideEngineControl
+                  ? 'Informational — outside EngineO.ai control'
+                  : 'Informational — no action required'}
               </span>
             )}
           </div>
@@ -246,6 +253,23 @@ function IssueCard({
           <p className="mt-1 text-xs text-gray-500">
             {issue.count} pages/products affected.
           </p>
+          {/* [DIAGNOSTIC-GUIDANCE-1] Diagnostic guidance block for outside-control issues */}
+          {isOutsideEngineControl && (
+            <div className="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3" data-testid="diagnostic-guidance-block">
+              <p className="text-xs text-gray-600">
+                EngineO.ai cannot directly fix this issue because it depends on your theme, hosting, or Shopify configuration.
+              </p>
+              <div className="mt-2">
+                <p className="text-xs font-semibold text-gray-700">How to address this</p>
+                <ul className="mt-1 list-disc list-inside text-xs text-gray-600 space-y-0.5">
+                  <li>Check your Shopify theme settings</li>
+                  <li>Verify robots.txt and meta tags</li>
+                  <li>Use Google Search Console → Pages → Indexing</li>
+                  <li>Validate structured data using Rich Results Test</li>
+                </ul>
+              </div>
+            </div>
+          )}
           {/* [ISSUE-FIX-KIND-CLARITY-1] Visible CTA showing "Fix" or "Review" based on fixKind */}
           {actionable && (
             <span

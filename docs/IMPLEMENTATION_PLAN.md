@@ -2017,6 +2017,61 @@ Aggregation surfaces (Products list, Work Queue) now use fixKind-aware semantics
 
 ---
 
+### Phase DIAGNOSTIC-GUIDANCE-1: Diagnostic Guidance for Outside-Control Issues ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-19
+
+#### Overview
+
+Implements diagnostic guidance pattern for issues with `actionability === 'informational'` (issues outside EngineO.ai control, such as theme, hosting, or Shopify configuration issues). Ensures these issues are clearly labeled and provide actionable guidance without Fix/Apply CTAs.
+
+**Scope:** UI/copy only; no backend logic changes.
+
+#### Key Behaviors
+
+1. **Badge Label**: Issues with `actionability === 'informational'` show "Informational — outside EngineO.ai control" badge
+2. **Explanation Text**: "EngineO.ai cannot directly fix this issue because it depends on your theme, hosting, or Shopify configuration."
+3. **"How to address this" Guidance Block** with 4 bullets:
+   - Check your Shopify theme settings
+   - Verify robots.txt and meta tags
+   - Use Google Search Console → Pages → Indexing
+   - Validate structured data using Rich Results Test
+4. **No Fix CTAs**: No "Fix", "Fix with AI", "Fix now", "Apply", or "Review" buttons on these issues
+5. **Non-clickable Cards**: Cards with `actionability === 'informational'` are not clickable (no hover state, no cursor pointer)
+
+#### Distinction from Orphan Issues
+
+- **Outside-control issues** (`actionability === 'informational'`): "Informational — outside EngineO.ai control" + guidance block
+- **Orphan issues** (no valid fixHref but not informational): "Informational — no action required" (no guidance block)
+
+#### Core Files
+
+- `apps/web/src/components/issues/IssuesList.tsx` - IssueCard component
+- `apps/web/src/app/projects/[id]/issues/page.tsx` - Issues Engine page
+
+#### Test IDs
+
+- `data-testid="issue-card-informational"` - Non-clickable card
+- `data-testid="diagnostic-guidance-block"` - Guidance block container
+
+#### Manual Testing
+
+- `docs/manual-testing/DIAGNOSTIC-GUIDANCE-1.md`
+
+#### FIXUP-1: Trust Hardening (Frontend Hard-Gate)
+
+**Purpose:** Prevents any accidental actionable navigation on outside-control issues by explicitly gating clickability and fixHref at the frontend level.
+
+**Change:** Issues Engine (page.tsx) now explicitly gates:
+1. `isOutsideEngineControl` boolean derived from `issue.actionability === 'informational'`
+2. `fixHref` forced to `null` for outside-control issues (no routing computed)
+3. `isClickableIssue` forced to `false` for outside-control issues, regardless of backend `isActionableNow` flag
+
+**Critical Invariant:** Even if backend incorrectly returns `isActionableNow: true` for an outside-control issue, the frontend hard-gate ensures no clickability or navigation occurs.
+
+---
+
 ## In Progress
 
 *None at this time.*
@@ -2270,3 +2325,5 @@ These invariants MUST be preserved during implementation:
 | 6.67 | 2026-01-19 | **PLAYBOOK-STEP-CONTINUITY-1 COMPLETE**: Step 2 → Step 3 deterministic transitions with explicit terminal outcomes. (1) `loadEstimate()` no longer clears estimate to null while loading (prevents race condition); (2) `handleNextStep()` shows explicit toast on missing/stale data (never returns silently); (3) Added `draftStatus` and `draftCounts` to `PlaybookEstimate` interface; (4) Step 2 shows draft expired/failed blocker panels with Regenerate/Retry CTAs; (5) API `estimatePlaybook()` returns `draftStatus: 'EXPIRED'` when `expiresAt < now`; (6) API `applyPlaybook()` returns `PLAYBOOK_DRAFT_EXPIRED` error for expired drafts; (7) Zero-eligible empty state shows "No applicable changes found" with Back CTA; (8) VIEWER/EDITOR notices include resolution CTA links to `/settings/members`; (9) Step 3 section has `tabIndex={-1}` for focus accessibility. **Manual Testing:** PLAYBOOK-STEP-CONTINUITY-1.md |
 | 6.68 | 2026-01-19 | **PLAYBOOK-STEP-CONTINUITY-1-FIXUP-1**: Audit corrections. (1) `loadPreview()` now unconditionally refreshes estimate after preview generation (fixes Regenerate/Retry CTA not clearing blocker state); (2) Zero-eligible CTA label restored to "View products that need optimization" for PRODUCTS asset type (was generic "View items..." breaking test); (3) Zero-eligible "Return to Playbooks" route fixed to canonical `/playbooks` (was `/automation`); (4) Added blocker panel for missing draft status (draftStatus undefined); (5) "Continue to Apply" now requires explicit valid draft status (READY or PARTIAL only); (6) Manual testing doc restructured to match MANUAL_TESTING_TEMPLATE.md; corrected API endpoint paths; removed nonexistent seed endpoint; fixed VIEWER scenario preconditions. |
 | 6.69 | 2026-01-19 | **PLAYBOOK-STEP-CONTINUITY-1-FIXUP-2**: Permission-safe Step 2 draft blocker CTAs. (1) Step 2 draft blocker panels (EXPIRED/FAILED/missing) now gate CTA based on `canGenerateDrafts`; (2) VIEWER sees "Viewer role cannot generate previews." with "Request access" link instead of actionable button; (3) OWNER/EDITOR CTA unchanged. **Manual Testing:** PLAYBOOK-STEP-CONTINUITY-1.md (ERR-004 scenario added). |
+| 6.70 | 2026-01-19 | **DIAGNOSTIC-GUIDANCE-1 COMPLETE**: Diagnostic guidance pattern for outside-control issues. Issues with `actionability === 'informational'` now show "Informational — outside EngineO.ai control" badge, explanation text, and "How to address this" guidance block with 4 actionable bullets. No Fix/Apply/Review CTAs on these issues; cards are non-clickable. Distinct from orphan issues (which show "no action required" without guidance). UI/copy only; no backend changes. Core files: IssuesList.tsx, issues/page.tsx. **Manual Testing:** DIAGNOSTIC-GUIDANCE-1.md |
+| 6.71 | 2026-01-19 | **DIAGNOSTIC-GUIDANCE-1-FIXUP-1**: Trust hardening for outside-control issues. Issues Engine (page.tsx) now explicitly gates clickability and fixHref for `actionability === 'informational'` issues at the frontend level. (1) Added `isOutsideEngineControl` boolean; (2) `fixHref` forced to null for outside-control issues; (3) `isClickableIssue` forced to false regardless of backend `isActionableNow` flag. Prevents accidental actionable navigation even under inconsistent backend flags. Added EC-003 scenario to manual testing doc. |

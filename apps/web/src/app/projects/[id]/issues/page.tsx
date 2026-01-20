@@ -530,6 +530,11 @@ export default function IssuesPage() {
       return null;
     }
 
+    // [DIAGNOSTIC-GUIDANCE-1] Outside-control issues (actionability === 'informational') never have Fix CTAs
+    if (issue.actionability === 'informational') {
+      return null;
+    }
+
     const fixType = issue.fixType as DeoIssueFixType | undefined;
     const fixReady = issue.fixReady ?? false;
     const primaryProductId = issue.primaryProductId;
@@ -1198,9 +1203,15 @@ export default function IssuesPage() {
             const safeTitle = getSafeIssueTitle(issue);
             const safeDescription = getSafeIssueDescription(issue);
 
+            // [DIAGNOSTIC-GUIDANCE-1 FIXUP-1] Hard-gate for outside-control issues (trust principle)
+            // Frontend explicitly prevents clickability regardless of backend isActionableNow flag
+            const isOutsideEngineControl = issue.actionability === 'informational';
+
             // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Compute fixHref unconditionally, then define isClickableIssue
-            const fixHref = buildIssueFixHref({ projectId, issue, from: 'issues_engine' });
-            const isClickableIssue = (issue.isActionableNow === true) && (fixHref !== null);
+            // [DIAGNOSTIC-GUIDANCE-1 FIXUP-1] Outside-control issues always yield null fixHref
+            const fixHref = isOutsideEngineControl ? null : buildIssueFixHref({ projectId, issue, from: 'issues_engine' });
+            // [DIAGNOSTIC-GUIDANCE-1 FIXUP-1] Outside-control issues are never clickable, even if isActionableNow is true
+            const isClickableIssue = !isOutsideEngineControl && (issue.isActionableNow === true) && (fixHref !== null);
             const fixAction = getFixAction(issue);
 
             return (
@@ -1264,15 +1275,35 @@ export default function IssuesPage() {
                         >
                           {issue.severity.charAt(0).toUpperCase() + issue.severity.slice(1)}
                         </span>
-                        {/* [ISSUE-TO-FIX-PATH-1] Informational badge for orphan issues */}
+                        {/* [DIAGNOSTIC-GUIDANCE-1] Outside-control issues get specific label */}
+                        {/* [ISSUE-TO-FIX-PATH-1] Informational badge for orphan issues (non-outside-control) */}
                         <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 border border-gray-200">
-                          Informational — no action required
+                          {issue.actionability === 'informational'
+                            ? 'Informational — outside EngineO.ai control'
+                            : 'Informational — no action required'}
                         </span>
                       </div>
                       <p className="mt-1 text-sm text-gray-600">{safeDescription}</p>
                       <p className="mt-1 text-xs text-gray-500">
                         {issue.count} {issue.count === 1 ? 'item' : 'items'} affected
                       </p>
+                      {/* [DIAGNOSTIC-GUIDANCE-1] Diagnostic guidance block for outside-control issues */}
+                      {issue.actionability === 'informational' && (
+                        <div className="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3" data-testid="diagnostic-guidance-block">
+                          <p className="text-xs text-gray-600">
+                            EngineO.ai cannot directly fix this issue because it depends on your theme, hosting, or Shopify configuration.
+                          </p>
+                          <div className="mt-2">
+                            <p className="text-xs font-semibold text-gray-700">How to address this</p>
+                            <ul className="mt-1 list-disc list-inside text-xs text-gray-600 space-y-0.5">
+                              <li>Check your Shopify theme settings</li>
+                              <li>Verify robots.txt and meta tags</li>
+                              <li>Use Google Search Console → Pages → Indexing</li>
+                              <li>Validate structured data using Rich Results Test</li>
+                            </ul>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
