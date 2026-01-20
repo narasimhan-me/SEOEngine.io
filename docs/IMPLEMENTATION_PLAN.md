@@ -1768,6 +1768,74 @@ Seeds:
 - `docs/SHOPIFY_SCOPES_MATRIX.md` (updated with Scope Implications section)
 - `docs/testing/CRITICAL_PATH_MAP.md` (CP-006 updated with implication scenarios)
 
+### Phase SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1: Authoritative Granted-Scope Truth Source ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-20
+**Activation:** Authoritative scope derivation and capability-aware messaging
+
+#### Goals
+
+1. Establish authoritative granted-scope derivation after OAuth callback.
+2. Implement fallback to Access Scopes endpoint when OAuth scope string is empty/suspicious.
+3. Normalize stored scopes (deduplicated, sorted, comma-separated).
+4. Provide capability-aware permission notice messaging (catalog vs content vs combined).
+
+#### Key Changes
+
+1. **Authoritative Truth Source:** `storeShopifyConnection()` now derives granted scopes from:
+   - Primary: OAuth token exchange `scope` string (if present and parseable)
+   - Fallback: Shopify Admin Access Scopes endpoint (`/admin/oauth/access_scopes.json`)
+2. **Access Scopes Fetcher:** Added `fetchAccessScopes()` private helper to call Shopify Admin API.
+3. **Scope Normalization:** Added `normalizeScopes()` helper for deduplicated, sorted, comma-separated storage.
+4. **Server Logging:** Added minimal safe logs (no secrets) showing integration ID, shop domain, truth source used, and normalized scopes.
+5. **E2E Mock Support:** Added mock handler for `access_scopes.json` endpoint in test mode.
+6. **Permission Notice Copy:** Updated `ShopifyPermissionNotice.tsx` with capability-aware messaging:
+   - `read_products` missing → catalog wording (products & collections)
+   - `read_content` missing → content wording (pages & blog posts)
+   - Both missing → combined wording
+
+#### Truth Source Logic
+
+| OAuth Scope | Action |
+|-------------|--------|
+| Present, non-empty, parseable | Use as `oauth_scope` truth source |
+| Empty, null, or unparseable | Fallback to `access_scopes_endpoint` |
+
+**Explicit Separation:**
+- `grantedScopes` = factual scopes stored in DB (from truth source)
+- `effectiveGranted` = expanded set for coverage checks (includes implications from SHOPIFY-SCOPE-IMPLICATIONS-1)
+
+#### Core Files
+
+- `apps/api/src/shopify/shopify.service.ts` (storeShopifyConnection, fetchAccessScopes, normalizeScopes, e2eMockShopifyFetch)
+- `apps/web/src/components/shopify/ShopifyPermissionNotice.tsx` (capability-aware messaging)
+
+#### Test Coverage
+
+- E2E mock: `apps/api/src/shopify/shopify.service.ts` (access_scopes.json mock in e2eMockShopifyFetch)
+
+#### Manual Testing
+
+- `docs/manual-testing/SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1.md`
+
+#### Related Documentation
+
+- `docs/testing/CRITICAL_PATH_MAP.md` (CP-006 updated with truth source scenarios)
+- `docs/SHOPIFY_SCOPES_MATRIX.md`
+
+#### FIXUP-1: Partial OAuth Scope Detection + Catalog-Safe Copy (2026-01-20)
+
+**Problem:** OAuth token exchange may return fewer scopes than requested. The original implementation only fell back to Access Scopes endpoint when OAuth scope was empty, not when it was "suspicious" (missing expected scopes).
+
+**Changes:**
+1. **Suspicious-Scope Detection:** `storeShopifyConnection()` now accepts optional `expectedScopes` parameter. If OAuth scope is present but missing expected scopes, treats it as "suspicious" and falls back to Access Scopes endpoint.
+2. **Controller Pass-Through:** `shopify.controller.ts` callback now passes `statePayload.requestedScopes` to `storeShopifyConnection()`.
+3. **New Truth Source Value:** Added `access_scopes_endpoint_suspicious` to distinguish suspicious-scope fallback from empty-scope fallback in logs.
+4. **Catalog-Safe Copy:** Updated permission notice approval copy from "We never modify content without your approval" to "We never modify your store without your explicit approval" (catalog-safe, since products/collections are not "content").
+5. **Manual Testing:** Added EC-004 edge case for partial/suspicious OAuth scope scenario.
+6. **Critical Path Map:** Added FIXUP-1 scenario to CP-006 (SHOPIFY-SCOPE-TRUTH-1 FIXUP-1).
+
 ### Phase BLOGS-ASSET-SYNC-COVERAGE-1: Shopify Blog Posts (Articles) Ingestion ✅ COMPLETE
 
 **Status:** Complete
@@ -2376,3 +2444,4 @@ These invariants MUST be preserved during implementation:
 | 6.70 | 2026-01-19 | **DIAGNOSTIC-GUIDANCE-1 COMPLETE**: Diagnostic guidance pattern for outside-control issues. Issues with `actionability === 'informational'` now show "Informational — outside EngineO.ai control" badge, explanation text, and "How to address this" guidance block with 4 actionable bullets. No Fix/Apply/Review CTAs on these issues; cards are non-clickable. Distinct from orphan issues (which show "no action required" without guidance). UI/copy only; no backend changes. Core files: IssuesList.tsx, issues/page.tsx. **Manual Testing:** DIAGNOSTIC-GUIDANCE-1.md |
 | 6.71 | 2026-01-19 | **DIAGNOSTIC-GUIDANCE-1-FIXUP-1**: Trust hardening for outside-control issues. Issues Engine (page.tsx) now explicitly gates clickability and fixHref for `actionability === 'informational'` issues at the frontend level. (1) Added `isOutsideEngineControl` boolean; (2) `fixHref` forced to null for outside-control issues; (3) `isClickableIssue` forced to false regardless of backend `isActionableNow` flag. Prevents accidental actionable navigation even under inconsistent backend flags. Added EC-003 scenario to manual testing doc. |
 | 6.72 | 2026-01-20 | **SHOPIFY-SCOPE-IMPLICATIONS-1 COMPLETE**: Write scopes imply read access for coverage checks. (1) Added `SHOPIFY_SCOPE_IMPLICATIONS` mapping (`write_products` → `read_products`, `write_content` → `read_content`, `write_themes` → `read_themes`); (2) Added `expandGrantedScopesWithImplications()` helper; (3) Updated `checkScopeCoverage()` to use implication-aware expansion; (4) Updated `getScopeStatusFromIntegration()` in shopify.service.ts. Eliminates false "missing read_products" warnings when `write_products` is granted. Core files: shopify-scopes.ts, shopify.service.ts, shopify-scopes-matrix.test.ts. **Manual Testing:** SHOPIFY-SCOPE-IMPLICATIONS-1.md |
+| 6.73 | 2026-01-20 | **SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 COMPLETE**: Authoritative granted-scope truth source. (1) `storeShopifyConnection()` derives scopes from OAuth string (primary) or Access Scopes endpoint (fallback); (2) Added `fetchAccessScopes()` helper for Shopify Admin API; (3) Added `normalizeScopes()` for deduplicated, sorted, comma-separated storage; (4) Server logs truth source (oauth_scope vs access_scopes_endpoint) without secrets; (5) E2E mock support for access_scopes.json; (6) Capability-aware permission notice copy (catalog vs content vs combined wording based on missing scopes). Core files: shopify.service.ts, ShopifyPermissionNotice.tsx. **Manual Testing:** SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1.md |

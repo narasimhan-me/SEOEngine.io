@@ -173,12 +173,14 @@ export class ShopifyController {
       requestedScopes: statePayload.requestedScopes,
     });
 
-    // Store connection in database
+    // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-1] Store connection in database
+    // Pass expectedScopes (CSV) so storeShopifyConnection can detect suspicious OAuth scope
     await this.shopifyService.storeShopifyConnection(
       projectId,
       shop,
       tokenData.access_token,
       tokenData.scope,
+      statePayload.requestedScopes?.join(','),
     );
 
     console.log('[Shopify Callback] Connection stored successfully');
