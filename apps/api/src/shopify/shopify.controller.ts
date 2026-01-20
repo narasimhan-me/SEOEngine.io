@@ -104,14 +104,28 @@ export class ShopifyController {
     if (!integration || !integration.externalId) {
       throw new BadRequestException('No Shopify integration found for this project');
     }
-    const scopeStatus = await this.shopifyService.getShopifyScopeStatus(projectId, cap);
-    const desiredScopes = [...(scopeStatus.grantedScopes ?? [])];
-    for (const scope of scopeStatus.missingScopes ?? []) {
-      if (!desiredScopes.includes(scope)) desiredScopes.push(scope);
+    // [SHOPIFY-SCOPES-MATRIX-1-FIXUP-3] Check ALL enabled capabilities for missing scopes, not just the triggering one
+    // This ensures reconnect requests all missing scopes (e.g., read_products for collections_sync)
+    const enabledCapabilities = this.shopifyService.getEnabledCapabilitiesForOauth();
+    const desiredScopes = new Set<string>();
+    
+    // Start with currently granted scopes
+    const currentScopeStatus = await this.shopifyService.getShopifyScopeStatus(projectId, cap);
+    for (const scope of currentScopeStatus.grantedScopes ?? []) {
+      desiredScopes.add(scope);
     }
+    
+    // Add missing scopes from ALL enabled capabilities
+    for (const capability of enabledCapabilities) {
+      const status = await this.shopifyService.getShopifyScopeStatus(projectId, capability);
+      for (const scope of status.missingScopes ?? []) {
+        desiredScopes.add(scope);
+      }
+    }
+    
     const safeReturnTo = this.shopifyService.getSafeReturnToForProject(returnTo, projectId);
     const installUrl = this.shopifyService.generateInstallUrl(integration.externalId, projectId, {
-      scopesCsv: desiredScopes.join(','),
+      scopesCsv: Array.from(desiredScopes).sort().join(','),
       source: 'reconnect',
       capability: cap,
       returnTo: safeReturnTo,
