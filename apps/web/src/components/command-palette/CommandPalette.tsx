@@ -115,6 +115,15 @@ export function CommandPalette() {
           ),
       },
       {
+        id: 'nav-products',
+        label: 'Go to Products',
+        section: 'Navigation',
+        action: () =>
+          navigateWithGuard(
+            projectId ? `/projects/${projectId}/products` : '/projects'
+          ),
+      },
+      {
         id: 'nav-automation',
         label: 'Go to Automation',
         section: 'Navigation',

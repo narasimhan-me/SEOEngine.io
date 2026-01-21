@@ -1,11 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 import type { DeoIssue } from '@/lib/deo-issues';
 import type { DeoPillarId } from '@/lib/deo-pillars';
 import { getDeoPillarById } from '@/lib/deo-pillars';
 import type { Product } from '@/lib/products';
-import { ProductRow, type PillarIssueSummary } from './ProductRow';
+import { type PillarIssueSummary } from './ProductRow';
+import { ProductDetailPanel } from './ProductDetailPanel';
 import {
   resolveRowNextAction,
   buildProductWorkspaceHref,
@@ -14,6 +16,10 @@ import {
   type NavigationContext,
 } from '@/lib/list-actions-clarity';
 import { buildIssueFixHref, getIssueFixConfig } from '@/lib/issue-to-fix-path';
+import { DataTable, type DataTableColumn } from '@/components/tables/DataTable';
+import { RowStatusChip } from '@/components/common/RowStatusChip';
+import { useRightContextPanel } from '@/components/right-context-panel/RightContextPanelProvider';
+import type { ContextDescriptor } from '@/components/right-context-panel/RightContextPanelProvider';
 
 /** Health states for the new decision-first UI */
 export type HealthState = 'Healthy' | 'Needs Attention' | 'Critical';
@@ -548,11 +554,11 @@ export function ProductTable({
     return sorted;
   }, [products, healthFilter, sortOption, issuesByProductId]);
 
-  const handleToggleExpand = (productId: string) => {
+  const handleToggleExpand = useCallback((productId: string) => {
     setExpandedProductId((current) =>
       current === productId ? null : productId
     );
-  };
+  }, []);
 
   const healthFilters: { id: HealthFilter; label: string }[] = [
     { id: 'All', label: 'All' },
@@ -561,34 +567,316 @@ export function ProductTable({
     { id: 'Healthy', label: 'Healthy' },
   ];
 
+  // Right Context Panel integration
+  const { openPanel } = useRightContextPanel();
+
+  // Get ContextDescriptor for a product row (for RCP integration)
+  const getRowDescriptor = useCallback(
+    (product: Product): ContextDescriptor => {
+      const productIssueData = issuesByProductId.get(product.id);
+      return {
+        kind: 'product',
+        id: product.id,
+        title: product.title,
+        subtitle: productIssueData?.healthState ?? 'Healthy',
+        metadata: {
+          handle: product.handle ?? product.externalId ?? 'N/A',
+          lastSynced: product.lastSyncedAt
+            ? new Date(product.lastSyncedAt).toLocaleString()
+            : 'Not available',
+          metaTitle: product.seoTitle?.trim() || 'Not set',
+          metaDescription: product.seoDescription?.trim() || 'Not set',
+          recommendedAction:
+            productIssueData?.recommendedAction ?? 'No action needed',
+        },
+      };
+    },
+    [issuesByProductId]
+  );
+
+  // Handle row click for expansion (progressive disclosure)
+  const handleRowClick = useCallback(
+    (product: Product) => {
+      handleToggleExpand(product.id);
+    },
+    [handleToggleExpand]
+  );
+
+  // Check if a row is expanded
+  const isRowExpanded = useCallback(
+    (product: Product) => expandedProductId === product.id,
+    [expandedProductId]
+  );
+
+  // Render expanded content for a product
+  const renderExpandedContent = useCallback(
+    (product: Product) => {
+      const productIssueData = issuesByProductId.get(product.id);
+      return (
+        <ProductDetailPanel
+          product={product}
+          projectId={projectId}
+          issuesByPillar={productIssueData?.byPillar}
+        />
+      );
+    },
+    [issuesByProductId, projectId]
+  );
+
+  // Define DataTable columns for products
+  const columns = useMemo<DataTableColumn<Product>[]>(() => {
+    return [
+      {
+        key: 'product',
+        header: 'Product',
+        width: 'w-1/3',
+        truncate: false,
+        cell: (product) => {
+          const productIssueData = issuesByProductId.get(product.id);
+          const recommendedAction =
+            productIssueData?.recommendedAction ?? 'No action needed';
+
+          return (
+            <div className="flex items-start gap-3">
+              {product.imageUrls && product.imageUrls.length > 0 ? (
+                <Image
+                  src={product.imageUrls[0]}
+                  alt={product.title}
+                  width={40}
+                  height={40}
+                  className="h-10 w-10 flex-shrink-0 rounded object-cover"
+                  unoptimized
+                />
+              ) : (
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded bg-muted">
+                  <svg
+                    className="h-5 w-5 text-muted-foreground"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="line-clamp-1 font-medium text-foreground">
+                  {product.title}
+                </div>
+                <div className="mt-0.5 text-xs text-muted-foreground">
+                  {recommendedAction}
+                </div>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        width: 'w-32',
+        truncate: false,
+        cell: (product) => {
+          const resolvedActions = resolvedActionsById.get(product.id);
+          const productIssueData = issuesByProductId.get(product.id);
+          const healthState = productIssueData?.healthState ?? 'Healthy';
+
+          // Health pill styling (fallback)
+          const healthPillClasses = {
+            Healthy:
+              'bg-green-50 text-green-700 ring-1 ring-green-200 dark:bg-green-950 dark:text-green-400 dark:ring-green-800',
+            'Needs Attention':
+              'bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200 dark:bg-yellow-950 dark:text-yellow-400 dark:ring-yellow-800',
+            Critical:
+              'bg-red-50 text-red-700 ring-1 ring-red-200 dark:bg-red-950 dark:text-red-400 dark:ring-red-800',
+          };
+
+          return resolvedActions?.chipLabel ? (
+            <RowStatusChip chipLabel={resolvedActions.chipLabel} />
+          ) : (
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${healthPillClasses[healthState]}`}
+            >
+              {healthState}
+            </span>
+          );
+        },
+      },
+      {
+        key: 'actions',
+        header: 'Actions',
+        width: 'w-64',
+        truncate: false,
+        cell: (product) => {
+          const resolvedActions = resolvedActionsById.get(product.id);
+          const isScanning = scanningId === product.id;
+          const workspacePath = `/projects/${projectId}/products/${product.id}`;
+
+          return (
+            <div
+              className="flex items-center justify-end gap-2"
+              data-no-row-click
+            >
+              {/* Rescan button - only shown when stale */}
+              {isDeoDataStale && (
+                <button
+                  onClick={() => onScanProduct(product.id)}
+                  disabled={isScanning}
+                  className="inline-flex items-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  data-no-row-click
+                >
+                  {isScanning ? (
+                    <>
+                      <svg
+                        className="mr-1.5 h-3.5 w-3.5 animate-spin text-muted-foreground"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Rescanning...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="mr-1.5 h-3.5 w-3.5 text-muted-foreground"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                      Rescan
+                    </>
+                  )}
+                </button>
+              )}
+
+              {/* Primary action button */}
+              {resolvedActions?.primaryAction ? (
+                <Link
+                  href={resolvedActions.primaryAction.href}
+                  className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                  data-no-row-click
+                  data-testid="row-primary-action"
+                >
+                  {resolvedActions.primaryAction.label}
+                </Link>
+              ) : resolvedActions?.helpText ? (
+                <span
+                  className="text-xs text-muted-foreground"
+                  data-testid="row-help-text"
+                >
+                  {resolvedActions.helpText}
+                </span>
+              ) : null}
+
+              {/* Secondary action (Open) */}
+              {resolvedActions?.secondaryAction && (
+                <Link
+                  href={resolvedActions.secondaryAction.href}
+                  className="inline-flex items-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+                  data-no-row-click
+                  data-testid="row-secondary-action"
+                >
+                  {resolvedActions.secondaryAction.label}
+                </Link>
+              )}
+
+              {/* Fallback View details if no resolved actions */}
+              {!resolvedActions?.primaryAction &&
+                !resolvedActions?.secondaryAction &&
+                !resolvedActions?.helpText && (
+                  <Link
+                    href={workspacePath}
+                    className="inline-flex items-center rounded-md bg-foreground px-3 py-1.5 text-xs font-medium text-background hover:bg-foreground/90"
+                    data-no-row-click
+                  >
+                    View details
+                  </Link>
+                )}
+
+              {/* Expand indicator */}
+              <div className="flex h-8 w-8 items-center justify-center text-muted-foreground">
+                <svg
+                  className={`h-5 w-5 transition-transform ${expandedProductId === product.id ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </div>
+            </div>
+          );
+        },
+      },
+    ];
+  }, [
+    issuesByProductId,
+    resolvedActionsById,
+    scanningId,
+    projectId,
+    isDeoDataStale,
+    onScanProduct,
+    expandedProductId,
+  ]);
+
   return (
     <div data-testid="products-list">
-      {/* Command Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3">
+      {/* Command Bar - token-based styling */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-[hsl(var(--surface-raised))] px-4 py-3">
         <div className="flex items-center gap-2 text-sm">
           {needsAttentionCount > 0 ? (
             <>
-              <span className="font-medium text-gray-900">
+              <span className="font-medium text-foreground">
                 {needsAttentionCount} product
                 {needsAttentionCount !== 1 ? 's' : ''} need attention
               </span>
               {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Navigate to canonical playbooks list */}
               <Link
                 href={`/projects/${projectId}/playbooks?source=products_list`}
-                className="inline-flex items-center rounded-md bg-gray-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-700"
+                className="inline-flex items-center rounded-md bg-muted-foreground px-3 py-1.5 text-xs font-medium text-background hover:bg-muted-foreground/90"
               >
                 View playbooks
               </Link>
             </>
           ) : (
-            <span className="font-medium text-green-700">
+            <span className="font-medium text-green-600 dark:text-green-400">
               All products are healthy
             </span>
           )}
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Health Filter */}
+          {/* Health Filter - token-based styling */}
           <div className="flex flex-wrap gap-1.5">
             {healthFilters.map(({ id, label }) => {
               const isActive = healthFilter === id;
@@ -601,13 +889,13 @@ export function ProductTable({
                   onClick={() => setHealthFilter(id)}
                   className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
                     isActive
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
+                      ? 'bg-foreground text-background'
+                      : 'bg-background text-foreground border border-border hover:bg-muted'
                   }`}
                 >
                   <span>{label}</span>
                   <span
-                    className={`ml-1.5 ${isActive ? 'text-gray-300' : 'text-gray-500'}`}
+                    className={`ml-1.5 ${isActive ? 'text-muted' : 'text-muted-foreground'}`}
                   >
                     {count}
                   </span>
@@ -616,11 +904,11 @@ export function ProductTable({
             })}
           </div>
 
-          {/* Sort Dropdown */}
+          {/* Sort Dropdown - token-based styling */}
           <select
             value={sortOption}
             onChange={(e) => setSortOption(e.target.value as SortOption)}
-            className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="rounded-md border border-border bg-background px-2 py-1 text-xs font-medium text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           >
             <option value="Impact">Sort by impact</option>
             <option value="Title">Sort by title</option>
@@ -629,42 +917,21 @@ export function ProductTable({
       </div>
 
       {displayProducts.length === 0 ? (
-        <div className="px-4 py-6 text-sm text-gray-500">
+        <div className="px-4 py-6 text-sm text-muted-foreground">
           No products match this filter.
         </div>
       ) : (
-        <div className="space-y-3 px-4 py-4">
-          {displayProducts.map((product) => {
-            const isExpanded = expandedProductId === product.id;
-            const productIssueData = issuesByProductId.get(product.id);
-            const resolvedActions = resolvedActionsById.get(product.id);
-
-            return (
-              <ProductRow
-                key={product.id}
-                product={product}
-                projectId={projectId}
-                healthState={productIssueData?.healthState ?? 'Healthy'}
-                recommendedAction={
-                  productIssueData?.recommendedAction ?? 'No action needed'
-                }
-                issuesByPillar={productIssueData?.byPillar}
-                showRescan={isDeoDataStale}
-                isExpanded={isExpanded}
-                onToggle={() => handleToggleExpand(product.id)}
-                onScan={() => onScanProduct(product.id)}
-                onSyncProject={onSyncProducts}
-                isSyncing={syncing}
-                isScanning={scanningId === product.id}
-                // [LIST-ACTIONS-CLARITY-1] Pass resolved chip/actions
-                chipLabel={resolvedActions?.chipLabel}
-                primaryAction={resolvedActions?.primaryAction}
-                secondaryAction={resolvedActions?.secondaryAction}
-                helpText={resolvedActions?.helpText}
-              />
-            );
-          })}
-        </div>
+        <DataTable
+          columns={columns}
+          rows={displayProducts}
+          onOpenContext={openPanel}
+          getRowDescriptor={getRowDescriptor}
+          density="comfortable"
+          onRowClick={handleRowClick}
+          isRowExpanded={isRowExpanded}
+          renderExpandedContent={renderExpandedContent}
+          rowEnterKeyBehavior="rowClick"
+        />
       )}
     </div>
   );

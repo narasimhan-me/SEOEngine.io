@@ -899,8 +899,8 @@ export default function ProductOptimizationPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
+      <div className="flex items-center justify-center py-12">
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
@@ -984,8 +984,8 @@ export default function ProductOptimizationPage() {
       {/* Main content */}
       {product && (
         <>
-          {/* [DEO-UX-REFRESH-1] Sticky workspace header + tab bar */}
-          <div className="sticky top-0 z-20 bg-white/90 backdrop-blur shadow-sm">
+          {/* [DEO-UX-REFRESH-1] Sticky workspace header + tab bar - token-based styling */}
+          <div className="sticky top-0 z-20 bg-[hsl(var(--surface-raised)/0.9)] backdrop-blur border-b border-border">
             <div className="flex items-center justify-between gap-4 px-1 py-3 sm:px-2">
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 {/* [TRUST-ROUTING-1] Context-aware back link in sticky header */}

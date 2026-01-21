@@ -93,7 +93,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field                         | Value                                                                                                                                                                                                                  |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Manual Testing Doc(s)**     | `docs/testing/ai-systems.md`, `docs/testing/token-usage-tracking.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/PRODUCTS-LIST-2.0.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md` |
+| **Manual Testing Doc(s)**     | `docs/testing/ai-systems.md`, `docs/testing/token-usage-tracking.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/PRODUCTS-LIST-2.0.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/PRODUCTS-SHELL-REMOUNT-1.md` |
 | **Automated Tests**           | `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`                                                                                                                                                              |
 | **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                                                                           |
 | **Last Verified (Automated)** | N/A                                                                                                                                                                                                                    |
@@ -120,6 +120,14 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] DRAFT-CLARITY-AND-ACTION-TRUST-1: Apply never calls AI (uses saved draft values directly)
 - [ ] DRAFT-CLARITY-AND-ACTION-TRUST-1: "Add to draft" semantics (not "Apply to editor")
 - [ ] DRAFT-CLARITY-AND-ACTION-TRUST-1: Inline guidance explains Generate uses AI, Apply does not
+- [ ] PRODUCTS-SHELL-REMOUNT-1: Products list renders as canonical DataTable (columns: Product, Status, Actions)
+- [ ] PRODUCTS-SHELL-REMOUNT-1: Row click expands/collapses (progressive disclosure, does NOT navigate)
+- [ ] PRODUCTS-SHELL-REMOUNT-1: Action buttons do NOT trigger row expansion (data-no-row-click)
+- [ ] PRODUCTS-SHELL-REMOUNT-1: Dark mode uses token-based styling (no white backgrounds)
+- [ ] PRODUCTS-SHELL-REMOUNT-1: Loading states use container-relative positioning (py-12, not min-h-screen)
+- [ ] PRODUCTS-SHELL-REMOUNT-1: Command Palette "Go to Products" navigation command works (project context aware)
+- [ ] PRODUCTS-SHELL-REMOUNT-1: Eye icon opens RCP with product details (kind: 'product' descriptor)
+- [ ] PRODUCTS-SHELL-REMOUNT-1: Enter/Space on focused row expands/collapses (rowEnterKeyBehavior='rowClick')
 
 ---
 
@@ -947,3 +955,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 6.13 | 2026-01-20 | SHOPIFY-EMBEDDED-SHELL-1: Added CP-006 scenarios for Shopify embedded app launch. ShopifyEmbeddedShell wrapper with never-blank fallbacks, host/shop persistence to sessionStorage, URL auto-repair, frame-ancestors CSP headers, auth flow with next param preservation (login + 2FA). Added @shopify/app-bridge-react dep, NEXT_PUBLIC_SHOPIFY_API_KEY env var. Added SHOPIFY-EMBEDDED-SHELL-1.md manual testing doc. |
 | 6.14 | 2026-01-21 | SHOPIFY-EMBEDDED-SHELL-1-FIXUP-1: Added CP-006 scenarios for unconditional CSP header reliability. frame-ancestors CSP now applied to all app routes regardless of embedded query params (server has no sessionStorage). Ensures deep links and hard refreshes inside Shopify iframe never blank. Updated middleware.ts and manual testing doc. |
 | 6.15 | 2026-01-21 | DARK-MODE-SYSTEM-1: Added CP-008 scenarios for global theme system. 3-mode theme selector (System/Light/Dark) with localStorage persistence, no-FOUC early theme init script, single-source-of-truth CSS design tokens with dark palette aligned to Coming Soon direction, centralized .dark utility remaps for broad coverage without mass file edits. Theme works in Shopify embedded iframe. Added DARK-MODE-SYSTEM-1.md manual testing doc. |
+| 6.16 | 2026-01-21 | PRODUCTS-SHELL-REMOUNT-1: Added CP-003 scenarios for Products list remount onto canonical DataTable. DataTable extended with onRowClick/isRowExpanded/renderExpandedContent props. ProductTable refactored to use DataTable with expansion support for progressive disclosure. Token-based shell-safe styling (no min-h-screen, no bg-white). Command Palette "Go to Products" navigation command. Added PRODUCTS-SHELL-REMOUNT-1.md manual testing doc. |

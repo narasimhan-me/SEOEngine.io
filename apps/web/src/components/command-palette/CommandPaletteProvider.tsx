@@ -27,7 +27,7 @@ interface CommandPaletteContextValue {
   /** Toggle the palette open/closed */
   togglePalette: () => void;
   /** Ref for the search input (for focus management) */
-  inputRef: React.RefObject<HTMLInputElement | null>;
+  inputRef: React.RefObject<HTMLInputElement>;
 }
 
 const CommandPaletteContext = createContext<CommandPaletteContextValue | null>(
@@ -64,7 +64,7 @@ export function useCommandPalette(): CommandPaletteContextValue {
 export function CommandPaletteProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const openerRef = useRef<Element | null>(null);
 
   const openPalette = useCallback(() => {

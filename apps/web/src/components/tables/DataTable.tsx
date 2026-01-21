@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  Fragment,
   useCallback,
   useEffect,
   useRef,
@@ -52,6 +53,27 @@ export interface DataTableProps<T extends DataTableRow> {
   footer?: ReactNode;
   /** Optional: hide the context action column */
   hideContextAction?: boolean;
+  /**
+   * Optional: callback when a row is clicked (must NOT navigate).
+   * Click is ignored if target is interactive element (a, button, input, textarea, select, [data-no-row-click]).
+   */
+  onRowClick?: (row: T) => void;
+  /**
+   * Optional: determines if a row is expanded.
+   * When true, renderExpandedContent is called for that row.
+   */
+  isRowExpanded?: (row: T) => boolean;
+  /**
+   * Optional: renders expanded content below the row.
+   * Only called when isRowExpanded(row) returns true.
+   */
+  renderExpandedContent?: (row: T) => ReactNode;
+  /**
+   * Optional: determines Enter/Space key behavior on rows.
+   * - 'openContext' (default): triggers onOpenContext + getRowDescriptor (canonical DataTable behavior)
+   * - 'rowClick': triggers onRowClick (for progressive disclosure remounts)
+   */
+  rowEnterKeyBehavior?: 'openContext' | 'rowClick';
 }
 
 function ViewDetailsIcon({ className }: { className?: string }) {
@@ -87,6 +109,10 @@ export function DataTable<T extends DataTableRow>({
   density = 'comfortable',
   footer,
   hideContextAction = false,
+  onRowClick,
+  isRowExpanded,
+  renderExpandedContent,
+  rowEnterKeyBehavior = 'openContext',
 }: DataTableProps<T>) {
   // Initialize focused row to 0 so first row is tabbable when rows exist
   const [focusedRowIndex, setFocusedRowIndex] = useState<number>(
@@ -127,13 +153,16 @@ export function DataTable<T extends DataTableRow>({
         case 'Enter':
         case ' ':
           event.preventDefault();
-          if (onOpenContext && getRowDescriptor) {
+          // rowEnterKeyBehavior determines action: 'rowClick' for progressive disclosure, 'openContext' for RCP
+          if (rowEnterKeyBehavior === 'rowClick' && onRowClick) {
+            onRowClick(row);
+          } else if (onOpenContext && getRowDescriptor) {
             onOpenContext(getRowDescriptor(row));
           }
           break;
       }
     },
-    [rows.length, onOpenContext, getRowDescriptor]
+    [rows.length, onOpenContext, getRowDescriptor, rowEnterKeyBehavior, onRowClick]
   );
 
   const handleContextClick = useCallback(
@@ -144,6 +173,35 @@ export function DataTable<T extends DataTableRow>({
     },
     [onOpenContext, getRowDescriptor]
   );
+
+  /**
+   * Handle row click, ignoring interactive elements.
+   * Does NOT navigate - caller controls behavior via onRowClick.
+   */
+  const handleRowClick = useCallback(
+    (event: React.MouseEvent<HTMLTableRowElement>, row: T) => {
+      if (!onRowClick) return;
+
+      const target = event.target as HTMLElement;
+      // Ignore clicks on interactive elements
+      if (
+        target.closest('a') ||
+        target.closest('button') ||
+        target.closest('input') ||
+        target.closest('textarea') ||
+        target.closest('select') ||
+        target.closest('[data-no-row-click]')
+      ) {
+        return;
+      }
+
+      onRowClick(row);
+    },
+    [onRowClick]
+  );
+
+  // Calculate total column count for expanded row colSpan
+  const totalColumns = columns.length + (hideContextAction ? 0 : 1);
 
   return (
     <div className="w-full overflow-hidden rounded-md border border-border">
@@ -178,53 +236,76 @@ export function DataTable<T extends DataTableRow>({
           </tr>
         </thead>
         <tbody className="bg-[hsl(var(--surface-card))]">
-          {rows.map((row, rowIndex) => (
-            <tr
-              key={row.id}
-              ref={(el) => {
-                rowRefs.current[rowIndex] = el;
-              }}
-              tabIndex={focusedRowIndex === rowIndex ? 0 : -1}
-              onFocus={() => setFocusedRowIndex(rowIndex)}
-              onKeyDown={(e) => handleRowKeyDown(e, rowIndex, row)}
-              data-testid="data-table-row"
-              data-row-id={row.id}
-              className={[
-                'border-b border-border transition-colors last:border-b-0',
-                'hover:bg-[hsl(var(--menu-hover-bg)/0.14)]',
-                'focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary',
-              ].join(' ')}
-            >
-              {columns.map((column) => (
-                <td
-                  key={column.key}
+          {rows.map((row, rowIndex) => {
+            const isExpanded = isRowExpanded?.(row) ?? false;
+
+            return (
+              <Fragment key={row.id}>
+                <tr
+                  ref={(el) => {
+                    rowRefs.current[rowIndex] = el;
+                  }}
+                  tabIndex={focusedRowIndex === rowIndex ? 0 : -1}
+                  onFocus={() => setFocusedRowIndex(rowIndex)}
+                  onKeyDown={(e) => handleRowKeyDown(e, rowIndex, row)}
+                  onClick={(e) => handleRowClick(e, row)}
+                  data-testid="data-table-row"
+                  data-row-id={row.id}
+                  data-expanded={isExpanded}
                   className={[
-                    paddingClass,
-                    'text-sm text-foreground',
-                    column.truncate !== false ? 'truncate' : '',
-                    column.width || '',
+                    'border-b border-border transition-colors',
+                    isExpanded ? '' : 'last:border-b-0',
+                    onRowClick ? 'cursor-pointer' : '',
+                    'hover:bg-[hsl(var(--menu-hover-bg)/0.14)]',
+                    'focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary',
                   ].join(' ')}
                 >
-                  {column.cell(row)}
-                </td>
-              ))}
-              {!hideContextAction && (
-                <td className={[paddingClass, 'text-right'].join(' ')}>
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => handleContextClick(row)}
-                    title="View details"
-                    aria-label={`View details for ${row.id}`}
-                    data-testid="data-table-open-context"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+                  {columns.map((column) => (
+                    <td
+                      key={column.key}
+                      className={[
+                        paddingClass,
+                        'text-sm text-foreground',
+                        column.truncate !== false ? 'truncate' : '',
+                        column.width || '',
+                      ].join(' ')}
+                    >
+                      {column.cell(row)}
+                    </td>
+                  ))}
+                  {!hideContextAction && (
+                    <td className={[paddingClass, 'text-right'].join(' ')}>
+                      <button
+                        type="button"
+                        tabIndex={-1}
+                        onClick={() => handleContextClick(row)}
+                        title="View details"
+                        aria-label={`View details for ${row.id}`}
+                        data-testid="data-table-open-context"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background"
+                      >
+                        <ViewDetailsIcon className="h-4 w-4" />
+                      </button>
+                    </td>
+                  )}
+                </tr>
+                {/* Expansion row - rendered when isRowExpanded returns true */}
+                {isExpanded && renderExpandedContent && (
+                  <tr
+                    data-testid="data-table-expanded-row"
+                    data-row-id={row.id}
+                    className="border-b border-border bg-[hsl(var(--surface-raised))] last:border-b-0"
                   >
-                    <ViewDetailsIcon className="h-4 w-4" />
-                  </button>
-                </td>
-              )}
-            </tr>
-          ))}
+                    <td colSpan={totalColumns} className="p-0">
+                      <div className="px-4 py-3">
+                        {renderExpandedContent(row)}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
         </tbody>
       </table>
       {footer && (
