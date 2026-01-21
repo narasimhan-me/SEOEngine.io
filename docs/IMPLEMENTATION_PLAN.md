@@ -2304,6 +2304,206 @@ _None at this time._
 
 ---
 
+### Phase RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1: Right Context Panel (Design System v1.5) ✅ COMPLETE
+
+**Status:** Complete
+**Date Started:** 2026-01-21
+**Date Completed:** 2026-01-21
+
+#### Overview
+
+Add a deterministic Right Context Panel to the UI shell that provides contextual details for selected items without blocking the main work canvas.
+
+#### Affected Files
+
+- apps/web/src/components/right-context-panel/RightContextPanelProvider.tsx (NEW)
+- apps/web/src/components/right-context-panel/RightContextPanel.tsx (NEW)
+- apps/web/src/components/layout/LayoutShell.tsx (UPDATED)
+
+#### Technical Details
+
+- **RightContextPanelProvider**: React context/provider that owns deterministic panel state
+  - `ContextDescriptor` type: Required fields (kind, id, title); Optional fields (subtitle, metadata)
+  - `useRightContextPanel()` hook: isOpen, descriptor, openPanel, closePanel, togglePanel
+  - Auto-close on Left Nav segment switch (compares first path segment)
+  - Focus management (stores lastActiveElement, restores on close)
+  - ESC key to close (with modal dialog guard)
+  - Shopify-safe (no window.top usage)
+
+- **RightContextPanel**: UI component consuming the context
+  - Desktop (≥1024px): Pinned mode, pushes content
+  - Narrow (<1024px): Overlay mode with scrim
+  - Accessible: role="complementary", aria-labelledby
+  - Test hooks: data-testid attributes for automation
+
+- **LayoutShell Integration**:
+  - Wrapped with RightContextPanelProvider
+  - Single demo trigger button ("Details") replaces one placeholder Action button
+  - Panel renders alongside main content area
+
+#### Manual Testing
+
+- docs/manual-testing/RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md
+
+#### Summary of Changes
+
+- Created `RightContextPanelProvider.tsx`: Context/provider with deterministic state management, auto-close on nav change, ESC key handling, and focus management
+- Created `RightContextPanel.tsx`: Slide-in panel UI with desktop pinned mode and narrow overlay mode with scrim
+- Updated `LayoutShell.tsx`: Integrated RightContextPanelProvider wrapper, added RightContextPanel to layout, replaced one Action button with Details demo trigger
+
+---
+
+### Phase TABLES-&-LISTS-ALIGNMENT-1: Canonical DataTable & DataList (Design System v1.5) ✅ COMPLETE
+
+**Status:** Complete
+**Date Started:** 2026-01-21
+**Date Completed:** 2026-01-21
+
+#### Overview
+
+Introduce canonical DataTable and DataList components aligned with Design System v1.5 and Engineering Implementation Contract v1.5. Token-only styling, dark-mode native, Shopify iframe safe.
+
+#### Scope
+
+**In Scope:**
+- Canonical DataTable component with semantic `<table>` markup
+- Canonical DataList component for list-style rows
+- Minimal column model (header label + cell renderer) and row model (id + data)
+- Token-based density prop (comfortable/dense)
+- Row interaction contract: no row-click navigation, explicit "View details" action only
+- Hover/active/focus states token-based (never white in dark mode)
+- RCP integration via `onOpenContext(descriptor)` callback
+- Keyboard accessibility: Tab entry, ArrowUp/ArrowDown navigation, Enter/Space triggers context action
+- Demo route `/demo/tables-lists` for manual testing
+- Roving focus for rows (single focusable row at a time)
+- No horizontal overflow by default (truncation/wrapping)
+
+**Out of Scope:**
+- No feature migrations (existing tables unchanged)
+- No sorting/filtering changes
+- No bulk actions
+- No pagination redesign
+- No virtualization
+
+#### Affected Files
+
+- apps/web/src/components/tables/DataTable.tsx (NEW)
+- apps/web/src/components/tables/DataList.tsx (NEW)
+- apps/web/src/app/demo/tables-lists/page.tsx (NEW)
+
+#### Technical Details
+
+- **DataTable**: Semantic `<table>` with `<thead>` and `<tbody>`
+  - Column model: key, header, cell renderer, optional truncate and width
+  - Row model: requires id field
+  - Hover: `hsl(var(--menu-hover-bg)/0.14)` (dark-mode safe)
+  - Focus: inset ring with primary color
+  - Context action: right-aligned eye icon with tooltip
+  - Test hooks: `data-testid="data-table"`, `data-testid="data-table-row"`, `data-testid="data-table-open-context"`
+
+- **DataList**: Vertical list with same interaction model
+  - Custom row renderer via `renderRow` prop
+  - Same hover/focus states and context action
+  - Test hooks: `data-testid="data-list"`, `data-testid="data-list-row"`, `data-testid="data-list-open-context"`
+
+- **RCP Integration**: Both components accept `onOpenContext(descriptor)` and `getRowDescriptor(row)` props
+  - Stable descriptors prevent flicker on re-click (relies on RCP provider descriptor-stability)
+
+#### Manual Testing
+
+- docs/manual-testing/TABLES-&-LISTS-ALIGNMENT-1.md
+
+#### Summary of Changes
+
+- Created `DataTable.tsx`: Canonical table component with column/row model, token-based styling, keyboard navigation, and RCP integration
+- Created `DataList.tsx`: Canonical list component with same interaction contract
+- Created `/demo/tables-lists/page.tsx`: Demo route with sample data, RCP integration, and ESC-in-input test field
+
+---
+
+### Phase COMMAND-PALETTE-IMPLEMENTATION-1: Global Command Palette (Design System v1.5) ✅ COMPLETE
+
+**Status:** Complete
+**Date Started:** 2026-01-21
+**Date Completed:** 2026-01-21
+
+#### Overview
+
+Add a global Command Palette accessible via keyboard shortcut (Cmd+K / Ctrl+K) or top-bar trigger. Provides quick navigation and entity jump commands without destructive/write/apply/run/generate actions. Token-only styling, dark-mode native, Shopify iframe safe.
+
+#### Scope
+
+**In Scope:**
+- CommandPaletteProvider context with deterministic state (isOpen, query, open/close/toggle)
+- Global keyboard shortcut Cmd+K / Ctrl+K toggles palette
+- Focus management: store opener on open, restore on close
+- CommandPalette UI component with search input and command results
+- Accessible dialog semantics (role="dialog", aria-modal="true")
+- Navigation commands: Overview, Assets, Automation, Insights, Governance, Admin (role-gated)
+- Entity Jump commands (placeholder): Project, Product, Issue
+- Utility commands: Help/Docs, Feedback
+- Deterministic routing: project-context-aware vs fallback
+- Unsaved changes guard (same confirm text as GuardedLink)
+- Admin command visibility gated by user.role === 'ADMIN' AND user.adminRole present
+- Top-bar search trigger converted from placeholder to functional trigger
+- Small-screen icon button trigger
+- Token-based styling (no raw hex, no bg-black/bg-white)
+- Container-contained overlay (Shopify iframe safe)
+
+**Out of Scope:**
+- No destructive commands (delete, remove)
+- No write commands (create, update, save)
+- No apply commands (apply draft, apply fix)
+- No run/generate commands (run automation, generate AI)
+- No real entity search backend (placeholders only)
+- No new routing system
+
+#### Affected Files
+
+- apps/web/src/components/command-palette/CommandPaletteProvider.tsx (NEW)
+- apps/web/src/components/command-palette/CommandPalette.tsx (NEW)
+- apps/web/src/components/layout/LayoutShell.tsx (UPDATED)
+
+#### Technical Details
+
+- **CommandPaletteProvider**: React context/provider with useState for isOpen and query
+  - openPalette(): stores document.activeElement, sets isOpen true, clears query
+  - closePalette(): sets isOpen false, restores focus to opener (best-effort)
+  - togglePalette(): calls open or close based on current state
+  - Global keydown listener for Cmd+K / Ctrl+K
+  - inputRef for focus management from CommandPalette
+
+- **CommandPalette**: UI component consuming useCommandPalette()
+  - Renders nothing when closed
+  - Centered overlay dialog with search input auto-focused
+  - Results grouped by section (Navigation, Entity Jump, Utility)
+  - Arrow key navigation with roving selection
+  - Enter executes selected command and closes
+  - ESC closes palette (even with input focused)
+  - Outside click (scrim) closes palette
+  - Admin command visibility checked via /users/me API
+  - Unsaved changes guard via useUnsavedChanges() before navigation
+  - Container-contained positioning (not viewport-fixed)
+
+- **LayoutShell Integration**:
+  - Wrapped with CommandPaletteProvider (outermost)
+  - CommandPalette mounted inside main content row
+  - Search trigger onClick calls openPalette()
+  - data-testid="command-palette-open" on desktop trigger
+  - data-testid="command-palette-open-mobile" on small-screen trigger
+
+#### Manual Testing
+
+- docs/manual-testing/COMMAND-PALETTE-IMPLEMENTATION-1.md
+
+#### Summary of Changes
+
+- Created `CommandPaletteProvider.tsx`: Context/provider with global keyboard shortcut and focus management
+- Created `CommandPalette.tsx`: Accessible command palette UI with navigation commands and unsaved changes guard
+- Updated `LayoutShell.tsx`: Integrated CommandPaletteProvider wrapper, converted search placeholder to functional trigger, added mobile trigger
+
+---
+
 ## Planned / Pending
 
 ### Phase GTM-ONBOARD-1: Guided Onboarding & First DEO Win 📄 DOCS COMPLETE — IMPLEMENTATION PENDING
@@ -2588,3 +2788,9 @@ _None at this time._
 | 6.92 | 2026-01-21 | **DARK-MODE-TABLE-HOVER-FIX-1-FIXUP-2**: Fix table base paint (not just hover). **Problem:** Projects table and admin tables still paint white in dark mode because `tbody.bg-white` and cell backgrounds remain white; hover-only fixes are insufficient when the base row background is already white. **Fix:** Added dark-only table base + hover paint overrides for `table tbody.bg-white` and its `td`/`th` children: (1) Base paint uses `--surface-card` token; (2) Hover paint uses `hsl(var(--menu-hover-bg) / 0.10)` to match sidebar pill tone. Prior FIXUP-1 rules retained as additional safety net for tables using `hover:bg-gray-*` classes. **Manual Testing:** HP-019 updated to require "base row check" before hovering - rows must NOT be white even before hover. **Core files:** globals.css. **Manual Testing:** DARK-MODE-SYSTEM-1.md (HP-019 updated with FIXUP-2 checks). |
 | 6.93 | 2026-01-21 | **DARK-MODE-TABLE-HOVER-FIX-1-FIXUP-3**: Make hover visibly distinct using menuHoverBg / 0.14 alpha. **Problem:** After base-paint fix (FIXUP-2), hover became too subtle to perceive - the 0.10 alpha was invisible against `--surface-card`. **Fix:** (1) Standardized all dark hover rules to `hsl(var(--menu-hover-bg) / 0.14)` for visible contrast - applies to: `tr.hover:bg-gray-50/100:hover` (row + cells), `table tbody.bg-white > tr:hover` (row + cells), specificity-war variants, and list-row containers (div/li/label); (2) Aligned sidebar active pill to same 0.14 alpha so "match tone" comparison is deterministic; (3) Base paint rules (FIXUP-2) remain unchanged at `--surface-card`. **Manual Testing:** HP-019 updated to require: (a) hover is visibly distinguishable from base surface, (b) hover tone matches sidebar active pill (both 0.14 alpha). **Core files:** globals.css. **Manual Testing:** DARK-MODE-SYSTEM-1.md (HP-019 updated with FIXUP-3 visibility checks). |
 | 6.94 | 2026-01-21 | **LAYOUT-SHELL-IMPLEMENTATION-1 COMPLETE**: Foundational UI shell per Design System v1.5. (1) Created `LayoutShell.tsx`: canonical shell component with Top Bar (logo, search placeholder, notifications, account), collapsible Left Nav (Dashboard, Projects, Settings, Help, Admin links with active state highlighting, per-user persistence via localStorage key `engineo_nav_state`), and Center Work Canvas with scroll containment and breadcrumbs/actions placeholders; (2) Updated root `layout.tsx`: token-based theming (`bg-background`, `text-foreground`, `text-primary`, `text-muted-foreground`) for loading fallback; (3) Updated dashboard/projects/settings layouts: replaced TopNav+wrapper with unified LayoutShell; (4) Updated admin layout: replaced TopNav with LayoutShell while preserving admin auth gating and mobile drawer, converted all hardcoded grays to design tokens. **Constraints:** Token-only styling, dark mode safe, Shopify iframe scroll containment, no Right Context Panel, no feature UI. **Core files:** LayoutShell.tsx, layout.tsx, dashboard/layout.tsx, projects/layout.tsx, settings/layout.tsx, admin/layout.tsx. **Manual Testing:** LAYOUT-SHELL-IMPLEMENTATION-1.md |
+| 6.95 | 2026-01-21 | **RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 COMPLETE**: Right Context Panel per Design System v1.5. (1) Created `RightContextPanelProvider.tsx`: React context/provider with deterministic state (isOpen, descriptor), `useRightContextPanel()` hook (openPanel/closePanel/togglePanel), auto-close on Left Nav segment switch, ESC key handling with modal dialog guard, focus management (store/restore lastActiveElement), Shopify-safe (no window.top); (2) Created `RightContextPanel.tsx`: slide-in panel UI with desktop pinned mode (≥1024px, pushes content) and narrow overlay mode (<1024px, scrim), accessible (role="complementary", aria-labelledby), test hooks (data-testid attributes); (3) Updated `LayoutShell.tsx`: wrapped with RightContextPanelProvider, added RightContextPanel to layout, replaced one Action button with Details demo trigger. **Core files:** RightContextPanelProvider.tsx, RightContextPanel.tsx, LayoutShell.tsx. **Manual Testing:** RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md |
+| 6.96 | 2026-01-21 | **RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1-FIXUP-1**: Contract compliance fixes. (1) `openPanel()` now descriptor-stable: same kind+id = NO-OP (prevents flicker); only stores lastActiveElement on CLOSED→OPEN transition; different kind+id while open = update descriptor (context switch); (2) `togglePanel()` deterministic rules: CLOSED+descriptor = open; OPEN+no descriptor = close; OPEN+same kind+id = true toggle (close); OPEN+different kind+id = update descriptor (stay open); (3) ESC handling guards: modal dialog check + editable element check (input/textarea/select/contenteditable do not close panel); (4) Token compliance: scrim uses `bg-foreground/50` (not raw black), panel surface uses `--surface-raised` (not `--surface-card`); (5) Shell-safe positioning: overlay mode uses container-contained absolute (not viewport-fixed), does NOT cover Top Bar; added `id="right-context-panel"` for aria-controls reference; (6) Demo trigger: renamed to `data-testid="rcp-demo-open"`, handler cycles A→B→close for context switching demo, removed non-deterministic Date() metadata; (7) LayoutShell content row is now `relative` positioning context for overlay containment; (8) Manual testing doc: added HP-008 (context switching), HP-009 (Shopify embedded), EC-004 (ESC in text input), LIM-002 section. **Core files:** RightContextPanelProvider.tsx, RightContextPanel.tsx, LayoutShell.tsx. **Manual Testing:** RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md (updated). |
+| 6.97 | 2026-01-21 | **RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1-FIXUP-2**: Completion tightening. (1) ESC close path centralized: removed duplicated inline close logic (setIsOpen/setDescriptor/focus restore) from ESC handler, now calls `closePanel()` directly; moved `closePanel` useCallback definition above ESC useEffect; added `closePanel` to ESC useEffect dependency array; (2) Manual testing doc path normalization: "Derived from" line now uses backticks around `MANUAL_TESTING_TEMPLATE.md`; Related documentation paths now use backticks and full paths (`docs/ENGINEERING_IMPLEMENTATION_CONTRACT.md`, `docs/RIGHT_CONTEXT_PANEL_CONTRACT.md`, `docs/UI_SHELL_DIRECTIONS.md`, `docs/manual-testing/LAYOUT-SHELL-IMPLEMENTATION-1.md`); (3) CP-020 label normalization: Coverage Summary table row label changed from "UI Shell & Context Panel" to "UI Shell & Right Context Panel" to match heading. **Core files:** RightContextPanelProvider.tsx. **Docs:** RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md, CRITICAL_PATH_MAP.md. |
+| 6.98 | 2026-01-21 | **TABLES-&-LISTS-ALIGNMENT-1 COMPLETE**: Canonical DataTable & DataList components per Design System v1.5. (1) Created `DataTable.tsx`: semantic `<table>` with column/row model, token-based styling (`--surface-card`, `--surface-raised`, `--menu-hover-bg/0.14`), keyboard navigation (Tab entry, ArrowUp/ArrowDown, Enter/Space), roving focus, RCP integration via `onOpenContext(descriptor)`, explicit "View details" eye icon action, test hooks (`data-testid`); (2) Created `DataList.tsx`: vertical list with same interaction contract, custom `renderRow` prop, same hover/focus/action behavior; (3) Created `/demo/tables-lists/page.tsx`: demo route with sample DataTable/DataList, RCP integration, ESC-in-input test field, keyboard instructions; (4) Row interaction contract enforced: no row-click navigation, explicit action only; (5) Updated CP-020 with DataTable/DataList scenarios. **Out of scope:** No feature migrations, no sorting/filtering, no bulk actions, no pagination redesign, no virtualization. **Core files:** DataTable.tsx, DataList.tsx, page.tsx. **Manual Testing:** TABLES-&-LISTS-ALIGNMENT-1.md. |
+| 6.99 | 2026-01-21 | **TABLES-&-LISTS-ALIGNMENT-1-FIXUP-1**: Demo route + keyboard entry fixes. (1) Created `/demo/layout.tsx`: wraps all `/demo/*` routes in LayoutShell (provides RightContextPanelProvider context); (2) DataTable keyboard fix: first row tabbable by default (`focusedRowIndex` initialized to 0 when rows.length > 0), context action button removed from Tab order (`tabIndex={-1}`), added focus clamping useEffect for dynamic row changes; (3) DataList keyboard fix: same roving focus initialization, `tabIndex={-1}` on context button, and focus clamping useEffect; (4) Manual testing doc template reference: MANUAL_TESTING_TEMPLATE.md. **Core files:** layout.tsx (demo), DataTable.tsx, DataList.tsx. **Manual Testing:** TABLES-&-LISTS-ALIGNMENT-1.md (updated). |
+| 7.00 | 2026-01-21 | **COMMAND-PALETTE-IMPLEMENTATION-1 COMPLETE**: Global Command Palette per Design System v1.5. (1) Created `CommandPaletteProvider.tsx`: React context/provider with deterministic state (isOpen, query), global Cmd+K/Ctrl+K keyboard shortcut, focus management (store opener on open, restore on close), inputRef for palette focus; (2) Created `CommandPalette.tsx`: accessible command palette UI (role="dialog", aria-modal="true") with search input, grouped results (Navigation/Entity Jump/Utility), arrow key navigation, Enter execution, ESC/outside-click close, admin command role-gating via /users/me API, unsaved changes guard (same confirm text as GuardedLink), container-contained positioning (Shopify iframe safe); (3) Updated `LayoutShell.tsx`: wrapped with CommandPaletteProvider (outermost), mounted CommandPalette in main content row, converted search placeholder to functional trigger with data-testid="command-palette-open", added mobile icon trigger; (4) Commands: Navigation (Overview/Assets/Automation/Insights/Governance/Admin), Entity Jump placeholders (Project/Product/Issue), Utility (Help/Feedback) - NO destructive/write/apply/run/generate commands; (5) Updated CP-020 with command palette scenarios. **Core files:** CommandPaletteProvider.tsx, CommandPalette.tsx, LayoutShell.tsx. **Manual Testing:** COMMAND-PALETTE-IMPLEMENTATION-1.md. |

@@ -1,0 +1,394 @@
+# EngineO.ai – Manual Testing: TABLES-&-LISTS-ALIGNMENT-1
+
+> Derived from MANUAL_TESTING_TEMPLATE.md
+
+---
+
+## Overview
+
+- **Purpose of the feature/patch:**
+  Introduce canonical DataTable and DataList components aligned with Design System v1.5. Token-only styling, dark-mode native, Shopify iframe safe. Row interaction contract: no row-click navigation, explicit "View details" action only, RCP integration via onOpenContext callback.
+
+- **High-level user impact and what "success" looks like:**
+  Tables and lists have consistent visual styling that works in dark mode without white backgrounds. Users interact with row details via an explicit action button (eye icon), which opens the Right Context Panel. Keyboard navigation (Tab, Arrow keys, Enter/Space) works reliably.
+
+- **Related phases/sections in docs/IMPLEMENTATION_PLAN.md:**
+  Phase TABLES-&-LISTS-ALIGNMENT-1
+
+- **Related documentation:**
+  - `docs/ENGINEERING_IMPLEMENTATION_CONTRACT.md`
+  - `docs/DESIGN_SYSTEM_ALIGNMENT.md`
+  - `docs/manual-testing/RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md`
+
+---
+
+## Preconditions
+
+- **Environment requirements:**
+  - apps/web running locally
+  - Dark mode enabled (set localStorage.engineo_theme = "dark" or use in-app theme controls if present)
+  - For Shopify embedded verification: NEXT_PUBLIC_SHOPIFY_API_KEY configured
+
+- **Test accounts and sample data:**
+  - Any authenticated account that can reach /demo/tables-lists
+
+- **Required user roles or subscriptions:**
+  - None for component validation
+
+---
+
+## Test Scenarios (Happy Path)
+
+### Scenario 1: Row hover visual verification (dark mode)
+
+**ID:** HP-001
+
+**Preconditions:**
+
+- [ ] Dark mode active
+- [ ] /demo/tables-lists route loaded
+
+**Steps:**
+
+1. Navigate to /demo/tables-lists.
+2. Hover over each row in the DataTable.
+3. Hover over each row in the DataList.
+
+**Expected Results:**
+
+- UI: Hover state shows subtle highlight (menu-hover-bg token at 0.14 alpha); no white backgrounds appear.
+- API: N/A
+- Logs: N/A
+
+---
+
+### Scenario 2: Row focus/active state verification (keyboard)
+
+**ID:** HP-002
+
+**Preconditions:**
+
+- [ ] Dark mode active
+- [ ] /demo/tables-lists route loaded
+
+**Steps:**
+
+1. Tab into the DataTable until a row receives focus.
+2. Verify focus ring is visible.
+3. Tab into the DataList until a row receives focus.
+4. Verify focus ring is visible.
+
+**Expected Results:**
+
+- UI: Focus ring (primary color) is clearly visible on the focused row in dark mode.
+- API: N/A
+
+---
+
+### Scenario 3: Context action opens RCP (explicit action only)
+
+**ID:** HP-003
+
+**Preconditions:**
+
+- [ ] /demo/tables-lists route loaded
+- [ ] Right Context Panel is closed
+
+**Steps:**
+
+1. Click anywhere on a DataTable row (not on the eye icon).
+2. Verify the RCP does NOT open.
+3. Click the "View details" eye icon on a row.
+4. Verify the RCP opens with the correct row data.
+
+**Expected Results:**
+
+- UI: Row click does nothing; only the explicit eye icon action opens the RCP. RCP shows the correct title, subtitle, and metadata for the clicked row.
+- API: N/A
+
+---
+
+### Scenario 4: Switching rows updates RCP content (A → B)
+
+**ID:** HP-004
+
+**Preconditions:**
+
+- [ ] /demo/tables-lists route loaded
+- [ ] RCP is open showing row A details
+
+**Steps:**
+
+1. Click the "View details" eye icon on row A to open RCP.
+2. Verify RCP shows row A data.
+3. Click the "View details" eye icon on row B (different row).
+4. Observe RCP content update.
+
+**Expected Results:**
+
+- UI: RCP content switches from row A to row B without closing/reopening (no flicker); no navigation occurs; URL does not change.
+- API: N/A
+
+---
+
+### Scenario 5: Keyboard - Tab into table/list
+
+**ID:** HP-005
+
+**Preconditions:**
+
+- [ ] /demo/tables-lists route loaded
+
+**Steps:**
+
+1. Press Tab repeatedly until focus enters the DataTable.
+2. Verify a row receives focus.
+3. Continue tabbing to exit and re-enter the DataList.
+4. Verify a row receives focus.
+
+**Expected Results:**
+
+- UI: Tab key allows entering and exiting table/list focus; first/previous focused row receives focus.
+- API: N/A
+
+---
+
+### Scenario 6: Keyboard - ArrowUp/ArrowDown moves focused row
+
+**ID:** HP-006
+
+**Preconditions:**
+
+- [ ] DataTable row is focused
+
+**Steps:**
+
+1. Focus a row in the DataTable.
+2. Press ArrowDown.
+3. Verify focus moves to the next row.
+4. Press ArrowUp.
+5. Verify focus moves to the previous row.
+
+**Expected Results:**
+
+- UI: Arrow keys move focus between rows within the table; focus ring moves visibly.
+- API: N/A
+
+---
+
+### Scenario 7: Keyboard - Enter/Space opens RCP for focused row
+
+**ID:** HP-007
+
+**Preconditions:**
+
+- [ ] DataTable row is focused
+- [ ] RCP is closed
+
+**Steps:**
+
+1. Focus a row in the DataTable using Tab and Arrow keys.
+2. Press Enter.
+3. Verify RCP opens with the focused row's data.
+4. Close RCP.
+5. Focus a different row.
+6. Press Space.
+7. Verify RCP opens with that row's data.
+
+**Expected Results:**
+
+- UI: Enter and Space both trigger the primary context action (open RCP) for the focused row.
+- API: N/A
+
+---
+
+### Scenario 8: Shopify embedded iframe - no horizontal overflow
+
+**ID:** HP-008
+
+**Preconditions:**
+
+- [ ] App running inside Shopify Admin as embedded app (iframe)
+- [ ] /demo/tables-lists route loaded
+
+**Steps:**
+
+1. Open /demo/tables-lists inside the Shopify Admin embedded context.
+2. Inspect the DataTable and DataList for horizontal overflow.
+3. Resize to narrow widths if possible.
+
+**Expected Results:**
+
+- UI: No horizontal scrollbar appears on the table or list; content truncates or wraps as configured; states (hover, focus) remain visible against Shopify chrome.
+- API: N/A
+
+---
+
+### Scenario 9: DataList row interaction
+
+**ID:** HP-009
+
+**Preconditions:**
+
+- [ ] /demo/tables-lists route loaded
+
+**Steps:**
+
+1. Click anywhere on a DataList row (not on the eye icon).
+2. Verify RCP does NOT open.
+3. Click the "View details" eye icon on a DataList row.
+4. Verify RCP opens with correct data.
+
+**Expected Results:**
+
+- UI: Same interaction contract as DataTable - row click does nothing, explicit action opens RCP.
+- API: N/A
+
+---
+
+## Edge Cases
+
+### EC-001: ESC key with focus in text input
+
+**Description:** ESC key should NOT close the RCP when focus is in the test input field.
+
+**Steps:**
+
+1. Open RCP via any row's "View details" action.
+2. Click into the "ESC Key Test Input" text field.
+3. Press ESC.
+
+**Expected Behavior:**
+
+- RCP remains open; ESC does not close panel when focus is in editable element.
+
+---
+
+### EC-002: Rapid context action clicks
+
+**Description:** Rapidly clicking different rows' context actions should not cause visual glitches.
+
+**Steps:**
+
+1. Click "View details" on row 1.
+2. Immediately click "View details" on row 2.
+3. Immediately click "View details" on row 3.
+
+**Expected Behavior:**
+
+- RCP content updates smoothly to each row; no flicker or duplicate panels.
+
+---
+
+### EC-003: Same row re-click
+
+**Description:** Re-clicking the same row's context action should not cause remount/flicker.
+
+**Steps:**
+
+1. Click "View details" on row 1.
+2. Click "View details" on row 1 again.
+
+**Expected Behavior:**
+
+- RCP remains open with row 1 data; no visual change (descriptor-stability).
+
+---
+
+## Error Handling
+
+### ERR-001: External Service Failure (Stripe/Shopify/AI Provider)
+
+**Scenario:** N/A (layout-only phase)
+
+**Steps:**
+
+1. N/A
+
+**Expected Behavior:**
+
+- N/A
+
+---
+
+### ERR-002: Validation Errors
+
+**Scenario:** N/A (layout-only phase)
+
+**Steps:**
+
+1. N/A
+
+**Expected Behavior:**
+
+- N/A
+
+---
+
+### ERR-003: Permission Failures
+
+**Scenario:** N/A (layout-only phase)
+
+**Steps:**
+
+1. N/A
+
+**Expected Behavior:**
+
+- N/A
+
+---
+
+## Limits
+
+### LIM-001: Entitlement/Quota Limit
+
+**Scenario:** N/A (layout-only phase)
+
+**Steps:**
+
+1. N/A
+
+**Expected Behavior:**
+
+- N/A
+
+---
+
+### LIM-002: [Another Limit Scenario]
+
+**Scenario:** N/A (layout-only phase)
+
+**Steps:**
+
+1. N/A
+
+**Expected Behavior:**
+
+- N/A
+
+---
+
+## Regression
+
+### Areas potentially impacted:
+
+- [ ] Right Context Panel integration (RCP should work with DataTable/DataList)
+- [ ] Dark mode surfaces (no white backgrounds on hover/focus)
+- [ ] Keyboard accessibility
+- [ ] Shopify embedded iframe scroll behavior
+
+### Quick sanity checks:
+
+- [ ] Existing tables elsewhere in app unaffected (no changes to feature tables in this phase)
+- [ ] RCP still works from LayoutShell demo button
+- [ ] Dark mode toggle still works
+- [ ] Left Nav collapse/expand unaffected
+
+---
+
+## Post-Conditions
+
+### Data cleanup steps:
+
+- [ ] None

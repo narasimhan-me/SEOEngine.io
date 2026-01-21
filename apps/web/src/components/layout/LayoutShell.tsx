@@ -4,6 +4,16 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import { GuardedLink } from '@/components/navigation/GuardedLink';
+import {
+  RightContextPanelProvider,
+  useRightContextPanel,
+} from '@/components/right-context-panel/RightContextPanelProvider';
+import { RightContextPanel } from '@/components/right-context-panel/RightContextPanel';
+import {
+  CommandPaletteProvider,
+  useCommandPalette,
+} from '@/components/command-palette/CommandPaletteProvider';
+import { CommandPalette } from '@/components/command-palette/CommandPalette';
 
 type NavState = 'expanded' | 'collapsed';
 
@@ -216,10 +226,39 @@ const navItems = [
   { href: '/admin', label: 'Admin', Icon: AdminIcon },
 ] as const;
 
-export default function LayoutShell({ children }: { children: ReactNode }) {
+// Demo descriptors for context switching demonstration
+const DEMO_DESCRIPTOR_A = {
+  kind: 'demo',
+  id: 'demo-1',
+  title: 'Demo Details A',
+  subtitle: 'First demo panel',
+  metadata: {
+    Status: 'Active',
+    Type: 'Primary',
+  },
+} as const;
+
+const DEMO_DESCRIPTOR_B = {
+  kind: 'demo',
+  id: 'demo-2',
+  title: 'Demo Details B',
+  subtitle: 'Second demo panel',
+  metadata: {
+    Status: 'Pending',
+    Type: 'Secondary',
+  },
+} as const;
+
+function LayoutShellInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [navState, setNavState] = useState<NavState>(() => readNavState());
   const collapsed = navState === 'collapsed';
+  const {
+    isOpen: isRightPanelOpen,
+    descriptor,
+    togglePanel,
+  } = useRightContextPanel();
+  const { openPalette } = useCommandPalette();
 
   const toggleNav = () => {
     setNavState((prev) => {
@@ -227,6 +266,20 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
       persistNavState(next);
       return next;
     });
+  };
+
+  // Demo handler: First click opens A, subsequent clicks while open switch to B (or close if same)
+  const handleToggleDetails = () => {
+    if (!isRightPanelOpen) {
+      // Panel closed → open with A
+      togglePanel(DEMO_DESCRIPTOR_A);
+    } else if (descriptor?.id === 'demo-1') {
+      // Panel open with A → switch to B (context switch demo)
+      togglePanel(DEMO_DESCRIPTOR_B);
+    } else {
+      // Panel open with B (or other) → close
+      togglePanel();
+    }
   };
 
   return (
@@ -261,10 +314,12 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
             </span>
           </GuardedLink>
           <div className="flex flex-1 items-center justify-center px-4">
+            {/* Desktop command palette trigger */}
             <button
               type="button"
-              aria-label="Global search (placeholder)"
-              aria-disabled="true"
+              onClick={openPalette}
+              aria-label="Open command palette"
+              data-testid="command-palette-open"
               className="hidden w-full max-w-xl items-center gap-2 rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background md:flex"
             >
               <SearchIcon className="h-4 w-4" />
@@ -275,6 +330,16 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
               <kbd className="rounded border border-border bg-background px-2 py-0.5 text-xs text-muted-foreground">
                 Ctrl K
               </kbd>
+            </button>
+            {/* Small screen command palette trigger */}
+            <button
+              type="button"
+              onClick={openPalette}
+              aria-label="Open command palette"
+              data-testid="command-palette-open-mobile"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-[hsl(var(--surface-card))] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background md:hidden"
+            >
+              <SearchIcon className="h-5 w-5" />
             </button>
           </div>
           <div className="flex items-center gap-2">
@@ -307,7 +372,10 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      {/* Main content row - relative positioning context for overlay panel containment */}
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+        {/* Command Palette overlay */}
+        <CommandPalette />
         <aside
           className={[
             'z-40 shrink-0 border-r border-border bg-[hsl(var(--surface-card))] transition-[width] duration-200',
@@ -397,10 +465,13 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
                 </button>
                 <button
                   type="button"
-                  aria-disabled="true"
+                  onClick={handleToggleDetails}
+                  aria-expanded={isRightPanelOpen}
+                  aria-controls="right-context-panel"
+                  data-testid="rcp-demo-open"
                   className="inline-flex items-center rounded-md border border-border bg-background px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 >
-                  Action
+                  Details
                 </button>
               </div>
             </div>
@@ -409,7 +480,18 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
             <div className="min-h-full p-4">{children}</div>
           </main>
         </div>
+        <RightContextPanel />
       </div>
     </div>
+  );
+}
+
+export default function LayoutShell({ children }: { children: ReactNode }) {
+  return (
+    <CommandPaletteProvider>
+      <RightContextPanelProvider>
+        <LayoutShellInner>{children}</LayoutShellInner>
+      </RightContextPanelProvider>
+    </CommandPaletteProvider>
   );
 }

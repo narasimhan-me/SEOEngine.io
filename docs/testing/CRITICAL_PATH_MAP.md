@@ -768,6 +768,60 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 ---
 
+### CP-020: UI Shell & Right Context Panel (Structural)
+
+**Description:** Foundational UI shell (Top Bar + Collapsible Left Nav + Center Work Canvas) and Right Context Panel per Design System v1.5. Provides the canonical layout frame for all authenticated pages with scroll containment, nav persistence, and contextual details panel.
+
+| Field                         | Value                                                                                                                                                              |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/LAYOUT-SHELL-IMPLEMENTATION-1.md`, `docs/manual-testing/RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md`, `docs/manual-testing/TABLES-&-LISTS-ALIGNMENT-1.md`, `docs/manual-testing/COMMAND-PALETTE-IMPLEMENTATION-1.md` |
+| **Automated Tests**           | Planned                                                                                                                                                            |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                       |
+| **Last Verified (Automated)** | N/A                                                                                                                                                                |
+| **Owner**                     | Core Team                                                                                                                                                          |
+
+**Key Scenarios:**
+
+- [ ] LAYOUT-SHELL-1: Top Bar remains visible and does not scroll away
+- [ ] LAYOUT-SHELL-1: Left Nav remains visible and does not scroll away
+- [ ] LAYOUT-SHELL-1: Only Center Work Canvas scrolls (scroll containment)
+- [ ] LAYOUT-SHELL-1: Left Nav collapse/expand transitions cleanly
+- [ ] LAYOUT-SHELL-1: Left Nav collapse state persists across page refresh (localStorage)
+- [ ] LAYOUT-SHELL-1: No unexpected white surfaces in dark mode
+- [ ] LAYOUT-SHELL-1: Hover states do not turn white in dark mode
+- [ ] LAYOUT-SHELL-1: Shell renders correctly in Shopify embedded iframe
+- [ ] LAYOUT-SHELL-1: No double scrollbars in Shopify embedded context
+- [ ] LAYOUT-SHELL-1: Common laptop widths (1024px) do not cause overlap
+- [ ] RIGHT-CONTEXT-PANEL-1: Panel opens via Details button click
+- [ ] RIGHT-CONTEXT-PANEL-1: Panel closes via close button click
+- [ ] RIGHT-CONTEXT-PANEL-1: Panel closes via ESC key (when no modal dialog open)
+- [ ] RIGHT-CONTEXT-PANEL-1: ESC key does NOT close panel when modal dialog is open
+- [ ] RIGHT-CONTEXT-PANEL-1: Panel auto-closes when navigating to different nav section
+- [ ] RIGHT-CONTEXT-PANEL-1: Desktop (≥1024px) shows pinned panel (pushes content)
+- [ ] RIGHT-CONTEXT-PANEL-1: Narrow (<1024px) shows overlay panel with scrim
+- [ ] RIGHT-CONTEXT-PANEL-1: Clicking scrim closes panel in overlay mode
+- [ ] RIGHT-CONTEXT-PANEL-1: Focus returns to trigger element when panel closes
+- [ ] RIGHT-CONTEXT-PANEL-1: Panel surfaces dark mode safe (no white backgrounds)
+- [ ] RIGHT-CONTEXT-PANEL-1: Panel works in Shopify embedded iframe context
+- [ ] TABLES-LISTS-1: DataTable/DataList hover states dark-mode safe (no white)
+- [ ] TABLES-LISTS-1: DataTable/DataList focus ring visible in dark mode
+- [ ] TABLES-LISTS-1: Explicit "View details" action opens RCP (row click does not)
+- [ ] TABLES-LISTS-1: Switching rows updates RCP content without navigation or flicker
+- [ ] TABLES-LISTS-1: Tab into table/list enters row focus
+- [ ] TABLES-LISTS-1: ArrowUp/ArrowDown moves focus between rows
+- [ ] TABLES-LISTS-1: Enter/Space opens RCP for focused row
+- [ ] TABLES-LISTS-1: Shopify embedded: no horizontal overflow on tables/lists
+- [ ] COMMAND-PALETTE-1: Cmd+K / Ctrl+K opens command palette
+- [ ] COMMAND-PALETTE-1: ESC closes command palette
+- [ ] COMMAND-PALETTE-1: Outside click (scrim) closes command palette
+- [ ] COMMAND-PALETTE-1: Focus restores to opener element on close
+- [ ] COMMAND-PALETTE-1: Navigation commands route deterministically (project context vs fallback)
+- [ ] COMMAND-PALETTE-1: No destructive/write/apply/run/generate commands present
+- [ ] COMMAND-PALETTE-1: Admin command role-gated (hidden for non-admins)
+- [ ] COMMAND-PALETTE-1: Shopify embedded: overlay contained, no overflow
+
+---
+
 ## Coverage Summary
 
 | Critical Path                       | Manual Docs | Auto Tests | Status                        |
@@ -791,6 +845,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | CP-017: GEO Answer Readiness        | ✅          | ✅         | 🟢 Full Coverage              |
 | CP-018: ROLES-2 Project Roles       | ✅          | ✅         | 🟢 Full Coverage              |
 | CP-019: ROLES-3 Multi-User Projects | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-020: UI Shell & Right Context Panel | ✅       | Planned    | 🟡 Manual Only                |
 
 **Legend:**
 
