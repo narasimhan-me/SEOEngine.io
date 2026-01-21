@@ -1,14 +1,9 @@
-import TopNav from '@/components/layout/TopNav';
+import LayoutShell from '@/components/layout/LayoutShell';
 
 export default function SettingsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="min-h-screen flex flex-col">
-      <TopNav />
-      <main className="flex-1 bg-gray-50">{children}</main>
-    </div>
-  );
+  return <LayoutShell>{children}</LayoutShell>;
 }

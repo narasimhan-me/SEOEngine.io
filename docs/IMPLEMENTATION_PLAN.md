@@ -2263,6 +2263,45 @@ Implements diagnostic guidance pattern for issues with `actionability === 'infor
 
 _None at this time._
 
+### Phase LAYOUT-SHELL-IMPLEMENTATION-1: Foundational UI Shell (Design System v1.5) ✅ COMPLETE
+
+**Status:** Complete
+**Date Started:** 2026-01-21
+**Date Completed:** 2026-01-21
+
+#### Scope (Layout Only)
+
+- Persistent Global Top Bar (placeholders only)
+- Collapsible Left Navigation (expanded/collapsed; per-user persistence)
+- Center Work Canvas container (internal vertical scroll; breadcrumbs/actions placeholders)
+
+#### Constraints
+
+- Token-only styling; dark mode default-safe
+- Shopify embedded iframe safe (scroll containment inside Center Work Canvas)
+- No Right Context Panel
+- No feature UI work (no dashboards/tables/cards added as part of this phase)
+
+#### Core Files
+
+- apps/web/src/components/layout/LayoutShell.tsx
+- apps/web/src/app/layout.tsx
+- apps/web/src/app/dashboard/layout.tsx
+- apps/web/src/app/projects/layout.tsx
+- apps/web/src/app/settings/layout.tsx
+- apps/web/src/app/admin/layout.tsx
+
+#### Manual Testing
+
+- docs/manual-testing/LAYOUT-SHELL-IMPLEMENTATION-1.md
+
+#### Summary of Changes
+
+- Created `LayoutShell.tsx`: Canonical UI shell component with Top Bar, collapsible Left Nav (persists state to localStorage), and Center Work Canvas with scroll containment
+- Updated root `layout.tsx`: Changed hardcoded gray colors to token-based theming (`bg-background`, `text-foreground`, `text-primary`, `text-muted-foreground`)
+- Updated dashboard/projects/settings layouts: Replaced TopNav+wrapper pattern with unified LayoutShell
+- Updated admin layout: Replaced TopNav with LayoutShell while preserving admin auth gating and mobile drawer; converted all hardcoded colors to design tokens
+
 ---
 
 ## Planned / Pending
@@ -2548,3 +2587,4 @@ _None at this time._
 | 6.91 | 2026-01-21 | **DARK-MODE-TABLE-HOVER-FIX-1-FIXUP-1**: Force cell-level paint and standardize hover to menuHoverBg. **Root cause:** Cell-level backgrounds (or higher-specificity rules) still caused white hover leaks despite prior tr/td overrides; --surface-raised was inconsistent with existing sidebar active pill tone. **Fix:** (1) Introduced `--menu-bg` and `--menu-hover-bg` tokens derived from `--primary` (applied with 0.10 alpha at usage); (2) Force cell-level hover paint for table rows (`tr.hover:bg-gray-50/100:hover > td/th`) using `hsl(var(--menu-hover-bg) / 0.10)`; (3) Added list-row hover overrides for `div`, `li`, `label` containers with `hover:bg-gray-50/100`; (4) Bound sidebar active pill (`[data-testid="project-sidenav"] .bg-primary/10`) to `--menu-bg` token for consistency; (5) All rules dark-only scope. **Manual Testing:** HP-019 updated to require visual verification that Projects table row hover matches sidebar active pill tone. **Core files:** globals.css. **Manual Testing:** DARK-MODE-SYSTEM-1.md (HP-019 updated). |
 | 6.92 | 2026-01-21 | **DARK-MODE-TABLE-HOVER-FIX-1-FIXUP-2**: Fix table base paint (not just hover). **Problem:** Projects table and admin tables still paint white in dark mode because `tbody.bg-white` and cell backgrounds remain white; hover-only fixes are insufficient when the base row background is already white. **Fix:** Added dark-only table base + hover paint overrides for `table tbody.bg-white` and its `td`/`th` children: (1) Base paint uses `--surface-card` token; (2) Hover paint uses `hsl(var(--menu-hover-bg) / 0.10)` to match sidebar pill tone. Prior FIXUP-1 rules retained as additional safety net for tables using `hover:bg-gray-*` classes. **Manual Testing:** HP-019 updated to require "base row check" before hovering - rows must NOT be white even before hover. **Core files:** globals.css. **Manual Testing:** DARK-MODE-SYSTEM-1.md (HP-019 updated with FIXUP-2 checks). |
 | 6.93 | 2026-01-21 | **DARK-MODE-TABLE-HOVER-FIX-1-FIXUP-3**: Make hover visibly distinct using menuHoverBg / 0.14 alpha. **Problem:** After base-paint fix (FIXUP-2), hover became too subtle to perceive - the 0.10 alpha was invisible against `--surface-card`. **Fix:** (1) Standardized all dark hover rules to `hsl(var(--menu-hover-bg) / 0.14)` for visible contrast - applies to: `tr.hover:bg-gray-50/100:hover` (row + cells), `table tbody.bg-white > tr:hover` (row + cells), specificity-war variants, and list-row containers (div/li/label); (2) Aligned sidebar active pill to same 0.14 alpha so "match tone" comparison is deterministic; (3) Base paint rules (FIXUP-2) remain unchanged at `--surface-card`. **Manual Testing:** HP-019 updated to require: (a) hover is visibly distinguishable from base surface, (b) hover tone matches sidebar active pill (both 0.14 alpha). **Core files:** globals.css. **Manual Testing:** DARK-MODE-SYSTEM-1.md (HP-019 updated with FIXUP-3 visibility checks). |
+| 6.94 | 2026-01-21 | **LAYOUT-SHELL-IMPLEMENTATION-1 COMPLETE**: Foundational UI shell per Design System v1.5. (1) Created `LayoutShell.tsx`: canonical shell component with Top Bar (logo, search placeholder, notifications, account), collapsible Left Nav (Dashboard, Projects, Settings, Help, Admin links with active state highlighting, per-user persistence via localStorage key `engineo_nav_state`), and Center Work Canvas with scroll containment and breadcrumbs/actions placeholders; (2) Updated root `layout.tsx`: token-based theming (`bg-background`, `text-foreground`, `text-primary`, `text-muted-foreground`) for loading fallback; (3) Updated dashboard/projects/settings layouts: replaced TopNav+wrapper with unified LayoutShell; (4) Updated admin layout: replaced TopNav with LayoutShell while preserving admin auth gating and mobile drawer, converted all hardcoded grays to design tokens. **Constraints:** Token-only styling, dark mode safe, Shopify iframe scroll containment, no Right Context Panel, no feature UI. **Core files:** LayoutShell.tsx, layout.tsx, dashboard/layout.tsx, projects/layout.tsx, settings/layout.tsx, admin/layout.tsx. **Manual Testing:** LAYOUT-SHELL-IMPLEMENTATION-1.md |
