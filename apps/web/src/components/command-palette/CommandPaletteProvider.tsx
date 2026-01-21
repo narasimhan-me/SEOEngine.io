@@ -105,8 +105,8 @@ export function CommandPaletteProvider({ children }: { children: ReactNode }) {
   // Global keyboard shortcut: Cmd+K / Ctrl+K toggles palette
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      // Cmd+K (Mac) or Ctrl+K (Windows/Linux)
-      if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+      // Cmd+K (Mac) or Ctrl+K (Windows/Linux) - case-insensitive
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
         togglePalette();
       }

@@ -188,7 +188,7 @@ export function CommandPalette() {
         id: 'util-feedback',
         label: 'Open Feedback',
         section: 'Utility',
-        action: () => navigateWithGuard('/help/shopify-permissions'),
+        action: () => navigateWithGuard('/settings/help'),
       },
     ];
 
@@ -300,7 +300,7 @@ export function CommandPalette() {
 
   return (
     <div
-      className="absolute inset-0 z-50 flex items-start justify-center pt-[15vh]"
+      className="absolute inset-0 z-50 flex items-center justify-center"
       data-testid="command-palette-overlay"
     >
       {/* Scrim */}

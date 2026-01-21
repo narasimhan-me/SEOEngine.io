@@ -396,6 +396,28 @@
 
 ---
 
+### Scenario 17: Open Feedback routes correctly
+
+**ID:** HP-017
+
+**Preconditions:**
+
+- [ ] Logged in and on any shell page
+- [ ] Command palette is closed
+
+**Steps:**
+
+1. Open command palette with Cmd+K.
+2. Select "Open Feedback" from the Utility section and press Enter.
+3. Observe the navigation.
+
+**Expected Results:**
+
+- UI: Browser navigates to /settings/help. Command palette closes after execution.
+- API: N/A
+
+---
+
 ## Edge Cases
 
 ### EC-001: Double keyboard shortcut toggle
