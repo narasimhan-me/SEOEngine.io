@@ -12,17 +12,19 @@
 
 import { test, expect } from '@playwright/test';
 
-const API_BASE_URL =
-  process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
 
 /**
  * Seed user and project for authenticated tests.
  * Uses the same pattern as nav-ia-consistency-1.spec.ts.
  */
 async function seedTestProject(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-first-deo-win`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   return {
@@ -48,30 +50,45 @@ async function authenticatePage(page: any, request: any) {
 }
 
 test.describe('TRUST-ROUTING-1: Playbooks Preview Context', () => {
-  test('Playbooks preview survives navigation to Product and back', async ({ page, request }) => {
+  test('Playbooks preview survives navigation to Product and back', async ({
+    page,
+    request,
+  }) => {
     const { projectId, productIds } = await authenticatePage(page, request);
 
     // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Navigate to canonical playbooks route
     await page.goto(`/projects/${projectId}/playbooks`);
 
     // Wait for page to load
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Playbooks');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(
+      'Playbooks'
+    );
 
     // Select a playbook (if available)
-    const playbookCard = page.locator('button').filter({ hasText: 'Missing SEO Title' }).first();
+    const playbookCard = page
+      .locator('button')
+      .filter({ hasText: 'Missing SEO Title' })
+      .first();
     if (await playbookCard.isVisible()) {
       await playbookCard.click();
 
       // Generate preview (if button is available and not disabled)
-      const previewButton = page.getByRole('button', { name: /Generate preview/i });
-      if (await previewButton.isVisible() && !(await previewButton.isDisabled())) {
+      const previewButton = page.getByRole('button', {
+        name: /Generate preview/i,
+      });
+      if (
+        (await previewButton.isVisible()) &&
+        !(await previewButton.isDisabled())
+      ) {
         await previewButton.click();
 
         // Wait for preview to generate
         await page.waitForTimeout(2000);
 
         // Look for "Open product" link with preview context
-        const openProductLink = page.getByRole('link', { name: /Open product/i }).first();
+        const openProductLink = page
+          .getByRole('link', { name: /Open product/i })
+          .first();
         if (await openProductLink.isVisible()) {
           const href = await openProductLink.getAttribute('href');
           expect(href).toContain('from=playbook_preview');
@@ -85,7 +102,9 @@ test.describe('TRUST-ROUTING-1: Playbooks Preview Context', () => {
           await expect(page.url()).toContain('/products/');
 
           // Check for preview banner
-          const previewBanner = page.getByText('Previewing draft (not applied)');
+          const previewBanner = page.getByText(
+            'Previewing draft (not applied)'
+          );
           await expect(previewBanner).toBeVisible();
 
           // Check for back to preview link
@@ -104,18 +123,26 @@ test.describe('TRUST-ROUTING-1: Playbooks Preview Context', () => {
 test.describe('TRUST-ROUTING-1: Store Health → Work Queue', () => {
   // [COUNT-INTEGRITY-1.1 FIX-UP] Updated to click Content Quality card (not Discoverability)
   // Discoverability and Technical Readiness now route to Issues Engine, not Work Queue
-  test('Store Health CTA lands on Work Queue with visible filter context', async ({ page, request }) => {
+  test('Store Health CTA lands on Work Queue with visible filter context', async ({
+    page,
+    request,
+  }) => {
     const { projectId } = await authenticatePage(page, request);
 
     // Navigate to Store Health page
     await page.goto(`/projects/${projectId}/store-health`);
 
     // Wait for page to load
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Store Health');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(
+      'Store Health'
+    );
 
     // [COUNT-INTEGRITY-1.1 FIX-UP] Click on Content Quality card (still routes to Work Queue)
     // Note: Discoverability/Technical Readiness now route to Issues Engine with pillar filter
-    const contentQualityCard = page.locator('button').filter({ hasText: 'Content Quality' }).first();
+    const contentQualityCard = page
+      .locator('button')
+      .filter({ hasText: 'Content Quality' })
+      .first();
     if (await contentQualityCard.isVisible()) {
       await contentQualityCard.click();
 
@@ -124,7 +151,9 @@ test.describe('TRUST-ROUTING-1: Store Health → Work Queue', () => {
       await expect(page.url()).toContain('from=store_health');
 
       // Wait for Work Queue to load
-      await expect(page.getByRole('heading', { level: 1 })).toContainText('Work Queue');
+      await expect(page.getByRole('heading', { level: 1 })).toContainText(
+        'Work Queue'
+      );
 
       // Check for filter context banner
       const filterContext = page.getByTestId('work-queue-filter-context');
@@ -143,10 +172,14 @@ test.describe('TRUST-ROUTING-1: Store Health → Work Queue', () => {
     const { projectId } = await authenticatePage(page, request);
 
     // Navigate directly to Work Queue with filter params
-    await page.goto(`/projects/${projectId}/work-queue?from=store_health&actionKeys=FIX_MISSING_METADATA,RESOLVE_TECHNICAL_ISSUES`);
+    await page.goto(
+      `/projects/${projectId}/work-queue?from=store_health&actionKeys=FIX_MISSING_METADATA,RESOLVE_TECHNICAL_ISSUES`
+    );
 
     // Wait for page to load
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Work Queue');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(
+      'Work Queue'
+    );
 
     // Verify filter context is visible
     const filterContext = page.getByTestId('work-queue-filter-context');
@@ -166,14 +199,19 @@ test.describe('TRUST-ROUTING-1: Store Health → Work Queue', () => {
 });
 
 test.describe('TRUST-ROUTING-1: CTA Safety - View Issues', () => {
-  test('"View Issues" never routes to placeholder/empty pages', async ({ page, request }) => {
+  test('"View Issues" never routes to placeholder/empty pages', async ({
+    page,
+    request,
+  }) => {
     const { projectId } = await authenticatePage(page, request);
 
     // Navigate to Work Queue
     await page.goto(`/projects/${projectId}/work-queue`);
 
     // Wait for page to load
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Work Queue');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(
+      'Work Queue'
+    );
 
     // Find any "View Issues" CTA
     const viewIssuesLinks = page.getByRole('link', { name: /View Issues/i });
@@ -201,14 +239,19 @@ test.describe('TRUST-ROUTING-1: CTA Safety - View Issues', () => {
 });
 
 test.describe('TRUST-ROUTING-1: Insights Navigation', () => {
-  test('Insights renders with only one primary navigation strip', async ({ page, request }) => {
+  test('Insights renders with only one primary navigation strip', async ({
+    page,
+    request,
+  }) => {
     const { projectId } = await authenticatePage(page, request);
 
     // Navigate to Insights page
     await page.goto(`/projects/${projectId}/insights`);
 
     // Wait for page to load
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Insights');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(
+      'Insights'
+    );
 
     // Check that primary Insights subnav exists
     const insightsSubnav = page.getByTestId('insights-subnav');
@@ -223,7 +266,10 @@ test.describe('TRUST-ROUTING-1: Insights Navigation', () => {
     await expect(pillarFilter).toBeVisible();
   });
 
-  test('Insights DEO Progress page has subnav and pillar filter', async ({ page, request }) => {
+  test('Insights DEO Progress page has subnav and pillar filter', async ({
+    page,
+    request,
+  }) => {
     const { projectId } = await authenticatePage(page, request);
 
     // Navigate to DEO Progress subpage

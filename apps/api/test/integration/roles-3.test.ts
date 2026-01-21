@@ -51,8 +51,11 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
    */
   async function seedMultiUserProject() {
     // Create OWNER via seedConnectedStoreProject (sets up project with Shopify)
-    const { user: owner, project, shopifyIntegration } =
-      await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+    const {
+      user: owner,
+      project,
+      shopifyIntegration,
+    } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
 
     // Create EDITOR user
     const { user: editor } = await createTestUser(testPrisma, {
@@ -210,7 +213,9 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
       const { owner, project } = await seedMultiUserProject();
 
       const res = await request(server)
-        .post(`/projects/${project.id}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${project.id}/automation-playbooks/missing_seo_title/preview`
+        )
         .set(authHeader(owner.id))
         .send({ sampleSize: 1 })
         .expect(201);
@@ -222,7 +227,9 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
       const { editor, project } = await seedMultiUserProject();
 
       const res = await request(server)
-        .post(`/projects/${project.id}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${project.id}/automation-playbooks/missing_seo_title/preview`
+        )
         .set(authHeader(editor.id))
         .send({ sampleSize: 1 })
         .expect(201);
@@ -234,7 +241,9 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
       const { viewer, project } = await seedMultiUserProject();
 
       const res = await request(server)
-        .post(`/projects/${project.id}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${project.id}/automation-playbooks/missing_seo_title/preview`
+        )
         .set(authHeader(viewer.id))
         .send({ sampleSize: 1 })
         .expect(403);
@@ -246,7 +255,9 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
       const { nonMember, project } = await seedMultiUserProject();
 
       await request(server)
-        .post(`/projects/${project.id}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${project.id}/automation-playbooks/missing_seo_title/preview`
+        )
         .set(authHeader(nonMember.id))
         .send({ sampleSize: 1 })
         .expect(403);
@@ -259,7 +270,9 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
 
       // Generate preview first
       const previewRes = await request(server)
-        .post(`/projects/${project.id}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${project.id}/automation-playbooks/missing_seo_title/preview`
+        )
         .set(authHeader(owner.id))
         .send({ sampleSize: 1 })
         .expect(201);
@@ -285,7 +298,9 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
 
       // Generate preview as OWNER first
       const previewRes = await request(server)
-        .post(`/projects/${project.id}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${project.id}/automation-playbooks/missing_seo_title/preview`
+        )
         .set(authHeader(owner.id))
         .send({ sampleSize: 1 })
         .expect(201);
@@ -311,7 +326,9 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
 
       // Generate preview as OWNER first
       const previewRes = await request(server)
-        .post(`/projects/${project.id}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${project.id}/automation-playbooks/missing_seo_title/preview`
+        )
         .set(authHeader(owner.id))
         .send({ sampleSize: 1 })
         .expect(201);
@@ -335,7 +352,9 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
 
       // Generate preview as OWNER first
       const previewRes = await request(server)
-        .post(`/projects/${project.id}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${project.id}/automation-playbooks/missing_seo_title/preview`
+        )
         .set(authHeader(owner.id))
         .send({ sampleSize: 1 })
         .expect(201);
@@ -489,7 +508,7 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
         .expect(200);
 
       const editorMembership = membersRes.body.find(
-        (m: any) => m.userId === editor.id,
+        (m: any) => m.userId === editor.id
       );
 
       expect(editorMembership).toBeDefined();
@@ -514,7 +533,7 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
         .expect(200);
 
       const viewerMembership = membersRes.body.find(
-        (m: any) => m.userId === viewer.id,
+        (m: any) => m.userId === viewer.id
       );
 
       // EDITOR cannot change role
@@ -578,7 +597,7 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
       // Create single-user project (no ProjectMember records)
       const { user: owner, project } = await seedConnectedStoreProject(
         testPrisma,
-        { plan: 'pro' },
+        { plan: 'pro' }
       );
       await createTestProducts(testPrisma, {
         projectId: project.id,
@@ -603,7 +622,9 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
 
       // Owner can generate drafts
       const previewRes = await request(server)
-        .post(`/projects/${project.id}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${project.id}/automation-playbooks/missing_seo_title/preview`
+        )
         .set(authHeader(owner.id))
         .send({ sampleSize: 1 })
         .expect(201);
@@ -912,8 +933,11 @@ describe('ROLES-3 – Membership-Aware Access Control', () => {
      */
     async function seedMultiOwnerProject() {
       // Create primary OWNER via seedConnectedStoreProject
-      const { user: primaryOwner, project, shopifyIntegration } =
-        await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const {
+        user: primaryOwner,
+        project,
+        shopifyIntegration,
+      } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
 
       // Create secondary OWNER
       const { user: secondaryOwner } = await createTestUser(testPrisma, {

@@ -135,4 +135,3 @@ describe('CRITICAL – Onboarding checklist backend signals', () => {
     expect(res.body.productsWithAppliedSeo).toBeGreaterThanOrEqual(3);
   });
 });
-

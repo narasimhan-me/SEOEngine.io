@@ -38,8 +38,8 @@ if (missing.length > 0) {
   // eslint-disable-next-line no-console
   console.error(
     `[Stripe] Configuration incomplete. Missing environment variables: ${missing.join(
-      ', ',
-    )}. See docs/STRIPE_SETUP.md for setup instructions.`,
+      ', '
+    )}. See docs/STRIPE_SETUP.md for setup instructions.`
   );
 }
 
@@ -62,4 +62,3 @@ export const stripeClient = stripeConfig.enabled
       apiVersion: '2023-10-16',
     })
   : null;
-

@@ -1,9 +1,11 @@
 # BILLING-GTM-1 — Pricing, Upgrade UX & Monetization Flows
 
 ## Purpose
+
 EngineO.ai billing and upgrades must convert measurable DEO value into clear, trust-safe upgrades without surprise enforcement.
 
 ## Non‑Negotiables
+
 - Value before price: users see progress and savings before upgrade CTAs.
 - Predict → Warn → Enforce: warnings precede limits; no surprise blocks.
 - Stripe is the source of truth; EngineO.ai never handles card data.
@@ -11,26 +13,31 @@ EngineO.ai billing and upgrades must convert measurable DEO value into clear, tr
 - No ranking guarantees, no revenue attribution, no ROI promises.
 
 ## What Plans Affect (v1)
+
 - AI usage quota (measured as "AI runs").
 - Daily automation suggestions/day entitlement (existing system limit).
 - Core resource limits (projects, crawled pages).
 - Collaboration features are future-ready but not required in v1.
 
 ## What Plans Do NOT Affect (v1)
+
 - Visibility of DEO pillars and Insights (users can see what's happening).
 - Apply's trust contract: Apply never consumes AI quota.
 
 ## Upgrade Moments (Contextual)
+
 - Quota warning (soft threshold): allow action, show warning + Upgrade CTA.
 - Quota blocked (hard limit enabled): block AI action, show Upgrade CTA.
 - Insights value moments: when progress/savings are strong, show a non-blocking upgrade suggestion.
 
 ## Stripe Flow
+
 - In-app upgrade uses Stripe Checkout.
 - Subscription management uses Stripe Customer Portal.
 - Webhook sync updates plan state in-app.
 
 ## Copy Guidelines
+
 - Use "AI runs", "reuse saves AI usage", "Apply never uses AI".
 - Use directional, explanatory language; never promise outcomes.
 
@@ -45,17 +52,18 @@ AI_USAGE_MONTHLY_RUN_LIMIT_BUSINESS=  # Empty = Unlimited
 ```
 
 Rules:
+
 - Missing or empty → Unlimited
 - Non-positive or non-numeric → Unlimited
 - Positive integer → That is the monthly limit
 
 ## Plan Limits Summary
 
-| Plan | Projects | Crawled Pages | Suggestions/Day | Monthly AI Runs |
-|------|----------|---------------|-----------------|-----------------|
-| Free | 1 | 50 | 5 | Limited (env-driven) |
-| Pro | 5 | 500 | 25 | Higher quota (env-driven) |
-| Business | Unlimited | Unlimited | Unlimited | Unlimited |
+| Plan     | Projects  | Crawled Pages | Suggestions/Day | Monthly AI Runs           |
+| -------- | --------- | ------------- | --------------- | ------------------------- |
+| Free     | 1         | 50            | 5               | Limited (env-driven)      |
+| Pro      | 5         | 500           | 25              | Higher quota (env-driven) |
+| Business | Unlimited | Unlimited     | Unlimited       | Unlimited                 |
 
 ## Trust Invariants
 

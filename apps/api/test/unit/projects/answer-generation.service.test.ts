@@ -43,19 +43,22 @@ describe('AnswerGenerationService', () => {
   beforeEach(() => {
     configMock = createConfigMock();
     geminiClientMock = createGeminiClientMock();
-    service = new AnswerGenerationService(configMock, geminiClientMock as unknown as GeminiClient);
+    service = new AnswerGenerationService(
+      configMock,
+      geminiClientMock as unknown as GeminiClient
+    );
     (global as any).fetch = jest.fn();
   });
 
   describe('generateAnswersForProduct', () => {
-      const mockProduct = {
-        id: 'prod-1',
-        projectId: 'proj-1',
-        title: 'Test Product',
-        description: 'A test product description',
-        seoTitle: 'Test Product',
-        seoDescription: 'A test product description',
-      };
+    const mockProduct = {
+      id: 'prod-1',
+      projectId: 'proj-1',
+      title: 'Test Product',
+      description: 'A test product description',
+      seoTitle: 'Test Product',
+      seoDescription: 'A test product description',
+    };
 
     const mockAnswerabilityStatus: AnswerabilityStatus = {
       status: 'weak',
@@ -97,7 +100,10 @@ describe('AnswerGenerationService', () => {
         json: async () => mockResponse,
       });
 
-      const result = await service.generateAnswersForProduct(mockProduct, mockAnswerabilityStatus);
+      const result = await service.generateAnswersForProduct(
+        mockProduct,
+        mockAnswerabilityStatus
+      );
 
       expect(result).toHaveLength(1);
       expect(result[0].questionId).toBe('what_is_it');
@@ -138,7 +144,10 @@ describe('AnswerGenerationService', () => {
         json: async () => mockResponse,
       });
 
-      const result = await service.generateAnswersForProduct(mockProduct, mockAnswerabilityStatus);
+      const result = await service.generateAnswersForProduct(
+        mockProduct,
+        mockAnswerabilityStatus
+      );
 
       expect(result).toHaveLength(0);
     });
@@ -149,14 +158,23 @@ describe('AnswerGenerationService', () => {
         text: async () => 'API Error',
       });
 
-      const result = await service.generateAnswersForProduct(mockProduct, mockAnswerabilityStatus);
+      const result = await service.generateAnswersForProduct(
+        mockProduct,
+        mockAnswerabilityStatus
+      );
 
       expect(result).toHaveLength(0);
     });
 
     it('should use Gemini provider when configured', async () => {
-      const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' });
-      service = new AnswerGenerationService(config, geminiClientMock as unknown as GeminiClient);
+      const config = createConfigMock({
+        AI_PROVIDER: 'gemini',
+        AI_API_KEY: 'test-key',
+      });
+      service = new AnswerGenerationService(
+        config,
+        geminiClientMock as unknown as GeminiClient
+      );
 
       geminiClientMock.generateWithFallback.mockResolvedValueOnce({
         candidates: [
@@ -182,17 +200,29 @@ describe('AnswerGenerationService', () => {
         ],
       });
 
-      const result = await service.generateAnswersForProduct(mockProduct, mockAnswerabilityStatus);
+      const result = await service.generateAnswersForProduct(
+        mockProduct,
+        mockAnswerabilityStatus
+      );
 
       expect(result).toHaveLength(1);
       expect(geminiClientMock.generateWithFallback).toHaveBeenCalled();
     });
 
     it('should return empty array when API key is missing', async () => {
-      const config = createConfigMock({ AI_API_KEY: '', AI_PROVIDER: 'openai' });
-      service = new AnswerGenerationService(config, geminiClientMock as unknown as GeminiClient);
+      const config = createConfigMock({
+        AI_API_KEY: '',
+        AI_PROVIDER: 'openai',
+      });
+      service = new AnswerGenerationService(
+        config,
+        geminiClientMock as unknown as GeminiClient
+      );
 
-      const result = await service.generateAnswersForProduct(mockProduct, mockAnswerabilityStatus);
+      const result = await service.generateAnswersForProduct(
+        mockProduct,
+        mockAnswerabilityStatus
+      );
 
       expect(result).toHaveLength(0);
       // When API key is missing, callOpenAI returns early with empty array, so fetch may not be called
@@ -215,7 +245,10 @@ describe('AnswerGenerationService', () => {
         json: async () => mockResponse,
       });
 
-      const result = await service.generateAnswersForProduct(mockProduct, mockAnswerabilityStatus);
+      const result = await service.generateAnswersForProduct(
+        mockProduct,
+        mockAnswerabilityStatus
+      );
 
       expect(result).toHaveLength(0);
     });
@@ -236,7 +269,10 @@ describe('AnswerGenerationService', () => {
         json: async () => mockResponse,
       });
 
-      await service.generateAnswersForProduct(mockProduct, mockAnswerabilityStatus);
+      await service.generateAnswersForProduct(
+        mockProduct,
+        mockAnswerabilityStatus
+      );
 
       const callArgs = (global.fetch as jest.Mock).mock.calls[0];
       const body = JSON.parse(callArgs[1].body);
@@ -248,4 +284,3 @@ describe('AnswerGenerationService', () => {
     });
   });
 });
-

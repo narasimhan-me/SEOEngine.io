@@ -43,6 +43,7 @@ This guide provides step-by-step instructions to test the `POST /crawl/trigger` 
 
 1. Click **Send**
 2. You should receive a response like:
+
 ```json
 {
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -72,6 +73,7 @@ This guide provides step-by-step instructions to test the `POST /crawl/trigger` 
 
 1. Click **Send**
 2. You should receive an array of projects:
+
 ```json
 [
   {
@@ -124,6 +126,7 @@ This guide provides step-by-step instructions to test the `POST /crawl/trigger` 
 
 1. Click **Send**
 2. You should receive a success response:
+
 ```json
 {
   "message": "Crawl scheduler triggered successfully"
@@ -131,10 +134,12 @@ This guide provides step-by-step instructions to test the `POST /crawl/trigger` 
 ```
 
 **If you get a 404 error:**
+
 - Make sure only one API server is running on port 3001
 - Restart the API server to ensure the route is registered
 
 **If you get a 403 Forbidden error:**
+
 - Verify your user has `ADMIN` role
 - Check that the Bearer token is valid and not expired
 
@@ -169,15 +174,18 @@ The crawl runs synchronously in development mode (without Redis). Wait **15-20 s
 ## Step 8: Verification Checklist
 
 ✅ **Crawl Trigger Endpoint:**
+
 - [ ] POST `/crawl/trigger` returns 200/201 with success message
 - [ ] No 404 errors (route is registered)
 - [ ] No 403 errors (admin authentication works)
 
 ✅ **New CrawlResult Rows:**
+
 - [ ] Final CrawlResult count > Initial CrawlResult count
 - [ ] New rows have recent `scannedAt` timestamps
 
 ✅ **Project.lastCrawledAt:**
+
 - [ ] `lastCrawledAt` is updated (not null if it was null before)
 - [ ] `lastCrawledAt` matches the latest `CrawlResult.scannedAt`
 - [ ] Timestamp is recent
@@ -187,6 +195,7 @@ The crawl runs synchronously in development mode (without Redis). Wait **15-20 s
 ### Issue: 404 Not Found on `/crawl/trigger`
 
 **Solution:**
+
 1. Check that the API server is running: `curl http://localhost:3001/health`
 2. Ensure only one API server process is running on port 3001
 3. Restart the API server to register the route
@@ -195,6 +204,7 @@ The crawl runs synchronously in development mode (without Redis). Wait **15-20 s
 ### Issue: 403 Forbidden
 
 **Solution:**
+
 1. Verify your user has `ADMIN` role
 2. Check that the Bearer token is valid (not expired)
 3. Try logging in again to get a fresh token
@@ -202,11 +212,13 @@ The crawl runs synchronously in development mode (without Redis). Wait **15-20 s
 ### Issue: No New CrawlResult Rows
 
 **Possible Causes:**
+
 - Project doesn't have a `domain` set
 - Crawl is still processing (wait longer)
 - Crawl failed silently (check API logs)
 
 **Solution:**
+
 1. Ensure the project has a `domain` field set
 2. Wait 30+ seconds and check again
 3. Check API server logs for crawl errors
@@ -214,11 +226,13 @@ The crawl runs synchronously in development mode (without Redis). Wait **15-20 s
 ### Issue: lastCrawledAt Not Updated
 
 **Possible Causes:**
+
 - Crawl didn't complete successfully
 - Project has no domain to crawl
 - Crawl service error
 
 **Solution:**
+
 1. Check API server logs for errors
 2. Verify project has a valid domain
 3. Try triggering the crawl again
@@ -238,4 +252,3 @@ You can save these requests as a Postman Collection:
 6. Use variable in Authorization header: `Bearer {{accessToken}}`
 
 This allows you to easily re-run the test sequence.
-

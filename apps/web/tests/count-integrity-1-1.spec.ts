@@ -24,7 +24,9 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
 
   test.beforeAll(async ({ request }) => {
     // [COUNT-INTEGRITY-1.1 PATCH 2.6-FIXUP-1] Use testkit seed for deterministic test data
-    const seedResponse = await request.post(`${API_URL}/testkit/e2e/seed-first-deo-win`);
+    const seedResponse = await request.post(
+      `${API_URL}/testkit/e2e/seed-first-deo-win`
+    );
     expect(seedResponse.ok()).toBeTruthy();
 
     const seedData = await seedResponse.json();
@@ -36,12 +38,17 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
     expect(testProjectId).toBeTruthy();
   });
 
-  test('CANON-001: Canonical summary endpoint returns valid triplet structure', async ({ request }) => {
-    const response = await request.get(`${API_URL}/projects/${testProjectId}/issues/summary`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
+  test('CANON-001: Canonical summary endpoint returns valid triplet structure', async ({
+    request,
+  }) => {
+    const response = await request.get(
+      `${API_URL}/projects/${testProjectId}/issues/summary`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
 
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
@@ -71,12 +78,20 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
     expect(typeof data.actionable.actionableNowCount).toBe('number');
 
     // Verify actionable counts are <= detected counts (invariant)
-    expect(data.actionable.issueTypesCount).toBeLessThanOrEqual(data.detected.issueTypesCount);
-    expect(data.actionable.affectedItemsCount).toBeLessThanOrEqual(data.detected.affectedItemsCount);
-    expect(data.actionable.actionableNowCount).toBeLessThanOrEqual(data.detected.actionableNowCount);
+    expect(data.actionable.issueTypesCount).toBeLessThanOrEqual(
+      data.detected.issueTypesCount
+    );
+    expect(data.actionable.affectedItemsCount).toBeLessThanOrEqual(
+      data.detected.affectedItemsCount
+    );
+    expect(data.actionable.actionableNowCount).toBeLessThanOrEqual(
+      data.detected.actionableNowCount
+    );
   });
 
-  test('CANON-002: Canonical summary with pillar filter returns filtered triplets', async ({ request }) => {
+  test('CANON-002: Canonical summary with pillar filter returns filtered triplets', async ({
+    request,
+  }) => {
     const response = await request.get(
       `${API_URL}/projects/${testProjectId}/issues/summary?pillar=metadata_snippet_quality`,
       {
@@ -98,7 +113,9 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
     expect(data.actionable).toHaveProperty('issueTypesCount');
   });
 
-  test('CANON-003: Canonical summary with severity filter returns filtered triplets', async ({ request }) => {
+  test('CANON-003: Canonical summary with severity filter returns filtered triplets', async ({
+    request,
+  }) => {
     const response = await request.get(
       `${API_URL}/projects/${testProjectId}/issues/summary?severity=critical`,
       {
@@ -120,12 +137,17 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
     expect(data.actionable).toHaveProperty('issueTypesCount');
   });
 
-  test('CANON-004: Canonical summary byPillar breakdown includes all pillars', async ({ request }) => {
-    const response = await request.get(`${API_URL}/projects/${testProjectId}/issues/summary`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
+  test('CANON-004: Canonical summary byPillar breakdown includes all pillars', async ({
+    request,
+  }) => {
+    const response = await request.get(
+      `${API_URL}/projects/${testProjectId}/issues/summary`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
 
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
@@ -148,17 +170,26 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
       expect(data.byPillar).toHaveProperty(pillarId);
       expect(data.byPillar[pillarId]).toHaveProperty('detected');
       expect(data.byPillar[pillarId]).toHaveProperty('actionable');
-      expect(data.byPillar[pillarId].detected).toHaveProperty('issueTypesCount');
-      expect(data.byPillar[pillarId].actionable).toHaveProperty('issueTypesCount');
+      expect(data.byPillar[pillarId].detected).toHaveProperty(
+        'issueTypesCount'
+      );
+      expect(data.byPillar[pillarId].actionable).toHaveProperty(
+        'issueTypesCount'
+      );
     }
   });
 
-  test('CANON-005: Canonical summary bySeverity breakdown includes all severities', async ({ request }) => {
-    const response = await request.get(`${API_URL}/projects/${testProjectId}/issues/summary`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
+  test('CANON-005: Canonical summary bySeverity breakdown includes all severities', async ({
+    request,
+  }) => {
+    const response = await request.get(
+      `${API_URL}/projects/${testProjectId}/issues/summary`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
 
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
@@ -170,18 +201,27 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
       expect(data.bySeverity).toHaveProperty(severity);
       expect(data.bySeverity[severity]).toHaveProperty('detected');
       expect(data.bySeverity[severity]).toHaveProperty('actionable');
-      expect(data.bySeverity[severity].detected).toHaveProperty('issueTypesCount');
-      expect(data.bySeverity[severity].actionable).toHaveProperty('issueTypesCount');
+      expect(data.bySeverity[severity].detected).toHaveProperty(
+        'issueTypesCount'
+      );
+      expect(data.bySeverity[severity].actionable).toHaveProperty(
+        'issueTypesCount'
+      );
     }
   });
 
-  test('CANON-006: Asset-specific issues endpoint returns valid structure', async ({ request }) => {
+  test('CANON-006: Asset-specific issues endpoint returns valid structure', async ({
+    request,
+  }) => {
     // First, get a product ID from the products endpoint
-    const productsResponse = await request.get(`${API_URL}/projects/${testProjectId}/products`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
+    const productsResponse = await request.get(
+      `${API_URL}/projects/${testProjectId}/products`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
 
     expect(productsResponse.ok()).toBeTruthy();
     const productsData = await productsResponse.json();
@@ -237,13 +277,18 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
     }
   });
 
-  test('CANON-007: Asset-specific issues with pillar filter returns filtered issues', async ({ request }) => {
+  test('CANON-007: Asset-specific issues with pillar filter returns filtered issues', async ({
+    request,
+  }) => {
     // First, get a product ID
-    const productsResponse = await request.get(`${API_URL}/projects/${testProjectId}/products`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
+    const productsResponse = await request.get(
+      `${API_URL}/projects/${testProjectId}/products`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
 
     expect(productsResponse.ok()).toBeTruthy();
     const productsData = await productsResponse.json();
@@ -279,7 +324,9 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
     expect(data.summary.detected).toHaveProperty('issueTypesCount');
   });
 
-  test('CANON-008: Canonical summary with actionKey filter returns filtered triplets', async ({ request }) => {
+  test('CANON-008: Canonical summary with actionKey filter returns filtered triplets', async ({
+    request,
+  }) => {
     // [COUNT-INTEGRITY-1.1 PATCH 2.6] Regression test for actionKey filtering
     const response = await request.get(
       `${API_URL}/projects/${testProjectId}/issues/summary?actionKey=FIX_MISSING_METADATA`,
@@ -306,10 +353,14 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
     expect(data.detected.issueTypesCount).toBeGreaterThanOrEqual(0);
   });
 
-  test('CANON-009: affectedItemsCount accuracy beyond cap-20 (Gap 3 regression)', async ({ request }) => {
+  test('CANON-009: affectedItemsCount accuracy beyond cap-20 (Gap 3 regression)', async ({
+    request,
+  }) => {
     // [COUNT-INTEGRITY-1.1 PATCH 3.6] Regression test for Gap 3 (True Asset Dedup Beyond Cap-20)
     // Seed a project with 30 products, all missing SEO metadata
-    const seedResponse = await request.post(`${API_URL}/testkit/e2e/seed-count-integrity-1-1-many-products`);
+    const seedResponse = await request.post(
+      `${API_URL}/testkit/e2e/seed-count-integrity-1-1-many-products`
+    );
     expect(seedResponse.ok()).toBeTruthy();
 
     const seedData = await seedResponse.json();
@@ -323,11 +374,14 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
     expect(productIds.length).toBe(30); // Verify seed created 30 products
 
     // Test 1: Verify affectedItemsCount equals actual product count (not capped at 20)
-    const summaryResponse = await request.get(`${API_URL}/projects/${manyProductsProjectId}/issues/summary`, {
-      headers: {
-        Authorization: `Bearer ${manyProductsAccessToken}`,
-      },
-    });
+    const summaryResponse = await request.get(
+      `${API_URL}/projects/${manyProductsProjectId}/issues/summary`,
+      {
+        headers: {
+          Authorization: `Bearer ${manyProductsAccessToken}`,
+        },
+      }
+    );
 
     expect(summaryResponse.ok()).toBeTruthy();
     const summaryData = await summaryResponse.json();
@@ -365,10 +419,14 @@ test.describe('COUNT-INTEGRITY-1.1: Canonical Triplet Counts', () => {
     expect(assetData.summary.detected.affectedItemsCount).toBe(1);
   });
 
-  test('CANON-010: affectedItemsCount accuracy for collections beyond cap-20 (Gap 3b regression)', async ({ request }) => {
+  test('CANON-010: affectedItemsCount accuracy for collections beyond cap-20 (Gap 3b regression)', async ({
+    request,
+  }) => {
     // [COUNT-INTEGRITY-1.1 PATCH 4.3] Regression test for Gap 3b (Pages/Collections Dedup Beyond Cap-20)
     // Seed a project with 30 collections, all missing SEO metadata
-    const seedResponse = await request.post(`${API_URL}/testkit/e2e/seed-count-integrity-1-1-many-collections`);
+    const seedResponse = await request.post(
+      `${API_URL}/testkit/e2e/seed-count-integrity-1-1-many-collections`
+    );
     expect(seedResponse.ok()).toBeTruthy();
 
     const seedData = await seedResponse.json();

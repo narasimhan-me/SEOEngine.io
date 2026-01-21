@@ -19,7 +19,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 export class ShopifyController {
   constructor(
     private readonly shopifyService: ShopifyService,
-    private readonly jwtService: JwtService,
+    private readonly jwtService: JwtService
   ) {}
 
   /**
@@ -32,7 +32,7 @@ export class ShopifyController {
     @Query('shop') shop: string,
     @Query('projectId') projectId: string,
     @Query('token') token: string,
-    @Res() res: Response,
+    @Res() res: Response
   ) {
     if (!shop || !projectId) {
       throw new BadRequestException('Missing shop or projectId parameter');
@@ -51,7 +51,10 @@ export class ShopifyController {
       throw new UnauthorizedException('Invalid or expired token');
     }
 
-    const isOwner = await this.shopifyService.validateProjectOwnership(projectId, userId);
+    const isOwner = await this.shopifyService.validateProjectOwnership(
+      projectId,
+      userId
+    );
     if (!isOwner) {
       throw new UnauthorizedException('You do not own this project');
     }
@@ -71,7 +74,7 @@ export class ShopifyController {
     @Query('token') token: string,
     @Query('capability') capability: string,
     @Query('returnTo') returnTo: string,
-    @Res() res: Response,
+    @Res() res: Response
   ) {
     if (!projectId) {
       throw new BadRequestException('Missing projectId parameter');
@@ -83,7 +86,9 @@ export class ShopifyController {
       throw new UnauthorizedException('Authentication token required');
     }
     const cap =
-      capability === 'pages_sync' || capability === 'collections_sync' || capability === 'blogs_sync'
+      capability === 'pages_sync' ||
+      capability === 'collections_sync' ||
+      capability === 'blogs_sync'
         ? capability
         : null;
     if (!cap) {
@@ -96,40 +101,60 @@ export class ShopifyController {
     } catch {
       throw new UnauthorizedException('Invalid or expired token');
     }
-    const isOwner = await this.shopifyService.validateProjectOwnership(projectId, userId);
+    const isOwner = await this.shopifyService.validateProjectOwnership(
+      projectId,
+      userId
+    );
     if (!isOwner) {
       throw new UnauthorizedException('You do not own this project');
     }
-    const integration = await this.shopifyService.getShopifyIntegration(projectId);
+    const integration =
+      await this.shopifyService.getShopifyIntegration(projectId);
     if (!integration || !integration.externalId) {
-      throw new BadRequestException('No Shopify integration found for this project');
+      throw new BadRequestException(
+        'No Shopify integration found for this project'
+      );
     }
     // [SHOPIFY-SCOPES-MATRIX-1-FIXUP-3] Check ALL enabled capabilities for missing scopes, not just the triggering one
     // This ensures reconnect requests all missing scopes (e.g., read_products for collections_sync)
-    const enabledCapabilities = this.shopifyService.getEnabledCapabilitiesForOauth();
+    const enabledCapabilities =
+      this.shopifyService.getEnabledCapabilitiesForOauth();
     const desiredScopes = new Set<string>();
-    
+
     // Start with currently granted scopes
-    const currentScopeStatus = await this.shopifyService.getShopifyScopeStatus(projectId, cap);
+    const currentScopeStatus = await this.shopifyService.getShopifyScopeStatus(
+      projectId,
+      cap
+    );
     for (const scope of currentScopeStatus.grantedScopes ?? []) {
       desiredScopes.add(scope);
     }
-    
+
     // Add missing scopes from ALL enabled capabilities
     for (const capability of enabledCapabilities) {
-      const status = await this.shopifyService.getShopifyScopeStatus(projectId, capability);
+      const status = await this.shopifyService.getShopifyScopeStatus(
+        projectId,
+        capability
+      );
       for (const scope of status.missingScopes ?? []) {
         desiredScopes.add(scope);
       }
     }
-    
-    const safeReturnTo = this.shopifyService.getSafeReturnToForProject(returnTo, projectId);
-    const installUrl = this.shopifyService.generateInstallUrl(integration.externalId, projectId, {
-      scopesCsv: Array.from(desiredScopes).sort().join(','),
-      source: 'reconnect',
-      capability: cap,
-      returnTo: safeReturnTo,
-    });
+
+    const safeReturnTo = this.shopifyService.getSafeReturnToForProject(
+      returnTo,
+      projectId
+    );
+    const installUrl = this.shopifyService.generateInstallUrl(
+      integration.externalId,
+      projectId,
+      {
+        scopesCsv: Array.from(desiredScopes).sort().join(','),
+        source: 'reconnect',
+        capability: cap,
+        returnTo: safeReturnTo,
+      }
+    );
     return res.redirect(installUrl);
   }
 
@@ -176,7 +201,8 @@ export class ShopifyController {
     // [SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-2] Store connection with scope verification
     // Wrap in try/catch to handle SHOPIFY_SCOPE_VERIFICATION_FAILED error
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const basePath = statePayload.returnTo ?? `/projects/${projectId}/settings#integrations`;
+    const basePath =
+      statePayload.returnTo ?? `/projects/${projectId}/settings#integrations`;
 
     try {
       await this.shopifyService.storeShopifyConnection(
@@ -184,7 +210,7 @@ export class ShopifyController {
         shop,
         tokenData.access_token,
         tokenData.scope,
-        statePayload.requestedScopes,
+        statePayload.requestedScopes
       );
 
       console.log('[Shopify Callback] Connection stored successfully');
@@ -210,7 +236,10 @@ export class ShopifyController {
           error: err instanceof Error ? err.message : String(err),
         });
         // Redirect to settings page with verify_failed signal
-        const failureUrl = new URL(`/projects/${projectId}/settings`, frontendUrl);
+        const failureUrl = new URL(
+          `/projects/${projectId}/settings`,
+          frontendUrl
+        );
         failureUrl.hash = 'integrations';
         failureUrl.searchParams.set('shopify', 'verify_failed');
         return res.redirect(failureUrl.toString());
@@ -226,7 +255,10 @@ export class ShopifyController {
    */
   @Post('sync-products')
   @UseGuards(JwtAuthGuard)
-  async syncProducts(@Request() req: any, @Query('projectId') projectId: string) {
+  async syncProducts(
+    @Request() req: any,
+    @Query('projectId') projectId: string
+  ) {
     if (!projectId) {
       throw new BadRequestException('Missing projectId parameter');
     }
@@ -241,15 +273,23 @@ export class ShopifyController {
   @UseGuards(JwtAuthGuard)
   async updateProductSeo(
     @Request() req: any,
-    @Body() body: { productId: string; seoTitle: string; seoDescription: string },
+    @Body()
+    body: { productId: string; seoTitle: string; seoDescription: string }
   ) {
     const { productId, seoTitle, seoDescription } = body;
 
     if (!productId || !seoTitle || !seoDescription) {
-      throw new BadRequestException('Missing required fields: productId, seoTitle, seoDescription');
+      throw new BadRequestException(
+        'Missing required fields: productId, seoTitle, seoDescription'
+      );
     }
 
-    return this.shopifyService.updateProductSeo(productId, seoTitle, seoDescription, req.user.id);
+    return this.shopifyService.updateProductSeo(
+      productId,
+      seoTitle,
+      seoDescription,
+      req.user.id
+    );
   }
 
   /**
@@ -261,7 +301,7 @@ export class ShopifyController {
   @UseGuards(JwtAuthGuard)
   async ensureMetafieldDefinitions(
     @Request() req: any,
-    @Query('projectId') projectId: string,
+    @Query('projectId') projectId: string
   ) {
     if (!projectId) {
       throw new BadRequestException('Missing projectId parameter');
@@ -269,7 +309,7 @@ export class ShopifyController {
 
     const isOwner = await this.shopifyService.validateProjectOwnership(
       projectId,
-      req.user.id,
+      req.user.id
     );
     if (!isOwner) {
       throw new UnauthorizedException('You do not own this project');

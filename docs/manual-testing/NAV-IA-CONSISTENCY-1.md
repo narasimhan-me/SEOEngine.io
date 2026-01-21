@@ -51,13 +51,16 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - Not logged in
 
 **Steps:**
+
 1. Navigate to the marketing home page (/)
 2. Inspect the navbar
 
 **Expected Results:**
+
 - **UI:** Navbar shows "Sign in" link (not "Log in")
 - **UI:** Navbar shows "Start free" CTA button
 - **UI:** Navbar uses token-based colors (bg-background, not bg-white)
@@ -69,14 +72,17 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Logged in as any user
 
 **Steps:**
+
 1. Navigate to /projects
 2. Check the top navigation bar
 3. Click Account dropdown
 
 **Expected Results:**
+
 - **UI:** Top nav shows "Projects" link
 - **UI:** Top nav does NOT show "Settings" link (removed from top-level)
 - **UI:** Account dropdown contains exact labels in order: Profile, Stores, Plan & Billing, AI Usage, Security, Preferences, Help & Support, Sign out
@@ -89,9 +95,11 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Logged in as any user
 
 **Steps:**
+
 1. Navigate to /projects
 2. Click the theme toggle button (moon/sun icon in top nav)
 3. Verify page switches to dark mode
@@ -100,6 +108,7 @@
 6. Navigate back to /projects
 
 **Expected Results:**
+
 - **UI:** Theme toggles between light and dark modes
 - **UI:** Dark mode persists after page refresh
 - **UI:** Dark mode persists after browser restart (localStorage)
@@ -111,14 +120,17 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Logged in with at least one project
 - Navigate to any project page
 
 **Steps:**
+
 1. Navigate to /projects/{id}/store-health
 2. Inspect the left sidebar
 
 **Expected Results:**
+
 - **UI:** Sidebar shows group headings: OPERATE, ASSETS, AUTOMATION, INSIGHTS, PROJECT
 - **UI:** OPERATE contains: Store Health, Work Queue
 - **UI:** ASSETS contains: Products, Pages, Collections
@@ -134,9 +146,11 @@
 **ID:** HP-005
 
 **Preconditions:**
+
 - Navigate to any project
 
 **Steps:**
+
 1. Navigate to /projects/{id}/deo
 2. Check sidebar "Insights" item
 3. Navigate to /projects/{id}/keywords
@@ -144,6 +158,7 @@
 5. Repeat for: /competitors, /backlinks, /local, /performance
 
 **Expected Results:**
+
 - **UI:** "Insights" sidebar item shows active state on ALL pillar routes
 - **UI:** Pillar subnav tabs visible on pillar pages (DEO, Search & Intent, Competitors, Off-site Signals, Local Discovery, Technical)
 
@@ -154,12 +169,15 @@
 **ID:** HP-006
 
 **Preconditions:**
+
 - Logged in
 
 **Steps:**
+
 1. Navigate to /settings/organization
 
 **Expected Results:**
+
 - **UI:** Page title is "Stores" (not "Organization / Stores")
 - **UI:** Settings hub card shows "Stores" label
 
@@ -170,13 +188,16 @@
 **ID:** HP-007
 
 **Preconditions:**
+
 - Navigate to any project
 
 **Steps:**
+
 1. Click "Playbooks" in sidebar
 2. Check page header and breadcrumbs
 
 **Expected Results:**
+
 - **UI:** Page header shows "Playbooks" (not "Automation Playbooks")
 - **UI:** Breadcrumbs show: Project / Playbooks
 - **UI:** "Create playbook" button visible
@@ -188,15 +209,18 @@
 **ID:** HP-008
 
 **Preconditions:**
+
 - Not logged in
 
 **Steps:**
+
 1. Navigate to /login
 2. Check the "Create account" link at bottom
 3. Navigate to /signup
 4. Check the submit button text
 
 **Expected Results:**
+
 - **UI:** Login page link says "Create account" (not "Sign up")
 - **UI:** Signup page button says "Create account" (not "Sign up")
 
@@ -209,10 +233,12 @@
 **Description:** Verify token-based styling works on marketing pages
 
 **Steps:**
+
 1. Navigate to marketing page
 2. Enable dark mode via browser dev tools (.dark class on html)
 
 **Expected Behavior:**
+
 - Marketing pages respect dark mode tokens
 
 ---
@@ -222,9 +248,11 @@
 **Description:** Verify Overview tab renamed to Summary
 
 **Steps:**
+
 1. Navigate to /projects/{id}/insights
 
 **Expected Behavior:**
+
 - First tab label is "Summary" (not "Overview")
 
 ---
@@ -236,10 +264,12 @@
 **Scenario:** localStorage unavailable (private browsing)
 
 **Steps:**
+
 1. Use private/incognito mode
 2. Toggle theme
 
 **Expected Behavior:**
+
 - Theme still toggles in session
 - No console errors
 
@@ -311,9 +341,9 @@ pnpm test:web
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Name] |
-| **Date** | [YYYY-MM-DD] |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    | [Name]                                |
+| **Date**           | [YYYY-MM-DD]                          |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | [Any additional notes] |
+| **Notes**          | [Any additional notes]                |

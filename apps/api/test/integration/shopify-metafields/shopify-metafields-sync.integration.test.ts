@@ -140,9 +140,9 @@ describe('Shopify Answer Block metafields sync (integration)', () => {
         }
 
         throw new Error(
-          `Unexpected GraphQL operation in metafields sync test: ${operationName}`,
+          `Unexpected GraphQL operation in metafields sync test: ${operationName}`
         );
-      },
+      }
     );
 
     const configServiceStub = {
@@ -151,7 +151,8 @@ describe('Shopify Answer Block metafields sync (integration)', () => {
         if (key === 'SHOPIFY_API_SECRET') return 'test-api-secret';
         if (key === 'SHOPIFY_APP_URL') return 'https://api.example.com';
         // [SHOPIFY-SCOPES-MATRIX-1] Include read_content for pages_sync capability
-        if (key === 'SHOPIFY_SCOPES') return 'read_products,write_products,read_themes,read_content';
+        if (key === 'SHOPIFY_SCOPES')
+          return 'read_products,write_products,read_themes,read_content';
         return undefined;
       },
     } as any;
@@ -164,7 +165,7 @@ describe('Shopify Answer Block metafields sync (integration)', () => {
     const shopifyService = new ShopifyService(
       testPrisma as any,
       configServiceStub,
-      automationServiceStub,
+      automationServiceStub
     );
 
     await shopifyService.ensureMetafieldDefinitions(project.id);
@@ -181,8 +182,6 @@ describe('Shopify Answer Block metafields sync (integration)', () => {
     expect(upsert.namespace).toBe('engineo');
     expect(upsert.type).toBe('multi_line_text_field');
     expect(upsert.key).toBe('answer_what_is_it');
-    expect(upsert.value).toBe(
-      'This is a metafield-sync test answer.',
-    );
+    expect(upsert.value).toBe('This is a metafield-sync test answer.');
   });
 });

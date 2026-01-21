@@ -21,7 +21,7 @@ import { cleanupTestDb, disconnectTestDb, testPrisma } from '../utils/test-db';
 async function signupAndLogin(
   server: any,
   email: string,
-  password: string,
+  password: string
 ): Promise<{ token: string; userId: string }> {
   await request(server)
     .post('/auth/signup')
@@ -52,7 +52,7 @@ async function createProject(
   server: any,
   token: string,
   name: string,
-  domain: string,
+  domain: string
 ): Promise<string> {
   const res = await request(server)
     .post('/projects')
@@ -68,7 +68,7 @@ async function createCrawlResult(
     url: string;
     title?: string | null;
     metaDescription?: string | null;
-  },
+  }
 ): Promise<string> {
   const result = await testPrisma.crawlResult.create({
     data: {
@@ -122,13 +122,13 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'pages-estimate@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Pages Test Project',
-        'pages-test.com',
+        'pages-test.com'
       );
 
       // Create pages: 2 without SEO title, 1 with SEO title
@@ -169,13 +169,13 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'collections-estimate@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Collections Test Project',
-        'collections-test.com',
+        'collections-test.com'
       );
 
       // Create collections: 1 without SEO description, 2 with SEO description
@@ -213,13 +213,13 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'scope-diff@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Scope Diff Project',
-        'scope-diff.com',
+        'scope-diff.com'
       );
 
       // Create both pages and collections with missing titles
@@ -262,13 +262,13 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'page-refs@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Page Refs Project',
-        'page-refs.com',
+        'page-refs.com'
       );
 
       // Create multiple pages
@@ -303,13 +303,13 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'wrong-refs@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Wrong Refs Project',
-        'wrong-refs.com',
+        'wrong-refs.com'
       );
 
       const res = await request(server)
@@ -329,13 +329,13 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'product-ids-invalid@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Product IDs Invalid Project',
-        'product-ids-invalid.com',
+        'product-ids-invalid.com'
       );
 
       const res = await request(server)
@@ -357,13 +357,13 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'work-queue-pages@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Work Queue Pages Project',
-        'work-queue-pages.com',
+        'work-queue-pages.com'
       );
 
       // Create pages with missing SEO metadata
@@ -382,7 +382,7 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
 
       // Look for AUTOMATION_RUN bundles with PAGES scope
       const pagesBundles = res.body.bundles.filter(
-        (b: any) => b.bundleType === 'AUTOMATION_RUN' && b.scopeType === 'PAGES',
+        (b: any) => b.bundleType === 'AUTOMATION_RUN' && b.scopeType === 'PAGES'
       );
 
       // Should have at least one bundle for pages (if issues exist)
@@ -396,13 +396,13 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'work-queue-collections@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Work Queue Collections Project',
-        'work-queue-collections.com',
+        'work-queue-collections.com'
       );
 
       // Create collections with missing SEO metadata
@@ -421,7 +421,8 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
 
       // Look for AUTOMATION_RUN bundles with COLLECTIONS scope
       const collectionsBundles = res.body.bundles.filter(
-        (b: any) => b.bundleType === 'AUTOMATION_RUN' && b.scopeType === 'COLLECTIONS',
+        (b: any) =>
+          b.bundleType === 'AUTOMATION_RUN' && b.scopeType === 'COLLECTIONS'
       );
 
       // Should have at least one bundle for collections (if issues exist)
@@ -437,13 +438,13 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
       const { token } = await signupAndLogin(
         server,
         'canonical-title@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Canonical Title Project',
-        'canonical-title.com',
+        'canonical-title.com'
       );
 
       // Create page with missing title
@@ -469,13 +470,13 @@ describe('ASSETS-PAGES-1.1 (e2e)', () => {
       const { token } = await signupAndLogin(
         server,
         'non-canonical@example.com',
-        'testpassword123',
+        'testpassword123'
       );
       const projectId = await createProject(
         server,
         token,
         'Non-Canonical Project',
-        'non-canonical.com',
+        'non-canonical.com'
       );
 
       const res = await request(server)

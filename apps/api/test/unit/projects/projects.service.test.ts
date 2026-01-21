@@ -12,7 +12,11 @@
 import { ProjectsService } from '../../../src/projects/projects.service';
 import { PrismaService } from '../../../src/prisma.service';
 import { RoleResolutionService } from '../../../src/common/role-resolution.service';
-import { NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { CrawlFrequency } from '@prisma/client';
 
 const createPrismaMock = () => ({
@@ -58,14 +62,16 @@ const createRoleResolutionServiceMock = () => ({
 describe('ProjectsService', () => {
   let service: ProjectsService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
-  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
+  let roleResolutionServiceMock: ReturnType<
+    typeof createRoleResolutionServiceMock
+  >;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
     roleResolutionServiceMock = createRoleResolutionServiceMock();
     service = new ProjectsService(
       prismaMock as unknown as PrismaService,
-      roleResolutionServiceMock as unknown as RoleResolutionService,
+      roleResolutionServiceMock as unknown as RoleResolutionService
     );
   });
 
@@ -92,7 +98,9 @@ describe('ProjectsService', () => {
         },
       ];
 
-      prismaMock.projectMember.findMany.mockResolvedValue(mockMemberProjects as any);
+      prismaMock.projectMember.findMany.mockResolvedValue(
+        mockMemberProjects as any
+      );
       prismaMock.project.findMany.mockResolvedValue([]); // No legacy projects
 
       const result = await service.getProjectsForUser('user-1');
@@ -132,7 +140,9 @@ describe('ProjectsService', () => {
     it('should throw NotFoundException when project does not exist', async () => {
       prismaMock.project.findUnique.mockResolvedValue(null);
 
-      await expect(service.getProject('proj-1', 'user-1')).rejects.toThrow(NotFoundException);
+      await expect(service.getProject('proj-1', 'user-1')).rejects.toThrow(
+        NotFoundException
+      );
     });
 
     it('should throw ForbiddenException when user does not own project', async () => {
@@ -145,7 +155,9 @@ describe('ProjectsService', () => {
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
       roleResolutionServiceMock.hasProjectAccess.mockResolvedValue(false);
 
-      await expect(service.getProject('proj-1', 'user-1')).rejects.toThrow(ForbiddenException);
+      await expect(service.getProject('proj-1', 'user-1')).rejects.toThrow(
+        ForbiddenException
+      );
     });
   });
 
@@ -293,7 +305,7 @@ describe('ProjectsService', () => {
       await expect(
         service.updateProject('proj-1', 'user-1', {
           crawlFrequency: 'INVALID' as CrawlFrequency,
-        }),
+        })
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -386,4 +398,3 @@ describe('ProjectsService', () => {
     });
   });
 });
-

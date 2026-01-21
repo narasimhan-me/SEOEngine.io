@@ -23,7 +23,7 @@ export class ProductIssueFixService {
     private readonly prisma: PrismaService,
     private readonly aiService: AiService,
     private readonly entitlementsService: EntitlementsService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   /**
@@ -84,8 +84,7 @@ export class ProductIssueFixService {
       });
     }
 
-    const titleIsMissing =
-      !product.seoTitle || product.seoTitle.trim() === '';
+    const titleIsMissing = !product.seoTitle || product.seoTitle.trim() === '';
     const descriptionIsMissing =
       !product.seoDescription || product.seoDescription.trim() === '';
 
@@ -112,12 +111,11 @@ export class ProductIssueFixService {
     let dailyCount: number | undefined;
 
     try {
-      const result =
-        await this.entitlementsService.ensureWithinDailyAiLimit(
-          userId,
-          product.projectId,
-          'product_optimize',
-        );
+      const result = await this.entitlementsService.ensureWithinDailyAiLimit(
+        userId,
+        product.projectId,
+        'product_optimize'
+      );
       planForLimit = result.planId;
       limit = result.limit;
       dailyCount = result.dailyCount;
@@ -134,7 +132,7 @@ export class ProductIssueFixService {
           feature: 'product_optimize',
           plan: planId,
         },
-        HttpStatus.TOO_MANY_REQUESTS,
+        HttpStatus.TOO_MANY_REQUESTS
       );
     }
 
@@ -156,8 +154,7 @@ export class ProductIssueFixService {
       providerCalled = true;
 
       const descriptionText =
-        (product.seoDescription ?? product.description ?? '')?.toString() ||
-        '';
+        (product.seoDescription ?? product.description ?? '')?.toString() || '';
 
       const metadata = await this.aiService.generateMetadata({
         url: product.externalId ?? product.id,
@@ -169,12 +166,14 @@ export class ProductIssueFixService {
       await this.entitlementsService.recordAiUsage(
         userId,
         product.projectId,
-        'product_optimize',
+        'product_optimize'
       );
       recordedUsage = true;
 
-      const updateData: { seoTitle?: string | null; seoDescription?: string | null } =
-        {};
+      const updateData: {
+        seoTitle?: string | null;
+        seoDescription?: string | null;
+      } = {};
 
       if (issueType === 'missing_seo_title') {
         const candidateTitle = metadata.title?.trim();
@@ -233,7 +232,7 @@ export class ProductIssueFixService {
         await this.entitlementsService.recordAiUsage(
           userId,
           product.projectId,
-          'product_optimize',
+          'product_optimize'
         );
         recordedUsage = true;
       }
@@ -254,4 +253,3 @@ export class ProductIssueFixService {
     }
   }
 }
-

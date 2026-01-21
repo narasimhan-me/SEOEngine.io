@@ -21,7 +21,7 @@ import { cleanupTestDb, disconnectTestDb, testPrisma } from '../utils/test-db';
 async function signupAndLogin(
   server: any,
   email: string,
-  password: string,
+  password: string
 ): Promise<{ token: string; userId: string }> {
   await request(server)
     .post('/auth/signup')
@@ -52,7 +52,7 @@ async function createProject(
   server: any,
   token: string,
   name: string,
-  domain: string,
+  domain: string
 ): Promise<string> {
   const res = await request(server)
     .post('/projects')
@@ -85,9 +85,14 @@ describe('GOV-AUDIT-VIEWER-1 – Governance Viewer E2E Tests', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'owner@test.com',
-        'password123',
+        'password123'
       );
-      const projectId = await createProject(server, token, 'Test Project', 'test.com');
+      const projectId = await createProject(
+        server,
+        token,
+        'Test Project',
+        'test.com'
+      );
 
       const res = await request(server)
         .get(`/projects/${projectId}/governance/viewer/approvals`)
@@ -104,9 +109,14 @@ describe('GOV-AUDIT-VIEWER-1 – Governance Viewer E2E Tests', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'owner@test.com',
-        'password123',
+        'password123'
       );
-      const projectId = await createProject(server, token, 'Test Project', 'test.com');
+      const projectId = await createProject(
+        server,
+        token,
+        'Test Project',
+        'test.com'
+      );
 
       // Create test approvals
       await testPrisma.approvalRequest.create({
@@ -133,7 +143,9 @@ describe('GOV-AUDIT-VIEWER-1 – Governance Viewer E2E Tests', () => {
 
       // Test pending filter
       const pendingRes = await request(server)
-        .get(`/projects/${projectId}/governance/viewer/approvals?status=pending`)
+        .get(
+          `/projects/${projectId}/governance/viewer/approvals?status=pending`
+        )
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
@@ -142,7 +154,9 @@ describe('GOV-AUDIT-VIEWER-1 – Governance Viewer E2E Tests', () => {
 
       // Test history filter
       const historyRes = await request(server)
-        .get(`/projects/${projectId}/governance/viewer/approvals?status=history`)
+        .get(
+          `/projects/${projectId}/governance/viewer/approvals?status=history`
+        )
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
@@ -154,9 +168,14 @@ describe('GOV-AUDIT-VIEWER-1 – Governance Viewer E2E Tests', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'owner@test.com',
-        'password123',
+        'password123'
       );
-      const projectId = await createProject(server, token, 'Test Project', 'test.com');
+      const projectId = await createProject(
+        server,
+        token,
+        'Test Project',
+        'test.com'
+      );
 
       await testPrisma.approvalRequest.create({
         data: {
@@ -182,9 +201,14 @@ describe('GOV-AUDIT-VIEWER-1 – Governance Viewer E2E Tests', () => {
       const { token } = await signupAndLogin(
         server,
         'owner@test.com',
-        'password123',
+        'password123'
       );
-      const projectId = await createProject(server, token, 'Test Project', 'test.com');
+      const projectId = await createProject(
+        server,
+        token,
+        'Test Project',
+        'test.com'
+      );
 
       const res = await request(server)
         .get(`/projects/${projectId}/governance/viewer/audit-events`)
@@ -201,9 +225,14 @@ describe('GOV-AUDIT-VIEWER-1 – Governance Viewer E2E Tests', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'owner@test.com',
-        'password123',
+        'password123'
       );
-      const projectId = await createProject(server, token, 'Test Project', 'test.com');
+      const projectId = await createProject(
+        server,
+        token,
+        'Test Project',
+        'test.com'
+      );
 
       // Create allowed event type
       await testPrisma.governanceAuditEvent.create({
@@ -240,9 +269,14 @@ describe('GOV-AUDIT-VIEWER-1 – Governance Viewer E2E Tests', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'owner@test.com',
-        'password123',
+        'password123'
       );
-      const projectId = await createProject(server, token, 'Test Project', 'test.com');
+      const projectId = await createProject(
+        server,
+        token,
+        'Test Project',
+        'test.com'
+      );
 
       // Create different allowed event types
       await testPrisma.governanceAuditEvent.create({
@@ -266,7 +300,9 @@ describe('GOV-AUDIT-VIEWER-1 – Governance Viewer E2E Tests', () => {
       });
 
       const res = await request(server)
-        .get(`/projects/${projectId}/governance/viewer/audit-events?types=SHARE_LINK_CREATED`)
+        .get(
+          `/projects/${projectId}/governance/viewer/audit-events?types=SHARE_LINK_CREATED`
+        )
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
@@ -280,9 +316,14 @@ describe('GOV-AUDIT-VIEWER-1 – Governance Viewer E2E Tests', () => {
       const { token } = await signupAndLogin(
         server,
         'owner@test.com',
-        'password123',
+        'password123'
       );
-      const projectId = await createProject(server, token, 'Test Project', 'test.com');
+      const projectId = await createProject(
+        server,
+        token,
+        'Test Project',
+        'test.com'
+      );
 
       const res = await request(server)
         .get(`/projects/${projectId}/governance/viewer/share-links`)
@@ -299,9 +340,14 @@ describe('GOV-AUDIT-VIEWER-1 – Governance Viewer E2E Tests', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'owner@test.com',
-        'password123',
+        'password123'
       );
-      const projectId = await createProject(server, token, 'Test Project', 'test.com');
+      const projectId = await createProject(
+        server,
+        token,
+        'Test Project',
+        'test.com'
+      );
 
       // Create share link with passcode (use passcodeHash, not plain passcode)
       await testPrisma.geoReportShareLink.create({
@@ -332,9 +378,14 @@ describe('GOV-AUDIT-VIEWER-1 – Governance Viewer E2E Tests', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'owner@test.com',
-        'password123',
+        'password123'
       );
-      const projectId = await createProject(server, token, 'Test Project', 'test.com');
+      const projectId = await createProject(
+        server,
+        token,
+        'Test Project',
+        'test.com'
+      );
 
       // Create expired share link
       await testPrisma.geoReportShareLink.create({
@@ -360,9 +411,14 @@ describe('GOV-AUDIT-VIEWER-1 – Governance Viewer E2E Tests', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'owner@test.com',
-        'password123',
+        'password123'
       );
-      const projectId = await createProject(server, token, 'Test Project', 'test.com');
+      const projectId = await createProject(
+        server,
+        token,
+        'Test Project',
+        'test.com'
+      );
 
       // Create revoked share link (status enum + revokedAt timestamp)
       await testPrisma.geoReportShareLink.create({
@@ -390,9 +446,14 @@ describe('GOV-AUDIT-VIEWER-1 – Governance Viewer E2E Tests', () => {
       const { token, userId } = await signupAndLogin(
         server,
         'owner@test.com',
-        'password123',
+        'password123'
       );
-      const projectId = await createProject(server, token, 'Test Project', 'test.com');
+      const projectId = await createProject(
+        server,
+        token,
+        'Test Project',
+        'test.com'
+      );
 
       // Create active link
       await testPrisma.geoReportShareLink.create({
@@ -420,7 +481,9 @@ describe('GOV-AUDIT-VIEWER-1 – Governance Viewer E2E Tests', () => {
 
       // Filter for active only
       const activeRes = await request(server)
-        .get(`/projects/${projectId}/governance/viewer/share-links?status=ACTIVE`)
+        .get(
+          `/projects/${projectId}/governance/viewer/share-links?status=ACTIVE`
+        )
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
@@ -429,7 +492,9 @@ describe('GOV-AUDIT-VIEWER-1 – Governance Viewer E2E Tests', () => {
 
       // Filter for revoked only
       const revokedRes = await request(server)
-        .get(`/projects/${projectId}/governance/viewer/share-links?status=REVOKED`)
+        .get(
+          `/projects/${projectId}/governance/viewer/share-links?status=REVOKED`
+        )
         .set('Authorization', `Bearer ${token}`)
         .expect(200);
 
@@ -443,9 +508,14 @@ describe('GOV-AUDIT-VIEWER-1 – Governance Viewer E2E Tests', () => {
       const { token } = await signupAndLogin(
         server,
         'owner@test.com',
-        'password123',
+        'password123'
       );
-      const projectId = await createProject(server, token, 'Test Project', 'test.com');
+      const projectId = await createProject(
+        server,
+        token,
+        'Test Project',
+        'test.com'
+      );
 
       await request(server)
         .get(`/projects/${projectId}/governance/viewer/approvals`)
@@ -464,14 +534,19 @@ describe('GOV-AUDIT-VIEWER-1 – Governance Viewer E2E Tests', () => {
       const { token: ownerToken } = await signupAndLogin(
         server,
         'owner@test.com',
-        'password123',
+        'password123'
       );
-      const projectId = await createProject(server, ownerToken, 'Test Project', 'test.com');
+      const projectId = await createProject(
+        server,
+        ownerToken,
+        'Test Project',
+        'test.com'
+      );
 
       const { token: otherToken } = await signupAndLogin(
         server,
         'other@test.com',
-        'password123',
+        'password123'
       );
 
       await request(server)

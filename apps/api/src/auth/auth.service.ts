@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
 import * as bcrypt from 'bcrypt';
@@ -9,8 +14,8 @@ export interface JwtPayload {
   email: string;
   role: string;
   twoFactor?: boolean; // true for temp tokens during 2FA flow
-  sessionId?: string;  // [SELF-SERVICE-1] Session ID for session tracking
-  iat?: number;        // JWT issued at timestamp
+  sessionId?: string; // [SELF-SERVICE-1] Session ID for session tracking
+  iat?: number; // JWT issued at timestamp
 }
 
 // Response when user has 2FA enabled
@@ -43,7 +48,7 @@ export type LoginResponse = TwoFactorLoginResponse | NormalLoginResponse;
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService,
+    private readonly jwtService: JwtService
   ) {}
 
   async signup(email: string, password: string, name?: string) {
@@ -122,7 +127,11 @@ export class AuthService {
     }
 
     // Normal login (no 2FA) - create session and issue token
-    const { accessToken, session } = await this.createSessionAndToken(user.id, user.email, user.role);
+    const { accessToken, session } = await this.createSessionAndToken(
+      user.id,
+      user.email,
+      user.role
+    );
 
     // [SELF-SERVICE-1] Update last login info (ip can be passed from controller if needed)
     await this.prisma.user.update({
@@ -145,7 +154,7 @@ export class AuthService {
     email: string,
     role: string,
     ip?: string,
-    userAgent?: string,
+    userAgent?: string
   ): Promise<{ accessToken: string; session: { id: string } }> {
     // Create a session record
     const session = await this.prisma.userSession.create({
@@ -177,7 +186,10 @@ export class AuthService {
    *
    * TODO: Add rate limiting to prevent brute-force attacks on TOTP codes
    */
-  async verifyTwoFactor(tempToken: string, code: string): Promise<NormalLoginResponse> {
+  async verifyTwoFactor(
+    tempToken: string,
+    code: string
+  ): Promise<NormalLoginResponse> {
     // Verify the temp token
     let payload: JwtPayload;
     try {
@@ -218,7 +230,11 @@ export class AuthService {
     }
 
     // [SELF-SERVICE-1] Create session and issue final access token with session ID
-    const { accessToken } = await this.createSessionAndToken(user.id, user.email, user.role);
+    const { accessToken } = await this.createSessionAndToken(
+      user.id,
+      user.email,
+      user.role
+    );
 
     // [SELF-SERVICE-1] Update last login info
     await this.prisma.user.update({

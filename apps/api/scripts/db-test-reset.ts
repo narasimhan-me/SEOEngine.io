@@ -18,6 +18,5 @@ execSync(
   './node_modules/.bin/prisma migrate reset --force --schema prisma/schema.prisma',
   {
     stdio: 'inherit',
-  },
+  }
 );
-

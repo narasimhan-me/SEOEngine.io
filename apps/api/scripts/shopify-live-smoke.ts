@@ -94,7 +94,7 @@ function log(level: 'INFO' | 'WARN' | 'ERROR', message: string): void {
 
 async function runStep<T>(
   name: string,
-  fn: () => Promise<T>,
+  fn: () => Promise<T>
 ): Promise<{ success: boolean; result?: T; error?: string }> {
   const startTime = Date.now();
   try {
@@ -120,7 +120,7 @@ async function shopifyGraphQL<T>(
   accessToken: string,
   query: string,
   variables: Record<string, unknown> = {},
-  operationName?: string,
+  operationName?: string
 ): Promise<T> {
   const url = `https://${shopDomain}/admin/api/2024-01/graphql.json`;
   const response = await fetch(url, {
@@ -148,7 +148,7 @@ async function shopifyGraphQL<T>(
 
   if (json.errors && json.errors.length > 0) {
     throw new Error(
-      `Shopify GraphQL errors: ${json.errors.map((e) => e.message).join('; ')}`,
+      `Shopify GraphQL errors: ${json.errors.map((e) => e.message).join('; ')}`
     );
   }
 
@@ -163,7 +163,7 @@ async function shopifyGraphQL<T>(
 
 async function verifyAccessToken(
   shopDomain: string,
-  accessToken: string,
+  accessToken: string
 ): Promise<boolean> {
   const query = `
     query ShopInfo {
@@ -179,7 +179,10 @@ async function verifyAccessToken(
     shop: { name: string; email: string; myshopifyDomain: string };
   }>(shopDomain, accessToken, query, {}, 'ShopInfo');
 
-  log('INFO', `Verified access to store: ${data.shop.name} (${data.shop.myshopifyDomain})`);
+  log(
+    'INFO',
+    `Verified access to store: ${data.shop.name} (${data.shop.myshopifyDomain})`
+  );
   return true;
 }
 
@@ -188,7 +191,7 @@ async function verifyAccessToken(
 async function createTestProduct(
   shopDomain: string,
   accessToken: string,
-  runId: string,
+  runId: string
 ): Promise<{ productId: string; productGid: string; handle: string }> {
   const title = `engineo-live-test-${runId}`;
 
@@ -224,7 +227,7 @@ async function createTestProduct(
 
   if (data.productCreate.userErrors.length > 0) {
     throw new Error(
-      `Failed to create test product: ${data.productCreate.userErrors.map((e) => e.message).join('; ')}`,
+      `Failed to create test product: ${data.productCreate.userErrors.map((e) => e.message).join('; ')}`
     );
   }
 
@@ -251,7 +254,7 @@ async function updateProductSeo(
   accessToken: string,
   productGid: string,
   seoTitle: string,
-  seoDescription: string,
+  seoDescription: string
 ): Promise<void> {
   const mutation = `
     mutation UpdateProductSeo($input: ProductInput!) {
@@ -281,14 +284,17 @@ async function updateProductSeo(
 
   const data = await shopifyGraphQL<{
     productUpdate: {
-      product: { id: string; seo?: { title?: string; description?: string } } | null;
+      product: {
+        id: string;
+        seo?: { title?: string; description?: string };
+      } | null;
       userErrors: Array<{ field?: string[]; message: string }>;
     };
   }>(shopDomain, accessToken, mutation, { input }, 'UpdateProductSeo');
 
   if (data.productUpdate.userErrors.length > 0) {
     throw new Error(
-      `Failed to update product SEO: ${data.productUpdate.userErrors.map((e) => e.message).join('; ')}`,
+      `Failed to update product SEO: ${data.productUpdate.userErrors.map((e) => e.message).join('; ')}`
     );
   }
 
@@ -302,7 +308,7 @@ async function verifyProductSeo(
   accessToken: string,
   productGid: string,
   expectedTitle: string,
-  expectedDescription: string,
+  expectedDescription: string
 ): Promise<boolean> {
   const query = `
     query GetProductSeo($id: ID!) {
@@ -334,13 +340,13 @@ async function verifyProductSeo(
 
   if (actualTitle !== expectedTitle) {
     throw new Error(
-      `SEO title mismatch: expected "${expectedTitle}", got "${actualTitle}"`,
+      `SEO title mismatch: expected "${expectedTitle}", got "${actualTitle}"`
     );
   }
 
   if (actualDescription !== expectedDescription) {
     throw new Error(
-      `SEO description mismatch: expected "${expectedDescription}", got "${actualDescription}"`,
+      `SEO description mismatch: expected "${expectedDescription}", got "${actualDescription}"`
     );
   }
 
@@ -353,7 +359,7 @@ async function verifyProductSeo(
 async function deleteTestProduct(
   shopDomain: string,
   accessToken: string,
-  productGid: string,
+  productGid: string
 ): Promise<boolean> {
   const mutation = `
     mutation DeleteTestProduct($input: ProductDeleteInput!) {
@@ -378,13 +384,13 @@ async function deleteTestProduct(
       accessToken,
       mutation,
       { input: { id: productGid } },
-      'DeleteTestProduct',
+      'DeleteTestProduct'
     );
 
     if (data.productDelete.userErrors.length > 0) {
       log(
         'WARN',
-        `Failed to delete product ${productGid}: ${data.productDelete.userErrors.map((e) => e.message).join('; ')}`,
+        `Failed to delete product ${productGid}: ${data.productDelete.userErrors.map((e) => e.message).join('; ')}`
       );
       return false;
     }
@@ -394,7 +400,7 @@ async function deleteTestProduct(
   } catch (error) {
     log(
       'WARN',
-      `Error deleting product ${productGid}: ${error instanceof Error ? error.message : String(error)}`,
+      `Error deleting product ${productGid}: ${error instanceof Error ? error.message : String(error)}`
     );
     return false;
   }
@@ -403,7 +409,7 @@ async function deleteTestProduct(
 async function tagProductForCleanup(
   shopDomain: string,
   accessToken: string,
-  productGid: string,
+  productGid: string
 ): Promise<void> {
   const mutation = `
     mutation TagProductForCleanup($input: ProductInput!) {
@@ -431,13 +437,13 @@ async function tagProductForCleanup(
           tags: ['engineo_live_test', 'engineo_live_test_cleanup_pending'],
         },
       },
-      'TagProductForCleanup',
+      'TagProductForCleanup'
     );
     log('INFO', `Tagged product for cleanup: ${productGid}`);
   } catch (error) {
     log(
       'WARN',
-      `Failed to tag product for cleanup: ${error instanceof Error ? error.message : String(error)}`,
+      `Failed to tag product for cleanup: ${error instanceof Error ? error.message : String(error)}`
     );
   }
 }
@@ -477,7 +483,7 @@ async function runSmokeTest(): Promise<boolean> {
 
   if (!accessToken) {
     throw new Error(
-      'SHOPIFY_TEST_ACCESS_TOKEN must be set to a pre-issued offline token for the test store.',
+      'SHOPIFY_TEST_ACCESS_TOKEN must be set to a pre-issued offline token for the test store.'
     );
   }
 
@@ -514,7 +520,7 @@ async function runSmokeTest(): Promise<boolean> {
       accessToken,
       productGid!,
       expectedSeoTitle,
-      expectedSeoDescription,
+      expectedSeoDescription
     );
   });
   if (!seoUpdateResult.success) {
@@ -528,7 +534,7 @@ async function runSmokeTest(): Promise<boolean> {
       accessToken,
       productGid!,
       expectedSeoTitle,
-      expectedSeoDescription,
+      expectedSeoDescription
     );
   });
   seoUpdateVerified = seoVerifyResult.success;
@@ -556,7 +562,11 @@ async function cleanup(): Promise<string> {
 
   for (const productId of createdProductIds) {
     const productGid = `gid://shopify/Product/${productId}`;
-    const deleted = await deleteTestProduct(storeDomain, accessToken, productGid);
+    const deleted = await deleteTestProduct(
+      storeDomain,
+      accessToken,
+      productGid
+    );
     if (!deleted) {
       await tagProductForCleanup(storeDomain, accessToken, productGid);
       allDeleted = false;
@@ -588,18 +598,26 @@ async function main(): Promise<void> {
 
     // Parse CLI arguments
     const args = process.argv.slice(2);
-    const storeOverride = args.find((a) => a.startsWith('--store='))?.split('=')[1];
+    const storeOverride = args
+      .find((a) => a.startsWith('--store='))
+      ?.split('=')[1];
     const runManualSync = args.includes('--manual-sync');
     const dryRun = args.includes('--dry-run');
 
     // Determine target store
     const storeDomain = storeOverride || envConfig.primaryStore;
     if (!storeDomain) {
-      throw new Error('No store domain specified and no primary store configured.');
+      throw new Error(
+        'No store domain specified and no primary store configured.'
+      );
     }
 
     // Validate store is in allowlist
-    validateStoreInAllowlist(storeDomain, envConfig.storeAllowlist, 'shopify-live-smoke');
+    validateStoreInAllowlist(
+      storeDomain,
+      envConfig.storeAllowlist,
+      'shopify-live-smoke'
+    );
     log('INFO', `Target store: ${storeDomain}`);
 
     // Generate run ID
@@ -648,7 +666,7 @@ async function main(): Promise<void> {
           : 'failure',
       createdProductIds,
       seoUpdateVerified: stepResults.some(
-        (s) => s.name === 'Verify SEO read-back' && s.success,
+        (s) => s.name === 'Verify SEO read-back' && s.success
       ),
       manualSyncVerified: runConfig.runManualSync ? null : null,
       errorSummary,

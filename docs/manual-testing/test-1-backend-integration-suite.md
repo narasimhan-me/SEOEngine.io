@@ -20,7 +20,7 @@
 
 - **Related documentation:**
   - docs/TESTING.md (Section 10)
-  - apps/api/test/integration/*.test.ts
+  - apps/api/test/integration/\*.test.ts
 
 ---
 
@@ -50,18 +50,22 @@
 **ID:** T1-001
 
 **Preconditions:**
+
 - [ ] `.env.test` exists.
 
 **Steps:**
+
 1. Temporarily set `DATABASE_URL_TEST` to a Neon or production-like URL.
 2. Run `pnpm test:api`.
 
 **Expected Results:**
+
 - [ ] Test run aborts immediately.
 - [ ] Error message indicates unsafe database URL detected.
 - [ ] No database operations executed.
 
 **Cleanup:**
+
 - [ ] Restore `DATABASE_URL_TEST` to local test URL.
 
 ---
@@ -71,15 +75,18 @@
 **ID:** T1-002
 
 **Preconditions:**
+
 - [ ] Docker containers running (postgres, redis).
 - [ ] `pnpm db:test:reset` completed.
 - [ ] `.env.test` configured correctly.
 
 **Steps:**
+
 1. Run `pnpm test:api`.
 2. Wait for all tests to complete.
 
 **Expected Results:**
+
 - [ ] All tests pass (green).
 - [ ] No database connection errors.
 - [ ] Test isolation works (tests don't interfere with each other).
@@ -98,13 +105,16 @@
 **ID:** T1-003
 
 **Preconditions:**
+
 - [ ] T1-002 environment ready.
 
 **Steps:**
+
 1. Run `pnpm test:api -- --testPathPattern=onboarding-checklist`.
 2. Verify only matching tests run.
 
 **Expected Results:**
+
 - [ ] Only `onboarding-checklist.test.ts` executes.
 - [ ] Test passes.
 - [ ] Other suites not executed.
@@ -116,13 +126,16 @@
 **ID:** T1-004
 
 **Preconditions:**
+
 - [ ] T1-002 environment ready.
 
 **Steps:**
+
 1. Run `pnpm test:api -- --testPathPattern=onboarding-checklist`.
 2. Review test output.
 
 **Expected Results:**
+
 - [ ] Tests verify:
   - [ ] Fresh project shows incomplete status.
   - [ ] Connected store project shows Shopify connected.
@@ -136,13 +149,16 @@
 **ID:** T1-005
 
 **Preconditions:**
+
 - [ ] T1-002 environment ready.
 
 **Steps:**
+
 1. Run `pnpm test:api -- --testPathPattern=aeo2-manual-sync`.
 2. Review test output.
 
 **Expected Results:**
+
 - [ ] Tests verify:
   - [ ] GET endpoint returns answer block data.
   - [ ] POST sync endpoint calls Shopify GraphQL.
@@ -156,13 +172,16 @@
 **ID:** T1-006
 
 **Preconditions:**
+
 - [ ] T1-002 environment ready.
 
 **Steps:**
+
 1. Run `pnpm test:api -- --testPathPattern=auth-entitlements`.
 2. Review test output.
 
 **Expected Results:**
+
 - [ ] Tests verify:
   - [ ] Unauthenticated request returns 401.
   - [ ] Free plan user blocked from paid features with 403.
@@ -175,13 +194,16 @@
 **ID:** T1-007
 
 **Preconditions:**
+
 - [ ] T1-002 environment ready.
 
 **Steps:**
+
 1. Run `pnpm test:api -- --testPathPattern=issue-engine-lite`.
 2. Review test output.
 
 **Expected Results:**
+
 - [ ] Tests verify:
   - [ ] Products with missing SEO title detected as issues.
   - [ ] Products with missing SEO description detected as issues.
@@ -198,10 +220,12 @@
 **Description:** Tests should fail gracefully if Docker containers aren't running.
 
 **Steps:**
+
 1. Stop postgres Docker container.
 2. Run `pnpm test:api`.
 
 **Expected Behavior:**
+
 - [ ] Clear error message about database connection.
 - [ ] No hanging processes.
 
@@ -212,10 +236,12 @@
 **Description:** Tests should indicate migration needed.
 
 **Steps:**
+
 1. Drop test database tables.
 2. Run `pnpm test:api` without `pnpm db:test:reset`.
 
 **Expected Behavior:**
+
 - [ ] Error indicates schema mismatch or missing tables.
 - [ ] Suggestion to run `pnpm db:test:reset`.
 
@@ -226,10 +252,12 @@
 **Description:** Tests using BullMQ should fail gracefully.
 
 **Steps:**
+
 1. Stop redis Docker container.
 2. Run `pnpm test:api`.
 
 **Expected Behavior:**
+
 - [ ] Clear error about Redis connection.
 - [ ] Tests that don't need Redis may still pass.
 
@@ -289,9 +317,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Name] |
-| **Date** | [YYYY-MM-DD] |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    | [Name]                                |
+| **Date**           | [YYYY-MM-DD]                          |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | TEST-1 Backend Integration Suite |
+| **Notes**          | TEST-1 Backend Integration Suite      |

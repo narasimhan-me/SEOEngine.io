@@ -38,6 +38,7 @@
 **Steps:**
 
 1. Reset the test DB:
+
    ```bash
    pnpm db:test:reset
    ```
@@ -65,6 +66,7 @@
 **Steps:**
 
 1. Run the E2E UI mode:
+
    ```bash
    cd apps/web
    pnpm test:e2e:ui
@@ -107,6 +109,7 @@
 **Steps:**
 
 1. Temporarily disable internet access (or monitor outbound HTTP) while running:
+
    ```bash
    pnpm test:e2e
    ```
@@ -215,9 +218,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Name] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | TEST-2 Playwright E2E for First DEO Win |
+| Field              | Value                                   |
+| ------------------ | --------------------------------------- |
+| **Tester Name**    | [Name]                                  |
+| **Date**           | [YYYY-MM-DD]                            |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed   |
+| **Notes**          | TEST-2 Playwright E2E for First DEO Win |

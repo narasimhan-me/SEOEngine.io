@@ -8,6 +8,7 @@
 ## ✅ COMPLETED Changes
 
 ### 1. Type Definitions & Shared Infrastructure
+
 - ✅ Added `IssueAssetTypeKey`, `IssueAssetTypeCounts`, `IssueCountsSummary` types to:
   - `packages/shared/src/deo-issues.ts`
   - `apps/web/src/lib/deo-issues.ts`
@@ -15,6 +16,7 @@
 - ✅ Updated Media & Accessibility pillar (`comingSoon: false`, updated descriptions)
 
 ### 2. Backend Service Layer
+
 - ✅ Added helper functions to `deo-issues.service.ts`:
   - `getAssetTypeFromUrl()` - URL classification (products/pages/collections)
   - `IN_APP_ACTIONABLE_ISSUE_KEYS` set - defines which issues have in-app fix surfaces
@@ -29,15 +31,18 @@
 - ✅ Updated all 7 technical issue builders with asset type counting and 'informational' actionability
 
 ### 3. API Endpoints
+
 - ✅ Added `GET /projects/:id/issues/counts-summary` endpoint in `projects.controller.ts`
 - ✅ Added `GET /projects/:id/deo-issues/read-only` endpoint in `projects.controller.ts`
 - ✅ Added `IssueCountsSummary` import to controller
 
 ### 4. Web API Client
+
 - ✅ Added `projectsApi.issueCountsSummary(id)` method to `apps/web/src/lib/api.ts`
 - ✅ Added `projectsApi.deoIssuesReadOnly(id)` method to `apps/web/src/lib/api.ts`
 
 ### 5. Backend Refinements (PATCH 1.1)
+
 - ✅ Fixed `assetTypeCounts` fallback to guarantee sum-preserving allocation
 - ✅ Eliminated rounding drift: compute one value with Math.round(), assign remainder to other
 - ✅ Added guards for edge case where no URLs are classified (assigns all to pages)
@@ -45,9 +50,11 @@
 ## 🔄 REMAINING Work (Critical Path)
 
 ### ✅ PATCH 1 Completion - All Issue Builders Updated
+
 All technical issue builders have been updated with `assetTypeCounts` and `actionability` changed to `'informational'`:
 
 **Technical Issues (all complete):**
+
 - ✅ `buildIndexabilityIssue` - added assetTypeCounts (pages/collections split), changed to 'informational'
 - ✅ `buildIndexabilityConflictIssue` - added assetTypeCounts, changed to 'informational'
 - ✅ `buildCrawlHealthIssue` - added assetTypeCounts, changed to 'informational'
@@ -57,6 +64,7 @@ All technical issue builders have been updated with `assetTypeCounts` and `actio
 - ✅ `buildMobileRenderingRiskIssue` - added assetTypeCounts, changed to 'informational'
 
 **Pattern for each technical issue:**
+
 ```typescript
 // Add counters at top
 let issueProducts = 0;
@@ -75,6 +83,7 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
 ```
 
 ### ✅ PATCH 1 - Actionability Gating Refinement (COMPLETE)
+
 1. ✅ Check IN_APP_ACTIONABLE_ISSUE_KEYS OR (fixReady && fixType)
 2. ✅ Add check for `issue.actionability !== 'informational'`
 3. ✅ Changed capability check to require at least one of:
@@ -83,28 +92,33 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
    - `capabilities.canApply`
 
 ### ✅ PATCH 1 - Asset Type Fallback Allocation (COMPLETE)
+
 - ✅ Replaced mixed-case collapse with sum-preserving allocation
 - ✅ Use URL classification for pages array to split pages/collections
 - ✅ Ensured `products + pages + collections === issue.count`
 - ✅ **PATCH 1.1:** Fixed rounding drift by computing one value, assigning remainder to other (no Math.round on both)
 
 ### ✅ PATCH 1 - IssueCountsSummary.byAssetType Group Counts (COMPLETE)
+
 - ✅ When `issue.assetTypeCounts[assetType] > 0`, increment:
   - `byAssetType[assetType].detectedGroups += 1`
   - If actionable: `byAssetType[assetType].actionableGroups += 1`
 
 ### ✅ PATCH 2 - Read-Only Issues Endpoint (COMPLETE)
+
 - ✅ Added `GET /projects/:id/deo-issues/read-only` to controller
 - ✅ Added `projectsApi.deoIssuesReadOnly(id)` to web API client
 - ✅ Endpoint uses `getIssuesForProjectReadOnly()` (no side effects, no automation triggers)
 
 ### ✅ PATCH 3 - Work Queue Bundle Types (COMPLETE)
+
 - ✅ Added `scopeDetectedCount?` field to `WorkQueueActionBundle` in shared/web types
 - ✅ Updated field comments for clarity:
   - `scopeCount`: For ASSET_OPTIMIZATION: actionable issue-group count; for other types: affected item count
   - `scopeDetectedCount`: COUNT-INTEGRITY-1: For ASSET_OPTIMIZATION: detected issue-group count (may exceed scopeCount)
 
 ### ✅ PATCH 4 - Work Queue Derivation (COMPLETE)
+
 - ✅ Updated `deriveIssueBundlesByScopeType()` to use `assetTypeCounts` for counts
 - ✅ Set `scopeCount` = actionable issue-group count, `scopeDetectedCount` = detected issue-group count
 - ✅ Stopped using asset set sizes (`productIds.size`, etc.) for counts
@@ -113,6 +127,7 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
 - ✅ Create bundle when `scopeDetectedCount > 0` (even if no actionable issues)
 
 ### ✅ PATCH 4.1 - Work Queue Preview Math Hotfix (COMPLETE)
+
 - ✅ **PATCH 4.1.1:** Fixed PRODUCTS/PAGES/COLLECTIONS preview "+N more" to match actionable vs detected semantics
   - When scopeCount > 0, "+N more" is based on scopeCount (actionable issue-group count)
   - When scopeCount === 0, "+N more" is based on scopeDetectedCount (detected issue-group count)
@@ -126,6 +141,7 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
   - Ensures helper is input-safe for any caller (even if caller passes >5 previews)
 
 ### ✅ PATCH 5 - Work Queue Card UI & Routing (COMPLETE)
+
 - ✅ **PATCH 5.1:** Updated scope line for ASSET_OPTIMIZATION bundles:
   - Shows "N actionable issues affecting <scope>" when scopeCount > 0
   - Shows detected count in parentheses when detected != actionable
@@ -138,6 +154,7 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
   - Routes PRODUCTS, PAGES, COLLECTIONS, and STORE_WIDE all to Issues page (not asset lists)
 
 ### ✅ PATCH 6 - Issues Engine UI (COMPLETE)
+
 - ✅ **PATCH 6.1:** Switched to `projectsApi.deoIssuesReadOnly()` with parallel `issueCountsSummary()` fetch
 - ✅ **PATCH 6.2:** Added `IssueCountsSummary` state and used for severity badge counts (single source of truth)
 - ✅ **PATCH 6.3:** Added URL query param parsing: `mode`, `actionKey`, `scopeType`
@@ -149,6 +166,7 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
 - ✅ **PATCH 6.9:** Fixed TypeScript type error in actionKey filtering logic
 
 ### ✅ PATCH 6 FIXUP - Issues Engine UI Corrections (COMPLETE)
+
 - ✅ **FIXUP 1:** Fixed default mode logic - introduced `effectiveMode` that defaults to 'actionable' when modeParam is missing
 - ✅ **FIXUP 2:** Enforced clickability semantics - defined `isClickableIssue = (isActionableNow && fixHref != null)` for both test hooks and UI branching
 - ✅ **FIXUP 3:** Gated fix CTAs on isActionableNow - added early returns in `getFixAction()` for both checks
@@ -157,6 +175,7 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
 - ✅ **FIXUP 6:** Updated clear-filters banner to also delete pillar param
 
 ### ✅ PATCH 6 FIXUP-2 - Issues Engine Final Corrections (COMPLETE)
+
 - ✅ **FIXUP-2.1:** Fixed default mode logic to default to 'detected' when `actionableGroupsTotal === 0` and `detectedGroupsTotal > 0`
 - ✅ **FIXUP-2.2:** Added URL normalization to force `mode=detected` when URL requests actionable but none exist
 - ✅ **FIXUP-2.3:** Made severity badges mode-aware (use `detectedGroups` in detected mode, `actionableGroups` in actionable mode)
@@ -165,25 +184,30 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
 - ✅ **FIXUP-2.6:** Disabled actionable mode button when no actionable issues exist
 
 ### ✅ PATCH 7 - Store Health & Work Queue Updates (COMPLETE)
+
 - ✅ **Store Health:** Added `issueCountsSummary()` fetch for click-integrity counts
 - ✅ **Store Health:** Updated Discoverability and Technical Readiness summaries to use "issues" language (not "items")
 
 ### ✅ PATCH 7 FIXUP - Store Health Count Semantics (COMPLETE)
+
 - ✅ **Discoverability:** Uses detected/actionable count semantics, shows "Informational — no action required" when actionable === 0
 - ✅ **Technical Readiness:** Avoids "0 technical issues" drift by showing detected counts when informational issues exist
 
 ### ✅ PATCH 7.1 FIXUP - Work Queue Mixed Bundle Banner (COMPLETE)
+
 - ✅ **Split totals:** Replaced single `totalAffectedItems` with three separate totals (ASSET_OPTIMIZATION actionable/detected issues, non-ASSET_OPTIMIZATION items)
 - ✅ **Mixed-bundle semantics:** Banner correctly shows "N actionable issues (X detected) and Y items" when both bundle types present
 - ✅ **Test hooks:** Added `data-testid="action-bundle-card"` to ActionBundleCard wrapper div
 
 ### ✅ PATCH 9 - Playwright Tests (COMPLETE)
+
 - ✅ Created `apps/web/tests/count-integrity-1.spec.ts` with 3 smoke tests:
   - **Test 1:** Work Queue → Issues click integrity (OWNER seed) - card count matches filtered list count
   - **Test 2:** Technical issues are informational (OWNER seed) - informational badge, not clickable, visible in detected mode
   - **Test 3:** Viewer role sees detected-only counts (VIEWER seed) - no actionable issues, mode forced to detected
 
 ### ✅ PATCH 9 FIXUP-2 - Playwright Test Corrections (COMPLETE)
+
 - ✅ **Seed endpoints:** Changed to `/testkit/e2e/seed-first-deo-win` (OWNER) and `/testkit/e2e/seed-self-service-viewer` (VIEWER)
 - ✅ **Card selection:** Uses `getByTestId('action-bundle-card')` and filters for "View Issues" link with actionable count > 0
 - ✅ **CTA click:** Clicks `getByRole('link', { name: 'View Issues' })` instead of button
@@ -191,12 +215,14 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
 - ✅ **Informational check:** Verifies no interactive buttons/links inside informational cards (stronger dead-click prevention)
 
 ### ✅ PATCH 10 - Documentation (COMPLETE)
+
 - ✅ **PATCH 10.1:** Checked `IMPLEMENTATION_PLAN.md` CRITICAL_PATH_MAP references (already correct, no changes needed)
 - ✅ **PATCH 10.2:** Created `docs/manual-testing/COUNT-INTEGRITY-1.md` manual testing guide with 19 scenarios
 - ✅ **PATCH 10.3:** Updated `CRITICAL_PATH_MAP.md` with COUNT-INTEGRITY-1 references in CP-008 and CP-009
 - ✅ **PATCH 10.4:** Updated status tracking to reflect PATCH 10 completion
 
 ### ✅ PATCH ERR-001 - Counts-Summary Graceful Degradation (COMPLETE)
+
 - ✅ **Added countsSummaryWarning state:** Non-blocking warning state (string | null) for counts-summary API failures
 - ✅ **Updated fetchIssues():** Uses `Promise.allSettled()` to load issues list even when counts-summary fails
 - ✅ **Warning banner:** Yellow warning banner displays "Issue counts unavailable. Displaying issues list without summary statistics." with Retry button
@@ -207,6 +233,7 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
 - ✅ **Documentation:** Updated COUNT-INTEGRITY-1.md Scenario 10 (ERR-001) with exact expected behavior
 
 ### ✅ PATCH ERR-001.1 - Mode Fallback When countsSummary Unavailable (COMPLETE)
+
 - ✅ **hasActionableIssues fallback:** When `countsSummary === null`, falls back to `issues.some((i) => i.isActionableNow === true)` instead of defaulting to false
 - ✅ **hasDetectedIssues fallback:** When `countsSummary === null`, falls back to `issues.length > 0` instead of defaulting to false
 - ✅ **effectiveMode correctness:** Now correctly defaults to 'detected' when counts unavailable and only informational issues exist (VIEWER/informational-only cases)
@@ -217,14 +244,15 @@ assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issu
 ## Core Contracts Established
 
 ### IssueCountsSummary Contract
+
 ```typescript
 interface IssueCountsSummary {
   projectId: string;
   generatedAt: string;
-  detectedTotal: number;          // Total detected issue instances
-  actionableTotal: number;         // Total actionable issue instances
-  detectedGroupsTotal: number;     // Total detected issue types
-  actionableGroupsTotal: number;   // Total actionable issue types
+  detectedTotal: number; // Total detected issue instances
+  actionableTotal: number; // Total actionable issue instances
+  detectedGroupsTotal: number; // Total detected issue types
+  actionableGroupsTotal: number; // Total actionable issue types
   byPillar: Record<DeoPillarId, IssueCountsBucket>;
   bySeverity: Record<DeoIssueSeverity, IssueCountsBucket>;
   byAssetType: Record<IssueAssetTypeKey, IssueCountsBucket>;
@@ -233,6 +261,7 @@ interface IssueCountsSummary {
 ```
 
 ### Actionability Rules
+
 1. **Detected**: Issue exists in the system (always true if returned)
 2. **Actionable**: Issue has an in-app fix surface AND user role allows action
    - Must be in `IN_APP_ACTIONABLE_ISSUE_KEYS` OR have `fixReady && fixType`
@@ -240,16 +269,19 @@ interface IssueCountsSummary {
    - User must have at least one of: canGenerateDrafts, canRequestApproval, canApply
 
 ### Asset Type Distribution
+
 - Every issue MUST have `assetTypeCounts: { products, pages, collections }`
 - Sum must equal `issue.count` for integrity
 - URL classification: collections start with `/collections/`, else pages (product URLs treated as pages in mixed issues to avoid double-counting)
 
 ## Testing Status
+
 - ✅ **Automated tests:** Playwright smoke tests created (`count-integrity-1.spec.ts`)
 - ⚠️ **Manual testing:** Ready for testing with 19 scenarios in `docs/manual-testing/COUNT-INTEGRITY-1.md`
 - ✅ **Smoke tests:** COUNT-INTEGRITY-1 test suite added
 
 ## Next Steps Priority
+
 1. ✅ ~~Complete remaining issue builder `assetTypeCounts` additions (7 methods)~~ - COMPLETE
 2. ✅ ~~Refine actionability gating logic (3 checks)~~ - COMPLETE
 3. ✅ ~~Fix `IssueCountsSummary.byAssetType` group counting~~ - COMPLETE
@@ -271,6 +303,7 @@ interface IssueCountsSummary {
 **✅ ALL IMPLEMENTATION AND FIXUP WORK COMPLETE. Phase ready for manual testing and production deployment.**
 
 ## Notes
+
 - Media & Accessibility pillar is now ACTIVE (`comingSoon: false`)
 - Technical issues are treated as "informational" (detected but not actionable in-app)
 - Count integrity is enforced at server-side; UI displays authoritative backend counts

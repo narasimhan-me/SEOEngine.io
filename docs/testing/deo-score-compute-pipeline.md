@@ -49,14 +49,17 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - Project has all required signals populated
 
 **Steps:**
+
 1. Ensure project has complete crawl and product data
 2. Trigger score computation (manual or automatic)
 3. Fetch computed score
 
 **Expected Results:**
+
 - **Overall Score:** 0-100 value computed
 - **Components:** Content, Technical, Entity, Visibility scores populated
 - **Database:** DeoScoreSnapshot created with version
@@ -69,13 +72,16 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - DEO_SCORE_VERSION is set (e.g., "1.0.0")
 
 **Steps:**
+
 1. Compute score
 2. Inspect stored snapshot
 
 **Expected Results:**
+
 - **Snapshot:** Contains `scoreVersion` field
 - **Value:** Matches current DEO_SCORE_VERSION
 - **History:** Different versions distinguishable
@@ -87,16 +93,19 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Project has existing score
 - Site/data has changed
 
 **Steps:**
+
 1. Note current score
 2. Update site or sync new data
 3. Trigger recomputation
 4. Compare new score
 
 **Expected Results:**
+
 - **New Score:** Reflects updated data
 - **Snapshot:** New snapshot created
 - **History:** Previous snapshot preserved
@@ -108,13 +117,16 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Project with complete signals
 
 **Steps:**
+
 1. Compute score
 2. Review component breakdown
 
 **Expected Results:**
+
 - **Components:** Content, Technical, Entity, Visibility each scored
 - **Overall:** Weighted combination of components
 - **Weights:** Applied according to algorithm
@@ -126,13 +138,16 @@
 **ID:** HP-005
 
 **Preconditions:**
+
 - Project with complete signals
 
 **Steps:**
+
 1. Trigger score computation
 2. Inspect snapshot metadata for v2 breakdown
 
 **Expected Results:**
+
 - **v1 Score:** Canonical score computed and persisted as `overall`
 - **v2 Breakdown:** Computed and stored in `metadata.v2.breakdown`
 - **v2 Components:** Six components present (entityStrength, intentMatch, answerability, aiVisibility, contentCompleteness, technicalQuality)
@@ -147,13 +162,16 @@
 **ID:** HP-006
 
 **Preconditions:**
+
 - Project with varying signal values
 
 **Steps:**
+
 1. Compute score for projects with different signal profiles
 2. Verify v2 component scores
 
 **Expected Results:**
+
 - **All Components:** Each v2 component score in range [0, 100]
 - **Overall v2:** Weighted sum of components in range [0, 100]
 - **Weights Applied:** entityStrength (0.2), intentMatch (0.2), answerability (0.2), aiVisibility (0.2), contentCompleteness (0.15), technicalQuality (0.05)
@@ -167,10 +185,12 @@
 **Description:** Some signals missing, others present.
 
 **Steps:**
+
 1. Project with incomplete data (e.g., no products but has crawl)
 2. Trigger score computation
 
 **Expected Behavior:**
+
 - Score computed from available signals
 - Missing components marked as N/A or computed with defaults
 - User informed of incomplete score
@@ -182,10 +202,12 @@
 **Description:** No signals available for project.
 
 **Steps:**
+
 1. New project with no crawl or products
 2. Attempt score computation
 
 **Expected Behavior:**
+
 - No score computed (or score of 0/N/A)
 - Clear indication that data is needed
 - No crash or error
@@ -197,11 +219,13 @@
 **Description:** Signals that would produce 0 or 100 overall score.
 
 **Steps:**
+
 1. Perfect site with all signals at maximum
 2. Site with all signals at minimum
 3. Compute scores
 
 **Expected Behavior:**
+
 - Scores properly bounded (0-100)
 - No overflow or underflow
 - Edge values displayed correctly
@@ -213,9 +237,11 @@
 **Description:** Multiple recompute requests in quick succession.
 
 **Steps:**
+
 1. Trigger recompute multiple times rapidly
 
 **Expected Behavior:**
+
 - Requests handled (queued or deduplicated)
 - No duplicate snapshots for same data state
 - System remains stable
@@ -229,9 +255,11 @@
 **Scenario:** Error occurs during score calculation.
 
 **Steps:**
+
 1. Simulate computation error (e.g., invalid signal value)
 
 **Expected Behavior:**
+
 - Computation fails gracefully
 - Previous score preserved
 - Error logged with context
@@ -244,9 +272,11 @@
 **Scenario:** Cannot persist computed score.
 
 **Steps:**
+
 1. Simulate database unavailability during save
 
 **Expected Behavior:**
+
 - Score computation completes
 - Save failure logged
 - Retry mechanism or user notification
@@ -259,11 +289,13 @@
 **Scenario:** Score version changes between computations.
 
 **Steps:**
+
 1. Compute score with version 1.0
 2. Update DEO_SCORE_VERSION to 2.0
 3. View historical scores
 
 **Expected Behavior:**
+
 - Old scores retain their version
 - New computations use new version
 - API handles version comparison
@@ -277,6 +309,7 @@
 **Scenario:** Score values should have appropriate precision.
 
 **Expected Behavior:**
+
 - Overall score: Integer or 1 decimal place
 - Component scores: Consistent precision
 - No floating point artifacts displayed
@@ -288,9 +321,11 @@
 **Scenario:** Rate limiting on score recomputation.
 
 **Steps:**
+
 1. Attempt many recomputations in short period
 
 **Expected Behavior:**
+
 - Rate limit enforced if applicable
 - Clear messaging about limits
 - Automatic computation not affected
@@ -346,9 +381,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Cross-cutting system-level tests for DEO score computation |
+| Field              | Value                                                      |
+| ------------------ | ---------------------------------------------------------- |
+| **Tester Name**    | [Pending]                                                  |
+| **Date**           | [YYYY-MM-DD]                                               |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed                      |
+| **Notes**          | Cross-cutting system-level tests for DEO score computation |

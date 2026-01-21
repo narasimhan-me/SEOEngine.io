@@ -29,12 +29,14 @@ This document covers manual testing for DRAFT-AI-ENTRYPOINT-CLARITY-1, which add
 ### 1. Product Drafts Tab - Review Boundary Note
 
 **Steps:**
+
 1. Navigate to Products list (`/projects/{projectId}/products`)
 2. Find a product with "🟡 Draft saved (not applied)" chip
 3. Click "Review drafts" action button
 4. Observe the Drafts tab panel
 
 **Expected:**
+
 - Navigates to Product detail page with Drafts tab selected
 - AI boundary note is visible below the "Drafts" heading
 - Note displays: "Review & edit (no AI on this step)"
@@ -44,12 +46,14 @@ This document covers manual testing for DRAFT-AI-ENTRYPOINT-CLARITY-1, which add
 ### 2. Playbooks Draft Review - Review Boundary Note
 
 **Steps:**
+
 1. Navigate to Pages or Collections list
 2. Find an asset with "🟡 Draft saved (not applied)" chip
 3. Click "Review drafts" action button
 4. Observe the Draft Review panel
 
 **Expected:**
+
 - Navigates to `/automation/playbooks?mode=drafts&assetType=...&assetId=...`
 - AI boundary note is visible below the ScopeBanner
 - Note displays: "Review & edit (no AI on this step)"
@@ -59,11 +63,13 @@ This document covers manual testing for DRAFT-AI-ENTRYPOINT-CLARITY-1, which add
 ### 3. Playbooks Generation - Generate Boundary Note
 
 **Steps:**
+
 1. Navigate to Playbooks page (`/projects/{projectId}/automation/playbooks`)
 2. Select a playbook with eligible items
 3. Observe Step 1 section
 
 **Expected:**
+
 - AI boundary note is visible below the "Generate preview (uses AI)" button
 - Note displays: "AI used for drafts only · AI is not used at Apply"
 - Note has lightbulb icon (indigo)
@@ -72,11 +78,13 @@ This document covers manual testing for DRAFT-AI-ENTRYPOINT-CLARITY-1, which add
 ### 3a. [FIXUP-1] Work Queue Generation CTA - Generate Boundary Note
 
 **Steps:**
+
 1. Navigate to Work Queue (`/projects/{projectId}/work-queue`)
 2. Locate an action bundle card with "Generate Drafts" or "Generate Full Drafts" CTA
 3. Observe the boundary note below the CTA
 
 **Expected:**
+
 - AI boundary note is visible below the generation CTA
 - Note displays: "AI used for drafts only · AI is not used at Apply"
 - Note has lightbulb icon (indigo)
@@ -86,10 +94,12 @@ This document covers manual testing for DRAFT-AI-ENTRYPOINT-CLARITY-1, which add
 ### 4. Review Boundary Note Content Verification
 
 **Steps:**
+
 1. Navigate to any review surface (Product Drafts tab or Playbooks Draft Review)
 2. Inspect the boundary note content
 
 **Expected:**
+
 - Visible text: "Review & edit (no AI on this step)"
 - On larger screens (sm+): Additional context "— AI may have been used earlier to generate drafts. Editing and approval are manual."
 - Text is styled subtly (gray, small font size)
@@ -98,10 +108,12 @@ This document covers manual testing for DRAFT-AI-ENTRYPOINT-CLARITY-1, which add
 ### 5. Generate Boundary Note Content Verification
 
 **Steps:**
+
 1. Navigate to Playbooks generation page
 2. Inspect the boundary note content
 
 **Expected:**
+
 - Visible text: "AI used for drafts only · AI is not used at Apply"
 - Text is styled subtly (gray, small font size)
 - No warning/error styling (informational only)
@@ -110,10 +122,10 @@ This document covers manual testing for DRAFT-AI-ENTRYPOINT-CLARITY-1, which add
 
 The boundary note component includes test hooks for E2E automation:
 
-| Attribute | Review Mode | Generate Mode |
-|-----------|-------------|---------------|
+| Attribute     | Review Mode              | Generate Mode            |
+| ------------- | ------------------------ | ------------------------ |
 | `data-testid` | `draft-ai-boundary-note` | `draft-ai-boundary-note` |
-| `data-mode` | `review` | `generate` |
+| `data-mode`   | `review`                 | `generate`               |
 
 ## Visual Style Verification
 
@@ -126,11 +138,13 @@ The boundary note component includes test hooks for E2E automation:
 ## Test Data Setup
 
 For E2E testing, use the seed endpoint:
+
 ```
 POST /testkit/e2e/seed-draft-ai-entrypoint-clarity-1
 ```
 
 This creates:
+
 - Product with pending draft (for review boundary testing)
 - Product without draft (for generate boundary testing)
 

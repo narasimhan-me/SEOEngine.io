@@ -14,9 +14,9 @@ interface UnsavedChangesContextValue {
   setHasUnsavedChanges: (value: boolean) => void;
 }
 
-const UnsavedChangesContext = createContext<UnsavedChangesContextValue | undefined>(
-  undefined,
-);
+const UnsavedChangesContext = createContext<
+  UnsavedChangesContextValue | undefined
+>(undefined);
 
 export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -41,7 +41,7 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({ hasUnsavedChanges, setHasUnsavedChanges }),
-    [hasUnsavedChanges],
+    [hasUnsavedChanges]
   );
 
   return (
@@ -54,7 +54,9 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
 export function useUnsavedChanges(): UnsavedChangesContextValue {
   const context = useContext(UnsavedChangesContext);
   if (!context) {
-    throw new Error('useUnsavedChanges must be used within an UnsavedChangesProvider');
+    throw new Error(
+      'useUnsavedChanges must be used within an UnsavedChangesProvider'
+    );
   }
   return context;
 }

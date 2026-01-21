@@ -1,7 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams, useRouter, usePathname, useSearchParams } from 'next/navigation';
+import {
+  useParams,
+  useRouter,
+  usePathname,
+  useSearchParams,
+} from 'next/navigation';
 import Link from 'next/link';
 
 import type { DeoIssue } from '@/lib/deo-issues';
@@ -19,7 +24,10 @@ import {
 import { ScopeBanner } from '@/components/common/ScopeBanner';
 import { getSafeReturnTo } from '@/lib/route-context';
 // [SCOPE-CLARITY-1] Import scope normalization utilities
-import { normalizeScopeParams, buildClearFiltersHref } from '@/lib/scope-normalization';
+import {
+  normalizeScopeParams,
+  buildClearFiltersHref,
+} from '@/lib/scope-normalization';
 import type {
   AutomationPlaybookApplyResult,
   ProjectAiUsageSummary,
@@ -31,7 +39,10 @@ import type {
   AutomationAssetType,
   AssetScopedDraftsResponse,
 } from '@/lib/api';
-import { buildAssetIssuesHref, type AssetListType } from '@/lib/list-actions-clarity';
+import {
+  buildAssetIssuesHref,
+  type AssetListType,
+} from '@/lib/list-actions-clarity';
 import type { Product } from '@/lib/products';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 // [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI boundary note for human-only review and AI generation surfaces
@@ -129,11 +140,11 @@ type PlaybookFlowState =
  * Guides users through the playbook flow based on current state.
  */
 type PlaybooksCnabState =
-  | 'NO_RUN_WITH_ISSUES'          // Has issues but hasn't run any playbook yet
+  | 'NO_RUN_WITH_ISSUES' // Has issues but hasn't run any playbook yet
   | 'DESCRIPTIONS_DONE_TITLES_REMAIN' // Ran descriptions playbook, titles still need work
   | 'TITLES_DONE_DESCRIPTIONS_REMAIN' // Ran titles playbook, descriptions still need work
-  | 'ALL_DONE'                    // Both playbooks have 0 affected products
-  | null;                         // No banner to show
+  | 'ALL_DONE' // Both playbooks have 0 affected products
+  | null; // No banner to show
 
 interface PlaybookRulesV1 {
   enabled: boolean;
@@ -195,7 +206,10 @@ const PLAYBOOKS: PlaybookDefinition[] = [
 /**
  * [ASSETS-PAGES-1.1] Get display labels for asset types.
  */
-function getAssetTypeLabel(assetType: AutomationAssetType): { singular: string; plural: string } {
+function getAssetTypeLabel(assetType: AutomationAssetType): {
+  singular: string;
+  plural: string;
+} {
   switch (assetType) {
     case 'PAGES':
       return { singular: 'page', plural: 'pages' };
@@ -219,8 +233,11 @@ export default function AutomationPlaybooksPage() {
   // Path param is preferred (canonical route: /playbooks/:playbookId)
   const pathPlaybookId = params.playbookId as string | undefined;
   const queryPlaybookId = searchParams.get('playbookId') as PlaybookId | null;
-  const urlPlaybookId = (pathPlaybookId || queryPlaybookId) as PlaybookId | null;
-  const validUrlPlaybookId = isValidPlaybookId(urlPlaybookId) ? urlPlaybookId : null;
+  const urlPlaybookId = (pathPlaybookId ||
+    queryPlaybookId) as PlaybookId | null;
+  const validUrlPlaybookId = isValidPlaybookId(urlPlaybookId)
+    ? urlPlaybookId
+    : null;
 
   // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Read step and source from URL
   // NOTE: urlSource must be defined before showNextDeoWinBanner to avoid TDZ
@@ -238,14 +255,21 @@ export default function AutomationPlaybooksPage() {
 
   // [ASSETS-PAGES-1.1] Deep-link support: read assetType from URL query params
   // [DRAFT-ROUTING-INTEGRITY-1] Draft Review uses lowercase assetType (products|pages|collections)
-  const urlAssetType = searchParams.get('assetType') as AutomationAssetType | string | null;
+  const urlAssetType = searchParams.get('assetType') as
+    | AutomationAssetType
+    | string
+    | null;
   const validUrlAssetType = (() => {
     // Handle Draft Review mode lowercase values
     if (urlAssetType === 'products') return 'PRODUCTS';
     if (urlAssetType === 'pages') return 'PAGES';
     if (urlAssetType === 'collections') return 'COLLECTIONS';
     // Handle standard uppercase values
-    if (urlAssetType === 'PRODUCTS' || urlAssetType === 'PAGES' || urlAssetType === 'COLLECTIONS') {
+    if (
+      urlAssetType === 'PRODUCTS' ||
+      urlAssetType === 'PAGES' ||
+      urlAssetType === 'COLLECTIONS'
+    ) {
       return urlAssetType;
     }
     return 'PRODUCTS'; // Default to PRODUCTS
@@ -305,8 +329,12 @@ export default function AutomationPlaybooksPage() {
   const [selectedPlaybookId, _setSelectedPlaybookId] =
     useState<PlaybookId | null>(validUrlPlaybookId);
   // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Track eligibility counts for default selection + banner visibility
-  const [titlesEligibleCount, setTitlesEligibleCount] = useState<number | null>(null);
-  const [descriptionsEligibleCount, setDescriptionsEligibleCount] = useState<number | null>(null);
+  const [titlesEligibleCount, setTitlesEligibleCount] = useState<number | null>(
+    null
+  );
+  const [descriptionsEligibleCount, setDescriptionsEligibleCount] = useState<
+    number | null
+  >(null);
   // [ASSETS-PAGES-1.1] Track current asset type from URL deep link (read-only from URL params)
   const [currentAssetType] = useState<AutomationAssetType>(validUrlAssetType);
   // [ASSETS-PAGES-1.1-UI-HARDEN] Track scope asset refs from URL deep link (read-only)
@@ -316,47 +344,57 @@ export default function AutomationPlaybooksPage() {
   // This payload includes scopeProductIds for API calls (when PRODUCTS scope)
   const playbookScopePayload: PlaybookScopePayload = useMemo(
     () => buildPlaybookScopePayload(currentAssetType, currentScopeAssetRefs),
-    [currentAssetType, currentScopeAssetRefs],
+    [currentAssetType, currentScopeAssetRefs]
   );
 
   // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Routing-only subset (excludes scopeProductIds)
   const playbookRunScopeForUrl = useMemo(
     () => getRoutingScopeFromPayload(playbookScopePayload),
-    [playbookScopePayload],
+    [playbookScopePayload]
   );
 
-  const [flowState, setFlowState] = useState<PlaybookFlowState>('PREVIEW_READY');
+  const [flowState, setFlowState] =
+    useState<PlaybookFlowState>('PREVIEW_READY');
   const [previewSamples, setPreviewSamples] = useState<PreviewSample[]>([]);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [estimate, setEstimate] = useState<PlaybookEstimate | null>(null);
   const [loadingEstimate, setLoadingEstimate] = useState(false);
   const [applying, setApplying] = useState(false);
-  const [applyResult, setApplyResult] = useState<AutomationPlaybookApplyResult | null>(null);
+  const [applyResult, setApplyResult] =
+    useState<AutomationPlaybookApplyResult | null>(null);
   const [confirmApply, setConfirmApply] = useState(false);
 
   const [rules, setRules] = useState<PlaybookRulesV1>(() => ({
     ...DEFAULT_RULES,
   }));
   const [rulesVersion, setRulesVersion] = useState(0);
-  const [previewRulesVersion, setPreviewRulesVersion] = useState<number | null>(null);
-  const [applyInlineError, setApplyInlineError] = useState<ApplyInlineError | null>(null);
+  const [previewRulesVersion, setPreviewRulesVersion] = useState<number | null>(
+    null
+  );
+  const [applyInlineError, setApplyInlineError] =
+    useState<ApplyInlineError | null>(null);
 
   const [resumedFromSession, setResumedFromSession] = useState(false);
 
   // AI-USAGE-1: AI Usage Summary state
-  const [aiUsageSummary, setAiUsageSummary] = useState<ProjectAiUsageSummary | null>(null);
+  const [aiUsageSummary, setAiUsageSummary] =
+    useState<ProjectAiUsageSummary | null>(null);
   const [aiUsageLoading, setAiUsageLoading] = useState(false);
 
   // AI-USAGE v2: Plan-aware quota evaluation state (used for predictive UX guard).
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_aiQuotaEvaluation, setAiQuotaEvaluation] = useState<AiUsageQuotaEvaluation | null>(null);
+  const [_aiQuotaEvaluation, setAiQuotaEvaluation] =
+    useState<AiUsageQuotaEvaluation | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_aiQuotaLoading, setAiQuotaLoading] = useState(false);
 
   // [ROLES-2] Role and approval state for governance gating
-  const [effectiveRole, setEffectiveRole] = useState<EffectiveProjectRole>('OWNER');
-  const [governancePolicy, setGovernancePolicy] = useState<GovernancePolicyResponse | null>(null);
-  const [pendingApproval, setPendingApproval] = useState<ApprovalRequestResponse | null>(null);
+  const [effectiveRole, setEffectiveRole] =
+    useState<EffectiveProjectRole>('OWNER');
+  const [governancePolicy, setGovernancePolicy] =
+    useState<GovernancePolicyResponse | null>(null);
+  const [pendingApproval, setPendingApproval] =
+    useState<ApprovalRequestResponse | null>(null);
   const [approvalLoading, setApprovalLoading] = useState(false);
   // [ROLES-3 FIXUP-3 CORRECTION] Track if project has multiple members (affects approval UI)
   const [isMultiUserProject, setIsMultiUserProject] = useState(false);
@@ -364,11 +402,15 @@ export default function AutomationPlaybooksPage() {
   const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([]);
 
   // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Pre-computed flag for CTA label truthfulness
-  const [willGenerateAnswerBlocksOnProductSync, setWillGenerateAnswerBlocksOnProductSync] = useState(false);
+  const [
+    willGenerateAnswerBlocksOnProductSync,
+    setWillGenerateAnswerBlocksOnProductSync,
+  ] = useState(false);
 
   // [DRAFT-ROUTING-INTEGRITY-1] Draft Review mode state
   const [draftReviewLoading, setDraftReviewLoading] = useState(false);
-  const [draftReviewData, setDraftReviewData] = useState<AssetScopedDraftsResponse | null>(null);
+  const [draftReviewData, setDraftReviewData] =
+    useState<AssetScopedDraftsResponse | null>(null);
   const [draftReviewError, setDraftReviewError] = useState<string | null>(null);
 
   // [DRAFT-EDIT-INTEGRITY-1] Inline edit state for Draft Review mode
@@ -449,9 +491,11 @@ export default function AutomationPlaybooksPage() {
 
       // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Fetch integration status for CTA label truthfulness
       try {
-        const integrationStatus = await projectsApi.integrationStatus(projectId);
+        const integrationStatus =
+          await projectsApi.integrationStatus(projectId);
         setWillGenerateAnswerBlocksOnProductSync(
-          (integrationStatus as any).willGenerateAnswerBlocksOnProductSync ?? false,
+          (integrationStatus as any).willGenerateAnswerBlocksOnProductSync ??
+            false
         );
       } catch {
         // Silent fail - default to false (no Answer Block generation)
@@ -460,7 +504,9 @@ export default function AutomationPlaybooksPage() {
     } catch (err: unknown) {
       console.error('Error loading automation playbooks data:', err);
       setError(
-        err instanceof Error ? err.message : 'Failed to load automation playbooks data',
+        err instanceof Error
+          ? err.message
+          : 'Failed to load automation playbooks data'
       );
     } finally {
       setLoading(false);
@@ -490,7 +536,10 @@ export default function AutomationPlaybooksPage() {
       setDraftReviewError(null);
       try {
         // Convert uppercase to lowercase for API
-        const assetTypeLower = validUrlAssetType.toLowerCase() as 'products' | 'pages' | 'collections';
+        const assetTypeLower = validUrlAssetType.toLowerCase() as
+          | 'products'
+          | 'pages'
+          | 'collections';
 
         // [DRAFT-DIFF-CLARITY-1] Fetch drafts and current/live values in parallel
         const [draftData, currentFields] = await Promise.all([
@@ -504,27 +553,43 @@ export default function AutomationPlaybooksPage() {
               if (assetTypeLower === 'products') {
                 // Use existing products list and find by ID
                 const productsList = await productsApi.list(projectId);
-                const product = productsList.find((p: any) => p.id === draftReviewAssetId);
-                return product ? {
-                  seoTitle: product.seoTitle,
-                  seoDescription: product.seoDescription,
-                } : null;
+                const product = productsList.find(
+                  (p: any) => p.id === draftReviewAssetId
+                );
+                return product
+                  ? {
+                      seoTitle: product.seoTitle,
+                      seoDescription: product.seoDescription,
+                    }
+                  : null;
               } else if (assetTypeLower === 'pages') {
                 // Fetch pages (static) and find by ID
-                const pages = await projectsApi.crawlPages(projectId, { pageType: 'static' });
-                const page = pages.find((p: any) => p.id === draftReviewAssetId);
-                return page ? {
-                  seoTitle: page.title,
-                  seoDescription: page.metaDescription,
-                } : null;
+                const pages = await projectsApi.crawlPages(projectId, {
+                  pageType: 'static',
+                });
+                const page = pages.find(
+                  (p: any) => p.id === draftReviewAssetId
+                );
+                return page
+                  ? {
+                      seoTitle: page.title,
+                      seoDescription: page.metaDescription,
+                    }
+                  : null;
               } else if (assetTypeLower === 'collections') {
                 // Fetch collections and find by ID
-                const collections = await projectsApi.crawlPages(projectId, { pageType: 'collection' });
-                const collection = collections.find((c: any) => c.id === draftReviewAssetId);
-                return collection ? {
-                  seoTitle: collection.title,
-                  seoDescription: collection.metaDescription,
-                } : null;
+                const collections = await projectsApi.crawlPages(projectId, {
+                  pageType: 'collection',
+                });
+                const collection = collections.find(
+                  (c: any) => c.id === draftReviewAssetId
+                );
+                return collection
+                  ? {
+                      seoTitle: collection.title,
+                      seoDescription: collection.metaDescription,
+                    }
+                  : null;
               }
               return null;
             } catch {
@@ -537,8 +602,13 @@ export default function AutomationPlaybooksPage() {
         setDraftReviewData(draftData);
         setDraftReviewCurrentFields(currentFields);
       } catch (err) {
-        console.error('[DRAFT-ROUTING-INTEGRITY-1] Failed to fetch draft review data:', err);
-        setDraftReviewError(err instanceof Error ? err.message : 'Failed to load drafts');
+        console.error(
+          '[DRAFT-ROUTING-INTEGRITY-1] Failed to fetch draft review data:',
+          err
+        );
+        setDraftReviewError(
+          err instanceof Error ? err.message : 'Failed to load drafts'
+        );
       } finally {
         setDraftReviewLoading(false);
       }
@@ -548,12 +618,15 @@ export default function AutomationPlaybooksPage() {
   }, [isDraftReviewMode, draftReviewAssetId, validUrlAssetType, projectId]);
 
   // [DRAFT-EDIT-INTEGRITY-1] Handlers for inline edit mode in Draft Review
-  const handleStartEdit = useCallback((draftId: string, itemIndex: number, currentValue: string) => {
-    const editKey = `${draftId}-${itemIndex}`;
-    setEditingItem(editKey);
-    setEditValue(currentValue);
-    setEditError(null);
-  }, []);
+  const handleStartEdit = useCallback(
+    (draftId: string, itemIndex: number, currentValue: string) => {
+      const editKey = `${draftId}-${itemIndex}`;
+      setEditingItem(editKey);
+      setEditValue(currentValue);
+      setEditError(null);
+    },
+    []
+  );
 
   const handleCancelEdit = useCallback(() => {
     setEditingItem(null);
@@ -562,64 +635,82 @@ export default function AutomationPlaybooksPage() {
   }, []);
 
   // [DRAFT-DIFF-CLARITY-1] Updated to accept fieldName for empty draft confirmation
-  const handleSaveEdit = useCallback(async (draftId: string, itemIndex: number, fieldName?: 'seoTitle' | 'seoDescription') => {
-    // [DRAFT-DIFF-CLARITY-1] Empty draft confirmation when clearing a live field
-    if (editValue.trim() === '' && fieldName && draftReviewCurrentFields) {
-      const currentValue = fieldName === 'seoTitle'
-        ? draftReviewCurrentFields.seoTitle
-        : draftReviewCurrentFields.seoDescription;
-      if (currentValue && currentValue.trim() !== '') {
-        const confirmed = window.confirm(
-          'Saving an empty draft will clear this field when applied.\n\nAre you sure you want to save an empty draft?'
-        );
-        if (!confirmed) return;
+  const handleSaveEdit = useCallback(
+    async (
+      draftId: string,
+      itemIndex: number,
+      fieldName?: 'seoTitle' | 'seoDescription'
+    ) => {
+      // [DRAFT-DIFF-CLARITY-1] Empty draft confirmation when clearing a live field
+      if (editValue.trim() === '' && fieldName && draftReviewCurrentFields) {
+        const currentValue =
+          fieldName === 'seoTitle'
+            ? draftReviewCurrentFields.seoTitle
+            : draftReviewCurrentFields.seoDescription;
+        if (currentValue && currentValue.trim() !== '') {
+          const confirmed = window.confirm(
+            'Saving an empty draft will clear this field when applied.\n\nAre you sure you want to save an empty draft?'
+          );
+          if (!confirmed) return;
+        }
       }
-    }
 
-    setEditSaving(true);
-    setEditError(null);
+      setEditSaving(true);
+      setEditError(null);
 
-    try {
-      const response = await projectsApi.updateDraftItem(projectId, draftId, itemIndex, editValue);
+      try {
+        const response = await projectsApi.updateDraftItem(
+          projectId,
+          draftId,
+          itemIndex,
+          editValue
+        );
 
-      // Update local state with the server response
-      // [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Use item.itemIndex for stable matching
-      // (filteredItems is a subset; idx may not equal item.itemIndex)
-      setDraftReviewData((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          drafts: prev.drafts.map((draft) => {
-            if (draft.id !== draftId) return draft;
-            return {
-              ...draft,
-              updatedAt: response.updatedAt,
-              filteredItems: draft.filteredItems.map((item, idx) => {
-                // Use item.itemIndex for stable comparison; fall back to idx if absent
-                const itemServerIndex = item.itemIndex ?? idx;
-                if (itemServerIndex !== itemIndex) return item;
-                // Update the finalSuggestion with the edited value
-                return {
-                  ...item,
-                  finalSuggestion: editValue,
-                };
-              }),
-            };
-          }),
-        };
-      });
+        // Update local state with the server response
+        // [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Use item.itemIndex for stable matching
+        // (filteredItems is a subset; idx may not equal item.itemIndex)
+        setDraftReviewData((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            drafts: prev.drafts.map((draft) => {
+              if (draft.id !== draftId) return draft;
+              return {
+                ...draft,
+                updatedAt: response.updatedAt,
+                filteredItems: draft.filteredItems.map((item, idx) => {
+                  // Use item.itemIndex for stable comparison; fall back to idx if absent
+                  const itemServerIndex = item.itemIndex ?? idx;
+                  if (itemServerIndex !== itemIndex) return item;
+                  // Update the finalSuggestion with the edited value
+                  return {
+                    ...item,
+                    finalSuggestion: editValue,
+                  };
+                }),
+              };
+            }),
+          };
+        });
 
-      // Exit edit mode
-      setEditingItem(null);
-      setEditValue('');
-      feedback.showSuccess('Draft saved successfully');
-    } catch (err) {
-      console.error('[DRAFT-EDIT-INTEGRITY-1] Failed to save draft edit:', err);
-      setEditError(err instanceof Error ? err.message : 'Failed to save changes');
-    } finally {
-      setEditSaving(false);
-    }
-  }, [projectId, editValue, feedback, draftReviewCurrentFields]);
+        // Exit edit mode
+        setEditingItem(null);
+        setEditValue('');
+        feedback.showSuccess('Draft saved successfully');
+      } catch (err) {
+        console.error(
+          '[DRAFT-EDIT-INTEGRITY-1] Failed to save draft edit:',
+          err
+        );
+        setEditError(
+          err instanceof Error ? err.message : 'Failed to save changes'
+        );
+      } finally {
+        setEditSaving(false);
+      }
+    },
+    [projectId, editValue, feedback, draftReviewCurrentFields]
+  );
 
   const issuesByType = useMemo(() => {
     const map = new Map<string, DeoIssue>();
@@ -646,11 +737,15 @@ export default function AutomationPlaybooksPage() {
     if (rules.find) enabledRulesLabels.push('Find/Replace');
     if (rules.prefix) enabledRulesLabels.push('Prefix');
     if (rules.suffix) enabledRulesLabels.push('Suffix');
-    if (rules.maxLength && rules.maxLength > 0) enabledRulesLabels.push('Max length');
-    if (rules.forbiddenPhrasesText.trim()) enabledRulesLabels.push('Forbidden phrases');
+    if (rules.maxLength && rules.maxLength > 0)
+      enabledRulesLabels.push('Max length');
+    if (rules.forbiddenPhrasesText.trim())
+      enabledRulesLabels.push('Forbidden phrases');
   }
   const rulesSummaryLabel =
-    enabledRulesLabels.length > 0 ? `Rules: ${enabledRulesLabels.join(', ')}` : 'Rules: None';
+    enabledRulesLabels.length > 0
+      ? `Rules: ${enabledRulesLabels.join(', ')}`
+      : 'Rules: None';
 
   /**
    * CNAB-1: Calculate contextual banner state based on canonical eligibility counts.
@@ -701,7 +796,13 @@ export default function AutomationPlaybooksPage() {
     }
 
     return null;
-  }, [titlesEligibleCount, descriptionsEligibleCount, selectedPlaybookId, applyResult, flowState]);
+  }, [
+    titlesEligibleCount,
+    descriptionsEligibleCount,
+    selectedPlaybookId,
+    applyResult,
+    flowState,
+  ]);
 
   /**
    * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Primary CNAB playbook for NO_RUN_WITH_ISSUES banner.
@@ -736,7 +837,15 @@ export default function AutomationPlaybooksPage() {
         ...previous,
         ...patch,
       };
-      if (!previous.enabled && (patch.find || patch.replace || patch.prefix || patch.suffix || patch.maxLength || patch.forbiddenPhrasesText)) {
+      if (
+        !previous.enabled &&
+        (patch.find ||
+          patch.replace ||
+          patch.prefix ||
+          patch.suffix ||
+          patch.maxLength ||
+          patch.forbiddenPhrasesText)
+      ) {
         next.enabled = true;
       }
       return next;
@@ -745,7 +854,11 @@ export default function AutomationPlaybooksPage() {
   };
 
   const loadEstimate = useCallback(
-    async (playbookId: PlaybookId, assetType?: AutomationAssetType, scopeAssetRefs?: string[]) => {
+    async (
+      playbookId: PlaybookId,
+      assetType?: AutomationAssetType,
+      scopeAssetRefs?: string[]
+    ) => {
       try {
         setLoadingEstimate(true);
         setError('');
@@ -756,13 +869,16 @@ export default function AutomationPlaybooksPage() {
         // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Use explicit scope payload (removes positional branching)
         const effectiveAssetType = assetType ?? currentAssetType;
         const effectiveScopeAssetRefs = scopeAssetRefs ?? currentScopeAssetRefs;
-        const payload = buildPlaybookScopePayload(effectiveAssetType, effectiveScopeAssetRefs);
+        const payload = buildPlaybookScopePayload(
+          effectiveAssetType,
+          effectiveScopeAssetRefs
+        );
         const data = (await projectsApi.automationPlaybookEstimate(
           projectId,
           playbookId,
           payload.scopeProductIds,
           payload.assetType,
-          payload.assetType !== 'PRODUCTS' ? payload.scopeAssetRefs : undefined,
+          payload.assetType !== 'PRODUCTS' ? payload.scopeAssetRefs : undefined
         )) as PlaybookEstimate;
         setEstimate(data);
       } catch (err: unknown) {
@@ -777,7 +893,7 @@ export default function AutomationPlaybooksPage() {
         setLoadingEstimate(false);
       }
     },
-    [projectId, currentAssetType, currentScopeAssetRefs],
+    [projectId, currentAssetType, currentScopeAssetRefs]
   );
 
   const loadPreview = useCallback(
@@ -799,16 +915,22 @@ export default function AutomationPlaybooksPage() {
           });
           setAiQuotaEvaluation(quota);
 
-          if (quota.status === 'warning' && quota.currentUsagePercent !== null) {
+          if (
+            quota.status === 'warning' &&
+            quota.currentUsagePercent !== null
+          ) {
             // [BILLING-GTM-1] Predict → Warn: Show limit-style toast with Upgrade CTA but allow action.
             const percentRounded = Math.round(quota.currentUsagePercent);
             feedback.showLimit(
               `This will use AI. You're at ${percentRounded}% of your monthly limit. You can still proceed, but consider upgrading for more AI runs.`,
-              '/settings/billing',
+              '/settings/billing'
             );
           }
 
-          if (quota.status === 'blocked' && quota.policy.hardEnforcementEnabled) {
+          if (
+            quota.status === 'blocked' &&
+            quota.policy.hardEnforcementEnabled
+          ) {
             const message =
               'AI usage limit reached. Upgrade your plan or wait until your monthly AI quota resets to generate new previews.';
             setError(message);
@@ -829,15 +951,17 @@ export default function AutomationPlaybooksPage() {
         // 4. Returns everything needed for the apply flow
         // [ASSETS-PAGES-1.1-UI-HARDEN] Pass assetType and scopeAssetRefs
         // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Use explicit scope payload
-        const previewResult = await projectsApi.previewAutomationPlaybook(
+        const previewResult = (await projectsApi.previewAutomationPlaybook(
           projectId,
           playbookId,
           rules.enabled ? rules : undefined,
           3, // sampleSize
           playbookScopePayload.scopeProductIds,
           playbookScopePayload.assetType,
-          playbookScopePayload.assetType !== 'PRODUCTS' ? playbookScopePayload.scopeAssetRefs : undefined,
-        ) as {
+          playbookScopePayload.assetType !== 'PRODUCTS'
+            ? playbookScopePayload.scopeAssetRefs
+            : undefined
+        )) as {
           projectId: string;
           playbookId: string;
           scopeId: string;
@@ -862,15 +986,20 @@ export default function AutomationPlaybooksPage() {
         };
 
         // Convert backend samples to frontend PreviewSample format
-        const samples: PreviewSample[] = previewResult.samples.map((sample) => ({
-          productId: sample.productId,
-          productTitle: sample.productTitle,
-          currentTitle: sample.currentTitle,
-          currentDescription: sample.currentDescription,
-          suggestedTitle: sample.field === 'seoTitle' ? sample.finalSuggestion : '',
-          suggestedDescription: sample.field === 'seoDescription' ? sample.finalSuggestion : '',
-          ruleWarnings: sample.ruleWarnings.length > 0 ? sample.ruleWarnings : undefined,
-        }));
+        const samples: PreviewSample[] = previewResult.samples.map(
+          (sample) => ({
+            productId: sample.productId,
+            productTitle: sample.productTitle,
+            currentTitle: sample.currentTitle,
+            currentDescription: sample.currentDescription,
+            suggestedTitle:
+              sample.field === 'seoTitle' ? sample.finalSuggestion : '',
+            suggestedDescription:
+              sample.field === 'seoDescription' ? sample.finalSuggestion : '',
+            ruleWarnings:
+              sample.ruleWarnings.length > 0 ? sample.ruleWarnings : undefined,
+          })
+        );
 
         setPreviewSamples(samples);
 
@@ -882,8 +1011,12 @@ export default function AutomationPlaybooksPage() {
         // Update the estimate with scopeId and rulesHash from preview
         setEstimate((prev) =>
           prev && prev.playbookId === playbookId
-            ? { ...prev, scopeId: previewResult.scopeId, rulesHash: previewResult.rulesHash }
-            : prev,
+            ? {
+                ...prev,
+                scopeId: previewResult.scopeId,
+                rulesHash: previewResult.rulesHash,
+              }
+            : prev
         );
 
         if (samples.length > 0) {
@@ -942,7 +1075,16 @@ export default function AutomationPlaybooksPage() {
         setLoadingPreview(false);
       }
     },
-    [projectId, feedback, rules, rulesVersion, estimate, loadEstimate, currentAssetType, currentScopeAssetRefs],
+    [
+      projectId,
+      feedback,
+      rules,
+      rulesVersion,
+      estimate,
+      loadEstimate,
+      currentAssetType,
+      currentScopeAssetRefs,
+    ]
   );
 
   useEffect(() => {
@@ -1000,7 +1142,7 @@ export default function AutomationPlaybooksPage() {
         const { approval } = await projectsApi.getApprovalStatus(
           projectId,
           'AUTOMATION_PLAYBOOK_APPLY',
-          resourceId,
+          resourceId
         );
         // Stale-response guard: only update if this effect is still current
         if (!cancelled) {
@@ -1008,7 +1150,10 @@ export default function AutomationPlaybooksPage() {
         }
       } catch (err) {
         // Silent fail - don't block UI for prefetch errors
-        console.error('[ROLES-3 FIXUP-3] Approval status prefetch failed:', err);
+        console.error(
+          '[ROLES-3 FIXUP-3] Approval status prefetch failed:',
+          err
+        );
         // Only clear if we can confirm resourceId changed (cancelled flag)
         // Otherwise leave as-is to avoid flickering
       } finally {
@@ -1055,11 +1200,15 @@ export default function AutomationPlaybooksPage() {
     // [PLAYBOOK-STEP-CONTINUITY-1] Defensive fallback: never return silently.
     // When required data is missing/stale, show an explicit user-visible message.
     if (!estimate) {
-      feedback.showError('Estimate data is not available. Please wait for the estimate to load or regenerate the preview.');
+      feedback.showError(
+        'Estimate data is not available. Please wait for the estimate to load or regenerate the preview.'
+      );
       return;
     }
     if (!estimate.canProceed) {
-      feedback.showError('Cannot proceed: the playbook is blocked by plan limits or eligibility requirements.');
+      feedback.showError(
+        'Cannot proceed: the playbook is blocked by plan limits or eligibility requirements.'
+      );
       return;
     }
     // Determine active step from flowState
@@ -1100,7 +1249,7 @@ export default function AutomationPlaybooksPage() {
     if (!estimate.scopeId || !estimate.rulesHash) {
       // scopeId and rulesHash are required but missing - fetch a fresh estimate
       feedback.showError(
-        'Estimate is stale (missing scopeId or rulesHash). Please re-run the preview to refresh.',
+        'Estimate is stale (missing scopeId or rulesHash). Please re-run the preview to refresh.'
       );
       setFlowState('PREVIEW_READY');
       return;
@@ -1108,7 +1257,8 @@ export default function AutomationPlaybooksPage() {
     if (flowState !== 'APPLY_READY') return;
 
     const capabilities = getRoleCapabilities(effectiveRole);
-    const approvalRequiredByPolicy = governancePolicy?.requireApprovalForApply ?? false;
+    const approvalRequiredByPolicy =
+      governancePolicy?.requireApprovalForApply ?? false;
     const resourceId = `${selectedPlaybookId}:${estimate.scopeId}`;
 
     // [ROLES-3 FIXUP-3 CORRECTION] EDITOR can NEVER apply, even if approved
@@ -1128,36 +1278,51 @@ export default function AutomationPlaybooksPage() {
           const { approval } = await projectsApi.getApprovalStatus(
             projectId,
             'AUTOMATION_PLAYBOOK_APPLY',
-            resourceId,
+            resourceId
           );
           setPendingApproval(approval);
 
-          if (!approval || approval.status === 'REJECTED' || approval.consumed) {
+          if (
+            !approval ||
+            approval.status === 'REJECTED' ||
+            approval.consumed
+          ) {
             // No approval or rejected/consumed - create new request
-            const newApproval = await projectsApi.createApprovalRequest(projectId, {
-              resourceType: 'AUTOMATION_PLAYBOOK_APPLY',
-              resourceId,
-            });
+            const newApproval = await projectsApi.createApprovalRequest(
+              projectId,
+              {
+                resourceType: 'AUTOMATION_PLAYBOOK_APPLY',
+                resourceId,
+              }
+            );
             setPendingApproval(newApproval);
             feedback.showInfo(
-              'Approval request submitted. An owner must approve and apply this playbook.',
+              'Approval request submitted. An owner must approve and apply this playbook.'
             );
           } else if (approval.status === 'PENDING_APPROVAL') {
             // Already pending - just inform
-            feedback.showInfo('Approval is pending. Waiting for an owner to approve.');
+            feedback.showInfo(
+              'Approval is pending. Waiting for an owner to approve.'
+            );
           } else if (approval.status === 'APPROVED') {
             // Approved but EDITOR still cannot apply - inform them
-            feedback.showInfo('Approval granted. An owner must apply this playbook.');
+            feedback.showInfo(
+              'Approval granted. An owner must apply this playbook.'
+            );
           }
         } catch (requestErr) {
           console.error('Error handling approval request:', requestErr);
-          feedback.showError('Failed to process approval request. Please try again.');
+          feedback.showError(
+            'Failed to process approval request. Please try again.'
+          );
         } finally {
           setApprovalLoading(false);
         }
       } else {
         // No approval required but EDITOR still cannot apply
-        feedback.showError('Editor role cannot apply playbooks. An owner must apply.');
+        feedback.showError(
+          'Editor role cannot apply playbooks. An owner must apply.'
+        );
       }
       return;
     }
@@ -1178,16 +1343,23 @@ export default function AutomationPlaybooksPage() {
           const { approval } = await projectsApi.getApprovalStatus(
             projectId,
             'AUTOMATION_PLAYBOOK_APPLY',
-            resourceId,
+            resourceId
           );
           setPendingApproval(approval);
 
-          if (approval && approval.status === 'APPROVED' && !approval.consumed) {
+          if (
+            approval &&
+            approval.status === 'APPROVED' &&
+            !approval.consumed
+          ) {
             // Use existing valid approval
             approvalIdToUse = approval.id;
           } else if (approval && approval.status === 'PENDING_APPROVAL') {
             // OWNER approves the pending request, then applies
-            const approvedRequest = await projectsApi.approveRequest(projectId, approval.id);
+            const approvedRequest = await projectsApi.approveRequest(
+              projectId,
+              approval.id
+            );
             approvalIdToUse = approvedRequest.id;
             setPendingApproval(approvedRequest);
           } else if (isMultiUserProject) {
@@ -1195,18 +1367,24 @@ export default function AutomationPlaybooksPage() {
             // An EDITOR must request approval first
             setApprovalLoading(false);
             feedback.showError(
-              'In multi-user projects, an Editor must request approval first. Add an Editor in Members settings.',
+              'In multi-user projects, an Editor must request approval first. Add an Editor in Members settings.'
             );
             setFlowState('APPLY_READY');
             setApplying(false);
             return;
           } else {
             // Single-user project: OWNER can create → approve → apply (ROLES-2 convenience)
-            const newApproval = await projectsApi.createApprovalRequest(projectId, {
-              resourceType: 'AUTOMATION_PLAYBOOK_APPLY',
-              resourceId,
-            });
-            const approvedRequest = await projectsApi.approveRequest(projectId, newApproval.id);
+            const newApproval = await projectsApi.createApprovalRequest(
+              projectId,
+              {
+                resourceType: 'AUTOMATION_PLAYBOOK_APPLY',
+                resourceId,
+              }
+            );
+            const approvedRequest = await projectsApi.approveRequest(
+              projectId,
+              newApproval.id
+            );
             approvalIdToUse = approvedRequest.id;
             setPendingApproval(approvedRequest);
           }
@@ -1230,32 +1408,34 @@ export default function AutomationPlaybooksPage() {
         playbookScopePayload.scopeProductIds,
         approvalIdToUse,
         playbookScopePayload.assetType,
-        playbookScopePayload.assetType !== 'PRODUCTS' ? playbookScopePayload.scopeAssetRefs : undefined,
+        playbookScopePayload.assetType !== 'PRODUCTS'
+          ? playbookScopePayload.scopeAssetRefs
+          : undefined
       );
       setApplyResult(data);
       if (data.updatedCount > 0) {
         if (data.stopped && !data.limitReached) {
           feedback.showInfo(
-            `Updated ${data.updatedCount} product(s). Playbook stopped early due to an error.`,
+            `Updated ${data.updatedCount} product(s). Playbook stopped early due to an error.`
           );
         } else if (data.limitReached) {
           feedback.showLimit(
             `Updated ${data.updatedCount} product(s). Daily AI limit reached during execution.`,
-            '/settings/billing',
+            '/settings/billing'
           );
         } else {
           feedback.showSuccess(
-            `Automation Playbook applied to ${data.updatedCount} product(s).`,
+            `Automation Playbook applied to ${data.updatedCount} product(s).`
           );
         }
       } else if (data.limitReached) {
         feedback.showLimit(
           'Daily AI limit reached before any products could be updated.',
-          '/settings/billing',
+          '/settings/billing'
         );
       } else if (data.stopped) {
         feedback.showError(
-          `Playbook stopped due to an error: ${data.failureReason || 'Unknown error'}`,
+          `Playbook stopped due to an error: ${data.failureReason || 'Unknown error'}`
         );
       } else {
         feedback.showInfo('No products were updated by this playbook.');
@@ -1279,7 +1459,10 @@ export default function AutomationPlaybooksPage() {
           'PLAYBOOK_DRAFT_NOT_FOUND',
           'PLAYBOOK_DRAFT_EXPIRED',
         ];
-        if (err.code && inlineErrorCodes.includes(err.code as ApplyInlineErrorCode)) {
+        if (
+          err.code &&
+          inlineErrorCodes.includes(err.code as ApplyInlineErrorCode)
+        ) {
           setApplyInlineError({
             code: err.code as ApplyInlineErrorCode,
             message: err.message,
@@ -1335,10 +1518,10 @@ export default function AutomationPlaybooksPage() {
   }, [projectId, feedback]);
 
   const selectedDefinition = PLAYBOOKS.find(
-    (pb) => pb.id === selectedPlaybookId,
+    (pb) => pb.id === selectedPlaybookId
   );
   const selectedSummary = playbookSummaries.find(
-    (s) => s.id === selectedPlaybookId,
+    (s) => s.id === selectedPlaybookId
   );
   const planIsFree = planId === 'free';
   const estimateBlockingReasons = estimate?.reasons ?? [];
@@ -1363,14 +1546,17 @@ export default function AutomationPlaybooksPage() {
   const approvalRequired = governancePolicy?.requireApprovalForApply ?? false;
 
   // [ROLES-3 PENDING-1] Helper to look up user display name from members list
-  const getUserDisplayName = useCallback((userId: string): string => {
-    const member = projectMembers.find((m) => m.userId === userId);
-    if (member) {
-      return member.name || member.email;
-    }
-    // Fallback: show shortened user ID
-    return userId.length > 8 ? `${userId.slice(0, 8)}…` : userId;
-  }, [projectMembers]);
+  const getUserDisplayName = useCallback(
+    (userId: string): string => {
+      const member = projectMembers.find((m) => m.userId === userId);
+      if (member) {
+        return member.name || member.email;
+      }
+      // Fallback: show shortened user ID
+      return userId.length > 8 ? `${userId.slice(0, 8)}…` : userId;
+    },
+    [projectMembers]
+  );
 
   const canContinueToEstimate =
     previewPresent &&
@@ -1389,7 +1575,10 @@ export default function AutomationPlaybooksPage() {
   const step3Locked = step2Locked;
 
   const continueBlockers: Array<
-    'preview_stale' | 'plan_not_eligible' | 'estimate_not_eligible' | 'estimate_missing'
+    | 'preview_stale'
+    | 'plan_not_eligible'
+    | 'estimate_not_eligible'
+    | 'estimate_missing'
   > = [];
 
   if (previewPresent && previewStale) {
@@ -1401,12 +1590,7 @@ export default function AutomationPlaybooksPage() {
   if (estimatePresent && !estimateEligible) {
     continueBlockers.push('estimate_not_eligible');
   }
-  if (
-    previewPresent &&
-    !previewStale &&
-    planEligible &&
-    !estimatePresent
-  ) {
+  if (previewPresent && !previewStale && planEligible && !estimatePresent) {
     continueBlockers.push('estimate_missing');
   }
 
@@ -1543,7 +1727,8 @@ export default function AutomationPlaybooksPage() {
       }
       // Only restore estimate if it has scopeId and rulesHash (required since AUTO-PB-1.3).
       // Stale estimates from before these fields were added will be re-fetched fresh.
-      const hasValidEstimate = parsed.estimate && parsed.estimate.scopeId && parsed.estimate.rulesHash;
+      const hasValidEstimate =
+        parsed.estimate && parsed.estimate.scopeId && parsed.estimate.rulesHash;
       if (hasValidEstimate && parsed.estimate) {
         setEstimate(parsed.estimate);
       } else if (parsed.previewSamples && parsed.previewSamples.length > 0) {
@@ -1569,7 +1754,7 @@ export default function AutomationPlaybooksPage() {
         setPreviewRulesVersion(
           parsed.previewRulesVersion === undefined
             ? null
-            : parsed.previewRulesVersion,
+            : parsed.previewRulesVersion
         );
       }
     } catch {
@@ -1632,7 +1817,10 @@ export default function AutomationPlaybooksPage() {
     async function fetchEligibilityCounts() {
       try {
         // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Use explicit scope payload (reused for both estimates)
-        const scopePayload = buildPlaybookScopePayload(currentAssetType, currentScopeAssetRefs);
+        const scopePayload = buildPlaybookScopePayload(
+          currentAssetType,
+          currentScopeAssetRefs
+        );
         // Fetch estimates for both playbooks (NON-AI - just counts)
         const [titleEst, descEst] = await Promise.all([
           projectsApi.automationPlaybookEstimate(
@@ -1640,14 +1828,18 @@ export default function AutomationPlaybooksPage() {
             'missing_seo_title',
             scopePayload.scopeProductIds,
             scopePayload.assetType,
-            scopePayload.assetType !== 'PRODUCTS' ? scopePayload.scopeAssetRefs : undefined,
+            scopePayload.assetType !== 'PRODUCTS'
+              ? scopePayload.scopeAssetRefs
+              : undefined
           ) as Promise<{ totalAffectedProducts: number }>,
           projectsApi.automationPlaybookEstimate(
             projectId,
             'missing_seo_description',
             scopePayload.scopeProductIds,
             scopePayload.assetType,
-            scopePayload.assetType !== 'PRODUCTS' ? scopePayload.scopeAssetRefs : undefined,
+            scopePayload.assetType !== 'PRODUCTS'
+              ? scopePayload.scopeAssetRefs
+              : undefined
           ) as Promise<{ totalAffectedProducts: number }>,
         ]);
 
@@ -1660,7 +1852,10 @@ export default function AutomationPlaybooksPage() {
         setTitlesEligibleCount(titleCount);
         setDescriptionsEligibleCount(descCount);
       } catch (err) {
-        console.error('[PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Failed to fetch eligibility counts:', err);
+        console.error(
+          '[PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Failed to fetch eligibility counts:',
+          err
+        );
         // [FIXUP-1] On failure: set both to null, do NOT set selectedPlaybookId
         if (!cancelled) {
           setTitlesEligibleCount(null);
@@ -1730,7 +1925,16 @@ export default function AutomationPlaybooksPage() {
       });
     }
     // Run when eligibility counts become available
-  }, [isDraftReviewMode, validUrlPlaybookId, titlesEligibleCount, descriptionsEligibleCount, router, projectId, urlSource, playbookRunScopeForUrl]);
+  }, [
+    isDraftReviewMode,
+    validUrlPlaybookId,
+    titlesEligibleCount,
+    descriptionsEligibleCount,
+    router,
+    projectId,
+    urlSource,
+    playbookRunScopeForUrl,
+  ]);
 
   const handleNavigate = useCallback(
     (href: string) => {
@@ -1738,14 +1942,14 @@ export default function AutomationPlaybooksPage() {
         shouldWarnOnNavigate &&
         typeof window !== 'undefined' &&
         !window.confirm(
-          'You have an in-progress playbook preview. Leaving will discard it.',
+          'You have an in-progress playbook preview. Leaving will discard it.'
         )
       ) {
         return;
       }
       router.push(href);
     },
-    [router, shouldWarnOnNavigate],
+    [router, shouldWarnOnNavigate]
   );
 
   if (loading) {
@@ -1769,14 +1973,18 @@ export default function AutomationPlaybooksPage() {
       assetTypeLower,
       draftReviewAssetId,
       {
-        returnTo: validatedReturnTo || `/projects/${projectId}/${assetTypeLower === 'products' ? 'products' : `assets/${assetTypeLower}`}`,
+        returnTo:
+          validatedReturnTo ||
+          `/projects/${projectId}/${assetTypeLower === 'products' ? 'products' : `assets/${assetTypeLower}`}`,
         returnLabel,
         from: 'asset_list',
-      },
+      }
     );
 
     // Back href: use validated returnTo or fallback to asset list
-    const backHref = validatedReturnTo || `/projects/${projectId}/${assetTypeLower === 'products' ? 'products' : `assets/${assetTypeLower}`}`;
+    const backHref =
+      validatedReturnTo ||
+      `/projects/${projectId}/${assetTypeLower === 'products' ? 'products' : `assets/${assetTypeLower}`}`;
 
     const hasDrafts = draftReviewData && draftReviewData.drafts.length > 0;
 
@@ -1788,7 +1996,9 @@ export default function AutomationPlaybooksPage() {
           from={fromParam ?? 'asset_list'}
           returnTo={backHref}
           showingText={`Draft Review · ${returnLabel}`}
-          onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/automation/playbooks`)}
+          onClearFiltersHref={buildClearFiltersHref(
+            `/projects/${projectId}/automation/playbooks`
+          )}
           chips={normalizedScopeResult.chips}
           wasAdjusted={normalizedScopeResult.wasAdjusted}
         />
@@ -1870,23 +2080,35 @@ export default function AutomationPlaybooksPage() {
                           // [DRAFT-EDIT-INTEGRITY-1] Edit state for this item
                           const editKey = `${draft.id}-${itemIndex}`;
                           const isEditing = editingItem === editKey;
-                          const currentValue = item.finalSuggestion || item.rawSuggestion || '';
+                          const currentValue =
+                            item.finalSuggestion || item.rawSuggestion || '';
 
                           if (hasCanonicalShape) {
                             // [DRAFT-DIFF-CLARITY-1] Canonical playbook draft shape with diff UI and inline edit
                             // Compute live value from draftReviewCurrentFields
-                            const liveValue = item.field === 'seoTitle'
-                              ? (draftReviewCurrentFields?.seoTitle || '')
-                              : (draftReviewCurrentFields?.seoDescription || '');
-                            const draftValue = item.finalSuggestion ?? item.rawSuggestion ?? null;
+                            const liveValue =
+                              item.field === 'seoTitle'
+                                ? draftReviewCurrentFields?.seoTitle || ''
+                                : draftReviewCurrentFields?.seoDescription ||
+                                  '';
+                            const draftValue =
+                              item.finalSuggestion ??
+                              item.rawSuggestion ??
+                              null;
 
                             // [DRAFT-DIFF-CLARITY-1] Derive empty draft messaging:
                             // - If both rawSuggestion and finalSuggestion are empty/null: "No draft generated yet"
                             // - If explicitly cleared (has rawSuggestion but finalSuggestion is empty): "Draft will clear this field when applied"
-                            const hasDraftContent = draftValue !== null && draftValue.trim() !== '';
-                            const wasExplicitlyCleared = item.rawSuggestion && item.rawSuggestion.trim() !== '' &&
-                              (item.finalSuggestion === '' || item.finalSuggestion === null);
-                            const noDraftGenerated = !item.rawSuggestion || item.rawSuggestion.trim() === '';
+                            const hasDraftContent =
+                              draftValue !== null && draftValue.trim() !== '';
+                            const wasExplicitlyCleared =
+                              item.rawSuggestion &&
+                              item.rawSuggestion.trim() !== '' &&
+                              (item.finalSuggestion === '' ||
+                                item.finalSuggestion === null);
+                            const noDraftGenerated =
+                              !item.rawSuggestion ||
+                              item.rawSuggestion.trim() === '';
 
                             return (
                               <div
@@ -1896,14 +2118,22 @@ export default function AutomationPlaybooksPage() {
                               >
                                 <div className="flex items-center justify-between mb-3">
                                   <div className="font-medium text-gray-900">
-                                    {item.field === 'seoTitle' ? 'Title' : 'Description'}
+                                    {item.field === 'seoTitle'
+                                      ? 'Title'
+                                      : 'Description'}
                                   </div>
                                   {/* [DRAFT-EDIT-INTEGRITY-1] Edit button - only show when not editing */}
                                   {!isEditing && (
                                     <button
                                       type="button"
                                       data-testid={`draft-item-edit-${draft.id}-${itemIndex}`}
-                                      onClick={() => handleStartEdit(draft.id, itemIndex, currentValue)}
+                                      onClick={() =>
+                                        handleStartEdit(
+                                          draft.id,
+                                          itemIndex,
+                                          currentValue
+                                        )
+                                      }
                                       className="text-xs text-indigo-600 hover:text-indigo-800"
                                     >
                                       Edit
@@ -1912,16 +2142,26 @@ export default function AutomationPlaybooksPage() {
                                 </div>
 
                                 {/* [DRAFT-DIFF-CLARITY-1] Diff UI: Current (live) vs Draft (staged) */}
-                                <div data-testid="draft-diff-current" className="rounded bg-gray-50 p-3 mb-3">
+                                <div
+                                  data-testid="draft-diff-current"
+                                  className="rounded bg-gray-50 p-3 mb-3"
+                                >
                                   <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
                                     Current (live)
                                   </div>
                                   <div className="text-gray-700">
-                                    {liveValue || <span className="italic text-gray-400">(empty)</span>}
+                                    {liveValue || (
+                                      <span className="italic text-gray-400">
+                                        (empty)
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
 
-                                <div data-testid="draft-diff-draft" className="rounded bg-indigo-50 p-3">
+                                <div
+                                  data-testid="draft-diff-draft"
+                                  className="rounded bg-indigo-50 p-3"
+                                >
                                   <div className="text-xs font-medium text-indigo-600 uppercase tracking-wide mb-1">
                                     Draft (staged)
                                   </div>
@@ -1932,25 +2172,43 @@ export default function AutomationPlaybooksPage() {
                                       <textarea
                                         data-testid={`draft-item-input-${draft.id}-${itemIndex}`}
                                         value={editValue}
-                                        onChange={(e) => setEditValue(e.target.value)}
+                                        onChange={(e) =>
+                                          setEditValue(e.target.value)
+                                        }
                                         className="w-full rounded border border-gray-300 p-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                                        rows={item.field === 'seoDescription' ? 4 : 2}
+                                        rows={
+                                          item.field === 'seoDescription'
+                                            ? 4
+                                            : 2
+                                        }
                                         disabled={editSaving}
                                       />
                                       {/* Edit error inline */}
                                       {editError && (
-                                        <div className="mt-1 text-xs text-red-600">{editError}</div>
+                                        <div className="mt-1 text-xs text-red-600">
+                                          {editError}
+                                        </div>
                                       )}
                                       {/* Save/Cancel buttons */}
                                       <div className="mt-2 flex gap-2">
                                         <button
                                           type="button"
                                           data-testid={`draft-item-save-${draft.id}-${itemIndex}`}
-                                          onClick={() => handleSaveEdit(draft.id, itemIndex, item.field as 'seoTitle' | 'seoDescription')}
+                                          onClick={() =>
+                                            handleSaveEdit(
+                                              draft.id,
+                                              itemIndex,
+                                              item.field as
+                                                | 'seoTitle'
+                                                | 'seoDescription'
+                                            )
+                                          }
                                           disabled={editSaving}
                                           className="inline-flex items-center rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
                                         >
-                                          {editSaving ? 'Saving...' : 'Save changes'}
+                                          {editSaving
+                                            ? 'Saving...'
+                                            : 'Save changes'}
                                         </button>
                                         <button
                                           type="button"
@@ -1969,18 +2227,27 @@ export default function AutomationPlaybooksPage() {
                                       {hasDraftContent ? (
                                         <>
                                           {draftValue}
-                                          {item.ruleWarnings && item.ruleWarnings.length > 0 && (
-                                            <div className="mt-1 text-xs text-amber-600">
-                                              Warnings: {item.ruleWarnings.join(', ')}
-                                            </div>
-                                          )}
+                                          {item.ruleWarnings &&
+                                            item.ruleWarnings.length > 0 && (
+                                              <div className="mt-1 text-xs text-amber-600">
+                                                Warnings:{' '}
+                                                {item.ruleWarnings.join(', ')}
+                                              </div>
+                                            )}
                                         </>
                                       ) : wasExplicitlyCleared ? (
-                                        <span className="italic text-amber-600">Draft will clear this field when applied</span>
+                                        <span className="italic text-amber-600">
+                                          Draft will clear this field when
+                                          applied
+                                        </span>
                                       ) : noDraftGenerated ? (
-                                        <span className="italic text-gray-400">No draft generated yet</span>
+                                        <span className="italic text-gray-400">
+                                          No draft generated yet
+                                        </span>
                                       ) : (
-                                        <span className="italic text-gray-400">(empty)</span>
+                                        <span className="italic text-gray-400">
+                                          (empty)
+                                        </span>
                                       )}
                                     </div>
                                   )}
@@ -1991,24 +2258,39 @@ export default function AutomationPlaybooksPage() {
                             // Legacy/testkit shape with suggestedTitle and/or suggestedDescription
                             // [DRAFT-EDIT-INTEGRITY-1] Legacy items are read-only (no edit button)
                             return (
-                              <div key={itemIndex} data-testid={`draft-item-${draft.id}-${itemIndex}`} className="space-y-2">
+                              <div
+                                key={itemIndex}
+                                data-testid={`draft-item-${draft.id}-${itemIndex}`}
+                                className="space-y-2"
+                              >
                                 {legacyItem.suggestedTitle && (
                                   <div className="rounded bg-gray-50 p-3 text-sm">
-                                    <div className="font-medium text-gray-700">Title</div>
-                                    <div className="mt-1 text-gray-900">{legacyItem.suggestedTitle}</div>
+                                    <div className="font-medium text-gray-700">
+                                      Title
+                                    </div>
+                                    <div className="mt-1 text-gray-900">
+                                      {legacyItem.suggestedTitle}
+                                    </div>
                                   </div>
                                 )}
                                 {legacyItem.suggestedDescription && (
                                   <div className="rounded bg-gray-50 p-3 text-sm">
-                                    <div className="font-medium text-gray-700">Description</div>
-                                    <div className="mt-1 text-gray-900">{legacyItem.suggestedDescription}</div>
+                                    <div className="font-medium text-gray-700">
+                                      Description
+                                    </div>
+                                    <div className="mt-1 text-gray-900">
+                                      {legacyItem.suggestedDescription}
+                                    </div>
                                   </div>
                                 )}
-                                {!legacyItem.suggestedTitle && !legacyItem.suggestedDescription && (
-                                  <div className="rounded bg-gray-50 p-3 text-sm">
-                                    <div className="text-gray-500">(No suggestion)</div>
-                                  </div>
-                                )}
+                                {!legacyItem.suggestedTitle &&
+                                  !legacyItem.suggestedDescription && (
+                                    <div className="rounded bg-gray-50 p-3 text-sm">
+                                      <div className="text-gray-500">
+                                        (No suggestion)
+                                      </div>
+                                    </div>
+                                  )}
                               </div>
                             );
                           }
@@ -2126,8 +2408,8 @@ export default function AutomationPlaybooksPage() {
             )}
           </h1>
           <p className="text-gray-600">
-            Safely apply AI-powered fixes to missing SEO metadata, with preview and
-            token estimates before you run anything.
+            Safely apply AI-powered fixes to missing SEO metadata, with preview
+            and token estimates before you run anything.
           </p>
           {/* [ROLES-3] Role visibility label */}
           <p className="mt-1 text-xs text-gray-500">
@@ -2136,7 +2418,11 @@ export default function AutomationPlaybooksPage() {
         </div>
         <button
           type="button"
-          onClick={() => router.push(`/projects/${projectId}/automation/playbooks/entry?source=playbooks_page`)}
+          onClick={() =>
+            router.push(
+              `/projects/${projectId}/automation/playbooks/entry?source=playbooks_page`
+            )
+          }
           className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
         >
           Create playbook
@@ -2149,7 +2435,9 @@ export default function AutomationPlaybooksPage() {
         from={fromParam}
         returnTo={validatedReturnTo || `/projects/${projectId}/playbooks`}
         showingText={scopeBannerShowingText}
-        onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/playbooks`)}
+        onClearFiltersHref={buildClearFiltersHref(
+          `/projects/${projectId}/playbooks`
+        )}
         chips={normalizedScopeResult.chips}
         wasAdjusted={normalizedScopeResult.wasAdjusted}
       />
@@ -2175,11 +2463,13 @@ export default function AutomationPlaybooksPage() {
             </div>
             <div>
               <p className="text-sm font-semibold text-red-800">
-                Missing scope for {getAssetTypeLabel(currentAssetType).plural}. Return to Work Queue.
+                Missing scope for {getAssetTypeLabel(currentAssetType).plural}.
+                Return to Work Queue.
               </p>
               <p className="mt-1 text-xs text-red-700">
-                To run playbooks on {getAssetTypeLabel(currentAssetType).plural}, you must navigate from the Work Queue
-                with a specific scope. This prevents unintended project-wide changes.
+                To run playbooks on {getAssetTypeLabel(currentAssetType).plural}
+                , you must navigate from the Work Queue with a specific scope.
+                This prevents unintended project-wide changes.
               </p>
               <div className="mt-3">
                 <Link
@@ -2214,19 +2504,27 @@ export default function AutomationPlaybooksPage() {
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-blue-900">Scope summary</p>
+              <p className="text-sm font-semibold text-blue-900">
+                Scope summary
+              </p>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
                   {getAssetTypeLabel(currentAssetType).plural}
                 </span>
                 <span className="text-xs text-blue-700">
-                  {currentScopeAssetRefs.slice(0, 3).map((ref) => {
-                    // Extract just the handle part (e.g., 'page_handle:about-us' -> 'about-us')
-                    const parts = ref.split(':');
-                    return parts.length > 1 ? parts[1] : ref;
-                  }).join(', ')}
+                  {currentScopeAssetRefs
+                    .slice(0, 3)
+                    .map((ref) => {
+                      // Extract just the handle part (e.g., 'page_handle:about-us' -> 'about-us')
+                      const parts = ref.split(':');
+                      return parts.length > 1 ? parts[1] : ref;
+                    })
+                    .join(', ')}
                   {currentScopeAssetRefs.length > 3 && (
-                    <span className="text-blue-500"> +{currentScopeAssetRefs.length - 3} more</span>
+                    <span className="text-blue-500">
+                      {' '}
+                      +{currentScopeAssetRefs.length - 3} more
+                    </span>
                   )}
                 </span>
               </div>
@@ -2261,10 +2559,12 @@ export default function AutomationPlaybooksPage() {
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-700">View-only mode</p>
+              <p className="text-sm font-semibold text-gray-700">
+                View-only mode
+              </p>
               <p className="mt-1 text-xs text-gray-500">
-                You are viewing this project as a Viewer. To generate previews or apply changes,
-                ask the project Owner to upgrade your role.
+                You are viewing this project as a Viewer. To generate previews
+                or apply changes, ask the project Owner to upgrade your role.
               </p>
             </div>
           </div>
@@ -2326,13 +2626,79 @@ export default function AutomationPlaybooksPage() {
 
       {/* CNAB-1: Contextual Next-Action Banners */}
       {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] NO_RUN_WITH_ISSUES uses primaryCnabPlaybookId for routing */}
-      {cnabState === 'NO_RUN_WITH_ISSUES' && !cnabDismissed && primaryCnabPlaybookId && (
-        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0">
+      {cnabState === 'NO_RUN_WITH_ISSUES' &&
+        !cnabDismissed &&
+        primaryCnabPlaybookId && (
+          <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <svg
+                    className="h-5 w-5 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7l5 5m0 0l-5 5m5-5H6"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-blue-900">
+                    Next step: Fix missing SEO metadata
+                  </h3>
+                  <p className="mt-1 text-xs text-blue-800">
+                    {primaryCnabPlaybookId === 'missing_seo_title'
+                      ? 'Use Playbooks to safely generate missing SEO titles in bulk. Start with a preview — nothing is applied until you confirm.'
+                      : 'Use Playbooks to safely generate missing SEO descriptions in bulk. Start with a preview — nothing is applied until you confirm.'}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Route to primaryCnabPlaybookId, no AI side effects
+                        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use guardrail + shared scope args
+                        const href = buildPlaybookRunHrefOrNull({
+                          projectId,
+                          playbookId: primaryCnabPlaybookId,
+                          step: 'preview',
+                          source: 'banner',
+                          ...playbookRunScopeForUrl,
+                        });
+                        if (!href) return;
+                        setCnabDismissed(true);
+                        handleNavigate(href);
+                      }}
+                      className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    >
+                      {primaryCnabPlaybookId === 'missing_seo_title'
+                        ? 'Preview missing SEO titles'
+                        : 'Preview missing SEO descriptions'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCnabDismissed(true);
+                        handleNavigate(`/projects/${projectId}/playbooks`);
+                      }}
+                      className="inline-flex items-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
+                    >
+                      How Playbooks work
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCnabDismissed(true)}
+                className="flex-shrink-0 text-blue-500 hover:text-blue-700"
+              >
                 <svg
-                  className="h-5 w-5 text-blue-600"
+                  className="h-4 w-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -2341,77 +2707,13 @@ export default function AutomationPlaybooksPage() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M13 7l5 5m0 0l-5 5m5-5H6"
+                    d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-blue-900">
-                  Next step: Fix missing SEO metadata
-                </h3>
-                <p className="mt-1 text-xs text-blue-800">
-                  {primaryCnabPlaybookId === 'missing_seo_title'
-                    ? 'Use Playbooks to safely generate missing SEO titles in bulk. Start with a preview — nothing is applied until you confirm.'
-                    : 'Use Playbooks to safely generate missing SEO descriptions in bulk. Start with a preview — nothing is applied until you confirm.'}
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Route to primaryCnabPlaybookId, no AI side effects
-                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use guardrail + shared scope args
-                      const href = buildPlaybookRunHrefOrNull({
-                        projectId,
-                        playbookId: primaryCnabPlaybookId,
-                        step: 'preview',
-                        source: 'banner',
-                        ...playbookRunScopeForUrl,
-                      });
-                      if (!href) return;
-                      setCnabDismissed(true);
-                      handleNavigate(href);
-                    }}
-                    className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                  >
-                    {primaryCnabPlaybookId === 'missing_seo_title'
-                      ? 'Preview missing SEO titles'
-                      : 'Preview missing SEO descriptions'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCnabDismissed(true);
-                      handleNavigate(`/projects/${projectId}/playbooks`);
-                    }}
-                    className="inline-flex items-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
-                  >
-                    How Playbooks work
-                  </button>
-                </div>
-              </div>
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setCnabDismissed(true)}
-              className="flex-shrink-0 text-blue-500 hover:text-blue-700"
-            >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
           </div>
-        </div>
-      )}
+        )}
 
       {cnabState === 'DESCRIPTIONS_DONE_TITLES_REMAIN' && !cnabDismissed && (
         <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
@@ -2437,8 +2739,8 @@ export default function AutomationPlaybooksPage() {
                   SEO descriptions updated — next, fix titles
                 </h3>
                 <p className="mt-1 text-xs text-blue-800">
-                  You&apos;ve improved SEO descriptions. Run the titles playbook using the same
-                  safe preview → estimate → apply flow.
+                  You&apos;ve improved SEO descriptions. Run the titles playbook
+                  using the same safe preview → estimate → apply flow.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
@@ -2466,7 +2768,7 @@ export default function AutomationPlaybooksPage() {
                     onClick={() => {
                       setCnabDismissed(true);
                       handleNavigate(
-                        `/projects/${projectId}/products?from=playbook_results`,
+                        `/projects/${projectId}/products?from=playbook_results`
                       );
                     }}
                     className="inline-flex items-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
@@ -2523,8 +2825,8 @@ export default function AutomationPlaybooksPage() {
                   SEO titles updated — next, fix descriptions
                 </h3>
                 <p className="mt-1 text-xs text-blue-800">
-                  You&apos;ve improved SEO titles. Run the descriptions playbook using the same
-                  safe preview → estimate → apply flow.
+                  You&apos;ve improved SEO titles. Run the descriptions playbook
+                  using the same safe preview → estimate → apply flow.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
@@ -2552,7 +2854,7 @@ export default function AutomationPlaybooksPage() {
                     onClick={() => {
                       setCnabDismissed(true);
                       handleNavigate(
-                        `/projects/${projectId}/products?from=playbook_results`,
+                        `/projects/${projectId}/products?from=playbook_results`
                       );
                     }}
                     className="inline-flex items-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
@@ -2609,8 +2911,8 @@ export default function AutomationPlaybooksPage() {
                   SEO metadata is up to date
                 </h3>
                 <p className="mt-1 text-xs text-green-800">
-                  All eligible products have SEO titles and descriptions. You can sync
-                  changes to Shopify or explore other optimizations.
+                  All eligible products have SEO titles and descriptions. You
+                  can sync changes to Shopify or explore other optimizations.
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
@@ -2684,7 +2986,9 @@ export default function AutomationPlaybooksPage() {
             href={`/projects/${projectId}/playbooks`}
             className={`border-b-2 px-1 pb-2 ${
               pathname?.startsWith(`/projects/${projectId}/playbooks`) ||
-              pathname?.startsWith(`/projects/${projectId}/automation/playbooks`)
+              pathname?.startsWith(
+                `/projects/${projectId}/automation/playbooks`
+              )
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
@@ -2728,7 +3032,9 @@ export default function AutomationPlaybooksPage() {
                       : 'bg-gray-100 text-gray-600'
                   }`}
                 >
-                  {isEligible ? 'Pro / Business' : 'Upgrade for bulk automations'}
+                  {isEligible
+                    ? 'Pro / Business'
+                    : 'Upgrade for bulk automations'}
                 </span>
               </div>
               <p className="mb-3 text-sm text-gray-600">{pb.description}</p>
@@ -2757,26 +3063,40 @@ export default function AutomationPlaybooksPage() {
         </div>
       )}
 
-      {selectedDefinition && (
-        isEligibilityEmptyState ? (
+      {selectedDefinition &&
+        (isEligibilityEmptyState ? (
           <div
             className="rounded-lg border border-gray-200 bg-white p-6"
             data-testid="playbook-zero-eligible-empty-state"
           >
             {/* [PLAYBOOK-STEP-CONTINUITY-1] Primary message: "No applicable changes found" */}
-            <h2 className="text-lg font-semibold text-gray-900">No applicable changes found</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              No applicable changes found
+            </h2>
             <p className="mt-2 text-sm text-gray-600">
-              This playbook only applies to {currentAssetType === 'PRODUCTS' ? 'products' : currentAssetType === 'PAGES' ? 'pages' : 'collections'} missing SEO{' '}
-              {selectedDefinition.field === 'seoTitle' ? 'titles' : 'descriptions'} in the current scope.
+              This playbook only applies to{' '}
+              {currentAssetType === 'PRODUCTS'
+                ? 'products'
+                : currentAssetType === 'PAGES'
+                  ? 'pages'
+                  : 'collections'}{' '}
+              missing SEO{' '}
+              {selectedDefinition.field === 'seoTitle'
+                ? 'titles'
+                : 'descriptions'}{' '}
+              in the current scope.
             </p>
             <p className="mt-2 text-sm text-gray-600">
-              Common reasons: items are already optimized, the selected scope is out of date, or Shopify data hasn&apos;t been synced recently.
+              Common reasons: items are already optimized, the selected scope is
+              out of date, or Shopify data hasn&apos;t been synced recently.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-1] Back/Exit path - use canonical /playbooks route */}
               <button
                 type="button"
-                onClick={() => handleNavigate(`/projects/${projectId}/playbooks`)}
+                onClick={() =>
+                  handleNavigate(`/projects/${projectId}/playbooks`)
+                }
                 className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
               >
                 ← Return to Playbooks
@@ -2784,7 +3104,9 @@ export default function AutomationPlaybooksPage() {
               {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-1] Restore test-stable CTA label for PRODUCTS */}
               <button
                 type="button"
-                onClick={() => handleNavigate(`/projects/${projectId}/products`)}
+                onClick={() =>
+                  handleNavigate(`/projects/${projectId}/products`)
+                }
                 className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {currentAssetType === 'PRODUCTS'
@@ -2807,141 +3129,161 @@ export default function AutomationPlaybooksPage() {
           </div>
         ) : (
           <div className="space-y-6">
-          {/* Stepper */}
-          <div data-testid="playbooks-stepper" className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                  activeStep === 1
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700'
-                }`}
-              >
-                1
-              </span>
-              <span
-                className={
-                  activeStep === 1 ? 'font-semibold text-gray-900' : 'text-gray-600'
-                }
-              >
-                Preview
-              </span>
-            </div>
-            <div className="h-px flex-1 bg-gray-200" />
-            <div className="flex items-center gap-2">
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                  activeStep === 2
-                    ? 'bg-blue-600 text-white'
-                    : step2Locked
-                      ? 'bg-gray-200 text-gray-400'
+            {/* Stepper */}
+            <div
+              data-testid="playbooks-stepper"
+              className="flex items-center gap-4 text-sm"
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                    activeStep === 1
+                      ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 text-gray-700'
-                }`}
-                title={step2Locked ? 'Generate preview first' : undefined}
-              >
-                2
-              </span>
-              <span
-                className={
-                  activeStep === 2
-                    ? 'font-semibold text-gray-900'
-                    : step2Locked
-                      ? 'text-gray-400'
+                  }`}
+                >
+                  1
+                </span>
+                <span
+                  className={
+                    activeStep === 1
+                      ? 'font-semibold text-gray-900'
                       : 'text-gray-600'
-                }
-              >
-                Estimate
-              </span>
+                  }
+                >
+                  Preview
+                </span>
+              </div>
+              <div className="h-px flex-1 bg-gray-200" />
+              <div className="flex items-center gap-2">
+                <span
+                  className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                    activeStep === 2
+                      ? 'bg-blue-600 text-white'
+                      : step2Locked
+                        ? 'bg-gray-200 text-gray-400'
+                        : 'bg-gray-200 text-gray-700'
+                  }`}
+                  title={step2Locked ? 'Generate preview first' : undefined}
+                >
+                  2
+                </span>
+                <span
+                  className={
+                    activeStep === 2
+                      ? 'font-semibold text-gray-900'
+                      : step2Locked
+                        ? 'text-gray-400'
+                        : 'text-gray-600'
+                  }
+                >
+                  Estimate
+                </span>
+              </div>
+              <div className="h-px flex-1 bg-gray-200" />
+              <div className="flex items-center gap-2">
+                <span
+                  className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                    activeStep === 3
+                      ? 'bg-blue-600 text-white'
+                      : step3Locked
+                        ? 'bg-gray-200 text-gray-400'
+                        : 'bg-gray-200 text-gray-700'
+                  }`}
+                  title={step3Locked ? 'Generate preview first' : undefined}
+                >
+                  3
+                </span>
+                <span
+                  className={
+                    activeStep === 3
+                      ? 'font-semibold text-gray-900'
+                      : step3Locked
+                        ? 'text-gray-400'
+                        : 'text-gray-600'
+                  }
+                >
+                  Apply
+                </span>
+              </div>
             </div>
-            <div className="h-px flex-1 bg-gray-200" />
-            <div className="flex items-center gap-2">
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                  activeStep === 3
-                    ? 'bg-blue-600 text-white'
-                    : step3Locked
-                      ? 'bg-gray-200 text-gray-400'
-                      : 'bg-gray-200 text-gray-700'
-                }`}
-                title={step3Locked ? 'Generate preview first' : undefined}
-              >
-                3
-              </span>
-              <span
-                className={
-                  activeStep === 3
-                    ? 'font-semibold text-gray-900'
-                    : step3Locked
-                      ? 'text-gray-400'
-                      : 'text-gray-600'
-                }
-              >
-                Apply
-              </span>
-            </div>
-          </div>
 
-          {/* AI-USAGE-1: AI Usage Summary Chip */}
-          {!aiUsageLoading && aiUsageSummary && (aiUsageSummary.previewRuns > 0 || aiUsageSummary.draftGenerateRuns > 0) && (
-            <div className="rounded-lg border border-purple-100 bg-purple-50 p-3 text-sm">
-              <p className="text-xs font-semibold text-purple-900">
-                AI usage this month
-              </p>
-              <p className="mt-1 text-xs text-purple-700">
-                Previews and drafts generated: {aiUsageSummary.previewRuns + aiUsageSummary.draftGenerateRuns}
-              </p>
-              {/* CACHE/REUSE v2: Show AI runs avoided */}
-              {aiUsageSummary.aiRunsAvoided > 0 && (
-                <p className="mt-0.5 text-xs text-green-700">
-                  AI runs avoided (reused): {aiUsageSummary.aiRunsAvoided}
-                </p>
+            {/* AI-USAGE-1: AI Usage Summary Chip */}
+            {!aiUsageLoading &&
+              aiUsageSummary &&
+              (aiUsageSummary.previewRuns > 0 ||
+                aiUsageSummary.draftGenerateRuns > 0) && (
+                <div className="rounded-lg border border-purple-100 bg-purple-50 p-3 text-sm">
+                  <p className="text-xs font-semibold text-purple-900">
+                    AI usage this month
+                  </p>
+                  <p className="mt-1 text-xs text-purple-700">
+                    Previews and drafts generated:{' '}
+                    {aiUsageSummary.previewRuns +
+                      aiUsageSummary.draftGenerateRuns}
+                  </p>
+                  {/* CACHE/REUSE v2: Show AI runs avoided */}
+                  {aiUsageSummary.aiRunsAvoided > 0 && (
+                    <p className="mt-0.5 text-xs text-green-700">
+                      AI runs avoided (reused): {aiUsageSummary.aiRunsAvoided}
+                    </p>
+                  )}
+                  {aiUsageSummary.totalAiRuns > 0 && (
+                    <p className="mt-0.5 text-xs text-purple-600">
+                      Apply uses saved drafts only — no new AI runs.
+                    </p>
+                  )}
+                </div>
               )}
-              {aiUsageSummary.totalAiRuns > 0 && (
-                <p className="mt-0.5 text-xs text-purple-600">
-                  Apply uses saved drafts only — no new AI runs.
+
+            {(flowState === 'APPLY_COMPLETED' ||
+              flowState === 'APPLY_STOPPED') && (
+              <div className="rounded-lg border border-green-100 bg-green-50 p-3 text-sm text-green-800">
+                <p className="text-sm font-semibold text-green-900">
+                  {flowState === 'APPLY_COMPLETED'
+                    ? 'Playbook run completed'
+                    : 'Playbook stopped safely'}
                 </p>
-              )}
-            </div>
-          )}
+                <p className="mt-1 text-xs">
+                  Review the results below, then view updated products or sync
+                  changes to Shopify.
+                </p>
+              </div>
+            )}
 
-          {(flowState === 'APPLY_COMPLETED' || flowState === 'APPLY_STOPPED') && (
-            <div className="rounded-lg border border-green-100 bg-green-50 p-3 text-sm text-green-800">
-              <p className="text-sm font-semibold text-green-900">
-                {flowState === 'APPLY_COMPLETED'
-                  ? 'Playbook run completed'
-                  : 'Playbook stopped safely'}
-              </p>
-              <p className="mt-1 text-xs">
-                Review the results below, then view updated products or sync changes to Shopify.
-              </p>
-            </div>
-          )}
-
-          {/* Step 1: Preview */}
-          <section className="rounded-lg border border-gray-200 bg-white p-4">
-            <>
-              <div className="mb-3 flex items-center justify-between gap-2">
+            {/* Step 1: Preview */}
+            <section className="rounded-lg border border-gray-200 bg-white p-4">
+              <>
+                <div className="mb-3 flex items-center justify-between gap-2">
                   <div>
                     <h2 className="text-sm font-semibold text-gray-900">
                       Step 1 – Preview changes
                     </h2>
                     <p className="text-xs text-gray-600">
-                      Generate a preview for a few sample products. No changes are
-                      saved during this step.
+                      Generate a preview for a few sample products. No changes
+                      are saved during this step.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={handleGeneratePreview}
-                    disabled={loadingPreview || planIsFree || !canGenerateDrafts}
-                    title={!canGenerateDrafts ? 'Viewer role cannot generate previews' : undefined}
+                    disabled={
+                      loadingPreview || planIsFree || !canGenerateDrafts
+                    }
+                    title={
+                      !canGenerateDrafts
+                        ? 'Viewer role cannot generate previews'
+                        : undefined
+                    }
                     className={`inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-50 ${
                       hasPreview
                         ? 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
                         : 'border border-transparent bg-blue-600 text-white hover:bg-blue-700'
                     }`}
                   >
-                    {loadingPreview ? 'Generating preview…' : 'Generate preview (uses AI)'}
+                    {loadingPreview
+                      ? 'Generating preview…'
+                      : 'Generate preview (uses AI)'}
                   </button>
                 </div>
                 {/* [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI usage disclosure for generation */}
@@ -3014,8 +3356,8 @@ export default function AutomationPlaybooksPage() {
                         Playbook rules
                       </h3>
                       <p className="mt-1 text-[11px] text-gray-600">
-                        Rules shape the AI drafts you preview and apply. Rules do not
-                        change Shopify until you Apply.
+                        Rules shape the AI drafts you preview and apply. Rules
+                        do not change Shopify until you Apply.
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -3125,7 +3467,8 @@ export default function AutomationPlaybooksPage() {
                         placeholder="e.g. 60"
                       />
                       <p className="mt-1 text-[11px] text-gray-500">
-                        Enforced by trimming the AI suggestion to this many characters.
+                        Enforced by trimming the AI suggestion to this many
+                        characters.
                       </p>
                     </div>
                   </div>
@@ -3146,7 +3489,8 @@ export default function AutomationPlaybooksPage() {
                       placeholder={'e.g.\nclick here\nbest ever'}
                     />
                     <p className="mt-1 text-[11px] text-gray-500">
-                      Forbidden phrases are highlighted in preview but not removed in v1.
+                      Forbidden phrases are highlighted in preview but not
+                      removed in v1.
                     </p>
                   </div>
                 </div>
@@ -3158,8 +3502,8 @@ export default function AutomationPlaybooksPage() {
                 </div>
                 {planIsFree && (
                   <p className="mb-3 text-xs text-amber-700">
-                    Bulk Playbooks are gated on the Free plan. Upgrade to
-                    Pro to unlock bulk metadata fixes.
+                    Bulk Playbooks are gated on the Free plan. Upgrade to Pro to
+                    unlock bulk metadata fixes.
                   </p>
                 )}
                 {loadingPreview && (
@@ -3241,70 +3585,81 @@ export default function AutomationPlaybooksPage() {
                             <div className="rounded border border-gray-200 bg-white p-2 text-gray-800">
                               {selectedDefinition.field === 'seoTitle'
                                 ? sample.suggestedTitle || (
-                                    <span className="text-gray-400">No suggestion</span>
+                                    <span className="text-gray-400">
+                                      No suggestion
+                                    </span>
                                   )
                                 : sample.suggestedDescription || (
-                                    <span className="text-gray-400">No suggestion</span>
+                                    <span className="text-gray-400">
+                                      No suggestion
+                                    </span>
                                   )}
                             </div>
                           </div>
                         </div>
-                        {sample.ruleWarnings && sample.ruleWarnings.length > 0 && (
-                          <p className="mt-2 text-[11px] text-amber-700">
-                            Rules applied:{' '}
-                            {sample.ruleWarnings
-                              .map((warning) =>
-                                warning === 'trimmed_to_max_length'
-                                  ? 'Trimmed to max length'
-                                  : warning === 'forbidden_phrase_detected'
-                                    ? 'Forbidden phrase detected'
-                                    : warning,
-                              )
-                              .join(', ')}
-                            .
-                          </p>
-                        )}
+                        {sample.ruleWarnings &&
+                          sample.ruleWarnings.length > 0 && (
+                            <p className="mt-2 text-[11px] text-amber-700">
+                              Rules applied:{' '}
+                              {sample.ruleWarnings
+                                .map((warning) =>
+                                  warning === 'trimmed_to_max_length'
+                                    ? 'Trimmed to max length'
+                                    : warning === 'forbidden_phrase_detected'
+                                      ? 'Forbidden phrase detected'
+                                      : warning
+                                )
+                                .join(', ')}
+                              .
+                            </p>
+                          )}
                       </div>
                     ))}
                   </div>
                 )}
                 {hasPreview && showContinueBlockedPanel && (
                   <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                    <p className="font-medium">Why you can&apos;t continue yet</p>
+                    <p className="font-medium">
+                      Why you can&apos;t continue yet
+                    </p>
                     <ul className="mt-2 list-disc space-y-1 pl-5">
                       {continueBlockers.includes('preview_stale') && (
                         <li>
-                          Rules changed since this preview. Regenerate preview to
-                          continue safely.
+                          Rules changed since this preview. Regenerate preview
+                          to continue safely.
                         </li>
                       )}
                       {continueBlockers.includes('plan_not_eligible') && (
                         <li>
-                          Your current plan doesn&apos;t support Playbooks
-                          for bulk fixes.
+                          Your current plan doesn&apos;t support Playbooks for
+                          bulk fixes.
                         </li>
                       )}
                       {continueBlockers.includes('estimate_not_eligible') && (
                         <li>
-                          {estimateBlockingReasons.includes('ai_daily_limit_reached')
+                          {estimateBlockingReasons.includes(
+                            'ai_daily_limit_reached'
+                          )
                             ? 'Daily AI limit reached for product optimization. Try again tomorrow or upgrade your plan.'
                             : estimateBlockingReasons.includes(
-                                  'token_cap_would_be_exceeded',
+                                  'token_cap_would_be_exceeded'
                                 )
                               ? 'Estimated token usage would exceed your remaining capacity for today. Reduce scope or try again tomorrow.'
                               : estimateBlockingReasons.includes(
-                                    'no_affected_products',
+                                    'no_affected_products'
                                   )
-                                ? "No eligible items right now."
-                                : estimateBlockingReasons.includes('plan_not_eligible')
+                                ? 'No eligible items right now.'
+                                : estimateBlockingReasons.includes(
+                                      'plan_not_eligible'
+                                    )
                                   ? 'This playbook requires a Pro or Business plan. Upgrade to unlock bulk automations.'
                                   : 'This playbook cannot run with the current estimate. Adjust your setup to continue.'}
                         </li>
                       )}
                       {continueBlockers.includes('estimate_missing') && (
                         <li>
-                          Estimate needed to continue. Recalculate estimate from your
-                          current preview.
+                          Estimate needed to continue. Recalculate estimate from
+                          your current preview.
                         </li>
                       )}
                     </ul>
@@ -3363,874 +3718,1027 @@ export default function AutomationPlaybooksPage() {
                     </button>
                   )}
                 </div>
-            </>
-          </section>
+              </>
+            </section>
 
-          {/* Step 2: Estimate */}
-          <section
-            className={`rounded-lg border border-gray-200 bg-white p-4 ${
-              step2Locked ? 'opacity-50' : ''
-            }`}
-          >
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <div>
-                <h2 className="text-sm font-semibold text-gray-900">
-                  Step 2 – Estimate impact & tokens
-                </h2>
-                <p className="text-xs text-gray-600">
-                  Estimate updates automatically from your latest preview. Review how
-                  many products will be updated and approximate token usage before you
-                  apply.
-                </p>
-              </div>
-            </div>
-            {loadingEstimate && (
-              <div className="rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
-                Calculating playbook estimate…
-              </div>
-            )}
-            {!loadingEstimate && estimate && (
-              <div className="space-y-3 text-sm text-gray-700">
-                <div className="grid gap-3 md:grid-cols-3">
-                  <div className="rounded border border-gray-100 bg-gray-50 p-3">
-                    <div className="text-xs text-gray-500">Products to update</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {estimate.totalAffectedProducts}
-                    </div>
-                  </div>
-                  <div className="rounded border border-gray-100 bg-gray-50 p-3">
-                    <div className="text-xs text-gray-500">
-                      Estimated token usage (approx)
-                    </div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {estimate.estimatedTokens.toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="rounded border border-gray-100 bg-gray-50 p-3">
-                    <div className="text-xs text-gray-500">Plan & daily capacity</div>
-                    <div className="text-xs text-gray-700">
-                      Plan:{' '}
-                      <span className="font-medium">
-                        {estimate.planId.toUpperCase()}
-                      </span>
-                      <br />
-                      Daily AI limit:{' '}
-                      {estimate.aiDailyLimit.limit === -1
-                        ? 'Unlimited'
-                        : `${estimate.aiDailyLimit.used}/${estimate.aiDailyLimit.limit}`}
-                    </div>
-                  </div>
-                </div>
-                {estimateBlockingReasons.length > 0 && (
-                  <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
-                    {estimateBlockingReasons.includes('plan_not_eligible') && (
-                      <li>
-                        This playbook requires a Pro or Business plan. Upgrade to
-                        unlock bulk automations.
-                      </li>
-                    )}
-                    {estimateBlockingReasons.includes('no_affected_products') && (
-                      <li>No eligible items right now.</li>
-                    )}
-                    {estimateBlockingReasons.includes('ai_daily_limit_reached') && (
-                      <li>
-                        Daily AI limit reached for product optimization. Try again
-                        tomorrow or upgrade your plan.
-                      </li>
-                    )}
-                    {estimateBlockingReasons.includes(
-                      'token_cap_would_be_exceeded',
-                    ) && (
-                      <li>
-                        Estimated token usage would exceed your remaining capacity for
-                        today. Reduce scope or try again tomorrow.
-                      </li>
-                    )}
-                  </ul>
-                )}
-                {estimate.canProceed && (
-                  <p className="mt-2 text-xs text-green-700">
-                    This playbook can run safely within your current plan and daily AI
-                    limits.
+            {/* Step 2: Estimate */}
+            <section
+              className={`rounded-lg border border-gray-200 bg-white p-4 ${
+                step2Locked ? 'opacity-50' : ''
+              }`}
+            >
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-900">
+                    Step 2 – Estimate impact & tokens
+                  </h2>
+                  <p className="text-xs text-gray-600">
+                    Estimate updates automatically from your latest preview.
+                    Review how many products will be updated and approximate
+                    token usage before you apply.
                   </p>
-                )}
-                <p className="mt-2 text-xs text-gray-500">{rulesSummaryLabel}</p>
-                {/* [PLAYBOOK-STEP-CONTINUITY-1] Draft status blocker evaluation */}
-                {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-2] Permission-safe blocker CTAs */}
-                {estimate.draftStatus === 'EXPIRED' && (
-                  <div className="mt-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                    <div className="flex items-start gap-2">
-                      <svg className="h-4 w-4 flex-shrink-0 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <div>
-                        <p className="font-semibold">Draft expired</p>
-                        <p className="mt-0.5">
-                          The preview draft has expired. Regenerate the preview to continue with apply.
-                        </p>
-                        {canGenerateDrafts ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (selectedPlaybookId) {
-                                loadPreview(selectedPlaybookId);
-                              }
-                            }}
-                            className="mt-2 inline-flex items-center rounded-md bg-amber-600 px-2 py-1 text-xs font-medium text-white hover:bg-amber-700"
-                          >
-                            Regenerate Preview
-                          </button>
-                        ) : (
-                          <p className="mt-2 text-xs text-gray-600">
-                            Viewer role cannot generate previews.{' '}
-                            <Link
-                              href={`/projects/${projectId}/settings/members`}
-                              className="text-blue-600 hover:underline"
-                            >
-                              Request access
-                            </Link>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {estimate.draftStatus === 'FAILED' && (
-                  <div className="mt-3 rounded border border-red-200 bg-red-50 p-3 text-xs text-red-800">
-                    <div className="flex items-start gap-2">
-                      <svg className="h-4 w-4 flex-shrink-0 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                      <div>
-                        <p className="font-semibold">Draft generation failed</p>
-                        <p className="mt-0.5">
-                          The preview draft could not be generated. Please try regenerating the preview.
-                        </p>
-                        {canGenerateDrafts ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (selectedPlaybookId) {
-                                loadPreview(selectedPlaybookId);
-                              }
-                            }}
-                            className="mt-2 inline-flex items-center rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700"
-                          >
-                            Retry Preview
-                          </button>
-                        ) : (
-                          <p className="mt-2 text-xs text-gray-600">
-                            Viewer role cannot generate previews.{' '}
-                            <Link
-                              href={`/projects/${projectId}/settings/members`}
-                              className="text-blue-600 hover:underline"
-                            >
-                              Request access
-                            </Link>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-1] Blocker panel for draft missing/unknown */}
-                {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-2] Permission-safe blocker CTA */}
-                {!estimate.draftStatus && (
-                  <div className="mt-3 rounded border border-gray-200 bg-gray-50 p-3 text-xs text-gray-800">
-                    <div className="flex items-start gap-2">
-                      <svg className="h-4 w-4 flex-shrink-0 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <div>
-                        <p className="font-semibold">No draft available</p>
-                        <p className="mt-0.5">
-                          Generate a preview first to create a draft before applying.
-                        </p>
-                        {canGenerateDrafts ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (selectedPlaybookId) {
-                                loadPreview(selectedPlaybookId);
-                              }
-                            }}
-                            className="mt-2 inline-flex items-center rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700"
-                          >
-                            Generate Preview
-                          </button>
-                        ) : (
-                          <p className="mt-2 text-xs text-gray-600">
-                            Viewer role cannot generate previews.{' '}
-                            <Link
-                              href={`/projects/${projectId}/settings/members`}
-                              className="text-blue-600 hover:underline"
-                            >
-                              Request access
-                            </Link>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
-            )}
-            {/* [PLAYBOOK-STEP-CONTINUITY-1] Apply readiness / blocker evaluation
+              {loadingEstimate && (
+                <div className="rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                  Calculating playbook estimate…
+                </div>
+              )}
+              {!loadingEstimate && estimate && (
+                <div className="space-y-3 text-sm text-gray-700">
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <div className="rounded border border-gray-100 bg-gray-50 p-3">
+                      <div className="text-xs text-gray-500">
+                        Products to update
+                      </div>
+                      <div className="text-lg font-semibold text-gray-900">
+                        {estimate.totalAffectedProducts}
+                      </div>
+                    </div>
+                    <div className="rounded border border-gray-100 bg-gray-50 p-3">
+                      <div className="text-xs text-gray-500">
+                        Estimated token usage (approx)
+                      </div>
+                      <div className="text-lg font-semibold text-gray-900">
+                        {estimate.estimatedTokens.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="rounded border border-gray-100 bg-gray-50 p-3">
+                      <div className="text-xs text-gray-500">
+                        Plan & daily capacity
+                      </div>
+                      <div className="text-xs text-gray-700">
+                        Plan:{' '}
+                        <span className="font-medium">
+                          {estimate.planId.toUpperCase()}
+                        </span>
+                        <br />
+                        Daily AI limit:{' '}
+                        {estimate.aiDailyLimit.limit === -1
+                          ? 'Unlimited'
+                          : `${estimate.aiDailyLimit.used}/${estimate.aiDailyLimit.limit}`}
+                      </div>
+                    </div>
+                  </div>
+                  {estimateBlockingReasons.length > 0 && (
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
+                      {estimateBlockingReasons.includes(
+                        'plan_not_eligible'
+                      ) && (
+                        <li>
+                          This playbook requires a Pro or Business plan. Upgrade
+                          to unlock bulk automations.
+                        </li>
+                      )}
+                      {estimateBlockingReasons.includes(
+                        'no_affected_products'
+                      ) && <li>No eligible items right now.</li>}
+                      {estimateBlockingReasons.includes(
+                        'ai_daily_limit_reached'
+                      ) && (
+                        <li>
+                          Daily AI limit reached for product optimization. Try
+                          again tomorrow or upgrade your plan.
+                        </li>
+                      )}
+                      {estimateBlockingReasons.includes(
+                        'token_cap_would_be_exceeded'
+                      ) && (
+                        <li>
+                          Estimated token usage would exceed your remaining
+                          capacity for today. Reduce scope or try again
+                          tomorrow.
+                        </li>
+                      )}
+                    </ul>
+                  )}
+                  {estimate.canProceed && (
+                    <p className="mt-2 text-xs text-green-700">
+                      This playbook can run safely within your current plan and
+                      daily AI limits.
+                    </p>
+                  )}
+                  <p className="mt-2 text-xs text-gray-500">
+                    {rulesSummaryLabel}
+                  </p>
+                  {/* [PLAYBOOK-STEP-CONTINUITY-1] Draft status blocker evaluation */}
+                  {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-2] Permission-safe blocker CTAs */}
+                  {estimate.draftStatus === 'EXPIRED' && (
+                    <div className="mt-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                      <div className="flex items-start gap-2">
+                        <svg
+                          className="h-4 w-4 flex-shrink-0 text-amber-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <div>
+                          <p className="font-semibold">Draft expired</p>
+                          <p className="mt-0.5">
+                            The preview draft has expired. Regenerate the
+                            preview to continue with apply.
+                          </p>
+                          {canGenerateDrafts ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (selectedPlaybookId) {
+                                  loadPreview(selectedPlaybookId);
+                                }
+                              }}
+                              className="mt-2 inline-flex items-center rounded-md bg-amber-600 px-2 py-1 text-xs font-medium text-white hover:bg-amber-700"
+                            >
+                              Regenerate Preview
+                            </button>
+                          ) : (
+                            <p className="mt-2 text-xs text-gray-600">
+                              Viewer role cannot generate previews.{' '}
+                              <Link
+                                href={`/projects/${projectId}/settings/members`}
+                                className="text-blue-600 hover:underline"
+                              >
+                                Request access
+                              </Link>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {estimate.draftStatus === 'FAILED' && (
+                    <div className="mt-3 rounded border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+                      <div className="flex items-start gap-2">
+                        <svg
+                          className="h-4 w-4 flex-shrink-0 text-red-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                          />
+                        </svg>
+                        <div>
+                          <p className="font-semibold">
+                            Draft generation failed
+                          </p>
+                          <p className="mt-0.5">
+                            The preview draft could not be generated. Please try
+                            regenerating the preview.
+                          </p>
+                          {canGenerateDrafts ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (selectedPlaybookId) {
+                                  loadPreview(selectedPlaybookId);
+                                }
+                              }}
+                              className="mt-2 inline-flex items-center rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700"
+                            >
+                              Retry Preview
+                            </button>
+                          ) : (
+                            <p className="mt-2 text-xs text-gray-600">
+                              Viewer role cannot generate previews.{' '}
+                              <Link
+                                href={`/projects/${projectId}/settings/members`}
+                                className="text-blue-600 hover:underline"
+                              >
+                                Request access
+                              </Link>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-1] Blocker panel for draft missing/unknown */}
+                  {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-2] Permission-safe blocker CTA */}
+                  {!estimate.draftStatus && (
+                    <div className="mt-3 rounded border border-gray-200 bg-gray-50 p-3 text-xs text-gray-800">
+                      <div className="flex items-start gap-2">
+                        <svg
+                          className="h-4 w-4 flex-shrink-0 text-gray-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <div>
+                          <p className="font-semibold">No draft available</p>
+                          <p className="mt-0.5">
+                            Generate a preview first to create a draft before
+                            applying.
+                          </p>
+                          {canGenerateDrafts ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (selectedPlaybookId) {
+                                  loadPreview(selectedPlaybookId);
+                                }
+                              }}
+                              className="mt-2 inline-flex items-center rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700"
+                            >
+                              Generate Preview
+                            </button>
+                          ) : (
+                            <p className="mt-2 text-xs text-gray-600">
+                              Viewer role cannot generate previews.{' '}
+                              <Link
+                                href={`/projects/${projectId}/settings/members`}
+                                className="text-blue-600 hover:underline"
+                              >
+                                Request access
+                              </Link>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {/* [PLAYBOOK-STEP-CONTINUITY-1] Apply readiness / blocker evaluation
                 EXACTLY ONE outcome at the end of Step 2:
                 A) Actionable items exist + draft is valid → show "Continue to Apply"
                 B) No actionable items → handled by isEligibilityEmptyState (zero-eligible empty state)
                 C) Blocked by permission/scope → handled by role capability checks + inline notices
                 D) Draft missing/invalid/expired/failed → show blocker panel above, hide "Continue to Apply"
             */}
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() =>
-                  setFlowState(hasPreview ? 'PREVIEW_GENERATED' : 'PREVIEW_READY')
-                }
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-              >
-                Back to Preview
-              </button>
-              {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-1] Only show "Continue to Apply" when draft has explicit valid status (READY or PARTIAL) */}
-              {(estimate?.draftStatus === 'READY' || estimate?.draftStatus === 'PARTIAL') && (
+              <div className="mt-4 flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={handleNextStep}
-                  disabled={
-                    flowState !== 'ESTIMATE_READY' ||
-                    step2Locked ||
-                    !estimate ||
-                    !estimate.canProceed ||
-                    loadingEstimate
+                  onClick={() =>
+                    setFlowState(
+                      hasPreview ? 'PREVIEW_GENERATED' : 'PREVIEW_READY'
+                    )
                   }
-                  className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
                 >
-                  Continue to Apply
+                  Back to Preview
                 </button>
-              )}
-            </div>
-          </section>
-
-          {/* Step 3: Apply */}
-          {/* [PLAYBOOK-STEP-CONTINUITY-1] tabIndex for focus accessibility on scroll */}
-          <section
-            id="automation-playbook-apply-step"
-            tabIndex={-1}
-            className="rounded-lg border border-gray-200 bg-white p-4 focus:outline-none"
-          >
-            <div className="mb-3">
-              <h2 className="text-sm font-semibold text-gray-900">
-                Step 3 – Apply playbook
-              </h2>
-              <p className="text-xs text-gray-600">
-                Confirm that you want EngineO.ai to write AI-generated SEO{' '}
-                {selectedDefinition.field === 'seoTitle' ? 'titles' : 'descriptions'}{' '}
-                for the affected products.
-              </p>
-            </div>
-            {rules.enabled && (
-              <p className="mb-3 text-xs text-gray-600">
-                These drafts were generated using your Playbook rules.
-              </p>
-            )}
-            {rules.enabled &&
-              previewSamples.some(
-                (sample) => sample.ruleWarnings && sample.ruleWarnings.length > 0,
-              ) && (
-                <div className="mb-3 rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
-                  Some suggestions were trimmed or flagged to fit your rules. Review
-                  the preview before applying.
-                </div>
-              )}
-            {/* Inline error panels for 409 Conflict errors */}
-            {applyInlineError?.code === 'PLAYBOOK_RULES_CHANGED' && (
-              <div className="mb-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                <div className="flex items-start gap-2">
-                  <svg
-                    className="h-4 w-4 flex-shrink-0 text-amber-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                  <div>
-                    <p className="font-semibold">Rules changed since preview</p>
-                    <p className="mt-0.5">
-                      Your playbook rules have changed since the preview was generated.
-                      Regenerate the preview to see updated suggestions before applying.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        setApplyInlineError(null);
-                        if (!selectedPlaybookId) return;
-                        const ok = await loadPreview(selectedPlaybookId);
-                        if (ok) {
-                          setFlowState('PREVIEW_GENERATED');
-                        }
-                      }}
-                      disabled={loadingPreview}
-                      className="mt-2 inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Regenerate preview (uses AI)
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            {applyInlineError?.code === 'PLAYBOOK_SCOPE_INVALID' && (
-              <div className="mb-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                <div className="flex items-start gap-2">
-                  <svg
-                    className="h-4 w-4 flex-shrink-0 text-amber-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                  <div>
-                    <p className="font-semibold">Product scope changed</p>
-                    <p className="mt-0.5">
-                      The set of affected products has changed since the preview was generated
-                      (products may have been added, removed, or updated). Regenerate the preview
-                      to work with the current product set.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        setApplyInlineError(null);
-                        if (!selectedPlaybookId) return;
-                        const ok = await loadPreview(selectedPlaybookId);
-                        if (ok) {
-                          setFlowState('PREVIEW_GENERATED');
-                        }
-                      }}
-                      disabled={loadingPreview}
-                      className="mt-2 inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Regenerate preview (uses AI)
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            {applyInlineError?.code === 'PLAYBOOK_DRAFT_NOT_FOUND' && (
-              <div className="mb-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                <div className="flex items-start gap-2">
-                  <svg
-                    className="h-4 w-4 flex-shrink-0 text-amber-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                  <div>
-                    <p className="font-semibold">Draft not found</p>
-                    <p className="mt-0.5">
-                      No draft was found for this playbook configuration. Generate a preview
-                      first to create a draft before applying.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        setApplyInlineError(null);
-                        if (!selectedPlaybookId) return;
-                        const ok = await loadPreview(selectedPlaybookId);
-                        if (ok) {
-                          setFlowState('PREVIEW_GENERATED');
-                        }
-                      }}
-                      disabled={loadingPreview || !canGenerateDrafts}
-                      title={!canGenerateDrafts ? 'Viewer role cannot generate previews' : undefined}
-                      className="mt-2 inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Generate preview (uses AI)
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            {applyInlineError?.code === 'PLAYBOOK_DRAFT_EXPIRED' && (
-              <div className="mb-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                <div className="flex items-start gap-2">
-                  <svg
-                    className="h-4 w-4 flex-shrink-0 text-amber-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                  <div>
-                    <p className="font-semibold">Draft expired</p>
-                    <p className="mt-0.5">
-                      The draft for this playbook has expired. Regenerate the preview to create
-                      a fresh draft before applying.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        setApplyInlineError(null);
-                        if (!selectedPlaybookId) return;
-                        const ok = await loadPreview(selectedPlaybookId);
-                        if (ok) {
-                          setFlowState('PREVIEW_GENERATED');
-                        }
-                      }}
-                      disabled={loadingPreview}
-                      className="mt-2 inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Regenerate preview (uses AI)
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            <div className="mb-3 rounded border border-gray-100 bg-gray-50 p-3 text-xs text-gray-700">
-              <p>
-                This playbook will attempt to update up to{' '}
-                <span className="font-semibold">
-                  {estimate?.totalAffectedProducts ?? 0}
-                </span>{' '}
-                product(s) where{' '}
-                <span className="font-mono">{selectedDefinition.field}</span> is
-                missing.
-              </p>
-              <p className="mt-1">
-                Changes are applied sequentially in small batches, respecting your
-                daily AI limits. If the daily limit is reached mid-run, remaining
-                products will be skipped.
-              </p>
-            </div>
-            {/* Trust contract note */}
-            <p className="mb-3 text-[11px] text-gray-500">
-              EngineO.ai validates that your rules and product scope haven&apos;t changed since
-              the preview. If they have, you&apos;ll be asked to regenerate the preview before
-              applying.
-            </p>
-            <label className="mb-3 flex items-start gap-2 text-xs text-gray-700">
-              <input
-                type="checkbox"
-                checked={confirmApply}
-                onChange={(e) => setConfirmApply(e.target.checked)}
-                className="mt-0.5 h-3 w-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span>
-                I understand that this will write AI-generated SEO{' '}
-                {selectedDefinition.field === 'seoTitle'
-                  ? 'titles'
-                  : 'descriptions'}{' '}
-                directly to my products for the affected items above.
-              </span>
-            </label>
-            {applying && (
-              <div className="mb-3 rounded border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
-                Applying Automation Playbook… This may take a moment for larger
-                catalogs.
-              </div>
-            )}
-            {applyResult && (
-              <div className="mb-3 space-y-3">
-                {/* Summary */}
-                <div className="rounded border border-green-200 bg-green-50 p-3 text-xs text-green-800">
-                  <p>
-                    Updated products:{' '}
-                    <span className="font-semibold">{applyResult.updatedCount}</span>
-                  </p>
-                  <p>
-                    Skipped products:{' '}
-                    <span className="font-semibold">{applyResult.skippedCount}</span>
-                  </p>
-                  <p>
-                    Attempted:{' '}
-                    <span className="font-semibold">{applyResult.attemptedCount}</span>{' '}
-                    / {applyResult.totalAffectedProducts}
-                  </p>
-                </div>
-                {/* Stopped safely banner */}
-                {applyResult.stopped && (
-                  <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                    <div className="flex items-start gap-2">
-                      <svg
-                        className="h-4 w-4 flex-shrink-0 text-amber-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                        />
-                      </svg>
-                      <div>
-                        <p className="font-semibold">Stopped safely</p>
-                        <p className="mt-0.5">
-                          {applyResult.limitReached
-                            ? 'Daily AI limit was reached during execution. Remaining products were not updated.'
-                            : `Playbook stopped due to: ${applyResult.failureReason || 'Unknown error'}`}
-                        </p>
-                        {applyResult.stoppedAtProductId && (
-                          <p className="mt-1">
-                            Stopped at product:{' '}
-                            <Link
-                              href={`/projects/${projectId}/products/${applyResult.stoppedAtProductId}`}
-                              className="font-medium text-amber-700 underline hover:text-amber-900"
-                            >
-                              {products.find((p) => p.id === applyResult.stoppedAtProductId)?.title ||
-                                applyResult.stoppedAtProductId}
-                            </Link>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {/* Skipped products warning */}
-                {applyResult.skippedCount > 0 && !applyResult.stopped && (
-                  <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-                    <div className="flex items-start gap-2">
-                      <svg
-                        className="h-4 w-4 flex-shrink-0 text-amber-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <div>
-                        <p className="font-semibold">
-                          {applyResult.skippedCount} product(s) skipped
-                        </p>
-                        <p className="mt-0.5">
-                          Some products were skipped because they already had valid SEO{' '}
-                          {selectedDefinition?.field === 'seoTitle'
-                            ? 'titles'
-                            : 'descriptions'}{' '}
-                          or encountered validation issues. View per-product results below for
-                          details.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {/* Per-item results panel */}
-                {applyResult.results && applyResult.results.length > 0 && (
-                  <details className="rounded border border-gray-200 bg-gray-50">
-                    <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100">
-                      View per-product results ({applyResult.results.length} items)
-                    </summary>
-                    <div className="max-h-64 overflow-y-auto border-t border-gray-200">
-                      <table className="w-full text-xs">
-                        <thead className="sticky top-0 bg-gray-100">
-                          <tr>
-                            <th className="px-3 py-1.5 text-left font-medium text-gray-600">Product</th>
-                            <th className="px-3 py-1.5 text-left font-medium text-gray-600">Status</th>
-                            <th className="px-3 py-1.5 text-left font-medium text-gray-600">Message</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {applyResult.results.map((item) => {
-                            const product = products.find((p) => p.id === item.productId);
-                            return (
-                              <tr key={item.productId} className="border-t border-gray-100">
-                                <td className="px-3 py-1.5">
-                                  {item.productId === 'LIMIT_REACHED' ? (
-                                    <span className="text-gray-500">—</span>
-                                  ) : (
-                                    (() => {
-                                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Build results context URL for product deep link with canonical route
-                                      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use shared scope args via playbookRunScopeForUrl
-                                      const returnToPath = buildPlaybookRunHref({
-                                        projectId,
-                                        playbookId: selectedPlaybookId!,
-                                        step: 'preview',
-                                        source: 'product_details',
-                                        ...playbookRunScopeForUrl,
-                                      });
-                                      const resultsContextUrl = `/projects/${projectId}/products/${item.productId}?from=playbook_results&playbookId=${selectedPlaybookId}&returnTo=${encodeURIComponent(returnToPath)}`;
-                                      return (
-                                        <Link
-                                          href={resultsContextUrl}
-                                          onClick={(event) => {
-                                            event.preventDefault();
-                                            handleNavigate(resultsContextUrl);
-                                          }}
-                                          className="text-blue-600 hover:text-blue-800"
-                                        >
-                                          {product?.title || item.productId}
-                                        </Link>
-                                      );
-                                    })()
-                                  )}
-                                </td>
-                                <td className="px-3 py-1.5">
-                                  <span
-                                    className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium ${
-                                      item.status === 'UPDATED'
-                                        ? 'bg-green-100 text-green-800'
-                                        : item.status === 'SKIPPED'
-                                          ? 'bg-gray-100 text-gray-700'
-                                          : item.status === 'LIMIT_REACHED'
-                                            ? 'bg-amber-100 text-amber-800'
-                                            : 'bg-red-100 text-red-800'
-                                    }`}
-                                  >
-                                    {item.status}
-                                  </span>
-                                </td>
-                                <td className="px-3 py-1.5 text-gray-600">{item.message}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </details>
-                )}
-              </div>
-            )}
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap gap-2">
-                {(flowState === 'APPLY_COMPLETED' ||
-                  flowState === 'APPLY_STOPPED') && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleNavigate(
-                          `/projects/${projectId}/products?from=playbook_results&playbookId=${selectedPlaybookId}`,
-                        )
-                      }
-                      className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      View updated products
-                    </button>
-                    {/* [AUTOMATION-TRIGGER-TRUTHFULNESS-1] CTA label is deterministic */}
-                    <button
-                      type="button"
-                      onClick={handleSyncProducts}
-                      className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-                    >
-                      {willGenerateAnswerBlocksOnProductSync
-                        ? 'Sync products + Generate Answer Blocks'
-                        : 'Sync products'}
-                    </button>
-                    {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2] Use canonical /playbooks route */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleNavigate(`/projects/${projectId}/playbooks`)
-                      }
-                      className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-                    >
-                      Return to Playbooks
-                    </button>
-                  </>
-                )}
-              </div>
-              {flowState !== 'APPLY_COMPLETED' && flowState !== 'APPLY_STOPPED' && (
-                <>
-                  {/* [ROLES-3 FIXUP-3 CORRECTION] All notices derived from server state (pendingApproval) */}
-                  {(() => {
-                    // Derive approval state from server-sourced pendingApproval
-                    const approvalStatus = pendingApproval?.status;
-                    const approvalConsumed = pendingApproval?.consumed ?? false;
-                    const hasPendingApproval = approvalStatus === 'PENDING_APPROVAL';
-                    const hasApprovedApproval = approvalStatus === 'APPROVED' && !approvalConsumed;
-                    const needsNewRequest = !pendingApproval || approvalStatus === 'REJECTED' || approvalConsumed;
-
-                    // [PLAYBOOK-STEP-CONTINUITY-1] VIEWER notice with resolution CTA
-                    if (!roleCapabilities.canRequestApproval && !roleCapabilities.canApply) {
-                      return (
-                        <p className="mr-4 text-xs text-gray-500">
-                          Viewer role cannot apply. Preview and export remain available.{' '}
-                          <Link
-                            href={`/projects/${projectId}/settings/members`}
-                            className="text-blue-600 hover:underline"
-                          >
-                            Request access
-                          </Link>
-                        </p>
-                      );
-                    }
-
-                    // [PLAYBOOK-STEP-CONTINUITY-1] EDITOR notices with resolution CTA (can request but not apply)
-                    if (roleCapabilities.canRequestApproval && !roleCapabilities.canApply) {
-                      if (!approvalRequired) {
-                        return (
-                          <p className="mr-4 text-xs text-gray-500">
-                            Editor role cannot apply. An owner must apply this playbook.{' '}
-                            <Link
-                              href={`/projects/${projectId}/settings/members`}
-                              className="text-blue-600 hover:underline"
-                            >
-                              Manage members
-                            </Link>
-                          </p>
-                        );
-                      }
-                      if (hasPendingApproval) {
-                        return (
-                          <p className="mr-4 text-xs text-amber-600">
-                            Approval pending. Waiting for owner to approve.
-                          </p>
-                        );
-                      }
-                      if (hasApprovedApproval) {
-                        return (
-                          <p className="mr-4 text-xs text-green-600">
-                            Approved — an owner must apply this playbook.
-                          </p>
-                        );
-                      }
-                      return (
-                        <p className="mr-4 text-xs text-amber-600">
-                          Approval required. Click to request owner approval.
-                        </p>
-                      );
-                    }
-
-                    // OWNER notices
-                    if (roleCapabilities.canApply && approvalRequired) {
-                      if (hasPendingApproval) {
-                        return (
-                          <p className="mr-4 text-xs text-amber-600">
-                            Pending approval from Editor. Click to approve and apply.
-                          </p>
-                        );
-                      }
-                      if (hasApprovedApproval) {
-                        return (
-                          <p className="mr-4 text-xs text-green-600">
-                            Approval granted. Ready to apply.
-                          </p>
-                        );
-                      }
-                      if (isMultiUserProject && needsNewRequest) {
-                        return (
-                          <p className="mr-4 text-xs text-amber-600">
-                            An Editor must request approval first.
-                          </p>
-                        );
-                      }
-                      return (
-                        <p className="mr-4 text-xs text-amber-600">
-                          Approval required before apply.
-                        </p>
-                      );
-                    }
-
-                    return null;
-                  })()}
-                  {/* [ROLES-3 PENDING-1] Approval Attribution Panel */}
-                  {pendingApproval && approvalRequired && (
-                    <div className="mr-4 flex flex-col gap-0.5 text-xs text-gray-500">
-                      <span>
-                        Requested by {getUserDisplayName(pendingApproval.requestedByUserId)}{' '}
-                        on {new Date(pendingApproval.requestedAt).toLocaleDateString()}
-                      </span>
-                      {pendingApproval.decidedByUserId && pendingApproval.decidedAt && (
-                        <span>
-                          {pendingApproval.status === 'APPROVED' ? 'Approved' : 'Decided'} by{' '}
-                          {getUserDisplayName(pendingApproval.decidedByUserId)} on{' '}
-                          {new Date(pendingApproval.decidedAt).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-1] Only show "Continue to Apply" when draft has explicit valid status (READY or PARTIAL) */}
+                {(estimate?.draftStatus === 'READY' ||
+                  estimate?.draftStatus === 'PARTIAL') && (
                   <button
                     type="button"
-                    onClick={handleApplyPlaybook}
-                    disabled={(() => {
-                      // Base conditions
-                      if (flowState !== 'APPLY_READY' || applying || !estimate || !estimate.canProceed || !confirmApply || approvalLoading) {
-                        return true;
-                      }
-                      // VIEWER blocked
-                      if (!roleCapabilities.canRequestApproval && !roleCapabilities.canApply) {
-                        return true;
-                      }
-                      // EDITOR: blocked if approval already pending or approved (they can only request once)
-                      if (roleCapabilities.canRequestApproval && !roleCapabilities.canApply) {
-                        const status = pendingApproval?.status;
-                        if (status === 'PENDING_APPROVAL' || (status === 'APPROVED' && !pendingApproval?.consumed)) {
-                          return true;
-                        }
-                      }
-                      // OWNER in multi-user project with approval required but no pending request
-                      if (roleCapabilities.canApply && approvalRequired && isMultiUserProject) {
-                        const hasActionableApproval = pendingApproval &&
-                          (pendingApproval.status === 'PENDING_APPROVAL' || (pendingApproval.status === 'APPROVED' && !pendingApproval.consumed));
-                        if (!hasActionableApproval) {
-                          return true;
-                        }
-                      }
-                      return false;
-                    })()}
-                    className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={handleNextStep}
+                    disabled={
+                      flowState !== 'ESTIMATE_READY' ||
+                      step2Locked ||
+                      !estimate ||
+                      !estimate.canProceed ||
+                      loadingEstimate
+                    }
+                    className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {(() => {
-                      if (applying || approvalLoading) return 'Processing…';
-
-                      // EDITOR button text
-                      if (roleCapabilities.canRequestApproval && !roleCapabilities.canApply) {
-                        const status = pendingApproval?.status;
-                        if (status === 'PENDING_APPROVAL') return 'Pending approval';
-                        if (status === 'APPROVED' && !pendingApproval?.consumed) return 'Approved — Owner applies';
-                        return 'Request approval';
-                      }
-
-                      // OWNER button text
-                      if (roleCapabilities.canApply) {
-                        if (!approvalRequired) return 'Apply playbook';
-                        const status = pendingApproval?.status;
-                        if (status === 'PENDING_APPROVAL') return 'Approve and apply';
-                        if (status === 'APPROVED' && !pendingApproval?.consumed) return 'Apply playbook';
-                        if (isMultiUserProject) return 'Waiting for Editor request';
-                        return 'Approve and apply';
-                      }
-
-                      return 'Apply playbook';
-                    })()}
+                    Continue to Apply
                   </button>
-                </>
+                )}
+              </div>
+            </section>
+
+            {/* Step 3: Apply */}
+            {/* [PLAYBOOK-STEP-CONTINUITY-1] tabIndex for focus accessibility on scroll */}
+            <section
+              id="automation-playbook-apply-step"
+              tabIndex={-1}
+              className="rounded-lg border border-gray-200 bg-white p-4 focus:outline-none"
+            >
+              <div className="mb-3">
+                <h2 className="text-sm font-semibold text-gray-900">
+                  Step 3 – Apply playbook
+                </h2>
+                <p className="text-xs text-gray-600">
+                  Confirm that you want EngineO.ai to write AI-generated SEO{' '}
+                  {selectedDefinition.field === 'seoTitle'
+                    ? 'titles'
+                    : 'descriptions'}{' '}
+                  for the affected products.
+                </p>
+              </div>
+              {rules.enabled && (
+                <p className="mb-3 text-xs text-gray-600">
+                  These drafts were generated using your Playbook rules.
+                </p>
               )}
-            </div>
-          </section>
+              {rules.enabled &&
+                previewSamples.some(
+                  (sample) =>
+                    sample.ruleWarnings && sample.ruleWarnings.length > 0
+                ) && (
+                  <div className="mb-3 rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
+                    Some suggestions were trimmed or flagged to fit your rules.
+                    Review the preview before applying.
+                  </div>
+                )}
+              {/* Inline error panels for 409 Conflict errors */}
+              {applyInlineError?.code === 'PLAYBOOK_RULES_CHANGED' && (
+                <div className="mb-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                  <div className="flex items-start gap-2">
+                    <svg
+                      className="h-4 w-4 flex-shrink-0 text-amber-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                    <div>
+                      <p className="font-semibold">
+                        Rules changed since preview
+                      </p>
+                      <p className="mt-0.5">
+                        Your playbook rules have changed since the preview was
+                        generated. Regenerate the preview to see updated
+                        suggestions before applying.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setApplyInlineError(null);
+                          if (!selectedPlaybookId) return;
+                          const ok = await loadPreview(selectedPlaybookId);
+                          if (ok) {
+                            setFlowState('PREVIEW_GENERATED');
+                          }
+                        }}
+                        disabled={loadingPreview}
+                        className="mt-2 inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Regenerate preview (uses AI)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {applyInlineError?.code === 'PLAYBOOK_SCOPE_INVALID' && (
+                <div className="mb-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                  <div className="flex items-start gap-2">
+                    <svg
+                      className="h-4 w-4 flex-shrink-0 text-amber-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                    <div>
+                      <p className="font-semibold">Product scope changed</p>
+                      <p className="mt-0.5">
+                        The set of affected products has changed since the
+                        preview was generated (products may have been added,
+                        removed, or updated). Regenerate the preview to work
+                        with the current product set.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setApplyInlineError(null);
+                          if (!selectedPlaybookId) return;
+                          const ok = await loadPreview(selectedPlaybookId);
+                          if (ok) {
+                            setFlowState('PREVIEW_GENERATED');
+                          }
+                        }}
+                        disabled={loadingPreview}
+                        className="mt-2 inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Regenerate preview (uses AI)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {applyInlineError?.code === 'PLAYBOOK_DRAFT_NOT_FOUND' && (
+                <div className="mb-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                  <div className="flex items-start gap-2">
+                    <svg
+                      className="h-4 w-4 flex-shrink-0 text-amber-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                    <div>
+                      <p className="font-semibold">Draft not found</p>
+                      <p className="mt-0.5">
+                        No draft was found for this playbook configuration.
+                        Generate a preview first to create a draft before
+                        applying.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setApplyInlineError(null);
+                          if (!selectedPlaybookId) return;
+                          const ok = await loadPreview(selectedPlaybookId);
+                          if (ok) {
+                            setFlowState('PREVIEW_GENERATED');
+                          }
+                        }}
+                        disabled={loadingPreview || !canGenerateDrafts}
+                        title={
+                          !canGenerateDrafts
+                            ? 'Viewer role cannot generate previews'
+                            : undefined
+                        }
+                        className="mt-2 inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Generate preview (uses AI)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {applyInlineError?.code === 'PLAYBOOK_DRAFT_EXPIRED' && (
+                <div className="mb-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                  <div className="flex items-start gap-2">
+                    <svg
+                      className="h-4 w-4 flex-shrink-0 text-amber-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                    <div>
+                      <p className="font-semibold">Draft expired</p>
+                      <p className="mt-0.5">
+                        The draft for this playbook has expired. Regenerate the
+                        preview to create a fresh draft before applying.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setApplyInlineError(null);
+                          if (!selectedPlaybookId) return;
+                          const ok = await loadPreview(selectedPlaybookId);
+                          if (ok) {
+                            setFlowState('PREVIEW_GENERATED');
+                          }
+                        }}
+                        disabled={loadingPreview}
+                        className="mt-2 inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Regenerate preview (uses AI)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div className="mb-3 rounded border border-gray-100 bg-gray-50 p-3 text-xs text-gray-700">
+                <p>
+                  This playbook will attempt to update up to{' '}
+                  <span className="font-semibold">
+                    {estimate?.totalAffectedProducts ?? 0}
+                  </span>{' '}
+                  product(s) where{' '}
+                  <span className="font-mono">{selectedDefinition.field}</span>{' '}
+                  is missing.
+                </p>
+                <p className="mt-1">
+                  Changes are applied sequentially in small batches, respecting
+                  your daily AI limits. If the daily limit is reached mid-run,
+                  remaining products will be skipped.
+                </p>
+              </div>
+              {/* Trust contract note */}
+              <p className="mb-3 text-[11px] text-gray-500">
+                EngineO.ai validates that your rules and product scope
+                haven&apos;t changed since the preview. If they have,
+                you&apos;ll be asked to regenerate the preview before applying.
+              </p>
+              <label className="mb-3 flex items-start gap-2 text-xs text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={confirmApply}
+                  onChange={(e) => setConfirmApply(e.target.checked)}
+                  className="mt-0.5 h-3 w-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span>
+                  I understand that this will write AI-generated SEO{' '}
+                  {selectedDefinition.field === 'seoTitle'
+                    ? 'titles'
+                    : 'descriptions'}{' '}
+                  directly to my products for the affected items above.
+                </span>
+              </label>
+              {applying && (
+                <div className="mb-3 rounded border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
+                  Applying Automation Playbook… This may take a moment for
+                  larger catalogs.
+                </div>
+              )}
+              {applyResult && (
+                <div className="mb-3 space-y-3">
+                  {/* Summary */}
+                  <div className="rounded border border-green-200 bg-green-50 p-3 text-xs text-green-800">
+                    <p>
+                      Updated products:{' '}
+                      <span className="font-semibold">
+                        {applyResult.updatedCount}
+                      </span>
+                    </p>
+                    <p>
+                      Skipped products:{' '}
+                      <span className="font-semibold">
+                        {applyResult.skippedCount}
+                      </span>
+                    </p>
+                    <p>
+                      Attempted:{' '}
+                      <span className="font-semibold">
+                        {applyResult.attemptedCount}
+                      </span>{' '}
+                      / {applyResult.totalAffectedProducts}
+                    </p>
+                  </div>
+                  {/* Stopped safely banner */}
+                  {applyResult.stopped && (
+                    <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                      <div className="flex items-start gap-2">
+                        <svg
+                          className="h-4 w-4 flex-shrink-0 text-amber-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                          />
+                        </svg>
+                        <div>
+                          <p className="font-semibold">Stopped safely</p>
+                          <p className="mt-0.5">
+                            {applyResult.limitReached
+                              ? 'Daily AI limit was reached during execution. Remaining products were not updated.'
+                              : `Playbook stopped due to: ${applyResult.failureReason || 'Unknown error'}`}
+                          </p>
+                          {applyResult.stoppedAtProductId && (
+                            <p className="mt-1">
+                              Stopped at product:{' '}
+                              <Link
+                                href={`/projects/${projectId}/products/${applyResult.stoppedAtProductId}`}
+                                className="font-medium text-amber-700 underline hover:text-amber-900"
+                              >
+                                {products.find(
+                                  (p) => p.id === applyResult.stoppedAtProductId
+                                )?.title || applyResult.stoppedAtProductId}
+                              </Link>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {/* Skipped products warning */}
+                  {applyResult.skippedCount > 0 && !applyResult.stopped && (
+                    <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                      <div className="flex items-start gap-2">
+                        <svg
+                          className="h-4 w-4 flex-shrink-0 text-amber-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <div>
+                          <p className="font-semibold">
+                            {applyResult.skippedCount} product(s) skipped
+                          </p>
+                          <p className="mt-0.5">
+                            Some products were skipped because they already had
+                            valid SEO{' '}
+                            {selectedDefinition?.field === 'seoTitle'
+                              ? 'titles'
+                              : 'descriptions'}{' '}
+                            or encountered validation issues. View per-product
+                            results below for details.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {/* Per-item results panel */}
+                  {applyResult.results && applyResult.results.length > 0 && (
+                    <details className="rounded border border-gray-200 bg-gray-50">
+                      <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100">
+                        View per-product results ({applyResult.results.length}{' '}
+                        items)
+                      </summary>
+                      <div className="max-h-64 overflow-y-auto border-t border-gray-200">
+                        <table className="w-full text-xs">
+                          <thead className="sticky top-0 bg-gray-100">
+                            <tr>
+                              <th className="px-3 py-1.5 text-left font-medium text-gray-600">
+                                Product
+                              </th>
+                              <th className="px-3 py-1.5 text-left font-medium text-gray-600">
+                                Status
+                              </th>
+                              <th className="px-3 py-1.5 text-left font-medium text-gray-600">
+                                Message
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {applyResult.results.map((item) => {
+                              const product = products.find(
+                                (p) => p.id === item.productId
+                              );
+                              return (
+                                <tr
+                                  key={item.productId}
+                                  className="border-t border-gray-100"
+                                >
+                                  <td className="px-3 py-1.5">
+                                    {item.productId === 'LIMIT_REACHED' ? (
+                                      <span className="text-gray-500">—</span>
+                                    ) : (
+                                      (() => {
+                                        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Build results context URL for product deep link with canonical route
+                                        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use shared scope args via playbookRunScopeForUrl
+                                        const returnToPath =
+                                          buildPlaybookRunHref({
+                                            projectId,
+                                            playbookId: selectedPlaybookId!,
+                                            step: 'preview',
+                                            source: 'product_details',
+                                            ...playbookRunScopeForUrl,
+                                          });
+                                        const resultsContextUrl = `/projects/${projectId}/products/${item.productId}?from=playbook_results&playbookId=${selectedPlaybookId}&returnTo=${encodeURIComponent(returnToPath)}`;
+                                        return (
+                                          <Link
+                                            href={resultsContextUrl}
+                                            onClick={(event) => {
+                                              event.preventDefault();
+                                              handleNavigate(resultsContextUrl);
+                                            }}
+                                            className="text-blue-600 hover:text-blue-800"
+                                          >
+                                            {product?.title || item.productId}
+                                          </Link>
+                                        );
+                                      })()
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-1.5">
+                                    <span
+                                      className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium ${
+                                        item.status === 'UPDATED'
+                                          ? 'bg-green-100 text-green-800'
+                                          : item.status === 'SKIPPED'
+                                            ? 'bg-gray-100 text-gray-700'
+                                            : item.status === 'LIMIT_REACHED'
+                                              ? 'bg-amber-100 text-amber-800'
+                                              : 'bg-red-100 text-red-800'
+                                      }`}
+                                    >
+                                      {item.status}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-1.5 text-gray-600">
+                                    {item.message}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
+                  )}
+                </div>
+              )}
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap gap-2">
+                  {(flowState === 'APPLY_COMPLETED' ||
+                    flowState === 'APPLY_STOPPED') && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleNavigate(
+                            `/projects/${projectId}/products?from=playbook_results&playbookId=${selectedPlaybookId}`
+                          )
+                        }
+                        className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        View updated products
+                      </button>
+                      {/* [AUTOMATION-TRIGGER-TRUTHFULNESS-1] CTA label is deterministic */}
+                      <button
+                        type="button"
+                        onClick={handleSyncProducts}
+                        className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                      >
+                        {willGenerateAnswerBlocksOnProductSync
+                          ? 'Sync products + Generate Answer Blocks'
+                          : 'Sync products'}
+                      </button>
+                      {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2] Use canonical /playbooks route */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleNavigate(`/projects/${projectId}/playbooks`)
+                        }
+                        className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                      >
+                        Return to Playbooks
+                      </button>
+                    </>
+                  )}
+                </div>
+                {flowState !== 'APPLY_COMPLETED' &&
+                  flowState !== 'APPLY_STOPPED' && (
+                    <>
+                      {/* [ROLES-3 FIXUP-3 CORRECTION] All notices derived from server state (pendingApproval) */}
+                      {(() => {
+                        // Derive approval state from server-sourced pendingApproval
+                        const approvalStatus = pendingApproval?.status;
+                        const approvalConsumed =
+                          pendingApproval?.consumed ?? false;
+                        const hasPendingApproval =
+                          approvalStatus === 'PENDING_APPROVAL';
+                        const hasApprovedApproval =
+                          approvalStatus === 'APPROVED' && !approvalConsumed;
+                        const needsNewRequest =
+                          !pendingApproval ||
+                          approvalStatus === 'REJECTED' ||
+                          approvalConsumed;
+
+                        // [PLAYBOOK-STEP-CONTINUITY-1] VIEWER notice with resolution CTA
+                        if (
+                          !roleCapabilities.canRequestApproval &&
+                          !roleCapabilities.canApply
+                        ) {
+                          return (
+                            <p className="mr-4 text-xs text-gray-500">
+                              Viewer role cannot apply. Preview and export
+                              remain available.{' '}
+                              <Link
+                                href={`/projects/${projectId}/settings/members`}
+                                className="text-blue-600 hover:underline"
+                              >
+                                Request access
+                              </Link>
+                            </p>
+                          );
+                        }
+
+                        // [PLAYBOOK-STEP-CONTINUITY-1] EDITOR notices with resolution CTA (can request but not apply)
+                        if (
+                          roleCapabilities.canRequestApproval &&
+                          !roleCapabilities.canApply
+                        ) {
+                          if (!approvalRequired) {
+                            return (
+                              <p className="mr-4 text-xs text-gray-500">
+                                Editor role cannot apply. An owner must apply
+                                this playbook.{' '}
+                                <Link
+                                  href={`/projects/${projectId}/settings/members`}
+                                  className="text-blue-600 hover:underline"
+                                >
+                                  Manage members
+                                </Link>
+                              </p>
+                            );
+                          }
+                          if (hasPendingApproval) {
+                            return (
+                              <p className="mr-4 text-xs text-amber-600">
+                                Approval pending. Waiting for owner to approve.
+                              </p>
+                            );
+                          }
+                          if (hasApprovedApproval) {
+                            return (
+                              <p className="mr-4 text-xs text-green-600">
+                                Approved — an owner must apply this playbook.
+                              </p>
+                            );
+                          }
+                          return (
+                            <p className="mr-4 text-xs text-amber-600">
+                              Approval required. Click to request owner
+                              approval.
+                            </p>
+                          );
+                        }
+
+                        // OWNER notices
+                        if (roleCapabilities.canApply && approvalRequired) {
+                          if (hasPendingApproval) {
+                            return (
+                              <p className="mr-4 text-xs text-amber-600">
+                                Pending approval from Editor. Click to approve
+                                and apply.
+                              </p>
+                            );
+                          }
+                          if (hasApprovedApproval) {
+                            return (
+                              <p className="mr-4 text-xs text-green-600">
+                                Approval granted. Ready to apply.
+                              </p>
+                            );
+                          }
+                          if (isMultiUserProject && needsNewRequest) {
+                            return (
+                              <p className="mr-4 text-xs text-amber-600">
+                                An Editor must request approval first.
+                              </p>
+                            );
+                          }
+                          return (
+                            <p className="mr-4 text-xs text-amber-600">
+                              Approval required before apply.
+                            </p>
+                          );
+                        }
+
+                        return null;
+                      })()}
+                      {/* [ROLES-3 PENDING-1] Approval Attribution Panel */}
+                      {pendingApproval && approvalRequired && (
+                        <div className="mr-4 flex flex-col gap-0.5 text-xs text-gray-500">
+                          <span>
+                            Requested by{' '}
+                            {getUserDisplayName(
+                              pendingApproval.requestedByUserId
+                            )}{' '}
+                            on{' '}
+                            {new Date(
+                              pendingApproval.requestedAt
+                            ).toLocaleDateString()}
+                          </span>
+                          {pendingApproval.decidedByUserId &&
+                            pendingApproval.decidedAt && (
+                              <span>
+                                {pendingApproval.status === 'APPROVED'
+                                  ? 'Approved'
+                                  : 'Decided'}{' '}
+                                by{' '}
+                                {getUserDisplayName(
+                                  pendingApproval.decidedByUserId
+                                )}{' '}
+                                on{' '}
+                                {new Date(
+                                  pendingApproval.decidedAt
+                                ).toLocaleDateString()}
+                              </span>
+                            )}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleApplyPlaybook}
+                        disabled={(() => {
+                          // Base conditions
+                          if (
+                            flowState !== 'APPLY_READY' ||
+                            applying ||
+                            !estimate ||
+                            !estimate.canProceed ||
+                            !confirmApply ||
+                            approvalLoading
+                          ) {
+                            return true;
+                          }
+                          // VIEWER blocked
+                          if (
+                            !roleCapabilities.canRequestApproval &&
+                            !roleCapabilities.canApply
+                          ) {
+                            return true;
+                          }
+                          // EDITOR: blocked if approval already pending or approved (they can only request once)
+                          if (
+                            roleCapabilities.canRequestApproval &&
+                            !roleCapabilities.canApply
+                          ) {
+                            const status = pendingApproval?.status;
+                            if (
+                              status === 'PENDING_APPROVAL' ||
+                              (status === 'APPROVED' &&
+                                !pendingApproval?.consumed)
+                            ) {
+                              return true;
+                            }
+                          }
+                          // OWNER in multi-user project with approval required but no pending request
+                          if (
+                            roleCapabilities.canApply &&
+                            approvalRequired &&
+                            isMultiUserProject
+                          ) {
+                            const hasActionableApproval =
+                              pendingApproval &&
+                              (pendingApproval.status === 'PENDING_APPROVAL' ||
+                                (pendingApproval.status === 'APPROVED' &&
+                                  !pendingApproval.consumed));
+                            if (!hasActionableApproval) {
+                              return true;
+                            }
+                          }
+                          return false;
+                        })()}
+                        className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {(() => {
+                          if (applying || approvalLoading) return 'Processing…';
+
+                          // EDITOR button text
+                          if (
+                            roleCapabilities.canRequestApproval &&
+                            !roleCapabilities.canApply
+                          ) {
+                            const status = pendingApproval?.status;
+                            if (status === 'PENDING_APPROVAL')
+                              return 'Pending approval';
+                            if (
+                              status === 'APPROVED' &&
+                              !pendingApproval?.consumed
+                            )
+                              return 'Approved — Owner applies';
+                            return 'Request approval';
+                          }
+
+                          // OWNER button text
+                          if (roleCapabilities.canApply) {
+                            if (!approvalRequired) return 'Apply playbook';
+                            const status = pendingApproval?.status;
+                            if (status === 'PENDING_APPROVAL')
+                              return 'Approve and apply';
+                            if (
+                              status === 'APPROVED' &&
+                              !pendingApproval?.consumed
+                            )
+                              return 'Apply playbook';
+                            if (isMultiUserProject)
+                              return 'Waiting for Editor request';
+                            return 'Approve and apply';
+                          }
+
+                          return 'Apply playbook';
+                        })()}
+                      </button>
+                    </>
+                  )}
+              </div>
+            </section>
           </div>
-        )
-      )}
+        ))}
     </div>
   );
 }

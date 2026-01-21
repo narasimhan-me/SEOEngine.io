@@ -15,6 +15,7 @@
 - **Related documentation:**
   - CRITICAL_PATH_MAP.md (CP-008, CP-012)
   - MANUAL_TESTING_TEMPLATE.md
+
 ---
 
 ## Preconditions
@@ -28,6 +29,7 @@
 - **Required user roles or subscriptions:**
   - Pro/Business plan (Playbooks eligible)
   - OWNER role recommended for full surface visibility
+
 ---
 
 ## Test Scenarios (Happy Path)
@@ -37,15 +39,18 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - A project exists where Playbooks eligibility is 0, and a prior draft may exist.
 
 **Steps:**
+
 1. Navigate to /projects/{projectId}/work-queue.
 2. Check Needs Attention tab.
 3. Check Drafts Ready tab.
 4. Check Pending Approval tab.
 
 **Expected Results:**
+
 - No automation/playbook bundle appears as an actionable tile when eligible count is 0.
 - No primary CTAs appear for the suppressed item (no "Generate…", "Apply…", "Request approval", etc.).
 
@@ -56,13 +61,16 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Project has 0 eligible products for the selected playbook (e.g., missing SEO title/description playbooks).
 
 **Steps:**
+
 1. Navigate to /projects/{projectId}/automation/playbooks?playbookId=missing_seo_title.
 2. Verify the page loads without errors.
 
 **Expected Results:**
+
 - Empty state title is shown: "No eligible items right now".
 - Empty state copy includes: "No eligible items right now".
 - Preview/Estimate/Apply stepper is not shown.
@@ -79,10 +87,12 @@
 **Description:** Viewer opens Playbooks at 0 eligible.
 
 **Steps:**
+
 1. Log in as VIEWER.
 2. Navigate to the playbook URL with 0 eligible.
 
 **Expected Behavior:**
+
 - Same empty state shown.
 - No apply/draft generation CTAs appear.
 
@@ -93,10 +103,12 @@
 **Description:** An automation was applied recently, but eligibility is now 0.
 
 **Steps:**
+
 1. Navigate to /projects/{projectId}/work-queue?tab=AppliedRecently.
 2. Locate any applied automation bundles.
 
 **Expected Behavior:**
+
 - "View Results" remains available for applied bundles.
 - No "Apply" / "Generate" CTAs appear when eligibility is 0.
 
@@ -109,9 +121,11 @@
 **Scenario:** Sync action fails (network/API error).
 
 **Steps:**
+
 1. From the 0-eligible empty state, click "Sync from Shopify".
 
 **Expected Behavior:**
+
 - Error shown via existing UI feedback pattern.
 - User remains on the Playbooks page; no apply semantics appear.
 
@@ -122,9 +136,11 @@
 **Scenario:** N/A
 
 **Steps:**
+
 1. N/A
 
 **Expected Behavior:**
+
 - N/A
 
 ---
@@ -134,10 +150,12 @@
 **Scenario:** VIEWER/unauthorized user attempts to access apply semantics (should not be possible at 0 eligible).
 
 **Steps:**
+
 1. Log in as VIEWER.
 2. Navigate to the Playbooks page for a 0-eligible playbook.
 
 **Expected Behavior:**
+
 - No apply/draft generation CTAs appear.
 - UI remains calm and informational.
 
@@ -150,9 +168,11 @@
 **Scenario:** N/A (trust hardening only; no new limits introduced).
 
 **Steps:**
+
 1. N/A
 
 **Expected Behavior:**
+
 - N/A
 
 ---
@@ -162,9 +182,11 @@
 **Scenario:** N/A
 
 **Steps:**
+
 1. N/A
 
 **Expected Behavior:**
+
 - N/A
 
 ---

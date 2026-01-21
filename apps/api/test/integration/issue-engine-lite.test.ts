@@ -2,11 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import { createTestApp } from '../utils/test-app';
-import {
-  cleanupTestDb,
-  disconnectTestDb,
-  testPrisma,
-} from '../utils/test-db';
+import { cleanupTestDb, disconnectTestDb, testPrisma } from '../utils/test-db';
 import {
   seedConnectedStoreProject,
   seedProductsNeedingSeo,
@@ -67,7 +63,7 @@ describe('TEST-1 – Issue Engine Lite determinism', () => {
 
     const missingTitle = issues.find((i) => i.id === 'missing_seo_title');
     const missingDescription = issues.find(
-      (i) => i.id === 'missing_seo_description',
+      (i) => i.id === 'missing_seo_description'
     );
 
     expect(missingTitle).toBeDefined();

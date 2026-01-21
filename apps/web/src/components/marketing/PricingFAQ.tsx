@@ -26,8 +26,8 @@ export function PricingFAQ() {
           Frequently asked questions
         </h2>
         <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-          Have more questions about plans, billing, or usage? Here are answers to the most common
-          ones.
+          Have more questions about plans, billing, or usage? Here are answers
+          to the most common ones.
         </p>
 
         <div className="mt-8 grid gap-8 md:grid-cols-2">

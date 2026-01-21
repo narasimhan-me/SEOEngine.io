@@ -1,6 +1,7 @@
 # ✅ Ready to Commit
 
 ## Status
+
 - ✅ Linting errors fixed
 - ✅ TypeScript checks passing (confirmed by user)
 - ✅ Unit tests passing (confirmed by user)
@@ -44,6 +45,7 @@ Push Gate:
 ## What Will Happen
 
 The pre-commit hook will automatically run:
+
 1. ✅ ESLint on source files (should pass - errors fixed)
 2. ✅ TypeScript type checks (confirmed passing)
 3. ✅ Unit tests (confirmed passing)
@@ -68,9 +70,11 @@ git status
 ## Next Steps After Commit
 
 1. **Push to remote:**
+
    ```bash
    git push origin feature/Lavanya
    ```
+
    (Pre-push hook will run: lint + format + type-check + unit tests + critical integration tests)
 
 2. **Create Pull Request** (if using GitHub/GitLab)
@@ -78,6 +82,7 @@ git status
 ## Files Included in Commit
 
 ### New Files:
+
 - `apps/api/jest.unit.config.ts`
 - `apps/api/jest.critical-integration.config.ts`
 - `apps/api/test/integration/critical/*` (5 test files)
@@ -87,6 +92,7 @@ git status
 - Documentation files
 
 ### Modified Files:
+
 - `package.json` (added husky, test:unit, prepare script)
 - `apps/api/package.json` (added test scripts)
 - `apps/api/src/billing/billing.service.ts` (event ID tracking)
@@ -94,4 +100,3 @@ git status
 - `apps/api/src/admin/admin.service.ts` (linting fix)
 - `apps/api/src/projects/answer-engine.service.ts` (linting fix)
 - `apps/api/src/projects/deo-issues.service.ts` (linting fix)
-

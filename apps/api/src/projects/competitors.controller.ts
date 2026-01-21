@@ -80,7 +80,7 @@ export class CompetitorsController {
     private readonly aiService: AiService,
     private readonly aiUsageQuotaService: AiUsageQuotaService,
     private readonly aiUsageLedgerService: AiUsageLedgerService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   // ============================================================================
@@ -114,7 +114,9 @@ export class CompetitorsController {
     return mapping[type];
   }
 
-  private toPrismaApplyTarget(target: CompetitiveFixApplyTarget): PrismaApplyTarget {
+  private toPrismaApplyTarget(
+    target: CompetitiveFixApplyTarget
+  ): PrismaApplyTarget {
     const mapping: Record<CompetitiveFixApplyTarget, PrismaApplyTarget> = {
       ANSWER_BLOCK: 'ANSWER_BLOCK',
       CONTENT_SECTION: 'CONTENT_SECTION',
@@ -123,7 +125,9 @@ export class CompetitorsController {
     return mapping[target];
   }
 
-  private toPrismaSearchIntentType(type: SearchIntentType): PrismaSearchIntentType {
+  private toPrismaSearchIntentType(
+    type: SearchIntentType
+  ): PrismaSearchIntentType {
     const mapping: Record<SearchIntentType, PrismaSearchIntentType> = {
       transactional: 'TRANSACTIONAL',
       comparative: 'COMPARATIVE',
@@ -145,7 +149,7 @@ export class CompetitorsController {
   @Get('products/:productId/competitors')
   async getProductCompetitors(
     @Request() req: any,
-    @Param('productId') productId: string,
+    @Param('productId') productId: string
   ): Promise<ProductCompetitiveResponse> {
     const userId = req.user.id;
     return this.competitorsService.getProductCompetitiveData(productId, userId);
@@ -165,14 +169,14 @@ export class CompetitorsController {
   async previewCompetitiveFix(
     @Request() req: any,
     @Param('productId') productId: string,
-    @Body() dto: CompetitiveFixPreviewDto,
+    @Body() dto: CompetitiveFixPreviewDto
   ): Promise<CompetitiveFixPreviewResponse> {
     const userId = req.user.id;
 
     // Validate required fields
     if (!dto.gapType || !dto.areaId || !dto.draftType) {
       throw new BadRequestException(
-        'gapType, areaId, and draftType are required',
+        'gapType, areaId, and draftType are required'
       );
     }
 
@@ -189,7 +193,10 @@ export class CompetitorsController {
     }
 
     // [ROLES-3 FIXUP-3] OWNER/EDITOR only for draft generation
-    await this.roleResolution.assertCanGenerateDrafts(product.projectId, userId);
+    await this.roleResolution.assertCanGenerateDrafts(
+      product.projectId,
+      userId
+    );
 
     // Derive intent type from area if not provided
     const intentType = dto.intentType || getIntentTypeFromAreaId(dto.areaId);
@@ -201,16 +208,17 @@ export class CompetitorsController {
       dto.gapType,
       dto.areaId,
       dto.draftType,
-      intentType,
+      intentType
     );
 
     // Check for existing unexpired draft
-    const existingDraft = await this.prisma.productCompetitiveFixDraft.findFirst({
-      where: {
-        aiWorkKey,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-      },
-    });
+    const existingDraft =
+      await this.prisma.productCompetitiveFixDraft.findFirst({
+        where: {
+          aiWorkKey,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        },
+      });
 
     if (existingDraft) {
       // Return reused draft — no AI call
@@ -228,10 +236,13 @@ export class CompetitorsController {
           productId: existingDraft.productId,
           gapType: this.fromPrismaGapType(existingDraft.gapType),
           intentType: existingDraft.intentType
-            ? existingDraft.intentType.toLowerCase().replace(/_/g, '_') as SearchIntentType
+            ? (existingDraft.intentType
+                .toLowerCase()
+                .replace(/_/g, '_') as SearchIntentType)
             : undefined,
           areaId: existingDraft.areaId as CompetitiveCoverageAreaId,
-          draftType: existingDraft.draftType.toLowerCase() as CompetitiveFixDraftType,
+          draftType:
+            existingDraft.draftType.toLowerCase() as CompetitiveFixDraftType,
           draftPayload: existingDraft.draftPayload as any,
           aiWorkKey: existingDraft.aiWorkKey,
           reusedFromWorkKey: existingDraft.reusedFromWorkKey || undefined,
@@ -253,7 +264,7 @@ export class CompetitorsController {
 
     if (quotaEval.status === 'blocked') {
       throw new ForbiddenException(
-        'AI usage quota exceeded. Please wait until next month or upgrade your plan.',
+        'AI usage quota exceeded. Please wait until next month or upgrade your plan.'
       );
     }
 
@@ -273,17 +284,18 @@ export class CompetitorsController {
     try {
       if (dto.draftType === 'answer_block') {
         // Generate Answer Block draft for competitive positioning
-        const answerBlockResult = await this.aiService.generateCompetitiveAnswerBlock({
-          product: {
-            title: product.title,
-            description: product.description || '',
-            seoTitle: product.seoTitle || '',
-            seoDescription: product.seoDescription || '',
-          },
-          gapType: dto.gapType,
-          areaId: dto.areaId,
-          intentType,
-        });
+        const answerBlockResult =
+          await this.aiService.generateCompetitiveAnswerBlock({
+            product: {
+              title: product.title,
+              description: product.description || '',
+              seoTitle: product.seoTitle || '',
+              seoDescription: product.seoDescription || '',
+            },
+            gapType: dto.gapType,
+            areaId: dto.areaId,
+            intentType,
+          });
 
         draftPayload = {
           question: answerBlockResult.question,
@@ -306,14 +318,15 @@ export class CompetitorsController {
         };
       } else {
         // positioning_section
-        const positioningResult = await this.aiService.generatePositioningSection({
-          product: {
-            title: product.title,
-            description: product.description || '',
-          },
-          gapType: dto.gapType,
-          areaId: dto.areaId,
-        });
+        const positioningResult =
+          await this.aiService.generatePositioningSection({
+            product: {
+              title: product.title,
+              description: product.description || '',
+            },
+            gapType: dto.gapType,
+            areaId: dto.areaId,
+          });
 
         draftPayload = {
           positioningContent: positioningResult.positioningContent,
@@ -415,7 +428,7 @@ export class CompetitorsController {
   async applyCompetitiveFix(
     @Request() req: any,
     @Param('productId') productId: string,
-    @Body() dto: CompetitiveFixApplyDto,
+    @Body() dto: CompetitiveFixApplyDto
   ): Promise<CompetitiveFixApplyResponse> {
     const userId = req.user.id;
 
@@ -466,7 +479,7 @@ export class CompetitorsController {
       // Create Answer Block from draft
       if (!draftPayload.question || !draftPayload.answer) {
         throw new BadRequestException(
-          'Draft payload missing question or answer for ANSWER_BLOCK target',
+          'Draft payload missing question or answer for ANSWER_BLOCK target'
         );
       }
 
@@ -481,15 +494,19 @@ export class CompetitorsController {
           answerText: draftPayload.answer,
           confidenceScore: 0.8, // Default for AI-generated
           sourceType: 'competitive_fix_ai',
-          sourceFieldsUsed: [`gapType:${this.fromPrismaGapType(draft.gapType)}`, `areaId:${draft.areaId}`],
+          sourceFieldsUsed: [
+            `gapType:${this.fromPrismaGapType(draft.gapType)}`,
+            `areaId:${draft.areaId}`,
+          ],
         },
       });
     } else if (dto.applyTarget === 'CONTENT_SECTION') {
       // Append comparison copy or positioning content to description
-      const content = draftPayload.comparisonText || draftPayload.positioningContent;
+      const content =
+        draftPayload.comparisonText || draftPayload.positioningContent;
       if (!content) {
         throw new BadRequestException(
-          'Draft payload missing content for CONTENT_SECTION target',
+          'Draft payload missing content for CONTENT_SECTION target'
         );
       }
 
@@ -505,10 +522,11 @@ export class CompetitorsController {
     } else if (dto.applyTarget === 'WHY_CHOOSE_SECTION') {
       // Apply as "Why Choose" section - in production, this might go to
       // a dedicated field or structured content block
-      const content = draftPayload.positioningContent || draftPayload.comparisonText;
+      const content =
+        draftPayload.positioningContent || draftPayload.comparisonText;
       if (!content) {
         throw new BadRequestException(
-          'Draft payload missing content for WHY_CHOOSE_SECTION target',
+          'Draft payload missing content for WHY_CHOOSE_SECTION target'
         );
       }
 
@@ -542,11 +560,13 @@ export class CompetitorsController {
 
     // Re-analyze to get updated coverage
     const updatedCoverage =
-      await this.competitorsService.analyzeProductCompetitiveCoverage(productId);
+      await this.competitorsService.analyzeProductCompetitiveCoverage(
+        productId
+      );
 
     // Check if any related issues were resolved
     const areaWasGap = !updatedCoverage.coverageAreas.find(
-      a => a.areaId === draft.areaId && !a.merchantCovers,
+      (a) => a.areaId === draft.areaId && !a.merchantCovers
     );
 
     // eslint-disable-next-line no-console
@@ -576,9 +596,12 @@ export class CompetitorsController {
   @Get('projects/:projectId/competitors/scorecard')
   async getProjectCompetitiveScorecard(
     @Request() req: any,
-    @Param('projectId') projectId: string,
+    @Param('projectId') projectId: string
   ): Promise<CompetitiveScorecard> {
     const userId = req.user.id;
-    return this.competitorsService.getProjectCompetitiveScorecard(projectId, userId);
+    return this.competitorsService.getProjectCompetitiveScorecard(
+      projectId,
+      userId
+    );
   }
 }

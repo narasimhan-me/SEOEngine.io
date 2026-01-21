@@ -46,32 +46,38 @@ export default function ComingSoonPage() {
               The DEO platform for Shopify brands and modern teams.
             </h1>
             <p className="max-w-xl text-sm leading-relaxed text-muted-foreground">
-              EngineO.ai helps you optimize products, pages, and entities for both search engines
-              and AI assistants—so customers can actually find what you sell, wherever they&apos;re
-              searching.
+              EngineO.ai helps you optimize products, pages, and entities for
+              both search engines and AI assistants—so customers can actually
+              find what you sell, wherever they&apos;re searching.
             </p>
           </div>
 
           <div className="grid gap-4 text-sm text-foreground sm:grid-cols-3">
             <div className="rounded-xl border border-border bg-muted/60 p-4">
-              <p className="text-xs font-semibold text-foreground">Unified DEO score</p>
+              <p className="text-xs font-semibold text-foreground">
+                Unified DEO score
+              </p>
               <p className="mt-2 text-xs text-muted-foreground">
-                One score across SEO, AEO, PEO, and VEO to track how discoverable your brand really
-                is.
+                One score across SEO, AEO, PEO, and VEO to track how
+                discoverable your brand really is.
               </p>
             </div>
             <div className="rounded-xl border border-border bg-muted/60 p-4">
-              <p className="text-xs font-semibold text-foreground">Shopify-native workflows</p>
+              <p className="text-xs font-semibold text-foreground">
+                Shopify-native workflows
+              </p>
               <p className="mt-2 text-xs text-muted-foreground">
-                Sync your catalog, audit products in bulk, and push optimized metadata back in a few
-                clicks.
+                Sync your catalog, audit products in bulk, and push optimized
+                metadata back in a few clicks.
               </p>
             </div>
             <div className="rounded-xl border border-border bg-muted/60 p-4">
-              <p className="text-xs font-semibold text-foreground">AI answer-ready content</p>
+              <p className="text-xs font-semibold text-foreground">
+                AI answer-ready content
+              </p>
               <p className="mt-2 text-xs text-muted-foreground">
-                Generate titles, descriptions, FAQs, and answer blocks that are ready for search and
-                AI surfaces.
+                Generate titles, descriptions, FAQs, and answer blocks that are
+                ready for search and AI surfaces.
               </p>
             </div>
           </div>
@@ -82,8 +88,8 @@ export default function ComingSoonPage() {
             </p>
             {submitted ? (
               <p className="text-xs text-primary">
-                Thanks, you&apos;re on the early access list. We&apos;ll be in touch before public
-                launch.
+                Thanks, you&apos;re on the early access list. We&apos;ll be in
+                touch before public launch.
               </p>
             ) : (
               <form
@@ -107,17 +113,17 @@ export default function ComingSoonPage() {
               </form>
             )}
             <p className="text-[11px] text-muted-foreground">
-              No spam. We&apos;ll only email you about the EngineO.ai beta and DEO launch timeline.
+              No spam. We&apos;ll only email you about the EngineO.ai beta and
+              DEO launch timeline.
             </p>
           </section>
 
           <footer className="mt-4 border-t border-border pt-4 text-[11px] text-muted-foreground">
-            Built for Shopify brands, agencies, and modern eCommerce teams preparing for the era of
-            discovery engines.
+            Built for Shopify brands, agencies, and modern eCommerce teams
+            preparing for the era of discovery engines.
           </footer>
         </div>
       </main>
     </div>
   );
 }
-

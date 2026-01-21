@@ -92,7 +92,9 @@ export interface RowNextActionInput {
  *    - If actionableNowCount === 0 → ✅ Optimized, no Fix-style primary CTA
  * 5. Secondary action: Open only when not redundant (primary routes elsewhere)
  */
-export function resolveRowNextAction(input: RowNextActionInput): ResolvedRowNextAction {
+export function resolveRowNextAction(
+  input: RowNextActionInput
+): ResolvedRowNextAction {
   const {
     assetType,
     hasDraftPendingApply,
@@ -111,16 +113,21 @@ export function resolveRowNextAction(input: RowNextActionInput): ResolvedRowNext
 
   // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Determine blocked state:
   // Prefer server-derived blockedByApproval, fall back to canApply derivation for backwards compat
-  const isBlocked = blockedByApproval !== undefined ? blockedByApproval : (hasDraftPendingApply && !canApply);
+  const isBlocked =
+    blockedByApproval !== undefined
+      ? blockedByApproval
+      : hasDraftPendingApply && !canApply;
 
   // Case 1: Has pending draft
   if (hasDraftPendingApply) {
     // Blocked: has draft but cannot apply (server-derived or capability-derived)
     if (isBlocked) {
-      const primaryLabel = canRequestApproval ? 'Request approval' : 'View approval status';
+      const primaryLabel = canRequestApproval
+        ? 'Request approval'
+        : 'View approval status';
       const primaryHref = canRequestApproval
-        ? (requestApprovalHref || reviewDraftsHref)
-        : (viewApprovalStatusHref || reviewDraftsHref);
+        ? requestApprovalHref || reviewDraftsHref
+        : viewApprovalStatusHref || reviewDraftsHref;
 
       return {
         chipLabel: '⛔ Blocked',
@@ -178,7 +185,8 @@ export function resolveRowNextAction(input: RowNextActionInput): ResolvedRowNext
         href: viewIssuesHref,
       },
       // [DRAFT-LIST-PARITY-1] Secondary "Open" only if it differs from primary
-      secondaryAction: openHref !== viewIssuesHref ? { label: 'Open', href: openHref } : null,
+      secondaryAction:
+        openHref !== viewIssuesHref ? { label: 'Open', href: openHref } : null,
     };
   }
 
@@ -220,7 +228,7 @@ export function buildAssetIssuesHref(
   assetType: AssetListType,
   assetId: string,
   navContext?: NavigationContext | string,
-  returnLabelLegacy?: string,
+  returnLabelLegacy?: string
 ): string {
   const params = new URLSearchParams();
   params.set('assetType', assetType);
@@ -229,7 +237,8 @@ export function buildAssetIssuesHref(
   // Support both new NavigationContext and legacy string params
   if (typeof navContext === 'object' && navContext !== null) {
     if (navContext.returnTo) params.set('returnTo', navContext.returnTo);
-    if (navContext.returnLabel) params.set('returnLabel', navContext.returnLabel);
+    if (navContext.returnLabel)
+      params.set('returnLabel', navContext.returnLabel);
     // [ROUTE-INTEGRITY-1] Append from when provided
     if (navContext.from) params.set('from', navContext.from);
   } else if (typeof navContext === 'string') {
@@ -251,7 +260,7 @@ export function buildReviewDraftsHref(
   projectId: string,
   assetType: AssetListType,
   assetId: string,
-  navContext?: NavigationContext,
+  navContext?: NavigationContext
 ): string {
   const params = new URLSearchParams();
   // [DRAFT-ROUTING-INTEGRITY-1] Required params for Draft Review mode
@@ -275,7 +284,7 @@ export function buildReviewDraftsHref(
 export function buildProductWorkspaceHref(
   projectId: string,
   productId: string,
-  navContext?: NavigationContext,
+  navContext?: NavigationContext
 ): string {
   const base = `/projects/${projectId}/products/${productId}`;
   if (!navContext?.returnTo && !navContext?.returnLabel && !navContext?.from) {
@@ -283,7 +292,8 @@ export function buildProductWorkspaceHref(
   }
   const params = new URLSearchParams();
   if (navContext?.returnTo) params.set('returnTo', navContext.returnTo);
-  if (navContext?.returnLabel) params.set('returnLabel', navContext.returnLabel);
+  if (navContext?.returnLabel)
+    params.set('returnLabel', navContext.returnLabel);
   // [ROUTE-INTEGRITY-1] Append from when provided
   if (navContext?.from) params.set('from', navContext.from);
   return `${base}?${params.toString()}`;
@@ -300,14 +310,15 @@ export function buildProductWorkspaceHref(
 export function buildProductDraftsTabHref(
   projectId: string,
   productId: string,
-  navContext?: NavigationContext,
+  navContext?: NavigationContext
 ): string {
   const base = `/projects/${projectId}/products/${productId}`;
   const params = new URLSearchParams();
   params.set('tab', 'drafts');
   params.set('from', 'asset_list');
   if (navContext?.returnTo) params.set('returnTo', navContext.returnTo);
-  if (navContext?.returnLabel) params.set('returnLabel', navContext.returnLabel);
+  if (navContext?.returnLabel)
+    params.set('returnLabel', navContext.returnLabel);
   return `${base}?${params.toString()}`;
 }
 
@@ -325,7 +336,7 @@ export function buildAssetWorkspaceHref(
   projectId: string,
   assetType: AssetListType,
   assetId: string,
-  navContext?: NavigationContext,
+  navContext?: NavigationContext
 ): string {
   // Products delegate to existing helper
   if (assetType === 'products') {
@@ -339,7 +350,8 @@ export function buildAssetWorkspaceHref(
   }
   const params = new URLSearchParams();
   if (navContext?.returnTo) params.set('returnTo', navContext.returnTo);
-  if (navContext?.returnLabel) params.set('returnLabel', navContext.returnLabel);
+  if (navContext?.returnLabel)
+    params.set('returnLabel', navContext.returnLabel);
   if (navContext?.from) params.set('from', navContext.from);
   return `${base}?${params.toString()}`;
 }
@@ -363,7 +375,7 @@ export function buildAssetDraftsTabHref(
   projectId: string,
   assetType: AssetListType,
   assetId: string,
-  navContext?: NavigationContext,
+  navContext?: NavigationContext
 ): string {
   // Products delegate to existing helper
   if (assetType === 'products') {
@@ -376,6 +388,7 @@ export function buildAssetDraftsTabHref(
   params.set('tab', 'drafts');
   params.set('from', 'asset_list');
   if (navContext?.returnTo) params.set('returnTo', navContext.returnTo);
-  if (navContext?.returnLabel) params.set('returnLabel', navContext.returnLabel);
+  if (navContext?.returnLabel)
+    params.set('returnLabel', navContext.returnLabel);
   return `${base}?${params.toString()}`;
 }

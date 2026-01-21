@@ -25,7 +25,11 @@ import {
   getIntentTypeFromAreaId,
   COMPETITOR_GAP_LABELS,
 } from '@engineo/shared';
-import type { DeoIssue, DeoIssueSeverity, SearchIntentType } from '@engineo/shared';
+import type {
+  DeoIssue,
+  DeoIssueSeverity,
+  SearchIntentType,
+} from '@engineo/shared';
 
 /**
  * Competitive Coverage Areas for analysis.
@@ -37,20 +41,60 @@ const COMPETITIVE_COVERAGE_AREAS: {
   severityWeight: number;
 }[] = [
   // Intent-based areas (high value)
-  { areaId: 'transactional_intent', label: 'Transactional Intent', severityWeight: 10 },
-  { areaId: 'comparative_intent', label: 'Comparative Intent', severityWeight: 9 },
-  { areaId: 'problem_use_case_intent', label: 'Problem/Use Case Intent', severityWeight: 7 },
-  { areaId: 'trust_validation_intent', label: 'Trust/Validation Intent', severityWeight: 6 },
-  { areaId: 'informational_intent', label: 'Informational Intent', severityWeight: 5 },
+  {
+    areaId: 'transactional_intent',
+    label: 'Transactional Intent',
+    severityWeight: 10,
+  },
+  {
+    areaId: 'comparative_intent',
+    label: 'Comparative Intent',
+    severityWeight: 9,
+  },
+  {
+    areaId: 'problem_use_case_intent',
+    label: 'Problem/Use Case Intent',
+    severityWeight: 7,
+  },
+  {
+    areaId: 'trust_validation_intent',
+    label: 'Trust/Validation Intent',
+    severityWeight: 6,
+  },
+  {
+    areaId: 'informational_intent',
+    label: 'Informational Intent',
+    severityWeight: 5,
+  },
   // Content section areas
-  { areaId: 'comparison_section', label: 'Comparison Section', severityWeight: 8 },
-  { areaId: 'why_choose_section', label: 'Why Choose Us Section', severityWeight: 7 },
-  { areaId: 'buying_guide_section', label: 'Buying Guide Section', severityWeight: 6 },
-  { areaId: 'feature_benefits_section', label: 'Feature/Benefits Section', severityWeight: 5 },
+  {
+    areaId: 'comparison_section',
+    label: 'Comparison Section',
+    severityWeight: 8,
+  },
+  {
+    areaId: 'why_choose_section',
+    label: 'Why Choose Us Section',
+    severityWeight: 7,
+  },
+  {
+    areaId: 'buying_guide_section',
+    label: 'Buying Guide Section',
+    severityWeight: 6,
+  },
+  {
+    areaId: 'feature_benefits_section',
+    label: 'Feature/Benefits Section',
+    severityWeight: 5,
+  },
   // Trust signal areas
   { areaId: 'faq_coverage', label: 'FAQ Coverage', severityWeight: 6 },
   { areaId: 'reviews_section', label: 'Reviews Section', severityWeight: 5 },
-  { areaId: 'guarantee_section', label: 'Guarantee Section', severityWeight: 4 },
+  {
+    areaId: 'guarantee_section',
+    label: 'Guarantee Section',
+    severityWeight: 4,
+  },
 ];
 
 /**
@@ -73,7 +117,7 @@ const COMPETITIVE_COVERAGE_AREAS: {
 export class CompetitorsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   // ============================================================================
@@ -107,7 +151,9 @@ export class CompetitorsService {
     return mapping[status];
   }
 
-  private fromPrismaStatus(status: PrismaStatus): 'Ahead' | 'On par' | 'Behind' {
+  private fromPrismaStatus(
+    status: PrismaStatus
+  ): 'Ahead' | 'On par' | 'Behind' {
     const mapping: Record<PrismaStatus, 'Ahead' | 'On par' | 'Behind'> = {
       AHEAD: 'Ahead',
       ON_PAR: 'On par',
@@ -134,7 +180,9 @@ export class CompetitorsService {
     return mapping[type];
   }
 
-  private toPrismaApplyTarget(target: CompetitiveFixApplyTarget): PrismaApplyTarget {
+  private toPrismaApplyTarget(
+    target: CompetitiveFixApplyTarget
+  ): PrismaApplyTarget {
     const mapping: Record<CompetitiveFixApplyTarget, PrismaApplyTarget> = {
       ANSWER_BLOCK: 'ANSWER_BLOCK',
       CONTENT_SECTION: 'CONTENT_SECTION',
@@ -152,9 +200,11 @@ export class CompetitorsService {
    * Uses product title/category to suggest typical competitor profiles.
    * NOTE: These are generic placeholders - not real scraped competitors.
    */
-  private generateHeuristicCompetitors(productTitle: string): ProductCompetitorRef[] {
+  private generateHeuristicCompetitors(
+    productTitle: string
+  ): ProductCompetitorRef[] {
     // Extract product type for heuristic naming
-    const words = productTitle.split(' ').filter(w => w.length > 2);
+    const words = productTitle.split(' ').filter((w) => w.length > 2);
     const productType = words[words.length - 1] || 'Product';
 
     return [
@@ -207,7 +257,9 @@ export class CompetitorsService {
 
     if (competitors.length === 0) {
       // Generate heuristic competitors
-      const heuristicCompetitors = this.generateHeuristicCompetitors(product.title);
+      const heuristicCompetitors = this.generateHeuristicCompetitors(
+        product.title
+      );
       for (const hc of heuristicCompetitors) {
         await this.prisma.productCompetitor.create({
           data: {
@@ -226,27 +278,33 @@ export class CompetitorsService {
     const coverageAreas = await this.analyzeCoverageAreas(product);
 
     // Calculate overall score
-    const totalWeight = COMPETITIVE_COVERAGE_AREAS.reduce((sum, a) => sum + a.severityWeight, 0);
+    const totalWeight = COMPETITIVE_COVERAGE_AREAS.reduce(
+      (sum, a) => sum + a.severityWeight,
+      0
+    );
     const earnedWeight = coverageAreas
-      .filter(a => a.merchantCovers)
+      .filter((a) => a.merchantCovers)
       .reduce((sum, a) => sum + a.severityWeight, 0);
     const overallScore = Math.round((earnedWeight / totalWeight) * 100);
 
     // Count areas where competitors lead
     const areasWhereCompetitorsLead = coverageAreas.filter(
-      a => !a.merchantCovers && a.oneCompetitorCovers
+      (a) => !a.merchantCovers && a.oneCompetitorCovers
     ).length;
 
     const status = getCompetitiveStatusFromScore(overallScore);
 
     const coverage: ProductCompetitiveCoverage = {
       productId,
-      competitors: competitors.map(c => ({
+      competitors: competitors.map((c) => ({
         id: c.id,
         displayName: c.displayName,
         logoUrl: c.logoUrl || undefined,
         homepageUrl: c.homepageUrl || undefined,
-        source: c.source as 'heuristic_collection' | 'heuristic_category' | 'merchant_configured',
+        source: c.source as
+          | 'heuristic_collection'
+          | 'heuristic_category'
+          | 'merchant_configured',
       })),
       coverageAreas,
       overallScore,
@@ -264,26 +322,26 @@ export class CompetitorsService {
   /**
    * Analyze coverage for each competitive area.
    */
-  private async analyzeCoverageAreas(
-    product: {
-      title: string;
-      description: string | null;
-      seoTitle: string | null;
-      seoDescription: string | null;
-      answerBlocks: { questionText: string; answerText: string }[];
-      intentCoverages: { intentType: string; coverageStatus: string }[];
-    }
-  ): Promise<CompetitiveCoverageArea[]> {
+  private async analyzeCoverageAreas(product: {
+    title: string;
+    description: string | null;
+    seoTitle: string | null;
+    seoDescription: string | null;
+    answerBlocks: { questionText: string; answerText: string }[];
+    intentCoverages: { intentType: string; coverageStatus: string }[];
+  }): Promise<CompetitiveCoverageArea[]> {
     const areas: CompetitiveCoverageArea[] = [];
     const productContent = [
       product.title,
       product.description || '',
       product.seoTitle || '',
       product.seoDescription || '',
-    ].join(' ').toLowerCase();
+    ]
+      .join(' ')
+      .toLowerCase();
 
     const answerBlockContent = product.answerBlocks
-      .map(ab => `${ab.questionText} ${ab.answerText}`)
+      .map((ab) => `${ab.questionText} ${ab.answerText}`)
       .join(' ')
       .toLowerCase();
 
@@ -297,7 +355,9 @@ export class CompetitorsService {
       if (intentType) {
         // Check intent coverage from Search & Intent data
         const intentCoverage = product.intentCoverages.find(
-          ic => ic.intentType.toLowerCase() === intentType.toUpperCase().replace(/_/g, '_')
+          (ic) =>
+            ic.intentType.toLowerCase() ===
+            intentType.toUpperCase().replace(/_/g, '_')
         );
         merchantCovers = intentCoverage
           ? ['PARTIAL', 'COVERED'].includes(intentCoverage.coverageStatus)
@@ -305,14 +365,25 @@ export class CompetitorsService {
 
         // Also check Answer Blocks for intent-related coverage
         if (!merchantCovers) {
-          merchantCovers = this.checkAnswerBlockCoverage(answerBlockContent, intentType);
+          merchantCovers = this.checkAnswerBlockCoverage(
+            answerBlockContent,
+            intentType
+          );
         }
       } else if (gapType === 'content_section_gap') {
         // Check for content section indicators
-        merchantCovers = this.checkContentSectionCoverage(productContent, answerBlockContent, areaDef.areaId);
+        merchantCovers = this.checkContentSectionCoverage(
+          productContent,
+          answerBlockContent,
+          areaDef.areaId
+        );
       } else if (gapType === 'trust_signal_gap') {
         // Check for trust signal indicators
-        merchantCovers = this.checkTrustSignalCoverage(productContent, answerBlockContent, areaDef.areaId);
+        merchantCovers = this.checkTrustSignalCoverage(
+          productContent,
+          answerBlockContent,
+          areaDef.areaId
+        );
       }
 
       // For heuristic competitors, assume they cover high-impact areas
@@ -320,13 +391,15 @@ export class CompetitorsService {
       const oneCompetitorCovers = areaDef.severityWeight >= 6;
       const twoOrMoreCompetitorsCovers = areaDef.severityWeight >= 8;
 
-      const gapDescription = !merchantCovers && oneCompetitorCovers
-        ? `Your product may be missing ${areaDef.label.toLowerCase()} that competitors typically include.`
-        : undefined;
+      const gapDescription =
+        !merchantCovers && oneCompetitorCovers
+          ? `Your product may be missing ${areaDef.label.toLowerCase()} that competitors typically include.`
+          : undefined;
 
-      const exampleScenario = !merchantCovers && oneCompetitorCovers
-        ? this.generateExampleScenario(areaDef.areaId)
-        : undefined;
+      const exampleScenario =
+        !merchantCovers && oneCompetitorCovers
+          ? this.generateExampleScenario(areaDef.areaId)
+          : undefined;
 
       areas.push({
         areaId: areaDef.areaId,
@@ -347,7 +420,10 @@ export class CompetitorsService {
   /**
    * Check if Answer Blocks cover a given intent type.
    */
-  private checkAnswerBlockCoverage(answerBlockContent: string, intentType: SearchIntentType): boolean {
+  private checkAnswerBlockCoverage(
+    answerBlockContent: string,
+    intentType: SearchIntentType
+  ): boolean {
     const intentKeywords: Record<SearchIntentType, string[]> = {
       transactional: ['buy', 'price', 'order', 'purchase', 'cost', 'shipping'],
       comparative: ['vs', 'compare', 'alternative', 'better', 'difference'],
@@ -357,7 +433,7 @@ export class CompetitorsService {
     };
 
     const keywords = intentKeywords[intentType] || [];
-    return keywords.some(kw => answerBlockContent.includes(kw));
+    return keywords.some((kw) => answerBlockContent.includes(kw));
   }
 
   /**
@@ -370,15 +446,23 @@ export class CompetitorsService {
   ): boolean {
     const combinedContent = `${productContent} ${answerBlockContent}`;
 
-    const sectionKeywords: Partial<Record<CompetitiveCoverageAreaId, string[]>> = {
-      comparison_section: ['vs', 'compare', 'versus', 'alternative', 'better than'],
+    const sectionKeywords: Partial<
+      Record<CompetitiveCoverageAreaId, string[]>
+    > = {
+      comparison_section: [
+        'vs',
+        'compare',
+        'versus',
+        'alternative',
+        'better than',
+      ],
       why_choose_section: ['why choose', 'why our', 'choose us', 'advantage'],
       buying_guide_section: ['guide', 'how to choose', 'buying', 'selection'],
       feature_benefits_section: ['feature', 'benefit', 'advantage', 'includes'],
     };
 
     const keywords = sectionKeywords[areaId] || [];
-    return keywords.some(kw => combinedContent.includes(kw));
+    return keywords.some((kw) => combinedContent.includes(kw));
   }
 
   /**
@@ -391,14 +475,21 @@ export class CompetitorsService {
   ): boolean {
     const combinedContent = `${productContent} ${answerBlockContent}`;
 
-    const trustKeywords: Partial<Record<CompetitiveCoverageAreaId, string[]>> = {
-      faq_coverage: ['faq', 'question', 'answer', 'commonly asked'],
-      reviews_section: ['review', 'rating', 'testimonial', 'customer says'],
-      guarantee_section: ['guarantee', 'warranty', 'return', 'refund', 'money back'],
-    };
+    const trustKeywords: Partial<Record<CompetitiveCoverageAreaId, string[]>> =
+      {
+        faq_coverage: ['faq', 'question', 'answer', 'commonly asked'],
+        reviews_section: ['review', 'rating', 'testimonial', 'customer says'],
+        guarantee_section: [
+          'guarantee',
+          'warranty',
+          'return',
+          'refund',
+          'money back',
+        ],
+      };
 
     const keywords = trustKeywords[areaId] || [];
-    return keywords.some(kw => combinedContent.includes(kw));
+    return keywords.some((kw) => combinedContent.includes(kw));
   }
 
   /**
@@ -406,15 +497,24 @@ export class CompetitorsService {
    */
   private generateExampleScenario(areaId: CompetitiveCoverageAreaId): string {
     const scenarios: Partial<Record<CompetitiveCoverageAreaId, string>> = {
-      transactional_intent: 'A buyer searching "buy [product]" may find competitor pages with clear pricing and purchase CTAs.',
-      comparative_intent: 'A shopper comparing options may find competitor pages with vs. comparisons while yours lacks this.',
-      comparison_section: 'Competitors often include "Why choose us vs alternatives" sections that help buyers decide.',
-      why_choose_section: 'A "Why Choose [Brand]" section helps differentiate from competitors.',
-      faq_coverage: 'FAQ sections address common buyer questions that competitors answer upfront.',
-      guarantee_section: 'Trust signals like guarantees and warranties can be the deciding factor for cautious buyers.',
+      transactional_intent:
+        'A buyer searching "buy [product]" may find competitor pages with clear pricing and purchase CTAs.',
+      comparative_intent:
+        'A shopper comparing options may find competitor pages with vs. comparisons while yours lacks this.',
+      comparison_section:
+        'Competitors often include "Why choose us vs alternatives" sections that help buyers decide.',
+      why_choose_section:
+        'A "Why Choose [Brand]" section helps differentiate from competitors.',
+      faq_coverage:
+        'FAQ sections address common buyer questions that competitors answer upfront.',
+      guarantee_section:
+        'Trust signals like guarantees and warranties can be the deciding factor for cautious buyers.',
     };
 
-    return scenarios[areaId] || 'Competitors in your category typically cover this area.';
+    return (
+      scenarios[areaId] ||
+      'Competitors in your category typically cover this area.'
+    );
   }
 
   /**
@@ -472,9 +572,11 @@ export class CompetitorsService {
     await this.roleResolution.assertProjectAccess(product.projectId, userId);
 
     // Get or compute coverage
-    const coverageRow = await this.prisma.productCompetitiveCoverage.findUnique({
-      where: { productId },
-    });
+    const coverageRow = await this.prisma.productCompetitiveCoverage.findUnique(
+      {
+        where: { productId },
+      }
+    );
 
     let coverage: ProductCompetitiveCoverage;
     if (!coverageRow) {
@@ -484,14 +586,18 @@ export class CompetitorsService {
       // Convert from database
       coverage = {
         productId,
-        competitors: product.competitors.map(c => ({
+        competitors: product.competitors.map((c) => ({
           id: c.id,
           displayName: c.displayName,
           logoUrl: c.logoUrl || undefined,
           homepageUrl: c.homepageUrl || undefined,
-          source: c.source as 'heuristic_collection' | 'heuristic_category' | 'merchant_configured',
+          source: c.source as
+            | 'heuristic_collection'
+            | 'heuristic_category'
+            | 'merchant_configured',
         })),
-        coverageAreas: coverageRow.coverageData as unknown as CompetitiveCoverageArea[],
+        coverageAreas:
+          coverageRow.coverageData as unknown as CompetitiveCoverageArea[],
         overallScore: coverageRow.overallScore,
         areasWhereCompetitorsLead: coverageRow.areasWhereCompetitorsLead,
         status: this.fromPrismaStatus(coverageRow.status),
@@ -500,24 +606,26 @@ export class CompetitorsService {
     }
 
     // Generate gaps from coverage
-    const gaps = this.generateGapsFromCoverage(productId, coverage.coverageAreas);
+    const gaps = this.generateGapsFromCoverage(
+      productId,
+      coverage.coverageAreas
+    );
 
     // Get open drafts
     const draftRows = await this.prisma.productCompetitiveFixDraft.findMany({
       where: {
         productId,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } },
-        ],
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
     });
 
-    const openDrafts: CompetitiveFixDraft[] = draftRows.map(row => ({
+    const openDrafts: CompetitiveFixDraft[] = draftRows.map((row) => ({
       id: row.id,
       productId: row.productId,
       gapType: this.fromPrismaGapType(row.gapType),
-      intentType: row.intentType ? row.intentType.toLowerCase().replace(/_/g, '_') as SearchIntentType : undefined,
+      intentType: row.intentType
+        ? (row.intentType.toLowerCase().replace(/_/g, '_') as SearchIntentType)
+        : undefined,
       areaId: row.areaId as CompetitiveCoverageAreaId,
       draftType: this.fromPrismaDraftType(row.draftType),
       draftPayload: row.draftPayload as any,
@@ -553,13 +661,23 @@ export class CompetitorsService {
       }
 
       const competitorCount = area.twoOrMoreCompetitorsCovers ? 2 : 1;
-      const severity = calculateCompetitiveSeverity(competitorCount, area.intentType);
+      const severity = calculateCompetitiveSeverity(
+        competitorCount,
+        area.intentType
+      );
 
       // Determine recommended action based on gap type
-      let recommendedAction: 'answer_block' | 'comparison_section' | 'description_expansion' | 'faq_section';
+      let recommendedAction:
+        | 'answer_block'
+        | 'comparison_section'
+        | 'description_expansion'
+        | 'faq_section';
       if (area.gapType === 'intent_gap') {
         recommendedAction = 'answer_block';
-      } else if (area.areaId === 'comparison_section' || area.areaId === 'why_choose_section') {
+      } else if (
+        area.areaId === 'comparison_section' ||
+        area.areaId === 'why_choose_section'
+      ) {
         recommendedAction = 'comparison_section';
       } else if (area.areaId === 'faq_coverage') {
         recommendedAction = 'faq_section';
@@ -574,11 +692,13 @@ export class CompetitorsService {
         intentType: area.intentType,
         areaId: area.areaId,
         exampleScenario: area.exampleScenario || '',
-        whyItMatters: area.gapDescription || 'Competitors typically cover this area.',
+        whyItMatters:
+          area.gapDescription || 'Competitors typically cover this area.',
         competitorCount,
         recommendedAction,
         severity,
-        automationAvailable: area.gapType === 'intent_gap' || area.areaId === 'comparison_section',
+        automationAvailable:
+          area.gapType === 'intent_gap' || area.areaId === 'comparison_section',
       });
     }
 
@@ -618,9 +738,24 @@ export class CompetitorsService {
       return {
         overallScore: 0,
         gapBreakdown: [
-          { gapType: 'intent_gap', label: COMPETITOR_GAP_LABELS.intent_gap, productsWithGaps: 0, averageScore: 0 },
-          { gapType: 'content_section_gap', label: COMPETITOR_GAP_LABELS.content_section_gap, productsWithGaps: 0, averageScore: 0 },
-          { gapType: 'trust_signal_gap', label: COMPETITOR_GAP_LABELS.trust_signal_gap, productsWithGaps: 0, averageScore: 0 },
+          {
+            gapType: 'intent_gap',
+            label: COMPETITOR_GAP_LABELS.intent_gap,
+            productsWithGaps: 0,
+            averageScore: 0,
+          },
+          {
+            gapType: 'content_section_gap',
+            label: COMPETITOR_GAP_LABELS.content_section_gap,
+            productsWithGaps: 0,
+            averageScore: 0,
+          },
+          {
+            gapType: 'trust_signal_gap',
+            label: COMPETITOR_GAP_LABELS.trust_signal_gap,
+            productsWithGaps: 0,
+            averageScore: 0,
+          },
         ],
         productsBehind: 0,
         productsOnPar: 0,
@@ -632,33 +767,46 @@ export class CompetitorsService {
     }
 
     // Get all coverage rows
-    const productIds = products.map(p => p.id);
+    const productIds = products.map((p) => p.id);
     const coverageRows = await this.prisma.productCompetitiveCoverage.findMany({
       where: { productId: { in: productIds } },
     });
 
     // Calculate aggregates
-    const productsBehind = coverageRows.filter(r => r.status === 'BEHIND').length;
-    const productsOnPar = coverageRows.filter(r => r.status === 'ON_PAR').length;
-    const productsAhead = coverageRows.filter(r => r.status === 'AHEAD').length;
+    const productsBehind = coverageRows.filter(
+      (r) => r.status === 'BEHIND'
+    ).length;
+    const productsOnPar = coverageRows.filter(
+      (r) => r.status === 'ON_PAR'
+    ).length;
+    const productsAhead = coverageRows.filter(
+      (r) => r.status === 'AHEAD'
+    ).length;
 
-    const avgScore = coverageRows.length > 0
-      ? Math.round(coverageRows.reduce((sum, r) => sum + r.overallScore, 0) / coverageRows.length)
-      : 0;
+    const avgScore =
+      coverageRows.length > 0
+        ? Math.round(
+            coverageRows.reduce((sum, r) => sum + r.overallScore, 0) /
+              coverageRows.length
+          )
+        : 0;
 
     // Gap breakdown by type
     const gapBreakdown: CompetitiveScorecard['gapBreakdown'] = [];
-    for (const gapType of ['intent_gap', 'content_section_gap', 'trust_signal_gap'] as CompetitorGapType[]) {
+    for (const gapType of [
+      'intent_gap',
+      'content_section_gap',
+      'trust_signal_gap',
+    ] as CompetitorGapType[]) {
       let productsWithGaps = 0;
       let totalScore = 0;
 
       for (const row of coverageRows) {
         const areas = row.coverageData as unknown as CompetitiveCoverageArea[];
-        const typeAreas = areas.filter(a => a.gapType === gapType);
-        const coveredCount = typeAreas.filter(a => a.merchantCovers).length;
-        const typeScore = typeAreas.length > 0
-          ? (coveredCount / typeAreas.length) * 100
-          : 100;
+        const typeAreas = areas.filter((a) => a.gapType === gapType);
+        const coveredCount = typeAreas.filter((a) => a.merchantCovers).length;
+        const typeScore =
+          typeAreas.length > 0 ? (coveredCount / typeAreas.length) * 100 : 100;
         totalScore += typeScore;
 
         if (coveredCount < typeAreas.length) {
@@ -670,7 +818,10 @@ export class CompetitorsService {
         gapType,
         label: COMPETITOR_GAP_LABELS[gapType],
         productsWithGaps,
-        averageScore: coverageRows.length > 0 ? Math.round(totalScore / coverageRows.length) : 0,
+        averageScore:
+          coverageRows.length > 0
+            ? Math.round(totalScore / coverageRows.length)
+            : 0,
       });
     }
 
@@ -704,7 +855,7 @@ export class CompetitorsService {
       return [];
     }
 
-    const productIds = products.map(p => p.id);
+    const productIds = products.map((p) => p.id);
     const coverageRows = await this.prisma.productCompetitiveCoverage.findMany({
       where: { productId: { in: productIds } },
     });
@@ -712,13 +863,16 @@ export class CompetitorsService {
     const issues: DeoIssue[] = [];
 
     // Group by gap type and area
-    const gapCounts: Map<string, {
-      gapType: CompetitorGapType;
-      areaId: CompetitiveCoverageAreaId;
-      productIds: string[];
-      intentType?: SearchIntentType;
-      competitorCount: number;
-    }> = new Map();
+    const gapCounts: Map<
+      string,
+      {
+        gapType: CompetitorGapType;
+        areaId: CompetitiveCoverageAreaId;
+        productIds: string[];
+        intentType?: SearchIntentType;
+        competitorCount: number;
+      }
+    > = new Map();
 
     for (const row of coverageRows) {
       const areas = row.coverageData as unknown as CompetitiveCoverageArea[];
@@ -747,8 +901,13 @@ export class CompetitorsService {
 
     // Generate issues for each gap
     for (const [key, gap] of gapCounts) {
-      const severity: DeoIssueSeverity = calculateCompetitiveSeverity(gap.competitorCount, gap.intentType);
-      const areaDef = COMPETITIVE_COVERAGE_AREAS.find(a => a.areaId === gap.areaId);
+      const severity: DeoIssueSeverity = calculateCompetitiveSeverity(
+        gap.competitorCount,
+        gap.intentType
+      );
+      const areaDef = COMPETITIVE_COVERAGE_AREAS.find(
+        (a) => a.areaId === gap.areaId
+      );
 
       const title = gap.intentType
         ? `Missing ${areaDef?.label || gap.areaId} vs Competitors`
@@ -771,9 +930,10 @@ export class CompetitorsService {
         competitorCount: gap.competitorCount,
         competitiveAreaId: gap.areaId,
         intentType: gap.intentType,
-        recommendedAction: gap.gapType === 'intent_gap'
-          ? 'Add Answer Block to address this intent'
-          : 'Add content section addressing this area',
+        recommendedAction:
+          gap.gapType === 'intent_gap'
+            ? 'Add Answer Block to address this intent'
+            : 'Add content section addressing this area',
       });
     }
 

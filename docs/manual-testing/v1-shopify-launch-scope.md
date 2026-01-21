@@ -67,10 +67,12 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - User logged in with any tier
 - Shopify development store available
 
 **Steps:**
+
 1. Navigate to Projects → Create New Project
 2. Enter project name and Shopify store domain
 3. Click "Connect Shopify" to initiate OAuth
@@ -78,6 +80,7 @@
 5. Click "Sync Products"
 
 **Expected Results:**
+
 - **UI:** Products list populates with synced Shopify products
 - **API:** `POST /shopify/sync` returns `{ synced: N, created: N, updated: 0 }`
 - **Logs:** Server logs show successful sync and any automation triggers
@@ -89,16 +92,19 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Project with synced Shopify products
 - At least one product with sufficient data for Answerability detection
 
 **Steps:**
+
 1. Navigate to Project Overview page
 2. Observe DEO Score summary widget
 3. Click into a product to view Product Workspace
 4. Check DEO Score badge and Answerability indicator
 
 **Expected Results:**
+
 - **UI:** DEO Score displays (0-100), Answerability status shows ("Answer-ready" / "Partially ready" / "Needs answers")
 - **API:** `GET /projects/:id` returns `deoScore` and `answerabilityStatus` fields
 - **Logs:** No errors in score computation
@@ -110,16 +116,19 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Product with sufficient description content
 - User on Pro or Business plan (for full AEO coverage)
 
 **Steps:**
+
 1. Navigate to Product Workspace → AEO / Answers tab
 2. View Answerability status and question coverage
 3. Click "Generate Answers" for the product
 4. Wait for AI generation to complete
 
 **Expected Results:**
+
 - **UI:** Answer Blocks display for applicable questions with confidence scores
 - **API:** `POST /ai/product-answers` returns `ProductAnswersResponse`
 - **Logs:** AI usage recorded in `AiUsageEvent`
@@ -131,16 +140,19 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Products synced with varying metadata quality
 - Some products missing SEO title/description
 
 **Steps:**
+
 1. Navigate to Project → Issues page
 2. Observe issue counts by severity
 3. Filter by severity (Critical, Warning, Info)
 4. Click an issue to view details
 
 **Expected Results:**
+
 - **UI:** Issues list with severity badges, "Fix with AI" buttons for AI-fixable issues
 - **API:** Issues computed from Product + CrawlResult data
 - **Logs:** No errors in issue computation
@@ -152,16 +164,19 @@
 **ID:** HP-005
 
 **Preconditions:**
+
 - User on Pro or Business plan
 - New product added to Shopify store (missing SEO fields)
 
 **Steps:**
+
 1. Click "Sync Products" in EngineO.ai
 2. Wait for sync to complete
 3. Navigate to the newly synced product
 4. Check if SEO fields were auto-applied
 
 **Expected Results:**
+
 - **UI (Pro/Business):** Product shows auto-applied SEO title and description
 - **UI (Free):** Product shows pending suggestion, not auto-applied
 - **API:** `AutomationSuggestion` created with `applied: true` (Pro/Business) or `applied: false` (Free)
@@ -174,15 +189,18 @@
 **ID:** HP-006
 
 **Preconditions:**
+
 - Project with synced products, computed DEO scores, detected issues
 
 **Steps:**
+
 1. Navigate to Dashboard
 2. Observe DEO Score summary widget
 3. Observe Issues summary cards
 4. Observe Automation overview section
 
 **Expected Results:**
+
 - **UI:** DEO Score with Answerability indicator, issue counts by severity, recent automation runs
 - **API:** Dashboard aggregates data from multiple endpoints
 - **Logs:** No errors
@@ -194,9 +212,11 @@
 **ID:** HP-007
 
 **Preconditions:**
+
 - Product with DEO score, issues, and automation suggestions
 
 **Steps:**
+
 1. From the Products list, click **Optimize** (or **View details**) for a product to open Product Workspace
 2. Check header: DEO Score badge, Issue badges
 3. Switch to AEO / Answers tab
@@ -204,6 +224,7 @@
 5. Review AI suggestions panel
 
 **Expected Results:**
+
 - **UI:** All tabs functional, data loads correctly, "Apply to Shopify" actions visible
 - **API:** Relevant endpoints return expected data
 - **Logs:** No errors
@@ -217,10 +238,12 @@
 **Description:** Free plan user attempts to sync more than 50 products
 
 **Steps:**
+
 1. Connect Shopify store with 60+ products on Free plan
 2. Trigger product sync
 
 **Expected Behavior:**
+
 - Only first 50 products synced
 - Warning message about product limit
 - Upgrade prompt displayed
@@ -232,10 +255,12 @@
 **Description:** Free plan user attempts Answer Block generation for multiple products
 
 **Steps:**
+
 1. Generate answers for first product (succeeds)
 2. Attempt to generate answers for second product
 
 **Expected Behavior:**
+
 - Second product shows limit reached message
 - Upgrade prompt for Pro/Business
 
@@ -246,10 +271,12 @@
 **Description:** User exhausts daily AI usage limit (10 for Free)
 
 **Steps:**
+
 1. Use AI suggestions until limit reached
 2. Attempt additional AI action
 
 **Expected Behavior:**
+
 - "Daily AI limit reached" message
 - Suggestion to wait until reset or upgrade
 
@@ -260,10 +287,12 @@
 **Description:** Product has minimal title/description, insufficient for Answer Block generation
 
 **Steps:**
+
 1. Sync product with only title "Widget" and no description
 2. View Answerability status
 
 **Expected Behavior:**
+
 - Answerability status: "Needs answers"
 - Most questions marked as "cannot_answer"
 - No hallucinated content generated
@@ -277,10 +306,12 @@
 **Scenario:** Shopify API returns error during product sync
 
 **Steps:**
+
 1. Simulate API failure (invalid token or network issue)
 2. Trigger product sync
 
 **Expected Behavior:**
+
 - Error toast: "Failed to sync products from Shopify"
 - Sync status shows failed
 - Existing products not corrupted
@@ -292,10 +323,12 @@
 **Scenario:** AI provider (Gemini/OpenAI) unavailable or returns error
 
 **Steps:**
+
 1. Trigger AI suggestion generation
 2. AI provider fails
 
 **Expected Behavior:**
+
 - Error toast: "Unable to generate suggestions. Please try again."
 - No partial data saved
 - Retry available
@@ -307,10 +340,12 @@
 **Scenario:** Subscription update fails to process
 
 **Steps:**
+
 1. User upgrades plan
 2. Stripe webhook fails to process
 
 **Expected Behavior:**
+
 - User sees pending status
 - Admin notification for manual intervention
 - Graceful degradation (user retains previous plan until resolved)
@@ -324,11 +359,13 @@
 **Scenario:** Free plan user with 50 products tries to sync more
 
 **Steps:**
+
 1. Sync 50 products
 2. Add 51st product to Shopify
 3. Re-sync
 
 **Expected Behavior:**
+
 - New product not synced
 - Warning about limit
 - Upgrade prompt
@@ -340,10 +377,12 @@
 **Scenario:** Pro plan user approaching 2,000 products
 
 **Steps:**
+
 1. Sync close to 2,000 products
 2. Attempt to exceed
 
 **Expected Behavior:**
+
 - Warning when approaching limit
 - Hard stop at 2,000
 - Upgrade prompt for Business
@@ -355,10 +394,12 @@
 **Scenario:** Free user exhausts 10 daily AI suggestions
 
 **Steps:**
+
 1. Use 10 AI suggestions
 2. Attempt 11th
 
 **Expected Behavior:**
+
 - "Daily limit reached" message
 - Shows reset time (UTC midnight)
 - Upgrade prompt
@@ -370,10 +411,12 @@
 **Scenario:** Free user expects Answer Block automations
 
 **Steps:**
+
 1. Sync new product on Free plan
 2. Check automation behavior
 
 **Expected Behavior:**
+
 - Only metadata automation (suggestion only, no auto-apply)
 - No Answer Block auto-generation
 - Clear messaging about Pro/Business features
@@ -440,23 +483,23 @@
 
 ## Tier-Specific Test Matrix
 
-| Feature | Free | Pro | Business |
-|---------|------|-----|----------|
-| Products per project | 50 | 2,000 | 10,000 |
-| AEO Answer Blocks | 1 product | All products | All products |
-| AI suggestions/day | 10 | Higher | Higher |
-| Metadata automation | Suggestions only | Auto-apply | Auto-apply |
-| Answer Block automation | No | Yes | Yes |
-| Scheduled automations | No | Yes | Yes |
-| API access | No | No | Yes |
+| Feature                 | Free             | Pro          | Business     |
+| ----------------------- | ---------------- | ------------ | ------------ |
+| Products per project    | 50               | 2,000        | 10,000       |
+| AEO Answer Blocks       | 1 product        | All products | All products |
+| AI suggestions/day      | 10               | Higher       | Higher       |
+| Metadata automation     | Suggestions only | Auto-apply   | Auto-apply   |
+| Answer Block automation | No               | Yes          | Yes          |
+| Scheduled automations   | No               | Yes          | Yes          |
+| API access              | No               | No           | Yes          |
 
 ---
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | v1 Shopify-Only Launch Scope manual testing |
+| Field              | Value                                       |
+| ------------------ | ------------------------------------------- |
+| **Tester Name**    | [Pending]                                   |
+| **Date**           | [YYYY-MM-DD]                                |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed       |
+| **Notes**          | v1 Shopify-Only Launch Scope manual testing |

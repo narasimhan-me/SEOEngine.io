@@ -8,29 +8,30 @@ The Off-site Signals pillar focuses on brand mentions, authoritative listings, r
 
 The pillar tracks four types of off-site signals:
 
-| Signal Type | Description | Examples |
-|------------|-------------|----------|
-| **Trust Proof** | Third-party reviews, testimonials, certifications | Trustpilot, G2, BBB accreditation |
-| **Authoritative Listing** | Presence in industry directories and marketplaces | Google Business Profile, Shopify App Store, industry directories |
-| **Brand Mention** | Brand referenced in articles, blogs, or news | Industry blogs, news publications, social media |
-| **Reference Content** | Guides, comparisons, or studies that cite the brand | Comparison sites, industry reports |
+| Signal Type               | Description                                         | Examples                                                         |
+| ------------------------- | --------------------------------------------------- | ---------------------------------------------------------------- |
+| **Trust Proof**           | Third-party reviews, testimonials, certifications   | Trustpilot, G2, BBB accreditation                                |
+| **Authoritative Listing** | Presence in industry directories and marketplaces   | Google Business Profile, Shopify App Store, industry directories |
+| **Brand Mention**         | Brand referenced in articles, blogs, or news        | Industry blogs, news publications, social media                  |
+| **Reference Content**     | Guides, comparisons, or studies that cite the brand | Comparison sites, industry reports                               |
 
 ## Scoring
 
 ### Off-site Presence Score (0-100)
 
 The presence score is calculated based on:
+
 - Weighted presence of each signal type
 - Trust Proof and Authoritative Listings carry higher weights
 - Bonus points for multiple signals per type (with diminishing returns)
 
 ### Status Classification
 
-| Status | Score Range | Description |
-|--------|-------------|-------------|
-| **Low** | 0-39 | Missing critical trust signals |
-| **Medium** | 40-69 | Partial off-site presence |
-| **Strong** | 70-100 | Good coverage across signal types |
+| Status     | Score Range | Description                       |
+| ---------- | ----------- | --------------------------------- |
+| **Low**    | 0-39        | Missing critical trust signals    |
+| **Medium** | 40-69       | Partial off-site presence         |
+| **Strong** | 70-100      | Good coverage across signal types |
 
 ## Gap Types
 
@@ -47,12 +48,12 @@ The pillar supports draft-first fix flows that generate content for human review
 
 ### Draft Types
 
-| Draft Type | Use Case | Output |
-|-----------|----------|--------|
-| **Outreach Email** | Request inclusion or mentions | Subject + body for email |
-| **PR Pitch** | Media coverage requests | Subject + pitch paragraphs |
-| **Brand Profile Snippet** | Directory listings | Summary + bullet points |
-| **Review Request Copy** | Customer review solicitation | Message + channel hint |
+| Draft Type                | Use Case                      | Output                     |
+| ------------------------- | ----------------------------- | -------------------------- |
+| **Outreach Email**        | Request inclusion or mentions | Subject + body for email   |
+| **PR Pitch**              | Media coverage requests       | Subject + pitch paragraphs |
+| **Brand Profile Snippet** | Directory listings            | Summary + bullet points    |
+| **Review Request Copy**   | Customer review solicitation  | Message + channel hint     |
 
 ### Apply Targets
 
@@ -74,6 +75,7 @@ The pillar supports draft-first fix flows that generate content for human review
 ## How EngineO.ai Helps
 
 ### What We Do
+
 - Surface off-site signal gaps and opportunities
 - Generate professional outreach and PR draft content
 - Provide brand profile snippets for directory listings
@@ -81,6 +83,7 @@ The pillar supports draft-first fix flows that generate content for human review
 - Track presence status over time
 
 ### What We Don't Do
+
 - Automatically send outreach emails
 - Purchase links or placements
 - Scrape competitor websites
@@ -90,25 +93,28 @@ The pillar supports draft-first fix flows that generate content for human review
 ## Technical Implementation
 
 ### Backend Files
+
 - `apps/api/src/projects/offsite-signals.service.ts` - Core service
 - `apps/api/src/projects/offsite-signals.controller.ts` - REST endpoints
 - `apps/api/prisma/schema.prisma` - Database models
 
 ### Frontend Files
+
 - `apps/web/src/components/projects/OffsiteSignalsPanel.tsx` - Reusable panel
 - `apps/web/src/app/projects/[id]/backlinks/page.tsx` - Off-site workspace
 
 ### Shared Types
+
 - `packages/shared/src/offsite-signals.ts` - Type definitions
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/projects/:id/offsite-signals` | Get signals, coverage, and gaps |
-| GET | `/projects/:id/offsite-signals/scorecard` | Get scorecard only |
-| POST | `/projects/:id/offsite-signals/preview` | Generate fix draft |
-| POST | `/projects/:id/offsite-signals/apply` | Apply fix draft |
+| Method | Endpoint                                  | Description                     |
+| ------ | ----------------------------------------- | ------------------------------- |
+| GET    | `/projects/:id/offsite-signals`           | Get signals, coverage, and gaps |
+| GET    | `/projects/:id/offsite-signals/scorecard` | Get scorecard only              |
+| POST   | `/projects/:id/offsite-signals/preview`   | Generate fix draft              |
+| POST   | `/projects/:id/offsite-signals/apply`     | Apply fix draft                 |
 
 ## Integration with DEO
 

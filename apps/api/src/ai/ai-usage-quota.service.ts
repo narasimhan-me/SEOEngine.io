@@ -70,7 +70,7 @@ export class AiUsageQuotaService {
   constructor(
     private readonly entitlementsService: EntitlementsService,
     private readonly aiUsageLedgerService: AiUsageLedgerService,
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService
   ) {}
 
   /**
@@ -79,7 +79,9 @@ export class AiUsageQuotaService {
    */
   private async getQuotaResetOffset(userId: string): Promise<number> {
     const now = new Date();
-    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)
+    );
 
     const resets = await this.prisma.aiMonthlyQuotaReset.findMany({
       where: {
@@ -98,7 +100,8 @@ export class AiUsageQuotaService {
     const upper = planId.toUpperCase();
     const limitEnv = process.env[`AI_USAGE_MONTHLY_RUN_LIMIT_${upper}`];
     const softThresholdEnv = process.env.AI_USAGE_SOFT_THRESHOLD_PERCENT;
-    const hardEnforcementEnv = process.env[`AI_USAGE_HARD_ENFORCEMENT_${upper}`];
+    const hardEnforcementEnv =
+      process.env[`AI_USAGE_HARD_ENFORCEMENT_${upper}`];
 
     let monthlyAiRunsLimit: number | null = null;
     if (typeof limitEnv === 'string' && limitEnv.trim() !== '') {
@@ -140,7 +143,8 @@ export class AiUsageQuotaService {
     const policy = this.getPolicyForPlan(planId);
 
     // Ledger summary uses calendar-month window by default (AI-USAGE-1 contract).
-    const summary = await this.aiUsageLedgerService.getProjectSummary(projectId);
+    const summary =
+      await this.aiUsageLedgerService.getProjectSummary(projectId);
     const ledgerAiRuns = summary.totalAiRuns;
 
     // [ADMIN-OPS-1] Incorporate quota reset offsets.

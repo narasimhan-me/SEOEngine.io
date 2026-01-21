@@ -34,7 +34,9 @@ export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [overviews, setOverviews] = useState<Record<string, ProjectOverview>>({});
+  const [overviews, setOverviews] = useState<Record<string, ProjectOverview>>(
+    {}
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -76,8 +78,12 @@ export default function DashboardPage() {
           setOverviews(overviewMap);
         }
       } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Unknown error';
+        if (
+          errorMessage.includes('401') ||
+          errorMessage.includes('Unauthorized')
+        ) {
           removeToken();
           router.push('/login');
           return;
@@ -93,13 +99,17 @@ export default function DashboardPage() {
 
   // Calculate aggregate stats
   const totalProjects = projects.length;
-  const projectsWithScans = Object.values(overviews).filter(o => o.crawlCount > 0).length;
+  const projectsWithScans = Object.values(overviews).filter(
+    (o) => o.crawlCount > 0
+  ).length;
   const avgSeoScore = (() => {
     const scoresWithData = Object.values(overviews)
-      .filter(o => o.avgSeoScore !== null)
-      .map(o => o.avgSeoScore as number);
+      .filter((o) => o.avgSeoScore !== null)
+      .map((o) => o.avgSeoScore as number);
     if (scoresWithData.length === 0) return null;
-    return Math.round(scoresWithData.reduce((a, b) => a + b, 0) / scoresWithData.length);
+    return Math.round(
+      scoresWithData.reduce((a, b) => a + b, 0) / scoresWithData.length
+    );
   })();
 
   const getScoreColor = (score: number | null) => {
@@ -145,19 +155,25 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-sm font-medium text-gray-500">Total Projects</h3>
-          <p className="mt-2 text-3xl font-bold text-gray-900">{totalProjects}</p>
+          <p className="mt-2 text-3xl font-bold text-gray-900">
+            {totalProjects}
+          </p>
           <p className="mt-1 text-sm text-gray-500">
             {projectsWithScans} with scans
           </p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-sm font-medium text-gray-500">Active Integrations</h3>
+          <h3 className="text-sm font-medium text-gray-500">
+            Active Integrations
+          </h3>
           <p className="mt-2 text-3xl font-bold text-gray-900">--</p>
           <p className="mt-1 text-sm text-gray-500">Coming soon</p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-sm font-medium text-gray-500">Avg SEO Score</h3>
-          <p className={`mt-2 text-3xl font-bold ${getScoreColor(avgSeoScore)}`}>
+          <p
+            className={`mt-2 text-3xl font-bold ${getScoreColor(avgSeoScore)}`}
+          >
             {avgSeoScore !== null ? avgSeoScore : '--'}
           </p>
           <p className="mt-1 text-sm text-gray-500">
@@ -180,7 +196,9 @@ export default function DashboardPage() {
         <div className="p-6">
           {projects.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">No projects yet. Create your first project to get started.</p>
+              <p className="text-gray-500 mb-4">
+                No projects yet. Create your first project to get started.
+              </p>
               <Link
                 href="/projects"
                 className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
@@ -193,11 +211,21 @@ export default function DashboardPage() {
               <table className="min-w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-2 text-xs font-medium text-gray-500 uppercase">Project</th>
-                    <th className="text-center py-3 px-2 text-xs font-medium text-gray-500 uppercase">SEO Score</th>
-                    <th className="text-center py-3 px-2 text-xs font-medium text-gray-500 uppercase">Scans</th>
-                    <th className="text-center py-3 px-2 text-xs font-medium text-gray-500 uppercase">Products</th>
-                    <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase">Action</th>
+                    <th className="text-left py-3 px-2 text-xs font-medium text-gray-500 uppercase">
+                      Project
+                    </th>
+                    <th className="text-center py-3 px-2 text-xs font-medium text-gray-500 uppercase">
+                      SEO Score
+                    </th>
+                    <th className="text-center py-3 px-2 text-xs font-medium text-gray-500 uppercase">
+                      Scans
+                    </th>
+                    <th className="text-center py-3 px-2 text-xs font-medium text-gray-500 uppercase">
+                      Products
+                    </th>
+                    <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase">
+                      Action
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -206,15 +234,26 @@ export default function DashboardPage() {
                     return (
                       <tr key={project.id} className="hover:bg-gray-50">
                         <td className="py-4 px-2">
-                          <Link href={`/projects/${project.id}`} className="block">
-                            <p className="text-sm font-medium text-gray-900">{project.name}</p>
-                            <p className="text-sm text-gray-500">{project.domain || 'No domain'}</p>
+                          <Link
+                            href={`/projects/${project.id}`}
+                            className="block"
+                          >
+                            <p className="text-sm font-medium text-gray-900">
+                              {project.name}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {project.domain || 'No domain'}
+                            </p>
                           </Link>
                         </td>
                         <td className="py-4 px-2 text-center">
                           {overview ? (
-                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded ${getScoreBgColor(overview.avgSeoScore)}`}>
-                              {overview.avgSeoScore !== null ? overview.avgSeoScore : '--'}
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-medium rounded ${getScoreBgColor(overview.avgSeoScore)}`}
+                            >
+                              {overview.avgSeoScore !== null
+                                ? overview.avgSeoScore
+                                : '--'}
                             </span>
                           ) : (
                             <span className="text-gray-400 text-sm">--</span>

@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { Job, Worker } from 'bullmq';
 import { redisConfig } from '../config/redis.config';
 import { PrismaService } from '../prisma.service';
@@ -20,7 +25,9 @@ interface AnswerBlockAutomationJobPayload {
 }
 
 @Injectable()
-export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDestroy {
+export class AnswerBlockAutomationProcessor
+  implements OnModuleInit, OnModuleDestroy
+{
   private worker: Worker<AnswerBlockAutomationJobPayload, void> | null = null;
   private readonly logger = new Logger(AnswerBlockAutomationProcessor.name);
 
@@ -29,12 +36,14 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
     private readonly aiService: AiService,
     private readonly answerEngineService: AnswerEngineService,
     private readonly answerBlockService: AnswerBlockService,
-    private readonly shopifyService: ShopifyService,
+    private readonly shopifyService: ShopifyService
   ) {}
 
   async onModuleInit() {
     if (!redisConfig.isEnabled || !redisConfig.connection) {
-      console.warn('[AnswerBlockAutomationProcessor] Redis not configured - worker disabled');
+      console.warn(
+        '[AnswerBlockAutomationProcessor] Redis not configured - worker disabled'
+      );
       return;
     }
 
@@ -42,7 +51,7 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
       process.env.ENABLE_QUEUE_PROCESSORS !== 'false';
     if (!enableQueueProcessors) {
       this.logger.warn(
-        '[AnswerBlockAutomationProcessor] ENABLE_QUEUE_PROCESSORS=false - worker disabled',
+        '[AnswerBlockAutomationProcessor] ENABLE_QUEUE_PROCESSORS=false - worker disabled'
       );
       return;
     }
@@ -54,12 +63,16 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
 
         // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Mark run as RUNNING at job start
         if (runId) {
-          await this.prisma.answerBlockAutomationRun.update({
-            where: { id: runId },
-            data: { status: 'RUNNING', startedAt: new Date() },
-          }).catch((err) => {
-            this.logger.warn(`[AnswerBlockAutomation] Failed to update run ${runId} to RUNNING: ${err.message}`);
-          });
+          await this.prisma.answerBlockAutomationRun
+            .update({
+              where: { id: runId },
+              data: { status: 'RUNNING', startedAt: new Date() },
+            })
+            .catch((err) => {
+              this.logger.warn(
+                `[AnswerBlockAutomation] Failed to update run ${runId} to RUNNING: ${err.message}`
+              );
+            });
         }
 
         try {
@@ -72,7 +85,7 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
 
           if (!product || product.projectId !== projectId) {
             this.logger.warn(
-              `[AnswerBlockAutomation] Product ${productId} not found for project ${projectId}; skipping`,
+              `[AnswerBlockAutomation] Product ${productId} not found for project ${projectId}; skipping`
             );
             await this.prisma.answerBlockAutomationLog.create({
               data: {
@@ -86,15 +99,18 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
             });
             // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Mark run as SKIPPED
             if (runId) {
-              await this.prisma.answerBlockAutomationRun.update({
-                where: { id: runId },
-                data: { status: 'SKIPPED', completedAt: new Date() },
-              }).catch(() => {});
+              await this.prisma.answerBlockAutomationRun
+                .update({
+                  where: { id: runId },
+                  data: { status: 'SKIPPED', completedAt: new Date() },
+                })
+                .catch(() => {});
             }
             return;
           }
 
-          const beforeBlocks = await this.answerBlockService.getAnswerBlocks(productId);
+          const beforeBlocks =
+            await this.answerBlockService.getAnswerBlocks(productId);
 
           // Secondary plan guard (primary gating happens before enqueue)
           if (planId === 'free') {
@@ -106,27 +122,34 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
                 planId,
                 action: 'skip_plan_free',
                 status: 'skipped',
-                beforeAnswerBlocks: beforeBlocks.length ? beforeBlocks : undefined,
+                beforeAnswerBlocks: beforeBlocks.length
+                  ? beforeBlocks
+                  : undefined,
               },
             });
             // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Mark run as SKIPPED
             if (runId) {
-              await this.prisma.answerBlockAutomationRun.update({
-                where: { id: runId },
-                data: { status: 'SKIPPED', completedAt: new Date() },
-              }).catch(() => {});
+              await this.prisma.answerBlockAutomationRun
+                .update({
+                  where: { id: runId },
+                  data: { status: 'SKIPPED', completedAt: new Date() },
+                })
+                .catch(() => {});
             }
             return;
           }
 
-          let action: 'generate_missing' | 'regenerate_weak' | 'skip_no_action' =
-            'skip_no_action';
+          let action:
+            | 'generate_missing'
+            | 'regenerate_weak'
+            | 'skip_no_action' = 'skip_no_action';
 
           if (!beforeBlocks.length) {
             action = 'generate_missing';
           } else {
             const hasWeakBlock = beforeBlocks.some((b: any) => {
-              const confidence = typeof b.confidenceScore === 'number' ? b.confidenceScore : 0;
+              const confidence =
+                typeof b.confidenceScore === 'number' ? b.confidenceScore : 0;
               return confidence > 0 && confidence < 0.7;
             });
             if (hasWeakBlock) {
@@ -143,15 +166,19 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
                 planId,
                 action,
                 status: 'skipped',
-                beforeAnswerBlocks: beforeBlocks.length ? beforeBlocks : undefined,
+                beforeAnswerBlocks: beforeBlocks.length
+                  ? beforeBlocks
+                  : undefined,
               },
             });
             // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Mark run as SKIPPED
             if (runId) {
-              await this.prisma.answerBlockAutomationRun.update({
-                where: { id: runId },
-                data: { status: 'SKIPPED', completedAt: new Date() },
-              }).catch(() => {});
+              await this.prisma.answerBlockAutomationRun
+                .update({
+                  where: { id: runId },
+                  data: { status: 'SKIPPED', completedAt: new Date() },
+                })
+                .catch(() => {});
             }
             return;
           }
@@ -165,17 +192,18 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
               seoDescription: product.seoDescription,
             });
 
-          const generated: AnswerBlock[] = await this.aiService.generateProductAnswers(
-            {
-              id: product.id,
-              projectId: product.projectId,
-              title: product.title,
-              description: product.description,
-              seoTitle: product.seoTitle,
-              seoDescription: product.seoDescription,
-            },
-            answerabilityStatus,
-          );
+          const generated: AnswerBlock[] =
+            await this.aiService.generateProductAnswers(
+              {
+                id: product.id,
+                projectId: product.projectId,
+                title: product.title,
+                description: product.description,
+                seoTitle: product.seoTitle,
+                seoDescription: product.seoDescription,
+              },
+              answerabilityStatus
+            );
 
           if (!generated.length) {
             await this.prisma.answerBlockAutomationLog.create({
@@ -186,30 +214,35 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
                 planId,
                 action: 'skip_no_generated_answers',
                 status: 'skipped',
-                beforeAnswerBlocks: beforeBlocks.length ? beforeBlocks : undefined,
+                beforeAnswerBlocks: beforeBlocks.length
+                  ? beforeBlocks
+                  : undefined,
               },
             });
             // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Mark run as SKIPPED
             if (runId) {
-              await this.prisma.answerBlockAutomationRun.update({
-                where: { id: runId },
-                data: { status: 'SKIPPED', completedAt: new Date() },
-              }).catch(() => {});
+              await this.prisma.answerBlockAutomationRun
+                .update({
+                  where: { id: runId },
+                  data: { status: 'SKIPPED', completedAt: new Date() },
+                })
+                .catch(() => {});
             }
             return;
           }
 
-          const afterBlocks = await this.answerBlockService.createOrUpdateAnswerBlocks(
-            productId,
-            generated.map((block) => ({
-              questionId: block.questionId,
-              question: block.question,
-              answer: block.answer,
-              confidence: block.confidence,
-              sourceType: block.sourceType,
-              factsUsed: block.factsUsed,
-            })),
-          );
+          const afterBlocks =
+            await this.answerBlockService.createOrUpdateAnswerBlocks(
+              productId,
+              generated.map((block) => ({
+                questionId: block.questionId,
+                question: block.question,
+                answer: block.answer,
+                confidence: block.confidence,
+                sourceType: block.sourceType,
+                factsUsed: block.factsUsed,
+              }))
+            );
 
           await this.prisma.answerBlockAutomationLog.create({
             data: {
@@ -219,7 +252,9 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
               planId,
               action,
               status: 'succeeded',
-              beforeAnswerBlocks: beforeBlocks.length ? beforeBlocks : undefined,
+              beforeAnswerBlocks: beforeBlocks.length
+                ? beforeBlocks
+                : undefined,
               afterAnswerBlocks: afterBlocks.length ? afterBlocks : undefined,
               modelUsed: 'ae_v1',
             },
@@ -227,23 +262,24 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
 
           // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Mark run as SUCCEEDED
           if (runId) {
-            await this.prisma.answerBlockAutomationRun.update({
-              where: { id: runId },
-              data: { status: 'SUCCEEDED', completedAt: new Date() },
-            }).catch(() => {});
+            await this.prisma.answerBlockAutomationRun
+              .update({
+                where: { id: runId },
+                data: { status: 'SUCCEEDED', completedAt: new Date() },
+              })
+              .catch(() => {});
           }
 
           this.logger.log(
-            `[AnswerBlockAutomation] ${action} completed for product ${productId} (project ${projectId}, trigger=${triggerType})`,
+            `[AnswerBlockAutomation] ${action} completed for product ${productId} (project ${projectId}, trigger=${triggerType})`
           );
 
           // Optionally sync Answer Blocks to Shopify metafields when the project-level
           // flag is enabled and a Shopify integration is present.
           if (product.project?.aeoSyncToShopifyMetafields) {
             try {
-              const syncResult = await this.shopifyService.syncAnswerBlocksToShopify(
-                product.id,
-              );
+              const syncResult =
+                await this.shopifyService.syncAnswerBlocksToShopify(product.id);
               await this.prisma.answerBlockAutomationLog.create({
                 data: {
                   projectId,
@@ -260,18 +296,20 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
               });
               if (syncResult.errors.length) {
                 this.logger.warn(
-                  `[AnswerBlockAutomation] Metafield sync had errors for product ${productId} (project ${projectId}): ${syncResult.errors.join(', ')}`,
+                  `[AnswerBlockAutomation] Metafield sync had errors for product ${productId} (project ${projectId}): ${syncResult.errors.join(', ')}`
                 );
               } else {
                 this.logger.log(
-                  `[AnswerBlockAutomation] Answer Blocks synced to Shopify metafields for product ${productId} (project ${projectId})`,
+                  `[AnswerBlockAutomation] Answer Blocks synced to Shopify metafields for product ${productId} (project ${projectId})`
                 );
               }
             } catch (syncError) {
               this.logger.warn(
                 `[AnswerBlockAutomation] Failed to sync Answer Blocks to Shopify metafields for product ${productId} (project ${projectId}): ${
-                  syncError instanceof Error ? syncError.message : String(syncError)
-                }`,
+                  syncError instanceof Error
+                    ? syncError.message
+                    : String(syncError)
+                }`
               );
               await this.prisma.answerBlockAutomationLog.create({
                 data: {
@@ -293,7 +331,7 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
         } catch (error) {
           console.error(
             `[AnswerBlockAutomation] Failed to process job for product ${productId} (project ${projectId})`,
-            error,
+            error
           );
 
           await this.prisma.answerBlockAutomationLog.create({
@@ -304,21 +342,25 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
               planId,
               action: 'error',
               status: 'failed',
-              errorMessage: error instanceof Error ? error.message : String(error),
+              errorMessage:
+                error instanceof Error ? error.message : String(error),
             },
           });
 
           // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Mark run as FAILED
           if (runId) {
-            const safeErrorMessage = error instanceof Error ? error.message : String(error);
-            await this.prisma.answerBlockAutomationRun.update({
-              where: { id: runId },
-              data: {
-                status: 'FAILED',
-                completedAt: new Date(),
-                errorMessage: safeErrorMessage.substring(0, 500), // Truncate for safety
-              },
-            }).catch(() => {});
+            const safeErrorMessage =
+              error instanceof Error ? error.message : String(error);
+            await this.prisma.answerBlockAutomationRun
+              .update({
+                where: { id: runId },
+                data: {
+                  status: 'FAILED',
+                  completedAt: new Date(),
+                  errorMessage: safeErrorMessage.substring(0, 500), // Truncate for safety
+                },
+              })
+              .catch(() => {});
           }
 
           throw error;
@@ -327,7 +369,7 @@ export class AnswerBlockAutomationProcessor implements OnModuleInit, OnModuleDes
       {
         connection: redisConfig.connection,
         prefix: redisConfig.prefix,
-      },
+      }
     );
   }
 

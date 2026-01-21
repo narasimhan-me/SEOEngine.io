@@ -22,7 +22,8 @@ export default function PublicGeoReportPage() {
   const shareToken = params.token as string;
 
   const [loading, setLoading] = useState(true);
-  const [viewData, setViewData] = useState<GeoReportPublicShareViewResponse | null>(null);
+  const [viewData, setViewData] =
+    useState<GeoReportPublicShareViewResponse | null>(null);
 
   // [ENTERPRISE-GEO-1] Passcode state
   const [passcode, setPasscode] = useState('');
@@ -56,7 +57,10 @@ export default function PublicGeoReportPage() {
     try {
       setVerifying(true);
       setPasscodeError('');
-      const data = await publicApi.verifyAndGetGeoReportShareView(shareToken, passcode.trim());
+      const data = await publicApi.verifyAndGetGeoReportShareView(
+        shareToken,
+        passcode.trim()
+      );
       setViewData(data);
       if (data.status === 'passcode_invalid') {
         setPasscodeError('Invalid passcode. Please try again.');
@@ -90,7 +94,10 @@ export default function PublicGeoReportPage() {
   }
 
   // [ENTERPRISE-GEO-1] Handle passcode-protected links
-  if (viewData.status === 'passcode_required' || viewData.status === 'passcode_invalid') {
+  if (
+    viewData.status === 'passcode_required' ||
+    viewData.status === 'passcode_invalid'
+  ) {
     return (
       <PasscodeForm
         passcodeLast4={viewData.passcodeLast4}
@@ -121,7 +128,9 @@ export default function PublicGeoReportPage() {
                 >
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                 </svg>
-                <span className="text-lg font-bold text-gray-900">EngineO.ai</span>
+                <span className="text-lg font-bold text-gray-900">
+                  EngineO.ai
+                </span>
               </div>
               <div className="flex items-center gap-2 print:hidden">
                 <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
@@ -134,10 +143,15 @@ export default function PublicGeoReportPage() {
             </div>
             <div className="text-sm text-gray-500">
               {viewData.expiresAt && (
-                <span className="print:hidden">Expires: {new Date(viewData.expiresAt).toLocaleDateString()}</span>
+                <span className="print:hidden">
+                  Expires: {new Date(viewData.expiresAt).toLocaleDateString()}
+                </span>
               )}
               <span className="hidden print:inline text-xs text-gray-400">
-                Generated: {viewData.generatedAt ? new Date(viewData.generatedAt).toLocaleDateString() : 'N/A'}
+                Generated:{' '}
+                {viewData.generatedAt
+                  ? new Date(viewData.generatedAt).toLocaleDateString()
+                  : 'N/A'}
               </span>
             </div>
           </div>
@@ -151,12 +165,17 @@ export default function PublicGeoReportPage() {
           <div className="border-b border-gray-200 px-8 py-6">
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">GEO Readiness Report</h1>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  GEO Readiness Report
+                </h1>
                 <p className="mt-1 text-gray-600">{report.projectName}</p>
               </div>
               <div className="text-right text-sm text-gray-500">
                 {viewData.generatedAt && (
-                  <div>Generated: {new Date(viewData.generatedAt).toLocaleDateString()}</div>
+                  <div>
+                    Generated:{' '}
+                    {new Date(viewData.generatedAt).toLocaleDateString()}
+                  </div>
                 )}
               </div>
             </div>
@@ -164,7 +183,9 @@ export default function PublicGeoReportPage() {
 
           {/* Overview Section */}
           <div className="border-b border-gray-200 px-8 py-6 print:px-4 print:break-inside-avoid">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Overview</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Overview
+            </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="rounded-md border border-gray-200 p-4 print:break-inside-avoid">
                 <div className="text-sm text-gray-500">Answer Ready</div>
@@ -172,7 +193,8 @@ export default function PublicGeoReportPage() {
                   {report.overview.productsAnswerReadyPercent}%
                 </div>
                 <div className="text-xs text-gray-500">
-                  {report.overview.productsAnswerReadyCount} of {report.overview.productsTotal} products
+                  {report.overview.productsAnswerReadyCount} of{' '}
+                  {report.overview.productsTotal} products
                 </div>
               </div>
               <div className="rounded-md border border-gray-200 p-4 print:break-inside-avoid">
@@ -188,19 +210,27 @@ export default function PublicGeoReportPage() {
                 </div>
               </div>
               <div className="rounded-md border border-gray-200 p-4 print:break-inside-avoid">
-                <div className="text-sm text-gray-500">Attribution Readiness</div>
+                <div className="text-sm text-gray-500">
+                  Attribution Readiness
+                </div>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   <span className="flex items-center gap-1">
                     <span className="inline-block h-3 w-3 rounded-full bg-green-500"></span>
-                    <span className="text-sm">{report.overview.confidenceDistribution.high}</span>
+                    <span className="text-sm">
+                      {report.overview.confidenceDistribution.high}
+                    </span>
                   </span>
                   <span className="flex items-center gap-1">
                     <span className="inline-block h-3 w-3 rounded-full bg-yellow-500"></span>
-                    <span className="text-sm">{report.overview.confidenceDistribution.medium}</span>
+                    <span className="text-sm">
+                      {report.overview.confidenceDistribution.medium}
+                    </span>
                   </span>
                   <span className="flex items-center gap-1">
                     <span className="inline-block h-3 w-3 rounded-full bg-red-500"></span>
-                    <span className="text-sm">{report.overview.confidenceDistribution.low}</span>
+                    <span className="text-sm">
+                      {report.overview.confidenceDistribution.low}
+                    </span>
                   </span>
                 </div>
               </div>
@@ -209,16 +239,25 @@ export default function PublicGeoReportPage() {
 
           {/* Intent Coverage */}
           <div className="border-b border-gray-200 px-8 py-6 print:px-4 print:break-inside-avoid">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Intent Coverage</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Intent Coverage
+            </h2>
             <div className="space-y-3">
               {report.coverage.byIntent.map((intent) => (
-                <div key={intent.intentType} className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">{intent.label}</span>
+                <div
+                  key={intent.intentType}
+                  className="flex items-center justify-between"
+                >
+                  <span className="text-sm font-medium text-gray-700">
+                    {intent.label}
+                  </span>
                   <div className="flex items-center gap-4">
                     <span className="text-sm text-gray-600">
                       {intent.productsCovered}/{intent.productsTotal} products
                     </span>
-                    <span className="text-xs text-gray-500">{intent.coveragePercent}%</span>
+                    <span className="text-xs text-gray-500">
+                      {intent.coveragePercent}%
+                    </span>
                   </div>
                 </div>
               ))}
@@ -226,44 +265,66 @@ export default function PublicGeoReportPage() {
             {report.coverage.gaps.length > 0 && (
               <div className="mt-4 rounded-md bg-amber-50 p-3">
                 <p className="text-sm text-amber-800">
-                  <strong>Coverage gaps:</strong> {report.coverage.gaps.map((g) => g.replace(/_/g, ' ')).join(', ')}
+                  <strong>Coverage gaps:</strong>{' '}
+                  {report.coverage.gaps
+                    .map((g) => g.replace(/_/g, ' '))
+                    .join(', ')}
                 </p>
               </div>
             )}
-            <p className="mt-3 text-sm text-gray-600">{report.coverage.summary}</p>
+            <p className="mt-3 text-sm text-gray-600">
+              {report.coverage.summary}
+            </p>
           </div>
 
           {/* Trust Signals */}
           {report.trustSignals.topBlockers.length > 0 && (
             <div className="border-b border-gray-200 px-8 py-6 print:px-4 print:break-inside-avoid">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Trust Signals</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Trust Signals
+              </h2>
               <div className="space-y-2">
                 {report.trustSignals.topBlockers.map((blocker, idx) => (
-                  <div key={idx} className="flex items-center justify-between text-sm">
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between text-sm"
+                  >
                     <span className="text-gray-700">{blocker.label}</span>
-                    <span className="text-gray-500">{blocker.affectedProducts} products</span>
+                    <span className="text-gray-500">
+                      {blocker.affectedProducts} products
+                    </span>
                   </div>
                 ))}
               </div>
               {report.trustSignals.avgTimeToImproveHours !== null && (
                 <p className="mt-3 text-sm text-gray-600">
-                  Avg. time to improve: {report.trustSignals.avgTimeToImproveHours}h
+                  Avg. time to improve:{' '}
+                  {report.trustSignals.avgTimeToImproveHours}h
                 </p>
               )}
-              <p className="mt-3 text-sm text-gray-600">{report.trustSignals.summary}</p>
+              <p className="mt-3 text-sm text-gray-600">
+                {report.trustSignals.summary}
+              </p>
             </div>
           )}
 
           {/* Opportunities */}
           {report.opportunities.length > 0 && (
             <div className="border-b border-gray-200 px-8 py-6 print:px-4 print:break-inside-avoid">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Opportunities</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Opportunities
+              </h2>
               <div className="space-y-3">
                 {report.opportunities.map((opp, idx) => (
-                  <div key={idx} className="rounded-md border border-gray-200 p-3">
+                  <div
+                    key={idx}
+                    className="rounded-md border border-gray-200 p-3"
+                  >
                     <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="text-sm font-medium text-gray-900">{opp.title}</h3>
+                        <h3 className="text-sm font-medium text-gray-900">
+                          {opp.title}
+                        </h3>
                         <p className="mt-1 text-sm text-gray-600">{opp.why}</p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -331,28 +392,61 @@ function ErrorState({ type }: { type: 'not_found' | 'expired' | 'revoked' }) {
   const messages = {
     not_found: {
       title: 'Report Not Found',
-      description: 'This shared report link does not exist or may have been removed.',
+      description:
+        'This shared report link does not exist or may have been removed.',
       icon: (
-        <svg className="h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg
+          className="h-12 w-12 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
       ),
     },
     expired: {
       title: 'Link Expired',
-      description: 'This shared report link has expired. Please request a new link from the report owner.',
+      description:
+        'This shared report link has expired. Please request a new link from the report owner.',
       icon: (
-        <svg className="h-12 w-12 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg
+          className="h-12 w-12 text-amber-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
       ),
     },
     revoked: {
       title: 'Access Revoked',
-      description: 'This shared report link has been revoked by the owner and is no longer accessible.',
+      description:
+        'This shared report link has been revoked by the owner and is no longer accessible.',
       icon: (
-        <svg className="h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+        <svg
+          className="h-12 w-12 text-red-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+          />
         </svg>
       ),
     },
@@ -395,24 +489,39 @@ function PasscodeForm({
         <div className="bg-white rounded-lg shadow-lg p-8">
           <div className="text-center mb-6">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-              <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              <svg
+                className="h-6 w-6 text-blue-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
               </svg>
             </div>
-            <h1 className="text-xl font-semibold text-gray-900">Protected Report</h1>
+            <h1 className="text-xl font-semibold text-gray-900">
+              Protected Report
+            </h1>
             <p className="mt-2 text-gray-600">
               This report is protected. Enter the passcode to view.
             </p>
             {passcodeLast4 && (
               <p className="mt-1 text-sm text-gray-500">
-                Hint: ends with <span className="font-mono font-medium">{passcodeLast4}</span>
+                Hint: ends with{' '}
+                <span className="font-mono font-medium">{passcodeLast4}</span>
               </p>
             )}
           </div>
 
           <form onSubmit={onSubmit} className="space-y-4">
             <div>
-              <label htmlFor="passcode" className="sr-only">Passcode</label>
+              <label htmlFor="passcode" className="sr-only">
+                Passcode
+              </label>
               <input
                 type="text"
                 id="passcode"
@@ -440,9 +549,24 @@ function PasscodeForm({
             >
               {verifying ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
                   </svg>
                   Verifying...
                 </>

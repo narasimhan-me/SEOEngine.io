@@ -39,7 +39,11 @@ export default function AdminGovernanceAuditPage() {
       setEvents(data.events);
       setPagination(data.pagination);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load governance audit events');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to load governance audit events'
+      );
     } finally {
       setLoading(false);
     }
@@ -96,9 +100,12 @@ export default function AdminGovernanceAuditPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">Governance Audit</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">
+        Governance Audit
+      </h1>
       <p className="text-sm text-gray-500 mb-6">
-        [ENTERPRISE-GEO-1] Immutable audit records of governance actions (policy changes, approvals, share links).
+        [ENTERPRISE-GEO-1] Immutable audit records of governance actions (policy
+        changes, approvals, share links).
       </p>
 
       {/* Filters */}
@@ -136,12 +143,24 @@ export default function AdminGovernanceAuditPage() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Event Type</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actor</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Project</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Resource</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Time
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Event Type
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Actor
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Project
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Resource
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Details
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -158,12 +177,16 @@ export default function AdminGovernanceAuditPage() {
                     {formatDate(event.createdAt)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${getEventTypeBadgeColor(event.eventType)}`}>
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs rounded-full ${getEventTypeBadgeColor(event.eventType)}`}
+                    >
                       {formatEventType(event.eventType)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {event.actorEmail || <span className="text-gray-400 italic">System</span>}
+                    {event.actorEmail || (
+                      <span className="text-gray-400 italic">System</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {event.projectName || event.projectId.slice(0, 8)}
@@ -172,7 +195,8 @@ export default function AdminGovernanceAuditPage() {
                     {event.resourceType ? (
                       <span className="font-mono text-xs bg-gray-100 px-1 py-0.5 rounded">
                         {event.resourceType}
-                        {event.resourceId && `: ${event.resourceId.slice(0, 8)}...`}
+                        {event.resourceId &&
+                          `: ${event.resourceId.slice(0, 8)}...`}
                       </span>
                     ) : (
                       '-'
@@ -180,7 +204,10 @@ export default function AdminGovernanceAuditPage() {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
                     {event.metadata ? (
-                      <span title={JSON.stringify(event.metadata, null, 2)} className="cursor-help">
+                      <span
+                        title={JSON.stringify(event.metadata, null, 2)}
+                        className="cursor-help"
+                      >
                         {JSON.stringify(event.metadata).slice(0, 50)}
                         {JSON.stringify(event.metadata).length > 50 && '...'}
                       </span>
@@ -198,7 +225,8 @@ export default function AdminGovernanceAuditPage() {
       {pagination && pagination.pages > 1 && (
         <div className="mt-4 flex justify-between items-center">
           <p className="text-sm text-gray-500">
-            Page {pagination.page} of {pagination.pages} ({pagination.total} total)
+            Page {pagination.page} of {pagination.pages} ({pagination.total}{' '}
+            total)
           </p>
           <div className="flex gap-2">
             <button
@@ -209,7 +237,9 @@ export default function AdminGovernanceAuditPage() {
               Previous
             </button>
             <button
-              onClick={() => setCurrentPage((p) => Math.min(pagination.pages, p + 1))}
+              onClick={() =>
+                setCurrentPage((p) => Math.min(pagination.pages, p + 1))
+              }
               disabled={currentPage === pagination.pages}
               className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50"
             >

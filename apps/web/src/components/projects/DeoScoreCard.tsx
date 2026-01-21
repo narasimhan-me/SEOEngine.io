@@ -6,7 +6,11 @@ interface DeoScoreCardProps {
   onRunFirstCrawl?: () => void;
 }
 
-export function DeoScoreCard({ score, lastComputedAt, onRunFirstCrawl }: DeoScoreCardProps) {
+export function DeoScoreCard({
+  score,
+  lastComputedAt,
+  onRunFirstCrawl,
+}: DeoScoreCardProps) {
   const overall = score?.overall ?? null;
   const formattedDate = lastComputedAt
     ? new Date(lastComputedAt).toLocaleString()
@@ -30,7 +34,9 @@ export function DeoScoreCard({ score, lastComputedAt, onRunFirstCrawl }: DeoScor
           <h2 className="text-sm font-medium text-gray-700">DEO Score</h2>
           <p className={`mt-2 text-4xl font-semibold ${scoreColor}`}>
             {overall != null ? `${overall}` : '--'}
-            <span className="ml-1 text-base font-normal text-gray-400">/100</span>
+            <span className="ml-1 text-base font-normal text-gray-400">
+              /100
+            </span>
           </p>
         </div>
         <div className="flex flex-col items-end">
@@ -48,7 +54,8 @@ export function DeoScoreCard({ score, lastComputedAt, onRunFirstCrawl }: DeoScor
       {overall == null ? (
         <div className="mt-3">
           <p className="text-xs text-gray-500 mb-2">
-            No DEO Score yet. Run your first crawl to compute your DEO Score across Content, Entities, Technical, and Visibility signals.
+            No DEO Score yet. Run your first crawl to compute your DEO Score
+            across Content, Entities, Technical, and Visibility signals.
           </p>
           {onRunFirstCrawl && (
             <button
@@ -61,8 +68,8 @@ export function DeoScoreCard({ score, lastComputedAt, onRunFirstCrawl }: DeoScor
         </div>
       ) : (
         <p className="mt-3 text-xs text-gray-500">
-          DEO Score summarizes Content, Entities, Technical, and Visibility signals for this
-          project using the v1 model.
+          DEO Score summarizes Content, Entities, Technical, and Visibility
+          signals for this project using the v1 model.
         </p>
       )}
     </div>

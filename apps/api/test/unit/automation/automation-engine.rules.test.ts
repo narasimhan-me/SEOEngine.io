@@ -66,7 +66,7 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
       governanceServiceStub,
       approvalsServiceStub,
       auditEventsServiceStub,
-      roleResolutionService,
+      roleResolutionService
     );
   });
 
@@ -84,7 +84,7 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
 
   async function createUserProjectAndProduct(
     plan: TestPlanId,
-    productFixture = shopifyProductNoAnswerBlocks,
+    productFixture = shopifyProductNoAnswerBlocks
   ) {
     const user = await testPrisma.user.create({
       data: {
@@ -131,8 +131,7 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
         externalId: String(productFixture.id),
         title: productFixture.title,
         description: productFixture.body_html,
-        seoTitle:
-          (productFixture as any).metafields_global_title_tag ?? null,
+        seoTitle: (productFixture as any).metafields_global_title_tag ?? null,
         seoDescription:
           (productFixture as any).metafields_global_description_tag ?? null,
       },
@@ -145,7 +144,7 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
     const plan: TestPlanId = 'free';
     const { user, product } = await createUserProjectAndProduct(
       plan,
-      shopifyProductNoAnswerBlocks,
+      shopifyProductNoAnswerBlocks
     );
 
     // Document the intended triggering event shape.
@@ -155,7 +154,7 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
     await automationService.triggerAnswerBlockAutomationForProduct(
       product.id,
       user.id,
-      'product_synced',
+      'product_synced'
     );
 
     const logs = await testPrisma.answerBlockAutomationLog.findMany({
@@ -170,7 +169,7 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
   it('throws when a user tries to trigger automation for a product they do not own', async () => {
     const { user: owner, product } = await createUserProjectAndProduct(
       'pro',
-      basicShopifyProduct,
+      basicShopifyProduct
     );
 
     const otherUser = await testPrisma.user.create({
@@ -185,8 +184,8 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
       automationService.triggerAnswerBlockAutomationForProduct(
         product.id,
         otherUser.id,
-        'product_synced',
-      ),
+        'product_synced'
+      )
     ).rejects.toThrow('You do not have access to this project');
 
     const logs = await testPrisma.answerBlockAutomationLog.findMany({
@@ -198,7 +197,7 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
   it('is idempotent when a successful automation already exists', async () => {
     const { user, project, product } = await createUserProjectAndProduct(
       'pro',
-      shopifyProductMissingSeo,
+      shopifyProductMissingSeo
     );
 
     await testPrisma.answerBlockAutomationLog.create({
@@ -215,7 +214,7 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
     await automationService.triggerAnswerBlockAutomationForProduct(
       product.id,
       user.id,
-      'product_synced',
+      'product_synced'
     );
 
     const logs = await testPrisma.answerBlockAutomationLog.findMany({
@@ -241,8 +240,8 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
       automationService.triggerAnswerBlockAutomationForProduct(
         missingProductId,
         user.id,
-        'issue_detected',
-      ),
+        'issue_detected'
+      )
     ).resolves.not.toThrow();
 
     const logs = await testPrisma.answerBlockAutomationLog.findMany({
@@ -255,7 +254,7 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
     const plan: TestPlanId = 'free';
     const { user, project, product } = await createUserProjectAndProduct(
       plan,
-      shopifyProductNoAnswerBlocks,
+      shopifyProductNoAnswerBlocks
     );
 
     await testPrisma.answerBlock.create({
@@ -272,7 +271,7 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
 
     const result = await automationService.syncAnswerBlocksToShopifyNow(
       product.id,
-      user.id,
+      user.id
     );
 
     expect(result.status).toBe('skipped');
@@ -295,7 +294,7 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
     const plan: TestPlanId = 'pro';
     const { user, project, product } = await createUserProjectAndProduct(
       plan,
-      shopifyProductNoAnswerBlocks,
+      shopifyProductNoAnswerBlocks
     );
 
     await testPrisma.project.update({
@@ -319,7 +318,7 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
 
     const result = await automationService.syncAnswerBlocksToShopifyNow(
       product.id,
-      user.id,
+      user.id
     );
 
     expect(result.status).toBe('skipped');
@@ -340,7 +339,7 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
     const plan: TestPlanId = 'pro';
     const { user, project, product } = await createUserProjectAndProduct(
       plan,
-      shopifyProductNoAnswerBlocks,
+      shopifyProductNoAnswerBlocks
     );
 
     await testPrisma.project.update({
@@ -372,16 +371,18 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
 
     const result = await automationService.syncAnswerBlocksToShopifyNow(
       product.id,
-      user.id,
+      user.id
     );
 
     expect(result.status).toBe('succeeded');
     expect(result.syncedCount).toBe(2);
     expect(result.errors).toEqual([]);
 
-    expect(shopifyServiceStub.syncAnswerBlocksToShopify).toHaveBeenCalledTimes(1);
+    expect(shopifyServiceStub.syncAnswerBlocksToShopify).toHaveBeenCalledTimes(
+      1
+    );
     expect(shopifyServiceStub.syncAnswerBlocksToShopify).toHaveBeenCalledWith(
-      product.id,
+      product.id
     );
 
     const logs = await testPrisma.answerBlockAutomationLog.findMany({
@@ -396,7 +397,7 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
     const plan: TestPlanId = 'pro';
     const { user, project, product } = await createUserProjectAndProduct(
       plan,
-      shopifyProductNoAnswerBlocks,
+      shopifyProductNoAnswerBlocks
     );
 
     await testPrisma.project.update({
@@ -433,7 +434,7 @@ describe('AutomationService rule-level behavior for Answer Blocks', () => {
 
     const result = await automationService.syncAnswerBlocksToShopifyNow(
       product.id,
-      user.id,
+      user.id
     );
 
     expect(result.status).toBe('skipped');

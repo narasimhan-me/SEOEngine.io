@@ -36,8 +36,10 @@ function getAssetTypeFromUrl(url: string): IssueAssetTypeKey {
   try {
     const urlObj = new URL(url);
     const path = urlObj.pathname.toLowerCase();
-    if (path.startsWith('/collections/') || path === '/collections') return 'collections';
-    if (path.startsWith('/products/') || path === '/products') return 'products';
+    if (path.startsWith('/collections/') || path === '/collections')
+      return 'collections';
+    if (path.startsWith('/products/') || path === '/products')
+      return 'products';
     return 'pages';
   } catch {
     return 'pages';
@@ -155,14 +157,17 @@ export class DeoIssuesService {
     private readonly offsiteSignalsService: OffsiteSignalsService,
     private readonly localDiscoveryService: LocalDiscoveryService,
     private readonly mediaAccessibilityService: MediaAccessibilityService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   /**
    * Compute DEO issues for a project by combining crawl results,
    * product data, and aggregated DEO signals.
    */
-  async getIssuesForProject(projectId: string, userId: string): Promise<DeoIssuesResponse> {
+  async getIssuesForProject(
+    projectId: string,
+    userId: string
+  ): Promise<DeoIssuesResponse> {
     return this.computeIssuesForProject(projectId, userId, { mode: 'full' });
   }
 
@@ -171,14 +176,22 @@ export class DeoIssuesService {
    * Uses cached data only and does NOT trigger any side effects (no automation triggers).
    * Used by the insights dashboard for issue counts without mutating state.
    */
-  async getIssuesForProjectReadOnly(projectId: string, userId: string): Promise<DeoIssuesResponse> {
-    return this.computeIssuesForProject(projectId, userId, { mode: 'readOnly' });
+  async getIssuesForProjectReadOnly(
+    projectId: string,
+    userId: string
+  ): Promise<DeoIssuesResponse> {
+    return this.computeIssuesForProject(projectId, userId, {
+      mode: 'readOnly',
+    });
   }
 
   /**
    * COUNT-INTEGRITY-1: Server-side single source of truth for counts.
    */
-  async getIssueCountsSummaryForProject(projectId: string, userId: string): Promise<IssueCountsSummary> {
+  async getIssueCountsSummaryForProject(
+    projectId: string,
+    userId: string
+  ): Promise<IssueCountsSummary> {
     const response = await this.getIssuesForProjectReadOnly(projectId, userId);
     const issues = response.issues ?? [];
 
@@ -190,7 +203,7 @@ export class DeoIssuesService {
     });
 
     const byPillar: IssueCountsSummary['byPillar'] = Object.fromEntries(
-      DEO_PILLARS.map((p) => [p.id, makeBucket()]),
+      DEO_PILLARS.map((p) => [p.id, makeBucket()])
     ) as IssueCountsSummary['byPillar'];
 
     const bySeverity: IssueCountsSummary['bySeverity'] = {
@@ -318,20 +331,23 @@ export class DeoIssuesService {
       pillar?: DeoPillarId;
       pillars?: DeoPillarId[];
       severity?: 'critical' | 'warning' | 'info';
-    },
+    }
   ): Promise<CanonicalIssueCountsSummary> {
     const response = await this.getIssuesForProjectReadOnly(projectId, userId);
     let issues = response.issues ?? [];
 
     // Apply filters
     if (filters) {
-      const { actionKey, actionKeys, scopeType, pillar, pillars, severity } = filters;
+      const { actionKey, actionKeys, scopeType, pillar, pillars, severity } =
+        filters;
 
       // [COUNT-INTEGRITY-1.1 PATCH 2.4] Filter by actionKey(s) using shared mapper
-      const actionKeysToFilter = actionKeys || (actionKey ? [actionKey] : undefined);
+      const actionKeysToFilter =
+        actionKeys || (actionKey ? [actionKey] : undefined);
       if (actionKeysToFilter && actionKeysToFilter.length > 0) {
         issues = issues.filter((issue) => {
-          const issueActionKey = getWorkQueueRecommendedActionKeyForIssue(issue);
+          const issueActionKey =
+            getWorkQueueRecommendedActionKeyForIssue(issue);
           return actionKeysToFilter.includes(issueActionKey);
         });
       }
@@ -347,7 +363,9 @@ export class DeoIssuesService {
       // Filter by pillar(s)
       const pillarsToFilter = pillars || (pillar ? [pillar] : undefined);
       if (pillarsToFilter && pillarsToFilter.length > 0) {
-        issues = issues.filter((issue) => issue.pillarId && pillarsToFilter.includes(issue.pillarId));
+        issues = issues.filter(
+          (issue) => issue.pillarId && pillarsToFilter.includes(issue.pillarId)
+        );
       }
 
       // Filter by severity
@@ -357,7 +375,10 @@ export class DeoIssuesService {
     }
 
     // Helper to compute triplet for a set of issues
-    const computeTriplet = (issueSubset: DeoIssue[], onlyActionable: boolean): CanonicalCountTriplet => {
+    const computeTriplet = (
+      issueSubset: DeoIssue[],
+      onlyActionable: boolean
+    ): CanonicalCountTriplet => {
       const filteredIssues = onlyActionable
         ? issueSubset.filter((i) => i.isActionableNow === true)
         : issueSubset;
@@ -438,12 +459,16 @@ export class DeoIssuesService {
       }
 
       const affectedItemsCount = uniqueAssets.size;
-      const actionableNowCount = onlyActionable ? actionableAssetsSet.size : actionableAssetsSet.size;
+      const actionableNowCount = onlyActionable
+        ? actionableAssetsSet.size
+        : actionableAssetsSet.size;
 
       return {
         issueTypesCount,
         affectedItemsCount,
-        actionableNowCount: onlyActionable ? actionableNowCount : actionableAssetsSet.size,
+        actionableNowCount: onlyActionable
+          ? actionableNowCount
+          : actionableAssetsSet.size,
       };
     };
 
@@ -462,7 +487,11 @@ export class DeoIssuesService {
     }
 
     // Compute bySeverity breakdown
-    const severities: Array<'critical' | 'warning' | 'info'> = ['critical', 'warning', 'info'];
+    const severities: Array<'critical' | 'warning' | 'info'> = [
+      'critical',
+      'warning',
+      'info',
+    ];
     const bySeverity: CanonicalIssueCountsSummary['bySeverity'] = {} as any;
     for (const sev of severities) {
       const sevIssues = issues.filter((i) => i.severity === sev);
@@ -497,7 +526,7 @@ export class DeoIssuesService {
       pillar?: DeoPillarId;
       pillars?: DeoPillarId[];
       severity?: 'critical' | 'warning' | 'info';
-    },
+    }
   ): Promise<AssetIssuesResponse> {
     const response = await this.getIssuesForProjectReadOnly(projectId, userId);
     let issues = response.issues ?? [];
@@ -519,8 +548,16 @@ export class DeoIssuesService {
           generatedAt: new Date().toISOString(),
           issues: [],
           summary: {
-            detected: { issueTypesCount: 0, affectedItemsCount: 0, actionableNowCount: 0 },
-            actionable: { issueTypesCount: 0, affectedItemsCount: 0, actionableNowCount: 0 },
+            detected: {
+              issueTypesCount: 0,
+              affectedItemsCount: 0,
+              actionableNowCount: 0,
+            },
+            actionable: {
+              issueTypesCount: 0,
+              affectedItemsCount: 0,
+              actionableNowCount: 0,
+            },
             byPillar: {} as any,
             bySeverity: {} as any,
           },
@@ -541,11 +578,12 @@ export class DeoIssuesService {
       const fullKeys = getFullAffectedAssetKeys(issue);
       if (fullKeys && fullKeys.length > 0) {
         // Build the composite key for this asset
-        const targetKey = assetType === 'products'
-          ? `products:${assetId}`
-          : assetType === 'pages'
-            ? `pages:${resolvedAssetIdentifier}`
-            : `collections:${resolvedAssetIdentifier}`;
+        const targetKey =
+          assetType === 'products'
+            ? `products:${assetId}`
+            : assetType === 'pages'
+              ? `pages:${resolvedAssetIdentifier}`
+              : `collections:${resolvedAssetIdentifier}`;
         return fullKeys.includes(targetKey);
       }
 
@@ -577,7 +615,9 @@ export class DeoIssuesService {
 
       const pillarsToFilter = pillars || (pillar ? [pillar] : undefined);
       if (pillarsToFilter && pillarsToFilter.length > 0) {
-        issues = issues.filter((issue) => issue.pillarId && pillarsToFilter.includes(issue.pillarId));
+        issues = issues.filter(
+          (issue) => issue.pillarId && pillarsToFilter.includes(issue.pillarId)
+        );
       }
 
       if (severity) {
@@ -586,7 +626,10 @@ export class DeoIssuesService {
     }
 
     // Compute canonical triplet summary for this asset's issues
-    const computeTriplet = (issueSubset: DeoIssue[], onlyActionable: boolean): CanonicalCountTriplet => {
+    const computeTriplet = (
+      issueSubset: DeoIssue[],
+      onlyActionable: boolean
+    ): CanonicalCountTriplet => {
       const filteredIssues = onlyActionable
         ? issueSubset.filter((i) => i.isActionableNow === true)
         : issueSubset;
@@ -594,7 +637,8 @@ export class DeoIssuesService {
       const issueTypesCount = filteredIssues.length;
       // For asset-specific view, affectedItemsCount is always 1 (this asset)
       const affectedItemsCount = filteredIssues.length > 0 ? 1 : 0;
-      const actionableNowCount = onlyActionable && filteredIssues.length > 0 ? 1 : 0;
+      const actionableNowCount =
+        onlyActionable && filteredIssues.length > 0 ? 1 : 0;
 
       return {
         issueTypesCount,
@@ -617,7 +661,11 @@ export class DeoIssuesService {
     }
 
     // Compute bySeverity breakdown
-    const severities: Array<'critical' | 'warning' | 'info'> = ['critical', 'warning', 'info'];
+    const severities: Array<'critical' | 'warning' | 'info'> = [
+      'critical',
+      'warning',
+      'info',
+    ];
     const bySeverity: AssetIssuesResponse['summary']['bySeverity'] = {} as any;
     for (const sev of severities) {
       const sevIssues = issues.filter((i) => i.severity === sev);
@@ -650,7 +698,7 @@ export class DeoIssuesService {
   private async computeIssuesForProject(
     projectId: string,
     userId: string,
-    opts: { mode: 'full' | 'readOnly' },
+    opts: { mode: 'full' | 'readOnly' }
   ): Promise<DeoIssuesResponse> {
     const prisma = this.prisma as any;
 
@@ -680,7 +728,7 @@ export class DeoIssuesService {
     const missingMetadataIssue = this.buildMissingMetadataIssue(
       crawlResults,
       products,
-      totalSurfaces,
+      totalSurfaces
     );
     if (missingMetadataIssue) {
       issues.push(missingMetadataIssue);
@@ -689,7 +737,7 @@ export class DeoIssuesService {
     const thinContentIssue = this.buildThinContentIssue(
       crawlResults,
       products,
-      totalSurfaces,
+      totalSurfaces
     );
     if (thinContentIssue) {
       issues.push(thinContentIssue);
@@ -699,31 +747,40 @@ export class DeoIssuesService {
       crawlResults,
       products,
       totalSurfaces,
-      signals,
+      signals
     );
     if (lowEntityCoverageIssue) {
       issues.push(lowEntityCoverageIssue);
     }
 
-    const indexabilityIssue = this.buildIndexabilityIssue(crawlResults, signals);
+    const indexabilityIssue = this.buildIndexabilityIssue(
+      crawlResults,
+      signals
+    );
     if (indexabilityIssue) {
       issues.push(indexabilityIssue);
     }
 
     const indexabilityConflictIssue = this.buildIndexabilityConflictIssue(
       crawlResults,
-      signals,
+      signals
     );
     if (indexabilityConflictIssue) {
       issues.push(indexabilityConflictIssue);
     }
 
-    const answerSurfaceIssue = this.buildAnswerSurfaceIssue(crawlResults, signals);
+    const answerSurfaceIssue = this.buildAnswerSurfaceIssue(
+      crawlResults,
+      signals
+    );
     if (answerSurfaceIssue) {
       issues.push(answerSurfaceIssue);
     }
 
-    const brandNavIssue = this.buildBrandNavigationalIssue(crawlResults, signals);
+    const brandNavIssue = this.buildBrandNavigationalIssue(
+      crawlResults,
+      signals
+    );
     if (brandNavIssue) {
       issues.push(brandNavIssue);
     }
@@ -786,7 +843,10 @@ export class DeoIssuesService {
 
     // GEO-FOUNDATION-1: Add GEO answer readiness issues (derived from persisted Answer Blocks)
     try {
-      const geoIssues = await this.buildGeoIssuesForProject(projectId, products);
+      const geoIssues = await this.buildGeoIssuesForProject(
+        projectId,
+        products
+      );
       issues.push(...geoIssues);
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -795,57 +855,86 @@ export class DeoIssuesService {
 
     // SEARCH-INTENT-1: Add Search & Intent pillar issues
     try {
-      const intentIssues = await this.searchIntentService.buildSearchIntentIssues(projectId);
+      const intentIssues =
+        await this.searchIntentService.buildSearchIntentIssues(projectId);
       issues.push(...intentIssues);
     } catch (error) {
       // Log but don't fail the entire issues request
       // eslint-disable-next-line no-console
-      console.error('[DeoIssuesService] Failed to build search intent issues:', error);
+      console.error(
+        '[DeoIssuesService] Failed to build search intent issues:',
+        error
+      );
     }
 
     // COMPETITORS-1: Add Competitive Positioning pillar issues
     try {
-      const competitiveIssues = await this.competitorsService.buildCompetitiveIssues(projectId);
+      const competitiveIssues =
+        await this.competitorsService.buildCompetitiveIssues(projectId);
       issues.push(...competitiveIssues);
     } catch (error) {
       // Log but don't fail the entire issues request
       // eslint-disable-next-line no-console
-      console.error('[DeoIssuesService] Failed to build competitive issues:', error);
+      console.error(
+        '[DeoIssuesService] Failed to build competitive issues:',
+        error
+      );
     }
 
     // OFFSITE-1: Add Off-site Signals pillar issues
     // [INSIGHTS-1] In readOnly mode, use cached-only method (no recomputation)
     try {
-      const offsiteIssues = opts.mode === 'readOnly'
-        ? await this.offsiteSignalsService.buildOffsiteIssuesForProjectReadOnly(projectId)
-        : await this.offsiteSignalsService.buildOffsiteIssuesForProject(projectId);
+      const offsiteIssues =
+        opts.mode === 'readOnly'
+          ? await this.offsiteSignalsService.buildOffsiteIssuesForProjectReadOnly(
+              projectId
+            )
+          : await this.offsiteSignalsService.buildOffsiteIssuesForProject(
+              projectId
+            );
       issues.push(...offsiteIssues);
     } catch (error) {
       // Log but don't fail the entire issues request
       // eslint-disable-next-line no-console
-      console.error('[DeoIssuesService] Failed to build off-site signals issues:', error);
+      console.error(
+        '[DeoIssuesService] Failed to build off-site signals issues:',
+        error
+      );
     }
 
     // LOCAL-1: Add Local Discovery pillar issues
     // CRITICAL: Non-applicable projects get NO issues (no penalty for global stores)
     // [INSIGHTS-1] In readOnly mode, use cached-only method (no recomputation)
     try {
-      const localIssues = opts.mode === 'readOnly'
-        ? await this.localDiscoveryService.buildLocalIssuesForProjectReadOnly(projectId)
-        : await this.localDiscoveryService.buildLocalIssuesForProject(projectId);
+      const localIssues =
+        opts.mode === 'readOnly'
+          ? await this.localDiscoveryService.buildLocalIssuesForProjectReadOnly(
+              projectId
+            )
+          : await this.localDiscoveryService.buildLocalIssuesForProject(
+              projectId
+            );
       issues.push(...localIssues);
     } catch (error) {
       // Log but don't fail the entire issues request
       // eslint-disable-next-line no-console
-      console.error('[DeoIssuesService] Failed to build local discovery issues:', error);
+      console.error(
+        '[DeoIssuesService] Failed to build local discovery issues:',
+        error
+      );
     }
 
     // MEDIA-1: Add Media & Accessibility pillar issues
     try {
-      const mediaIssues = await this.mediaAccessibilityService.buildMediaIssuesForProject(projectId);
+      const mediaIssues =
+        await this.mediaAccessibilityService.buildMediaIssuesForProject(
+          projectId
+        );
       // [COUNT-INTEGRITY-1.1 PATCH 3.5] Attach full keys for media issues that have __tempFullProductIds
       for (const issue of mediaIssues) {
-        const tempIds = (issue as any).__tempFullProductIds as string[] | undefined;
+        const tempIds = (issue as any).__tempFullProductIds as
+          | string[]
+          | undefined;
         if (tempIds && tempIds.length > 0) {
           attachFullAffectedAssetKeys(issue, tempIds, []);
           delete (issue as any).__tempFullProductIds; // Clean up temp field
@@ -855,19 +944,31 @@ export class DeoIssuesService {
     } catch (error) {
       // Log but don't fail the entire issues request
       // eslint-disable-next-line no-console
-      console.error('[DeoIssuesService] Failed to build media accessibility issues:', error);
+      console.error(
+        '[DeoIssuesService] Failed to build media accessibility issues:',
+        error
+      );
     }
 
     // COUNT-INTEGRITY-1: Add derived actionability + asset-type distribution on every issue.
-    const effectiveRole = await this.roleResolution.resolveEffectiveRole(projectId, userId);
+    const effectiveRole = await this.roleResolution.resolveEffectiveRole(
+      projectId,
+      userId
+    );
     const capabilities = this.roleResolution.getCapabilities(effectiveRole);
 
     const decoratedIssues: DeoIssue[] = issues.map((issue) => {
       const issueKey = (issue.type as string | undefined) || issue.id;
-      const isInAppActionable = IN_APP_ACTIONABLE_ISSUE_KEYS.has(issueKey) || (issue.fixReady === true && !!issue.fixType);
+      const isInAppActionable =
+        IN_APP_ACTIONABLE_ISSUE_KEYS.has(issueKey) ||
+        (issue.fixReady === true && !!issue.fixType);
       const isNotInformational = issue.actionability !== 'informational';
-      const canTakeAction = capabilities.canGenerateDrafts || capabilities.canRequestApproval || capabilities.canApply;
-      const isActionableNow = isInAppActionable && isNotInformational && canTakeAction;
+      const canTakeAction =
+        capabilities.canGenerateDrafts ||
+        capabilities.canRequestApproval ||
+        capabilities.canApply;
+      const isActionableNow =
+        isInAppActionable && isNotInformational && canTakeAction;
 
       const assetTypeCounts: IssueAssetTypeCounts =
         issue.assetTypeCounts ??
@@ -909,7 +1010,10 @@ export class DeoIssuesService {
           }
 
           // Both products and pages: allocate proportionally
-          const productsHint = Math.min(count, issue.affectedProducts?.length ?? 0);
+          const productsHint = Math.min(
+            count,
+            issue.affectedProducts?.length ?? 0
+          );
           const remainder = count - productsHint;
           let pages = 0;
           let collections = 0;
@@ -949,12 +1053,14 @@ export class DeoIssuesService {
     // This treats "not_answer_ready" and "weak_intent_match" as issue_detected triggers.
     // [INSIGHTS-1] Only trigger automations in 'full' mode, never in 'readOnly' mode
     if (opts.mode === 'full') {
-      this.triggerAnswerBlockAutomationsForIssues(projectId, userId, decoratedIssues).catch(
-        () => {
-          // Intentionally swallow errors here so DEO issues computation is never blocked
-          // by automation failures; logs and automation logs provide visibility.
-        },
-      );
+      this.triggerAnswerBlockAutomationsForIssues(
+        projectId,
+        userId,
+        decoratedIssues
+      ).catch(() => {
+        // Intentionally swallow errors here so DEO issues computation is never blocked
+        // by automation failures; logs and automation logs provide visibility.
+      });
     }
 
     return {
@@ -967,7 +1073,7 @@ export class DeoIssuesService {
   private async triggerAnswerBlockAutomationsForIssues(
     projectId: string,
     userId: string,
-    issues: DeoIssue[],
+    issues: DeoIssue[]
   ): Promise<void> {
     const targetProductIds = new Set<string>();
 
@@ -988,7 +1094,11 @@ export class DeoIssuesService {
 
     for (const productId of targetProductIds) {
       await this.automationService
-        .triggerAnswerBlockAutomationForProduct(productId, userId, 'issue_detected')
+        .triggerAnswerBlockAutomationForProduct(
+          productId,
+          userId,
+          'issue_detected'
+        )
         .catch(() => {
           // Swallow per-product automation errors; failures are logged via AutomationService
         });
@@ -998,7 +1108,7 @@ export class DeoIssuesService {
   private buildMissingMetadataIssue(
     crawlResults: any[],
     products: any[],
-    totalSurfaces: number,
+    totalSurfaces: number
   ): DeoIssue | null {
     if (totalSurfaces === 0) {
       return null;
@@ -1106,7 +1216,11 @@ export class DeoIssuesService {
     };
 
     // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
-    attachFullAffectedAssetKeys(issue, allAffectedProductIds, allAffectedPageUrls);
+    attachFullAffectedAssetKeys(
+      issue,
+      allAffectedProductIds,
+      allAffectedPageUrls
+    );
 
     return issue;
   }
@@ -1114,7 +1228,7 @@ export class DeoIssuesService {
   private buildThinContentIssue(
     crawlResults: any[],
     products: any[],
-    totalSurfaces: number,
+    totalSurfaces: number
   ): DeoIssue | null {
     if (totalSurfaces === 0) {
       return null;
@@ -1150,7 +1264,9 @@ export class DeoIssuesService {
     }
 
     for (const product of products) {
-      const desc = (product.seoDescription ?? product.description) as string | null;
+      const desc = (product.seoDescription ?? product.description) as
+        | string
+        | null;
       const descWordCount = this.getWordCount(desc);
       if (descWordCount > 0 && descWordCount < 80) {
         thinProducts++;
@@ -1202,7 +1318,11 @@ export class DeoIssuesService {
     };
 
     // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
-    attachFullAffectedAssetKeys(issue, allAffectedProductIds, allAffectedPageUrls);
+    attachFullAffectedAssetKeys(
+      issue,
+      allAffectedProductIds,
+      allAffectedPageUrls
+    );
 
     return issue;
   }
@@ -1211,7 +1331,7 @@ export class DeoIssuesService {
     crawlResults: any[],
     products: any[],
     totalSurfaces: number,
-    signals: DeoScoreSignals | null,
+    signals: DeoScoreSignals | null
   ): DeoIssue | null {
     if (totalSurfaces === 0) {
       return null;
@@ -1249,7 +1369,9 @@ export class DeoIssuesService {
     for (const product of products) {
       const seoTitle = product.seoTitle as string | null;
       const seoDescription = product.seoDescription as string | null;
-      const desc = (product.seoDescription ?? product.description) as string | null;
+      const desc = (product.seoDescription ?? product.description) as
+        | string
+        | null;
       const descWordCount = this.getWordCount(desc);
       const hasEntityHint =
         !!seoTitle && !!seoDescription && descWordCount >= 120;
@@ -1309,14 +1431,18 @@ export class DeoIssuesService {
     };
 
     // [COUNT-INTEGRITY-1.1 PATCH 3.2] Attach full affected asset keys for accurate deduplication
-    attachFullAffectedAssetKeys(issue, allAffectedProductIds, allAffectedPageUrls);
+    attachFullAffectedAssetKeys(
+      issue,
+      allAffectedProductIds,
+      allAffectedPageUrls
+    );
 
     return issue;
   }
 
   private buildIndexabilityIssue(
     crawlResults: any[],
-    signals: DeoScoreSignals | null,
+    signals: DeoScoreSignals | null
   ): DeoIssue | null {
     if (crawlResults.length === 0) {
       return null;
@@ -1377,7 +1503,11 @@ export class DeoIssuesService {
       // DEO-IA-1: Pillar assignment
       pillarId: 'technical_indexability' as DeoPillarId,
       actionability: 'informational' as DeoIssueActionability,
-      assetTypeCounts: { products: issueProducts, pages: issuePages, collections: issueCollections },
+      assetTypeCounts: {
+        products: issueProducts,
+        pages: issuePages,
+        collections: issueCollections,
+      },
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
       category: 'technical',
       whyItMatters:
@@ -1396,7 +1526,7 @@ export class DeoIssuesService {
 
   private buildIndexabilityConflictIssue(
     crawlResults: any[],
-    signals: DeoScoreSignals | null,
+    signals: DeoScoreSignals | null
   ): DeoIssue | null {
     if (crawlResults.length === 0) {
       return null;
@@ -1458,7 +1588,11 @@ export class DeoIssuesService {
       affectedPages,
       pillarId: 'technical_indexability' as DeoPillarId,
       actionability: 'informational' as DeoIssueActionability,
-      assetTypeCounts: { products: conflictProducts, pages: conflictPages, collections: conflictCollections },
+      assetTypeCounts: {
+        products: conflictProducts,
+        pages: conflictPages,
+        collections: conflictCollections,
+      },
       category: 'technical',
       whyItMatters:
         'Conflicting indexability signals waste crawl budget and can prevent key pages from ranking.',
@@ -1477,7 +1611,7 @@ export class DeoIssuesService {
 
   private buildAnswerSurfaceIssue(
     crawlResults: any[],
-    signals: DeoScoreSignals | null,
+    signals: DeoScoreSignals | null
   ): DeoIssue | null {
     if (crawlResults.length === 0) {
       return null;
@@ -1534,7 +1668,7 @@ export class DeoIssuesService {
 
   private buildBrandNavigationalIssue(
     crawlResults: any[],
-    signals: DeoScoreSignals | null,
+    signals: DeoScoreSignals | null
   ): DeoIssue | null {
     if (crawlResults.length === 0) {
       return null;
@@ -1551,12 +1685,16 @@ export class DeoIssuesService {
     }
 
     const missing = canonicalPaths.filter((p) => !found.has(p));
-    const brandNavigationalStrength = signals?.brandNavigationalStrength ?? null;
-    const severity = this.getSeverityForLowerIsWorse(brandNavigationalStrength, {
-      critical: 0.25,
-      warning: 0.4,
-      info: 0.6,
-    });
+    const brandNavigationalStrength =
+      signals?.brandNavigationalStrength ?? null;
+    const severity = this.getSeverityForLowerIsWorse(
+      brandNavigationalStrength,
+      {
+        critical: 0.25,
+        warning: 0.4,
+        info: 0.6,
+      }
+    );
 
     const count = missing.length;
 
@@ -1588,7 +1726,7 @@ export class DeoIssuesService {
 
   private buildCrawlHealthIssue(
     crawlResults: any[],
-    signals: DeoScoreSignals | null,
+    signals: DeoScoreSignals | null
   ): DeoIssue | null {
     if (crawlResults.length === 0) {
       return null;
@@ -1668,7 +1806,7 @@ export class DeoIssuesService {
   }
 
   private buildRenderBlockingResourcesIssue(
-    crawlResults: any[],
+    crawlResults: any[]
   ): DeoIssue | null {
     if (crawlResults.length === 0) {
       return null;
@@ -1846,10 +1984,7 @@ export class DeoIssuesService {
 
     for (const cr of crawlResults) {
       const issues = (cr.issues as string[]) ?? [];
-      if (
-        issues.includes('VERY_LARGE_HTML') ||
-        issues.includes('LARGE_HTML')
-      ) {
+      if (issues.includes('VERY_LARGE_HTML') || issues.includes('LARGE_HTML')) {
         heavyPages++;
         const bucket = getAssetTypeFromUrl(cr.url);
         if (bucket === 'collections') {
@@ -1913,9 +2048,7 @@ export class DeoIssuesService {
     return issue;
   }
 
-  private buildMobileRenderingRiskIssue(
-    crawlResults: any[],
-  ): DeoIssue | null {
+  private buildMobileRenderingRiskIssue(crawlResults: any[]): DeoIssue | null {
     if (crawlResults.length === 0) {
       return null;
     }
@@ -2009,7 +2142,9 @@ export class DeoIssuesService {
     const allAffectedProductIds: string[] = [];
 
     for (const product of products) {
-      const desc = (product.seoDescription ?? product.description) as string | null;
+      const desc = (product.seoDescription ?? product.description) as
+        | string
+        | null;
       const wordCount = this.getWordCount(desc);
 
       if (wordCount > 0) {
@@ -2035,7 +2170,7 @@ export class DeoIssuesService {
       countProductWords > 0 ? sumProductWords / countProductWords : 0;
     const contentDepthProducts = Math.max(
       0,
-      Math.min(1, avgProductWordCount / 600),
+      Math.min(1, avgProductWordCount / 600)
     );
 
     const severity = this.getSeverityForLowerIsWorse(contentDepthProducts, {
@@ -2225,7 +2360,7 @@ export class DeoIssuesService {
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
       category: 'metadata',
       whyItMatters:
-        'Weak titles fail to capture attention in search results and don\'t convey the unique value of your products.',
+        "Weak titles fail to capture attention in search results and don't convey the unique value of your products.",
       recommendedFix:
         'Use AI to optimize titles with compelling language, relevant keywords, and clear value propositions.',
       aiFixable: true,
@@ -2373,7 +2508,7 @@ export class DeoIssuesService {
     }
 
     const duplicateGroups = Array.from(descMap.values()).filter(
-      (group) => group.length > 1,
+      (group) => group.length > 1
     );
     const affectedProducts: string[] = [];
     // [COUNT-INTEGRITY-1.1 PATCH 3.2] Track all affected product IDs (no cap)
@@ -2435,7 +2570,7 @@ export class DeoIssuesService {
    */
   private buildLowProductEntityCoverageIssue(
     products: any[],
-    _signals: DeoScoreSignals | null,
+    _signals: DeoScoreSignals | null
   ): DeoIssue | null {
     if (products.length === 0) return null;
 
@@ -2481,7 +2616,7 @@ export class DeoIssuesService {
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
       category: 'schema_visibility',
       whyItMatters:
-        'Low entity coverage means search engines can\'t properly categorize your products or show them for relevant entity-based queries.',
+        "Low entity coverage means search engines can't properly categorize your products or show them for relevant entity-based queries.",
       recommendedFix:
         'Use AI to enrich product content with structured data, clear categorization, and detailed attribute coverage.',
       aiFixable: true,
@@ -2558,13 +2693,22 @@ export class DeoIssuesService {
   /**
    * Weak Intent Match - Products whose metadata doesn't match likely search intent
    */
-  private async buildGeoIssuesForProject(projectId: string, products: any[]): Promise<DeoIssue[]> {
+  private async buildGeoIssuesForProject(
+    projectId: string,
+    products: any[]
+  ): Promise<DeoIssue[]> {
     if (!Array.isArray(products) || products.length === 0) return [];
 
     const productIds = products.map((p) => p.id);
     const blocks = await (this.prisma as any).answerBlock.findMany({
       where: { productId: { in: productIds } },
-      select: { id: true, productId: true, questionId: true, answerText: true, sourceFieldsUsed: true },
+      select: {
+        id: true,
+        productId: true,
+        questionId: true,
+        answerText: true,
+        sourceFieldsUsed: true,
+      },
     });
 
     const byProduct = new Map<string, any[]>();
@@ -2605,7 +2749,11 @@ export class DeoIssuesService {
       const affectedSet = affectedByIssue.get(issueType) ?? new Set<string>();
       if (affectedSet.size === 0) continue;
       const ratio = affectedSet.size / products.length;
-      const severity = this.getSeverityForHigherIsWorse(ratio, { info: 0.1, warning: 0.25, critical: 0.5 });
+      const severity = this.getSeverityForHigherIsWorse(ratio, {
+        info: 0.1,
+        warning: 0.25,
+        critical: 0.5,
+      });
       if (!severity) continue;
 
       // [COUNT-INTEGRITY-1.1 PATCH 3.2] Track all affected product IDs (no cap)
@@ -2618,7 +2766,8 @@ export class DeoIssuesService {
         geoSignalType:
           issueType === 'poor_answer_structure'
             ? 'structure'
-            : issueType === 'missing_direct_answer' || issueType === 'answer_overly_promotional'
+            : issueType === 'missing_direct_answer' ||
+                issueType === 'answer_overly_promotional'
               ? 'clarity'
               : 'specificity',
         geoPillarContext: 'search_intent_fit',
@@ -2697,9 +2846,9 @@ export class DeoIssuesService {
       // Issue Engine Full metadata (Phase UX-8 / IE-2.0)
       category: 'answerability',
       whyItMatters:
-        'Products that don\'t match search intent will appear for the wrong queries or not appear at all for the right ones.',
+        "Products that don't match search intent will appear for the wrong queries or not appear at all for the right ones.",
       recommendedFix:
-        'Use AI to optimize product content to better match the language and intent of your target customers\' searches.',
+        "Use AI to optimize product content to better match the language and intent of your target customers' searches.",
       aiFixable: true,
       fixCost: 'one_click',
     };
@@ -2883,7 +3032,7 @@ export class DeoIssuesService {
 
   private getSeverityForHigherIsWorse(
     ratio: number,
-    thresholds: { info: number; warning: number; critical: number },
+    thresholds: { info: number; warning: number; critical: number }
   ): 'critical' | 'warning' | 'info' | null {
     if (ratio > thresholds.critical) {
       return 'critical';
@@ -2899,7 +3048,7 @@ export class DeoIssuesService {
 
   private getSeverityForLowerIsWorse(
     value: number | null | undefined,
-    thresholds: { critical: number; warning: number; info: number },
+    thresholds: { critical: number; warning: number; info: number }
   ): 'critical' | 'warning' | 'info' | null {
     if (value == null) {
       return null;
@@ -2923,10 +3072,7 @@ export class DeoIssuesService {
       return 0;
     }
 
-    return text
-      .toString()
-      .split(/\s+/)
-      .filter(Boolean).length;
+    return text.toString().split(/\s+/).filter(Boolean).length;
   }
 
   private extractPathFromUrl(url: string): string {
@@ -2936,7 +3082,9 @@ export class DeoIssuesService {
 
       if (protocolIndex === -1) {
         const pathIndex = lower.indexOf('/');
-        return pathIndex === -1 ? '/' : lower.substring(pathIndex).split('?')[0];
+        return pathIndex === -1
+          ? '/'
+          : lower.substring(pathIndex).split('?')[0];
       }
 
       const pathStart = lower.indexOf('/', protocolIndex + 3);

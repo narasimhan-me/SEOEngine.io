@@ -369,7 +369,9 @@ describe('LocalDiscoveryService', () => {
 
       const gaps = service.generateGaps(scorecard);
 
-      const locationGap = gaps.find((g) => g.signalType === 'location_presence');
+      const locationGap = gaps.find(
+        (g) => g.signalType === 'location_presence'
+      );
       expect(locationGap).toBeDefined();
       expect(locationGap?.severity).toBe('critical');
     });
@@ -393,7 +395,9 @@ describe('LocalDiscoveryService', () => {
 
       const gaps = service.generateGaps(scorecard);
 
-      const intentGap = gaps.find((g) => g.signalType === 'local_intent_coverage');
+      const intentGap = gaps.find(
+        (g) => g.signalType === 'local_intent_coverage'
+      );
       expect(intentGap).toBeDefined();
       expect(intentGap?.severity).toBe('critical');
     });
@@ -610,7 +614,9 @@ describe('LocalDiscoveryService', () => {
       };
 
       prismaMock.projectLocalSignal.create.mockResolvedValue(mockCreated);
-      prismaMock.projectLocalCoverage.deleteMany.mockResolvedValue({ count: 0 });
+      prismaMock.projectLocalCoverage.deleteMany.mockResolvedValue({
+        count: 0,
+      });
 
       const signal = await service.addSignal({
         projectId: 'proj-1',
@@ -641,7 +647,9 @@ describe('LocalDiscoveryService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      prismaMock.projectLocalCoverage.deleteMany.mockResolvedValue({ count: 1 });
+      prismaMock.projectLocalCoverage.deleteMany.mockResolvedValue({
+        count: 1,
+      });
 
       await service.addSignal({
         projectId: 'proj-1',
@@ -664,7 +672,9 @@ describe('LocalDiscoveryService', () => {
         serviceAreaDescription: 'Denver metro area',
         enabled: true,
       });
-      prismaMock.projectLocalCoverage.deleteMany.mockResolvedValue({ count: 1 });
+      prismaMock.projectLocalCoverage.deleteMany.mockResolvedValue({
+        count: 1,
+      });
 
       const config = await service.updateProjectLocalConfig('proj-1', {
         hasPhysicalLocation: true,
@@ -684,7 +694,9 @@ describe('LocalDiscoveryService', () => {
 
   describe('invalidateCoverage', () => {
     it('should delete all coverage records for project', async () => {
-      prismaMock.projectLocalCoverage.deleteMany.mockResolvedValue({ count: 1 });
+      prismaMock.projectLocalCoverage.deleteMany.mockResolvedValue({
+        count: 1,
+      });
 
       await service.invalidateCoverage('proj-1');
 
@@ -713,7 +725,9 @@ describe('LocalDiscoveryService', () => {
         computedAt: new Date('2025-01-15'),
       };
 
-      prismaMock.projectLocalCoverage.findFirst.mockResolvedValue(cachedCoverage);
+      prismaMock.projectLocalCoverage.findFirst.mockResolvedValue(
+        cachedCoverage
+      );
 
       const result = await service.getProjectScorecard('proj-1');
 

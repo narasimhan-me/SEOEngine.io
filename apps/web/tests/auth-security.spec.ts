@@ -17,7 +17,9 @@ test.describe('Auth Security - URL Sanitization', () => {
   test.describe('Login Page', () => {
     test('removes password from URL query params', async ({ page }) => {
       // Navigate to login with sensitive params in URL
-      await page.goto('/login?email=a%40b.com&password=secret&next=%2Fprojects');
+      await page.goto(
+        '/login?email=a%40b.com&password=secret&next=%2Fprojects'
+      );
 
       // Wait for any redirects to complete
       await page.waitForLoadState('networkidle');
@@ -36,7 +38,9 @@ test.describe('Auth Security - URL Sanitization', () => {
       // This is optional - the test just ensures credentials are removed
 
       // Verify page renders correctly
-      await expect(page.getByRole('heading', { name: /sign in/i })).toBeVisible();
+      await expect(
+        page.getByRole('heading', { name: /sign in/i })
+      ).toBeVisible();
 
       // Verify password field is empty (not pre-filled from URL)
       const passwordInput = page.locator('input[type="password"]');
@@ -74,15 +78,21 @@ test.describe('Auth Security - URL Sanitization', () => {
       // next param should be preserved since it's not sensitive
       const url = page.url();
       // The page should still function - just verify it loaded
-      await expect(page.getByRole('heading', { name: /sign in/i })).toBeVisible();
+      await expect(
+        page.getByRole('heading', { name: /sign in/i })
+      ).toBeVisible();
     });
 
-    test('normal login flow still works without query params', async ({ page }) => {
+    test('normal login flow still works without query params', async ({
+      page,
+    }) => {
       await page.goto('/login');
       await page.waitForLoadState('networkidle');
 
       // Should render login form without any security message
-      await expect(page.getByRole('heading', { name: /sign in/i })).toBeVisible();
+      await expect(
+        page.getByRole('heading', { name: /sign in/i })
+      ).toBeVisible();
       await expect(page.locator('input[type="email"]')).toBeVisible();
       await expect(page.locator('input[type="password"]')).toBeVisible();
 
@@ -95,7 +105,9 @@ test.describe('Auth Security - URL Sanitization', () => {
 
   test.describe('Signup Page', () => {
     test('removes password and confirmPassword from URL', async ({ page }) => {
-      await page.goto('/signup?email=a%40b.com&password=secret&confirmPassword=secret');
+      await page.goto(
+        '/signup?email=a%40b.com&password=secret&confirmPassword=secret'
+      );
       await page.waitForLoadState('networkidle');
 
       const url = page.url();
@@ -146,7 +158,10 @@ test.describe('Auth Security - URL Sanitization', () => {
   });
 
   test.describe('Regression - next param functionality', () => {
-    test('login redirects to next param after successful auth', async ({ page, request }) => {
+    test('login redirects to next param after successful auth', async ({
+      page,
+      request,
+    }) => {
       // This test verifies that the `next` parameter still works correctly
       // after our security sanitization changes
 
@@ -155,7 +170,9 @@ test.describe('Auth Security - URL Sanitization', () => {
       await page.waitForLoadState('networkidle');
 
       // Verify login page loaded
-      await expect(page.getByRole('heading', { name: /sign in/i })).toBeVisible();
+      await expect(
+        page.getByRole('heading', { name: /sign in/i })
+      ).toBeVisible();
 
       // The `next` param should be available for the login flow to use
       // (actual redirect tested separately with authenticated user)

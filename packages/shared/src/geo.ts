@@ -138,7 +138,10 @@ function hasBulletsOrLineBreakStructure(text: string): boolean {
   const raw = text || '';
   if (raw.includes('\n\n')) return true;
   const lines = raw.split('\n').map((l) => l.trim());
-  return lines.some((l) => /^[-*•]\s+/.test(l)) || lines.some((l) => /^\d+.\s+/.test(l));
+  return (
+    lines.some((l) => /^[-*•]\s+/.test(l)) ||
+    lines.some((l) => /^\d+.\s+/.test(l))
+  );
 }
 
 function isOverlyPromotional(text: string): boolean {
@@ -157,11 +160,14 @@ function hasConcreteDetail(text: string, factsUsed?: string[]): boolean {
 }
 
 export function deriveCitationConfidence(
-  signals: GeoReadinessSignalResult[],
+  signals: GeoReadinessSignalResult[]
 ): GeoCitationConfidence {
-  const failing = signals.filter((s) => s.status === 'needs_improvement').map((s) => s.signal);
+  const failing = signals
+    .filter((s) => s.status === 'needs_improvement')
+    .map((s) => s.signal);
   const failCount = failing.length;
-  const hasCoreGap = failing.includes('clarity') || failing.includes('structure');
+  const hasCoreGap =
+    failing.includes('clarity') || failing.includes('structure');
 
   let level: GeoCitationConfidenceLevel = 'low';
   if (failCount === 0) level = 'high';
@@ -189,17 +195,22 @@ export function deriveCitationConfidence(
   };
 }
 
-export function evaluateGeoReadinessSignalsForUnit(input: GeoAnswerUnitInput): GeoReadinessSignalResult[] {
+export function evaluateGeoReadinessSignalsForUnit(
+  input: GeoAnswerUnitInput
+): GeoReadinessSignalResult[] {
   const answer = input.answer || '';
   const normalized = norm(answer);
   const wc = wordCount(normalized);
   const sentences = splitSentences(normalized);
-  const pillarContext: GeoPillarContext = input.pillarContext ?? 'search_intent_fit';
+  const pillarContext: GeoPillarContext =
+    input.pillarContext ?? 'search_intent_fit';
 
   const clarityPass =
     wc >= 20 &&
-    (sentences.length >= 1) &&
-    !/^(discover|introducing|meet|experience|unleash|elevate|transform)\b/i.test(normalized);
+    sentences.length >= 1 &&
+    !/^(discover|introducing|meet|experience|unleash|elevate|transform)\b/i.test(
+      normalized
+    );
 
   const structurePass =
     wc <= 120 ||
@@ -209,10 +220,14 @@ export function evaluateGeoReadinessSignalsForUnit(input: GeoAnswerUnitInput): G
   const specificityPass = hasConcreteDetail(answer, input.factsUsed);
 
   const contextPass =
-    /\b(for|ideal for|designed for|use|used to|works with|helps)\b/i.test(normalized) ||
-    pillarContext !== 'search_intent_fit';
+    /\b(for|ideal for|designed for|use|used to|works with|helps)\b/i.test(
+      normalized
+    ) || pillarContext !== 'search_intent_fit';
 
-  const maxSentenceWords = sentences.reduce((max, s) => Math.max(max, wordCount(s)), 0);
+  const maxSentenceWords = sentences.reduce(
+    (max, s) => Math.max(max, wordCount(s)),
+    0
+  );
   const accessibilityPass = wc <= 140 && maxSentenceWords <= 28;
 
   const signals: GeoReadinessSignalResult[] = [
@@ -256,8 +271,11 @@ export function evaluateGeoReadinessSignalsForUnit(input: GeoAnswerUnitInput): G
   return signals;
 }
 
-export function evaluateGeoAnswerUnit(input: GeoAnswerUnitInput): GeoAnswerUnitEvaluation {
-  const pillarContext: GeoPillarContext = input.pillarContext ?? 'search_intent_fit';
+export function evaluateGeoAnswerUnit(
+  input: GeoAnswerUnitInput
+): GeoAnswerUnitEvaluation {
+  const pillarContext: GeoPillarContext =
+    input.pillarContext ?? 'search_intent_fit';
   const signals = evaluateGeoReadinessSignalsForUnit(input);
   const confidence = deriveCitationConfidence(signals);
 
@@ -333,14 +351,36 @@ export function evaluateGeoAnswerUnit(input: GeoAnswerUnitInput): GeoAnswerUnitE
   };
 }
 
-export function evaluateGeoProduct(answerUnits: GeoAnswerUnitInput[]): GeoProductEvaluation {
+export function evaluateGeoProduct(
+  answerUnits: GeoAnswerUnitInput[]
+): GeoProductEvaluation {
   if (!Array.isArray(answerUnits) || answerUnits.length === 0) {
     const signals: GeoReadinessSignalResult[] = [
-      { signal: 'clarity', status: 'needs_improvement', why: 'No Answer Units exist for this product yet.' },
-      { signal: 'specificity', status: 'needs_improvement', why: 'No Answer Units exist for this product yet.' },
-      { signal: 'structure', status: 'needs_improvement', why: 'No Answer Units exist for this product yet.' },
-      { signal: 'context', status: 'needs_improvement', why: 'No Answer Units exist for this product yet.' },
-      { signal: 'accessibility', status: 'needs_improvement', why: 'No Answer Units exist for this product yet.' },
+      {
+        signal: 'clarity',
+        status: 'needs_improvement',
+        why: 'No Answer Units exist for this product yet.',
+      },
+      {
+        signal: 'specificity',
+        status: 'needs_improvement',
+        why: 'No Answer Units exist for this product yet.',
+      },
+      {
+        signal: 'structure',
+        status: 'needs_improvement',
+        why: 'No Answer Units exist for this product yet.',
+      },
+      {
+        signal: 'context',
+        status: 'needs_improvement',
+        why: 'No Answer Units exist for this product yet.',
+      },
+      {
+        signal: 'accessibility',
+        status: 'needs_improvement',
+        why: 'No Answer Units exist for this product yet.',
+      },
     ];
     return {
       citationConfidence: deriveCitationConfidence(signals),
@@ -360,7 +400,10 @@ export function evaluateGeoProduct(answerUnits: GeoAnswerUnitInput[]): GeoProduc
 
   const unitEvals = answerUnits.map((u) => evaluateGeoAnswerUnit(u));
 
-  const allSignalsByType = new Map<GeoReadinessSignalType, GeoReadinessSignalResult[]>();
+  const allSignalsByType = new Map<
+    GeoReadinessSignalType,
+    GeoReadinessSignalResult[]
+  >();
   for (const ue of unitEvals) {
     for (const s of ue.signals) {
       const existing = allSignalsByType.get(s.signal) ?? [];
@@ -369,15 +412,19 @@ export function evaluateGeoProduct(answerUnits: GeoAnswerUnitInput[]): GeoProduc
     }
   }
 
-  const productSignals: GeoReadinessSignalResult[] = ([
-    'clarity',
-    'specificity',
-    'structure',
-    'context',
-    'accessibility',
-  ] as GeoReadinessSignalType[]).map((signal) => {
+  const productSignals: GeoReadinessSignalResult[] = (
+    [
+      'clarity',
+      'specificity',
+      'structure',
+      'context',
+      'accessibility',
+    ] as GeoReadinessSignalType[]
+  ).map((signal) => {
     const signalResults = allSignalsByType.get(signal) ?? [];
-    const failing = signalResults.filter((r) => r.status === 'needs_improvement').length;
+    const failing = signalResults.filter(
+      (r) => r.status === 'needs_improvement'
+    ).length;
     const passing = signalResults.length - failing;
     const pass = failing === 0;
     return {
@@ -409,7 +456,7 @@ export function computeGeoFixWorkKey(
   productId: string,
   questionId: string,
   issueType: GeoIssueType,
-  answerBlockUpdatedAtIso: string,
+  answerBlockUpdatedAtIso: string
 ): string {
   return `geo-fix:${projectId}:${productId}:${questionId}:${issueType}:${answerBlockUpdatedAtIso}`;
 }
@@ -423,7 +470,10 @@ export function computeGeoFixWorkKey(
  * Explainability note: This mapping is deterministic and internal; it is not based on
  * external engine outputs and does not imply ranking/citation guarantees.
  */
-export const GEO_CANONICAL_ANSWER_INTENT_MAP: Record<string, SearchIntentType[]> = {
+export const GEO_CANONICAL_ANSWER_INTENT_MAP: Record<
+  string,
+  SearchIntentType[]
+> = {
   what_is_it: ['informational'],
   who_is_it_for: ['problem_use_case', 'informational'],
   why_choose_this: ['comparative', 'trust_validation'],
@@ -464,7 +514,9 @@ function uniqIntents(intents: SearchIntentType[]): SearchIntentType[] {
 }
 
 function normalizeSearchIntentType(value: string): SearchIntentType | null {
-  const t = String(value || '').trim().toLowerCase();
+  const t = String(value || '')
+    .trim()
+    .toLowerCase();
   if (t === 'informational') return 'informational';
   if (t === 'comparative') return 'comparative';
   if (t === 'transactional') return 'transactional';
@@ -473,16 +525,21 @@ function normalizeSearchIntentType(value: string): SearchIntentType | null {
   return null;
 }
 
-function findFactValue(factsUsed: string[] | undefined, prefix: string): string | null {
+function findFactValue(
+  factsUsed: string[] | undefined,
+  prefix: string
+): string | null {
   if (!Array.isArray(factsUsed)) return null;
-  const found = factsUsed.find((f) => typeof f === 'string' && f.startsWith(prefix));
+  const found = factsUsed.find(
+    (f) => typeof f === 'string' && f.startsWith(prefix)
+  );
   if (!found) return null;
   return found.slice(prefix.length).trim() || null;
 }
 
 function getSignalStatus(
   signals: GeoReadinessSignalResult[] | undefined,
-  signal: GeoReadinessSignalType,
+  signal: GeoReadinessSignalType
 ): GeoSignalStatus | null {
   if (!Array.isArray(signals)) return null;
   const found = signals.find((s) => s.signal === signal);
@@ -559,8 +616,13 @@ export function deriveGeoAnswerIntentMapping(input: {
   }
 
   // 4) Canonical Answer Engine question IDs
-  if (typeof questionId === 'string' && GEO_CANONICAL_ANSWER_INTENT_MAP[questionId]) {
-    const potentialIntents = uniqIntents(GEO_CANONICAL_ANSWER_INTENT_MAP[questionId]);
+  if (
+    typeof questionId === 'string' &&
+    GEO_CANONICAL_ANSWER_INTENT_MAP[questionId]
+  ) {
+    const potentialIntents = uniqIntents(
+      GEO_CANONICAL_ANSWER_INTENT_MAP[questionId]
+    );
     const baseIntent = potentialIntents[0] ?? null;
 
     // If it is a multi-intent canonical answer, only count multi-intent mapping when clarity+structure pass.
@@ -623,10 +685,12 @@ export interface GeoReuseStats {
 }
 
 export function computeGeoReuseStats(
-  mappings: Array<{ mappedIntents: SearchIntentType[] }>,
+  mappings: Array<{ mappedIntents: SearchIntentType[] }>
 ): GeoReuseStats {
   const totalAnswers = Array.isArray(mappings) ? mappings.length : 0;
-  const multiIntentAnswers = (mappings ?? []).filter((m) => (m.mappedIntents?.length ?? 0) >= 2).length;
+  const multiIntentAnswers = (mappings ?? []).filter(
+    (m) => (m.mappedIntents?.length ?? 0) >= 2
+  ).length;
   const reuseRate = totalAnswers > 0 ? multiIntentAnswers / totalAnswers : 0;
   return {
     totalAnswers,
@@ -642,10 +706,10 @@ export interface GeoIntentCoverageCounts {
 }
 
 export function computeGeoIntentCoverageCounts(
-  mappings: Array<{ mappedIntents: SearchIntentType[] }>,
+  mappings: Array<{ mappedIntents: SearchIntentType[] }>
 ): GeoIntentCoverageCounts {
   const byIntent = Object.fromEntries(
-    SEARCH_INTENT_TYPES.map((t) => [t, 0]),
+    SEARCH_INTENT_TYPES.map((t) => [t, 0])
   ) as Record<SearchIntentType, number>;
 
   for (const m of mappings ?? []) {
@@ -654,6 +718,8 @@ export function computeGeoIntentCoverageCounts(
     }
   }
 
-  const missingIntents = SEARCH_INTENT_TYPES.filter((t) => (byIntent[t] ?? 0) === 0);
+  const missingIntents = SEARCH_INTENT_TYPES.filter(
+    (t) => (byIntent[t] ?? 0) === 0
+  );
   return { byIntent, missingIntents };
 }

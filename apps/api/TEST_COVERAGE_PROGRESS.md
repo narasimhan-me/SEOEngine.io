@@ -10,6 +10,7 @@ Created **9 new unit test files** covering critical services from the coverage a
 ## New Test Files Created
 
 ### AI Services (3 files) ✅
+
 1. **`test/unit/ai/gemini.client.test.ts`**
    - Tests GeminiClient model initialization
    - Tests generateWithFallback with success and error cases
@@ -28,6 +29,7 @@ Created **9 new unit test files** covering critical services from the coverage a
    - Tests generateProductAnswers() delegation
 
 ### Authentication Services (1 file) ✅
+
 4. **`test/unit/auth/auth.service.test.ts`**
    - Tests signup() with duplicate email handling
    - Tests validateUser() with valid/invalid credentials
@@ -36,12 +38,14 @@ Created **9 new unit test files** covering critical services from the coverage a
    - Tests validateJwtPayload()
 
 ### Product Services (1 file) ✅
+
 5. **`test/unit/products/products.service.test.ts`**
    - Tests getProductsForProject() with ownership validation
    - Tests getProduct() with ownership validation
    - Tests error handling (NotFoundException, ForbiddenException)
 
 ### Project Services (2 files) ✅
+
 6. **`test/unit/projects/projects.service.test.ts`**
    - Tests getProjectsForUser()
    - Tests getProject() with ownership validation
@@ -56,6 +60,7 @@ Created **9 new unit test files** covering critical services from the coverage a
    - Tests ownership validation
 
 ### Answer Engine Services (2 files) ✅
+
 8. **`test/unit/projects/answer-engine.service.test.ts`**
    - Tests getProjectAnswerability() with ownership validation
    - Tests computeAnswerabilityForProduct() classification
@@ -68,6 +73,7 @@ Created **9 new unit test files** covering critical services from the coverage a
    - Tests prompt building
 
 ### DEO Services (3 files) ✅
+
 10. **`test/unit/projects/deo-issues.service.test.ts`**
     - Tests getIssuesForProject() with ownership validation
     - Tests issue building from various services
@@ -88,6 +94,7 @@ Created **9 new unit test files** covering critical services from the coverage a
     - Tests worker cleanup
 
 ### Medium Priority Services (4 files) ✅
+
 13. **`test/unit/billing/billing.service.test.ts`**
     - Tests getPlans(), getSubscription(), getBillingSummary()
     - Tests createCheckoutSession() with Stripe integration
@@ -115,6 +122,7 @@ Created **9 new unit test files** covering critical services from the coverage a
     - Tests invalidateCoverage() for cache invalidation
 
 ### Security Services (2 files) ✅
+
 17. **`test/unit/captcha/captcha.service.test.ts`**
     - Tests verify() with Turnstile integration
     - Tests token validation and error handling
@@ -132,6 +140,7 @@ Created **9 new unit test files** covering critical services from the coverage a
     - Tests case-insensitive email handling
 
 ### Additional Services (5 files) ✅
+
 19. **`test/unit/two-factor-auth/two-factor-auth.service.test.ts`**
     - Tests setupInit() for 2FA setup
     - Tests enable() for enabling 2FA
@@ -166,6 +175,7 @@ Created **9 new unit test files** covering critical services from the coverage a
     - Tests generates suggestions when enabled
 
 ### Crawl & SEO Services (4 files) ✅
+
 24. **`test/unit/crawl/crawl-scheduler.service.test.ts`**
     - Tests isProjectDueForCrawl() determines if crawl is due
     - Tests scheduleProjectCrawls() schedules crawls for due projects
@@ -201,11 +211,13 @@ Created **9 new unit test files** covering critical services from the coverage a
 ## Test Status
 
 ### All Tests Passing ✅
+
 - **46 test suites** - All passing (3 new suites added)
 - **558 tests** - All passing (53 new tests added)
 - All new tests have been fixed and verified
 
 ### New Test Suites Added (Latest Update)
+
 28. **`test/unit/shopify/shopify.service.test.ts`** ✅
     - Tests generateInstallUrl() OAuth URL generation
     - Tests validateHmac() HMAC signature validation
@@ -241,11 +253,13 @@ Created **9 new unit test files** covering critical services from the coverage a
 ## Remaining Services (Not Yet Tested)
 
 ### High Priority (Critical Business Logic)
+
 - [x] `src/projects/deo-issues.service.ts` - DEO issues management ✅
 - [x] `src/projects/deo-score.processor.ts` - DEO score processing ✅
 - [x] `src/projects/answer-block-automation.processor.ts` - Automation processor ✅
 
 ### Medium Priority (Important Features)
+
 - [x] `src/billing/billing.service.ts` - Billing operations ✅
 - [x] `src/integrations/integrations.service.ts` - Integration management ✅
 - [x] `src/projects/competitors.service.ts` - Competitor analysis ✅
@@ -257,10 +271,12 @@ Created **9 new unit test files** covering critical services from the coverage a
 - [x] `src/seo-scan/seo-scan.service.ts` - SEO scanning ✅
 
 ### Security Services
+
 - [x] `src/captcha/captcha.service.ts` - CAPTCHA validation ✅
 - [x] `src/captcha/auth-abuse.service.ts` - Abuse prevention ✅
 
 ### Other Services
+
 - [x] `src/users/users.service.ts` - User operations ✅
 - [x] `src/two-factor-auth/two-factor-auth.service.ts` - 2FA operations ✅
 - [x] `src/billing/entitlements.service.ts` - Entitlements management ✅
@@ -270,14 +286,17 @@ Created **9 new unit test files** covering critical services from the coverage a
 ## Coverage Improvement
 
 ### Before
+
 - **Files with tests:** 13 source files
 - **Overall coverage:** ~13% of source files
 
 ### After (Current)
+
 - **Files with tests:** ~44 source files (estimated)
 - **Overall coverage:** ~65% of source files (estimated)
 
 ### Target
+
 - **Files with tests:** All critical services
 - **Overall coverage:** 80%+ for services
 
@@ -317,4 +336,3 @@ Created **9 new unit test files** covering critical services from the coverage a
 - Use of mocks for PrismaService, ConfigService, and external dependencies
 - Focus on testing business logic, not infrastructure
 - Controllers are typically tested via integration tests (not unit tests)
-

@@ -3,17 +3,20 @@
 ## ✅ Current Status
 
 ### Migration
+
 - [x] Migration `add_two_factor_auth` exists
 - [x] Migration applied to database
 - [x] Schema includes `twoFactorEnabled` and `twoFactorSecret` fields
 
 ### Code Implementation
+
 - [x] 2FA module implemented (`two-factor-auth`)
 - [x] Auth service updated for 2FA flow
 - [x] Frontend pages for 2FA setup and login
 - [x] Temp token mechanism with 10-minute expiry
 
 ### Security Configuration
+
 - [x] `.env` is in `.gitignore` (verified)
 - [ ] **JWT_SECRET** - ⚠️ **ACTION REQUIRED** (see below)
 - [ ] **API Keys** - ⚠️ **ACTION REQUIRED** (see below)
@@ -25,19 +28,23 @@
 ### 1. JWT_SECRET Strength Check
 
 **Current Code Behavior:**
+
 - Falls back to `'default-secret-change-in-production'` if `JWT_SECRET` not set
 - This is **INSECURE** for production
 
 **Action Required:**
+
 1. Check `apps/api/.env` for `JWT_SECRET`
 2. If missing or set to default, generate a strong secret:
+
    ```bash
    # Generate a strong 32-byte secret (base64 encoded = 44 chars)
    openssl rand -base64 32
-   
+
    # Or using Node.js:
    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
    ```
+
 3. Add to `apps/api/.env`:
    ```
    JWT_SECRET=your-generated-secret-here
@@ -48,6 +55,7 @@
    - Different for each environment (dev/staging/prod)
 
 **Verification:**
+
 ```bash
 # Check if JWT_SECRET is set (without revealing value)
 cd apps/api
@@ -87,11 +95,13 @@ grep -q "^JWT_SECRET=" .env && echo "✅ JWT_SECRET is set" || echo "❌ JWT_SEC
 ## 🧪 Testing Checklist
 
 ### Pre-Test Setup
+
 - [ ] API server restarted after migration
 - [ ] JWT_SECRET is set and strong
 - [ ] Authenticator app installed (Google Authenticator, 1Password, etc.)
 
 ### Test Scenarios
+
 - [ ] Enable 2FA via `/settings/security`
 - [ ] Scan QR code and verify code generation
 - [ ] Complete 2FA enablement with valid code
@@ -153,23 +163,27 @@ From code comments, these should be implemented before production:
 Before deploying to production:
 
 ### Environment Variables
+
 - [ ] `JWT_SECRET` is strong and unique for production
 - [ ] All API keys are production keys (not dev/test)
 - [ ] Database URL points to production database
 - [ ] `NODE_ENV=production` is set
 
 ### Security Headers
+
 - [ ] HTTPS enforced
 - [ ] CORS configured for production domain only
 - [ ] Security headers set (HSTS, CSP, etc.)
 
 ### Monitoring
+
 - [ ] Error logging configured
 - [ ] Failed login attempts logged
 - [ ] 2FA enable/disable events logged
 - [ ] Rate limiting alerts configured
 
 ### Testing
+
 - [ ] All test scenarios from `PHASE8_TEST_GUIDE.md` passed
 - [ ] Load testing performed
 - [ ] Security audit completed
@@ -179,23 +193,27 @@ Before deploying to production:
 ## 📝 Quick Commands
 
 ### Generate Strong JWT Secret
+
 ```bash
 openssl rand -base64 32
 ```
 
 ### Check Migration Status
+
 ```bash
 cd apps/api
 npx prisma migrate status
 ```
 
 ### Verify .env is Ignored
+
 ```bash
 git check-ignore apps/api/.env
 # Should output: apps/api/.env
 ```
 
 ### Check for Committed Secrets
+
 ```bash
 # Search git history for potential secrets (be careful!)
 git log --all --full-history --source -- apps/api/.env
@@ -212,4 +230,3 @@ git log --all --full-history --source -- apps/api/.env
 
 **Last Updated:** $(date)
 **Status:** Ready for testing (security actions required)
-

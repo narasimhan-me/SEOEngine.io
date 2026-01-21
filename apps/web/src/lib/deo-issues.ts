@@ -469,16 +469,22 @@ export interface CanonicalIssueCountsSummary {
   actionable: CanonicalCountTriplet;
 
   // Breakdown by pillar (for pillar filter badges)
-  byPillar: Record<DeoPillarId, {
-    detected: CanonicalCountTriplet;
-    actionable: CanonicalCountTriplet;
-  }>;
+  byPillar: Record<
+    DeoPillarId,
+    {
+      detected: CanonicalCountTriplet;
+      actionable: CanonicalCountTriplet;
+    }
+  >;
 
   // Breakdown by severity (for severity filter badges)
-  bySeverity: Record<DeoIssueSeverity, {
-    detected: CanonicalCountTriplet;
-    actionable: CanonicalCountTriplet;
-  }>;
+  bySeverity: Record<
+    DeoIssueSeverity,
+    {
+      detected: CanonicalCountTriplet;
+      actionable: CanonicalCountTriplet;
+    }
+  >;
 }
 
 /**
@@ -499,13 +505,19 @@ export interface AssetIssuesResponse {
   summary: {
     detected: CanonicalCountTriplet;
     actionable: CanonicalCountTriplet;
-    byPillar: Record<DeoPillarId, {
-      detected: CanonicalCountTriplet;
-      actionable: CanonicalCountTriplet;
-    }>;
-    bySeverity: Record<DeoIssueSeverity, {
-      detected: CanonicalCountTriplet;
-      actionable: CanonicalCountTriplet;
-    }>;
+    byPillar: Record<
+      DeoPillarId,
+      {
+        detected: CanonicalCountTriplet;
+        actionable: CanonicalCountTriplet;
+      }
+    >;
+    bySeverity: Record<
+      DeoIssueSeverity,
+      {
+        detected: CanonicalCountTriplet;
+        actionable: CanonicalCountTriplet;
+      }
+    >;
   };
 }

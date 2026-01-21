@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { RoleResolutionService } from '../common/role-resolution.service';
 import { DeoIssuesService } from '../projects/deo-issues.service';
@@ -52,7 +58,7 @@ export class ProductsService {
     private readonly roleResolution: RoleResolutionService,
     // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Inject DeoIssuesService for canonical issue counts
     @Inject(forwardRef(() => DeoIssuesService))
-    private readonly deoIssuesService: DeoIssuesService,
+    private readonly deoIssuesService: DeoIssuesService
   ) {}
 
   /**
@@ -65,7 +71,7 @@ export class ProductsService {
   async getProductsForProject(
     projectId: string,
     userId: string,
-    filters?: ProductListFilters,
+    filters?: ProductListFilters
   ) {
     // [ROLES-3] Verify membership (any role can view)
     await this.roleResolution.assertProjectAccess(projectId, userId);
@@ -91,13 +97,18 @@ export class ProductsService {
     });
 
     // [LIST-ACTIONS-CLARITY-1] Always compute pending draft set for hasDraftPendingApply field
-    const productIdsWithDrafts = await this.getProductIdsWithPendingDrafts(projectId);
+    const productIdsWithDrafts =
+      await this.getProductIdsWithPendingDrafts(projectId);
 
     // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Fetch canonical DEO issues for actionable counts
-    const canonicalIssueCountsByProductId = await this.getCanonicalIssueCountsByProduct(projectId, userId);
+    const canonicalIssueCountsByProductId =
+      await this.getCanonicalIssueCountsByProduct(projectId, userId);
 
     // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Get viewer's role capabilities (not governance-based)
-    const viewerCanApply = await this.roleResolution.canApply(projectId, userId);
+    const viewerCanApply = await this.roleResolution.canApply(
+      projectId,
+      userId
+    );
 
     // [LIST-SEARCH-FILTER-1] Apply filters in memory for complex conditions
     if (filters) {
@@ -119,7 +130,9 @@ export class ProductsService {
             return status === 'optimized';
           }
           // needs_attention includes both 'missing-metadata' and 'needs-optimization'
-          return status === 'missing-metadata' || status === 'needs-optimization';
+          return (
+            status === 'missing-metadata' || status === 'needs-optimization'
+          );
         });
       }
 
@@ -133,7 +146,7 @@ export class ProductsService {
         const affectedProductIds = await this.getProductIdsAffectedByIssueType(
           projectId,
           userId,
-          filters.issueType,
+          filters.issueType
         );
         products = products.filter((p) => affectedProductIds.has(p.id));
       }
@@ -164,9 +177,10 @@ export class ProductsService {
    * [LIST-SEARCH-FILTER-1] Compute product SEO status
    * Must match products.ts:getProductStatus semantics exactly
    */
-  private getProductStatus(
-    product: { seoTitle: string | null; seoDescription: string | null },
-  ): 'missing-metadata' | 'needs-optimization' | 'optimized' {
+  private getProductStatus(product: {
+    seoTitle: string | null;
+    seoDescription: string | null;
+  }): 'missing-metadata' | 'needs-optimization' | 'optimized' {
     const hasTitle = !!product.seoTitle?.trim();
     const hasDescription = !!product.seoDescription?.trim();
 
@@ -177,10 +191,19 @@ export class ProductsService {
     const titleLength = product.seoTitle?.length ?? 0;
     const descriptionLength = product.seoDescription?.length ?? 0;
 
-    const titleNeedsWork = titleLength > 0 && (titleLength < SEO_TITLE_MIN || titleLength > SEO_TITLE_MAX);
-    const descriptionNeedsWork = descriptionLength > 0 && (descriptionLength < SEO_DESC_MIN || descriptionLength > SEO_DESC_MAX);
+    const titleNeedsWork =
+      titleLength > 0 &&
+      (titleLength < SEO_TITLE_MIN || titleLength > SEO_TITLE_MAX);
+    const descriptionNeedsWork =
+      descriptionLength > 0 &&
+      (descriptionLength < SEO_DESC_MIN || descriptionLength > SEO_DESC_MAX);
 
-    if (!hasTitle || !hasDescription || titleNeedsWork || descriptionNeedsWork) {
+    if (
+      !hasTitle ||
+      !hasDescription ||
+      titleNeedsWork ||
+      descriptionNeedsWork
+    ) {
       return 'needs-optimization';
     }
 
@@ -192,7 +215,9 @@ export class ProductsService {
    * "Draft pending apply" = product appears in any AutomationPlaybookDraft
    * with status READY or PARTIAL and not expired
    */
-  private async getProductIdsWithPendingDrafts(projectId: string): Promise<Set<string>> {
+  private async getProductIdsWithPendingDrafts(
+    projectId: string
+  ): Promise<Set<string>> {
     const now = new Date();
 
     // Find non-applied, non-expired drafts for this project
@@ -201,10 +226,7 @@ export class ProductsService {
         projectId,
         status: { in: ['READY', 'PARTIAL'] },
         appliedAt: null, // Not yet applied
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: now } },
-        ],
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
       },
       select: {
         draftItems: true,
@@ -250,13 +272,20 @@ export class ProductsService {
    */
   private async getCanonicalIssueCountsByProduct(
     projectId: string,
-    userId: string,
+    userId: string
   ): Promise<Map<string, { actionable: number; detected: number }>> {
-    const countsMap = new Map<string, { actionable: number; detected: number }>();
+    const countsMap = new Map<
+      string,
+      { actionable: number; detected: number }
+    >();
 
     try {
       // Fetch canonical issues from DeoIssuesService
-      const issuesResponse = await this.deoIssuesService.getIssuesForProjectReadOnly(projectId, userId);
+      const issuesResponse =
+        await this.deoIssuesService.getIssuesForProjectReadOnly(
+          projectId,
+          userId
+        );
 
       if (!issuesResponse.issues || issuesResponse.issues.length === 0) {
         return countsMap;
@@ -264,7 +293,10 @@ export class ProductsService {
 
       // Build per-product issue type sets
       // Key: productId, Value: { actionableTypes: Set<string>, detectedTypes: Set<string> }
-      const productIssueTypes = new Map<string, { actionableTypes: Set<string>; detectedTypes: Set<string> }>();
+      const productIssueTypes = new Map<
+        string,
+        { actionableTypes: Set<string>; detectedTypes: Set<string> }
+      >();
 
       for (const issue of issuesResponse.issues) {
         const issueType = issue.type ?? issue.id;
@@ -296,7 +328,10 @@ export class ProductsService {
       }
     } catch (error) {
       // If issues fetch fails, return empty map (graceful degradation)
-      console.error('[ProductsService] Failed to fetch canonical issues:', error);
+      console.error(
+        '[ProductsService] Failed to fetch canonical issues:',
+        error
+      );
     }
 
     return countsMap;
@@ -309,7 +344,9 @@ export class ProductsService {
    */
   private getProductIdsAffectedByIssue(issue: DeoIssue): string[] {
     // Try non-enumerable full affected keys first (format: "products:{productId}")
-    const fullKeys = (issue as any)[FULL_AFFECTED_ASSET_KEYS_FIELD] as string[] | undefined;
+    const fullKeys = (issue as any)[FULL_AFFECTED_ASSET_KEYS_FIELD] as
+      | string[]
+      | undefined;
     if (Array.isArray(fullKeys) && fullKeys.length > 0) {
       const productIds: string[] = [];
       for (const key of fullKeys) {
@@ -323,7 +360,10 @@ export class ProductsService {
     }
 
     // Fallback to affectedProducts array
-    if (Array.isArray(issue.affectedProducts) && issue.affectedProducts.length > 0) {
+    if (
+      Array.isArray(issue.affectedProducts) &&
+      issue.affectedProducts.length > 0
+    ) {
       return issue.affectedProducts;
     }
 
@@ -342,13 +382,17 @@ export class ProductsService {
   private async getProductIdsAffectedByIssueType(
     projectId: string,
     userId: string,
-    issueType: string,
+    issueType: string
   ): Promise<Set<string>> {
     const affectedSet = new Set<string>();
 
     try {
       // Fetch canonical issues from DeoIssuesService
-      const issuesResponse = await this.deoIssuesService.getIssuesForProjectReadOnly(projectId, userId);
+      const issuesResponse =
+        await this.deoIssuesService.getIssuesForProjectReadOnly(
+          projectId,
+          userId
+        );
 
       if (!issuesResponse.issues || issuesResponse.issues.length === 0) {
         return affectedSet;
@@ -372,7 +416,10 @@ export class ProductsService {
       }
     } catch (error) {
       // If issues fetch fails, return empty set (graceful degradation)
-      console.error('[ProductsService] Failed to fetch issues for issueType filter:', error);
+      console.error(
+        '[ProductsService] Failed to fetch issues for issueType filter:',
+        error
+      );
     }
 
     return affectedSet;

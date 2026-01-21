@@ -40,10 +40,13 @@ interface SeedResponse {
  * Seed test data and authenticate.
  */
 async function seedAndAuth(page: Page): Promise<SeedResponse> {
-  const res = await fetch(`${API_BASE_URL}/testkit/e2e/seed-draft-field-coverage-1`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  });
+  const res = await fetch(
+    `${API_BASE_URL}/testkit/e2e/seed-draft-field-coverage-1`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    }
+  );
 
   if (!res.ok) {
     throw new Error(`Seed failed: ${res.status} ${await res.text()}`);
@@ -67,17 +70,23 @@ test.describe('DRAFT-LIST-PARITY-1: List-Level Draft Review Routing', () => {
    * MUST NOT route to Work Queue or Playbooks.
    * Routes to /projects/{projectId}/assets/pages/{pageId}?tab=drafts&from=asset_list
    */
-  test('DLP1-001: Pages list Review drafts routes to asset detail Drafts tab', async ({ page }) => {
+  test('DLP1-001: Pages list Review drafts routes to asset detail Drafts tab', async ({
+    page,
+  }) => {
     const seed = await seedAndAuth(page);
 
     // Navigate to Pages list filtered by hasDraft=true
-    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/assets/pages?hasDraft=true`);
+    await page.goto(
+      `${APP_BASE_URL}/projects/${seed.projectId}/assets/pages?hasDraft=true`
+    );
 
     // Wait for page list to load
     await page.waitForSelector('table');
 
     // Find the row containing /pages/dfc1-diff-page (the page with a diff draft)
-    const row = page.locator('tr', { has: page.locator('code:has-text("/pages/dfc1-diff-page")') });
+    const row = page.locator('tr', {
+      has: page.locator('code:has-text("/pages/dfc1-diff-page")'),
+    });
     await expect(row).toBeVisible();
 
     // Click "Review drafts" action
@@ -92,7 +101,9 @@ test.describe('DRAFT-LIST-PARITY-1: List-Level Draft Review Routing', () => {
     const currentUrl = page.url();
 
     // Assert: URL path contains the correct asset detail route
-    expect(currentUrl).toContain(`/projects/${seed.projectId}/assets/pages/${seed.pageDiffId}`);
+    expect(currentUrl).toContain(
+      `/projects/${seed.projectId}/assets/pages/${seed.pageDiffId}`
+    );
 
     // Assert: URL contains tab=drafts
     expect(currentUrl).toContain('tab=drafts');
@@ -105,7 +116,9 @@ test.describe('DRAFT-LIST-PARITY-1: List-Level Draft Review Routing', () => {
     expect(currentUrl).not.toContain('/automation/playbooks');
 
     // Assert: Drafts tab is actually rendered
-    await expect(page.locator('[data-testid="drafts-tab-panel"]')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="drafts-tab-panel"]')
+    ).toBeVisible();
 
     // Assert: Current vs Draft diff display is visible
     await expect(page.locator('text=Current (live)')).toBeVisible();
@@ -118,17 +131,23 @@ test.describe('DRAFT-LIST-PARITY-1: List-Level Draft Review Routing', () => {
    * MUST NOT route to Work Queue or Playbooks.
    * Routes to /projects/{projectId}/assets/collections/{collectionId}?tab=drafts&from=asset_list
    */
-  test('DLP1-002: Collections list Review drafts routes to asset detail Drafts tab', async ({ page }) => {
+  test('DLP1-002: Collections list Review drafts routes to asset detail Drafts tab', async ({
+    page,
+  }) => {
     const seed = await seedAndAuth(page);
 
     // Navigate to Collections list filtered by hasDraft=true
-    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/assets/collections?hasDraft=true`);
+    await page.goto(
+      `${APP_BASE_URL}/projects/${seed.projectId}/assets/collections?hasDraft=true`
+    );
 
     // Wait for collection list to load
     await page.waitForSelector('table');
 
     // Find the row containing /collections/dfc1-diff-collection (the collection with a diff draft)
-    const row = page.locator('tr', { has: page.locator('code:has-text("/collections/dfc1-diff-collection")') });
+    const row = page.locator('tr', {
+      has: page.locator('code:has-text("/collections/dfc1-diff-collection")'),
+    });
     await expect(row).toBeVisible();
 
     // Click "Review drafts" action
@@ -143,7 +162,9 @@ test.describe('DRAFT-LIST-PARITY-1: List-Level Draft Review Routing', () => {
     const currentUrl = page.url();
 
     // Assert: URL path contains the correct asset detail route
-    expect(currentUrl).toContain(`/projects/${seed.projectId}/assets/collections/${seed.collectionDiffId}`);
+    expect(currentUrl).toContain(
+      `/projects/${seed.projectId}/assets/collections/${seed.collectionDiffId}`
+    );
 
     // Assert: URL contains tab=drafts
     expect(currentUrl).toContain('tab=drafts');
@@ -156,7 +177,9 @@ test.describe('DRAFT-LIST-PARITY-1: List-Level Draft Review Routing', () => {
     expect(currentUrl).not.toContain('/automation/playbooks');
 
     // Assert: Drafts tab is actually rendered
-    await expect(page.locator('[data-testid="drafts-tab-panel"]')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="drafts-tab-panel"]')
+    ).toBeVisible();
 
     // Assert: Current vs Draft diff display is visible
     await expect(page.locator('text=Current (live)')).toBeVisible();

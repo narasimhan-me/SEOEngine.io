@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
 import { ShopifyService } from '../shopify/shopify.service';
@@ -57,7 +63,7 @@ export class AdminService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     @Inject(forwardRef(() => ShopifyService))
-    private readonly shopifyService: ShopifyService,
+    private readonly shopifyService: ShopifyService
   ) {}
 
   // ===========================================================================
@@ -75,7 +81,7 @@ export class AdminService {
       targetProjectId?: string;
       targetRunId?: string;
       metadata?: Record<string, unknown>;
-    } = {},
+    } = {}
   ) {
     await this.prisma.adminAuditLog.create({
       data: {
@@ -126,7 +132,11 @@ export class AdminService {
       this.prisma.user.count({
         where: {
           OR: [
-            { automationPlaybookRuns: { some: { createdAt: { gte: sevenDaysAgo } } } },
+            {
+              automationPlaybookRuns: {
+                some: { createdAt: { gte: sevenDaysAgo } },
+              },
+            },
             { aiUsageEvents: { some: { createdAt: { gte: sevenDaysAgo } } } },
           ],
         },
@@ -215,23 +225,30 @@ export class AdminService {
         reused: true,
       },
     });
-    const reuseRate = runsThisMonth > 0 ? (reusedRunsThisMonth / runsThisMonth) * 100 : 0;
+    const reuseRate =
+      runsThisMonth > 0 ? (reusedRunsThisMonth / runsThisMonth) * 100 : 0;
 
     return {
       totalUsers,
       activeUsers: activeUsersLast7Days,
       shopifyConnectedProjects,
-      deoHealthDistribution: deoScoreDistribution.reduce((acc, item) => {
-        acc[item.bucket] = Number(item.count);
-        return acc;
-      }, {} as Record<string, number>),
+      deoHealthDistribution: deoScoreDistribution.reduce(
+        (acc, item) => {
+          acc[item.bucket] = Number(item.count);
+          return acc;
+        },
+        {} as Record<string, number>
+      ),
       aiUsage: {
         today: aiUsageToday,
         month: aiUsageMonth,
         reuseRate: Math.round(reuseRate * 100) / 100,
       },
       quotaPressure: {
-        usersNearLimit: quotaPressureUsers.length > 0 ? Number(quotaPressureUsers[0].count) : 0,
+        usersNearLimit:
+          quotaPressureUsers.length > 0
+            ? Number(quotaPressureUsers[0].count)
+            : 0,
       },
       errorRates: {
         failedRunsThisMonth,
@@ -297,7 +314,12 @@ export class AdminService {
         });
 
         const plan = user.subscription?.plan || 'free';
-        const limits: Record<string, number> = { free: 10, starter: 100, pro: 500, enterprise: 10000 };
+        const limits: Record<string, number> = {
+          free: 10,
+          starter: 100,
+          pro: 500,
+          enterprise: 10000,
+        };
         const quotaLimit = limits[plan] || 10;
         const quotaPercent = Math.round((aiUsageThisMonth / quotaLimit) * 100);
 
@@ -314,7 +336,7 @@ export class AdminService {
           quotaPercent: Math.min(quotaPercent, 100),
           lastActivity: lastRun?.createdAt || user.updatedAt,
         };
-      }),
+      })
     );
 
     return {
@@ -406,7 +428,11 @@ export class AdminService {
   /**
    * [ADMIN-OPS-1] Generate a read-only impersonation token.
    */
-  async impersonateUser(targetUserId: string, adminUser: AdminUser, reason?: string) {
+  async impersonateUser(
+    targetUserId: string,
+    adminUser: AdminUser,
+    reason?: string
+  ) {
     const targetUser = await this.prisma.user.findUnique({
       where: { id: targetUserId },
       select: { id: true, email: true, role: true },
@@ -436,7 +462,9 @@ export class AdminService {
       },
     };
 
-    const token = this.jwtService.sign(impersonationPayload, { expiresIn: '1h' });
+    const token = this.jwtService.sign(impersonationPayload, {
+      expiresIn: '1h',
+    });
 
     return {
       token,
@@ -452,7 +480,11 @@ export class AdminService {
   /**
    * Update user's subscription plan (admin override).
    */
-  async updateUserSubscription(userId: string, planId: string, adminUser?: AdminUser) {
+  async updateUserSubscription(
+    userId: string,
+    planId: string,
+    adminUser?: AdminUser
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -517,7 +549,9 @@ export class AdminService {
 
     // Get current month's first day (UTC)
     const now = new Date();
-    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)
+    );
 
     // Count current AI runs for this month
     const currentAiRuns = await this.prisma.automationPlaybookRun.count({
@@ -561,7 +595,7 @@ export class AdminService {
   async updateAdminRole(
     userId: string,
     adminRole: InternalAdminRole | null,
-    adminUser: AdminUser,
+    adminUser: AdminUser
   ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -600,7 +634,11 @@ export class AdminService {
   /**
    * Update user role (legacy endpoint with audit logging).
    */
-  async updateUserRole(userId: string, role: 'USER' | 'ADMIN', adminUser?: AdminUser) {
+  async updateUserRole(
+    userId: string,
+    role: 'USER' | 'ADMIN',
+    adminUser?: AdminUser
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -760,7 +798,15 @@ export class AdminService {
    * Get runs with filters.
    */
   async getRuns(filters: RunFilters) {
-    const { projectId, runType, status, aiUsed, reused, page = 1, limit = 20 } = filters;
+    const {
+      projectId,
+      runType,
+      status,
+      aiUsed,
+      reused,
+      page = 1,
+      limit = 20,
+    } = filters;
     const skip = (page - 1) * limit;
 
     const where: any = {};
@@ -850,7 +896,9 @@ export class AdminService {
     }
 
     // Redact sensitive fields from meta
-    const redactedMeta = run.meta ? this.redactSensitiveFields(run.meta as Record<string, unknown>) : null;
+    const redactedMeta = run.meta
+      ? this.redactSensitiveFields(run.meta as Record<string, unknown>)
+      : null;
 
     return {
       ...run,
@@ -877,7 +925,9 @@ export class AdminService {
     // Only allow retry for non-AI-heavy run types
     const safeRetryTypes = ['PREVIEW_GENERATE'];
     if (!safeRetryTypes.includes(run.runType)) {
-      throw new BadRequestException('This run type cannot be safely retried from admin');
+      throw new BadRequestException(
+        'This run type cannot be safely retried from admin'
+      );
     }
 
     // Log the action
@@ -928,10 +978,7 @@ export class AdminService {
       }),
       this.prisma.product.count({
         where: {
-          AND: [
-            { seoTitle: null },
-            { seoDescription: null },
-          ],
+          AND: [{ seoTitle: null }, { seoDescription: null }],
         },
       }),
     ]);
@@ -977,7 +1024,9 @@ export class AdminService {
       `,
 
       // Top 10 consumers this month
-      this.prisma.$queryRaw<Array<{ userId: string; email: string; count: bigint }>>`
+      this.prisma.$queryRaw<
+        Array<{ userId: string; email: string; count: bigint }>
+      >`
         SELECT u.id as "userId", u.email, COUNT(r.id)::bigint as count
         FROM "AutomationPlaybookRun" r
         JOIN "User" u ON r."createdByUserId" = u.id
@@ -1010,10 +1059,13 @@ export class AdminService {
     const reuseRate = totalAiRuns > 0 ? (reusedRuns / totalAiRuns) * 100 : 0;
 
     return {
-      usageByPlan: usageByPlan.reduce((acc, item) => {
-        acc[item.plan] = Number(item.count);
-        return acc;
-      }, {} as Record<string, number>),
+      usageByPlan: usageByPlan.reduce(
+        (acc, item) => {
+          acc[item.plan] = Number(item.count);
+          return acc;
+        },
+        {} as Record<string, number>
+      ),
       topConsumers: topConsumers.map((c) => ({
         userId: c.userId,
         email: c.email,
@@ -1041,42 +1093,38 @@ export class AdminService {
     const oneHourAgo = new Date();
     oneHourAgo.setHours(oneHourAgo.getHours() - 1);
 
-    const [
-      queuedRuns,
-      stalledRuns,
-      recentFailures,
-      shopifyFailures,
-    ] = await Promise.all([
-      // Runs currently queued
-      this.prisma.automationPlaybookRun.count({
-        where: { status: 'QUEUED' },
-      }),
+    const [queuedRuns, stalledRuns, recentFailures, shopifyFailures] =
+      await Promise.all([
+        // Runs currently queued
+        this.prisma.automationPlaybookRun.count({
+          where: { status: 'QUEUED' },
+        }),
 
-      // Runs that have been queued for more than 1 hour
-      this.prisma.automationPlaybookRun.count({
-        where: {
-          status: 'QUEUED',
-          createdAt: { lt: oneHourAgo },
-        },
-      }),
+        // Runs that have been queued for more than 1 hour
+        this.prisma.automationPlaybookRun.count({
+          where: {
+            status: 'QUEUED',
+            createdAt: { lt: oneHourAgo },
+          },
+        }),
 
-      // Recent failures (last hour)
-      this.prisma.automationPlaybookRun.count({
-        where: {
-          status: 'FAILED',
-          updatedAt: { gte: oneHourAgo },
-        },
-      }),
+        // Recent failures (last hour)
+        this.prisma.automationPlaybookRun.count({
+          where: {
+            status: 'FAILED',
+            updatedAt: { gte: oneHourAgo },
+          },
+        }),
 
-      // Shopify sync failures (last 24 hours)
-      this.prisma.answerBlockAutomationLog.count({
-        where: {
-          action: 'answer_blocks_synced_to_shopify',
-          status: 'failed',
-          createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-        },
-      }),
-    ]);
+        // Shopify sync failures (last 24 hours)
+        this.prisma.answerBlockAutomationLog.count({
+          where: {
+            action: 'answer_blocks_synced_to_shopify',
+            status: 'failed',
+            createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+          },
+        }),
+      ]);
 
     return {
       queueHealth: {
@@ -1100,7 +1148,16 @@ export class AdminService {
    * Get audit log with filters.
    */
   async getAuditLog(filters: AuditLogFilters) {
-    const { actorId, targetUserId, targetProjectId, actionType, startDate, endDate, page = 1, limit = 50 } = filters;
+    const {
+      actorId,
+      targetUserId,
+      targetProjectId,
+      actionType,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 50,
+    } = filters;
     const skip = (page - 1) * limit;
 
     const where: any = {};
@@ -1172,7 +1229,15 @@ export class AdminService {
     page?: number;
     limit?: number;
   }) {
-    const { projectId, actorUserId, eventType, startDate, endDate, page = 1, limit = 50 } = filters;
+    const {
+      projectId,
+      actorUserId,
+      eventType,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 50,
+    } = filters;
     const skip = (page - 1) * limit;
 
     const where: any = {};
@@ -1209,13 +1274,16 @@ export class AdminService {
     ]);
 
     // Enrich with actor email if available
-    const userIds = [...new Set(events.map((e) => e.actorUserId).filter(Boolean))];
-    const users = userIds.length > 0
-      ? await this.prisma.user.findMany({
-          where: { id: { in: userIds as string[] } },
-          select: { id: true, email: true },
-        })
-      : [];
+    const userIds = [
+      ...new Set(events.map((e) => e.actorUserId).filter(Boolean)),
+    ];
+    const users =
+      userIds.length > 0
+        ? await this.prisma.user.findMany({
+            where: { id: { in: userIds as string[] } },
+            select: { id: true, email: true },
+          })
+        : [];
     const userMap = new Map(users.map((u) => [u.id, u.email]));
 
     const enrichedEvents = events.map((event) => ({
@@ -1223,13 +1291,17 @@ export class AdminService {
       createdAt: event.createdAt,
       eventType: event.eventType,
       actorUserId: event.actorUserId,
-      actorEmail: event.actorUserId ? userMap.get(event.actorUserId) || null : null,
+      actorEmail: event.actorUserId
+        ? userMap.get(event.actorUserId) || null
+        : null,
       resourceType: event.resourceType,
       resourceId: event.resourceId,
       projectId: event.projectId,
       projectName: event.project?.name || null,
       // Redact any sensitive fields from metadata
-      metadata: event.metadata ? this.redactSensitiveFields(event.metadata as Record<string, unknown>) : null,
+      metadata: event.metadata
+        ? this.redactSensitiveFields(event.metadata as Record<string, unknown>)
+        : null,
     }));
 
     return {
@@ -1281,14 +1353,20 @@ export class AdminService {
       totalUsers,
       totalProjects,
       usersToday,
-      usersByRole: usersByRole.reduce((acc, item) => {
-        acc[item.role] = item._count;
-        return acc;
-      }, {} as Record<string, number>),
-      subscriptionsByPlan: subscriptionsByPlan.reduce((acc, item) => {
-        acc[item.plan] = item._count;
-        return acc;
-      }, {} as Record<string, number>),
+      usersByRole: usersByRole.reduce(
+        (acc, item) => {
+          acc[item.role] = item._count;
+          return acc;
+        },
+        {} as Record<string, number>
+      ),
+      subscriptionsByPlan: subscriptionsByPlan.reduce(
+        (acc, item) => {
+          acc[item.plan] = item._count;
+          return acc;
+        },
+        {} as Record<string, number>
+      ),
     };
   }
 
@@ -1299,15 +1377,28 @@ export class AdminService {
   /**
    * Redact sensitive fields from metadata.
    */
-  private redactSensitiveFields(obj: Record<string, unknown>): Record<string, unknown> {
-    const sensitiveKeys = ['token', 'secret', 'password', 'apiKey', 'accessToken', 'credential'];
+  private redactSensitiveFields(
+    obj: Record<string, unknown>
+  ): Record<string, unknown> {
+    const sensitiveKeys = [
+      'token',
+      'secret',
+      'password',
+      'apiKey',
+      'accessToken',
+      'credential',
+    ];
     const result: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(obj)) {
-      if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk.toLowerCase()))) {
+      if (
+        sensitiveKeys.some((sk) => key.toLowerCase().includes(sk.toLowerCase()))
+      ) {
         result[key] = '[REDACTED]';
       } else if (value && typeof value === 'object' && !Array.isArray(value)) {
-        result[key] = this.redactSensitiveFields(value as Record<string, unknown>);
+        result[key] = this.redactSensitiveFields(
+          value as Record<string, unknown>
+        );
       } else {
         result[key] = value;
       }

@@ -61,14 +61,17 @@
 **ID:** DASH12-HP-001
 
 **Preconditions:**
+
 - [ ] Project has at least one crawl, a DEO Score, and a few products with issues and Answer Blocks.
 
 **Steps:**
+
 1. Log in as a Pro or Business user.
 2. Navigate to the Project Overview page for the prepared project.
 3. Scroll from the top of the page and visually inspect the “First DEO Win” ribbon (if present), “What Matters Right Now”, DEO Score, Top blockers, and Diagnostics drawer.
 
 **Expected Results:**
+
 - **UI:** “What Matters Right Now” appears as the primary highlighted section immediately under the First DEO Win ribbon, with the AEO Status card and “Top Products to Fix” card as the main actionable surfaces.
 - **UI:** DEO Score, Top blockers, and Diagnostics drawer appear visually secondary (smaller headers, lighter styling) and do not visually overpower the primary section.
 
@@ -79,9 +82,11 @@
 **ID:** DASH12-HP-002
 
 **Preconditions:**
+
 - [ ] Same project as Scenario DASH12-HP-001.
 
 **Steps:**
+
 1. On the Project Overview page, locate the “Diagnostics & system details” row near the bottom.
 2. Confirm the row appears collapsed by default with helper copy about signals, integrations, crawl config, and system status.
 3. Click “Show details” to expand the drawer.
@@ -90,6 +95,7 @@
 6. Repeat expand/collapse a few times.
 
 **Expected Results:**
+
 - **UI:** Collapsed state shows a slim, muted row with the title “Diagnostics & system details”, helper copy, and a “Show details” / “Hide details” toggle.
 - **UI:** Expanded state uses a 2-column layout on large screens:
   - Left column: Signals summary and crawl / DEO issues controls (Run Crawl button).
@@ -104,15 +110,18 @@
 **ID:** DASH12-HP-003
 
 **Preconditions:**
+
 - [ ] Project with at least 3 DEO issues and 3 products with DEO issues and Answer Blocks.
 
 **Steps:**
+
 1. Open the Project Overview page.
 2. Verify the “Top blockers” card and its contents.
 3. Verify the “Top Products to Fix” card inside “What Matters Right Now”.
 4. Inspect the Diagnostics drawer, especially the Project Stats card and any issue-related content.
 
 **Expected Results:**
+
 - **UI:** “Top blockers” shows at most 3 issues with outcome-style descriptions and a single CTA labeled “View all issues”.
 - **UI:** “Top Products to Fix” appears only once, inside “What Matters Right Now”, and lists at most 3 products.
 - **UI:** Project Stats no longer shows a raw “Issues Found” count; issue counts or category breakdowns do not compete with “Top blockers” as the main issue surface.
@@ -125,11 +134,13 @@
 **ID:** DASH12-HP-004
 
 **Preconditions:**
+
 - [ ] Project with Shopify connected and AEO-2 enabled (Answer Blocks → Shopify metafields flag ON).
 - [ ] Project on Pro or Business plan.
 - [ ] At least one product with persisted Answer Blocks and DEO issues so that “Top Products to Fix” is populated.
 
 **Steps:**
+
 1. Open the Project Overview page for the prepared project.
 2. In “What Matters Right Now”, locate the AEO Status card.
 3. Confirm that the card shows Shopify Sync ON, products with Answer Blocks, and last sync timestamp/status (if any).
@@ -138,10 +149,11 @@
 6. Optionally, open the relevant product(s) in Product Workspace → Answers (AEO) and Shopify Admin to inspect metafields.
 
 **Expected Results:**
+
 - **UI:** “Sync now” enters a loading state (“Syncing…”) and disables while the request is in flight.
 - **UI:** After completion, a success toast appears (e.g., “Synced N Answer Blocks to Shopify metafields.”) when the manual sync succeeds.
 - **API/Logs:** The existing AEO-2 manual sync endpoint is called (`/products/:id/answer-blocks/sync-to-shopify`), and AnswerBlockAutomationLog entries record `triggerType = 'manual_sync'` and `action = 'answer_blocks_synced_to_shopify'` for the affected product.
-- **Shopify Admin:** For products with Answer Blocks, engineo.* metafields reflect the latest Answer Block content.
+- **Shopify Admin:** For products with Answer Blocks, engineo.\* metafields reflect the latest Answer Block content.
 
 ---
 
@@ -150,12 +162,14 @@
 **ID:** DASH12-HP-005
 
 **Preconditions:**
+
 - [ ] Projects and users set up to cover:
   - Free plan (no AEO-2 entitlement).
   - Pro/Business plan with AEO-2 toggle OFF.
   - Pro/Business plan with AEO-2 toggle ON but daily cap forced / reached (if feasible).
 
 **Steps:**
+
 1. **Free plan:**
    1. Log in as a Free-plan user for a project with Shopify connected and Answer Blocks.
    2. Open Project Overview and click “Sync now” on the AEO Status card.
@@ -167,6 +181,7 @@
    2. Attempt “Sync now” again from the AEO Status card.
 
 **Expected Results:**
+
 - **Free plan:**
   - UI shows an upgrade/limit-style toast (via existing limit feedback system) indicating Shopify Answer Block metafield sync is available on paid plans.
   - Manual sync either is not attempted or returns `status = 'skipped', reason = 'plan_not_entitled'`; no Shopify writes occur.
@@ -186,11 +201,13 @@
 **Description:** Project has Shopify connected and Answer Blocks, but no DEO issues that qualify for “Top Products to Fix”.
 
 **Steps:**
+
 1. Prepare or identify a project with Answer Blocks but no high-impact, AI-fixable DEO issues.
 2. Open Project Overview and inspect “What Matters Right Now” and the AEO Status card.
 3. Click “Sync now”.
 
 **Expected Behavior:**
+
 - **UI:** “Top Products to Fix” shows the empty-state helper text and does not appear elsewhere on the page.
 - **UI:** “Sync now” still triggers a manual sync attempt and surfaces a clear info toast if there are no products/Answer Blocks to sync.
 
@@ -201,11 +218,13 @@
 **Description:** New project with Shopify connected but no crawls, DEO Score, or integrations configured.
 
 **Steps:**
+
 1. Create or select a new project with Shopify connected but without running any crawl.
 2. Open Project Overview.
 3. Expand the Diagnostics drawer.
 
 **Expected Behavior:**
+
 - **UI:** Diagnostics drawer renders muted cards with appropriate empty-state copy (e.g., encouraging running the first crawl) without errors or broken layouts.
 - **UI:** No issue counts or duplicate issue surfaces appear outside of the Top blockers card.
 
@@ -218,10 +237,12 @@
 **Scenario:** The AEO-2 manual sync endpoint returns an error or fails mid-request when triggered from the AEO Status card.
 
 **Steps:**
+
 1. In a test or staging environment, inject a failure into `/products/:id/answer-blocks/sync-to-shopify` (e.g., force an exception in the backend or mock a 5xx).
 2. Open Project Overview and click “Sync now” on the AEO Status card.
 
 **Expected Behavior:**
+
 - **UI:** Shows a clear error toast indicating that syncing Answer Blocks to Shopify failed and the user should try again.
 - **UI:** Button exits the loading state and can be retried.
 - **Logs:** AnswerBlockAutomationLog entries record `status = 'failed'` with an error message; no unexpected crashes occur in the worker or API.
@@ -233,10 +254,12 @@
 **Scenario:** Underlying data for signals, crawl results, or project overview fails to load while interacting with the Diagnostics drawer.
 
 **Steps:**
+
 1. In a controlled environment, simulate failures for DEO signals or crawl results APIs.
 2. Open Project Overview and expand/collapse the Diagnostics drawer.
 
 **Expected Behavior:**
+
 - **UI:** Any failures result in graceful degradation (e.g., partial content, existing inline error copy), but the drawer layout still renders and can be toggled.
 - **UI:** No red, high-emphasis error cards appear that visually compete with “What Matters Right Now”.
 
@@ -295,10 +318,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| Tester Name | [Name] |
-| Date | [YYYY-MM-DD] |
+| Field          | Value                                 |
+| -------------- | ------------------------------------- |
+| Tester Name    | [Name]                                |
+| Date           | [YYYY-MM-DD]                          |
 | Overall Status | [ ] Passed / [ ] Blocked / [ ] Failed |
-| Notes | [Any additional notes] |
-
+| Notes          | [Any additional notes]                |

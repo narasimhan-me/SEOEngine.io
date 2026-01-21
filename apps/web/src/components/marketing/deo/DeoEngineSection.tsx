@@ -11,28 +11,39 @@ export function DeoEngineSection() {
           </p>
           <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
             <li>
-              <span className="font-semibold text-foreground">Automated full-site crawl</span> &mdash;
-              finds every URL and extracts signals.
+              <span className="font-semibold text-foreground">
+                Automated full-site crawl
+              </span>{' '}
+              &mdash; finds every URL and extracts signals.
             </li>
             <li>
-              <span className="font-semibold text-foreground">DEO Score</span> &mdash; your universal
-              visibility metric.
+              <span className="font-semibold text-foreground">DEO Score</span>{' '}
+              &mdash; your universal visibility metric.
             </li>
             <li>
-              <span className="font-semibold text-foreground">Issues Engine</span> &mdash; clear,
-              actionable problem detection.
+              <span className="font-semibold text-foreground">
+                Issues Engine
+              </span>{' '}
+              &mdash; clear, actionable problem detection.
             </li>
             <li>
-              <span className="font-semibold text-foreground">AI Optimization Workspaces</span>{' '}
+              <span className="font-semibold text-foreground">
+                AI Optimization Workspaces
+              </span>{' '}
               &mdash; one for products, one for all content pages.
             </li>
             <li>
-              <span className="font-semibold text-foreground">Automation layer</span> &mdash; daily
-              crawling, recompute, issue updates.
+              <span className="font-semibold text-foreground">
+                Automation layer
+              </span>{' '}
+              &mdash; daily crawling, recompute, issue updates.
             </li>
             <li>
-              <span className="font-semibold text-foreground">CMS-agnostic</span> &mdash; works with
-              Shopify, WordPress, Webflow, SaaS sites, blogs &mdash; everything.
+              <span className="font-semibold text-foreground">
+                CMS-agnostic
+              </span>{' '}
+              &mdash; works with Shopify, WordPress, Webflow, SaaS sites, blogs
+              &mdash; everything.
             </li>
           </ul>
         </div>

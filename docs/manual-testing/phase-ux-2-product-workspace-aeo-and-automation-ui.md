@@ -66,12 +66,14 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 **Goal:** Verify that the Answer Blocks panel reads and displays persisted Answer Blocks for a product.
 
 **Steps:**
+
 1. Log in as a Pro or Business user.
 2. Navigate to Projects → select a Shopify-connected project → Products.
 3. Click on a product known to have persisted Answer Blocks (via AE-1.3 flows or seeded data).
 4. In the Product Optimization workspace, scroll to the Answer Blocks (AEO) panel.
 
 **Expected Results:**
+
 - The panel shows a header "Answer Blocks (AEO)" with a plan badge (Pro or Business).
 - A list of Answer Blocks is rendered, one card per question:
   - Question label uses the canonical 10-question taxonomy where applicable.
@@ -89,6 +91,7 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 **Goal:** Confirm user edits to Answer Blocks are persisted and survive reload.
 
 **Steps:**
+
 1. With UX2-AEO-HP-001 preconditions satisfied, choose a product with existing Answer Blocks.
 2. In the Answer Blocks panel, update the answerText for 1–2 questions (e.g., clarify wording).
 3. Click **Save Answer Blocks**.
@@ -96,6 +99,7 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 5. Reload the page (browser reload) or navigate away and back to the same product workspace.
 
 **Expected Results:**
+
 - **Save action:**
   - Save button becomes disabled/spinner while saving.
   - Success toast appears (e.g., "Answer Blocks saved successfully.").
@@ -113,6 +117,7 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 **Goal:** Verify that the Answer Blocks panel can trigger Answer Block automation and that updated answers appear after automation runs.
 
 **Steps:**
+
 1. Log in as a Pro or Business user.
 2. Choose a product with:
    - Either no Answer Blocks, or
@@ -125,6 +130,7 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
    - Automation History (Answer Blocks) panel.
 
 **Expected Results:**
+
 - **Answer Blocks panel:**
   - Shows a success toast indicating automation was triggered.
   - After refresh:
@@ -145,12 +151,14 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 **Goal:** Clarify the distinction between AI Answer previews (diagnostics only) and canonical Answer Blocks, and verify visibility behavior based on whether Answer Blocks exist.
 
 **Steps (product with no Answer Blocks):**
+
 1. Log in as a Pro or Business user.
 2. Navigate to a product that has no persisted Answer Blocks (newly synced product or one where Answer Blocks have been cleared).
 3. In the Product Optimization workspace, scroll to the Answers (AEO) section.
 4. Observe the AI Answers panel and Answer Blocks panel.
 
 **Expected Results (no Answer Blocks):**
+
 - The AI Answers card header reads **"AI Answer Preview (Diagnostics Only)"**.
 - Directly under the header, a short description explains:
   - Temporary AI-generated drafts used to evaluate answerability and data coverage.
@@ -166,12 +174,14 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 - No "Show AI diagnostic previews" toggle is visible when there are zero Answer Blocks; AI previews are shown by default.
 
 **Steps (product with existing Answer Blocks):**
+
 1. Log in as a Pro or Business user.
 2. Navigate to a product that has at least one persisted Answer Block.
 3. In the Answers (AEO) section, observe the top helper text and both panels.
 4. Verify the state of the AI Answer previews and the visibility toggle.
 
 **Expected Results (with Answer Blocks):**
+
 - Section helper text above the cards emphasizes that:
   - Answer Blocks are canonical, persistent AEO answers.
   - When enabled in Settings, these canonical answers can be synced to Shopify as metafields.
@@ -196,6 +206,7 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 **Goal:** Ensure Free plan users can view/edit Answer Blocks but cannot trigger Answer Block automations, and see clear upgrade messaging.
 
 **Steps:**
+
 1. Log in as a Free plan user.
 2. Navigate to a project and product that has persisted Answer Blocks.
 3. Scroll to the Answer Blocks (AEO) panel.
@@ -203,6 +214,7 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 5. Attempt to click **Run Answer Block automation** (if enabled) or observe disabled state.
 
 **Expected Results:**
+
 - **Answer Blocks panel:**
   - Plan badge shows "Free plan".
   - Existing Answer Blocks render and remain editable with **Save Answer Blocks**.
@@ -221,6 +233,7 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 **Goal:** Validate that the Automation History panel surfaces the main Answer Block automation outcomes.
 
 **Steps:**
+
 1. Trigger at least one successful Answer Block automation (Pro/Business).
 2. Trigger a scenario that leads to a skip, such as:
    - Running automation when all Answer Blocks are already strong.
@@ -231,6 +244,7 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 4. Refresh the Automation History panel after each scenario.
 
 **Expected Results:**
+
 - **Success case:**
   - Entry with status: 'succeeded', appropriate action, and no error text.
 - **Skip cases:**
@@ -250,6 +264,7 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 **Goal:** Verify that the Automation History panel displays a summary card for the latest run by default and allows expansion to view full history.
 
 **Steps:**
+
 1. Log in as a Pro or Business user.
 2. Navigate to a product that has multiple automation log entries (at least 3–5).
 3. Observe the Automation History (Answer Blocks) panel on initial load.
@@ -258,6 +273,7 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 6. Click the "Hide full history" link.
 
 **Expected Results:**
+
 - **On initial load (collapsed state):**
   - A summary card with a slate-50 background is displayed.
   - The card shows "Last automation" label with the most recent log's:
@@ -284,6 +300,7 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 **Goal:** Ensure that products with many skip entries (e.g., daily skip_no_action logs) do not clutter the UI on initial load.
 
 **Steps:**
+
 1. Create or use a product with 10+ automation log entries, mostly skipped actions.
 2. Navigate to the Product Workspace for that product.
 3. Observe the Automation History panel.
@@ -291,6 +308,7 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 5. Expand and confirm all entries are present.
 
 **Expected Results:**
+
 - **On initial load:**
   - Only the latest log summary card is shown.
   - The "View full history (X)" link displays the correct count (e.g., "View full history (12)").
@@ -306,6 +324,7 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 **Goal:** Confirm that the Product Workspace presents metadata as the first optimization surface, followed by Answers and Automations, and that the layout feels visually segmented.
 
 **Steps:**
+
 1. Log in as a Pro or Business user.
 2. Navigate to Projects → select a Shopify-connected project → Products → choose a product.
 3. Observe the main (center) column of the Product Optimization workspace.
@@ -313,6 +332,7 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 5. Scroll through the page and note the separation between each section.
 
 **Expected Results:**
+
 - The Metadata section (AI suggestions + SEO editor) appears first.
 - The Answers section (ProductAnswersPanel + Answer Blocks panel) appears directly below Metadata.
 - The Automations section (collapsed-by-default Automation History panel) appears below Answers.
@@ -325,6 +345,7 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 **Goal:** Verify that the DEO / SEO Insights panel on the right is collapsed by default and can be expanded to reveal full issue details.
 
 **Steps:**
+
 1. With a product selected that has at least one DEO issue, open the Product Optimization workspace.
 2. Locate the DEO / SEO Insights panel in the right-hand column.
 3. Observe the default, collapsed state.
@@ -332,6 +353,7 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 5. Scroll within the Product Workspace, then click "Collapse issues & recommendations".
 
 **Expected Results:**
+
 - **Collapsed state:**
   - Panel shows a summary card titled "DEO Score & Issues".
   - Summary includes content depth (e.g., "0 words — Very short") and metadata completeness summaries (SEO Title/Description Present/Missing).
@@ -348,6 +370,7 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 **Goal:** Ensure the sticky workspace header and Jump to bar behave correctly and improve navigation across sections.
 
 **Steps:**
+
 1. Open the Product Optimization workspace for a product with some metadata, Answer Blocks, automation history, and DEO issues.
 2. Scroll down the page so metadata, answers, and automations sections move out of the initial viewport.
 3. Observe the top of the viewport while scrolling.
@@ -355,6 +378,7 @@ For structure and expectations, see `docs/MANUAL_TESTING_TEMPLATE.md`.
 5. Use the Apply to Shopify button in the sticky header after editing metadata.
 
 **Expected Results:**
+
 - **Sticky header:**
   - Remains visible at the top of the page while scrolling.
   - Shows Back to Products link, product name, optimization status pill, and an Apply to Shopify button wired to the same behavior as the metadata editor's Apply action.

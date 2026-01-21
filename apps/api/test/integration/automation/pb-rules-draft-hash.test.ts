@@ -32,7 +32,7 @@ class ProductIssueFixServiceStub {
     _userId: string,
     _product: any,
     issueType: string,
-    _opts?: any,
+    _opts?: any
   ) {
     this.callCount += 1;
     return {
@@ -61,11 +61,11 @@ const aiServiceStub = new AiServiceStub();
 
 async function signupAndLogin(
   jwtSecret: string,
-  email: string,
+  email: string
 ): Promise<{ token: string; userId: string }> {
   if (!jwtSecret || typeof jwtSecret !== 'string' || jwtSecret.length < 32) {
     throw new Error(
-      `Invalid JWT secret: type=${typeof jwtSecret}, length=${jwtSecret?.length}`,
+      `Invalid JWT secret: type=${typeof jwtSecret}, length=${jwtSecret?.length}`
     );
   }
   const { user } = await createTestUser(testPrisma, {
@@ -82,7 +82,7 @@ async function signupAndLogin(
     jwtSecret,
     {
       algorithm: 'HS256',
-    },
+    }
   );
   return { token, userId: user.id };
 }
@@ -91,25 +91,25 @@ async function createProject(
   server: any,
   token: string,
   name: string,
-  domain: string,
+  domain: string
 ): Promise<string> {
   const res = await request(server)
     .post('/projects')
     .set('Authorization', `Bearer ${token}`)
     .send({ name, domain });
-  
+
   if (res.status !== 201) {
     throw new Error(
-      `Failed to create project: ${res.status} - ${JSON.stringify(res.body)}`,
+      `Failed to create project: ${res.status} - ${JSON.stringify(res.body)}`
     );
   }
-  
+
   if (!res.body?.id) {
     throw new Error(
-      `Project creation response missing id: ${JSON.stringify(res.body)}`,
+      `Project creation response missing id: ${JSON.stringify(res.body)}`
     );
   }
-  
+
   return res.body.id;
 }
 
@@ -120,7 +120,7 @@ async function createProduct(
     externalId: string;
     seoTitle: string | null;
     seoDescription: string | null;
-  },
+  }
 ): Promise<string> {
   const product = await testPrisma.product.create({
     data: {
@@ -145,16 +145,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
         .overrideProvider(ProductIssueFixService)
         .useValue(productIssueFixServiceStub)
         .overrideProvider(AiService)
-        .useValue(aiServiceStub),
+        .useValue(aiServiceStub)
     );
     server = app.getHttpServer();
-    
+
     // Get JWT secret from the app's configuration to ensure it matches
     // The app uses the same secret for signing and verification
     const configService = app.get(ConfigService);
     // Use the exact same logic as JwtStrategy and AuthModule
-    jwtSecret = configService.get<string>('JWT_SECRET') || 'default-secret-change-in-production';
-    
+    jwtSecret =
+      configService.get<string>('JWT_SECRET') ||
+      'default-secret-change-in-production';
+
     // Ensure secret is valid (at least 32 chars for HS256)
     if (!jwtSecret || typeof jwtSecret !== 'string' || jwtSecret.length < 32) {
       // Use the same default as the app if secret is too short
@@ -178,13 +180,13 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
     it('produces identical rulesHash for identical rules across preview calls', async () => {
       const { token, userId } = await signupAndLogin(
         jwtSecret,
-        'rules-hash-stable@example.com',
+        'rules-hash-stable@example.com'
       );
       const projectId = await createProject(
         server,
         token,
         'Rules Hash Stable Project',
-        'rules-hash-stable.com',
+        'rules-hash-stable.com'
       );
 
       await testPrisma.subscription.upsert({
@@ -219,14 +221,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
 
       // First preview call
       const preview1 = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ rules, sampleSize: 1 });
       expect(preview1.status).toBe(201);
 
       // Second preview call with identical rules
       const preview2 = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ rules, sampleSize: 1 });
       expect(preview2.status).toBe(201);
@@ -240,13 +246,13 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
     it('produces different rulesHash when prefix changes', async () => {
       const { token, userId } = await signupAndLogin(
         jwtSecret,
-        'rules-hash-prefix@example.com',
+        'rules-hash-prefix@example.com'
       );
       const projectId = await createProject(
         server,
         token,
         'Rules Hash Prefix Project',
-        'rules-hash-prefix.com',
+        'rules-hash-prefix.com'
       );
 
       await testPrisma.subscription.upsert({
@@ -279,16 +285,26 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
 
       // First preview with prefix A
       const preview1 = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
-        .send({ rules: { enabled: true, prefix: 'EngineO | ' }, sampleSize: 1 });
+        .send({
+          rules: { enabled: true, prefix: 'EngineO | ' },
+          sampleSize: 1,
+        });
       expect(preview1.status).toBe(201);
 
       // Second preview with prefix B
       const preview2 = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
-        .send({ rules: { enabled: true, prefix: 'EngineO SEO | ' }, sampleSize: 1 });
+        .send({
+          rules: { enabled: true, prefix: 'EngineO SEO | ' },
+          sampleSize: 1,
+        });
       expect(preview2.status).toBe(201);
 
       // rulesHash should be different
@@ -298,13 +314,13 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
     it('produces different rulesHash when forbidden phrases change', async () => {
       const { token, userId } = await signupAndLogin(
         jwtSecret,
-        'rules-hash-forbidden@example.com',
+        'rules-hash-forbidden@example.com'
       );
       const projectId = await createProject(
         server,
         token,
         'Rules Hash Forbidden Project',
-        'rules-hash-forbidden.com',
+        'rules-hash-forbidden.com'
       );
 
       await testPrisma.subscription.upsert({
@@ -338,17 +354,27 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
 
       // First preview with one forbidden phrase
       const preview1 = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
-        .send({ rules: { enabled: true, forbiddenPhrases: ['click here'] }, sampleSize: 1 });
+        .send({
+          rules: { enabled: true, forbiddenPhrases: ['click here'] },
+          sampleSize: 1,
+        });
       expect(preview1.status).toBe(201);
 
       // Second preview with additional forbidden phrase
       const preview2 = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({
-          rules: { enabled: true, forbiddenPhrases: ['click here', 'best ever'] },
+          rules: {
+            enabled: true,
+            forbiddenPhrases: ['click here', 'best ever'],
+          },
           sampleSize: 1,
         });
       expect(preview2.status).toBe(201);
@@ -362,13 +388,13 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
     it('returns 409 PLAYBOOK_RULES_CHANGED when applying with mismatched rulesHash', async () => {
       const { token, userId } = await signupAndLogin(
         jwtSecret,
-        'rules-changed-409@example.com',
+        'rules-changed-409@example.com'
       );
       const projectId = await createProject(
         server,
         token,
         'Rules Changed 409 Project',
-        'rules-changed-409.com',
+        'rules-changed-409.com'
       );
 
       await testPrisma.subscription.upsert({
@@ -402,15 +428,22 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
 
       // Create preview with rulesA
       const previewRes = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
-        .send({ rules: { enabled: true, prefix: 'Original | ' }, sampleSize: 1 });
+        .send({
+          rules: { enabled: true, prefix: 'Original | ' },
+          sampleSize: 1,
+        });
       expect(previewRes.status).toBe(201);
       const { scopeId, rulesHash: rulesHashA } = previewRes.body;
 
       // Generate full draft
       await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ scopeId, rulesHash: rulesHashA });
 
@@ -423,7 +456,11 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
       const applyRes = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/apply`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash: wrongRulesHash });
+        .send({
+          playbookId: 'missing_seo_title',
+          scopeId,
+          rulesHash: wrongRulesHash,
+        });
 
       expect(applyRes.status).toBe(409);
       expect(applyRes.body).toHaveProperty('code', 'PLAYBOOK_RULES_CHANGED');
@@ -432,20 +469,22 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
       expect(aiServiceStub.generateMetadataCallCount).toBe(0);
 
       // Product SEO fields unchanged
-      const product = await testPrisma.product.findUnique({ where: { id: productId } });
+      const product = await testPrisma.product.findUnique({
+        where: { id: productId },
+      });
       expect(product?.seoTitle).toBeNull();
     });
 
     it('does not call AI when Apply is blocked due to rules change', async () => {
       const { token, userId } = await signupAndLogin(
         jwtSecret,
-        'rules-changed-no-ai@example.com',
+        'rules-changed-no-ai@example.com'
       );
       const projectId = await createProject(
         server,
         token,
         'Rules Changed No AI Project',
-        'rules-changed-no-ai.com',
+        'rules-changed-no-ai.com'
       );
 
       await testPrisma.subscription.upsert({
@@ -479,7 +518,9 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
 
       // Create preview and get scopeId
       const previewRes = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, maxLength: 60 }, sampleSize: 1 });
       expect(previewRes.status).toBe(201);
@@ -510,13 +551,13 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
     it('returns 409 PLAYBOOK_SCOPE_INVALID when scope changes after preview', async () => {
       const { token, userId } = await signupAndLogin(
         jwtSecret,
-        'scope-invalid-409@example.com',
+        'scope-invalid-409@example.com'
       );
       const projectId = await createProject(
         server,
         token,
         'Scope Invalid 409 Project',
-        'scope-invalid-409.com',
+        'scope-invalid-409.com'
       );
 
       await testPrisma.subscription.upsert({
@@ -550,14 +591,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
 
       // Create preview + full draft
       const previewRes = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'Shop | ' }, sampleSize: 1 });
       expect(previewRes.status).toBe(201);
       const { scopeId: scopeIdA, rulesHash } = previewRes.body;
 
       await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ scopeId: scopeIdA, rulesHash });
 
@@ -573,7 +618,11 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
       const applyRes = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/apply`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ playbookId: 'missing_seo_title', scopeId: scopeIdA, rulesHash });
+        .send({
+          playbookId: 'missing_seo_title',
+          scopeId: scopeIdA,
+          rulesHash,
+        });
 
       expect(applyRes.status).toBe(409);
       expect(applyRes.body).toHaveProperty('code', 'PLAYBOOK_SCOPE_INVALID');
@@ -584,13 +633,13 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
     it('returns 409 when forbidden phrase added after draft creation', async () => {
       const { token, userId } = await signupAndLogin(
         jwtSecret,
-        'forbidden-added@example.com',
+        'forbidden-added@example.com'
       );
       const projectId = await createProject(
         server,
         token,
         'Forbidden Added Project',
-        'forbidden-added.com',
+        'forbidden-added.com'
       );
 
       await testPrisma.subscription.upsert({
@@ -624,14 +673,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
 
       // Preview + draft with no forbidden phrases
       const preview1 = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'Buy | ' }, sampleSize: 1 });
       expect(preview1.status).toBe(201);
       const { scopeId, rulesHash: rulesHash1 } = preview1.body;
 
       await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ scopeId, rulesHash: rulesHash1 });
 
@@ -644,7 +697,11 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
       const applyRes = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/apply`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash: wrongRulesHash });
+        .send({
+          playbookId: 'missing_seo_title',
+          scopeId,
+          rulesHash: wrongRulesHash,
+        });
 
       expect(applyRes.status).toBe(409);
       expect(applyRes.body).toHaveProperty('code', 'PLAYBOOK_RULES_CHANGED');
@@ -654,13 +711,13 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
     it('returns 409 when maxLength reduced after draft creation', async () => {
       const { token, userId } = await signupAndLogin(
         jwtSecret,
-        'maxlength-reduced@example.com',
+        'maxlength-reduced@example.com'
       );
       const projectId = await createProject(
         server,
         token,
         'MaxLength Reduced Project',
-        'maxlength-reduced.com',
+        'maxlength-reduced.com'
       );
 
       await testPrisma.subscription.upsert({
@@ -694,14 +751,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
 
       // Draft with no maxLength
       const preview1 = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'Buy | ' }, sampleSize: 1 });
       expect(preview1.status).toBe(201);
       const { scopeId, rulesHash: rulesHash1 } = preview1.body;
 
       await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ scopeId, rulesHash: rulesHash1 });
 
@@ -714,7 +775,11 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
       const applyRes = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/apply`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash: wrongRulesHash });
+        .send({
+          playbookId: 'missing_seo_title',
+          scopeId,
+          rulesHash: wrongRulesHash,
+        });
 
       expect(applyRes.status).toBe(409);
       expect(applyRes.body).toHaveProperty('code', 'PLAYBOOK_RULES_CHANGED');
@@ -724,13 +789,13 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
     it('returns single 409 when multiple rules changed at once', async () => {
       const { token, userId } = await signupAndLogin(
         jwtSecret,
-        'multiple-rules-changed@example.com',
+        'multiple-rules-changed@example.com'
       );
       const projectId = await createProject(
         server,
         token,
         'Multiple Rules Changed Project',
-        'multiple-rules-changed.com',
+        'multiple-rules-changed.com'
       );
 
       await testPrisma.subscription.upsert({
@@ -764,14 +829,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
 
       // Draft with basic rules
       const preview1 = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'A | ' }, sampleSize: 1 });
       expect(preview1.status).toBe(201);
       const { scopeId, rulesHash: rulesHash1 } = preview1.body;
 
       await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ scopeId, rulesHash: rulesHash1 });
 
@@ -784,7 +853,11 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
       const applyRes = await request(server)
         .post(`/projects/${projectId}/automation-playbooks/apply`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ playbookId: 'missing_seo_title', scopeId, rulesHash: wrongRulesHash });
+        .send({
+          playbookId: 'missing_seo_title',
+          scopeId,
+          rulesHash: wrongRulesHash,
+        });
 
       // Should get a single 409, not partial apply
       expect(applyRes.status).toBe(409);
@@ -797,13 +870,13 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
     it('Apply with valid draft does not call AI', async () => {
       const { token, userId } = await signupAndLogin(
         jwtSecret,
-        'valid-draft-no-ai@example.com',
+        'valid-draft-no-ai@example.com'
       );
       const projectId = await createProject(
         server,
         token,
         'Valid Draft No AI Project',
-        'valid-draft-no-ai.com',
+        'valid-draft-no-ai.com'
       );
 
       await testPrisma.subscription.upsert({
@@ -837,14 +910,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
 
       // Create preview + full draft
       const previewRes = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'Shop | ' }, sampleSize: 1 });
       expect(previewRes.status).toBe(201);
       const { scopeId, rulesHash } = previewRes.body;
 
       await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ scopeId, rulesHash });
 
@@ -864,13 +941,13 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
     it('Resume path (apply later) does not call AI', async () => {
       const { token, userId } = await signupAndLogin(
         jwtSecret,
-        'resume-no-ai@example.com',
+        'resume-no-ai@example.com'
       );
       const projectId = await createProject(
         server,
         token,
         'Resume No AI Project',
-        'resume-no-ai.com',
+        'resume-no-ai.com'
       );
 
       await testPrisma.subscription.upsert({
@@ -904,14 +981,18 @@ describe('PB-RULES-1 – Draft + rulesHash Contract (integration)', () => {
 
       // Create preview + full draft
       const previewRes = await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/preview`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/preview`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ rules: { enabled: true, prefix: 'Buy | ' }, sampleSize: 1 });
       expect(previewRes.status).toBe(201);
       const { scopeId, rulesHash } = previewRes.body;
 
       await request(server)
-        .post(`/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`)
+        .post(
+          `/projects/${projectId}/automation-playbooks/missing_seo_title/draft/generate`
+        )
         .set('Authorization', `Bearer ${token}`)
         .send({ scopeId, rulesHash });
 

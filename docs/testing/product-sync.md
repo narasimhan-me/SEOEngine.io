@@ -48,14 +48,17 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - Shopify connected, no products synced yet
 
 **Steps:**
+
 1. Navigate to Products page
 2. Click "Sync Products"
 3. Wait for completion
 
 **Expected Results:**
+
 - **Progress:** Sync status shown
 - **Completion:** All products imported
 - **Database:** Product records created with Shopify IDs
@@ -68,15 +71,18 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Previous sync completed
 - New products added in Shopify
 
 **Steps:**
+
 1. Add products in Shopify admin
 2. Trigger sync in EngineO
 3. Verify new products appear
 
 **Expected Results:**
+
 - **New Products:** Created in EngineO
 - **Existing Products:** Unchanged
 - **Count:** Matches Shopify total
@@ -88,15 +94,18 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Products previously synced
 - Products modified in Shopify
 
 **Steps:**
+
 1. Update product title/description in Shopify
 2. Trigger sync
 3. Verify updates reflected
 
 **Expected Results:**
+
 - **Updates:** Product data updated in EngineO
 - **Fields:** Title, description, images updated
 - **Timestamp:** lastSyncedAt updated
@@ -108,14 +117,17 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Mix of new, updated, unchanged products
 
 **Steps:**
+
 1. Make various changes in Shopify
 2. Trigger sync
 3. Review sync summary
 
 **Expected Results:**
+
 - **Summary:** "X created, Y updated, Z unchanged"
 - **Accuracy:** Numbers match actual changes
 
@@ -128,11 +140,13 @@
 **Description:** Products removed from Shopify.
 
 **Steps:**
+
 1. Delete product in Shopify
 2. Trigger sync
 3. Check EngineO products
 
 **Expected Behavior:**
+
 - Deleted products marked as archived/removed in EngineO
 - Or: Products remain but flagged as "not in Shopify"
 - Clear policy on retention
@@ -144,11 +158,13 @@
 **Description:** Sync performance with large product count.
 
 **Steps:**
+
 1. Store with 1000+ products
 2. Trigger full sync
 3. Monitor progress and completion
 
 **Expected Behavior:**
+
 - Pagination handled correctly
 - Progress updates shown
 - Completes within reasonable time
@@ -161,10 +177,12 @@
 **Description:** Shopify products with multiple variants.
 
 **Steps:**
+
 1. Sync products with variants
 2. Check variant handling
 
 **Expected Behavior:**
+
 - Variants stored/associated correctly
 - Parent product linked to variants
 - UI shows variant count if applicable
@@ -176,10 +194,12 @@
 **Description:** Products missing image data.
 
 **Steps:**
+
 1. Sync product without images
 2. Check product record
 
 **Expected Behavior:**
+
 - Product synced successfully
 - Image field null/empty
 - UI shows placeholder
@@ -191,10 +211,12 @@
 **Description:** Non-active products in Shopify.
 
 **Steps:**
+
 1. Store has draft and archived products
 2. Sync products
 
 **Expected Behavior:**
+
 - Draft/archived products synced (or filtered based on policy)
 - Status stored with product
 - Clear in UI which products are active
@@ -208,9 +230,11 @@
 **Scenario:** Too many requests to Shopify API.
 
 **Steps:**
+
 1. Trigger sync that hits rate limit
 
 **Expected Behavior:**
+
 - Rate limit detected
 - Automatic backoff and retry
 - Sync eventually completes
@@ -223,9 +247,11 @@
 **Scenario:** Access token invalid during sync.
 
 **Steps:**
+
 1. Revoke app access mid-sync
 
 **Expected Behavior:**
+
 - Auth error detected
 - Sync fails gracefully
 - User prompted to reconnect
@@ -238,9 +264,11 @@
 **Scenario:** Connection lost during sync.
 
 **Steps:**
+
 1. Simulate network failure during sync
 
 **Expected Behavior:**
+
 - Sync fails with clear error
 - Partial progress saved (if applicable)
 - Retry available
@@ -253,9 +281,11 @@
 **Scenario:** Product has unexpected/invalid data.
 
 **Steps:**
+
 1. Product with unusual characters or structure
 
 **Expected Behavior:**
+
 - Malformed product skipped or sanitized
 - Other products still sync
 - Warning logged
@@ -269,16 +299,18 @@
 
 **Scenario:** Plan-based limits on synced products.
 
-| Plan | Max Products |
-|------|--------------|
-| Free | 100 |
-| Pro | 1000 |
-| Business | 10000 |
+| Plan     | Max Products |
+| -------- | ------------ |
+| Free     | 100          |
+| Pro      | 1000         |
+| Business | 10000        |
 
 **Steps:**
+
 1. Attempt sync exceeding limit
 
 **Expected Behavior:**
+
 - Sync stops at limit
 - User informed of limit
 - Upgrade prompt shown
@@ -290,10 +322,12 @@
 **Scenario:** Minimum time between syncs.
 
 **Steps:**
+
 1. Complete sync
 2. Immediately try again
 
 **Expected Behavior:**
+
 - Rate limit or cooldown enforced
 - User informed when next sync available
 
@@ -348,9 +382,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Cross-cutting system-level tests for product sync |
+| Field              | Value                                             |
+| ------------------ | ------------------------------------------------- |
+| **Tester Name**    | [Pending]                                         |
+| **Date**           | [YYYY-MM-DD]                                      |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed             |
+| **Notes**          | Cross-cutting system-level tests for product sync |

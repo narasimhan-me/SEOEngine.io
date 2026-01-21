@@ -57,16 +57,19 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - Project is connected to the Shopify dev store.
 - Products exist in Shopify and have not yet been fully synced into EngineO.ai.
 
 **Steps:**
+
 1. In EngineO.ai, go to **Admin → Products** (or the main Products list for the connected project).
 2. Trigger **Sync Products** (using the existing sync control/button).
 3. Open the browser dev tools Network tab and filter for `graphql.json`.
 4. Observe the backend logs for Shopify calls during the sync.
 
 **Expected Results:**
+
 - **UI:**
   - Product list populates with Shopify products without errors.
   - Titles, descriptions, handles, SEO columns (where present), images, and variants appear as expected.
@@ -85,9 +88,11 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - At least one product is synced and visible in the Product Workspace.
 
 **Steps:**
+
 1. Open a specific product in the **Product Workspace**.
 2. Modify the SEO Title and/or SEO Description fields.
 3. Click **Apply to Shopify** (or the existing “Push/Apply to Shopify” action).
@@ -95,6 +100,7 @@
 5. After success, open the same product in **Shopify Admin → Products → Search engine listing**.
 
 **Expected Results:**
+
 - **UI:**
   - A success toast/notification indicates the SEO fields were applied.
   - No REST-related errors surface in the UI.
@@ -114,9 +120,11 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Products have been synced via Scenario HP-001.
 
 **Steps:**
+
 1. In EngineO.ai, open one of the synced products in the Products list or Product Workspace.
 2. Note the following fields:
    - Title
@@ -131,6 +139,7 @@
 4. Compare each field between EngineO.ai and Shopify Admin.
 
 **Expected Results:**
+
 - **UI:**
   - All listed fields appear populated for products that have those fields in Shopify.
   - No unexpected `null`/blank fields where Shopify has data.
@@ -147,11 +156,13 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - AEO-2 (Shopify Metafields Sync for Answer Blocks) is enabled in the environment.
 - The project-level flag `aeoSyncToShopifyMetafields` is **enabled** for the test project.
 - At least one product has persisted Answer Blocks.
 
 **Steps:**
+
 1. For a product with Answer Blocks, navigate to **Product Workspace → Answers (AEO)**.
 2. Ensure Answer Blocks exist (generate them via automation if necessary).
 3. Trigger whatever action (automation or manual sync) is used to sync Answer Blocks to Shopify metafields.
@@ -160,6 +171,7 @@
 6. Open the product in **Shopify Admin → Products → Metafields**.
 
 **Expected Results:**
+
 - **UI:**
   - No UI errors when syncing Answer Blocks.
 - **API:**
@@ -185,12 +197,14 @@
 **Description:** Validate cursor-based pagination and basic rate-limit friendliness when syncing more than 50 products.
 
 **Steps:**
+
 1. Use a Shopify dev store (or fixture) with **50+ products** (ideally 80–120).
 2. Trigger a full product sync from EngineO.ai.
 3. In the Network tab, observe multiple GraphQL product queries with `first` and `after` variables.
 4. Check the EngineO.ai Products list and/or DB product count after sync completes.
 
 **Expected Behavior:**
+
 - Multiple paginated GraphQL calls are issued (`pageInfo.hasNextPage` respected).
 - The final product count in EngineO.ai matches the count in Shopify (within reasonable expectations for test data).
 - No GraphQL rate-limit errors are surfaced to the user.
@@ -202,6 +216,7 @@
 **Description:** Ensure products with sparse data (e.g., missing descriptions or images) do not break GraphQL mapping.
 
 **Steps:**
+
 1. In Shopify, create or identify products with:
    - No description.
    - No images.
@@ -210,6 +225,7 @@
 3. Inspect these products in EngineO.ai.
 
 **Expected Behavior:**
+
 - Products still appear in the list/workspace.
 - Missing fields show as empty or placeholder (not errors).
 - No runtime errors in logs due to null/undefined fields from GraphQL.
@@ -223,10 +239,12 @@
 **Scenario:** GraphQL calls hit temporary rate limits or network errors during product sync.
 
 **Steps:**
+
 1. Rapidly trigger product sync multiple times (or use a store with many products).
 2. Optionally simulate network delay/failure via dev tools or test configuration.
 
 **Expected Behavior:**
+
 - **UI:** Displays a clear, user-friendly error or retry message if sync fails; no raw GraphQL error dumps.
 - **API:** Built-in throttling (~2 requests/sec) minimizes rate-limit responses; any `429`/transport errors are caught and handled gracefully.
 - **Logs:** Errors are logged with enough detail (status codes, operation names) to debug without exposing sensitive data.
@@ -238,6 +256,7 @@
 **Scenario:** Submitting invalid SEO content (e.g., empty or excessively long) triggers Shopify GraphQL `userErrors`.
 
 **Steps:**
+
 1. Open a product in Product Workspace.
 2. Set SEO Title/Description to:
    - Empty or whitespace-only values.
@@ -245,6 +264,7 @@
 3. Click **Apply to Shopify**.
 
 **Expected Behavior:**
+
 - **UI:** Shows a clear validation or error message that indicates Shopify rejected the update (not just a generic failure).
 - **API:** `productUpdate` response contains `userErrors` entries; EngineO.ai surfaces these in logs and/or error payloads.
 - **Logs:** Log entries capture the `userErrors` fields (message, field) without logging sensitive content.
@@ -256,10 +276,12 @@
 **Scenario:** The stored Shopify access token is invalidated, causing GraphQL authentication failures.
 
 **Steps:**
+
 1. In a non-production environment, temporarily corrupt or revoke the stored access token for the project (e.g., set to an invalid value).
 2. Attempt a product sync and/or SEO update.
 
 **Expected Behavior:**
+
 - **UI:** Shows a clear error indicating Shopify authentication failed and prompts reconnection.
 - **API:** GraphQL calls return appropriate auth errors; no REST fallback is attempted.
 - **Logs:** Logs clearly indicate authentication failure and include guidance such as “Reconnect Shopify” or similar.
@@ -273,10 +295,12 @@
 **Scenario:** System approaches Shopify Admin GraphQL rate limits during heavy product sync usage.
 
 **Steps:**
+
 1. On a store with many products, repeatedly trigger syncs (or simulate via test harness).
 2. Monitor GraphQL call volume and any rate-limit responses.
 
 **Expected Behavior:**
+
 - Built-in throttling (minimum interval between requests) keeps the app within Shopify’s safe limits.
 - If limits are hit, calls back off and surface controlled errors rather than cascading failures.
 
@@ -287,10 +311,12 @@
 **Scenario:** Plans that restrict product count or AEO features should not break GraphQL transport.
 
 **Steps:**
+
 1. Using a lower-tier plan (e.g., Free), sync products and open Product Workspace.
 2. Ensure plan limits are enforced at the business logic layer, not by breaking GraphQL calls.
 
 **Expected Behavior:**
+
 - GraphQL sync still functions; limits are applied in EngineO.ai (e.g., only a subset of products/operations available).
 - No GraphQL-specific errors due to entitlements.
 
@@ -347,9 +373,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** |  |
-| **Date** |  |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    |                                       |
+| **Date**           |                                       |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** |  |
+| **Notes**          |                                       |

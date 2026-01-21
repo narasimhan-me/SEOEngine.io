@@ -14,16 +14,18 @@
 
 import { test, expect } from '@playwright/test';
 
-const API_BASE_URL =
-  process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
 
 /**
  * Seed user and project for authenticated tests.
  */
 async function seedTestProject(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-first-deo-win`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   return {
@@ -36,7 +38,9 @@ async function seedTestProject(request: any) {
 
 // Marketing page tests (unauthenticated)
 test.describe('NAV-IA-CONSISTENCY-1: Marketing', () => {
-  test('navbar contains "Sign in" and "Start free", does NOT contain "Log in"', async ({ page }) => {
+  test('navbar contains "Sign in" and "Start free", does NOT contain "Log in"', async ({
+    page,
+  }) => {
     await page.goto('/');
 
     const header = page.locator('header');
@@ -45,14 +49,18 @@ test.describe('NAV-IA-CONSISTENCY-1: Marketing', () => {
     await expect(header.getByRole('link', { name: 'Sign in' })).toBeVisible();
 
     // Should contain "Start free" button/link
-    await expect(header.getByRole('link', { name: 'Start free' })).toBeVisible();
+    await expect(
+      header.getByRole('link', { name: 'Start free' })
+    ).toBeVisible();
 
     // Should NOT contain "Log in" text
     const logInLink = header.getByRole('link', { name: 'Log in' });
     await expect(logInLink).not.toBeVisible();
   });
 
-  test('navbar uses token-based styling (no hardcoded bg-white)', async ({ page }) => {
+  test('navbar uses token-based styling (no hardcoded bg-white)', async ({
+    page,
+  }) => {
     await page.goto('/');
 
     const header = page.locator('header');
@@ -65,7 +73,10 @@ test.describe('NAV-IA-CONSISTENCY-1: Marketing', () => {
 
 // Portal tests (authenticated) - requires testkit seed flow
 test.describe('NAV-IA-CONSISTENCY-1: Portal (Authenticated)', () => {
-  test('top nav shows "Projects", does NOT show top-level "Settings"', async ({ page, request }) => {
+  test('top nav shows "Projects", does NOT show top-level "Settings"', async ({
+    page,
+    request,
+  }) => {
     const { accessToken } = await seedTestProject(request);
 
     await page.goto('/login');
@@ -102,7 +113,10 @@ test.describe('NAV-IA-CONSISTENCY-1: Portal (Authenticated)', () => {
     await expect(themeToggle).toBeVisible();
   });
 
-  test('account dropdown contains required labels', async ({ page, request }) => {
+  test('account dropdown contains required labels', async ({
+    page,
+    request,
+  }) => {
     const { accessToken } = await seedTestProject(request);
 
     await page.goto('/login');
@@ -131,7 +145,9 @@ test.describe('NAV-IA-CONSISTENCY-1: Portal (Authenticated)', () => {
 
     for (const label of requiredLabels) {
       if (label === 'Sign out') {
-        await expect(dropdown.getByRole('button', { name: label })).toBeVisible();
+        await expect(
+          dropdown.getByRole('button', { name: label })
+        ).toBeVisible();
       } else {
         await expect(dropdown.getByRole('link', { name: label })).toBeVisible();
       }
@@ -196,7 +212,10 @@ test.describe('NAV-IA-CONSISTENCY-1: Project Sidebar', () => {
     }
   });
 
-  test('forbidden labels not present: Overview, Automation, Settings (old)', async ({ page, request }) => {
+  test('forbidden labels not present: Overview, Automation, Settings (old)', async ({
+    page,
+    request,
+  }) => {
     const { accessToken, projectId } = await seedTestProject(request);
 
     await page.goto('/login');
@@ -209,7 +228,13 @@ test.describe('NAV-IA-CONSISTENCY-1: Project Sidebar', () => {
     const sidenav = page.locator('[data-testid="project-sidenav"]');
     await expect(sidenav).toBeVisible();
 
-    const forbiddenLabels = ['Overview', 'Automation', 'DEO Overview', 'Content', 'Settings'];
+    const forbiddenLabels = [
+      'Overview',
+      'Automation',
+      'DEO Overview',
+      'Content',
+      'Settings',
+    ];
 
     for (const label of forbiddenLabels) {
       const link = sidenav.getByRole('link', { name: label, exact: true });

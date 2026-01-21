@@ -26,9 +26,15 @@ import { parseAssetRef } from '@engineo/shared';
  * [ASSETS-PAGES-1.1] Only two playbook IDs exist: missing_seo_title, missing_seo_description.
  * Asset type differentiation (PRODUCTS, PAGES, COLLECTIONS) is done via the assetType parameter.
  */
-export type AutomationPlaybookId = 'missing_seo_title' | 'missing_seo_description';
+export type AutomationPlaybookId =
+  | 'missing_seo_title'
+  | 'missing_seo_description';
 
-export type AutomationPlaybookDraftStatus = 'READY' | 'PARTIAL' | 'FAILED' | 'EXPIRED';
+export type AutomationPlaybookDraftStatus =
+  | 'READY'
+  | 'PARTIAL'
+  | 'FAILED'
+  | 'EXPIRED';
 
 export interface PlaybookDraftCounts {
   affectedTotal: number;
@@ -178,7 +184,7 @@ export class AutomationPlaybooksService {
     private readonly tokenUsageService: TokenUsageService,
     private readonly aiService: AiService,
     private readonly aiUsageQuotaService: AiUsageQuotaService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   /**
@@ -202,7 +208,10 @@ export class AutomationPlaybooksService {
    * Extract handle from URL path for pages and collections.
    * e.g., /pages/about-us -> about-us, /collections/summer-sale -> summer-sale
    */
-  private extractHandleFromUrl(url: string, assetType: 'PAGES' | 'COLLECTIONS'): string | null {
+  private extractHandleFromUrl(
+    url: string,
+    assetType: 'PAGES' | 'COLLECTIONS'
+  ): string | null {
     try {
       const urlObj = new URL(url);
       const path = urlObj.pathname.toLowerCase();
@@ -224,8 +233,16 @@ export class AutomationPlaybooksService {
   private async resolveAssetRefs(
     projectId: string,
     assetType: 'PAGES' | 'COLLECTIONS',
-    scopeAssetRefs?: AssetRef[] | null,
-  ): Promise<Array<{ id: string; url: string; handle: string; title: string | null; metaDescription: string | null }>> {
+    scopeAssetRefs?: AssetRef[] | null
+  ): Promise<
+    Array<{
+      id: string;
+      url: string;
+      handle: string;
+      title: string | null;
+      metaDescription: string | null;
+    }>
+  > {
     // Get all crawl results for the project
     const crawlResults = await this.prisma.crawlResult.findMany({
       where: { projectId },
@@ -273,9 +290,21 @@ export class AutomationPlaybooksService {
     projectId: string,
     playbookId: AutomationPlaybookId,
     assetType: 'PAGES' | 'COLLECTIONS',
-    scopeAssetRefs?: AssetRef[] | null,
-  ): Promise<Array<{ id: string; url: string; handle: string; title: string | null; metaDescription: string | null }>> {
-    const allAssets = await this.resolveAssetRefs(projectId, assetType, scopeAssetRefs);
+    scopeAssetRefs?: AssetRef[] | null
+  ): Promise<
+    Array<{
+      id: string;
+      url: string;
+      handle: string;
+      title: string | null;
+      metaDescription: string | null;
+    }>
+  > {
+    const allAssets = await this.resolveAssetRefs(
+      projectId,
+      assetType,
+      scopeAssetRefs
+    );
 
     // Filter to assets needing fixes based on canonical playbook ID
     const needsTitle = playbookId === 'missing_seo_title';
@@ -300,7 +329,7 @@ export class AutomationPlaybooksService {
     projectId: string,
     playbookId: AutomationPlaybookId,
     assetType: 'PAGES' | 'COLLECTIONS',
-    handles: string[],
+    handles: string[]
   ): string {
     const sorted = [...handles].sort();
     const payload = `${projectId}:${playbookId}:${assetType}:${sorted.join(',')}`;
@@ -313,7 +342,7 @@ export class AutomationPlaybooksService {
 
   private getPlaybookWhere(
     projectId: string,
-    playbookId: AutomationPlaybookId,
+    playbookId: AutomationPlaybookId
   ) {
     if (playbookId === 'missing_seo_title') {
       return {
@@ -330,7 +359,7 @@ export class AutomationPlaybooksService {
   private async resolveAffectedProductIds(
     projectId: string,
     playbookId: AutomationPlaybookId,
-    scopeProductIds?: string[] | null,
+    scopeProductIds?: string[] | null
   ): Promise<string[]> {
     if (!scopeProductIds || scopeProductIds.length === 0) {
       return this.getAffectedProductIds(projectId, playbookId);
@@ -347,7 +376,7 @@ export class AutomationPlaybooksService {
     });
     if (ownedCount !== uniqueScopeIds.length) {
       throw new BadRequestException(
-        'One or more scopeProductIds are invalid for this project',
+        'One or more scopeProductIds are invalid for this project'
       );
     }
     const where =
@@ -378,7 +407,7 @@ export class AutomationPlaybooksService {
   private computeScopeId(
     projectId: string,
     playbookId: AutomationPlaybookId,
-    productIds: string[],
+    productIds: string[]
   ): string {
     const sorted = [...productIds].sort();
     const payload = `${projectId}:${playbookId}:${sorted.join(',')}`;
@@ -390,7 +419,7 @@ export class AutomationPlaybooksService {
    */
   private async getAffectedProductIds(
     projectId: string,
-    playbookId: AutomationPlaybookId,
+    playbookId: AutomationPlaybookId
   ): Promise<string[]> {
     const where = this.getPlaybookWhere(projectId, playbookId);
     const products = await this.prisma.product.findMany({
@@ -409,10 +438,13 @@ export class AutomationPlaybooksService {
       if (obj && typeof obj === 'object') {
         return Object.keys(obj)
           .sort()
-          .reduce((acc, key) => {
-            acc[key] = sortKeys(obj[key]);
-            return acc;
-          }, {} as Record<string, unknown>);
+          .reduce(
+            (acc, key) => {
+              acc[key] = sortKeys(obj[key]);
+              return acc;
+            },
+            {} as Record<string, unknown>
+          );
       }
       return obj;
     };
@@ -465,7 +497,7 @@ export class AutomationPlaybooksService {
     field: 'seoTitle' | 'seoDescription',
     value: string,
     rules: PlaybookRulesV1 | undefined,
-    ruleWarnings: string[],
+    ruleWarnings: string[]
   ): string {
     if (!rules || !rules.enabled) {
       return value || '';
@@ -504,7 +536,7 @@ export class AutomationPlaybooksService {
     if (normalized.forbiddenPhrases && normalized.forbiddenPhrases.length > 0) {
       const lower = text.toLowerCase();
       const hit = normalized.forbiddenPhrases.some((phrase) =>
-        lower.includes(phrase.toLowerCase()),
+        lower.includes(phrase.toLowerCase())
       );
       if (hit) {
         ruleWarnings.push('forbidden_phrase_detected');
@@ -520,18 +552,19 @@ export class AutomationPlaybooksService {
     playbookId: AutomationPlaybookId,
     rules?: PlaybookRulesV1,
     sampleSize = 3,
-    scopeProductIds?: string[] | null,
+    scopeProductIds?: string[] | null
   ): Promise<PlaybookPreviewResponse> {
     // [ROLES-3] Only OWNER/EDITOR can generate drafts (VIEWER blocked)
     await this.roleResolution.assertCanGenerateDrafts(projectId, userId);
 
     // AI-USAGE v2: Plan-aware quota enforcement for preview generation.
     // This check must run before any AI work is performed.
-    const quotaEvaluation = await this.aiUsageQuotaService.evaluateQuotaForAction({
-      userId,
-      projectId,
-      action: 'PREVIEW_GENERATE',
-    });
+    const quotaEvaluation =
+      await this.aiUsageQuotaService.evaluateQuotaForAction({
+        userId,
+        projectId,
+        action: 'PREVIEW_GENERATE',
+      });
 
     if (
       quotaEvaluation.status === 'blocked' &&
@@ -549,16 +582,20 @@ export class AutomationPlaybooksService {
           allowed: quotaEvaluation.policy.monthlyAiRunsLimit,
           current: quotaEvaluation.currentMonthAiRuns,
         },
-        HttpStatus.TOO_MANY_REQUESTS,
+        HttpStatus.TOO_MANY_REQUESTS
       );
     }
 
     const affectedProductIds = await this.resolveAffectedProductIds(
       projectId,
       playbookId,
-      scopeProductIds,
+      scopeProductIds
     );
-    const scopeId = this.computeScopeId(projectId, playbookId, affectedProductIds);
+    const scopeId = this.computeScopeId(
+      projectId,
+      playbookId,
+      affectedProductIds
+    );
     const normalizedRules = this.normalizeRules(rules);
     const rulesHash = this.computeRulesHash(normalizedRules);
 
@@ -614,7 +651,7 @@ export class AutomationPlaybooksService {
         field,
         rawSuggestion,
         normalizedRules,
-        ruleWarnings,
+        ruleWarnings
       );
 
       if (!finalSuggestion || !finalSuggestion.trim()) {
@@ -733,7 +770,7 @@ export class AutomationPlaybooksService {
     playbookId: AutomationPlaybookId,
     scopeId: string,
     rulesHash: string,
-    scopeProductIds?: string[] | null,
+    scopeProductIds?: string[] | null
   ): Promise<{
     projectId: string;
     playbookId: AutomationPlaybookId;
@@ -750,11 +787,12 @@ export class AutomationPlaybooksService {
 
     // AI-USAGE v2: Plan-aware quota enforcement for full draft generation.
     // This check must run before any AI work is performed.
-    const quotaEvaluation = await this.aiUsageQuotaService.evaluateQuotaForAction({
-      userId,
-      projectId,
-      action: 'DRAFT_GENERATE',
-    });
+    const quotaEvaluation =
+      await this.aiUsageQuotaService.evaluateQuotaForAction({
+        userId,
+        projectId,
+        action: 'DRAFT_GENERATE',
+      });
 
     if (
       quotaEvaluation.status === 'blocked' &&
@@ -770,19 +808,19 @@ export class AutomationPlaybooksService {
           allowed: quotaEvaluation.policy.monthlyAiRunsLimit,
           current: quotaEvaluation.currentMonthAiRuns,
         },
-        HttpStatus.TOO_MANY_REQUESTS,
+        HttpStatus.TOO_MANY_REQUESTS
       );
     }
 
     const affectedProductIds = await this.resolveAffectedProductIds(
       projectId,
       playbookId,
-      scopeProductIds,
+      scopeProductIds
     );
     const currentScopeId = this.computeScopeId(
       projectId,
       playbookId,
-      affectedProductIds,
+      affectedProductIds
     );
 
     if (scopeId !== currentScopeId) {
@@ -828,12 +866,12 @@ export class AutomationPlaybooksService {
     }
 
     const normalizedRules = this.normalizeRules(
-      (latestDraft.rules as unknown as PlaybookRulesV1 | null) ?? undefined,
+      (latestDraft.rules as unknown as PlaybookRulesV1 | null) ?? undefined
     );
     const existingItems =
       (latestDraft.draftItems as unknown as PlaybookDraftItem[] | null) ?? [];
     const existingByProductId = new Map(
-      existingItems.map((item) => [item.productId, item]),
+      existingItems.map((item) => [item.productId, item])
     );
 
     const allItems: PlaybookDraftItem[] = [];
@@ -872,8 +910,7 @@ export class AutomationPlaybooksService {
       }
 
       const descriptionText =
-        (product.seoDescription ?? product.description ?? '')?.toString() ||
-        '';
+        (product.seoDescription ?? product.description ?? '')?.toString() || '';
       const metadata = await this.aiService.generateMetadata({
         url: product.externalId ?? product.id,
         currentTitle: (product.seoTitle ?? product.title ?? '').toString(),
@@ -900,7 +937,7 @@ export class AutomationPlaybooksService {
         field,
         rawSuggestion,
         normalizedRules,
-        ruleWarnings,
+        ruleWarnings
       );
 
       if (!finalSuggestion || !finalSuggestion.trim()) {
@@ -933,13 +970,12 @@ export class AutomationPlaybooksService {
       },
     });
 
-    const tokensEstimated =
-      draftGenerated * ESTIMATED_METADATA_TOKENS_PER_CALL;
+    const tokensEstimated = draftGenerated * ESTIMATED_METADATA_TOKENS_PER_CALL;
     if (tokensEstimated > 0) {
       await this.tokenUsageService.log(
         userId,
         tokensEstimated,
-        `automation_playbook:${playbookId}:draft_generate`,
+        `automation_playbook:${playbookId}:draft_generate`
       );
     }
 
@@ -969,7 +1005,7 @@ export class AutomationPlaybooksService {
   async getLatestDraft(
     userId: string,
     projectId: string,
-    playbookId: AutomationPlaybookId,
+    playbookId: AutomationPlaybookId
   ): Promise<{
     projectId: string;
     playbookId: AutomationPlaybookId;
@@ -1006,9 +1042,11 @@ export class AutomationPlaybooksService {
       status: draft.status as AutomationPlaybookDraftStatus,
       counts: (draft.counts as unknown as PlaybookDraftCounts | null) ?? null,
       sampleProductIds:
-        (draft.sampleProductIds as unknown as string[] | null) ?? ([] as string[]),
+        (draft.sampleProductIds as unknown as string[] | null) ??
+        ([] as string[]),
       draftItems:
-        (draft.draftItems as unknown as PlaybookDraftItem[] | null) ?? ([] as PlaybookDraftItem[]),
+        (draft.draftItems as unknown as PlaybookDraftItem[] | null) ??
+        ([] as PlaybookDraftItem[]),
       rules: (draft.rules as unknown as Record<string, unknown> | null) ?? null,
     };
   }
@@ -1025,7 +1063,7 @@ export class AutomationPlaybooksService {
     playbookId: AutomationPlaybookId,
     scopeProductIds?: string[] | null,
     assetType?: AutomationAssetType,
-    scopeAssetRefs?: AssetRef[] | null,
+    scopeAssetRefs?: AssetRef[] | null
   ): Promise<PlaybookEstimate> {
     // [ROLES-3] Any ProjectMember can view estimates
     await this.roleResolution.assertProjectAccess(projectId, userId);
@@ -1040,7 +1078,7 @@ export class AutomationPlaybooksService {
       const affectedProductIds = await this.resolveAffectedProductIds(
         projectId,
         playbookId,
-        scopeProductIds,
+        scopeProductIds
       );
       totalAffectedProducts = affectedProductIds.length;
       scopeId = this.computeScopeId(projectId, playbookId, affectedProductIds);
@@ -1050,11 +1088,16 @@ export class AutomationPlaybooksService {
         projectId,
         playbookId,
         effectiveAssetType,
-        scopeAssetRefs,
+        scopeAssetRefs
       );
       totalAffectedProducts = affectedAssets.length;
       const handles = affectedAssets.map((a) => a.handle);
-      scopeId = this.computeAssetScopeId(projectId, playbookId, effectiveAssetType, handles);
+      scopeId = this.computeAssetScopeId(
+        projectId,
+        playbookId,
+        effectiveAssetType,
+        handles
+      );
     }
 
     let rulesHash = this.computeRulesHash(null);
@@ -1080,7 +1123,9 @@ export class AutomationPlaybooksService {
       } else {
         draftStatus = latestDraft.status as AutomationPlaybookDraftStatus;
       }
-      draftCounts = (latestDraft.counts as unknown as PlaybookDraftCounts | null) ?? undefined;
+      draftCounts =
+        (latestDraft.counts as unknown as PlaybookDraftCounts | null) ??
+        undefined;
     }
 
     const { planId, limit } =
@@ -1088,7 +1133,7 @@ export class AutomationPlaybooksService {
     const dailyUsed = await this.entitlementsService.getDailyAiUsage(
       userId,
       projectId,
-      'product_optimize',
+      'product_optimize'
     );
     const remainingSuggestions =
       limit === -1 ? Number.MAX_SAFE_INTEGER : Math.max(limit - dailyUsed, 0);
@@ -1110,14 +1155,12 @@ export class AutomationPlaybooksService {
       reasons.push('no_affected_products');
     }
 
-    const dailyLimitBlocking =
-      limit !== -1 && remainingSuggestions <= 0;
+    const dailyLimitBlocking = limit !== -1 && remainingSuggestions <= 0;
     if (dailyLimitBlocking) {
       reasons.push('ai_daily_limit_reached');
     }
 
-    const tokenCapBlocking =
-      limit !== -1 && estimatedTokens > tokenCapacity;
+    const tokenCapBlocking = limit !== -1 && estimatedTokens > tokenCapacity;
     if (tokenCapBlocking) {
       reasons.push('token_cap_would_be_exceeded');
     }
@@ -1157,7 +1200,7 @@ export class AutomationPlaybooksService {
     playbookId: AutomationPlaybookId,
     scopeId: string,
     rulesHash: string,
-    scopeProductIds?: string[] | null,
+    scopeProductIds?: string[] | null
   ): Promise<PlaybookApplyResult> {
     // [ROLES-3] Only OWNER can apply playbooks
     await this.roleResolution.assertOwnerRole(projectId, userId);
@@ -1178,12 +1221,12 @@ export class AutomationPlaybooksService {
     const affectedProductIds = await this.resolveAffectedProductIds(
       projectId,
       playbookId,
-      scopeProductIds,
+      scopeProductIds
     );
     const currentScopeId = this.computeScopeId(
       projectId,
       playbookId,
-      affectedProductIds,
+      affectedProductIds
     );
 
     if (scopeId !== currentScopeId) {
@@ -1282,7 +1325,7 @@ export class AutomationPlaybooksService {
     const draftItems =
       (latestDraft.draftItems as unknown as PlaybookDraftItem[] | null) ?? [];
     const draftByProductId = new Map(
-      draftItems.map((item) => [item.productId, item]),
+      draftItems.map((item) => [item.productId, item])
     );
 
     const results: PlaybookApplyItemResult[] = [];
@@ -1302,7 +1345,11 @@ export class AutomationPlaybooksService {
 
     for (const productId of affectedProductIds) {
       const draftItem = draftByProductId.get(productId);
-      if (!draftItem || !draftItem.finalSuggestion || !draftItem.finalSuggestion.trim()) {
+      if (
+        !draftItem ||
+        !draftItem.finalSuggestion ||
+        !draftItem.finalSuggestion.trim()
+      ) {
         skippedCount += 1;
         results.push({
           productId,
@@ -1363,7 +1410,7 @@ export class AutomationPlaybooksService {
       await this.tokenUsageService.log(
         project.userId,
         tokensUsed,
-        `automation_playbook:${playbookId}`,
+        `automation_playbook:${playbookId}`
       );
     }
 
@@ -1427,7 +1474,7 @@ export class AutomationPlaybooksService {
     userId: string,
     projectId: string,
     assetType: 'products' | 'pages' | 'collections',
-    assetId: string,
+    assetId: string
   ): Promise<{
     projectId: string;
     assetType: string;
@@ -1454,10 +1501,7 @@ export class AutomationPlaybooksService {
         projectId,
         status: { in: ['READY', 'PARTIAL'] },
         appliedAt: null,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: now } },
-        ],
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
       },
       orderBy: { updatedAt: 'desc' },
     });
@@ -1475,8 +1519,10 @@ export class AutomationPlaybooksService {
     }> = [];
 
     for (const draft of pendingDrafts) {
-      const draftItems = (draft.draftItems as unknown as PlaybookDraftItem[] | null) ?? [];
-      const sampleProductIds = (draft.sampleProductIds as unknown as string[] | null) ?? [];
+      const draftItems =
+        (draft.draftItems as unknown as PlaybookDraftItem[] | null) ?? [];
+      const sampleProductIds =
+        (draft.sampleProductIds as unknown as string[] | null) ?? [];
 
       // [DRAFT-ENTRYPOINT-UNIFICATION-1] Track original itemIndex for edit mapping
       let filteredItems: (PlaybookDraftItem & { itemIndex: number })[] = [];
@@ -1548,7 +1594,7 @@ export class AutomationPlaybooksService {
     projectId: string,
     draftId: string,
     itemIndex: number,
-    value: string,
+    value: string
   ): Promise<{
     draftId: string;
     itemIndex: number;
@@ -1600,7 +1646,8 @@ export class AutomationPlaybooksService {
     }
 
     // Get the draft items array
-    const draftItems = (draft.draftItems as unknown as PlaybookDraftItem[] | null) ?? [];
+    const draftItems =
+      (draft.draftItems as unknown as PlaybookDraftItem[] | null) ?? [];
 
     // Validate item index
     if (itemIndex < 0 || itemIndex >= draftItems.length) {
@@ -1657,7 +1704,7 @@ export class AutomationPlaybooksService {
       rulesHash: string;
       scopeProductIds?: string[] | null;
       intent?: string;
-    },
+    }
   ): Promise<{
     projectId: string;
     playbookId: AutomationPlaybookId;
@@ -1692,7 +1739,8 @@ export class AutomationPlaybooksService {
     }
 
     const updatedAt = new Date().toISOString();
-    const currentRules = (draft.rules as unknown as Record<string, unknown> | null) ?? {};
+    const currentRules =
+      (draft.rules as unknown as Record<string, unknown> | null) ?? {};
     const nextRules = {
       ...currentRules,
       __automationEntryConfig: {

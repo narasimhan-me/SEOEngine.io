@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const API_BASE_URL =
-  process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
 
 /**
  * [SELF-SERVICE-1] Playwright E2E Tests
@@ -22,25 +21,34 @@ interface SeedResponse {
 }
 
 async function seedSelfServiceOwner(request: any): Promise<SeedResponse> {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-self-service-user`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-self-service-user`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   return res.json();
 }
 
 async function seedSelfServiceEditor(request: any): Promise<SeedResponse> {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-self-service-editor`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-self-service-editor`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   return res.json();
 }
 
 async function seedSelfServiceViewer(request: any): Promise<SeedResponse> {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-self-service-viewer`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-self-service-viewer`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   return res.json();
 }
@@ -53,7 +61,10 @@ async function loginWithToken(page: any, accessToken: string) {
 }
 
 test.describe('SELF-SERVICE-1 – Profile Management (D1)', () => {
-  test('Profile page loads and displays user data', async ({ page, request }) => {
+  test('Profile page loads and displays user data', async ({
+    page,
+    request,
+  }) => {
     const { accessToken } = await seedSelfServiceOwner(request);
     await loginWithToken(page, accessToken);
 
@@ -106,7 +117,7 @@ test.describe('SELF-SERVICE-1 – Organization / Stores (D2)', () => {
 
     // Page title
     await expect(
-      page.getByRole('heading', { name: /Organization \/ Stores/i }),
+      page.getByRole('heading', { name: /Organization \/ Stores/i })
     ).toBeVisible();
 
     // Organization name input should be enabled for OWNER
@@ -115,11 +126,14 @@ test.describe('SELF-SERVICE-1 – Organization / Stores (D2)', () => {
 
     // Connected stores section
     await expect(
-      page.getByRole('heading', { name: /Connected Stores/i }),
+      page.getByRole('heading', { name: /Connected Stores/i })
     ).toBeVisible();
   });
 
-  test('Organization name can be updated by OWNER', async ({ page, request }) => {
+  test('Organization name can be updated by OWNER', async ({
+    page,
+    request,
+  }) => {
     const { accessToken } = await seedSelfServiceOwner(request);
     await loginWithToken(page, accessToken);
 
@@ -160,17 +174,17 @@ test.describe('SELF-SERVICE-1 – Plan & Billing (D3)', () => {
 
     // Page title
     await expect(
-      page.getByRole('heading', { name: /Plan & Billing/i }),
+      page.getByRole('heading', { name: /Plan & Billing/i })
     ).toBeVisible();
 
     // Stripe portal notice
     await expect(
-      page.getByText(/Billing is handled securely via Stripe portal/i),
+      page.getByText(/Billing is handled securely via Stripe portal/i)
     ).toBeVisible();
 
     // Current plan section
     await expect(
-      page.getByRole('heading', { name: /Current Plan/i }),
+      page.getByRole('heading', { name: /Current Plan/i })
     ).toBeVisible();
 
     // AI Usage section
@@ -207,7 +221,7 @@ test.describe('SELF-SERVICE-1 – Plan & Billing (D3)', () => {
 
     // Available plans section
     await expect(
-      page.getByRole('heading', { name: /Available Plans/i }),
+      page.getByRole('heading', { name: /Available Plans/i })
     ).toBeVisible();
 
     // Plan buttons should not show "Owner Only" for OWNER
@@ -222,7 +236,7 @@ test.describe('SELF-SERVICE-1 – Plan & Billing (D3)', () => {
 
     // Read-only notice should be visible
     await expect(
-      page.getByText(/Only account owners can manage billing/i),
+      page.getByText(/Only account owners can manage billing/i)
     ).toBeVisible();
 
     // Plan buttons should show "Owner Only"
@@ -237,7 +251,7 @@ test.describe('SELF-SERVICE-1 – Plan & Billing (D3)', () => {
 
     // Read-only notice
     await expect(
-      page.getByText(/Only account owners can manage billing/i),
+      page.getByText(/Only account owners can manage billing/i)
     ).toBeVisible();
   });
 });
@@ -251,13 +265,11 @@ test.describe('SELF-SERVICE-1 – AI Usage (D4)', () => {
 
     // Page title
     await expect(
-      page.getByRole('heading', { name: /AI Usage/i }),
+      page.getByRole('heading', { name: /AI Usage/i })
     ).toBeVisible();
 
     // APPLY invariant message
-    await expect(
-      page.getByText(/APPLY never uses AI/i),
-    ).toBeVisible();
+    await expect(page.getByText(/APPLY never uses AI/i)).toBeVisible();
 
     // Usage summary section
     await expect(page.getByText(/This Month's Usage/i)).toBeVisible();
@@ -289,7 +301,7 @@ test.describe('SELF-SERVICE-1 – Preferences (D5)', () => {
 
     // Page title
     await expect(
-      page.getByRole('heading', { name: /Preferences/i }),
+      page.getByRole('heading', { name: /Preferences/i })
     ).toBeVisible();
 
     // Notification toggles
@@ -305,13 +317,17 @@ test.describe('SELF-SERVICE-1 – Preferences (D5)', () => {
     await page.goto('/settings/preferences');
 
     // Toggle a preference
-    await page.getByRole('checkbox', { name: /Quota Warning Notifications/i }).click();
+    await page
+      .getByRole('checkbox', { name: /Quota Warning Notifications/i })
+      .click();
 
     // Save
     await page.getByRole('button', { name: /Save Preferences/i }).click();
 
     // Success message
-    await expect(page.getByText(/Preferences saved successfully/i)).toBeVisible();
+    await expect(
+      page.getByText(/Preferences saved successfully/i)
+    ).toBeVisible();
   });
 
   test('VIEWER cannot modify preferences', async ({ page, request }) => {
@@ -330,7 +346,10 @@ test.describe('SELF-SERVICE-1 – Preferences (D5)', () => {
 });
 
 test.describe('SELF-SERVICE-1 – Security (D6)', () => {
-  test('Security page loads with sessions section', async ({ page, request }) => {
+  test('Security page loads with sessions section', async ({
+    page,
+    request,
+  }) => {
     const { accessToken } = await seedSelfServiceOwner(request);
     await loginWithToken(page, accessToken);
 
@@ -338,7 +357,7 @@ test.describe('SELF-SERVICE-1 – Security (D6)', () => {
 
     // Page title
     await expect(
-      page.getByRole('heading', { name: /Security/i }),
+      page.getByRole('heading', { name: /Security/i })
     ).toBeVisible();
 
     // Sessions section
@@ -346,7 +365,7 @@ test.describe('SELF-SERVICE-1 – Security (D6)', () => {
 
     // Sign out all button
     await expect(
-      page.getByRole('button', { name: /Sign Out All Other Sessions/i }),
+      page.getByRole('button', { name: /Sign Out All Other Sessions/i })
     ).toBeVisible();
   });
 
@@ -357,11 +376,13 @@ test.describe('SELF-SERVICE-1 – Security (D6)', () => {
     await page.goto('/settings/security');
 
     // Click sign out all
-    await page.getByRole('button', { name: /Sign Out All Other Sessions/i }).click();
+    await page
+      .getByRole('button', { name: /Sign Out All Other Sessions/i })
+      .click();
 
     // Success message
     await expect(
-      page.getByText(/All other sessions have been signed out/i),
+      page.getByText(/All other sessions have been signed out/i)
     ).toBeVisible();
   });
 });
@@ -375,7 +396,7 @@ test.describe('SELF-SERVICE-1 – Help & Support (D7)', () => {
 
     // Page title
     await expect(
-      page.getByRole('heading', { name: /Help & Support/i }),
+      page.getByRole('heading', { name: /Help & Support/i })
     ).toBeVisible();
 
     // Help sections
@@ -401,16 +422,18 @@ test.describe('SELF-SERVICE-1 – Account Menu Navigation', () => {
     // All menu items should be visible
     await expect(page.getByRole('link', { name: /Profile/i })).toBeVisible();
     await expect(
-      page.getByRole('link', { name: /Organization \/ Stores/i }),
+      page.getByRole('link', { name: /Organization \/ Stores/i })
     ).toBeVisible();
     await expect(
-      page.getByRole('link', { name: /Plan & Billing/i }),
+      page.getByRole('link', { name: /Plan & Billing/i })
     ).toBeVisible();
     await expect(page.getByRole('link', { name: /AI Usage/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /Preferences/i })).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: /Preferences/i })
+    ).toBeVisible();
     await expect(page.getByRole('link', { name: /Security/i })).toBeVisible();
     await expect(
-      page.getByRole('link', { name: /Help & Support/i }),
+      page.getByRole('link', { name: /Help & Support/i })
     ).toBeVisible();
     await expect(page.getByText(/Sign out/i)).toBeVisible();
   });
@@ -440,7 +463,7 @@ test.describe('SELF-SERVICE-1 – Settings Hub Navigation', () => {
 
     // Page title
     await expect(
-      page.getByRole('heading', { name: /Settings/i }),
+      page.getByRole('heading', { name: /Settings/i })
     ).toBeVisible();
 
     // All settings cards

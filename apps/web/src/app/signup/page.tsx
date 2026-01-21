@@ -8,7 +8,13 @@ import { setToken } from '@/lib/auth';
 import { Captcha } from '@/components/common/Captcha';
 
 // Sensitive query params that should never appear in URLs
-const SENSITIVE_PARAMS = ['password', 'pass', 'pwd', 'confirmPassword', 'email'];
+const SENSITIVE_PARAMS = [
+  'password',
+  'pass',
+  'pwd',
+  'confirmPassword',
+  'email',
+];
 
 function SignupForm() {
   const router = useRouter();
@@ -30,13 +36,17 @@ function SignupForm() {
 
     if (hasSensitiveParams) {
       router.replace('/signup?sanitized=1');
-      setSecurityMessage('For security, we removed sensitive parameters from the URL. Please enter your information.');
+      setSecurityMessage(
+        'For security, we removed sensitive parameters from the URL. Please enter your information.'
+      );
       return;
     }
 
     // Show message if redirected from middleware sanitization
     if (searchParams.get('sanitized') === '1') {
-      setSecurityMessage('For security, we removed sensitive parameters from the URL. Please enter your information.');
+      setSecurityMessage(
+        'For security, we removed sensitive parameters from the URL. Please enter your information.'
+      );
       // Clean up the sanitized flag from URL
       router.replace('/signup');
     }
@@ -65,14 +75,23 @@ function SignupForm() {
 
     try {
       // Sign up with CAPTCHA token
-      await authApi.signup({ email, password, name: name || undefined, captchaToken });
+      await authApi.signup({
+        email,
+        password,
+        name: name || undefined,
+        captchaToken,
+      });
 
       // Auto login after signup (no CAPTCHA needed for immediate login after signup)
       const loginResponse = await authApi.login({ email, password });
       setToken(loginResponse.accessToken);
       router.push('/projects');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Create account failed. Please try again.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Create account failed. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -120,7 +139,10 @@ function SignupForm() {
 
           <div className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Name (optional)
               </label>
               <input
@@ -136,7 +158,10 @@ function SignupForm() {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email address
               </label>
               <input
@@ -153,7 +178,10 @@ function SignupForm() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
               <input
@@ -170,7 +198,10 @@ function SignupForm() {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Confirm Password
               </label>
               <input
@@ -210,7 +241,10 @@ function SignupForm() {
         <div className="text-center mt-6 pt-6 border-t border-gray-100">
           <p className="text-sm text-gray-600">
             Already have an account?{' '}
-            <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link
+              href="/login"
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
               Sign in
             </Link>
           </p>
@@ -223,14 +257,16 @@ function SignupForm() {
 export default function SignupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Suspense fallback={
-        <div className="max-w-md w-full text-center">
-          <div className="animate-pulse">
-            <div className="h-10 bg-gray-200 rounded w-48 mx-auto mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded w-64 mx-auto"></div>
+      <Suspense
+        fallback={
+          <div className="max-w-md w-full text-center">
+            <div className="animate-pulse">
+              <div className="h-10 bg-gray-200 rounded w-48 mx-auto mb-4"></div>
+              <div className="h-4 bg-gray-200 rounded w-64 mx-auto"></div>
+            </div>
           </div>
-        </div>
-      }>
+        }
+      >
         <SignupForm />
       </Suspense>
     </div>

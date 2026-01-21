@@ -76,10 +76,12 @@ interface SeedResponse {
 /**
  * Seed test data via E2E testkit endpoint
  */
-async function seedListActionsClarity1Data(request: any): Promise<SeedResponse> {
+async function seedListActionsClarity1Data(
+  request: any
+): Promise<SeedResponse> {
   const response = await request.post(
     `${API_BASE_URL}/testkit/e2e/seed-list-actions-clarity-1`,
-    { data: {} },
+    { data: {} }
   );
   expect(response.ok()).toBeTruthy();
   return response.json();
@@ -90,7 +92,9 @@ async function seedListActionsClarity1Data(request: any): Promise<SeedResponse> 
  */
 function getRowByTitle(page: any, title: string) {
   // Find the row that contains the title text
-  return page.locator(`tr:has-text("${title}"), div[class*="row"]:has-text("${title}")`).first();
+  return page
+    .locator(`tr:has-text("${title}"), div[class*="row"]:has-text("${title}")`)
+    .first();
 }
 
 test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
@@ -115,7 +119,9 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/products`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // [FIXUP-2] Row-scoped assertion for optimized product
     const optimizedRow = getRowByTitle(page, SEEDED_TITLES.products.optimized);
@@ -130,7 +136,9 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     await expect(helpText).toHaveText('No action needed');
 
     // Assert NO primary action in this row
-    const primaryAction = optimizedRow.locator('[data-testid="row-primary-action"]');
+    const primaryAction = optimizedRow.locator(
+      '[data-testid="row-primary-action"]'
+    );
     await expect(primaryAction).toHaveCount(0);
   });
 
@@ -143,10 +151,15 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/products`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // [FIXUP-2] Row-scoped assertion for needs-attention product
-    const needsAttentionRow = getRowByTitle(page, SEEDED_TITLES.products.needsAttention);
+    const needsAttentionRow = getRowByTitle(
+      page,
+      SEEDED_TITLES.products.needsAttention
+    );
     await expect(needsAttentionRow).toBeVisible();
 
     // Assert chip text exactly matches locked vocabulary with emoji
@@ -154,12 +167,22 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     await expect(chip).toHaveText('⚠ Needs attention');
 
     // Assert primary action is "Fix next" (not "Apply")
-    const primaryAction = needsAttentionRow.locator('[data-testid="row-primary-action"]');
+    const primaryAction = needsAttentionRow.locator(
+      '[data-testid="row-primary-action"]'
+    );
     await expect(primaryAction).toHaveText('Fix next');
 
     // Assert NO "Apply" text anywhere in row actions
-    await expect(needsAttentionRow.locator('[data-testid="row-primary-action"]:has-text("Apply")')).toHaveCount(0);
-    await expect(needsAttentionRow.locator('[data-testid="row-secondary-action"]:has-text("Apply")')).toHaveCount(0);
+    await expect(
+      needsAttentionRow.locator(
+        '[data-testid="row-primary-action"]:has-text("Apply")'
+      )
+    ).toHaveCount(0);
+    await expect(
+      needsAttentionRow.locator(
+        '[data-testid="row-secondary-action"]:has-text("Apply")'
+      )
+    ).toHaveCount(0);
   });
 
   /**
@@ -178,9 +201,12 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     request,
   }) => {
     // Use seed-first-deo-win which includes Product 4 with DIAGNOSTIC issue
-    const seedRes = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
-      data: {},
-    });
+    const seedRes = await request.post(
+      `${API_BASE_URL}/testkit/e2e/seed-first-deo-win`,
+      {
+        data: {},
+      }
+    );
     expect(seedRes.ok()).toBeTruthy();
     const { projectId, productIds, accessToken } = await seedRes.json();
     expect(productIds.length).toBeGreaterThanOrEqual(4);
@@ -191,18 +217,27 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, accessToken);
 
     await page.goto(`/projects/${projectId}/products`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Find Product 4 (DIAGNOSTIC test product)
-    const diagnosticProductRow = getRowByTitle(page, 'Product 4 - DIAGNOSTIC Test');
+    const diagnosticProductRow = getRowByTitle(
+      page,
+      'Product 4 - DIAGNOSTIC Test'
+    );
     await expect(diagnosticProductRow).toBeVisible();
 
     // Assert chip shows Needs attention (has actionable issue)
-    const chip = diagnosticProductRow.locator('[data-testid="row-status-chip"]');
+    const chip = diagnosticProductRow.locator(
+      '[data-testid="row-status-chip"]'
+    );
     await expect(chip).toHaveText('⚠ Needs attention');
 
     // Assert primary action is "Review" (not "Fix next") for DIAGNOSTIC issue
-    const primaryAction = diagnosticProductRow.locator('[data-testid="row-primary-action"]');
+    const primaryAction = diagnosticProductRow.locator(
+      '[data-testid="row-primary-action"]'
+    );
     await expect(primaryAction).toHaveText('Review');
   });
 
@@ -215,10 +250,15 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/products`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // [FIXUP-2] Row-scoped assertion for draft-pending product
-    const draftPendingRow = getRowByTitle(page, SEEDED_TITLES.products.draftPending);
+    const draftPendingRow = getRowByTitle(
+      page,
+      SEEDED_TITLES.products.draftPending
+    );
     await expect(draftPendingRow).toBeVisible();
 
     // Assert chip text exactly matches locked vocabulary with emoji
@@ -226,7 +266,9 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     await expect(chip).toHaveText('🟡 Draft saved (not applied)');
 
     // Assert primary action is "Review drafts"
-    const primaryAction = draftPendingRow.locator('[data-testid="row-primary-action"]');
+    const primaryAction = draftPendingRow.locator(
+      '[data-testid="row-primary-action"]'
+    );
     await expect(primaryAction).toHaveText('Review drafts');
   });
 
@@ -234,16 +276,16 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
   // [FIXUP-2] Pages List Tests - Row-Scoped Assertions
   // ==========================================================================
 
-  test('LAC1-004: Optimized page row shows correct chip', async ({
-    page,
-  }) => {
+  test('LAC1-004: Optimized page row shows correct chip', async ({ page }) => {
     await page.goto('/login');
     await page.evaluate((token) => {
       localStorage.setItem('engineo_token', token);
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/assets/pages`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // [FIXUP-2] Row-scoped assertion for optimized page
     const optimizedRow = getRowByTitle(page, SEEDED_TITLES.pages.optimized);
@@ -262,10 +304,15 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/assets/pages`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // [FIXUP-2] Row-scoped assertion for needs-attention page
-    const needsAttentionRow = getRowByTitle(page, SEEDED_TITLES.pages.needsAttention);
+    const needsAttentionRow = getRowByTitle(
+      page,
+      SEEDED_TITLES.pages.needsAttention
+    );
     await expect(needsAttentionRow).toBeVisible();
 
     const chip = needsAttentionRow.locator('[data-testid="row-status-chip"]');
@@ -281,11 +328,15 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/assets/pages`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // [FIXUP-2] Find the draft-pending page row (title is "Short" for /pages/draft-pending)
     // We need to find the row that contains both "Short" title AND the draft-pending URL path
-    const draftPendingRow = page.locator('tr:has-text("Short"), div[class*="row"]:has-text("Short")').first();
+    const draftPendingRow = page
+      .locator('tr:has-text("Short"), div[class*="row"]:has-text("Short")')
+      .first();
     await expect(draftPendingRow).toBeVisible();
 
     const chip = draftPendingRow.locator('[data-testid="row-status-chip"]');
@@ -305,13 +356,20 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/assets/pages`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // [FIXUP-2] Find the needs-attention page row and click View issues
-    const needsAttentionRow = getRowByTitle(page, SEEDED_TITLES.pages.needsAttention);
+    const needsAttentionRow = getRowByTitle(
+      page,
+      SEEDED_TITLES.pages.needsAttention
+    );
     await expect(needsAttentionRow).toBeVisible();
 
-    const viewIssuesLink = needsAttentionRow.locator('[data-testid="row-primary-action"]:has-text("View issues")');
+    const viewIssuesLink = needsAttentionRow.locator(
+      '[data-testid="row-primary-action"]:has-text("View issues")'
+    );
     await expect(viewIssuesLink).toBeVisible();
 
     // Click and navigate
@@ -349,11 +407,18 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
 
     // Navigate to Products list
     await page.goto(`/projects/${seedData.projectId}/products`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // [DRAFT-ENTRYPOINT-UNIFICATION-1] Row-scoped assertion for draft-pending product
-    const draftPendingRow = getRowByTitle(page, SEEDED_TITLES.products.draftPending);
-    const reviewDraftsLink = draftPendingRow.locator('[data-testid="row-primary-action"]:has-text("Review drafts")');
+    const draftPendingRow = getRowByTitle(
+      page,
+      SEEDED_TITLES.products.draftPending
+    );
+    const reviewDraftsLink = draftPendingRow.locator(
+      '[data-testid="row-primary-action"]:has-text("Review drafts")'
+    );
 
     await expect(reviewDraftsLink).toBeVisible();
 
@@ -382,23 +447,35 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     // [DRAFT-ENTRYPOINT-UNIFICATION-1] Assert no AI affordances visible in Drafts tab
     // Draft Review is intentionally non-AI - no Generate, Regenerate, AI suggestion text
     await expect(page.locator('button:has-text("Generate")')).not.toBeVisible();
-    await expect(page.locator('button:has-text("Regenerate")')).not.toBeVisible();
+    await expect(
+      page.locator('button:has-text("Regenerate")')
+    ).not.toBeVisible();
     await expect(page.locator(':text("AI suggestion")')).not.toBeVisible();
 
     // [DRAFT-AI-ENTRYPOINT-CLARITY-1] Assert boundary note is visible in review mode
     const boundaryNote = page.locator('[data-testid="draft-ai-boundary-note"]');
     await expect(boundaryNote).toBeVisible();
     await expect(boundaryNote).toHaveAttribute('data-mode', 'review');
-    await expect(boundaryNote).toContainText('Review & edit (no AI on this step)');
+    await expect(boundaryNote).toContainText(
+      'Review & edit (no AI on this step)'
+    );
 
     // [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Assert no AI/apply CTAs on Drafts tab (non-brittle absence assertions)
     // The header action cluster should be hidden on Drafts tab
-    await expect(page.locator('[data-testid="header-draft-state-indicator"]')).toHaveCount(0);
-    await expect(page.locator('button:has-text("Automate this fix")')).toHaveCount(0);
-    await expect(page.locator('[data-testid="header-apply-to-shopify-button"]')).toHaveCount(0);
+    await expect(
+      page.locator('[data-testid="header-draft-state-indicator"]')
+    ).toHaveCount(0);
+    await expect(
+      page.locator('button:has-text("Automate this fix")')
+    ).toHaveCount(0);
+    await expect(
+      page.locator('[data-testid="header-apply-to-shopify-button"]')
+    ).toHaveCount(0);
 
     // The CNAB-1 banner with "Generate drafts, review, then apply to Shopify" should not appear
-    await expect(page.locator(':text("Generate drafts, review, then apply to Shopify")')).toHaveCount(0);
+    await expect(
+      page.locator(':text("Generate drafts, review, then apply to Shopify")')
+    ).toHaveCount(0);
   });
 
   /**
@@ -420,11 +497,18 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
 
     // Navigate to Products list
     await page.goto(`/projects/${seedData.projectId}/products`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // Click Review drafts on draft-pending product
-    const draftPendingRow = getRowByTitle(page, SEEDED_TITLES.products.draftPending);
-    const reviewDraftsLink = draftPendingRow.locator('[data-testid="row-primary-action"]:has-text("Review drafts")');
+    const draftPendingRow = getRowByTitle(
+      page,
+      SEEDED_TITLES.products.draftPending
+    );
+    const reviewDraftsLink = draftPendingRow.locator(
+      '[data-testid="row-primary-action"]:has-text("Review drafts")'
+    );
     await reviewDraftsLink.click();
 
     // [DRAFT-ENTRYPOINT-UNIFICATION-1] Wait for Product detail Drafts tab
@@ -444,12 +528,16 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }
 
     // [DRAFT-EDIT-INTEGRITY-1] Find the first Edit button (matches pattern drafts-tab-item-edit-*)
-    const editButton = page.locator('[data-testid^="drafts-tab-item-edit-"]').first();
+    const editButton = page
+      .locator('[data-testid^="drafts-tab-item-edit-"]')
+      .first();
     await expect(editButton).toBeVisible();
     await editButton.click();
 
     // Assert edit mode is active - input should be visible
-    const editInput = page.locator('[data-testid^="drafts-tab-item-input-"]').first();
+    const editInput = page
+      .locator('[data-testid^="drafts-tab-item-input-"]')
+      .first();
     await expect(editInput).toBeVisible();
 
     // Enter new text
@@ -457,7 +545,9 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     await editInput.fill(editedText);
 
     // Click Save changes
-    const saveButton = page.locator('[data-testid^="drafts-tab-item-save-"]').first();
+    const saveButton = page
+      .locator('[data-testid^="drafts-tab-item-save-"]')
+      .first();
     await expect(saveButton).toBeVisible();
     await saveButton.click();
 
@@ -473,10 +563,14 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     await expect(draftsTabPanel).toContainText(editedText);
 
     // [DRAFT-EDIT-INTEGRITY-1] Test Cancel flow
-    const editButton2 = page.locator('[data-testid^="drafts-tab-item-edit-"]').first();
+    const editButton2 = page
+      .locator('[data-testid^="drafts-tab-item-edit-"]')
+      .first();
     await editButton2.click();
 
-    const editInput2 = page.locator('[data-testid^="drafts-tab-item-input-"]').first();
+    const editInput2 = page
+      .locator('[data-testid^="drafts-tab-item-input-"]')
+      .first();
     await expect(editInput2).toBeVisible();
 
     // Type something different
@@ -484,7 +578,9 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     await editInput2.fill(canceledText);
 
     // Click Cancel
-    const cancelButton = page.locator('[data-testid^="drafts-tab-item-cancel-"]').first();
+    const cancelButton = page
+      .locator('[data-testid^="drafts-tab-item-cancel-"]')
+      .first();
     await cancelButton.click();
 
     // Assert input is no longer visible
@@ -510,10 +606,15 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/assets/collections`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // [FIXUP-2] Row-scoped assertion for optimized collection
-    const optimizedRow = getRowByTitle(page, SEEDED_TITLES.collections.optimized);
+    const optimizedRow = getRowByTitle(
+      page,
+      SEEDED_TITLES.collections.optimized
+    );
     await expect(optimizedRow).toBeVisible();
 
     const chip = optimizedRow.locator('[data-testid="row-status-chip"]');
@@ -529,10 +630,15 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/assets/collections`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // [FIXUP-2] Row-scoped assertion for needs-attention collection
-    const needsAttentionRow = getRowByTitle(page, SEEDED_TITLES.collections.needsAttention);
+    const needsAttentionRow = getRowByTitle(
+      page,
+      SEEDED_TITLES.collections.needsAttention
+    );
     await expect(needsAttentionRow).toBeVisible();
 
     const chip = needsAttentionRow.locator('[data-testid="row-status-chip"]');
@@ -548,10 +654,14 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/assets/collections`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // [FIXUP-2] Find the draft-pending collection row (title is "Short" for /collections/draft-pending)
-    const draftPendingRow = page.locator('tr:has-text("Short"), div[class*="row"]:has-text("Short")').first();
+    const draftPendingRow = page
+      .locator('tr:has-text("Short"), div[class*="row"]:has-text("Short")')
+      .first();
     await expect(draftPendingRow).toBeVisible();
 
     const chip = draftPendingRow.locator('[data-testid="row-status-chip"]');
@@ -572,10 +682,15 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.editorAccessToken);
 
     await page.goto(`/projects/${seedData.projectId}/products`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // [FIXUP-2] Row-scoped assertion for draft-pending product as EDITOR
-    const draftPendingRow = getRowByTitle(page, SEEDED_TITLES.products.draftPending);
+    const draftPendingRow = getRowByTitle(
+      page,
+      SEEDED_TITLES.products.draftPending
+    );
     await expect(draftPendingRow).toBeVisible();
 
     // Assert chip text exactly matches locked vocabulary with emoji
@@ -592,13 +707,20 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.editorAccessToken);
 
     await page.goto(`/projects/${seedData.projectId}/products`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // [FIXUP-2] Row-scoped assertion for draft-pending product as EDITOR
-    const draftPendingRow = getRowByTitle(page, SEEDED_TITLES.products.draftPending);
+    const draftPendingRow = getRowByTitle(
+      page,
+      SEEDED_TITLES.products.draftPending
+    );
     await expect(draftPendingRow).toBeVisible();
 
-    const primaryAction = draftPendingRow.locator('[data-testid="row-primary-action"]');
+    const primaryAction = draftPendingRow.locator(
+      '[data-testid="row-primary-action"]'
+    );
     await expect(primaryAction).toBeVisible();
 
     // [FIXUP-2] Strict: must be "Request approval" OR "View approval status", NOT "Review drafts"
@@ -620,11 +742,18 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/products`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // [FIXUP-2] Row-scoped assertion for needs-attention product
-    const needsAttentionRow = getRowByTitle(page, SEEDED_TITLES.products.needsAttention);
-    const fixNextLink = needsAttentionRow.locator('[data-testid="row-primary-action"]:has-text("Fix next")');
+    const needsAttentionRow = getRowByTitle(
+      page,
+      SEEDED_TITLES.products.needsAttention
+    );
+    const fixNextLink = needsAttentionRow.locator(
+      '[data-testid="row-primary-action"]:has-text("Fix next")'
+    );
 
     await expect(fixNextLink).toBeVisible();
     const href = await fixNextLink.getAttribute('href');
@@ -645,11 +774,18 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/assets/collections`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // [FIXUP-2] Row-scoped assertion for needs-attention collection
-    const needsAttentionRow = getRowByTitle(page, SEEDED_TITLES.collections.needsAttention);
-    const viewIssuesLink = needsAttentionRow.locator('[data-testid="row-primary-action"]:has-text("View issues")');
+    const needsAttentionRow = getRowByTitle(
+      page,
+      SEEDED_TITLES.collections.needsAttention
+    );
+    const viewIssuesLink = needsAttentionRow.locator(
+      '[data-testid="row-primary-action"]:has-text("View issues")'
+    );
 
     await expect(viewIssuesLink).toBeVisible();
     const href = await viewIssuesLink.getAttribute('href');
@@ -673,21 +809,39 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
 
     // Check Products list
     await page.goto(`/projects/${seedData.projectId}/products`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
-    await expect(page.locator('[data-testid="row-primary-action"]:has-text("Apply")')).toHaveCount(0);
-    await expect(page.locator('[data-testid="row-secondary-action"]:has-text("Apply")')).toHaveCount(0);
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
+    await expect(
+      page.locator('[data-testid="row-primary-action"]:has-text("Apply")')
+    ).toHaveCount(0);
+    await expect(
+      page.locator('[data-testid="row-secondary-action"]:has-text("Apply")')
+    ).toHaveCount(0);
 
     // Check Pages list
     await page.goto(`/projects/${seedData.projectId}/assets/pages`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
-    await expect(page.locator('[data-testid="row-primary-action"]:has-text("Apply")')).toHaveCount(0);
-    await expect(page.locator('[data-testid="row-secondary-action"]:has-text("Apply")')).toHaveCount(0);
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
+    await expect(
+      page.locator('[data-testid="row-primary-action"]:has-text("Apply")')
+    ).toHaveCount(0);
+    await expect(
+      page.locator('[data-testid="row-secondary-action"]:has-text("Apply")')
+    ).toHaveCount(0);
 
     // Check Collections list
     await page.goto(`/projects/${seedData.projectId}/assets/collections`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
-    await expect(page.locator('[data-testid="row-primary-action"]:has-text("Apply")')).toHaveCount(0);
-    await expect(page.locator('[data-testid="row-secondary-action"]:has-text("Apply")')).toHaveCount(0);
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
+    await expect(
+      page.locator('[data-testid="row-primary-action"]:has-text("Apply")')
+    ).toHaveCount(0);
+    await expect(
+      page.locator('[data-testid="row-secondary-action"]:has-text("Apply")')
+    ).toHaveCount(0);
   });
 
   // ==========================================================================
@@ -703,11 +857,19 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/products`);
-    await page.waitForSelector('[data-testid="products-list"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="products-list"]', {
+      timeout: 10000,
+    });
 
     // Assert no checkboxes in table headers or rows
-    await expect(page.locator('[data-testid="products-list"] input[type="checkbox"]')).toHaveCount(0);
-    await expect(page.locator('[data-testid="products-list"] th:has(input[type="checkbox"])')).toHaveCount(0);
+    await expect(
+      page.locator('[data-testid="products-list"] input[type="checkbox"]')
+    ).toHaveCount(0);
+    await expect(
+      page.locator(
+        '[data-testid="products-list"] th:has(input[type="checkbox"])'
+      )
+    ).toHaveCount(0);
   });
 
   test('LAC1-019: No bulk selection checkboxes appear on Pages list', async ({
@@ -719,7 +881,9 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/assets/pages`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // Assert no checkboxes in table headers or rows
     await expect(page.locator('table input[type="checkbox"]')).toHaveCount(0);
@@ -734,7 +898,9 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/assets/collections`);
-    await page.waitForSelector('[data-testid="row-status-chip"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="row-status-chip"]', {
+      timeout: 10000,
+    });
 
     // Assert no checkboxes in table headers or rows
     await expect(page.locator('table input[type="checkbox"]')).toHaveCount(0);
@@ -749,10 +915,14 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/products`);
-    await page.waitForSelector('[data-testid="products-list"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="products-list"]', {
+      timeout: 10000,
+    });
 
     // Assert no "Generate drafts", "Fix all", or "Bulk" buttons
-    await expect(page.locator('button:has-text("Generate drafts")')).toHaveCount(0);
+    await expect(
+      page.locator('button:has-text("Generate drafts")')
+    ).toHaveCount(0);
     await expect(page.locator('button:has-text("Fix all")')).toHaveCount(0);
     await expect(page.locator('button:has-text("Bulk")')).toHaveCount(0);
   });
@@ -766,7 +936,9 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
     }, seedData.accessToken);
 
     await page.goto(`/projects/${seedData.projectId}/products`);
-    await page.waitForSelector('[data-testid="products-list"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="products-list"]', {
+      timeout: 10000,
+    });
 
     // Assert "View playbooks" link exists instead of bulk CTA
     const viewPlaybooksLink = page.locator('a:has-text("View playbooks")');
@@ -793,7 +965,7 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
         headers: {
           Authorization: `Bearer ${seedData.accessToken}`,
         },
-      },
+      }
     );
 
     expect(response.ok()).toBeTruthy();
@@ -820,7 +992,7 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
         headers: {
           Authorization: `Bearer ${seedData.accessToken}`,
         },
-      },
+      }
     );
 
     expect(response.ok()).toBeTruthy();
@@ -847,7 +1019,7 @@ test.describe('LIST-ACTIONS-CLARITY-1: Row Chips & Actions', () => {
         headers: {
           Authorization: `Bearer ${seedData.accessToken}`,
         },
-      },
+      }
     );
 
     expect(response.ok()).toBeTruthy();

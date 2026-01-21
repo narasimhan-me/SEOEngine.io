@@ -28,6 +28,7 @@ git add -A
 ```
 
 **Verify staged files:**
+
 ```bash
 git status
 ```
@@ -60,6 +61,7 @@ Push Gate:
 ### If Commit Fails Due to Pre-commit Hook
 
 The pre-commit hook will run automatically and may fail if:
+
 1. **Linting errors** in source files
 2. **TypeScript type errors**
 3. **Unit test failures**
@@ -67,6 +69,7 @@ The pre-commit hook will run automatically and may fail if:
 #### Option A: Fix Issues and Retry
 
 1. **Fix linting errors:**
+
    ```bash
    cd apps/api
    pnpm lint
@@ -74,6 +77,7 @@ The pre-commit hook will run automatically and may fail if:
    ```
 
 2. **Fix type errors:**
+
    ```bash
    cd apps/api
    pnpm exec tsc --noEmit
@@ -81,6 +85,7 @@ The pre-commit hook will run automatically and may fail if:
    ```
 
 3. **Fix test failures:**
+
    ```bash
    pnpm test:unit
    # Fix the failing tests
@@ -149,6 +154,7 @@ git status
 ## Expected Files in Commit
 
 ### New Files:
+
 - `apps/api/jest.unit.config.ts`
 - `apps/api/jest.critical-integration.config.ts`
 - `apps/api/test/integration/critical/auth-entitlements.test.ts`
@@ -166,6 +172,7 @@ git status
 - `COMMIT_CHANGES.md`
 
 ### Modified Files:
+
 - `package.json`
 - `apps/api/package.json`
 - `apps/api/src/billing/billing.service.ts`
@@ -174,9 +181,11 @@ git status
 ## Next Steps After Commit
 
 1. **Push to remote:**
+
    ```bash
    git push origin feature/Lavanya
    ```
+
    (This will trigger the pre-push hook)
 
 2. **Create Pull Request** (if using GitHub/GitLab)
@@ -185,4 +194,3 @@ git status
    - Make a test change
    - Try to commit (pre-commit hook should run)
    - Try to push (pre-push hook should run)
-

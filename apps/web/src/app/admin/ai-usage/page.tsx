@@ -33,7 +33,9 @@ export default function AdminAiUsagePage() {
         const result = await adminApi.getAiUsage();
         setData(result);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to load AI usage');
+        setError(
+          err instanceof Error ? err.message : 'Failed to load AI usage'
+        );
       } finally {
         setLoading(false);
       }
@@ -61,10 +63,12 @@ export default function AdminAiUsagePage() {
       {/* Red Alert Banner */}
       {data?.applyInvariantRedAlert && (
         <div className="bg-red-600 text-white px-6 py-4 rounded-lg mb-6">
-          <h2 className="text-lg font-bold">APPLY INVARIANT VIOLATION DETECTED</h2>
+          <h2 className="text-lg font-bold">
+            APPLY INVARIANT VIOLATION DETECTED
+          </h2>
           <p className="mt-1">
-            {data.applyRunsWithAiCount} APPLY run(s) have aiUsed=true.
-            This violates the APPLY invariant (APPLY runs should never use AI).
+            {data.applyRunsWithAiCount} APPLY run(s) have aiUsed=true. This
+            violates the APPLY invariant (APPLY runs should never use AI).
           </p>
         </div>
       )}
@@ -72,7 +76,9 @@ export default function AdminAiUsagePage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {/* Usage by Plan */}
         <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Usage by Plan</h2>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">
+            Usage by Plan
+          </h2>
           <div className="space-y-3">
             {Object.entries(data?.usageByPlan || {}).map(([plan, count]) => (
               <div key={plan} className="flex justify-between items-center">
@@ -88,31 +94,43 @@ export default function AdminAiUsagePage() {
 
         {/* Reuse Effectiveness */}
         <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Reuse Effectiveness</h2>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">
+            Reuse Effectiveness
+          </h2>
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Total AI Runs</span>
-              <span className="font-medium text-gray-900">{data?.reuseEffectiveness.totalAiRuns || 0}</span>
+              <span className="font-medium text-gray-900">
+                {data?.reuseEffectiveness.totalAiRuns || 0}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Reused Runs</span>
-              <span className="font-medium text-green-600">{data?.reuseEffectiveness.reusedRuns || 0}</span>
+              <span className="font-medium text-green-600">
+                {data?.reuseEffectiveness.reusedRuns || 0}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Reuse Rate</span>
-              <span className="font-bold text-green-600">{data?.reuseEffectiveness.reuseRate || 0}%</span>
+              <span className="font-bold text-green-600">
+                {data?.reuseEffectiveness.reuseRate || 0}%
+              </span>
             </div>
           </div>
         </div>
 
         {/* Invariant Status */}
         <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">APPLY Invariant</h2>
-          <div className={`text-center p-4 rounded-lg ${
-            data?.applyInvariantRedAlert
-              ? 'bg-red-100 text-red-800'
-              : 'bg-green-100 text-green-800'
-          }`}>
+          <h2 className="text-lg font-medium text-gray-900 mb-4">
+            APPLY Invariant
+          </h2>
+          <div
+            className={`text-center p-4 rounded-lg ${
+              data?.applyInvariantRedAlert
+                ? 'bg-red-100 text-red-800'
+                : 'bg-green-100 text-green-800'
+            }`}
+          >
             <p className="text-2xl font-bold">
               {data?.applyInvariantRedAlert ? 'VIOLATED' : 'OK'}
             </p>
@@ -125,15 +143,21 @@ export default function AdminAiUsagePage() {
 
       {/* Top Consumers */}
       <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Top Consumers (This Month)</h2>
+        <h2 className="text-lg font-medium text-gray-900 mb-4">
+          Top Consumers (This Month)
+        </h2>
         {(data?.topConsumers || []).length === 0 ? (
           <p className="text-gray-500 text-sm">No consumers this month</p>
         ) : (
           <table className="min-w-full divide-y divide-gray-200">
             <thead>
               <tr>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase">AI Runs</th>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase">
+                  Email
+                </th>
+                <th className="text-left text-xs font-medium text-gray-500 uppercase">
+                  AI Runs
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -143,7 +167,9 @@ export default function AdminAiUsagePage() {
                     <span className="text-gray-500 mr-2">#{idx + 1}</span>
                     {consumer.email}
                   </td>
-                  <td className="py-2 text-sm font-medium">{consumer.aiRunsThisMonth}</td>
+                  <td className="py-2 text-sm font-medium">
+                    {consumer.aiRunsThisMonth}
+                  </td>
                 </tr>
               ))}
             </tbody>

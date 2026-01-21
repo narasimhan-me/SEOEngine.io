@@ -43,10 +43,12 @@
 **ID:** HP-001
 
 **Steps:**
+
 1. Open browser and navigate to `/login?email=test%40example.com&password=mysecretpassword&next=%2Fprojects`
 2. Observe the URL bar after page loads
 
 **Expected Results:**
+
 - **URL:** Does NOT contain `password=`, `email=`, or `mysecretpassword`
 - **URL:** MAY contain `next=/projects` (preserved as safe param)
 - **UI:** Login form renders normally
@@ -60,10 +62,12 @@
 **ID:** HP-002
 
 **Steps:**
+
 1. Navigate to `/signup?email=test%40example.com&password=secret&confirmPassword=secret`
 2. Observe the URL bar after page loads
 
 **Expected Results:**
+
 - **URL:** Does NOT contain `password=`, `confirmPassword=`, `email=`, or `secret`
 - **UI:** Signup form renders normally
 - **UI:** Both password fields are empty
@@ -76,10 +80,12 @@
 **ID:** HP-003
 
 **Steps:**
+
 1. Navigate to `/login` (no query params)
 2. Observe the page
 
 **Expected Results:**
+
 - **UI:** Login form renders normally
 - **UI:** No security message is displayed
 - **UI:** User can enter credentials and submit
@@ -93,10 +99,12 @@
 **Description:** Test that variations like `pass` and `pwd` are also sanitized.
 
 **Steps:**
+
 1. Navigate to `/login?pass=secret123`
 2. Navigate to `/login?pwd=secret456`
 
 **Expected Behavior:**
+
 - Both URLs are sanitized — no `pass=` or `pwd=` in final URL
 - Security message appears in both cases
 
@@ -107,9 +115,11 @@
 **Description:** Multiple sensitive params in a single URL.
 
 **Steps:**
+
 1. Navigate to `/login?email=a@b.com&password=x&pass=y&pwd=z`
 
 **Expected Behavior:**
+
 - All sensitive params removed
 - Only safe params (like `next`) remain
 
@@ -120,9 +130,11 @@
 **Description:** Passwords with special characters that are URL-encoded.
 
 **Steps:**
+
 1. Navigate to `/login?password=%40%23%24%25%5E%26` (contains @#$%^&)
 
 **Expected Behavior:**
+
 - Encoded password is removed from URL
 - No trace of the encoded characters in final URL
 
@@ -135,10 +147,12 @@
 **Scenario:** User navigates via client-side routing with sensitive params.
 
 **Steps:**
+
 1. While on another page, use browser dev tools to execute:
    `window.location.href = '/login?password=test'`
 
 **Expected Behavior:**
+
 - Client-side sanitization kicks in (defense-in-depth)
 - URL is cleaned via `router.replace()`
 - Security message appears
@@ -150,10 +164,12 @@
 **Scenario:** User has JavaScript disabled (middleware-only protection).
 
 **Steps:**
+
 1. Disable JavaScript in browser
 2. Navigate to `/login?password=test`
 
 **Expected Behavior:**
+
 - Middleware (server-side) sanitizes URL via redirect
 - User sees sanitized URL after redirect
 - Note: Security message may not appear without JS
@@ -218,9 +234,9 @@ No entitlement or quota limits apply to this security feature.
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** |  |
-| **Date** | [YYYY-MM-DD] |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    |                                       |
+| **Date**           | [YYYY-MM-DD]                          |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** |  |
+| **Notes**          |                                       |

@@ -14,7 +14,10 @@
 /**
  * Local applicability status - determines whether local discovery pillar applies.
  */
-export type LocalApplicabilityStatus = 'applicable' | 'not_applicable' | 'unknown';
+export type LocalApplicabilityStatus =
+  | 'applicable'
+  | 'not_applicable'
+  | 'unknown';
 
 /**
  * Reasons why local discovery is applicable or not.
@@ -32,9 +35,9 @@ export type LocalApplicabilityReason =
  * Describes the categories of local discovery signals.
  */
 export type LocalSignalType =
-  | 'location_presence'      // Physical location / address / contact info
-  | 'local_intent_coverage'  // Coverage of local search intents ("near me", city-specific)
-  | 'local_trust_signals'    // Local reviews, testimonials, certifications
+  | 'location_presence' // Physical location / address / contact info
+  | 'local_intent_coverage' // Coverage of local search intents ("near me", city-specific)
+  | 'local_trust_signals' // Local reviews, testimonials, certifications
   | 'local_schema_readiness'; // Organization/location schema hints
 
 /**
@@ -51,20 +54,24 @@ export const LOCAL_SIGNAL_LABELS: Record<LocalSignalType, string> = {
  * Descriptions for each local signal type.
  */
 export const LOCAL_SIGNAL_DESCRIPTIONS: Record<LocalSignalType, string> = {
-  location_presence: 'Physical address, contact information, and store location details',
-  local_intent_coverage: 'Coverage of local search queries like "near me" or city-specific terms',
-  local_trust_signals: 'Local reviews, testimonials, and community presence indicators',
-  local_schema_readiness: 'Structured data for location and organization information',
+  location_presence:
+    'Physical address, contact information, and store location details',
+  local_intent_coverage:
+    'Coverage of local search queries like "near me" or city-specific terms',
+  local_trust_signals:
+    'Local reviews, testimonials, and community presence indicators',
+  local_schema_readiness:
+    'Structured data for location and organization information',
 };
 
 /**
  * Importance weights per local signal type (out of 10).
  */
 export const LOCAL_SIGNAL_WEIGHTS: Record<LocalSignalType, number> = {
-  location_presence: 10,       // Physical presence is critical for local
-  local_intent_coverage: 9,    // Local intent queries are high value
-  local_trust_signals: 7,      // Local trust builds community credibility
-  local_schema_readiness: 6,   // Schema helps discovery engines understand location
+  location_presence: 10, // Physical presence is critical for local
+  local_intent_coverage: 9, // Local intent queries are high value
+  local_trust_signals: 7, // Local trust builds community credibility
+  local_schema_readiness: 6, // Schema helps discovery engines understand location
 };
 
 /**
@@ -126,10 +133,10 @@ export interface LocalDiscoveryScorecard {
  * Local gap type enumeration reflecting the issue taxonomy.
  */
 export type LocalGapType =
-  | 'missing_local_intent_coverage'    // No coverage for local search intents
-  | 'missing_location_content'          // No location/city/service area content
-  | 'unclear_service_area'              // Physical presence implied but not described
-  | 'missing_local_trust_signal';       // No local reviews/testimonials/certifications
+  | 'missing_local_intent_coverage' // No coverage for local search intents
+  | 'missing_location_content' // No location/city/service area content
+  | 'unclear_service_area' // Physical presence implied but not described
+  | 'missing_local_trust_signal'; // No local reviews/testimonials/certifications
 
 /**
  * Human-readable labels for local gap types.
@@ -165,8 +172,8 @@ export interface LocalGap {
  * Local fix draft types.
  */
 export type LocalFixDraftType =
-  | 'local_answer_block'       // Q&A for local queries
-  | 'city_section'             // City/region landing section
+  | 'local_answer_block' // Q&A for local queries
+  | 'city_section' // City/region landing section
   | 'service_area_description'; // Service area description
 
 /**
@@ -182,8 +189,8 @@ export const LOCAL_FIX_DRAFT_LABELS: Record<LocalFixDraftType, string> = {
  * Apply target for local fixes.
  */
 export type LocalFixApplyTarget =
-  | 'ANSWER_BLOCK'      // Create as Answer Block
-  | 'CONTENT_SECTION';  // Add to content workspace
+  | 'ANSWER_BLOCK' // Create as Answer Block
+  | 'CONTENT_SECTION'; // Add to content workspace
 
 /**
  * Local fix draft structure (draft-first pattern).
@@ -330,13 +337,15 @@ export function isLocalApplicableFromReasons(
     'manual_override_enabled',
   ];
 
-  return reasons.some(reason => applicableReasons.includes(reason));
+  return reasons.some((reason) => applicableReasons.includes(reason));
 }
 
 /**
  * Get local coverage status from score.
  */
-export function getLocalCoverageStatusFromScore(score: number): LocalCoverageStatus {
+export function getLocalCoverageStatusFromScore(
+  score: number
+): LocalCoverageStatus {
   if (score >= 70) return 'strong';
   if (score >= 40) return 'needs_improvement';
   return 'weak';
@@ -357,7 +366,10 @@ export function calculateLocalSeverity(
   }
 
   // Missing location content is medium-high
-  if (gapType === 'missing_location_content' || gapType === 'unclear_service_area') {
+  if (
+    gapType === 'missing_location_content' ||
+    gapType === 'unclear_service_area'
+  ) {
     return 'warning';
   }
 
@@ -387,7 +399,9 @@ export function computeLocalFixWorkKey(
 /**
  * Get gap type for missing signal type.
  */
-export function getLocalGapTypeForMissingSignal(signalType: LocalSignalType): LocalGapType {
+export function getLocalGapTypeForMissingSignal(
+  signalType: LocalSignalType
+): LocalGapType {
   const mapping: Record<LocalSignalType, LocalGapType> = {
     location_presence: 'missing_location_content',
     local_intent_coverage: 'missing_local_intent_coverage',

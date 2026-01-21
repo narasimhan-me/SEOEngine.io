@@ -27,9 +27,21 @@ const STATUS_CONFIG: Record<
   IntentCoverageStatus,
   { label: string; bgColor: string; textColor: string }
 > = {
-  covered: { label: 'Covered', bgColor: 'bg-green-100', textColor: 'text-green-700' },
-  partial: { label: 'Partial', bgColor: 'bg-yellow-100', textColor: 'text-yellow-700' },
-  weak: { label: 'Weak', bgColor: 'bg-orange-100', textColor: 'text-orange-700' },
+  covered: {
+    label: 'Covered',
+    bgColor: 'bg-green-100',
+    textColor: 'text-green-700',
+  },
+  partial: {
+    label: 'Partial',
+    bgColor: 'bg-yellow-100',
+    textColor: 'text-yellow-700',
+  },
+  weak: {
+    label: 'Weak',
+    bgColor: 'bg-orange-100',
+    textColor: 'text-orange-700',
+  },
   none: { label: 'None', bgColor: 'bg-red-100', textColor: 'text-red-700' },
 };
 
@@ -37,7 +49,9 @@ interface ProductSearchIntentPanelProps {
   productId: string;
 }
 
-export function ProductSearchIntentPanel({ productId }: ProductSearchIntentPanelProps) {
+export function ProductSearchIntentPanel({
+  productId,
+}: ProductSearchIntentPanelProps) {
   const feedback = useFeedback();
 
   const [loading, setLoading] = useState(true);
@@ -54,7 +68,9 @@ export function ProductSearchIntentPanel({ productId }: ProductSearchIntentPanel
   const [applyingDraft, setApplyingDraft] = useState(false);
 
   // Expanded intent type
-  const [expandedIntent, setExpandedIntent] = useState<SearchIntentType | null>(null);
+  const [expandedIntent, setExpandedIntent] = useState<SearchIntentType | null>(
+    null
+  );
 
   const fetchData = useCallback(async () => {
     try {
@@ -64,7 +80,9 @@ export function ProductSearchIntentPanel({ productId }: ProductSearchIntentPanel
       setData(response);
     } catch (err) {
       console.error('[ProductSearchIntentPanel] Failed to fetch:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load intent coverage');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load intent coverage'
+      );
     } finally {
       setLoading(false);
     }
@@ -81,14 +99,12 @@ export function ProductSearchIntentPanel({ productId }: ProductSearchIntentPanel
         setPreviewingQuery({ intentType, query });
         setPreviewDraft(null);
 
-        const response: IntentFixPreviewResponse = await searchIntentApi.previewIntentFix(
-          productId,
-          {
+        const response: IntentFixPreviewResponse =
+          await searchIntentApi.previewIntentFix(productId, {
             intentType,
             query,
             fixType: 'answer_block' as IntentFixDraftType, // Default to Answer Block
-          }
-        );
+          });
 
         setPreviewDraft(response.draft);
 
@@ -99,7 +115,9 @@ export function ProductSearchIntentPanel({ productId }: ProductSearchIntentPanel
         }
       } catch (err) {
         console.error('[ProductSearchIntentPanel] Preview failed:', err);
-        feedback.showError(err instanceof Error ? err.message : 'Failed to generate preview');
+        feedback.showError(
+          err instanceof Error ? err.message : 'Failed to generate preview'
+        );
         setPreviewingQuery(null);
       } finally {
         setPreviewLoading(false);
@@ -119,7 +137,9 @@ export function ProductSearchIntentPanel({ productId }: ProductSearchIntentPanel
         applyTarget: 'ANSWER_BLOCK',
       });
 
-      feedback.showSuccess('Fix applied successfully! Coverage will be recalculated.');
+      feedback.showSuccess(
+        'Fix applied successfully! Coverage will be recalculated.'
+      );
 
       // Reset preview state
       setPreviewDraft(null);
@@ -129,7 +149,9 @@ export function ProductSearchIntentPanel({ productId }: ProductSearchIntentPanel
       await fetchData();
     } catch (err) {
       console.error('[ProductSearchIntentPanel] Apply failed:', err);
-      feedback.showError(err instanceof Error ? err.message : 'Failed to apply fix');
+      feedback.showError(
+        err instanceof Error ? err.message : 'Failed to apply fix'
+      );
     } finally {
       setApplyingDraft(false);
     }
@@ -178,7 +200,9 @@ export function ProductSearchIntentPanel({ productId }: ProductSearchIntentPanel
       {/* Header */}
       <div className="border-b border-gray-100 px-4 py-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold text-gray-900">Search & Intent Coverage</h3>
+          <h3 className="text-base font-semibold text-gray-900">
+            Search & Intent Coverage
+          </h3>
           <span
             className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
               scorecard.status === 'Good'
@@ -205,7 +229,9 @@ export function ProductSearchIntentPanel({ productId }: ProductSearchIntentPanel
             coverage={cov}
             expanded={expandedIntent === cov.intentType}
             onToggle={() =>
-              setExpandedIntent(expandedIntent === cov.intentType ? null : cov.intentType)
+              setExpandedIntent(
+                expandedIntent === cov.intentType ? null : cov.intentType
+              )
             }
             onPreview={handlePreviewFix}
             previewingQuery={previewingQuery}
@@ -228,24 +254,38 @@ export function ProductSearchIntentPanel({ productId }: ProductSearchIntentPanel
             </button>
           </div>
           <div className="rounded-md border border-gray-200 bg-white p-3">
-            {previewDraft.draftType === 'answer_block' && previewDraft.draftPayload.question && (
-              <>
-                <div className="mb-2">
-                  <label className="block text-xs font-medium text-gray-500">Question</label>
-                  <p className="mt-1 text-sm text-gray-900">{previewDraft.draftPayload.question}</p>
-                </div>
+            {previewDraft.draftType === 'answer_block' &&
+              previewDraft.draftPayload.question && (
+                <>
+                  <div className="mb-2">
+                    <label className="block text-xs font-medium text-gray-500">
+                      Question
+                    </label>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {previewDraft.draftPayload.question}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500">
+                      Answer
+                    </label>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {previewDraft.draftPayload.answer}
+                    </p>
+                  </div>
+                </>
+              )}
+            {previewDraft.draftType === 'content_snippet' &&
+              previewDraft.draftPayload.snippet && (
                 <div>
-                  <label className="block text-xs font-medium text-gray-500">Answer</label>
-                  <p className="mt-1 text-sm text-gray-900">{previewDraft.draftPayload.answer}</p>
+                  <label className="block text-xs font-medium text-gray-500">
+                    Content Snippet
+                  </label>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {previewDraft.draftPayload.snippet}
+                  </p>
                 </div>
-              </>
-            )}
-            {previewDraft.draftType === 'content_snippet' && previewDraft.draftPayload.snippet && (
-              <div>
-                <label className="block text-xs font-medium text-gray-500">Content Snippet</label>
-                <p className="mt-1 text-sm text-gray-900">{previewDraft.draftPayload.snippet}</p>
-              </div>
-            )}
+              )}
           </div>
           <div className="mt-3 flex items-center gap-2">
             <button
@@ -286,7 +326,9 @@ function IntentCoverageRow({
   previewLoading,
 }: IntentCoverageRowProps) {
   const statusConfig = STATUS_CONFIG[coverage.coverageStatus];
-  const isHighValue = coverage.intentType === 'transactional' || coverage.intentType === 'comparative';
+  const isHighValue =
+    coverage.intentType === 'transactional' ||
+    coverage.intentType === 'comparative';
 
   return (
     <div className="px-4 py-3">
@@ -318,7 +360,12 @@ function IntentCoverageRow({
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
           </svg>
         </div>
       </button>
@@ -409,7 +456,9 @@ function IntentCoverageRow({
           {coverage.missingQueries.length === 0 &&
             coverage.weakQueries.length === 0 &&
             coverage.coveredQueries.length === 0 && (
-              <p className="text-xs text-gray-500">No queries analyzed for this intent type.</p>
+              <p className="text-xs text-gray-500">
+                No queries analyzed for this intent type.
+              </p>
             )}
         </div>
       )}
@@ -426,13 +475,24 @@ interface QueryItemProps {
   isLoading: boolean;
 }
 
-function QueryItem({ query, status, intentType, onPreview, isPreviewing, isLoading }: QueryItemProps) {
+function QueryItem({
+  query,
+  status,
+  intentType,
+  onPreview,
+  isPreviewing,
+  isLoading,
+}: QueryItemProps) {
   const bgColor = status === 'missing' ? 'bg-red-50' : 'bg-orange-50';
   const textColor = status === 'missing' ? 'text-red-700' : 'text-orange-700';
 
   return (
-    <div className={`flex items-center justify-between rounded ${bgColor} px-2 py-1.5`}>
-      <span className={`text-xs ${textColor} truncate pr-2`}>&quot;{query}&quot;</span>
+    <div
+      className={`flex items-center justify-between rounded ${bgColor} px-2 py-1.5`}
+    >
+      <span className={`text-xs ${textColor} truncate pr-2`}>
+        &quot;{query}&quot;
+      </span>
       <button
         type="button"
         onClick={() => onPreview(intentType, query)}

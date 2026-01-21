@@ -1,12 +1,14 @@
 # DRAFT-EDIT-INTEGRITY-1 Manual Testing Checklist
 
 ## Phase Overview
+
 Ensures Draft Review mode allows users to edit draft content before approval/apply.
 Server draft is source of truth - no autosave, explicit save required.
 
 **Trust Principle:** "If we present a draft for review, the user must be able to edit it safely before approval/apply."
 
 ## Scope
+
 - Draft Review mode (`/automation/playbooks?mode=drafts&...`)
 - Inline edit mode per draft item
 - Save/Cancel controls
@@ -17,11 +19,13 @@ Server draft is source of truth - no autosave, explicit save required.
 ## Locked UX Contract
 
 ### 1. Edit is per-draft-item, not global
+
 - Each draft item has its own Edit button
 - Only one item can be edited at a time
 - Editing does not affect other items
 
 ### 2. Clear "Save" semantics
+
 - Editable textarea/input
 - "Save changes" button
 - "Cancel" button (revert to last saved server value)
@@ -29,12 +33,14 @@ Server draft is source of truth - no autosave, explicit save required.
 - **No auto-save-on-type**
 
 ### 3. Server draft is source of truth
+
 - Draft Review shows server draft content
 - Editing updates server draft content
 - After save, UI re-renders from server response
 - **No sessionStorage "draft" allowed**
 
 ### 4. Permissions respected
+
 - OWNER/EDITOR can edit drafts
 - VIEWER cannot edit (Edit button not shown or disabled)
 - Apply remains blocked by existing rules
@@ -101,6 +107,7 @@ Server draft is source of truth - no autosave, explicit save required.
 ### PATCH /projects/:id/automation-playbooks/drafts/:draftId/items/:itemIndex
 
 **Request:**
+
 ```
 PATCH /projects/:id/automation-playbooks/drafts/:draftId/items/0
 Authorization: Bearer <token>
@@ -112,6 +119,7 @@ Content-Type: application/json
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "draftId": "...",
@@ -128,6 +136,7 @@ Content-Type: application/json
 ```
 
 **Validation:**
+
 - [ ] Returns 404 if draft not found
 - [ ] Returns 403 if user is VIEWER (cannot edit)
 - [ ] Returns 403 if draft belongs to different project
@@ -147,6 +156,7 @@ curl -X POST http://localhost:3001/testkit/e2e/seed-list-actions-clarity-1
 ```
 
 Returns:
+
 - `projectId`
 - `accessToken` (OWNER)
 - `draftPendingProductId`

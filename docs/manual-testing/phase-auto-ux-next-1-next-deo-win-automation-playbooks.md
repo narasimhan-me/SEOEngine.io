@@ -54,6 +54,7 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - [ ] All 4 First DEO Win steps are complete:
   - Connect your store ✅
   - Run your first crawl ✅
@@ -61,10 +62,12 @@
   - Optimize 3 key products ✅
 
 **Steps:**
+
 1. Navigate to /projects/[id]/overview for the prepared project.
 2. Observe the page layout.
 
 **Expected Results:**
+
 - **UI:**
   - [ ] First DEO Win checklist is NOT visible (all steps complete).
   - [ ] "Next DEO win: Fix missing SEO metadata" card is visible.
@@ -82,14 +85,17 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - [ ] HP-001 completed; "Next DEO win" card is visible.
 - [ ] Project has products with missing SEO titles and/or descriptions.
 
 **Steps:**
+
 1. Observe the "Next DEO win" card content.
 2. Wait for the affected products snippet to load.
 
 **Expected Results:**
+
 - **UI:**
   - [ ] While loading: "Checking products for missing SEO..." with spinner.
   - [ ] After loading: Shows counts like "Missing SEO titles: X products • Missing descriptions: Y products"
@@ -103,12 +109,15 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - [ ] HP-001 completed; "Next DEO win" card is visible.
 
 **Steps:**
+
 1. Click the "Open Automation Playbooks" button.
 
 **Expected Results:**
+
 - **Navigation:**
   - [ ] Browser navigates to /projects/[id]/automation/playbooks?source=next_deo_win
 - **Playbooks Page:**
@@ -124,12 +133,15 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - [ ] HP-003 completed; on Playbooks page with banner visible.
 
 **Steps:**
+
 1. Click the "X" dismiss button on the purple banner.
 
 **Expected Results:**
+
 - **UI:**
   - [ ] Banner disappears immediately.
   - [ ] Banner does not reappear during the same session (without page reload).
@@ -145,14 +157,17 @@
 **ID:** PLAN-001
 
 **Preconditions:**
+
 - [ ] User is on Free plan.
 - [ ] All 4 First DEO Win steps are complete.
 
 **Steps:**
+
 1. Navigate to /projects/[id]/overview.
 2. Observe the "Next DEO win" card.
 
 **Expected Results:**
+
 - **Messaging:**
   - [ ] Card shows: "Available on Pro and Business plans. You can still preview suggestions before upgrading."
 - **CTA:**
@@ -168,14 +183,17 @@
 **ID:** PLAN-002
 
 **Preconditions:**
+
 - [ ] User is on Pro or Business plan.
 - [ ] All 4 First DEO Win steps are complete.
 
 **Steps:**
+
 1. Navigate to /projects/[id]/overview.
 2. Observe the "Next DEO win" card.
 
 **Expected Results:**
+
 - **Messaging:**
   - [ ] Card shows: "Your plan supports bulk automations with token-aware safeguards."
 - **Playbooks Page:**
@@ -190,10 +208,12 @@
 **Description:** API call for estimate fails, but card should still be usable.
 
 **Steps:**
+
 1. (Simulate) Block or fail the automation playbook estimate API.
 2. Navigate to /projects/[id]/overview with checklist complete.
 
 **Expected Behavior:**
+
 - [ ] Card still renders with fallback message: "We'll scan for missing SEO metadata when you open Playbooks."
 - [ ] "Open Automation Playbooks" button remains clickable.
 - [ ] No error toast or blocking behavior.
@@ -205,10 +225,12 @@
 **Description:** All products have complete SEO metadata.
 
 **Steps:**
+
 1. Ensure all products in the project have SEO titles and descriptions.
 2. Navigate to /projects/[id]/overview with checklist complete.
 
 **Expected Behavior:**
+
 - [ ] Affected products snippet shows: "Missing SEO titles: 0 products • Missing descriptions: 0 products"
 - [ ] Card still visible and functional (user may want to review or re-run).
 
@@ -219,10 +241,12 @@
 **Description:** Card should only appear when all 4 steps are complete.
 
 **Steps:**
+
 1. Use a project where only 3 of 4 checklist steps are complete.
 2. Navigate to /projects/[id]/overview.
 
 **Expected Behavior:**
+
 - [ ] First DEO Win checklist IS visible (showing incomplete step).
 - [ ] "Next DEO win" card is NOT visible.
 
@@ -278,9 +302,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Name] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Phase AUTO-UX-NEXT-1 Next DEO Win: Automation Playbooks Entry |
+| Field              | Value                                                         |
+| ------------------ | ------------------------------------------------------------- |
+| **Tester Name**    | [Name]                                                        |
+| **Date**           | [YYYY-MM-DD]                                                  |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed                         |
+| **Notes**          | Phase AUTO-UX-NEXT-1 Next DEO Win: Automation Playbooks Entry |

@@ -58,7 +58,9 @@ async function createTestProduct() {
     console.log(`   User ID: ${user.id}`);
     console.log(`   User Email: ${user.email}`);
     console.log('');
-    console.log('You can now use this product ID to test answer blocks endpoints.');
+    console.log(
+      'You can now use this product ID to test answer blocks endpoints.'
+    );
 
     await prisma.$disconnect();
   } catch (error) {
@@ -69,4 +71,3 @@ async function createTestProduct() {
 }
 
 createTestProduct();
-

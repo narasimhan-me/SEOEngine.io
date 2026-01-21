@@ -37,13 +37,18 @@ export default function TopNav() {
     setAuthenticated(isAuth);
 
     // [NAV-IA-CONSISTENCY-1] Load theme preference
-    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) as 'light' | 'dark' | null;
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) as
+      | 'light'
+      | 'dark'
+      | null;
     if (savedTheme) {
       setTheme(savedTheme);
       document.documentElement.classList.toggle('dark', savedTheme === 'dark');
     } else {
       // Check system preference
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const prefersDark = window.matchMedia(
+        '(prefers-color-scheme: dark)'
+      ).matches;
       if (prefersDark) {
         setTheme('dark');
         document.documentElement.classList.add('dark');
@@ -52,27 +57,34 @@ export default function TopNav() {
 
     // Fetch user data to check role
     if (isAuth) {
-      usersApi.me().then((userData: User) => {
-        setUser(userData);
-      }).catch(() => {
-        // If fetch fails, clear auth state
-        removeToken();
-        setAuthenticated(false);
-      });
+      usersApi
+        .me()
+        .then((userData: User) => {
+          setUser(userData);
+        })
+        .catch(() => {
+          // If fetch fails, clear auth state
+          removeToken();
+          setAuthenticated(false);
+        });
     }
   }, []);
 
   // [SELF-SERVICE-1] Close account menu when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target as Node)) {
+      if (
+        accountMenuRef.current &&
+        !accountMenuRef.current.contains(event.target as Node)
+      ) {
         setAccountMenuOpen(false);
       }
     }
 
     if (accountMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [accountMenuOpen]);
 
@@ -166,16 +178,40 @@ export default function TopNav() {
                 <button
                   onClick={toggleTheme}
                   className="p-2 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted"
-                  title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+                  title={
+                    theme === 'light'
+                      ? 'Switch to dark mode'
+                      : 'Switch to light mode'
+                  }
                   data-testid="theme-toggle"
                 >
                   {theme === 'light' ? (
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                      />
                     </svg>
                   ) : (
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                      />
                     </svg>
                   )}
                 </button>
@@ -208,17 +244,29 @@ export default function TopNav() {
                       viewBox="0 0 24 24"
                       stroke="currentColor"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
                     </svg>
                   </button>
 
                   {accountMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-background ring-1 ring-border z-50" data-testid="account-dropdown">
+                    <div
+                      className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-background ring-1 ring-border z-50"
+                      data-testid="account-dropdown"
+                    >
                       <div className="py-1" role="menu">
                         {/* User info header */}
                         <div className="px-4 py-2 border-b border-border">
-                          <p className="text-sm font-medium text-foreground truncate">{user?.name || 'User'}</p>
-                          <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {user?.name || 'User'}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {user?.email}
+                          </p>
                         </div>
 
                         {/* [NAV-IA-CONSISTENCY-1] Account menu items - exact labels and order */}

@@ -45,14 +45,17 @@
 **ID:** ANS-001
 
 **Preconditions:**
+
 - Products with insufficient content for AI answers
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'not_answer_ready'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'answerability'`
 - **whyItMatters:** Explanation about AI assistants skipping thin content
 - **recommendedFix:** Guidance about Q&A-style content enhancement
@@ -66,14 +69,17 @@
 **ID:** ANS-002
 
 **Preconditions:**
+
 - Products with metadata not matching search intent
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'weak_intent_match'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'answerability'`
 - **whyItMatters:** Explanation about appearing for wrong queries
 - **recommendedFix:** Guidance about AI optimization for intent
@@ -87,14 +93,17 @@
 **ID:** ANS-003
 
 **Preconditions:**
+
 - Pages with word count < 400 or missing H1
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'answer_surface_weakness'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'answerability'`
 - **whyItMatters:** Explanation about featured snippets and AI answers
 - **recommendedFix:** Guidance about long-form content with headings
@@ -110,10 +119,12 @@
 **Description:** Products at the boundary threshold.
 
 **Steps:**
+
 1. Create product with description (40 words) + seoDescription (40 words)
 2. Call `GET /projects/:id/deo-issues`
 
 **Expected Behavior:**
+
 - Product should NOT trigger `not_answer_ready` (threshold is < 80)
 
 ---
@@ -123,10 +134,12 @@
 **Description:** Project with comprehensive content.
 
 **Steps:**
+
 1. Create products with 100+ word descriptions and optimized titles
 2. Call `GET /projects/:id/deo-issues`
 
 **Expected Behavior:**
+
 - No answerability category issues for products
 - May still have page-level answer surface issues
 
@@ -151,9 +164,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Issue Engine Full - Answerability issues (Phase UX-8) |
+| Field              | Value                                                 |
+| ------------------ | ----------------------------------------------------- |
+| **Tester Name**    | [Pending]                                             |
+| **Date**           | [YYYY-MM-DD]                                          |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed                 |
+| **Notes**          | Issue Engine Full - Answerability issues (Phase UX-8) |

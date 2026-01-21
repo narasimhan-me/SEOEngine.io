@@ -17,9 +17,9 @@ import type { SearchIntentType } from './search-intent';
  * Competitive gap types distinguishing different categories of gaps.
  */
 export type CompetitorGapType =
-  | 'intent_gap'           // Missing/weak intent coverage that competitors likely have
-  | 'content_section_gap'  // Missing comparison section, buying guide, etc.
-  | 'trust_signal_gap';    // Missing trust FAQ, reviews section, guarantees
+  | 'intent_gap' // Missing/weak intent coverage that competitors likely have
+  | 'content_section_gap' // Missing comparison section, buying guide, etc.
+  | 'trust_signal_gap'; // Missing trust FAQ, reviews section, guarantees
 
 /**
  * Human-readable labels for gap types.
@@ -159,7 +159,11 @@ export interface CompetitiveFixGap {
   /** Number of competitors expected to cover this area (1-3) */
   competitorCount: number;
   /** Recommended action */
-  recommendedAction: 'answer_block' | 'comparison_section' | 'description_expansion' | 'faq_section';
+  recommendedAction:
+    | 'answer_block'
+    | 'comparison_section'
+    | 'description_expansion'
+    | 'faq_section';
   /** Severity (calculated from competitor count and intent importance) */
   severity: 'critical' | 'warning' | 'info';
   /** Whether an automated fix is available */
@@ -170,8 +174,8 @@ export interface CompetitiveFixGap {
  * Draft types for competitive fixes.
  */
 export type CompetitiveFixDraftType =
-  | 'answer_block'       // Q&A positioning content
-  | 'comparison_copy'    // "Why choose this product vs others" text
+  | 'answer_block' // Q&A positioning content
+  | 'comparison_copy' // "Why choose this product vs others" text
   | 'positioning_section'; // "Why choose this product" section content
 
 /**
@@ -344,7 +348,9 @@ export function computeCompetitiveFixWorkKey(
 /**
  * Map coverage area to gap type.
  */
-export function getGapTypeForArea(areaId: CompetitiveCoverageAreaId): CompetitorGapType {
+export function getGapTypeForArea(
+  areaId: CompetitiveCoverageAreaId
+): CompetitorGapType {
   if (areaId.endsWith('_intent')) {
     return 'intent_gap';
   }
@@ -360,12 +366,13 @@ export function getGapTypeForArea(areaId: CompetitiveCoverageAreaId): Competitor
 export function getIntentTypeFromAreaId(
   areaId: CompetitiveCoverageAreaId
 ): SearchIntentType | undefined {
-  const mapping: Partial<Record<CompetitiveCoverageAreaId, SearchIntentType>> = {
-    transactional_intent: 'transactional',
-    comparative_intent: 'comparative',
-    problem_use_case_intent: 'problem_use_case',
-    trust_validation_intent: 'trust_validation',
-    informational_intent: 'informational',
-  };
+  const mapping: Partial<Record<CompetitiveCoverageAreaId, SearchIntentType>> =
+    {
+      transactional_intent: 'transactional',
+      comparative_intent: 'comparative',
+      problem_use_case_intent: 'problem_use_case',
+      trust_validation_intent: 'trust_validation',
+      informational_intent: 'informational',
+    };
   return mapping[areaId];
 }

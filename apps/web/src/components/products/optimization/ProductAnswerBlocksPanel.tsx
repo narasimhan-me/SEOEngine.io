@@ -87,7 +87,9 @@ export function ProductAnswerBlocksPanel({
             questionText: block.questionText,
             answerText: block.answerText,
             confidenceScore:
-              typeof block.confidenceScore === 'number' ? block.confidenceScore : 0,
+              typeof block.confidenceScore === 'number'
+                ? block.confidenceScore
+                : 0,
             sourceType: block.sourceType ?? 'generated',
             updatedAt: block.updatedAt,
           }))
@@ -120,8 +122,8 @@ export function ProductAnswerBlocksPanel({
   const handleAnswerChange = (id: string, value: string) => {
     setBlocks((prev) =>
       prev.map((block) =>
-        block.id === id ? { ...block, answerText: value } : block,
-      ),
+        block.id === id ? { ...block, answerText: value } : block
+      )
     );
     setHasChanges(true);
   };
@@ -166,9 +168,12 @@ export function ProductAnswerBlocksPanel({
     try {
       setAutomationRunning(true);
       setError(null);
-      await productsApi.triggerAnswerBlockAutomation(productId, 'issue_detected');
+      await productsApi.triggerAnswerBlockAutomation(
+        productId,
+        'issue_detected'
+      );
       feedback.showSuccess(
-        'Answer Block automation triggered. Refresh in a moment to see updates.',
+        'Answer Block automation triggered. Refresh in a moment to see updates.'
       );
     } catch (err: unknown) {
       // eslint-disable-next-line no-console
@@ -191,17 +196,18 @@ export function ProductAnswerBlocksPanel({
     if (isFreePlan) {
       feedback.showLimit(
         'Shopify Answer Block metafield sync is available on paid plans. Upgrade to enable Answer Block sync.',
-        '/settings/billing',
+        '/settings/billing'
       );
       return;
     }
     try {
       setSyncingToShopify(true);
       setError(null);
-      const result: any = await productsApi.syncAnswerBlocksToShopify(productId);
+      const result: any =
+        await productsApi.syncAnswerBlocksToShopify(productId);
       if (!result) {
         feedback.showError(
-          'Failed to sync Answer Blocks to Shopify. Please try again.',
+          'Failed to sync Answer Blocks to Shopify. Please try again.'
         );
         return;
       }
@@ -219,17 +225,17 @@ export function ProductAnswerBlocksPanel({
       } else if (status === 'skipped') {
         if (reason === 'sync_toggle_off') {
           feedback.showInfo(
-            'Sync is disabled in Project Settings. Enable "Sync Answer Blocks to Shopify metafields" to allow automatic sync.',
+            'Sync is disabled in Project Settings. Enable "Sync Answer Blocks to Shopify metafields" to allow automatic sync.'
           );
         } else if (reason === 'plan_not_entitled') {
           feedback.showLimit(
             'Your current plan does not include Shopify Answer Block metafield sync. Upgrade to enable this feature.',
-            '/settings/billing',
+            '/settings/billing'
           );
         } else if (reason === 'daily_cap_reached') {
           feedback.showLimit(
             'Daily sync limit reached for Answer Blocks. Try again tomorrow or upgrade your plan for higher limits.',
-            '/settings/billing',
+            '/settings/billing'
           );
         } else {
           feedback.showInfo('Sync was skipped for this product.');
@@ -303,8 +309,8 @@ export function ProductAnswerBlocksPanel({
       </div>
       <div className="mb-4 flex flex-col gap-2 text-xs text-gray-600 sm:flex-row sm:items-center sm:justify-between">
         <p className="max-w-md">
-          Structured, persistent answers that AI engines can safely reuse. These are your source of
-          truth for Answer Engine Optimization (AEO).
+          Structured, persistent answers that AI engines can safely reuse. These
+          are your source of truth for Answer Engine Optimization (AEO).
         </p>
         <div className="flex flex-wrap items-center gap-1">
           <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-emerald-700">
@@ -325,8 +331,8 @@ export function ProductAnswerBlocksPanel({
 
       {isFreePlan && (
         <div className="mb-4 rounded-md bg-indigo-50 px-3 py-2 text-xs text-indigo-800">
-          Automatic Answer Block generation is not available on the Free plan. You can
-          view and edit existing Answer Blocks, or{' '}
+          Automatic Answer Block generation is not available on the Free plan.
+          You can view and edit existing Answer Blocks, or{' '}
           <Link
             href="/settings/billing"
             className="font-semibold underline hover:text-indigo-900"
@@ -371,8 +377,8 @@ export function ProductAnswerBlocksPanel({
       {!loading && !error && blocks.length === 0 && (
         <div className="flex flex-col items-center justify-center py-6">
           <p className="mb-3 max-w-xs text-center text-sm text-gray-500">
-            No canonical answers yet. Review AI Answer previews to identify missing facts, then
-            generate Answer Blocks.
+            No canonical answers yet. Review AI Answer previews to identify
+            missing facts, then generate Answer Blocks.
           </p>
           <button
             type="button"
@@ -397,7 +403,9 @@ export function ProductAnswerBlocksPanel({
                 d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
               />
             </svg>
-            {isFreePlan ? 'Upgrade to generate Answer Blocks' : 'Generate Answer Blocks'}
+            {isFreePlan
+              ? 'Upgrade to generate Answer Blocks'
+              : 'Generate Answer Blocks'}
           </button>
         </div>
       )}
@@ -431,8 +439,9 @@ export function ProductAnswerBlocksPanel({
           <div className="space-y-3">
             {blocks.map((block) => {
               const label =
-                ANSWER_QUESTION_LABELS[block.questionId as AnswerBlockQuestionId] ??
-                block.questionText;
+                ANSWER_QUESTION_LABELS[
+                  block.questionId as AnswerBlockQuestionId
+                ] ?? block.questionText;
               const isUserEdited = block.sourceType === 'userEdited';
               return (
                 <div
@@ -462,7 +471,9 @@ export function ProductAnswerBlocksPanel({
                     className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     rows={4}
                     value={block.answerText}
-                    onChange={(e) => handleAnswerChange(block.id, e.target.value)}
+                    onChange={(e) =>
+                      handleAnswerChange(block.id, e.target.value)
+                    }
                   />
                 </div>
               );
@@ -512,7 +523,9 @@ export function ProductAnswerBlocksPanel({
                   />
                 </svg>
                 {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Renamed to "Run Answer Block generation" */}
-                {isFreePlan ? 'Generation gated by plan' : 'Run Answer Block generation'}
+                {isFreePlan
+                  ? 'Generation gated by plan'
+                  : 'Run Answer Block generation'}
               </button>
               <button
                 type="button"
@@ -531,8 +544,15 @@ export function ProductAnswerBlocksPanel({
             </div>
             {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Inline guidance for actions */}
             <div className="mt-2 text-[11px] text-gray-500 space-y-1">
-              <p><strong>Generation:</strong> Creates or improves missing/weak Answer Blocks in EngineO. Syncs to Shopify only if enabled in Settings.</p>
-              <p><strong>Sync:</strong> Sends Answer Blocks to Shopify metafields. Does not change metadata or product content.</p>
+              <p>
+                <strong>Generation:</strong> Creates or improves missing/weak
+                Answer Blocks in EngineO. Syncs to Shopify only if enabled in
+                Settings.
+              </p>
+              <p>
+                <strong>Sync:</strong> Sends Answer Blocks to Shopify
+                metafields. Does not change metadata or product content.
+              </p>
             </div>
           </div>
         </div>

@@ -21,6 +21,7 @@ This phase ensures playbook entrypoints route deterministically to the correct p
 ```
 
 **Required Parameters:**
+
 - `step`: Current workflow step (`preview`, `estimate`, or `apply`)
 - `source`: Entrypoint identifier for analytics/context
 
@@ -40,13 +41,14 @@ This phase ensures playbook entrypoints route deterministically to the correct p
 
 ## Locked Routing Behavior (Do Not Modify Without Phase Approval)
 
-| Entrypoint | Routes To |
-|------------|-----------|
-| Banner CTA | `/playbooks/:playbookId?step=preview&source=banner` |
-| Tile click | `/playbooks/:playbookId?step=preview&source=tile` |
+| Entrypoint | Routes To                                               |
+| ---------- | ------------------------------------------------------- |
+| Banner CTA | `/playbooks/:playbookId?step=preview&source=banner`     |
+| Tile click | `/playbooks/:playbookId?step=preview&source=tile`       |
 | Work Queue | `/playbooks/:playbookId?step=preview&source=work_queue` |
 
 **Critical Invariants:**
+
 - URL MUST contain the correct `playbookId` matching the CTA label
 - Click MUST NOT trigger AI/preview side effects
 - Stepper MUST be visible after navigation
@@ -103,6 +105,7 @@ This phase ensures playbook entrypoints route deterministically to the correct p
 **Goal:** Entry page "Open Playbooks" CTA routes to Playbooks LIST which deterministically selects the correct playbook based on scoped eligibility.
 
 **Setup:**
+
 - Set up sessionStorage with `automationEntryContext:{projectId}` containing `selectedProductIds` array.
 - Seed data where descriptions eligibleCount > 0 AND titles eligibleCount = 0 (for the scoped products).
 
@@ -195,13 +198,13 @@ This phase ensures playbook entrypoints route deterministically to the correct p
 
 ## Routing Parity Verification
 
-| Entrypoint | URL Contains playbookId | URL Contains step=preview | URL Contains source | No AI Side Effects |
-|------------|-------------------------|---------------------------|---------------------|-------------------|
-| Banner CTA | [ ] | [ ] | [ ] | [ ] |
-| Tile click | [ ] | [ ] | [ ] | [ ] |
-| Work Queue | [ ] | [ ] | [ ] | [ ] |
-| Products list | [ ] | [ ] | [ ] | [ ] |
-| Entry page (Open Playbooks CTA) | [ ] | [ ] | [ ] | [ ] (routing only, no AI dependency) |
+| Entrypoint                      | URL Contains playbookId | URL Contains step=preview | URL Contains source | No AI Side Effects                   |
+| ------------------------------- | ----------------------- | ------------------------- | ------------------- | ------------------------------------ |
+| Banner CTA                      | [ ]                     | [ ]                       | [ ]                 | [ ]                                  |
+| Tile click                      | [ ]                     | [ ]                       | [ ]                 | [ ]                                  |
+| Work Queue                      | [ ]                     | [ ]                       | [ ]                 | [ ]                                  |
+| Products list                   | [ ]                     | [ ]                       | [ ]                 | [ ]                                  |
+| Entry page (Open Playbooks CTA) | [ ]                     | [ ]                       | [ ]                 | [ ] (routing only, no AI dependency) |
 
 ---
 
@@ -214,6 +217,7 @@ POST /testkit/e2e/seed-playbook-entrypoint-integrity-1
 ```
 
 Returns:
+
 - `user` with `id`, `email`
 - `projectId` with connected Shopify store
 - `productIds` array

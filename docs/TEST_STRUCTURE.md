@@ -45,6 +45,7 @@ EngineO.ai/
 ## Test Types
 
 ### 1. Unit Tests (`apps/api/test/unit/`)
+
 - **Purpose**: Test individual services/utilities in isolation
 - **Location**: `apps/api/test/unit/{module}/`
 - **Characteristics**:
@@ -54,6 +55,7 @@ EngineO.ai/
   - Organized by feature/module
 
 ### 2. Integration Tests (`apps/api/test/integration/`)
+
 - **Purpose**: Test API endpoints and service interactions with real database
 - **Location**: `apps/api/test/integration/{module}/` or flat in `integration/`
 - **Characteristics**:
@@ -63,6 +65,7 @@ EngineO.ai/
   - Organized by feature/module
 
 ### 3. E2E Tests - API (`apps/api/test/e2e/`)
+
 - **Purpose**: End-to-end API testing with Jest
 - **Location**: `apps/api/test/e2e/{feature}/`
 - **Characteristics**:
@@ -72,6 +75,7 @@ EngineO.ai/
   - Uses `jest.e2e.config.ts`
 
 ### 4. E2E Tests - Web (`apps/web/tests/e2e/`)
+
 - **Purpose**: Browser-based end-to-end testing
 - **Location**: `apps/web/tests/e2e/`
 - **Characteristics**:
@@ -80,6 +84,7 @@ EngineO.ai/
   - Requires both web and API servers running
 
 ### 5. Shared Package Tests (`packages/shared/src/**/*.test.ts`)
+
 - **Purpose**: Test shared utilities and types
 - **Location**: Co-located with source files
 - **Characteristics**:
@@ -89,6 +94,7 @@ EngineO.ai/
 ## Import Paths
 
 ### From Unit Tests (`apps/api/test/unit/{module}/`)
+
 ```typescript
 // Source files
 import { ServiceName } from '../../src/module/service';
@@ -99,6 +105,7 @@ import { fixture } from '../../fixtures/fixture-name';
 ```
 
 ### From Integration Tests (`apps/api/test/integration/{module}/`)
+
 ```typescript
 // Source files
 import { ServiceName } from '../src/module/service';
@@ -142,14 +149,17 @@ pnpm --filter api test:api --coverage
 ## Test Utilities
 
 ### `apps/api/test/utils/test-db.ts`
+
 - `testPrisma` - Prisma client for test database
 - `cleanupTestDb()` - Clean all test data
 - `disconnectTestDb()` - Close database connection
 
 ### `apps/api/test/utils/test-app.ts`
+
 - `createTestApp()` - Create NestJS testing module for integration tests
 
 ### `apps/api/test/fixtures/`
+
 - Test data factories for creating consistent test data
 - Shopify product fixtures
 - Automation event fixtures
@@ -166,10 +176,10 @@ pnpm --filter api test:api --coverage
 ## Migration Notes
 
 Tests were reorganized from:
+
 - `tests/unit/` → `apps/api/test/unit/`
 - `tests/integration/` → `apps/api/test/integration/`
 - `tests/e2e/` → `apps/api/test/e2e/`
 - `apps/web/tests/*.spec.ts` → `apps/web/tests/e2e/*.spec.ts`
 
 All import paths have been updated to reflect the new structure.
-

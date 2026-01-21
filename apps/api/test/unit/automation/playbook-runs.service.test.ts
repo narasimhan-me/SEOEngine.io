@@ -7,7 +7,10 @@
  * - Status transitions via inline execution.
  * - Stale detection for known contract errors.
  */
-import { AutomationPlaybookRunsService, AutomationPlaybookRunType } from '../../../src/projects/automation-playbook-runs.service';
+import {
+  AutomationPlaybookRunsService,
+  AutomationPlaybookRunType,
+} from '../../../src/projects/automation-playbook-runs.service';
 import { AutomationPlaybookRunProcessor } from '../../../src/projects/automation-playbook-run.processor';
 import { RoleResolutionService } from '../../../src/common/role-resolution.service';
 
@@ -42,7 +45,9 @@ describe('AutomationPlaybookRunsService', () => {
   let service: AutomationPlaybookRunsService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
   let processorMock: { processJob: jest.Mock };
-  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
+  let roleResolutionServiceMock: ReturnType<
+    typeof createRoleResolutionServiceMock
+  >;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
@@ -53,7 +58,7 @@ describe('AutomationPlaybookRunsService', () => {
     service = new AutomationPlaybookRunsService(
       prismaMock as any,
       processorMock as any,
-      roleResolutionServiceMock as any,
+      roleResolutionServiceMock as any
     );
   });
 
@@ -242,7 +247,9 @@ describe('AutomationPlaybookRunsService', () => {
 
     it('should handle processor errors gracefully for inline execution', async () => {
       const run = { id: 'run-1', status: 'QUEUED' };
-      processorMock.processJob.mockRejectedValue(new Error('Processing failed'));
+      processorMock.processJob.mockRejectedValue(
+        new Error('Processing failed')
+      );
 
       // Should not throw
       await expect(service.enqueueOrExecute(run)).resolves.not.toThrow();
@@ -274,7 +281,7 @@ describe('AutomationPlaybookRunsService', () => {
       prismaMock.automationPlaybookRun.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.getRunById('user-1', 'proj-1', 'run-missing'),
+        service.getRunById('user-1', 'proj-1', 'run-missing')
       ).rejects.toThrow('Run not found');
     });
   });
@@ -301,7 +308,7 @@ describe('AutomationPlaybookRunsService', () => {
         expect.objectContaining({
           take: 20,
           orderBy: { createdAt: 'desc' },
-        }),
+        })
       );
     });
 
@@ -322,7 +329,7 @@ describe('AutomationPlaybookRunsService', () => {
             runType: 'APPLY',
           }),
           take: 50,
-        }),
+        })
       );
     });
 
@@ -334,7 +341,7 @@ describe('AutomationPlaybookRunsService', () => {
       expect(prismaMock.automationPlaybookRun.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           take: 100,
-        }),
+        })
       );
     });
   });
@@ -371,7 +378,7 @@ describe('AutomationPlaybookRunProcessor (status transitions)', () => {
     // Construct processor directly with mocks
     processor = new AutomationPlaybookRunProcessor(
       prismaMock as any,
-      playbooksServiceMock as any,
+      playbooksServiceMock as any
     );
   });
 
@@ -419,7 +426,7 @@ describe('AutomationPlaybookRunProcessor (status transitions)', () => {
         expect.objectContaining({
           where: { id: 'run-1' },
           data: expect.objectContaining({ status: 'RUNNING' }),
-        }),
+        })
       );
 
       // Check SUCCEEDED transition with aiUsed=true
@@ -431,7 +438,7 @@ describe('AutomationPlaybookRunProcessor (status transitions)', () => {
             aiUsed: true,
             draftId: 'draft-1',
           }),
-        }),
+        })
       );
     });
 
@@ -463,7 +470,7 @@ describe('AutomationPlaybookRunProcessor (status transitions)', () => {
             status: 'SUCCEEDED',
             aiUsed: false,
           }),
-        }),
+        })
       );
     });
 
@@ -494,7 +501,7 @@ describe('AutomationPlaybookRunProcessor (status transitions)', () => {
             status: 'STALE',
             errorCode: 'PLAYBOOK_RULES_CHANGED',
           }),
-        }),
+        })
       );
     });
 
@@ -525,7 +532,7 @@ describe('AutomationPlaybookRunProcessor (status transitions)', () => {
             status: 'STALE',
             errorCode: 'PLAYBOOK_SCOPE_INVALID',
           }),
-        }),
+        })
       );
     });
 
@@ -555,7 +562,7 @@ describe('AutomationPlaybookRunProcessor (status transitions)', () => {
             status: 'FAILED',
             errorCode: 'INTERNAL_ERROR',
           }),
-        }),
+        })
       );
     });
   });

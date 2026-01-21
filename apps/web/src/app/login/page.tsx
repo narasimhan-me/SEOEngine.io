@@ -51,18 +51,26 @@ function LoginForm() {
     if (hasSensitiveParams) {
       // Build sanitized URL preserving only `next` param
       const nextParam = searchParams.get('next');
-      const sanitizedUrl = nextParam ? `/login?next=${encodeURIComponent(nextParam)}&sanitized=1` : '/login?sanitized=1';
+      const sanitizedUrl = nextParam
+        ? `/login?next=${encodeURIComponent(nextParam)}&sanitized=1`
+        : '/login?sanitized=1';
       router.replace(sanitizedUrl);
-      setSecurityMessage('For security, we removed sensitive parameters from the URL. Please enter your credentials.');
+      setSecurityMessage(
+        'For security, we removed sensitive parameters from the URL. Please enter your credentials.'
+      );
       return;
     }
 
     // Show message if redirected from middleware sanitization
     if (searchParams.get('sanitized') === '1') {
-      setSecurityMessage('For security, we removed sensitive parameters from the URL. Please enter your credentials.');
+      setSecurityMessage(
+        'For security, we removed sensitive parameters from the URL. Please enter your credentials.'
+      );
       // Clean up the sanitized flag from URL
       const nextParam = searchParams.get('next');
-      const cleanUrl = nextParam ? `/login?next=${encodeURIComponent(nextParam)}` : '/login';
+      const cleanUrl = nextParam
+        ? `/login?next=${encodeURIComponent(nextParam)}`
+        : '/login';
       router.replace(cleanUrl);
     }
   }, [searchParams, router]);
@@ -113,7 +121,10 @@ function LoginForm() {
         setShowCaptcha(true);
         setCaptchaToken(null);
       }
-      const message = err instanceof Error ? err.message : 'Sign-in failed. Please check your credentials.';
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Sign-in failed. Please check your credentials.';
       setError(message);
     } finally {
       setLoading(false);
@@ -162,7 +173,10 @@ function LoginForm() {
 
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email address
               </label>
               <input
@@ -179,7 +193,10 @@ function LoginForm() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
               <input
@@ -198,7 +215,13 @@ function LoginForm() {
 
           {showCaptcha && (
             <div className="flex justify-center">
-              <Suspense fallback={<div className="text-sm text-gray-500">Loading CAPTCHA...</div>}>
+              <Suspense
+                fallback={
+                  <div className="text-sm text-gray-500">
+                    Loading CAPTCHA...
+                  </div>
+                }
+              >
                 <Captcha
                   onVerify={(token) => setCaptchaToken(token)}
                   onExpire={() => setCaptchaToken(null)}
@@ -223,7 +246,10 @@ function LoginForm() {
         <div className="text-center mt-6 pt-6 border-t border-gray-100">
           <p className="text-sm text-gray-600">
             Don&apos;t have an account?{' '}
-            <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link
+              href="/signup"
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
               Create account
             </Link>
           </p>
@@ -236,14 +262,16 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Suspense fallback={
-        <div className="max-w-md w-full text-center">
-          <div className="animate-pulse">
-            <div className="h-10 bg-gray-200 rounded w-48 mx-auto mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded w-64 mx-auto"></div>
+      <Suspense
+        fallback={
+          <div className="max-w-md w-full text-center">
+            <div className="animate-pulse">
+              <div className="h-10 bg-gray-200 rounded w-48 mx-auto mb-4"></div>
+              <div className="h-4 bg-gray-200 rounded w-64 mx-auto"></div>
+            </div>
           </div>
-        </div>
-      }>
+        }
+      >
         <LoginForm />
       </Suspense>
     </div>

@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { Job, Worker } from 'bullmq';
 import * as crypto from 'crypto';
 import { redisConfig } from '../config/redis.config';
@@ -14,25 +19,30 @@ interface AutomationPlaybookRunJobPayload {
 }
 
 @Injectable()
-export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDestroy {
+export class AutomationPlaybookRunProcessor
+  implements OnModuleInit, OnModuleDestroy
+{
   private worker: Worker<AutomationPlaybookRunJobPayload, void> | null = null;
   private readonly logger = new Logger(AutomationPlaybookRunProcessor.name);
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly automationPlaybooksService: AutomationPlaybooksService,
+    private readonly automationPlaybooksService: AutomationPlaybooksService
   ) {}
 
   async onModuleInit() {
     if (!redisConfig.isEnabled || !redisConfig.connection) {
-      this.logger.warn('[AutomationPlaybookRunProcessor] Redis not configured - worker disabled');
+      this.logger.warn(
+        '[AutomationPlaybookRunProcessor] Redis not configured - worker disabled'
+      );
       return;
     }
 
-    const enableQueueProcessors = process.env.ENABLE_QUEUE_PROCESSORS !== 'false';
+    const enableQueueProcessors =
+      process.env.ENABLE_QUEUE_PROCESSORS !== 'false';
     if (!enableQueueProcessors) {
       this.logger.warn(
-        '[AutomationPlaybookRunProcessor] ENABLE_QUEUE_PROCESSORS=false - worker disabled',
+        '[AutomationPlaybookRunProcessor] ENABLE_QUEUE_PROCESSORS=false - worker disabled'
       );
       return;
     }
@@ -46,7 +56,7 @@ export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDes
         connection: redisConfig.connection,
         prefix: redisConfig.prefix,
         concurrency: 5,
-      },
+      }
     );
 
     this.logger.log('[AutomationPlaybookRunProcessor] Worker initialized');
@@ -66,12 +76,16 @@ export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDes
   computeAiWorkKey(
     playbookId: string,
     productIds: string[],
-    rules: PlaybookRulesV1 | undefined,
+    rules: PlaybookRulesV1 | undefined
   ): string {
     const sortedProductIds = [...productIds].sort();
     const rulesJson = rules ? JSON.stringify(rules) : '';
     const payload = `${playbookId}:${sortedProductIds.join(',')}:${rulesJson}`;
-    return crypto.createHash('sha256').update(payload).digest('hex').slice(0, 16);
+    return crypto
+      .createHash('sha256')
+      .update(payload)
+      .digest('hex')
+      .slice(0, 16);
   }
 
   /**
@@ -82,7 +96,7 @@ export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDes
     projectId: string,
     playbookId: string,
     runType: 'PREVIEW_GENERATE' | 'DRAFT_GENERATE',
-    aiWorkKey: string,
+    aiWorkKey: string
   ): Promise<{ id: string; draftId: string | null } | null> {
     const reusableRun = await this.prisma.automationPlaybookRun.findFirst({
       where: {
@@ -114,14 +128,16 @@ export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDes
     });
 
     if (!run) {
-      this.logger.warn(`[AutomationPlaybookRunProcessor] Run ${runId} not found; skipping`);
+      this.logger.warn(
+        `[AutomationPlaybookRunProcessor] Run ${runId} not found; skipping`
+      );
       return;
     }
 
     // Idempotency: only process QUEUED runs
     if (run.status !== 'QUEUED') {
       this.logger.log(
-        `[AutomationPlaybookRunProcessor] Run ${runId} is ${run.status}, not QUEUED; skipping`,
+        `[AutomationPlaybookRunProcessor] Run ${runId} is ${run.status}, not QUEUED; skipping`
       );
       return;
     }
@@ -136,7 +152,7 @@ export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDes
     });
 
     this.logger.log(
-      `[AutomationPlaybookRunProcessor] Processing run ${runId} (type=${run.runType}, playbook=${run.playbookId})`,
+      `[AutomationPlaybookRunProcessor] Processing run ${runId} (type=${run.runType}, playbook=${run.playbookId})`
     );
 
     try {
@@ -166,13 +182,13 @@ export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDes
               run.projectId,
               playbookId,
               'PREVIEW_GENERATE',
-              aiWorkKey,
+              aiWorkKey
             );
 
             if (reusableRun) {
               // Reuse the prior run's draft instead of calling AI
               this.logger.log(
-                `[AutomationPlaybookRunProcessor] Run ${runId} reusing AI work from run ${reusableRun.id}`,
+                `[AutomationPlaybookRunProcessor] Run ${runId} reusing AI work from run ${reusableRun.id}`
               );
               draftId = reusableRun.draftId;
               resultRef = reusableRun.draftId;
@@ -184,13 +200,14 @@ export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDes
           }
 
           // No reusable run found - perform fresh AI generation
-          const previewResult = await this.automationPlaybooksService.previewPlaybook(
-            run.createdByUserId,
-            run.projectId,
-            playbookId,
-            rules,
-            sampleSize,
-          );
+          const previewResult =
+            await this.automationPlaybooksService.previewPlaybook(
+              run.createdByUserId,
+              run.projectId,
+              playbookId,
+              rules,
+              sampleSize
+            );
 
           draftId = previewResult.draftId;
           resultRef = previewResult.draftId;
@@ -211,13 +228,13 @@ export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDes
               run.projectId,
               playbookId,
               'DRAFT_GENERATE',
-              aiWorkKey,
+              aiWorkKey
             );
 
             if (reusableRun) {
               // Reuse the prior run's draft instead of calling AI
               this.logger.log(
-                `[AutomationPlaybookRunProcessor] Run ${runId} reusing AI work from run ${reusableRun.id}`,
+                `[AutomationPlaybookRunProcessor] Run ${runId} reusing AI work from run ${reusableRun.id}`
               );
               draftId = reusableRun.draftId;
               resultRef = reusableRun.draftId;
@@ -229,13 +246,14 @@ export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDes
           }
 
           // No reusable run found - perform fresh AI generation
-          const generateResult = await this.automationPlaybooksService.generateDraft(
-            run.createdByUserId,
-            run.projectId,
-            playbookId,
-            run.scopeId,
-            run.rulesHash,
-          );
+          const generateResult =
+            await this.automationPlaybooksService.generateDraft(
+              run.createdByUserId,
+              run.projectId,
+              playbookId,
+              run.scopeId,
+              run.rulesHash
+            );
 
           draftId = generateResult.draftId;
           resultRef = generateResult.draftId;
@@ -244,13 +262,14 @@ export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDes
         }
 
         case 'APPLY': {
-          const applyResult = await this.automationPlaybooksService.applyPlaybook(
-            run.createdByUserId,
-            run.projectId,
-            playbookId,
-            run.scopeId,
-            run.rulesHash,
-          );
+          const applyResult =
+            await this.automationPlaybooksService.applyPlaybook(
+              run.createdByUserId,
+              run.projectId,
+              playbookId,
+              run.scopeId,
+              run.rulesHash
+            );
 
           // AI-USAGE-1: Apply must never count as AI usage when valid drafts exist.
           // Apply always uses pre-generated drafts; any AI work happened in PREVIEW_GENERATE
@@ -280,7 +299,7 @@ export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDes
       });
 
       this.logger.log(
-        `[AutomationPlaybookRunProcessor] Run ${runId} completed successfully (aiUsed=${aiUsed}, reused=${reused})`,
+        `[AutomationPlaybookRunProcessor] Run ${runId} completed successfully (aiUsed=${aiUsed}, reused=${reused})`
       );
     } catch (error: unknown) {
       const errorObj = error as { code?: string; message?: string };
@@ -308,7 +327,7 @@ export class AutomationPlaybookRunProcessor implements OnModuleInit, OnModuleDes
       });
 
       this.logger.error(
-        `[AutomationPlaybookRunProcessor] Run ${runId} failed with ${status}: ${errorCode} - ${errorMessage}`,
+        `[AutomationPlaybookRunProcessor] Run ${runId} failed with ${status}: ${errorCode} - ${errorMessage}`
       );
 
       // Re-throw for BullMQ to mark the job as failed

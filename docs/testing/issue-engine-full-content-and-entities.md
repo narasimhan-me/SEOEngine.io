@@ -46,14 +46,17 @@
 **ID:** CNT-001
 
 **Preconditions:**
+
 - Pages or products with thin content exist
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'thin_content'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'content_entity'`
 - **whyItMatters:** Explanation about ranking and AI answer extraction
 - **recommendedFix:** Guidance about expanding content with FAQs
@@ -67,14 +70,17 @@
 **ID:** CNT-002
 
 **Preconditions:**
+
 - Products with body descriptions < 50 words
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'missing_long_description'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'content_entity'`
 - **whyItMatters:** Explanation about AI understanding and recommendations
 - **recommendedFix:** Guidance about comprehensive descriptions
@@ -88,14 +94,17 @@
 **ID:** CNT-003
 
 **Preconditions:**
+
 - Multiple products with identical descriptions
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'duplicate_product_content'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'content_entity'`
 - **whyItMatters:** Explanation about visibility dilution
 - **recommendedFix:** Guidance about using AI to rewrite
@@ -109,14 +118,17 @@
 **ID:** CNT-004
 
 **Preconditions:**
+
 - Products lacking rich metadata and content depth
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'low_product_entity_coverage'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'schema_visibility'` (entity-related)
 - **whyItMatters:** Explanation about entity-based queries
 - **recommendedFix:** Guidance about AI enrichment
@@ -130,14 +142,17 @@
 **ID:** CNT-005
 
 **Preconditions:**
+
 - Products with shallow descriptions
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'product_content_depth'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'content_entity'`
 - **whyItMatters:** Explanation about competition and customer decisions
 - **recommendedFix:** Guidance about detailed descriptions (150+ words)
@@ -153,11 +168,13 @@
 **Description:** Project has sufficient content depth everywhere.
 
 **Steps:**
+
 1. Create project with all pages having 400+ words
 2. All products have 150+ word descriptions
 3. Call `GET /projects/:id/deo-issues`
 
 **Expected Behavior:**
+
 - No content_entity category issues returned (except possibly duplicates)
 
 ---
@@ -167,11 +184,13 @@
 **Description:** Content right at detection thresholds.
 
 **Steps:**
+
 1. Create product with exactly 50 word description
 2. Create page with exactly 150 words
 3. Call `GET /projects/:id/deo-issues`
 
 **Expected Behavior:**
+
 - Boundary behavior is consistent (< threshold triggers issue)
 
 ---
@@ -194,9 +213,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Issue Engine Full - Content & Entity issues (Phase UX-8) |
+| Field              | Value                                                    |
+| ------------------ | -------------------------------------------------------- |
+| **Tester Name**    | [Pending]                                                |
+| **Date**           | [YYYY-MM-DD]                                             |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed                    |
+| **Notes**          | Issue Engine Full - Content & Entity issues (Phase UX-8) |

@@ -81,7 +81,10 @@ describe('IntegrationsService', () => {
 
       prismaMock.integration.findUnique.mockResolvedValue(mockIntegration);
 
-      const result = await service.getIntegration('proj-1', IntegrationType.SHOPIFY);
+      const result = await service.getIntegration(
+        'proj-1',
+        IntegrationType.SHOPIFY
+      );
 
       expect(result).toEqual(mockIntegration);
       expect(prismaMock.integration.findUnique).toHaveBeenCalledWith({
@@ -161,7 +164,7 @@ describe('IntegrationsService', () => {
         service.createIntegration({
           projectId: 'proj-1',
           type: IntegrationType.SHOPIFY,
-        }),
+        })
       ).rejects.toThrow(BadRequestException);
       expect(prismaMock.integration.create).not.toHaveBeenCalled();
     });
@@ -188,9 +191,13 @@ describe('IntegrationsService', () => {
         .mockResolvedValueOnce(existingIntegration);
       prismaMock.integration.update.mockResolvedValue(updatedIntegration);
 
-      const result = await service.updateIntegration('proj-1', IntegrationType.SHOPIFY, {
-        externalId: 'new-store.myshopify.com',
-      });
+      const result = await service.updateIntegration(
+        'proj-1',
+        IntegrationType.SHOPIFY,
+        {
+          externalId: 'new-store.myshopify.com',
+        }
+      );
 
       expect(result).toEqual(updatedIntegration);
       expect(prismaMock.integration.update).toHaveBeenCalledWith({
@@ -214,7 +221,7 @@ describe('IntegrationsService', () => {
       await expect(
         service.updateIntegration('proj-1', IntegrationType.SHOPIFY, {
           externalId: 'new-store.myshopify.com',
-        }),
+        })
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -272,7 +279,10 @@ describe('IntegrationsService', () => {
       prismaMock.integration.findUnique.mockResolvedValue(existingIntegration);
       prismaMock.integration.delete.mockResolvedValue(existingIntegration);
 
-      const result = await service.deleteIntegration('proj-1', IntegrationType.SHOPIFY);
+      const result = await service.deleteIntegration(
+        'proj-1',
+        IntegrationType.SHOPIFY
+      );
 
       expect(result).toEqual(existingIntegration);
       expect(prismaMock.integration.delete).toHaveBeenCalledWith({
@@ -289,7 +299,7 @@ describe('IntegrationsService', () => {
       prismaMock.integration.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.deleteIntegration('proj-1', IntegrationType.SHOPIFY),
+        service.deleteIntegration('proj-1', IntegrationType.SHOPIFY)
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -304,7 +314,10 @@ describe('IntegrationsService', () => {
 
       prismaMock.integration.findUnique.mockResolvedValue(mockIntegration);
 
-      const result = await service.hasIntegration('proj-1', IntegrationType.SHOPIFY);
+      const result = await service.hasIntegration(
+        'proj-1',
+        IntegrationType.SHOPIFY
+      );
 
       expect(result).toBe(true);
     });
@@ -312,7 +325,10 @@ describe('IntegrationsService', () => {
     it('should return false when integration does not exist', async () => {
       prismaMock.integration.findUnique.mockResolvedValue(null);
 
-      const result = await service.hasIntegration('proj-1', IntegrationType.SHOPIFY);
+      const result = await service.hasIntegration(
+        'proj-1',
+        IntegrationType.SHOPIFY
+      );
 
       expect(result).toBe(false);
     });
@@ -329,7 +345,10 @@ describe('IntegrationsService', () => {
 
       const result = await service.getIntegrationTypes('proj-1');
 
-      expect(result).toEqual([IntegrationType.SHOPIFY, IntegrationType.WOOCOMMERCE]);
+      expect(result).toEqual([
+        IntegrationType.SHOPIFY,
+        IntegrationType.WOOCOMMERCE,
+      ]);
       expect(prismaMock.integration.findMany).toHaveBeenCalledWith({
         where: { projectId: 'proj-1' },
         select: { type: true },
@@ -337,4 +356,3 @@ describe('IntegrationsService', () => {
     });
   });
 });
-

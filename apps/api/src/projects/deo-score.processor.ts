@@ -11,13 +11,15 @@ export class DeoScoreProcessor implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly deoScoreService: DeoScoreService,
-    private readonly deoSignalsService: DeoSignalsService,
+    private readonly deoSignalsService: DeoSignalsService
   ) {}
 
   async onModuleInit() {
     // Skip worker initialization if Redis is not configured
     if (!redisConfig.isEnabled || !redisConfig.connection) {
-      console.warn('[DeoScoreProcessor] Redis not configured - worker disabled');
+      console.warn(
+        '[DeoScoreProcessor] Redis not configured - worker disabled'
+      );
       return;
     }
 
@@ -25,7 +27,7 @@ export class DeoScoreProcessor implements OnModuleInit, OnModuleDestroy {
       process.env.ENABLE_QUEUE_PROCESSORS !== 'false';
     if (!enableQueueProcessors) {
       console.warn(
-        '[DeoScoreProcessor] ENABLE_QUEUE_PROCESSORS=false - worker disabled',
+        '[DeoScoreProcessor] ENABLE_QUEUE_PROCESSORS=false - worker disabled'
       );
       return;
     }
@@ -37,14 +39,16 @@ export class DeoScoreProcessor implements OnModuleInit, OnModuleDestroy {
 
         try {
           // Phase 2.4: Collect heuristic crawl-based signals and compute v1 score
-          const signals = await this.deoSignalsService.collectSignalsForProject(projectId);
-          const snapshot = await this.deoScoreService.computeAndPersistScoreFromSignals(
-            projectId,
-            signals,
-          );
+          const signals =
+            await this.deoSignalsService.collectSignalsForProject(projectId);
+          const snapshot =
+            await this.deoScoreService.computeAndPersistScoreFromSignals(
+              projectId,
+              signals
+            );
 
           console.log(
-            `[DeoScoreProcessor] Successfully computed v1 DEO score for project ${projectId} (snapshot ${snapshot.id}, overall=${snapshot.breakdown.overall})`,
+            `[DeoScoreProcessor] Successfully computed v1 DEO score for project ${projectId} (snapshot ${snapshot.id}, overall=${snapshot.breakdown.overall})`
           );
 
           return {
@@ -54,7 +58,7 @@ export class DeoScoreProcessor implements OnModuleInit, OnModuleDestroy {
         } catch (error) {
           console.error(
             `[DeoScoreProcessor] Failed to compute DEO score for project ${projectId}`,
-            error,
+            error
           );
           throw error;
         }
@@ -62,7 +66,7 @@ export class DeoScoreProcessor implements OnModuleInit, OnModuleDestroy {
       {
         connection: redisConfig.connection,
         prefix: redisConfig.prefix,
-      },
+      }
     );
   }
 

@@ -12,7 +12,11 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { IntegrationsService, CreateIntegrationDto, UpdateIntegrationDto } from './integrations.service';
+import {
+  IntegrationsService,
+  CreateIntegrationDto,
+  UpdateIntegrationDto,
+} from './integrations.service';
 import { IntegrationType } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma.service';
@@ -29,7 +33,7 @@ export class IntegrationsController {
   constructor(
     private readonly integrationsService: IntegrationsService,
     private readonly prisma: PrismaService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   /**
@@ -40,7 +44,7 @@ export class IntegrationsController {
   @Get()
   async listIntegrations(
     @Request() req: any,
-    @Query('projectId') projectId: string,
+    @Query('projectId') projectId: string
   ) {
     if (!projectId) {
       throw new BadRequestException('projectId query parameter is required');
@@ -49,7 +53,8 @@ export class IntegrationsController {
     // [ROLES-3 FIXUP-4] Any ProjectMember can view integrations
     await this.roleResolution.assertProjectAccess(projectId, req.user.id);
 
-    const integrations = await this.integrationsService.getProjectIntegrations(projectId);
+    const integrations =
+      await this.integrationsService.getProjectIntegrations(projectId);
     return {
       projectId,
       integrations: integrations.map((i) => ({
@@ -73,7 +78,7 @@ export class IntegrationsController {
   async getIntegration(
     @Request() req: any,
     @Param('type') type: string,
-    @Query('projectId') projectId: string,
+    @Query('projectId') projectId: string
   ) {
     if (!projectId) {
       throw new BadRequestException('projectId query parameter is required');
@@ -83,7 +88,10 @@ export class IntegrationsController {
     await this.roleResolution.assertProjectAccess(projectId, req.user.id);
 
     const integrationType = this.parseIntegrationType(type);
-    const integration = await this.integrationsService.getIntegration(projectId, integrationType);
+    const integration = await this.integrationsService.getIntegration(
+      projectId,
+      integrationType
+    );
 
     if (!integration) {
       throw new NotFoundException(`Integration of type ${type} not found`);
@@ -109,13 +117,14 @@ export class IntegrationsController {
   @Post()
   async createIntegration(
     @Request() req: any,
-    @Body() body: {
+    @Body()
+    body: {
       projectId: string;
       type: string;
       externalId?: string;
       accessToken?: string;
       config?: Record<string, any>;
-    },
+    }
   ) {
     if (!body.projectId || !body.type) {
       throw new BadRequestException('projectId and type are required');
@@ -155,7 +164,7 @@ export class IntegrationsController {
     @Request() req: any,
     @Param('type') type: string,
     @Query('projectId') projectId: string,
-    @Body() body: UpdateIntegrationDto,
+    @Body() body: UpdateIntegrationDto
   ) {
     if (!projectId) {
       throw new BadRequestException('projectId query parameter is required');
@@ -168,7 +177,7 @@ export class IntegrationsController {
     const integration = await this.integrationsService.updateIntegration(
       projectId,
       integrationType,
-      body,
+      body
     );
 
     return {
@@ -189,7 +198,7 @@ export class IntegrationsController {
   async deleteIntegration(
     @Request() req: any,
     @Param('type') type: string,
-    @Query('projectId') projectId: string,
+    @Query('projectId') projectId: string
   ) {
     if (!projectId) {
       throw new BadRequestException('projectId query parameter is required');
@@ -199,7 +208,10 @@ export class IntegrationsController {
     await this.roleResolution.assertOwnerRole(projectId, req.user.id);
 
     const integrationType = this.parseIntegrationType(type);
-    await this.integrationsService.deleteIntegration(projectId, integrationType);
+    await this.integrationsService.deleteIntegration(
+      projectId,
+      integrationType
+    );
 
     return {
       success: true,
@@ -224,9 +236,11 @@ export class IntegrationsController {
 
   private parseIntegrationType(type: string): IntegrationType {
     const upperType = type.toUpperCase();
-    if (!Object.values(IntegrationType).includes(upperType as IntegrationType)) {
+    if (
+      !Object.values(IntegrationType).includes(upperType as IntegrationType)
+    ) {
       throw new BadRequestException(
-        `Invalid integration type: ${type}. Valid types: ${Object.values(IntegrationType).join(', ')}`,
+        `Invalid integration type: ${type}. Valid types: ${Object.values(IntegrationType).join(', ')}`
       );
     }
     return upperType as IntegrationType;
@@ -245,11 +259,15 @@ export class IntegrationsController {
 
   private getIntegrationDescription(type: IntegrationType): string {
     const descriptions: Record<IntegrationType, string> = {
-      [IntegrationType.SHOPIFY]: 'Connect your Shopify store for product sync and SEO optimization',
-      [IntegrationType.WOOCOMMERCE]: 'Connect your WooCommerce store via REST API',
-      [IntegrationType.BIGCOMMERCE]: 'Connect your BigCommerce store for product management',
+      [IntegrationType.SHOPIFY]:
+        'Connect your Shopify store for product sync and SEO optimization',
+      [IntegrationType.WOOCOMMERCE]:
+        'Connect your WooCommerce store via REST API',
+      [IntegrationType.BIGCOMMERCE]:
+        'Connect your BigCommerce store for product management',
       [IntegrationType.MAGENTO]: 'Connect your Magento 2 store via REST API',
-      [IntegrationType.CUSTOM_WEBSITE]: 'Connect any website for SEO scanning and analysis',
+      [IntegrationType.CUSTOM_WEBSITE]:
+        'Connect any website for SEO scanning and analysis',
     };
     return descriptions[type];
   }

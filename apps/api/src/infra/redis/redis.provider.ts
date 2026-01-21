@@ -32,7 +32,10 @@ export class RedisClient implements OnModuleDestroy {
         await this.client.quit();
         this.logger.log('[RedisClient] Redis client connection closed');
       } catch (err) {
-        this.logger.error('[RedisClient] Error while closing Redis client', err as Error);
+        this.logger.error(
+          '[RedisClient] Error while closing Redis client',
+          err as Error
+        );
       } finally {
         this.client = null;
       }

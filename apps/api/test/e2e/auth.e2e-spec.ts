@@ -26,14 +26,12 @@ describe('Auth (e2e)', () => {
   const password = 'testpassword123';
 
   it('signup returns user without password', async () => {
-    const res = await request(server)
-      .post('/auth/signup')
-      .send({
-        email,
-        password,
-        name: 'Test User',
-        captchaToken: 'test-token',
-      });
+    const res = await request(server).post('/auth/signup').send({
+      email,
+      password,
+      name: 'Test User',
+      captchaToken: 'test-token',
+    });
 
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('id');
@@ -52,13 +50,11 @@ describe('Auth (e2e)', () => {
       })
       .expect(201);
 
-    const res = await request(server)
-      .post('/auth/login')
-      .send({
-        email,
-        password,
-        captchaToken: 'test-token',
-      });
+    const res = await request(server).post('/auth/login').send({
+      email,
+      password,
+      captchaToken: 'test-token',
+    });
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('accessToken');
@@ -106,13 +102,11 @@ describe('Auth (e2e)', () => {
       })
       .expect(201);
 
-    const res = await request(server)
-      .post('/auth/login')
-      .send({
-        email,
-        password: 'wrong-password',
-        captchaToken: 'test-token',
-      });
+    const res = await request(server).post('/auth/login').send({
+      email,
+      password: 'wrong-password',
+      captchaToken: 'test-token',
+    });
 
     expect(res.status).toBe(401);
   });

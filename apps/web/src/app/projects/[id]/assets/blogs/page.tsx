@@ -1,15 +1,26 @@
 'use client';
 
-import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
+import {
+  useParams,
+  useSearchParams,
+  useRouter,
+  usePathname,
+} from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { projectsApi, shopifyApi, type RoleCapabilities } from '@/lib/api';
 import { ListControls } from '@/components/common/ListControls';
 import { ScopeBanner } from '@/components/common/ScopeBanner';
 import { ShopifyPermissionNotice } from '@/components/shopify/ShopifyPermissionNotice';
-import { getReturnToFromCurrentUrl, getSafeReturnTo } from '@/lib/route-context';
+import {
+  getReturnToFromCurrentUrl,
+  getSafeReturnTo,
+} from '@/lib/route-context';
 import { getToken } from '@/lib/auth';
-import { normalizeScopeParams, buildClearFiltersHref } from '@/lib/scope-normalization';
+import {
+  normalizeScopeParams,
+  buildClearFiltersHref,
+} from '@/lib/scope-normalization';
 
 interface BlogPostAsset {
   id: string;
@@ -31,7 +42,9 @@ export default function BlogPostsAssetListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [blogPosts, setBlogPosts] = useState<BlogPostAsset[]>([]);
-  const [capabilities, setCapabilities] = useState<RoleCapabilities | null>(null);
+  const [capabilities, setCapabilities] = useState<RoleCapabilities | null>(
+    null
+  );
   const [syncStatus, setSyncStatus] = useState<{
     lastBlogsSyncAt: string | null;
     shopifyConnected: boolean;
@@ -91,7 +104,8 @@ export default function BlogPostsAssetListPage() {
         }));
       setBlogPosts(rows);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to load blog posts';
+      const message =
+        err instanceof Error ? err.message : 'Failed to load blog posts';
       setError(message);
     } finally {
       setLoading(false);
@@ -123,7 +137,10 @@ export default function BlogPostsAssetListPage() {
       const shopifyConnected = integrationStatus?.shopify?.connected ?? false;
       if (shopifyConnected) {
         const status = await shopifyApi.getSyncStatus(projectId);
-        const scope = await shopifyApi.getMissingScopes(projectId, 'blogs_sync');
+        const scope = await shopifyApi.getMissingScopes(
+          projectId,
+          'blogs_sync'
+        );
         setSyncStatus({
           lastBlogsSyncAt: (status as any).lastBlogsSyncAt ?? null,
           shopifyConnected: true,
@@ -173,7 +190,7 @@ export default function BlogPostsAssetListPage() {
 
     if (!projectId) {
       setReconnectError(
-        "We couldn't start Shopify reconnection because your project ID is missing. Please refresh and try again.",
+        "We couldn't start Shopify reconnection because your project ID is missing. Please refresh and try again."
       );
       setReconnecting(false);
       return;
@@ -182,17 +199,26 @@ export default function BlogPostsAssetListPage() {
     const token = getToken();
     if (!token) {
       setReconnectError(
-        "We couldn't start Shopify reconnection because your session token is missing. Please sign in again, then retry.",
+        "We couldn't start Shopify reconnection because your session token is missing. Please sign in again, then retry."
       );
       setReconnecting(false);
       return;
     }
 
     try {
-      const result = await shopifyApi.getReconnectUrl(projectId, 'blogs_sync', currentPathWithQuery);
-      const url = result && typeof (result as any).url === 'string' ? (result as any).url : null;
+      const result = await shopifyApi.getReconnectUrl(
+        projectId,
+        'blogs_sync',
+        currentPathWithQuery
+      );
+      const url =
+        result && typeof (result as any).url === 'string'
+          ? (result as any).url
+          : null;
       if (!url) {
-        setReconnectError("We couldn't start Shopify reconnection. Please refresh and try again.");
+        setReconnectError(
+          "We couldn't start Shopify reconnection. Please refresh and try again."
+        );
         setReconnecting(false);
         return;
       }
@@ -227,7 +253,15 @@ export default function BlogPostsAssetListPage() {
       const qs = params.toString();
       router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
     });
-  }, [searchParams, syncStatus.shopifyConnected, hasMissingScopes, capabilities, handleSyncBlogs, router, pathname]);
+  }, [
+    searchParams,
+    syncStatus.shopifyConnected,
+    hasMissingScopes,
+    capabilities,
+    handleSyncBlogs,
+    router,
+    pathname,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -242,7 +276,9 @@ export default function BlogPostsAssetListPage() {
         {capabilities?.canModifySettings && (
           <button
             onClick={handleSyncBlogs}
-            disabled={syncing || !syncStatus.shopifyConnected || hasMissingScopes}
+            disabled={
+              syncing || !syncStatus.shopifyConnected || hasMissingScopes
+            }
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {syncing ? 'Syncing...' : 'Sync Blog posts'}
@@ -277,7 +313,10 @@ export default function BlogPostsAssetListPage() {
       {syncStatus.shopifyConnected && (
         <div className="text-sm text-gray-500">
           {syncStatus.lastBlogsSyncAt ? (
-            <>Last synced: {new Date(syncStatus.lastBlogsSyncAt).toLocaleString()}</>
+            <>
+              Last synced:{' '}
+              {new Date(syncStatus.lastBlogsSyncAt).toLocaleString()}
+            </>
           ) : (
             <>Not yet synced. Click Sync to import blog posts from Shopify.</>
           )}
@@ -301,7 +340,9 @@ export default function BlogPostsAssetListPage() {
         from={fromParam}
         returnTo={validatedReturnTo || `/projects/${projectId}/assets/blogs`}
         showingText={showingText}
-        onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/assets/blogs`)}
+        onClearFiltersHref={buildClearFiltersHref(
+          `/projects/${projectId}/assets/blogs`
+        )}
         chips={normalizedScopeResult.chips}
         wasAdjusted={normalizedScopeResult.wasAdjusted}
       />
@@ -345,9 +386,13 @@ export default function BlogPostsAssetListPage() {
                 {syncStatus.shopifyConnected && !syncStatus.lastBlogsSyncAt ? (
                   <>
                     <p>Not yet synced.</p>
-                    <p className="mt-2">Click &quot;Sync Blog posts&quot; to import blog posts from Shopify.</p>
+                    <p className="mt-2">
+                      Click &quot;Sync Blog posts&quot; to import blog posts
+                      from Shopify.
+                    </p>
                   </>
-                ) : syncStatus.shopifyConnected && syncStatus.lastBlogsSyncAt ? (
+                ) : syncStatus.shopifyConnected &&
+                  syncStatus.lastBlogsSyncAt ? (
                   <p>No blog posts found in Shopify for this store.</p>
                 ) : (
                   <p>No blog posts found</p>
@@ -381,9 +426,13 @@ export default function BlogPostsAssetListPage() {
                   return (
                     <tr key={post.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          isPublished ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                        }`}>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            isPublished
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
                           {isPublished ? 'Published' : 'Draft'}
                         </span>
                       </td>
@@ -392,9 +441,13 @@ export default function BlogPostsAssetListPage() {
                           ? `${post.blogHandle}/${post.handle}`
                           : post.handle || '—'}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{post.title || 'Untitled'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {post.title || 'Untitled'}
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-500">
-                        {post.updatedAt ? new Date(post.updatedAt).toLocaleString() : '—'}
+                        {post.updatedAt
+                          ? new Date(post.updatedAt).toLocaleString()
+                          : '—'}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <a

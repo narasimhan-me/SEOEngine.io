@@ -125,8 +125,8 @@ Define in: `apps/api/src/billing/plans.ts`
 export type PlanId = 'free' | 'pro' | 'business';
 
 export interface PlanLimits {
-  projects: number;                    // -1 = unlimited
-  crawledPages: number;                // -1 = unlimited
+  projects: number; // -1 = unlimited
+  crawledPages: number; // -1 = unlimited
   automationSuggestionsPerDay: number; // -1 = unlimited
 }
 
@@ -147,21 +147,39 @@ export const PLANS: Plan[] = [
     id: 'free',
     name: 'Free',
     price: 0,
-    features: ['1 project', '50 crawled pages', '5 automation suggestions per day', 'Basic SEO analysis'],
+    features: [
+      '1 project',
+      '50 crawled pages',
+      '5 automation suggestions per day',
+      'Basic SEO analysis',
+    ],
     limits: { projects: 1, crawledPages: 50, automationSuggestionsPerDay: 5 },
   },
   {
     id: 'pro',
     name: 'Pro',
     price: 2900, // $29/month
-    features: ['5 projects', '500 crawled pages', '25 automation suggestions per day', 'Advanced SEO analysis', 'Priority support'],
+    features: [
+      '5 projects',
+      '500 crawled pages',
+      '25 automation suggestions per day',
+      'Advanced SEO analysis',
+      'Priority support',
+    ],
     limits: { projects: 5, crawledPages: 500, automationSuggestionsPerDay: 25 },
   },
   {
     id: 'business',
     name: 'Business',
     price: 9900, // $99/month
-    features: ['Unlimited projects', 'Unlimited crawled pages', 'Unlimited automation suggestions', 'Advanced SEO analysis', 'Priority support', 'API access'],
+    features: [
+      'Unlimited projects',
+      'Unlimited crawled pages',
+      'Unlimited automation suggestions',
+      'Advanced SEO analysis',
+      'Priority support',
+      'API access',
+    ],
     limits: { projects: -1, crawledPages: -1, automationSuggestionsPerDay: -1 },
   },
 ];
@@ -170,7 +188,10 @@ export const PLANS: Plan[] = [
 ### 3.3. Stripe Price Mapping
 
 ```typescript
-export const STRIPE_PRICES: Record<Exclude<PlanId, 'free'>, string | undefined> = {
+export const STRIPE_PRICES: Record<
+  Exclude<PlanId, 'free'>,
+  string | undefined
+> = {
   pro: process.env.STRIPE_PRICE_PRO,
   business: process.env.STRIPE_PRICE_BUSINESS,
 };
@@ -182,9 +203,9 @@ export const STRIPE_PRICES: Record<Exclude<PlanId, 'free'>, string | undefined> 
 export type PlanID = 'starter' | 'pro' | 'agency';
 
 export interface PlanEntitlements {
-  projects: number;           // max projects
-  items: number;              // max products/pages
-  tokens: number;             // monthly AI tokens
+  projects: number; // max projects
+  items: number; // max products/pages
+  tokens: number; // monthly AI tokens
   automations: 'basic' | 'advanced';
   teamRoles: boolean;
   reporting: 'basic' | 'advanced';
@@ -245,18 +266,22 @@ The handler at `POST /billing/webhook`:
    - `customer.subscription.deleted`
 
 The `Subscription` model includes:
+
 - `lastStripeEventId: string | null` — the last successfully applied Stripe event ID for that account.
 
 **Idempotency:**
+
 - Before applying an update, the code compares `subscription.lastStripeEventId` to `event.id`.
 - If they match, the event is treated as already processed and the handler returns 2xx without touching the DB.
 
 **On a new event:**
+
 1. Map Stripe price ID → internal plan using `STRIPE_PRICES`.
 2. Update `plan`, `status`, `currentPeriodStart`, `currentPeriodEnd`, `stripeSubscriptionId` and `stripeCustomerId` as needed.
 3. Persist `lastStripeEventId = event.id` only after a successful DB update.
 
 **Error and retry semantics:**
+
 - If any DB operation or business logic throws, the request fails with non-2xx.
 - Stripe automatically retries non-2xx responses, and repeated deliveries are safely ignored via `lastStripeEventId`.
 
@@ -305,7 +330,10 @@ export class EntitlementsService {
 
   async ensureCanCreateProject(userId: string): Promise<void> {
     const summary = await this.getEntitlementsSummary(userId);
-    if (summary.limits.projects !== -1 && summary.usage.projects >= summary.limits.projects) {
+    if (
+      summary.limits.projects !== -1 &&
+      summary.usage.projects >= summary.limits.projects
+    ) {
       throw new ForbiddenException(
         `Project limit reached. Your ${summary.plan} plan allows ${summary.limits.projects} project(s). Please upgrade.`
       );
@@ -410,9 +438,7 @@ Automation depth (basic vs advanced):
 
 ```typescript
 if (plan.automations === 'basic' && requestedAutomation === 'advanced') {
-  throw new ForbiddenException(
-    'Upgrade to Pro for advanced automations.'
-  );
+  throw new ForbiddenException('Upgrade to Pro for advanced automations.');
 }
 ```
 
@@ -465,9 +491,11 @@ return {
 ### UI example:
 
 ```tsx
-{!entitlements.teamRoles && (
-  <UpgradeBanner message="Team roles are available on Pro and Agency plans." />
-)}
+{
+  !entitlements.teamRoles && (
+    <UpgradeBanner message="Team roles are available on Pro and Agency plans." />
+  );
+}
 ```
 
 ---

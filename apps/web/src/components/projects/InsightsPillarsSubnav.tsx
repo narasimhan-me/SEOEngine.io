@@ -49,7 +49,9 @@ export default function InsightsPillarsSubnav() {
 
   const currentPillar = getCurrentPillar();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _currentLabel = pillarOptions.find((o) => o.path === currentPillar)?.label || 'Select pillar';
+  const _currentLabel =
+    pillarOptions.find((o) => o.path === currentPillar)?.label ||
+    'Select pillar';
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedPath = e.target.value;
@@ -60,7 +62,10 @@ export default function InsightsPillarsSubnav() {
 
   return (
     <div className="mb-6" data-testid="insights-pillar-filter">
-      <label htmlFor="pillar-select" className="block text-xs font-medium text-gray-500 mb-1">
+      <label
+        htmlFor="pillar-select"
+        className="block text-xs font-medium text-gray-500 mb-1"
+      >
         Pillar
       </label>
       <select

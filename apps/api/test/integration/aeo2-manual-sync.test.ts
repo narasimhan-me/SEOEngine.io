@@ -2,14 +2,8 @@ import { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import { createTestApp } from '../utils/test-app';
-import {
-  cleanupTestDb,
-  disconnectTestDb,
-  testPrisma,
-} from '../utils/test-db';
-import {
-  seedConnectedStoreProject,
-} from '../../src/testkit';
+import { cleanupTestDb, disconnectTestDb, testPrisma } from '../utils/test-db';
+import { seedConnectedStoreProject } from '../../src/testkit';
 
 describe('TEST-1 – AEO-2 manual sync endpoint', () => {
   let app: INestApplication;
@@ -134,9 +128,9 @@ describe('TEST-1 – AEO-2 manual sync endpoint', () => {
         }
 
         throw new Error(
-          `Unexpected GraphQL operation in AEO-2 manual sync test: ${operationName}`,
+          `Unexpected GraphQL operation in AEO-2 manual sync test: ${operationName}`
         );
-      },
+      }
     );
 
     const res = await request(server)
@@ -153,7 +147,7 @@ describe('TEST-1 – AEO-2 manual sync endpoint', () => {
     expect((global as any).fetch).toHaveBeenCalled();
     expect(recordedMetafields.length).toBeGreaterThanOrEqual(1);
     expect(recordedMetafields[0].ownerId).toBe(
-      `gid://shopify/Product/${product.externalId}`,
+      `gid://shopify/Product/${product.externalId}`
     );
 
     const log = await testPrisma.answerBlockAutomationLog.findFirst({

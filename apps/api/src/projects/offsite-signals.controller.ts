@@ -78,7 +78,7 @@ export class OffsiteSignalsController {
     private readonly aiService: AiService,
     private readonly aiUsageQuotaService: AiUsageQuotaService,
     private readonly aiUsageLedgerService: AiUsageLedgerService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   // ============================================================================
@@ -145,7 +145,9 @@ export class OffsiteSignalsController {
     return mapping[type];
   }
 
-  private toPrismaApplyTarget(target: OffsiteFixApplyTarget): PrismaApplyTarget {
+  private toPrismaApplyTarget(
+    target: OffsiteFixApplyTarget
+  ): PrismaApplyTarget {
     const mapping: Record<OffsiteFixApplyTarget, PrismaApplyTarget> = {
       NOTES: 'NOTES',
       CONTENT_WORKSPACE: 'CONTENT_WORKSPACE',
@@ -165,7 +167,7 @@ export class OffsiteSignalsController {
   @Get('projects/:projectId/offsite-signals')
   async getProjectOffsiteSignals(
     @Request() req: any,
-    @Param('projectId') projectId: string,
+    @Param('projectId') projectId: string
   ): Promise<ProjectOffsiteSignalsResponse> {
     const userId = req.user.id;
     return this.offsiteSignalsService.getProjectOffsiteData(projectId, userId);
@@ -178,7 +180,7 @@ export class OffsiteSignalsController {
   @Get('projects/:projectId/offsite-signals/scorecard')
   async getProjectOffsiteScorecard(
     @Request() req: any,
-    @Param('projectId') projectId: string,
+    @Param('projectId') projectId: string
   ): Promise<ProjectOffsiteCoverage> {
     const userId = req.user.id;
 
@@ -202,14 +204,14 @@ export class OffsiteSignalsController {
   async previewOffsiteFix(
     @Request() req: any,
     @Param('projectId') projectId: string,
-    @Body() dto: OffsiteFixPreviewDto,
+    @Body() dto: OffsiteFixPreviewDto
   ): Promise<OffsiteFixPreviewResponse> {
     const userId = req.user.id;
 
     // Validate required fields
     if (!dto.gapType || !dto.signalType || !dto.focusKey || !dto.draftType) {
       throw new BadRequestException(
-        'gapType, signalType, focusKey, and draftType are required',
+        'gapType, signalType, focusKey, and draftType are required'
       );
     }
 
@@ -231,7 +233,7 @@ export class OffsiteSignalsController {
       dto.gapType,
       dto.signalType,
       dto.focusKey,
-      dto.draftType,
+      dto.draftType
     );
 
     // Check for existing unexpired draft
@@ -282,7 +284,7 @@ export class OffsiteSignalsController {
 
     if (quotaEval.status === 'blocked') {
       throw new ForbiddenException(
-        'AI usage quota exceeded. Please wait until next month or upgrade your plan.',
+        'AI usage quota exceeded. Please wait until next month or upgrade your plan.'
       );
     }
 
@@ -440,7 +442,7 @@ export class OffsiteSignalsController {
   async applyOffsiteFix(
     @Request() req: any,
     @Param('projectId') projectId: string,
-    @Body() dto: OffsiteFixApplyDto,
+    @Body() dto: OffsiteFixApplyDto
   ): Promise<OffsiteFixApplyResponse> {
     const userId = req.user.id;
 
@@ -493,7 +495,8 @@ export class OffsiteSignalsController {
 
     // Invalidate and recompute coverage to check if gap is addressed
     await this.offsiteSignalsService.invalidateCoverage(projectId);
-    const updatedCoverage = await this.offsiteSignalsService.computeProjectCoverage(projectId);
+    const updatedCoverage =
+      await this.offsiteSignalsService.computeProjectCoverage(projectId);
 
     // For v1, applying a draft doesn't immediately resolve the issue
     // (actual signal presence requires external validation)

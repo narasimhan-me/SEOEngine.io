@@ -10,7 +10,11 @@ import { GuardedLink } from '@/components/navigation/GuardedLink';
 import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
 // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Import deterministic routing helpers
 // [ISSUE-FIX-KIND-CLARITY-1] Import getIssueFixConfig for fixKind-aware CTA
-import { buildIssueFixHref, getSafeIssueTitle, getIssueFixConfig } from '@/lib/issue-to-fix-path';
+import {
+  buildIssueFixHref,
+  getSafeIssueTitle,
+  getIssueFixConfig,
+} from '@/lib/issue-to-fix-path';
 
 interface DeoIssuesResponse {
   projectId: string;
@@ -30,7 +34,8 @@ export default function DeoOverviewPage() {
 
   const [deoIssues, setDeoIssues] = useState<DeoIssuesResponse | null>(null);
   const [deoScore, setDeoScore] = useState<DeoScoreResponse | null>(null);
-  const [offsiteScorecard, setOffsiteScorecard] = useState<ProjectOffsiteCoverage | null>(null);
+  const [offsiteScorecard, setOffsiteScorecard] =
+    useState<ProjectOffsiteCoverage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +53,9 @@ export default function DeoOverviewPage() {
         setDeoScore(scoreRes);
         setOffsiteScorecard(offsiteRes);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load DEO data');
+        setError(
+          err instanceof Error ? err.message : 'Failed to load DEO data'
+        );
       } finally {
         setLoading(false);
       }
@@ -63,7 +70,10 @@ export default function DeoOverviewPage() {
     if (!deoIssues?.issues) return map;
     for (const issue of deoIssues.issues) {
       const pillarId = issue.pillarId;
-      if (pillarId && buildIssueFixHref({ projectId, issue, from: 'deo' }) !== null) {
+      if (
+        pillarId &&
+        buildIssueFixHref({ projectId, issue, from: 'deo' }) !== null
+      ) {
         const existing = map.get(pillarId) ?? [];
         existing.push(issue);
         map.set(pillarId, existing);
@@ -75,16 +85,16 @@ export default function DeoOverviewPage() {
   // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Total actionable issues count for header
   const totalActionableIssues = useMemo(() => {
     if (!deoIssues?.issues) return 0;
-    return deoIssues.issues.filter((issue) =>
-      buildIssueFixHref({ projectId, issue, from: 'deo' }) !== null
+    return deoIssues.issues.filter(
+      (issue) => buildIssueFixHref({ projectId, issue, from: 'deo' }) !== null
     ).length;
   }, [deoIssues?.issues, projectId]);
 
   // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Flat list of actionable issues for Top Recommended Actions
   const actionableIssuesList = useMemo(() => {
     if (!deoIssues?.issues) return [];
-    return deoIssues.issues.filter((issue) =>
-      buildIssueFixHref({ projectId, issue, from: 'deo' }) !== null
+    return deoIssues.issues.filter(
+      (issue) => buildIssueFixHref({ projectId, issue, from: 'deo' }) !== null
     );
   }, [deoIssues?.issues, projectId]);
 
@@ -101,7 +111,9 @@ export default function DeoOverviewPage() {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-gray-900">DEO Overview</h1>
-        <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">{error}</div>
+        <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
+          {error}
+        </div>
       </div>
     );
   }
@@ -112,8 +124,8 @@ export default function DeoOverviewPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">DEO Overview</h1>
         <p className="mt-1 text-sm text-gray-600">
-          Discovery Engine Optimization across all pillars. Track your visibility in
-          search engines, AI assistants, and discovery platforms.
+          Discovery Engine Optimization across all pillars. Track your
+          visibility in search engines, AI assistants, and discovery platforms.
         </p>
       </div>
 
@@ -121,18 +133,23 @@ export default function DeoOverviewPage() {
 
       {/* Overall DEO Health Summary */}
       <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-gray-900">Overall DEO Health</h2>
+        <h2 className="text-sm font-semibold text-gray-900">
+          Overall DEO Health
+        </h2>
         <div className="mt-3 flex flex-wrap items-center gap-6">
           <div>
             <div className="text-2xl font-bold text-gray-900">
-              {deoScore?.latestScore !== null && deoScore?.latestScore !== undefined
+              {deoScore?.latestScore !== null &&
+              deoScore?.latestScore !== undefined
                 ? `${Math.round(deoScore.latestScore)}`
                 : '--'}
             </div>
             <div className="text-xs text-gray-500">DEO Score</div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-gray-900">{totalActionableIssues}</div>
+            <div className="text-2xl font-bold text-gray-900">
+              {totalActionableIssues}
+            </div>
             <div className="text-xs text-gray-500">Actionable Issues</div>
           </div>
           {deoIssues?.generatedAt && (
@@ -150,11 +167,16 @@ export default function DeoOverviewPage() {
             </h3>
             <ul className="mt-2 space-y-2">
               {actionableIssuesList.slice(0, 3).map((issue) => {
-                const href = buildIssueFixHref({ projectId, issue, from: 'deo' });
+                const href = buildIssueFixHref({
+                  projectId,
+                  issue,
+                  from: 'deo',
+                });
                 const safeTitle = getSafeIssueTitle(issue);
                 // [ISSUE-FIX-KIND-CLARITY-1] Use "Review" for DIAGNOSTIC issues, "Fix now" otherwise
                 const fixConfig = getIssueFixConfig(issue.type || issue.id);
-                const ctaLabel = fixConfig?.fixKind === 'DIAGNOSTIC' ? 'Review' : 'Fix now';
+                const ctaLabel =
+                  fixConfig?.fixKind === 'DIAGNOSTIC' ? 'Review' : 'Fix now';
                 return (
                   <li key={issue.id} className="text-sm text-gray-600">
                     <span className="font-medium">{safeTitle}</span>
@@ -181,7 +203,9 @@ export default function DeoOverviewPage() {
         {DEO_PILLARS.map((pillar) => {
           const pillarIssues = actionableIssuesByPillar.get(pillar.id) ?? [];
           const issueCount = pillarIssues.length;
-          const hasCritical = pillarIssues.some((i) => i.severity === 'critical');
+          const hasCritical = pillarIssues.some(
+            (i) => i.severity === 'critical'
+          );
           const hasWarning = pillarIssues.some((i) => i.severity === 'warning');
 
           // Special handling for off-site signals pillar
@@ -258,18 +282,23 @@ export default function DeoOverviewPage() {
               {isOffsitePillar && offsiteScorecard && (
                 <div className="mt-3 flex items-center justify-between text-xs">
                   <div>
-                    <span className="font-semibold text-gray-900">{offsiteScorecard.overallScore}</span>
+                    <span className="font-semibold text-gray-900">
+                      {offsiteScorecard.overallScore}
+                    </span>
                     <span className="text-gray-500">/100 presence</span>
                   </div>
                   <div className="text-gray-500">
-                    {offsiteScorecard.totalSignals} signals · {offsiteScorecard.highImpactGaps} gaps
+                    {offsiteScorecard.totalSignals} signals ·{' '}
+                    {offsiteScorecard.highImpactGaps} gaps
                   </div>
                 </div>
               )}
 
               <div className="mt-3 flex items-center justify-between">
                 <div>
-                  <span className="text-lg font-bold text-gray-900">{issueCount}</span>
+                  <span className="text-lg font-bold text-gray-900">
+                    {issueCount}
+                  </span>
                   <span className="ml-1 text-xs text-gray-500">
                     DEO {issueCount === 1 ? 'issue' : 'issues'}
                   </span>

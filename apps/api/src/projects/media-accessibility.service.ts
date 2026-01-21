@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { RoleResolutionService } from '../common/role-resolution.service';
 import {
@@ -43,7 +47,7 @@ import type { DeoIssue, DeoIssueSeverity } from '@engineo/shared';
 export class MediaAccessibilityService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   // ============================================================================
@@ -74,7 +78,9 @@ export class MediaAccessibilityService {
     return mapping[target];
   }
 
-  private fromPrismaApplyTarget(target: PrismaApplyTarget): MediaFixApplyTarget {
+  private fromPrismaApplyTarget(
+    target: PrismaApplyTarget
+  ): MediaFixApplyTarget {
     const mapping: Record<PrismaApplyTarget, MediaFixApplyTarget> = {
       IMAGE_ALT: 'IMAGE_ALT',
       CAPTION_FIELD: 'CAPTION_FIELD',
@@ -91,7 +97,7 @@ export class MediaAccessibilityService {
    */
   async computeProductMediaStats(
     productId: string,
-    productTitle: string,
+    productTitle: string
   ): Promise<ProductMediaStats> {
     const images = await this.prisma.productImage.findMany({
       where: { productId },
@@ -158,8 +164,11 @@ export class MediaAccessibilityService {
    */
   async getProjectMediaData(
     projectId: string,
-    userId: string,
-  ): Promise<{ scorecard: MediaAccessibilityScorecard; stats: ProductMediaStats[] }> {
+    userId: string
+  ): Promise<{
+    scorecard: MediaAccessibilityScorecard;
+    stats: ProductMediaStats[];
+  }> {
     // Verify project exists and user has access
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -181,7 +190,10 @@ export class MediaAccessibilityService {
     // Compute per-product stats
     const stats: ProductMediaStats[] = [];
     for (const product of products) {
-      const productStats = await this.computeProductMediaStats(product.id, product.title);
+      const productStats = await this.computeProductMediaStats(
+        product.id,
+        product.title
+      );
       stats.push(productStats);
     }
 
@@ -196,7 +208,7 @@ export class MediaAccessibilityService {
    */
   async getProjectMediaScorecard(
     projectId: string,
-    userId: string,
+    userId: string
   ): Promise<MediaAccessibilityScorecard> {
     const { scorecard } = await this.getProjectMediaData(projectId, userId);
     return scorecard;
@@ -207,9 +219,12 @@ export class MediaAccessibilityService {
    */
   async getProjectMediaAccessibility(
     projectId: string,
-    userId: string,
+    userId: string
   ): Promise<ProjectMediaAccessibilityResponse> {
-    const { scorecard, stats } = await this.getProjectMediaData(projectId, userId);
+    const { scorecard, stats } = await this.getProjectMediaData(
+      projectId,
+      userId
+    );
 
     // Get open drafts
     const draftRows = await this.prisma.productMediaFixDraft.findMany({
@@ -249,7 +264,7 @@ export class MediaAccessibilityService {
    */
   async getProductMediaData(
     productId: string,
-    userId: string,
+    userId: string
   ): Promise<{
     stats: ProductMediaStats;
     images: ProductImageView[];
@@ -344,7 +359,10 @@ export class MediaAccessibilityService {
     const allProductsWithGenericAlt: string[] = [];
 
     for (const product of products) {
-      const stats = await this.computeProductMediaStats(product.id, product.title);
+      const stats = await this.computeProductMediaStats(
+        product.id,
+        product.title
+      );
 
       if (stats.imagesWithoutAlt > 0) {
         totalImagesWithoutAlt += stats.imagesWithoutAlt;
@@ -391,8 +409,8 @@ export class MediaAccessibilityService {
         totalImagesWithoutAlt >= 10
           ? 'critical'
           : totalImagesWithoutAlt >= 3
-          ? 'warning'
-          : 'info';
+            ? 'warning'
+            : 'info';
 
       const issue: any = {
         id: `missing_image_alt_text_${projectId}`,
@@ -594,7 +612,10 @@ export class MediaAccessibilityService {
       throw new ForbiddenException('Draft does not belong to this product');
     }
 
-    const payload = draft.draftPayload as { altText?: string; caption?: string };
+    const payload = draft.draftPayload as {
+      altText?: string;
+      caption?: string;
+    };
 
     // Apply to ProductImage based on target
     if (params.applyTarget === 'IMAGE_ALT' && payload.altText) {
@@ -641,7 +662,7 @@ export class MediaAccessibilityService {
     // Recompute stats
     const updatedStats = await this.computeProductMediaStats(
       params.productId,
-      product?.title || '',
+      product?.title || ''
     );
 
     // Determine if this resolved any issues
@@ -657,7 +678,10 @@ export class MediaAccessibilityService {
     let issuesResolvedCount = 0;
 
     if (updatedImage && params.applyTarget === 'IMAGE_ALT') {
-      const quality = classifyAltText(updatedImage.altText, product?.title || '');
+      const quality = classifyAltText(
+        updatedImage.altText,
+        product?.title || ''
+      );
       if (quality === 'good') {
         issuesResolved = true;
         issuesResolvedCount = 1;

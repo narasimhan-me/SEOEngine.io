@@ -113,7 +113,7 @@ Goal: On Free plans, gating is explicit and points toward upgrade, even when pre
 
 **Expected:**
 
-- The badge next to "Sample preview…" does *not* show `Preview valid` (plan is not eligible).
+- The badge next to "Sample preview…" does _not_ show `Preview valid` (plan is not eligible).
 - The **Continue to Estimate** button is disabled.
 - The "Why you can't continue yet" panel lists:
   - "Your current plan doesn't support Automation Playbooks for bulk fixes."

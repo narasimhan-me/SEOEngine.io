@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { AutomationPlaybookRunStatus, AutomationPlaybookRunType } from '@prisma/client';
+import {
+  AutomationPlaybookRunStatus,
+  AutomationPlaybookRunType,
+} from '@prisma/client';
 
 // Re-export for consumers
 export { AutomationPlaybookRunStatus };
@@ -66,7 +69,7 @@ export class AiUsageLedgerService {
    */
   async getProjectSummary(
     projectId: string,
-    opts?: GetProjectSummaryOptions,
+    opts?: GetProjectSummaryOptions
   ): Promise<AiUsageProjectSummary> {
     const now = new Date();
     const from = opts?.from ?? this.startOfMonth(now);
@@ -124,7 +127,7 @@ export class AiUsageLedgerService {
             applyAiRuns++;
             // This should never happen - log an error for visibility
             this.logger.error(
-              `[AiUsageLedgerService] Invariant violation: APPLY run with aiUsed=true found for project ${projectId}`,
+              `[AiUsageLedgerService] Invariant violation: APPLY run with aiUsed=true found for project ${projectId}`
             );
           }
           break;
@@ -156,7 +159,7 @@ export class AiUsageLedgerService {
    */
   async getProjectRunSummaries(
     projectId: string,
-    opts?: GetProjectRunSummariesOptions,
+    opts?: GetProjectRunSummariesOptions
   ): Promise<AiUsageRunSummary[]> {
     const limit = opts?.limit ?? 20;
     const runType = opts?.runType as AutomationPlaybookRunType | undefined;
@@ -206,7 +209,7 @@ export class AiUsageLedgerService {
    */
   async getProjectMonthlyUsageCharts(
     _projectId: string,
-    _opts?: { months?: number },
+    _opts?: { months?: number }
   ): Promise<{ message: string }> {
     // Stub for future implementation
     return { message: 'Not implemented. See AI-USAGE-2.' };
@@ -219,7 +222,15 @@ export class AiUsageLedgerService {
 
   // Helper: Get end of month
   private endOfMonth(date: Date): Date {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+    return new Date(
+      date.getFullYear(),
+      date.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999
+    );
   }
 
   // ============================================================================
@@ -270,7 +281,9 @@ export class AiUsageLedgerService {
       });
 
       if (!project) {
-        this.logger.warn(`[AiUsageLedgerService] Project not found: ${projectId}`);
+        this.logger.warn(
+          `[AiUsageLedgerService] Project not found: ${projectId}`
+        );
         return;
       }
 
@@ -308,11 +321,11 @@ export class AiUsageLedgerService {
       });
 
       this.logger.log(
-        `[AiUsageLedgerService] Recorded AI run: ${runType} for project ${projectId}`,
+        `[AiUsageLedgerService] Recorded AI run: ${runType} for project ${projectId}`
       );
     } catch (error) {
       this.logger.error(
-        `[AiUsageLedgerService] Failed to record AI run: ${error}`,
+        `[AiUsageLedgerService] Failed to record AI run: ${error}`
       );
       // Don't throw - this is best-effort logging
     }

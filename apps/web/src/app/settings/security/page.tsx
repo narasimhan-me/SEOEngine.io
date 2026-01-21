@@ -125,9 +125,7 @@ export default function SecuritySettingsPage() {
       setSetupData(data);
     } catch (err: unknown) {
       const message =
-        err instanceof Error
-          ? err.message
-          : 'Failed to initialize 2FA setup';
+        err instanceof Error ? err.message : 'Failed to initialize 2FA setup';
       setError(message);
       feedback.showError(message);
     } finally {
@@ -208,8 +206,12 @@ export default function SecuritySettingsPage() {
         </Link>
       </nav>
 
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">Security Settings</h1>
-      <p className="text-gray-600 mb-8">Manage your account security settings</p>
+      <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        Security Settings
+      </h1>
+      <p className="text-gray-600 mb-8">
+        Manage your account security settings
+      </p>
 
       {/* Status messages */}
       {error && (
@@ -234,14 +236,23 @@ export default function SecuritySettingsPage() {
           <div>
             <div className="flex items-center mb-4">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                <svg
+                  className="w-4 h-4 mr-1.5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
                 </svg>
                 Enabled
               </span>
             </div>
             <p className="text-gray-600 mb-4">
-              Your account is protected with two-factor authentication. You will need to enter a code from your authenticator app when signing in.
+              Your account is protected with two-factor authentication. You will
+              need to enter a code from your authenticator app when signing in.
             </p>
             <button
               onClick={handleDisable}
@@ -255,7 +266,9 @@ export default function SecuritySettingsPage() {
           // 2FA setup in progress - show QR code
           <div>
             <p className="text-gray-600 mb-4">
-              Scan the QR code below with your authenticator app (Google Authenticator, 1Password, Authy, etc.), then enter the 6-digit code to verify.
+              Scan the QR code below with your authenticator app (Google
+              Authenticator, 1Password, Authy, etc.), then enter the 6-digit
+              code to verify.
             </p>
 
             <div className="flex flex-col items-center mb-6">
@@ -266,22 +279,31 @@ export default function SecuritySettingsPage() {
                 className="w-48 h-48 border border-gray-200 rounded-lg mb-4"
               />
               <p className="text-xs text-gray-500 text-center max-w-xs break-all">
-                Can&apos;t scan? Enter this code manually:<br />
+                Can&apos;t scan? Enter this code manually:
+                <br />
                 <code className="bg-gray-100 px-2 py-1 rounded text-xs">
-                  {setupData.otpauthUrl.split('secret=')[1]?.split('&')[0] || ''}
+                  {setupData.otpauthUrl.split('secret=')[1]?.split('&')[0] ||
+                    ''}
                 </code>
               </p>
             </div>
 
             <form onSubmit={handleEnable} className="max-w-xs">
-              <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="code"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Verification Code
               </label>
               <input
                 type="text"
                 id="code"
                 value={verificationCode}
-                onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                onChange={(e) =>
+                  setVerificationCode(
+                    e.target.value.replace(/\D/g, '').slice(0, 6)
+                  )
+                }
                 placeholder="000000"
                 maxLength={6}
                 pattern="[0-9]{6}"
@@ -315,8 +337,9 @@ export default function SecuritySettingsPage() {
               </span>
             </div>
             <p className="text-gray-600 mb-4">
-              Add an extra layer of security to your account by enabling two-factor authentication.
-              You&apos;ll need an authenticator app like Google Authenticator, 1Password, or Authy.
+              Add an extra layer of security to your account by enabling
+              two-factor authentication. You&apos;ll need an authenticator app
+              like Google Authenticator, 1Password, or Authy.
             </p>
             <button
               onClick={handleSetupInit}
@@ -330,16 +353,21 @@ export default function SecuritySettingsPage() {
 
         {/* TODO: Add backup codes section in a future update */}
         <div className="mt-8 pt-6 border-t border-gray-200">
-          <h3 className="text-sm font-medium text-gray-500 mb-2">Coming Soon</h3>
+          <h3 className="text-sm font-medium text-gray-500 mb-2">
+            Coming Soon
+          </h3>
           <p className="text-sm text-gray-400">
-            Backup codes for account recovery will be available in a future update.
+            Backup codes for account recovery will be available in a future
+            update.
           </p>
         </div>
       </div>
 
       {/* [SELF-SERVICE-1] Sessions Section */}
       <div className="mt-8 bg-white shadow rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Active Sessions</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          Active Sessions
+        </h2>
 
         {/* Last Login */}
         {user?.lastLoginAt && (
@@ -374,7 +402,8 @@ export default function SecuritySettingsPage() {
                     </p>
                     {session.lastSeenAt && (
                       <p className="text-sm text-gray-500">
-                        Last active: {new Date(session.lastSeenAt).toLocaleString()}
+                        Last active:{' '}
+                        {new Date(session.lastSeenAt).toLocaleString()}
                       </p>
                     )}
                     {session.ip && (
@@ -389,9 +418,12 @@ export default function SecuritySettingsPage() {
 
         {/* Sign Out All Sessions */}
         <div className="border-t border-gray-200 pt-4">
-          <h3 className="text-sm font-medium text-gray-900 mb-2">Sign Out All Sessions</h3>
+          <h3 className="text-sm font-medium text-gray-900 mb-2">
+            Sign Out All Sessions
+          </h3>
           <p className="text-sm text-gray-600 mb-4">
-            This will sign you out of all devices and invalidate all active sessions.
+            This will sign you out of all devices and invalidate all active
+            sessions.
           </p>
 
           {confirmSignOutAll ? (

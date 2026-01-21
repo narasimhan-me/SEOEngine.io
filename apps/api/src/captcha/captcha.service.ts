@@ -40,10 +40,15 @@ export class CaptchaService {
       return this.verifyTurnstile(token, remoteIp);
     }
 
-    throw new BadRequestException(`Unsupported CAPTCHA provider: ${this.provider}`);
+    throw new BadRequestException(
+      `Unsupported CAPTCHA provider: ${this.provider}`
+    );
   }
 
-  private async verifyTurnstile(token: string, remoteIp?: string): Promise<boolean> {
+  private async verifyTurnstile(
+    token: string,
+    remoteIp?: string
+  ): Promise<boolean> {
     const formData = new URLSearchParams();
     formData.append('secret', this.secretKey);
     formData.append('response', token);
@@ -52,20 +57,25 @@ export class CaptchaService {
     }
 
     try {
-      const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData.toString(),
-      });
+      const response = await fetch(
+        'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: formData.toString(),
+        }
+      );
 
       const result = (await response.json()) as TurnstileVerifyResponse;
 
       if (!result.success) {
         const errors = result['error-codes']?.join(', ') || 'Unknown error';
         console.warn(`Turnstile verification failed: ${errors}`);
-        throw new BadRequestException('CAPTCHA verification failed. Please try again.');
+        throw new BadRequestException(
+          'CAPTCHA verification failed. Please try again.'
+        );
       }
 
       return true;
@@ -74,7 +84,9 @@ export class CaptchaService {
         throw error;
       }
       console.error('Turnstile verification error:', error);
-      throw new BadRequestException('CAPTCHA verification failed. Please try again.');
+      throw new BadRequestException(
+        'CAPTCHA verification failed. Please try again.'
+      );
     }
   }
 }

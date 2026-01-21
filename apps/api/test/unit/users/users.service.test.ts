@@ -56,8 +56,12 @@ describe('UsersService', () => {
     it('should throw NotFoundException when user not found', async () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.findById('user-1')).rejects.toThrow(NotFoundException);
-      await expect(service.findById('user-1')).rejects.toThrow('User not found');
+      await expect(service.findById('user-1')).rejects.toThrow(
+        NotFoundException
+      );
+      await expect(service.findById('user-1')).rejects.toThrow(
+        'User not found'
+      );
     });
   });
 
@@ -96,4 +100,3 @@ describe('UsersService', () => {
     });
   });
 });
-

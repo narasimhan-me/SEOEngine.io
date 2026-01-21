@@ -30,7 +30,9 @@ export default function ContactPage() {
 
             {/* Right column info */}
             <div className="space-y-4 rounded-2xl border border-border bg-muted p-6 text-sm text-muted-foreground">
-              <h2 className="text-sm font-semibold text-foreground">Contact details</h2>
+              <h2 className="text-sm font-semibold text-foreground">
+                Contact details
+              </h2>
               <p>
                 <span className="font-medium text-foreground">Support</span>
                 <br />
@@ -45,7 +47,9 @@ export default function ContactPage() {
               </p>
 
               <p>
-                <span className="font-medium text-foreground">Partnerships</span>
+                <span className="font-medium text-foreground">
+                  Partnerships
+                </span>
                 <br />
                 For agencies, platforms, and integration partners, use the form
                 or reach out via email and mention your use case.

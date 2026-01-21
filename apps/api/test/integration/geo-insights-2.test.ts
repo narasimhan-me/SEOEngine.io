@@ -32,7 +32,9 @@ describe('GEO-INSIGHTS-2 – Insights contract + GEO read-only insights', () => 
   }
 
   it('GET /projects/:id/insights returns INSIGHTS-1 shape plus geoInsights, and is read-only', async () => {
-    const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+    const { user, project } = await seedConnectedStoreProject(testPrisma, {
+      plan: 'pro',
+    });
 
     const product = await testPrisma.product.create({
       data: {
@@ -58,7 +60,18 @@ describe('GEO-INSIGHTS-2 – Insights contract + GEO read-only insights', () => 
         visibilityScore: 50,
         version: 'v2',
         computedAt: older,
-        metadata: { v2: { components: { entityStrength: 55, intentMatch: 58, answerability: 52, aiVisibility: 49, contentCompleteness: 60, technicalQuality: 70 } } },
+        metadata: {
+          v2: {
+            components: {
+              entityStrength: 55,
+              intentMatch: 58,
+              answerability: 52,
+              aiVisibility: 49,
+              contentCompleteness: 60,
+              technicalQuality: 70,
+            },
+          },
+        },
       },
     });
     await testPrisma.deoScoreSnapshot.create({
@@ -71,7 +84,18 @@ describe('GEO-INSIGHTS-2 – Insights contract + GEO read-only insights', () => 
         visibilityScore: 62,
         version: 'v2',
         computedAt: now,
-        metadata: { v2: { components: { entityStrength: 68, intentMatch: 70, answerability: 65, aiVisibility: 60, contentCompleteness: 72, technicalQuality: 78 } } },
+        metadata: {
+          v2: {
+            components: {
+              entityStrength: 68,
+              intentMatch: 70,
+              answerability: 65,
+              aiVisibility: 60,
+              contentCompleteness: 72,
+              technicalQuality: 78,
+            },
+          },
+        },
       },
     });
 
@@ -170,12 +194,17 @@ describe('GEO-INSIGHTS-2 – Insights contract + GEO read-only insights', () => 
       whyThisMatters: expect.any(String),
     });
     // avgTimeToImproveHours can be null if no improvements yet, or a number
-    expect(body.geoInsights.trustSignals.avgTimeToImproveHours === null || typeof body.geoInsights.trustSignals.avgTimeToImproveHours === 'number').toBe(true);
+    expect(
+      body.geoInsights.trustSignals.avgTimeToImproveHours === null ||
+        typeof body.geoInsights.trustSignals.avgTimeToImproveHours === 'number'
+    ).toBe(true);
     expect(body.geoInsights.opportunities).toBeInstanceOf(Array);
   });
 
   it('geoInsights.coverage.byIntent includes all 5 SearchIntentTypes', async () => {
-    const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+    const { user, project } = await seedConnectedStoreProject(testPrisma, {
+      plan: 'pro',
+    });
 
     await testPrisma.deoScoreSnapshot.create({
       data: {
@@ -196,7 +225,9 @@ describe('GEO-INSIGHTS-2 – Insights contract + GEO read-only insights', () => 
       .set(authHeader(user.id))
       .expect(200);
 
-    const intentTypes = res.body.geoInsights.coverage.byIntent.map((r: any) => r.intentType);
+    const intentTypes = res.body.geoInsights.coverage.byIntent.map(
+      (r: any) => r.intentType
+    );
     expect(intentTypes).toContain('transactional');
     expect(intentTypes).toContain('comparative');
     expect(intentTypes).toContain('problem_use_case');
@@ -206,7 +237,9 @@ describe('GEO-INSIGHTS-2 – Insights contract + GEO read-only insights', () => 
   });
 
   it('geoInsights trust trajectory reflects ProductGeoFixApplication improvements', async () => {
-    const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+    const { user, project } = await seedConnectedStoreProject(testPrisma, {
+      plan: 'pro',
+    });
 
     const product = await testPrisma.product.create({
       data: {
@@ -266,7 +299,11 @@ describe('GEO-INSIGHTS-2 – Insights contract + GEO read-only insights', () => 
       .set(authHeader(user.id))
       .expect(200);
 
-    expect(res.body.geoInsights.overview.trustTrajectory.improvedProducts).toBe(1);
-    expect(res.body.geoInsights.overview.trustTrajectory.improvedEvents).toBe(1);
+    expect(res.body.geoInsights.overview.trustTrajectory.improvedProducts).toBe(
+      1
+    );
+    expect(res.body.geoInsights.overview.trustTrajectory.improvedEvents).toBe(
+      1
+    );
   });
 });

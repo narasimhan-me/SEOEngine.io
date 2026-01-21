@@ -47,7 +47,9 @@ test.describe('WORK-QUEUE-1 – Work Queue E2E', () => {
       await expect(page).toHaveURL(/tab=Critical/);
 
       // All visible cards should have CRITICAL health badge
-      const healthBadges = await page.locator('[data-testid="health-badge"]').allTextContents();
+      const healthBadges = await page
+        .locator('[data-testid="health-badge"]')
+        .allTextContents();
       for (const badge of healthBadges) {
         expect(badge).toContain('CRITICAL');
       }
@@ -76,7 +78,9 @@ test.describe('WORK-QUEUE-1 – Work Queue E2E', () => {
       await loginAndNavigateToWorkQueue(page, projectId);
 
       // Find an automation bundle card in NEW state
-      const automationCard = page.locator('[data-bundle-type="AUTOMATION_RUN"][data-state="NEW"]').first();
+      const automationCard = page
+        .locator('[data-bundle-type="AUTOMATION_RUN"][data-state="NEW"]')
+        .first();
       await expect(automationCard).toBeVisible();
 
       // Click Generate Drafts CTA
@@ -94,9 +98,13 @@ test.describe('WORK-QUEUE-1 – Work Queue E2E', () => {
       await page.click('button:has-text("Drafts Ready")');
 
       // Find a bundle with DRAFTS_READY state
-      const readyCard = page.locator('[data-bundle-type="AUTOMATION_RUN"][data-state="DRAFTS_READY"]').first();
+      const readyCard = page
+        .locator(
+          '[data-bundle-type="AUTOMATION_RUN"][data-state="DRAFTS_READY"]'
+        )
+        .first();
 
-      if (await readyCard.count() > 0) {
+      if ((await readyCard.count()) > 0) {
         // Should have Apply Changes CTA
         await expect(readyCard.locator('text=Apply Changes')).toBeVisible();
       }
@@ -104,7 +112,9 @@ test.describe('WORK-QUEUE-1 – Work Queue E2E', () => {
   });
 
   test.describe('Role-Based Access Control', () => {
-    test('EDITOR cannot apply - Apply button disabled with reason', async ({ page }) => {
+    test('EDITOR cannot apply - Apply button disabled with reason', async ({
+      page,
+    }) => {
       // TODO: Login as EDITOR user
       const projectId = 'test-project-id';
       await loginAndNavigateToWorkQueue(page, projectId);
@@ -112,9 +122,13 @@ test.describe('WORK-QUEUE-1 – Work Queue E2E', () => {
       // Navigate to Drafts Ready tab
       await page.click('button:has-text("Drafts Ready")');
 
-      const readyCard = page.locator('[data-bundle-type="AUTOMATION_RUN"][data-state="DRAFTS_READY"]').first();
+      const readyCard = page
+        .locator(
+          '[data-bundle-type="AUTOMATION_RUN"][data-state="DRAFTS_READY"]'
+        )
+        .first();
 
-      if (await readyCard.count() > 0) {
+      if ((await readyCard.count()) > 0) {
         // Apply button should be disabled for EDITOR
         const applyButton = readyCard.locator('text=Apply Changes');
         // Check for disabled state or disabled reason text
@@ -129,7 +143,9 @@ test.describe('WORK-QUEUE-1 – Work Queue E2E', () => {
       await loginAndNavigateToWorkQueue(page, projectId);
 
       // All cards should only have View/Read-only CTAs
-      const cards = await page.locator('[data-testid="action-bundle-card"]').all();
+      const cards = await page
+        .locator('[data-testid="action-bundle-card"]')
+        .all();
       for (const card of cards) {
         // Should not have mutation CTAs
         await expect(card.locator('text=Apply Changes')).not.toBeVisible();
@@ -139,7 +155,9 @@ test.describe('WORK-QUEUE-1 – Work Queue E2E', () => {
   });
 
   test.describe('Approval Workflow', () => {
-    test('Pending Approval tab shows bundles awaiting approval', async ({ page }) => {
+    test('Pending Approval tab shows bundles awaiting approval', async ({
+      page,
+    }) => {
       const projectId = 'test-project-id';
       await loginAndNavigateToWorkQueue(page, projectId);
 
@@ -153,16 +171,20 @@ test.describe('WORK-QUEUE-1 – Work Queue E2E', () => {
       }
     });
 
-    test('OWNER can approve and apply from Pending Approval tab', async ({ page }) => {
+    test('OWNER can approve and apply from Pending Approval tab', async ({
+      page,
+    }) => {
       // TODO: Login as OWNER user
       const projectId = 'test-project-id';
       await loginAndNavigateToWorkQueue(page, projectId);
 
       await page.click('button:has-text("Pending Approval")');
 
-      const pendingCard = page.locator('[data-state="PENDING_APPROVAL"]').first();
+      const pendingCard = page
+        .locator('[data-state="PENDING_APPROVAL"]')
+        .first();
 
-      if (await pendingCard.count() > 0) {
+      if ((await pendingCard.count()) > 0) {
         // Click Approve & Apply
         await pendingCard.locator('text=Approve & Apply').click();
 
@@ -175,14 +197,16 @@ test.describe('WORK-QUEUE-1 – Work Queue E2E', () => {
   });
 
   test.describe('GEO Export Bundle', () => {
-    test('GEO bundle routes to export view without mutations', async ({ page }) => {
+    test('GEO bundle routes to export view without mutations', async ({
+      page,
+    }) => {
       const projectId = 'test-project-id';
       await loginAndNavigateToWorkQueue(page, projectId);
 
       // Find GEO export bundle
       const geoCard = page.locator('[data-bundle-type="GEO_EXPORT"]').first();
 
-      if (await geoCard.count() > 0) {
+      if ((await geoCard.count()) > 0) {
         // Click View Export Options
         await geoCard.locator('text=View Export Options').click();
 
@@ -200,7 +224,7 @@ test.describe('WORK-QUEUE-1 – Work Queue E2E', () => {
 
       const geoCard = page.locator('[data-bundle-type="GEO_EXPORT"]').first();
 
-      if (await geoCard.count() > 0) {
+      if ((await geoCard.count()) > 0) {
         // Should have share link status badge
         await expect(geoCard.locator('text=Share links:')).toBeVisible();
       }
@@ -208,11 +232,16 @@ test.describe('WORK-QUEUE-1 – Work Queue E2E', () => {
   });
 
   test.describe('Deep Linking', () => {
-    test('bundleId query param highlights specific bundle', async ({ page }) => {
+    test('bundleId query param highlights specific bundle', async ({
+      page,
+    }) => {
       const projectId = 'test-project-id';
-      const bundleId = 'AUTOMATION_RUN:FIX_MISSING_METADATA:missing_seo_title:' + projectId;
+      const bundleId =
+        'AUTOMATION_RUN:FIX_MISSING_METADATA:missing_seo_title:' + projectId;
 
-      await page.goto(`${BASE_URL}/projects/${projectId}/work-queue?bundleId=${encodeURIComponent(bundleId)}`);
+      await page.goto(
+        `${BASE_URL}/projects/${projectId}/work-queue?bundleId=${encodeURIComponent(bundleId)}`
+      );
 
       // Card with matching bundleId should have highlight styling
       const highlightedCard = page.locator(`[data-bundle-id="${bundleId}"]`);

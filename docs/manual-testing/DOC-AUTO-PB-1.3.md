@@ -195,7 +195,6 @@ Goal: Confirm that UPDATED and SKIPPED outcomes align with draft content, not la
 Use this section to record any mismatches between behavior and the DOC-AUTO-PB-1.3 spec:
 
 - **Example format:**
-
   - Scenario: TC-4 – Rules binding
     Observed: Apply returned 200 and updated products even when rulesHash mismatched.
     Expected: 409 `PLAYBOOK_RULES_CHANGED` and no updates.

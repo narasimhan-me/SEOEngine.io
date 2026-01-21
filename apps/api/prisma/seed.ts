@@ -35,7 +35,10 @@ async function main() {
     console.log('✅ Admin user created:', admin.id);
   } else {
     // Ensure admin role and internal admin role
-    const needsUpdate = admin.role !== 'ADMIN' || !(admin as any).adminRole || (admin as any).accountStatus !== 'ACTIVE';
+    const needsUpdate =
+      admin.role !== 'ADMIN' ||
+      !(admin as any).adminRole ||
+      (admin as any).accountStatus !== 'ACTIVE';
     if (needsUpdate) {
       admin = await prisma.user.update({
         where: { id: admin.id },
@@ -108,4 +111,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-

@@ -11,7 +11,12 @@ import { ProjectsModule } from '../projects/projects.module';
   // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Import ProjectsModule for DeoIssuesService access
   imports: [forwardRef(() => ProjectsModule)],
   controllers: [ProductsController, ProductAnswerBlocksController],
-  providers: [ProductsService, AnswerBlockService, PrismaService, RoleResolutionService],
+  providers: [
+    ProductsService,
+    AnswerBlockService,
+    PrismaService,
+    RoleResolutionService,
+  ],
   exports: [ProductsService, AnswerBlockService],
 })
 export class ProductsModule {}

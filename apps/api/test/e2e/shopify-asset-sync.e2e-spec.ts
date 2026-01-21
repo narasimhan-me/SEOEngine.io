@@ -13,11 +13,7 @@ import { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import { createTestApp } from '../utils/test-app';
-import {
-  cleanupTestDb,
-  disconnectTestDb,
-  testPrisma,
-} from '../utils/test-db';
+import { cleanupTestDb, disconnectTestDb, testPrisma } from '../utils/test-db';
 import { seedFirstDeoWinProjectReady } from '../../src/testkit';
 
 describe('Shopify Asset Sync (SHOPIFY-ASSET-SYNC-COVERAGE-1)', () => {
@@ -116,14 +112,18 @@ describe('Shopify Asset Sync (SHOPIFY-ASSET-SYNC-COVERAGE-1)', () => {
 
       expect(crawlResults.length).toBe(2);
 
-      const aboutPage = crawlResults.find((r) => r.shopifyHandle === 'about-us');
+      const aboutPage = crawlResults.find(
+        (r) => r.shopifyHandle === 'about-us'
+      );
       expect(aboutPage).toBeDefined();
       expect(aboutPage?.shopifyResourceId).toBe('111');
       expect(aboutPage?.url).toContain('/pages/about-us');
       expect(aboutPage?.title).toBe('About SEO');
       expect(aboutPage?.h1).toBe('About Us');
 
-      const contactPage = crawlResults.find((r) => r.shopifyHandle === 'contact');
+      const contactPage = crawlResults.find(
+        (r) => r.shopifyHandle === 'contact'
+      );
       expect(contactPage).toBeDefined();
       expect(contactPage?.shopifyResourceId).toBe('222');
     });
@@ -196,7 +196,9 @@ describe('Shopify Asset Sync (SHOPIFY-ASSET-SYNC-COVERAGE-1)', () => {
 
       expect(crawlResults.length).toBe(2);
 
-      const summerSale = crawlResults.find((r) => r.shopifyHandle === 'summer-sale');
+      const summerSale = crawlResults.find(
+        (r) => r.shopifyHandle === 'summer-sale'
+      );
       expect(summerSale).toBeDefined();
       expect(summerSale?.shopifyResourceId).toBe('333');
       expect(summerSale?.url).toContain('/collections/summer-sale');
@@ -205,7 +207,9 @@ describe('Shopify Asset Sync (SHOPIFY-ASSET-SYNC-COVERAGE-1)', () => {
 
   describe('POST /projects/:id/shopify/sync-blogs', () => {
     it('creates CrawlResult rows with Shopify identity fields for articles (blog posts)', async () => {
-      const { user, project } = await seedFirstDeoWinProjectReady(testPrisma, { userPlan: 'pro' });
+      const { user, project } = await seedFirstDeoWinProjectReady(testPrisma, {
+        userPlan: 'pro',
+      });
 
       const mockArticles = [
         {
@@ -264,13 +268,17 @@ describe('Shopify Asset Sync (SHOPIFY-ASSET-SYNC-COVERAGE-1)', () => {
 
       expect(crawlResults.length).toBe(2);
 
-      const first = crawlResults.find((r) => r.shopifyHandle === 'news/first-post');
+      const first = crawlResults.find(
+        (r) => r.shopifyHandle === 'news/first-post'
+      );
       expect(first).toBeDefined();
       expect(first?.shopifyResourceId).toBe('555');
       expect(first?.url).toContain('/blogs/news/first-post');
       expect(first?.shopifyPublishedAt).toBeDefined();
 
-      const draft = crawlResults.find((r) => r.shopifyHandle === 'news/draft-post');
+      const draft = crawlResults.find(
+        (r) => r.shopifyHandle === 'news/draft-post'
+      );
       expect(draft).toBeDefined();
       expect(draft?.shopifyPublishedAt).toBeNull();
     });
@@ -278,10 +286,8 @@ describe('Shopify Asset Sync (SHOPIFY-ASSET-SYNC-COVERAGE-1)', () => {
 
   describe('GET /projects/:id/shopify/sync-status', () => {
     it('returns sync timestamps after syncing', async () => {
-      const { user, project, shopifyIntegration } = await seedFirstDeoWinProjectReady(
-        testPrisma,
-        { userPlan: 'pro' },
-      );
+      const { user, project, shopifyIntegration } =
+        await seedFirstDeoWinProjectReady(testPrisma, { userPlan: 'pro' });
 
       // First check: all timestamps are null
       const token = jwtService.sign({ sub: user.id });

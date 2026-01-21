@@ -61,22 +61,25 @@
 **Description:** Validate detection logic for products missing key answers using the `/projects/:id/answerability` endpoint.
 
 **Test Data:**
+
 - Product A: Rich description mentioning materials, target audience, and features
 - Product B: Minimal description with no attribute data
 
 **Steps:**
+
 1. Create project with Product A and Product B
 2. Call `GET /projects/:id/answerability` with valid auth token
 3. Inspect per-product entries in response
 
 **Expected Detection Outcome:**
 
-| Product | what_is_it | who_is_it_for | key_features | materials_and_specs |
-|---------|------------|---------------|--------------|---------------------|
-| A | Strong/Weak | Strong/Weak | Strong/Weak | Strong/Weak |
-| B | Missing | Missing | Missing | Missing |
+| Product | what_is_it  | who_is_it_for | key_features | materials_and_specs |
+| ------- | ----------- | ------------- | ------------ | ------------------- |
+| A       | Strong/Weak | Strong/Weak   | Strong/Weak  | Strong/Weak         |
+| B       | Missing     | Missing       | Missing      | Missing             |
 
 **AnswerabilityStatus for Product B (from API response):**
+
 ```json
 {
   "status": "needs_answers",
@@ -87,6 +90,7 @@
 ```
 
 **Verification:**
+
 - [ ] Product A status is NOT `needs_answers`
 - [ ] Product B status IS `needs_answers`
 - [ ] Product B has 5+ missing questions
@@ -100,22 +104,25 @@
 **Description:** Identify products with low-confidence or incomplete answers using the `/projects/:id/answerability` endpoint.
 
 **Test Data:**
+
 - Product C: Has description but content is vague ("Great product, you'll love it!")
 - Product D: Has description but conflicts with attributes (description says "leather" but material attribute says "synthetic")
 
 **Steps:**
+
 1. Create products C and D with vague/contradictory descriptions
 2. Call `GET /projects/:id/answerability`
 3. Inspect per-product entries in response
 
 **Expected Detection Outcome:**
 
-| Product | Status | Issue |
-|---------|--------|-------|
-| C | Weak answers | Vague content, low confidence |
-| D | Weak answers | Conflicting information |
+| Product | Status       | Issue                         |
+| ------- | ------------ | ----------------------------- |
+| C       | Weak answers | Vague content, low confidence |
+| D       | Weak answers | Conflicting information       |
 
 **AnswerabilityStatus (from API response):**
+
 ```json
 {
   "status": "partially_answer_ready",
@@ -126,6 +133,7 @@
 ```
 
 **Verification:**
+
 - [ ] Affected questions appear in `weakQuestions` (not `missingQuestions`)
 - [ ] Status is `partially_answer_ready`
 - [ ] `answerabilityScore` is in mid-range (30-60)
@@ -146,18 +154,18 @@
 
 **Validation Checklist:**
 
-| Question ID | Required Data | Cannot Answer Trigger |
-|-------------|---------------|----------------------|
-| what_is_it | title, category, description | No title or category |
-| who_is_it_for | description, tags, audience attributes | No audience indicators |
-| why_choose_this | description, features, benefits | No differentiators |
-| key_features | features, specifications | No feature data |
-| how_is_it_used | description, usage instructions | No usage info |
-| problems_it_solves | description, pain points | No problem/solution content |
-| what_makes_it_different | description, competitors, unique attributes | No differentiation data |
-| whats_included | contents, components, accessories | No inclusion list |
-| materials_and_specs | materials, dimensions, specifications | No material/spec data |
-| care_safety_instructions | care instructions, warnings | No care/safety info |
+| Question ID              | Required Data                               | Cannot Answer Trigger       |
+| ------------------------ | ------------------------------------------- | --------------------------- |
+| what_is_it               | title, category, description                | No title or category        |
+| who_is_it_for            | description, tags, audience attributes      | No audience indicators      |
+| why_choose_this          | description, features, benefits             | No differentiators          |
+| key_features             | features, specifications                    | No feature data             |
+| how_is_it_used           | description, usage instructions             | No usage info               |
+| problems_it_solves       | description, pain points                    | No problem/solution content |
+| what_makes_it_different  | description, competitors, unique attributes | No differentiation data     |
+| whats_included           | contents, components, accessories           | No inclusion list           |
+| materials_and_specs      | materials, dimensions, specifications       | No material/spec data       |
+| care_safety_instructions | care instructions, warnings                 | No care/safety info         |
 
 ---
 
@@ -193,13 +201,14 @@
 
 **Expected Behavior:**
 
-| Answerability Status | Expected DEO Impact |
-|---------------------|---------------------|
-| answer_ready | Answerability component at/near maximum |
+| Answerability Status   | Expected DEO Impact                     |
+| ---------------------- | --------------------------------------- |
+| answer_ready           | Answerability component at/near maximum |
 | partially_answer_ready | Answerability component at medium level |
-| needs_answers | Answerability component at low level |
+| needs_answers          | Answerability component at low level    |
 
 **Signal Mapping:**
+
 - `answerabilityScore` (0-100) → Answerability component input
 - Missing questions count → Negative weight
 - Weak questions count → Reduced weight
@@ -213,10 +222,12 @@
 **Description:** Product description claims one thing, attributes say another.
 
 **Test Data:**
+
 - Description: "Made from genuine leather"
 - Material attribute: "Faux leather"
 
 **Expected Behavior:**
+
 - Detection flags this as a data quality issue
 - Confidence score reduced for `materials_and_specs`
 - Answer marked as "weak" until resolved
@@ -228,10 +239,12 @@
 **Description:** Minimal description but comprehensive Shopify metafields.
 
 **Test Data:**
+
 - Description: "Widget"
 - Metafields: material, dimensions, weight, care instructions, target audience
 
 **Expected Behavior:**
+
 - Detection can still identify answerable questions from attributes
 - `materials_and_specs` and `care_safety_instructions` may be answerable
 - Other questions depend on attribute richness
@@ -243,6 +256,7 @@
 **Description:** Product has images but no description or attributes.
 
 **Expected Behavior:**
+
 - Status: `needs_answers`
 - All questions marked as missing
 - No answers generated (cannot extract from images in Phase 1)
@@ -256,6 +270,7 @@
 **Scenario:** Insufficient data for confident answer generation.
 
 **Expected Behavior:**
+
 - System emits "cannot answer" status
 - Question marked in `missingQuestions` array
 - No low-quality answer is generated
@@ -268,6 +283,7 @@
 **Scenario:** DEO Score v2 receives answerability signals while v1 is still active.
 
 **Expected Behavior:**
+
 - v1 scoring continues to work unchanged
 - v2 components receive new answerability signals
 - No breaking changes to existing DEO Score API
@@ -331,9 +347,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Answer Engine system-level testing (Phase AE-1) |
+| Field              | Value                                           |
+| ------------------ | ----------------------------------------------- |
+| **Tester Name**    | [Pending]                                       |
+| **Date**           | [YYYY-MM-DD]                                    |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed           |
+| **Notes**          | Answer Engine system-level testing (Phase AE-1) |

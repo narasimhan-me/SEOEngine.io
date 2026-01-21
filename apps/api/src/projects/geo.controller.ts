@@ -26,7 +26,10 @@ import {
   type GeoIssueType,
   type GeoCitationConfidenceLevel,
 } from '@engineo/shared';
-import { GeoIssueType as PrismaGeoIssueType, GeoCitationConfidenceLevel as PrismaGeoConfidence } from '@prisma/client';
+import {
+  GeoIssueType as PrismaGeoIssueType,
+  GeoCitationConfidenceLevel as PrismaGeoConfidence,
+} from '@prisma/client';
 import { GovernanceService } from './governance.service';
 import { ApprovalsService } from './approvals.service';
 import { AuditEventsService } from './audit-events.service';
@@ -53,7 +56,9 @@ function toPrismaIssueType(type: GeoIssueType): PrismaGeoIssueType {
   return mapping[type];
 }
 
-function fromPrismaConfidence(level: PrismaGeoConfidence): GeoCitationConfidenceLevel {
+function fromPrismaConfidence(
+  level: PrismaGeoConfidence
+): GeoCitationConfidenceLevel {
   const mapping: Record<PrismaGeoConfidence, GeoCitationConfidenceLevel> = {
     LOW: 'low',
     MEDIUM: 'medium',
@@ -62,7 +67,9 @@ function fromPrismaConfidence(level: PrismaGeoConfidence): GeoCitationConfidence
   return mapping[level];
 }
 
-function toPrismaConfidence(level: GeoCitationConfidenceLevel): PrismaGeoConfidence {
+function toPrismaConfidence(
+  level: GeoCitationConfidenceLevel
+): PrismaGeoConfidence {
   const mapping: Record<GeoCitationConfidenceLevel, PrismaGeoConfidence> = {
     low: 'LOW',
     medium: 'MEDIUM',
@@ -90,13 +97,13 @@ export class GeoController {
     private readonly governanceService: GovernanceService,
     private readonly approvalsService: ApprovalsService,
     private readonly auditEventsService: AuditEventsService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   @Get('products/:productId/geo')
   async getProductGeo(
     @Request() req: any,
-    @Param('productId') productId: string,
+    @Param('productId') productId: string
   ): Promise<ProductGeoReadinessResponse> {
     return this.geoService.getProductGeoReadiness(productId, req.user.id);
   }
@@ -105,7 +112,7 @@ export class GeoController {
   async previewGeoFix(
     @Request() req: any,
     @Param('productId') productId: string,
-    @Body() dto: GeoFixPreviewDto,
+    @Body() dto: GeoFixPreviewDto
   ): Promise<{
     draft: {
       id: string;
@@ -134,17 +141,25 @@ export class GeoController {
 
     if (!product) throw new BadRequestException('Product not found');
     // [ROLES-3 FIXUP-3] OWNER/EDITOR only for draft generation
-    await this.roleResolution.assertCanGenerateDrafts(product.projectId, userId);
+    await this.roleResolution.assertCanGenerateDrafts(
+      product.projectId,
+      userId
+    );
 
-    const block = (product.answerBlocks ?? []).find((b) => b.questionId === dto.questionId) || null;
-    const updatedAtIso = block?.updatedAt ? block.updatedAt.toISOString() : 'none';
+    const block =
+      (product.answerBlocks ?? []).find(
+        (b) => b.questionId === dto.questionId
+      ) || null;
+    const updatedAtIso = block?.updatedAt
+      ? block.updatedAt.toISOString()
+      : 'none';
 
     const aiWorkKey = computeGeoFixWorkKey(
       product.projectId,
       productId,
       dto.questionId,
       dto.issueType,
-      updatedAtIso,
+      updatedAtIso
     );
 
     const existingDraft = await this.prisma.productGeoFixDraft.findFirst({
@@ -160,7 +175,9 @@ export class GeoController {
           id: existingDraft.id,
           productId: existingDraft.productId,
           questionId: existingDraft.questionId,
-          issueType: (existingDraft.issueType as any).toLowerCase() as GeoIssueType,
+          issueType: (
+            existingDraft.issueType as any
+          ).toLowerCase() as GeoIssueType,
           draftPayload: existingDraft.draftPayload as any,
           aiWorkKey: existingDraft.aiWorkKey,
           generatedWithAi: existingDraft.generatedWithAi,
@@ -180,12 +197,13 @@ export class GeoController {
 
     if (quotaEval.status === 'blocked') {
       throw new ForbiddenException(
-        'AI usage quota exceeded. Please wait until next month or upgrade your plan.',
+        'AI usage quota exceeded. Please wait until next month or upgrade your plan.'
       );
     }
 
-    const questionText =
-      (block?.questionText || (ANSWER_QUESTION_LABELS as any)[dto.questionId] || dto.questionId) as string;
+    const questionText = (block?.questionText ||
+      (ANSWER_QUESTION_LABELS as any)[dto.questionId] ||
+      dto.questionId) as string;
 
     const start = Date.now();
     const improved = await this.aiService.generateGeoAnswerImprovement({
@@ -256,12 +274,18 @@ export class GeoController {
   async applyGeoFix(
     @Request() req: any,
     @Param('productId') productId: string,
-    @Body() dto: GeoFixApplyDto,
+    @Body() dto: GeoFixApplyDto
   ): Promise<{
     success: boolean;
     issuesResolvedCount: number;
-    before: { citationConfidenceLevel: GeoCitationConfidenceLevel; issuesCount: number };
-    after: { citationConfidenceLevel: GeoCitationConfidenceLevel; issuesCount: number };
+    before: {
+      citationConfidenceLevel: GeoCitationConfidenceLevel;
+      issuesCount: number;
+    };
+    after: {
+      citationConfidenceLevel: GeoCitationConfidenceLevel;
+      issuesCount: number;
+    };
     geo: ProductGeoReadinessResponse;
   }> {
     const userId = req.user.id;
@@ -289,14 +313,16 @@ export class GeoController {
     }
 
     // [ENTERPRISE-GEO-1] Check approval requirement
-    const approvalRequired = await this.governanceService.isApprovalRequired(product.projectId);
+    const approvalRequired = await this.governanceService.isApprovalRequired(
+      product.projectId
+    );
     let approvalId: string | undefined;
 
     if (approvalRequired) {
       const approvalStatus = await this.approvalsService.hasValidApproval(
         product.projectId,
         'GEO_FIX_APPLY',
-        dto.draftId,
+        dto.draftId
       );
 
       if (!approvalStatus.valid) {
@@ -312,15 +338,23 @@ export class GeoController {
       approvalId = approvalStatus.approvalId;
     }
 
-    const beforeGeo = await this.geoService.getProductGeoReadiness(productId, userId);
-    const beforeIssueTypes = new Set(beforeGeo.issues.map((i) => `${i.issueType}:${i.questionId || ''}`));
+    const beforeGeo = await this.geoService.getProductGeoReadiness(
+      productId,
+      userId
+    );
+    const beforeIssueTypes = new Set(
+      beforeGeo.issues.map((i) => `${i.issueType}:${i.questionId || ''}`)
+    );
 
     const payload = draft.draftPayload as any;
     const improvedAnswer = String(payload?.improvedAnswer ?? '').trim();
-    if (!improvedAnswer) throw new BadRequestException('Draft payload missing improvedAnswer');
+    if (!improvedAnswer)
+      throw new BadRequestException('Draft payload missing improvedAnswer');
 
     const questionId = draft.questionId;
-    const existingBlock = (product.answerBlocks ?? []).find((b) => b.questionId === questionId) || null;
+    const existingBlock =
+      (product.answerBlocks ?? []).find((b) => b.questionId === questionId) ||
+      null;
     const questionText =
       existingBlock?.questionText ||
       ((ANSWER_QUESTION_LABELS as any)[questionId] as string) ||
@@ -345,8 +379,13 @@ export class GeoController {
       },
     });
 
-    const afterGeo = await this.geoService.getProductGeoReadiness(productId, userId);
-    const afterIssueTypes = new Set(afterGeo.issues.map((i) => `${i.issueType}:${i.questionId || ''}`));
+    const afterGeo = await this.geoService.getProductGeoReadiness(
+      productId,
+      userId
+    );
+    const afterIssueTypes = new Set(
+      afterGeo.issues.map((i) => `${i.issueType}:${i.questionId || ''}`)
+    );
 
     const resolved: string[] = [];
     for (const key of beforeIssueTypes) {
@@ -388,14 +427,20 @@ export class GeoController {
         issuesResolvedCount: resolved.length,
         beforeConfidence: beforeLevel,
         afterConfidence: afterLevel,
-      },
+      }
     );
 
     return {
       success: true,
       issuesResolvedCount: resolved.length,
-      before: { citationConfidenceLevel: beforeLevel, issuesCount: beforeGeo.issues.length },
-      after: { citationConfidenceLevel: afterLevel, issuesCount: afterGeo.issues.length },
+      before: {
+        citationConfidenceLevel: beforeLevel,
+        issuesCount: beforeGeo.issues.length,
+      },
+      after: {
+        citationConfidenceLevel: afterLevel,
+        issuesCount: afterGeo.issues.length,
+      },
       geo: afterGeo,
     };
   }

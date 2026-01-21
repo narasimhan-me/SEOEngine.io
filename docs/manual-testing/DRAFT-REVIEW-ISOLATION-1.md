@@ -25,11 +25,13 @@ This document covers manual testing for DRAFT-REVIEW-ISOLATION-1, which extracts
 ### 1. Products List → Review Drafts → Product Drafts Tab
 
 **Steps:**
+
 1. Navigate to Products list (`/projects/{projectId}/products`)
 2. Find a product with "🟡 Draft saved (not applied)" chip
 3. Click the "Review drafts" action button
 
 **Expected:**
+
 - Navigates to `/projects/{projectId}/products/{productId}?tab=drafts&from=asset_list`
 - Product detail page opens with Drafts tab selected
 - Drafts tab panel is visible (`data-testid="drafts-tab-panel"`)
@@ -37,10 +39,12 @@ This document covers manual testing for DRAFT-REVIEW-ISOLATION-1, which extracts
 ### 2. View Drafts (Unchanged Behavior)
 
 **Steps:**
+
 1. Navigate to Product detail Drafts tab
 2. Observe the draft list
 
 **Expected:**
+
 - Draft list shows pending drafts for the product
 - Each draft shows:
   - Playbook type (SEO Title Suggestion / SEO Description Suggestion)
@@ -51,12 +55,14 @@ This document covers manual testing for DRAFT-REVIEW-ISOLATION-1, which extracts
 ### 3. Edit Draft (Unchanged Behavior)
 
 **Steps:**
+
 1. Navigate to Drafts tab with pending drafts
 2. Click "Edit" on a draft item
 3. Modify the text
 4. Click "Save changes"
 
 **Expected:**
+
 - Edit mode activates with textarea and Save/Cancel buttons
 - After save: success toast, updated value displayed
 - Page reload: saved value persists (server-persisted)
@@ -64,11 +70,13 @@ This document covers manual testing for DRAFT-REVIEW-ISOLATION-1, which extracts
 ### 4. Cancel Edit (Unchanged Behavior)
 
 **Steps:**
+
 1. Enter edit mode on a draft item
 2. Modify text
 3. Click "Cancel"
 
 **Expected:**
+
 - Edit mode exits
 - Original value restored
 - No API call made
@@ -76,10 +84,12 @@ This document covers manual testing for DRAFT-REVIEW-ISOLATION-1, which extracts
 ### 5. No AI Affordances on Drafts Tab
 
 **Steps:**
+
 1. Navigate to Product detail Drafts tab
 2. Inspect the entire page surface
 
 **Expected (explicit absence checks):**
+
 - No "Generate" button
 - No "Regenerate" button
 - No "AI suggestion" text
@@ -92,11 +102,13 @@ This document covers manual testing for DRAFT-REVIEW-ISOLATION-1, which extracts
 ### 6. Back/returnTo Navigation (Unchanged Behavior)
 
 **Steps:**
+
 1. From Products list, click "Review drafts" on a product
 2. On Product detail Drafts tab, observe the ScopeBanner
 3. Click the back link
 
 **Expected:**
+
 - ScopeBanner shows navigation context
 - Back link returns to Products list
 - Filter context preserved in returnTo
@@ -104,9 +116,11 @@ This document covers manual testing for DRAFT-REVIEW-ISOLATION-1, which extracts
 ### 7. Empty State (Unchanged Behavior)
 
 **Steps:**
+
 1. Navigate to Drafts tab for a product WITHOUT pending drafts
 
 **Expected:**
+
 - Empty state visible (`data-testid="drafts-tab-empty"`)
 - Message: "No drafts saved for this product."
 - "View issues" CTA present
@@ -120,6 +134,7 @@ NON-AI BOUNDARY: Draft Review is human-only. Do not import aiApi or add AI gener
 ```
 
 The module must NOT contain imports for:
+
 - `aiApi`
 - `ProductAiSuggestionsPanel`
 - `suggestProductMetadata`
@@ -131,11 +146,13 @@ This is automatically verified by the guard test: `draft-review-isolation-1.spec
 ## Test Data Setup
 
 For E2E testing, use the seed endpoint:
+
 ```
 POST /testkit/e2e/seed-list-actions-clarity-1
 ```
 
 This creates:
+
 - Product 3 ("Product With Pending Draft") with pending draft
 - Draft uses canonical shape (field/rawSuggestion/finalSuggestion)
 

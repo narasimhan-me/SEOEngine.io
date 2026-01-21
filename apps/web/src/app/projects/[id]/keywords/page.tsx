@@ -31,10 +31,30 @@ const STATUS_CONFIG: Record<
   IntentCoverageStatus,
   { label: string; bgColor: string; textColor: string; borderColor: string }
 > = {
-  covered: { label: 'Covered', bgColor: 'bg-green-50', textColor: 'text-green-700', borderColor: 'border-green-200' },
-  partial: { label: 'Partial', bgColor: 'bg-yellow-50', textColor: 'text-yellow-700', borderColor: 'border-yellow-200' },
-  weak: { label: 'Weak', bgColor: 'bg-orange-50', textColor: 'text-orange-700', borderColor: 'border-orange-200' },
-  none: { label: 'None', bgColor: 'bg-red-50', textColor: 'text-red-700', borderColor: 'border-red-200' },
+  covered: {
+    label: 'Covered',
+    bgColor: 'bg-green-50',
+    textColor: 'text-green-700',
+    borderColor: 'border-green-200',
+  },
+  partial: {
+    label: 'Partial',
+    bgColor: 'bg-yellow-50',
+    textColor: 'text-yellow-700',
+    borderColor: 'border-yellow-200',
+  },
+  weak: {
+    label: 'Weak',
+    bgColor: 'bg-orange-50',
+    textColor: 'text-orange-700',
+    borderColor: 'border-orange-200',
+  },
+  none: {
+    label: 'None',
+    bgColor: 'bg-red-50',
+    textColor: 'text-red-700',
+    borderColor: 'border-red-200',
+  },
 };
 
 export default function SearchIntentWorkspacePage() {
@@ -45,7 +65,9 @@ export default function SearchIntentWorkspacePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [projectName, setProjectName] = useState<string | null>(null);
-  const [scorecard, setScorecard] = useState<SearchIntentScorecard | null>(null);
+  const [scorecard, setScorecard] = useState<SearchIntentScorecard | null>(
+    null
+  );
   const [products, setProducts] = useState<Product[]>([]);
 
   const pillar = getDeoPillarById('search_intent_fit');
@@ -117,7 +139,10 @@ export default function SearchIntentWorkspacePage() {
           </li>
           <li>/</li>
           <li>
-            <Link href={`/projects/${projectId}/store-health`} className="hover:text-gray-700">
+            <Link
+              href={`/projects/${projectId}/store-health`}
+              className="hover:text-gray-700"
+            >
               {projectName || 'Project'}
             </Link>
           </li>
@@ -130,7 +155,8 @@ export default function SearchIntentWorkspacePage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Search & Intent</h1>
         <p className="mt-1 text-sm text-gray-600">
-          {pillar?.description || 'Analyze query coverage and intent gaps across your products.'}
+          {pillar?.description ||
+            'Analyze query coverage and intent gaps across your products.'}
         </p>
       </div>
 
@@ -149,9 +175,12 @@ export default function SearchIntentWorkspacePage() {
         <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Project Coverage</h2>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Project Coverage
+              </h2>
               <p className="text-sm text-gray-500">
-                Based on {scorecard.totalProducts} product{scorecard.totalProducts !== 1 ? 's' : ''}
+                Based on {scorecard.totalProducts} product
+                {scorecard.totalProducts !== 1 ? 's' : ''}
               </p>
             </div>
             <div className="text-right">
@@ -172,8 +201,8 @@ export default function SearchIntentWorkspacePage() {
             <div className="mt-4 rounded-md border border-orange-200 bg-orange-50 px-3 py-2">
               <p className="text-sm text-orange-800">
                 <strong>{scorecard.missingHighValueIntents}</strong> product
-                {scorecard.missingHighValueIntents !== 1 ? 's' : ''} missing high-value intent coverage
-                (transactional or comparative)
+                {scorecard.missingHighValueIntents !== 1 ? 's' : ''} missing
+                high-value intent coverage (transactional or comparative)
               </p>
             </div>
           )}
@@ -183,7 +212,8 @@ export default function SearchIntentWorkspacePage() {
             {scorecard.intentBreakdown.map((item) => {
               const statusConfig = STATUS_CONFIG[item.status];
               const isHighValue =
-                item.intentType === 'transactional' || item.intentType === 'comparative';
+                item.intentType === 'transactional' ||
+                item.intentType === 'comparative';
 
               return (
                 <div
@@ -191,7 +221,9 @@ export default function SearchIntentWorkspacePage() {
                   className={`rounded-lg border p-4 ${statusConfig.borderColor} ${statusConfig.bgColor}`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className={`text-sm font-medium ${statusConfig.textColor}`}>
+                    <span
+                      className={`text-sm font-medium ${statusConfig.textColor}`}
+                    >
                       {INTENT_LABELS[item.intentType]}
                     </span>
                     {isHighValue && (
@@ -201,7 +233,9 @@ export default function SearchIntentWorkspacePage() {
                     )}
                   </div>
                   <div className="mt-2 flex items-end justify-between">
-                    <span className={`text-2xl font-bold ${statusConfig.textColor}`}>
+                    <span
+                      className={`text-2xl font-bold ${statusConfig.textColor}`}
+                    >
                       {item.score}%
                     </span>
                     {item.productsWithGaps > 0 && (
@@ -280,13 +314,17 @@ export default function SearchIntentWorkspacePage() {
 
       {/* Learn More / Documentation Link */}
       <div className="mt-6 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
-        <h3 className="text-sm font-medium text-gray-700">About Search & Intent Analysis</h3>
+        <h3 className="text-sm font-medium text-gray-700">
+          About Search & Intent Analysis
+        </h3>
         <p className="mt-1 text-xs text-gray-500">
-          This pillar analyzes how well your products cover different search intent types:
+          This pillar analyzes how well your products cover different search
+          intent types:
         </p>
         <ul className="mt-2 space-y-1 text-xs text-gray-500">
           <li>
-            <strong>Transactional:</strong> Buy, price, order queries (highest value)
+            <strong>Transactional:</strong> Buy, price, order queries (highest
+            value)
           </li>
           <li>
             <strong>Comparative:</strong> vs, alternatives, best queries

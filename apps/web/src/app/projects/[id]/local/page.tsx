@@ -70,7 +70,8 @@ const APPLICABILITY_CONFIG: Record<
     label: 'Configuration Needed',
     bgColor: 'bg-orange-50',
     textColor: 'text-orange-700',
-    description: 'Configure your local settings to enable local discovery optimization.',
+    description:
+      'Configure your local settings to enable local discovery optimization.',
   },
 };
 
@@ -90,7 +91,9 @@ export default function LocalDiscoveryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [projectName, setProjectName] = useState<string | null>(null);
-  const [scorecard, setScorecard] = useState<LocalDiscoveryScorecard | null>(null);
+  const [scorecard, setScorecard] = useState<LocalDiscoveryScorecard | null>(
+    null
+  );
   const [signals, setSignals] = useState<LocalSignal[]>([]);
   const [gaps, setGaps] = useState<LocalGap[]>([]);
   const [config, setConfig] = useState<ProjectLocalConfig | null>(null);
@@ -122,7 +125,10 @@ export default function LocalDiscoveryPage() {
         setSignals(localData.signals);
         setGaps(localData.gaps);
       } catch (localErr) {
-        console.warn('[LocalDiscoveryPage] Local discovery data not available:', localErr);
+        console.warn(
+          '[LocalDiscoveryPage] Local discovery data not available:',
+          localErr
+        );
         // Set default values for new/unconfigured projects
         setScorecard({
           projectId,
@@ -146,7 +152,10 @@ export default function LocalDiscoveryPage() {
         const configData = await projectsApi.localConfig(projectId);
         setConfig(configData);
       } catch (configErr) {
-        console.warn('[LocalDiscoveryPage] Local config not available:', configErr);
+        console.warn(
+          '[LocalDiscoveryPage] Local config not available:',
+          configErr
+        );
         setConfig(null);
       }
     } catch (err) {
@@ -161,13 +170,18 @@ export default function LocalDiscoveryPage() {
     async (updates: Partial<ProjectLocalConfig>) => {
       try {
         setConfigLoading(true);
-        const updatedConfig = await projectsApi.updateLocalConfig(projectId, updates);
+        const updatedConfig = await projectsApi.updateLocalConfig(
+          projectId,
+          updates
+        );
         setConfig(updatedConfig);
         // Refetch data to get updated scorecard
         await fetchData();
       } catch (err) {
         console.error('[LocalDiscoveryPage] Failed to update config:', err);
-        setError(err instanceof Error ? err.message : 'Failed to update configuration');
+        setError(
+          err instanceof Error ? err.message : 'Failed to update configuration'
+        );
       } finally {
         setConfigLoading(false);
       }
@@ -224,7 +238,10 @@ export default function LocalDiscoveryPage() {
           </li>
           <li>/</li>
           <li>
-            <Link href={`/projects/${projectId}/store-health`} className="hover:text-gray-700">
+            <Link
+              href={`/projects/${projectId}/store-health`}
+              className="hover:text-gray-700"
+            >
               {projectName || 'Project'}
             </Link>
           </li>
@@ -278,24 +295,32 @@ export default function LocalDiscoveryPage() {
 
       {/* Local Configuration */}
       <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Local Configuration</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          Local Configuration
+        </h2>
         <p className="text-sm text-gray-500 mb-4">
-          Configure your local presence settings. Global stores can leave these disabled.
+          Configure your local presence settings. Global stores can leave these
+          disabled.
         </p>
 
         <div className="space-y-4">
           {/* Has Physical Location Toggle */}
           <label className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer">
             <div>
-              <span className="text-sm font-medium text-gray-900">Has Physical Location</span>
+              <span className="text-sm font-medium text-gray-900">
+                Has Physical Location
+              </span>
               <p className="text-xs text-gray-500">
-                Enable if your business has a physical store, showroom, or office
+                Enable if your business has a physical store, showroom, or
+                office
               </p>
             </div>
             <input
               type="checkbox"
               checked={config?.hasPhysicalLocation ?? false}
-              onChange={(e) => updateConfig({ hasPhysicalLocation: e.target.checked })}
+              onChange={(e) =>
+                updateConfig({ hasPhysicalLocation: e.target.checked })
+              }
               disabled={configLoading}
               className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
@@ -304,9 +329,12 @@ export default function LocalDiscoveryPage() {
           {/* Enable Local Discovery Toggle */}
           <label className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer">
             <div>
-              <span className="text-sm font-medium text-gray-900">Enable Local Discovery</span>
+              <span className="text-sm font-medium text-gray-900">
+                Enable Local Discovery
+              </span>
               <p className="text-xs text-gray-500">
-                Manually enable local optimization even without physical location
+                Manually enable local optimization even without physical
+                location
               </p>
             </div>
             <input
@@ -325,12 +353,15 @@ export default function LocalDiscoveryPage() {
                 Service Area Description
               </label>
               <p className="text-xs text-gray-500 mb-2">
-                Describe the geographic area you serve (e.g., &quot;Denver metro area&quot;, &quot;Front Range Colorado&quot;)
+                Describe the geographic area you serve (e.g., &quot;Denver metro
+                area&quot;, &quot;Front Range Colorado&quot;)
               </p>
               <input
                 type="text"
                 value={config?.serviceAreaDescription ?? ''}
-                onChange={(e) => updateConfig({ serviceAreaDescription: e.target.value })}
+                onChange={(e) =>
+                  updateConfig({ serviceAreaDescription: e.target.value })
+                }
                 disabled={configLoading}
                 placeholder="e.g., Denver metro area"
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500"
@@ -347,9 +378,16 @@ export default function LocalDiscoveryPage() {
           <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Local Discovery Score</h2>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Local Discovery Score
+                </h2>
                 <p className="text-sm text-gray-500">
-                  Based on {Object.values(scorecard.signalCounts).reduce((a, b) => a + b, 0)} detected signals
+                  Based on{' '}
+                  {Object.values(scorecard.signalCounts).reduce(
+                    (a, b) => a + b,
+                    0
+                  )}{' '}
+                  detected signals
                 </p>
               </div>
               <div className="text-right">
@@ -372,58 +410,68 @@ export default function LocalDiscoveryPage() {
 
             {/* Signal Type Breakdown */}
             <div className="mt-6">
-              <h3 className="mb-3 text-sm font-medium text-gray-700">Signal Coverage</h3>
+              <h3 className="mb-3 text-sm font-medium text-gray-700">
+                Signal Coverage
+              </h3>
               <div className="grid gap-4 sm:grid-cols-2">
-                {(['location_presence', 'local_intent_coverage', 'local_trust_signals', 'local_schema_readiness'] as LocalSignalType[]).map(
-                  (signalType) => {
-                    const count = scorecard.signalCounts[signalType];
-                    const hasSignals = count > 0;
+                {(
+                  [
+                    'location_presence',
+                    'local_intent_coverage',
+                    'local_trust_signals',
+                    'local_schema_readiness',
+                  ] as LocalSignalType[]
+                ).map((signalType) => {
+                  const count = scorecard.signalCounts[signalType];
+                  const hasSignals = count > 0;
 
-                    return (
-                      <div
-                        key={signalType}
-                        className={`rounded-lg border p-4 ${
-                          hasSignals
-                            ? 'border-green-200 bg-green-50'
-                            : 'border-gray-200 bg-gray-50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{SIGNAL_ICONS[signalType]}</span>
-                          <span
-                            className={`text-sm font-medium ${
-                              hasSignals ? 'text-green-700' : 'text-gray-700'
-                            }`}
-                          >
-                            {LOCAL_SIGNAL_LABELS[signalType]}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-xs text-gray-500">
-                          {LOCAL_SIGNAL_DESCRIPTIONS[signalType]}
-                        </p>
-                        <div className="mt-2 flex items-end justify-between">
-                          <span
-                            className={`text-2xl font-bold ${
-                              hasSignals ? 'text-green-700' : 'text-gray-400'
-                            }`}
-                          >
-                            {count}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            signal{count !== 1 ? 's' : ''}
-                          </span>
-                        </div>
+                  return (
+                    <div
+                      key={signalType}
+                      className={`rounded-lg border p-4 ${
+                        hasSignals
+                          ? 'border-green-200 bg-green-50'
+                          : 'border-gray-200 bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">
+                          {SIGNAL_ICONS[signalType]}
+                        </span>
+                        <span
+                          className={`text-sm font-medium ${
+                            hasSignals ? 'text-green-700' : 'text-gray-700'
+                          }`}
+                        >
+                          {LOCAL_SIGNAL_LABELS[signalType]}
+                        </span>
                       </div>
-                    );
-                  }
-                )}
+                      <p className="mt-1 text-xs text-gray-500">
+                        {LOCAL_SIGNAL_DESCRIPTIONS[signalType]}
+                      </p>
+                      <div className="mt-2 flex items-end justify-between">
+                        <span
+                          className={`text-2xl font-bold ${
+                            hasSignals ? 'text-green-700' : 'text-gray-400'
+                          }`}
+                        >
+                          {count}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          signal{count !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             {scorecard.missingLocalSignalsCount > 0 && (
               <div className="mt-4 rounded-md border border-orange-200 bg-orange-50 px-3 py-2">
                 <p className="text-sm text-orange-800">
-                  <strong>{scorecard.missingLocalSignalsCount}</strong> high-impact signal type
+                  <strong>{scorecard.missingLocalSignalsCount}</strong>{' '}
+                  high-impact signal type
                   {scorecard.missingLocalSignalsCount !== 1 ? 's' : ''} missing.
                 </p>
               </div>
@@ -434,17 +482,27 @@ export default function LocalDiscoveryPage() {
           {signals.length > 0 && (
             <div className="mb-8 rounded-lg border border-gray-200 bg-white">
               <div className="border-b border-gray-100 px-6 py-4">
-                <h2 className="text-lg font-semibold text-gray-900">Detected Signals</h2>
-                <p className="text-sm text-gray-500">Local presence signals found for your project</p>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Detected Signals
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Local presence signals found for your project
+                </p>
               </div>
               <div className="divide-y divide-gray-100">
                 {signals.map((signal) => (
                   <div key={signal.id} className="px-6 py-4">
                     <div className="flex items-start gap-3">
-                      <span className="text-lg">{SIGNAL_ICONS[signal.signalType]}</span>
+                      <span className="text-lg">
+                        {SIGNAL_ICONS[signal.signalType]}
+                      </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">{signal.label}</p>
-                        <p className="text-xs text-gray-500">{signal.description}</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {signal.label}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {signal.description}
+                        </p>
                         {signal.url && (
                           <a
                             href={signal.url}
@@ -470,7 +528,9 @@ export default function LocalDiscoveryPage() {
           {gaps.length > 0 && (
             <div className="mb-8 rounded-lg border border-gray-200 bg-white">
               <div className="border-b border-gray-100 px-6 py-4">
-                <h2 className="text-lg font-semibold text-gray-900">Opportunities</h2>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Opportunities
+                </h2>
                 <p className="text-sm text-gray-500">
                   Areas to improve your local discovery presence
                 </p>
@@ -496,7 +556,9 @@ export default function LocalDiscoveryPage() {
                             {LOCAL_GAP_LABELS[gap.gapType]}
                           </span>
                         </div>
-                        <p className="mt-1 text-xs text-gray-500">{gap.example}</p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          {gap.example}
+                        </p>
                         <p className="mt-2 text-xs text-gray-700">
                           <strong>Recommended:</strong> {gap.recommendedAction}
                         </p>
@@ -513,45 +575,56 @@ export default function LocalDiscoveryPage() {
       {/* Info for Non-Applicable Projects */}
       {scorecard?.applicabilityStatus === 'not_applicable' && (
         <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6">
-          <h3 className="text-sm font-medium text-gray-700">No Action Required</h3>
+          <h3 className="text-sm font-medium text-gray-700">
+            No Action Required
+          </h3>
           <p className="mt-2 text-sm text-gray-500">
-            Your project is configured as a global store without local presence. This is perfectly
-            fine - your DEO score will not be penalized for missing local signals.
+            Your project is configured as a global store without local presence.
+            This is perfectly fine - your DEO score will not be penalized for
+            missing local signals.
           </p>
           <p className="mt-2 text-sm text-gray-500">
-            If your business has a physical location or serves specific geographic areas, enable
-            local configuration above to unlock local discovery optimization.
+            If your business has a physical location or serves specific
+            geographic areas, enable local configuration above to unlock local
+            discovery optimization.
           </p>
         </div>
       )}
 
       {/* About Section */}
       <div className="mt-6 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
-        <h3 className="text-sm font-medium text-gray-700">About Local Discovery</h3>
+        <h3 className="text-sm font-medium text-gray-700">
+          About Local Discovery
+        </h3>
         <p className="mt-1 text-xs text-gray-500">
-          This pillar helps stores with physical presence optimize for local search queries and
-          geo-intent signals. Key signal types:
+          This pillar helps stores with physical presence optimize for local
+          search queries and geo-intent signals. Key signal types:
         </p>
         <ul className="mt-2 space-y-1 text-xs text-gray-500">
           <li>
-            <strong>📍 Location Presence:</strong> Physical address, contact info, store hours
+            <strong>📍 Location Presence:</strong> Physical address, contact
+            info, store hours
           </li>
           <li>
-            <strong>🔍 Local Intent Coverage:</strong> &quot;Near me&quot; and city-specific search query
-            coverage
+            <strong>🔍 Local Intent Coverage:</strong> &quot;Near me&quot; and
+            city-specific search query coverage
           </li>
           <li>
-            <strong>⭐ Local Trust Signals:</strong> Local reviews, testimonials, community
-            involvement
+            <strong>⭐ Local Trust Signals:</strong> Local reviews,
+            testimonials, community involvement
           </li>
           <li>
-            <strong>📋 Local Schema Readiness:</strong> LocalBusiness structured data
+            <strong>📋 Local Schema Readiness:</strong> LocalBusiness structured
+            data
           </li>
         </ul>
         <p className="mt-3 text-xs text-gray-500">
           <strong className="text-green-600">Strong (&gt;70%)</strong>,{' '}
-          <strong className="text-yellow-600">Needs Improvement (40-70%)</strong>, or{' '}
-          <strong className="text-red-600">Weak (&lt;40%)</strong> based on signal coverage.
+          <strong className="text-yellow-600">
+            Needs Improvement (40-70%)
+          </strong>
+          , or <strong className="text-red-600">Weak (&lt;40%)</strong> based on
+          signal coverage.
         </p>
       </div>
     </div>

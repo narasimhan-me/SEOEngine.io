@@ -64,7 +64,7 @@ export class AiController {
     private readonly tokenUsageService: TokenUsageService,
     private readonly aiUsageLedgerService: AiUsageLedgerService,
     private readonly aiUsageQuotaService: AiUsageQuotaService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   @Post('metadata')
@@ -84,7 +84,10 @@ export class AiController {
     }
 
     // [ROLES-3 FIXUP-4] OWNER/EDITOR only for draft generation
-    await this.roleResolution.assertCanGenerateDrafts(crawlResult.projectId, userId);
+    await this.roleResolution.assertCanGenerateDrafts(
+      crawlResult.projectId,
+      userId
+    );
 
     // Generate AI suggestions
     const suggestions = await this.aiService.generateMetadata({
@@ -115,7 +118,10 @@ export class AiController {
    * [ROLES-3 FIXUP-4] OWNER/EDITOR only for draft generation
    */
   @Post('product-metadata')
-  async suggestProductMetadata(@Request() req: any, @Body() dto: ProductMetadataDto) {
+  async suggestProductMetadata(
+    @Request() req: any,
+    @Body() dto: ProductMetadataDto
+  ) {
     const userId = req.user.id;
 
     // Load product
@@ -131,14 +137,17 @@ export class AiController {
     }
 
     // [ROLES-3 FIXUP-4] OWNER/EDITOR only for draft generation
-    await this.roleResolution.assertCanGenerateDrafts(product.projectId, userId);
+    await this.roleResolution.assertCanGenerateDrafts(
+      product.projectId,
+      userId
+    );
 
     // Enforce daily AI suggestion limit before calling provider
     const { planId, limit, dailyCount } =
       await this.entitlementsService.ensureWithinDailyAiLimit(
         userId,
         product.projectId,
-        'product_optimize',
+        'product_optimize'
       );
 
     // eslint-disable-next-line no-console
@@ -161,7 +170,8 @@ export class AiController {
       const suggestions = await this.aiService.generateMetadata({
         url: `Product: ${product.title}`,
         currentTitle: product.seoTitle || product.title,
-        currentDescription: product.seoDescription || product.description || undefined,
+        currentDescription:
+          product.seoDescription || product.description || undefined,
         pageTextSnippet: product.description || undefined,
         targetKeywords: dto.targetKeywords,
       });
@@ -173,13 +183,13 @@ export class AiController {
       await this.entitlementsService.recordAiUsage(
         userId,
         product.projectId,
-        'product_optimize',
+        'product_optimize'
       );
       recordedUsage = true;
       await this.tokenUsageService.log(
         userId,
         ESTIMATED_METADATA_TOKENS_PER_CALL,
-        'manual:product_optimize',
+        'manual:product_optimize'
       );
 
       // Basic observability for Optimize feature
@@ -210,13 +220,13 @@ export class AiController {
         await this.entitlementsService.recordAiUsage(
           userId,
           product.projectId,
-          'product_optimize',
+          'product_optimize'
         );
         recordedUsage = true;
         await this.tokenUsageService.log(
           userId,
           ESTIMATED_METADATA_TOKENS_PER_CALL,
-          'manual:product_optimize',
+          'manual:product_optimize'
         );
       }
 
@@ -251,7 +261,7 @@ export class AiController {
     dto: {
       productId: string;
       issueType: 'missing_seo_title' | 'missing_seo_description';
-    },
+    }
   ) {
     const userId = req.user.id;
 
@@ -277,7 +287,7 @@ export class AiController {
   @Post('product-answers')
   async generateProductAnswers(
     @Request() req: any,
-    @Body() dto: ProductAnswersDto,
+    @Body() dto: ProductAnswersDto
   ): Promise<ProductAnswersResponse> {
     const userId = req.user.id;
 
@@ -294,14 +304,17 @@ export class AiController {
     }
 
     // [ROLES-3 FIXUP-4] OWNER/EDITOR only for draft generation
-    await this.roleResolution.assertCanGenerateDrafts(product.projectId, userId);
+    await this.roleResolution.assertCanGenerateDrafts(
+      product.projectId,
+      userId
+    );
 
     // Enforce daily AI limit before calling provider
     const { planId, limit, dailyCount } =
       await this.entitlementsService.ensureWithinDailyAiLimit(
         userId,
         product.projectId,
-        'product_answers',
+        'product_answers'
       );
 
     // eslint-disable-next-line no-console
@@ -319,13 +332,14 @@ export class AiController {
 
     try {
       // Get answerability detection from AnswerEngineService
-      const answerabilityStatus = this.answerEngineService.computeAnswerabilityForProduct({
-        id: product.id,
-        title: product.title,
-        description: product.description,
-        seoTitle: product.seoTitle,
-        seoDescription: product.seoDescription,
-      });
+      const answerabilityStatus =
+        this.answerEngineService.computeAnswerabilityForProduct({
+          id: product.id,
+          title: product.title,
+          description: product.description,
+          seoTitle: product.seoTitle,
+          seoDescription: product.seoDescription,
+        });
 
       providerCalled = true;
 
@@ -339,13 +353,13 @@ export class AiController {
           seoTitle: product.seoTitle,
           seoDescription: product.seoDescription,
         },
-        answerabilityStatus,
+        answerabilityStatus
       );
 
       await this.entitlementsService.recordAiUsage(
         userId,
         product.projectId,
-        'product_answers',
+        'product_answers'
       );
       recordedUsage = true;
 
@@ -372,7 +386,7 @@ export class AiController {
         await this.entitlementsService.recordAiUsage(
           userId,
           product.projectId,
-          'product_answers',
+          'product_answers'
         );
         recordedUsage = true;
       }
@@ -403,7 +417,7 @@ export class AiController {
   @Get('projects/:projectId/usage/summary')
   async getProjectAiUsageSummary(
     @Request() req: any,
-    @Param('projectId') projectId: string,
+    @Param('projectId') projectId: string
   ): Promise<AiUsageProjectSummary> {
     const userId = req.user.id;
 
@@ -412,8 +426,24 @@ export class AiController {
 
     // Get current month range
     const now = new Date();
-    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-    const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const periodStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1,
+      0,
+      0,
+      0,
+      0
+    );
+    const periodEnd = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999
+    );
 
     return this.aiUsageLedgerService.getProjectSummary(projectId, {
       from: periodStart,
@@ -431,7 +461,7 @@ export class AiController {
     @Request() req: any,
     @Param('projectId') projectId: string,
     @Query('runType') runType?: string,
-    @Query('limit') limit?: string,
+    @Query('limit') limit?: string
   ): Promise<AiUsageRunSummary[]> {
     const userId = req.user.id;
 
@@ -456,7 +486,7 @@ export class AiController {
   async evaluateProjectAiUsageQuota(
     @Request() req: any,
     @Param('projectId') projectId: string,
-    @Query('action') action?: string,
+    @Query('action') action?: string
   ): Promise<AiUsageQuotaEvaluation> {
     const userId = req.user.id;
 

@@ -28,10 +28,13 @@ interface SeedResponse {
  * Seed test data and authenticate.
  */
 async function seedAndAuth(page: Page): Promise<SeedResponse> {
-  const res = await fetch(`${API_BASE_URL}/testkit/e2e/seed-playbook-entrypoint-integrity-1`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  });
+  const res = await fetch(
+    `${API_BASE_URL}/testkit/e2e/seed-playbook-entrypoint-integrity-1`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    }
+  );
 
   if (!res.ok) {
     throw new Error(`Seed failed: ${res.status} ${await res.text()}`);
@@ -59,7 +62,9 @@ async function connectShopify(projectId: string): Promise<void> {
   });
 
   if (!res.ok) {
-    throw new Error(`Connect Shopify failed: ${res.status} ${await res.text()}`);
+    throw new Error(
+      `Connect Shopify failed: ${res.status} ${await res.text()}`
+    );
   }
 }
 
@@ -74,7 +79,9 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
    *       Stepper should be visible
    *       Zero-eligible empty state should NOT be visible
    */
-  test('PEPI1-001: Playbook banner routes to correct playbook based on eligibility', async ({ page }) => {
+  test('PEPI1-001: Playbook banner routes to correct playbook based on eligibility', async ({
+    page,
+  }) => {
     const seed = await seedAndAuth(page);
 
     // Connect Shopify store
@@ -85,10 +92,14 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
 
     // Wait for page to load and banner to appear
     // The banner should show "Preview missing SEO descriptions" since descriptions has eligible items
-    await page.waitForSelector('text=Preview missing SEO descriptions', { timeout: 15000 });
+    await page.waitForSelector('text=Preview missing SEO descriptions', {
+      timeout: 15000,
+    });
 
     // Click the banner CTA
-    const bannerCta = page.locator('button:has-text("Preview missing SEO descriptions")');
+    const bannerCta = page.locator(
+      'button:has-text("Preview missing SEO descriptions")'
+    );
     await expect(bannerCta).toBeVisible();
     await bannerCta.click();
 
@@ -99,7 +110,9 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
     const currentUrl = page.url();
 
     // Assert: URL contains /playbooks/missing_seo_description
-    expect(currentUrl).toContain(`/projects/${seed.projectId}/playbooks/missing_seo_description`);
+    expect(currentUrl).toContain(
+      `/projects/${seed.projectId}/playbooks/missing_seo_description`
+    );
 
     // Assert: URL contains step=preview
     expect(currentUrl).toContain('step=preview');
@@ -111,11 +124,15 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
     expect(currentUrl).not.toContain('missing_seo_title');
 
     // Assert: Stepper is visible (indicates we're in a valid playbook run)
-    await expect(page.locator('[data-testid="playbooks-stepper"]')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="playbooks-stepper"]')
+    ).toBeVisible();
 
     // Assert: Zero-eligible empty state is NOT visible
     // (This would indicate a mismatch between what was clicked and what was shown)
-    const zeroEligibleState = page.locator('[data-testid="playbook-zero-eligible-empty-state"]');
+    const zeroEligibleState = page.locator(
+      '[data-testid="playbook-zero-eligible-empty-state"]'
+    );
     await expect(zeroEligibleState).not.toBeVisible();
   });
 
@@ -128,7 +145,9 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
    *       URL preserves assetType=PRODUCTS and the same scopeAssetRefs values
    *       Stepper is visible and zero-eligible empty state is NOT visible
    */
-  test('PEPI1-002: Playbook banner routing stays scope-consistent for scoped PRODUCTS entry', async ({ page }) => {
+  test('PEPI1-002: Playbook banner routing stays scope-consistent for scoped PRODUCTS entry', async ({
+    page,
+  }) => {
     const seed = await seedAndAuth(page);
 
     // Connect Shopify store
@@ -136,7 +155,9 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
 
     const scopedProductIds = [seed.productIds[1], seed.productIds[2]];
 
-    const scopedUrl = new URL(`${APP_BASE_URL}/projects/${seed.projectId}/playbooks`);
+    const scopedUrl = new URL(
+      `${APP_BASE_URL}/projects/${seed.projectId}/playbooks`
+    );
     scopedUrl.searchParams.set('source', 'asset_list');
     scopedUrl.searchParams.set('assetType', 'PRODUCTS');
     scopedUrl.searchParams.append('scopeAssetRefs', scopedProductIds[0]);
@@ -146,10 +167,14 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
     await page.goto(scopedUrl.toString());
 
     // Wait for banner CTA to appear (descriptions playbook should be eligible in this scope)
-    await page.waitForSelector('text=Preview missing SEO descriptions', { timeout: 15000 });
+    await page.waitForSelector('text=Preview missing SEO descriptions', {
+      timeout: 15000,
+    });
 
     // Click the banner CTA
-    const bannerCta = page.locator('button:has-text("Preview missing SEO descriptions")');
+    const bannerCta = page.locator(
+      'button:has-text("Preview missing SEO descriptions")'
+    );
     await expect(bannerCta).toBeVisible();
     await bannerCta.click();
 
@@ -159,7 +184,9 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
     const currentUrl = page.url();
 
     // Assert canonical target
-    expect(currentUrl).toContain(`/projects/${seed.projectId}/playbooks/missing_seo_description`);
+    expect(currentUrl).toContain(
+      `/projects/${seed.projectId}/playbooks/missing_seo_description`
+    );
     expect(currentUrl).toContain('step=preview');
     expect(currentUrl).toContain('source=banner');
 
@@ -170,10 +197,14 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
     expect(scopeRefs).toEqual(expect.arrayContaining(scopedProductIds));
 
     // Stepper visible → valid run surface
-    await expect(page.locator('[data-testid="playbooks-stepper"]')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="playbooks-stepper"]')
+    ).toBeVisible();
 
     // Zero-eligible empty state must not be visible
-    const zeroEligibleState = page.locator('[data-testid="playbook-zero-eligible-empty-state"]');
+    const zeroEligibleState = page.locator(
+      '[data-testid="playbook-zero-eligible-empty-state"]'
+    );
     await expect(zeroEligibleState).not.toBeVisible();
   });
 
@@ -191,7 +222,9 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
    *       Stepper is visible
    *       Zero-eligible empty state is NOT visible
    */
-  test('PEPI1-003: Entry page CTA routes to playbook with explicit scope', async ({ page }) => {
+  test('PEPI1-003: Entry page CTA routes to playbook with explicit scope', async ({
+    page,
+  }) => {
     const seed = await seedAndAuth(page);
 
     // Connect Shopify store
@@ -209,12 +242,14 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
     };
 
     // Navigate to entry page and set up sessionStorage
-    await page.goto(`${APP_BASE_URL}/projects/${seed.projectId}/automation/playbooks/entry?source=products_bulk&intent=missing_metadata`);
+    await page.goto(
+      `${APP_BASE_URL}/projects/${seed.projectId}/automation/playbooks/entry?source=products_bulk&intent=missing_metadata`
+    );
     await page.evaluate(
       ([key, value]) => {
         sessionStorage.setItem(key, value);
       },
-      [entryContextKey, JSON.stringify(entryContext)],
+      [entryContextKey, JSON.stringify(entryContext)]
     );
 
     // Reload to pick up the sessionStorage context
@@ -224,11 +259,15 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
     await page.waitForSelector('text=New Playbook', { timeout: 15000 });
 
     // Ensure "Only selected products" radio is selected (should be auto-selected due to context)
-    const onlySelectedRadio = page.locator('input[name="scope"][type="radio"]').first();
+    const onlySelectedRadio = page
+      .locator('input[name="scope"][type="radio"]')
+      .first();
     await expect(onlySelectedRadio).toBeChecked();
 
     // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Click stable CTA (no AI dependency)
-    const openPlaybooksBtn = page.locator('[data-testid="automation-entry-open-playbooks"]');
+    const openPlaybooksBtn = page.locator(
+      '[data-testid="automation-entry-open-playbooks"]'
+    );
     await expect(openPlaybooksBtn).toBeVisible();
     await openPlaybooksBtn.click();
 
@@ -240,7 +279,9 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
     const currentUrl = page.url();
 
     // Assert canonical target (deterministic selection based on eligibility)
-    expect(currentUrl).toContain(`/projects/${seed.projectId}/playbooks/missing_seo_description`);
+    expect(currentUrl).toContain(
+      `/projects/${seed.projectId}/playbooks/missing_seo_description`
+    );
     expect(currentUrl).toContain('step=preview');
 
     // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1-AUDIT-1] Assert scope via URLSearchParams
@@ -252,10 +293,14 @@ test.describe('PLAYBOOK-ENTRYPOINT-INTEGRITY-1: Playbook Banner Routing', () => 
     expect(scopeRefs).toEqual(expect.arrayContaining(selectedProductIds));
 
     // Stepper visible → valid run surface
-    await expect(page.locator('[data-testid="playbooks-stepper"]')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="playbooks-stepper"]')
+    ).toBeVisible();
 
     // Zero-eligible empty state must not be visible
-    const zeroEligibleState = page.locator('[data-testid="playbook-zero-eligible-empty-state"]');
+    const zeroEligibleState = page.locator(
+      '[data-testid="playbook-zero-eligible-empty-state"]'
+    );
     await expect(zeroEligibleState).not.toBeVisible();
   });
 });

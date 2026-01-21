@@ -2,11 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import { createTestApp } from '../utils/test-app';
-import {
-  cleanupTestDb,
-  disconnectTestDb,
-  testPrisma,
-} from '../utils/test-db';
+import { cleanupTestDb, disconnectTestDb, testPrisma } from '../utils/test-db';
 import { seedFirstDeoWinProjectReady } from '../../src/testkit';
 
 describe('TEST-1 – SEO apply persistence via /shopify/update-product-seo', () => {
@@ -44,7 +40,7 @@ describe('TEST-1 – SEO apply persistence via /shopify/update-product-seo', () 
       testPrisma,
       {
         userPlan: 'pro',
-      },
+      }
     );
     const product = products[0];
 
@@ -76,7 +72,7 @@ describe('TEST-1 – SEO apply persistence via /shopify/update-product-seo', () 
       }
 
       throw new Error(
-        `Unexpected Shopify operation in TEST-1 seo-apply-persistence test: ${body.operationName}`,
+        `Unexpected Shopify operation in TEST-1 seo-apply-persistence test: ${body.operationName}`
       );
     });
 
@@ -107,11 +103,11 @@ describe('TEST-1 – SEO apply persistence via /shopify/update-product-seo', () 
     expect((global as any).fetch).toHaveBeenCalledTimes(1);
     expect(lastRequestBody?.operationName).toBe('UpdateProductSeo');
     expect(lastRequestBody?.variables?.input?.id).toBe(
-      `gid://shopify/Product/${product.externalId}`,
+      `gid://shopify/Product/${product.externalId}`
     );
     expect(lastRequestBody?.variables?.input?.seo?.title).toBe(seoTitle);
     expect(lastRequestBody?.variables?.input?.seo?.description).toBe(
-      seoDescription,
+      seoDescription
     );
   });
 

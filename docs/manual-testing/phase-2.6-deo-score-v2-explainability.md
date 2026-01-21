@@ -47,14 +47,17 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - Project with existing signals
 
 **Steps:**
+
 1. Trigger DEO score recompute (via UI button or API endpoint)
 2. Wait for job to complete
 3. Query the latest DeoScoreSnapshot from database
 
 **Expected Results:**
+
 - [ ] `overall` field contains v1 canonical score (0-100)
 - [ ] `metadata` JSON field is populated
 - [ ] `metadata.v2` object present with:
@@ -74,13 +77,16 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Project with varying component scores
 
 **Steps:**
+
 1. Trigger score computation
 2. Inspect `metadata.v2.topOpportunities` in snapshot
 
 **Expected Results:**
+
 - [ ] `topOpportunities` is an array of exactly 3 items
 - [ ] Each item has `key`, `score`, and `potentialGain` fields
 - [ ] Items are sorted by `potentialGain` descending (highest potential first)
@@ -93,13 +99,16 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Project with varying component scores
 
 **Steps:**
+
 1. Trigger score computation
 2. Inspect `metadata.v2.topStrengths` in snapshot
 
 **Expected Results:**
+
 - [ ] `topStrengths` is an array of exactly 3 items
 - [ ] Each item has `key` and `score` fields
 - [ ] Items are sorted by `score` descending (highest score first)
@@ -111,13 +120,16 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Project with signals
 
 **Steps:**
+
 1. Trigger score computation
 2. Inspect `metadata.v1` in snapshot
 
 **Expected Results:**
+
 - [ ] `metadata.v1` object present with:
   - [ ] `modelVersion` = "1.1.0" (DEO_SCORE_VERSION)
   - [ ] `breakdown` object with v1 component scores (content, technical, entityRelevance, visibility)
@@ -129,13 +141,16 @@
 **ID:** HP-005
 
 **Preconditions:**
+
 - Project with signals
 
 **Steps:**
+
 1. Trigger score computation
 2. Inspect `metadata.signals` in snapshot
 
 **Expected Results:**
+
 - [ ] `metadata.signals` object contains all DeoScoreSignals
 - [ ] Signal values match what was computed by DeoSignalsService
 
@@ -148,10 +163,12 @@
 **Description:** Some signals are 0 or missing.
 
 **Steps:**
+
 1. Project with minimal data (few pages, no products)
 2. Trigger score computation
 
 **Expected Behavior:**
+
 - [ ] v2 components still computed (may be low values)
 - [ ] No NaN or undefined values in breakdown
 - [ ] All components in valid [0, 100] range
@@ -163,11 +180,13 @@
 **Description:** Verify weighted overall matches component sum.
 
 **Steps:**
+
 1. Trigger score computation
 2. Calculate expected overall from components:
    - entityStrength × 0.2 + intentMatch × 0.2 + answerability × 0.2 + aiVisibility × 0.2 + contentCompleteness × 0.15 + technicalQuality × 0.05
 
 **Expected Behavior:**
+
 - [ ] `breakdown.overall` matches calculated weighted sum (rounded to integer)
 
 ---
@@ -179,6 +198,7 @@
 **Scenario:** If v2 computation logic has an error.
 
 **Expected Behavior:**
+
 - [ ] v1 score is still computed and persisted
 - [ ] Error logged but job completes
 - [ ] Snapshot saved with v1 data (v2 may be missing or partial)
@@ -235,9 +255,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Phase 2.6 DEO Score v2 explainability layer |
+| Field              | Value                                       |
+| ------------------ | ------------------------------------------- |
+| **Tester Name**    | [Pending]                                   |
+| **Date**           | [YYYY-MM-DD]                                |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed       |
+| **Notes**          | Phase 2.6 DEO Score v2 explainability layer |

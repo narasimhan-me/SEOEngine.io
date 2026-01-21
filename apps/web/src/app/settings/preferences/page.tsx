@@ -113,7 +113,8 @@ export default function PreferencesPage() {
 
       {isReadOnly && (
         <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md text-yellow-700">
-          You have read-only access. Contact an account owner to change preferences.
+          You have read-only access. Contact an account owner to change
+          preferences.
         </div>
       )}
 
@@ -132,13 +133,17 @@ export default function PreferencesPage() {
       <div className="bg-white shadow rounded-lg divide-y divide-gray-200">
         {/* Notification Settings */}
         <div className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Notifications</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Notifications
+          </h2>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium text-gray-900">Quota Warnings</p>
-                <p className="text-sm text-gray-500">Get notified when approaching AI quota limits</p>
+                <p className="text-sm text-gray-500">
+                  Get notified when approaching AI quota limits
+                </p>
               </div>
               <button
                 type="button"
@@ -155,7 +160,9 @@ export default function PreferencesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium text-gray-900">Run Failures</p>
-                <p className="text-sm text-gray-500">Get notified when automation runs fail</p>
+                <p className="text-sm text-gray-500">
+                  Get notified when automation runs fail
+                </p>
               </div>
               <button
                 type="button"
@@ -172,7 +179,9 @@ export default function PreferencesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium text-gray-900">Weekly DEO Summary</p>
-                <p className="text-sm text-gray-500">Receive weekly email with your DEO score changes</p>
+                <p className="text-sm text-gray-500">
+                  Receive weekly email with your DEO score changes
+                </p>
               </div>
               <button
                 type="button"
@@ -190,13 +199,19 @@ export default function PreferencesPage() {
 
         {/* Default Behaviors */}
         <div className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Default Behaviors</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Default Behaviors
+          </h2>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-gray-900">Auto-Open Issues Tab</p>
-                <p className="text-sm text-gray-500">Automatically open the issues tab when viewing a project</p>
+                <p className="font-medium text-gray-900">
+                  Auto-Open Issues Tab
+                </p>
+                <p className="text-sm text-gray-500">
+                  Automatically open the issues tab when viewing a project
+                </p>
               </div>
               <button
                 type="button"
@@ -211,11 +226,20 @@ export default function PreferencesPage() {
             </div>
 
             <div>
-              <label className="block font-medium text-gray-900">Preferred Pillar Landing</label>
-              <p className="text-sm text-gray-500 mb-2">Default pillar to show when opening a project</p>
+              <label className="block font-medium text-gray-900">
+                Preferred Pillar Landing
+              </label>
+              <p className="text-sm text-gray-500 mb-2">
+                Default pillar to show when opening a project
+              </p>
               <select
                 value={preferences.preferredPillarLanding || ''}
-                onChange={(e) => setPreferences({ ...preferences, preferredPillarLanding: e.target.value || null })}
+                onChange={(e) =>
+                  setPreferences({
+                    ...preferences,
+                    preferredPillarLanding: e.target.value || null,
+                  })
+                }
                 disabled={isReadOnly}
                 className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 ${isReadOnly ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               >

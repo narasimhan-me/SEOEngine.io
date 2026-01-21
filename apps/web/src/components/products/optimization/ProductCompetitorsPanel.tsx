@@ -42,8 +42,16 @@ const STATUS_CONFIG: Record<
   CompetitiveStatus,
   { label: string; bgColor: string; textColor: string }
 > = {
-  Ahead: { label: 'Ahead', bgColor: 'bg-green-100', textColor: 'text-green-700' },
-  'On par': { label: 'On par', bgColor: 'bg-yellow-100', textColor: 'text-yellow-700' },
+  Ahead: {
+    label: 'Ahead',
+    bgColor: 'bg-green-100',
+    textColor: 'text-green-700',
+  },
+  'On par': {
+    label: 'On par',
+    bgColor: 'bg-yellow-100',
+    textColor: 'text-yellow-700',
+  },
   Behind: { label: 'Behind', bgColor: 'bg-red-100', textColor: 'text-red-700' },
 };
 
@@ -51,7 +59,9 @@ interface ProductCompetitorsPanelProps {
   productId: string;
 }
 
-export function ProductCompetitorsPanel({ productId }: ProductCompetitorsPanelProps) {
+export function ProductCompetitorsPanel({
+  productId,
+}: ProductCompetitorsPanelProps) {
   const feedback = useFeedback();
 
   const [loading, setLoading] = useState(true);
@@ -59,13 +69,18 @@ export function ProductCompetitorsPanel({ productId }: ProductCompetitorsPanelPr
   const [data, setData] = useState<ProductCompetitiveResponse | null>(null);
 
   // Preview/apply states
-  const [previewingGap, setPreviewingGap] = useState<CompetitiveFixGap | null>(null);
-  const [previewDraft, setPreviewDraft] = useState<CompetitiveFixDraft | null>(null);
+  const [previewingGap, setPreviewingGap] = useState<CompetitiveFixGap | null>(
+    null
+  );
+  const [previewDraft, setPreviewDraft] = useState<CompetitiveFixDraft | null>(
+    null
+  );
   const [previewLoading, setPreviewLoading] = useState(false);
   const [applyingDraft, setApplyingDraft] = useState(false);
 
   // Expanded gap type
-  const [expandedGapType, setExpandedGapType] = useState<CompetitorGapType | null>(null);
+  const [expandedGapType, setExpandedGapType] =
+    useState<CompetitorGapType | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -75,7 +90,11 @@ export function ProductCompetitorsPanel({ productId }: ProductCompetitorsPanelPr
       setData(response);
     } catch (err) {
       console.error('[ProductCompetitorsPanel] Failed to fetch:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load competitive coverage');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to load competitive coverage'
+      );
     } finally {
       setLoading(false);
     }
@@ -95,20 +114,21 @@ export function ProductCompetitorsPanel({ productId }: ProductCompetitorsPanelPr
         // Determine the best draft type based on gap
         let draftType: CompetitiveFixDraftType = 'answer_block';
         if (gap.gapType === 'content_section_gap') {
-          draftType = gap.areaId === 'why_choose_section' ? 'positioning_section' : 'comparison_copy';
+          draftType =
+            gap.areaId === 'why_choose_section'
+              ? 'positioning_section'
+              : 'comparison_copy';
         } else if (gap.gapType === 'trust_signal_gap') {
           draftType = 'positioning_section';
         }
 
-        const response: CompetitiveFixPreviewResponse = await competitorsApi.previewCompetitiveFix(
-          productId,
-          {
+        const response: CompetitiveFixPreviewResponse =
+          await competitorsApi.previewCompetitiveFix(productId, {
             gapType: gap.gapType,
             intentType: gap.intentType,
             areaId: gap.areaId,
             draftType,
-          }
-        );
+          });
 
         setPreviewDraft(response.draft);
 
@@ -119,7 +139,9 @@ export function ProductCompetitorsPanel({ productId }: ProductCompetitorsPanelPr
         }
       } catch (err) {
         console.error('[ProductCompetitorsPanel] Preview failed:', err);
-        feedback.showError(err instanceof Error ? err.message : 'Failed to generate preview');
+        feedback.showError(
+          err instanceof Error ? err.message : 'Failed to generate preview'
+        );
         setPreviewingGap(null);
       } finally {
         setPreviewLoading(false);
@@ -135,18 +157,21 @@ export function ProductCompetitorsPanel({ productId }: ProductCompetitorsPanelPr
       setApplyingDraft(true);
 
       // Determine apply target based on draft type
-      const applyTarget = previewDraft.draftType === 'answer_block'
-        ? 'ANSWER_BLOCK' as const
-        : previewDraft.draftType === 'positioning_section'
-          ? 'WHY_CHOOSE_SECTION' as const
-          : 'CONTENT_SECTION' as const;
+      const applyTarget =
+        previewDraft.draftType === 'answer_block'
+          ? ('ANSWER_BLOCK' as const)
+          : previewDraft.draftType === 'positioning_section'
+            ? ('WHY_CHOOSE_SECTION' as const)
+            : ('CONTENT_SECTION' as const);
 
       await competitorsApi.applyCompetitiveFix(productId, {
         draftId: previewDraft.id,
         applyTarget,
       });
 
-      feedback.showSuccess('Fix applied successfully! Coverage will be recalculated.');
+      feedback.showSuccess(
+        'Fix applied successfully! Coverage will be recalculated.'
+      );
 
       // Reset preview state
       setPreviewDraft(null);
@@ -156,7 +181,9 @@ export function ProductCompetitorsPanel({ productId }: ProductCompetitorsPanelPr
       await fetchData();
     } catch (err) {
       console.error('[ProductCompetitorsPanel] Apply failed:', err);
-      feedback.showError(err instanceof Error ? err.message : 'Failed to apply fix');
+      feedback.showError(
+        err instanceof Error ? err.message : 'Failed to apply fix'
+      );
     } finally {
       setApplyingDraft(false);
     }
@@ -202,20 +229,25 @@ export function ProductCompetitorsPanel({ productId }: ProductCompetitorsPanelPr
   const statusConfig = STATUS_CONFIG[coverage.status];
 
   // Group gaps by type
-  const gapsByType = gaps.reduce((acc, gap) => {
-    if (!acc[gap.gapType]) {
-      acc[gap.gapType] = [];
-    }
-    acc[gap.gapType].push(gap);
-    return acc;
-  }, {} as Record<CompetitorGapType, CompetitiveFixGap[]>);
+  const gapsByType = gaps.reduce(
+    (acc, gap) => {
+      if (!acc[gap.gapType]) {
+        acc[gap.gapType] = [];
+      }
+      acc[gap.gapType].push(gap);
+      return acc;
+    },
+    {} as Record<CompetitorGapType, CompetitiveFixGap[]>
+  );
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white">
       {/* Header */}
       <div className="border-b border-gray-100 px-4 py-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold text-gray-900">Competitive Positioning</h3>
+          <h3 className="text-base font-semibold text-gray-900">
+            Competitive Positioning
+          </h3>
           <span
             className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusConfig.bgColor} ${statusConfig.textColor}`}
           >
@@ -230,7 +262,8 @@ export function ProductCompetitorsPanel({ productId }: ProductCompetitorsPanelPr
         )}
         {competitors.length > 0 && (
           <p className="mt-1 text-xs text-gray-500">
-            Comparing against: {competitors.map(c => c.displayName).join(', ')}
+            Comparing against:{' '}
+            {competitors.map((c) => c.displayName).join(', ')}
           </p>
         )}
       </div>
@@ -238,7 +271,9 @@ export function ProductCompetitorsPanel({ productId }: ProductCompetitorsPanelPr
       {/* Gaps by Type */}
       {gaps.length === 0 ? (
         <div className="px-4 py-6 text-center">
-          <div className="text-sm font-medium text-green-600">No competitive gaps found</div>
+          <div className="text-sm font-medium text-green-600">
+            No competitive gaps found
+          </div>
           <p className="mt-1 text-xs text-gray-500">
             This product covers all competitive areas.
           </p>
@@ -252,7 +287,11 @@ export function ProductCompetitorsPanel({ productId }: ProductCompetitorsPanelPr
               gaps={typeGaps}
               expanded={expandedGapType === gapType}
               onToggle={() =>
-                setExpandedGapType(expandedGapType === gapType ? null : gapType as CompetitorGapType)
+                setExpandedGapType(
+                  expandedGapType === gapType
+                    ? null
+                    : (gapType as CompetitorGapType)
+                )
               }
               onPreview={handlePreviewFix}
               previewingGap={previewingGap}
@@ -276,54 +315,73 @@ export function ProductCompetitorsPanel({ productId }: ProductCompetitorsPanelPr
             </button>
           </div>
           <div className="rounded-md border border-gray-200 bg-white p-3">
-            {previewDraft.draftType === 'answer_block' && previewDraft.draftPayload.question && (
-              <>
-                <div className="mb-2">
-                  <label className="block text-xs font-medium text-gray-500">Question</label>
-                  <p className="mt-1 text-sm text-gray-900">{previewDraft.draftPayload.question}</p>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500">Answer</label>
-                  <p className="mt-1 text-sm text-gray-900">{previewDraft.draftPayload.answer}</p>
-                </div>
-              </>
-            )}
-            {previewDraft.draftType === 'comparison_copy' && previewDraft.draftPayload.comparisonText && (
-              <>
-                <div className="mb-2">
-                  <label className="block text-xs font-medium text-gray-500">Comparison Copy</label>
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-gray-900">
-                    {previewDraft.draftPayload.comparisonText}
-                  </p>
-                </div>
-                {previewDraft.draftPayload.placementGuidance && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500">Placement</label>
-                    <p className="mt-1 text-xs text-gray-600">
-                      {previewDraft.draftPayload.placementGuidance}
+            {previewDraft.draftType === 'answer_block' &&
+              previewDraft.draftPayload.question && (
+                <>
+                  <div className="mb-2">
+                    <label className="block text-xs font-medium text-gray-500">
+                      Question
+                    </label>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {previewDraft.draftPayload.question}
                     </p>
                   </div>
-                )}
-              </>
-            )}
-            {previewDraft.draftType === 'positioning_section' && previewDraft.draftPayload.positioningContent && (
-              <>
-                <div className="mb-2">
-                  <label className="block text-xs font-medium text-gray-500">Positioning Content</label>
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-gray-900">
-                    {previewDraft.draftPayload.positioningContent}
-                  </p>
-                </div>
-                {previewDraft.draftPayload.placementGuidance && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-500">Placement</label>
-                    <p className="mt-1 text-xs text-gray-600">
-                      {previewDraft.draftPayload.placementGuidance}
+                    <label className="block text-xs font-medium text-gray-500">
+                      Answer
+                    </label>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {previewDraft.draftPayload.answer}
                     </p>
                   </div>
-                )}
-              </>
-            )}
+                </>
+              )}
+            {previewDraft.draftType === 'comparison_copy' &&
+              previewDraft.draftPayload.comparisonText && (
+                <>
+                  <div className="mb-2">
+                    <label className="block text-xs font-medium text-gray-500">
+                      Comparison Copy
+                    </label>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-gray-900">
+                      {previewDraft.draftPayload.comparisonText}
+                    </p>
+                  </div>
+                  {previewDraft.draftPayload.placementGuidance && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500">
+                        Placement
+                      </label>
+                      <p className="mt-1 text-xs text-gray-600">
+                        {previewDraft.draftPayload.placementGuidance}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            {previewDraft.draftType === 'positioning_section' &&
+              previewDraft.draftPayload.positioningContent && (
+                <>
+                  <div className="mb-2">
+                    <label className="block text-xs font-medium text-gray-500">
+                      Positioning Content
+                    </label>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-gray-900">
+                      {previewDraft.draftPayload.positioningContent}
+                    </p>
+                  </div>
+                  {previewDraft.draftPayload.placementGuidance && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500">
+                        Placement
+                      </label>
+                      <p className="mt-1 text-xs text-gray-600">
+                        {previewDraft.draftPayload.placementGuidance}
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
           </div>
           <div className="mt-3 flex items-center gap-2">
             <button
@@ -332,7 +390,9 @@ export function ProductCompetitorsPanel({ productId }: ProductCompetitorsPanelPr
               disabled={applyingDraft}
               className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {applyingDraft ? 'Applying...' : `Apply as ${previewDraft.draftType === 'answer_block' ? 'Answer Block' : 'Content Section'}`}
+              {applyingDraft
+                ? 'Applying...'
+                : `Apply as ${previewDraft.draftType === 'answer_block' ? 'Answer Block' : 'Content Section'}`}
             </button>
             {!previewDraft.generatedWithAi && (
               <span className="text-xs text-gray-500">
@@ -366,9 +426,9 @@ function GapTypeSection({
   previewLoading,
 }: GapTypeSectionProps) {
   const severityCounts = {
-    critical: gaps.filter(g => g.severity === 'critical').length,
-    warning: gaps.filter(g => g.severity === 'warning').length,
-    info: gaps.filter(g => g.severity === 'info').length,
+    critical: gaps.filter((g) => g.severity === 'critical').length,
+    warning: gaps.filter((g) => g.severity === 'warning').length,
+    info: gaps.filter((g) => g.severity === 'info').length,
   };
 
   return (
@@ -404,7 +464,12 @@ function GapTypeSection({
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
           </svg>
         </div>
       </button>
@@ -436,9 +501,21 @@ interface GapItemProps {
 
 function GapItem({ gap, onPreview, isPreviewing, isLoading }: GapItemProps) {
   const severityColors = {
-    critical: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
-    warning: { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200' },
-    info: { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200' },
+    critical: {
+      bg: 'bg-red-50',
+      text: 'text-red-700',
+      border: 'border-red-200',
+    },
+    warning: {
+      bg: 'bg-yellow-50',
+      text: 'text-yellow-700',
+      border: 'border-yellow-200',
+    },
+    info: {
+      bg: 'bg-gray-50',
+      text: 'text-gray-700',
+      border: 'border-gray-200',
+    },
   };
   const colors = severityColors[gap.severity];
 
@@ -458,7 +535,9 @@ function GapItem({ gap, onPreview, isPreviewing, isLoading }: GapItemProps) {
           </div>
           <p className="mt-1 text-xs text-gray-600">{gap.whyItMatters}</p>
           {gap.exampleScenario && (
-            <p className="mt-1 text-xs italic text-gray-500">{gap.exampleScenario}</p>
+            <p className="mt-1 text-xs italic text-gray-500">
+              {gap.exampleScenario}
+            </p>
           )}
         </div>
         {gap.automationAvailable && (

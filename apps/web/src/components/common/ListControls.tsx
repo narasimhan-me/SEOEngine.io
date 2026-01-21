@@ -73,7 +73,7 @@ export function ListControls({ config }: ListControlsProps) {
       const qs = params.toString();
       router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
     },
-    [router, pathname, searchParams],
+    [router, pathname, searchParams]
   );
 
   /**
@@ -83,7 +83,7 @@ export function ListControls({ config }: ListControlsProps) {
     (value: string) => {
       updateUrl({ q: value || null });
     },
-    [updateUrl],
+    [updateUrl]
   );
 
   /**
@@ -93,7 +93,7 @@ export function ListControls({ config }: ListControlsProps) {
     (value: string) => {
       updateUrl({ status: value === 'all' ? null : value });
     },
-    [updateUrl],
+    [updateUrl]
   );
 
   /**
@@ -103,7 +103,7 @@ export function ListControls({ config }: ListControlsProps) {
     (value: string) => {
       updateUrl({ hasDraft: value === 'true' ? 'true' : null });
     },
-    [updateUrl],
+    [updateUrl]
   );
 
   /**

@@ -4,11 +4,18 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useMemo } from 'react';
 import type { WorkQueueActionBundle, WorkQueueViewer } from '@/lib/work-queue';
-import { getReturnToFromCurrentUrl, withRouteContext } from '@/lib/route-context';
+import {
+  getReturnToFromCurrentUrl,
+  withRouteContext,
+} from '@/lib/route-context';
 // [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI boundary note for generation entrypoints
 import { DraftAiBoundaryNote } from '@/components/common/DraftAiBoundaryNote';
 // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Use centralized routing helper
-import { buildPlaybookRunHref, isValidPlaybookId, type PlaybookId } from '@/lib/playbooks-routing';
+import {
+  buildPlaybookRunHref,
+  isValidPlaybookId,
+  type PlaybookId,
+} from '@/lib/playbooks-routing';
 
 interface ActionBundleCardProps {
   bundle: WorkQueueActionBundle;
@@ -70,7 +77,10 @@ export function ActionBundleCard({
   };
 
   // Derive CTAs based on state and bundle type
-  const { primaryCta, secondaryCta, disabledReason } = deriveCtas(bundle, viewer);
+  const { primaryCta, secondaryCta, disabledReason } = deriveCtas(
+    bundle,
+    viewer
+  );
 
   // Build CTA route
   const ctaRoute = getCTARoute(bundle, projectId);
@@ -98,7 +108,11 @@ export function ActionBundleCard({
           }`}
         >
           {bundle.health === 'CRITICAL' && (
-            <svg className="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+            <svg
+              className="mr-1 h-3 w-3"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
               <path
                 fillRule="evenodd"
                 d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
@@ -128,34 +142,51 @@ export function ActionBundleCard({
       {/* Row 3: Scope line */}
       {/* [ASSETS-PAGES-1] Updated to show correct scope type label */}
       {/* [COUNT-INTEGRITY-1.1 PATCH 8] Add "Actionable now" display with test hooks */}
-      <p className="mt-1 text-sm text-gray-600" data-testid="action-bundle-scope">
+      <p
+        className="mt-1 text-sm text-gray-600"
+        data-testid="action-bundle-scope"
+      >
         {bundle.bundleType === 'ASSET_OPTIMIZATION' ? (
           <>
             {bundle.scopeCount > 0 ? (
               <>
-                <span className="font-medium" data-testid="action-bundle-actionable-now">
+                <span
+                  className="font-medium"
+                  data-testid="action-bundle-actionable-now"
+                >
                   {bundle.scopeCount} actionable now
                 </span>{' '}
-                affecting {getScopeTypeLabel(bundle.scopeType, bundle.scopeCount)}
-                {bundle.scopeDetectedCount != null && bundle.scopeDetectedCount !== bundle.scopeCount && (
-                  <span className="text-gray-500">
-                    {' '}
-                    ({bundle.scopeDetectedCount} detected)
-                  </span>
-                )}
+                affecting{' '}
+                {getScopeTypeLabel(bundle.scopeType, bundle.scopeCount)}
+                {bundle.scopeDetectedCount != null &&
+                  bundle.scopeDetectedCount !== bundle.scopeCount && (
+                    <span className="text-gray-500">
+                      {' '}
+                      ({bundle.scopeDetectedCount} detected)
+                    </span>
+                  )}
               </>
             ) : (
               // [COUNT-INTEGRITY-1.1 FIX-UP] Strict zero-actionable suppression
               <span data-testid="action-bundle-zero-actionable">
-                <span className="font-medium text-amber-700">No items currently eligible for action.</span>
-                {bundle.scopeDetectedCount != null && bundle.scopeDetectedCount > 0 && (
-                  <>
-                    {' '}
-                    <span className="text-gray-500">
-                      ({bundle.scopeDetectedCount} detected issue{bundle.scopeDetectedCount !== 1 ? 's' : ''} affecting {getScopeTypeLabel(bundle.scopeType, bundle.scopeDetectedCount)})
-                    </span>
-                  </>
-                )}
+                <span className="font-medium text-amber-700">
+                  No items currently eligible for action.
+                </span>
+                {bundle.scopeDetectedCount != null &&
+                  bundle.scopeDetectedCount > 0 && (
+                    <>
+                      {' '}
+                      <span className="text-gray-500">
+                        ({bundle.scopeDetectedCount} detected issue
+                        {bundle.scopeDetectedCount !== 1 ? 's' : ''} affecting{' '}
+                        {getScopeTypeLabel(
+                          bundle.scopeType,
+                          bundle.scopeDetectedCount
+                        )}
+                        )
+                      </span>
+                    </>
+                  )}
               </span>
             )}
             {bundle.scopePreviewList.length > 0 && (
@@ -173,14 +204,18 @@ export function ActionBundleCard({
           <>
             {bundle.scopeCount === 0 ? (
               // [COUNT-INTEGRITY-1.1 FIX-UP] Strict zero-actionable suppression (consistent copy)
-              <span className="font-medium text-amber-700" data-testid="action-bundle-zero-actionable">
+              <span
+                className="font-medium text-amber-700"
+                data-testid="action-bundle-zero-actionable"
+              >
                 No items currently eligible for action.
               </span>
             ) : (
               <>
                 Applies to{' '}
                 <span className="font-medium">
-                  {bundle.scopeCount} {getScopeTypeLabel(bundle.scopeType, bundle.scopeCount)}
+                  {bundle.scopeCount}{' '}
+                  {getScopeTypeLabel(bundle.scopeType, bundle.scopeCount)}
                 </span>
                 {bundle.scopePreviewList.length > 0 && (
                   <>
@@ -214,7 +249,11 @@ export function ActionBundleCard({
             }`}
           >
             {bundle.approval.approvalStatus === 'APPROVED' && (
-              <svg className="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+              <svg
+                className="mr-1 h-3 w-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
                 <path
                   fillRule="evenodd"
                   d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -222,10 +261,14 @@ export function ActionBundleCard({
                 />
               </svg>
             )}
-            {bundle.approval.approvalStatus === 'PENDING' ? 'Pending Approval' : ''}
+            {bundle.approval.approvalStatus === 'PENDING'
+              ? 'Pending Approval'
+              : ''}
             {bundle.approval.approvalStatus === 'APPROVED' ? 'Approved' : ''}
             {bundle.approval.approvalStatus === 'REJECTED' ? 'Rejected' : ''}
-            {bundle.approval.approvalStatus === 'NOT_REQUESTED' ? 'Approval Required' : ''}
+            {bundle.approval.approvalStatus === 'NOT_REQUESTED'
+              ? 'Approval Required'
+              : ''}
           </span>
         )}
 
@@ -244,7 +287,11 @@ export function ActionBundleCard({
             'Does not use AI'
           ) : (
             <>
-              <svg className="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+              <svg
+                className="mr-1 h-3 w-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
                 <path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 110-12 6 6 0 010 12z" />
                 <path d="M10 5a1 1 0 011 1v4.586l2.707 2.707a1 1 0 01-1.414 1.414l-3-3A1 1 0 019 11V6a1 1 0 011-1z" />
               </svg>
@@ -256,7 +303,8 @@ export function ActionBundleCard({
         {/* Draft coverage badge */}
         {bundle.draft && bundle.draft.draftStatus !== 'NONE' && (
           <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-            {bundle.draft.draftCount} drafts ({bundle.draft.draftCoverage}% coverage)
+            {bundle.draft.draftCount} drafts ({bundle.draft.draftCoverage}%
+            coverage)
           </span>
         )}
 
@@ -302,7 +350,8 @@ export function ActionBundleCard({
           )}
         </div>
         {/* [DRAFT-AI-ENTRYPOINT-CLARITY-1] Show AI boundary note for generation CTAs */}
-        {(primaryCta === 'Generate Drafts' || primaryCta === 'Generate Full Drafts') && (
+        {(primaryCta === 'Generate Drafts' ||
+          primaryCta === 'Generate Full Drafts') && (
           <DraftAiBoundaryNote mode="generate" />
         )}
       </div>
@@ -348,7 +397,9 @@ function getScopeTypeLabel(scopeType: string, count: number): string {
     return 'store-wide';
   }
 
-  return count === 1 ? (singular[scopeType] || scopeType) : (plural[scopeType] || scopeType);
+  return count === 1
+    ? singular[scopeType] || scopeType
+    : plural[scopeType] || scopeType;
 }
 
 /**
@@ -357,7 +408,7 @@ function getScopeTypeLabel(scopeType: string, count: number): string {
  */
 function deriveCtas(
   bundle: WorkQueueActionBundle,
-  viewer?: WorkQueueViewer,
+  viewer?: WorkQueueViewer
 ): {
   primaryCta: string | null;
   secondaryCta: string | null;
@@ -374,7 +425,8 @@ function deriveCtas(
     return {
       primaryCta: 'View Details',
       secondaryCta: null,
-      disabledReason: 'Missing scope for pages/collections. Return to Work Queue.',
+      disabledReason:
+        'Missing scope for pages/collections. Return to Work Queue.',
     };
   }
 
@@ -403,7 +455,9 @@ function deriveCtas(
         return {
           primaryCta: canGenerateDrafts ? 'Generate Drafts' : 'View Details',
           secondaryCta: null,
-          disabledReason: canGenerateDrafts ? null : 'Viewer role cannot generate drafts',
+          disabledReason: canGenerateDrafts
+            ? null
+            : 'Viewer role cannot generate drafts',
         };
       }
       return {
@@ -416,11 +470,16 @@ function deriveCtas(
       return {
         primaryCta: canGenerateDrafts ? 'Generate Full Drafts' : 'View Preview',
         secondaryCta: 'View Preview',
-        disabledReason: canGenerateDrafts ? null : 'Viewer role cannot generate drafts',
+        disabledReason: canGenerateDrafts
+          ? null
+          : 'Viewer role cannot generate drafts',
       };
 
     case 'DRAFTS_READY':
-      if (approval?.approvalRequired && approval.approvalStatus !== 'APPROVED') {
+      if (
+        approval?.approvalRequired &&
+        approval.approvalStatus !== 'APPROVED'
+      ) {
         return {
           primaryCta: canRequestApproval ? 'Request Approval' : 'View Drafts',
           secondaryCta: 'View Drafts',
@@ -494,10 +553,14 @@ function extractScopeAssetRefs(bundle: WorkQueueActionBundle): string[] | null {
 
   // Check if scopeQueryRef contains handle-based refs (comma-separated)
   if (scopeQueryRef) {
-    const prefix = scopeType === 'PAGES' ? 'page_handle:' : 'collection_handle:';
+    const prefix =
+      scopeType === 'PAGES' ? 'page_handle:' : 'collection_handle:';
     if (scopeQueryRef.includes(prefix)) {
       // scopeQueryRef might be a comma-separated list of refs
-      return scopeQueryRef.split(',').map((ref) => ref.trim()).filter((ref) => ref.length > 0);
+      return scopeQueryRef
+        .split(',')
+        .map((ref) => ref.trim())
+        .filter((ref) => ref.length > 0);
     }
   }
 
@@ -508,7 +571,10 @@ function extractScopeAssetRefs(bundle: WorkQueueActionBundle): string[] | null {
     // The last part might contain scope refs
     const potentialRefs = bundleIdParts.slice(5).join(':');
     if (potentialRefs.includes('_handle:')) {
-      return potentialRefs.split(',').map((ref) => ref.trim()).filter((ref) => ref.length > 0);
+      return potentialRefs
+        .split(',')
+        .map((ref) => ref.trim())
+        .filter((ref) => ref.length > 0);
     }
   }
 
@@ -556,8 +622,11 @@ function getCTARoute(bundle: WorkQueueActionBundle, projectId: string): string {
     // Extract playbookId from bundleId
     // Bundle ID format: AUTOMATION_RUN:FIX_MISSING_METADATA:{playbookId}:{assetType}:{projectId}
     const bundleIdParts = bundle.bundleId.split(':');
-    const parsedPlaybookId = bundleIdParts.length >= 3 ? bundleIdParts[2] : null;
-    const assetType = (bundleIdParts.length >= 4 ? bundleIdParts[3] : 'PRODUCTS') as 'PRODUCTS' | 'PAGES' | 'COLLECTIONS';
+    const parsedPlaybookId =
+      bundleIdParts.length >= 3 ? bundleIdParts[2] : null;
+    const assetType = (
+      bundleIdParts.length >= 4 ? bundleIdParts[3] : 'PRODUCTS'
+    ) as 'PRODUCTS' | 'PAGES' | 'COLLECTIONS';
 
     // [FIXUP-1] Validate playbookId - default to missing_seo_title if invalid
     const playbookId: PlaybookId = isValidPlaybookId(parsedPlaybookId)

@@ -29,7 +29,9 @@ export function Captcha({ onVerify, onError, onExpire }: CaptchaProps) {
   useEffect(() => {
     if (hasError && !SITE_KEY) {
       // In dev mode without a real key, skip CAPTCHA on error
-      console.warn('[Captcha] Turnstile failed to load, auto-verifying for development');
+      console.warn(
+        '[Captcha] Turnstile failed to load, auto-verifying for development'
+      );
       onVerify('dev-bypass-token');
     }
   }, [hasError, onVerify]);

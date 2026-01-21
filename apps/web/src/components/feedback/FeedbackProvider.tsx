@@ -26,7 +26,11 @@ interface FeedbackContextValue {
   show: (
     variant: FeedbackVariant,
     message: string,
-    options?: { description?: string; actionHref?: string; actionLabel?: string },
+    options?: {
+      description?: string;
+      actionHref?: string;
+      actionLabel?: string;
+    }
   ) => void;
   showSuccess: (message: string) => void;
   showError: (message: string) => void;
@@ -35,7 +39,9 @@ interface FeedbackContextValue {
   showLimit: (message: string, actionHref?: string) => void;
 }
 
-const FeedbackContext = createContext<FeedbackContextValue | undefined>(undefined);
+const FeedbackContext = createContext<FeedbackContextValue | undefined>(
+  undefined
+);
 
 export function FeedbackProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<FeedbackMessage[]>([]);
@@ -49,7 +55,11 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
     (
       variant: FeedbackVariant,
       message: string,
-      options?: { description?: string; actionHref?: string; actionLabel?: string },
+      options?: {
+        description?: string;
+        actionHref?: string;
+        actionLabel?: string;
+      }
     ) => {
       idRef.current += 1;
       const id = idRef.current;
@@ -68,7 +78,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
         window.setTimeout(() => removeMessage(id), duration);
       }
     },
-    [removeMessage],
+    [removeMessage]
   );
 
   const value = useMemo<FeedbackContextValue>(
@@ -84,7 +94,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
           actionLabel: actionHref ? 'Upgrade' : undefined,
         }),
     }),
-    [showBase],
+    [showBase]
   );
 
   return (
@@ -133,7 +143,10 @@ function FeedbackToasts({ messages, onDismiss }: FeedbackToastsProps) {
             containerClasses =
               'pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 bg-red-600 text-white';
             iconColor = 'text-red-100';
-          } else if (message.variant === 'warning' || message.variant === 'limit') {
+          } else if (
+            message.variant === 'warning' ||
+            message.variant === 'limit'
+          ) {
             containerClasses =
               'pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 bg-yellow-600 text-white';
             iconColor = 'text-yellow-100';
@@ -145,7 +158,11 @@ function FeedbackToasts({ messages, onDismiss }: FeedbackToastsProps) {
                 <div className="flex items-start">
                   <div className="flex-shrink-0">
                     <span className={iconColor}>
-                      <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                      <svg
+                        className="h-5 w-5"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
                         <circle cx="10" cy="10" r="10" />
                       </svg>
                     </span>
@@ -153,7 +170,9 @@ function FeedbackToasts({ messages, onDismiss }: FeedbackToastsProps) {
                   <div className="ml-3 flex-1">
                     <p className="text-sm font-medium">{message.message}</p>
                     {message.description && (
-                      <p className="mt-1 text-sm opacity-90">{message.description}</p>
+                      <p className="mt-1 text-sm opacity-90">
+                        {message.description}
+                      </p>
                     )}
                     {message.actionHref && (
                       <div className="mt-3">

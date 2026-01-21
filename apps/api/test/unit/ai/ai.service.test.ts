@@ -37,7 +37,9 @@ describe('AiService', () => {
   let service: AiService;
   let configMock: ConfigService;
   let geminiClientMock: ReturnType<typeof createGeminiClientMock>;
-  let answerGenerationServiceMock: ReturnType<typeof createAnswerGenerationServiceMock>;
+  let answerGenerationServiceMock: ReturnType<
+    typeof createAnswerGenerationServiceMock
+  >;
   let originalFetch: typeof fetch;
 
   beforeAll(() => {
@@ -55,7 +57,7 @@ describe('AiService', () => {
     service = new AiService(
       configMock,
       geminiClientMock as unknown as GeminiClient,
-      answerGenerationServiceMock as unknown as AnswerGenerationService,
+      answerGenerationServiceMock as unknown as AnswerGenerationService
     );
     (global as any).fetch = jest.fn();
   });
@@ -66,7 +68,7 @@ describe('AiService', () => {
       const service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
       expect(config.get).toHaveBeenCalledWith('AI_API_KEY');
       expect(config.get).toHaveBeenCalledWith('AI_PROVIDER');
@@ -77,7 +79,7 @@ describe('AiService', () => {
       const service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
       expect(config.get).toHaveBeenCalledWith('AI_PROVIDER');
     });
@@ -95,11 +97,14 @@ describe('AiService', () => {
 
     describe('OpenAI provider', () => {
       beforeEach(() => {
-        const config = createConfigMock({ AI_PROVIDER: 'openai', AI_API_KEY: 'test-key' });
+        const config = createConfigMock({
+          AI_PROVIDER: 'openai',
+          AI_API_KEY: 'test-key',
+        });
         service = new AiService(
           config,
           geminiClientMock as unknown as GeminiClient,
-          answerGenerationServiceMock as unknown as AnswerGenerationService,
+          answerGenerationServiceMock as unknown as AnswerGenerationService
         );
       });
 
@@ -108,7 +113,8 @@ describe('AiService', () => {
           choices: [
             {
               message: {
-                content: '{"title": "New Title", "description": "New Description"}',
+                content:
+                  '{"title": "New Title", "description": "New Description"}',
               },
             },
           ],
@@ -130,16 +136,19 @@ describe('AiService', () => {
             headers: expect.objectContaining({
               Authorization: 'Bearer test-key',
             }),
-          }),
+          })
         );
       });
 
       it('should return fallback metadata when API key is missing', async () => {
-        const config = createConfigMock({ AI_PROVIDER: 'openai', AI_API_KEY: '' });
+        const config = createConfigMock({
+          AI_PROVIDER: 'openai',
+          AI_API_KEY: '',
+        });
         service = new AiService(
           config,
           geminiClientMock as unknown as GeminiClient,
-          answerGenerationServiceMock as unknown as AnswerGenerationService,
+          answerGenerationServiceMock as unknown as AnswerGenerationService
         );
 
         const result = await service.generateMetadata(mockInput);
@@ -188,11 +197,14 @@ describe('AiService', () => {
 
     describe('Anthropic provider', () => {
       beforeEach(() => {
-        const config = createConfigMock({ AI_PROVIDER: 'anthropic', AI_API_KEY: 'test-key' });
+        const config = createConfigMock({
+          AI_PROVIDER: 'anthropic',
+          AI_API_KEY: 'test-key',
+        });
         service = new AiService(
           config,
           geminiClientMock as unknown as GeminiClient,
-          answerGenerationServiceMock as unknown as AnswerGenerationService,
+          answerGenerationServiceMock as unknown as AnswerGenerationService
         );
       });
 
@@ -221,18 +233,21 @@ describe('AiService', () => {
             headers: expect.objectContaining({
               'x-api-key': 'test-key',
             }),
-          }),
+          })
         );
       });
     });
 
     describe('Gemini provider', () => {
       beforeEach(() => {
-        const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' });
+        const config = createConfigMock({
+          AI_PROVIDER: 'gemini',
+          AI_API_KEY: 'test-key',
+        });
         service = new AiService(
           config,
           geminiClientMock as unknown as GeminiClient,
-          answerGenerationServiceMock as unknown as AnswerGenerationService,
+          answerGenerationServiceMock as unknown as AnswerGenerationService
         );
       });
 
@@ -259,11 +274,14 @@ describe('AiService', () => {
       });
 
       it('should return fallback metadata when API key is missing', async () => {
-        const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: '' });
+        const config = createConfigMock({
+          AI_PROVIDER: 'gemini',
+          AI_API_KEY: '',
+        });
         service = new AiService(
           config,
           geminiClientMock as unknown as GeminiClient,
-          answerGenerationServiceMock as unknown as AnswerGenerationService,
+          answerGenerationServiceMock as unknown as AnswerGenerationService
         );
 
         const result = await service.generateMetadata(mockInput);
@@ -363,15 +381,19 @@ describe('AiService', () => {
         },
       ];
 
-      answerGenerationServiceMock.generateAnswersForProduct.mockResolvedValueOnce(mockAnswers);
+      answerGenerationServiceMock.generateAnswersForProduct.mockResolvedValueOnce(
+        mockAnswers
+      );
 
-      const result = await service.generateProductAnswers(mockProduct, mockAnswerabilityStatus);
+      const result = await service.generateProductAnswers(
+        mockProduct,
+        mockAnswerabilityStatus
+      );
 
       expect(result).toEqual(mockAnswers);
-      expect(answerGenerationServiceMock.generateAnswersForProduct).toHaveBeenCalledWith(
-        mockProduct,
-        mockAnswerabilityStatus,
-      );
+      expect(
+        answerGenerationServiceMock.generateAnswersForProduct
+      ).toHaveBeenCalledWith(mockProduct, mockAnswerabilityStatus);
     });
   });
 
@@ -386,11 +408,14 @@ describe('AiService', () => {
     };
 
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'gemini',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
@@ -402,20 +427,27 @@ describe('AiService', () => {
       geminiClientMock.generateWithFallback.mockRejectedValueOnce(error);
 
       await expect(service.generateMetadata(mockInput)).rejects.toThrow(
-        'AI_ALL_MODELS_EXHAUSTED',
+        'AI_ALL_MODELS_EXHAUSTED'
       );
     });
 
     it('should handle quota exhausted error (429)', async () => {
-      const error = { status: 429, message: 'RESOURCE_EXHAUSTED quota exceeded' };
+      const error = {
+        status: 429,
+        message: 'RESOURCE_EXHAUSTED quota exceeded',
+      };
 
       geminiClientMock.generateWithFallback.mockRejectedValueOnce(error);
 
-      await expect(service.generateMetadata(mockInput)).rejects.toThrow('AI_QUOTA_EXHAUSTED');
+      await expect(service.generateMetadata(mockInput)).rejects.toThrow(
+        'AI_QUOTA_EXHAUSTED'
+      );
     });
 
     it('should return fallback on generic Gemini error', async () => {
-      geminiClientMock.generateWithFallback.mockRejectedValueOnce(new Error('Generic error'));
+      geminiClientMock.generateWithFallback.mockRejectedValueOnce(
+        new Error('Generic error')
+      );
 
       const result = await service.generateMetadata(mockInput);
 
@@ -446,16 +478,21 @@ describe('AiService', () => {
     };
 
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'openai', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'openai',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
     it('should handle network errors', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+      (global.fetch as jest.Mock).mockRejectedValueOnce(
+        new Error('Network error')
+      );
 
       const result = await service.generateMetadata(mockInput);
 
@@ -499,16 +536,21 @@ describe('AiService', () => {
     };
 
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'anthropic', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'anthropic',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
     it('should handle network errors', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+      (global.fetch as jest.Mock).mockRejectedValueOnce(
+        new Error('Network error')
+      );
 
       const result = await service.generateMetadata(mockInput);
 
@@ -540,11 +582,14 @@ describe('AiService', () => {
     };
 
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'openai', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'openai',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
@@ -553,7 +598,8 @@ describe('AiService', () => {
         choices: [
           {
             message: {
-              content: '```json\n{"title": "Markdown Title", "description": "Markdown Description"}\n```',
+              content:
+                '```json\n{"title": "Markdown Title", "description": "Markdown Description"}\n```',
             },
           },
         ],
@@ -611,17 +657,22 @@ describe('AiService', () => {
       const result = await service.generateMetadata(mockInput);
 
       expect(result.title).toBe('Only Title');
-      expect(result.description).toBe('Suggested meta description for this page.');
+      expect(result.description).toBe(
+        'Suggested meta description for this page.'
+      );
     });
   });
 
   describe('generateAnswerBlockForIntent', () => {
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'gemini',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
@@ -657,7 +708,9 @@ describe('AiService', () => {
     });
 
     it('should return fallback on error', async () => {
-      geminiClientMock.generateWithFallback.mockRejectedValueOnce(new Error('API error'));
+      geminiClientMock.generateWithFallback.mockRejectedValueOnce(
+        new Error('API error')
+      );
 
       const result = await service.generateAnswerBlockForIntent({
         product: {
@@ -677,11 +730,14 @@ describe('AiService', () => {
 
   describe('generateContentSnippetForIntent', () => {
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'gemini',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
@@ -709,11 +765,15 @@ describe('AiService', () => {
         query: 'buy test product',
       });
 
-      expect(result.snippet).toBe('This product offers excellent features for your needs.');
+      expect(result.snippet).toBe(
+        'This product offers excellent features for your needs.'
+      );
     });
 
     it('should return fallback on error', async () => {
-      geminiClientMock.generateWithFallback.mockRejectedValueOnce(new Error('API error'));
+      geminiClientMock.generateWithFallback.mockRejectedValueOnce(
+        new Error('API error')
+      );
 
       const result = await service.generateContentSnippetForIntent({
         product: {
@@ -730,11 +790,14 @@ describe('AiService', () => {
 
   describe('generateMetadataGuidanceForIntent', () => {
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'gemini',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
@@ -768,7 +831,9 @@ describe('AiService', () => {
     });
 
     it('should return fallback on error', async () => {
-      geminiClientMock.generateWithFallback.mockRejectedValueOnce(new Error('API error'));
+      geminiClientMock.generateWithFallback.mockRejectedValueOnce(
+        new Error('API error')
+      );
 
       const result = await service.generateMetadataGuidanceForIntent({
         product: {
@@ -787,11 +852,14 @@ describe('AiService', () => {
 
   describe('generateCompetitiveAnswerBlock', () => {
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'gemini',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
@@ -827,7 +895,9 @@ describe('AiService', () => {
     });
 
     it('should return fallback on error', async () => {
-      geminiClientMock.generateWithFallback.mockRejectedValueOnce(new Error('API error'));
+      geminiClientMock.generateWithFallback.mockRejectedValueOnce(
+        new Error('API error')
+      );
 
       const result = await service.generateCompetitiveAnswerBlock({
         product: {
@@ -847,11 +917,14 @@ describe('AiService', () => {
 
   describe('generateComparisonCopy', () => {
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'gemini',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
@@ -884,7 +957,9 @@ describe('AiService', () => {
     });
 
     it('should return fallback on error', async () => {
-      geminiClientMock.generateWithFallback.mockRejectedValueOnce(new Error('API error'));
+      geminiClientMock.generateWithFallback.mockRejectedValueOnce(
+        new Error('API error')
+      );
 
       const result = await service.generateComparisonCopy({
         product: {
@@ -902,11 +977,14 @@ describe('AiService', () => {
 
   describe('generatePositioningSection', () => {
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'gemini',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
@@ -939,7 +1017,9 @@ describe('AiService', () => {
     });
 
     it('should return fallback on error', async () => {
-      geminiClientMock.generateWithFallback.mockRejectedValueOnce(new Error('API error'));
+      geminiClientMock.generateWithFallback.mockRejectedValueOnce(
+        new Error('API error')
+      );
 
       const result = await service.generatePositioningSection({
         product: {
@@ -957,11 +1037,14 @@ describe('AiService', () => {
 
   describe('generateOutreachEmailDraft', () => {
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'gemini',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
@@ -993,7 +1076,9 @@ describe('AiService', () => {
     });
 
     it('should return fallback on error', async () => {
-      geminiClientMock.generateWithFallback.mockRejectedValueOnce(new Error('API error'));
+      geminiClientMock.generateWithFallback.mockRejectedValueOnce(
+        new Error('API error')
+      );
 
       const result = await service.generateOutreachEmailDraft({
         brandName: 'Test Brand',
@@ -1010,11 +1095,14 @@ describe('AiService', () => {
 
   describe('generateImageAltText', () => {
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'gemini',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
@@ -1070,7 +1158,9 @@ describe('AiService', () => {
     });
 
     it('should return fallback on error', async () => {
-      geminiClientMock.generateWithFallback.mockRejectedValueOnce(new Error('API error'));
+      geminiClientMock.generateWithFallback.mockRejectedValueOnce(
+        new Error('API error')
+      );
 
       const result = await service.generateImageAltText({
         productTitle: 'Test Product',
@@ -1085,11 +1175,14 @@ describe('AiService', () => {
 
   describe('generateImageCaption', () => {
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'gemini',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
@@ -1145,7 +1238,9 @@ describe('AiService', () => {
     });
 
     it('should return fallback on error', async () => {
-      geminiClientMock.generateWithFallback.mockRejectedValueOnce(new Error('API error'));
+      geminiClientMock.generateWithFallback.mockRejectedValueOnce(
+        new Error('API error')
+      );
 
       const result = await service.generateImageCaption({
         productTitle: 'Test Product',
@@ -1160,11 +1255,14 @@ describe('AiService', () => {
 
   describe('generatePrPitchDraft', () => {
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'gemini',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
@@ -1195,7 +1293,9 @@ describe('AiService', () => {
     });
 
     it('should return fallback on error', async () => {
-      geminiClientMock.generateWithFallback.mockRejectedValueOnce(new Error('API error'));
+      geminiClientMock.generateWithFallback.mockRejectedValueOnce(
+        new Error('API error')
+      );
 
       const result = await service.generatePrPitchDraft({
         brandName: 'Test Brand',
@@ -1211,11 +1311,14 @@ describe('AiService', () => {
 
   describe('generateBrandProfileSnippet', () => {
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'gemini',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
@@ -1245,7 +1348,9 @@ describe('AiService', () => {
     });
 
     it('should return fallback on error', async () => {
-      geminiClientMock.generateWithFallback.mockRejectedValueOnce(new Error('API error'));
+      geminiClientMock.generateWithFallback.mockRejectedValueOnce(
+        new Error('API error')
+      );
 
       const result = await service.generateBrandProfileSnippet({
         brandName: 'Test Brand',
@@ -1259,11 +1364,14 @@ describe('AiService', () => {
 
   describe('generateReviewRequestCopy', () => {
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'gemini',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
@@ -1316,7 +1424,9 @@ describe('AiService', () => {
     });
 
     it('should return fallback on error', async () => {
-      geminiClientMock.generateWithFallback.mockRejectedValueOnce(new Error('API error'));
+      geminiClientMock.generateWithFallback.mockRejectedValueOnce(
+        new Error('API error')
+      );
 
       const result = await service.generateReviewRequestCopy({
         brandName: 'Test Brand',
@@ -1330,11 +1440,14 @@ describe('AiService', () => {
 
   describe('generateLocalAnswerBlockDraft', () => {
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'gemini',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
@@ -1391,7 +1504,9 @@ describe('AiService', () => {
     });
 
     it('should return fallback on error', async () => {
-      geminiClientMock.generateWithFallback.mockRejectedValueOnce(new Error('API error'));
+      geminiClientMock.generateWithFallback.mockRejectedValueOnce(
+        new Error('API error')
+      );
 
       const result = await service.generateLocalAnswerBlockDraft({
         brandName: 'Test Brand',
@@ -1407,11 +1522,14 @@ describe('AiService', () => {
 
   describe('generateCitySectionDraft', () => {
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'gemini',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
@@ -1441,7 +1559,9 @@ describe('AiService', () => {
     });
 
     it('should return fallback on error', async () => {
-      geminiClientMock.generateWithFallback.mockRejectedValueOnce(new Error('API error'));
+      geminiClientMock.generateWithFallback.mockRejectedValueOnce(
+        new Error('API error')
+      );
 
       const result = await service.generateCitySectionDraft({
         brandName: 'Test Brand',
@@ -1456,11 +1576,14 @@ describe('AiService', () => {
 
   describe('generateServiceAreaDescriptionDraft', () => {
     beforeEach(() => {
-      const config = createConfigMock({ AI_PROVIDER: 'gemini', AI_API_KEY: 'test-key' });
+      const config = createConfigMock({
+        AI_PROVIDER: 'gemini',
+        AI_API_KEY: 'test-key',
+      });
       service = new AiService(
         config,
         geminiClientMock as unknown as GeminiClient,
-        answerGenerationServiceMock as unknown as AnswerGenerationService,
+        answerGenerationServiceMock as unknown as AnswerGenerationService
       );
     });
 
@@ -1490,7 +1613,9 @@ describe('AiService', () => {
     });
 
     it('should return fallback on error', async () => {
-      geminiClientMock.generateWithFallback.mockRejectedValueOnce(new Error('API error'));
+      geminiClientMock.generateWithFallback.mockRejectedValueOnce(
+        new Error('API error')
+      );
 
       const result = await service.generateServiceAreaDescriptionDraft({
         brandName: 'Test Brand',
@@ -1503,4 +1628,3 @@ describe('AiService', () => {
     });
   });
 });
-

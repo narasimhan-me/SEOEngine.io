@@ -55,6 +55,7 @@
 ### 1. BillingService ⚠️ **NEEDS MORE COVERAGE** (Current: ~60% → Target: 90%)
 
 **Current Coverage:**
+
 - ✅ `getPlans()` - tested
 - ✅ `getSubscription()` - tested
 - ✅ `getBillingSummary()` - tested
@@ -64,6 +65,7 @@
 - ✅ `cancelSubscription()` - tested
 
 **Missing Coverage (CRITICAL):**
+
 - ❌ `handleWebhook()` - **CRITICAL** - Stripe webhook processing
   - Webhook signature validation
   - Event routing (checkout.session.completed, subscription.created/updated/deleted)
@@ -94,10 +96,12 @@
 ### 2. DeoScoreService ⚠️ **NEEDS MORE COVERAGE** (Current: ~70% → Target: 90%)
 
 **Current Coverage:**
+
 - ✅ `getLatestForProject()` - tested (with/without snapshots, ownership validation)
 - ✅ `computeAndPersistScoreFromSignals()` - tested (basic flow)
 
 **Missing Coverage:**
+
 - ❌ `DeoSignalsService.collectSignalsForProject()` - **CRITICAL** - signal collection logic
   - Content signal collection (pages, metadata, word counts)
   - Entity signal collection (products, answer blocks)
@@ -116,6 +120,7 @@
 ### 3. ProjectsService ⚠️ **NEEDS MORE COVERAGE** (Current: ~75% → Target: 90%)
 
 **Current Coverage:**
+
 - ✅ `getProjectsForUser()` - tested
 - ✅ `getProject()` - tested
 - ✅ `createProject()` - tested
@@ -124,6 +129,7 @@
 - ✅ `validateProjectOwnership()` - tested
 
 **Missing Coverage:**
+
 - ❌ `getIntegrationStatus()` - **IMPORTANT** - integration status checking
   - Shopify integration status
   - Integration health checks
@@ -147,9 +153,11 @@
 ### 4. DeoIssuesService ⚠️ **NEEDS MORE COVERAGE** (Current: ~40% → Target: 85%)
 
 **Current Coverage:**
+
 - ✅ `getIssuesForProject()` - tested (basic flow, ownership validation, error handling)
 
 **Missing Coverage:**
+
 - ❌ `buildMissingMetadataIssue()` - private method, critical for metadata issues
   - Page and product metadata detection
   - Severity calculation
@@ -179,6 +187,7 @@
 ### 5. AuthService ✅ **GOOD COVERAGE** (Current: ~85% → Target: 95%)
 
 **Current Coverage:**
+
 - ✅ `signup()` - tested (success, duplicate email, optional name)
 - ✅ `validateUser()` - tested (success, user not found, invalid password)
 - ✅ `login()` - tested (with/without 2FA)
@@ -186,6 +195,7 @@
 - ✅ `validateJwtPayload()` - tested (success, user not found)
 
 **Missing Coverage (Edge Cases):**
+
 - ❌ Password validation edge cases (empty, too short, special characters)
 - ❌ Email format validation
 - ❌ Database failure scenarios
@@ -198,6 +208,7 @@
 ### 6. EntitlementsService ✅ **EXCELLENT COVERAGE** (Current: ~95%)
 
 **Current Coverage:**
+
 - ✅ All public methods tested
 - ✅ Edge cases covered
 - ✅ Error scenarios covered
@@ -207,22 +218,26 @@
 ## Summary
 
 ### Services Without Tests: 2 High Priority
+
 1. **ShopifyService** - 0% coverage, needs 85%+
 2. **AutomationPlaybooksService** - 0% coverage, needs 90%+
 
 ### Critical Services Needing More Coverage: 4 Services
+
 1. **BillingService** - 60% → Target 90% (webhook handling critical)
 2. **DeoScoreService** - 70% → Target 90% (DeoSignalsService critical)
 3. **ProjectsService** - 75% → Target 90% (4 public methods missing)
 4. **DeoIssuesService** - 40% → Target 85% (issue building methods critical)
 
 ### Services With Good Coverage: 2 Services
+
 1. **EntitlementsService** - ~95% ✅
 2. **AuthService** - ~85% (could improve to 95% with edge cases)
 
 ## Action Plan
 
 ### Phase 1: High Priority (Immediate)
+
 1. **Add unit tests for `ShopifyService`** (Est. 2-3 hours)
    - OAuth flow methods (4 methods)
    - HMAC validation
@@ -241,6 +256,7 @@
    - Error scenarios
 
 ### Phase 2: Medium Priority (Next)
+
 4. **Expand `DeoScoreService` tests** (Est. 2-3 hours)
    - DeoSignalsService methods
    - Edge cases and error scenarios
@@ -254,6 +270,7 @@
    - Edge cases
 
 ### Phase 3: Polish (Future)
+
 7. **Expand `AuthService` tests** (Est. 1 hour)
    - Edge cases and error scenarios
 
@@ -267,23 +284,20 @@
   - DeoScoreService: 90%
   - AutomationPlaybooksService: 90%
   - ProjectsService: 90%
-  
 - **High Priority Services:** 85%+ coverage
   - DeoIssuesService: 85%
   - ShopifyService: 85%
   - AuthService: 95%
-  
 - **Medium Priority Services:** 80%+ coverage
   - ProductIssueFixService: 85%
-  
 - **Overall:** 80%+ coverage for all services
 
 ## Estimated Impact
 
 After completing Phase 1 and Phase 2:
+
 - **New test files:** 2 (ShopifyService, AutomationPlaybooksService)
 - **Expanded test files:** 4 (BillingService, DeoScoreService, ProjectsService, DeoIssuesService)
 - **Estimated new tests:** ~80-100 tests
 - **Coverage improvement:** ~58% → ~75% overall
 - **Critical services coverage:** ~60% → ~90% average
-

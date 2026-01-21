@@ -75,7 +75,7 @@ export class SearchIntentController {
     private readonly aiService: AiService,
     private readonly aiUsageQuotaService: AiUsageQuotaService,
     private readonly aiUsageLedgerService: AiUsageLedgerService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   // ============================================================================
@@ -132,7 +132,7 @@ export class SearchIntentController {
   @Get('products/:productId/search-intent')
   async getProductSearchIntent(
     @Request() req: any,
-    @Param('productId') productId: string,
+    @Param('productId') productId: string
   ): Promise<ProductSearchIntentResponse> {
     const userId = req.user.id;
     return this.searchIntentService.getProductIntentData(productId, userId);
@@ -152,14 +152,14 @@ export class SearchIntentController {
   async previewIntentFix(
     @Request() req: any,
     @Param('productId') productId: string,
-    @Body() dto: IntentFixPreviewDto,
+    @Body() dto: IntentFixPreviewDto
   ): Promise<IntentFixPreviewResponse> {
     const userId = req.user.id;
 
     // Validate required fields
     if (!dto.intentType || !dto.query || !dto.fixType) {
       throw new BadRequestException(
-        'intentType, query, and fixType are required',
+        'intentType, query, and fixType are required'
       );
     }
 
@@ -176,7 +176,10 @@ export class SearchIntentController {
     }
 
     // [ROLES-3 FIXUP-3] OWNER/EDITOR only for draft generation
-    await this.roleResolution.assertCanGenerateDrafts(product.projectId, userId);
+    await this.roleResolution.assertCanGenerateDrafts(
+      product.projectId,
+      userId
+    );
 
     // Compute deterministic work key for CACHE/REUSE v2
     const aiWorkKey = computeIntentFixWorkKey(
@@ -184,7 +187,7 @@ export class SearchIntentController {
       productId,
       dto.intentType,
       dto.query,
-      dto.fixType,
+      dto.fixType
     );
 
     // Check for existing unexpired draft
@@ -211,7 +214,8 @@ export class SearchIntentController {
           productId: existingDraft.productId,
           intentType: this.fromPrismaIntentType(existingDraft.intentType),
           query: existingDraft.query,
-          draftType: existingDraft.draftType.toLowerCase() as IntentFixDraftType,
+          draftType:
+            existingDraft.draftType.toLowerCase() as IntentFixDraftType,
           draftPayload: existingDraft.draftPayload as any,
           aiWorkKey: existingDraft.aiWorkKey,
           reusedFromWorkKey: existingDraft.reusedFromWorkKey || undefined,
@@ -233,7 +237,7 @@ export class SearchIntentController {
 
     if (quotaEval.status === 'blocked') {
       throw new ForbiddenException(
-        'AI usage quota exceeded. Please wait until next month or upgrade your plan.',
+        'AI usage quota exceeded. Please wait until next month or upgrade your plan.'
       );
     }
 
@@ -253,16 +257,17 @@ export class SearchIntentController {
     try {
       if (dto.fixType === 'answer_block') {
         // Generate Answer Block draft
-        const answerBlockResult = await this.aiService.generateAnswerBlockForIntent({
-          product: {
-            title: product.title,
-            description: product.description || '',
-            seoTitle: product.seoTitle || '',
-            seoDescription: product.seoDescription || '',
-          },
-          intentType: dto.intentType,
-          query: dto.query,
-        });
+        const answerBlockResult =
+          await this.aiService.generateAnswerBlockForIntent({
+            product: {
+              title: product.title,
+              description: product.description || '',
+              seoTitle: product.seoTitle || '',
+              seoDescription: product.seoDescription || '',
+            },
+            intentType: dto.intentType,
+            query: dto.query,
+          });
 
         draftPayload = {
           question: answerBlockResult.question,
@@ -270,29 +275,31 @@ export class SearchIntentController {
         };
       } else if (dto.fixType === 'content_snippet') {
         // Generate content snippet draft
-        const snippetResult = await this.aiService.generateContentSnippetForIntent({
-          product: {
-            title: product.title,
-            description: product.description || '',
-          },
-          intentType: dto.intentType,
-          query: dto.query,
-        });
+        const snippetResult =
+          await this.aiService.generateContentSnippetForIntent({
+            product: {
+              title: product.title,
+              description: product.description || '',
+            },
+            intentType: dto.intentType,
+            query: dto.query,
+          });
 
         draftPayload = {
           snippet: snippetResult.snippet,
         };
       } else {
         // metadata_guidance
-        const guidanceResult = await this.aiService.generateMetadataGuidanceForIntent({
-          product: {
-            title: product.title,
-            seoTitle: product.seoTitle || '',
-            seoDescription: product.seoDescription || '',
-          },
-          intentType: dto.intentType,
-          query: dto.query,
-        });
+        const guidanceResult =
+          await this.aiService.generateMetadataGuidanceForIntent({
+            product: {
+              title: product.title,
+              seoTitle: product.seoTitle || '',
+              seoDescription: product.seoDescription || '',
+            },
+            intentType: dto.intentType,
+            query: dto.query,
+          });
 
         draftPayload = {
           titleSuggestion: guidanceResult.titleSuggestion,
@@ -387,7 +394,7 @@ export class SearchIntentController {
   async applyIntentFix(
     @Request() req: any,
     @Param('productId') productId: string,
-    @Body() dto: IntentFixApplyDto,
+    @Body() dto: IntentFixApplyDto
   ): Promise<IntentFixApplyResponse> {
     const userId = req.user.id;
 
@@ -438,7 +445,7 @@ export class SearchIntentController {
       // Create Answer Block from draft
       if (!draftPayload.question || !draftPayload.answer) {
         throw new BadRequestException(
-          'Draft payload missing question or answer for ANSWER_BLOCK target',
+          'Draft payload missing question or answer for ANSWER_BLOCK target'
         );
       }
 
@@ -453,14 +460,17 @@ export class SearchIntentController {
           answerText: draftPayload.answer,
           confidenceScore: 0.8, // Default for AI-generated
           sourceType: 'intent_fix_ai',
-          sourceFieldsUsed: [`intent:${this.fromPrismaIntentType(draft.intentType)}`, `query:${draft.query}`],
+          sourceFieldsUsed: [
+            `intent:${this.fromPrismaIntentType(draft.intentType)}`,
+            `query:${draft.query}`,
+          ],
         },
       });
     } else if (dto.applyTarget === 'CONTENT_SNIPPET_SECTION') {
       // Append snippet to product description
       if (!draftPayload.snippet) {
         throw new BadRequestException(
-          'Draft payload missing snippet for CONTENT_SNIPPET_SECTION target',
+          'Draft payload missing snippet for CONTENT_SNIPPET_SECTION target'
         );
       }
 
@@ -498,7 +508,7 @@ export class SearchIntentController {
 
     // Check if any related issues were resolved
     const coverageForIntent = updatedCoverage.find(
-      (c) => c.intentType === this.fromPrismaIntentType(draft.intentType),
+      (c) => c.intentType === this.fromPrismaIntentType(draft.intentType)
     );
 
     const issuesResolved =
@@ -531,7 +541,7 @@ export class SearchIntentController {
   @Get('projects/:projectId/search-intent/summary')
   async getProjectSearchIntentSummary(
     @Request() req: any,
-    @Param('projectId') projectId: string,
+    @Param('projectId') projectId: string
   ): Promise<SearchIntentScorecard> {
     const userId = req.user.id;
     return this.searchIntentService.getProjectIntentSummary(projectId, userId);

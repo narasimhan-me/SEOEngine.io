@@ -42,7 +42,9 @@ describe('CaptchaService', () => {
   describe('verify', () => {
     it('should throw BadRequestException when token is missing', async () => {
       await expect(service.verify('')).rejects.toThrow(BadRequestException);
-      await expect(service.verify('')).rejects.toThrow('CAPTCHA token is required');
+      await expect(service.verify('')).rejects.toThrow(
+        'CAPTCHA token is required'
+      );
     });
 
     it('should successfully verify Turnstile token', async () => {
@@ -68,7 +70,7 @@ describe('CaptchaService', () => {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
-        }),
+        })
       );
     });
 
@@ -85,12 +87,14 @@ describe('CaptchaService', () => {
 
       jest.spyOn(console, 'warn').mockImplementation(() => {});
 
-      await expect(service.verify('invalid-token')).rejects.toThrow(BadRequestException);
       await expect(service.verify('invalid-token')).rejects.toThrow(
-        'CAPTCHA verification failed. Please try again.',
+        BadRequestException
+      );
+      await expect(service.verify('invalid-token')).rejects.toThrow(
+        'CAPTCHA verification failed. Please try again.'
       );
       expect(console.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Turnstile verification failed'),
+        expect.stringContaining('Turnstile verification failed')
       );
 
       (console.warn as jest.Mock).mockRestore();
@@ -102,13 +106,15 @@ describe('CaptchaService', () => {
 
       jest.spyOn(console, 'error').mockImplementation(() => {});
 
-      await expect(service.verify('token')).rejects.toThrow(BadRequestException);
       await expect(service.verify('token')).rejects.toThrow(
-        'CAPTCHA verification failed. Please try again.',
+        BadRequestException
+      );
+      await expect(service.verify('token')).rejects.toThrow(
+        'CAPTCHA verification failed. Please try again.'
       );
       expect(console.error).toHaveBeenCalledWith(
         'Turnstile verification error:',
-        networkError,
+        networkError
       );
 
       (console.error as jest.Mock).mockRestore();
@@ -167,13 +173,12 @@ describe('CaptchaService', () => {
       const config = createConfigMock({ CAPTCHA_PROVIDER: 'recaptcha' });
       const serviceWithUnsupportedProvider = new CaptchaService(config);
 
-      await expect(serviceWithUnsupportedProvider.verify('token')).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(serviceWithUnsupportedProvider.verify('token')).rejects.toThrow(
-        'Unsupported CAPTCHA provider: recaptcha',
-      );
+      await expect(
+        serviceWithUnsupportedProvider.verify('token')
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        serviceWithUnsupportedProvider.verify('token')
+      ).rejects.toThrow('Unsupported CAPTCHA provider: recaptcha');
     });
   });
 });
-

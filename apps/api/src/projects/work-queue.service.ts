@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { DeoIssuesService } from './deo-issues.service';
-import { AutomationPlaybooksService, AutomationPlaybookId } from './automation-playbooks.service';
+import {
+  AutomationPlaybooksService,
+  AutomationPlaybookId,
+} from './automation-playbooks.service';
 import { GeoReportsService } from './geo-reports.service';
 import { GovernanceService } from './governance.service';
 import { ApprovalsService } from './approvals.service';
@@ -71,8 +74,17 @@ function classifyUrlPath(url: string): AssetPageType {
     }
     // Static paths that should be classified as pages
     const staticPaths = new Set([
-      '/about', '/contact', '/faq', '/support', '/shipping', '/returns',
-      '/privacy', '/terms', '/privacy-policy', '/terms-of-service', '/refund-policy',
+      '/about',
+      '/contact',
+      '/faq',
+      '/support',
+      '/shipping',
+      '/returns',
+      '/privacy',
+      '/terms',
+      '/privacy-policy',
+      '/terms-of-service',
+      '/refund-policy',
     ]);
     if (staticPaths.has(path)) {
       return 'page';
@@ -91,7 +103,7 @@ export class WorkQueueService {
     private readonly geoReportsService: GeoReportsService,
     private readonly governanceService: GovernanceService,
     private readonly approvalsService: ApprovalsService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   /**
@@ -109,7 +121,7 @@ export class WorkQueueService {
       actionKey?: WorkQueueRecommendedActionKey;
       scopeType?: WorkQueueScopeType;
       bundleId?: string;
-    },
+    }
   ): Promise<WorkQueueResponse> {
     // [ROLES-3] Verify membership (any role can view)
     await this.roleResolution.assertProjectAccess(projectId, userId);
@@ -132,9 +144,13 @@ export class WorkQueueService {
     }
 
     // Get viewer context for role-aware UI
-    const effectiveRole = await this.roleResolution.resolveEffectiveRole(projectId, userId);
+    const effectiveRole = await this.roleResolution.resolveEffectiveRole(
+      projectId,
+      userId
+    );
     const capabilities = this.roleResolution.getCapabilities(effectiveRole);
-    const isMultiUserProject = await this.roleResolution.isMultiUserProject(projectId);
+    const isMultiUserProject =
+      await this.roleResolution.isMultiUserProject(projectId);
 
     const viewer: WorkQueueViewer = {
       role: effectiveRole as 'OWNER' | 'EDITOR' | 'VIEWER',
@@ -165,7 +181,9 @@ export class WorkQueueService {
       allBundles = allBundles.filter((b) => b.bundleType === params.bundleType);
     }
     if (params?.actionKey) {
-      allBundles = allBundles.filter((b) => b.recommendedActionKey === params.actionKey);
+      allBundles = allBundles.filter(
+        (b) => b.recommendedActionKey === params.actionKey
+      );
     }
     // [ASSETS-PAGES-1] Filter by scopeType
     if (params?.scopeType) {
@@ -181,7 +199,7 @@ export class WorkQueueService {
     } else {
       // Default: exclude HEALTHY and APPLIED bundles
       allBundles = allBundles.filter(
-        (b) => b.health !== 'HEALTHY' && b.state !== 'APPLIED',
+        (b) => b.health !== 'HEALTHY' && b.state !== 'APPLIED'
       );
     }
 
@@ -203,16 +221,21 @@ export class WorkQueueService {
   private async deriveIssueBundles(
     projectId: string,
     userId: string,
-    project: { lastDeoComputedAt: Date | null; lastCrawledAt: Date | null; createdAt: Date },
+    project: {
+      lastDeoComputedAt: Date | null;
+      lastCrawledAt: Date | null;
+      createdAt: Date;
+    }
   ): Promise<WorkQueueActionBundle[]> {
     const bundles: WorkQueueActionBundle[] = [];
 
     try {
       // Use read-only version to avoid side effects
-      const issuesResponse = await this.deoIssuesService.getIssuesForProjectReadOnly(
-        projectId,
-        userId,
-      );
+      const issuesResponse =
+        await this.deoIssuesService.getIssuesForProjectReadOnly(
+          projectId,
+          userId
+        );
 
       // Group issues by recommendedActionKey
       const groupedIssues = this.groupIssuesByAction(issuesResponse.issues);
@@ -231,7 +254,7 @@ export class WorkQueueService {
           projectId,
           actionKey as WorkQueueRecommendedActionKey,
           issues,
-          stableTimestamp,
+          stableTimestamp
         );
 
         bundles.push(...scopeBundles);
@@ -253,7 +276,7 @@ export class WorkQueueService {
     projectId: string,
     actionKey: WorkQueueRecommendedActionKey,
     issues: DeoIssue[],
-    stableTimestamp: string,
+    stableTimestamp: string
   ): WorkQueueActionBundle[] {
     const bundles: WorkQueueActionBundle[] = [];
 
@@ -303,10 +326,16 @@ export class WorkQueueService {
       if (health !== 'HEALTHY') {
         // [COUNT-INTEGRITY-1 PATCH 4.1] Build preview list from issue titles (prefer actionable, fallback to detected)
         // The "+N more" total must match the set being previewed (actionable or detected)
-        const previewIssues = scopeCount > 0 ? productActionableIssues : productDetectedIssues;
+        const previewIssues =
+          scopeCount > 0 ? productActionableIssues : productDetectedIssues;
         const previewTotal = scopeCount > 0 ? scopeCount : scopeDetectedCount;
-        const issueTitles = previewIssues.slice(0, 5).map((issue) => issue.title);
-        const scopePreviewList = this.buildScopePreviewList(issueTitles, previewTotal);
+        const issueTitles = previewIssues
+          .slice(0, 5)
+          .map((issue) => issue.title);
+        const scopePreviewList = this.buildScopePreviewList(
+          issueTitles,
+          previewTotal
+        );
 
         bundles.push({
           bundleId: `ASSET_OPTIMIZATION:${actionKey}:PRODUCTS:${projectId}`,
@@ -337,10 +366,16 @@ export class WorkQueueService {
       if (health !== 'HEALTHY') {
         // [COUNT-INTEGRITY-1 PATCH 4.1] Build preview list from issue titles (prefer actionable, fallback to detected)
         // The "+N more" total must match the set being previewed (actionable or detected)
-        const previewIssues = scopeCount > 0 ? pageActionableIssues : pageDetectedIssues;
+        const previewIssues =
+          scopeCount > 0 ? pageActionableIssues : pageDetectedIssues;
         const previewTotal = scopeCount > 0 ? scopeCount : scopeDetectedCount;
-        const issueTitles = previewIssues.slice(0, 5).map((issue) => issue.title);
-        const scopePreviewList = this.buildScopePreviewList(issueTitles, previewTotal);
+        const issueTitles = previewIssues
+          .slice(0, 5)
+          .map((issue) => issue.title);
+        const scopePreviewList = this.buildScopePreviewList(
+          issueTitles,
+          previewTotal
+        );
 
         bundles.push({
           bundleId: `ASSET_OPTIMIZATION:${actionKey}:PAGES:${projectId}`,
@@ -371,10 +406,18 @@ export class WorkQueueService {
       if (health !== 'HEALTHY') {
         // [COUNT-INTEGRITY-1 PATCH 4.1] Build preview list from issue titles (prefer actionable, fallback to detected)
         // The "+N more" total must match the set being previewed (actionable or detected)
-        const previewIssues = scopeCount > 0 ? collectionActionableIssues : collectionDetectedIssues;
+        const previewIssues =
+          scopeCount > 0
+            ? collectionActionableIssues
+            : collectionDetectedIssues;
         const previewTotal = scopeCount > 0 ? scopeCount : scopeDetectedCount;
-        const issueTitles = previewIssues.slice(0, 5).map((issue) => issue.title);
-        const scopePreviewList = this.buildScopePreviewList(issueTitles, previewTotal);
+        const issueTitles = previewIssues
+          .slice(0, 5)
+          .map((issue) => issue.title);
+        const scopePreviewList = this.buildScopePreviewList(
+          issueTitles,
+          previewTotal
+        );
 
         bundles.push({
           bundleId: `ASSET_OPTIMIZATION:${actionKey}:COLLECTIONS:${projectId}`,
@@ -401,15 +444,22 @@ export class WorkQueueService {
       const health = this.deriveHealthFromSeverity(issues);
       if (health !== 'HEALTHY') {
         // Count detected and actionable issue groups (same semantics as other scopes)
-        const actionableIssues = issues.filter((issue) => issue.isActionableNow === true);
+        const actionableIssues = issues.filter(
+          (issue) => issue.isActionableNow === true
+        );
         const scopeDetectedCount = issues.length;
         const scopeCount = actionableIssues.length;
 
         // Build preview list from issue titles (prefer actionable, fallback to detected)
         const previewIssues = scopeCount > 0 ? actionableIssues : issues;
         const previewTotal = scopeCount > 0 ? scopeCount : scopeDetectedCount;
-        const issueTitles = previewIssues.slice(0, 5).map((issue) => issue.title);
-        const scopePreviewList = this.buildScopePreviewList(issueTitles, previewTotal);
+        const issueTitles = previewIssues
+          .slice(0, 5)
+          .map((issue) => issue.title);
+        const scopePreviewList = this.buildScopePreviewList(
+          issueTitles,
+          previewTotal
+        );
 
         bundles.push({
           bundleId: `ASSET_OPTIMIZATION:${actionKey}:STORE_WIDE:${projectId}`,
@@ -438,7 +488,10 @@ export class WorkQueueService {
    * [ASSETS-PAGES-1] Build scope preview list with "+N more" suffix.
    * [COUNT-INTEGRITY-1 PATCH 4.1.3b] Clamp to top 5 displayed items and compute suffix from visible count.
    */
-  private buildScopePreviewList(previews: string[], totalCount: number): string[] {
+  private buildScopePreviewList(
+    previews: string[],
+    totalCount: number
+  ): string[] {
     const visiblePreviews = previews.slice(0, 5);
     const visibleCount = visiblePreviews.length;
     if (totalCount <= visibleCount) {
@@ -458,10 +511,13 @@ export class WorkQueueService {
   private async deriveAutomationBundles(
     projectId: string,
     userId: string,
-    project: { createdAt: Date },
+    project: { createdAt: Date }
   ): Promise<WorkQueueActionBundle[]> {
     const bundles: WorkQueueActionBundle[] = [];
-    const playbookIds: AutomationPlaybookId[] = ['missing_seo_title', 'missing_seo_description'];
+    const playbookIds: AutomationPlaybookId[] = [
+      'missing_seo_title',
+      'missing_seo_description',
+    ];
 
     // [ASSETS-PAGES-1.1] Asset types to derive bundles for
     type AssetTypeConfig = {
@@ -473,24 +529,30 @@ export class WorkQueueService {
     const assetConfigs: AssetTypeConfig[] = [
       { assetType: 'PRODUCTS', scopeType: 'PRODUCTS', labelPrefix: 'product' },
       { assetType: 'PAGES', scopeType: 'PAGES', labelPrefix: 'page' },
-      { assetType: 'COLLECTIONS', scopeType: 'COLLECTIONS', labelPrefix: 'collection' },
+      {
+        assetType: 'COLLECTIONS',
+        scopeType: 'COLLECTIONS',
+        labelPrefix: 'collection',
+      },
     ];
 
     // Check if approval is required for this project
-    const approvalRequired = await this.governanceService.isApprovalRequired(projectId);
+    const approvalRequired =
+      await this.governanceService.isApprovalRequired(projectId);
 
     for (const assetConfig of assetConfigs) {
       for (const playbookId of playbookIds) {
         try {
           // Get estimate to check if playbook has affected items
-          const estimate = await this.automationPlaybooksService.estimatePlaybook(
-            userId,
-            projectId,
-            playbookId,
-            null, // scopeProductIds
-            assetConfig.assetType,
-            null, // scopeAssetRefs
-          );
+          const estimate =
+            await this.automationPlaybooksService.estimatePlaybook(
+              userId,
+              projectId,
+              playbookId,
+              null, // scopeProductIds
+              assetConfig.assetType,
+              null // scopeAssetRefs
+            );
 
           // Get latest draft for this playbook (currently only for PRODUCTS)
           // TODO: Extend getLatestDraft for asset-scoped drafts
@@ -499,7 +561,7 @@ export class WorkQueueService {
             latestDraft = await this.automationPlaybooksService.getLatestDraft(
               userId,
               projectId,
-              playbookId,
+              playbookId
             );
           }
 
@@ -511,12 +573,14 @@ export class WorkQueueService {
           // so Applied Recently bundles can still surface even when eligibility is now 0.
 
           // Get draft timestamps directly from database if draft exists
-          let draftTimestamps: { createdAt: Date; updatedAt: Date } | null = null;
+          let draftTimestamps: { createdAt: Date; updatedAt: Date } | null =
+            null;
           if (latestDraft) {
-            draftTimestamps = await this.prisma.automationPlaybookDraft.findUnique({
-              where: { id: latestDraft.draftId },
-              select: { createdAt: true, updatedAt: true },
-            });
+            draftTimestamps =
+              await this.prisma.automationPlaybookDraft.findUnique({
+                where: { id: latestDraft.draftId },
+                select: { createdAt: true, updatedAt: true },
+              });
           }
 
           // Derive state from draft status
@@ -549,7 +613,11 @@ export class WorkQueueService {
               draftCount = latestDraft.counts.draftGenerated;
               draftCoverage =
                 latestDraft.counts.affectedTotal > 0
-                  ? Math.round((latestDraft.counts.draftGenerated / latestDraft.counts.affectedTotal) * 100)
+                  ? Math.round(
+                      (latestDraft.counts.draftGenerated /
+                        latestDraft.counts.affectedTotal) *
+                        100
+                    )
                   : 0;
             }
           }
@@ -593,7 +661,7 @@ export class WorkQueueService {
             const approval = await this.approvalsService.hasValidApproval(
               projectId,
               'AUTOMATION_PLAYBOOK_APPLY' as ApprovalResourceType,
-              resourceId,
+              resourceId
             );
 
             if (approval.status === 'PENDING_APPROVAL') {
@@ -601,15 +669,16 @@ export class WorkQueueService {
               approvalStatus = 'PENDING';
 
               // Get approval details
-              const approvalRequest = await this.prisma.approvalRequest.findFirst({
-                where: {
-                  projectId,
-                  resourceType: 'AUTOMATION_PLAYBOOK_APPLY',
-                  resourceId,
-                  status: 'PENDING_APPROVAL',
-                },
-                select: { requestedByUserId: true, requestedAt: true },
-              });
+              const approvalRequest =
+                await this.prisma.approvalRequest.findFirst({
+                  where: {
+                    projectId,
+                    resourceType: 'AUTOMATION_PLAYBOOK_APPLY',
+                    resourceId,
+                    status: 'PENDING_APPROVAL',
+                  },
+                  select: { requestedByUserId: true, requestedAt: true },
+                });
               if (approvalRequest) {
                 requestedBy = approvalRequest.requestedByUserId;
                 requestedAt = approvalRequest.requestedAt.toISOString();
@@ -619,15 +688,16 @@ export class WorkQueueService {
               approvalStatus = 'APPROVED';
 
               // Get approval details
-              const approvalRequest = await this.prisma.approvalRequest.findFirst({
-                where: { id: approval.approvalId },
-                select: {
-                  requestedByUserId: true,
-                  requestedAt: true,
-                  decidedByUserId: true,
-                  decidedAt: true,
-                },
-              });
+              const approvalRequest =
+                await this.prisma.approvalRequest.findFirst({
+                  where: { id: approval.approvalId },
+                  select: {
+                    requestedByUserId: true,
+                    requestedAt: true,
+                    decidedByUserId: true,
+                    decidedAt: true,
+                  },
+                });
               if (approvalRequest) {
                 requestedBy = approvalRequest.requestedByUserId;
                 requestedAt = approvalRequest.requestedAt.toISOString();
@@ -668,7 +738,8 @@ export class WorkQueueService {
                 : affectedProducts.map((p) => p.title);
           } else {
             // For PAGES/COLLECTIONS, derive from CrawlResult URLs
-            const urlPrefix = assetConfig.assetType === 'PAGES' ? '/pages/' : '/collections/';
+            const urlPrefix =
+              assetConfig.assetType === 'PAGES' ? '/pages/' : '/collections/';
             const affectedAssets = await this.prisma.crawlResult.findMany({
               where: {
                 projectId,
@@ -688,7 +759,10 @@ export class WorkQueueService {
             });
             scopePreviewList =
               names.length > 5
-                ? [...names.slice(0, 5), `+${estimate.totalAffectedProducts - 5} more`]
+                ? [
+                    ...names.slice(0, 5),
+                    `+${estimate.totalAffectedProducts - 5} more`,
+                  ]
                 : names;
           }
 
@@ -696,8 +770,11 @@ export class WorkQueueService {
           const createdAt = draftTimestamps
             ? draftTimestamps.createdAt.toISOString()
             : project.createdAt.toISOString();
-          const updatedAt = appliedDraft?.appliedAt?.toISOString() ||
-            (draftTimestamps ? draftTimestamps.updatedAt.toISOString() : project.createdAt.toISOString());
+          const updatedAt =
+            appliedDraft?.appliedAt?.toISOString() ||
+            (draftTimestamps
+              ? draftTimestamps.updatedAt.toISOString()
+              : project.createdAt.toISOString());
 
           // [ASSETS-PAGES-1.1] Bundle ID includes assetType for uniqueness
           const bundleId = `AUTOMATION_RUN:FIX_MISSING_METADATA:${playbookId}:${assetConfig.assetType}:${projectId}`;
@@ -711,12 +788,16 @@ export class WorkQueueService {
             scopeCount: estimate.totalAffectedProducts,
             scopePreviewList,
             scopeQueryRef: latestDraft?.scopeId,
-            health: estimate.totalAffectedProducts > 10 ? 'CRITICAL' : 'NEEDS_ATTENTION',
+            health:
+              estimate.totalAffectedProducts > 10
+                ? 'CRITICAL'
+                : 'NEEDS_ATTENTION',
             impactRank: WORK_QUEUE_IMPACT_RANKS.FIX_MISSING_METADATA,
             recommendedActionKey: 'FIX_MISSING_METADATA',
-            recommendedActionLabel: playbookId === 'missing_seo_title'
-              ? `Fix missing ${assetConfig.labelPrefix} SEO titles`
-              : `Fix missing ${assetConfig.labelPrefix} SEO descriptions`,
+            recommendedActionLabel:
+              playbookId === 'missing_seo_title'
+                ? `Fix missing ${assetConfig.labelPrefix} SEO titles`
+                : `Fix missing ${assetConfig.labelPrefix} SEO descriptions`,
             aiUsage: 'DRAFTS_ONLY',
             aiDisclosureText: WORK_QUEUE_AI_DISCLOSURE_TEXT.DRAFTS_ONLY,
             state,
@@ -741,7 +822,10 @@ export class WorkQueueService {
           bundles.push(bundle);
         } catch (error) {
           // Log but don't fail the entire request
-          console.error(`[WorkQueue] Failed to derive automation bundle for ${playbookId}:${assetConfig.assetType}:`, error);
+          console.error(
+            `[WorkQueue] Failed to derive automation bundle for ${playbookId}:${assetConfig.assetType}:`,
+            error
+          );
         }
       }
     }
@@ -755,10 +839,13 @@ export class WorkQueueService {
   private async deriveGeoExportBundle(
     projectId: string,
     userId: string,
-    project: { createdAt: Date },
+    project: { createdAt: Date }
   ): Promise<WorkQueueActionBundle | null> {
     try {
-      const shareLinks = await this.geoReportsService.listShareLinks(projectId, userId);
+      const shareLinks = await this.geoReportsService.listShareLinks(
+        projectId,
+        userId
+      );
 
       // Derive share link status
       let shareLinkStatus: WorkQueueShareLinkStatus = 'NONE';
@@ -852,22 +939,31 @@ export class WorkQueueService {
   /**
    * Filter bundles by tab.
    */
-  private filterByTab(bundles: WorkQueueActionBundle[], tab: WorkQueueTab): WorkQueueActionBundle[] {
+  private filterByTab(
+    bundles: WorkQueueActionBundle[],
+    tab: WorkQueueTab
+  ): WorkQueueActionBundle[] {
     switch (tab) {
       case 'Critical':
-        return bundles.filter((b) => b.health === 'CRITICAL' && b.state !== 'APPLIED');
+        return bundles.filter(
+          (b) => b.health === 'CRITICAL' && b.state !== 'APPLIED'
+        );
       case 'NeedsAttention':
-        return bundles.filter((b) => b.health === 'NEEDS_ATTENTION' && b.state !== 'APPLIED');
+        return bundles.filter(
+          (b) => b.health === 'NEEDS_ATTENTION' && b.state !== 'APPLIED'
+        );
       case 'PendingApproval':
         return bundles.filter((b) => b.state === 'PENDING_APPROVAL');
       case 'DraftsReady':
         return bundles.filter(
-          (b) => b.state === 'DRAFTS_READY' || b.state === 'APPROVED',
+          (b) => b.state === 'DRAFTS_READY' || b.state === 'APPROVED'
         );
       case 'AppliedRecently':
         return bundles.filter((b) => b.state === 'APPLIED');
       default:
-        return bundles.filter((b) => b.health !== 'HEALTHY' && b.state !== 'APPLIED');
+        return bundles.filter(
+          (b) => b.health !== 'HEALTHY' && b.state !== 'APPLIED'
+        );
     }
   }
 
@@ -881,7 +977,9 @@ export class WorkQueueService {
    * 4. updatedAt (most recent first)
    * 5. bundleId (stable tie-breaker)
    */
-  private sortBundles(bundles: WorkQueueActionBundle[]): WorkQueueActionBundle[] {
+  private sortBundles(
+    bundles: WorkQueueActionBundle[]
+  ): WorkQueueActionBundle[] {
     return [...bundles].sort((a, b) => {
       // 1. State priority
       const statePriorityA = WORK_QUEUE_STATE_PRIORITY[a.state];

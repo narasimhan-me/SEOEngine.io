@@ -35,7 +35,12 @@ function CollapsibleExplainer({
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
       {isOpen && (
@@ -111,16 +116,18 @@ export function ProductGeoPanel({ productId }: ProductGeoPanelProps) {
         if (err instanceof ApiError && err.code === 'AI_DAILY_LIMIT_REACHED') {
           feedback.showLimit(
             'Daily AI limit reached. Your limit resets tomorrow, or upgrade to continue.',
-            '/settings/billing',
+            '/settings/billing'
           );
         } else {
-          feedback.showError(err instanceof Error ? err.message : 'Failed to preview fix');
+          feedback.showError(
+            err instanceof Error ? err.message : 'Failed to preview fix'
+          );
         }
       } finally {
         setPreviewLoading(null);
       }
     },
-    [productId, feedback],
+    [productId, feedback]
   );
 
   const handleApply = useCallback(
@@ -137,12 +144,14 @@ export function ProductGeoPanel({ productId }: ProductGeoPanelProps) {
         await fetchGeoReadiness();
       } catch (err) {
         console.error('Error applying GEO fix:', err);
-        feedback.showError(err instanceof Error ? err.message : 'Failed to apply fix');
+        feedback.showError(
+          err instanceof Error ? err.message : 'Failed to apply fix'
+        );
       } finally {
         setApplyLoading(null);
       }
     },
-    [productId, feedback, fetchGeoReadiness],
+    [productId, feedback, fetchGeoReadiness]
   );
 
   if (loading) {
@@ -180,7 +189,8 @@ export function ProductGeoPanel({ productId }: ProductGeoPanelProps) {
 
   const { evaluation, openDrafts } = data;
   const confidenceLevel = evaluation?.citationConfidence?.level ?? 'low';
-  const confidenceReason = evaluation?.citationConfidence?.reason ?? 'No evaluation data available';
+  const confidenceReason =
+    evaluation?.citationConfidence?.reason ?? 'No evaluation data available';
 
   return (
     <div className="space-y-6">
@@ -188,16 +198,19 @@ export function ProductGeoPanel({ productId }: ProductGeoPanelProps) {
       <div className="space-y-2">
         <CollapsibleExplainer title="What is GEO?">
           <p>
-            Generative Engine Optimization measures how well your content can be understood,
-            cited, and reused by AI answer engines.
+            Generative Engine Optimization measures how well your content can be
+            understood, cited, and reused by AI answer engines.
           </p>
         </CollapsibleExplainer>
         <CollapsibleExplainer title="What is Citation Confidence?">
           <p className="mb-2">
-            Citation Confidence indicates how likely AI engines are to cite your content as a trustworthy source.
-            This is an estimate, not a guarantee.
+            Citation Confidence indicates how likely AI engines are to cite your
+            content as a trustworthy source. This is an estimate, not a
+            guarantee.
           </p>
-          <p className="font-medium mb-1">Ways to improve Citation Confidence:</p>
+          <p className="font-medium mb-1">
+            Ways to improve Citation Confidence:
+          </p>
           <ul className="list-disc list-inside space-y-0.5">
             <li>Provide clear, factual answers to common questions</li>
             <li>Use structured data and semantic markup</li>
@@ -212,7 +225,9 @@ export function ProductGeoPanel({ productId }: ProductGeoPanelProps) {
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-medium text-gray-700">Citation Confidence</h3>
+            <h3 className="text-sm font-medium text-gray-700">
+              Citation Confidence
+            </h3>
             <p className="mt-1 text-xs text-gray-500">{confidenceReason}</p>
           </div>
           <span
@@ -226,10 +241,15 @@ export function ProductGeoPanel({ productId }: ProductGeoPanelProps) {
       {/* Readiness Signals */}
       {evaluation?.answerUnits && evaluation.answerUnits.length > 0 && (
         <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <h3 className="mb-3 text-sm font-medium text-gray-700">Readiness Signals</h3>
+          <h3 className="mb-3 text-sm font-medium text-gray-700">
+            Readiness Signals
+          </h3>
           <div className="space-y-4">
             {evaluation.answerUnits.map((unit) => (
-              <div key={unit.unitId} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+              <div
+                key={unit.unitId}
+                className="border-b border-gray-100 pb-4 last:border-0 last:pb-0"
+              >
                 <div className="mb-2 text-sm font-medium text-gray-800">
                   {getQuestionLabel(unit.questionId)}
                 </div>
@@ -292,27 +312,36 @@ export function ProductGeoPanel({ productId }: ProductGeoPanelProps) {
       )}
 
       {/* No Issues State */}
-      {evaluation?.issues?.length === 0 && evaluation?.answerUnits?.length > 0 && (
-        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-          <p className="text-sm text-green-700">
-            All readiness signals pass. This product has high citation confidence.
-          </p>
-        </div>
-      )}
+      {evaluation?.issues?.length === 0 &&
+        evaluation?.answerUnits?.length > 0 && (
+          <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+            <p className="text-sm text-green-700">
+              All readiness signals pass. This product has high citation
+              confidence.
+            </p>
+          </div>
+        )}
 
       {/* Preview Modal/Drawer */}
       {selectedDraft && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="mx-4 max-h-[80vh] w-full max-w-lg overflow-auto rounded-lg bg-white p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Preview Fix</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Preview Fix
+              </h3>
               <button
                 type="button"
                 onClick={() => setSelectedDraft(null)}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <span className="sr-only">Close</span>
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -336,7 +365,9 @@ export function ProductGeoPanel({ productId }: ProductGeoPanelProps) {
 
             {selectedDraft.draftPayload.improvedAnswer && (
               <div className="mb-4">
-                <p className="mb-1 text-sm font-medium text-gray-700">Improved Answer:</p>
+                <p className="mb-1 text-sm font-medium text-gray-700">
+                  Improved Answer:
+                </p>
                 <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800 whitespace-pre-wrap">
                   {selectedDraft.draftPayload.improvedAnswer}
                 </div>
@@ -345,7 +376,9 @@ export function ProductGeoPanel({ productId }: ProductGeoPanelProps) {
 
             {selectedDraft.draftPayload.suggestedStructure && (
               <div className="mb-4">
-                <p className="mb-1 text-sm font-medium text-gray-700">Suggested Structure:</p>
+                <p className="mb-1 text-sm font-medium text-gray-700">
+                  Suggested Structure:
+                </p>
                 <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800 whitespace-pre-wrap">
                   {selectedDraft.draftPayload.suggestedStructure}
                 </div>
@@ -372,7 +405,9 @@ export function ProductGeoPanel({ productId }: ProductGeoPanelProps) {
                   disabled={applyLoading !== null}
                   className="rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
                 >
-                  {applyLoading === selectedDraft.id ? 'Applying...' : 'Apply Fix'}
+                  {applyLoading === selectedDraft.id
+                    ? 'Applying...'
+                    : 'Apply Fix'}
                 </button>
               </div>
             </div>
@@ -383,7 +418,9 @@ export function ProductGeoPanel({ productId }: ProductGeoPanelProps) {
       {/* Open Drafts (if any) */}
       {openDrafts && openDrafts.length > 0 && !selectedDraft && (
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <h3 className="mb-2 text-sm font-medium text-blue-800">Pending Drafts</h3>
+          <h3 className="mb-2 text-sm font-medium text-blue-800">
+            Pending Drafts
+          </h3>
           <p className="mb-3 text-xs text-blue-700">
             You have {openDrafts.length} cached draft(s) ready to apply.
           </p>
@@ -391,7 +428,8 @@ export function ProductGeoPanel({ productId }: ProductGeoPanelProps) {
             {openDrafts.map((draft) => (
               <div key={draft.id} className="flex items-center justify-between">
                 <span className="text-sm text-blue-700">
-                  {getQuestionLabel(draft.questionId)} – {draft.issueType.replace(/_/g, ' ')}
+                  {getQuestionLabel(draft.questionId)} –{' '}
+                  {draft.issueType.replace(/_/g, ' ')}
                 </span>
                 <button
                   type="button"
@@ -415,7 +453,9 @@ function SignalBadge({ signal }: { signal: GeoReadinessSignal }) {
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${
-        isPassing ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+        isPassing
+          ? 'bg-green-100 text-green-700'
+          : 'bg-yellow-100 text-yellow-700'
       }`}
       title={signal.why}
     >

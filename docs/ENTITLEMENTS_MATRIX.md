@@ -104,56 +104,56 @@ Each plan defines limits and access across:
 
 ### 4.1 Core Resource Limits (v1 Implementation)
 
-| Feature | Free | Pro | Business |
-|---------|------|-----|----------|
-| Projects | 1 | 5 | Unlimited |
-| Crawled Pages | 50 | 500 | Unlimited |
-| Automation Suggestions/Day | 5 | 25 | Unlimited |
-| API Access | ❌ | ❌ | ✔ |
+| Feature                    | Free | Pro | Business  |
+| -------------------------- | ---- | --- | --------- |
+| Projects                   | 1    | 5   | Unlimited |
+| Crawled Pages              | 50   | 500 | Unlimited |
+| Automation Suggestions/Day | 5    | 25  | Unlimited |
+| API Access                 | ❌   | ❌  | ✔         |
 
 **Note:** The above reflects the current `apps/api/src/billing/plans.ts` implementation.
 
 ### 4.1.1 Legacy Tiers (Planned for Future)
 
-| Feature | Starter | Pro | Agency |
-|---------|---------|-----|--------|
-| DEO Projects per workspace | 3 | 10 | Unlimited |
-| Max Products/Pages | 500 | 5,000 | Unlimited |
-| AI Tokens / Month | 200k | 2M | 10M+ |
-| API Access | ❌ | ❌ | ✔ (in future) |
+| Feature                    | Starter | Pro   | Agency        |
+| -------------------------- | ------- | ----- | ------------- |
+| DEO Projects per workspace | 3       | 10    | Unlimited     |
+| Max Products/Pages         | 500     | 5,000 | Unlimited     |
+| AI Tokens / Month          | 200k    | 2M    | 10M+          |
+| API Access                 | ❌      | ❌    | ✔ (in future) |
 
 ### 4.2 DEO Features
 
-| DEO Feature | Starter | Pro | Agency |
-|-------------|--------|-----|--------|
-| DEO Audit | ✔ Basic | ✔ Full | ✔ Full |
-| DEO Score | ✔ | ✔ | ✔ |
-| Entity Intelligence | ❌ | ✔ Basic | ✔ Full |
-| Schema Generation | ✔ Basic | ✔ Advanced | ✔ Full |
-| Answer-Ready Content | ❌ | ✔ | ✔ |
-| Multi-Engine Visibility | ❌ | ✔ Basic | ✔ Full |
+| DEO Feature             | Starter | Pro        | Agency |
+| ----------------------- | ------- | ---------- | ------ |
+| DEO Audit               | ✔ Basic | ✔ Full     | ✔ Full |
+| DEO Score               | ✔       | ✔          | ✔      |
+| Entity Intelligence     | ❌      | ✔ Basic    | ✔ Full |
+| Schema Generation       | ✔ Basic | ✔ Advanced | ✔ Full |
+| Answer-Ready Content    | ❌      | ✔          | ✔      |
+| Multi-Engine Visibility | ❌      | ✔ Basic    | ✔ Full |
 
 ### 4.3 AI Content & Optimization
 
-| Feature | Starter | Pro | Agency |
-|---------|--------|-----|--------|
-| Metadata Generation | ✔ Basic | ✔ Advanced | ✔ Advanced |
-| Bulk Metadata Ops | ❌ | ✔ | ✔ |
-| FAQ / Q&A Generation | ❌ | ✔ | ✔ |
-| Product Optimization | ✔ | ✔ | ✔ |
-| Content Optimization | Limited | ✔ | ✔ |
-| Image Alt Generation | ✔ | ✔ | ✔ |
-| Auto Title/Description Fixer | ✔ | ✔ Advanced | ✔ Advanced |
+| Feature                      | Starter | Pro        | Agency     |
+| ---------------------------- | ------- | ---------- | ---------- |
+| Metadata Generation          | ✔ Basic | ✔ Advanced | ✔ Advanced |
+| Bulk Metadata Ops            | ❌      | ✔          | ✔          |
+| FAQ / Q&A Generation         | ❌      | ✔          | ✔          |
+| Product Optimization         | ✔       | ✔          | ✔          |
+| Content Optimization         | Limited | ✔          | ✔          |
+| Image Alt Generation         | ✔       | ✔          | ✔          |
+| Auto Title/Description Fixer | ✔       | ✔ Advanced | ✔ Advanced |
 
 ### 4.4 Automations
 
-| Automation Tier | Starter | Pro | Agency |
-|-----------------|--------|-----|--------|
-| Basic Automations | ✔ | ✔ | ✔ |
-| Advanced Automations | ❌ | ✔ | ✔ |
-| DEO Improvement Playbooks | ❌ | ✔ | ✔ |
-| Automation Frequency | Monthly | Weekly | Daily (future) |
-| Scheduled Automations | ❌ | ✔ | ✔ |
+| Automation Tier           | Starter | Pro    | Agency         |
+| ------------------------- | ------- | ------ | -------------- |
+| Basic Automations         | ✔       | ✔      | ✔              |
+| Advanced Automations      | ❌      | ✔      | ✔              |
+| DEO Improvement Playbooks | ❌      | ✔      | ✔              |
+| Automation Frequency      | Monthly | Weekly | Daily (future) |
+| Scheduled Automations     | ❌      | ✔      | ✔              |
 
 #### Automation Engine Classification
 
@@ -164,10 +164,10 @@ The Automation Engine (see `docs/AUTOMATION_ENGINE_SPEC.md`) classifies automati
 
 #### Automation Engine Expectations by Tier
 
-| Plan | Automation Engine Capabilities |
-|------|-------------------------------|
-| **Free** | Reactive metadata-only automations for a limited number of items per day (aligned with `Automation Suggestions/Day` limits). No scheduled or background automations. Automation Activity Log is view-only (future UI). |
-| **Pro** | Reactive + scheduled automations for products (and later pages). Daily automation execution caps aligned with `Automation Suggestions/Day` plus future Automation Engine limits. Shopify metadata auto-sync for selected rules. |
+| Plan         | Automation Engine Capabilities                                                                                                                                                                                                                                     |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Free**     | Reactive metadata-only automations for a limited number of items per day (aligned with `Automation Suggestions/Day` limits). No scheduled or background automations. Automation Activity Log is view-only (future UI).                                             |
+| **Pro**      | Reactive + scheduled automations for products (and later pages). Daily automation execution caps aligned with `Automation Suggestions/Day` plus future Automation Engine limits. Shopify metadata auto-sync for selected rules.                                    |
 | **Business** | Full Automation Engine capabilities: reactive, scheduled, and background automations across products, pages, answers, and entities. Higher or unlimited daily automation executions (subject to safety). Access to entity and answer automations once implemented. |
 
 #### Entitlement Enforcement
@@ -178,41 +178,41 @@ The Automation Engine (see `docs/AUTOMATION_ENGINE_SPEC.md`) classifies automati
 
 ### 4.5 Integrations
 
-| Integration | Starter | Pro | Agency |
-|-------------|---------|-----|--------|
-| Shopify | ✔ | ✔ | ✔ |
-| Custom Website (crawler) | ✔ | ✔ | ✔ |
-| WooCommerce (future) | ❌ | ✔ | ✔ |
-| BigCommerce (future) | ❌ | ✔ | ✔ |
-| CMS (future) | ❌ | ✔ | ✔ |
-| Multi-Store | ❌ | ❌ | ✔ |
+| Integration              | Starter | Pro | Agency |
+| ------------------------ | ------- | --- | ------ |
+| Shopify                  | ✔       | ✔   | ✔      |
+| Custom Website (crawler) | ✔       | ✔   | ✔      |
+| WooCommerce (future)     | ❌      | ✔   | ✔      |
+| BigCommerce (future)     | ❌      | ✔   | ✔      |
+| CMS (future)             | ❌      | ✔   | ✔      |
+| Multi-Store              | ❌      | ❌  | ✔      |
 
 ### 4.6 Team Features
 
-| Feature | Starter | Pro | Agency |
-|---------|---------|-----|--------|
-| Team Members | ❌ | ❌ | ✔ |
-| Roles & Permissions | ❌ | ❌ | ✔ |
-| Shared Projects | ❌ | ✔ Limited | ✔ Full |
-| Client Access Links | ❌ | ❌ | ✔ (future) |
+| Feature             | Starter | Pro       | Agency     |
+| ------------------- | ------- | --------- | ---------- |
+| Team Members        | ❌      | ❌        | ✔          |
+| Roles & Permissions | ❌      | ❌        | ✔          |
+| Shared Projects     | ❌      | ✔ Limited | ✔ Full     |
+| Client Access Links | ❌      | ❌        | ✔ (future) |
 
 ### 4.7 Reporting
 
-| Reporting Feature | Starter | Pro | Agency |
-|-------------------|---------|-----|--------|
-| Basic Reports | ✔ | ✔ | ✔ |
-| Advanced DEO Visibility | ❌ | ✔ | ✔ |
-| Competitor Insights | ❌ | ✔ | ✔ |
-| Weekly Summary Emails | ❌ | ✔ | ✔ |
-| White-Label Reports | ❌ | ❌ | ✔ |
+| Reporting Feature       | Starter | Pro | Agency |
+| ----------------------- | ------- | --- | ------ |
+| Basic Reports           | ✔       | ✔   | ✔      |
+| Advanced DEO Visibility | ❌      | ✔   | ✔      |
+| Competitor Insights     | ❌      | ✔   | ✔      |
+| Weekly Summary Emails   | ❌      | ✔   | ✔      |
+| White-Label Reports     | ❌      | ❌  | ✔      |
 
 ### 4.8 Support
 
-| Support | Starter | Pro | Agency |
-|---------|---------|-----|--------|
-| Standard Support | ✔ | ✔ | ✔ |
-| Priority Support | ❌ | ✔ | ✔ |
-| Dedicated DEO Strategist | ❌ | ❌ | Future Add-on |
+| Support                  | Starter | Pro | Agency        |
+| ------------------------ | ------- | --- | ------------- |
+| Standard Support         | ✔       | ✔   | ✔             |
+| Priority Support         | ❌      | ✔   | ✔             |
+| Dedicated DEO Strategist | ❌      | ❌  | Future Add-on |
 
 ### 4.9 DEO-Specific Entitlements
 
@@ -238,20 +238,20 @@ Each plan's entitlement definition (in code and config) should specify:
 
 Stripe Price IDs are configured via environment variables:
 
-| Environment Variable | Internal Plan |
-|---------------------|---------------|
-| `STRIPE_PRICE_PRO` | `pro` |
-| `STRIPE_PRICE_BUSINESS` | `business` |
+| Environment Variable    | Internal Plan |
+| ----------------------- | ------------- |
+| `STRIPE_PRICE_PRO`      | `pro`         |
+| `STRIPE_PRICE_BUSINESS` | `business`    |
 
 The `free` plan has no Stripe mapping (no payment required).
 
 ### Legacy/Future tiers:
 
-| Stripe Price ID | Plan |
-|-----------------|------|
-| `starter_monthly` | `starter` |
-| `pro_monthly` | `pro` |
-| `agency_monthly` | `agency` |
+| Stripe Price ID     | Plan         |
+| ------------------- | ------------ |
+| `starter_monthly`   | `starter`    |
+| `pro_monthly`       | `pro`        |
+| `agency_monthly`    | `agency`     |
 | `enterprise_annual` | `enterprise` |
 
 ---
@@ -307,9 +307,11 @@ Expose entitlements via `/users/me`:
 Use React gating:
 
 ```tsx
-{!entitlements.entityIntelligence && (
-  <UpgradeBanner message="Unlock Entity Intelligence on the Pro plan." />
-)}
+{
+  !entitlements.entityIntelligence && (
+    <UpgradeBanner message="Unlock Entity Intelligence on the Pro plan." />
+  );
+}
 ```
 
 ---

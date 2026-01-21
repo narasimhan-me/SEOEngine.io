@@ -1,10 +1,31 @@
-import { Controller, Get, Put, Post, Body, Param, Query, Request, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Put,
+  Post,
+  Body,
+  Param,
+  Query,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { GovernanceService, UpdateGovernancePolicyDto } from './governance.service';
-import { ApprovalsService, CreateApprovalRequestDto, ApproveRejectDto } from './approvals.service';
+import {
+  GovernanceService,
+  UpdateGovernancePolicyDto,
+} from './governance.service';
+import {
+  ApprovalsService,
+  CreateApprovalRequestDto,
+  ApproveRejectDto,
+} from './approvals.service';
 import { AuditEventsService } from './audit-events.service';
 import { GovernanceViewerService } from './governance-viewer.service';
-import { ApprovalResourceType, ApprovalStatus, GovernanceAuditEventType } from '@prisma/client';
+import {
+  ApprovalResourceType,
+  ApprovalStatus,
+  GovernanceAuditEventType,
+} from '@prisma/client';
 import {
   ApprovalStatusFilter,
   AllowedAuditEventType,
@@ -29,7 +50,7 @@ export class GovernanceController {
     private readonly governanceService: GovernanceService,
     private readonly approvalsService: ApprovalsService,
     private readonly auditEventsService: AuditEventsService,
-    private readonly governanceViewerService: GovernanceViewerService,
+    private readonly governanceViewerService: GovernanceViewerService
   ) {}
 
   // ============================================================================
@@ -41,10 +62,7 @@ export class GovernanceController {
    * Returns default values if no policy exists
    */
   @Get('policy')
-  async getPolicy(
-    @Request() req: any,
-    @Param('projectId') projectId: string,
-  ) {
+  async getPolicy(@Request() req: any, @Param('projectId') projectId: string) {
     return this.governanceService.getPolicy(projectId, req.user.id);
   }
 
@@ -56,13 +74,20 @@ export class GovernanceController {
   async updatePolicy(
     @Request() req: any,
     @Param('projectId') projectId: string,
-    @Body() body: UpdateGovernancePolicyDto,
+    @Body() body: UpdateGovernancePolicyDto
   ) {
     // Get current policy for audit diff
-    const oldPolicy = await this.governanceService.getPolicy(projectId, req.user.id);
+    const oldPolicy = await this.governanceService.getPolicy(
+      projectId,
+      req.user.id
+    );
 
     // Update policy
-    const newPolicy = await this.governanceService.updatePolicy(projectId, req.user.id, body);
+    const newPolicy = await this.governanceService.updatePolicy(
+      projectId,
+      req.user.id,
+      body
+    );
 
     // Log audit event with old/new diff
     await this.auditEventsService.logPolicyChanged(
@@ -73,15 +98,17 @@ export class GovernanceController {
         restrictShareLinks: oldPolicy.restrictShareLinks,
         shareLinkExpiryDays: oldPolicy.shareLinkExpiryDays,
         allowedExportAudience: oldPolicy.allowedExportAudience,
-        allowCompetitorMentionsInExports: oldPolicy.allowCompetitorMentionsInExports,
+        allowCompetitorMentionsInExports:
+          oldPolicy.allowCompetitorMentionsInExports,
       },
       {
         requireApprovalForApply: newPolicy.requireApprovalForApply,
         restrictShareLinks: newPolicy.restrictShareLinks,
         shareLinkExpiryDays: newPolicy.shareLinkExpiryDays,
         allowedExportAudience: newPolicy.allowedExportAudience,
-        allowCompetitorMentionsInExports: newPolicy.allowCompetitorMentionsInExports,
-      },
+        allowCompetitorMentionsInExports:
+          newPolicy.allowCompetitorMentionsInExports,
+      }
     );
 
     return newPolicy;
@@ -98,7 +125,7 @@ export class GovernanceController {
   async createApprovalRequest(
     @Request() req: any,
     @Param('projectId') projectId: string,
-    @Body() body: CreateApprovalRequestDto,
+    @Body() body: CreateApprovalRequestDto
   ) {
     return this.approvalsService.createRequest(projectId, req.user.id, body);
   }
@@ -111,9 +138,14 @@ export class GovernanceController {
     @Request() req: any,
     @Param('projectId') projectId: string,
     @Param('approvalId') approvalId: string,
-    @Body() body: ApproveRejectDto,
+    @Body() body: ApproveRejectDto
   ) {
-    return this.approvalsService.approve(projectId, approvalId, req.user.id, body);
+    return this.approvalsService.approve(
+      projectId,
+      approvalId,
+      req.user.id,
+      body
+    );
   }
 
   /**
@@ -124,9 +156,14 @@ export class GovernanceController {
     @Request() req: any,
     @Param('projectId') projectId: string,
     @Param('approvalId') approvalId: string,
-    @Body() body: ApproveRejectDto,
+    @Body() body: ApproveRejectDto
   ) {
-    return this.approvalsService.reject(projectId, approvalId, req.user.id, body);
+    return this.approvalsService.reject(
+      projectId,
+      approvalId,
+      req.user.id,
+      body
+    );
   }
 
   /**
@@ -140,7 +177,7 @@ export class GovernanceController {
     @Query('resourceId') resourceId?: string,
     @Query('status') status?: string,
     @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
+    @Query('pageSize') pageSize?: string
   ) {
     // If resourceType and resourceId are provided, get specific status
     if (resourceType && resourceId) {
@@ -148,7 +185,7 @@ export class GovernanceController {
         projectId,
         req.user.id,
         resourceType as ApprovalResourceType,
-        resourceId,
+        resourceId
       );
       return { approval };
     }
@@ -175,7 +212,7 @@ export class GovernanceController {
     @Param('projectId') projectId: string,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
-    @Query('eventType') eventType?: string,
+    @Query('eventType') eventType?: string
   ) {
     return this.auditEventsService.listEvents(projectId, req.user.id, {
       page: page ? parseInt(page, 10) : undefined,
@@ -203,7 +240,7 @@ export class GovernanceController {
     @Param('projectId') projectId: string,
     @Query('status') status?: string,
     @Query('cursor') cursor?: string,
-    @Query('limit') limit?: string,
+    @Query('limit') limit?: string
   ) {
     return this.governanceViewerService.listApprovals(projectId, req.user.id, {
       status: status as ApprovalStatusFilter | undefined,
@@ -236,7 +273,7 @@ export class GovernanceController {
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('cursor') cursor?: string,
-    @Query('limit') limit?: string,
+    @Query('limit') limit?: string
   ) {
     // Parse types as comma-separated list and filter by allowlist
     let parsedTypes: AllowedAuditEventType[] | undefined;
@@ -247,14 +284,18 @@ export class GovernanceController {
         .filter(isAllowedAuditEventType) as AllowedAuditEventType[];
     }
 
-    return this.governanceViewerService.listAuditEvents(projectId, req.user.id, {
-      types: parsedTypes,
-      actor,
-      from,
-      to,
-      cursor,
-      limit: limit ? parseInt(limit, 10) : undefined,
-    });
+    return this.governanceViewerService.listAuditEvents(
+      projectId,
+      req.user.id,
+      {
+        types: parsedTypes,
+        actor,
+        from,
+        to,
+        cursor,
+        limit: limit ? parseInt(limit, 10) : undefined,
+      }
+    );
   }
 
   /**
@@ -274,7 +315,7 @@ export class GovernanceController {
     @Param('projectId') projectId: string,
     @Query('status') status?: string,
     @Query('cursor') cursor?: string,
-    @Query('limit') limit?: string,
+    @Query('limit') limit?: string
   ) {
     return this.governanceViewerService.listShareLinks(projectId, req.user.id, {
       status: status as ShareLinkStatusFilter | undefined,

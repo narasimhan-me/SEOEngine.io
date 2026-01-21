@@ -3,6 +3,7 @@
 ## ✅ Completed Steps
 
 ### 1. Prisma Migration
+
 - **Status**: ✅ Completed
 - **Migration**: `20251210110744_add_answer_block`
 - **Table Created**: `AnswerBlock`
@@ -18,17 +19,19 @@
   - `version` (TEXT, DEFAULT 'ae_v1')
   - `createdAt` (TIMESTAMP(3))
   - `updatedAt` (TIMESTAMP(3))
-- **Indexes**: 
+- **Indexes**:
   - Index on `productId`
   - Unique constraint on `(productId, questionId)`
 - **Foreign Key**: Cascade delete on product deletion
 
 ### 2. TypeScript Compilation
+
 - **Status**: ✅ Completed
 - **Command**: `npx tsc --noEmit -p apps/api/tsconfig.json`
 - **Result**: No errors
 
 ### 3. API Server
+
 - **Status**: ✅ Running
 - **Port**: 3001
 - **Health Check**: `http://localhost:3001/health` returns `{"status":"ok"}`
@@ -38,7 +41,9 @@
 To complete the testing, you need to manually test the following endpoints. The API server is running and ready for testing.
 
 ### Prerequisites
+
 1. **Get Authentication Token**:
+
    ```bash
    # Sign up
    curl -X POST http://localhost:3001/auth/signup \
@@ -49,7 +54,7 @@ To complete the testing, you need to manually test the following endpoints. The 
        "name": "Test User",
        "captchaToken": "test-token"
      }'
-   
+
    # Login
    curl -X POST http://localhost:3001/auth/login \
      -H "Content-Type: application/json" \
@@ -62,6 +67,7 @@ To complete the testing, you need to manually test the following endpoints. The 
    ```
 
 2. **Create a Project** (if needed):
+
    ```bash
    curl -X POST http://localhost:3001/projects \
      -H "Authorization: Bearer YOUR_TOKEN" \
@@ -80,6 +86,7 @@ To complete the testing, you need to manually test the following endpoints. The 
 ### Test Cases
 
 #### Test 1: GET /products/:id/answer-blocks
+
 **Expected**: Empty array `[]` (no blocks yet)
 
 ```bash
@@ -90,6 +97,7 @@ curl -X GET http://localhost:3001/products/PRODUCT_ID/answer-blocks \
 **Expected Response**: `[]`
 
 #### Test 2: POST /products/:id/answer-blocks
+
 **Expected**: Created Answer Block with all fields
 
 ```bash
@@ -107,6 +115,7 @@ curl -X POST http://localhost:3001/products/PRODUCT_ID/answer-blocks \
 ```
 
 **Expected Response**: Array with one Answer Block object containing:
+
 - `id`
 - `productId`
 - `questionId`: "what_is_it"
@@ -120,6 +129,7 @@ curl -X POST http://localhost:3001/products/PRODUCT_ID/answer-blocks \
 - `updatedAt`
 
 #### Test 3: Verify Upsert Behavior
+
 **Expected**: Existing block is updated (not duplicated)
 
 ```bash
@@ -142,11 +152,13 @@ curl -X GET http://localhost:3001/products/PRODUCT_ID/answer-blocks \
 ```
 
 **Expected**:
+
 - Only one block with `questionId: "what_is_it"`
 - `answerText` should be "An updated test answer."
 - `confidenceScore` should be 0.90
 
 #### Test 4: Verify Ownership Check
+
 **Expected**: 403 Forbidden or 404 Not Found for other user's product
 
 ```bash
@@ -155,7 +167,8 @@ curl -X GET http://localhost:3001/products/PRODUCT_ID/answer-blocks \
   -H "Authorization: Bearer OTHER_USER_TOKEN"
 ```
 
-**Expected Response**: 
+**Expected Response**:
+
 - Status: `403` or `404`
 - Body: Error message indicating access denied
 
@@ -177,6 +190,6 @@ Both scripts require a product ID to be provided or created first.
 - ⏳ Manual endpoint testing required (need product ID and auth token)
 
 All infrastructure is in place. The endpoints are ready for testing once you have:
+
 1. A valid JWT token
 2. A product ID that belongs to your authenticated user
-

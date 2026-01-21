@@ -8,7 +8,10 @@
 /**
  * Local applicability status - determines whether local discovery pillar applies.
  */
-export type LocalApplicabilityStatus = 'applicable' | 'not_applicable' | 'unknown';
+export type LocalApplicabilityStatus =
+  | 'applicable'
+  | 'not_applicable'
+  | 'unknown';
 
 /**
  * Reasons why local discovery is applicable or not.

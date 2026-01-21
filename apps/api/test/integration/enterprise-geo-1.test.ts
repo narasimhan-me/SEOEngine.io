@@ -46,7 +46,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
 
   describe('Governance Policy API', () => {
     it('GET /projects/:id/governance/policy returns default policy when none exists', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       const res = await request(server)
         .get(`/projects/${project.id}/governance/policy`)
@@ -65,7 +67,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
     });
 
     it('PUT /projects/:id/governance/policy updates policy settings', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       const res = await request(server)
         .put(`/projects/${project.id}/governance/policy`)
@@ -91,7 +95,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
     });
 
     it('rejects attempt to set allowPIIInExports to true', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       const res = await request(server)
         .put(`/projects/${project.id}/governance/policy`)
@@ -108,7 +114,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
 
   describe('Approval Workflow', () => {
     it('POST /projects/:id/governance/approvals creates approval request', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       const res = await request(server)
         .post(`/projects/${project.id}/governance/approvals`)
@@ -131,7 +139,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
     });
 
     it('POST /projects/:id/governance/approvals/:id/approve approves request', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       // Create approval request
       const createRes = await request(server)
@@ -147,7 +157,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
 
       // Approve it
       const approveRes = await request(server)
-        .post(`/projects/${project.id}/governance/approvals/${approvalId}/approve`)
+        .post(
+          `/projects/${project.id}/governance/approvals/${approvalId}/approve`
+        )
         .set(authHeader(user.id))
         .send({ reason: 'Looks good' })
         .expect(201);
@@ -161,7 +173,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
     });
 
     it('POST /projects/:id/governance/approvals/:id/reject rejects request', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       // Create approval request
       const createRes = await request(server)
@@ -177,7 +191,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
 
       // Reject it
       const rejectRes = await request(server)
-        .post(`/projects/${project.id}/governance/approvals/${approvalId}/reject`)
+        .post(
+          `/projects/${project.id}/governance/approvals/${approvalId}/reject`
+        )
         .set(authHeader(user.id))
         .send({ reason: 'Needs more review' })
         .expect(201);
@@ -192,7 +208,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
 
   describe('Approval Gating on GEO Fix Apply', () => {
     it('blocks GEO fix apply when approval is required but not present', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       // Enable approval requirement
       await request(server)
@@ -242,7 +260,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
     });
 
     it('allows GEO fix apply when approval is present and valid', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       // Enable approval requirement
       await request(server)
@@ -282,7 +302,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
         .expect(201);
 
       await request(server)
-        .post(`/projects/${project.id}/governance/approvals/${createRes.body.id}/approve`)
+        .post(
+          `/projects/${project.id}/governance/approvals/${createRes.body.id}/approve`
+        )
         .set(authHeader(user.id))
         .send({})
         .expect(201);
@@ -300,7 +322,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
 
   describe('Share Link Passcode Protection', () => {
     it('creates share link with passcode when audience is PASSCODE', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       const res = await request(server)
         .post(`/projects/${project.id}/geo-reports/share-links`)
@@ -319,7 +343,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
     });
 
     it('public view returns passcode_required for protected links', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       // Create protected share link
       const createRes = await request(server)
@@ -340,7 +366,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
     });
 
     it('public view returns valid report when correct passcode is provided', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       // Create a product for the report
       await testPrisma.product.create({
@@ -372,7 +400,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
     });
 
     it('public view returns passcode_invalid for incorrect passcode', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       // Create protected share link
       const createRes = await request(server)
@@ -395,7 +425,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
 
   describe('Share Link Expiry Enforcement', () => {
     it('uses governance policy expiry days for new share links', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       // Set custom expiry
       await request(server)
@@ -413,7 +445,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
 
       const expiresAt = new Date(createRes.body.shareLink.expiresAt);
       const createdAt = new Date(createRes.body.shareLink.createdAt);
-      const diffDays = Math.round((expiresAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+      const diffDays = Math.round(
+        (expiresAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
+      );
 
       expect(diffDays).toBe(7);
     });
@@ -421,7 +455,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
 
   describe('Audit Events', () => {
     it('logs policy change events', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       // Update policy
       await request(server)
@@ -444,7 +480,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
     });
 
     it('logs share link created and revoked events', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       // Create share link
       const createRes = await request(server)
@@ -481,7 +519,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
 
   describe('Share Link Restriction Enforcement', () => {
     it('rejects public link creation when policy requires passcode', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       // Enable restrictions with passcode requirement
       await request(server)
@@ -506,7 +546,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
 
   describe('Mutation-Free Public View (Hard Contract)', () => {
     it('does NOT mutate share link status when viewing expired link', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       // Create a product for the report
       await testPrisma.product.create({
@@ -553,11 +595,15 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
       // No other fields should have changed
       expect(linkAfterView?.revokedAt).toBeNull();
       // Verify createdAt unchanged (as a proxy for no mutation)
-      expect(linkAfterView?.createdAt.getTime()).toBe(originalLink?.createdAt.getTime());
+      expect(linkAfterView?.createdAt.getTime()).toBe(
+        originalLink?.createdAt.getTime()
+      );
     });
 
     it('does NOT mutate share link when verifying passcode on expired link', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       // Create share link with passcode, ACTIVE but expired
       const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -593,7 +639,9 @@ describe('ENTERPRISE-GEO-1 – Enterprise Governance and Export Controls', () =>
     });
 
     it('returns revoked even when also expired (precedence check)', async () => {
-      const { user, project } = await seedConnectedStoreProject(testPrisma, { plan: 'pro' });
+      const { user, project } = await seedConnectedStoreProject(testPrisma, {
+        plan: 'pro',
+      });
 
       // Create share link that is both REVOKED and expired
       const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000);

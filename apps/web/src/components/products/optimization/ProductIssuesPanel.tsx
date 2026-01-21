@@ -95,21 +95,39 @@ export function ProductIssuesPanel({
           className="grid grid-cols-3 gap-4 rounded-lg border border-gray-200 bg-white p-4"
           data-testid="product-issues-triplet"
         >
-          <div className="text-center" data-testid="product-triplet-issue-types">
-            <div className="text-xl font-semibold text-gray-900" data-testid="product-triplet-issue-types-value">
+          <div
+            className="text-center"
+            data-testid="product-triplet-issue-types"
+          >
+            <div
+              className="text-xl font-semibold text-gray-900"
+              data-testid="product-triplet-issue-types-value"
+            >
               {/* Use detected counts to show asset-scoped detected issues even when zero actionable */}
               {summary.detected.issueTypesCount}
             </div>
             <div className="text-xs text-gray-600">Issue types</div>
           </div>
-          <div className="text-center" data-testid="product-triplet-items-affected">
-            <div className="text-xl font-semibold text-gray-900" data-testid="product-triplet-items-affected-value">
+          <div
+            className="text-center"
+            data-testid="product-triplet-items-affected"
+          >
+            <div
+              className="text-xl font-semibold text-gray-900"
+              data-testid="product-triplet-items-affected-value"
+            >
               {summary.detected.affectedItemsCount}
             </div>
             <div className="text-xs text-gray-600">Items affected</div>
           </div>
-          <div className="text-center" data-testid="product-triplet-actionable-now">
-            <div className="text-xl font-semibold text-gray-900" data-testid="product-triplet-actionable-now-value">
+          <div
+            className="text-center"
+            data-testid="product-triplet-actionable-now"
+          >
+            <div
+              className="text-xl font-semibold text-gray-900"
+              data-testid="product-triplet-actionable-now-value"
+            >
               {summary.actionable.actionableNowCount}
             </div>
             <div className="text-xs text-gray-600">Actionable now</div>
@@ -123,7 +141,9 @@ export function ProductIssuesPanel({
           className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-center"
           data-testid="product-no-eligible-items-message"
         >
-          <p className="text-sm text-amber-800">No items currently eligible for action.</p>
+          <p className="text-sm text-amber-800">
+            No items currently eligible for action.
+          </p>
         </div>
       )}
 
@@ -137,7 +157,8 @@ export function ProductIssuesPanel({
                 className="text-sm font-semibold text-gray-900"
                 data-testid="product-issues-actionable-count"
               >
-                {actionableIssues.length} actionable {actionableIssues.length === 1 ? 'issue' : 'issues'}
+                {actionableIssues.length} actionable{' '}
+                {actionableIssues.length === 1 ? 'issue' : 'issues'}
               </h3>
               <p className="mt-0.5 text-xs text-gray-500">
                 Grouped by pillar for easier prioritization
@@ -145,7 +166,11 @@ export function ProductIssuesPanel({
             </div>
             {/* [COUNT-INTEGRITY-1.1 PATCH 6] Suppress Fix next badge when zero actionable */}
             {fixNextIssue && !hasZeroActionable && (
-              <FixNextBadge issue={fixNextIssue} projectId={projectId} productId={productId} />
+              <FixNextBadge
+                issue={fixNextIssue}
+                projectId={projectId}
+                productId={productId}
+              />
             )}
           </div>
 
@@ -161,12 +186,18 @@ export function ProductIssuesPanel({
                     {group.label}
                   </h4>
                   <span className="text-xs text-gray-500">
-                    {group.issues.length} {group.issues.length === 1 ? 'issue' : 'issues'}
+                    {group.issues.length}{' '}
+                    {group.issues.length === 1 ? 'issue' : 'issues'}
                   </span>
                 </div>
                 <div className="divide-y divide-gray-100">
                   {group.issues.map((issue) => (
-                    <IssueRow key={issue.id} issue={issue} projectId={projectId} productId={productId} />
+                    <IssueRow
+                      key={issue.id}
+                      issue={issue}
+                      projectId={projectId}
+                      productId={productId}
+                    />
                   ))}
                 </div>
               </div>
@@ -188,7 +219,11 @@ function FixNextBadge({
   productId: string;
 }) {
   // [ISSUE-TO-FIX-PATH-1] Use buildIssueFixHref for deterministic routing
-  const href = buildIssueFixHref({ projectId, issue, primaryProductId: productId });
+  const href = buildIssueFixHref({
+    projectId,
+    issue,
+    primaryProductId: productId,
+  });
   const safeTitle = getSafeIssueTitle(issue);
 
   // If no fix href (shouldn't happen for actionable issues), don't render
@@ -212,7 +247,8 @@ function FixNextBadge({
           d="M13 10V3L4 14h7v7l9-11h-7z"
         />
       </svg>
-      Fix next: {safeTitle.slice(0, 30)}{safeTitle.length > 30 ? '...' : ''}
+      Fix next: {safeTitle.slice(0, 30)}
+      {safeTitle.length > 30 ? '...' : ''}
     </Link>
   );
 }
@@ -233,7 +269,11 @@ function IssueRow({
   };
 
   // [ISSUE-TO-FIX-PATH-1] Use buildIssueFixHref for deterministic routing
-  const href = buildIssueFixHref({ projectId, issue, primaryProductId: productId });
+  const href = buildIssueFixHref({
+    projectId,
+    issue,
+    primaryProductId: productId,
+  });
   const safeTitle = getSafeIssueTitle(issue);
   const safeDescription = getSafeIssueDescription(issue);
 
@@ -250,7 +290,9 @@ function IssueRow({
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900">{safeTitle}</p>
-          <p className="mt-0.5 text-xs text-gray-600 line-clamp-2">{safeDescription}</p>
+          <p className="mt-0.5 text-xs text-gray-600 line-clamp-2">
+            {safeDescription}
+          </p>
         </div>
       </div>
     );
@@ -284,13 +326,15 @@ function IssueRow({
         {issue.assetTypeCounts && (
           <div className="mt-2 flex gap-2 text-[11px] text-gray-500 border-t border-gray-100 pt-2">
             <span title="Total products affected across store">
-              <strong>{issue.assetTypeCounts.products}</strong> product{issue.assetTypeCounts.products !== 1 ? 's' : ''}
+              <strong>{issue.assetTypeCounts.products}</strong> product
+              {issue.assetTypeCounts.products !== 1 ? 's' : ''}
             </span>
             {issue.assetTypeCounts.pages > 0 && (
               <>
                 <span>•</span>
                 <span title="Total pages affected across store">
-                  <strong>{issue.assetTypeCounts.pages}</strong> page{issue.assetTypeCounts.pages !== 1 ? 's' : ''}
+                  <strong>{issue.assetTypeCounts.pages}</strong> page
+                  {issue.assetTypeCounts.pages !== 1 ? 's' : ''}
                 </span>
               </>
             )}
@@ -298,7 +342,8 @@ function IssueRow({
               <>
                 <span>•</span>
                 <span title="Total collections affected across store">
-                  <strong>{issue.assetTypeCounts.collections}</strong> collection{issue.assetTypeCounts.collections !== 1 ? 's' : ''}
+                  <strong>{issue.assetTypeCounts.collections}</strong>{' '}
+                  collection{issue.assetTypeCounts.collections !== 1 ? 's' : ''}
                 </span>
               </>
             )}

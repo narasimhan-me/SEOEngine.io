@@ -276,6 +276,7 @@ Phase AE-2 is complete when:
 #### AutomationService Auto-Apply Logic
 
 **Free Plan User (suggestions only):**
+
 - [ ] Create new product with missing SEO metadata
 - [ ] Trigger crawl or automation suggestion generation
 - [ ] Verify `AutomationSuggestion` created with `applied = false`, `appliedAt = null`
@@ -283,6 +284,7 @@ Phase AE-2 is complete when:
 - [ ] User can manually apply suggestion from UI
 
 **Pro/Business Plan User (auto-apply):**
+
 - [ ] Create new product with missing SEO metadata
 - [ ] Trigger crawl or automation suggestion generation
 - [ ] Verify `AutomationSuggestion` created with `applied = true`, `appliedAt = <timestamp>`
@@ -290,12 +292,14 @@ Phase AE-2 is complete when:
 - [ ] Product optimization page shows "Applied by Automation Engine" badge
 
 **Auto-Apply Safety (only empty fields):**
+
 - [ ] Create product with existing `seoTitle` but missing `seoDescription`
 - [ ] Trigger automation for Pro user
 - [ ] Verify only `seoDescription` is filled (existing title preserved)
 - [ ] Verify `appliedAt` is set even for partial fills
 
 **Thin Content (suggestions only for all plans):**
+
 - [ ] Create product with thin content (short description)
 - [ ] Trigger automation for Pro/Business user
 - [ ] Verify suggestion created with `applied = false` (thin content requires review)
@@ -381,7 +385,7 @@ Phase AE-2 is complete when:
 
 ## Document History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2025-12-08 | Initial Phase AE-2 manual testing document |
-| 1.1 | 2025-12-08 | Added AE-2.1 Implementation Test Scenarios |
+| Version | Date       | Changes                                    |
+| ------- | ---------- | ------------------------------------------ |
+| 1.0     | 2025-12-08 | Initial Phase AE-2 manual testing document |
+| 1.1     | 2025-12-08 | Added AE-2.1 Implementation Test Scenarios |

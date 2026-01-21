@@ -45,14 +45,17 @@
 **ID:** SCH-001
 
 **Preconditions:**
+
 - Pages/products with insufficient entity signals
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'low_entity_coverage'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'schema_visibility'`
 - **whyItMatters:** Explanation about entity-based search features
 - **recommendedFix:** Guidance about structured headings and metadata
@@ -66,14 +69,17 @@
 **ID:** SCH-002
 
 **Preconditions:**
+
 - Missing canonical pages like /about, /contact
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'brand_navigational_weakness'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'schema_visibility'`
 - **whyItMatters:** Explanation about brand signals and user trust
 - **recommendedFix:** Guidance about creating essential pages
@@ -87,14 +93,17 @@
 **ID:** SCH-003
 
 **Preconditions:**
+
 - Products without category/type classification
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'missing_category'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'schema_visibility'`
 - **whyItMatters:** Explanation about product relationships and queries
 - **recommendedFix:** Guidance about syncing or manual assignment
@@ -108,14 +117,17 @@
 **ID:** SCH-004
 
 **Preconditions:**
+
 - Products lacking rich entity signals
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Find issue with `id: 'low_product_entity_coverage'`
 3. Examine enrichment fields
 
 **Expected Results:**
+
 - **category:** `'schema_visibility'`
 - **whyItMatters:** Explanation about entity-based query categorization
 - **recommendedFix:** Guidance about AI enrichment
@@ -131,10 +143,12 @@
 **Description:** Project with complete navigational structure.
 
 **Steps:**
+
 1. Create project with crawl results including /, /about, /contact, /faq, /support
 2. Call `GET /projects/:id/deo-issues`
 
 **Expected Behavior:**
+
 - No `brand_navigational_weakness` issue returned
 
 ---
@@ -144,10 +158,12 @@
 **Description:** Project with complete category assignments.
 
 **Steps:**
+
 1. Create products all with `productType` set
 2. Call `GET /projects/:id/deo-issues`
 
 **Expected Behavior:**
+
 - No `missing_category` issue returned
 
 ---
@@ -171,9 +187,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Issue Engine Full - Schema & AI Visibility issues (Phase UX-8) |
+| Field              | Value                                                          |
+| ------------------ | -------------------------------------------------------------- |
+| **Tester Name**    | [Pending]                                                      |
+| **Date**           | [YYYY-MM-DD]                                                   |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed                          |
+| **Notes**          | Issue Engine Full - Schema & AI Visibility issues (Phase UX-8) |

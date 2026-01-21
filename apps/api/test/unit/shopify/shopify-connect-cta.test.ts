@@ -24,7 +24,7 @@ describe('getConnectStoreCtaLabel', () => {
 
   it('returns personalized label when storeDomain is provided', () => {
     expect(getConnectStoreCtaLabel('my-store.myshopify.com')).toBe(
-      'Connect my-store.myshopify.com',
+      'Connect my-store.myshopify.com'
     );
   });
 
@@ -34,7 +34,7 @@ describe('getConnectStoreCtaLabel', () => {
 
   it('handles domain with special characters', () => {
     expect(getConnectStoreCtaLabel('my-store-123.myshopify.com')).toBe(
-      'Connect my-store-123.myshopify.com',
+      'Connect my-store-123.myshopify.com'
     );
   });
 });
@@ -48,7 +48,7 @@ describe('Shopify OAuth URL construction', () => {
     apiUrl: string,
     shop: string,
     projId: string,
-    authToken: string,
+    authToken: string
   ): string {
     return `${apiUrl}/shopify/install?shop=${shop}&projectId=${projId}&token=${authToken}`;
   }
@@ -58,7 +58,7 @@ describe('Shopify OAuth URL construction', () => {
     const url = buildShopifyInstallUrl(API_URL, shopDomain, projectId, token);
 
     expect(url).toBe(
-      'http://localhost:3001/shopify/install?shop=my-store.myshopify.com&projectId=test-project-123&token=test-jwt-token',
+      'http://localhost:3001/shopify/install?shop=my-store.myshopify.com&projectId=test-project-123&token=test-jwt-token'
     );
   });
 
@@ -82,11 +82,9 @@ describe('selectShopifyDomain canonical logic', () => {
   function selectShopifyDomain(
     statusShopDomain?: string,
     projectDomain?: string | null,
-    promptValue?: string | null,
+    promptValue?: string | null
   ): string | null {
-    let domain =
-      (statusShopDomain ?? '') ||
-      (projectDomain ?? '');
+    let domain = (statusShopDomain ?? '') || (projectDomain ?? '');
     if (!domain) {
       domain = (promptValue ?? '').trim();
     }
@@ -105,7 +103,7 @@ describe('selectShopifyDomain canonical logic', () => {
     const domain = selectShopifyDomain(
       'integration-store.myshopify.com',
       'project-store.myshopify.com',
-      null,
+      null
     );
     expect(domain).toBe('integration-store.myshopify.com');
   });
@@ -114,17 +112,13 @@ describe('selectShopifyDomain canonical logic', () => {
     const domain = selectShopifyDomain(
       undefined,
       'project-store.myshopify.com',
-      null,
+      null
     );
     expect(domain).toBe('project-store.myshopify.com');
   });
 
   it('normalizes projectDomain without myshopify suffix', () => {
-    const domain = selectShopifyDomain(
-      undefined,
-      'raw-project-store',
-      null,
-    );
+    const domain = selectShopifyDomain(undefined, 'raw-project-store', null);
     expect(domain).toBe('raw-project-store.myshopify.com');
   });
 
@@ -132,26 +126,18 @@ describe('selectShopifyDomain canonical logic', () => {
     const domain = selectShopifyDomain(
       undefined,
       'https://my-store.myshopify.com/products',
-      null,
+      null
     );
     expect(domain).toBe('my-store.myshopify.com');
   });
 
   it('uses prompted domain when no stored domains are available', () => {
-    const domain = selectShopifyDomain(
-      undefined,
-      null,
-      'prompt-store',
-    );
+    const domain = selectShopifyDomain(undefined, null, 'prompt-store');
     expect(domain).toBe('prompt-store.myshopify.com');
   });
 
   it('returns null when no domain is available from any source', () => {
-    const domain = selectShopifyDomain(
-      undefined,
-      null,
-      '   ',
-    );
+    const domain = selectShopifyDomain(undefined, null, '   ');
     expect(domain).toBeNull();
   });
 });
@@ -165,12 +151,11 @@ describe('Connect source button state logic', () => {
   function getConnectButtonState(
     stepId: string,
     connectingSource: boolean,
-    ctaLabel: string,
+    ctaLabel: string
   ): ConnectButtonState {
     const isConnectStep = stepId === 'connect_source';
     const disabled = isConnectStep && connectingSource;
-    const label =
-      isConnectStep && connectingSource ? 'Connecting…' : ctaLabel;
+    const label = isConnectStep && connectingSource ? 'Connecting…' : ctaLabel;
 
     return { disabled, label };
   }
@@ -179,7 +164,7 @@ describe('Connect source button state logic', () => {
     const state = getConnectButtonState(
       'connect_source',
       false,
-      'Connect Shopify',
+      'Connect Shopify'
     );
 
     expect(state.disabled).toBe(false);
@@ -190,7 +175,7 @@ describe('Connect source button state logic', () => {
     const state = getConnectButtonState(
       'connect_source',
       true,
-      'Connect Shopify',
+      'Connect Shopify'
     );
 
     expect(state.disabled).toBe(true);
@@ -208,7 +193,7 @@ describe('Connect source button state logic', () => {
     const state = getConnectButtonState(
       'connect_source',
       false,
-      'Connect my-store.myshopify.com',
+      'Connect my-store.myshopify.com'
     );
 
     expect(state.disabled).toBe(false);
@@ -219,7 +204,7 @@ describe('Connect source button state logic', () => {
     const state = getConnectButtonState(
       'connect_source',
       true,
-      'Connect my-store.myshopify.com',
+      'Connect my-store.myshopify.com'
     );
 
     expect(state.disabled).toBe(true);

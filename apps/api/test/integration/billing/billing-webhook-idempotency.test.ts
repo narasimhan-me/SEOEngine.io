@@ -84,7 +84,7 @@ describe('BILLING-1 – Billing Webhook Idempotency', () => {
   function createStripeEvent(
     type: string,
     eventId: string,
-    data: any,
+    data: any
   ): Stripe.Event {
     return {
       id: eventId,
@@ -134,7 +134,11 @@ describe('BILLING-1 – Billing Webhook Idempotency', () => {
         },
       } as any;
 
-      const event = createStripeEvent('checkout.session.completed', eventId, session);
+      const event = createStripeEvent(
+        'checkout.session.completed',
+        eventId,
+        session
+      );
       const { payload, signature } = createWebhookPayload(event);
 
       mockConstructEvent.mockReturnValueOnce(event);
@@ -170,7 +174,11 @@ describe('BILLING-1 – Billing Webhook Idempotency', () => {
         },
       } as any;
 
-      const event = createStripeEvent('checkout.session.completed', eventId, session);
+      const event = createStripeEvent(
+        'checkout.session.completed',
+        eventId,
+        session
+      );
       const { payload, signature } = createWebhookPayload(event);
 
       mockConstructEvent.mockReturnValue(event);
@@ -218,7 +226,11 @@ describe('BILLING-1 – Billing Webhook Idempotency', () => {
         },
       } as any;
 
-      const event = createStripeEvent('checkout.session.completed', eventId, session);
+      const event = createStripeEvent(
+        'checkout.session.completed',
+        eventId,
+        session
+      );
       const { payload, signature } = createWebhookPayload(event);
 
       mockConstructEvent.mockReturnValue(event);
@@ -279,7 +291,11 @@ describe('BILLING-1 – Billing Webhook Idempotency', () => {
         },
       } as any;
 
-      const event = createStripeEvent('customer.subscription.updated', eventId, subscription);
+      const event = createStripeEvent(
+        'customer.subscription.updated',
+        eventId,
+        subscription
+      );
       const { payload, signature } = createWebhookPayload(event);
 
       mockConstructEvent.mockReturnValueOnce(event);
@@ -335,7 +351,11 @@ describe('BILLING-1 – Billing Webhook Idempotency', () => {
         },
       } as any;
 
-      const event = createStripeEvent('customer.subscription.updated', eventId, subscription);
+      const event = createStripeEvent(
+        'customer.subscription.updated',
+        eventId,
+        subscription
+      );
       const { payload, signature } = createWebhookPayload(event);
 
       mockConstructEvent.mockReturnValue(event);
@@ -401,7 +421,11 @@ describe('BILLING-1 – Billing Webhook Idempotency', () => {
         },
       } as any;
 
-      const event = createStripeEvent('customer.subscription.updated', eventId, subscription);
+      const event = createStripeEvent(
+        'customer.subscription.updated',
+        eventId,
+        subscription
+      );
       const { payload, signature } = createWebhookPayload(event);
 
       mockConstructEvent.mockReturnValue(event);
@@ -455,7 +479,11 @@ describe('BILLING-1 – Billing Webhook Idempotency', () => {
         current_period_end: Math.floor(Date.now() / 1000) + 10 * 24 * 60 * 60,
       } as any;
 
-      const event = createStripeEvent('customer.subscription.deleted', eventId, subscription);
+      const event = createStripeEvent(
+        'customer.subscription.deleted',
+        eventId,
+        subscription
+      );
       const { payload, signature } = createWebhookPayload(event);
 
       mockConstructEvent.mockReturnValueOnce(event);
@@ -498,7 +526,11 @@ describe('BILLING-1 – Billing Webhook Idempotency', () => {
         current_period_end: Math.floor(Date.now() / 1000) + 10 * 24 * 60 * 60,
       } as any;
 
-      const event = createStripeEvent('customer.subscription.deleted', eventId, subscription);
+      const event = createStripeEvent(
+        'customer.subscription.deleted',
+        eventId,
+        subscription
+      );
       const { payload, signature } = createWebhookPayload(event);
 
       mockConstructEvent.mockReturnValue(event);
@@ -527,7 +559,11 @@ describe('BILLING-1 – Billing Webhook Idempotency', () => {
 
   describe('webhook signature validation', () => {
     it('should reject webhook with invalid signature', async () => {
-      const event = createStripeEvent('checkout.session.completed', 'evt_invalid', {});
+      const event = createStripeEvent(
+        'checkout.session.completed',
+        'evt_invalid',
+        {}
+      );
       const { payload } = createWebhookPayload(event);
       const invalidSignature = 'invalid_signature';
 
@@ -536,12 +572,16 @@ describe('BILLING-1 – Billing Webhook Idempotency', () => {
       });
 
       await expect(
-        billingService.handleWebhook(payload, invalidSignature),
+        billingService.handleWebhook(payload, invalidSignature)
       ).rejects.toThrow();
     });
 
     it('should handle webhook when Stripe is not configured', async () => {
-      const event = createStripeEvent('checkout.session.completed', 'evt_no_stripe', {});
+      const event = createStripeEvent(
+        'checkout.session.completed',
+        'evt_no_stripe',
+        {}
+      );
       const { payload, signature } = createWebhookPayload(event);
 
       // Create a service without Stripe
@@ -556,10 +596,13 @@ describe('BILLING-1 – Billing Webhook Idempotency', () => {
             return undefined;
           }),
         } as any,
-        entitlementsService,
+        entitlementsService
       );
 
-      const result = await serviceWithoutStripe.handleWebhook(payload, signature);
+      const result = await serviceWithoutStripe.handleWebhook(
+        payload,
+        signature
+      );
 
       expect(result.received).toBe(true);
     });
@@ -577,7 +620,11 @@ describe('BILLING-1 – Billing Webhook Idempotency', () => {
         metadata: {}, // Missing userId
       } as any;
 
-      const event = createStripeEvent('checkout.session.completed', eventId, session);
+      const event = createStripeEvent(
+        'checkout.session.completed',
+        eventId,
+        session
+      );
       const { payload, signature } = createWebhookPayload(event);
 
       mockConstructEvent.mockReturnValueOnce(event);
@@ -602,7 +649,11 @@ describe('BILLING-1 – Billing Webhook Idempotency', () => {
         status: 'active',
       } as any;
 
-      const event = createStripeEvent('customer.subscription.updated', eventId, subscription);
+      const event = createStripeEvent(
+        'customer.subscription.updated',
+        eventId,
+        subscription
+      );
       const { payload, signature } = createWebhookPayload(event);
 
       mockConstructEvent.mockReturnValueOnce(event);
@@ -623,7 +674,11 @@ describe('BILLING-1 – Billing Webhook Idempotency', () => {
         status: 'canceled',
       } as any;
 
-      const event = createStripeEvent('customer.subscription.deleted', eventId, subscription);
+      const event = createStripeEvent(
+        'customer.subscription.deleted',
+        eventId,
+        subscription
+      );
       const { payload, signature } = createWebhookPayload(event);
 
       mockConstructEvent.mockReturnValueOnce(event);
@@ -699,11 +754,11 @@ describe('BILLING-1 – Billing Webhook Idempotency', () => {
           const event = createStripeEvent(
             eventData.type as any,
             eventData.eventId,
-            eventData.subscription,
+            eventData.subscription
           );
           const { payload, signature } = createWebhookPayload(event);
           return billingService.handleWebhook(payload, signature);
-        }),
+        })
       );
 
       expect(results.every((r) => r.received === true)).toBe(true);
@@ -719,4 +774,3 @@ describe('BILLING-1 – Billing Webhook Idempotency', () => {
     });
   });
 });
-

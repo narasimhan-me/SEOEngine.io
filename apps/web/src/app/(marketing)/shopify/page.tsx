@@ -20,16 +20,18 @@ export default function ShopifyLandingPage() {
             </div>
 
             <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-              Optimize your products, collections, pages &amp; blogs for search and AI —
-              automatically.
+              Optimize your products, collections, pages &amp; blogs for search
+              and AI — automatically.
             </h1>
 
             <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-              EngineO.ai connects to your Shopify store, crawls every product and content page,
-              identifies DEO issues, and gives you AI-powered fixes across your entire store.
+              EngineO.ai connects to your Shopify store, crawls every product
+              and content page, identifies DEO issues, and gives you AI-powered
+              fixes across your entire store.
             </p>
             <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Boost organic visibility. Improve product discovery. Increase conversions.
+              Boost organic visibility. Improve product discovery. Increase
+              conversions.
             </p>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -62,7 +64,9 @@ export default function ShopifyLandingPage() {
 
           <div className="mt-6 grid gap-4 text-sm text-foreground sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-xl border border-border bg-background p-4">
-              <p className="font-semibold text-foreground">They&rsquo;re searching:</p>
+              <p className="font-semibold text-foreground">
+                They&rsquo;re searching:
+              </p>
               <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                 <li>• Google</li>
                 <li>• TikTok</li>
@@ -85,7 +89,9 @@ export default function ShopifyLandingPage() {
               </ul>
             </div>
             <div className="rounded-xl border border-border bg-background p-4">
-              <p className="text-sm text-foreground">This goes far beyond traditional SEO tools.</p>
+              <p className="text-sm text-foreground">
+                This goes far beyond traditional SEO tools.
+              </p>
             </div>
           </div>
         </div>
@@ -98,13 +104,15 @@ export default function ShopifyLandingPage() {
             Deep crawl of your entire Shopify store
           </h2>
           <p className="mt-3 max-w-3xl text-sm text-muted-foreground">
-            EngineO.ai automatically crawls your storefront so you see how discoverable your entire
-            catalog really is.
+            EngineO.ai automatically crawls your storefront so you see how
+            discoverable your entire catalog really is.
           </p>
 
           <div className="mt-8 grid gap-4 text-sm text-foreground sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-xl border border-border bg-muted p-4">
-              <p className="font-semibold text-foreground">EngineO.ai automatically crawls:</p>
+              <p className="font-semibold text-foreground">
+                EngineO.ai automatically crawls:
+              </p>
               <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                 <li>• Product pages</li>
                 <li>• Collection pages</li>
@@ -116,7 +124,8 @@ export default function ShopifyLandingPage() {
             </div>
             <div className="rounded-xl border border-border bg-muted p-4 lg:col-span-2">
               <p className="text-xs text-muted-foreground">
-                You get real DEO signals across your entire storefront — not just products.
+                You get real DEO signals across your entire storefront — not
+                just products.
               </p>
             </div>
           </div>
@@ -180,8 +189,9 @@ export default function ShopifyLandingPage() {
           </ul>
 
           <p className="mt-4 max-w-3xl text-sm text-muted-foreground">
-            This is where EngineO.ai outperforms tools like Plug in SEO and TinySEO — by treating
-            products, collections, and content pages as a single discovery surface.
+            This is where EngineO.ai outperforms tools like Plug in SEO and
+            TinySEO — by treating products, collections, and content pages as a
+            single discovery surface.
           </p>
         </div>
       </section>
@@ -192,7 +202,9 @@ export default function ShopifyLandingPage() {
           <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
             Issues Engine for Shopify
           </h2>
-          <p className="mt-3 max-w-3xl text-sm text-muted-foreground">Real issues. Real fixes.</p>
+          <p className="mt-3 max-w-3xl text-sm text-muted-foreground">
+            Real issues. Real fixes.
+          </p>
 
           <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-2xl border border-border bg-background p-4">
@@ -215,7 +227,8 @@ export default function ShopifyLandingPage() {
                 <li>• Answer-surface potential gaps</li>
               </ul>
               <p className="mt-3 text-xs text-muted-foreground">
-                Each issue links directly to the affected product or page → workspace → fix.
+                Each issue links directly to the affected product or page →
+                workspace → fix.
               </p>
             </div>
           </div>
@@ -252,7 +265,9 @@ export default function ShopifyLandingPage() {
           <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
             Works with your Shopify theme, apps, and stack
           </h2>
-          <p className="mt-3 max-w-3xl text-sm text-muted-foreground">EngineO.ai works with:</p>
+          <p className="mt-3 max-w-3xl text-sm text-muted-foreground">
+            EngineO.ai works with:
+          </p>
 
           <ul className="mt-6 space-y-1.5 text-sm text-foreground">
             <li>• Any Shopify theme</li>
@@ -286,26 +301,36 @@ export default function ShopifyLandingPage() {
               </p>
             </div>
             <div>
-              <p className="text-sm font-semibold text-foreground">Does it affect my store speed?</p>
-              <p className="mt-1 text-sm text-muted-foreground">No. Crawling is external and optimized.</p>
+              <p className="text-sm font-semibold text-foreground">
+                Does it affect my store speed?
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                No. Crawling is external and optimized.
+              </p>
             </div>
             <div>
-              <p className="text-sm font-semibold text-foreground">Do I need theme access?</p>
-              <p className="mt-1 text-sm text-muted-foreground">No. Just store API permissions.</p>
+              <p className="text-sm font-semibold text-foreground">
+                Do I need theme access?
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                No. Just store API permissions.
+              </p>
             </div>
             <div>
               <p className="text-sm font-semibold text-foreground">
                 Can it optimize my blogs and collections?
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">Yes — via the Content Workspace.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Yes — via the Content Workspace.
+              </p>
             </div>
             <div>
               <p className="text-sm font-semibold text-foreground">
                 How is this better than SEO apps in the Shopify App Store?
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                DEO ≠ SEO. EngineO.ai optimizes for both search engines and AI engines (ChatGPT,
-                Gemini, Perplexity, retail AIs).
+                DEO ≠ SEO. EngineO.ai optimizes for both search engines and AI
+                engines (ChatGPT, Gemini, Perplexity, retail AIs).
               </p>
             </div>
           </div>
@@ -319,7 +344,9 @@ export default function ShopifyLandingPage() {
             <h2 className="text-2xl font-semibold tracking-tight text-primary-foreground sm:text-3xl">
               Ready to optimize your entire Shopify store?
             </h2>
-            <p className="text-sm text-primary-foreground/80">Connect your store and get:</p>
+            <p className="text-sm text-primary-foreground/80">
+              Connect your store and get:
+            </p>
             <ul className="space-y-1.5 text-sm text-primary-foreground/80">
               <li>• DEO Score</li>
               <li>• Issues list</li>

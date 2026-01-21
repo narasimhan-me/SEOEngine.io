@@ -53,9 +53,11 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - User has a project with products missing SEO titles
 
 **Steps:**
+
 1. Navigate to Playbooks page (`/projects/:id/automation/playbooks`)
 2. Select "Fix missing SEO titles" playbook
 3. Click "Generate preview (uses AI)"
@@ -64,6 +66,7 @@
 6. Check both runs in the database
 
 **Expected Results:**
+
 - **Database:**
   - Both runs have the same `aiWorkKey` value
   - First run: `aiUsed=true`, `reused=false`
@@ -76,13 +79,16 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Scenario 1 completed (first run exists)
 
 **Steps:**
+
 1. Trigger the same preview again (same products, same rules)
 2. Check the AI service mock/logs
 
 **Expected Results:**
+
 - **Logs:**
   - "[AutomationPlaybookRunProcessor] Run ${runId} reusing AI work from run ${originalRunId}"
 - **API:**
@@ -96,13 +102,16 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - At least one reused run exists
 
 **Steps:**
+
 1. Call `GET /ai/projects/:projectId/usage/summary`
 2. Examine the response
 
 **Expected Results:**
+
 - **API:**
   - `reusedRuns >= 1`
   - `aiRunsAvoided >= 1`
@@ -115,13 +124,16 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - At least one reused run exists for the current month
 
 **Steps:**
+
 1. Navigate to Playbooks page
 2. Observe the AI usage summary chip
 
 **Expected Results:**
+
 - **UI:**
   - Summary chip shows "AI runs avoided (reused): N" in green text
   - Where N is the count of reused runs
@@ -133,14 +145,17 @@
 **ID:** HP-005
 
 **Preconditions:**
+
 - Preview has been generated with default rules
 
 **Steps:**
+
 1. Change rules (e.g., add a prefix "Buy Now: ")
 2. Click "Regenerate preview (uses AI)"
 3. Check the run in the database
 
 **Expected Results:**
+
 - **Database:**
   - New run has different `aiWorkKey` than original
   - `aiUsed=true`, `reused=false`
@@ -154,14 +169,17 @@
 **ID:** HP-006
 
 **Preconditions:**
+
 - Preview has been generated for products A, B
 
 **Steps:**
+
 1. Add a new product C that qualifies for the playbook
 2. Click "Regenerate preview (uses AI)"
 3. Check the run in the database
 
 **Expected Results:**
+
 - **Database:**
   - New run has different `aiWorkKey` (product set changed)
   - `aiUsed=true`, `reused=false`
@@ -175,10 +193,12 @@
 **Description:** First run for a given aiWorkKey
 
 **Steps:**
+
 1. Create a new project with new products
 2. Generate first preview
 
 **Expected Behavior:**
+
 - Run proceeds normally with AI call
 - `aiUsed=true`, `reused=false`
 - `aiWorkKey` is computed and stored
@@ -190,10 +210,12 @@
 **Description:** Prior run with same aiWorkKey exists but failed
 
 **Steps:**
+
 1. Simulate a failed run with a specific aiWorkKey
 2. Trigger a new run with same inputs
 
 **Expected Behavior:**
+
 - New run does NOT reuse failed run
 - AI is called fresh
 - `reused=false`
@@ -205,11 +227,13 @@
 **Description:** Prior run was itself a reused run
 
 **Steps:**
+
 1. Create original run (aiUsed=true, reused=false)
 2. Create first reuse (aiUsed=false, reused=true, reusedFromRunId=original)
 3. Trigger another run with same inputs
 
 **Expected Behavior:**
+
 - Third run reuses the ORIGINAL run, not the second reused run
 - `reusedFromRunId` points to the original, not the middle run
 
@@ -222,10 +246,12 @@
 **Scenario:** Database query fails during reuse lookup
 
 **Steps:**
+
 1. Simulate database failure during findFirst for reuse lookup
 2. Trigger preview generation
 
 **Expected Behavior:**
+
 - Run proceeds with fresh AI call (fallback behavior)
 - No crash or user-visible error
 
@@ -238,6 +264,7 @@
 **Scenario:** Verify APPLY runs are not subject to reuse logic
 
 **Scope:**
+
 - **Applies To:**
   - PREVIEW_GENERATE runs
   - DRAFT_GENERATE runs
@@ -245,6 +272,7 @@
   - APPLY runs (always draft-based, no AI)
 
 **Expected Behavior:**
+
 - APPLY runs never have `reused=true`
 - APPLY runs never have `aiWorkKey`
 
@@ -303,16 +331,19 @@
 ## Key Contracts
 
 ### Contract 1: aiWorkKey Determinism
+
 - **Rule:** Same (playbookId, productIds, rules) always produces the same aiWorkKey
 - **Verification:** productIds are sorted before hashing
 - **Invariant:** SHA-256 hash is deterministic
 
 ### Contract 2: Reuse Only from Original Runs
+
 - **Rule:** Reused runs reference original AI runs, not other reused runs
 - **Verification:** `findReusableRun` filters by `reused=false`
 - **Invariant:** Chain depth is always 1 (original -> reused)
 
 ### Contract 3: Ledger Accuracy
+
 - **Rule:** `aiRunsAvoided` equals `reusedRuns`
 - **Verification:** Both are derived from counting `reused=true` runs
 - **Invariant:** Metrics are always consistent
@@ -322,6 +353,7 @@
 ## API Reference
 
 ### Get Usage Summary (with reuse metrics)
+
 ```
 GET /ai/projects/:projectId/usage/summary
 
@@ -342,6 +374,7 @@ Response:
 ```
 
 ### Get Usage Runs (with reuse fields)
+
 ```
 GET /ai/projects/:projectId/usage/runs
   ?runType=PREVIEW_GENERATE|DRAFT_GENERATE|APPLY
@@ -368,9 +401,9 @@ Response:
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | |
-| **Date** | |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | CACHE/REUSE v2 deterministic AI work reuse |
+| Field              | Value                                      |
+| ------------------ | ------------------------------------------ |
+| **Tester Name**    |                                            |
+| **Date**           |                                            |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed      |
+| **Notes**          | CACHE/REUSE v2 deterministic AI work reuse |

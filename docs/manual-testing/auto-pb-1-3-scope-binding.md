@@ -26,6 +26,7 @@ This phase adds server-issued `scopeId` to bind Preview → Estimate → Apply t
 ### TC-1: Successful Scope Binding Flow
 
 **Steps:**
+
 1. Navigate to `/projects/{id}/automation/playbooks`
 2. Select "Fix missing SEO titles" playbook
 3. Click "Generate preview" to see sample suggestions
@@ -36,6 +37,7 @@ This phase adds server-issued `scopeId` to bind Preview → Estimate → Apply t
 7. Verify apply succeeds and products are updated
 
 **Expected:**
+
 - Estimate response includes `scopeId`
 - Apply request includes same `scopeId`
 - Apply succeeds without scope validation errors
@@ -45,6 +47,7 @@ This phase adds server-issued `scopeId` to bind Preview → Estimate → Apply t
 ### TC-2: Scope Change Detection (Product Added)
 
 **Steps:**
+
 1. Navigate to playbooks page
 2. Select "Fix missing SEO titles" playbook
 3. Click "Generate preview" and proceed to Estimate step
@@ -54,6 +57,7 @@ This phase adds server-issued `scopeId` to bind Preview → Estimate → Apply t
 7. Check "I understand..." and click "Apply playbook"
 
 **Expected:**
+
 - API returns HTTP 409 with code `PLAYBOOK_SCOPE_INVALID`
 - Error message indicates scope has changed
 - User should re-run estimate to get updated scopeId
@@ -63,6 +67,7 @@ This phase adds server-issued `scopeId` to bind Preview → Estimate → Apply t
 ### TC-3: Scope Change Detection (Product Removed)
 
 **Steps:**
+
 1. Navigate to playbooks page
 2. Select "Fix missing SEO descriptions" playbook
 3. Click "Generate preview" and proceed to Estimate step
@@ -71,6 +76,7 @@ This phase adds server-issued `scopeId` to bind Preview → Estimate → Apply t
 6. Return to playbooks tab and click "Apply playbook"
 
 **Expected:**
+
 - API returns HTTP 409 with code `PLAYBOOK_SCOPE_INVALID`
 - Response includes `expectedScopeId` (new) and `providedScopeId` (old)
 
@@ -79,7 +85,9 @@ This phase adds server-issued `scopeId` to bind Preview → Estimate → Apply t
 ### TC-4: Missing scopeId Validation
 
 **Steps:**
+
 1. Using API client (curl/Postman), call:
+
    ```
    POST /projects/{id}/automation-playbooks/apply
    Authorization: Bearer {token}
@@ -89,6 +97,7 @@ This phase adds server-issued `scopeId` to bind Preview → Estimate → Apply t
    ```
 
 **Expected:**
+
 - API returns HTTP 400 "scopeId is required"
 
 ---
@@ -96,6 +105,7 @@ This phase adds server-issued `scopeId` to bind Preview → Estimate → Apply t
 ### TC-5: Session Storage Preservation
 
 **Steps:**
+
 1. Navigate to playbooks page
 2. Select playbook and generate preview
 3. Proceed to Estimate step
@@ -103,6 +113,7 @@ This phase adds server-issued `scopeId` to bind Preview → Estimate → Apply t
 5. Click browser back button to return to playbooks
 
 **Expected:**
+
 - Playbook state is restored from sessionStorage
 - scopeId is preserved in the estimate state
 - User can continue to Apply step without re-running estimate
@@ -112,11 +123,13 @@ This phase adds server-issued `scopeId` to bind Preview → Estimate → Apply t
 ### TC-6: Same scopeId for Identical Scope
 
 **Steps:**
+
 1. Get estimate for a playbook, note the scopeId
 2. Refresh the page
 3. Get estimate again for the same playbook
 
 **Expected:**
+
 - scopeId should be identical (deterministic hash)
 - Same set of products produces same scopeId
 
@@ -125,6 +138,7 @@ This phase adds server-issued `scopeId` to bind Preview → Estimate → Apply t
 ## API Contract
 
 ### Estimate Response
+
 ```json
 {
   "projectId": "...",
@@ -145,6 +159,7 @@ This phase adds server-issued `scopeId` to bind Preview → Estimate → Apply t
 ```
 
 ### Apply Request
+
 ```json
 {
   "playbookId": "missing_seo_title",
@@ -153,6 +168,7 @@ This phase adds server-issued `scopeId` to bind Preview → Estimate → Apply t
 ```
 
 ### Scope Invalid Error (409)
+
 ```json
 {
   "statusCode": 409,
@@ -167,6 +183,7 @@ This phase adds server-issued `scopeId` to bind Preview → Estimate → Apply t
 ## Automated Test Coverage
 
 E2E tests in `apps/api/test/e2e/automation-playbooks.e2e-spec.ts`:
+
 - `returns estimate with scopeId field`
 - `returns 400 when scopeId is missing`
 - `returns 409 when scopeId does not match current scope (scope changed)`
@@ -183,5 +200,5 @@ E2E tests in `apps/api/test/e2e/automation-playbooks.e2e-spec.ts`:
 ## Sign-off
 
 | Tester | Date | Result |
-|--------|------|--------|
-| | | |
+| ------ | ---- | ------ |
+|        |      |        |

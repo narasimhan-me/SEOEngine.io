@@ -55,9 +55,10 @@ export function ScopeBanner({
   const sourceLabel = labelFrom(from);
 
   // Determine what to show: chips if provided, else showingText as single chip
-  const displayChips: ScopeChip[] = chips && chips.length > 0
-    ? chips
-    : [{ type: 'pillar' as const, label: showingText }];
+  const displayChips: ScopeChip[] =
+    chips && chips.length > 0
+      ? chips
+      : [{ type: 'pillar' as const, label: showingText }];
 
   return (
     <div
@@ -73,7 +74,10 @@ export function ScopeBanner({
           <div className="flex items-center gap-2">
             <span className="font-medium text-blue-800">Showing:</span>
             {/* [SCOPE-CLARITY-1] Scope chips */}
-            <div data-testid="scope-chips" className="flex flex-wrap items-center gap-2">
+            <div
+              data-testid="scope-chips"
+              className="flex flex-wrap items-center gap-2"
+            >
               {displayChips.map((chip, index) => (
                 <span
                   key={`${chip.type}-${index}`}

@@ -49,16 +49,19 @@
 ### Scenario AB-AUTO-HP-001: product_synced Trigger (Pro/Business)
 
 Preconditions:
+
 - Pro or Business workspace with Shopify integration connected.
 - Product in Shopify with sufficient metadata but no Answer Blocks yet.
 
 Steps:
+
 1. Add or update a product in Shopify that should be eligible for Answer Blocks (e.g., good title/description).
 2. Trigger a product sync from EngineO.ai (via Products UI or dedicated sync control).
 3. Wait for Automation Engine v1 to process any product_synced events.
 4. Open Product Workspace → AEO / Answers tab for the synced product.
 
 Expected Results:
+
 - Answer Blocks are present for eligible questions without manual generation.
 - Automation-related logs/activities show a record of the Answer Block automation run.
 - For Pro/Business, behavior aligns with plan entitlements (no silent failure due to limits).
@@ -68,16 +71,19 @@ Expected Results:
 ### Scenario AB-AUTO-HP-002: issue_detected Trigger for Missing/Weak Answers
 
 Preconditions:
+
 - Product with either no Answer Blocks or intentionally weak/incomplete answers.
 - Issues Engine configured to emit answerability-related issues (e.g., not_answer_ready, weak_intent_match).
 
 Steps:
+
 1. Ensure Issues Engine has run for the project and emitted relevant answerability issues.
 2. Confirm that Automation Engine v1 is configured to react to issue_detected triggers for these issue types.
 3. Allow automations to run (either automatically or via a "Run automations" action if present).
 4. Re-open Product Workspace → AEO / Answers tab to inspect the updated Answer Blocks.
 
 Expected Results:
+
 - Previously missing or weak answers are now generated or improved where data is sufficient.
 - Answer Blocks adhere to non-hallucination rules and remain consistent with product data.
 - Issues Engine reflects improved status (fewer or downgraded answerability issues) after re-run.
@@ -87,14 +93,17 @@ Expected Results:
 ### Scenario AB-AUTO-HP-003: Plan-Aware Behavior (Free vs Pro/Business)
 
 Preconditions:
+
 - Workspaces on Free, Pro, and Business plans using similar Shopify test stores.
 
 Steps:
+
 1. For each plan, set up a product with missing Answer Blocks but good metadata.
 2. Trigger product sync and allow product_synced and issue_detected triggers to fire.
 3. Inspect Product Workspace → AEO / Answers tab and any Automation Activity views.
 
 Expected Results:
+
 - Free:
   - No automatic Answer Block generation; users remain limited to manual/ephemeral answers.
   - If any automation UI is present, it clearly indicates restrictions and suggests upgrading.
@@ -111,10 +120,12 @@ Expected Results:
 Description: Automation is triggered, but underlying product data is too sparse or inconsistent.
 
 Steps:
+
 1. Choose a product with very short or low-information descriptions.
 2. Ensure the product triggers product_synced or issue_detected for answerability.
 
 Expected Behavior:
+
 - Automation Engine skips unsafe Answer Block generation and records a reason (e.g., "insufficient data").
 - No hallucinated or low-quality answers are persisted.
 - UI, if surfaced, explains that automation could not safely generate answers.
@@ -126,10 +137,12 @@ Expected Behavior:
 Description: Product already has high-quality, user-edited Answer Blocks.
 
 Steps:
+
 1. Persist user-edited answers for a product (via AE-1.3 flows).
 2. Trigger answerability-related automations for that product.
 
 Expected Behavior:
+
 - Automations do not overwrite high-quality user-edited answers without explicit configuration.
 - Any changes follow a clear rule (e.g., only filling missing questions, not rewriting user edits).
 - Logs indicate whether existing answers were respected or updated, and why.
@@ -143,10 +156,12 @@ Expected Behavior:
 Scenario: AI provider is temporarily unavailable during an Answer Block automation run.
 
 Steps:
+
 1. Simulate AI provider failure (e.g., invalid key or forced network error in a controlled environment).
 2. Trigger an automation for an eligible product.
 
 Expected Behavior:
+
 - Automation run fails gracefully and logs a clear error.
 - No partial or corrupted Answer Blocks are persisted.
 - UI and/or logs encourage retrying once the provider is healthy.
@@ -158,10 +173,12 @@ Expected Behavior:
 Scenario: Workspace reaches daily AI token or automation execution limits.
 
 Steps:
+
 1. Trigger multiple Answer Block automations until limits are reached.
 2. Attempt additional automation runs beyond the cap.
 
 Expected Behavior:
+
 - Additional automation runs are skipped with a clear "limit reached" reason.
 - Existing Answer Blocks remain intact.
 - No silent failures; logs and UI clearly communicate the situation and suggest next steps (wait/reset or upgrade).
@@ -175,9 +192,11 @@ Expected Behavior:
 Scenario: Validate that plan-level automation capabilities match entitlements.
 
 Steps:
+
 1. For each plan (Free, Pro, Business), attempt to trigger Answer Block automations on similar products.
 
 Expected Behavior:
+
 - Behavior aligns with docs/ENTITLEMENTS_MATRIX.md and Section 8.7 of docs/AUTOMATION_ENGINE_SPEC.md.
 - Free users see no Answer Block automations but may see messaging about Pro/Business capabilities.
 - Pro/Business users receive automations within configured execution caps.
@@ -189,10 +208,12 @@ Expected Behavior:
 Scenario: Ensure per-product/per-day limits prevent over-aggressive automation.
 
 Steps:
+
 1. Trigger multiple automations for the same product within a short window.
 2. Observe behavior once any per-product/per-day threshold is crossed (if implemented).
 
 Expected Behavior:
+
 - Automations that would exceed thresholds are skipped with explicit reasons.
 - No thrashing or repeated rewrite of the same answers.
 
@@ -228,9 +249,9 @@ Expected Behavior:
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| Tester Name | [Pending] |
-| Date | [YYYY-MM-DD] |
-| Overall Status | [ ] Passed / [ ] Blocked / [ ] Failed |
-| Notes | Automation Engine v1 – Shopify Answer Block Automations |
+| Field          | Value                                                   |
+| -------------- | ------------------------------------------------------- |
+| Tester Name    | [Pending]                                               |
+| Date           | [YYYY-MM-DD]                                            |
+| Overall Status | [ ] Passed / [ ] Blocked / [ ] Failed                   |
+| Notes          | Automation Engine v1 – Shopify Answer Block Automations |

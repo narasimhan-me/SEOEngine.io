@@ -6,7 +6,14 @@ import Link from 'next/link';
 
 import type { DeoIssue } from '@/lib/deo-issues';
 import { isAuthenticated } from '@/lib/auth';
-import { projectsApi, productsApi, aiApi, shopifyApi, ApiError, billingApi } from '@/lib/api';
+import {
+  projectsApi,
+  productsApi,
+  aiApi,
+  shopifyApi,
+  ApiError,
+  billingApi,
+} from '@/lib/api';
 import type { Product } from '@/lib/products';
 import { getProductStatus } from '@/lib/products';
 import {
@@ -27,7 +34,10 @@ import {
 import { ScopeBanner } from '@/components/common/ScopeBanner';
 import { getSafeReturnTo } from '@/lib/route-context';
 // [SCOPE-CLARITY-1] Import scope normalization utilities
-import { normalizeScopeParams, buildClearFiltersHref } from '@/lib/scope-normalization';
+import {
+  normalizeScopeParams,
+  buildClearFiltersHref,
+} from '@/lib/scope-normalization';
 import {
   scrollToFixAnchor,
   getArrivalCalloutContent,
@@ -48,7 +58,10 @@ import {
   type ProductMetadataSuggestion,
   type AutomationSuggestion,
 } from '@/components/products/optimization';
-import { ProductAnswersPanel, type ProductAnswersResponse } from '@/components/products/optimization/ProductAnswersPanel';
+import {
+  ProductAnswersPanel,
+  type ProductAnswersResponse,
+} from '@/components/products/optimization/ProductAnswersPanel';
 import {
   ProductAnswerBlocksPanel,
   ProductAutomationHistoryPanel,
@@ -137,8 +150,10 @@ export default function ProductOptimizationPage() {
     return buildBackLink({
       projectId,
       returnTo: validatedNavContext.returnTo,
-      returnLabel: validatedNavContext.returnLabel || returnLabelParam || undefined,
-      from: validatedNavContext.from || (fromContext as FromContext | undefined),
+      returnLabel:
+        validatedNavContext.returnLabel || returnLabelParam || undefined,
+      from:
+        validatedNavContext.from || (fromContext as FromContext | undefined),
       fallback: 'issues',
     });
   }, [projectId, validatedNavContext, returnLabelParam, fromContext]);
@@ -161,7 +176,8 @@ export default function ProductOptimizationPage() {
   const isIssueFixMode = !!issueIdParam;
 
   // [TRUST-ROUTING-1] Preview sample state from session storage
-  const [previewSample, setPreviewSample] = useState<PlaybookPreviewSample | null>(null);
+  const [previewSample, setPreviewSample] =
+    useState<PlaybookPreviewSample | null>(null);
   const [previewExpired, setPreviewExpired] = useState(false);
 
   // [ISSUE-TO-FIX-PATH-1] Issue fix context state
@@ -202,8 +218,16 @@ export default function ProductOptimizationPage() {
   const [productIssues, setProductIssues] = useState<DeoIssue[]>([]);
   // [COUNT-INTEGRITY-1.1 PATCH 6] Asset-scoped canonical triplet summary
   const [productIssuesSummary, setProductIssuesSummary] = useState<{
-    detected: { issueTypesCount: number; affectedItemsCount: number; actionableNowCount: number };
-    actionable: { issueTypesCount: number; affectedItemsCount: number; actionableNowCount: number };
+    detected: {
+      issueTypesCount: number;
+      affectedItemsCount: number;
+      actionableNowCount: number;
+    };
+    actionable: {
+      issueTypesCount: number;
+      affectedItemsCount: number;
+      actionableNowCount: number;
+    };
   } | null>(null);
 
   // Editor states
@@ -213,21 +237,26 @@ export default function ProductOptimizationPage() {
   const [initialDescription, setInitialDescription] = useState('');
 
   // AI states
-  const [suggestion, setSuggestion] = useState<ProductMetadataSuggestion | null>(null);
+  const [suggestion, setSuggestion] =
+    useState<ProductMetadataSuggestion | null>(null);
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
-  const [automationSuggestion, setAutomationSuggestion] = useState<AutomationSuggestion | null>(null);
+  const [automationSuggestion, setAutomationSuggestion] =
+    useState<AutomationSuggestion | null>(null);
 
   // Shopify apply state
   const [applyingToShopify, setApplyingToShopify] = useState(false);
 
   // Answer Engine states (AE-1.2)
-  const [answersResponse, setAnswersResponse] = useState<ProductAnswersResponse | null>(null);
+  const [answersResponse, setAnswersResponse] =
+    useState<ProductAnswersResponse | null>(null);
   const [loadingAnswers, setLoadingAnswers] = useState(false);
   const [answersError, setAnswersError] = useState<string | null>(null);
   const [hasAnswerBlocks, setHasAnswerBlocks] = useState(false);
-  const [showAiDiagnosticPreviews, setShowAiDiagnosticPreviews] = useState(false);
+  const [showAiDiagnosticPreviews, setShowAiDiagnosticPreviews] =
+    useState(false);
 
-  const [aeoSyncToShopifyMetafields, setAeoSyncToShopifyMetafields] = useState(false);
+  const [aeoSyncToShopifyMetafields, setAeoSyncToShopifyMetafields] =
+    useState(false);
 
   // Track if we've shown the auto-apply toast (one-time per page load)
   const autoApplyToastShown = useRef(false);
@@ -246,7 +275,8 @@ export default function ProductOptimizationPage() {
     // If we have a saved draft and current editor matches saved draft (no edits since save)
     if (savedDraft) {
       const editorMatchesSaved =
-        editorTitle === savedDraft.title && editorDescription === savedDraft.description;
+        editorTitle === savedDraft.title &&
+        editorDescription === savedDraft.description;
       if (editorMatchesSaved) {
         return 'saved';
       }
@@ -264,7 +294,14 @@ export default function ProductOptimizationPage() {
       return 'applied';
     }
     return 'applied'; // Default to applied when no changes
-  }, [savedDraft, editorTitle, editorDescription, initialTitle, initialDescription, appliedAt]);
+  }, [
+    savedDraft,
+    editorTitle,
+    editorDescription,
+    initialTitle,
+    initialDescription,
+    appliedAt,
+  ]);
 
   // Determine if Apply button should be enabled (only when saved draft exists and no unsaved edits)
   const canApplyToShopify = useMemo(() => {
@@ -306,7 +343,10 @@ export default function ProductOptimizationPage() {
     };
     setSavedDraft(draft);
     try {
-      sessionStorage.setItem(getMetadataDraftKey(productId), JSON.stringify(draft));
+      sessionStorage.setItem(
+        getMetadataDraftKey(productId),
+        JSON.stringify(draft)
+      );
     } catch {
       // Ignore storage errors
     }
@@ -316,7 +356,10 @@ export default function ProductOptimizationPage() {
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Auto-scroll and highlight SEO editor
   const scrollToAndHighlightSeoEditor = useCallback(() => {
     if (seoEditorRef.current) {
-      seoEditorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      seoEditorRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
       setSeoEditorHighlighted(true);
       setTimeout(() => setSeoEditorHighlighted(false), 2000);
     }
@@ -357,17 +400,27 @@ export default function ProductOptimizationPage() {
         projectsApi.assetIssues(projectId, 'products', productId).catch(() => ({
           issues: [],
           summary: {
-            detected: { issueTypesCount: 0, affectedItemsCount: 0, actionableNowCount: 0 },
-            actionable: { issueTypesCount: 0, affectedItemsCount: 0, actionableNowCount: 0 },
+            detected: {
+              issueTypesCount: 0,
+              affectedItemsCount: 0,
+              actionableNowCount: 0,
+            },
+            actionable: {
+              issueTypesCount: 0,
+              affectedItemsCount: 0,
+              actionableNowCount: 0,
+            },
           },
         })),
-        projectsApi.automationSuggestions(projectId).catch(() => ({ suggestions: [] })),
+        projectsApi
+          .automationSuggestions(projectId)
+          .catch(() => ({ suggestions: [] })),
         billingApi.getEntitlements().catch(() => null),
       ]);
 
       setProjectName(projectData.name);
       setAeoSyncToShopifyMetafields(
-        Boolean((integrationStatus as any)?.aeoSyncToShopifyMetafields),
+        Boolean((integrationStatus as any)?.aeoSyncToShopifyMetafields)
       );
       if (entitlements && typeof (entitlements as any).plan === 'string') {
         setPlanId((entitlements as any).plan as string);
@@ -376,7 +429,9 @@ export default function ProductOptimizationPage() {
       }
 
       // Find the specific product
-      const foundProduct = productsData.find((p: Product) => p.id === productId);
+      const foundProduct = productsData.find(
+        (p: Product) => p.id === productId
+      );
 
       if (!foundProduct) {
         setError('Product not found for this project');
@@ -392,15 +447,23 @@ export default function ProductOptimizationPage() {
 
       // Find automation suggestion for this product (if any)
       // Prefer unapplied suggestions for the panel
-      const productAutomationSuggestion = (automationResponse.suggestions ?? []).find(
-        (s: AutomationSuggestion) => s.targetType === 'product' && s.targetId === productId && !s.applied
+      const productAutomationSuggestion = (
+        automationResponse.suggestions ?? []
+      ).find(
+        (s: AutomationSuggestion) =>
+          s.targetType === 'product' && s.targetId === productId && !s.applied
       );
       setAutomationSuggestion(productAutomationSuggestion || null);
 
       // Check for recently auto-applied suggestion (within last 24 hours)
       const recentAutoApplied = (automationResponse.suggestions ?? []).find(
         (s: AutomationSuggestion) => {
-          if (s.targetType !== 'product' || s.targetId !== productId || !s.applied || !s.appliedAt) {
+          if (
+            s.targetType !== 'product' ||
+            s.targetId !== productId ||
+            !s.applied ||
+            !s.appliedAt
+          ) {
             return false;
           }
           const appliedTime = new Date(s.appliedAt).getTime();
@@ -412,12 +475,15 @@ export default function ProductOptimizationPage() {
       // Show one-time success toast for recent auto-apply
       if (recentAutoApplied && !autoApplyToastShown.current) {
         autoApplyToastShown.current = true;
-        feedback.showSuccess('Automation Engine improved this product\'s metadata automatically.');
+        feedback.showSuccess(
+          "Automation Engine improved this product's metadata automatically."
+        );
       }
 
       // Initialize editor fields
       const title = foundProduct.seoTitle || foundProduct.title || '';
-      const description = foundProduct.seoDescription || foundProduct.description || '';
+      const description =
+        foundProduct.seoDescription || foundProduct.description || '';
 
       // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Only set editor values if no saved draft was restored
       // This prevents fetchData from overwriting restored draft values
@@ -429,7 +495,9 @@ export default function ProductOptimizationPage() {
       }
     } catch (err: unknown) {
       console.error('Error fetching data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load product data');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load product data'
+      );
     } finally {
       setLoading(false);
     }
@@ -491,10 +559,13 @@ export default function ProductOptimizationPage() {
   const recommendedAutomationIntent = useMemo(() => {
     if (!product) return 'unknown';
     const missingTitle = !product.seoTitle || !product.seoTitle.trim();
-    const missingDescription = !product.seoDescription || !product.seoDescription.trim();
+    const missingDescription =
+      !product.seoDescription || !product.seoDescription.trim();
     if (missingTitle || missingDescription) return 'missing_metadata';
-    if (productIssues.some((i) => i.pillarId === 'search_intent_fit')) return 'search_intent';
-    if (productIssues.some((i) => i.pillarId === 'content_commerce_signals')) return 'content';
+    if (productIssues.some((i) => i.pillarId === 'search_intent_fit'))
+      return 'search_intent';
+    if (productIssues.some((i) => i.pillarId === 'content_commerce_signals'))
+      return 'content';
     return 'unknown';
   }, [product, productIssues]);
 
@@ -516,19 +587,28 @@ export default function ProductOptimizationPage() {
           source: 'product_details',
           intent: recommendedAutomationIntent,
           selectedProductIds: [productId],
-        }),
+        })
       );
-      sessionStorage.setItem(scopeKey, JSON.stringify({ productIds: [productId] }));
+      sessionStorage.setItem(
+        scopeKey,
+        JSON.stringify({ productIds: [productId] })
+      );
     } catch {
       // ignore
     }
     // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Use navigation protection
     navigateWithUnsavedCheck(
       `/projects/${projectId}/automation/playbooks/entry?source=product_details&intent=${encodeURIComponent(
-        recommendedAutomationIntent,
-      )}`,
+        recommendedAutomationIntent
+      )}`
     );
-  }, [projectId, productId, product, navigateWithUnsavedCheck, recommendedAutomationIntent]);
+  }, [
+    projectId,
+    productId,
+    product,
+    navigateWithUnsavedCheck,
+    recommendedAutomationIntent,
+  ]);
 
   const fetchAnswers = useCallback(async () => {
     if (!product) return;
@@ -541,7 +621,9 @@ export default function ProductOptimizationPage() {
       setAnswersResponse(result as ProductAnswersResponse);
 
       const answerCount = result.answers?.length || 0;
-      feedback.showSuccess(`Generated ${answerCount} answer(s) for this product.`);
+      feedback.showSuccess(
+        `Generated ${answerCount} answer(s) for this product.`
+      );
     } catch (err: unknown) {
       console.error('Error generating answers:', err);
 
@@ -556,7 +638,9 @@ export default function ProductOptimizationPage() {
 
       // Generic error
       const message =
-        err instanceof Error ? err.message : 'Failed to generate answers. Please try again.';
+        err instanceof Error
+          ? err.message
+          : 'Failed to generate answers. Please try again.';
       setAnswersError(message);
       feedback.showError(message);
     } finally {
@@ -581,7 +665,11 @@ export default function ProductOptimizationPage() {
       setApplyingToShopify(true);
       setError('');
 
-      await shopifyApi.updateProductSeo(product.id, applyTitle, applyDescription);
+      await shopifyApi.updateProductSeo(
+        product.id,
+        applyTitle,
+        applyDescription
+      );
 
       const applyTimestamp = new Date().toISOString();
 
@@ -714,21 +802,27 @@ export default function ProductOptimizationPage() {
     const issuePresentOnSurface = !!matchingIssue;
 
     // Get the fix path for this issue (from issue itself or from URL param)
-    const fixPath = matchingIssue ? getIssueFixPathForProduct(matchingIssue) : null;
+    const fixPath = matchingIssue
+      ? getIssueFixPathForProduct(matchingIssue)
+      : null;
 
     // [ISSUE-FIX-NAV-AND-ANCHORS-1] Get fix config for nextActionLabel even if issue not found
     const fixConfig = getIssueFixConfig(issueIdParam);
 
     // Determine the anchor to use (URL param > fix path > config)
-    const fixAnchorTestId = fixAnchorParam || fixPath?.fixAnchorTestId || fixConfig?.fixAnchorTestId;
-    const nextActionLabel = fixPath?.nextActionLabel || fixConfig?.nextActionLabel;
+    const fixAnchorTestId =
+      fixAnchorParam || fixPath?.fixAnchorTestId || fixConfig?.fixAnchorTestId;
+    const nextActionLabel =
+      fixPath?.nextActionLabel || fixConfig?.nextActionLabel;
     // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] fixKind from config only (URL param is non-authoritative)
     const fixKind = fixPath?.fixKind || fixConfig?.fixKind;
 
     // Set the fix context for the banner (even if issue not found - shows "already compliant")
     setIssueFixContext({
       issueId: issueIdParam,
-      issueTitle: matchingIssue ? getSafeIssueTitle(matchingIssue) : (fixConfig?.ctaLabel || 'Issue'),
+      issueTitle: matchingIssue
+        ? getSafeIssueTitle(matchingIssue)
+        : fixConfig?.ctaLabel || 'Issue',
       highlightTarget: highlightParam || fixPath?.highlightTarget,
       nextActionLabel,
       fixAnchorTestId,
@@ -761,23 +855,37 @@ export default function ProductOptimizationPage() {
     // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Skip scroll/highlight for DIAGNOSTIC issues
     if (fixKind === 'DIAGNOSTIC') {
       // DIAGNOSTIC issues have no fix anchor to scroll to
-      setIssueFixContext((prev) => prev ? { ...prev, anchorFound: true } : null);
+      setIssueFixContext((prev) =>
+        prev ? { ...prev, anchorFound: true } : null
+      );
       return;
     }
 
     setTimeout(() => {
-      const targetAnchor = fixAnchorTestId || highlightParam || fixPath.highlightTarget;
+      const targetAnchor =
+        fixAnchorTestId || highlightParam || fixPath.highlightTarget;
       if (targetAnchor) {
         const result = scrollToFixAnchor({ fixAnchorTestId: targetAnchor });
         // Update anchor found status
-        setIssueFixContext((prev) => prev ? { ...prev, anchorFound: result.found } : null);
+        setIssueFixContext((prev) =>
+          prev ? { ...prev, anchorFound: result.found } : null
+        );
         if (result.found) {
           setIssueHighlightActive(true);
           setTimeout(() => setIssueHighlightActive(false), 2000);
         }
       }
     }, 200);
-  }, [isIssueFixMode, issueIdParam, highlightParam, fixAnchorParam, productIssues, activeTab, loading, router]);
+  }, [
+    isIssueFixMode,
+    issueIdParam,
+    highlightParam,
+    fixAnchorParam,
+    productIssues,
+    activeTab,
+    loading,
+    router,
+  ]);
 
   // [DRAFT-REVIEW-ISOLATION-1] Drafts tab fetch + edit handlers moved to isolated ProductDraftsTab component
 
@@ -811,7 +919,10 @@ export default function ProductOptimizationPage() {
           </li>
           <li>/</li>
           <li>
-            <Link href={`/projects/${projectId}/store-health`} className="hover:text-gray-700">
+            <Link
+              href={`/projects/${projectId}/store-health`}
+              className="hover:text-gray-700"
+            >
               {projectName || 'Project'}
             </Link>
           </li>
@@ -827,7 +938,10 @@ export default function ProductOptimizationPage() {
                 Results
               </Link>
             ) : (
-              <Link href={`/projects/${projectId}/products`} className="hover:text-gray-700">
+              <Link
+                href={`/projects/${projectId}/products`}
+                className="hover:text-gray-700"
+              >
                 Products
               </Link>
             )}
@@ -921,7 +1035,10 @@ export default function ProductOptimizationPage() {
                         href={`/projects/${projectId}/products/${productId}?tab=issues`}
                         className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 font-medium text-red-700 hover:bg-red-100"
                       >
-                        <span>{productIssues.length} DEO {productIssues.length === 1 ? 'issue' : 'issues'}</span>
+                        <span>
+                          {productIssues.length} DEO{' '}
+                          {productIssues.length === 1 ? 'issue' : 'issues'}
+                        </span>
                       </Link>
                     )}
                   </div>
@@ -945,7 +1062,16 @@ export default function ProductOptimizationPage() {
                     {draftState === 'unsaved' && 'Draft — not applied'}
                     {draftState === 'saved' && 'Draft saved — not applied'}
                     {draftState === 'applied' && (
-                      <>Applied to Shopify on {appliedAt ? new Date(appliedAt).toLocaleDateString() : product?.lastOptimizedAt ? new Date(product.lastOptimizedAt).toLocaleDateString() : '—'}</>
+                      <>
+                        Applied to Shopify on{' '}
+                        {appliedAt
+                          ? new Date(appliedAt).toLocaleDateString()
+                          : product?.lastOptimizedAt
+                            ? new Date(
+                                product.lastOptimizedAt
+                              ).toLocaleDateString()
+                            : '—'}
+                      </>
                     )}
                   </span>
                   <button
@@ -988,9 +1114,13 @@ export default function ProductOptimizationPage() {
           <div className="mt-4">
             <ScopeBanner
               from={fromContext}
-              returnTo={scopeBannerReturnTo || `/projects/${projectId}/products`}
+              returnTo={
+                scopeBannerReturnTo || `/projects/${projectId}/products`
+              }
               showingText={`Product · ${product?.title || 'Product'}`}
-              onClearFiltersHref={buildClearFiltersHref(`/projects/${projectId}/products/${productId}`)}
+              onClearFiltersHref={buildClearFiltersHref(
+                `/projects/${projectId}/products/${productId}`
+              )}
               chips={normalizedScopeResult.chips}
               wasAdjusted={normalizedScopeResult.wasAdjusted}
             />
@@ -1026,24 +1156,41 @@ export default function ProductOptimizationPage() {
                     Previewing draft (not applied)
                   </h3>
                   <p className="mt-1 text-xs text-purple-800">
-                    This is a preview from the Playbooks workflow. Changes have not been applied yet.
+                    This is a preview from the Playbooks workflow. Changes have
+                    not been applied yet.
                   </p>
                   {/* Draft vs Current comparison */}
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
                     <div className="rounded border border-purple-200 bg-white p-2">
-                      <div className="text-xs font-medium text-purple-700 mb-1">Current</div>
+                      <div className="text-xs font-medium text-purple-700 mb-1">
+                        Current
+                      </div>
                       <div className="text-xs text-gray-700">
                         {playbookIdParam === 'missing_seo_title'
-                          ? previewSample.currentTitle || <span className="text-gray-400">Empty</span>
-                          : previewSample.currentDescription || <span className="text-gray-400">Empty</span>}
+                          ? previewSample.currentTitle || (
+                              <span className="text-gray-400">Empty</span>
+                            )
+                          : previewSample.currentDescription || (
+                              <span className="text-gray-400">Empty</span>
+                            )}
                       </div>
                     </div>
                     <div className="rounded border border-purple-200 bg-white p-2">
-                      <div className="text-xs font-medium text-purple-700 mb-1">Draft (suggested)</div>
+                      <div className="text-xs font-medium text-purple-700 mb-1">
+                        Draft (suggested)
+                      </div>
                       <div className="text-xs text-gray-700">
                         {playbookIdParam === 'missing_seo_title'
-                          ? previewSample.suggestedTitle || <span className="text-gray-400">No suggestion</span>
-                          : previewSample.suggestedDescription || <span className="text-gray-400">No suggestion</span>}
+                          ? previewSample.suggestedTitle || (
+                              <span className="text-gray-400">
+                                No suggestion
+                              </span>
+                            )
+                          : previewSample.suggestedDescription || (
+                              <span className="text-gray-400">
+                                No suggestion
+                              </span>
+                            )}
                       </div>
                     </div>
                   </div>
@@ -1076,13 +1223,19 @@ export default function ProductOptimizationPage() {
                     Preview expired — regenerate
                   </h3>
                   <p className="mt-1 text-xs text-amber-800">
-                    The preview session has expired or this product was not in the sample set.
-                    Return to Playbooks to regenerate the preview.
+                    The preview session has expired or this product was not in
+                    the sample set. Return to Playbooks to regenerate the
+                    preview.
                   </p>
                   {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2] Use canonical /playbooks/:playbookId route */}
                   <div className="mt-3">
                     <Link
-                      href={validatedReturnTo || (playbookIdParam ? `/projects/${projectId}/playbooks/${playbookIdParam}?step=preview&source=product_details` : `/projects/${projectId}/playbooks`)}
+                      href={
+                        validatedReturnTo ||
+                        (playbookIdParam
+                          ? `/projects/${projectId}/playbooks/${playbookIdParam}?step=preview&source=product_details`
+                          : `/projects/${projectId}/playbooks`)
+                      }
                       className="inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700"
                     >
                       ← Back to preview
@@ -1096,33 +1249,101 @@ export default function ProductOptimizationPage() {
           {/* [ISSUE-TO-FIX-PATH-1] Issue Fix Context Banner */}
           {/* [ISSUE-FIX-NAV-AND-ANCHORS-1] Enhanced with callout content + returnTo back link */}
           {/* [ISSUE-FIX-KIND-CLARITY-1] Pass fixKind to arrival callout */}
-          {isIssueFixMode && issueFixContext && (() => {
-            const calloutContent = getArrivalCalloutContent({
-              issueTitle: issueFixContext.issueTitle,
-              nextActionLabel: issueFixContext.nextActionLabel,
-              foundAnchor: issueFixContext.anchorFound ?? false,
-              issuePresentOnSurface: issueFixContext.issuePresentOnSurface ?? true,
-              fixKind: issueFixContext.fixKind,
-            });
+          {isIssueFixMode &&
+            issueFixContext &&
+            (() => {
+              const calloutContent = getArrivalCalloutContent({
+                issueTitle: issueFixContext.issueTitle,
+                nextActionLabel: issueFixContext.nextActionLabel,
+                foundAnchor: issueFixContext.anchorFound ?? false,
+                issuePresentOnSurface:
+                  issueFixContext.issuePresentOnSurface ?? true,
+                fixKind: issueFixContext.fixKind,
+              });
 
-            // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Build Issues Engine URL with pillar for "View related issues"
-            const buildViewRelatedIssuesHref = () => {
-              // Derive pillarId from matching issue (preferred) or ISSUE_UI_CONFIG (fallback)
-              const matchingIssue = productIssues.find((i) => i.id === issueFixContext.issueId);
-              const pillarId = matchingIssue?.pillarId || ISSUE_UI_CONFIG[issueFixContext.issueId]?.pillarId;
-              const baseUrl = `/projects/${projectId}/issues?mode=detected&from=product_details`;
-              return pillarId ? `${baseUrl}&pillar=${pillarId}` : baseUrl;
-            };
+              // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Build Issues Engine URL with pillar for "View related issues"
+              const buildViewRelatedIssuesHref = () => {
+                // Derive pillarId from matching issue (preferred) or ISSUE_UI_CONFIG (fallback)
+                const matchingIssue = productIssues.find(
+                  (i) => i.id === issueFixContext.issueId
+                );
+                const pillarId =
+                  matchingIssue?.pillarId ||
+                  ISSUE_UI_CONFIG[issueFixContext.issueId]?.pillarId;
+                const baseUrl = `/projects/${projectId}/issues?mode=detected&from=product_details`;
+                return pillarId ? `${baseUrl}&pillar=${pillarId}` : baseUrl;
+              };
 
-            return (
-              <div
-                data-testid="issue-fix-context-banner"
-                className={`mb-6 mt-4 rounded-lg border p-4 ${calloutContent.containerClass}`}
-              >
+              return (
+                <div
+                  data-testid="issue-fix-context-banner"
+                  className={`mb-6 mt-4 rounded-lg border p-4 ${calloutContent.containerClass}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0">
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                        />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-semibold">
+                        {calloutContent.primaryMessage}
+                      </h3>
+                      {calloutContent.secondaryMessage && (
+                        <p
+                          data-testid="issue-fix-next-action-callout"
+                          className="mt-1 text-xs opacity-90"
+                        >
+                          {calloutContent.secondaryMessage}
+                        </p>
+                      )}
+                      {calloutContent.showBackLink && (
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <Link
+                            href={issueFixBackLink.href}
+                            className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-700"
+                          >
+                            ← {issueFixBackLink.label}
+                          </Link>
+                          {/* [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] View related issues routes to Issues Engine with pillar */}
+                          {calloutContent.showViewRelatedIssues && (
+                            <Link
+                              href={buildViewRelatedIssuesHref()}
+                              data-testid="issue-fix-view-related-issues"
+                              className="inline-flex items-center rounded-md border border-blue-300 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
+                            >
+                              View related issues
+                            </Link>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+          {/* CNAB-1: Product optimization banner */}
+          {/* [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Hide AI/generation banner on Drafts tab */}
+          {activeTab !== 'drafts' &&
+            (productIssues.length > 0 ||
+              status === 'missing-metadata' ||
+              status === 'needs-optimization') && (
+              <div className="mb-6 mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0">
                     <svg
-                      className="h-5 w-5"
+                      className="h-5 w-5 text-blue-600"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -1131,82 +1352,24 @@ export default function ProductOptimizationPage() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
                       />
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold">
-                      {calloutContent.primaryMessage}
+                    <h3 className="text-sm font-semibold text-blue-900">
+                      Optimization suggestions available
                     </h3>
-                    {calloutContent.secondaryMessage && (
-                      <p
-                        data-testid="issue-fix-next-action-callout"
-                        className="mt-1 text-xs opacity-90"
-                      >
-                        {calloutContent.secondaryMessage}
-                      </p>
-                    )}
-                    {calloutContent.showBackLink && (
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <Link
-                          href={issueFixBackLink.href}
-                          className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-700"
-                        >
-                          ← {issueFixBackLink.label}
-                        </Link>
-                        {/* [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] View related issues routes to Issues Engine with pillar */}
-                        {calloutContent.showViewRelatedIssues && (
-                          <Link
-                            href={buildViewRelatedIssuesHref()}
-                            data-testid="issue-fix-view-related-issues"
-                            className="inline-flex items-center rounded-md border border-blue-300 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
-                          >
-                            View related issues
-                          </Link>
-                        )}
-                      </div>
-                    )}
+                    <p className="mt-1 text-xs text-blue-800">
+                      {productIssues.length > 0
+                        ? `${productIssues.length} issue${productIssues.length !== 1 ? 's' : ''} detected for this product. `
+                        : 'This product has missing or incomplete SEO metadata. '}
+                      Generate drafts, review, then apply to Shopify.
+                    </p>
                   </div>
                 </div>
               </div>
-            );
-          })()}
-
-          {/* CNAB-1: Product optimization banner */}
-          {/* [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Hide AI/generation banner on Drafts tab */}
-          {activeTab !== 'drafts' && (productIssues.length > 0 || status === 'missing-metadata' || status === 'needs-optimization') && (
-            <div className="mb-6 mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="h-5 w-5 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                    />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-blue-900">
-                    Optimization suggestions available
-                  </h3>
-                  <p className="mt-1 text-xs text-blue-800">
-                    {productIssues.length > 0
-                      ? `${productIssues.length} issue${productIssues.length !== 1 ? 's' : ''} detected for this product. `
-                      : 'This product has missing or incomplete SEO metadata. '}
-                    Generate drafts, review, then apply to Shopify.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+            )}
 
           {/* Success message */}
           {successMessage && (
@@ -1235,13 +1398,17 @@ export default function ProductOptimizationPage() {
 
           {/* [DEO-UX-REFRESH-1] Tab-based content - only active tab renders */}
           <ProductOptimizationLayout
-            overview={<ProductOverviewPanel product={product} status={status} />}
+            overview={
+              <ProductOverviewPanel product={product} status={status} />
+            }
             center={
               <div className="space-y-6">
                 {/* Metadata Tab */}
                 {activeTab === 'metadata' && (
                   <section aria-label="Metadata">
-                    <h2 className="mb-4 text-base font-semibold text-gray-900">Metadata</h2>
+                    <h2 className="mb-4 text-base font-semibold text-gray-900">
+                      Metadata
+                    </h2>
                     {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft state banner */}
                     <div
                       data-testid="draft-state-banner"
@@ -1257,7 +1424,9 @@ export default function ProductOptimizationPage() {
                         <span className="font-medium">Draft — not applied</span>
                       )}
                       {draftState === 'saved' && (
-                        <span className="font-medium">Draft saved — not applied</span>
+                        <span className="font-medium">
+                          Draft saved — not applied
+                        </span>
                       )}
                       {draftState === 'applied' && (
                         <span className="font-medium">
@@ -1265,7 +1434,9 @@ export default function ProductOptimizationPage() {
                           {appliedAt
                             ? new Date(appliedAt).toLocaleString()
                             : product?.lastOptimizedAt
-                              ? new Date(product.lastOptimizedAt).toLocaleString()
+                              ? new Date(
+                                  product.lastOptimizedAt
+                                ).toLocaleString()
                               : product?.lastSyncedAt
                                 ? `${new Date(product.lastSyncedAt).toLocaleString()} (as of last sync)`
                                 : 'unknown date'}
@@ -1312,17 +1483,24 @@ export default function ProductOptimizationPage() {
 
                 {/* Answers Tab */}
                 {activeTab === 'answers' && (
-                  <section aria-label="Answers" data-testid="answers-tab-anchor">
-                    <h2 className="mb-4 text-base font-semibold text-gray-900">Answers (AEO)</h2>
+                  <section
+                    aria-label="Answers"
+                    data-testid="answers-tab-anchor"
+                  >
+                    <h2 className="mb-4 text-base font-semibold text-gray-900">
+                      Answers (AEO)
+                    </h2>
                     <p className="mb-2 text-xs text-gray-500">
-                      Answer Blocks are your canonical, persistent AEO answers. When enabled in{' '}
+                      Answer Blocks are your canonical, persistent AEO answers.
+                      When enabled in{' '}
                       <Link
                         href={`/projects/${projectId}/settings`}
                         className="underline hover:text-indigo-700"
                       >
                         Settings
                       </Link>
-                      , these canonical answers can be synced to Shopify as metafields.
+                      , these canonical answers can be synced to Shopify as
+                      metafields.
                     </p>
                     {hasAnswerBlocks && (
                       <div className="mb-3 flex flex-col gap-2 rounded-md border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 sm:flex-row sm:items-center sm:justify-between">
@@ -1333,8 +1511,8 @@ export default function ProductOptimizationPage() {
                               : 'AI Answer previews are hidden because canonical Answer Blocks already exist for this product.'}
                           </p>
                           <p className="mt-0.5">
-                            For advanced inspection only. Does not affect published content or DEO
-                            Score.
+                            For advanced inspection only. Does not affect
+                            published content or DEO Score.
                           </p>
                         </div>
                         <button
@@ -1371,11 +1549,17 @@ export default function ProductOptimizationPage() {
 
                 {/* Search & Intent Tab */}
                 {activeTab === 'search-intent' && (
-                  <section aria-label="Search & Intent" data-testid="search-intent-tab-anchor">
-                    <h2 className="mb-4 text-base font-semibold text-gray-900">Search & Intent</h2>
+                  <section
+                    aria-label="Search & Intent"
+                    data-testid="search-intent-tab-anchor"
+                  >
+                    <h2 className="mb-4 text-base font-semibold text-gray-900">
+                      Search & Intent
+                    </h2>
                     <p className="mb-3 text-xs text-gray-500">
-                      Analyze how well this product covers common search intents.
-                      High-value intents (transactional, comparative) have the most impact on conversions.
+                      Analyze how well this product covers common search
+                      intents. High-value intents (transactional, comparative)
+                      have the most impact on conversions.
                     </p>
                     <ProductSearchIntentPanel productId={product.id} />
                   </section>
@@ -1383,11 +1567,17 @@ export default function ProductOptimizationPage() {
 
                 {/* Competitors Tab */}
                 {activeTab === 'competitors' && (
-                  <section aria-label="Competitive Positioning" data-testid="competitors-tab-anchor">
-                    <h2 className="mb-4 text-base font-semibold text-gray-900">Competitive Positioning</h2>
+                  <section
+                    aria-label="Competitive Positioning"
+                    data-testid="competitors-tab-anchor"
+                  >
+                    <h2 className="mb-4 text-base font-semibold text-gray-900">
+                      Competitive Positioning
+                    </h2>
                     <p className="mb-3 text-xs text-gray-500">
-                      See how this product compares to typical competitors in your category.
-                      Address gaps in intent coverage, content sections, and trust signals.
+                      See how this product compares to typical competitors in
+                      your category. Address gaps in intent coverage, content
+                      sections, and trust signals.
                     </p>
                     <ProductCompetitorsPanel productId={product.id} />
                   </section>
@@ -1395,11 +1585,17 @@ export default function ProductOptimizationPage() {
 
                 {/* GEO Tab */}
                 {activeTab === 'geo' && (
-                  <section aria-label="GEO Readiness" data-testid="geo-tab-anchor">
-                    <h2 className="mb-4 text-base font-semibold text-gray-900">GEO Readiness</h2>
+                  <section
+                    aria-label="GEO Readiness"
+                    data-testid="geo-tab-anchor"
+                  >
+                    <h2 className="mb-4 text-base font-semibold text-gray-900">
+                      GEO Readiness
+                    </h2>
                     <p className="mb-3 text-xs text-gray-500">
-                      Evaluate how AI-engine-ready your product content is. GEO readiness signals
-                      measure clarity, specificity, structure, context, and accessibility.
+                      Evaluate how AI-engine-ready your product content is. GEO
+                      readiness signals measure clarity, specificity, structure,
+                      context, and accessibility.
                     </p>
                     <ProductGeoPanel productId={product.id} />
                   </section>
@@ -1408,7 +1604,9 @@ export default function ProductOptimizationPage() {
                 {/* Automations Tab */}
                 {activeTab === 'automations' && (
                   <section aria-label="Automations">
-                    <h2 className="mb-4 text-base font-semibold text-gray-900">Automations</h2>
+                    <h2 className="mb-4 text-base font-semibold text-gray-900">
+                      Automations
+                    </h2>
                     <ProductAutomationHistoryPanel productId={product.id} />
                   </section>
                 )}
@@ -1416,9 +1614,12 @@ export default function ProductOptimizationPage() {
                 {/* [DEO-UX-REFRESH-1] Issues Tab */}
                 {activeTab === 'issues' && (
                   <section aria-label="DEO Issues">
-                    <h2 className="mb-4 text-base font-semibold text-gray-900">DEO Issues</h2>
+                    <h2 className="mb-4 text-base font-semibold text-gray-900">
+                      DEO Issues
+                    </h2>
                     <p className="mb-3 text-xs text-gray-500">
-                      Issues are grouped by pillar. Address them in priority order for the best DEO impact.
+                      Issues are grouped by pillar. Address them in priority
+                      order for the best DEO impact.
                     </p>
                     {/* [COUNT-INTEGRITY-1.1 PATCH 6] Pass asset-scoped triplet summary */}
                     <ProductIssuesPanel
@@ -1447,7 +1648,12 @@ export default function ProductOptimizationPage() {
                 )}
               </div>
             }
-            insights={<ProductDeoInsightsPanel product={product} productIssues={productIssues} />}
+            insights={
+              <ProductDeoInsightsPanel
+                product={product}
+                productIssues={productIssues}
+              />
+            }
           />
         </>
       )}

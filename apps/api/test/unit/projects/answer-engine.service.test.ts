@@ -31,14 +31,16 @@ const createRoleResolutionServiceMock = () => ({
 describe('AnswerEngineService', () => {
   let service: AnswerEngineService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
-  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
+  let roleResolutionServiceMock: ReturnType<
+    typeof createRoleResolutionServiceMock
+  >;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
     roleResolutionServiceMock = createRoleResolutionServiceMock();
     service = new AnswerEngineService(
       prismaMock as unknown as PrismaService,
-      roleResolutionServiceMock as unknown as RoleResolutionService,
+      roleResolutionServiceMock as unknown as RoleResolutionService
     );
   });
 
@@ -76,9 +78,9 @@ describe('AnswerEngineService', () => {
     it('should throw NotFoundException when project does not exist', async () => {
       prismaMock.project.findUnique.mockResolvedValue(null);
 
-      await expect(service.getProjectAnswerability('proj-1', 'user-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.getProjectAnswerability('proj-1', 'user-1')
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException when user does not own project', async () => {
@@ -89,12 +91,12 @@ describe('AnswerEngineService', () => {
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
       roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
-        new ForbiddenException('You do not have access to this project'),
+        new ForbiddenException('You do not have access to this project')
       );
 
-      await expect(service.getProjectAnswerability('proj-1', 'user-1')).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.getProjectAnswerability('proj-1', 'user-1')
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -122,12 +124,17 @@ describe('AnswerEngineService', () => {
         description:
           'High-quality wireless headphones designed for professionals and music enthusiasts. Features include noise cancellation, 30-hour battery life, and premium leather ear cups. Made from durable materials including aluminum and memory foam. Perfect for travelers and office workers. Includes carrying case, charging cable, and warranty card. Machine washable ear pads. Warning: Keep away from water.',
         seoTitle: 'Best Wireless Headphones 2024',
-        seoDescription: 'Professional-grade wireless headphones with advanced features',
+        seoDescription:
+          'Professional-grade wireless headphones with advanced features',
       };
 
       const result = service.computeAnswerabilityForProduct(product);
 
-      expect(['answer_ready', 'partially_answer_ready', 'needs_answers']).toContain(result.status);
+      expect([
+        'answer_ready',
+        'partially_answer_ready',
+        'needs_answers',
+      ]).toContain(result.status);
       expect(result.missingQuestions.length).toBeLessThan(10);
       expect(result.answerabilityScore).toBeGreaterThanOrEqual(0);
     });
@@ -138,7 +145,8 @@ describe('AnswerEngineService', () => {
         title: 'Old Title',
         description: 'Old Description',
         seoTitle: 'SEO Title',
-        seoDescription: 'SEO Description with detailed information about the product',
+        seoDescription:
+          'SEO Description with detailed information about the product',
       };
 
       const result = service.computeAnswerabilityForProduct(product);
@@ -153,7 +161,8 @@ describe('AnswerEngineService', () => {
       const product = {
         id: 'prod-1',
         title: 'Product for Kids',
-        description: 'This product is designed for children and is perfect for beginners',
+        description:
+          'This product is designed for children and is perfect for beginners',
         seoTitle: null,
         seoDescription: null,
       };
@@ -168,7 +177,8 @@ describe('AnswerEngineService', () => {
       const product = {
         id: 'prod-1',
         title: 'Cotton T-Shirt',
-        description: 'Made from 100% organic cotton and polyester blend. Size: 10cm x 20cm',
+        description:
+          'Made from 100% organic cotton and polyester blend. Size: 10cm x 20cm',
         seoTitle: null,
         seoDescription: null,
       };
@@ -180,4 +190,3 @@ describe('AnswerEngineService', () => {
     });
   });
 });
-

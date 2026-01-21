@@ -16,7 +16,6 @@
 - Needs scalable workflows to handle audits, content, products, and reporting across sites
 - Values automation that frees time for strategy and communication
 - Looking for a platform that goes beyond traditional SEO into AI-era discovery
-
 ---
 
 ## Positioning

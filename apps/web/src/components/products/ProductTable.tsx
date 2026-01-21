@@ -49,7 +49,10 @@ const PILLAR_TO_ACTION: Record<DeoPillarId, string> = {
 };
 
 /** Issue types that indicate missing required metadata */
-const MISSING_REQUIRED_METADATA_TYPES = ['missing_seo_title', 'missing_seo_description'];
+const MISSING_REQUIRED_METADATA_TYPES = [
+  'missing_seo_title',
+  'missing_seo_description',
+];
 
 /**
  * Category counts for impact-based sorting
@@ -81,7 +84,10 @@ function computeImpactCounts(issues: DeoIssue[]): ImpactCategoryCounts {
     }
 
     // Technical blocking (pillar + critical severity)
-    if (issue.pillarId === 'technical_indexability' && issue.severity === 'critical') {
+    if (
+      issue.pillarId === 'technical_indexability' &&
+      issue.severity === 'critical'
+    ) {
       technicalBlockingCount++;
     }
 
@@ -115,19 +121,27 @@ function computeImpactCounts(issues: DeoIssue[]): ImpactCategoryCounts {
 function getCriticalCategory(counts: ImpactCategoryCounts): number {
   if (counts.missingRequiredMetadataCount > 0) return 0;
   if (counts.technicalBlockingCount > 0) return 1;
-  if (counts.metadataIssueCount > 0 && counts.searchIntentIssueCount > 0) return 2;
+  if (counts.metadataIssueCount > 0 && counts.searchIntentIssueCount > 0)
+    return 2;
   return 3;
 }
 
 /**
  * Get the primary count for the Critical category (for secondary sort)
  */
-function getCriticalPrimaryCount(counts: ImpactCategoryCounts, category: number): number {
+function getCriticalPrimaryCount(
+  counts: ImpactCategoryCounts,
+  category: number
+): number {
   switch (category) {
-    case 0: return counts.missingRequiredMetadataCount;
-    case 1: return counts.technicalBlockingCount;
-    case 2: return counts.combinedMetaAndIntentCount;
-    default: return counts.totalIssueCount;
+    case 0:
+      return counts.missingRequiredMetadataCount;
+    case 1:
+      return counts.technicalBlockingCount;
+    case 2:
+      return counts.combinedMetaAndIntentCount;
+    default:
+      return counts.totalIssueCount;
   }
 }
 
@@ -145,12 +159,19 @@ function getNeedsAttentionCategory(counts: ImpactCategoryCounts): number {
 /**
  * Get the primary count for the Needs Attention category (for secondary sort)
  */
-function getNeedsAttentionPrimaryCount(counts: ImpactCategoryCounts, category: number): number {
+function getNeedsAttentionPrimaryCount(
+  counts: ImpactCategoryCounts,
+  category: number
+): number {
   switch (category) {
-    case 0: return counts.searchIntentIssueCount;
-    case 1: return counts.contentIssueCount;
-    case 2: return counts.metadataIssueCount;
-    default: return counts.totalIssueCount;
+    case 0:
+      return counts.searchIntentIssueCount;
+    case 1:
+      return counts.contentIssueCount;
+    case 2:
+      return counts.metadataIssueCount;
+    default:
+      return counts.totalIssueCount;
   }
 }
 
@@ -186,19 +207,24 @@ export function ProductTable({
 }: ProductTableProps) {
   const [healthFilter, setHealthFilter] = useState<HealthFilter>('All');
   const [sortOption, setSortOption] = useState<SortOption>('Impact');
-  const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
+  const [expandedProductId, setExpandedProductId] = useState<string | null>(
+    null
+  );
 
   // Build enriched issue map with healthState, recommendedAction, and impact counts per product
   const issuesByProductId = useMemo(() => {
-    const map = new Map<string, {
-      count: number;
-      maxSeverity: 'critical' | 'warning' | 'info' | null;
-      healthState: HealthState;
-      recommendedAction: string;
-      byPillar: PillarIssueSummary[];
-      issues: DeoIssue[];
-      impactCounts: ImpactCategoryCounts;
-    }>();
+    const map = new Map<
+      string,
+      {
+        count: number;
+        maxSeverity: 'critical' | 'warning' | 'info' | null;
+        healthState: HealthState;
+        recommendedAction: string;
+        byPillar: PillarIssueSummary[];
+        issues: DeoIssue[];
+        impactCounts: ImpactCategoryCounts;
+      }
+    >();
 
     if (!productIssues) return map;
 
@@ -298,7 +324,12 @@ export function ProductTable({
 
   // Compute health counts for filter badges
   const healthCounts = useMemo(() => {
-    const counts = { All: products.length, Healthy: 0, 'Needs Attention': 0, Critical: 0 };
+    const counts = {
+      All: products.length,
+      Healthy: 0,
+      'Needs Attention': 0,
+      Critical: 0,
+    };
     for (const product of products) {
       const data = issuesByProductId.get(product.id);
       const health = data?.healthState ?? 'Healthy';
@@ -308,7 +339,8 @@ export function ProductTable({
   }, [products, issuesByProductId]);
 
   // Count products needing attention for Command Bar
-  const needsAttentionCount = healthCounts['Needs Attention'] + healthCounts['Critical'];
+  const needsAttentionCount =
+    healthCounts['Needs Attention'] + healthCounts['Critical'];
 
   // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Compute resolved row actions for each product
   // Uses buildIssueFixHref for deterministic issue→fix routing
@@ -330,7 +362,11 @@ export function ProductTable({
       // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Count only issues where:
       // 1. buildIssueFixHref returns non-null (has actionable fix destination)
       // Sort to get deterministic "next issue" (severity critical > warning > info, then pillar priority)
-      const severityOrder: Record<string, number> = { critical: 0, warning: 1, info: 2 };
+      const severityOrder: Record<string, number> = {
+        critical: 0,
+        warning: 1,
+        info: 2,
+      };
       const actionableIssues = issues
         .filter((issue) => {
           // [ROUTE-INTEGRITY-1] Use from=asset_list for consistent back navigation
@@ -362,9 +398,10 @@ export function ProductTable({
         });
 
       // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Use server-derived count as fallback when issues aren't available
-      const actionableNowCount = actionableIssues.length > 0
-        ? actionableIssues.length
-        : (product.actionableNowCount ?? 0);
+      const actionableNowCount =
+        actionableIssues.length > 0
+          ? actionableIssues.length
+          : (product.actionableNowCount ?? 0);
 
       // Deterministic "Fix next" links to the top actionable issue's fix destination
       let fixNextHref: string | null = null;
@@ -401,14 +438,25 @@ export function ProductTable({
         // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Pass DIAGNOSTIC flag for "Review" CTA
         fixNextIsDiagnostic,
         openHref: buildProductWorkspaceHref(projectId, product.id, navContext),
-        reviewDraftsHref: buildProductDraftsTabHref(projectId, product.id, navContext),
+        reviewDraftsHref: buildProductDraftsTabHref(
+          projectId,
+          product.id,
+          navContext
+        ),
       });
 
       map.set(product.id, resolved);
     }
 
     return map;
-  }, [products, issuesByProductId, projectId, canApply, canRequestApproval, currentListPathWithQuery]);
+  }, [
+    products,
+    issuesByProductId,
+    projectId,
+    canApply,
+    canRequestApproval,
+    currentListPathWithQuery,
+  ]);
 
   // Filter and sort products
   const displayProducts = useMemo(() => {
@@ -438,7 +486,11 @@ export function ProductTable({
       const healthB = dataB?.healthState ?? 'Healthy';
 
       // Primary: Health group (Critical=0, Needs Attention=1, Healthy=2)
-      const healthOrder: Record<HealthState, number> = { Critical: 0, 'Needs Attention': 1, Healthy: 2 };
+      const healthOrder: Record<HealthState, number> = {
+        Critical: 0,
+        'Needs Attention': 1,
+        Healthy: 2,
+      };
       const healthDiff = healthOrder[healthA] - healthOrder[healthB];
       if (healthDiff !== 0) return healthDiff;
 
@@ -465,7 +517,8 @@ export function ProductTable({
         // Secondary: higher category count first (descending)
         const primaryCountA = getCriticalPrimaryCount(countsA, catA);
         const primaryCountB = getCriticalPrimaryCount(countsB, catB);
-        if (primaryCountA !== primaryCountB) return primaryCountB - primaryCountA;
+        if (primaryCountA !== primaryCountB)
+          return primaryCountB - primaryCountA;
       } else if (healthA === 'Needs Attention') {
         // Needs Attention ordering: search intent > content > metadata > other
         const catA = getNeedsAttentionCategory(countsA);
@@ -475,7 +528,8 @@ export function ProductTable({
         // Secondary: higher category count first (descending)
         const primaryCountA = getNeedsAttentionPrimaryCount(countsA, catA);
         const primaryCountB = getNeedsAttentionPrimaryCount(countsB, catB);
-        if (primaryCountA !== primaryCountB) return primaryCountB - primaryCountA;
+        if (primaryCountA !== primaryCountB)
+          return primaryCountB - primaryCountA;
       }
       // Healthy: no category ordering, fall through to stable sort
 
@@ -495,7 +549,9 @@ export function ProductTable({
   }, [products, healthFilter, sortOption, issuesByProductId]);
 
   const handleToggleExpand = (productId: string) => {
-    setExpandedProductId((current) => (current === productId ? null : productId));
+    setExpandedProductId((current) =>
+      current === productId ? null : productId
+    );
   };
 
   const healthFilters: { id: HealthFilter; label: string }[] = [
@@ -513,7 +569,8 @@ export function ProductTable({
           {needsAttentionCount > 0 ? (
             <>
               <span className="font-medium text-gray-900">
-                {needsAttentionCount} product{needsAttentionCount !== 1 ? 's' : ''} need attention
+                {needsAttentionCount} product
+                {needsAttentionCount !== 1 ? 's' : ''} need attention
               </span>
               {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Navigate to canonical playbooks list */}
               <Link
@@ -524,7 +581,9 @@ export function ProductTable({
               </Link>
             </>
           ) : (
-            <span className="font-medium text-green-700">All products are healthy</span>
+            <span className="font-medium text-green-700">
+              All products are healthy
+            </span>
           )}
         </div>
 
@@ -547,7 +606,9 @@ export function ProductTable({
                   }`}
                 >
                   <span>{label}</span>
-                  <span className={`ml-1.5 ${isActive ? 'text-gray-300' : 'text-gray-500'}`}>
+                  <span
+                    className={`ml-1.5 ${isActive ? 'text-gray-300' : 'text-gray-500'}`}
+                  >
                     {count}
                   </span>
                 </button>
@@ -584,7 +645,9 @@ export function ProductTable({
                 product={product}
                 projectId={projectId}
                 healthState={productIssueData?.healthState ?? 'Healthy'}
-                recommendedAction={productIssueData?.recommendedAction ?? 'No action needed'}
+                recommendedAction={
+                  productIssueData?.recommendedAction ?? 'No action needed'
+                }
                 issuesByPillar={productIssueData?.byPillar}
                 showRescan={isDeoDataStale}
                 isExpanded={isExpanded}

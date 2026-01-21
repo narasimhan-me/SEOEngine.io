@@ -74,6 +74,7 @@ During the nightly cron, `CrawlSchedulerService.isProjectDueForCrawl()` determin
 ### Default Behavior
 
 New projects default to:
+
 - `autoCrawlEnabled: true`
 - `crawlFrequency: DAILY`
 
@@ -113,6 +114,7 @@ Scheduler loads all projects from the database.
 `CrawlProcessor` consumes jobs from `crawl_queue`.
 
 For each job:
+
 - Runs a full project crawl via `SeoScanService`.
 - Updates `project.lastCrawledAt`.
 - Logs success or failure.
@@ -135,6 +137,7 @@ IMPORTANT! Eviction policy is optimistic-volatile. It should be "noeviction"
 This means your Redis instance may evict queue data when memory is full, potentially causing job loss.
 
 **To fix on Render:**
+
 1. Navigate to your Redis instance in the Render Dashboard
 2. Configure the `maxmemory-policy` to `noeviction`
 3. If Render doesn't allow this setting, consider upgrading to a larger Redis plan or using a provider like Upstash that supports `noeviction`

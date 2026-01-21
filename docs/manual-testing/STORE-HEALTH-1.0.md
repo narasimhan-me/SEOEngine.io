@@ -55,14 +55,17 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - User is authenticated and has project access
 
 **Steps:**
+
 1. Login as any user
 2. Navigate to a project (should redirect to /store-health)
 3. Observe the page layout
 
 **Expected Results:**
+
 - **UI:**
   - Page title "Store Health" visible
   - Subtitle "Overview of your store's optimization status. Click any card to take action."
@@ -78,12 +81,15 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Store Health page loaded
 
 **Steps:**
+
 1. Observe the card order
 
 **Expected Results:**
+
 - **UI:**
   - Card 1: "Discoverability"
   - Card 2: "Generative Visibility"
@@ -99,13 +105,16 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Project with mixed health states
 
 **Steps:**
+
 1. Navigate to Store Health page
 2. Observe health pills on each card
 
 **Expected Results:**
+
 - **UI:**
   - Each card shows exactly ONE health pill
   - Pills show text: "Healthy" (green), "Needs Attention" (yellow), or "Critical" (red)
@@ -119,14 +128,17 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Store Health page loaded
 - Discoverability card shows "Needs Attention" or "Critical"
 
 **Steps:**
+
 1. Click on "Discoverability" card
 2. Observe URL and Work Queue page
 
 **Expected Results:**
+
 - **UI:**
   - Navigated to /projects/:id/work-queue?actionKey=FIX_MISSING_METADATA
   - Work Queue shows filtered bundles matching actionKey
@@ -141,13 +153,16 @@
 **ID:** HP-005
 
 **Preconditions:**
+
 - Store Health page loaded
 
 **Steps:**
+
 1. Click on "Generative Visibility" card
 2. Observe navigation
 
 **Expected Results:**
+
 - **UI:**
   - Navigated to /projects/:id/insights?tab=geo
   - GEO Insights section visible
@@ -160,13 +175,16 @@
 **ID:** HP-006
 
 **Preconditions:**
+
 - Store Health page loaded
 
 **Steps:**
+
 1. Click on "AI Usage & Quota" card
 2. Observe navigation
 
 **Expected Results:**
+
 - **UI:**
   - Navigated to /settings/ai-usage
   - AI usage settings page visible
@@ -179,13 +197,16 @@
 **ID:** HP-007
 
 **Preconditions:**
+
 - User authenticated
 
 **Steps:**
+
 1. Navigate directly to /projects/:id
 2. Observe redirect
 
 **Expected Results:**
+
 - **UI:**
   - Redirected to /projects/:id/store-health
   - Store Health page displayed
@@ -198,14 +219,17 @@
 **ID:** HP-008
 
 **Preconditions:**
+
 - User authenticated with ability to create projects
 
 **Steps:**
+
 1. Go to projects list (/projects)
 2. Create a new project
 3. Observe navigation after creation
 
 **Expected Results:**
+
 - **UI:**
   - After project creation, navigated to /projects/:newId/store-health
   - Store Health page displayed for new project
@@ -220,10 +244,12 @@
 **Description:** New project with no products, no crawl data
 
 **Steps:**
+
 1. Create new project (no Shopify connected)
 2. Navigate to Store Health
 
 **Expected Behavior:**
+
 - All cards show "Healthy" (no issues detected)
 - Summaries reflect empty state gracefully
 - No errors
@@ -235,9 +261,11 @@
 **Description:** Work Queue or Insights API fails
 
 **Steps:**
+
 1. Simulate API error (disconnect network momentarily)
 
 **Expected Behavior:**
+
 - Error message displayed with "Try again" button
 - User not left on blank page
 
@@ -248,10 +276,12 @@
 **Description:** Work Queue succeeds but Insights fails
 
 **Steps:**
+
 1. Ensure Work Queue endpoint works
 2. Block Insights endpoint
 
 **Expected Behavior:**
+
 - Cards derived from Work Queue still render
 - Generative Visibility card shows default/graceful state
 - No JavaScript errors
@@ -265,10 +295,12 @@
 **Scenario:** Non-member tries to access Store Health
 
 **Steps:**
+
 1. Login as user not member of project
 2. Navigate directly to /projects/:id/store-health
 
 **Expected Behavior:**
+
 - 403 Forbidden response
 - Redirect to projects list or access denied page
 
@@ -281,12 +313,14 @@
 **Description:** Clicking any card must not trigger mutations
 
 **Steps:**
+
 1. Open browser Network tab
 2. Navigate to Store Health
 3. Click each of the 6 cards in sequence
 4. Observe network requests
 
 **Expected Behavior:**
+
 - Only GET requests observed
 - No POST, PUT, DELETE, or PATCH requests
 - No background jobs triggered
@@ -300,10 +334,12 @@
 **Description:** Store Health is first item in project sidebar
 
 **Steps:**
+
 1. Navigate to any project page
 2. Observe sidebar navigation
 
 **Expected Behavior:**
+
 - "Store Health" is first nav item
 - "Work Queue" is second nav item
 - "Overview" is third nav item
@@ -359,9 +395,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Name] |
-| **Date** | [YYYY-MM-DD] |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    | [Name]                                |
+| **Date**           | [YYYY-MM-DD]                          |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | [Any additional notes] |
+| **Notes**          | [Any additional notes]                |

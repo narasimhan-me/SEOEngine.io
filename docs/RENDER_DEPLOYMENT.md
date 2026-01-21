@@ -8,10 +8,10 @@ This guide provides detailed step-by-step instructions for deploying the EngineO
 
 Render hosts separate instances for production and staging:
 
-| Environment | Service name           | Branch   | Base URL (example)              |
-|------------|------------------------|---------|---------------------------------|
-| Production | `engineo-api`          | `main`  | `https://api.engineo.ai`        |
-| Staging    | `engineo-api-staging`  | `develop` | `https://staging-api.engineo.ai` |
+| Environment | Service name          | Branch    | Base URL (example)               |
+| ----------- | --------------------- | --------- | -------------------------------- |
+| Production  | `engineo-api`         | `main`    | `https://api.engineo.ai`         |
+| Staging     | `engineo-api-staging` | `develop` | `https://staging-api.engineo.ai` |
 
 Background workers follow the same pattern:
 
@@ -54,23 +54,25 @@ The rest of this guide walks through configuring these services.
 
 ### Basic Configuration (Production)
 
-| Setting | Value | Notes |
-|---------|-------|-------|
-| **Name** | `engineo-api` | Or any name you prefer |
-| **Region** | Same as Neon database (e.g., `Oregon (US West)`) | Reduces latency |
-| **Branch** | `main` | Production branch |
-| **Root Directory** | _(leave blank)_ | Uses repo root |
-| **Runtime** | `Node` | Should auto-detect |
-| **Node Version** | `20` | Required: Node.js 20+ |
+| Setting            | Value                                            | Notes                  |
+| ------------------ | ------------------------------------------------ | ---------------------- |
+| **Name**           | `engineo-api`                                    | Or any name you prefer |
+| **Region**         | Same as Neon database (e.g., `Oregon (US West)`) | Reduces latency        |
+| **Branch**         | `main`                                           | Production branch      |
+| **Root Directory** | _(leave blank)_                                  | Uses repo root         |
+| **Runtime**        | `Node`                                           | Should auto-detect     |
+| **Node Version**   | `20`                                             | Required: Node.js 20+  |
 
 ### Build & Start Commands
 
 **Build Command:**
+
 ```bash
 pnpm install && pnpm --filter api build
 ```
 
 **Start Command:**
+
 ```bash
 pnpm --filter api start:prod
 ```
@@ -109,14 +111,15 @@ Before deploying, add required environment variables in Render's **Environment**
 
 These variables are used in the API code and must be set:
 
-| Variable Name | Default (if not set) | Description | Used In |
-|---------------|---------------------|-------------|---------|
-| `NODE_ENV` | - | Set to `production` | General app configuration |
-| `PORT` | `3001` | Port the API listens on | `src/main.ts` |
-| `DATABASE_URL` | - | Neon PostgreSQL connection string | `src/prisma.service.ts`, Prisma migrations |
-| `JWT_SECRET` | `default-secret-change-in-production` | Secret for JWT token signing | `src/auth/jwt.strategy.ts` |
+| Variable Name  | Default (if not set)                  | Description                       | Used In                                    |
+| -------------- | ------------------------------------- | --------------------------------- | ------------------------------------------ |
+| `NODE_ENV`     | -                                     | Set to `production`               | General app configuration                  |
+| `PORT`         | `3001`                                | Port the API listens on           | `src/main.ts`                              |
+| `DATABASE_URL` | -                                     | Neon PostgreSQL connection string | `src/prisma.service.ts`, Prisma migrations |
+| `JWT_SECRET`   | `default-secret-change-in-production` | Secret for JWT token signing      | `src/auth/jwt.strategy.ts`                 |
 
 **Production Values:**
+
 - `NODE_ENV`: `production`
 - `PORT`: `3001` (or let Render auto-assign)
 - `DATABASE_URL`: Your Neon connection string (format: `postgres://USER:PASSWORD@HOST:PORT/DBNAME?sslmode=require`)
@@ -126,39 +129,40 @@ These variables are used in the API code and must be set:
 
 Required if using Shopify integration:
 
-| Variable Name | Description | Used In |
-|---------------|-------------|---------|
-| `SHOPIFY_API_KEY` | Shopify Partner API key | `src/shopify/shopify.service.ts` |
-| `SHOPIFY_API_SECRET` | Shopify Partner API secret | `src/shopify/shopify.service.ts` |
-| `SHOPIFY_APP_URL` | Your API URL (e.g., `https://api.engineo.ai`) | `src/shopify/shopify.service.ts` |
-| `SHOPIFY_SCOPES` | Comma-separated scopes (default: `read_products,write_products,read_themes,read_content`) | `src/shopify/shopify.service.ts` |
+| Variable Name        | Description                                                                               | Used In                          |
+| -------------------- | ----------------------------------------------------------------------------------------- | -------------------------------- |
+| `SHOPIFY_API_KEY`    | Shopify Partner API key                                                                   | `src/shopify/shopify.service.ts` |
+| `SHOPIFY_API_SECRET` | Shopify Partner API secret                                                                | `src/shopify/shopify.service.ts` |
+| `SHOPIFY_APP_URL`    | Your API URL (e.g., `https://api.engineo.ai`)                                             | `src/shopify/shopify.service.ts` |
+| `SHOPIFY_SCOPES`     | Comma-separated scopes (default: `read_products,write_products,read_themes,read_content`) | `src/shopify/shopify.service.ts` |
 
 ### Frontend URL
 
-| Variable Name | Default | Description | Used In |
-|---------------|---------|-------------|---------|
+| Variable Name  | Default                 | Description                    | Used In                             |
+| -------------- | ----------------------- | ------------------------------ | ----------------------------------- |
 | `FRONTEND_URL` | `http://localhost:3000` | Frontend app URL for redirects | `src/shopify/shopify.controller.ts` |
 
 **Production Value:**
+
 - `FRONTEND_URL`: `https://app.engineo.ai` (or your Vercel deployment URL)
 
 ### AI Service Variables
 
 Required if using AI features (metadata generation):
 
-| Variable Name | Default | Description | Used In |
-|---------------|---------|-------------|---------|
+| Variable Name | Default  | Description                                     | Used In                |
+| ------------- | -------- | ----------------------------------------------- | ---------------------- |
 | `AI_PROVIDER` | `openai` | AI provider: `openai`, `anthropic`, or `gemini` | `src/ai/ai.service.ts` |
-| `AI_API_KEY` | - | API key for your chosen AI provider | `src/ai/ai.service.ts` |
+| `AI_API_KEY`  | -        | API key for your chosen AI provider             | `src/ai/ai.service.ts` |
 
 ### CAPTCHA Variables
 
 Required if using CAPTCHA verification:
 
-| Variable Name | Default | Description | Used In |
-|---------------|---------|-------------|---------|
-| `CAPTCHA_PROVIDER` | `turnstile` | CAPTCHA provider (currently only `turnstile` supported) | `src/captcha/captcha.service.ts` |
-| `CAPTCHA_SECRET_KEY` | - | Cloudflare Turnstile secret key | `src/captcha/captcha.service.ts` |
+| Variable Name        | Default     | Description                                             | Used In                          |
+| -------------------- | ----------- | ------------------------------------------------------- | -------------------------------- |
+| `CAPTCHA_PROVIDER`   | `turnstile` | CAPTCHA provider (currently only `turnstile` supported) | `src/captcha/captcha.service.ts` |
+| `CAPTCHA_SECRET_KEY` | -           | Cloudflare Turnstile secret key                         | `src/captcha/captcha.service.ts` |
 
 **Note:** The API uses Cloudflare Turnstile. Get your secret key from the [Cloudflare Dashboard](https://dash.cloudflare.com).
 
@@ -166,10 +170,10 @@ Required if using CAPTCHA verification:
 
 Required for background job queues (DEO score computation) using **external Upstash Redis**:
 
-| Variable Name | Default | Description | Used In |
-|---------------|---------|-------------|---------|
-| `REDIS_URL` | - | Upstash Redis TLS connection URL (`UPSTASH_REDIS_URL`) | `src/config/redis.config.ts`, `src/queues/queues.ts`, `src/projects/deo-score.processor.ts` |
-| `REDIS_PREFIX` | `engineo` | Prefix for Redis keys | `src/config/redis.config.ts` |
+| Variable Name  | Default   | Description                                            | Used In                                                                                     |
+| -------------- | --------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `REDIS_URL`    | -         | Upstash Redis TLS connection URL (`UPSTASH_REDIS_URL`) | `src/config/redis.config.ts`, `src/queues/queues.ts`, `src/projects/deo-score.processor.ts` |
+| `REDIS_PREFIX` | `engineo` | Prefix for Redis keys                                  | `src/config/redis.config.ts`                                                                |
 
 **Note:** If `REDIS_URL` is not set, background job queues will not work. Render does **not** host Redis directly; EngineO.ai uses an external Upstash Redis database.
 
@@ -177,25 +181,26 @@ Required for background job queues (DEO score computation) using **external Upst
 
 Required if using Stripe billing:
 
-| Variable Name | Description |
-|---------------|-------------|
-| `STRIPE_SECRET_KEY` | Stripe secret key |
+| Variable Name           | Description                   |
+| ----------------------- | ----------------------------- |
+| `STRIPE_SECRET_KEY`     | Stripe secret key             |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
 
 ### AWS Backup Variables (Optional)
 
 Required for database backups (if using backup script):
 
-| Variable Name | Description | Used In |
-|---------------|-------------|---------|
-| `AWS_ACCESS_KEY_ID` | AWS IAM access key | `src/scripts/backup-db.ts` |
-| `AWS_SECRET_ACCESS_KEY` | AWS IAM secret key | `src/scripts/backup-db.ts` |
-| `AWS_REGION` | AWS region (e.g., `us-east-1`) | `src/scripts/backup-db.ts` |
-| `S3_BACKUP_BUCKET` | S3 bucket name for backups | `src/scripts/backup-db.ts` |
+| Variable Name           | Description                    | Used In                    |
+| ----------------------- | ------------------------------ | -------------------------- |
+| `AWS_ACCESS_KEY_ID`     | AWS IAM access key             | `src/scripts/backup-db.ts` |
+| `AWS_SECRET_ACCESS_KEY` | AWS IAM secret key             | `src/scripts/backup-db.ts` |
+| `AWS_REGION`            | AWS region (e.g., `us-east-1`) | `src/scripts/backup-db.ts` |
+| `S3_BACKUP_BUCKET`      | S3 bucket name for backups     | `src/scripts/backup-db.ts` |
 
 ### Environment Variable Summary
 
 **Minimum Required:**
+
 ```bash
 NODE_ENV=production
 PORT=3001
@@ -204,6 +209,7 @@ JWT_SECRET=your-generated-secret
 ```
 
 **Recommended (for full functionality):**
+
 ```bash
 NODE_ENV=production
 PORT=3001
@@ -255,6 +261,7 @@ Render needs a health check endpoint to monitor your service:
 3. The health check endpoint is already implemented at `src/health/health.controller.ts` and returns `{ status: 'ok' }`
 
 **Health Check Configuration:**
+
 - **Path:** `/health`
 - **Method:** GET
 - **Expected Response:** `{ "status": "ok" }`
@@ -280,12 +287,15 @@ Render needs a health check endpoint to monitor your service:
 ### Common Build Issues
 
 **Issue: "Cannot find module '@engineo/shared'"**
+
 - **Solution:** Ensure you're using the monorepo build command: `pnpm install && pnpm --filter api build`
 
 **Issue: "Prisma Client not generated"**
+
 - **Solution:** The `postinstall` script should generate Prisma Client. Ensure `DATABASE_URL` is set before build.
 
 **Issue: "TypeScript compilation errors"**
+
 - **Solution:** Fix TypeScript errors locally first, then push to GitHub
 
 ---
@@ -323,9 +333,11 @@ This will apply all pending migrations to your production database.
 
 1. Check the deployment URL (e.g., `engineo-api.onrender.com`)
 2. Test the health endpoint:
+
    ```bash
    curl https://engineo-api.onrender.com/health
    ```
+
    Should return: `{"status":"ok"}`
 
 3. Check Render logs for any errors:
@@ -366,8 +378,8 @@ Render will show you the DNS records to add. Typically:
 3. Go to **DNS** → **Records**
 4. Add a CNAME record:
 
-| Type | Name | Target | Proxy Status |
-|------|------|--------|--------------|
+| Type  | Name  | Target                     | Proxy Status           |
+| ----- | ----- | -------------------------- | ---------------------- |
 | CNAME | `api` | `engineo-api.onrender.com` | Proxied (orange cloud) |
 
 5. Save the record
@@ -436,7 +448,8 @@ If you're using background job queues (DEO score computation), you need an exter
 
 ### Build Fails: "Cannot find module"
 
-**Solution:** 
+**Solution:**
+
 1. Ensure build command is: `pnpm install && pnpm --filter api build`
 2. Check that `pnpm-lock.yaml` is committed to the repository
 3. Verify monorepo structure is correct
@@ -444,6 +457,7 @@ If you're using background job queues (DEO score computation), you need an exter
 ### Build Fails: "Prisma Client not generated"
 
 **Solution:**
+
 1. Ensure `DATABASE_URL` is set before build
 2. The `postinstall` script should generate Prisma Client automatically
 3. Check build logs for Prisma generation messages
@@ -451,6 +465,7 @@ If you're using background job queues (DEO score computation), you need an exter
 ### Build Fails: TypeScript Errors
 
 **Solution:**
+
 1. Fix TypeScript errors locally first
 2. Run `pnpm --filter api build` locally to verify
 3. Ensure `tsconfig.json` is correct in `apps/api`
@@ -458,6 +473,7 @@ If you're using background job queues (DEO score computation), you need an exter
 ### Service Won't Start: "Port already in use"
 
 **Solution:**
+
 1. Render automatically assigns a port via `PORT` environment variable
 2. Don't hardcode the port in code
 3. The code already uses `process.env.PORT || 3001` which is correct
@@ -465,6 +481,7 @@ If you're using background job queues (DEO score computation), you need an exter
 ### Database Connection Errors
 
 **Solution:**
+
 1. Verify `DATABASE_URL` is correct and includes `?sslmode=require`
 2. Check Neon project is active
 3. Verify IP allowlist in Neon (if configured)
@@ -473,6 +490,7 @@ If you're using background job queues (DEO score computation), you need an exter
 ### Environment Variables Not Working
 
 **Solution:**
+
 1. Variables must be set in Render's **Environment** tab
 2. Redeploy after adding/changing environment variables
 3. Check variable names match exactly (case-sensitive)
@@ -481,6 +499,7 @@ If you're using background job queues (DEO score computation), you need an exter
 ### API Calls Failing: CORS Errors
 
 **Solution:**
+
 1. The API has CORS enabled for all origins (`origin: '*'`)
 2. For production, consider restricting CORS to your frontend domain
 3. Update `src/main.ts` to restrict origins if needed
@@ -488,6 +507,7 @@ If you're using background job queues (DEO score computation), you need an exter
 ### Redis Connection Errors
 
 **Solution:**
+
 1. Verify `REDIS_URL` is set correctly (should match your `UPSTASH_REDIS_URL` value)
 2. Check the Upstash Redis database status in the Upstash dashboard
 3. Verify network connectivity between Render and Upstash
@@ -496,6 +516,7 @@ If you're using background job queues (DEO score computation), you need an exter
 ### Health Check Failing
 
 **Solution:**
+
 1. Verify health check path is set to `/health`
 2. Check that `src/health/health.controller.ts` is properly registered
 3. Review service logs for startup errors
@@ -541,6 +562,7 @@ Render will detect the push and start a new deployment.
 ### Metrics
 
 Render provides basic metrics:
+
 - **CPU Usage**
 - **Memory Usage**
 - **Request Count**
@@ -551,6 +573,7 @@ View metrics in the **Metrics** tab.
 ### Alerts
 
 Set up alerts for:
+
 - Service downtime
 - High error rates
 - Resource usage thresholds
@@ -568,7 +591,7 @@ Go to **Settings** → **Alerts** to configure.
 5. **Logging**: Use structured logging for better debugging.
 6. **Backups**: Set up regular database backups (see [DEPLOYMENT.md](./DEPLOYMENT.md) for backup setup).
 7. **Monitoring**: Set up uptime monitoring and alerts.
-8. **Security**: 
+8. **Security**:
    - Use strong `JWT_SECRET`
    - Enable HTTPS only
    - Restrict CORS in production

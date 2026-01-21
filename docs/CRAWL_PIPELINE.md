@@ -67,19 +67,20 @@ The pipeline ensures DEO scores stay up-to-date without manual intervention:
 **`Project.lastDeoComputedAt`** (optional DateTime)
 
 Tracks when the DEO score was last recomputed. This allows:
+
 - Staleness detection (e.g., show warning if DEO score is older than crawl data)
 - Dashboard indicators for score freshness
 - Future scheduling of DEO-only recomputes if needed
 
 ## Key Files
 
-| File | Role |
-|------|------|
-| `crawl.processor.ts` | BullMQ worker that runs crawl + DEO pipeline for queued jobs |
-| `crawl-scheduler.service.ts` | Cron-triggered scheduler; runs DEO recompute in local/dev mode |
-| `seo-scan.service.ts` | Core crawl logic; triggers DEO recompute after manual crawls in local/dev |
-| `deo-score.service.ts` | DEO score computation and persistence |
-| `@engineo/shared` | `computeDeoScoreFromSignals()` pure function and type definitions |
+| File                         | Role                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------- |
+| `crawl.processor.ts`         | BullMQ worker that runs crawl + DEO pipeline for queued jobs              |
+| `crawl-scheduler.service.ts` | Cron-triggered scheduler; runs DEO recompute in local/dev mode            |
+| `seo-scan.service.ts`        | Core crawl logic; triggers DEO recompute after manual crawls in local/dev |
+| `deo-score.service.ts`       | DEO score computation and persistence                                     |
+| `@engineo/shared`            | `computeDeoScoreFromSignals()` pure function and type definitions         |
 
 ## Logging
 

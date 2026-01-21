@@ -37,7 +37,7 @@ interface SeedResponse {
 async function seedListSearchFilterData(request: any): Promise<SeedResponse> {
   const response = await request.post(
     `${API_BASE_URL}/testkit/e2e/seed-list-search-filter-1`,
-    { data: {} },
+    { data: {} }
   );
   expect(response.ok()).toBeTruthy();
   return response.json();
@@ -67,17 +67,17 @@ test.describe('LIST-SEARCH-FILTER-1: Products List Search & Filter', () => {
 
     // Assert search input by data-testid
     await expect(
-      page.locator('[data-testid="list-controls-search"]'),
+      page.locator('[data-testid="list-controls-search"]')
     ).toBeVisible();
 
     // Assert status filter by data-testid
     await expect(
-      page.locator('[data-testid="list-controls-status"]'),
+      page.locator('[data-testid="list-controls-status"]')
     ).toBeVisible();
 
     // Assert has-draft filter by data-testid
     await expect(
-      page.locator('[data-testid="list-controls-has-draft"]'),
+      page.locator('[data-testid="list-controls-has-draft"]')
     ).toBeVisible();
   });
 
@@ -93,7 +93,7 @@ test.describe('LIST-SEARCH-FILTER-1: Products List Search & Filter', () => {
 
     // Wait for controls to be visible
     await expect(
-      page.locator('[data-testid="list-controls-search"]'),
+      page.locator('[data-testid="list-controls-search"]')
     ).toBeVisible();
 
     // All 3 seeded products should be visible initially
@@ -125,12 +125,12 @@ test.describe('LIST-SEARCH-FILTER-1: Products List Search & Filter', () => {
 
     // Wait for controls
     await expect(
-      page.locator('[data-testid="list-controls-has-draft"]'),
+      page.locator('[data-testid="list-controls-has-draft"]')
     ).toBeVisible();
 
     // Select "Has draft pending" filter
     const hasDraftSelect = page.locator(
-      '[data-testid="list-controls-has-draft"]',
+      '[data-testid="list-controls-has-draft"]'
     );
     await hasDraftSelect.selectOption('true');
 
@@ -168,7 +168,7 @@ test.describe('LIST-SEARCH-FILTER-1: Products List Search & Filter', () => {
 
     // Wait for controls to load
     await expect(
-      page.locator('[data-testid="list-controls-search"]'),
+      page.locator('[data-testid="list-controls-search"]')
     ).toBeVisible();
 
     // Verify URL still has param
@@ -229,7 +229,7 @@ test.describe('LIST-SEARCH-FILTER-1: Products List Search & Filter', () => {
 
     // Wait for controls
     await expect(
-      page.locator('[data-testid="list-controls-status"]'),
+      page.locator('[data-testid="list-controls-status"]')
     ).toBeVisible();
 
     // Baseline: all 3 seeded products visible

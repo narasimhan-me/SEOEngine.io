@@ -142,8 +142,7 @@ function StatusBadge({ status }: { status: string }) {
   } else {
     classes += 'bg-gray-100 text-gray-700';
   }
-  const label =
-    normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  const label = normalized.charAt(0).toUpperCase() + normalized.slice(1);
   return <span className={classes}>{label}</span>;
 }
 
@@ -179,7 +178,8 @@ export function ProductAutomationHistoryPanel({
   const [expanded, setExpanded] = useState(false);
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Filter state
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [initiatorFilter, setInitiatorFilter] = useState<InitiatorFilter>('all');
+  const [initiatorFilter, setInitiatorFilter] =
+    useState<InitiatorFilter>('all');
 
   const loadLogs = useCallback(async () => {
     if (!productId) return;
@@ -216,29 +216,39 @@ export function ProductAutomationHistoryPanel({
     if (statusFilter !== 'all') {
       const normalizedStatus = log.status.toLowerCase();
       // [FIXUP-1] Use status='skipped' as primary check, with action fallback
-      const isSkipped = normalizedStatus === 'skipped' || log.action.startsWith('skip_');
-      if (statusFilter === 'succeeded' && normalizedStatus !== 'succeeded') return false;
-      if (statusFilter === 'failed' && normalizedStatus !== 'failed') return false;
+      const isSkipped =
+        normalizedStatus === 'skipped' || log.action.startsWith('skip_');
+      if (statusFilter === 'succeeded' && normalizedStatus !== 'succeeded')
+        return false;
+      if (statusFilter === 'failed' && normalizedStatus !== 'failed')
+        return false;
       if (statusFilter === 'skipped' && !isSkipped) return false;
     }
     // Initiator filter
     if (initiatorFilter !== 'all') {
       // [FIXUP-1] Treat 'manual' and 'manual_sync' as manual triggers
-      const isManual = log.triggerType === 'manual' || log.triggerType === 'manual_sync';
+      const isManual =
+        log.triggerType === 'manual' || log.triggerType === 'manual_sync';
       if (initiatorFilter === 'manual' && !isManual) return false;
       if (initiatorFilter === 'automation' && isManual) return false;
     }
     return true;
   });
 
-  const sortedLogs = filteredLogs.length > 0
-    ? [...filteredLogs].sort((a, b) => {
-        const aTime = new Date(a.createdAt).getTime();
-        const bTime = new Date(b.createdAt).getTime();
-        return bTime - aTime;
-      })
-    : [];
-  const latestLog = hasLogs ? [...logs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] : null;
+  const sortedLogs =
+    filteredLogs.length > 0
+      ? [...filteredLogs].sort((a, b) => {
+          const aTime = new Date(a.createdAt).getTime();
+          const bTime = new Date(b.createdAt).getTime();
+          return bTime - aTime;
+        })
+      : [];
+  const latestLog = hasLogs
+    ? [...logs].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )[0]
+    : null;
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -310,14 +320,17 @@ export function ProductAutomationHistoryPanel({
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
-          <p className="mt-2 text-sm text-gray-500">Loading automation history...</p>
+          <p className="mt-2 text-sm text-gray-500">
+            Loading automation history...
+          </p>
         </div>
       )}
 
       {!loading && !error && logs.length === 0 && (
         <div className="py-4 text-xs text-gray-500">
-          No Answer Block automation runs have been recorded for this product yet.
-          When automations run, they will appear here with status and timestamps.
+          No Answer Block automation runs have been recorded for this product
+          yet. When automations run, they will appear here with status and
+          timestamps.
         </div>
       )}
 
@@ -344,12 +357,20 @@ export function ProductAutomationHistoryPanel({
               Affected: {getWhatAffectedLabel(latestLog)}
             </div>
             {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Skip/fail explanation */}
-            {getSkipReasonExplanation(latestLog.action, latestLog.status, latestLog.errorMessage) && (
+            {getSkipReasonExplanation(
+              latestLog.action,
+              latestLog.status,
+              latestLog.errorMessage
+            ) && (
               <div
                 data-testid="skipped-row-explanation"
                 className="mt-1 rounded bg-yellow-50 px-2 py-1 text-[11px] text-yellow-800"
               >
-                {getSkipReasonExplanation(latestLog.action, latestLog.status, latestLog.errorMessage)}
+                {getSkipReasonExplanation(
+                  latestLog.action,
+                  latestLog.status,
+                  latestLog.errorMessage
+                )}
               </div>
             )}
             <button
@@ -366,7 +387,12 @@ export function ProductAutomationHistoryPanel({
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
           </div>
@@ -379,7 +405,9 @@ export function ProductAutomationHistoryPanel({
                   <select
                     data-testid="automation-status-filter"
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                    onChange={(e) =>
+                      setStatusFilter(e.target.value as StatusFilter)
+                    }
                     className="rounded border border-gray-200 px-2 py-0.5 text-[11px] text-gray-700"
                   >
                     <option value="all">All</option>
@@ -393,7 +421,9 @@ export function ProductAutomationHistoryPanel({
                   <select
                     data-testid="automation-initiator-filter"
                     value={initiatorFilter}
-                    onChange={(e) => setInitiatorFilter(e.target.value as InitiatorFilter)}
+                    onChange={(e) =>
+                      setInitiatorFilter(e.target.value as InitiatorFilter)
+                    }
                     className="rounded border border-gray-200 px-2 py-0.5 text-[11px] text-gray-700"
                   >
                     <option value="all">All</option>
@@ -427,12 +457,20 @@ export function ProductAutomationHistoryPanel({
                         Affected: {getWhatAffectedLabel(log)}
                       </div>
                       {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Skip/fail explanation */}
-                      {getSkipReasonExplanation(log.action, log.status, log.errorMessage) && (
+                      {getSkipReasonExplanation(
+                        log.action,
+                        log.status,
+                        log.errorMessage
+                      ) && (
                         <div
                           data-testid="skipped-row-explanation"
                           className="mt-1 rounded bg-yellow-50 px-2 py-1 text-[11px] text-yellow-800"
                         >
-                          {getSkipReasonExplanation(log.action, log.status, log.errorMessage)}
+                          {getSkipReasonExplanation(
+                            log.action,
+                            log.status,
+                            log.errorMessage
+                          )}
                         </div>
                       )}
                     </div>

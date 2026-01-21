@@ -10,8 +10,8 @@ export function ProductTourPlatforms() {
               Supported platforms
             </h2>
             <p className="mt-3 text-sm text-muted-foreground">
-              EngineO.ai works across ecommerce and content platforms so you can optimize everything
-              from stores to blogs to documentation.
+              EngineO.ai works across ecommerce and content platforms so you can
+              optimize everything from stores to blogs to documentation.
             </p>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
               <li>WordPress</li>

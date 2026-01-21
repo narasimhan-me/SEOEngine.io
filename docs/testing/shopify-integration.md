@@ -50,10 +50,12 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - User has a project not yet connected to Shopify
 - User has a Shopify store
 
 **Steps:**
+
 1. Navigate to Project Overview
 2. Enter Shopify store domain
 3. Click "Connect Shopify"
@@ -61,6 +63,7 @@
 5. Return to EngineO
 
 **Expected Results:**
+
 - **Redirect:** User sent to Shopify OAuth page
 - **Authorization:** User sees EngineO app permission request
 - **Callback:** Redirected back to EngineO with auth code
@@ -74,13 +77,16 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Project was previously connected but needs reauthorization
 
 **Steps:**
+
 1. Click "Reconnect" or "Refresh Connection"
 2. Complete OAuth flow again
 
 **Expected Results:**
+
 - **Flow:** Same as initial connect
 - **Token:** Access token updated
 - **Data:** Existing product associations preserved
@@ -92,13 +98,16 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Shopify store connected
 
 **Steps:**
+
 1. After successful connection
 2. Check displayed store info
 
 **Expected Results:**
+
 - **Store Name:** Displayed correctly
 - **Domain:** Shown in UI
 - **Status:** "Connected" indicator visible
@@ -110,14 +119,17 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Project has connected Shopify store
 
 **Steps:**
+
 1. Navigate to project settings/integrations
 2. Click "Disconnect" Shopify
 3. Confirm disconnection
 
 **Expected Results:**
+
 - **Status:** Changes to "Not Connected"
 - **Database:** Integration record removed or marked inactive
 - **Products:** Optionally archived or retained
@@ -132,10 +144,12 @@
 **Description:** User enters malformed store domain.
 
 **Steps:**
+
 1. Enter "not-a-valid-domain" or "http://example"
 2. Attempt to connect
 
 **Expected Behavior:**
+
 - Validation error shown
 - Connect not attempted
 - User prompted to fix domain
@@ -147,10 +161,12 @@
 **Description:** Valid format but store doesn't exist.
 
 **Steps:**
+
 1. Enter valid format but non-existent store
 2. Attempt OAuth
 
 **Expected Behavior:**
+
 - Shopify returns error
 - User informed store not found
 - No partial connection created
@@ -162,10 +178,12 @@
 **Description:** User clicks "Cancel" on Shopify OAuth screen.
 
 **Steps:**
+
 1. Start connect flow
 2. Cancel on Shopify authorization page
 
 **Expected Behavior:**
+
 - User returned to EngineO
 - "Connection cancelled" message
 - Project remains unconnected
@@ -177,10 +195,12 @@
 **Description:** Callback URL tampered with or expired.
 
 **Steps:**
+
 1. Start OAuth flow
 2. Modify state parameter in callback URL
 
 **Expected Behavior:**
+
 - Invalid state detected
 - Connection rejected
 - Security error logged
@@ -195,9 +215,11 @@
 **Scenario:** Shopify service returns 500 or other error.
 
 **Steps:**
+
 1. Attempt connect when Shopify is having issues
 
 **Expected Behavior:**
+
 - User sees "Unable to connect to Shopify"
 - Retry option available
 - No broken connection state
@@ -209,10 +231,12 @@
 **Scenario:** Store owner revokes app access from Shopify admin.
 
 **Steps:**
+
 1. Revoke app from Shopify admin
 2. Attempt to sync products in EngineO
 
 **Expected Behavior:**
+
 - API call fails with auth error
 - User notified: "Reconnection required"
 - Reconnect flow available
@@ -224,9 +248,11 @@
 **Scenario:** Callback takes too long to process.
 
 **Steps:**
+
 1. Simulate slow callback processing
 
 **Expected Behavior:**
+
 - Timeout handled gracefully
 - User informed of issue
 - Can retry flow
@@ -238,10 +264,12 @@
 **Scenario:** Same store connected to multiple projects.
 
 **Steps:**
+
 1. Connect store to Project A
 2. Attempt to connect same store to Project B
 
 **Expected Behavior:**
+
 - Warning about existing connection (if applicable)
 - Or: Both connections allowed
 - Clear policy communicated
@@ -255,10 +283,12 @@
 **Scenario:** Project can only have one Shopify integration.
 
 **Steps:**
+
 1. Project has connected store
 2. Attempt to connect different store
 
 **Expected Behavior:**
+
 - Must disconnect existing first
 - Or: New store replaces old
 - Clear messaging about behavior
@@ -270,9 +300,11 @@
 **Scenario:** Rapid API calls during connection.
 
 **Steps:**
+
 1. Trigger many connection-related API calls
 
 **Expected Behavior:**
+
 - Rate limits respected
 - Retry logic for 429 responses
 - User not blocked indefinitely
@@ -329,9 +361,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Cross-cutting system-level tests for Shopify integration |
+| Field              | Value                                                    |
+| ------------------ | -------------------------------------------------------- |
+| **Tester Name**    | [Pending]                                                |
+| **Date**           | [YYYY-MM-DD]                                             |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed                    |
+| **Notes**          | Cross-cutting system-level tests for Shopify integration |

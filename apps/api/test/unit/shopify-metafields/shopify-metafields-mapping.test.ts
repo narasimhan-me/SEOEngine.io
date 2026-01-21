@@ -20,7 +20,7 @@ describe('mapAnswerBlocksToMetafieldPayloads', () => {
     const keysByQuestionId: Record<string, string> = {};
     for (const mapping of mappings) {
       const block = blocks.find(
-        (b) => mapping.value === `Answer for ${b.questionId}`,
+        (b) => mapping.value === `Answer for ${b.questionId}`
       );
       expect(block).toBeDefined();
       if (block) {
@@ -34,7 +34,7 @@ describe('mapAnswerBlocksToMetafieldPayloads', () => {
     expect(keysByQuestionId['key_features']).toBe('answer_key_features');
     expect(keysByQuestionId['materials_and_specs']).toBe('answer_materials');
     expect(keysByQuestionId['care_safety_instructions']).toBe(
-      'answer_care_instructions',
+      'answer_care_instructions'
     );
   });
 

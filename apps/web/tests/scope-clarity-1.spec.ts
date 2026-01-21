@@ -25,9 +25,12 @@ const API_BASE_URL = process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
  * Seed user and project via seed-first-deo-win
  */
 async function seedFirstDeoWin(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-first-deo-win`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   return {
@@ -67,12 +70,17 @@ test.describe('SCOPE-CLARITY-1: Scope Chips Rendering', () => {
     await expect(scopeChips).toBeVisible();
 
     // Assert pillar chip is present with correct type
-    const pillarChip = page.locator('[data-testid="scope-chip"][data-scope-chip-type="pillar"]');
+    const pillarChip = page.locator(
+      '[data-testid="scope-chip"][data-scope-chip-type="pillar"]'
+    );
     await expect(pillarChip).toBeVisible();
     await expect(pillarChip).toContainText('Pillar:');
   });
 
-  test('Mode chip renders when mode param present', async ({ page, request }) => {
+  test('Mode chip renders when mode param present', async ({
+    page,
+    request,
+  }) => {
     const { accessToken, projectId } = await seedFirstDeoWin(request);
     await authenticatePage(page, accessToken);
 
@@ -86,12 +94,17 @@ test.describe('SCOPE-CLARITY-1: Scope Chips Rendering', () => {
     await expect(scopeBanner).toBeVisible();
 
     // Assert mode chip is present with correct type
-    const modeChip = page.locator('[data-testid="scope-chip"][data-scope-chip-type="mode"]');
+    const modeChip = page.locator(
+      '[data-testid="scope-chip"][data-scope-chip-type="mode"]'
+    );
     await expect(modeChip).toBeVisible();
     await expect(modeChip).toContainText('Actionable');
   });
 
-  test('Multiple chips render in priority order: pillar + mode', async ({ page, request }) => {
+  test('Multiple chips render in priority order: pillar + mode', async ({
+    page,
+    request,
+  }) => {
     const { accessToken, projectId } = await seedFirstDeoWin(request);
     await authenticatePage(page, accessToken);
 
@@ -101,8 +114,12 @@ test.describe('SCOPE-CLARITY-1: Scope Chips Rendering', () => {
     await page.waitForLoadState('networkidle');
 
     // Assert both chips are present
-    const pillarChip = page.locator('[data-testid="scope-chip"][data-scope-chip-type="pillar"]');
-    const modeChip = page.locator('[data-testid="scope-chip"][data-scope-chip-type="mode"]');
+    const pillarChip = page.locator(
+      '[data-testid="scope-chip"][data-scope-chip-type="pillar"]'
+    );
+    const modeChip = page.locator(
+      '[data-testid="scope-chip"][data-scope-chip-type="mode"]'
+    );
 
     await expect(pillarChip).toBeVisible();
     await expect(modeChip).toBeVisible();
@@ -115,7 +132,10 @@ test.describe('SCOPE-CLARITY-1: Scope Chips Rendering', () => {
 });
 
 test.describe('SCOPE-CLARITY-1: Scope Normalization Priority', () => {
-  test('issueType takes priority over pillar (pillar dropped)', async ({ page, request }) => {
+  test('issueType takes priority over pillar (pillar dropped)', async ({
+    page,
+    request,
+  }) => {
     const { accessToken, projectId } = await seedFirstDeoWin(request);
     await authenticatePage(page, accessToken);
 
@@ -125,15 +145,21 @@ test.describe('SCOPE-CLARITY-1: Scope Normalization Priority', () => {
     await page.waitForLoadState('networkidle');
 
     // Assert issueType chip is present
-    const issueTypeChip = page.locator('[data-testid="scope-chip"][data-scope-chip-type="issueType"]');
+    const issueTypeChip = page.locator(
+      '[data-testid="scope-chip"][data-scope-chip-type="issueType"]'
+    );
     await expect(issueTypeChip).toBeVisible();
 
     // Assert pillar chip is NOT present (dropped by normalization)
-    const pillarChip = page.locator('[data-testid="scope-chip"][data-scope-chip-type="pillar"]');
+    const pillarChip = page.locator(
+      '[data-testid="scope-chip"][data-scope-chip-type="pillar"]'
+    );
     await expect(pillarChip).not.toBeVisible();
 
     // Assert wasAdjusted note is shown
-    const adjustedNote = page.locator('[data-testid="scope-banner-adjusted-note"]');
+    const adjustedNote = page.locator(
+      '[data-testid="scope-banner-adjusted-note"]'
+    );
     await expect(adjustedNote).toBeVisible();
     await expect(adjustedNote).toContainText('adjusted');
 
@@ -146,7 +172,9 @@ test.describe('SCOPE-CLARITY-1: Scope Normalization Priority', () => {
 
     // The Metadata Snippet Quality pillar button should NOT be in active state
     // Since pillar was dropped by normalization (issueType > pillar), the filter should remain on "All"
-    const metadataPillarButton = page.locator('[data-testid="pillar-filter-metadata_snippet_quality"]');
+    const metadataPillarButton = page.locator(
+      '[data-testid="pillar-filter-metadata_snippet_quality"]'
+    );
     await expect(metadataPillarButton).toBeVisible();
     await expect(metadataPillarButton).toHaveAttribute('aria-pressed', 'false');
   });
@@ -179,12 +207,17 @@ test.describe('SCOPE-CLARITY-1: Clear Filters Behavior', () => {
 });
 
 test.describe('SCOPE-CLARITY-1: Banner Hidden Without From', () => {
-  test('Scope banner not visible when from param is absent', async ({ page, request }) => {
+  test('Scope banner not visible when from param is absent', async ({
+    page,
+    request,
+  }) => {
     const { accessToken, projectId } = await seedFirstDeoWin(request);
     await authenticatePage(page, accessToken);
 
     // Navigate to Issues Engine WITHOUT from param
-    await page.goto(`/projects/${projectId}/issues?pillar=metadata_snippet_quality`);
+    await page.goto(
+      `/projects/${projectId}/issues?pillar=metadata_snippet_quality`
+    );
     await page.waitForLoadState('networkidle');
 
     // Assert scope-banner is NOT visible (no from param)

@@ -28,7 +28,9 @@ export default function OrganizationPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
-  const [confirmDisconnect, setConfirmDisconnect] = useState<string | null>(null);
+  const [confirmDisconnect, setConfirmDisconnect] = useState<string | null>(
+    null
+  );
 
   const [organizationName, setOrganizationName] = useState('');
   const [accountRole, setAccountRole] = useState('OWNER');
@@ -71,7 +73,9 @@ export default function OrganizationPage() {
 
     try {
       setSaving(true);
-      await accountApi.updateProfile({ organizationName: organizationName || null });
+      await accountApi.updateProfile({
+        organizationName: organizationName || null,
+      });
       setSuccess('Organization name updated.');
     } catch (err: any) {
       setError(err.message || 'Failed to update organization');
@@ -137,10 +141,14 @@ export default function OrganizationPage() {
 
       {/* Organization Name */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Organization</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          Organization
+        </h2>
         <form onSubmit={handleSaveOrg}>
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">Organization Name</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Organization Name
+            </label>
             <input
               type="text"
               value={organizationName}
@@ -150,7 +158,9 @@ export default function OrganizationPage() {
               placeholder="Your organization name"
             />
             {isReadOnly && (
-              <p className="mt-1 text-xs text-gray-500">You have read-only access</p>
+              <p className="mt-1 text-xs text-gray-500">
+                You have read-only access
+              </p>
             )}
           </div>
           {!isReadOnly && (
@@ -170,7 +180,9 @@ export default function OrganizationPage() {
       {/* Connected Stores */}
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Connected Stores</h2>
+          <h2 className="text-lg font-semibold text-gray-900">
+            Connected Stores
+          </h2>
           <a
             href="/projects"
             className="text-sm text-blue-600 hover:text-blue-700"
@@ -191,9 +203,12 @@ export default function OrganizationPage() {
                 className="border border-gray-200 rounded-lg p-4 flex items-center justify-between"
               >
                 <div>
-                  <h3 className="font-medium text-gray-900">{store.projectName}</h3>
+                  <h3 className="font-medium text-gray-900">
+                    {store.projectName}
+                  </h3>
                   <p className="text-sm text-gray-500">
-                    {store.storeDomain || 'No domain'} &middot; {store.integrationType}
+                    {store.storeDomain || 'No domain'} &middot;{' '}
+                    {store.integrationType}
                   </p>
                   <p className="text-xs text-gray-400">
                     Connected {new Date(store.connectedAt).toLocaleDateString()}
@@ -209,7 +224,9 @@ export default function OrganizationPage() {
                             disabled={disconnecting === store.projectId}
                             className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
                           >
-                            {disconnecting === store.projectId ? 'Disconnecting...' : 'Confirm'}
+                            {disconnecting === store.projectId
+                              ? 'Disconnecting...'
+                              : 'Confirm'}
                           </button>
                           <button
                             onClick={() => setConfirmDisconnect(null)}

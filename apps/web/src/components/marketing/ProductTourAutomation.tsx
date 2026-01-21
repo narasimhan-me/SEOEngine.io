@@ -8,7 +8,9 @@ export function ProductTourAutomation() {
         <p className="mt-3 text-sm text-muted-foreground">
           Your website changes. Your visibility shouldn&apos;t break.
         </p>
-        <p className="mt-3 text-sm text-muted-foreground">EngineO.ai automates:</p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          EngineO.ai automates:
+        </p>
         <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
           <li>Scheduled crawls</li>
           <li>DEO recompute</li>

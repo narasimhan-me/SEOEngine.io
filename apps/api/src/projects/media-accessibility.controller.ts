@@ -74,7 +74,7 @@ export class MediaAccessibilityController {
     private readonly aiUsageQuotaService: AiUsageQuotaService,
     private readonly aiUsageLedgerService: AiUsageLedgerService,
     private readonly shopifyService: ShopifyService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   // ============================================================================
@@ -88,10 +88,13 @@ export class MediaAccessibilityController {
   @Get('projects/:projectId/media')
   async getProjectMediaAccessibility(
     @Request() req: any,
-    @Param('projectId') projectId: string,
+    @Param('projectId') projectId: string
   ): Promise<ProjectMediaAccessibilityResponse> {
     const userId = req.user.id;
-    return this.mediaAccessibilityService.getProjectMediaAccessibility(projectId, userId);
+    return this.mediaAccessibilityService.getProjectMediaAccessibility(
+      projectId,
+      userId
+    );
   }
 
   /**
@@ -101,10 +104,13 @@ export class MediaAccessibilityController {
   @Get('projects/:projectId/media/scorecard')
   async getProjectMediaScorecard(
     @Request() req: any,
-    @Param('projectId') projectId: string,
+    @Param('projectId') projectId: string
   ): Promise<MediaAccessibilityScorecard> {
     const userId = req.user.id;
-    return this.mediaAccessibilityService.getProjectMediaScorecard(projectId, userId);
+    return this.mediaAccessibilityService.getProjectMediaScorecard(
+      projectId,
+      userId
+    );
   }
 
   // ============================================================================
@@ -118,14 +124,17 @@ export class MediaAccessibilityController {
   @Get('products/:productId/media')
   async getProductMediaData(
     @Request() req: any,
-    @Param('productId') productId: string,
+    @Param('productId') productId: string
   ): Promise<{
     stats: ProductMediaStats;
     images: ProductImageView[];
     openDrafts: MediaFixDraft[];
   }> {
     const userId = req.user.id;
-    return this.mediaAccessibilityService.getProductMediaData(productId, userId);
+    return this.mediaAccessibilityService.getProductMediaData(
+      productId,
+      userId
+    );
   }
 
   /**
@@ -142,7 +151,7 @@ export class MediaAccessibilityController {
   async previewMediaFix(
     @Request() req: any,
     @Param('productId') productId: string,
-    @Body() dto: MediaFixPreviewDto,
+    @Body() dto: MediaFixPreviewDto
   ): Promise<MediaFixPreviewResponse> {
     const userId = req.user.id;
 
@@ -162,7 +171,10 @@ export class MediaAccessibilityController {
     }
 
     // [ROLES-3 FIXUP-3] OWNER/EDITOR only for draft generation
-    await this.roleResolution.assertCanGenerateDrafts(product.projectId, userId);
+    await this.roleResolution.assertCanGenerateDrafts(
+      product.projectId,
+      userId
+    );
 
     const projectId = product.projectId;
 
@@ -171,11 +183,12 @@ export class MediaAccessibilityController {
       projectId,
       productId,
       dto.imageId,
-      dto.draftType,
+      dto.draftType
     );
 
     // Check for existing unexpired draft
-    const existingDraft = await this.mediaAccessibilityService.findDraftByWorkKey(aiWorkKey);
+    const existingDraft =
+      await this.mediaAccessibilityService.findDraftByWorkKey(aiWorkKey);
 
     if (existingDraft) {
       // Return reused draft — no AI call
@@ -202,7 +215,7 @@ export class MediaAccessibilityController {
 
     if (quotaEval.status === 'blocked') {
       throw new ForbiddenException(
-        'AI usage quota exceeded. Please wait until next month or upgrade your plan.',
+        'AI usage quota exceeded. Please wait until next month or upgrade your plan.'
       );
     }
 
@@ -326,7 +339,7 @@ export class MediaAccessibilityController {
   async applyMediaFix(
     @Request() req: any,
     @Param('productId') productId: string,
-    @Body() dto: MediaFixApplyDto,
+    @Body() dto: MediaFixApplyDto
   ): Promise<MediaFixApplyResponse> {
     const userId = req.user.id;
 
@@ -373,10 +386,13 @@ export class MediaAccessibilityController {
           applyTarget: dto.applyTarget,
         });
       } catch (error) {
-        console.warn('[MediaAccessibility] Shopify write-back failed (best-effort)', {
-          productId,
-          error,
-        });
+        console.warn(
+          '[MediaAccessibility] Shopify write-back failed (best-effort)',
+          {
+            productId,
+            error,
+          }
+        );
         // Continue — local update succeeded
       }
     }

@@ -9,8 +9,8 @@ export function ProductTourCTASection() {
             Try EngineO.ai
           </h2>
           <p className="text-sm text-primary-foreground/80">
-            Everything you need to understand and improve your website. Get your DEO Score, issues,
-            and AI-powered fixes in minutes.
+            Everything you need to understand and improve your website. Get your
+            DEO Score, issues, and AI-powered fixes in minutes.
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Link

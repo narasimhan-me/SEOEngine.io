@@ -43,14 +43,16 @@ const createRoleResolutionServiceMock = () => ({
 describe('CompetitorsService', () => {
   let service: CompetitorsService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
-  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
+  let roleResolutionServiceMock: ReturnType<
+    typeof createRoleResolutionServiceMock
+  >;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
     roleResolutionServiceMock = createRoleResolutionServiceMock();
     service = new CompetitorsService(
       prismaMock as unknown as PrismaService,
-      roleResolutionServiceMock as unknown as RoleResolutionService,
+      roleResolutionServiceMock as unknown as RoleResolutionService
     );
   });
 
@@ -81,10 +83,15 @@ describe('CompetitorsService', () => {
       };
 
       prismaMock.product.findUnique.mockResolvedValue(mockProduct);
-      prismaMock.productCompetitiveCoverage.findUnique.mockResolvedValue(mockCoverage);
+      prismaMock.productCompetitiveCoverage.findUnique.mockResolvedValue(
+        mockCoverage
+      );
       prismaMock.productCompetitiveFixDraft.findMany.mockResolvedValue([]);
 
-      const result = await service.getProductCompetitiveData('prod-1', 'user-1');
+      const result = await service.getProductCompetitiveData(
+        'prod-1',
+        'user-1'
+      );
 
       expect(result).toHaveProperty('productId', 'prod-1');
       expect(result).toHaveProperty('competitors');
@@ -97,7 +104,7 @@ describe('CompetitorsService', () => {
       prismaMock.product.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.getProductCompetitiveData('prod-1', 'user-1'),
+        service.getProductCompetitiveData('prod-1', 'user-1')
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -112,11 +119,11 @@ describe('CompetitorsService', () => {
 
       prismaMock.product.findUnique.mockResolvedValue(mockProduct);
       roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
-        new ForbiddenException('You do not have access to this project'),
+        new ForbiddenException('You do not have access to this project')
       );
 
       await expect(
-        service.getProductCompetitiveData('prod-1', 'user-1'),
+        service.getProductCompetitiveData('prod-1', 'user-1')
       ).rejects.toThrow(ForbiddenException);
     });
 
@@ -151,7 +158,10 @@ describe('CompetitorsService', () => {
       });
       prismaMock.productCompetitiveFixDraft.findMany.mockResolvedValue([]);
 
-      const result = await service.getProductCompetitiveData('prod-1', 'user-1');
+      const result = await service.getProductCompetitiveData(
+        'prod-1',
+        'user-1'
+      );
 
       expect(result).toHaveProperty('coverage');
       expect(prismaMock.productCompetitiveCoverage.upsert).toHaveBeenCalled();
@@ -184,7 +194,9 @@ describe('CompetitorsService', () => {
       ];
 
       prismaMock.product.findMany.mockResolvedValue(mockProducts);
-      prismaMock.productCompetitiveCoverage.findMany.mockResolvedValue(mockCoverageRows);
+      prismaMock.productCompetitiveCoverage.findMany.mockResolvedValue(
+        mockCoverageRows
+      );
 
       const result = await service.buildCompetitiveIssues('proj-1');
 
@@ -201,4 +213,3 @@ describe('CompetitorsService', () => {
     });
   });
 });
-

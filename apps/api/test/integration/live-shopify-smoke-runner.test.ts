@@ -21,10 +21,7 @@ const describeIfConfigured = shouldSkipTests ? describe.skip : describe;
 
 describeIfConfigured('TEST-3 – Live Shopify Smoke Runner (dry mode)', () => {
   const originalEnv = { ...process.env };
-  const artifactsDir = path.join(
-    process.cwd(),
-    'apps/api/artifacts',
-  );
+  const artifactsDir = path.join(process.cwd(), 'apps/api/artifacts');
 
   beforeEach(() => {
     // Clean up artifacts directory before each test
@@ -59,18 +56,21 @@ describeIfConfigured('TEST-3 – Live Shopify Smoke Runner (dry mode)', () => {
 
   function runSmokeScript(
     args: string[] = [],
-    env: Record<string, string> = {},
+    env: Record<string, string> = {}
   ): { stdout: string; stderr: string; exitCode: number } {
     const fullEnv = { ...process.env, ...setValidEnv(), ...env };
     // Run from apps/api directory using pnpm to ensure ts-node is available
-    const scriptPath = path.join(process.cwd(), 'apps/api/scripts/shopify-live-smoke.ts');
+    const scriptPath = path.join(
+      process.cwd(),
+      'apps/api/scripts/shopify-live-smoke.ts'
+    );
     const cwd = path.join(process.cwd(), 'apps/api');
 
     // Build environment string for shell execution
     const envVars = Object.entries(fullEnv)
       .map(([key, value]) => `${key}="${String(value).replace(/"/g, '\\"')}"`)
       .join(' ');
-    
+
     // Use execSync with shell to properly capture output
     const command = `cd "${cwd}" && ${envVars} pnpm exec ts-node "${scriptPath}" ${args.join(' ')}`;
 
@@ -114,13 +114,21 @@ describeIfConfigured('TEST-3 – Live Shopify Smoke Runner (dry mode)', () => {
 
       // Log output for debugging
       if (!result.stdout && !result.stderr) {
-        console.log('Both stdout and stderr are empty. Exit code:', result.exitCode);
+        console.log(
+          'Both stdout and stderr are empty. Exit code:',
+          result.exitCode
+        );
       } else {
-        console.log('STDOUT length:', result.stdout.length, 'STDERR length:', result.stderr.length);
+        console.log(
+          'STDOUT length:',
+          result.stdout.length,
+          'STDERR length:',
+          result.stderr.length
+        );
         console.log('STDOUT:', result.stdout.substring(0, 200));
         console.log('STDERR:', result.stderr.substring(0, 200));
       }
-      
+
       expect(result.exitCode).toBe(0);
       // The script outputs to stdout, but if it's empty, check stderr or combine them
       const output = result.stdout || result.stderr;
@@ -178,7 +186,9 @@ describeIfConfigured('TEST-3 – Live Shopify Smoke Runner (dry mode)', () => {
       });
 
       expect(result.exitCode).toBe(1);
-      expect(result.stdout).toContain('SHOPIFY_TEST_STORE_ALLOWLIST must be set');
+      expect(result.stdout).toContain(
+        'SHOPIFY_TEST_STORE_ALLOWLIST must be set'
+      );
     });
 
     it('fails when database URL is missing', () => {
@@ -244,10 +254,10 @@ describe('TEST-3 – Audit record shape validation', () => {
     expect(mockRecord.runId).toMatch(/^\d{8}-[a-f0-9]+$/);
     expect(mockRecord.storeDomain).toContain('.myshopify.com');
     expect(['running', 'success', 'failure', 'cleanup_pending']).toContain(
-      mockRecord.status,
+      mockRecord.status
     );
     expect(['success', 'partial', 'failed', 'skipped']).toContain(
-      mockRecord.cleanupStatus,
+      mockRecord.cleanupStatus
     );
   });
 });

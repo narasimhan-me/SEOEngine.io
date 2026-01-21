@@ -31,12 +31,12 @@ describe('ShopifyService.fetchShopifyProducts (GraphQL mapping)', () => {
       prismaStub,
       configStub,
       automationStub,
-      roleResolutionStub,
+      roleResolutionStub
     );
 
     const products = await (shopifyService as any).fetchShopifyProducts(
       'test-store.myshopify.com',
-      'test-token',
+      'test-token'
     );
 
     expect(products).toHaveLength(1); // e2e mock returns 1 product
@@ -47,7 +47,9 @@ describe('ShopifyService.fetchShopifyProducts (GraphQL mapping)', () => {
     expect(product.handle).toBe('test-product-1');
     expect(product.body_html).toBe('<p>Test description 1</p>');
     expect(product.metafields_global_title_tag).toBe('Test SEO Title 1');
-    expect(product.metafields_global_description_tag).toBe('Test SEO Description 1');
+    expect(product.metafields_global_description_tag).toBe(
+      'Test SEO Description 1'
+    );
     expect(product.images).toBeDefined();
     expect(Array.isArray(product.images)).toBe(true);
     expect(product.images).toHaveLength(0); // e2e mock returns empty images array

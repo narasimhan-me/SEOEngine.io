@@ -59,15 +59,18 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - User is OWNER of a project with products missing SEO metadata
 
 **Steps:**
+
 1. Login as OWNER
 2. Navigate to project
 3. Click "Work Queue" in sidebar navigation
 4. Observe the page layout
 
 **Expected Results:**
+
 - **UI:**
   - Page title "Work Queue" visible
   - Tab bar with Critical, Needs Attention, Pending Approval, Drafts Ready, Applied Recently
@@ -83,13 +86,16 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Project has 5+ products with missing SEO titles
 
 **Steps:**
+
 1. Navigate to Work Queue page
 2. Look for "Fix missing SEO titles" or similar automation bundle
 
 **Expected Results:**
+
 - **UI:**
   - Automation bundle card visible with bundleType=AUTOMATION_RUN
   - Scope shows "Applies to N products"
@@ -104,9 +110,11 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Project has bundles in various states
 
 **Steps:**
+
 1. Click "Critical" tab
 2. Verify only CRITICAL health bundles shown
 3. Click "Needs Attention" tab
@@ -115,6 +123,7 @@
 6. Verify only APPLIED state bundles shown (or empty message)
 
 **Expected Results:**
+
 - **UI:** Tab becomes active, URL updates with ?tab= param, cards filter correctly
 - **API:** Each request includes tab param and returns filtered results
 
@@ -125,9 +134,11 @@
 **ID:** HP-003b
 
 **Preconditions:**
+
 - Project has bundles with different scopeTypes (PRODUCTS, PAGES, COLLECTIONS)
 
 **Steps:**
+
 1. Navigate to /projects/:id/work-queue?scopeType=PAGES
 2. Verify only PAGES bundles shown
 3. Navigate to /projects/:id/work-queue?scopeType=COLLECTIONS
@@ -136,6 +147,7 @@
 6. Verify only PRODUCTS bundles shown
 
 **Expected Results:**
+
 - **UI:** Only bundles matching scopeType filter are displayed
 - **URL:** scopeType param preserved in URL
 - **API:** GET /projects/:id/work-queue?scopeType=PAGES returns only PAGES bundles
@@ -148,15 +160,18 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Automation bundle in NEW state
 
 **Steps:**
+
 1. Click "Generate Drafts" on NEW automation bundle
 2. Complete draft generation flow in Automation page
 3. Return to Work Queue
 4. Verify bundle now shows DRAFTS_READY state
 
 **Expected Results:**
+
 - **UI:** Card state badge changes to "Drafts Ready", CTA changes to "Apply Changes"
 - **API:** Bundle state changes, draft subschema shows draftStatus=READY
 
@@ -167,16 +182,19 @@
 **ID:** HP-005
 
 **Preconditions:**
+
 - Automation bundle in DRAFTS_READY state
 - User is OWNER
 
 **Steps:**
+
 1. Find bundle with DRAFTS_READY state
 2. Click "Apply Changes" CTA
 3. Complete apply flow
 4. Return to Work Queue and check Applied Recently tab
 
 **Expected Results:**
+
 - **UI:** Bundle moves to Applied Recently tab with APPLIED state
 - **API:** Bundle appliedAt timestamp set, state=APPLIED
 
@@ -189,10 +207,12 @@
 **Description:** Project with no issues, no automation needs, no GEO bundles
 
 **Steps:**
+
 1. Create new project with no products
 2. Navigate to Work Queue
 
 **Expected Behavior:**
+
 - Empty state message displayed: "All caught up!"
 - No error messages
 
@@ -203,11 +223,13 @@
 **Description:** Bundle affects 100+ products
 
 **Steps:**
+
 1. Create project with 150 products missing metadata
 2. Navigate to Work Queue
 3. Check scope preview list
 
 **Expected Behavior:**
+
 - Shows first 5 product names + "+145 more"
 - No UI overflow or layout issues
 
@@ -218,12 +240,14 @@
 **Description:** Verify timestamps don't change on refresh
 
 **Steps:**
+
 1. Navigate to Work Queue
 2. Note createdAt/updatedAt of a bundle
 3. Refresh page
 4. Compare timestamps
 
 **Expected Behavior:**
+
 - Timestamps remain identical between refreshes
 - Derived from persisted artifacts (lastDeoComputedAt, draft updatedAt, etc.)
 
@@ -236,9 +260,11 @@
 **Scenario:** Work Queue endpoint returns 500
 
 **Steps:**
+
 1. Simulate API error (network disconnect or server down)
 
 **Expected Behavior:**
+
 - Error message displayed with "Try again" button
 - User not left on blank page
 
@@ -249,10 +275,12 @@
 **Scenario:** Non-member tries to view Work Queue
 
 **Steps:**
+
 1. Login as user not member of project
 2. Navigate directly to /projects/:id/work-queue
 
 **Expected Behavior:**
+
 - 403 Forbidden response
 - Redirect to projects list or access denied page
 
@@ -263,12 +291,14 @@
 **Scenario:** EDITOR tries to apply changes
 
 **Steps:**
+
 1. Login as EDITOR
 2. Navigate to Work Queue
 3. Find DRAFTS_READY bundle
 4. Observe Apply button
 
 **Expected Behavior:**
+
 - Apply button disabled or shows inline reason
 - Message: "Only owners can apply changes"
 
@@ -281,11 +311,13 @@
 **Scenario:** VIEWER cannot trigger any mutations
 
 **Steps:**
+
 1. Login as VIEWER
 2. Navigate to Work Queue
 3. Attempt any action CTA
 
 **Expected Behavior:**
+
 - All CTAs are view-only ("View Details", "View Drafts")
 - No mutation CTAs visible (Generate Drafts, Apply, Approve)
 
@@ -296,11 +328,13 @@
 **Scenario:** Apply requires approval in governed project
 
 **Steps:**
+
 1. Enable requireApprovalForApply in governance policy
 2. Login as EDITOR
 3. Navigate to Work Queue with DRAFTS_READY bundle
 
 **Expected Behavior:**
+
 - Apply disabled with message "Approval required before apply"
 - CTA shows "Request Approval" instead
 
@@ -356,9 +390,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Name] |
-| **Date** | [YYYY-MM-DD] |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    | [Name]                                |
+| **Date**           | [YYYY-MM-DD]                          |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | [Any additional notes] |
+| **Notes**          | [Any additional notes]                |

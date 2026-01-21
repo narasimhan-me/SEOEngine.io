@@ -60,7 +60,10 @@ export function buildPlaybookRunHref({
 
   // Optional asset scoping
   // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-3] Include assetType=PRODUCTS when scopeAssetRefs are present
-  if (assetType && (assetType !== 'PRODUCTS' || (scopeAssetRefs && scopeAssetRefs.length > 0))) {
+  if (
+    assetType &&
+    (assetType !== 'PRODUCTS' || (scopeAssetRefs && scopeAssetRefs.length > 0))
+  ) {
     params.set('assetType', assetType);
   }
   if (scopeAssetRefs && scopeAssetRefs.length > 0) {
@@ -87,15 +90,20 @@ export function buildPlaybookRunHref({
  * Returns null if scopeAssetRefs is present but assetType is missing (invalid scoped route).
  * Callers must handle null to prevent silent scope drops.
  */
-export function buildPlaybookRunHrefOrNull(args: BuildPlaybookRunHrefArgs): string | null {
+export function buildPlaybookRunHrefOrNull(
+  args: BuildPlaybookRunHrefArgs
+): string | null {
   const hasScope = !!args.scopeAssetRefs && args.scopeAssetRefs.length > 0;
   if (hasScope && !args.assetType) {
-    console.error('[PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Invalid scoped Playbooks route: scopeAssetRefs present but assetType missing. Navigation aborted.', {
-      playbookId: args.playbookId,
-      step: args.step,
-      source: args.source,
-      scopeAssetRefsCount: args.scopeAssetRefs?.length ?? 0,
-    });
+    console.error(
+      '[PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Invalid scoped Playbooks route: scopeAssetRefs present but assetType missing. Navigation aborted.',
+      {
+        playbookId: args.playbookId,
+        step: args.step,
+        source: args.source,
+        scopeAssetRefsCount: args.scopeAssetRefs?.length ?? 0,
+      }
+    );
     return null;
   }
   return buildPlaybookRunHref(args);
@@ -151,7 +159,7 @@ export function buildPlaybooksListHref({
  */
 export function navigateToPlaybookRun(
   router: AppRouterInstance,
-  args: BuildPlaybookRunHrefArgs,
+  args: BuildPlaybookRunHrefArgs
 ): void {
   const href = buildPlaybookRunHrefOrNull(args);
   if (!href) return;
@@ -166,7 +174,7 @@ export function navigateToPlaybookRun(
  */
 export function navigateToPlaybookRunReplace(
   router: AppRouterInstance,
-  args: BuildPlaybookRunHrefArgs,
+  args: BuildPlaybookRunHrefArgs
 ): void {
   const href = buildPlaybookRunHrefOrNull(args);
   if (!href) return;
@@ -176,7 +184,9 @@ export function navigateToPlaybookRunReplace(
 /**
  * Check if a playbook ID is valid.
  */
-export function isValidPlaybookId(id: string | null | undefined): id is PlaybookId {
+export function isValidPlaybookId(
+  id: string | null | undefined
+): id is PlaybookId {
   return id === 'missing_seo_title' || id === 'missing_seo_description';
 }
 
@@ -185,7 +195,7 @@ export function isValidPlaybookId(id: string | null | undefined): id is Playbook
  */
 export function navigateToPlaybooksList(
   router: AppRouterInstance,
-  args: BuildPlaybooksListHrefArgs,
+  args: BuildPlaybooksListHrefArgs
 ): void {
   router.push(buildPlaybooksListHref(args));
 }
@@ -225,7 +235,7 @@ function isValidProductIdRef(ref: string): boolean {
 
 export function buildPlaybookScopePayload(
   assetType: AutomationAssetType | undefined,
-  scopeAssetRefs: string[],
+  scopeAssetRefs: string[]
 ): PlaybookScopePayload {
   if (!scopeAssetRefs || scopeAssetRefs.length === 0) {
     return {};
@@ -236,10 +246,13 @@ export function buildPlaybookScopePayload(
     const validProductIds = scopeAssetRefs.filter(isValidProductIdRef);
     if (validProductIds.length === 0) {
       // Invalid scope: no valid product IDs after filtering
-      console.warn('[PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Invalid PRODUCTS scope: no valid product IDs after filtering.', {
-        originalCount: scopeAssetRefs.length,
-        filteredCount: 0,
-      });
+      console.warn(
+        '[PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Invalid PRODUCTS scope: no valid product IDs after filtering.',
+        {
+          originalCount: scopeAssetRefs.length,
+          filteredCount: 0,
+        }
+      );
       return {};
     }
     return {
@@ -266,9 +279,10 @@ export function buildPlaybookScopePayload(
  * Returns { assetType, scopeAssetRefs } when scope is valid, {} otherwise.
  * Excludes scopeProductIds (API-only field) from routing args.
  */
-export function getRoutingScopeFromPayload(
-  payload: PlaybookScopePayload,
-): { assetType?: AutomationAssetType; scopeAssetRefs?: string[] } {
+export function getRoutingScopeFromPayload(payload: PlaybookScopePayload): {
+  assetType?: AutomationAssetType;
+  scopeAssetRefs?: string[];
+} {
   if (!payload.scopeAssetRefs || payload.scopeAssetRefs.length === 0) {
     return {};
   }

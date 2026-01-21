@@ -16,7 +16,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { ProjectsService, CreateProjectDto, UpdateProjectDto, AddMemberDto, ChangeMemberRoleDto, CrawlPageListFilters } from './projects.service';
+import {
+  ProjectsService,
+  CreateProjectDto,
+  UpdateProjectDto,
+  AddMemberDto,
+  ChangeMemberRoleDto,
+  CrawlPageListFilters,
+} from './projects.service';
 import { ProjectMemberRole } from '@prisma/client';
 import { DeoScoreService, DeoSignalsService } from './deo-score.service';
 import { DeoIssuesService } from './deo-issues.service';
@@ -51,7 +58,10 @@ import { GovernanceService } from './governance.service';
 import { ApprovalsService } from './approvals.service';
 import { RoleResolutionService } from '../common/role-resolution.service';
 import { WorkQueueService } from './work-queue.service';
-import { ShopifyService, type ShopifyScopeStatus } from '../shopify/shopify.service';
+import {
+  ShopifyService,
+  type ShopifyScopeStatus,
+} from '../shopify/shopify.service';
 import type {
   WorkQueueTab,
   WorkQueueBundleType,
@@ -82,7 +92,7 @@ export class ProjectsController {
     private readonly approvalsService: ApprovalsService,
     private readonly roleResolutionService: RoleResolutionService,
     private readonly workQueueService: WorkQueueService,
-    private readonly shopifyService: ShopifyService,
+    private readonly shopifyService: ShopifyService
   ) {}
 
   /**
@@ -134,7 +144,7 @@ export class ProjectsController {
   async updateProject(
     @Request() req: any,
     @Param('id') projectId: string,
-    @Body() dto: UpdateProjectDto,
+    @Body() dto: UpdateProjectDto
   ) {
     return this.projectsService.updateProject(projectId, req.user.id, dto);
   }
@@ -146,8 +156,14 @@ export class ProjectsController {
    * for deterministic UI truthfulness (so UI does not re-encode eligibility rules).
    */
   @Get(':id/integration-status')
-  async getIntegrationStatus(@Request() req: any, @Param('id') projectId: string) {
-    const status = await this.projectsService.getIntegrationStatus(projectId, req.user.id);
+  async getIntegrationStatus(
+    @Request() req: any,
+    @Param('id') projectId: string
+  ) {
+    const status = await this.projectsService.getIntegrationStatus(
+      projectId,
+      req.user.id
+    );
 
     // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Get user's plan for eligibility determination
     const planId = await this.entitlementsService.getUserPlan(req.user.id);
@@ -155,7 +171,8 @@ export class ProjectsController {
     // Derived: will Answer Blocks be generated on product sync?
     // Requires: (1) planId !== 'free' AND (2) autoGenerateAnswerBlocksOnProductSync === true
     const willGenerateAnswerBlocksOnProductSync =
-      planId !== 'free' && (status.autoGenerateAnswerBlocksOnProductSync ?? false);
+      planId !== 'free' &&
+      (status.autoGenerateAnswerBlocksOnProductSync ?? false);
 
     return {
       ...status,
@@ -169,7 +186,10 @@ export class ProjectsController {
    * Returns project overview stats for dashboard
    */
   @Get(':id/overview')
-  async getProjectOverview(@Request() req: any, @Param('id') projectId: string) {
+  async getProjectOverview(
+    @Request() req: any,
+    @Param('id') projectId: string
+  ) {
     return this.projectsService.getProjectOverview(projectId, req.user.id);
   }
 
@@ -178,8 +198,14 @@ export class ProjectsController {
    * INSIGHTS-1: Read-only derived insights (no AI, no mutations).
    */
   @Get(':id/insights')
-  async getProjectInsights(@Request() req: any, @Param('id') projectId: string) {
-    return this.projectInsightsService.getProjectInsights(projectId, req.user.id);
+  async getProjectInsights(
+    @Request() req: any,
+    @Param('id') projectId: string
+  ) {
+    return this.projectInsightsService.getProjectInsights(
+      projectId,
+      req.user.id
+    );
   }
 
   /**
@@ -191,10 +217,13 @@ export class ProjectsController {
   @Get(':id/deo-issues')
   async getDeoIssues(
     @Request() req: any,
-    @Param('id') projectId: string,
+    @Param('id') projectId: string
   ): Promise<DeoIssuesResponse> {
     // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Use read-only variant to prevent automation side-effects on page load
-    return this.deoIssuesService.getIssuesForProjectReadOnly(projectId, req.user.id);
+    return this.deoIssuesService.getIssuesForProjectReadOnly(
+      projectId,
+      req.user.id
+    );
   }
 
   /**
@@ -205,9 +234,12 @@ export class ProjectsController {
   @Get(':id/deo-issues/read-only')
   async getDeoIssuesReadOnly(
     @Request() req: any,
-    @Param('id') projectId: string,
+    @Param('id') projectId: string
   ): Promise<DeoIssuesResponse> {
-    return this.deoIssuesService.getIssuesForProjectReadOnly(projectId, req.user.id);
+    return this.deoIssuesService.getIssuesForProjectReadOnly(
+      projectId,
+      req.user.id
+    );
   }
 
   /**
@@ -217,9 +249,12 @@ export class ProjectsController {
   @Get(':id/issues/counts-summary')
   async getIssueCountsSummary(
     @Request() req: any,
-    @Param('id') projectId: string,
+    @Param('id') projectId: string
   ): Promise<IssueCountsSummary> {
-    return this.deoIssuesService.getIssueCountsSummaryForProject(projectId, req.user.id);
+    return this.deoIssuesService.getIssueCountsSummaryForProject(
+      projectId,
+      req.user.id
+    );
   }
 
   /**
@@ -236,24 +271,32 @@ export class ProjectsController {
     @Query('scopeType') scopeType?: IssueAssetTypeKey,
     @Query('pillar') pillar?: DeoPillarId,
     @Query('pillars') pillars?: string | string[],
-    @Query('severity') severity?: 'critical' | 'warning' | 'info',
+    @Query('severity') severity?: 'critical' | 'warning' | 'info'
   ): Promise<CanonicalIssueCountsSummary> {
     // Normalize array query params
-    const actionKeysArray = Array.isArray(actionKeys) ? actionKeys : actionKeys ? [actionKeys] : undefined;
+    const actionKeysArray = Array.isArray(actionKeys)
+      ? actionKeys
+      : actionKeys
+        ? [actionKeys]
+        : undefined;
     const pillarsArray = Array.isArray(pillars)
-      ? pillars as DeoPillarId[]
+      ? (pillars as DeoPillarId[])
       : pillars
-      ? [pillars as DeoPillarId]
-      : undefined;
+        ? [pillars as DeoPillarId]
+        : undefined;
 
-    return this.deoIssuesService.getCanonicalIssueCountsSummary(projectId, req.user.id, {
-      actionKey,
-      actionKeys: actionKeysArray,
-      scopeType,
-      pillar,
-      pillars: pillarsArray,
-      severity,
-    });
+    return this.deoIssuesService.getCanonicalIssueCountsSummary(
+      projectId,
+      req.user.id,
+      {
+        actionKey,
+        actionKeys: actionKeysArray,
+        scopeType,
+        pillar,
+        pillars: pillarsArray,
+        severity,
+      }
+    );
   }
 
   /**
@@ -270,7 +313,7 @@ export class ProjectsController {
     @Query('scopeType') scopeType?: IssueAssetTypeKey,
     @Query('pillar') pillar?: DeoPillarId,
     @Query('pillars') pillars?: string | string[],
-    @Query('severity') severity?: 'critical' | 'warning' | 'info',
+    @Query('severity') severity?: 'critical' | 'warning' | 'info'
   ): Promise<CanonicalIssueCountsSummary> {
     // Delegate to canonical endpoint
     return this.getCanonicalIssueCountsSummary(
@@ -281,7 +324,7 @@ export class ProjectsController {
       scopeType,
       pillar,
       pillars,
-      severity,
+      severity
     );
   }
 
@@ -298,20 +341,26 @@ export class ProjectsController {
     @Param('assetId') assetId: string,
     @Query('pillar') pillar?: DeoPillarId,
     @Query('pillars') pillars?: string | string[],
-    @Query('severity') severity?: 'critical' | 'warning' | 'info',
+    @Query('severity') severity?: 'critical' | 'warning' | 'info'
   ): Promise<AssetIssuesResponse> {
     // Normalize array query params
     const pillarsArray = Array.isArray(pillars)
-      ? pillars as DeoPillarId[]
+      ? (pillars as DeoPillarId[])
       : pillars
-      ? [pillars as DeoPillarId]
-      : undefined;
+        ? [pillars as DeoPillarId]
+        : undefined;
 
-    return this.deoIssuesService.getAssetIssues(projectId, req.user.id, assetType, assetId, {
-      pillar,
-      pillars: pillarsArray,
-      severity,
-    });
+    return this.deoIssuesService.getAssetIssues(
+      projectId,
+      req.user.id,
+      assetType,
+      assetId,
+      {
+        pillar,
+        pillars: pillarsArray,
+        severity,
+      }
+    );
   }
 
   /**
@@ -321,7 +370,7 @@ export class ProjectsController {
   @Get(':id/deo-score')
   async getDeoScore(
     @Request() req: any,
-    @Param('id') projectId: string,
+    @Param('id') projectId: string
   ): Promise<DeoScoreLatestResponse> {
     return this.deoScoreService.getLatestForProject(projectId, req.user.id);
   }
@@ -333,7 +382,7 @@ export class ProjectsController {
   @Get(':id/deo-signals/debug')
   async getDeoSignalsDebug(
     @Request() req: any,
-    @Param('id') projectId: string,
+    @Param('id') projectId: string
   ): Promise<DeoScoreSignals> {
     // Reuse existing ownership validation
     await this.projectsService.getProject(projectId, req.user.id);
@@ -347,7 +396,7 @@ export class ProjectsController {
   @Post(':id/deo-score/recompute')
   async recomputeDeoScore(
     @Request() req: any,
-    @Param('id') projectId: string,
+    @Param('id') projectId: string
   ): Promise<{ projectId: string; enqueued: boolean; message?: string }> {
     const userId = (req as any).user?.id ?? null;
     // Validate project ownership before enqueueing
@@ -420,22 +469,38 @@ export class ProjectsController {
     @Query('q') q?: string,
     @Query('status') status?: string,
     @Query('hasDraft') hasDraft?: string,
-    @Query('pageType') pageType?: string,
+    @Query('pageType') pageType?: string
   ) {
     const filters: CrawlPageListFilters = {};
     if (q && q.trim()) filters.q = q.trim();
-    if (status === 'optimized' || status === 'needs_attention') filters.status = status;
+    if (status === 'optimized' || status === 'needs_attention')
+      filters.status = status;
     if (hasDraft === 'true' || hasDraft === '1') filters.hasDraft = true;
-    if (pageType === 'static' || pageType === 'collection' || pageType === 'blog') filters.pageType = pageType;
+    if (
+      pageType === 'static' ||
+      pageType === 'collection' ||
+      pageType === 'blog'
+    )
+      filters.pageType = pageType;
 
     // Get base crawl pages from service
-    const contentPages = await this.projectsService.getCrawlPages(projectId, req.user.id, filters);
+    const contentPages = await this.projectsService.getCrawlPages(
+      projectId,
+      req.user.id,
+      filters
+    );
 
     // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Compute canonical issue counts per URL
-    const canonicalCountsByUrl = await this.computeCanonicalIssueCountsByUrl(projectId, req.user.id);
+    const canonicalCountsByUrl = await this.computeCanonicalIssueCountsByUrl(
+      projectId,
+      req.user.id
+    );
 
     // [LIST-ACTIONS-CLARITY-1-CORRECTNESS-1] Get viewer's apply capability
-    const viewerCanApply = await this.roleResolutionService.canApply(projectId, req.user.id);
+    const viewerCanApply = await this.roleResolutionService.canApply(
+      projectId,
+      req.user.id
+    );
 
     // Add canonical fields to each page
     return contentPages.map((page: any) => {
@@ -464,25 +529,37 @@ export class ProjectsController {
    */
   private async computeCanonicalIssueCountsByUrl(
     projectId: string,
-    userId: string,
+    userId: string
   ): Promise<Map<string, { actionable: number; detected: number }>> {
-    const countsMap = new Map<string, { actionable: number; detected: number }>();
+    const countsMap = new Map<
+      string,
+      { actionable: number; detected: number }
+    >();
 
     try {
-      const issuesResponse = await this.deoIssuesService.getIssuesForProjectReadOnly(projectId, userId);
+      const issuesResponse =
+        await this.deoIssuesService.getIssuesForProjectReadOnly(
+          projectId,
+          userId
+        );
 
       if (!issuesResponse.issues || issuesResponse.issues.length === 0) {
         return countsMap;
       }
 
       // Build per-URL issue type sets
-      const urlIssueTypes = new Map<string, { actionableTypes: Set<string>; detectedTypes: Set<string> }>();
+      const urlIssueTypes = new Map<
+        string,
+        { actionableTypes: Set<string>; detectedTypes: Set<string> }
+      >();
 
       for (const issue of issuesResponse.issues) {
         const issueType = issue.type ?? issue.id;
 
         // Get full affected keys (non-enumerable) or fall back to affectedPages
-        const fullKeys = (issue as any)['__fullAffectedAssetKeys'] as string[] | undefined;
+        const fullKeys = (issue as any)['__fullAffectedAssetKeys'] as
+          | string[]
+          | undefined;
 
         // Collect URLs from both pages and collections
         const urls: string[] = [];
@@ -496,7 +573,10 @@ export class ProjectsController {
               urls.push(key.substring('collections:'.length));
             }
           }
-        } else if (Array.isArray(issue.affectedPages) && issue.affectedPages.length > 0) {
+        } else if (
+          Array.isArray(issue.affectedPages) &&
+          issue.affectedPages.length > 0
+        ) {
           // Fallback to affectedPages
           urls.push(...issue.affectedPages);
         }
@@ -523,7 +603,10 @@ export class ProjectsController {
         });
       }
     } catch (error) {
-      console.error('[ProjectsController] Failed to fetch canonical issues:', error);
+      console.error(
+        '[ProjectsController] Failed to fetch canonical issues:',
+        error
+      );
     }
 
     return countsMap;
@@ -536,16 +619,26 @@ export class ProjectsController {
   @Post(':id/deo-score/recompute-sync')
   async recomputeDeoScoreSync(
     @Request() req: any,
-    @Param('id') projectId: string,
-  ): Promise<{ projectId: string; computed: boolean; score?: number; message?: string }> {
+    @Param('id') projectId: string
+  ): Promise<{
+    projectId: string;
+    computed: boolean;
+    score?: number;
+    message?: string;
+  }> {
     const userId = (req as any).user?.id ?? null;
     // Validate project ownership
     await this.projectsService.getProject(projectId, userId);
 
     try {
       // Collect signals and compute score synchronously
-      const signals = await this.deoSignalsService.collectSignalsForProject(projectId);
-      const snapshot = await this.deoScoreService.computeAndPersistScoreFromSignals(projectId, signals);
+      const signals =
+        await this.deoSignalsService.collectSignalsForProject(projectId);
+      const snapshot =
+        await this.deoScoreService.computeAndPersistScoreFromSignals(
+          projectId,
+          signals
+        );
 
       return {
         projectId,
@@ -556,7 +649,10 @@ export class ProjectsController {
       return {
         projectId,
         computed: false,
-        message: error instanceof Error ? error.message : 'Failed to compute DEO score',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Failed to compute DEO score',
       };
     }
   }
@@ -566,8 +662,14 @@ export class ProjectsController {
    * Returns automation suggestions for a project
    */
   @Get(':id/automation-suggestions')
-  async getAutomationSuggestions(@Request() req: any, @Param('id') projectId: string) {
-    return this.automationService.getSuggestionsForProject(projectId, req.user.id);
+  async getAutomationSuggestions(
+    @Request() req: any,
+    @Param('id') projectId: string
+  ) {
+    return this.automationService.getSuggestionsForProject(
+      projectId,
+      req.user.id
+    );
   }
 
   /**
@@ -578,9 +680,12 @@ export class ProjectsController {
   @Get(':id/answerability')
   async getProjectAnswerability(
     @Request() req: any,
-    @Param('id') projectId: string,
+    @Param('id') projectId: string
   ): Promise<ProjectAnswerabilityResponse> {
-    return this.answerEngineService.getProjectAnswerability(projectId, req.user.id);
+    return this.answerEngineService.getProjectAnswerability(
+      projectId,
+      req.user.id
+    );
   }
 
   /**
@@ -600,11 +705,14 @@ export class ProjectsController {
     @Request() req: any,
     @Param('id') projectId: string,
     @Query('assetType') assetType?: string,
-    @Query('assetId') assetId?: string,
+    @Query('assetId') assetId?: string
   ) {
-    if (!assetType || !['products', 'pages', 'collections'].includes(assetType)) {
+    if (
+      !assetType ||
+      !['products', 'pages', 'collections'].includes(assetType)
+    ) {
       throw new BadRequestException(
-        'assetType is required and must be one of: products, pages, collections',
+        'assetType is required and must be one of: products, pages, collections'
       );
     }
     if (!assetId || !assetId.trim()) {
@@ -615,7 +723,7 @@ export class ProjectsController {
       req.user.id,
       projectId,
       assetType as 'products' | 'pages' | 'collections',
-      assetId.trim(),
+      assetId.trim()
     );
   }
 
@@ -643,7 +751,7 @@ export class ProjectsController {
     @Param('id') projectId: string,
     @Param('draftId') draftId: string,
     @Param('itemIndex') itemIndexStr: string,
-    @Body('value') value?: string,
+    @Body('value') value?: string
   ) {
     const itemIndex = parseInt(itemIndexStr, 10);
     if (isNaN(itemIndex) || itemIndex < 0) {
@@ -658,7 +766,7 @@ export class ProjectsController {
       projectId,
       draftId,
       itemIndex,
-      value,
+      value
     );
   }
 
@@ -670,7 +778,7 @@ export class ProjectsController {
   async estimateAutomationPlaybook(
     @Request() req: any,
     @Param('id') projectId: string,
-    @Query('playbookId') playbookId: AutomationPlaybookId,
+    @Query('playbookId') playbookId: AutomationPlaybookId
   ) {
     if (!playbookId) {
       throw new BadRequestException('playbookId is required');
@@ -678,7 +786,7 @@ export class ProjectsController {
     return this.automationPlaybooksService.estimatePlaybook(
       req.user.id,
       projectId,
-      playbookId,
+      playbookId
     );
   }
 
@@ -706,7 +814,7 @@ export class ProjectsController {
       assetType?: AutomationAssetType;
       /** [ASSETS-PAGES-1.1] Handle-based refs for non-product assets */
       scopeAssetRefs?: AssetRef[];
-    },
+    }
   ) {
     if (!body?.playbookId) {
       throw new BadRequestException('playbookId is required');
@@ -714,25 +822,30 @@ export class ProjectsController {
 
     // [ASSETS-PAGES-1.1] Validate asset scope parameters
     const assetType = body.assetType ?? 'PRODUCTS';
-    const hasScopeProductIds = body.scopeProductIds && body.scopeProductIds.length > 0;
-    const hasScopeAssetRefs = body.scopeAssetRefs && body.scopeAssetRefs.length > 0;
+    const hasScopeProductIds =
+      body.scopeProductIds && body.scopeProductIds.length > 0;
+    const hasScopeAssetRefs =
+      body.scopeAssetRefs && body.scopeAssetRefs.length > 0;
 
     if (assetType === 'PRODUCTS') {
       // Products use scopeProductIds
       if (hasScopeAssetRefs) {
         throw new BadRequestException(
-          'scopeAssetRefs cannot be used with assetType PRODUCTS. Use scopeProductIds instead.',
+          'scopeAssetRefs cannot be used with assetType PRODUCTS. Use scopeProductIds instead.'
         );
       }
     } else {
       // Pages/Collections use scopeAssetRefs
       if (hasScopeProductIds) {
         throw new BadRequestException(
-          `scopeProductIds cannot be used with assetType ${assetType}. Use scopeAssetRefs instead.`,
+          `scopeProductIds cannot be used with assetType ${assetType}. Use scopeAssetRefs instead.`
         );
       }
       if (hasScopeAssetRefs) {
-        const validation = validateAssetRefsForType(assetType, body.scopeAssetRefs!);
+        const validation = validateAssetRefsForType(
+          assetType,
+          body.scopeAssetRefs!
+        );
         if (!validation.valid) {
           throw new BadRequestException(validation.errors.join('; '));
         }
@@ -746,7 +859,7 @@ export class ProjectsController {
       body.playbookId,
       body.scopeProductIds,
       assetType,
-      body.scopeAssetRefs,
+      body.scopeAssetRefs
     );
   }
 
@@ -773,27 +886,32 @@ export class ProjectsController {
       assetType?: AutomationAssetType;
       /** [ASSETS-PAGES-1.1] Handle-based refs for non-product assets */
       scopeAssetRefs?: AssetRef[];
-    },
+    }
   ) {
     // [ASSETS-PAGES-1.1] Validate asset scope parameters
     const assetType = body?.assetType ?? 'PRODUCTS';
-    const hasScopeProductIds = body?.scopeProductIds && body.scopeProductIds.length > 0;
-    const hasScopeAssetRefs = body?.scopeAssetRefs && body.scopeAssetRefs.length > 0;
+    const hasScopeProductIds =
+      body?.scopeProductIds && body.scopeProductIds.length > 0;
+    const hasScopeAssetRefs =
+      body?.scopeAssetRefs && body.scopeAssetRefs.length > 0;
 
     if (assetType === 'PRODUCTS') {
       if (hasScopeAssetRefs) {
         throw new BadRequestException(
-          'scopeAssetRefs cannot be used with assetType PRODUCTS. Use scopeProductIds instead.',
+          'scopeAssetRefs cannot be used with assetType PRODUCTS. Use scopeProductIds instead.'
         );
       }
     } else {
       if (hasScopeProductIds) {
         throw new BadRequestException(
-          `scopeProductIds cannot be used with assetType ${assetType}. Use scopeAssetRefs instead.`,
+          `scopeProductIds cannot be used with assetType ${assetType}. Use scopeAssetRefs instead.`
         );
       }
       if (hasScopeAssetRefs) {
-        const validation = validateAssetRefsForType(assetType, body.scopeAssetRefs!);
+        const validation = validateAssetRefsForType(
+          assetType,
+          body.scopeAssetRefs!
+        );
         if (!validation.valid) {
           throw new BadRequestException(validation.errors.join('; '));
         }
@@ -803,7 +921,7 @@ export class ProjectsController {
     // [ASSETS-PAGES-1.1] TODO: Service will be updated in PATCH 2 to accept assetType and scopeAssetRefs
     if (assetType !== 'PRODUCTS') {
       throw new BadRequestException(
-        `Asset type ${assetType} is not yet supported. Only PRODUCTS is currently available.`,
+        `Asset type ${assetType} is not yet supported. Only PRODUCTS is currently available.`
       );
     }
 
@@ -813,7 +931,7 @@ export class ProjectsController {
       playbookId,
       body?.rules,
       body?.sampleSize,
-      body?.scopeProductIds,
+      body?.scopeProductIds
     );
   }
 
@@ -840,7 +958,7 @@ export class ProjectsController {
       assetType?: AutomationAssetType;
       /** [ASSETS-PAGES-1.1] Handle-based refs for non-product assets */
       scopeAssetRefs?: AssetRef[];
-    },
+    }
   ) {
     if (!body?.scopeId) {
       throw new BadRequestException('scopeId is required');
@@ -851,23 +969,28 @@ export class ProjectsController {
 
     // [ASSETS-PAGES-1.1] Validate asset scope parameters
     const assetType = body?.assetType ?? 'PRODUCTS';
-    const hasScopeProductIds = body?.scopeProductIds && body.scopeProductIds.length > 0;
-    const hasScopeAssetRefs = body?.scopeAssetRefs && body.scopeAssetRefs.length > 0;
+    const hasScopeProductIds =
+      body?.scopeProductIds && body.scopeProductIds.length > 0;
+    const hasScopeAssetRefs =
+      body?.scopeAssetRefs && body.scopeAssetRefs.length > 0;
 
     if (assetType === 'PRODUCTS') {
       if (hasScopeAssetRefs) {
         throw new BadRequestException(
-          'scopeAssetRefs cannot be used with assetType PRODUCTS. Use scopeProductIds instead.',
+          'scopeAssetRefs cannot be used with assetType PRODUCTS. Use scopeProductIds instead.'
         );
       }
     } else {
       if (hasScopeProductIds) {
         throw new BadRequestException(
-          `scopeProductIds cannot be used with assetType ${assetType}. Use scopeAssetRefs instead.`,
+          `scopeProductIds cannot be used with assetType ${assetType}. Use scopeAssetRefs instead.`
         );
       }
       if (hasScopeAssetRefs) {
-        const validation = validateAssetRefsForType(assetType, body.scopeAssetRefs!);
+        const validation = validateAssetRefsForType(
+          assetType,
+          body.scopeAssetRefs!
+        );
         if (!validation.valid) {
           throw new BadRequestException(validation.errors.join('; '));
         }
@@ -877,7 +1000,7 @@ export class ProjectsController {
     // [ASSETS-PAGES-1.1] TODO: Service will be updated in PATCH 2 to accept assetType and scopeAssetRefs
     if (assetType !== 'PRODUCTS') {
       throw new BadRequestException(
-        `Asset type ${assetType} is not yet supported. Only PRODUCTS is currently available.`,
+        `Asset type ${assetType} is not yet supported. Only PRODUCTS is currently available.`
       );
     }
 
@@ -887,7 +1010,7 @@ export class ProjectsController {
       playbookId,
       body.scopeId,
       body.rulesHash,
-      body?.scopeProductIds,
+      body?.scopeProductIds
     );
   }
 
@@ -900,12 +1023,12 @@ export class ProjectsController {
   async getLatestAutomationPlaybookDraft(
     @Request() req: any,
     @Param('id') projectId: string,
-    @Param('playbookId') playbookId: AutomationPlaybookId,
+    @Param('playbookId') playbookId: AutomationPlaybookId
   ) {
     const draft = await this.automationPlaybooksService.getLatestDraft(
       req.user.id,
       projectId,
-      playbookId,
+      playbookId
     );
     if (!draft) {
       return {
@@ -951,7 +1074,7 @@ export class ProjectsController {
       assetType?: AutomationAssetType;
       /** [ASSETS-PAGES-1.1] Handle-based refs for non-product assets */
       scopeAssetRefs?: AssetRef[];
-    },
+    }
   ) {
     if (!body?.playbookId) {
       throw new BadRequestException('playbookId is required');
@@ -965,23 +1088,28 @@ export class ProjectsController {
 
     // [ASSETS-PAGES-1.1] Validate asset scope parameters
     const assetType = body?.assetType ?? 'PRODUCTS';
-    const hasScopeProductIds = body?.scopeProductIds && body.scopeProductIds.length > 0;
-    const hasScopeAssetRefs = body?.scopeAssetRefs && body.scopeAssetRefs.length > 0;
+    const hasScopeProductIds =
+      body?.scopeProductIds && body.scopeProductIds.length > 0;
+    const hasScopeAssetRefs =
+      body?.scopeAssetRefs && body.scopeAssetRefs.length > 0;
 
     if (assetType === 'PRODUCTS') {
       if (hasScopeAssetRefs) {
         throw new BadRequestException(
-          'scopeAssetRefs cannot be used with assetType PRODUCTS. Use scopeProductIds instead.',
+          'scopeAssetRefs cannot be used with assetType PRODUCTS. Use scopeProductIds instead.'
         );
       }
     } else {
       if (hasScopeProductIds) {
         throw new BadRequestException(
-          `scopeProductIds cannot be used with assetType ${assetType}. Use scopeAssetRefs instead.`,
+          `scopeProductIds cannot be used with assetType ${assetType}. Use scopeAssetRefs instead.`
         );
       }
       if (hasScopeAssetRefs) {
-        const validation = validateAssetRefsForType(assetType, body.scopeAssetRefs!);
+        const validation = validateAssetRefsForType(
+          assetType,
+          body.scopeAssetRefs!
+        );
         if (!validation.valid) {
           throw new BadRequestException(validation.errors.join('; '));
         }
@@ -991,7 +1119,7 @@ export class ProjectsController {
     // [ASSETS-PAGES-1.1] TODO: Service will be updated in PATCH 2 to accept assetType and scopeAssetRefs
     if (assetType !== 'PRODUCTS') {
       throw new BadRequestException(
-        `Asset type ${assetType} is not yet supported. Only PRODUCTS is currently available.`,
+        `Asset type ${assetType} is not yet supported. Only PRODUCTS is currently available.`
       );
     }
 
@@ -1001,9 +1129,10 @@ export class ProjectsController {
     // [ROLES-2 FIXUP-3] Role-specific denial messages for test alignment
     const effectiveRole = await this.roleResolutionService.resolveEffectiveRole(
       projectId,
-      userId,
+      userId
     );
-    const capabilities = this.roleResolutionService.getCapabilities(effectiveRole);
+    const capabilities =
+      this.roleResolutionService.getCapabilities(effectiveRole);
 
     if (!capabilities.canApply) {
       // [ROLES-2 FIXUP-3] Role-specific apply denial messages
@@ -1012,22 +1141,23 @@ export class ProjectsController {
       }
       if (effectiveRole === 'VIEWER') {
         throw new ForbiddenException(
-          'Viewer role cannot apply automation playbooks. Preview and export remain available.',
+          'Viewer role cannot apply automation playbooks. Preview and export remain available.'
         );
       }
       if (effectiveRole === 'EDITOR') {
         throw new ForbiddenException(
-          'Editor role cannot apply automation playbooks. Request approval from an owner.',
+          'Editor role cannot apply automation playbooks. Request approval from an owner.'
         );
       }
       // Safety fallback for any unexpected role
       throw new ForbiddenException(
-        'Only project owners can apply automation playbooks.',
+        'Only project owners can apply automation playbooks.'
       );
     }
 
     // [ROLES-2] Governance approval check
-    const approvalRequiredByPolicy = await this.governanceService.isApprovalRequired(projectId);
+    const approvalRequiredByPolicy =
+      await this.governanceService.isApprovalRequired(projectId);
 
     // Track the validated approval ID for consumption after successful apply
     let validatedApprovalId: string | undefined;
@@ -1040,7 +1170,7 @@ export class ProjectsController {
       const approvalStatus = await this.approvalsService.hasValidApproval(
         projectId,
         'AUTOMATION_PLAYBOOK_APPLY',
-        resourceId,
+        resourceId
       );
 
       if (!approvalStatus.valid) {
@@ -1048,7 +1178,8 @@ export class ProjectsController {
         // Match geo.controller.ts contract for consistency
         throw new BadRequestException({
           code: 'APPROVAL_REQUIRED',
-          message: 'Approval is required before applying this automation playbook.',
+          message:
+            'Approval is required before applying this automation playbook.',
           approvalStatus: approvalStatus.status ?? 'none',
           approvalId: approvalStatus.approvalId,
           resourceType: 'AUTOMATION_PLAYBOOK_APPLY',
@@ -1067,7 +1198,7 @@ export class ProjectsController {
       body.playbookId,
       body.scopeId,
       body.rulesHash,
-      body?.scopeProductIds,
+      body?.scopeProductIds
     );
 
     // [ROLES-2 FIXUP-1] Only consume approval AFTER successful apply mutation
@@ -1095,7 +1226,7 @@ export class ProjectsController {
       rulesHash: string;
       idempotencyKey?: string;
       meta?: Record<string, unknown>;
-    },
+    }
   ) {
     const userId = req.user.id as string;
     if (!body?.runType) {
@@ -1142,10 +1273,14 @@ export class ProjectsController {
   async getAutomationPlaybookRun(
     @Request() req: any,
     @Param('id') projectId: string,
-    @Param('runId') runId: string,
+    @Param('runId') runId: string
   ) {
     const userId = req.user.id as string;
-    return this.automationPlaybookRunsService.getRunById(userId, projectId, runId);
+    return this.automationPlaybookRunsService.getRunById(
+      userId,
+      projectId,
+      runId
+    );
   }
 
   /**
@@ -1159,7 +1294,7 @@ export class ProjectsController {
     @Query('playbookId') playbookId?: AutomationPlaybookId,
     @Query('scopeId') scopeId?: string,
     @Query('runType') runType?: AutomationPlaybookRunType,
-    @Query('limit') limit?: string,
+    @Query('limit') limit?: string
   ) {
     const userId = req.user.id as string;
     const parsedLimit = Math.min(Number(limit) || 20, 100);
@@ -1188,7 +1323,7 @@ export class ProjectsController {
       rulesHash: string;
       scopeProductIds?: string[];
       intent?: string;
-    },
+    }
   ) {
     if (typeof body?.enabled !== 'boolean') {
       throw new BadRequestException('enabled is required');
@@ -1216,7 +1351,7 @@ export class ProjectsController {
         rulesHash: body.rulesHash,
         scopeProductIds: body.scopeProductIds,
         intent: body.intent,
-      },
+      }
     );
   }
 
@@ -1242,7 +1377,7 @@ export class ProjectsController {
   async addMember(
     @Request() req: any,
     @Param('id') projectId: string,
-    @Body() body: { email: string; role: ProjectMemberRole },
+    @Body() body: { email: string; role: ProjectMemberRole }
   ) {
     if (!body?.email) {
       throw new BadRequestException('email is required');
@@ -1252,7 +1387,9 @@ export class ProjectsController {
     }
     const validRoles = Object.values(ProjectMemberRole);
     if (!validRoles.includes(body.role)) {
-      throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+      throw new BadRequestException(
+        `Invalid role. Must be one of: ${validRoles.join(', ')}`
+      );
     }
     const dto: AddMemberDto = {
       email: body.email,
@@ -1270,19 +1407,26 @@ export class ProjectsController {
     @Request() req: any,
     @Param('id') projectId: string,
     @Param('memberId') memberId: string,
-    @Body() body: { role: ProjectMemberRole },
+    @Body() body: { role: ProjectMemberRole }
   ) {
     if (!body?.role) {
       throw new BadRequestException('role is required');
     }
     const validRoles = Object.values(ProjectMemberRole);
     if (!validRoles.includes(body.role)) {
-      throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+      throw new BadRequestException(
+        `Invalid role. Must be one of: ${validRoles.join(', ')}`
+      );
     }
     const dto: ChangeMemberRoleDto = {
       role: body.role,
     };
-    return this.projectsService.changeMemberRole(projectId, memberId, req.user.id, dto);
+    return this.projectsService.changeMemberRole(
+      projectId,
+      memberId,
+      req.user.id,
+      dto
+    );
   }
 
   /**
@@ -1294,7 +1438,7 @@ export class ProjectsController {
   async removeMember(
     @Request() req: any,
     @Param('id') projectId: string,
-    @Param('memberId') memberId: string,
+    @Param('memberId') memberId: string
   ) {
     await this.projectsService.removeMember(projectId, memberId, req.user.id);
     return { success: true, message: 'Member removed successfully' };
@@ -1312,7 +1456,8 @@ export class ProjectsController {
       throw new ForbiddenException('You do not have access to this project');
     }
     const capabilities = this.roleResolutionService.getCapabilities(role);
-    const isMultiUserProject = await this.roleResolutionService.isMultiUserProject(projectId);
+    const isMultiUserProject =
+      await this.roleResolutionService.isMultiUserProject(projectId);
     return {
       projectId,
       userId: req.user.id,
@@ -1351,7 +1496,7 @@ export class ProjectsController {
     @Query('bundleType') bundleType?: WorkQueueBundleType,
     @Query('actionKey') actionKey?: WorkQueueRecommendedActionKey,
     @Query('scopeType') scopeType?: WorkQueueScopeType,
-    @Query('bundleId') bundleId?: string,
+    @Query('bundleId') bundleId?: string
   ): Promise<WorkQueueResponse> {
     return this.workQueueService.getWorkQueue(projectId, req.user.id, {
       tab,
@@ -1377,14 +1522,16 @@ export class ProjectsController {
    */
   @Post(':id/shopify/sync-pages')
   @HttpCode(HttpStatus.OK)
-  async syncShopifyPages(
-    @Request() req: any,
-    @Param('id') projectId: string,
-  ) {
+  async syncShopifyPages(@Request() req: any, @Param('id') projectId: string) {
     // OWNER-only check
-    const role = await this.roleResolutionService.resolveEffectiveRole(projectId, req.user.id);
+    const role = await this.roleResolutionService.resolveEffectiveRole(
+      projectId,
+      req.user.id
+    );
     if (role !== 'OWNER') {
-      throw new ForbiddenException('Only project owners can sync Shopify Pages');
+      throw new ForbiddenException(
+        'Only project owners can sync Shopify Pages'
+      );
     }
 
     return this.shopifyService.syncPages(projectId);
@@ -1403,12 +1550,17 @@ export class ProjectsController {
   @HttpCode(HttpStatus.OK)
   async syncShopifyCollections(
     @Request() req: any,
-    @Param('id') projectId: string,
+    @Param('id') projectId: string
   ) {
     // OWNER-only check
-    const role = await this.roleResolutionService.resolveEffectiveRole(projectId, req.user.id);
+    const role = await this.roleResolutionService.resolveEffectiveRole(
+      projectId,
+      req.user.id
+    );
     if (role !== 'OWNER') {
-      throw new ForbiddenException('Only project owners can sync Shopify Collections');
+      throw new ForbiddenException(
+        'Only project owners can sync Shopify Collections'
+      );
     }
 
     return this.shopifyService.syncCollections(projectId);
@@ -1425,13 +1577,15 @@ export class ProjectsController {
    */
   @Post(':id/shopify/sync-blogs')
   @HttpCode(HttpStatus.OK)
-  async syncShopifyBlogs(
-    @Request() req: any,
-    @Param('id') projectId: string,
-  ) {
-    const role = await this.roleResolutionService.resolveEffectiveRole(projectId, req.user.id);
+  async syncShopifyBlogs(@Request() req: any, @Param('id') projectId: string) {
+    const role = await this.roleResolutionService.resolveEffectiveRole(
+      projectId,
+      req.user.id
+    );
     if (role !== 'OWNER') {
-      throw new ForbiddenException('Only project owners can sync Shopify Blog posts');
+      throw new ForbiddenException(
+        'Only project owners can sync Shopify Blog posts'
+      );
     }
 
     return this.shopifyService.syncBlogPosts(projectId);
@@ -1449,10 +1603,13 @@ export class ProjectsController {
   @Get(':id/shopify/sync-status')
   async getShopifySyncStatus(
     @Request() req: any,
-    @Param('id') projectId: string,
+    @Param('id') projectId: string
   ) {
     // Membership check (any role can read)
-    const hasAccess = await this.roleResolutionService.hasProjectAccess(projectId, req.user.id);
+    const hasAccess = await this.roleResolutionService.hasProjectAccess(
+      projectId,
+      req.user.id
+    );
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this project');
     }
@@ -1469,16 +1626,23 @@ export class ProjectsController {
   async getShopifyMissingScopes(
     @Request() req: any,
     @Param('id') projectId: string,
-    @Query('capability') capability?: string,
+    @Query('capability') capability?: string
   ): Promise<{ projectId: string; connected: boolean } & ShopifyScopeStatus> {
     if (!capability) {
       throw new BadRequestException('Missing capability parameter');
     }
-    const hasAccess = await this.roleResolutionService.hasProjectAccess(projectId, req.user.id);
+    const hasAccess = await this.roleResolutionService.hasProjectAccess(
+      projectId,
+      req.user.id
+    );
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this project');
     }
-    if (capability !== 'pages_sync' && capability !== 'collections_sync' && capability !== 'blogs_sync') {
+    if (
+      capability !== 'pages_sync' &&
+      capability !== 'collections_sync' &&
+      capability !== 'blogs_sync'
+    ) {
       throw new BadRequestException('Invalid capability parameter');
     }
     return this.shopifyService.getShopifyScopeStatus(projectId, capability);
@@ -1493,24 +1657,40 @@ export class ProjectsController {
   async getShopifyConnectUrl(
     @Request() req: any,
     @Param('id') projectId: string,
-    @Query('returnTo') returnTo?: string,
+    @Query('returnTo') returnTo?: string
   ) {
-    const role = await this.roleResolutionService.resolveEffectiveRole(projectId, req.user.id);
+    const role = await this.roleResolutionService.resolveEffectiveRole(
+      projectId,
+      req.user.id
+    );
     if (role !== 'OWNER') {
       throw new ForbiddenException('Only project owners can connect Shopify');
     }
 
-    const existingIntegration = await this.shopifyService.getShopifyIntegration(projectId);
+    const existingIntegration =
+      await this.shopifyService.getShopifyIntegration(projectId);
     if (existingIntegration?.externalId && existingIntegration?.accessToken) {
-      throw new BadRequestException('Shopify is already connected for this project');
+      throw new BadRequestException(
+        'Shopify is already connected for this project'
+      );
     }
 
-    const project = await this.projectsService.getProject(projectId, req.user.id);
-    const candidateShop = String(existingIntegration?.externalId ?? (project as any)?.domain ?? '').trim();
-    const cleaned = candidateShop.replace(/^https?:\/\//i, '').split('/')[0].trim();
+    const project = await this.projectsService.getProject(
+      projectId,
+      req.user.id
+    );
+    const candidateShop = String(
+      existingIntegration?.externalId ?? (project as any)?.domain ?? ''
+    ).trim();
+    const cleaned = candidateShop
+      .replace(/^https?:\/\//i, '')
+      .split('/')[0]
+      .trim();
 
     if (!cleaned) {
-      throw new BadRequestException('No Shopify shop domain configured for this project');
+      throw new BadRequestException(
+        'No Shopify shop domain configured for this project'
+      );
     }
 
     // [SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1-FIXUP-1] Validate shop domain format
@@ -1523,10 +1703,13 @@ export class ProjectsController {
       shopDomain = `${cleaned}.myshopify.com`;
     } else {
       throw new BadRequestException(
-        'Project domain must be a Shopify store (e.g., my-store.myshopify.com or my-store). Custom domains cannot be used for Shopify OAuth.',
+        'Project domain must be a Shopify store (e.g., my-store.myshopify.com or my-store). Custom domains cannot be used for Shopify OAuth.'
       );
     }
-    const safeReturnTo = this.shopifyService.getSafeReturnToForProject(returnTo, projectId);
+    const safeReturnTo = this.shopifyService.getSafeReturnToForProject(
+      returnTo,
+      projectId
+    );
 
     const url = this.shopifyService.generateInstallUrl(shopDomain, projectId, {
       source: 'install',
@@ -1547,33 +1730,56 @@ export class ProjectsController {
     @Request() req: any,
     @Param('id') projectId: string,
     @Query('capability') capability?: string,
-    @Query('returnTo') returnTo?: string,
+    @Query('returnTo') returnTo?: string
   ) {
     if (!capability) {
       throw new BadRequestException('Missing capability parameter');
     }
-    if (capability !== 'pages_sync' && capability !== 'collections_sync' && capability !== 'blogs_sync') {
+    if (
+      capability !== 'pages_sync' &&
+      capability !== 'collections_sync' &&
+      capability !== 'blogs_sync'
+    ) {
       throw new BadRequestException('Invalid capability parameter');
     }
-    const role = await this.roleResolutionService.resolveEffectiveRole(projectId, req.user.id);
+    const role = await this.roleResolutionService.resolveEffectiveRole(
+      projectId,
+      req.user.id
+    );
     if (role !== 'OWNER') {
       throw new ForbiddenException('Only project owners can reconnect Shopify');
     }
-    const integration = await this.shopifyService.getShopifyIntegration(projectId);
+    const integration =
+      await this.shopifyService.getShopifyIntegration(projectId);
     if (!integration || !integration.externalId) {
-      throw new BadRequestException('No Shopify integration found for this project');
+      throw new BadRequestException(
+        'No Shopify integration found for this project'
+      );
     }
-    const scopeStatus = await this.shopifyService.getShopifyScopeStatus(projectId, capability);
-    const desiredScopes = Array.from(
-      new Set([...(scopeStatus.grantedScopes ?? []), ...(scopeStatus.missingScopes ?? [])]),
+    const scopeStatus = await this.shopifyService.getShopifyScopeStatus(
+      projectId,
+      capability
     );
-    const safeReturnTo = this.shopifyService.getSafeReturnToForProject(returnTo, projectId);
-    const url = this.shopifyService.generateInstallUrl(integration.externalId, projectId, {
-      scopesCsv: desiredScopes.join(','),
-      source: 'reconnect',
-      capability,
-      returnTo: safeReturnTo,
-    });
+    const desiredScopes = Array.from(
+      new Set([
+        ...(scopeStatus.grantedScopes ?? []),
+        ...(scopeStatus.missingScopes ?? []),
+      ])
+    );
+    const safeReturnTo = this.shopifyService.getSafeReturnToForProject(
+      returnTo,
+      projectId
+    );
+    const url = this.shopifyService.generateInstallUrl(
+      integration.externalId,
+      projectId,
+      {
+        scopesCsv: desiredScopes.join(','),
+        source: 'reconnect',
+        capability,
+        returnTo: safeReturnTo,
+      }
+    );
     return { url };
   }
 }

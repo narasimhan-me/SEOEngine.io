@@ -11,6 +11,7 @@ This document defines how to measure onboarding and activation for the First DEO
 A project is counted as having completed this step when it has at least one **Integration** row for that project (any `IntegrationType`, including `SHOPIFY` or `CUSTOM_WEBSITE`).
 
 **Query logic:**
+
 ```sql
 SELECT project_id
 FROM "Integration"
@@ -23,6 +24,7 @@ LIMIT 1;
 Completed when the project has at least one **CrawlResult** row or a non-null `Project.lastCrawledAt`.
 
 **Query logic:**
+
 ```sql
 SELECT id
 FROM "CrawlResult"
@@ -41,6 +43,7 @@ WHERE id = :projectId AND last_crawled_at IS NOT NULL;
 Completed when at least one **DeoScoreSnapshot** exists for the project (proxying "DEO Score is visible").
 
 **Query logic:**
+
 ```sql
 SELECT id
 FROM "DeoScoreSnapshot"
@@ -53,6 +56,7 @@ LIMIT 1;
 Completed when `ProjectOverview.productsWithAppliedSeo` is at least 3, or when there are at least three **AiUsageEvent** rows with the product-optimization feature for that project.
 
 **Query logic:**
+
 ```sql
 -- Option A: Check productsWithAppliedSeo from ProjectOverview API
 -- (computed field based on Product.seoTitle / seoDescription populated)
@@ -73,18 +77,19 @@ HAVING COUNT(*) >= 3;
 
 For each step, calculate the fraction of active projects satisfying the completion condition above.
 
-| Metric | Formula |
-|--------|---------|
-| Step 1 completion rate | Projects with ≥1 Integration / Total active projects |
+| Metric                 | Formula                                                               |
+| ---------------------- | --------------------------------------------------------------------- |
+| Step 1 completion rate | Projects with ≥1 Integration / Total active projects                  |
 | Step 2 completion rate | Projects with ≥1 CrawlResult or lastCrawledAt / Total active projects |
-| Step 3 completion rate | Projects with ≥1 DeoScoreSnapshot / Total active projects |
-| Step 4 completion rate | Projects with ≥3 AI product optimizations / Total active projects |
+| Step 3 completion rate | Projects with ≥1 DeoScoreSnapshot / Total active projects             |
+| Step 4 completion rate | Projects with ≥3 AI product optimizations / Total active projects     |
 
 ### Time-to-first-crawl
 
 For each project, time elapsed between `Project.createdAt` and the earliest crawl timestamp (`CrawlResult.scannedAt` or `Project.lastCrawledAt`).
 
 **Query logic:**
+
 ```sql
 SELECT
   p.id AS project_id,
@@ -101,6 +106,7 @@ GROUP BY p.id, p.created_at;
 Time from `Project.createdAt` to the first AI product optimization usage event.
 
 **Query logic:**
+
 ```sql
 SELECT
   p.id AS project_id,
@@ -117,6 +123,7 @@ GROUP BY p.id, p.created_at;
 Time from `Project.createdAt` to the third AI product optimization usage event.
 
 **Query logic:**
+
 ```sql
 WITH ranked_events AS (
   SELECT

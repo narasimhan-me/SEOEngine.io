@@ -11,17 +11,19 @@
 
 import { test, expect } from '@playwright/test';
 
-const API_BASE_URL =
-  process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
 
 /**
  * Seed user and project for OWNER role tests.
  * [PATCH 9 FIXUP-2] Uses /testkit/e2e/seed-first-deo-win (correct endpoint from e2e-testkit.controller.ts).
  */
 async function seedTestProjectOwner(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-first-deo-win`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   return {
@@ -37,9 +39,12 @@ async function seedTestProjectOwner(request: any) {
  * [PATCH 9 FIXUP-2] Uses /testkit/e2e/seed-self-service-viewer (correct endpoint from e2e-testkit.controller.ts).
  */
 async function seedTestProjectViewer(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-self-service-viewer`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-self-service-viewer`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   return {
@@ -64,8 +69,15 @@ async function authenticatePage(page: any, request: any, seedFn: any) {
 }
 
 test.describe('COUNT-INTEGRITY-1: Work Queue → Issues click integrity', () => {
-  test('Card count matches filtered Issues list count (OWNER seed)', async ({ page, request }) => {
-    const { projectId } = await authenticatePage(page, request, seedTestProjectOwner);
+  test('Card count matches filtered Issues list count (OWNER seed)', async ({
+    page,
+    request,
+  }) => {
+    const { projectId } = await authenticatePage(
+      page,
+      request,
+      seedTestProjectOwner
+    );
 
     // Navigate to Work Queue
     await page.goto(`/projects/${projectId}/work-queue`);
@@ -89,7 +101,7 @@ test.describe('COUNT-INTEGRITY-1: Work Queue → Issues click integrity', () => 
       const card = bundleCards.nth(i);
       const cardText = await card.textContent();
       const viewIssuesLink = card.getByRole('link', { name: 'View Issues' });
-      const hasViewIssues = await viewIssuesLink.count() > 0;
+      const hasViewIssues = (await viewIssuesLink.count()) > 0;
       // [COUNT-INTEGRITY-1.1 FIX-UP] Updated regex to match "actionable now" semantics
       const scopeCountMatch = cardText?.match(/(\d+)\s+actionable\s+now/);
       const scopeCount = scopeCountMatch ? parseInt(scopeCountMatch[1], 10) : 0;
@@ -108,7 +120,9 @@ test.describe('COUNT-INTEGRITY-1: Work Queue → Issues click integrity', () => 
     }
 
     // [PATCH 9 FIXUP-2] Click the "View Issues" link
-    const viewIssuesLink = selectedCard.getByRole('link', { name: 'View Issues' });
+    const viewIssuesLink = selectedCard.getByRole('link', {
+      name: 'View Issues',
+    });
     await viewIssuesLink.click();
 
     // Verify we landed on Issues page with click-integrity filters
@@ -133,8 +147,15 @@ test.describe('COUNT-INTEGRITY-1: Work Queue → Issues click integrity', () => 
 });
 
 test.describe('COUNT-INTEGRITY-1: Technical issues are informational', () => {
-  test('Technical pillar issues show informational badge and are not clickable (OWNER seed)', async ({ page, request }) => {
-    const { projectId } = await authenticatePage(page, request, seedTestProjectOwner);
+  test('Technical pillar issues show informational badge and are not clickable (OWNER seed)', async ({
+    page,
+    request,
+  }) => {
+    const { projectId } = await authenticatePage(
+      page,
+      request,
+      seedTestProjectOwner
+    );
 
     // Navigate to Issues page
     await page.goto(`/projects/${projectId}/issues`);
@@ -146,7 +167,9 @@ test.describe('COUNT-INTEGRITY-1: Technical issues are informational', () => {
     await page.waitForTimeout(500);
 
     // Click "Technical & Indexability" pillar filter
-    const technicalPillarButton = page.getByRole('button', { name: /Technical & Indexability/i });
+    const technicalPillarButton = page.getByRole('button', {
+      name: /Technical & Indexability/i,
+    });
     await technicalPillarButton.click();
 
     // Wait for filter to apply
@@ -175,15 +198,24 @@ test.describe('COUNT-INTEGRITY-1: Technical issues are informational', () => {
     expect(linkCount).toBe(0);
 
     // Verify informational cards remain visible in detected mode
-    const detectedInformationalCards = page.getByTestId('issue-card-informational');
+    const detectedInformationalCards = page.getByTestId(
+      'issue-card-informational'
+    );
     const detectedInformationalCount = await detectedInformationalCards.count();
     expect(detectedInformationalCount).toBeGreaterThan(0);
   });
 });
 
 test.describe('COUNT-INTEGRITY-1: Viewer role sees detected-only counts', () => {
-  test('VIEWER role has no actionable issues (scopeCount = 0, detected > 0)', async ({ page, request }) => {
-    const { projectId } = await authenticatePage(page, request, seedTestProjectViewer);
+  test('VIEWER role has no actionable issues (scopeCount = 0, detected > 0)', async ({
+    page,
+    request,
+  }) => {
+    const { projectId } = await authenticatePage(
+      page,
+      request,
+      seedTestProjectViewer
+    );
 
     // Navigate to Work Queue
     await page.goto(`/projects/${projectId}/work-queue`);
@@ -205,7 +237,9 @@ test.describe('COUNT-INTEGRITY-1: Viewer role sees detected-only counts', () => 
       const cardText = await card.textContent();
 
       // VIEWER bundles should show zero-actionable neutral message OR detected counts only
-      const hasZeroActionableMessage = cardText?.includes('No items currently eligible for action');
+      const hasZeroActionableMessage = cardText?.includes(
+        'No items currently eligible for action'
+      );
       const hasDetectedCount = cardText?.match(/(\d+)\s+detected\s+issue/);
 
       // At least one of these conditions should be true for VIEWER

@@ -10,7 +10,7 @@ This document tracks all implementation phases and their completion status.
 
 ### Foundations
 
-*None recorded as standalone phases.*
+_None recorded as standalone phases._
 
 ### Core Platform
 
@@ -511,6 +511,7 @@ Strict, non-brittle test hooks for pillar filter buttons:
 Trust principle: "If the system shows an action, the user must be able to take that action meaningfully."
 
 Core contract (locked): 0 eligible = no action surfaces.
+
 - Work Queue: suppress AUTOMATION_RUN tiles with scopeCount === 0 from actionable tabs; no dead-end CTAs.
 - Playbooks: when eligibility is 0, hide Preview/Estimate/Apply stepper + Apply semantics and show a calm empty state.
 - Copy: use "No eligible items right now" consistently (avoid "Applies to 0…" / "0 affected").
@@ -525,18 +526,22 @@ Core contract (locked): 0 eligible = no action surfaces.
 ### Core Files
 
 **Backend:**
+
 - apps/api/src/projects/work-queue.service.ts
 - apps/api/src/testkit/e2e-testkit.controller.ts
 
 **Frontend:**
+
 - apps/web/src/components/work-queue/ActionBundleCard.tsx
 - apps/web/src/app/projects/[id]/automation/playbooks/page.tsx
 
 ### Test Coverage
+
 - **Automated Tests:** zero-affected-suppression-1.spec.ts
 - **Manual Testing:** ZERO-AFFECTED-SUPPRESSION-1.md
 
 ### Critical Paths
+
 - CRITICAL_PATH_MAP.md (CP-008, CP-012)
 
 ---
@@ -552,6 +557,7 @@ Core contract (locked): 0 eligible = no action surfaces.
 ### Overview
 
 Establishes count integrity as a core trust contract across the product by:
+
 1. Defining "detected" vs "actionable" as server-derived, role-aware semantics
 2. Implementing `IssueCountsSummary` as single source of truth for all badge/tab counts
 3. Enforcing click integrity: Work Queue card counts match Issues page filtered list rows
@@ -560,6 +566,7 @@ Establishes count integrity as a core trust contract across the product by:
 ### Core Contracts
 
 **Detected vs Actionable:**
+
 - **Detected:** Issue exists in the system (always true if returned in issues array)
 - **Actionable:** Issue has an in-app fix surface AND user's role allows taking action
   - Must be in `IN_APP_ACTIONABLE_ISSUE_KEYS` OR have `fixReady && fixType`
@@ -567,11 +574,13 @@ Establishes count integrity as a core trust contract across the product by:
   - User must have at least one of: `canGenerateDrafts`, `canRequestApproval`, `canApply`
 
 **Asset Type Distribution:**
+
 - Every issue MUST include `assetTypeCounts: { products, pages, collections }`
 - Sum must equal `issue.count` for integrity (no truncation via preview arrays)
 - URL classification: `/collections/*` → collections, else pages (product URLs treated as pages to avoid double-counting)
 
 **UI Semantics:**
+
 - Pillar/severity badges show actionable count by default with detected as secondary
 - "Informational" issues (technical view-only) are detected but not clickable
 - Work Queue → Issues routing preserves `actionKey + scopeType + mode` for click integrity
@@ -618,6 +627,7 @@ Establishes count integrity as a core trust contract across the product by:
 ### ⚠️ Pending Work
 
 **✅ PATCH 1 - Backend Issue Builders & Gating (COMPLETE):**
+
 - ✅ Added `assetTypeCounts` to all 7 technical issue builders (all marked 'informational')
 - ✅ Added check for `issue.actionability !== 'informational'` in decoration block
 - ✅ Changed capability check to require: canGenerateDrafts OR canRequestApproval OR canApply
@@ -625,16 +635,19 @@ Establishes count integrity as a core trust contract across the product by:
 - ✅ Fixed `byAssetType` group counting to track issue types per asset type
 
 **✅ PATCH 2 - Read-Only Issues Endpoint (COMPLETE):**
+
 - ✅ Added `GET /projects/:id/deo-issues/read-only` to controller
 - ✅ Added `projectsApi.deoIssuesReadOnly(id)` to web client
 
 **✅ PATCH 3 - Work Queue Bundle Types (COMPLETE):**
+
 - ✅ Added `scopeDetectedCount?` field to `WorkQueueActionBundle`
 - ✅ Updated field comments for clarity:
   - `scopeCount`: For ASSET_OPTIMIZATION: actionable issue-group count; for other types: affected item count
   - `scopeDetectedCount`: For ASSET_OPTIMIZATION: detected issue-group count (may exceed scopeCount)
 
 **✅ PATCH 4 - Work Queue Derivation (COMPLETE):**
+
 - ✅ Updated `deriveIssueBundlesByScopeType()` to use `assetTypeCounts` for counts
 - ✅ Set `scopeCount` = actionable issue-group count, `scopeDetectedCount` = detected issue-group count
 - ✅ Stopped using asset set sizes (`productIds.size`, etc.) for counts
@@ -643,6 +656,7 @@ Establishes count integrity as a core trust contract across the product by:
 - ✅ Create bundle when `scopeDetectedCount > 0` (even if no actionable issues)
 
 **✅ PATCH 4.1 - Work Queue Preview Math Hotfix (COMPLETE):**
+
 - ✅ **PATCH 4.1.1:** Fixed PRODUCTS/PAGES/COLLECTIONS preview "+N more" to match actionable vs detected semantics
   - When scopeCount > 0, "+N more" is based on scopeCount (actionable issue-group count)
   - When scopeCount === 0, "+N more" is based on scopeDetectedCount (detected issue-group count)
@@ -656,6 +670,7 @@ Establishes count integrity as a core trust contract across the product by:
   - Ensures helper is input-safe for any caller (even if caller passes >5 previews)
 
 **✅ PATCH 6 - Issues Engine UI (COMPLETE):**
+
 - ✅ **PATCH 6.1:** Switched to `projectsApi.deoIssuesReadOnly()` with parallel `issueCountsSummary()` fetch
 - ✅ **PATCH 6.2:** Added `IssueCountsSummary` state and used for severity badge counts (single source of truth)
 - ✅ **PATCH 6.3:** Added URL query param parsing: `mode`, `actionKey`, `scopeType`
@@ -667,6 +682,7 @@ Establishes count integrity as a core trust contract across the product by:
 - ✅ **PATCH 6.9:** Fixed TypeScript type error in actionKey filtering logic
 
 **✅ PATCH 6 FIXUP - Issues Engine UI Corrections (COMPLETE):**
+
 - ✅ **FIXUP 1:** Fixed default mode logic - introduced `effectiveMode` that defaults to 'actionable'
 - ✅ **FIXUP 2:** Enforced clickability semantics - `isClickableIssue = (isActionableNow && fixHref != null)`
 - ✅ **FIXUP 3:** Gated fix CTAs on isActionableNow - early returns in `getFixAction()`
@@ -675,6 +691,7 @@ Establishes count integrity as a core trust contract across the product by:
 - ✅ **FIXUP 6:** Updated clear-filters banner to also delete pillar param
 
 **✅ PATCH 5 - Work Queue Card UI & Routing (COMPLETE):**
+
 - ✅ **PATCH 5.1:** Updated scope line for ASSET_OPTIMIZATION bundles:
   - Shows "N actionable issues affecting <scope>" when scopeCount > 0
   - Shows detected count in parentheses when detected != actionable
@@ -687,18 +704,21 @@ Establishes count integrity as a core trust contract across the product by:
   - Routes PRODUCTS, PAGES, COLLECTIONS, and STORE_WIDE all to Issues page (not asset lists)
 
 **✅ PATCH 7 - Store Health & Work Queue Updates (COMPLETE):**
+
 - ✅ **Store Health:** Added `issueCountsSummary()` fetch for click-integrity counts
 - ✅ **Store Health:** Updated Discoverability and Technical Readiness summaries to use "issues" language
 - ✅ **Work Queue:** Added `allBundlesAreAssetOptimization` logic for banner terminology
 - ✅ **Work Queue:** Filter banner shows "N issues" for ASSET_OPTIMIZATION, "N items" for others
 
 **✅ PATCH 9 - Playwright Tests (COMPLETE):**
+
 - ✅ Created `apps/web/tests/count-integrity-1.spec.ts` with 3 smoke tests:
   - **Test 1:** Work Queue → Issues click integrity (OWNER seed) - card count matches filtered list
   - **Test 2:** Technical issues are informational (OWNER seed) - badge visible, not clickable
   - **Test 3:** Viewer role sees detected-only (VIEWER seed) - no actionable issues or CTAs
 
 **✅ PATCH 10 - Documentation (COMPLETE):**
+
 - ✅ **PATCH 10.1:** Checked `IMPLEMENTATION_PLAN.md` CRITICAL_PATH_MAP references (already correct, no changes needed)
 - ✅ **PATCH 10.2:** Created `docs/manual-testing/COUNT-INTEGRITY-1.md` manual testing guide with 19 scenarios
 - ✅ **PATCH 10.3:** Updated `docs/testing/CRITICAL_PATH_MAP.md` with COUNT-INTEGRITY-1 references in CP-008 and CP-009
@@ -707,6 +727,7 @@ Establishes count integrity as a core trust contract across the product by:
 ### Core Files Modified
 
 **Backend:**
+
 - `apps/api/src/projects/deo-issues.service.ts` - Core aggregation and decoration logic
 - `apps/api/src/projects/projects.controller.ts` - New counts endpoint
 - `apps/api/src/projects/work-queue.service.ts` - Bundle derivation ✅
@@ -714,6 +735,7 @@ Establishes count integrity as a core trust contract across the product by:
 - `packages/shared/src/deo-pillars.ts` - Media pillar activation
 
 **Frontend:**
+
 - `apps/web/src/lib/deo-issues.ts` - Type definitions
 - `apps/web/src/lib/api.ts` - API client methods
 - `apps/web/src/app/projects/[id]/issues/page.tsx` - Issues Engine UI (superseded by COUNT-INTEGRITY-1.1)
@@ -724,6 +746,7 @@ Establishes count integrity as a core trust contract across the product by:
 ### Testing Requirements
 
 **Manual Testing Scenarios (Work Queue click-integrity remains valid):**
+
 1. Work Queue bundle count → Issues filtered list row count matches
 2. Pillar/severity badge → rendered list count matches
 3. Technical pillar shows "Informational" with no click action
@@ -732,6 +755,7 @@ Establishes count integrity as a core trust contract across the product by:
 > **Note:** Store Health Discoverability/Technical click-integrity is now governed by COUNT-INTEGRITY-1.1 (Issues Engine destination, not Work Queue).
 
 **Automated Coverage:**
+
 - Playwright E2E: Work Queue → Issues click integrity chain (still valid)
 - Role matrix: VIEWER/EDITOR/OWNER actionability rendering
 - Filter context preservation across navigation
@@ -987,12 +1011,14 @@ LIST-ACTIONS-CLARITY-1 unifies the row chips and actions across Products, Pages,
 #### Locked Vocabulary
 
 **Chip Labels:**
+
 - `✅ Optimized` — Green — No actionable issues, no pending drafts
 - `⚠ Needs attention` — Yellow — Has actionable issues, no pending drafts
 - `🟡 Draft saved (not applied)` — Blue — Has pending draft (can be applied)
 - `⛔ Blocked` — Red — Has pending draft but cannot apply (requires approval)
 
 **Action Labels:**
+
 - `Fix next` — Products only, links to Issues Engine filtered by product
 - `View issues` — Pages/Collections, links to Issues Engine filtered by asset
 - `Review drafts` — Links to Work Queue
@@ -1213,6 +1239,7 @@ DRAFT-REVIEW-ISOLATION-1 extracts the Product Drafts tab into an isolated module
 #### NON-AI BOUNDARY Contract
 
 The `ProductDraftsTab.tsx` module must:
+
 1. Contain the header: `NON-AI BOUNDARY: Draft Review is human-only. Do not import aiApi or add AI generation actions here.`
 2. NOT import any of these forbidden tokens:
    - `aiApi`
@@ -1260,9 +1287,9 @@ DRAFT-AI-ENTRYPOINT-CLARITY-1 adds explicit AI boundary labeling at all draft wo
 
 #### Locked Copy (Do Not Modify Without Phase Approval)
 
-| Mode | Text | Icon |
-|------|------|------|
-| Review | "Review & edit (no AI on this step)" | Person (gray) |
+| Mode     | Text                                                | Icon               |
+| -------- | --------------------------------------------------- | ------------------ |
+| Review   | "Review & edit (no AI on this step)"                | Person (gray)      |
 | Generate | "AI used for drafts only · AI is not used at Apply" | Lightbulb (indigo) |
 
 #### Surfaces Covered
@@ -1314,12 +1341,12 @@ DRAFT-DIFF-CLARITY-1 adds explicit "Current (live)" vs "Draft (staged)" diff dis
 
 #### Locked Copy (Do Not Modify Without Phase Approval)
 
-| Element | Text |
-|---------|------|
-| Current label | "Current (live)" |
-| Draft label | "Draft (staged)" |
-| No draft message | "No draft generated yet" |
-| Clear warning | "Draft will clear this field when applied" |
+| Element             | Text                                                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Current label       | "Current (live)"                                                                                             |
+| Draft label         | "Draft (staged)"                                                                                             |
+| No draft message    | "No draft generated yet"                                                                                     |
+| Clear warning       | "Draft will clear this field when applied"                                                                   |
 | Confirmation dialog | "Saving an empty draft will clear this field when applied.\n\nAre you sure you want to save an empty draft?" |
 
 #### Surfaces Covered
@@ -1379,16 +1406,19 @@ DRAFT-FIELD-COVERAGE-1 generalizes the Draft Review UI to work consistently acro
 #### Core Files
 
 **New Routes:**
+
 - `apps/web/src/app/projects/[id]/assets/pages/[pageId]/page.tsx` (implementation)
 - `apps/web/src/app/projects/[id]/assets/collections/[collectionId]/page.tsx` (implementation)
 - `apps/web/src/app/projects/[id]/pages/[pageId]/page.tsx` (canonical alias, redirects to /assets/pages/...)
 - `apps/web/src/app/projects/[id]/collections/[collectionId]/page.tsx` (canonical alias, redirects to /assets/collections/...)
 
 **Component:**
+
 - `apps/web/src/components/products/AssetDraftsTab.tsx` (generalized from ProductDraftsTab)
 - `apps/web/src/components/products/ProductDraftsTab.tsx` (thin wrapper around AssetDraftsTab)
 
 **Updated:**
+
 - `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` (uses AssetDraftsTab)
 - `apps/web/tests/draft-review-isolation-1.spec.ts` (targets AssetDraftsTab)
 - `apps/api/src/testkit/e2e-testkit.controller.ts` (seed-draft-field-coverage-1)
@@ -1404,6 +1434,7 @@ DRAFT-FIELD-COVERAGE-1 generalizes the Draft Review UI to work consistently acro
 `POST /testkit/e2e/seed-draft-field-coverage-1`
 
 Seeds:
+
 - 3 Products (diff / clear / no-draft scenarios)
 - 3 Pages (diff / clear / no-draft scenarios)
 - 3 Collections (diff / clear / no-draft scenarios)
@@ -1439,6 +1470,7 @@ DRAFT-LIST-PARITY-1 ensures that "Review drafts" actions on Pages and Collection
 #### Core Files
 
 **Updated:**
+
 - `apps/web/src/lib/list-actions-clarity.ts` (resolver + new helpers)
 - `apps/web/src/app/projects/[id]/assets/pages/page.tsx` (uses new helpers)
 - `apps/web/src/app/projects/[id]/assets/collections/page.tsx` (uses new helpers)
@@ -1489,6 +1521,7 @@ PLAYBOOK-ENTRYPOINT-INTEGRITY-1 introduces canonical playbook routes and guarant
 ```
 
 **Sources (entrypoints):**
+
 - `banner` - Playbooks page banner CTA
 - `tile` - Playbooks page tile click
 - `work_queue` - Work Queue CTA
@@ -1501,11 +1534,13 @@ PLAYBOOK-ENTRYPOINT-INTEGRITY-1 introduces canonical playbook routes and guarant
 #### Core Files
 
 **Created:**
+
 - `apps/web/src/app/projects/[id]/playbooks/page.tsx` (canonical list route re-export)
 - `apps/web/src/app/projects/[id]/playbooks/[playbookId]/page.tsx` (canonical run route re-export)
 - `apps/web/src/lib/playbooks-routing.ts` (centralized routing helper)
 
 **Updated:**
+
 - `apps/web/src/app/projects/[id]/automation/page.tsx` (redirect to /playbooks)
 - `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (integrity fixes)
 - `apps/web/src/components/work-queue/ActionBundleCard.tsx` (canonical routing)
@@ -1525,6 +1560,7 @@ PLAYBOOK-ENTRYPOINT-INTEGRITY-1 introduces canonical playbook routes and guarant
 `POST /testkit/e2e/seed-playbook-entrypoint-integrity-1`
 
 Seeds:
+
 - User with project and Shopify connection
 - Products where: titles eligibleCount = 0, descriptions eligibleCount > 0
 - Returns expected counts for test assertions
@@ -1555,6 +1591,7 @@ Seeds:
 - Manual Testing: Added Scenario 1.2 (Entry page → Playbook with scope) to PLAYBOOK-ENTRYPOINT-INTEGRITY-1.md.
 
 **FOLLOWUP-1 (2026-01-12):**
+
 - Entry page CTA now routes to Playbooks LIST (not hardcoded run target) so deterministic selection chooses the correct playbook for scoped eligibility.
 - `buildPlaybookScopePayload()` now validates PRODUCTS scope refs (rejects handle-prefixed refs like `page_handle:...`) and provides an explicit payload with `scopeProductIds` for API calls.
 - Added `getRoutingScopeFromPayload()` helper to extract routing-only subset (excludes `scopeProductIds`).
@@ -1694,14 +1731,14 @@ Seeds:
 
 #### Scope Matrix
 
-| Capability | Required Scopes |
-|------------|-----------------|
-| `products_sync` | `read_products` |
-| `products_apply` | `write_products` |
-| `collections_sync` | `read_products` |
-| `pages_sync` | `read_content` |
-| `blogs_sync` | `read_content` |
-| `themes_read` | `read_themes` |
+| Capability         | Required Scopes  |
+| ------------------ | ---------------- |
+| `products_sync`    | `read_products`  |
+| `products_apply`   | `write_products` |
+| `collections_sync` | `read_products`  |
+| `pages_sync`       | `read_content`   |
+| `blogs_sync`       | `read_content`   |
+| `themes_read`      | `read_themes`    |
 
 #### Core Files
 
@@ -1741,11 +1778,11 @@ Seeds:
 
 #### Implication Matrix
 
-| Write Scope | Implies |
-|-------------|---------|
+| Write Scope      | Implies         |
+| ---------------- | --------------- |
 | `write_products` | `read_products` |
-| `write_content` | `read_content` |
-| `write_themes` | `read_themes` |
+| `write_content`  | `read_content`  |
+| `write_themes`   | `read_themes`   |
 
 **Important:** Implications are for COVERAGE CHECKS ONLY — actual OAuth scopes requested/stored are unchanged. Read scopes do NOT imply write scopes (no reverse implication).
 
@@ -1797,12 +1834,13 @@ Seeds:
 
 #### Truth Source Logic
 
-| OAuth Scope | Action |
-|-------------|--------|
-| Present, non-empty, parseable | Use as `oauth_scope` truth source |
-| Empty, null, or unparseable | Fallback to `access_scopes_endpoint` |
+| OAuth Scope                   | Action                               |
+| ----------------------------- | ------------------------------------ |
+| Present, non-empty, parseable | Use as `oauth_scope` truth source    |
+| Empty, null, or unparseable   | Fallback to `access_scopes_endpoint` |
 
 **Explicit Separation:**
+
 - `grantedScopes` = factual scopes stored in DB (from truth source)
 - `effectiveGranted` = expanded set for coverage checks (includes implications from SHOPIFY-SCOPE-IMPLICATIONS-1)
 
@@ -1829,6 +1867,7 @@ Seeds:
 **Problem:** OAuth token exchange may return fewer scopes than requested. The original implementation only fell back to Access Scopes endpoint when OAuth scope was empty, not when it was "suspicious" (missing expected scopes).
 
 **Changes:**
+
 1. **Suspicious-Scope Detection:** `storeShopifyConnection()` now accepts optional `expectedScopes` parameter. If OAuth scope is present but missing expected scopes, treats it as "suspicious" and falls back to Access Scopes endpoint.
 2. **Controller Pass-Through:** `shopify.controller.ts` callback now passes `statePayload.requestedScopes` to `storeShopifyConnection()`.
 3. **New Truth Source Value:** Added `access_scopes_endpoint_suspicious` to distinguish suspicious-scope fallback from empty-scope fallback in logs.
@@ -1841,6 +1880,7 @@ Seeds:
 **Problem:** Original implementation could persist empty scopes if both Access Scopes endpoint AND OAuth scope were empty, potentially causing incorrect missing-scope warnings. Reconnect could accidentally downgrade existing stored scopes.
 
 **Changes:**
+
 1. **Safe Fallback Source Order:** `storeShopifyConnection()` now uses priority order:
    - Access Scopes endpoint (if non-empty)
    - OAuth token exchange scope (even if previously marked "suspicious")
@@ -1858,6 +1898,7 @@ Seeds:
 **Problem:** When `shopify=verify_failed` is shown, stale or empty missing-scope state could cause the "Missing permission: ..." notice to also render, showing misleading "missing all permissions" output.
 
 **Changes:**
+
 1. **Clear Stale State:** On `verify_failed` detection, clear `shopifyMissingScopes` and `reconnectCapability` state to prevent fake warnings from stale data.
 2. **Render Guard:** Added `!scopeVerifyFailed` condition to `ShopifyPermissionNotice` render block so verify_failed banner is mutually exclusive with missing-scope notice.
 3. **Manual Testing:** Updated FIXUP-2 doc (ERR-001) with explicit assertion that verify_failed suppresses missing-scope list.
@@ -1894,9 +1935,9 @@ Seeds:
 
 #### Capability → Scope
 
-| Capability | Required Scopes |
-|------------|-----------------|
-| `blogs_sync` | `read_content` |
+| Capability   | Required Scopes |
+| ------------ | --------------- |
+| `blogs_sync` | `read_content`  |
 
 #### Core Files
 
@@ -2027,6 +2068,7 @@ Permission-safe Step 2 draft blocker CTAs:
 #### FIXUP-1 (2026-01-12)
 
 Corrections to initial implementation:
+
 1. **Anchor Integrity**: Search & Intent issues now use `search-intent-tab-anchor` as canonical anchor (not module-specific testids that don't exist).
 2. **fixKind Security**: fixKind is NEVER read from URL params (non-authoritative, spoofable). Always derived from `getIssueFixConfig()`.
 3. **View Related Issues Route**: "View related issues" CTA routes to Issues Engine (`/projects/:id/issues?mode=detected&pillar=:pillarId`), NOT to product `tab=issues`.
@@ -2037,6 +2079,7 @@ Corrections to initial implementation:
 #### FIXUP-2 (2026-01-14)
 
 Aggregation surfaces (Products list, Work Queue) now use fixKind-aware semantics:
+
 1. **Products List "Review" CTA**: Added `fixNextIsDiagnostic?: boolean` to `RowNextActionInput`. Products list passes flag when deterministic next issue is DIAGNOSTIC. CTA shows "Review" instead of "Fix next".
 2. **Work Queue Banner Wording**: Work Queue derives `fixKind` from `getIssueFixConfig(issueIdParam)`. DIAGNOSTIC issues render blue banner with "You're here to review:" wording (not indigo "You're here to fix:").
 3. **Seed Data Extension**: `seed-first-deo-win` now creates 4 products. Product 4 has SEO populated and is shaped so `not_answer_ready` is the deterministic next issue (for testing DIAGNOSTIC CTA) without competing top issues.
@@ -2207,6 +2250,7 @@ Implements diagnostic guidance pattern for issues with `actionability === 'infor
 **Purpose:** Prevents any accidental actionable navigation on outside-control issues by explicitly gating clickability and fixHref at the frontend level.
 
 **Change:** Issues Engine (page.tsx) now explicitly gates:
+
 1. `isOutsideEngineControl` boolean derived from `issue.actionability === 'informational'`
 2. `fixHref` forced to `null` for outside-control issues (no routing computed)
 3. `isClickableIssue` forced to `false` for outside-control issues, regardless of backend `isActionableNow` flag
@@ -2217,7 +2261,7 @@ Implements diagnostic guidance pattern for issues with `actionability === 'infor
 
 ## In Progress
 
-*None at this time.*
+_None at this time._
 
 ---
 
@@ -2236,12 +2280,14 @@ Trust-safe guided onboarding flow that helps new users achieve their first DEO w
 ### Implementation Patches (Pending)
 
 #### PATCH 1 — Prisma: Onboarding State
+
 - [ ] Add `ProjectOnboardingStatus` enum: `NOT_STARTED`, `IN_PROGRESS`, `COMPLETED`, `SKIPPED`
 - [ ] Add `ProjectOnboardingState` model with userId, projectId, status, stepIndex, selectedContext, timestamps
 - [ ] Add relations to User and Project models
 - [ ] Create migration `gtm-onboard-1_onboarding-state`
 
 #### PATCH 2 — API: Onboarding Module
+
 - [ ] Create `onboarding.module.ts`, `onboarding.controller.ts`, `onboarding.service.ts`
 - [ ] Register OnboardingModule in `app.module.ts`
 - [ ] Implement endpoints (no AI side effects):
@@ -2251,16 +2297,19 @@ Trust-safe guided onboarding flow that helps new users achieve their first DEO w
   - `POST /onboarding/projects/:projectId/skip`
 
 #### PATCH 3 — Backend: Locked Issue Selection Ladder
+
 - [ ] Implement issue selection: Search & Intent > Media > Metadata
 - [ ] Severity ordering: critical > warning > info (tie-breaker: count, then issue.id)
 - [ ] Recommendation payload with pillar-specific fields
 - [ ] Eligibility condition: Shopify connected AND no successful APPLY run
 
 #### PATCH 4 — Trust Contract Fix
+
 - [ ] Remove fire-and-forget `triggerAnswerBlockAutomationsForIssues` from `deo-issues.service.ts`
 - [ ] Add code comment: "No silent AI; viewing issues must not enqueue or trigger AI work"
 
 #### PATCH 5 — Canonical APPLY Recording (RUNS-1)
+
 - [ ] Update apply endpoints to create AutomationPlaybookRun rows:
   - `search-intent.controller.ts`
   - `media-accessibility.controller.ts`
@@ -2272,28 +2321,33 @@ Trust-safe guided onboarding flow that helps new users achieve their first DEO w
 - [ ] Stable playbookId per pillar (e.g., `search_intent_fix`, `shopify_product_seo_update`)
 
 #### PATCH 6 — Web: Onboarding API Client + Analytics
+
 - [ ] Add `analytics.ts` wrapper for GA events via `window.gtag`
 - [ ] Update `api.ts` with `onboardingApi` methods
 - [ ] Analytics events: `onboarding_started`, `onboarding_step_completed`, `onboarding_first_preview`, `onboarding_first_apply`, `onboarding_completed`, `onboarding_skipped`
 
 #### PATCH 7 — Web: Persistent Banner + Step Panel
-- [ ] Create `OnboardingBanner.tsx` (visible under /projects/[id]/* only)
+
+- [ ] Create `OnboardingBanner.tsx` (visible under /projects/[id]/\* only)
 - [ ] Create `OnboardingPanel.tsx` (4-step guidance UI)
 - [ ] Update `layout.tsx` to render banner
 - [ ] Session dismissal via sessionStorage
 - [ ] Celebration copy varies by guided vs non-guided completion
 
 #### PATCH 8 — Web: Deep-link Focus + No Auto Preview
+
 - [ ] Update product page to read onboarding focus params
 - [ ] Auto-expand target section without auto-AI
 - [ ] Create `ProductMediaAccessibilityPanel.tsx`
 - [ ] All preview actions require explicit user click
 
 #### PATCH 9 — Help Hub: Restart Entry Point (Docs Complete)
+
 - [x] Added "Get your first DEO win" section to Help page (Coming Soon indicator)
 - [ ] Links to /projects for onboarding resume (pending implementation)
 
 #### PATCH 10 — Tests + Docs (Docs Complete)
+
 - [ ] Create `gtm-onboard-1.test.ts` (backend integration) — Planned
 - [ ] Create `gtm-onboard-1.spec.ts` (Playwright E2E) — Planned
 - [x] Created `GTM_ONBOARDING.md` (philosophy/spec doc)
@@ -2310,6 +2364,7 @@ Trust-safe guided onboarding flow that helps new users achieve their first DEO w
 ### Dependencies
 
 **Required (Complete):**
+
 - SELF-SERVICE-1: Session and authentication infrastructure
 - AUTO-PB-1 (RUNS-1): AutomationPlaybookRun model for completion tracking
 - MEDIA-1: Media pillar issues for selection ladder
@@ -2317,6 +2372,7 @@ Trust-safe guided onboarding flow that helps new users achieve their first DEO w
 - DEO Pillars (search_intent_fit, media_accessibility, metadata_snippet_quality): Issue data source
 
 **Optional Enhancement:**
+
 - CACHE/REUSE v2: Draft reuse for onboarding preview persistence
 
 ### Locked Trust Contracts
@@ -2342,7 +2398,7 @@ These invariants MUST be preserved during implementation:
 
 ## Deferred / Explicitly Excluded
 
-*None at this time.*
+_None at this time._
 
 ---
 

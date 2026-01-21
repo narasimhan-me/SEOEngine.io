@@ -1,7 +1,6 @@
 import Link from 'next/link';
 
 export default function MarketingFooter() {
-
   return (
     <footer className="border-t border-border bg-muted">
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
@@ -80,7 +79,9 @@ export default function MarketingFooter() {
         </div>
 
         <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row">
-          <p>&copy; {new Date().getFullYear()} EngineO.ai. All rights reserved.</p>
+          <p>
+            &copy; {new Date().getFullYear()} EngineO.ai. All rights reserved.
+          </p>
           <p className="text-[11px]">
             Built for modern eCommerce teams &amp; Shopify merchants.
           </p>

@@ -27,8 +27,10 @@ const GAP_TYPE_LABELS: Record<CompetitorGapType, string> = {
 // Gap type descriptions
 const GAP_TYPE_DESCRIPTIONS: Record<CompetitorGapType, string> = {
   intent_gap: 'Missing coverage for search intents that competitors address',
-  content_section_gap: 'Missing content sections (comparison, buying guide, etc.)',
-  trust_signal_gap: 'Missing trust signals (reviews, guarantees, certifications)',
+  content_section_gap:
+    'Missing content sections (comparison, buying guide, etc.)',
+  trust_signal_gap:
+    'Missing trust signals (reviews, guarantees, certifications)',
 };
 
 // Competitive status colors and labels
@@ -136,7 +138,10 @@ export default function CompetitorsWorkspacePage() {
           </li>
           <li>/</li>
           <li>
-            <Link href={`/projects/${projectId}/store-health`} className="hover:text-gray-700">
+            <Link
+              href={`/projects/${projectId}/store-health`}
+              className="hover:text-gray-700"
+            >
               {projectName || 'Project'}
             </Link>
           </li>
@@ -147,7 +152,9 @@ export default function CompetitorsWorkspacePage() {
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Competitive Positioning</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Competitive Positioning
+        </h1>
         <p className="mt-1 text-sm text-gray-600">
           {pillar?.description ||
             'Analyze how your products compare to competitors across key coverage areas.'}
@@ -169,9 +176,12 @@ export default function CompetitorsWorkspacePage() {
         <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Project Competitive Standing</h2>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Project Competitive Standing
+              </h2>
               <p className="text-sm text-gray-500">
-                Based on {scorecard.totalProducts} product{scorecard.totalProducts !== 1 ? 's' : ''}
+                Based on {scorecard.totalProducts} product
+                {scorecard.totalProducts !== 1 ? 's' : ''}
               </p>
             </div>
             <div className="text-right">
@@ -190,24 +200,40 @@ export default function CompetitorsWorkspacePage() {
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <div className="rounded-lg border border-green-200 bg-green-50 p-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-green-700">Ahead</span>
-                <span className="text-2xl font-bold text-green-700">{scorecard.productsAhead}</span>
+                <span className="text-sm font-medium text-green-700">
+                  Ahead
+                </span>
+                <span className="text-2xl font-bold text-green-700">
+                  {scorecard.productsAhead}
+                </span>
               </div>
-              <p className="mt-1 text-xs text-green-600">products leading competitors</p>
+              <p className="mt-1 text-xs text-green-600">
+                products leading competitors
+              </p>
             </div>
             <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-yellow-700">On Par</span>
-                <span className="text-2xl font-bold text-yellow-700">{scorecard.productsOnPar}</span>
+                <span className="text-sm font-medium text-yellow-700">
+                  On Par
+                </span>
+                <span className="text-2xl font-bold text-yellow-700">
+                  {scorecard.productsOnPar}
+                </span>
               </div>
-              <p className="mt-1 text-xs text-yellow-600">products competitive</p>
+              <p className="mt-1 text-xs text-yellow-600">
+                products competitive
+              </p>
             </div>
             <div className="rounded-lg border border-red-200 bg-red-50 p-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-red-700">Behind</span>
-                <span className="text-2xl font-bold text-red-700">{scorecard.productsBehind}</span>
+                <span className="text-2xl font-bold text-red-700">
+                  {scorecard.productsBehind}
+                </span>
               </div>
-              <p className="mt-1 text-xs text-red-600">products need attention</p>
+              <p className="mt-1 text-xs text-red-600">
+                products need attention
+              </p>
             </div>
           </div>
 
@@ -215,15 +241,17 @@ export default function CompetitorsWorkspacePage() {
             <div className="mt-4 rounded-md border border-orange-200 bg-orange-50 px-3 py-2">
               <p className="text-sm text-orange-800">
                 <strong>{scorecard.productsBehind}</strong> product
-                {scorecard.productsBehind !== 1 ? 's' : ''} need competitive improvements to match
-                industry standards.
+                {scorecard.productsBehind !== 1 ? 's' : ''} need competitive
+                improvements to match industry standards.
               </p>
             </div>
           )}
 
           {/* Gap Type Breakdown Grid */}
           <div className="mt-6">
-            <h3 className="mb-3 text-sm font-medium text-gray-700">Gap Type Analysis</h3>
+            <h3 className="mb-3 text-sm font-medium text-gray-700">
+              Gap Type Analysis
+            </h3>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {scorecard.gapBreakdown.map((item) => {
                 const hasGaps = item.productsWithGaps > 0;
@@ -238,7 +266,9 @@ export default function CompetitorsWorkspacePage() {
                   <div
                     key={item.gapType}
                     className={`rounded-lg border p-4 ${
-                      hasGaps ? 'border-orange-200 bg-orange-50' : 'border-gray-200 bg-gray-50'
+                      hasGaps
+                        ? 'border-orange-200 bg-orange-50'
+                        : 'border-gray-200 bg-gray-50'
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -294,10 +324,14 @@ export default function CompetitorsWorkspacePage() {
                   <p className="truncate text-sm font-medium text-gray-900">
                     {product.title || 'Untitled Product'}
                   </p>
-                  {product.handle && <p className="text-xs text-gray-500">{product.handle}</p>}
+                  {product.handle && (
+                    <p className="text-xs text-gray-500">{product.handle}</p>
+                  )}
                 </div>
                 <div className="ml-4 flex items-center gap-2">
-                  <span className="text-xs text-gray-400">View competitive analysis</span>
+                  <span className="text-xs text-gray-400">
+                    View competitive analysis
+                  </span>
                   <svg
                     className="h-4 w-4 text-gray-400"
                     fill="none"
@@ -330,29 +364,33 @@ export default function CompetitorsWorkspacePage() {
 
       {/* Learn More / Documentation Link */}
       <div className="mt-6 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
-        <h3 className="text-sm font-medium text-gray-700">About Competitive Positioning Analysis</h3>
+        <h3 className="text-sm font-medium text-gray-700">
+          About Competitive Positioning Analysis
+        </h3>
         <p className="mt-1 text-xs text-gray-500">
-          This pillar analyzes how your products compare to competitors across three gap types:
+          This pillar analyzes how your products compare to competitors across
+          three gap types:
         </p>
         <ul className="mt-2 space-y-1 text-xs text-gray-500">
           <li>
-            <strong>Intent Coverage Gaps:</strong> Search intents that competitors address but you
-            don&apos;t (highest priority)
+            <strong>Intent Coverage Gaps:</strong> Search intents that
+            competitors address but you don&apos;t (highest priority)
           </li>
           <li>
-            <strong>Content Section Gaps:</strong> Missing content sections like comparison tables,
-            buying guides, or why-choose sections
+            <strong>Content Section Gaps:</strong> Missing content sections like
+            comparison tables, buying guides, or why-choose sections
           </li>
           <li>
-            <strong>Trust Signal Gaps:</strong> Missing trust signals like reviews sections,
-            guarantees, or certifications
+            <strong>Trust Signal Gaps:</strong> Missing trust signals like
+            reviews sections, guarantees, or certifications
           </li>
         </ul>
         <p className="mt-3 text-xs text-gray-500">
-          Products are scored: <strong className="text-green-600">Ahead (&gt;70%)</strong>,{' '}
+          Products are scored:{' '}
+          <strong className="text-green-600">Ahead (&gt;70%)</strong>,{' '}
           <strong className="text-yellow-600">On Par (40-70%)</strong>, or{' '}
-          <strong className="text-red-600">Behind (&lt;40%)</strong> based on coverage areas where
-          competitors lead.
+          <strong className="text-red-600">Behind (&lt;40%)</strong> based on
+          coverage areas where competitors lead.
         </p>
       </div>
     </div>

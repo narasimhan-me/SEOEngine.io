@@ -32,7 +32,10 @@ export class AnswerBlockService {
    * Upserts by (productId, questionId) so each question has at most one block.
    * If no valid blocks remain after validation, clears existing blocks for the product.
    */
-  async createOrUpdateAnswerBlocks(productId: string, blocks: AnswerBlockInput[]) {
+  async createOrUpdateAnswerBlocks(
+    productId: string,
+    blocks: AnswerBlockInput[]
+  ) {
     const validQuestionIds = new Set<string>(ANSWER_QUESTION_IDS);
 
     const normalized = (blocks || []).filter((block) => {

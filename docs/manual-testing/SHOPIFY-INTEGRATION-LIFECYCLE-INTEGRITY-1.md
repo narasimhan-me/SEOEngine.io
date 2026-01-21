@@ -23,7 +23,7 @@
   SHOPIFY_API_KEY, SHOPIFY_API_SECRET, SHOPIFY_APP_URL, FRONTEND_URL
   API + Web running
 - Test accounts and sample data:
-  Project with Shopify domain (e.g., *.myshopify.com) and NO Shopify integration
+  Project with Shopify domain (e.g., \*.myshopify.com) and NO Shopify integration
   Project with Shopify integration connected, then disconnected
 - Required user roles or subscriptions:
   Project OWNER (required for Connect/Disconnect actions)
@@ -37,14 +37,17 @@
 ID: HP-001
 
 Preconditions:
+
 - Shopify is connected to the project.
 
 Steps:
+
 1. Go to /projects/:id/settings#integrations.
 2. Click "Disconnect Shopify".
 3. Navigate to Store Health and Assets surfaces.
 
 Expected Results:
+
 - UI: Settings shows Shopify is not connected + Connect CTA; Store Health shows "Shopify is not connected".
 - API: GET /projects/:id/integration-status returns shopify.connected=false and Shopify is absent from active integrations[].
 
@@ -55,13 +58,16 @@ Expected Results:
 ID: HP-002
 
 Preconditions:
+
 - Project domain is Shopify (e.g. my-store.myshopify.com) and Shopify is not connected.
 
 Steps:
+
 1. Visit /projects/:id/store-health.
 2. Click "Connect Shopify" and complete OAuth.
 
 Expected Results:
+
 - UI: Store Health shows a "Shopify is not connected" notice with a working Connect CTA.
 - API: Connect starts via GET /projects/:id/shopify/connect-url.
 
@@ -74,9 +80,11 @@ Expected Results:
 Description: Non-OWNER can view settings but cannot initiate Shopify connect/disconnect.
 
 Steps:
+
 1. Open /projects/:id/settings#integrations as non-OWNER.
 
 Expected Behavior:
+
 - Buttons are disabled and guidance to ask an owner is shown.
 
 ---
@@ -88,10 +96,12 @@ Expected Behavior:
 Scenario: User is on Settings but local session token is missing/expired.
 
 Steps:
+
 1. Remove engineo_token from local storage.
 2. Click "Connect Shopify".
 
 Expected Behavior:
+
 - Visible inline error explaining the token is missing and instructing to sign in again.
 - No silent failure and no auto-redirect into OAuth.
 
@@ -104,9 +114,11 @@ Expected Behavior:
 Scenario: N/A
 
 Steps:
+
 1. N/A
 
 Expected Behavior:
+
 - N/A
 
 ---

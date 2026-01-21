@@ -52,7 +52,9 @@ describe('ProductIssueFixService', () => {
   let prismaMock: ReturnType<typeof createPrismaMock>;
   let entitlementsServiceMock: ReturnType<typeof createEntitlementsServiceMock>;
   let aiServiceMock: ReturnType<typeof createAiServiceMock>;
-  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
+  let roleResolutionServiceMock: ReturnType<
+    typeof createRoleResolutionServiceMock
+  >;
   let consoleLogSpy: jest.SpyInstance;
   let consoleErrorSpy: jest.SpyInstance;
 
@@ -73,8 +75,12 @@ describe('ProductIssueFixService', () => {
     }).compile();
 
     service = module.get<ProductIssueFixService>(ProductIssueFixService);
-    consoleLogSpy = jest.spyOn(global.console, 'log').mockImplementation(() => {});
-    consoleErrorSpy = jest.spyOn(global.console, 'error').mockImplementation(() => {});
+    consoleLogSpy = jest
+      .spyOn(global.console, 'log')
+      .mockImplementation(() => {});
+    consoleErrorSpy = jest
+      .spyOn(global.console, 'error')
+      .mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -140,7 +146,7 @@ describe('ProductIssueFixService', () => {
       expect(entitlementsServiceMock.recordAiUsage).toHaveBeenCalledWith(
         userId,
         projectId,
-        'product_optimize',
+        'product_optimize'
       );
     });
 
@@ -205,7 +211,7 @@ describe('ProductIssueFixService', () => {
           userId,
           productId,
           issueType: 'unsupported_type' as any,
-        }),
+        })
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -221,7 +227,7 @@ describe('ProductIssueFixService', () => {
           userId,
           productId,
           issueType,
-        }),
+        })
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -241,7 +247,7 @@ describe('ProductIssueFixService', () => {
 
       prismaMock.product.findUnique.mockResolvedValue(mockProduct as any);
       roleResolutionServiceMock.assertOwnerRole.mockRejectedValue(
-        new ForbiddenException('You do not have access to this project'),
+        new ForbiddenException('You do not have access to this project')
       );
 
       await expect(
@@ -249,7 +255,7 @@ describe('ProductIssueFixService', () => {
           userId,
           productId,
           issueType,
-        }),
+        })
       ).rejects.toThrow(ForbiddenException);
     });
 
@@ -277,7 +283,7 @@ describe('ProductIssueFixService', () => {
           userId,
           productId,
           issueType,
-        }),
+        })
       ).rejects.toThrow(ForbiddenException);
     });
 
@@ -306,8 +312,8 @@ describe('ProductIssueFixService', () => {
             error: 'AI_DAILY_LIMIT_REACHED',
             code: 'AI_DAILY_LIMIT_REACHED',
           },
-          HttpStatus.TOO_MANY_REQUESTS,
-        ),
+          HttpStatus.TOO_MANY_REQUESTS
+        )
       );
 
       await expect(
@@ -315,7 +321,7 @@ describe('ProductIssueFixService', () => {
           userId,
           productId,
           issueType,
-        }),
+        })
       ).rejects.toThrow(HttpException);
     });
 
@@ -416,7 +422,9 @@ describe('ProductIssueFixService', () => {
         limit: 100,
         dailyCount: 10,
       });
-      aiServiceMock.generateMetadata.mockRejectedValue(new Error('AI service error'));
+      aiServiceMock.generateMetadata.mockRejectedValue(
+        new Error('AI service error')
+      );
       entitlementsServiceMock.recordAiUsage.mockResolvedValue(undefined);
 
       await expect(
@@ -424,14 +432,14 @@ describe('ProductIssueFixService', () => {
           userId,
           productId,
           issueType,
-        }),
+        })
       ).rejects.toThrow();
 
       // Should record usage even after error
       expect(entitlementsServiceMock.recordAiUsage).toHaveBeenCalledWith(
         userId,
         projectId,
-        'product_optimize',
+        'product_optimize'
       );
     });
 
@@ -483,4 +491,3 @@ describe('ProductIssueFixService', () => {
     });
   });
 });
-

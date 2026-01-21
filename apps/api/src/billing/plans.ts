@@ -108,7 +108,10 @@ export function getPlanById(planId: string): Plan | undefined {
 }
 
 /** Stripe Price IDs - set via environment */
-export const STRIPE_PRICES: Record<Exclude<PlanId, 'free'>, string | undefined> = {
+export const STRIPE_PRICES: Record<
+  Exclude<PlanId, 'free'>,
+  string | undefined
+> = {
   pro: process.env.STRIPE_PRICE_PRO,
   business: process.env.STRIPE_PRICE_BUSINESS,
 };

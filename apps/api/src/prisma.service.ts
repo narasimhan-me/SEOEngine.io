@@ -4,17 +4,17 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   private pool: Pool;
 
   constructor() {
     // In test mode, prefer DATABASE_URL_TEST, otherwise use DATABASE_URL
-    const dbUrl =
-      process.env.DATABASE_URL_TEST || process.env.DATABASE_URL;
+    const dbUrl = process.env.DATABASE_URL_TEST || process.env.DATABASE_URL;
     if (!dbUrl) {
-      throw new Error(
-        'DATABASE_URL or DATABASE_URL_TEST must be set',
-      );
+      throw new Error('DATABASE_URL or DATABASE_URL_TEST must be set');
     }
     const pool = new Pool({
       connectionString: dbUrl,

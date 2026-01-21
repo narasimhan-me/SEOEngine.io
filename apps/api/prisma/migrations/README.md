@@ -78,6 +78,7 @@ pnpm db:test:migrate
 After running the migration, ensure:
 
 1. **Default accountRole for existing users:**
+
    ```sql
    -- Existing users default to OWNER (already handled by schema default)
    -- No explicit backfill needed for accountRole
@@ -97,6 +98,7 @@ After running the migration, ensure:
 ### Indexes
 
 The following indexes are created for query performance:
+
 - `UserSession`: `(userId, createdAt DESC)` for listing active sessions
 - `UserSession`: `(userId, revokedAt)` for filtering revoked sessions
 - `UserAccountAuditLog`: `(actorUserId, createdAt DESC)` for user audit history

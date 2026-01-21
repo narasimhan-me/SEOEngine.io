@@ -18,7 +18,11 @@ export type ApprovalStatusFilter = 'pending' | 'history';
 /**
  * Approval status values.
  */
-export type ApprovalStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+export type ApprovalStatus =
+  | 'DRAFT'
+  | 'PENDING_APPROVAL'
+  | 'APPROVED'
+  | 'REJECTED';
 
 /**
  * Resource types that can require approval.
@@ -224,14 +228,18 @@ export interface ShareLinksListResponse {
  * Check if an event type is in the allowed list.
  * Server-side code MUST use this to filter out forbidden event types.
  */
-export function isAllowedAuditEventType(eventType: string): eventType is AllowedAuditEventType {
+export function isAllowedAuditEventType(
+  eventType: string
+): eventType is AllowedAuditEventType {
   return ALLOWED_AUDIT_EVENT_TYPES.includes(eventType as AllowedAuditEventType);
 }
 
 /**
  * Get label for an audit event type.
  */
-export function getAuditEventTypeLabel(eventType: AllowedAuditEventType): string {
+export function getAuditEventTypeLabel(
+  eventType: AllowedAuditEventType
+): string {
   return AUDIT_EVENT_TYPE_LABELS[eventType] || eventType;
 }
 
@@ -239,7 +247,10 @@ export function getAuditEventTypeLabel(eventType: AllowedAuditEventType): string
  * Build a deterministic cursor from timestamp and ID for stable pagination.
  * Format: `{timestamp}:{id}` for timestamp DESC, id DESC ordering.
  */
-export function buildPaginationCursor(timestamp: string | Date, id: string): string {
+export function buildPaginationCursor(
+  timestamp: string | Date,
+  id: string
+): string {
   const ts = timestamp instanceof Date ? timestamp.toISOString() : timestamp;
   return `${ts}:${id}`;
 }
@@ -248,7 +259,9 @@ export function buildPaginationCursor(timestamp: string | Date, id: string): str
  * Parse a pagination cursor into timestamp and ID.
  * Returns null if cursor is invalid.
  */
-export function parsePaginationCursor(cursor: string): { timestamp: string; id: string } | null {
+export function parsePaginationCursor(
+  cursor: string
+): { timestamp: string; id: string } | null {
   const colonIndex = cursor.lastIndexOf(':');
   if (colonIndex === -1) return null;
   const timestamp = cursor.slice(0, colonIndex);

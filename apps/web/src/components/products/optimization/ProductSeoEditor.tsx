@@ -34,15 +34,19 @@ export function ProductSeoEditor({
 
   const getTitleIndicator = () => {
     if (titleLength === 0) return { color: 'text-gray-400', label: 'Empty' };
-    if (titleLength < 30) return { color: 'text-yellow-600', label: 'Too short' };
+    if (titleLength < 30)
+      return { color: 'text-yellow-600', label: 'Too short' };
     if (titleLength > 60) return { color: 'text-red-600', label: 'Too long' };
     return { color: 'text-green-600', label: 'Good' };
   };
 
   const getDescriptionIndicator = () => {
-    if (descriptionLength === 0) return { color: 'text-gray-400', label: 'Empty' };
-    if (descriptionLength < 70) return { color: 'text-yellow-600', label: 'Too short' };
-    if (descriptionLength > 155) return { color: 'text-red-600', label: 'Too long' };
+    if (descriptionLength === 0)
+      return { color: 'text-gray-400', label: 'Empty' };
+    if (descriptionLength < 70)
+      return { color: 'text-yellow-600', label: 'Too short' };
+    if (descriptionLength > 155)
+      return { color: 'text-red-600', label: 'Too long' };
     return { color: 'text-green-600', label: 'Good' };
   };
 
@@ -217,7 +221,8 @@ export function ProductSeoEditor({
       </div>
       {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Help text for Apply */}
       <p className="mt-2 text-xs text-gray-500">
-        Apply sends only the saved draft to Shopify. It does not auto-save or use AI.
+        Apply sends only the saved draft to Shopify. It does not auto-save or
+        use AI.
       </p>
     </div>
   );

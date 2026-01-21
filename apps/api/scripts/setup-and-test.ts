@@ -23,7 +23,7 @@ const DB_URL = `postgresql://${DB_USER}@${DB_HOST}:${DB_PORT}/${DB_NAME}`;
 // Ensure .env.test exists and has DATABASE_URL_TEST
 function ensureEnvTest() {
   let envContent = '';
-  
+
   if (fs.existsSync(envTestPath)) {
     envContent = fs.readFileSync(envTestPath, 'utf-8');
   }
@@ -56,20 +56,19 @@ function ensureEnvTest() {
 
   fs.writeFileSync(envTestPath, envContent);
   console.log(`✅ Updated .env.test with DATABASE_URL_TEST=${DB_URL}`);
-  
+
   return DB_URL;
 }
 
 // Try to create database using psql
 function createTestDatabase() {
   console.log(`\n📦 Creating test database: ${DB_NAME}...`);
-  
+
   try {
     // Try to create database (ignore error if it already exists)
-    execSync(
-      `psql -d postgres -c "CREATE DATABASE ${DB_NAME};"`,
-      { stdio: 'pipe' }
-    );
+    execSync(`psql -d postgres -c "CREATE DATABASE ${DB_NAME};"`, {
+      stdio: 'pipe',
+    });
     console.log(`✅ Test database '${DB_NAME}' created`);
   } catch (error: any) {
     const errorMsg = error.stdout?.toString() || error.stderr?.toString() || '';
@@ -77,24 +76,26 @@ function createTestDatabase() {
       console.log(`✅ Test database '${DB_NAME}' already exists`);
     } else {
       console.log(`⚠️  Could not create database automatically: ${errorMsg}`);
-      console.log(`   Please create it manually: psql -d postgres -c "CREATE DATABASE ${DB_NAME};"`);
+      console.log(
+        `   Please create it manually: psql -d postgres -c "CREATE DATABASE ${DB_NAME};"`
+      );
       return false;
     }
   }
-  
+
   return true;
 }
 
 // Run migrations
 function runMigrations() {
   console.log('\n🔄 Running database migrations...');
-  
+
   try {
     // Set environment variables for migration
     process.env.NODE_ENV = 'test';
     process.env.ENGINEO_ENV = 'test';
     process.env.DATABASE_URL = ensureEnvTest();
-    
+
     execSync('pnpm db:test:migrate', {
       stdio: 'inherit',
       cwd: path.join(__dirname, '..'),
@@ -110,7 +111,7 @@ function runMigrations() {
 // Run integration tests
 function runTests() {
   console.log('\n🧪 Running critical integration tests...\n');
-  
+
   try {
     execSync('pnpm test:api:critical', {
       stdio: 'inherit',
@@ -127,30 +128,33 @@ function runTests() {
 // Main execution
 async function main() {
   ensureEnvTest();
-  
+
   const dbCreated = createTestDatabase();
   if (!dbCreated) {
-    console.log('\n⚠️  Please create the database manually and run this script again.');
+    console.log(
+      '\n⚠️  Please create the database manually and run this script again.'
+    );
     process.exit(1);
   }
-  
+
   const migrationsOk = runMigrations();
   if (!migrationsOk) {
     console.log('\n❌ Setup incomplete. Please fix migration errors.');
     process.exit(1);
   }
-  
+
   const testsOk = runTests();
   if (!testsOk) {
     console.log('\n❌ Tests failed. Please review the errors above.');
     process.exit(1);
   }
-  
-  console.log('\n✅ Test database setup and integration tests completed successfully!');
+
+  console.log(
+    '\n✅ Test database setup and integration tests completed successfully!'
+  );
 }
 
 main().catch((error) => {
   console.error('❌ Setup failed:', error);
   process.exit(1);
 });
-

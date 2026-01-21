@@ -43,7 +43,7 @@ interface SeedResponse {
 async function seedListSearchFilter11Data(request: any): Promise<SeedResponse> {
   const response = await request.post(
     `${API_BASE_URL}/testkit/e2e/seed-list-search-filter-1-1`,
-    { data: {} },
+    { data: {} }
   );
   expect(response.ok()).toBeTruthy();
   return response.json();
@@ -78,17 +78,17 @@ test.describe('LIST-SEARCH-FILTER-1.1: Pages & Collections List Search & Filter'
 
     // Assert search input by data-testid
     await expect(
-      page.locator('[data-testid="list-controls-search"]'),
+      page.locator('[data-testid="list-controls-search"]')
     ).toBeVisible();
 
     // Assert status filter by data-testid
     await expect(
-      page.locator('[data-testid="list-controls-status"]'),
+      page.locator('[data-testid="list-controls-status"]')
     ).toBeVisible();
 
     // Assert has-draft filter by data-testid
     await expect(
-      page.locator('[data-testid="list-controls-has-draft"]'),
+      page.locator('[data-testid="list-controls-has-draft"]')
     ).toBeVisible();
   });
 
@@ -104,7 +104,7 @@ test.describe('LIST-SEARCH-FILTER-1.1: Pages & Collections List Search & Filter'
 
     // Wait for controls to be visible
     await expect(
-      page.locator('[data-testid="list-controls-search"]'),
+      page.locator('[data-testid="list-controls-search"]')
     ).toBeVisible();
 
     // All 3 seeded pages should be visible initially (by path)
@@ -138,7 +138,7 @@ test.describe('LIST-SEARCH-FILTER-1.1: Pages & Collections List Search & Filter'
 
     // Wait for controls
     await expect(
-      page.locator('[data-testid="list-controls-status"]'),
+      page.locator('[data-testid="list-controls-status"]')
     ).toBeVisible();
 
     // Baseline: all 3 seeded pages visible
@@ -187,17 +187,17 @@ test.describe('LIST-SEARCH-FILTER-1.1: Pages & Collections List Search & Filter'
 
     // Assert search input by data-testid
     await expect(
-      page.locator('[data-testid="list-controls-search"]'),
+      page.locator('[data-testid="list-controls-search"]')
     ).toBeVisible();
 
     // Assert status filter by data-testid
     await expect(
-      page.locator('[data-testid="list-controls-status"]'),
+      page.locator('[data-testid="list-controls-status"]')
     ).toBeVisible();
 
     // Assert has-draft filter by data-testid
     await expect(
-      page.locator('[data-testid="list-controls-has-draft"]'),
+      page.locator('[data-testid="list-controls-has-draft"]')
     ).toBeVisible();
   });
 
@@ -213,7 +213,7 @@ test.describe('LIST-SEARCH-FILTER-1.1: Pages & Collections List Search & Filter'
 
     // Wait for controls to be visible
     await expect(
-      page.locator('[data-testid="list-controls-search"]'),
+      page.locator('[data-testid="list-controls-search"]')
     ).toBeVisible();
 
     // All 3 seeded collections should be visible initially (by handle in code tag)
@@ -247,7 +247,7 @@ test.describe('LIST-SEARCH-FILTER-1.1: Pages & Collections List Search & Filter'
 
     // Wait for controls
     await expect(
-      page.locator('[data-testid="list-controls-status"]'),
+      page.locator('[data-testid="list-controls-status"]')
     ).toBeVisible();
 
     // Baseline: all 3 seeded collections visible
@@ -283,7 +283,9 @@ test.describe('LIST-SEARCH-FILTER-1.1: Pages & Collections List Search & Filter'
   // Shared Behavior Tests
   // ==========================================================================
 
-  test('LSF11-007: Clearing filters restores full Pages list', async ({ page }) => {
+  test('LSF11-007: Clearing filters restores full Pages list', async ({
+    page,
+  }) => {
     await page.goto('/login');
     await page.evaluate((token) => {
       localStorage.setItem('engineo_token', token);
@@ -319,7 +321,9 @@ test.describe('LIST-SEARCH-FILTER-1.1: Pages & Collections List Search & Filter'
     await expect(clearButton).not.toBeVisible();
   });
 
-  test('LSF11-008: URL query params persist across reload for Collections', async ({ page }) => {
+  test('LSF11-008: URL query params persist across reload for Collections', async ({
+    page,
+  }) => {
     await page.goto('/login');
     await page.evaluate((token) => {
       localStorage.setItem('engineo_token', token);
@@ -344,7 +348,7 @@ test.describe('LIST-SEARCH-FILTER-1.1: Pages & Collections List Search & Filter'
 
     // Wait for controls to load
     await expect(
-      page.locator('[data-testid="list-controls-search"]'),
+      page.locator('[data-testid="list-controls-search"]')
     ).toBeVisible();
 
     // Verify URL still has param

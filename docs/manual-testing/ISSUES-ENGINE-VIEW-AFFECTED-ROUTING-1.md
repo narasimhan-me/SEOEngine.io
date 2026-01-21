@@ -16,11 +16,11 @@ This phase ensures that clicking "View affected" on an issue card in the Issues 
 
 ## Key Behavior Changes
 
-| Before | After |
-|--------|-------|
-| "View affected" → Product detail (first affected product) | "View affected" → Products list filtered by issueType |
-| No issueType URL param | issueType param enables server-authoritative filtering |
-| returnTo often missing | returnTo always present for back navigation |
+| Before                                                    | After                                                  |
+| --------------------------------------------------------- | ------------------------------------------------------ |
+| "View affected" → Product detail (first affected product) | "View affected" → Products list filtered by issueType  |
+| No issueType URL param                                    | issueType param enables server-authoritative filtering |
+| returnTo often missing                                    | returnTo always present for back navigation            |
 
 ---
 

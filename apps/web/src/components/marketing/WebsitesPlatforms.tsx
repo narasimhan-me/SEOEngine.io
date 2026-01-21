@@ -6,13 +6,15 @@ export function WebsitesPlatforms() {
           Works with every platform
         </h2>
         <p className="mt-3 max-w-3xl text-sm text-muted-foreground">
-          EngineO.ai supports the CMS platforms, headless frameworks, and custom stacks your team
-          already uses.
+          EngineO.ai supports the CMS platforms, headless frameworks, and custom
+          stacks your team already uses.
         </p>
 
         <div className="mt-8 grid gap-8 md:grid-cols-3">
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Website &amp; blog CMS</h3>
+            <h3 className="text-sm font-semibold text-foreground">
+              Website &amp; blog CMS
+            </h3>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
               <li>WordPress</li>
               <li>Webflow</li>
@@ -26,7 +28,9 @@ export function WebsitesPlatforms() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Modern headless frameworks</h3>
+            <h3 className="text-sm font-semibold text-foreground">
+              Modern headless frameworks
+            </h3>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
               <li>Next.js</li>
               <li>Remix</li>
@@ -39,7 +43,9 @@ export function WebsitesPlatforms() {
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Custom sites</h3>
+            <h3 className="text-sm font-semibold text-foreground">
+              Custom sites
+            </h3>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
               <li>Static sites</li>
               <li>Server-rendered apps</li>
@@ -49,7 +55,8 @@ export function WebsitesPlatforms() {
         </div>
 
         <p className="mt-8 text-sm text-muted-foreground">
-          If your website is crawlable, EngineO.ai can analyze it and surface DEO insights.
+          If your website is crawlable, EngineO.ai can analyze it and surface
+          DEO insights.
         </p>
       </div>
     </section>

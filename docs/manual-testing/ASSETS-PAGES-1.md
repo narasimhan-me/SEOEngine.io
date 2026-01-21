@@ -44,14 +44,14 @@
 - **Environment requirements:**
   - [ ] API server running with database connection
   - [ ] Web app running and connected to API
-  - [ ] Project with crawl data including /pages/* and /collections/* URLs
+  - [ ] Project with crawl data including /pages/_ and /collections/_ URLs
 
 - **Test accounts and sample data:**
   - [ ] User account with at least one project
   - [ ] Project with crawled pages of various types:
-    - /pages/* (static pages)
-    - /collections/* (collection pages)
-    - /products/* (product pages)
+    - /pages/\* (static pages)
+    - /collections/\* (collection pages)
+    - /products/\* (product pages)
   - [ ] Some pages/collections with missing metadata (for Critical health)
   - [ ] Some pages/collections with thin content (for Needs Attention health)
 
@@ -67,14 +67,17 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - User is authenticated and has project access
 
 **Steps:**
+
 1. Login as any user
 2. Navigate to a project
 3. Observe the sidebar navigation
 
 **Expected Results:**
+
 - **UI:**
   - "Pages" nav item visible in sidebar
   - "Collections" nav item visible in sidebar
@@ -88,13 +91,16 @@
 **ID:** HP-002
 
 **Preconditions:**
-- Project with crawled /pages/* URLs
+
+- Project with crawled /pages/\* URLs
 
 **Steps:**
+
 1. Navigate to /projects/:id/assets/pages
 2. Observe the page layout
 
 **Expected Results:**
+
 - **UI:**
   - Page title "Pages" visible
   - Subtitle shows count: "N pages • X critical • Y need attention"
@@ -111,13 +117,16 @@
 **ID:** HP-003
 
 **Preconditions:**
-- Project with crawled /collections/* URLs
+
+- Project with crawled /collections/\* URLs
 
 **Steps:**
+
 1. Navigate to /projects/:id/assets/collections
 2. Observe the page layout
 
 **Expected Results:**
+
 - **UI:**
   - Page title "Collections" visible
   - Subtitle shows count: "N collections • X critical • Y need attention"
@@ -134,13 +143,16 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Project with issues on products, pages, AND collections
 
 **Steps:**
+
 1. Navigate to /projects/:id/work-queue
 2. Observe bundle cards
 
 **Expected Results:**
+
 - **UI:**
   - Separate bundle cards for PRODUCTS, PAGES, and COLLECTIONS scope types
   - Each bundle shows scope type in "Applies to" line (e.g., "Applies to 5 pages", "Applies to 3 collections")
@@ -155,13 +167,16 @@
 **ID:** HP-005
 
 **Preconditions:**
+
 - Work Queue page loaded with multiple scope type bundles
 
 **Steps:**
+
 1. Navigate to /projects/:id/work-queue?scopeType=PAGES
 2. Observe filtered results
 
 **Expected Results:**
+
 - **UI:**
   - Only bundles with scopeType=PAGES visible
   - Other scope types (PRODUCTS, COLLECTIONS) filtered out
@@ -176,14 +191,17 @@
 **ID:** HP-006
 
 **Preconditions:**
+
 - Work Queue showing a PAGES scope bundle
 
 **Steps:**
+
 1. Navigate to Work Queue
 2. Find a bundle with scopeType=PAGES
 3. Click the primary CTA (e.g., "View Issues")
 
 **Expected Results:**
+
 - **UI:**
   - Navigated to /projects/:id/assets/pages?actionKey=...
   - Pages list filtered by actionKey
@@ -197,14 +215,17 @@
 **ID:** HP-007
 
 **Preconditions:**
+
 - Work Queue showing a COLLECTIONS scope bundle
 
 **Steps:**
+
 1. Navigate to Work Queue
 2. Find a bundle with scopeType=COLLECTIONS
 3. Click the primary CTA
 
 **Expected Results:**
+
 - **UI:**
   - Navigated to /projects/:id/assets/collections?actionKey=...
   - Collections list filtered by actionKey
@@ -217,14 +238,17 @@
 **ID:** HP-008
 
 **Preconditions:**
+
 - Pages asset list with selectable rows
 
 **Steps:**
+
 1. Navigate to /projects/:id/assets/pages
 2. Select multiple pages using checkboxes
 3. Click "Fix missing metadata (N)" button
 
 **Expected Results:**
+
 - **UI:**
   - Navigated to /projects/:id/work-queue?actionKey=FIX_MISSING_METADATA&scopeType=PAGES
   - Work Queue shows filtered bundles
@@ -237,14 +261,17 @@
 **ID:** HP-009
 
 **Preconditions:**
+
 - Pages asset list with a page needing attention
 
 **Steps:**
+
 1. Navigate to /projects/:id/assets/pages
 2. Find a row with recommended action
 3. Click the action button in that row
 
 **Expected Results:**
+
 - **UI:**
   - Navigated to Work Queue with actionKey and scopeType filters
   - Filtered to show relevant bundle
@@ -257,14 +284,17 @@
 **ID:** HP-010
 
 **Preconditions:**
+
 - Asset list with active filter from Work Queue click-through
 
 **Steps:**
+
 1. Navigate to /projects/:id/assets/pages?actionKey=FIX_MISSING_METADATA
 2. Observe filter indicator
 3. Click "Clear filter" link
 
 **Expected Results:**
+
 - **UI:**
   - Filter indicator visible with filter name
   - After clicking "Clear filter", all pages shown
@@ -277,12 +307,14 @@
 
 ### EC-001: No Pages in Project
 
-**Description:** Project has no /pages/* URLs crawled
+**Description:** Project has no /pages/\* URLs crawled
 
 **Steps:**
+
 1. Navigate to /projects/:id/assets/pages
 
 **Expected Behavior:**
+
 - Empty state: "No pages found"
 - No errors
 
@@ -290,12 +322,14 @@
 
 ### EC-002: No Collections in Project
 
-**Description:** Project has no /collections/* URLs crawled
+**Description:** Project has no /collections/\* URLs crawled
 
 **Steps:**
+
 1. Navigate to /projects/:id/assets/collections
 
 **Expected Behavior:**
+
 - Empty state: "No collections found"
 - No errors
 
@@ -306,9 +340,11 @@
 **Description:** All pages/collections have complete metadata
 
 **Steps:**
+
 1. Navigate to asset list with all healthy assets
 
 **Expected Behavior:**
+
 - All rows show "Healthy" pill (green)
 - No recommended actions shown
 - Subtitle shows "0 critical • 0 need attention"
@@ -320,9 +356,11 @@
 **Description:** Mix of Critical, Needs Attention, and Healthy assets
 
 **Steps:**
+
 1. Navigate to asset list with mixed health
 
 **Expected Behavior:**
+
 - Critical items: Missing metadata → red pill, "Fix missing metadata" action
 - Needs Attention items: Thin content → yellow pill, "Optimize content" action
 - Healthy items: Green pill, no action
@@ -334,10 +372,12 @@
 **Description:** Store Health cards derive from Work Queue including Pages/Collections
 
 **Steps:**
+
 1. Navigate to Store Health page
 2. Observe Discoverability card
 
 **Expected Behavior:**
+
 - Card health reflects worst-case across Products, Pages, AND Collections
 - If Pages have critical issues, Discoverability shows Critical
 - Summary mentions total items needing attention
@@ -351,10 +391,12 @@
 **Scenario:** Non-member tries to access asset pages
 
 **Steps:**
+
 1. Login as user not member of project
 2. Navigate directly to /projects/:id/assets/pages
 
 **Expected Behavior:**
+
 - 403 Forbidden response
 - Redirect to projects list or access denied page
 
@@ -365,10 +407,12 @@
 **Scenario:** Crawl pages API fails
 
 **Steps:**
+
 1. Simulate API error (disconnect network)
 2. Navigate to asset list
 
 **Expected Behavior:**
+
 - Error message displayed with "Try again" button
 - User not left on blank page
 
@@ -381,11 +425,13 @@
 **Description:** Verify Critical health is derived correctly
 
 **Conditions that trigger Critical:**
+
 1. Missing title (title === null or empty)
 2. Missing meta description (metaDescription === null or empty)
 3. HTTP status >= 400
 
 **Expected Behavior:**
+
 - Row shows "Critical" pill (red)
 - recommendedActionKey = FIX_MISSING_METADATA or RESOLVE_TECHNICAL_ISSUES
 
@@ -396,9 +442,11 @@
 **Description:** Verify Needs Attention health is derived correctly
 
 **Conditions that trigger Needs Attention:**
+
 1. Thin content (wordCount < 300)
 
 **Expected Behavior:**
+
 - Row shows "Needs Attention" pill (yellow)
 - recommendedActionKey = OPTIMIZE_CONTENT
 
@@ -409,11 +457,13 @@
 **Description:** Verify Healthy is the default state
 
 **Conditions for Healthy:**
+
 1. Has title AND meta description
 2. HTTP status < 400 (or null)
 3. wordCount >= 300 (or null)
 
 **Expected Behavior:**
+
 - Row shows "Healthy" pill (green)
 - No recommended action
 
@@ -426,10 +476,12 @@
 **Description:** Verify correct grammar in "Applies to" line
 
 **Steps:**
+
 1. Navigate to Work Queue
 2. Find bundles with scopeCount = 1 and scopeCount > 1
 
 **Expected Behavior:**
+
 - scopeCount = 1: "Applies to 1 page" / "1 collection" / "1 product"
 - scopeCount > 1: "Applies to 5 pages" / "3 collections" / "10 products"
 - STORE_WIDE: Always "store-wide" (no count grammar)
@@ -443,11 +495,13 @@
 **Description:** Confirm no Generate Drafts or Apply buttons appear for PAGES bundles
 
 **Steps:**
+
 1. Navigate to Work Queue
 2. Find a bundle with scopeType=PAGES
 3. Observe the CTA buttons
 
 **Expected Behavior:**
+
 - Primary CTA is "View Issues" or similar view-only action
 - No "Generate Drafts" button visible for PAGES bundles
 - No "Apply Changes" button visible for PAGES bundles
@@ -460,11 +514,13 @@
 **Description:** Confirm no Generate Drafts or Apply buttons appear for COLLECTIONS bundles
 
 **Steps:**
+
 1. Navigate to Work Queue
 2. Find a bundle with scopeType=COLLECTIONS
 3. Observe the CTA buttons
 
 **Expected Behavior:**
+
 - Primary CTA is "View Issues" or similar view-only action
 - No "Generate Drafts" button visible for COLLECTIONS bundles
 - No "Apply Changes" button visible for COLLECTIONS bundles
@@ -477,6 +533,7 @@
 **Description:** Confirm no mutations occur when navigating Pages/Collections surfaces
 
 **Steps:**
+
 1. Open browser Network tab
 2. Navigate to /projects/:id/assets/pages
 3. Navigate to /projects/:id/assets/collections
@@ -484,6 +541,7 @@
 5. Observe network requests
 
 **Expected Behavior:**
+
 - Only GET requests observed
 - No POST, PUT, DELETE, or PATCH requests
 - No background jobs triggered
@@ -547,6 +605,7 @@ The following capabilities are intentionally excluded from this visibility-only 
 ### Automation Playbooks for Pages/Collections
 
 To fully support Pages/Collections in Automation Playbooks:
+
 1. Extend PlaybookScopeType enum with PAGES, COLLECTIONS
 2. Add playbook IDs: PAGE_SEO_TITLE_FIX, PAGE_SEO_DESCRIPTION_FIX
 3. Add playbook IDs: COLLECTION_SEO_TITLE_FIX, COLLECTION_SEO_DESCRIPTION_FIX
@@ -556,6 +615,7 @@ To fully support Pages/Collections in Automation Playbooks:
 ### Shopify Apply for Pages/Collections
 
 To apply changes to Pages/Collections via Shopify:
+
 1. Use Shopify Admin API for pages: POST /pages/{page_id}.json
 2. Use Shopify Admin API for collections: PUT /collections/{collection_id}.json
 3. Add shopifyPageId, shopifyCollectionId to crawl page records
@@ -572,9 +632,9 @@ To apply changes to Pages/Collections via Shopify:
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Name] |
-| **Date** | [YYYY-MM-DD] |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    | [Name]                                |
+| **Date**           | [YYYY-MM-DD]                          |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | [Any additional notes] |
+| **Notes**          | [Any additional notes]                |

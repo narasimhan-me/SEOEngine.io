@@ -24,7 +24,9 @@ test.describe('COUNT-INTEGRITY-1.1 FIXUP-2: Strict Cross-Surface Click-Integrity
 
   test.beforeAll(async ({ request }) => {
     // Use testkit seed for deterministic test data with issues
-    const seedResponse = await request.post(`${API_URL}/testkit/e2e/seed-first-deo-win`);
+    const seedResponse = await request.post(
+      `${API_URL}/testkit/e2e/seed-first-deo-win`
+    );
     expect(seedResponse.ok()).toBeTruthy();
 
     const seedData = await seedResponse.json();
@@ -39,7 +41,9 @@ test.describe('COUNT-INTEGRITY-1.1 FIXUP-2: Strict Cross-Surface Click-Integrity
     }, accessToken);
   });
 
-  test('Store Health → Issues Engine → Asset Detail: strict click-integrity chain', async ({ page }) => {
+  test('Store Health → Issues Engine → Asset Detail: strict click-integrity chain', async ({
+    page,
+  }) => {
     // ============================================================
     // STEP 1: Load Store Health and STRICTLY capture Discoverability tile count
     // ============================================================
@@ -50,11 +54,15 @@ test.describe('COUNT-INTEGRITY-1.1 FIXUP-2: Strict Cross-Surface Click-Integrity
     await expect(cardsContainer).toBeVisible({ timeout: 10000 });
 
     // Verify Discoverability card exists
-    const discoverabilityCard = page.locator('[data-testid="store-health-card-discoverability"]');
+    const discoverabilityCard = page.locator(
+      '[data-testid="store-health-card-discoverability"]'
+    );
     await expect(discoverabilityCard).toBeVisible();
 
     // Get summary text - MUST contain "items affected" (no fallbacks)
-    const discoverabilitySummary = page.locator('[data-testid="store-health-card-discoverability-summary"]');
+    const discoverabilitySummary = page.locator(
+      '[data-testid="store-health-card-discoverability-summary"]'
+    );
     await expect(discoverabilitySummary).toBeVisible();
     const summaryText = await discoverabilitySummary.textContent();
 
@@ -100,7 +108,9 @@ test.describe('COUNT-INTEGRITY-1.1 FIXUP-2: Strict Cross-Surface Click-Integrity
     expect(tripletLabels).toContain('Actionable now');
 
     // Verify triplet values are visible
-    const itemsAffectedValue = page.locator('[data-testid="triplet-items-affected-value"]');
+    const itemsAffectedValue = page.locator(
+      '[data-testid="triplet-items-affected-value"]'
+    );
     await expect(itemsAffectedValue).toBeVisible();
 
     // STRICT: Issues Engine "Items affected" MUST equal Store Health count
@@ -111,7 +121,9 @@ test.describe('COUNT-INTEGRITY-1.1 FIXUP-2: Strict Cross-Surface Click-Integrity
     // ============================================================
     // STEP 4: Navigate to asset detail via actionable issue card (REQUIRED)
     // ============================================================
-    const actionableIssueCard = page.locator('[data-testid="issue-card-actionable"]').first();
+    const actionableIssueCard = page
+      .locator('[data-testid="issue-card-actionable"]')
+      .first();
 
     // STRICT: At least one actionable issue card MUST exist
     await expect(actionableIssueCard).toBeVisible({ timeout: 5000 });
@@ -137,13 +149,21 @@ test.describe('COUNT-INTEGRITY-1.1 FIXUP-2: Strict Cross-Surface Click-Integrity
     // ============================================================
     // STEP 5: Assert product Issues tab triplet
     // ============================================================
-    const productTriplet = page.locator('[data-testid="product-issues-triplet"]');
+    const productTriplet = page.locator(
+      '[data-testid="product-issues-triplet"]'
+    );
     await expect(productTriplet).toBeVisible({ timeout: 5000 });
 
     // Verify triplet values exist
-    const productIssueTypesValue = page.locator('[data-testid="product-triplet-issue-types-value"]');
-    const productItemsAffectedValue = page.locator('[data-testid="product-triplet-items-affected-value"]');
-    const productActionableNowValue = page.locator('[data-testid="product-triplet-actionable-now-value"]');
+    const productIssueTypesValue = page.locator(
+      '[data-testid="product-triplet-issue-types-value"]'
+    );
+    const productItemsAffectedValue = page.locator(
+      '[data-testid="product-triplet-items-affected-value"]'
+    );
+    const productActionableNowValue = page.locator(
+      '[data-testid="product-triplet-actionable-now-value"]'
+    );
 
     await expect(productIssueTypesValue).toBeVisible();
     await expect(productItemsAffectedValue).toBeVisible();
@@ -157,7 +177,9 @@ test.describe('COUNT-INTEGRITY-1.1 FIXUP-2: Strict Cross-Surface Click-Integrity
 
     if (productActionableCount === 0) {
       // Neutral message MUST appear
-      const neutralMessage = page.locator('[data-testid="product-no-eligible-items-message"]');
+      const neutralMessage = page.locator(
+        '[data-testid="product-no-eligible-items-message"]'
+      );
       await expect(neutralMessage).toBeVisible();
       const messageText = await neutralMessage.textContent();
       expect(messageText).toContain('No items currently eligible for action');
@@ -168,7 +190,9 @@ test.describe('COUNT-INTEGRITY-1.1 FIXUP-2: Strict Cross-Surface Click-Integrity
       expect(fixNextCount).toBe(0);
 
       // No actionable issue row links should be present
-      const actionableRows = page.locator('[data-testid="product-issue-row-actionable"]');
+      const actionableRows = page.locator(
+        '[data-testid="product-issue-row-actionable"]'
+      );
       const actionableRowCount = await actionableRows.count();
       expect(actionableRowCount).toBe(0);
     }

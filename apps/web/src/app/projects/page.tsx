@@ -87,11 +87,11 @@ export default function ProjectsPage() {
           } else if (allowed !== undefined) {
             const plural = allowed === 1 ? 'project' : 'projects';
             setError(
-              `You've reached the ${plan} plan limit (${allowed} ${plural}). Upgrade your plan to create more projects.`,
+              `You've reached the ${plan} plan limit (${allowed} ${plural}). Upgrade your plan to create more projects.`
             );
           } else {
             setError(
-              "You've reached your current plan's project limit. Upgrade your plan to create more projects.",
+              "You've reached your current plan's project limit. Upgrade your plan to create more projects."
             );
           }
 
@@ -114,7 +114,8 @@ export default function ProjectsPage() {
       // [STORE-HEALTH-1.0] Navigate to the new project's Store Health page
       router.push(`/projects/${created.id}/store-health`);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create project';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to create project';
       // Handle network errors by redirecting to login
       const isNetworkError =
         errorMessage.toLowerCase().includes('load failed') ||
@@ -182,8 +183,9 @@ export default function ProjectsPage() {
               Let&apos;s get your first DEO win
             </h2>
             <p className="text-sm text-gray-600 mb-6 max-w-md mx-auto">
-              EngineO will walk you through creating a project, connecting your store or site,
-              running your first crawl, and optimizing a few products with AI.
+              EngineO will walk you through creating a project, connecting your
+              store or site, running your first crawl, and optimizing a few
+              products with AI.
             </p>
 
             {/* Static checklist preview */}
@@ -277,11 +279,16 @@ export default function ProjectsPage() {
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Create New Project</h2>
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              Create New Project
+            </h2>
             <form onSubmit={handleCreateProject}>
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Project Name
                   </label>
                   <input
@@ -289,13 +296,18 @@ export default function ProjectsPage() {
                     type="text"
                     required
                     value={newProject.name}
-                    onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+                    onChange={(e) =>
+                      setNewProject({ ...newProject, name: e.target.value })
+                    }
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     placeholder="My Store"
                   />
                 </div>
                 <div>
-                  <label htmlFor="domain" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="domain"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Domain
                   </label>
                   <input
@@ -303,7 +315,9 @@ export default function ProjectsPage() {
                     type="text"
                     required
                     value={newProject.domain}
-                    onChange={(e) => setNewProject({ ...newProject, domain: e.target.value })}
+                    onChange={(e) =>
+                      setNewProject({ ...newProject, domain: e.target.value })
+                    }
                     className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     placeholder="mystore.com"
                   />

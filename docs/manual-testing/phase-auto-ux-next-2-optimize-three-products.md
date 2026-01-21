@@ -52,16 +52,19 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - [ ] First DEO Win checklist is visible (fewer than 4 steps complete).
 - [ ] Fewer than 3 products have been optimized.
 - [ ] Project has products with missing SEO metadata.
 
 **Steps:**
+
 1. Navigate to /projects/[id]/overview for the prepared project.
 2. Scroll down past the DEO Score section.
 3. Observe the page layout.
 
 **Expected Results:**
+
 - **UI:**
   - [ ] "First DEO Win: Optimize 3 products" card is visible.
   - [ ] Card shows amber/orange styling with star icon.
@@ -80,14 +83,17 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - [ ] HP-001 completed; card is visible with product suggestions.
 - [ ] Mix of products: some missing title only, some missing description only, some missing both.
 
 **Steps:**
+
 1. Observe the product list in the "Optimize 3 products" card.
 2. Compare badges to actual product metadata.
 
 **Expected Results:**
+
 - **Badges:**
   - [ ] Products missing only title show "Missing title" badge (orange).
   - [ ] Products missing only description show "Missing description" badge (blue).
@@ -102,12 +108,15 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - [ ] HP-001 completed; card is visible with product suggestions.
 
 **Steps:**
+
 1. Click the "Optimize" button for any listed product.
 
 **Expected Results:**
+
 - **Navigation:**
   - [ ] Browser navigates to /projects/[id]/products/[productId]?focus=metadata
 - **Product Page:**
@@ -122,13 +131,16 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - [ ] HP-003 completed; on Product page via deep-link.
 
 **Steps:**
+
 1. Observe the page scroll position after load.
 2. Note the visibility of the SEO Metadata section.
 
 **Expected Results:**
+
 - **UI:**
   - [ ] The "SEO Metadata" section heading is visible in the viewport.
   - [ ] The scroll animation is smooth (if any).
@@ -143,15 +155,18 @@
 **ID:** HP-005
 
 **Preconditions:**
+
 - [ ] On Product page with a product that has pending SEO changes.
 - [ ] Product is connected to Shopify.
 
 **Steps:**
+
 1. Make changes to SEO title or description.
 2. Click "Apply to Shopify" button.
 3. Wait for the operation to complete.
 
 **Expected Results:**
+
 - **Success Message:**
   - [ ] Toast shows: "SEO updated in Shopify successfully! Applied to Shopify and saved in EngineO."
   - [ ] Success banner also shows the same message.
@@ -166,14 +181,17 @@
 **ID:** HP-006
 
 **Preconditions:**
+
 - [ ] Project has 0 or 1 products with applied SEO.
 - [ ] HP-003-005 completed (optimized at least one product).
 
 **Steps:**
+
 1. Navigate back to /projects/[id]/overview.
 2. Observe the "Optimize 3 products" card.
 
 **Expected Results:**
+
 - **Progress:**
   - [ ] Progress text updates to reflect new count (e.g., "1 of 3 products optimized").
   - [ ] Optimized products may be removed from the suggestions list.
@@ -189,10 +207,12 @@
 **Description:** Card should not appear if all 4 checklist steps are complete.
 
 **Steps:**
+
 1. Ensure all 4 First DEO Win steps are complete (3+ products optimized).
 2. Navigate to /projects/[id]/overview.
 
 **Expected Behavior:**
+
 - [ ] "Optimize 3 products" card is NOT visible.
 - [ ] "Next DEO win" card may appear instead.
 
@@ -203,10 +223,12 @@
 **Description:** Card should handle projects where all products have complete SEO.
 
 **Steps:**
+
 1. Ensure all products in the project have both SEO title and description.
 2. Navigate to /projects/[id]/overview with fewer than 3 optimized products.
 
 **Expected Behavior:**
+
 - [ ] Card may show empty state or not appear.
 - [ ] No JavaScript errors in console.
 
@@ -217,10 +239,12 @@
 **Description:** Handle case where product page loads but section is not found.
 
 **Steps:**
+
 1. Navigate directly to /projects/[id]/products/[productId]?focus=metadata
 2. Observe page behavior.
 
 **Expected Behavior:**
+
 - [ ] Page loads without errors.
 - [ ] If section exists, scroll occurs.
 - [ ] If section doesn't exist, page loads normally without scroll.
@@ -232,10 +256,12 @@
 **Description:** Products from "Top blockers" should appear first in suggestions.
 
 **Steps:**
+
 1. Check the "Top blockers" section for suggested products.
 2. Compare with products in "Optimize 3 products" card.
 
 **Expected Behavior:**
+
 - [ ] Products appearing in "Top blockers" are prioritized in the suggestions.
 - [ ] Order: prioritized products first, then other products with missing metadata.
 
@@ -294,9 +320,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Name] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Phase AUTO-UX-NEXT-2 Guided Optimize 3 Products First DEO Win |
+| Field              | Value                                                         |
+| ------------------ | ------------------------------------------------------------- |
+| **Tester Name**    | [Name]                                                        |
+| **Date**           | [YYYY-MM-DD]                                                  |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed                         |
+| **Notes**          | Phase AUTO-UX-NEXT-2 Guided Optimize 3 Products First DEO Win |

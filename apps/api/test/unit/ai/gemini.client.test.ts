@@ -8,7 +8,11 @@
  * - generateWithFallback with all models exhausted
  * - Error handling and retry logic
  */
-import { GeminiClient, isRetryableGeminiError, isAllModelsExhaustedError } from '../../../src/ai/gemini.client';
+import {
+  GeminiClient,
+  isRetryableGeminiError,
+  isAllModelsExhaustedError,
+} from '../../../src/ai/gemini.client';
 import { ConfigService } from '@nestjs/config';
 
 const createConfigMock = (overrides: Record<string, string> = {}) => {
@@ -81,7 +85,7 @@ describe('GeminiClient', () => {
       await expect(
         client.generateWithFallback({
           contents: [{ parts: [{ text: 'test' }] }],
-        }),
+        })
       ).rejects.toThrow();
     });
 
@@ -190,7 +194,7 @@ describe('GeminiClient', () => {
       await expect(
         client.generateWithFallback({
           contents: [{ parts: [{ text: 'test' }] }],
-        }),
+        })
       ).rejects.toThrow();
 
       // Should have tried multiple models
@@ -241,4 +245,3 @@ describe('GeminiClient', () => {
     });
   });
 });
-

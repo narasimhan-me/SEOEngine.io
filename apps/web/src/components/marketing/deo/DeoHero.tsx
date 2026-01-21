@@ -10,11 +10,13 @@ export function DeoHero() {
             The new standard for website visibility in the AI era.
           </p>
           <p className="mt-3 text-sm text-muted-foreground">
-            Search is changing. AI assistants, answer engines, and LLMs discover, evaluate, and
-            surface your content differently than Google alone.
+            Search is changing. AI assistants, answer engines, and LLMs
+            discover, evaluate, and surface your content differently than Google
+            alone.
           </p>
           <p className="mt-3 text-sm text-muted-foreground">
-            DEO is the framework that ensures your website is understood &mdash; not just indexed.
+            DEO is the framework that ensures your website is understood &mdash;
+            not just indexed.
           </p>
           <div className="mt-6">
             <a

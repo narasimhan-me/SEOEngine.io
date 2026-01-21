@@ -10,7 +10,7 @@ test.describe('GEO-INSIGHTS-2: GEO Insights Dashboard', () => {
   test.beforeEach(async ({ page }) => {
     // Seed test data
     const seedResponse = await page.request.post(
-      'http://localhost:3001/testkit/e2e/seed-geo-insights-2',
+      'http://localhost:3001/testkit/e2e/seed-geo-insights-2'
     );
     const seedData = await seedResponse.json();
 
@@ -86,7 +86,9 @@ test.describe('GEO-INSIGHTS-2: GEO Insights Dashboard', () => {
     }
   });
 
-  test('Navigating to GEO Insights does not trigger mutations', async ({ page }) => {
+  test('Navigating to GEO Insights does not trigger mutations', async ({
+    page,
+  }) => {
     const testData = await page.evaluate(() => (window as any).__testData);
 
     // Track network requests
@@ -109,7 +111,7 @@ test.describe('GEO-INSIGHTS-2: GEO Insights Dashboard', () => {
       (req) =>
         !req.includes('/testkit/') &&
         !req.includes('/analytics/') &&
-        !req.includes('/log/'),
+        !req.includes('/log/')
     );
     expect(mutationRequests).toHaveLength(0);
   });

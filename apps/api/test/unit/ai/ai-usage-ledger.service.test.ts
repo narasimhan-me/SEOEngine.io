@@ -62,9 +62,7 @@ describe('AiUsageLedgerService', () => {
 
     it('should log error if APPLY run has aiUsed=true (invariant violation)', async () => {
       // This should never happen in production, but we test the invariant check
-      const mockRuns = [
-        { runType: 'APPLY', aiUsed: true },
-      ];
+      const mockRuns = [{ runType: 'APPLY', aiUsed: true }];
 
       prismaMock.automationPlaybookRun.findMany.mockResolvedValue(mockRuns);
 
@@ -77,7 +75,9 @@ describe('AiUsageLedgerService', () => {
       expect(result.applyRuns).toBe(1);
       expect(result.applyAiRuns).toBe(1);
       expect(loggerSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Invariant violation: APPLY run with aiUsed=true'),
+        expect.stringContaining(
+          'Invariant violation: APPLY run with aiUsed=true'
+        )
       );
 
       loggerSpy.mockRestore();
@@ -100,7 +100,7 @@ describe('AiUsageLedgerService', () => {
               lte: to,
             },
           }),
-        }),
+        })
       );
     });
 
@@ -169,7 +169,9 @@ describe('AiUsageLedgerService', () => {
     it('should filter by runType when provided', async () => {
       prismaMock.automationPlaybookRun.findMany.mockResolvedValue([]);
 
-      await service.getProjectRunSummaries('proj-1', { runType: 'PREVIEW_GENERATE' });
+      await service.getProjectRunSummaries('proj-1', {
+        runType: 'PREVIEW_GENERATE',
+      });
 
       expect(prismaMock.automationPlaybookRun.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -177,7 +179,7 @@ describe('AiUsageLedgerService', () => {
             projectId: 'proj-1',
             runType: 'PREVIEW_GENERATE',
           }),
-        }),
+        })
       );
     });
 
@@ -189,7 +191,7 @@ describe('AiUsageLedgerService', () => {
       expect(prismaMock.automationPlaybookRun.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           take: 5,
-        }),
+        })
       );
     });
 
@@ -201,7 +203,7 @@ describe('AiUsageLedgerService', () => {
       expect(prismaMock.automationPlaybookRun.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           take: 100,
-        }),
+        })
       );
     });
 
@@ -213,7 +215,7 @@ describe('AiUsageLedgerService', () => {
       expect(prismaMock.automationPlaybookRun.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           orderBy: { createdAt: 'desc' },
-        }),
+        })
       );
     });
   });

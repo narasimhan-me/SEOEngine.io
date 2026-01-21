@@ -5,6 +5,7 @@
 This document provides manual testing procedures for the Competitive Positioning pillar implementation (COMPETITORS-1).
 
 **Related Documentation:**
+
 - [COMPETITORS_PILLAR.md](../COMPETITORS_PILLAR.md) — Pillar reference
 - [DEO_INFORMATION_ARCHITECTURE.md](../DEO_INFORMATION_ARCHITECTURE.md) — IA and UX contracts
 - [SEARCH-INTENT-1.md](./SEARCH-INTENT-1.md) — Search Intent testing (dependency)
@@ -28,10 +29,12 @@ This document provides manual testing procedures for the Competitive Positioning
 **Objective:** Verify the Competitive Positioning pillar is marked as active.
 
 **Steps:**
+
 1. Navigate to any project's DEO Overview page (`/projects/{id}/deo`)
 2. Locate the "Competitive Positioning" pillar card
 
 **Expected Results:**
+
 - [ ] Pillar card does NOT show "Coming soon" badge
 - [ ] Pillar card shows a competitive score (or "Not analyzed yet" if no data)
 - [ ] "View issues" link is clickable
@@ -43,10 +46,12 @@ This document provides manual testing procedures for the Competitive Positioning
 **Objective:** Verify Competitive Positioning pillar card displays correct data.
 
 **Steps:**
+
 1. Navigate to DEO Overview (`/projects/{id}/deo`)
 2. Find the "Competitive Positioning" pillar card
 
 **Expected Results:**
+
 - [ ] Card shows "Competitive Positioning" label
 - [ ] Score is displayed (0-100 or "--" if not computed)
 - [ ] Status classification is shown (Ahead / On Par / Behind)
@@ -61,10 +66,12 @@ This document provides manual testing procedures for the Competitive Positioning
 **Objective:** Verify product workspace has Competitors tab.
 
 **Steps:**
+
 1. Navigate to a product detail page (`/projects/{id}/products/{productId}`)
 2. Look for tabs in the product workspace
 
 **Expected Results:**
+
 - [ ] "Competitors" tab is visible
 - [ ] Clicking tab shows Competitors panel
 - [ ] Deep-link `?focus=competitors` selects this tab automatically
@@ -76,10 +83,12 @@ This document provides manual testing procedures for the Competitive Positioning
 **Objective:** Verify competitive scorecard is displayed correctly.
 
 **Steps:**
+
 1. Navigate to a product's Competitors tab
 2. Review the scorecard section
 
 **Expected Results:**
+
 - [ ] Overall Competitive Coverage Score (0-100) is displayed
 - [ ] Status classification shown (Ahead / On Par / Behind)
 - [ ] "X areas where competitors lead" summary if applicable
@@ -93,10 +102,12 @@ This document provides manual testing procedures for the Competitive Positioning
 **Objective:** Verify competitive gaps are displayed with correct metadata.
 
 **Steps:**
+
 1. Navigate to a product's Competitors tab
 2. Scroll to the gaps section
 
 **Expected Results:**
+
 - [ ] Each gap card shows gap type badge (Intent / Section / Trust)
 - [ ] Example scenario is displayed (e.g., "Similar products answer 'Is this good for beginners?' — your page does not")
 - [ ] "Why this matters" text explains discovery/conversion impact
@@ -112,10 +123,12 @@ This document provides manual testing procedures for the Competitive Positioning
 **Objective:** Verify preview generates AI draft correctly.
 
 **Steps:**
+
 1. Navigate to a product with competitive gaps
 2. Click "Preview competitive fix" on a gap
 
 **Expected Results:**
+
 - [ ] Loading state is shown while AI generates
 - [ ] Preview drawer/panel opens showing the draft
 - [ ] Draft content is relevant to the gap (Answer Block or comparison copy)
@@ -130,12 +143,14 @@ This document provides manual testing procedures for the Competitive Positioning
 **Objective:** Verify draft reuse works correctly.
 
 **Steps:**
+
 1. Click "Preview competitive fix" on a gap (first time)
 2. Note the "AI used" indicator
 3. Cancel the preview
 4. Click "Preview competitive fix" on the SAME gap again
 
 **Expected Results:**
+
 - [ ] Second preview loads faster (cached)
 - [ ] "No AI used (reused draft)" indicator is shown
 - [ ] Draft content is identical to first preview
@@ -148,10 +163,12 @@ This document provides manual testing procedures for the Competitive Positioning
 **Objective:** Verify applying a fix creates an Answer Block.
 
 **Steps:**
+
 1. Preview a fix for a competitive gap
 2. Click "Apply" with Answer Block target selected
 
 **Expected Results:**
+
 - [ ] No loading indicator for AI (apply doesn't call AI)
 - [ ] Success toast/message is shown
 - [ ] Answer Block is created for the product
@@ -165,11 +182,13 @@ This document provides manual testing procedures for the Competitive Positioning
 **Objective:** Verify applying a fix as content section works.
 
 **Steps:**
+
 1. Preview a fix for a competitive gap
 2. Select "Content section" as target (if available)
 3. Click "Apply"
 
 **Expected Results:**
+
 - [ ] Success message is shown
 - [ ] Content is stored in designated product content field
 - [ ] Coverage may improve based on content analysis
@@ -181,10 +200,12 @@ This document provides manual testing procedures for the Competitive Positioning
 **Objective:** Verify competitive issues appear in Issues Engine.
 
 **Steps:**
+
 1. Navigate to Issues page (`/projects/{id}/issues`)
 2. Click the "Competitive Positioning" pillar filter button
 
 **Expected Results:**
+
 - [ ] URL updates to `?pillar=competitive_positioning`
 - [ ] Only competitive issues are shown
 - [ ] Issue count in pillar button matches displayed issues
@@ -197,10 +218,12 @@ This document provides manual testing procedures for the Competitive Positioning
 **Objective:** Verify competitive issues display correctly in Issues Engine.
 
 **Steps:**
+
 1. Navigate to Issues page with Competitive Positioning filter active
 2. Review the issue cards
 
 **Expected Results:**
+
 - [ ] Each issue shows gap type badge (Intent / Section / Trust)
 - [ ] Competitor count is displayed
 - [ ] Intent type shown for intent gaps
@@ -214,9 +237,11 @@ This document provides manual testing procedures for the Competitive Positioning
 **Objective:** Verify Competitors workspace shows project-level overview.
 
 **Steps:**
+
 1. Navigate to Competitors page (`/projects/{id}/competitors`)
 
 **Expected Results:**
+
 - [ ] Page title shows "Competitive Positioning"
 - [ ] Short description explains ethical, heuristic-based analysis
 - [ ] Project-level scorecard card shows:
@@ -237,10 +262,12 @@ This document provides manual testing procedures for the Competitive Positioning
 **Objective:** Verify products list shows competitive status indicator.
 
 **Steps:**
+
 1. Navigate to Products page (`/projects/{id}/products`)
 2. Look at product rows
 
 **Expected Results:**
+
 - [ ] Each product row has Competitive status pill (if data exists)
 - [ ] Pill shows "Ahead", "On Par", or "Behind"
 - [ ] Pill is visually distinct from metadata status and DEO issues badge
@@ -253,6 +280,7 @@ This document provides manual testing procedures for the Competitive Positioning
 **Objective:** Verify quota enforcement on preview (not apply).
 
 **Steps:**
+
 1. Note current AI usage in account settings
 2. Click "Preview competitive fix" on a gap (new, not cached)
 3. Check AI usage after preview
@@ -260,6 +288,7 @@ This document provides manual testing procedures for the Competitive Positioning
 5. Check AI usage after apply
 
 **Expected Results:**
+
 - [ ] Quota decremented after preview
 - [ ] Quota NOT decremented after apply
 - [ ] If quota exhausted, preview shows limit-reached message
@@ -271,12 +300,14 @@ This document provides manual testing procedures for the Competitive Positioning
 **Objective:** Verify gaps are resolved after applying fixes.
 
 **Steps:**
+
 1. Note a competitive gap for a specific product
 2. Preview and apply a fix for that gap
 3. Refresh the Competitors tab
 4. Navigate to Issues page with Competitive Positioning filter
 
 **Expected Results:**
+
 - [ ] Gap count for the product decreased
 - [ ] Specific gap is removed or severity reduced
 - [ ] DEO Overview pillar card shows updated score
@@ -289,10 +320,12 @@ This document provides manual testing procedures for the Competitive Positioning
 ### E1. Product with No Content
 
 **Steps:**
+
 1. Find a product with minimal content (no description, no Answer Blocks)
 2. View its Competitors tab
 
 **Expected Results:**
+
 - [ ] Status shows "Behind"
 - [ ] Multiple gaps are generated across all categories
 - [ ] Intent gaps for high-value intents have higher severity
@@ -302,10 +335,12 @@ This document provides manual testing procedures for the Competitive Positioning
 ### E2. Product with Full Coverage
 
 **Steps:**
+
 1. Find a product with rich content, Answer Blocks, and good intent coverage
 2. View its Competitors tab
 
 **Expected Results:**
+
 - [ ] Status shows "Ahead" or "On Par"
 - [ ] Few or no gaps are generated
 - [ ] Score is 70+
@@ -315,10 +350,12 @@ This document provides manual testing procedures for the Competitive Positioning
 ### E3. No Competitors Configured
 
 **Steps:**
+
 1. Find a product where no competitors are configured
 2. View its Competitors tab
 
 **Expected Results:**
+
 - [ ] Shows "Competitor data not configured yet" or similar message
 - [ ] Analysis still works using industry baseline assumptions
 - [ ] Gaps based on heuristic coverage expectations
@@ -328,11 +365,13 @@ This document provides manual testing procedures for the Competitive Positioning
 ### E4. Draft Expiry
 
 **Steps:**
+
 1. Preview a competitive fix
 2. Wait for draft expiry (if configured with short TTL for testing)
 3. Preview the same fix again
 
 **Expected Results:**
+
 - [ ] Second preview regenerates the draft
 - [ ] "AI used" indicator is shown
 - [ ] Quota is decremented
@@ -358,6 +397,7 @@ After implementing COMPETITORS-1, verify these existing features still work:
 The following automated tests cover the COMPETITORS-1 feature. **Failures in these tests are treated as blocking for COMPETITORS-1 regressions.**
 
 ### Unit Tests (Jest)
+
 - `tests/unit/competitors/competitors-shared.test.ts`
   - Competitive scoring helper functions
   - Status classification (Ahead/On par/Behind thresholds)
@@ -369,6 +409,7 @@ The following automated tests cover the COMPETITORS-1 feature. **Failures in the
   - Status classification edge cases
 
 ### Integration Tests (Jest)
+
 - `tests/integration/automation/competitors-fix.integration.test.ts`
   - `GET /products/:productId/competitors` — Returns competitive data
   - `POST /products/:productId/competitors/preview` — Generates draft with AI
@@ -377,6 +418,7 @@ The following automated tests cover the COMPETITORS-1 feature. **Failures in the
   - CACHE/REUSE verification (draft reuse prevents duplicate AI calls)
 
 ### E2E Tests (Playwright)
+
 - `tests/e2e/automation/competitors-flows.spec.ts`
   - Product Competitors tab navigation
   - Preview fix flow (UI states, AI used indicator)
@@ -397,6 +439,7 @@ pnpm --filter web test:e2e -- --grep "competitors"
 ### CI Pipeline
 
 Tests run automatically on:
+
 - Pull requests targeting `main` or `develop`
 - Merge commits to `main`
 

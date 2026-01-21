@@ -57,16 +57,19 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - User has a project with products missing SEO titles
 - No prior playbook runs in the current month
 
 **Steps:**
+
 1. Navigate to Playbooks page (`/projects/:id/automation/playbooks`)
 2. Select "Fix missing SEO titles" playbook
 3. Click "Generate preview (uses AI)"
 4. Observe the AI usage summary chip above Step 1
 
 **Expected Results:**
+
 - **UI:**
   - Preview generates successfully
   - AI usage summary chip shows: "Previews and drafts generated: 1"
@@ -82,15 +85,18 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Preview has been generated (Scenario 1 completed)
 - Estimate has been calculated
 
 **Steps:**
+
 1. Click "Apply playbook" button
 2. Wait for apply to complete
 3. Check AI usage summary via API
 
 **Expected Results:**
+
 - **UI:**
   - Apply completes successfully
   - Apply button labeled "Apply playbook" (NO "(uses AI)" suffix)
@@ -107,15 +113,18 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Preview has been generated with rules A
 
 **Steps:**
+
 1. Change rules (e.g., add a prefix)
 2. Observe stale preview banner
 3. Click "Regenerate preview (uses AI)"
 4. Check AI usage summary
 
 **Expected Results:**
+
 - **UI:**
   - Stale preview banner appears with warning
   - Regenerate button labeled "Regenerate preview (uses AI)"
@@ -131,15 +140,18 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - User can access Playbooks page
 
 **Steps:**
+
 1. Navigate to Playbooks page
 2. Find "Generate preview" button - verify it says "Generate preview (uses AI)"
 3. If preview exists, find stale regenerate buttons - verify "(uses AI)" suffix
 4. Find "Apply playbook" button - verify it does NOT have "(uses AI)" suffix
 
 **Expected Results:**
+
 - **UI:**
   - All preview/regenerate buttons: "Generate preview (uses AI)" or "Regenerate preview (uses AI)"
   - Apply button: "Apply playbook" (no AI suffix)
@@ -151,14 +163,17 @@
 **ID:** HP-005
 
 **Preconditions:**
+
 - Preview and draft have been generated previously
 
 **Steps:**
+
 1. Navigate away from Playbooks page
 2. Return to Playbooks page
 3. Observe resume helper and AI usage summary
 
 **Expected Results:**
+
 - **UI:**
   - Resume helper shows saved preview found
   - AI usage summary reflects existing runs from this month
@@ -173,13 +188,16 @@
 **ID:** HP-006
 
 **Preconditions:**
+
 - Multiple playbook runs have occurred
 
 **Steps:**
+
 1. Call `GET /ai/projects/:projectId/usage/runs`
 2. Examine returned run summaries
 
 **Expected Results:**
+
 - **API:**
   - Returns array of run summaries ordered by createdAt desc
   - PREVIEW_GENERATE runs: `aiUsed = true`
@@ -195,10 +213,12 @@
 **Description:** New project with no playbook runs
 
 **Steps:**
+
 1. Create new project
 2. Navigate to Playbooks page
 
 **Expected Behavior:**
+
 - AI usage summary chip is hidden or shows skeleton loading briefly
 - `GET /ai/projects/:projectId/usage/summary` returns all zeros
 
@@ -209,10 +229,12 @@
 **Description:** Backend fails to return usage summary
 
 **Steps:**
+
 1. Simulate API failure (e.g., disconnect database temporarily)
 2. Load Playbooks page
 
 **Expected Behavior:**
+
 - Page still loads successfully
 - AI usage chip is hidden or shows subtle error text
 - Other functionality is not blocked
@@ -226,10 +248,12 @@
 **Scenario:** User tries to access another user's project usage
 
 **Steps:**
+
 1. Get project ID for another user's project
 2. Call `GET /ai/projects/:projectId/usage/summary`
 
 **Expected Behavior:**
+
 - 400 Bad Request with "Access denied"
 - No usage data returned
 
@@ -298,11 +322,13 @@ Plan-aware monthly quotas and predictive guards for Automation Playbooks are imp
 ## Key Contracts
 
 ### Contract 1: Apply Must Never Use AI
+
 - **Rule:** When a valid draft exists for the current scope and rules, Apply MUST NOT call AI
 - **Verification:** `aiUsed = false` on all APPLY runs
 - **Invariant:** `applyAiRuns` in usage summary is always 0
 
 ### Contract 2: AI CTA Labeling
+
 - **Rule:** Every button that triggers AI generation MUST be labeled with "(uses AI)"
 - **Verification:** Buttons include: "Generate preview", "Regenerate preview", "Generate full draft"
 - **Exclusion:** Apply buttons do NOT have "(uses AI)" because they use saved drafts
@@ -312,6 +338,7 @@ Plan-aware monthly quotas and predictive guards for Automation Playbooks are imp
 ## API Reference
 
 ### Get Usage Summary
+
 ```
 GET /ai/projects/:projectId/usage/summary
 
@@ -330,6 +357,7 @@ Response:
 ```
 
 ### Get Usage Runs
+
 ```
 GET /ai/projects/:projectId/usage/runs
   ?runType=PREVIEW_GENERATE|DRAFT_GENERATE|APPLY
@@ -353,9 +381,9 @@ Response:
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | |
-| **Date** | |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    |                                       |
+| **Date**           |                                       |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | |
+| **Notes**          |                                       |

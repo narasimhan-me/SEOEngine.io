@@ -38,7 +38,7 @@ import {
 export class GovernanceViewerService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   // ============================================================================
@@ -52,12 +52,15 @@ export class GovernanceViewerService {
   async listApprovals(
     projectId: string,
     userId: string,
-    query: ApprovalsQuery,
+    query: ApprovalsQuery
   ): Promise<ApprovalsListResponse> {
     // Verify project access (any role can view)
     await this.roleResolution.assertProjectAccess(projectId, userId);
 
-    const limit = Math.min(query.limit ?? GOVERNANCE_DEFAULT_PAGE_SIZE, GOVERNANCE_MAX_PAGE_SIZE);
+    const limit = Math.min(
+      query.limit ?? GOVERNANCE_DEFAULT_PAGE_SIZE,
+      GOVERNANCE_MAX_PAGE_SIZE
+    );
 
     // Build where clause
     const where: any = { projectId };
@@ -117,7 +120,9 @@ export class GovernanceViewerService {
       requestedByName: userMap.get(item.requestedByUserId),
       requestedAt: item.requestedAt.toISOString(),
       decidedByUserId: item.decidedByUserId ?? undefined,
-      decidedByName: item.decidedByUserId ? userMap.get(item.decidedByUserId) : undefined,
+      decidedByName: item.decidedByUserId
+        ? userMap.get(item.decidedByUserId)
+        : undefined,
       decidedAt: item.decidedAt?.toISOString(),
       decisionReason: item.decisionReason ?? undefined,
       consumed: item.consumed,
@@ -152,12 +157,15 @@ export class GovernanceViewerService {
   async listAuditEvents(
     projectId: string,
     userId: string,
-    query: AuditEventsQuery,
+    query: AuditEventsQuery
   ): Promise<AuditEventsListResponse> {
     // Verify project access (any role can view)
     await this.roleResolution.assertProjectAccess(projectId, userId);
 
-    const limit = Math.min(query.limit ?? GOVERNANCE_DEFAULT_PAGE_SIZE, GOVERNANCE_MAX_PAGE_SIZE);
+    const limit = Math.min(
+      query.limit ?? GOVERNANCE_DEFAULT_PAGE_SIZE,
+      GOVERNANCE_MAX_PAGE_SIZE
+    );
 
     // Build where clause with STRICT allowlist filtering
     const where: any = {
@@ -234,11 +242,18 @@ export class GovernanceViewerService {
         eventType: item.eventType as AllowedAuditEventType,
         resourceType: item.resourceType ?? undefined,
         resourceId: item.resourceId ?? undefined,
-        targetReference: this.deriveTargetReference(item.resourceType, item.resourceId),
-        scopeSummary: this.deriveScopeSummary(item.metadata as Record<string, unknown> | null),
+        targetReference: this.deriveTargetReference(
+          item.resourceType,
+          item.resourceId
+        ),
+        scopeSummary: this.deriveScopeSummary(
+          item.metadata as Record<string, unknown> | null
+        ),
         createdAt: item.createdAt.toISOString(),
         // Sanitized metadata (already sanitized by AuditEventsService, but be defensive)
-        metadata: this.sanitizeMetadataForViewer(item.metadata as Record<string, unknown> | null),
+        metadata: this.sanitizeMetadataForViewer(
+          item.metadata as Record<string, unknown> | null
+        ),
       }));
 
     // Build next cursor
@@ -268,12 +283,15 @@ export class GovernanceViewerService {
   async listShareLinks(
     projectId: string,
     userId: string,
-    query: ShareLinksQuery,
+    query: ShareLinksQuery
   ): Promise<ShareLinksListResponse> {
     // Verify project access (any role can view)
     await this.roleResolution.assertProjectAccess(projectId, userId);
 
-    const limit = Math.min(query.limit ?? GOVERNANCE_DEFAULT_PAGE_SIZE, GOVERNANCE_MAX_PAGE_SIZE);
+    const limit = Math.min(
+      query.limit ?? GOVERNANCE_DEFAULT_PAGE_SIZE,
+      GOVERNANCE_MAX_PAGE_SIZE
+    );
 
     // Build where clause
     const where: any = { projectId };
@@ -347,7 +365,11 @@ export class GovernanceViewerService {
     const formattedItems: ShareLinkListItem[] = resultItems.map((item) => {
       // Derive status deterministically
       let status: 'ACTIVE' | 'EXPIRED' | 'REVOKED' = item.status as any;
-      if (status === 'ACTIVE' && item.expiresAt && new Date(item.expiresAt) < new Date()) {
+      if (
+        status === 'ACTIVE' &&
+        item.expiresAt &&
+        new Date(item.expiresAt) < new Date()
+      ) {
         status = 'EXPIRED';
       }
 
@@ -371,7 +393,10 @@ export class GovernanceViewerService {
         });
       }
       // Add expired event if status is EXPIRED but no explicit event
-      if (status === 'EXPIRED' && !events.some((e) => e.eventType === 'EXPIRED')) {
+      if (
+        status === 'EXPIRED' &&
+        !events.some((e) => e.eventType === 'EXPIRED')
+      ) {
         events.push({
           eventType: 'EXPIRED',
           timestamp: item.expiresAt!.toISOString(),
@@ -391,7 +416,9 @@ export class GovernanceViewerService {
         passcodeCreatedAt: item.passcodeCreatedAt?.toISOString() ?? null,
         createdAt: item.createdAt.toISOString(),
         createdByUserId: item.createdByUserId ?? undefined,
-        createdByName: item.createdByUserId ? userMap.get(item.createdByUserId) : undefined,
+        createdByName: item.createdByUserId
+          ? userMap.get(item.createdByUserId)
+          : undefined,
         expiresAt: item.expiresAt?.toISOString(),
         revokedAt: item.revokedAt?.toISOString(),
         reportIdentifier: item.projectId, // GEO reports are project-scoped
@@ -423,7 +450,7 @@ export class GovernanceViewerService {
    */
   private deriveDeepLinkFields(
     resourceType: string,
-    resourceId: string,
+    resourceId: string
   ): Partial<ApprovalsListItem> {
     // resourceId format for AUTOMATION_PLAYBOOK_APPLY: {playbookId}:{scopeId}
     // e.g., "missing_seo_title:abc123def456"
@@ -449,7 +476,7 @@ export class GovernanceViewerService {
    */
   private deriveTargetReference(
     resourceType: string | null,
-    resourceId: string | null,
+    resourceId: string | null
   ): string | undefined {
     if (!resourceType || !resourceId) return undefined;
 
@@ -478,7 +505,9 @@ export class GovernanceViewerService {
   /**
    * Derive scope summary from metadata.
    */
-  private deriveScopeSummary(metadata: Record<string, unknown> | null): string | undefined {
+  private deriveScopeSummary(
+    metadata: Record<string, unknown> | null
+  ): string | undefined {
     if (!metadata) return undefined;
 
     // Look for scope-related fields
@@ -498,7 +527,7 @@ export class GovernanceViewerService {
    * This is a defensive measure in addition to AuditEventsService sanitization.
    */
   private sanitizeMetadataForViewer(
-    metadata: Record<string, unknown> | null,
+    metadata: Record<string, unknown> | null
   ): Record<string, unknown> | undefined {
     if (!metadata) return undefined;
 

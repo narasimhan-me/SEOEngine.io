@@ -64,17 +64,20 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - Project with existing Shopify integration (scopes: read_products,read_content,write_products)
 - E2E mode: OAuth returns suspicious scope (fewer than requested)
 - Access Scopes endpoint returns full scopes
 
 **Steps:**
+
 1. Configure E2E to return suspicious OAuth scope (e.g., only "read_products")
 2. Configure E2E Access Scopes to return full scopes
 3. Trigger reconnect flow
 4. Check server logs
 
 **Expected Results:**
+
 - **Logs:** `[SHOPIFY-SCOPE-TRUTH-1] Storing connection: ... truthSource=access_scopes_endpoint`
 - **Database:** Scopes from Access Scopes endpoint stored (full set)
 - **UI:** Connection shows as successful
@@ -87,17 +90,20 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Project with existing Shopify integration
 - E2E mode: OAuth returns expected scopes (not suspicious)
 - Access Scopes endpoint fails
 
 **Steps:**
+
 1. Configure E2E to return normal OAuth scope (matches requested)
 2. Configure E2E Access Scopes to fail (HTTP error)
 3. Trigger reconnect flow
 4. Check server logs
 
 **Expected Results:**
+
 - **Logs:** `[SHOPIFY-SCOPE-TRUTH-1] ... truthSource=oauth_scope`
 - **Database:** Scopes from OAuth stored
 - **UI:** Connection shows as successful
@@ -110,11 +116,13 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Project with existing Shopify integration with stored scopes (e.g., read_products,read_content,write_products)
 - E2E mode: OAuth returns suspicious scope (subset)
 - Access Scopes endpoint fails
 
 **Steps:**
+
 1. Note current stored scopes in database
 2. Configure E2E to return suspicious OAuth scope (e.g., only "read_products")
 3. Configure E2E Access Scopes to fail (HTTP error or empty)
@@ -122,6 +130,7 @@
 5. Check server logs and database
 
 **Expected Results:**
+
 - **Logs:** `[SHOPIFY-SCOPE-TRUTH-1] Suspicious OAuth scope AND Access Scopes ... Refusing to downgrade. Retaining existing stored scope`
 - **Logs:** `truthSource=existing_scope_retained`
 - **Logs:** Shows `suspiciousOauth=[read_products]` and `retained=[read_content,read_products,write_products]`
@@ -138,12 +147,14 @@
 **Description:** Fresh install (no existing integration) where OAuth is suspicious AND Access Scopes fails
 
 **Steps:**
+
 1. Ensure no existing integration for project
 2. Configure E2E to return suspicious OAuth scope
 3. Configure E2E Access Scopes to fail
 4. Trigger fresh install flow
 
 **Expected Behavior:**
+
 - **Logs:** `[SHOPIFY-SCOPE-TRUTH-1] Suspicious OAuth scope AND Access Scopes ... AND no existing scope. Cannot safely verify permissions`
 - **Logs:** `[SHOPIFY-SCOPE-TRUTH-1] SCOPE_VERIFICATION_FAILED`
 - **UI:** Redirected to `/projects/{projectId}/settings#integrations?shopify=verify_failed`
@@ -158,11 +169,13 @@
 **Description:** Reconnect where Access Scopes returns success but empty array
 
 **Steps:**
+
 1. Configure E2E to return suspicious OAuth scope
 2. Configure E2E Access Scopes to return `{ access_scopes: [] }`
 3. Trigger reconnect flow
 
 **Expected Behavior:**
+
 - Same as HP-003: existing scopes retained, no downgrade
 - **Logs:** `accessScopesStatus=empty` or `accessScopesStatus=success` (with 0 scopes)
 
@@ -173,12 +186,14 @@
 **Description:** Existing stored scopes include permissions that suspicious OAuth lacks
 
 **Steps:**
+
 1. Existing scopes: read_products,read_content,write_products
 2. Suspicious OAuth: read_products (missing read_content, write_products)
 3. Access Scopes fails
 4. Trigger reconnect
 
 **Expected Behavior:**
+
 - **Database:** All original scopes retained (read_products,read_content,write_products)
 - **Pages/Blogs:** Still work (read_content retained)
 - **Collections:** Still work (write_products retained)
@@ -192,9 +207,11 @@
 **Scenario:** Fresh install cannot complete because OAuth is suspicious and Access Scopes unavailable
 
 **Steps:**
+
 1. Complete flow as described in EC-001
 
 **Expected Behavior:**
+
 - URL contains `?shopify=verify_failed`
 - Red error banner shows "Could not verify Shopify permissions"
 - "Try again" button available
@@ -251,17 +268,17 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Name] |
-| **Date** | [YYYY-MM-DD] |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    | [Name]                                |
+| **Date**           | [YYYY-MM-DD]                          |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | [Any additional notes] |
+| **Notes**          | [Any additional notes]                |
 
 ---
 
 ## Document History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2026-01-20 | Initial SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-4 manual testing guide |
+| Version | Date       | Changes                                                                     |
+| ------- | ---------- | --------------------------------------------------------------------------- |
+| 1.0     | 2026-01-20 | Initial SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-4 manual testing guide |

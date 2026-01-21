@@ -38,7 +38,9 @@ export function WebsitesFeatures() {
 
           <div className="grid gap-10 md:grid-cols-2">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">Full-site crawling</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                Full-site crawling
+              </h3>
               <p className="mt-2 text-sm text-muted-foreground">
                 EngineO.ai analyzes all your URLs:
               </p>
@@ -73,8 +75,8 @@ export function WebsitesFeatures() {
                 <li>Per-page DEO issues</li>
               </ul>
               <p className="mt-3 text-sm text-muted-foreground">
-                This is the equivalent of your Product Workspace &mdash; but built for all website
-                types.
+                This is the equivalent of your Product Workspace &mdash; but
+                built for all website types.
               </p>
             </div>
 
@@ -96,7 +98,8 @@ export function WebsitesFeatures() {
                 <li>Dead or redirected URLs</li>
               </ul>
               <p className="mt-3 text-sm text-muted-foreground">
-                Each issue links to the affected pages &rarr; workspace &rarr; fix.
+                Each issue links to the affected pages &rarr; workspace &rarr;
+                fix.
               </p>
             </div>
 
@@ -104,7 +107,9 @@ export function WebsitesFeatures() {
               <h3 className="text-sm font-semibold text-foreground">
                 AI-powered metadata generation
               </h3>
-              <p className="mt-2 text-sm text-muted-foreground">Generate optimized:</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Generate optimized:
+              </p>
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
                 <li>Titles</li>
                 <li>Meta descriptions</li>

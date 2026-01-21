@@ -60,7 +60,11 @@ function validateEnvironment(): void {
  */
 function generateBackupFilename(): string {
   const now = new Date();
-  const timestamp = now.toISOString().replace(/[-:]/g, '').replace('T', '-').split('.')[0];
+  const timestamp = now
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace('T', '-')
+    .split('.')[0];
   return `seoengine-backup-${timestamp}.sql`;
 }
 
@@ -193,7 +197,9 @@ async function main(): Promise<void> {
   await uploadToS3(filename, s3Key);
 
   // Step 5: Complete
-  console.log('[backup-db] Backup skeleton completed (no actual dump/upload performed).');
+  console.log(
+    '[backup-db] Backup skeleton completed (no actual dump/upload performed).'
+  );
 }
 
 // Entry point

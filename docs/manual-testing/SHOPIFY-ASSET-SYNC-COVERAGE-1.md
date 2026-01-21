@@ -1,4 +1,5 @@
 # SHOPIFY-ASSET-SYNC-COVERAGE-1 — Manual Testing
+
 > Clone of MANUAL_TESTING_TEMPLATE.md (structure preserved).
 
 ---
@@ -42,6 +43,7 @@
 ID: HP-001
 
 Steps:
+
 1. Go to Assets → Pages for a Shopify-connected project.
 2. If empty and never synced, confirm the page shows "Not yet synced…" guidance.
 3. Click "Sync Pages".
@@ -50,6 +52,7 @@ Steps:
 6. Open a Page detail row and confirm header shows handle + updated timestamp (metadata-only).
 
 Expected Results:
+
 - UI: Pages list and detail populate; last sync line updates after sync.
 - API: Sync endpoint returns counts + completedAt; sync-status returns lastPagesSyncAt.
 
@@ -60,6 +63,7 @@ Expected Results:
 ID: HP-002
 
 Steps:
+
 1. Go to Assets → Collections.
 2. Click "Sync Collections".
 3. Confirm collections appear in the list.
@@ -67,6 +71,7 @@ Steps:
 5. Open a Collection detail and confirm header shows handle + updated timestamp (metadata-only).
 
 Expected Results:
+
 - UI: Collections list and detail populate correctly; no Pages/Collections mixing.
 - API: sync-status returns lastCollectionsSyncAt.
 
@@ -79,11 +84,13 @@ Expected Results:
 Description: Ensure the empty state is not interpreted as a broken integration.
 
 Steps:
+
 1. Open Pages/Collections lists before ever syncing.
 2. Confirm "Not yet synced…" messaging appears.
 3. Trigger sync on a store with zero Pages or zero Collections.
 
 Expected Behavior:
+
 - Never synced: "Not yet synced. Click Sync…"
 - Synced but empty: "No pages found…" / "No collections found…"
 
@@ -96,9 +103,11 @@ Expected Behavior:
 Scenario: Store token does not include read_content.
 
 Steps:
+
 1. Attempt "Sync Pages".
 
 Expected Behavior:
+
 - Structured permission notice with "Reconnect Shopify" CTA is shown (not a generic sync error).
 - Reconnect is explicit and user-initiated; no automatic OAuth redirects.
 - No destructive deletes; existing data remains.
@@ -110,10 +119,12 @@ Expected Behavior:
 Scenario: Non-OWNER attempts to trigger sync.
 
 Steps:
+
 1. Log in as EDITOR/VIEWER.
 2. Attempt sync.
 
 Expected Behavior:
+
 - API returns 403; UI remains stable and communicates lack of permission.
 
 ---

@@ -11,17 +11,19 @@
 
 import { test, expect } from '@playwright/test';
 
-const API_BASE_URL =
-  process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
 
 /**
  * Seed user and project for authenticated tests.
  * Uses the existing /testkit/e2e/seed-first-deo-win pattern.
  */
 async function seedTestProject(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-first-deo-win`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   return {
@@ -47,7 +49,10 @@ async function authenticatePage(page: any, request: any) {
 }
 
 test.describe('ISSUE-TO-FIX-PATH-1: Issue click lands on visible fix (product)', () => {
-  test('From Overview "Top blockers" click lands on product with fix banner', async ({ page, request }) => {
+  test('From Overview "Top blockers" click lands on product with fix banner', async ({
+    page,
+    request,
+  }) => {
     const { projectId, productIds } = await authenticatePage(page, request);
 
     // [ISSUE-TO-FIX-PATH-1 FIXUP-1] Navigate to Overview page explicitly
@@ -82,13 +87,18 @@ test.describe('ISSUE-TO-FIX-PATH-1: Issue click lands on visible fix (product)',
     }
   });
 
-  test('Issue fix banner includes Back to Issues link', async ({ page, request }) => {
+  test('Issue fix banner includes Back to Issues link', async ({
+    page,
+    request,
+  }) => {
     const { projectId, productIds } = await authenticatePage(page, request);
 
     // Navigate directly to a product with issue context
     // This simulates clicking through from issues page
     if (productIds.length > 0) {
-      await page.goto(`/projects/${projectId}/products/${productIds[0]}?from=issues&issueId=missing_seo_title&tab=metadata`);
+      await page.goto(
+        `/projects/${projectId}/products/${productIds[0]}?from=issues&issueId=missing_seo_title&tab=metadata`
+      );
 
       // Wait for page to load
       await page.waitForLoadState('networkidle');
@@ -111,7 +121,10 @@ test.describe('ISSUE-TO-FIX-PATH-1: Issue click lands on visible fix (product)',
 });
 
 test.describe('ISSUE-TO-FIX-PATH-1: Issue counts equal actionable issues', () => {
-  test('Product workspace Issues tab badge matches actionable row count', async ({ page, request }) => {
+  test('Product workspace Issues tab badge matches actionable row count', async ({
+    page,
+    request,
+  }) => {
     const { projectId, productIds } = await authenticatePage(page, request);
 
     if (productIds.length > 0) {
@@ -146,12 +159,17 @@ test.describe('ISSUE-TO-FIX-PATH-1: Issue counts equal actionable issues', () =>
     }
   });
 
-  test('Actionable count header matches rendered rows', async ({ page, request }) => {
+  test('Actionable count header matches rendered rows', async ({
+    page,
+    request,
+  }) => {
     const { projectId, productIds } = await authenticatePage(page, request);
 
     if (productIds.length > 0) {
       // Navigate to product workspace Issues tab
-      await page.goto(`/projects/${projectId}/products/${productIds[0]}?tab=issues`);
+      await page.goto(
+        `/projects/${projectId}/products/${productIds[0]}?tab=issues`
+      );
 
       // Wait for page to load
       await page.waitForLoadState('networkidle');
@@ -177,7 +195,10 @@ test.describe('ISSUE-TO-FIX-PATH-1: Issue counts equal actionable issues', () =>
 });
 
 test.describe('ISSUE-TO-FIX-PATH-1: Orphan issues are not actionable', () => {
-  test('Informational issues have no link/button navigation affordance', async ({ page, request }) => {
+  test('Informational issues have no link/button navigation affordance', async ({
+    page,
+    request,
+  }) => {
     const { projectId } = await authenticatePage(page, request);
 
     // Navigate to project-level Issues page
@@ -247,7 +268,10 @@ test.describe('ISSUE-TO-FIX-PATH-1: Orphan issues are not actionable', () => {
    * Trust invariant: If something looks clickable (has button affordance),
    * clicking it MUST result in navigation. No dead-ends allowed.
    */
-  test('Clicking actionable issue card ALWAYS navigates (no dead-click)', async ({ page, request }) => {
+  test('Clicking actionable issue card ALWAYS navigates (no dead-click)', async ({
+    page,
+    request,
+  }) => {
     const { projectId } = await authenticatePage(page, request);
 
     // Navigate to project-level Issues page
@@ -289,8 +313,7 @@ test.describe('ISSUE-TO-FIX-PATH-1: Orphan issues are not actionable', () => {
 
         // Should land on a product page or work queue with issueId
         const landedOnValidDestination =
-          newUrl.includes('/products/') ||
-          newUrl.includes('/work-queue');
+          newUrl.includes('/products/') || newUrl.includes('/work-queue');
         expect(landedOnValidDestination).toBe(true);
       }
     }
@@ -300,11 +323,16 @@ test.describe('ISSUE-TO-FIX-PATH-1: Orphan issues are not actionable', () => {
    * [ISSUE-TO-FIX-PATH-1 FIXUP-3] Work Queue banner triggers on issueId alone.
    * The `from` parameter is optional context; banner visibility depends only on issueId presence.
    */
-  test('Work Queue issue fix banner shows when issueId is present (no from required)', async ({ page, request }) => {
+  test('Work Queue issue fix banner shows when issueId is present (no from required)', async ({
+    page,
+    request,
+  }) => {
     const { projectId } = await authenticatePage(page, request);
 
     // [ISSUE-TO-FIX-PATH-1 FIXUP-3] Navigate to Work Queue with issueId only (no from=issues)
-    await page.goto(`/projects/${projectId}/work-queue?issueId=missing_seo_title`);
+    await page.goto(
+      `/projects/${projectId}/work-queue?issueId=missing_seo_title`
+    );
 
     // Wait for page to load
     await page.waitForLoadState('networkidle');

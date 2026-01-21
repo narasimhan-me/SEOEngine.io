@@ -52,19 +52,22 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - User has available AI quota
 - Project has products without SEO content
 
 **Steps:**
+
 1. Navigate to project's Products page
 2. Select a product without SEO title/description
 3. Click "Optimize with AI"
 4. Wait for generation to complete
 
 **Expected Results:**
+
 - **UI:** Loading state shown, then SEO fields populated
 - **API:** `POST /api/ai/optimize-product` returns generated content
-- **Database:** 
+- **Database:**
   - Product's `seoTitle` and `seoDescription` updated
   - `AiUsageEvent` record created with feature='product-optimization'
 - **Quality:** Generated content is relevant to product, follows SEO best practices
@@ -76,16 +79,19 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - User has sufficient AI quota for batch
 - Project has multiple unoptimized products
 
 **Steps:**
+
 1. Navigate to Products page
 2. Select multiple products (e.g., 5)
 3. Click "Optimize Selected"
 4. Wait for batch completion
 
 **Expected Results:**
+
 - **UI:** Progress indicator shows batch progress
 - **API:** Each product optimized sequentially or in parallel
 - **Database:** 5 `AiUsageEvent` records created
@@ -98,14 +104,17 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - User starts with known usage count
 
 **Steps:**
+
 1. Note current AI usage (from Settings or API)
 2. Perform 3 AI operations
 3. Check updated usage count
 
 **Expected Results:**
+
 - **UI:** Usage counter increments by 3
 - **Database:** 3 new `AiUsageEvent` records
 - **API:** `/api/projects/:id/overview` reflects updated count
@@ -119,10 +128,12 @@
 **Description:** AI provider returns content that needs filtering.
 
 **Steps:**
+
 1. Submit product with edge-case name/description
 2. Observe generated content
 
 **Expected Behavior:**
+
 - Content is sanitized before storage
 - No harmful/inappropriate content displayed
 
@@ -133,10 +144,12 @@
 **Description:** Product with extremely long description exceeds AI context limits.
 
 **Steps:**
+
 1. Create product with 10,000+ character description
 2. Attempt AI optimization
 
 **Expected Behavior:**
+
 - Description truncated for AI prompt
 - Generation still succeeds
 - User informed if truncation occurred
@@ -148,10 +161,12 @@
 **Description:** Product content is in a non-English language.
 
 **Steps:**
+
 1. Create product with non-English title/description
 2. Attempt AI optimization
 
 **Expected Behavior:**
+
 - AI generates content in same language OR
 - Clear messaging about language support
 
@@ -162,10 +177,12 @@
 **Description:** User triggers multiple AI operations simultaneously.
 
 **Steps:**
+
 1. Open multiple product pages in tabs
 2. Click "Optimize" on all simultaneously
 
 **Expected Behavior:**
+
 - All requests processed (may be queued)
 - Usage tracked accurately for all
 - No race conditions in quota checking
@@ -179,9 +196,11 @@
 **Scenario:** AI provider returns 500 or other error.
 
 **Steps:**
+
 1. Trigger AI operation when provider is having issues (or mock error)
 
 **Expected Behavior:**
+
 - User sees: "AI service temporarily unavailable. Please try again."
 - Error logged with context
 - No partial data saved
@@ -194,9 +213,11 @@
 **Scenario:** Too many requests to AI provider.
 
 **Steps:**
+
 1. Rapid-fire AI requests to trigger provider rate limit
 
 **Expected Behavior:**
+
 - User sees: "Please wait a moment before trying again."
 - Exponential backoff in API layer
 - Request can be retried
@@ -208,10 +229,12 @@
 **Scenario:** API key configuration issue.
 
 **Steps:**
+
 1. Set invalid GEMINI_API_KEY
 2. Attempt AI operation
 
 **Expected Behavior:**
+
 - User sees generic error (not exposing key details)
 - Admin-level alert/log for configuration issue
 - Clear error in server logs
@@ -223,9 +246,11 @@
 **Scenario:** AI provider takes too long to respond.
 
 **Steps:**
+
 1. Trigger operation when provider is slow
 
 **Expected Behavior:**
+
 - Timeout after reasonable period (30s)
 - User informed of timeout
 - Retry option available
@@ -237,9 +262,11 @@
 **Scenario:** AI provider returns unexpected format.
 
 **Steps:**
+
 1. Mock malformed response from provider
 
 **Expected Behavior:**
+
 - Parsing error caught
 - User sees generic error
 - Original product data unchanged
@@ -253,17 +280,19 @@
 
 **Scenario:** Verify AI usage limits are enforced per plan.
 
-| Plan | Daily Limit |
-|------|-------------|
-| Free | 10 |
-| Pro | 100 |
-| Business | 500 |
+| Plan     | Daily Limit |
+| -------- | ----------- |
+| Free     | 10          |
+| Pro      | 100         |
+| Business | 500         |
 
 **Steps:**
+
 1. For each plan, perform AI operations up to limit
 2. Attempt one more operation
 
 **Expected Behavior:**
+
 - At limit: Clear message with upgrade prompt
 - API returns 403 with `AI_LIMIT_REACHED` code
 - Usage resets at midnight UTC
@@ -275,10 +304,12 @@
 **Scenario:** Individual request doesn't exceed provider limits.
 
 **Steps:**
+
 1. Submit very large content for optimization
 2. Observe request handling
 
 **Expected Behavior:**
+
 - Content chunked or truncated as needed
 - Operation succeeds with reasonable output
 
@@ -335,9 +366,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Cross-cutting system-level tests for AI systems |
+| Field              | Value                                           |
+| ------------------ | ----------------------------------------------- |
+| **Tester Name**    | [Pending]                                       |
+| **Date**           | [YYYY-MM-DD]                                    |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed           |
+| **Notes**          | Cross-cutting system-level tests for AI systems |

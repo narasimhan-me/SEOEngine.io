@@ -1,6 +1,13 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { DeoScoreService, DeoSignalsService } from '../projects/deo-score.service';
+import {
+  DeoScoreService,
+  DeoSignalsService,
+} from '../projects/deo-score.service';
 import { AutomationService } from '../projects/automation.service';
 import { RoleResolutionService } from '../common/role-resolution.service';
 import { IntegrationType } from '@prisma/client';
@@ -30,7 +37,7 @@ export class SeoScanService {
     private readonly deoSignalsService: DeoSignalsService,
     private readonly deoScoreService: DeoScoreService,
     private readonly automationService: AutomationService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   /**
@@ -58,7 +65,7 @@ export class SeoScanService {
     let domain: string | null = null;
 
     const shopifyIntegration = project.integrations.find(
-      (i) => i.type === IntegrationType.SHOPIFY,
+      (i) => i.type === IntegrationType.SHOPIFY
     );
 
     if (shopifyIntegration?.externalId) {
@@ -70,7 +77,7 @@ export class SeoScanService {
 
     if (!domain) {
       throw new NotFoundException(
-        'No domain configured. Connect a Shopify store or set a project domain.',
+        'No domain configured. Connect a Shopify store or set a project domain.'
       );
     }
 
@@ -106,15 +113,17 @@ export class SeoScanService {
     if (shouldRunSynchronously) {
       const startedAt = Date.now();
       try {
-        const signals = await this.deoSignalsService.collectSignalsForProject(projectId);
-        const snapshot = await this.deoScoreService.computeAndPersistScoreFromSignals(
-          projectId,
-          signals,
-        );
+        const signals =
+          await this.deoSignalsService.collectSignalsForProject(projectId);
+        const snapshot =
+          await this.deoScoreService.computeAndPersistScoreFromSignals(
+            projectId,
+            signals
+          );
         console.log(
           `[SeoScanService] Local DEO recompute complete for project ${projectId} (snapshot ${
             snapshot.id
-          }, overall=${snapshot.breakdown.overall}) in ${Date.now() - startedAt}ms`,
+          }, overall=${snapshot.breakdown.overall}) in ${Date.now() - startedAt}ms`
         );
 
         // Run automation suggestions after successful crawl + DEO
@@ -123,12 +132,12 @@ export class SeoScanService {
         console.log(
           `[SeoScanService] Automation suggestions scheduled for project ${projectId} in ${
             Date.now() - automationStartedAt
-          }ms`,
+          }ms`
         );
       } catch (error) {
         console.error(
           `[SeoScanService] Failed to recompute DEO score after manual crawl for project ${projectId}`,
-          error,
+          error
         );
       }
     }
@@ -152,7 +161,9 @@ export class SeoScanService {
     });
 
     if (!project) {
-      console.warn(`[SeoScanService] Project not found for crawl: ${projectId}`);
+      console.warn(
+        `[SeoScanService] Project not found for crawl: ${projectId}`
+      );
       return null;
     }
 
@@ -161,7 +172,7 @@ export class SeoScanService {
     let domain: string | null = null;
 
     const shopifyIntegration = project.integrations.find(
-      (i) => i.type === IntegrationType.SHOPIFY,
+      (i) => i.type === IntegrationType.SHOPIFY
     );
 
     if (shopifyIntegration?.externalId) {
@@ -173,7 +184,7 @@ export class SeoScanService {
 
     if (!domain) {
       console.warn(
-        `[SeoScanService] No domain configured for project ${projectId} - skipping crawl`,
+        `[SeoScanService] No domain configured for project ${projectId} - skipping crawl`
       );
       return null;
     }
@@ -260,7 +271,8 @@ export class SeoScanService {
 
     // Extract SEO elements
     const title = $('title').first().text().trim() || null;
-    const metaDescription = $('meta[name="description"]').attr('content')?.trim() || null;
+    const metaDescription =
+      $('meta[name="description"]').attr('content')?.trim() || null;
     const h1 = $('h1').first().text().trim() || null;
     const canonicalHref =
       $('link[rel="canonical"]').attr('href')?.trim() || null;
@@ -436,11 +448,17 @@ export class SeoScanService {
 
     // Get Shopify integration for the project
     const shopifyIntegration = product.project.integrations.find(
-      (i) => i.type === IntegrationType.SHOPIFY,
+      (i) => i.type === IntegrationType.SHOPIFY
     );
 
-    if (!shopifyIntegration || !shopifyIntegration.externalId || !shopifyIntegration.accessToken) {
-      throw new NotFoundException('No Shopify integration found for this project');
+    if (
+      !shopifyIntegration ||
+      !shopifyIntegration.externalId ||
+      !shopifyIntegration.accessToken
+    ) {
+      throw new NotFoundException(
+        'No Shopify integration found for this project'
+      );
     }
 
     const shopDomain = shopifyIntegration.externalId;
@@ -450,7 +468,7 @@ export class SeoScanService {
     const shopifyProduct = await this.fetchShopifyProductHandle(
       shopDomain,
       accessToken,
-      product.externalId,
+      product.externalId
     );
 
     if (!shopifyProduct || !shopifyProduct.handle) {
@@ -491,31 +509,36 @@ export class SeoScanService {
     if (shouldRunSynchronously) {
       const startedAt = Date.now();
       try {
-        const signals = await this.deoSignalsService.collectSignalsForProject(product.projectId);
-        const snapshot = await this.deoScoreService.computeAndPersistScoreFromSignals(
-          product.projectId,
-          signals,
+        const signals = await this.deoSignalsService.collectSignalsForProject(
+          product.projectId
         );
+        const snapshot =
+          await this.deoScoreService.computeAndPersistScoreFromSignals(
+            product.projectId,
+            signals
+          );
         console.log(
           `[SeoScanService] Local DEO recompute complete after product crawl for project ${
             product.projectId
           } (snapshot ${snapshot.id}, overall=${snapshot.breakdown.overall}) in ${
             Date.now() - startedAt
-          }ms`,
+          }ms`
         );
 
         // Run automation suggestions after successful crawl + DEO
         const automationStartedAt = Date.now();
-        await this.automationService.scheduleSuggestionsForProject(product.projectId);
+        await this.automationService.scheduleSuggestionsForProject(
+          product.projectId
+        );
         console.log(
           `[SeoScanService] Automation suggestions scheduled for project ${product.projectId} in ${
             Date.now() - automationStartedAt
-          }ms`,
+          }ms`
         );
       } catch (error) {
         console.error(
           `[SeoScanService] Failed to recompute DEO score after product crawl for project ${product.projectId}`,
-          error,
+          error
         );
       }
     }
@@ -532,7 +555,7 @@ export class SeoScanService {
   private async fetchShopifyProductHandle(
     shopDomain: string,
     accessToken: string,
-    productId: string,
+    productId: string
   ): Promise<{ handle: string } | null> {
     // In E2E mode, avoid calling Shopify; return a synthetic handle.
     if (isE2EMode()) {
@@ -568,7 +591,7 @@ export class SeoScanService {
       if (!response.ok) {
         console.error(
           'Shopify GraphQL API error fetching product handle:',
-          await response.text(),
+          await response.text()
         );
         return null;
       }
@@ -585,7 +608,7 @@ export class SeoScanService {
       if (data.errors && data.errors.length) {
         console.error(
           'Shopify GraphQL errors fetching product handle:',
-          data.errors,
+          data.errors
         );
         return null;
       }

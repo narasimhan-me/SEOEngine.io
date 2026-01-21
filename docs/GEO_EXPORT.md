@@ -11,47 +11,52 @@
 The following decisions are locked and must not be changed without explicit approval:
 
 ### Share Link Model
-| Decision | Detail |
-|----------|--------|
-| **Access Model** | Default: "Anyone with the link". When governance policy requires: passcode-protected (ENTERPRISE-GEO-1) |
-| **Time-bound** | Default 14-day expiry; customizable via governance policy `shareLinkExpiryDays` |
-| **Revocable** | Links can be revoked by the owner at any time |
-| **Non-discoverable** | URLs use random tokens, not indexed/crawlable |
-| **Read-only** | Shared reports are view-only snapshots |
-| **Mutation-free** | Public view, assembly, and print perform NO database writes (ENTERPRISE-GEO-1 hard contract) |
+
+| Decision             | Detail                                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------------------------- |
+| **Access Model**     | Default: "Anyone with the link". When governance policy requires: passcode-protected (ENTERPRISE-GEO-1) |
+| **Time-bound**       | Default 14-day expiry; customizable via governance policy `shareLinkExpiryDays`                         |
+| **Revocable**        | Links can be revoked by the owner at any time                                                           |
+| **Non-discoverable** | URLs use random tokens, not indexed/crawlable                                                           |
+| **Read-only**        | Shared reports are view-only snapshots                                                                  |
+| **Mutation-free**    | Public view, assembly, and print perform NO database writes (ENTERPRISE-GEO-1 hard contract)            |
 
 ### Passcode Protection (ENTERPRISE-GEO-1)
-| Decision | Detail |
-|----------|--------|
-| **Format** | 8 characters, uppercase A-Z + 0-9 |
-| **Shown Once** | Plaintext passcode displayed only at creation in a modal with acknowledgement |
-| **Storage** | bcrypt hash stored; only `last4` preserved for hints |
-| **Verification** | POST `/share/geo-report/:token/verify` with `{ passcode: "..." }` |
-| **Audit** | Creation logs `passcodeLast4`, never full passcode |
+
+| Decision         | Detail                                                                        |
+| ---------------- | ----------------------------------------------------------------------------- |
+| **Format**       | 8 characters, uppercase A-Z + 0-9                                             |
+| **Shown Once**   | Plaintext passcode displayed only at creation in a modal with acknowledgement |
+| **Storage**      | bcrypt hash stored; only `last4` preserved for hints                          |
+| **Verification** | POST `/share/geo-report/:token/verify` with `{ passcode: "..." }`             |
+| **Audit**        | Creation logs `passcodeLast4`, never full passcode                            |
 
 ### Export-Safe Data
-| Requirement | Detail |
-|-------------|--------|
-| **No Internal IDs** | Reports exclude product IDs, answer block IDs, issue IDs |
-| **No Internal Links** | Reports exclude hrefs pointing to app routes |
-| **No Raw Issue Dumps** | Reports show human-readable labels, not raw issue types |
-| **Attribution Readiness** | Use "Attribution readiness" instead of "citation confidence" |
-| **Answer Engines** | Use "answer engines" generically, not vendor names (ChatGPT, Perplexity) |
+
+| Requirement               | Detail                                                                   |
+| ------------------------- | ------------------------------------------------------------------------ |
+| **No Internal IDs**       | Reports exclude product IDs, answer block IDs, issue IDs                 |
+| **No Internal Links**     | Reports exclude hrefs pointing to app routes                             |
+| **No Raw Issue Dumps**    | Reports show human-readable labels, not raw issue types                  |
+| **Attribution Readiness** | Use "Attribution readiness" instead of "citation confidence"             |
+| **Answer Engines**        | Use "answer engines" generically, not vendor names (ChatGPT, Perplexity) |
 
 ### Required Elements
-| Element | Purpose |
-|---------|---------|
-| **Read-only Badge** | Indicates snapshot nature |
-| **Expiry Date** | Shows when share link expires |
-| **Generated Date** | Shows when report was generated |
-| **Disclaimer** | "These metrics reflect internal content readiness signals. Actual citations by AI systems depend on many factors outside your control." |
+
+| Element             | Purpose                                                                                                                                 |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **Read-only Badge** | Indicates snapshot nature                                                                                                               |
+| **Expiry Date**     | Shows when share link expires                                                                                                           |
+| **Generated Date**  | Shows when report was generated                                                                                                         |
+| **Disclaimer**      | "These metrics reflect internal content readiness signals. Actual citations by AI systems depend on many factors outside your control." |
 
 ### Error States
-| State | Display |
-|-------|---------|
-| **expired** | "Link Expired" – prompt to request new link |
-| **revoked** | "Access Revoked" – explain link was revoked by owner |
-| **not_found** | "Report Not Found" – generic not-found state |
+
+| State         | Display                                              |
+| ------------- | ---------------------------------------------------- |
+| **expired**   | "Link Expired" – prompt to request new link          |
+| **revoked**   | "Access Revoked" – explain link was revoked by owner |
+| **not_found** | "Report Not Found" – generic not-found state         |
 
 ---
 
@@ -66,6 +71,7 @@ The following decisions are locked and must not be changed without explicit appr
 Assembles export-safe GEO report data.
 
 **Response:**
+
 ```json
 {
   "projectId": "...",
@@ -81,20 +87,29 @@ Assembles export-safe GEO report data.
   },
   "coverage": {
     "byIntent": [
-      { "intentType": "transactional", "label": "Transactional", "productsCovered": 18, "productsTotal": 20, "coveragePercent": 90 }
+      {
+        "intentType": "transactional",
+        "label": "Transactional",
+        "productsCovered": 18,
+        "productsTotal": 20,
+        "coveragePercent": 90
+      }
     ],
     "gaps": ["trust_validation"],
     "summary": "Coverage shows whether..."
   },
   "trustSignals": {
-    "topBlockers": [
-      { "label": "Missing Clarity", "affectedProducts": 5 }
-    ],
+    "topBlockers": [{ "label": "Missing Clarity", "affectedProducts": 5 }],
     "avgTimeToImproveHours": 24,
     "summary": "Trust signals summarize..."
   },
   "opportunities": [
-    { "title": "Improve coverage", "why": "...", "estimatedImpact": "high", "category": "coverage" }
+    {
+      "title": "Improve coverage",
+      "why": "...",
+      "estimatedImpact": "high",
+      "category": "coverage"
+    }
   ],
   "disclaimer": "These metrics reflect internal content readiness signals..."
 }
@@ -105,11 +120,13 @@ Assembles export-safe GEO report data.
 Creates a new shareable link.
 
 **Request:**
+
 ```json
 { "title": "Q4 Report" }
 ```
 
 **Response:**
+
 ```json
 {
   "id": "...",
@@ -139,6 +156,7 @@ Revokes a share link. Returns `{ "success": true }`.
 Returns the shared report or an error status.
 
 **Response (valid):**
+
 ```json
 {
   "status": "valid",
@@ -149,6 +167,7 @@ Returns the shared report or an error status.
 ```
 
 **Response (expired/revoked/not_found):**
+
 ```json
 {
   "status": "expired" | "revoked" | "not_found"
@@ -187,11 +206,11 @@ model GeoReportShareLink {
 
 ## Frontend Routes
 
-| Route | Description |
-|-------|-------------|
-| `/projects/:id/insights/geo-insights` | GEO Insights page (with Export Report CTA) |
+| Route                                        | Description                                  |
+| -------------------------------------------- | -------------------------------------------- |
+| `/projects/:id/insights/geo-insights`        | GEO Insights page (with Export Report CTA)   |
 | `/projects/:id/insights/geo-insights/export` | Export/print view with share link management |
-| `/share/geo-report/:token` | Public share view (no auth) |
+| `/share/geo-report/:token`                   | Public share view (no auth)                  |
 
 ---
 
@@ -213,6 +232,7 @@ model GeoReportShareLink {
 ### Integration Tests
 
 `apps/api/test/integration/geo-export-1.test.ts`:
+
 - Assemble endpoint returns export-safe data
 - Share link CRUD operations
 - Public share view status handling (valid/expired/revoked/not_found)
@@ -220,6 +240,7 @@ model GeoReportShareLink {
 ### Playwright Tests
 
 `apps/web/tests/geo-export-1.spec.ts`:
+
 - Export button appears on GEO Insights page
 - Export page loads with report data
 - Share link creation and revocation
@@ -229,7 +250,7 @@ model GeoReportShareLink {
 
 ## Document History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2025-12-20 | Initial GEO Export documentation (GEO-EXPORT-1) |
-| 1.1 | 2025-12-21 | ENTERPRISE-GEO-1: Added passcode protection, mutation-free hard contract, governance policy integration |
+| Version | Date       | Changes                                                                                                 |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------- |
+| 1.0     | 2025-12-20 | Initial GEO Export documentation (GEO-EXPORT-1)                                                         |
+| 1.1     | 2025-12-21 | ENTERPRISE-GEO-1: Added passcode protection, mutation-free hard contract, governance policy integration |

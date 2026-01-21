@@ -46,7 +46,8 @@ export default function MediaAccessibilityPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [projectName, setProjectName] = useState<string | null>(null);
-  const [scorecard, setScorecard] = useState<MediaAccessibilityScorecard | null>(null);
+  const [scorecard, setScorecard] =
+    useState<MediaAccessibilityScorecard | null>(null);
   const [stats, setStats] = useState<ProductMediaStats[]>([]);
 
   const pillar = getDeoPillarById('media_accessibility');
@@ -73,7 +74,10 @@ export default function MediaAccessibilityPage() {
         setScorecard(mediaData.scorecard);
         setStats(mediaData.stats || []);
       } catch (mediaErr) {
-        console.warn('[MediaAccessibilityPage] Media data not available:', mediaErr);
+        console.warn(
+          '[MediaAccessibilityPage] Media data not available:',
+          mediaErr
+        );
         // Set default values
         setScorecard(null);
         setStats([]);
@@ -124,7 +128,8 @@ export default function MediaAccessibilityPage() {
   // Calculate summary stats
   const totalProducts = stats.length;
   const productsWithIssues =
-    (scorecard?.productsWithMissingAlt || 0) + (scorecard?.productsWithGenericAlt || 0);
+    (scorecard?.productsWithMissingAlt || 0) +
+    (scorecard?.productsWithGenericAlt || 0);
   const goodAltPercentage = scorecard?.totalImages
     ? Math.round((scorecard.imagesWithGoodAlt / scorecard.totalImages) * 100)
     : 0;
@@ -147,7 +152,10 @@ export default function MediaAccessibilityPage() {
           </li>
           <li>/</li>
           <li>
-            <Link href={`/projects/${projectId}/store-health`} className="hover:text-gray-700">
+            <Link
+              href={`/projects/${projectId}/store-health`}
+              className="hover:text-gray-700"
+            >
               {projectName || 'Project'}
             </Link>
           </li>
@@ -158,7 +166,9 @@ export default function MediaAccessibilityPage() {
 
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Media & Accessibility</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Media & Accessibility
+        </h1>
         <p className="mt-1 text-sm text-gray-600">
           {pillar?.description ||
             'Manage product images, alt text coverage, and accessibility attributes across your catalog.'}
@@ -178,9 +188,12 @@ export default function MediaAccessibilityPage() {
         <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Media Accessibility Score</h2>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Media Accessibility Score
+              </h2>
               <p className="text-sm text-gray-500">
-                Based on {scorecard.totalImages} images across {totalProducts} products
+                Based on {scorecard.totalImages} images across {totalProducts}{' '}
+                products
               </p>
             </div>
             <div className="text-right">
@@ -195,20 +208,28 @@ export default function MediaAccessibilityPage() {
 
           {/* Alt Text Breakdown */}
           <div className="mt-6">
-            <h3 className="mb-3 text-sm font-medium text-gray-700">Alt Text Quality Breakdown</h3>
+            <h3 className="mb-3 text-sm font-medium text-gray-700">
+              Alt Text Quality Breakdown
+            </h3>
             <div className="grid gap-4 sm:grid-cols-3">
               {/* Good Alt Text */}
               <div className="rounded-lg border border-green-200 bg-green-50 p-4">
                 <div className="flex items-center gap-2">
                   <span className="text-lg">✓</span>
-                  <span className="text-sm font-medium text-green-700">Good Alt Text</span>
+                  <span className="text-sm font-medium text-green-700">
+                    Good Alt Text
+                  </span>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">Descriptive, image-specific alt text</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Descriptive, image-specific alt text
+                </p>
                 <div className="mt-2 flex items-end justify-between">
                   <span className="text-2xl font-bold text-green-700">
                     {scorecard.imagesWithGoodAlt}
                   </span>
-                  <span className="text-xs text-gray-500">{goodAltPercentage}%</span>
+                  <span className="text-xs text-gray-500">
+                    {goodAltPercentage}%
+                  </span>
                 </div>
               </div>
 
@@ -216,7 +237,9 @@ export default function MediaAccessibilityPage() {
               <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
                 <div className="flex items-center gap-2">
                   <span className="text-lg">⚠</span>
-                  <span className="text-sm font-medium text-yellow-700">Generic Alt Text</span>
+                  <span className="text-sm font-medium text-yellow-700">
+                    Generic Alt Text
+                  </span>
                 </div>
                 <p className="mt-1 text-xs text-gray-500">
                   Overly generic or product name only
@@ -225,7 +248,9 @@ export default function MediaAccessibilityPage() {
                   <span className="text-2xl font-bold text-yellow-700">
                     {scorecard.imagesWithGenericAlt}
                   </span>
-                  <span className="text-xs text-gray-500">{genericAltPercentage}%</span>
+                  <span className="text-xs text-gray-500">
+                    {genericAltPercentage}%
+                  </span>
                 </div>
               </div>
 
@@ -233,14 +258,20 @@ export default function MediaAccessibilityPage() {
               <div className="rounded-lg border border-red-200 bg-red-50 p-4">
                 <div className="flex items-center gap-2">
                   <span className="text-lg">✗</span>
-                  <span className="text-sm font-medium text-red-700">Missing Alt Text</span>
+                  <span className="text-sm font-medium text-red-700">
+                    Missing Alt Text
+                  </span>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">No alt text present</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  No alt text present
+                </p>
                 <div className="mt-2 flex items-end justify-between">
                   <span className="text-2xl font-bold text-red-700">
                     {scorecard.imagesWithoutAlt}
                   </span>
-                  <span className="text-xs text-gray-500">{missingAltPercentage}%</span>
+                  <span className="text-xs text-gray-500">
+                    {missingAltPercentage}%
+                  </span>
                 </div>
               </div>
             </div>
@@ -251,7 +282,8 @@ export default function MediaAccessibilityPage() {
             <div className="mt-4 rounded-md border border-orange-200 bg-orange-50 px-3 py-2">
               <p className="text-sm text-orange-800">
                 <strong>{productsWithIssues}</strong> product
-                {productsWithIssues !== 1 ? 's' : ''} have images needing alt text improvements.
+                {productsWithIssues !== 1 ? 's' : ''} have images needing alt
+                text improvements.
               </p>
               <Link
                 href={`/projects/${projectId}/issues?pillar=media_accessibility`}
@@ -265,10 +297,13 @@ export default function MediaAccessibilityPage() {
       ) : (
         /* No Data State */
         <div className="mb-8 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6">
-          <h3 className="text-sm font-medium text-gray-700">No Media Data Available</h3>
+          <h3 className="text-sm font-medium text-gray-700">
+            No Media Data Available
+          </h3>
           <p className="mt-2 text-sm text-gray-500">
-            Media accessibility data will appear here once your products are synced from Shopify.
-            Make sure your Shopify integration is connected and products have been imported.
+            Media accessibility data will appear here once your products are
+            synced from Shopify. Make sure your Shopify integration is connected
+            and products have been imported.
           </p>
           <Link
             href={`/projects/${projectId}/settings`}
@@ -281,7 +316,9 @@ export default function MediaAccessibilityPage() {
 
       {/* Quick Actions */}
       <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          Quick Actions
+        </h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Link
             href={`/projects/${projectId}/issues?pillar=media_accessibility`}
@@ -289,8 +326,12 @@ export default function MediaAccessibilityPage() {
           >
             <span className="text-2xl">🔍</span>
             <div>
-              <p className="text-sm font-medium text-gray-900">View Media Issues</p>
-              <p className="text-xs text-gray-500">See all alt text and image issues</p>
+              <p className="text-sm font-medium text-gray-900">
+                View Media Issues
+              </p>
+              <p className="text-xs text-gray-500">
+                See all alt text and image issues
+              </p>
             </div>
           </Link>
           <Link
@@ -299,8 +340,12 @@ export default function MediaAccessibilityPage() {
           >
             <span className="text-2xl">📦</span>
             <div>
-              <p className="text-sm font-medium text-gray-900">Browse Products</p>
-              <p className="text-xs text-gray-500">Review and fix alt text per product</p>
+              <p className="text-sm font-medium text-gray-900">
+                Browse Products
+              </p>
+              <p className="text-xs text-gray-500">
+                Review and fix alt text per product
+              </p>
             </div>
           </Link>
         </div>
@@ -308,30 +353,38 @@ export default function MediaAccessibilityPage() {
 
       {/* Score Model Info */}
       <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
-        <h3 className="text-sm font-medium text-gray-700">About Media Accessibility Scoring</h3>
+        <h3 className="text-sm font-medium text-gray-700">
+          About Media Accessibility Scoring
+        </h3>
         <p className="mt-1 text-xs text-gray-500">
           The Media Accessibility score uses a weighted coverage model:
         </p>
         <ul className="mt-2 space-y-1 text-xs text-gray-500">
           <li>
-            <strong className="text-green-600">Good alt text</strong> = 100% credit
+            <strong className="text-green-600">Good alt text</strong> = 100%
+            credit
           </li>
           <li>
-            <strong className="text-yellow-600">Generic alt text</strong> = 40% credit
+            <strong className="text-yellow-600">Generic alt text</strong> = 40%
+            credit
           </li>
           <li>
-            <strong className="text-red-600">Missing alt text</strong> = 0% credit
+            <strong className="text-red-600">Missing alt text</strong> = 0%
+            credit
           </li>
         </ul>
         <p className="mt-3 text-xs text-gray-500">
           Status thresholds:{' '}
           <strong className="text-green-600">Strong (≥80%)</strong>,{' '}
-          <strong className="text-yellow-600">Needs Improvement (40-79%)</strong>, or{' '}
-          <strong className="text-red-600">Weak (&lt;40%)</strong>
+          <strong className="text-yellow-600">
+            Needs Improvement (40-79%)
+          </strong>
+          , or <strong className="text-red-600">Weak (&lt;40%)</strong>
         </p>
         <p className="mt-2 text-xs text-gray-500">
-          <strong>Alt text classification:</strong> Missing = empty/null. Generic = &quot;product
-          image&quot;, product name only, &lt;5 chars. Good = descriptive, image-specific.
+          <strong>Alt text classification:</strong> Missing = empty/null.
+          Generic = &quot;product image&quot;, product name only, &lt;5 chars.
+          Good = descriptive, image-specific.
         </p>
       </div>
     </div>

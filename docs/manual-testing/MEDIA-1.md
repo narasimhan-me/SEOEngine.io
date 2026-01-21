@@ -1,9 +1,11 @@
 # MEDIA-1: Media & Accessibility Pillar - Manual Testing
 
 ## Overview
+
 Manual testing checklist for the Media & Accessibility pillar implementation (MEDIA-1).
 
 ## Prerequisites
+
 - Project with Shopify integration connected
 - Products synced from Shopify with images
 - Access to DEO Overview, Issues page, and Product detail pages
@@ -13,10 +15,12 @@ Manual testing checklist for the Media & Accessibility pillar implementation (ME
 ## 1. DEO Overview - Media Pillar Card
 
 ### Test Steps
+
 1. Navigate to DEO Overview page for a project
 2. Locate the Media & Accessibility pillar card
 
 ### Expected Results
+
 - [ ] Media card shows overall score (0-100)
 - [ ] Status badge displays correctly:
   - Green "Strong" for scores ≥ 80
@@ -32,10 +36,12 @@ Manual testing checklist for the Media & Accessibility pillar implementation (ME
 ## 2. Media Workspace Page
 
 ### Test Steps
+
 1. Navigate to `/projects/[id]/media`
 2. Review the workspace layout
 
 ### Expected Results
+
 - [ ] Breadcrumbs show: Projects / [Project Name] / Media & Accessibility
 - [ ] Header displays pillar title and description
 - [ ] Summary card shows:
@@ -54,11 +60,13 @@ Manual testing checklist for the Media & Accessibility pillar implementation (ME
 ## 3. Product Workspace - Media Section
 
 ### Test Steps
+
 1. Navigate to a product detail page
 2. Scroll to or click "Media" section
 3. Test deep link: `/projects/[id]/products/[productId]?focus=media`
 
 ### Expected Results
+
 - [ ] Media section displays per-product stats:
   - Number of images
   - Counts per alt quality (good, generic, missing)
@@ -77,11 +85,13 @@ Manual testing checklist for the Media & Accessibility pillar implementation (ME
 ## 4. Alt Text Preview Flow
 
 ### Test Steps
+
 1. On product media section, click "Preview alt text" for an image
 2. Observe the preview modal/drawer
 3. Click same button again (test draft reuse)
 
 ### Expected Results
+
 - [ ] First click generates new draft (shows "Generated with AI")
 - [ ] Loading state displays during generation
 - [ ] Preview shows proposed alt text
@@ -95,10 +105,12 @@ Manual testing checklist for the Media & Accessibility pillar implementation (ME
 ## 5. Alt Text Apply Flow
 
 ### Test Steps
+
 1. From preview modal, click "Apply alt text"
 2. Verify the update
 
 ### Expected Results
+
 - [ ] Apply action does NOT trigger any AI calls
 - [ ] ProductImage alt text is updated in database
 - [ ] UI refreshes to show new alt text
@@ -111,10 +123,12 @@ Manual testing checklist for the Media & Accessibility pillar implementation (ME
 ## 6. Caption Preview/Apply Flow (Optional)
 
 ### Test Steps
+
 1. If "Preview caption" button is available, click it
 2. Preview and apply the caption
 
 ### Expected Results
+
 - [ ] Caption draft is generated (uses AI)
 - [ ] Preview shows proposed caption
 - [ ] Apply updates ProductImage.caption
@@ -125,11 +139,13 @@ Manual testing checklist for the Media & Accessibility pillar implementation (ME
 ## 7. Issues Engine Integration
 
 ### Test Steps
+
 1. Navigate to Issues page: `/projects/[id]/issues`
 2. Filter by pillar: `?pillar=media_accessibility`
 3. Review MEDIA issues
 
 ### Expected Results
+
 - [ ] MEDIA issues display with correct labels:
   - "Missing Image Alt Text"
   - "Generic Image Alt Text"
@@ -145,10 +161,12 @@ Manual testing checklist for the Media & Accessibility pillar implementation (ME
 ## 8. Shopify Sync Integration
 
 ### Test Steps
+
 1. Trigger a Shopify product sync
 2. Verify ProductImage records are created
 
 ### Expected Results
+
 - [ ] ProductImage records created for each product image
 - [ ] Alt text from Shopify is preserved
 - [ ] Image position is preserved
@@ -161,10 +179,12 @@ Manual testing checklist for the Media & Accessibility pillar implementation (ME
 ## 9. Accessibility & Trust Checks
 
 ### Test Steps
+
 1. Review generated alt text samples
 2. Check for problematic content
 
 ### Expected Results
+
 - [ ] Generated alt text does NOT hallucinate specific visual details
 - [ ] Alt text uses neutral, descriptive language
 - [ ] No keyword stuffing in generated content
@@ -176,12 +196,14 @@ Manual testing checklist for the Media & Accessibility pillar implementation (ME
 ## 10. Edge Cases
 
 ### Test Steps
+
 1. Test product with no images
 2. Test product with all images having good alt text
 3. Test product with all images missing alt text
 4. Test very long alt text (> 125 chars)
 
 ### Expected Results
+
 - [ ] Product with no images: shows 0 images, no media issues generated
 - [ ] All good alt text: 100% score, "Strong" status
 - [ ] All missing alt text: 0% score, "Weak" status
@@ -192,7 +214,7 @@ Manual testing checklist for the Media & Accessibility pillar implementation (ME
 ## Sign-Off
 
 | Tester | Date | Result | Notes |
-|--------|------|--------|-------|
+| ------ | ---- | ------ | ----- |
 |        |      |        |       |
 
 ---

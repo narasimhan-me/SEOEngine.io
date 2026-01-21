@@ -75,7 +75,7 @@ describe('AnswerBlockAutomationProcessor', () => {
       aiServiceMock as unknown as AiService,
       answerEngineServiceMock as unknown as AnswerEngineService,
       answerBlockServiceMock as unknown as AnswerBlockService,
-      shopifyServiceMock as unknown as ShopifyService,
+      shopifyServiceMock as unknown as ShopifyService
     );
 
     // Save original config
@@ -124,7 +124,7 @@ describe('AnswerBlockAutomationProcessor', () => {
         {
           connection: redisConfig.connection,
           prefix: redisConfig.prefix,
-        },
+        }
       );
     });
   });
@@ -258,9 +258,11 @@ describe('AnswerBlockAutomationProcessor', () => {
       prismaMock.product.findUnique.mockResolvedValue(mockProduct);
       answerBlockServiceMock.getAnswerBlocks.mockResolvedValue([]);
       answerEngineServiceMock.computeAnswerabilityForProduct.mockReturnValue(
-        mockAnswerabilityStatus,
+        mockAnswerabilityStatus
       );
-      aiServiceMock.generateProductAnswers.mockResolvedValue(mockGeneratedBlocks);
+      aiServiceMock.generateProductAnswers.mockResolvedValue(
+        mockGeneratedBlocks
+      );
       answerBlockServiceMock.createOrUpdateAnswerBlocks.mockResolvedValue([
         {
           id: 'block-1',
@@ -285,7 +287,9 @@ describe('AnswerBlockAutomationProcessor', () => {
       await jobHandler(mockJob);
 
       expect(aiServiceMock.generateProductAnswers).toHaveBeenCalled();
-      expect(answerBlockServiceMock.createOrUpdateAnswerBlocks).toHaveBeenCalled();
+      expect(
+        answerBlockServiceMock.createOrUpdateAnswerBlocks
+      ).toHaveBeenCalled();
       expect(prismaMock.answerBlockAutomationLog.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           action: 'generate_missing',
@@ -318,7 +322,7 @@ describe('AnswerBlockAutomationProcessor', () => {
       prismaMock.product.findUnique.mockResolvedValue(mockProduct);
       answerBlockServiceMock.getAnswerBlocks.mockResolvedValue([]);
       answerEngineServiceMock.computeAnswerabilityForProduct.mockReturnValue(
-        mockAnswerabilityStatus,
+        mockAnswerabilityStatus
       );
       aiServiceMock.generateProductAnswers.mockResolvedValue([]);
 
@@ -363,4 +367,3 @@ describe('AnswerBlockAutomationProcessor', () => {
     });
   });
 });
-

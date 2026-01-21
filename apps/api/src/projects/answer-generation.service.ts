@@ -58,12 +58,14 @@ export class AnswerGenerationService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly geminiClient: GeminiClient,
+    private readonly geminiClient: GeminiClient
   ) {
     this.apiKey = this.configService.get<string>('AI_API_KEY') || '';
     this.provider =
-      (this.configService.get<string>('AI_PROVIDER') as 'openai' | 'anthropic' | 'gemini') ||
-      'openai';
+      (this.configService.get<string>('AI_PROVIDER') as
+        | 'openai'
+        | 'anthropic'
+        | 'gemini') || 'openai';
   }
 
   /**
@@ -76,7 +78,7 @@ export class AnswerGenerationService {
    */
   async generateAnswersForProduct(
     product: ProductForAnswerGeneration,
-    answerabilityStatus: AnswerabilityStatus,
+    answerabilityStatus: AnswerabilityStatus
   ): Promise<AnswerBlock[]> {
     // Build the prompt for AI generation
     const prompt = this.buildPrompt(product, answerabilityStatus);
@@ -136,7 +138,7 @@ export class AnswerGenerationService {
    */
   private buildPrompt(
     product: ProductForAnswerGeneration,
-    answerabilityStatus: AnswerabilityStatus,
+    answerabilityStatus: AnswerabilityStatus
   ): string {
     const title = product.seoTitle || product.title || 'Unknown Product';
     const description = product.seoDescription || product.description || '';
@@ -214,7 +216,10 @@ Generate answers for ALL 10 questions. Set cannotAnswer: true for any question w
     });
 
     if (!response.ok) {
-      console.error('[AnswerGeneration] OpenAI API error:', await response.text());
+      console.error(
+        '[AnswerGeneration] OpenAI API error:',
+        await response.text()
+      );
       return { answers: [] };
     }
 
@@ -229,7 +234,9 @@ Generate answers for ALL 10 questions. Set cannotAnswer: true for any question w
   /**
    * Calls Anthropic API for answer generation.
    */
-  private async callAnthropic(prompt: string): Promise<AiProductAnswersResponse> {
+  private async callAnthropic(
+    prompt: string
+  ): Promise<AiProductAnswersResponse> {
     if (!this.apiKey) {
       return { answers: [] };
     }
@@ -249,7 +256,10 @@ Generate answers for ALL 10 questions. Set cannotAnswer: true for any question w
     });
 
     if (!response.ok) {
-      console.error('[AnswerGeneration] Anthropic API error:', await response.text());
+      console.error(
+        '[AnswerGeneration] Anthropic API error:',
+        await response.text()
+      );
       return { answers: [] };
     }
 

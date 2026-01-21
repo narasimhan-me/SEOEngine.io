@@ -115,8 +115,7 @@ export const ISSUE_UI_CONFIG: Record<
   },
   weak_intent_match: {
     label: 'Weak Intent Match',
-    description:
-      'Product metadata may not align well with user search intent.',
+    description: 'Product metadata may not align well with user search intent.',
     pillarId: 'search_intent_fit',
   },
   missing_product_image: {

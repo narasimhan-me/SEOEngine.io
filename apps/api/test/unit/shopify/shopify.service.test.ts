@@ -15,7 +15,10 @@
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { ShopifyService, mapAnswerBlocksToMetafieldPayloads } from '../../../src/shopify/shopify.service';
+import {
+  ShopifyService,
+  mapAnswerBlocksToMetafieldPayloads,
+} from '../../../src/shopify/shopify.service';
 import { PrismaService } from '../../../src/prisma.service';
 import { AutomationService } from '../../../src/projects/automation.service';
 import { RoleResolutionService } from '../../../src/common/role-resolution.service';
@@ -130,18 +133,24 @@ describe('ShopifyService', () => {
       const scopeParam = urlObj.searchParams.get('scope') || '';
       const scopes = scopeParam.split(',').sort();
       // [SHOPIFY-SCOPES-MATRIX-1-FIXUP-2] Minimal required install scopes: read_content, read_products, write_products
-      expect(scopes).toEqual(['read_content', 'read_products', 'write_products']);
+      expect(scopes).toEqual([
+        'read_content',
+        'read_products',
+        'write_products',
+      ]);
       // URL encoding: slashes and colons are encoded
-      expect(url).toContain('redirect_uri=https%3A%2F%2Fapp.example.com%2Fshopify%2Fcallback');
+      expect(url).toContain(
+        'redirect_uri=https%3A%2F%2Fapp.example.com%2Fshopify%2Fcallback'
+      );
       expect(url).toContain('state=');
     });
 
     it('should fail fast when SHOPIFY_SCOPES allowlist is missing requested scopes', () => {
       // Override the scopesAllowlistCsv to be missing read_content
       (service as any).scopesAllowlistCsv = 'read_products,write_products';
-      expect(() => service.generateInstallUrl('test-shop.myshopify.com', 'proj-1')).toThrow(
-        BadRequestException,
-      );
+      expect(() =>
+        service.generateInstallUrl('test-shop.myshopify.com', 'proj-1')
+      ).toThrow(BadRequestException);
     });
 
     it('should store state in stateStore', () => {
@@ -171,9 +180,9 @@ describe('ShopifyService', () => {
 
       // Generate correct HMAC
       const sortedParams = Object.keys(query)
-        .filter(key => key !== 'hmac')
+        .filter((key) => key !== 'hmac')
         .sort()
-        .map(key => `${key}=${query[key as keyof typeof query]}`)
+        .map((key) => `${key}=${query[key as keyof typeof query]}`)
         .join('&');
       const hash = crypto
         .createHmac('sha256', 'test-api-secret')
@@ -280,8 +289,10 @@ describe('ShopifyService', () => {
         status: 400,
       });
 
-      await expect(service.exchangeToken(shop, code)).rejects.toThrow(BadRequestException);
-      
+      await expect(service.exchangeToken(shop, code)).rejects.toThrow(
+        BadRequestException
+      );
+
       // Clean up the mock
       (global.fetch as jest.Mock).mockClear();
     });
@@ -316,7 +327,7 @@ describe('ShopifyService', () => {
         projectId,
         shopDomain,
         accessToken,
-        scope,
+        scope
       );
 
       expect(result).toEqual(mockIntegration);
@@ -334,7 +345,7 @@ describe('ShopifyService', () => {
             externalId: shopDomain,
             accessToken,
           }),
-        }),
+        })
       );
     });
 
@@ -370,7 +381,7 @@ describe('ShopifyService', () => {
         projectId,
         shopDomain,
         accessToken,
-        scope,
+        scope
       );
 
       expect(result).toEqual(mockIntegration);
@@ -380,7 +391,7 @@ describe('ShopifyService', () => {
             externalId: shopDomain,
             accessToken,
           }),
-        }),
+        })
       );
     });
   });
@@ -396,7 +407,9 @@ describe('ShopifyService', () => {
         accessToken: 'access-token',
       };
 
-      prismaMock.integration.findUnique.mockResolvedValue(mockIntegration as any);
+      prismaMock.integration.findUnique.mockResolvedValue(
+        mockIntegration as any
+      );
 
       const result = await service.getShopifyIntegration(projectId);
 
@@ -437,7 +450,9 @@ describe('ShopifyService', () => {
       const result = await service.validateProjectOwnership(projectId, userId);
 
       expect(result).toBe(true);
-      expect(roleResolutionServiceMock.resolveEffectiveRole).toHaveBeenCalledWith(projectId, userId);
+      expect(
+        roleResolutionServiceMock.resolveEffectiveRole
+      ).toHaveBeenCalledWith(projectId, userId);
     });
 
     it('should return false when user does not own project', async () => {
@@ -454,7 +469,9 @@ describe('ShopifyService', () => {
       const result = await service.validateProjectOwnership(projectId, userId);
 
       expect(result).toBe(false);
-      expect(roleResolutionServiceMock.resolveEffectiveRole).toHaveBeenCalledWith(projectId, userId);
+      expect(
+        roleResolutionServiceMock.resolveEffectiveRole
+      ).toHaveBeenCalledWith(projectId, userId);
     });
   });
 
@@ -531,8 +548,10 @@ describe('ShopifyService', () => {
       ];
 
       prismaMock.product.findUnique.mockResolvedValue(mockProduct as any);
-      prismaMock.answerBlock.findMany.mockResolvedValue(mockAnswerBlocks as any);
-      
+      prismaMock.answerBlock.findMany.mockResolvedValue(
+        mockAnswerBlocks as any
+      );
+
       // Mock getShopifyIntegration calls:
       // 1. First call in syncAnswerBlocksToShopify (line 716)
       // 2. Second call in ensureMetafieldDefinitions (line 595)
@@ -549,8 +568,11 @@ describe('ShopifyService', () => {
       (global.fetch as jest.Mock) = jest.fn(async (_url: string, init: any) => {
         const body = JSON.parse((init?.body as string) ?? '{}');
         callCount++;
-        
-        if (body.operationName === 'GetEngineoMetafieldDefinitions' || callCount === 1) {
+
+        if (
+          body.operationName === 'GetEngineoMetafieldDefinitions' ||
+          callCount === 1
+        ) {
           return {
             ok: true,
             json: async () => ({
@@ -559,14 +581,20 @@ describe('ShopifyService', () => {
             text: async () => '',
           };
         }
-        
+
         if (body.operationName === 'SetEngineoMetafields' || callCount === 2) {
           return {
             ok: true,
             json: async () => ({
               data: {
                 metafieldsSet: {
-                  metafields: [{ id: 'meta-1', namespace: 'engineo', key: 'answer_what_is_it' }],
+                  metafields: [
+                    {
+                      id: 'meta-1',
+                      namespace: 'engineo',
+                      key: 'answer_what_is_it',
+                    },
+                  ],
                   userErrors: [],
                 },
               },
@@ -574,7 +602,7 @@ describe('ShopifyService', () => {
             text: async () => '',
           };
         }
-        
+
         throw new Error(`Unexpected GraphQL operation: ${body.operationName}`);
       });
 
@@ -643,7 +671,9 @@ describe('ShopifyService', () => {
       };
 
       prismaMock.product.findUnique.mockResolvedValue(mockProduct as any);
-      prismaMock.integration.findUnique.mockResolvedValue(mockIntegration as any);
+      prismaMock.integration.findUnique.mockResolvedValue(
+        mockIntegration as any
+      );
       prismaMock.answerBlock.findMany.mockResolvedValue([]);
 
       const result = await service.syncAnswerBlocksToShopify(productId);
@@ -684,7 +714,9 @@ describe('ShopifyService', () => {
       };
 
       prismaMock.product.findUnique.mockResolvedValue(mockProduct as any);
-      prismaMock.integration.findUnique.mockResolvedValue(mockIntegration as any);
+      prismaMock.integration.findUnique.mockResolvedValue(
+        mockIntegration as any
+      );
       prismaMock.product.update.mockResolvedValue({
         ...mockProduct,
         seoTitle,
@@ -706,7 +738,12 @@ describe('ShopifyService', () => {
         }),
       });
 
-      const result = await service.updateProductSeo(productId, seoTitle, seoDescription, userId);
+      const result = await service.updateProductSeo(
+        productId,
+        seoTitle,
+        seoDescription,
+        userId
+      );
 
       expect(result.productId).toBe(productId);
       expect(result.shopDomain).toBe(shopDomain);
@@ -720,7 +757,7 @@ describe('ShopifyService', () => {
             seoDescription,
             lastSyncedAt: expect.any(Date),
           },
-        }),
+        })
       );
     });
 
@@ -731,7 +768,7 @@ describe('ShopifyService', () => {
       prismaMock.product.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.updateProductSeo(productId, 'Title', 'Description', userId),
+        service.updateProductSeo(productId, 'Title', 'Description', userId)
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -751,7 +788,7 @@ describe('ShopifyService', () => {
       prismaMock.product.findUnique.mockResolvedValue(mockProduct as any);
 
       await expect(
-        service.updateProductSeo(productId, 'Title', 'Description', userId),
+        service.updateProductSeo(productId, 'Title', 'Description', userId)
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -772,9 +809,8 @@ describe('ShopifyService', () => {
       prismaMock.integration.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.updateProductSeo(productId, 'Title', 'Description', userId),
+        service.updateProductSeo(productId, 'Title', 'Description', userId)
       ).rejects.toThrow(BadRequestException);
     });
   });
 });
-

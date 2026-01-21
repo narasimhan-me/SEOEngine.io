@@ -39,14 +39,16 @@ const createRoleResolutionServiceMock = () => ({
 describe('MediaAccessibilityService', () => {
   let service: MediaAccessibilityService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
-  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
+  let roleResolutionServiceMock: ReturnType<
+    typeof createRoleResolutionServiceMock
+  >;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
     roleResolutionServiceMock = createRoleResolutionServiceMock();
     service = new MediaAccessibilityService(
       prismaMock as unknown as PrismaService,
-      roleResolutionServiceMock as unknown as RoleResolutionService,
+      roleResolutionServiceMock as unknown as RoleResolutionService
     );
   });
 
@@ -84,7 +86,10 @@ describe('MediaAccessibilityService', () => {
 
       prismaMock.productImage.findMany.mockResolvedValue(mockImages);
 
-      const result = await service.computeProductMediaStats('prod-1', 'Test Product');
+      const result = await service.computeProductMediaStats(
+        'prod-1',
+        'Test Product'
+      );
 
       expect(result).toHaveProperty('productId', 'prod-1');
       expect(result).toHaveProperty('totalImages', 3);
@@ -99,7 +104,10 @@ describe('MediaAccessibilityService', () => {
     it('should compute stats for product with no images', async () => {
       prismaMock.productImage.findMany.mockResolvedValue([]);
 
-      const result = await service.computeProductMediaStats('prod-1', 'Test Product');
+      const result = await service.computeProductMediaStats(
+        'prod-1',
+        'Test Product'
+      );
 
       expect(result).toHaveProperty('totalImages', 0);
       expect(result).toHaveProperty('imagesWithAnyAlt', 0);
@@ -136,9 +144,9 @@ describe('MediaAccessibilityService', () => {
     it('should throw NotFoundException when project does not exist', async () => {
       prismaMock.project.findUnique.mockResolvedValue(null);
 
-      await expect(service.getProjectMediaData('proj-1', 'user-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.getProjectMediaData('proj-1', 'user-1')
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException when user does not own project', async () => {
@@ -149,12 +157,12 @@ describe('MediaAccessibilityService', () => {
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
       roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
-        new ForbiddenException('You do not have access to this project'),
+        new ForbiddenException('You do not have access to this project')
       );
 
-      await expect(service.getProjectMediaData('proj-1', 'user-1')).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.getProjectMediaData('proj-1', 'user-1')
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -197,9 +205,9 @@ describe('MediaAccessibilityService', () => {
     it('should throw NotFoundException when product does not exist', async () => {
       prismaMock.product.findUnique.mockResolvedValue(null);
 
-      await expect(service.getProductMediaData('prod-1', 'user-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.getProductMediaData('prod-1', 'user-1')
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException when user does not own product', async () => {
@@ -213,12 +221,12 @@ describe('MediaAccessibilityService', () => {
 
       prismaMock.product.findUnique.mockResolvedValue(mockProduct);
       roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
-        new ForbiddenException('You do not have access to this project'),
+        new ForbiddenException('You do not have access to this project')
       );
 
-      await expect(service.getProductMediaData('prod-1', 'user-1')).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.getProductMediaData('prod-1', 'user-1')
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -266,4 +274,3 @@ describe('MediaAccessibilityService', () => {
     });
   });
 });
-

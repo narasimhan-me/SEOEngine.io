@@ -140,7 +140,11 @@ describe('EntitlementsService', () => {
       const now = new Date();
       prismaMock.aiUsageEvent.count.mockResolvedValue(5);
 
-      const result = await service.getDailyAiUsage('user-1', 'proj-1', 'test-feature');
+      const result = await service.getDailyAiUsage(
+        'user-1',
+        'proj-1',
+        'test-feature'
+      );
 
       expect(result).toBe(5);
       expect(prismaMock.aiUsageEvent.count).toHaveBeenCalledWith({
@@ -168,7 +172,11 @@ describe('EntitlementsService', () => {
       prismaMock.subscription.findUnique.mockResolvedValue(mockSubscription);
       prismaMock.aiUsageEvent.count.mockResolvedValue(2);
 
-      const result = await service.ensureWithinDailyAiLimit('user-1', 'proj-1', 'test-feature');
+      const result = await service.ensureWithinDailyAiLimit(
+        'user-1',
+        'proj-1',
+        'test-feature'
+      );
 
       expect(result).toHaveProperty('planId');
       expect(result).toHaveProperty('limit');
@@ -186,7 +194,11 @@ describe('EntitlementsService', () => {
       prismaMock.subscription.findUnique.mockResolvedValue(mockSubscription);
       prismaMock.aiUsageEvent.count.mockResolvedValue(100);
 
-      const result = await service.ensureWithinDailyAiLimit('user-1', 'proj-1', 'test-feature');
+      const result = await service.ensureWithinDailyAiLimit(
+        'user-1',
+        'proj-1',
+        'test-feature'
+      );
 
       expect(result).toHaveProperty('limit', -1);
       expect(result).toHaveProperty('dailyCount', 100);
@@ -206,7 +218,7 @@ describe('EntitlementsService', () => {
       jest.spyOn(console, 'log').mockImplementation(() => {});
 
       await expect(
-        service.ensureWithinDailyAiLimit('user-1', 'proj-1', 'test-feature'),
+        service.ensureWithinDailyAiLimit('user-1', 'proj-1', 'test-feature')
       ).rejects.toThrow(HttpException);
 
       const error = await service
@@ -254,7 +266,7 @@ describe('EntitlementsService', () => {
       prismaMock.subscription.findUnique.mockResolvedValue(mockSubscription);
 
       await expect(
-        service.enforceEntitlement('user-1', 'projects', 5, 10),
+        service.enforceEntitlement('user-1', 'projects', 5, 10)
       ).resolves.not.toThrow();
     });
 
@@ -269,7 +281,7 @@ describe('EntitlementsService', () => {
       prismaMock.subscription.findUnique.mockResolvedValue(mockSubscription);
 
       await expect(
-        service.enforceEntitlement('user-1', 'projects', 100, -1),
+        service.enforceEntitlement('user-1', 'projects', 100, -1)
       ).resolves.not.toThrow();
     });
 
@@ -284,14 +296,17 @@ describe('EntitlementsService', () => {
       prismaMock.subscription.findUnique.mockResolvedValue(mockSubscription);
 
       await expect(
-        service.enforceEntitlement('user-1', 'projects', 1, 1),
+        service.enforceEntitlement('user-1', 'projects', 1, 1)
       ).rejects.toThrow(ForbiddenException);
 
       const error = await service
         .enforceEntitlement('user-1', 'projects', 1, 1)
         .catch((e) => e);
 
-      expect(error.response).toHaveProperty('code', 'ENTITLEMENTS_LIMIT_REACHED');
+      expect(error.response).toHaveProperty(
+        'code',
+        'ENTITLEMENTS_LIMIT_REACHED'
+      );
       expect(error.response).toHaveProperty('feature', 'projects');
     });
   });
@@ -308,7 +323,9 @@ describe('EntitlementsService', () => {
       prismaMock.subscription.findUnique.mockResolvedValue(mockSubscription);
       prismaMock.project.count.mockResolvedValue(4); // Pro plan allows 5, so 4 is within limit
 
-      await expect(service.ensureCanCreateProject('user-1')).resolves.not.toThrow();
+      await expect(
+        service.ensureCanCreateProject('user-1')
+      ).resolves.not.toThrow();
     });
 
     it('should throw ForbiddenException when project limit reached', async () => {
@@ -323,7 +340,7 @@ describe('EntitlementsService', () => {
       prismaMock.project.count.mockResolvedValue(1); // Free plan allows 1 project
 
       await expect(service.ensureCanCreateProject('user-1')).rejects.toThrow(
-        ForbiddenException,
+        ForbiddenException
       );
     });
   });
@@ -368,4 +385,3 @@ describe('EntitlementsService', () => {
     });
   });
 });
-

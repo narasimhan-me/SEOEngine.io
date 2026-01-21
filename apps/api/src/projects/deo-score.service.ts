@@ -21,14 +21,17 @@ import { RoleResolutionService } from '../common/role-resolution.service';
 export class DeoScoreService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   /**
    * Get the latest DEO score snapshot for a project.
    * [ROLES-3 FIXUP-3] Uses membership-aware access control (any ProjectMember can view).
    */
-  async getLatestForProject(projectId: string, userId: string): Promise<DeoScoreLatestResponse> {
+  async getLatestForProject(
+    projectId: string,
+    userId: string
+  ): Promise<DeoScoreLatestResponse> {
     const prisma = this.prisma as any;
 
     const project = await prisma.project.findUnique({
@@ -69,7 +72,8 @@ export class DeoScoreService {
       version: snapshot.version,
       computedAt: snapshot.computedAt.toISOString(),
       breakdown,
-      metadata: (snapshot.metadata as Record<string, unknown> | null) ?? undefined,
+      metadata:
+        (snapshot.metadata as Record<string, unknown> | null) ?? undefined,
     };
 
     return {
@@ -87,7 +91,7 @@ export class DeoScoreService {
    */
   async computeAndPersistScoreFromSignals(
     projectId: string,
-    signals: DeoScoreSignals,
+    signals: DeoScoreSignals
   ): Promise<DeoScoreSnapshotDto> {
     const prisma = this.prisma as any;
 
@@ -182,7 +186,8 @@ export class DeoScoreService {
       version: created.version,
       computedAt: created.computedAt.toISOString(),
       breakdown: v1Breakdown,
-      metadata: (created.metadata as Record<string, unknown> | null) ?? undefined,
+      metadata:
+        (created.metadata as Record<string, unknown> | null) ?? undefined,
     };
   }
 }
@@ -255,15 +260,14 @@ export class DeoSignalsService {
     }
 
     for (const product of products) {
-      const titleSource = (product.seoTitle ?? product.title) ?? '';
-      const rawDescription = (product.seoDescription ?? product.description) ?? '';
+      const titleSource = product.seoTitle ?? product.title ?? '';
+      const rawDescription =
+        product.seoDescription ?? product.description ?? '';
       const title = titleSource.toString().trim();
       const description = rawDescription.toString().trim();
       const descWordCount =
         description.length > 0
-          ? description
-              .split(/\s+/)
-              .filter(Boolean).length
+          ? description.split(/\s+/).filter(Boolean).length
           : 0;
 
       const hasTitle = title.length > 0;
@@ -277,8 +281,7 @@ export class DeoSignalsService {
       }
     }
 
-    const coveragePages =
-      pageCount > 0 ? coveredPages / pageCount : 0;
+    const coveragePages = pageCount > 0 ? coveredPages / pageCount : 0;
     const coverageProducts =
       productCount > 0 ? coveredProducts / productCount : 0;
 
@@ -296,20 +299,16 @@ export class DeoSignalsService {
     const avgProductWordCount =
       countProductWords > 0 ? sumProductWords / countProductWords : 0;
 
-    const contentDepthPages = Math.max(
-      0,
-      Math.min(1, avgPageWordCount / 800),
-    );
+    const contentDepthPages = Math.max(0, Math.min(1, avgPageWordCount / 800));
     const contentDepthProducts = Math.max(
       0,
-      Math.min(1, avgProductWordCount / 600),
+      Math.min(1, avgProductWordCount / 600)
     );
 
     let contentDepth = 0;
     if (totalSurfaces > 0) {
       contentDepth =
-        (contentDepthPages * pageCount +
-          contentDepthProducts * productCount) /
+        (contentDepthPages * pageCount + contentDepthProducts * productCount) /
         totalSurfaces;
     }
     contentDepth = Math.max(0, Math.min(1, contentDepth));
@@ -428,7 +427,11 @@ export class DeoSignalsService {
       }
 
       const isAnswerReady =
-        isHealthy && hasH1 && !hasThinFlag && wordCount != null && wordCount >= 400;
+        isHealthy &&
+        hasH1 &&
+        !hasThinFlag &&
+        wordCount != null &&
+        wordCount >= 400;
 
       if (isAnswerReady) {
         answerReadyPages++;
@@ -464,15 +467,14 @@ export class DeoSignalsService {
 
     // Product-side entity issues / hints (Phase 2.5)
     for (const product of products) {
-      const titleSource = (product.seoTitle ?? product.title) ?? '';
-      const rawDescription = (product.seoDescription ?? product.description) ?? '';
+      const titleSource = product.seoTitle ?? product.title ?? '';
+      const rawDescription =
+        product.seoDescription ?? product.description ?? '';
       const title = titleSource.toString().trim();
       const description = rawDescription.toString().trim();
       const descWordCount =
         description.length > 0
-          ? description
-              .split(/\s+/)
-              .filter(Boolean).length
+          ? description.split(/\s+/).filter(Boolean).length
           : 0;
 
       const hasTitle = title.length > 0;
@@ -483,8 +485,7 @@ export class DeoSignalsService {
       }
 
       const isThinProduct = descWordCount > 0 && descWordCount < 80;
-      const hasEntityIssue =
-        !hasTitle || !hasDescription || isThinProduct;
+      const hasEntityIssue = !hasTitle || !hasDescription || isThinProduct;
 
       if (hasEntityIssue) {
         entityIssueProducts++;
@@ -501,12 +502,10 @@ export class DeoSignalsService {
     // ---------- Technical signals (Phase 2.4) ----------
 
     // crawlHealth: fraction of pages that are healthy (2xx/3xx, no HTTP/FETCH error)
-    const crawlHealth =
-      totalPages > 0 ? healthyPages / totalPages : 0;
+    const crawlHealth = totalPages > 0 ? healthyPages / totalPages : 0;
 
     // indexability: fraction of healthy pages with title + metaDescription and not thin
-    const indexability =
-      totalPages > 0 ? indexablePages / totalPages : 0;
+    const indexability = totalPages > 0 ? indexablePages / totalPages : 0;
 
     // htmlStructuralQuality: 1 - (pages with structural issues / total pages)
     const htmlStructuralQuality =
@@ -516,9 +515,7 @@ export class DeoSignalsService {
 
     // thinContentQuality: 1 - (thin pages / total pages)
     const thinContentQuality =
-      totalPages > 0
-        ? Math.max(0, Math.min(1, 1 - thinPages / totalPages))
-        : 0;
+      totalPages > 0 ? Math.max(0, Math.min(1, 1 - thinPages / totalPages)) : 0;
 
     // coreWebVitals: placeholder 0.5 until real CWV integration
     const coreWebVitals = 0.5;
@@ -556,11 +553,11 @@ export class DeoSignalsService {
 
     const entityLinkagePages = Math.max(
       0,
-      Math.min(1, avgPageWordCount / 1200),
+      Math.min(1, avgPageWordCount / 1200)
     );
     const entityLinkageProducts = Math.max(
       0,
-      Math.min(1, avgProductWordCount / 800),
+      Math.min(1, avgProductWordCount / 800)
     );
 
     let entityLinkage = 0;
@@ -575,8 +572,7 @@ export class DeoSignalsService {
     // ---------- Visibility signals (Phase 2.4 heuristic) ----------
 
     // serpPresence: fraction of pages with title + metaDescription + H1
-    const serpPresence =
-      totalPages > 0 ? serpReadyPages / totalPages : 0;
+    const serpPresence = totalPages > 0 ? serpReadyPages / totalPages : 0;
 
     // answerSurfacePresence: fraction of pages that are healthy, not THIN_CONTENT, wordCount >= 400, and have H1
     const answerSurfacePresence =

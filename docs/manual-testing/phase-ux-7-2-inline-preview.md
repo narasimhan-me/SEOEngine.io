@@ -58,10 +58,12 @@
 **ID:** UX7.2-HP-001
 
 **Preconditions:**
+
 - [ ] Pro plan user.
 - [ ] Project has at least one missing_seo_title issue (Issue Engine Lite) with fixType: 'aiFix' and fixReady: true.
 
 **Steps:**
+
 1. Navigate to /projects/[id]/issues.
 2. Locate the missing_seo_title issue card.
 3. Click "Fix next".
@@ -74,6 +76,7 @@
 6. Click "Apply fix".
 
 **Expected Results:**
+
 - UI: "Fix next" does not immediately persist changes; it opens the preview panel.
 - Preview Panel: Uses a soft/inset style (muted background, border) and is clearly distinct from the main issue body.
 - Focus: Keyboard focus moves into the preview panel when it opens.
@@ -88,14 +91,17 @@
 **ID:** UX7.2-HP-002
 
 **Preconditions:**
+
 - [ ] Same as Scenario 1, but with a missing_seo_description issue.
 
 **Steps:**
+
 1. On /projects/[id]/issues, locate the missing_seo_description issue.
 2. Click "Fix next" to open the inline preview.
 3. Inspect the panel content.
 
 **Expected Results:**
+
 - UI: Preview panel states:
   - Product name
   - Field: "SEO description"
@@ -111,16 +117,19 @@
 **ID:** UX7.2-HP-003
 
 **Preconditions:**
+
 - [ ] Pro plan user.
 - [ ] Issue missing_seo_title or missing_seo_description with AI fix available.
 
 **Steps:**
+
 1. Click "Fix next" on an AI-fixable issue to open the preview panel.
 2. Verify preview content renders.
 3. Click "Cancel".
 4. Refresh the Issues page or re-run Issues Engine for the same project.
 
 **Expected Results:**
+
 - UI: Preview panel collapses when "Cancel" is clicked.
 - Toasts: No success or error toast is shown.
 - Data: No SEO field changes are persisted (product remains in "missing" state).
@@ -133,15 +142,18 @@
 **ID:** UX7.2-HP-004
 
 **Preconditions:**
+
 - [ ] At least two products affected by the same missing_seo_title or missing_seo_description issue.
 
 **Steps:**
+
 1. Note the current count displayed on the issue (number of items affected).
 2. Click "Fix next" for that issue and "Apply fix" once.
 3. Observe the success toast message containing {remainingCount} remaining.
 4. Refresh the Issues page or use "Re-scan Issues".
 
 **Expected Results:**
+
 - Toast: Remaining count in the toast reflects issue.count - 1 for that issue at the time of fix.
 - Issues List: After refresh/re-scan, the displayed count for the issue decreases by 1.
 
@@ -152,13 +164,16 @@
 **ID:** UX7.2-HP-005
 
 **Preconditions:**
+
 - [ ] Pro plan user whose daily AI limit for product_optimize (per ENTITLEMENTS) is reached or simulated.
 - [ ] Project with AI-fixable metadata issues.
 
 **Steps:**
+
 1. Attempt to click "Fix next" on an AI-fixable issue (missing SEO title or description).
 
 **Expected Results:**
+
 - UI: Inline preview panel does not open when the AI daily limit is reached.
 - Toast: Limit toast appears with copy:
   - "Token limit reached. Upgrade to continue fixing products."
@@ -171,13 +186,16 @@
 **ID:** UX7.2-HP-006
 
 **Preconditions:**
+
 - [ ] Pro plan user with AI-fixable metadata issues.
 
 **Steps:**
+
 1. Inspect AI-fixable issues on /projects/[id]/issues.
 2. Click "Fix next".
 
 **Expected Results:**
+
 - Behavior: "Fix next" always opens the inline preview panel first; there is no path where "Fix next" applies AI fixes immediately without preview.
 - Consistency: The "Fix next" label and per-product helper text remain consistent with UX-7.1 microcopy ("Fixes one affected product at a time for safe review.").
 
@@ -190,10 +208,12 @@
 **Description:** AI provider or preview call fails for an AI-fixable issue.
 
 **Steps:**
+
 1. Simulate an AI provider error (e.g., invalid API key, network failure).
 2. Click "Fix next" on an AI-fixable issue.
 
 **Expected Behavior:**
+
 - UI: Inline error message appears inside the preview area (or below helper text) stating:
   - "Couldn't generate a preview. Try again."
 - Behavior: No SEO fields are changed; the issue remains unaffected.
@@ -207,10 +227,12 @@
 **Scenario:** User lacks entitlements or hits AI limits while attempting to preview or apply.
 
 **Steps:**
+
 1. For token limit, see Scenario 5.
 2. For entitlements (plan gating), attempt to apply a fix from the preview panel while on a Free plan (reusing prior UX-7.1 behavior).
 
 **Expected Behavior:**
+
 - Preview: When blocked by token limits, preview does not open and shows the limit toast.
 - Apply: When blocked by entitlements on apply:
   - Toast copy matches UX-7.1:
@@ -268,9 +290,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| Tester Name | [Name] |
-| Date | [YYYY-MM-DD] |
+| Field          | Value                                 |
+| -------------- | ------------------------------------- |
+| Tester Name    | [Name]                                |
+| Date           | [YYYY-MM-DD]                          |
 | Overall Status | [ ] Passed / [ ] Blocked / [ ] Failed |
-| Notes | [Any additional notes] |
+| Notes          | [Any additional notes]                |

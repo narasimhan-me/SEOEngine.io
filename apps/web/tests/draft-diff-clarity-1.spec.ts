@@ -49,7 +49,7 @@ interface SeedResponse {
 async function seedDraftDiffClarity1Data(request: any): Promise<SeedResponse> {
   const response = await request.post(
     `${API_BASE_URL}/testkit/e2e/seed-draft-diff-clarity-1`,
-    { data: {} },
+    { data: {} }
   );
   expect(response.ok()).toBeTruthy();
   return response.json();
@@ -85,7 +85,7 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
 
     // Navigate to Product detail Drafts tab for product with diff values
     await page.goto(
-      `/projects/${seedData.projectId}/products/${seedData.productWithDiffId}?tab=drafts`,
+      `/projects/${seedData.projectId}/products/${seedData.productWithDiffId}?tab=drafts`
     );
 
     // Wait for Drafts tab panel
@@ -99,8 +99,12 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
     await expect(draftsTabPanel.locator('text=Draft (staged)')).toBeVisible();
 
     // Assert test hooks are present
-    const currentBlock = draftsTabPanel.locator('[data-testid="draft-diff-current"]');
-    const draftBlock = draftsTabPanel.locator('[data-testid="draft-diff-draft"]');
+    const currentBlock = draftsTabPanel.locator(
+      '[data-testid="draft-diff-current"]'
+    );
+    const draftBlock = draftsTabPanel.locator(
+      '[data-testid="draft-diff-draft"]'
+    );
     await expect(currentBlock.first()).toBeVisible();
     await expect(draftBlock.first()).toBeVisible();
 
@@ -113,7 +117,7 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
     // [FIXUP-1] Regression: Non-destructive default - "Draft will clear" should NOT appear
     // on productWithDiffId (which has valid draft content, not a cleared draft)
     await expect(
-      draftsTabPanel.locator('text=Draft will clear this field when applied'),
+      draftsTabPanel.locator('text=Draft will clear this field when applied')
     ).toHaveCount(0);
   });
 
@@ -133,7 +137,7 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
 
     // Navigate to Product detail Drafts tab for product with cleared draft
     await page.goto(
-      `/projects/${seedData.projectId}/products/${seedData.productWithClearedDraftId}?tab=drafts`,
+      `/projects/${seedData.projectId}/products/${seedData.productWithClearedDraftId}?tab=drafts`
     );
 
     // Wait for Drafts tab panel
@@ -142,7 +146,7 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
 
     // Assert "Draft will clear this field when applied" message is visible
     await expect(
-      draftsTabPanel.locator('text=Draft will clear this field when applied'),
+      draftsTabPanel.locator('text=Draft will clear this field when applied')
     ).toBeVisible();
   });
 
@@ -160,21 +164,27 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
     }, seedData.accessToken);
 
     await page.goto(
-      `/projects/${seedData.projectId}/products/${seedData.productWithDiffId}?tab=drafts`,
+      `/projects/${seedData.projectId}/products/${seedData.productWithDiffId}?tab=drafts`
     );
 
     const draftsTabPanel = page.locator('[data-testid="drafts-tab-panel"]');
     await expect(draftsTabPanel).toBeVisible({ timeout: 10000 });
 
     // Verify test hooks exist
-    const currentBlock = draftsTabPanel.locator('[data-testid="draft-diff-current"]');
-    const draftBlock = draftsTabPanel.locator('[data-testid="draft-diff-draft"]');
+    const currentBlock = draftsTabPanel.locator(
+      '[data-testid="draft-diff-current"]'
+    );
+    const draftBlock = draftsTabPanel.locator(
+      '[data-testid="draft-diff-draft"]'
+    );
 
     await expect(currentBlock.first()).toBeVisible();
     await expect(draftBlock.first()).toBeVisible();
 
     // Verify the testid attribute values
-    const currentTestId = await currentBlock.first().getAttribute('data-testid');
+    const currentTestId = await currentBlock
+      .first()
+      .getAttribute('data-testid');
     const draftTestId = await draftBlock.first().getAttribute('data-testid');
 
     expect(currentTestId).toBe('draft-diff-current');
@@ -201,7 +211,7 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
 
     // Navigate to Playbooks Draft Review mode for the page with draft
     await page.goto(
-      `/projects/${seedData.projectId}/automation/playbooks?mode=drafts&assetType=pages&assetId=${seedData.pageWithDraftId}`,
+      `/projects/${seedData.projectId}/automation/playbooks?mode=drafts&assetType=pages&assetId=${seedData.pageWithDraftId}`
     );
 
     // Wait for Draft Review panel
@@ -215,8 +225,12 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
     await expect(draftReviewPanel.locator('text=Draft (staged)')).toBeVisible();
 
     // Assert test hooks are present
-    const currentBlock = draftReviewPanel.locator('[data-testid="draft-diff-current"]');
-    const draftBlock = draftReviewPanel.locator('[data-testid="draft-diff-draft"]');
+    const currentBlock = draftReviewPanel.locator(
+      '[data-testid="draft-diff-current"]'
+    );
+    const draftBlock = draftReviewPanel.locator(
+      '[data-testid="draft-diff-draft"]'
+    );
     await expect(currentBlock.first()).toBeVisible();
     await expect(draftBlock.first()).toBeVisible();
   });
@@ -236,21 +250,27 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
     }, seedData.accessToken);
 
     await page.goto(
-      `/projects/${seedData.projectId}/automation/playbooks?mode=drafts&assetType=pages&assetId=${seedData.pageWithDraftId}`,
+      `/projects/${seedData.projectId}/automation/playbooks?mode=drafts&assetType=pages&assetId=${seedData.pageWithDraftId}`
     );
 
     const draftReviewPanel = page.locator('[data-testid="draft-review-panel"]');
     await expect(draftReviewPanel).toBeVisible({ timeout: 10000 });
 
     // Verify test hooks exist
-    const currentBlock = draftReviewPanel.locator('[data-testid="draft-diff-current"]');
-    const draftBlock = draftReviewPanel.locator('[data-testid="draft-diff-draft"]');
+    const currentBlock = draftReviewPanel.locator(
+      '[data-testid="draft-diff-current"]'
+    );
+    const draftBlock = draftReviewPanel.locator(
+      '[data-testid="draft-diff-draft"]'
+    );
 
     await expect(currentBlock.first()).toBeVisible();
     await expect(draftBlock.first()).toBeVisible();
 
     // Verify the testid attribute values
-    const currentTestId = await currentBlock.first().getAttribute('data-testid');
+    const currentTestId = await currentBlock
+      .first()
+      .getAttribute('data-testid');
     const draftTestId = await draftBlock.first().getAttribute('data-testid');
 
     expect(currentTestId).toBe('draft-diff-current');
@@ -276,19 +296,21 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
     }, seedData.accessToken);
 
     await page.goto(
-      `/projects/${seedData.projectId}/products/${seedData.productWithDiffId}?tab=drafts`,
+      `/projects/${seedData.projectId}/products/${seedData.productWithDiffId}?tab=drafts`
     );
 
     const draftsTabPanel = page.locator('[data-testid="drafts-tab-panel"]');
     await expect(draftsTabPanel).toBeVisible({ timeout: 10000 });
 
     // Find the "Current (live)" blocks and verify content
-    const currentBlocks = draftsTabPanel.locator('[data-testid="draft-diff-current"]');
+    const currentBlocks = draftsTabPanel.locator(
+      '[data-testid="draft-diff-current"]'
+    );
 
     // At least one block should contain the live SEO title
     const allText = await currentBlocks.allTextContents();
     const hasLiveTitle = allText.some((text) =>
-      text.includes(seedData.liveSeoTitle),
+      text.includes(seedData.liveSeoTitle)
     );
     expect(hasLiveTitle).toBeTruthy();
   });
@@ -308,19 +330,21 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
     }, seedData.accessToken);
 
     await page.goto(
-      `/projects/${seedData.projectId}/products/${seedData.productWithDiffId}?tab=drafts`,
+      `/projects/${seedData.projectId}/products/${seedData.productWithDiffId}?tab=drafts`
     );
 
     const draftsTabPanel = page.locator('[data-testid="drafts-tab-panel"]');
     await expect(draftsTabPanel).toBeVisible({ timeout: 10000 });
 
     // Find the "Draft (staged)" blocks and verify content
-    const draftBlocks = draftsTabPanel.locator('[data-testid="draft-diff-draft"]');
+    const draftBlocks = draftsTabPanel.locator(
+      '[data-testid="draft-diff-draft"]'
+    );
 
     // At least one block should contain the draft SEO title
     const allText = await draftBlocks.allTextContents();
     const hasDraftTitle = allText.some((text) =>
-      text.includes(seedData.draftSeoTitle),
+      text.includes(seedData.draftSeoTitle)
     );
     expect(hasDraftTitle).toBeTruthy();
   });
@@ -346,7 +370,7 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
 
     // Navigate to Product detail Drafts tab for product with no draft generated
     await page.goto(
-      `/projects/${seedData.projectId}/products/${seedData.productNoDraftId}?tab=drafts`,
+      `/projects/${seedData.projectId}/products/${seedData.productNoDraftId}?tab=drafts`
     );
 
     // Wait for Drafts tab panel
@@ -355,14 +379,18 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
 
     // Assert "No draft generated yet" message is visible
     await expect(
-      draftsTabPanel.locator('text=No draft generated yet'),
+      draftsTabPanel.locator('text=No draft generated yet')
     ).toBeVisible();
 
     // Assert Current block shows the live value (non-empty current + empty draft)
-    const currentBlock = draftsTabPanel.locator('[data-testid="draft-diff-current"]');
+    const currentBlock = draftsTabPanel.locator(
+      '[data-testid="draft-diff-current"]'
+    );
     await expect(currentBlock.first()).toBeVisible();
     // The live seoTitle for productNoDraft is "Live Title With No Draft"
-    await expect(currentBlock.first()).toContainText('Live Title With No Draft');
+    await expect(currentBlock.first()).toContainText(
+      'Live Title With No Draft'
+    );
   });
 
   /**
@@ -382,14 +410,16 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
 
     // Navigate to product with diff values (has non-empty live and draft values)
     await page.goto(
-      `/projects/${seedData.projectId}/products/${seedData.productWithDiffId}?tab=drafts`,
+      `/projects/${seedData.projectId}/products/${seedData.productWithDiffId}?tab=drafts`
     );
 
     const draftsTabPanel = page.locator('[data-testid="drafts-tab-panel"]');
     await expect(draftsTabPanel).toBeVisible({ timeout: 10000 });
 
     // Find and click the Edit button for the first draft item
-    const editButton = draftsTabPanel.locator('button:has-text("Edit")').first();
+    const editButton = draftsTabPanel
+      .locator('button:has-text("Edit")')
+      .first();
     await expect(editButton).toBeVisible();
     await editButton.click();
 
@@ -405,16 +435,20 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
     });
 
     // Click Save changes
-    const saveButton = draftsTabPanel.locator('button:has-text("Save changes")').first();
+    const saveButton = draftsTabPanel
+      .locator('button:has-text("Save changes")')
+      .first();
     await saveButton.click();
 
     // After dismissing, edit mode should still be active (Save/Cancel buttons visible)
     await expect(saveButton).toBeVisible();
-    await expect(draftsTabPanel.locator('button:has-text("Cancel")').first()).toBeVisible();
+    await expect(
+      draftsTabPanel.locator('button:has-text("Cancel")').first()
+    ).toBeVisible();
 
     // "Draft will clear" message should NOT appear (we dismissed the save)
     await expect(
-      draftsTabPanel.locator('text=Draft will clear this field when applied'),
+      draftsTabPanel.locator('text=Draft will clear this field when applied')
     ).toHaveCount(0);
   });
 
@@ -439,14 +473,16 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
 
     // Navigate to product with diff values
     await page.goto(
-      `/projects/${seedData2.projectId}/products/${seedData2.productWithDiffId}?tab=drafts`,
+      `/projects/${seedData2.projectId}/products/${seedData2.productWithDiffId}?tab=drafts`
     );
 
     const draftsTabPanel = page.locator('[data-testid="drafts-tab-panel"]');
     await expect(draftsTabPanel).toBeVisible({ timeout: 10000 });
 
     // Find and click the Edit button for the first draft item
-    const editButton = draftsTabPanel.locator('button:has-text("Edit")').first();
+    const editButton = draftsTabPanel
+      .locator('button:has-text("Edit")')
+      .first();
     await expect(editButton).toBeVisible();
     await editButton.click();
 
@@ -462,7 +498,9 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
     });
 
     // Click Save changes
-    const saveButton = draftsTabPanel.locator('button:has-text("Save changes")').first();
+    const saveButton = draftsTabPanel
+      .locator('button:has-text("Save changes")')
+      .first();
     await saveButton.click();
 
     // After accepting, edit mode should exit (no Save button visible)
@@ -470,7 +508,7 @@ test.describe('DRAFT-DIFF-CLARITY-1: Current vs Draft Diff UI', () => {
 
     // "Draft will clear this field when applied" message should now appear
     await expect(
-      draftsTabPanel.locator('text=Draft will clear this field when applied'),
+      draftsTabPanel.locator('text=Draft will clear this field when applied')
     ).toBeVisible({ timeout: 5000 });
   });
 });

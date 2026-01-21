@@ -112,7 +112,8 @@ export function FirstDeoWinChecklist({
       </div>
 
       <p className="text-xs text-gray-600 mb-3">
-        Follow these steps to get your first obvious DEO win in about 10–20 minutes.
+        Follow these steps to get your first obvious DEO win in about 10–20
+        minutes.
       </p>
 
       <p className="text-xs font-medium text-gray-700 mb-4">
@@ -152,13 +153,21 @@ export function FirstDeoWinChecklist({
 
               {/* Step content */}
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${step.done ? 'text-gray-500' : 'text-gray-900'}`}>
+                <p
+                  className={`text-sm font-medium ${step.done ? 'text-gray-500' : 'text-gray-900'}`}
+                >
                   {step.label}
                 </p>
                 <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                  {step.done ? 'Completed' : isInProgress ? 'In progress' : 'Not started'}
+                  {step.done
+                    ? 'Completed'
+                    : isInProgress
+                      ? 'In progress'
+                      : 'Not started'}
                 </p>
-                <p className="text-xs text-gray-500 mt-0.5">{step.description}</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {step.description}
+                </p>
               </div>
 
               {/* Action button */}
@@ -176,7 +185,9 @@ export function FirstDeoWinChecklist({
                     disabled={step.id === 'connect_source' && connectingSource}
                     className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {step.id === 'connect_source' && connectingSource ? 'Connecting…' : step.ctaLabel}
+                    {step.id === 'connect_source' && connectingSource
+                      ? 'Connecting…'
+                      : step.ctaLabel}
                   </button>
                 )}
               </div>

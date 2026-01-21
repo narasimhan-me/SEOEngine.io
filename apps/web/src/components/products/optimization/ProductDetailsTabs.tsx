@@ -110,7 +110,9 @@ export function ProductDetailsTabs({
  * Maps `?focus=X` query params to the corresponding tab.
  * This maintains backward compatibility with existing deep-links.
  */
-export function mapFocusToTab(focus: string | null): ProductDetailsTabId | null {
+export function mapFocusToTab(
+  focus: string | null
+): ProductDetailsTabId | null {
   if (!focus) return null;
 
   const mapping: Record<string, ProductDetailsTabId> = {

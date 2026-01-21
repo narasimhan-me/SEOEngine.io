@@ -62,15 +62,18 @@
 **ID:** BAT-001
 
 **Preconditions:**
+
 - Issue affects more than 20 products
 
 **Steps:**
+
 1. Create project with 25 products missing SEO titles
 2. Call `GET /projects/:id/deo-issues`
 3. Find `missing_seo_title` issue
 4. Examine `affectedProducts` and `count`
 
 **Expected Results:**
+
 - `count: 25` (all affected products)
 - `affectedProducts` contains exactly 20 IDs (capped)
 - `aiFixable: true` enables future batch processing
@@ -82,14 +85,17 @@
 **ID:** BAT-002
 
 **Preconditions:**
+
 - Multiple AI-fixable issues exist
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Filter where `aiFixable === true`
 3. Group by `category`
 
 **Expected Results:**
+
 - Metadata category has multiple AI-fixable issues
 - Answerability category has AI-fixable issues
 - Content category has some AI-fixable issues
@@ -102,14 +108,17 @@
 **ID:** BAT-003
 
 **Preconditions:**
+
 - Issues of all fix cost levels exist
 
 **Steps:**
+
 1. Call `GET /projects/:id/deo-issues`
 2. Sort by `fixCost` (one_click first)
 3. Verify sorting enables batch prioritization
 
 **Expected Results:**
+
 - `one_click` issues are quick batch candidates
 - `manual` issues require individual attention
 - `advanced` issues may not be suitable for batching
@@ -121,9 +130,11 @@
 ### Scenario F-001: Fix All Missing SEO Titles
 
 **Preconditions:**
+
 - Multiple products missing SEO titles
 
 **Steps:**
+
 1. Navigate to Issues Engine page
 2. Find "Missing SEO Title" issue
 3. Click "Fix All with AI" button
@@ -131,6 +142,7 @@
 5. Wait for completion
 
 **Expected Results:**
+
 - All affected products get AI-generated titles
 - Progress indicator shows completion %
 - Success toast with count of fixed products
@@ -141,9 +153,11 @@
 ### Scenario F-002: Batch Fix by Category
 
 **Preconditions:**
+
 - Multiple issues in same category
 
 **Steps:**
+
 1. Navigate to Issues Engine page
 2. Filter by "Metadata" category
 3. Select all AI-fixable issues
@@ -151,6 +165,7 @@
 5. Confirm batch operation
 
 **Expected Results:**
+
 - All selected issues processed
 - Individual progress per issue type
 - Summary of fixes applied
@@ -164,18 +179,18 @@
 ```typescript
 interface DeoIssue {
   // Batch identification
-  id: string;                    // Issue type identifier
-  count: number;                 // Total affected items
-  affectedProducts?: string[];   // Up to 20 product IDs
+  id: string; // Issue type identifier
+  count: number; // Total affected items
+  affectedProducts?: string[]; // Up to 20 product IDs
 
   // Batch eligibility
-  aiFixable?: boolean;           // Can be AI-fixed in batch
-  fixCost?: DeoIssueFixCost;     // Effort estimation
-  category?: DeoIssueCategory;   // Grouping for batch selection
+  aiFixable?: boolean; // Can be AI-fixed in batch
+  fixCost?: DeoIssueFixCost; // Effort estimation
+  category?: DeoIssueCategory; // Grouping for batch selection
 
   // User guidance
-  whyItMatters?: string;         // Explains batch impact
-  recommendedFix?: string;       // Batch fix guidance
+  whyItMatters?: string; // Explains batch impact
+  recommendedFix?: string; // Batch fix guidance
 }
 ```
 
@@ -209,9 +224,9 @@ interface DeoIssue {
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Issue Engine Full - Batch Fixes foundation (Phase UX-8) |
+| Field              | Value                                                   |
+| ------------------ | ------------------------------------------------------- |
+| **Tester Name**    | [Pending]                                               |
+| **Date**           | [YYYY-MM-DD]                                            |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed                   |
+| **Notes**          | Issue Engine Full - Batch Fixes foundation (Phase UX-8) |

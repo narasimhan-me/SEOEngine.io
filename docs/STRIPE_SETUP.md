@@ -65,10 +65,10 @@ Follow these steps in order to get Stripe working in your local environment:
 
 2. You'll see two keys:
 
-| Key Type | Format | Usage |
-|----------|--------|-------|
+| Key Type        | Format        | Usage                               |
+| --------------- | ------------- | ----------------------------------- |
 | Publishable key | `pk_test_...` | Frontend (not needed for BILLING-1) |
-| Secret key | `sk_test_...` | Backend API calls |
+| Secret key      | `sk_test_...` | Backend API calls                   |
 
 3. Click **Reveal test key** next to the Secret key and copy it
 
@@ -117,10 +117,12 @@ Go to **Products** in the left sidebar, or visit [dashboard.stripe.com/test/prod
 ### 3.4 Verify Your Price IDs
 
 You should now have two Price IDs. They will look like:
+
 - Pro: `price_1ABC123def456...` (starts with `price_`)
 - Business: `price_1DEF789ghi012...` (starts with `price_`)
 
-> **Important:** 
+> **Important:**
+>
 > - Price IDs are different from Product IDs
 > - Price IDs start with `price_`
 > - Product IDs start with `prod_`
@@ -177,19 +179,20 @@ Skip the dashboard webhook setup — we'll use Stripe CLI instead (see [Section 
 
    Fill in the endpoint details:
 
-   | Field | Value |
-   |-------|-------|
-   | **Endpoint URL** | See table below |
-   | **Description** | `EngineO.ai Billing Webhooks` (optional) |
+   | Field            | Value                                    |
+   | ---------------- | ---------------------------------------- |
+   | **Endpoint URL** | See table below                          |
+   | **Description**  | `EngineO.ai Billing Webhooks` (optional) |
 
    **EngineO.ai Webhook URLs:**
 
-   | Environment | Stripe Mode | Webhook URL |
-   |-------------|-------------|-------------|
-   | **Production** | Live | `https://api.engineo.ai/billing/webhook` |
-   | **Staging** | Test | `https://engineo-api-staging.onrender.com/billing/webhook` |
+   | Environment    | Stripe Mode | Webhook URL                                                |
+   | -------------- | ----------- | ---------------------------------------------------------- |
+   | **Production** | Live        | `https://api.engineo.ai/billing/webhook`                   |
+   | **Staging**    | Test        | `https://engineo-api-staging.onrender.com/billing/webhook` |
 
    > **Important:**
+   >
    > - Use **Test mode** in Stripe for staging, **Live mode** for production
    > - Each environment needs its own webhook endpoint with its own signing secret
    > - You'll need to create **two separate webhook endpoints** in Stripe Dashboard
@@ -210,12 +213,12 @@ Skip the dashboard webhook setup — we'll use Stripe CLI instead (see [Section 
 
 ### 4.3 Webhook Events Summary
 
-| Event | When It's Triggered | What We Do |
-|-------|---------------------|------------|
-| `checkout.session.completed` | Customer completes Stripe Checkout | Create/update subscription in database |
-| `customer.subscription.created` | New subscription starts | (Handled by checkout.session.completed) |
+| Event                           | When It's Triggered                                   | What We Do                                  |
+| ------------------------------- | ----------------------------------------------------- | ------------------------------------------- |
+| `checkout.session.completed`    | Customer completes Stripe Checkout                    | Create/update subscription in database      |
+| `customer.subscription.created` | New subscription starts                               | (Handled by checkout.session.completed)     |
 | `customer.subscription.updated` | Subscription renewed, plan changed, or status changed | Update subscription status and period dates |
-| `customer.subscription.deleted` | Subscription canceled (after grace period) | Downgrade user to free plan |
+| `customer.subscription.deleted` | Subscription canceled (after grace period)            | Downgrade user to free plan                 |
 
 ### 4.4 Verifying Webhook Setup
 
@@ -266,6 +269,7 @@ FRONTEND_URL=http://localhost:3000
 ### Step-by-Step Environment Setup
 
 1. **Open your `.env` file:**
+
    ```bash
    cd apps/api
    # Edit .env file (create it if it doesn't exist)
@@ -294,13 +298,13 @@ FRONTEND_URL=http://localhost:3000
 
 ### Environment Variables Summary
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `STRIPE_SECRET_KEY` | API authentication | `sk_test_51ABC...` |
-| `STRIPE_WEBHOOK_SECRET` | Webhook signature verification | `whsec_abc123...` |
-| `STRIPE_PRICE_PRO` | Pro plan price ID | `price_1ABC...` |
-| `STRIPE_PRICE_BUSINESS` | Business plan price ID | `price_1DEF...` |
-| `FRONTEND_URL` | Redirect URL after checkout | `http://localhost:3000` |
+| Variable                | Description                    | Example                 |
+| ----------------------- | ------------------------------ | ----------------------- |
+| `STRIPE_SECRET_KEY`     | API authentication             | `sk_test_51ABC...`      |
+| `STRIPE_WEBHOOK_SECRET` | Webhook signature verification | `whsec_abc123...`       |
+| `STRIPE_PRICE_PRO`      | Pro plan price ID              | `price_1ABC...`         |
+| `STRIPE_PRICE_BUSINESS` | Business plan price ID         | `price_1DEF...`         |
+| `FRONTEND_URL`          | Redirect URL after checkout    | `http://localhost:3000` |
 
 ---
 
@@ -371,11 +375,13 @@ This opens your browser to authorize the CLI. Click **Allow access**.
 1. **Open a new terminal window** (keep your API server running in another terminal)
 
 2. **Start the Stripe webhook listener:**
+
    ```bash
    stripe listen --forward-to localhost:3001/billing/webhook
    ```
 
 3. **You'll see output like:**
+
    ```
    > Ready! You are using Stripe API Version [2023-10-16]. Your webhook signing secret is whsec_abc123def456... (^C to quit)
    ```
@@ -385,15 +391,18 @@ This opens your browser to authorize the CLI. Click **Allow access**.
 ### 7.3 Update Environment Variable
 
 1. **Open your `.env` file:**
+
    ```bash
    cd apps/api
    # Edit .env file
    ```
 
 2. **Add or update the webhook secret:**
+
    ```bash
    STRIPE_WEBHOOK_SECRET=whsec_abc123def456...
    ```
+
    (Replace with the actual secret from step 7.2)
 
 3. **Restart your API server** for the changes to take effect:
@@ -402,7 +411,8 @@ This opens your browser to authorize the CLI. Click **Allow access**.
    pnpm start:dev
    ```
 
-> **Important:** 
+> **Important:**
+>
 > - The signing secret changes each time you run `stripe listen`
 > - If you restart `stripe listen`, you must update `STRIPE_WEBHOOK_SECRET` and restart your API server
 > - Keep the `stripe listen` terminal running while developing
@@ -458,6 +468,7 @@ pnpm start:dev
 ```
 
 **Expected output:**
+
 ```
 🚀 SEOEngine API is running on: http://localhost:3001
 ```
@@ -475,6 +486,7 @@ pnpm dev
 ```
 
 **Expected output:**
+
 ```
   ▲ Next.js 14.x.x
   - Local:        http://localhost:3000
@@ -490,12 +502,14 @@ stripe listen --forward-to localhost:3001/billing/webhook
 ```
 
 **Expected output:**
+
 ```
 > Ready! You are using Stripe API Version [2023-10-16].
 > Your webhook signing secret is whsec_...
 ```
 
-**Important:** 
+**Important:**
+
 - Keep all three terminals running
 - If you see webhook errors, check that Terminal 1 (API) is running
 - Copy the webhook secret to your `.env` file (see Section 7.3)
@@ -546,12 +560,12 @@ After completing checkout, verify the following:
 
 2. **Success Message:** A success message should appear on the billing page
 
-3. **Plan Update:** 
+3. **Plan Update:**
    - Refresh the billing page
    - Your plan should now show as **Pro** or **Business** (not Free)
    - Check the plan limits and features
 
-4. **Webhook Events:** 
+4. **Webhook Events:**
    - Check Terminal 3 (Stripe CLI) - you should see webhook events logged:
      ```
      checkout.session.completed [200]
@@ -587,16 +601,20 @@ Direct link: [dashboard.stripe.com/test/settings/billing/portal](https://dashboa
 Enable the following:
 
 **Payment methods:**
+
 - ✅ Allow customers to update payment methods
 
 **Invoices:**
+
 - ✅ Show invoice history
 
 **Subscriptions:**
+
 - ✅ Allow customers to cancel subscriptions
 - ✅ Allow customers to switch plans (optional)
 
 **Branding:**
+
 - Add your logo and colors (optional)
 
 ### 11.3 Save Configuration
@@ -676,6 +694,7 @@ FRONTEND_URL=https://engineo-staging.vercel.app
 ```
 
 **Where to set these (Render):**
+
 1. Go to [Render Dashboard](https://dashboard.render.com)
 2. Select your API service (`engineo-api` or `engineo-api-staging`)
 3. Click **Environment** in the left sidebar
@@ -683,6 +702,7 @@ FRONTEND_URL=https://engineo-staging.vercel.app
 5. Click **Save Changes** - the service will redeploy automatically
 
 **Important:**
+
 - Never commit production keys to version control
 - Use your platform's secure environment variable storage
 - Test with a small transaction first before going fully live
@@ -702,34 +722,34 @@ Use these card numbers in Test mode:
 
 ### Successful Payments
 
-| Card Number | Description |
-|-------------|-------------|
-| `4242 4242 4242 4242` | Visa - Always succeeds |
-| `5555 5555 5555 4444` | Mastercard - Always succeeds |
-| `3782 822463 10005` | American Express - Always succeeds |
+| Card Number           | Description                        |
+| --------------------- | ---------------------------------- |
+| `4242 4242 4242 4242` | Visa - Always succeeds             |
+| `5555 5555 5555 4444` | Mastercard - Always succeeds       |
+| `3782 822463 10005`   | American Express - Always succeeds |
 
 ### Authentication Required
 
-| Card Number | Description |
-|-------------|-------------|
-| `4000 0025 0000 3155` | Requires 3D Secure authentication |
+| Card Number           | Description                                 |
+| --------------------- | ------------------------------------------- |
+| `4000 0025 0000 3155` | Requires 3D Secure authentication           |
 | `4000 0027 6000 3184` | Requires authentication on all transactions |
 
 ### Declined Payments
 
-| Card Number | Description |
-|-------------|-------------|
-| `4000 0000 0000 0002` | Generic decline |
+| Card Number           | Description        |
+| --------------------- | ------------------ |
+| `4000 0000 0000 0002` | Generic decline    |
 | `4000 0000 0000 9995` | Insufficient funds |
-| `4000 0000 0000 9987` | Lost card |
-| `4000 0000 0000 9979` | Stolen card |
-| `4100 0000 0000 0019` | Fraudulent card |
+| `4000 0000 0000 9987` | Lost card          |
+| `4000 0000 0000 9979` | Stolen card        |
+| `4100 0000 0000 0019` | Fraudulent card    |
 
 ### Special Cases
 
-| Card Number | Description |
-|-------------|-------------|
-| `4000 0000 0000 0341` | Attaching card to customer fails |
+| Card Number           | Description                        |
+| --------------------- | ---------------------------------- |
+| `4000 0000 0000 0341` | Attaching card to customer fails   |
 | `4000 0000 0000 3220` | 3D Secure 2 - always authenticated |
 
 > **Note:** Use any future expiry date, any 3-digit CVC, and any 5-digit ZIP code.
@@ -743,6 +763,7 @@ Use these card numbers in Test mode:
 **Cause:** `STRIPE_SECRET_KEY` is not set or invalid.
 
 **Solution:**
+
 1. Verify the key in your `.env` file
 2. Restart the API server after changing `.env`
 3. Check for typos or extra whitespace
@@ -752,6 +773,7 @@ Use these card numbers in Test mode:
 **Cause:** Stripe CLI not running or wrong endpoint.
 
 **Solution:**
+
 ```bash
 # Verify Stripe CLI is running
 stripe listen --forward-to localhost:3001/billing/webhook
@@ -765,6 +787,7 @@ curl -X POST http://localhost:3001/billing/webhook -d "{}" -H "Content-Type: app
 **Cause:** Mismatched webhook signing secret.
 
 **Solution:**
+
 1. Copy the secret from `stripe listen` output
 2. Update `STRIPE_WEBHOOK_SECRET` in `.env`
 3. Restart the API server
@@ -774,6 +797,7 @@ curl -X POST http://localhost:3001/billing/webhook -d "{}" -H "Content-Type: app
 **Cause:** `FRONTEND_URL` is incorrect.
 
 **Solution:**
+
 1. Verify `FRONTEND_URL` in `.env`
 2. For local: `http://localhost:3000`
 3. For production: Your actual domain with `https://`
@@ -783,6 +807,7 @@ curl -X POST http://localhost:3001/billing/webhook -d "{}" -H "Content-Type: app
 **Cause:** Webhook not processed successfully.
 
 **Solution:**
+
 1. Check Stripe CLI terminal for errors
 2. Verify `checkout.session.completed` event is received
 3. Check API logs for errors in webhook handler
@@ -793,6 +818,7 @@ curl -X POST http://localhost:3001/billing/webhook -d "{}" -H "Content-Type: app
 **Cause:** User never created a Stripe customer.
 
 **Solution:**
+
 - User must complete at least one checkout to create a Stripe customer
 - The customer is automatically created during checkout
 - If testing, complete a test checkout first, then try the portal
@@ -802,6 +828,7 @@ curl -X POST http://localhost:3001/billing/webhook -d "{}" -H "Content-Type: app
 **Cause:** `STRIPE_PRICE_PRO` or `STRIPE_PRICE_BUSINESS` is not set or incorrect.
 
 **Solution:**
+
 1. Verify the environment variable is set in `apps/api/.env`
 2. Check that you copied the **Price ID** (starts with `price_`), not the Product ID
 3. Ensure there are no extra spaces or quotes around the value
@@ -812,6 +839,7 @@ curl -X POST http://localhost:3001/billing/webhook -d "{}" -H "Content-Type: app
 **Cause:** Missing or invalid Stripe configuration.
 
 **Solution:**
+
 1. Verify `STRIPE_SECRET_KEY` is set and valid
 2. Check that `STRIPE_PRICE_PRO` or `STRIPE_PRICE_BUSINESS` matches the plan you're trying to upgrade to
 3. Ensure `FRONTEND_URL` is set correctly
@@ -823,6 +851,7 @@ curl -X POST http://localhost:3001/billing/webhook -d "{}" -H "Content-Type: app
 **Cause:** Webhook signature verification failed.
 
 **Solution:**
+
 1. Ensure `STRIPE_WEBHOOK_SECRET` matches the secret from `stripe listen` output
 2. If you restarted `stripe listen`, update the secret in `.env` and restart API server
 3. For production, verify the webhook secret matches the one from Stripe Dashboard
@@ -834,34 +863,34 @@ curl -X POST http://localhost:3001/billing/webhook -d "{}" -H "Content-Type: app
 
 ### Local Development URLs
 
-| Service | URL |
-|---------|-----|
-| Web Frontend | http://localhost:3000 |
-| API Backend | http://localhost:3001 |
-| Billing Page | http://localhost:3000/settings/billing |
-| Stripe Dashboard | https://dashboard.stripe.com/test |
+| Service          | URL                                    |
+| ---------------- | -------------------------------------- |
+| Web Frontend     | http://localhost:3000                  |
+| API Backend      | http://localhost:3001                  |
+| Billing Page     | http://localhost:3000/settings/billing |
+| Stripe Dashboard | https://dashboard.stripe.com/test      |
 
 ### API Endpoints
 
-| Method | Endpoint | Auth Required | Description |
-|--------|----------|---------------|-------------|
-| GET | `/billing/plans` | No | List all available plans |
-| GET | `/billing/subscription` | Yes | Get current user's subscription |
-| GET | `/billing/entitlements` | Yes | Get user's plan limits and current usage |
-| POST | `/billing/create-checkout-session` | Yes | Create Stripe Checkout session (body: `{ planId: "pro" \| "business" }`) |
-| POST | `/billing/create-portal-session` | Yes | Create Stripe Customer Portal session |
-| POST | `/billing/webhook` | No* | Stripe webhook receiver (uses signature verification) |
-| POST | `/billing/subscribe` | Yes | Legacy: Update subscription directly (admin/testing) |
-| POST | `/billing/cancel` | Yes | Legacy: Cancel subscription (use portal instead) |
+| Method | Endpoint                           | Auth Required | Description                                                              |
+| ------ | ---------------------------------- | ------------- | ------------------------------------------------------------------------ |
+| GET    | `/billing/plans`                   | No            | List all available plans                                                 |
+| GET    | `/billing/subscription`            | Yes           | Get current user's subscription                                          |
+| GET    | `/billing/entitlements`            | Yes           | Get user's plan limits and current usage                                 |
+| POST   | `/billing/create-checkout-session` | Yes           | Create Stripe Checkout session (body: `{ planId: "pro" \| "business" }`) |
+| POST   | `/billing/create-portal-session`   | Yes           | Create Stripe Customer Portal session                                    |
+| POST   | `/billing/webhook`                 | No\*          | Stripe webhook receiver (uses signature verification)                    |
+| POST   | `/billing/subscribe`               | Yes           | Legacy: Update subscription directly (admin/testing)                     |
+| POST   | `/billing/cancel`                  | Yes           | Legacy: Cancel subscription (use portal instead)                         |
 
 \* Webhook endpoint uses Stripe signature verification instead of JWT auth
 
 ### Plan IDs
 
-| Plan | ID | Price |
-|------|-------|-------|
-| Free | `free` | $0/month |
-| Pro | `pro` | $29/month |
+| Plan     | ID         | Price     |
+| -------- | ---------- | --------- |
+| Free     | `free`     | $0/month  |
+| Pro      | `pro`      | $29/month |
 | Business | `business` | $99/month |
 
 ---
@@ -929,6 +958,7 @@ SELECT * FROM "Subscription" WHERE "userId" = 'your-user-id';
 ```
 
 Should show:
+
 - `plan` = `'pro'` or `'business'`
 - `status` = `'active'`
 - `stripeCustomerId` is populated (starts with `cus_`)

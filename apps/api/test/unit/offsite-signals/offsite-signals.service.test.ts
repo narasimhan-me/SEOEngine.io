@@ -9,7 +9,10 @@
  * - Signal management
  */
 import { OffsiteSignalsService } from '../../../src/projects/offsite-signals.service';
-import type { ProjectOffsiteCoverage, OffsiteSignalType } from '@engineo/shared';
+import type {
+  ProjectOffsiteCoverage,
+  OffsiteSignalType,
+} from '@engineo/shared';
 
 // Minimal mock factory for Prisma
 const createPrismaMock = () => ({
@@ -56,7 +59,17 @@ describe('OffsiteSignalsService', () => {
     it('should compute weighted score for single signal type', async () => {
       // Trust proof has weight 10 out of total 32 (10+9+7+6)
       prismaMock.projectOffsiteSignal.findMany.mockResolvedValue([
-        { id: '1', projectId: 'proj-1', signalType: 'TRUST_PROOF', sourceName: 'Trustpilot', evidence: 'test', merchantProvided: false, knownPlatform: true, createdAt: new Date(), updatedAt: new Date() },
+        {
+          id: '1',
+          projectId: 'proj-1',
+          signalType: 'TRUST_PROOF',
+          sourceName: 'Trustpilot',
+          evidence: 'test',
+          merchantProvided: false,
+          knownPlatform: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       ]);
       prismaMock.projectOffsiteCoverage.findFirst.mockResolvedValue(null);
       prismaMock.projectOffsiteCoverage.upsert.mockResolvedValue({});
@@ -74,9 +87,39 @@ describe('OffsiteSignalsService', () => {
 
     it('should give diminishing returns for multiple signals of same type', async () => {
       prismaMock.projectOffsiteSignal.findMany.mockResolvedValue([
-        { id: '1', projectId: 'proj-1', signalType: 'TRUST_PROOF', sourceName: 'Trustpilot', evidence: 'test', merchantProvided: false, knownPlatform: true, createdAt: new Date(), updatedAt: new Date() },
-        { id: '2', projectId: 'proj-1', signalType: 'TRUST_PROOF', sourceName: 'G2', evidence: 'test', merchantProvided: false, knownPlatform: true, createdAt: new Date(), updatedAt: new Date() },
-        { id: '3', projectId: 'proj-1', signalType: 'TRUST_PROOF', sourceName: 'BBB', evidence: 'test', merchantProvided: false, knownPlatform: true, createdAt: new Date(), updatedAt: new Date() },
+        {
+          id: '1',
+          projectId: 'proj-1',
+          signalType: 'TRUST_PROOF',
+          sourceName: 'Trustpilot',
+          evidence: 'test',
+          merchantProvided: false,
+          knownPlatform: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: '2',
+          projectId: 'proj-1',
+          signalType: 'TRUST_PROOF',
+          sourceName: 'G2',
+          evidence: 'test',
+          merchantProvided: false,
+          knownPlatform: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: '3',
+          projectId: 'proj-1',
+          signalType: 'TRUST_PROOF',
+          sourceName: 'BBB',
+          evidence: 'test',
+          merchantProvided: false,
+          knownPlatform: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       ]);
       prismaMock.projectOffsiteCoverage.findFirst.mockResolvedValue(null);
       prismaMock.projectOffsiteCoverage.upsert.mockResolvedValue({});
@@ -93,10 +136,50 @@ describe('OffsiteSignalsService', () => {
 
     it('should return status Strong when all signal types present', async () => {
       prismaMock.projectOffsiteSignal.findMany.mockResolvedValue([
-        { id: '1', projectId: 'proj-1', signalType: 'TRUST_PROOF', sourceName: 'Trustpilot', evidence: 'test', merchantProvided: false, knownPlatform: true, createdAt: new Date(), updatedAt: new Date() },
-        { id: '2', projectId: 'proj-1', signalType: 'AUTHORITATIVE_LISTING', sourceName: 'Google Business', evidence: 'test', merchantProvided: false, knownPlatform: true, createdAt: new Date(), updatedAt: new Date() },
-        { id: '3', projectId: 'proj-1', signalType: 'BRAND_MENTION', sourceName: 'Industry Blog', evidence: 'test', merchantProvided: false, knownPlatform: false, createdAt: new Date(), updatedAt: new Date() },
-        { id: '4', projectId: 'proj-1', signalType: 'REFERENCE_CONTENT', sourceName: 'Comparison Site', evidence: 'test', merchantProvided: false, knownPlatform: false, createdAt: new Date(), updatedAt: new Date() },
+        {
+          id: '1',
+          projectId: 'proj-1',
+          signalType: 'TRUST_PROOF',
+          sourceName: 'Trustpilot',
+          evidence: 'test',
+          merchantProvided: false,
+          knownPlatform: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: '2',
+          projectId: 'proj-1',
+          signalType: 'AUTHORITATIVE_LISTING',
+          sourceName: 'Google Business',
+          evidence: 'test',
+          merchantProvided: false,
+          knownPlatform: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: '3',
+          projectId: 'proj-1',
+          signalType: 'BRAND_MENTION',
+          sourceName: 'Industry Blog',
+          evidence: 'test',
+          merchantProvided: false,
+          knownPlatform: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: '4',
+          projectId: 'proj-1',
+          signalType: 'REFERENCE_CONTENT',
+          sourceName: 'Comparison Site',
+          evidence: 'test',
+          merchantProvided: false,
+          knownPlatform: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       ]);
       prismaMock.projectOffsiteCoverage.findFirst.mockResolvedValue(null);
       prismaMock.projectOffsiteCoverage.upsert.mockResolvedValue({});
@@ -143,11 +226,13 @@ describe('OffsiteSignalsService', () => {
       // Should have 4 base gaps + 2 competitor gaps (for trust_proof and authoritative_listing)
       expect(gaps.length).toBe(6);
 
-      const gapTypes = gaps.map(g => g.gapType);
+      const gapTypes = gaps.map((g) => g.gapType);
       expect(gapTypes).toContain('missing_trust_proof');
       expect(gapTypes).toContain('missing_authoritative_listing');
       expect(gapTypes).toContain('missing_brand_mentions');
-      expect(gapTypes.filter(t => t === 'competitor_has_offsite_signal')).toHaveLength(2);
+      expect(
+        gapTypes.filter((t) => t === 'competitor_has_offsite_signal')
+      ).toHaveLength(2);
     });
 
     it('should return empty gaps when all signal types present', () => {
@@ -189,7 +274,10 @@ describe('OffsiteSignalsService', () => {
 
       const gaps = service.generateGaps(coverage);
 
-      const trustProofGap = gaps.find(g => g.signalType === 'trust_proof' && g.gapType === 'missing_trust_proof');
+      const trustProofGap = gaps.find(
+        (g) =>
+          g.signalType === 'trust_proof' && g.gapType === 'missing_trust_proof'
+      );
       expect(trustProofGap).toBeDefined();
       expect(trustProofGap?.severity).toBe('critical');
     });
@@ -212,7 +300,9 @@ describe('OffsiteSignalsService', () => {
 
       const gaps = service.generateGaps(coverage);
 
-      const brandMentionGap = gaps.find(g => g.signalType === 'brand_mention');
+      const brandMentionGap = gaps.find(
+        (g) => g.signalType === 'brand_mention'
+      );
       expect(brandMentionGap).toBeDefined();
       expect(brandMentionGap?.severity).toBe('warning');
     });
@@ -235,9 +325,11 @@ describe('OffsiteSignalsService', () => {
 
       const gaps = service.generateGaps(coverage);
 
-      const competitorGaps = gaps.filter(g => g.gapType === 'competitor_has_offsite_signal');
+      const competitorGaps = gaps.filter(
+        (g) => g.gapType === 'competitor_has_offsite_signal'
+      );
       expect(competitorGaps).toHaveLength(2);
-      expect(competitorGaps.every(g => g.competitorCount === 2)).toBe(true);
+      expect(competitorGaps.every((g) => g.competitorCount === 2)).toBe(true);
     });
   });
 
@@ -252,19 +344,59 @@ describe('OffsiteSignalsService', () => {
       expect(issues.length).toBeGreaterThan(0);
 
       // All issues should have pillarId = 'offsite_signals'
-      expect(issues.every(i => i.pillarId === 'offsite_signals')).toBe(true);
+      expect(issues.every((i) => i.pillarId === 'offsite_signals')).toBe(true);
 
       // All issues should have signalType and offsiteGapType
-      expect(issues.every(i => i.signalType !== undefined)).toBe(true);
-      expect(issues.every(i => i.offsiteGapType !== undefined)).toBe(true);
+      expect(issues.every((i) => i.signalType !== undefined)).toBe(true);
+      expect(issues.every((i) => i.offsiteGapType !== undefined)).toBe(true);
     });
 
     it('should return empty array when all signals present', async () => {
       prismaMock.projectOffsiteSignal.findMany.mockResolvedValue([
-        { id: '1', projectId: 'proj-1', signalType: 'TRUST_PROOF', sourceName: 'Trustpilot', evidence: 'test', merchantProvided: false, knownPlatform: true, createdAt: new Date(), updatedAt: new Date() },
-        { id: '2', projectId: 'proj-1', signalType: 'AUTHORITATIVE_LISTING', sourceName: 'Google Business', evidence: 'test', merchantProvided: false, knownPlatform: true, createdAt: new Date(), updatedAt: new Date() },
-        { id: '3', projectId: 'proj-1', signalType: 'BRAND_MENTION', sourceName: 'Industry Blog', evidence: 'test', merchantProvided: false, knownPlatform: false, createdAt: new Date(), updatedAt: new Date() },
-        { id: '4', projectId: 'proj-1', signalType: 'REFERENCE_CONTENT', sourceName: 'Comparison Site', evidence: 'test', merchantProvided: false, knownPlatform: false, createdAt: new Date(), updatedAt: new Date() },
+        {
+          id: '1',
+          projectId: 'proj-1',
+          signalType: 'TRUST_PROOF',
+          sourceName: 'Trustpilot',
+          evidence: 'test',
+          merchantProvided: false,
+          knownPlatform: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: '2',
+          projectId: 'proj-1',
+          signalType: 'AUTHORITATIVE_LISTING',
+          sourceName: 'Google Business',
+          evidence: 'test',
+          merchantProvided: false,
+          knownPlatform: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: '3',
+          projectId: 'proj-1',
+          signalType: 'BRAND_MENTION',
+          sourceName: 'Industry Blog',
+          evidence: 'test',
+          merchantProvided: false,
+          knownPlatform: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: '4',
+          projectId: 'proj-1',
+          signalType: 'REFERENCE_CONTENT',
+          sourceName: 'Comparison Site',
+          evidence: 'test',
+          merchantProvided: false,
+          knownPlatform: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       ]);
       prismaMock.projectOffsiteCoverage.findFirst.mockResolvedValue(null);
       prismaMock.projectOffsiteCoverage.upsert.mockResolvedValue({});
@@ -296,7 +428,7 @@ describe('OffsiteSignalsService', () => {
 
       const issues = await service.buildOffsiteIssuesForProject('proj-1');
 
-      expect(issues.every(i => i.actionability === 'manual')).toBe(true);
+      expect(issues.every((i) => i.actionability === 'manual')).toBe(true);
     });
   });
 
@@ -376,13 +508,17 @@ describe('OffsiteSignalsService', () => {
 
   describe('invalidateCoverage', () => {
     it('should delete all coverage records for project', async () => {
-      prismaMock.projectOffsiteCoverage.deleteMany.mockResolvedValue({ count: 1 });
+      prismaMock.projectOffsiteCoverage.deleteMany.mockResolvedValue({
+        count: 1,
+      });
 
       await service.invalidateCoverage('proj-1');
 
-      expect(prismaMock.projectOffsiteCoverage.deleteMany).toHaveBeenCalledWith({
-        where: { projectId: 'proj-1' },
-      });
+      expect(prismaMock.projectOffsiteCoverage.deleteMany).toHaveBeenCalledWith(
+        {
+          where: { projectId: 'proj-1' },
+        }
+      );
     });
   });
 
@@ -394,14 +530,21 @@ describe('OffsiteSignalsService', () => {
         overallScore: 75,
         status: 'STRONG',
         coverageData: {
-          signalCounts: { trust_proof: 2, authoritative_listing: 1, brand_mention: 1, reference_content: 1 },
+          signalCounts: {
+            trust_proof: 2,
+            authoritative_listing: 1,
+            brand_mention: 1,
+            reference_content: 1,
+          },
           highImpactGaps: 0,
           totalSignals: 5,
         },
         computedAt: new Date('2025-01-15'),
       };
 
-      prismaMock.projectOffsiteCoverage.findFirst.mockResolvedValue(cachedCoverage);
+      prismaMock.projectOffsiteCoverage.findFirst.mockResolvedValue(
+        cachedCoverage
+      );
 
       const result = await service.getProjectCoverage('proj-1');
 

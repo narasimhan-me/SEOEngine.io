@@ -95,7 +95,7 @@ describe('AnswerBlockService (AE-1.3 Answer Block Persistence)', () => {
     });
     expect(rows).toHaveLength(2);
     expect(rows.map((r) => r.questionId).sort()).toEqual(
-      ['what_is_it', 'who_is_it_for'].sort(),
+      ['what_is_it', 'who_is_it_for'].sort()
     );
   });
 

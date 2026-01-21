@@ -42,7 +42,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly captchaService: CaptchaService,
-    private readonly authAbuseService: AuthAbuseService,
+    private readonly authAbuseService: AuthAbuseService
   ) {}
 
   private getClientIp(req: Request): string | undefined {
@@ -58,7 +58,11 @@ export class AuthController {
     // CAPTCHA always required for signup
     await this.captchaService.verify(dto.captchaToken, this.getClientIp(req));
 
-    const user = await this.authService.signup(dto.email, dto.password, dto.name);
+    const user = await this.authService.signup(
+      dto.email,
+      dto.password,
+      dto.name
+    );
     return user;
   }
 
@@ -72,7 +76,9 @@ export class AuthController {
 
     if (captchaRequired) {
       if (!dto.captchaToken) {
-        throw new CaptchaRequiredError('CAPTCHA verification required. Please complete the CAPTCHA.');
+        throw new CaptchaRequiredError(
+          'CAPTCHA verification required. Please complete the CAPTCHA.'
+        );
       }
       // Verify CAPTCHA
       await this.captchaService.verify(dto.captchaToken, clientIp);
@@ -90,7 +96,9 @@ export class AuthController {
 
         // Check if CAPTCHA is now required after this failure
         if (this.authAbuseService.isCaptchaRequired(dto.email)) {
-          throw new CaptchaRequiredError('Too many failed attempts. Please complete the CAPTCHA.');
+          throw new CaptchaRequiredError(
+            'Too many failed attempts. Please complete the CAPTCHA.'
+          );
         }
       }
       throw error;

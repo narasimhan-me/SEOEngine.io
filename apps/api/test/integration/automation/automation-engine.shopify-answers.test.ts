@@ -52,10 +52,11 @@ async function simulateProcessorJobHandler(
     answerBlockService: AnswerBlockService;
     answerEngineService: AnswerEngineService;
     aiService: { generateProductAnswers: jest.Mock };
-  },
+  }
 ): Promise<void> {
   const { projectId, productId, triggerType, planId } = jobData;
-  const { prisma, answerBlockService, answerEngineService, aiService } = services;
+  const { prisma, answerBlockService, answerEngineService, aiService } =
+    services;
 
   const product = await prisma.product.findUnique({
     where: { id: productId },
@@ -94,13 +95,15 @@ async function simulateProcessorJobHandler(
     return;
   }
 
-  let action: 'generate_missing' | 'regenerate_weak' | 'skip_no_action' = 'skip_no_action';
+  let action: 'generate_missing' | 'regenerate_weak' | 'skip_no_action' =
+    'skip_no_action';
 
   if (!beforeBlocks.length) {
     action = 'generate_missing';
   } else {
     const hasWeakBlock = beforeBlocks.some((b: any) => {
-      const confidence = typeof b.confidenceScore === 'number' ? b.confidenceScore : 0;
+      const confidence =
+        typeof b.confidenceScore === 'number' ? b.confidenceScore : 0;
       return confidence > 0 && confidence < 0.7;
     });
     if (hasWeakBlock) {
@@ -123,13 +126,14 @@ async function simulateProcessorJobHandler(
     return;
   }
 
-  const answerabilityStatus = answerEngineService.computeAnswerabilityForProduct({
-    id: product.id,
-    title: product.title,
-    description: product.description,
-    seoTitle: product.seoTitle,
-    seoDescription: product.seoDescription,
-  });
+  const answerabilityStatus =
+    answerEngineService.computeAnswerabilityForProduct({
+      id: product.id,
+      title: product.title,
+      description: product.description,
+      seoTitle: product.seoTitle,
+      seoDescription: product.seoDescription,
+    });
 
   const generated = await aiService.generateProductAnswers(
     {
@@ -140,7 +144,7 @@ async function simulateProcessorJobHandler(
       seoTitle: product.seoTitle,
       seoDescription: product.seoDescription,
     },
-    answerabilityStatus,
+    answerabilityStatus
   );
 
   if (!generated.length) {
@@ -167,7 +171,7 @@ async function simulateProcessorJobHandler(
       confidence: block.confidence,
       sourceType: block.sourceType,
       factsUsed: block.factsUsed,
-    })),
+    }))
   );
 
   await prisma.answerBlockAutomationLog.create({
@@ -225,7 +229,7 @@ describe('Automation Engine v1 – Shopify Answer Block Automations (integration
   async function createUserProjectAndProduct(
     plan: TestPlanId,
     productFixture = shopifyProductNoAnswerBlocks,
-    answerBlockOptions?: { confidenceScores?: number[] },
+    answerBlockOptions?: { confidenceScores?: number[] }
   ) {
     const user = await testPrisma.user.create({
       data: {
@@ -264,12 +268,16 @@ describe('Automation Engine v1 – Shopify Answer Block Automations (integration
         title: productFixture.title,
         description: productFixture.body_html,
         seoTitle: (productFixture as any).metafields_global_title_tag ?? null,
-        seoDescription: (productFixture as any).metafields_global_description_tag ?? null,
+        seoDescription:
+          (productFixture as any).metafields_global_description_tag ?? null,
       },
     });
 
     if (answerBlockOptions?.confidenceScores?.length) {
-      for (const [index, confidenceScore] of answerBlockOptions.confidenceScores.entries()) {
+      for (const [
+        index,
+        confidenceScore,
+      ] of answerBlockOptions.confidenceScores.entries()) {
         const questionId = index === 0 ? 'what_is_it' : 'who_is_it_for';
         await testPrisma.answerBlock.create({
           data: {
@@ -289,7 +297,10 @@ describe('Automation Engine v1 – Shopify Answer Block Automations (integration
   }
 
   it('runs generate_missing automation for Pro plan on product_synced when no Answer Blocks exist', async () => {
-    const { user, project, product } = await createUserProjectAndProduct('pro', basicShopifyProduct);
+    const { user, project, product } = await createUserProjectAndProduct(
+      'pro',
+      basicShopifyProduct
+    );
 
     await simulateProcessorJobHandler(
       {
@@ -304,7 +315,7 @@ describe('Automation Engine v1 – Shopify Answer Block Automations (integration
         answerBlockService,
         answerEngineService,
         aiService: aiServiceStub,
-      },
+      }
     );
 
     const blocks = await testPrisma.answerBlock.findMany({
@@ -330,7 +341,7 @@ describe('Automation Engine v1 – Shopify Answer Block Automations (integration
     const { user, project, product } = await createUserProjectAndProduct(
       'pro',
       shopifyProductThinDescription,
-      { confidenceScores: [0.5] }, // weak Answer Block
+      { confidenceScores: [0.5] } // weak Answer Block
     );
 
     const beforeBlocks = await testPrisma.answerBlock.findMany({
@@ -352,7 +363,7 @@ describe('Automation Engine v1 – Shopify Answer Block Automations (integration
         answerBlockService,
         answerEngineService,
         aiService: aiServiceStub,
-      },
+      }
     );
 
     const afterBlocks = await testPrisma.answerBlock.findMany({
@@ -379,7 +390,7 @@ describe('Automation Engine v1 – Shopify Answer Block Automations (integration
   it('skips Answer Block automation on Free plan while persisting no Answer Blocks', async () => {
     const { user, project, product } = await createUserProjectAndProduct(
       'free',
-      shopifyProductNoAnswerBlocks,
+      shopifyProductNoAnswerBlocks
     );
 
     await simulateProcessorJobHandler(
@@ -395,7 +406,7 @@ describe('Automation Engine v1 – Shopify Answer Block Automations (integration
         answerBlockService,
         answerEngineService,
         aiService: aiServiceStub,
-      },
+      }
     );
 
     const blocks = await testPrisma.answerBlock.findMany({
@@ -419,7 +430,7 @@ describe('Automation Engine v1 – Shopify Answer Block Automations (integration
   it('is idempotent when a successful automation already exists for a product/trigger', async () => {
     const { user, project, product } = await createUserProjectAndProduct(
       'pro',
-      shopifyProductMissingSeo,
+      shopifyProductMissingSeo
     );
 
     // First run should succeed
@@ -436,7 +447,7 @@ describe('Automation Engine v1 – Shopify Answer Block Automations (integration
         answerBlockService,
         answerEngineService,
         aiService: aiServiceStub,
-      },
+      }
     );
 
     const firstLog = await testPrisma.answerBlockAutomationLog.findFirst({
@@ -465,7 +476,7 @@ describe('Automation Engine v1 – Shopify Answer Block Automations (integration
         answerBlockService,
         answerEngineService,
         aiService: aiServiceStub,
-      },
+      }
     );
 
     const logs = await testPrisma.answerBlockAutomationLog.findMany({

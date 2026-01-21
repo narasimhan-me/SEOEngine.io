@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, UseGuards, Request, Headers, RawBodyRequest, Req, ForbiddenException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  Headers,
+  RawBodyRequest,
+  Req,
+  ForbiddenException,
+} from '@nestjs/common';
 import { BillingService } from './billing.service';
 import { EntitlementsService } from './entitlements.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -10,7 +21,7 @@ export class BillingController {
   constructor(
     private readonly billingService: BillingService,
     private readonly entitlementsService: EntitlementsService,
-    private readonly configService: ConfigService,
+    private readonly configService: ConfigService
   ) {}
 
   /**
@@ -94,7 +105,7 @@ export class BillingController {
   @UseGuards(JwtAuthGuard)
   async createCheckoutSession(
     @Request() req: any,
-    @Body() body: { planId: PlanId },
+    @Body() body: { planId: PlanId }
   ) {
     this.validateOwnerAccess(req.user);
     return this.billingService.createCheckoutSession(req.user.id, body.planId);
@@ -151,7 +162,7 @@ export class BillingController {
   @Post('webhook')
   async webhook(
     @Req() req: RawBodyRequest<Request>,
-    @Headers('stripe-signature') signature: string,
+    @Headers('stripe-signature') signature: string
   ) {
     return this.billingService.handleWebhook(req.rawBody!, signature);
   }

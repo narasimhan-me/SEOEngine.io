@@ -139,7 +139,11 @@ export function normalizeScopeParams(
 
   // Extract raw params
   const rawPillar = searchParams.get('pillar') as DeoPillarId | null;
-  const rawAssetType = searchParams.get('assetType') as 'products' | 'pages' | 'collections' | null;
+  const rawAssetType = searchParams.get('assetType') as
+    | 'products'
+    | 'pages'
+    | 'collections'
+    | null;
   const rawAssetId = searchParams.get('assetId');
   const rawIssueType = searchParams.get('issueType');
   const rawMode = searchParams.get('mode') as 'actionable' | 'detected' | null;
@@ -158,21 +162,24 @@ export function normalizeScopeParams(
   let wasAdjusted = false;
 
   // Validate pillar if provided
-  const validPillar = rawPillar && DEO_PILLARS.some((p) => p.id === rawPillar) ? rawPillar : null;
+  const validPillar =
+    rawPillar && DEO_PILLARS.some((p) => p.id === rawPillar) ? rawPillar : null;
   if (rawPillar && !validPillar) {
     wasAdjusted = true; // Invalid pillar was dropped
   }
 
   // Validate assetType
-  const validAssetType = rawAssetType && ['products', 'pages', 'collections'].includes(rawAssetType)
-    ? rawAssetType
-    : null;
+  const validAssetType =
+    rawAssetType && ['products', 'pages', 'collections'].includes(rawAssetType)
+      ? rawAssetType
+      : null;
   if (rawAssetType && !validAssetType) {
     wasAdjusted = true; // Invalid assetType was dropped
   }
 
   // Validate mode
-  const validMode = rawMode && ['actionable', 'detected'].includes(rawMode) ? rawMode : null;
+  const validMode =
+    rawMode && ['actionable', 'detected'].includes(rawMode) ? rawMode : null;
   if (rawMode && !validMode) {
     wasAdjusted = true; // Invalid mode was dropped
   }

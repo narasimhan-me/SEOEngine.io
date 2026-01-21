@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma.service';
@@ -12,7 +16,7 @@ export class BillingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-    private readonly entitlementsService: EntitlementsService,
+    private readonly entitlementsService: EntitlementsService
   ) {
     const stripeSecretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (stripeSecretKey) {
@@ -78,7 +82,10 @@ export class BillingService {
    *   - If the user already has an active Stripe subscription, return a Billing Portal URL instead of creating a new subscription.
    *   - Otherwise, create a new Checkout Session for the first paid upgrade.
    */
-  async createCheckoutSession(userId: string, planId: PlanId): Promise<{ url: string }> {
+  async createCheckoutSession(
+    userId: string,
+    planId: PlanId
+  ): Promise<{ url: string }> {
     if (!this.stripe) {
       throw new BadRequestException('Stripe is not configured');
     }
@@ -87,7 +94,8 @@ export class BillingService {
       throw new BadRequestException('Cannot checkout for free plan');
     }
 
-    const existingActiveSubscription = await this.findActiveSubscriptionForUser(userId);
+    const existingActiveSubscription =
+      await this.findActiveSubscriptionForUser(userId);
     if (existingActiveSubscription) {
       // User already has an active Stripe subscription: send them to Billing Portal instead of creating another.
       return this.createPortalSession(userId);
@@ -100,7 +108,9 @@ export class BillingService {
         : this.configService.get<string>('STRIPE_PRICE_BUSINESS');
 
     if (!priceId) {
-      throw new BadRequestException(`Stripe price not configured for plan: ${planId}`);
+      throw new BadRequestException(
+        `Stripe price not configured for plan: ${planId}`
+      );
     }
 
     // Get or create Stripe customer
@@ -111,7 +121,8 @@ export class BillingService {
 
     const customerId = await this.getOrCreateStripeCustomer(userId, user.email);
 
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
 
     const session = await this.stripe.checkout.sessions.create({
       customer: customerId,
@@ -141,7 +152,8 @@ export class BillingService {
       throw new BadRequestException('No Stripe customer found');
     }
 
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
 
     const session = await this.stripe.billingPortal.sessions.create({
       customer: subscription.stripeCustomerId,
@@ -172,7 +184,10 @@ export class BillingService {
   /**
    * Get or create a Stripe customer for a user
    */
-  private async getOrCreateStripeCustomer(userId: string, email: string): Promise<string> {
+  private async getOrCreateStripeCustomer(
+    userId: string,
+    email: string
+  ): Promise<string> {
     const subscription = await this.prisma.subscription.findUnique({
       where: { userId },
     });
@@ -284,15 +299,23 @@ export class BillingService {
       return { received: true };
     }
 
-    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+    const webhookSecret = this.configService.get<string>(
+      'STRIPE_WEBHOOK_SECRET'
+    );
     if (!webhookSecret) {
-      console.warn('Stripe webhook received but STRIPE_WEBHOOK_SECRET is not set');
+      console.warn(
+        'Stripe webhook received but STRIPE_WEBHOOK_SECRET is not set'
+      );
       return { received: true };
     }
 
     let event: Stripe.Event;
     try {
-      event = this.stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+      event = this.stripe.webhooks.constructEvent(
+        payload,
+        signature,
+        webhookSecret
+      );
     } catch (err) {
       console.error('Webhook signature verification failed:', err);
       throw new BadRequestException('Webhook signature verification failed');
@@ -330,7 +353,10 @@ export class BillingService {
     return { received: true };
   }
 
-  private async handleCheckoutCompleted(session: Stripe.Checkout.Session, eventId: string) {
+  private async handleCheckoutCompleted(
+    session: Stripe.Checkout.Session,
+    eventId: string
+  ) {
     const userId = session.metadata?.userId;
     const planId = session.metadata?.planId;
 
@@ -344,7 +370,9 @@ export class BillingService {
     });
 
     if (!userId || !planId) {
-      console.error('[handleCheckoutCompleted] Missing userId or planId in checkout session metadata');
+      console.error(
+        '[handleCheckoutCompleted] Missing userId or planId in checkout session metadata'
+      );
       return;
     }
 
@@ -358,11 +386,19 @@ export class BillingService {
 
     if (existingSub && existingSub.lastStripeEventId === eventId) {
       // Idempotent: this event has already been applied
-      console.log('[handleCheckoutCompleted] Event already processed, skipping:', eventId);
+      console.log(
+        '[handleCheckoutCompleted] Event already processed, skipping:',
+        eventId
+      );
       return;
     }
 
-    console.log('[handleCheckoutCompleted] Upserting subscription for userId:', userId, 'planId:', planId);
+    console.log(
+      '[handleCheckoutCompleted] Upserting subscription for userId:',
+      userId,
+      'planId:',
+      planId
+    );
 
     const result = await this.prisma.subscription.upsert({
       where: { userId },
@@ -387,15 +423,25 @@ export class BillingService {
       },
     });
 
-    console.log('[handleCheckoutCompleted] Subscription upserted successfully:', result);
+    console.log(
+      '[handleCheckoutCompleted] Subscription upserted successfully:',
+      result
+    );
 
-    await this.applySubscriptionEntitlements(userId, planId as PlanId, 'active');
-    console.log('[handleCheckoutCompleted] Entitlements applied for userId:', userId);
+    await this.applySubscriptionEntitlements(
+      userId,
+      planId as PlanId,
+      'active'
+    );
+    console.log(
+      '[handleCheckoutCompleted] Entitlements applied for userId:',
+      userId
+    );
   }
 
   private async handleSubscriptionUpdated(
     subscription: Stripe.Subscription,
-    eventId: string,
+    eventId: string
   ) {
     const customerId = subscription.customer as string;
 
@@ -452,12 +498,16 @@ export class BillingService {
       data: updateData,
     });
 
-    await this.applySubscriptionEntitlements(existingSub.userId, mappedPlanId, status);
+    await this.applySubscriptionEntitlements(
+      existingSub.userId,
+      mappedPlanId,
+      status
+    );
   }
 
   private async handleSubscriptionDeleted(
     subscription: Stripe.Subscription,
-    eventId: string,
+    eventId: string
   ) {
     const customerId = subscription.customer as string;
 
@@ -495,13 +545,17 @@ export class BillingService {
       },
     });
 
-    await this.applySubscriptionEntitlements(existingSub.userId, 'free', 'canceled');
+    await this.applySubscriptionEntitlements(
+      existingSub.userId,
+      'free',
+      'canceled'
+    );
   }
 
   private async applySubscriptionEntitlements(
     userId: string,
     planId: PlanId | null,
-    status: string,
+    status: string
   ): Promise<void> {
     const data: Record<string, unknown> = {
       status,
@@ -517,14 +571,18 @@ export class BillingService {
     });
   }
 
-  private mapPriceIdToPlanId(priceId: string | null | undefined): PlanId | null {
+  private mapPriceIdToPlanId(
+    priceId: string | null | undefined
+  ): PlanId | null {
     if (!priceId) {
       return null;
     }
 
     // Get price IDs from ConfigService
     const proPriceId = this.configService.get<string>('STRIPE_PRICE_PRO');
-    const businessPriceId = this.configService.get<string>('STRIPE_PRICE_BUSINESS');
+    const businessPriceId = this.configService.get<string>(
+      'STRIPE_PRICE_BUSINESS'
+    );
 
     if (proPriceId && proPriceId === priceId) {
       return 'pro';
@@ -538,7 +596,7 @@ export class BillingService {
   }
 
   private mapStripeSubscriptionStatus(
-    subscriptionStatus: Stripe.Subscription.Status,
+    subscriptionStatus: Stripe.Subscription.Status
   ): string {
     switch (subscriptionStatus) {
       case 'active':

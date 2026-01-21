@@ -10,7 +10,9 @@ const userId = process.argv[2];
 
 if (!userId) {
   console.error('Usage: ts-node scripts/reset-ai-usage.ts <userId>');
-  console.error('Example: ts-node scripts/reset-ai-usage.ts cmivjkz0q0000t7d1q847gagy');
+  console.error(
+    'Example: ts-node scripts/reset-ai-usage.ts cmivjkz0q0000t7d1q847gagy'
+  );
   process.exit(1);
 }
 
@@ -30,7 +32,7 @@ async function resetAiUsage() {
     // Get current UTC date start
     const now = new Date();
     const startOfDayUtc = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
     );
 
     // Count current usage before deletion
@@ -66,7 +68,9 @@ async function resetAiUsage() {
       },
     });
 
-    console.log(`\n✅ Deleted ${deletedAiEvents.count} AI usage event(s) for today`);
+    console.log(
+      `\n✅ Deleted ${deletedAiEvents.count} AI usage event(s) for today`
+    );
 
     // Optionally delete today's TokenUsage records (if you want to reset token usage too)
     // Uncomment the following if you also want to reset token usage:
@@ -83,7 +87,9 @@ async function resetAiUsage() {
     */
 
     console.log('\n✅ AI usage limit reset complete!');
-    console.log('The user can now use AI features again (within their plan limits).');
+    console.log(
+      'The user can now use AI features again (within their plan limits).'
+    );
   } catch (error) {
     console.error('Error resetting AI usage:', error);
     process.exit(1);

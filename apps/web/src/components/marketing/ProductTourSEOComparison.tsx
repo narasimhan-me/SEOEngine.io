@@ -9,9 +9,12 @@ export function ProductTourSEOComparison() {
           SEO focuses on keywords and SERP ranking.
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
-          DEO focuses on visibility across search engines, AI assistants, and answer engines.
+          DEO focuses on visibility across search engines, AI assistants, and
+          answer engines.
         </p>
-        <p className="mt-4 text-sm text-muted-foreground">EngineO.ai evaluates:</p>
+        <p className="mt-4 text-sm text-muted-foreground">
+          EngineO.ai evaluates:
+        </p>
         <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
           <li>Discovery surface</li>
           <li>Entity relevance</li>

@@ -55,7 +55,7 @@ export class RoleResolutionService {
    */
   async resolveEffectiveRole(
     projectId: string,
-    userId: string,
+    userId: string
   ): Promise<EffectiveProjectRole | null> {
     // [ROLES-3] First, check ProjectMember table for explicit membership
     const membership = await this.prisma.projectMember.findUnique({
@@ -156,17 +156,22 @@ export class RoleResolutionService {
    * - Single-user: OWNER allowed (ROLES-2 backward compat)
    * - VIEWER: blocked always
    */
-  async assertCanRequestApproval(projectId: string, userId: string): Promise<void> {
+  async assertCanRequestApproval(
+    projectId: string,
+    userId: string
+  ): Promise<void> {
     const role = await this.resolveEffectiveRole(projectId, userId);
     if (!role || role === 'VIEWER') {
-      throw new ForbiddenException('Editor or Owner role is required to request approval');
+      throw new ForbiddenException(
+        'Editor or Owner role is required to request approval'
+      );
     }
 
     // [ROLES-3 FIXUP-2] In multi-user projects, only EDITOR can request
     const isMultiUser = await this.isMultiUserProject(projectId);
     if (isMultiUser && role === 'OWNER') {
       throw new ForbiddenException(
-        'Owners cannot request approvals in multi-user projects. Apply directly instead.',
+        'Owners cannot request approvals in multi-user projects. Apply directly instead.'
       );
     }
   }
@@ -175,10 +180,15 @@ export class RoleResolutionService {
    * Assert user can generate drafts (EDITOR or OWNER).
    * [ROLES-3] VIEWER role cannot generate drafts.
    */
-  async assertCanGenerateDrafts(projectId: string, userId: string): Promise<void> {
+  async assertCanGenerateDrafts(
+    projectId: string,
+    userId: string
+  ): Promise<void> {
     const role = await this.resolveEffectiveRole(projectId, userId);
     if (!role || role === 'VIEWER') {
-      throw new ForbiddenException('Editor or Owner role is required to generate drafts');
+      throw new ForbiddenException(
+        'Editor or Owner role is required to generate drafts'
+      );
     }
   }
 

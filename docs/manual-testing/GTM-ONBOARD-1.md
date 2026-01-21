@@ -60,15 +60,18 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - New user with connected Shopify store
 - No prior APPLY runs for the project
 
 **Steps:**
+
 1. Log in as a user with an eligible project
 2. Navigate to `/projects/:id/overview`
 3. Observe the page header area
 
 **Expected Results:**
+
 - **UI:** Onboarding banner visible with "Get your first DEO win (5–10 minutes)" message
 - **UI:** Progress indicator shows Step 1/4 or 2/4 (if Shopify already connected)
 - **API:** `GET /onboarding/projects/:projectId/status` returns `eligible: true`
@@ -80,14 +83,17 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Onboarding banner is visible
 - Shopify is connected
 
 **Steps:**
+
 1. Click "Start" or "Continue" button on the banner
 2. Observe the onboarding panel expansion
 
 **Expected Results:**
+
 - **UI:** Onboarding panel expands showing 4 steps
 - **UI:** Step 1 (Connect Store) shows as completed
 - **UI:** Step 2 highlights the recommended issue/pillar
@@ -100,14 +106,17 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Onboarding started (Step 2)
 - At least one actionable issue exists
 
 **Steps:**
+
 1. Click on the recommended issue link in Step 2
 2. Observe navigation to the relevant pillar section
 
 **Expected Results:**
+
 - **UI:** Page navigates to the correct pillar section (e.g., Search & Intent)
 - **UI:** The specific issue is highlighted or focused
 - **UI:** "Preview fix (uses AI)" button is visible
@@ -120,14 +129,17 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Viewing the recommended issue
 - Onboarding at Step 2
 
 **Steps:**
+
 1. Click "Preview fix (uses AI)" button
 2. Wait for AI generation to complete
 
 **Expected Results:**
+
 - **UI:** Loading indicator shown during AI generation
 - **UI:** Preview panel displays generated suggestions
 - **UI:** Onboarding step advances to Step 3
@@ -141,14 +153,17 @@
 **ID:** HP-005
 
 **Preconditions:**
+
 - Preview completed
 - Suggestions displayed
 
 **Steps:**
+
 1. Click "Apply" button to commit the fix
 2. Wait for apply action to complete
 
 **Expected Results:**
+
 - **UI:** Success toast shown
 - **UI:** Celebration panel appears: "You completed your first DEO win"
 - **UI:** Onboarding banner disappears
@@ -163,15 +178,18 @@
 **ID:** HP-006
 
 **Preconditions:**
+
 - User eligible for onboarding
 - User navigates directly to product and applies a fix manually
 
 **Steps:**
+
 1. Skip the onboarding banner
 2. Navigate to any product's SEO editor
 3. Make and apply a change via Shopify sync
 
 **Expected Results:**
+
 - **UI:** Celebration panel shows: "You fixed your first DEO issue"
 - **UI:** Onboarding banner disappears
 - **API:** Onboarding status changes to COMPLETED
@@ -186,9 +204,11 @@
 **Description:** User has no issues in any pillar (all products optimized)
 
 **Steps:**
+
 1. Log in with a project that has no issues
 
 **Expected Behavior:**
+
 - Onboarding recommends "You're in great shape – explore DEO overview"
 - No specific issue is highlighted
 - User can explore freely
@@ -200,11 +220,13 @@
 **Description:** Dismissing the banner hides it for the session only
 
 **Steps:**
+
 1. Click the dismiss/close button on the onboarding banner
 2. Navigate to another page and return
 3. Close and reopen the browser
 
 **Expected Behavior:**
+
 - Same session: Banner stays hidden
 - New session: Banner reappears (unless completed/skipped)
 
@@ -215,10 +237,12 @@
 **Description:** Onboarding state is per user+project
 
 **Steps:**
+
 1. Complete onboarding on Project A
 2. Create or access Project B
 
 **Expected Behavior:**
+
 - Project A: No onboarding banner (completed)
 - Project B: Onboarding banner visible (if eligible)
 
@@ -229,10 +253,12 @@
 **Description:** Steps must advance monotonically
 
 **Steps:**
+
 1. Start onboarding at Step 1
 2. Try to call `POST /advance` with `toStep: 4`
 
 **Expected Behavior:**
+
 - API rejects non-monotonic advances
 - Steps must progress 1 → 2 → 3 → 4
 
@@ -245,9 +271,11 @@
 **Scenario:** AI service returns an error during preview
 
 **Steps:**
+
 1. Click "Preview fix" when AI service is unavailable
 
 **Expected Behavior:**
+
 - Error message shown to user
 - User can retry
 - Onboarding step does NOT advance
@@ -259,9 +287,11 @@
 **Scenario:** APPLY action fails (Shopify API error, etc.)
 
 **Steps:**
+
 1. Click "Apply" when Shopify API is unavailable
 
 **Expected Behavior:**
+
 - Error message shown
 - Onboarding does NOT mark as completed
 - User can retry
@@ -273,9 +303,11 @@
 **Scenario:** User tries to access another user's project onboarding
 
 **Steps:**
+
 1. Call `GET /onboarding/projects/:otherUsersProjectId/status`
 
 **Expected Behavior:**
+
 - 403 Forbidden response
 - No data leaked
 
@@ -288,10 +320,12 @@
 **Scenario:** User hits AI daily limit during onboarding preview
 
 **Steps:**
+
 1. Exhaust AI quota on other operations
 2. Try to preview during onboarding
 
 **Expected Behavior:**
+
 - Quota exceeded message shown
 - User informed to try again tomorrow or upgrade
 - Onboarding remains at current step
@@ -349,12 +383,14 @@
 ## API Testing (curl/Postman)
 
 ### Get Onboarding Status
+
 ```bash
 curl -H "Authorization: Bearer <token>" \
   http://localhost:3001/onboarding/projects/<projectId>/status
 ```
 
 ### Start Onboarding
+
 ```bash
 curl -X POST \
   -H "Authorization: Bearer <token>" \
@@ -362,6 +398,7 @@ curl -X POST \
 ```
 
 ### Advance Step
+
 ```bash
 curl -X POST \
   -H "Authorization: Bearer <token>" \
@@ -371,6 +408,7 @@ curl -X POST \
 ```
 
 ### Skip Onboarding
+
 ```bash
 curl -X POST \
   -H "Authorization: Bearer <token>" \
@@ -383,19 +421,20 @@ curl -X POST \
 
 > Note: These test scenarios are planned for execution once implementation is complete.
 
-| Category | Tests | Status |
-|----------|-------|--------|
-| Happy Path | 6 | Planned |
-| Edge Cases | 4 | Planned |
-| Error Handling | 3 | Planned |
-| Limits | 1 | Planned |
-| **Total** | **14** | **Planned** |
+| Category       | Tests  | Status      |
+| -------------- | ------ | ----------- |
+| Happy Path     | 6      | Planned     |
+| Edge Cases     | 4      | Planned     |
+| Error Handling | 3      | Planned     |
+| Limits         | 1      | Planned     |
+| **Total**      | **14** | **Planned** |
 
 ---
 
 ## Bug Reporting
 
 If you find issues:
+
 1. Note the test scenario (e.g., HP-003)
 2. Capture browser console logs
 3. Capture network requests
@@ -406,9 +445,9 @@ If you find issues:
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Name] |
-| **Date** | [YYYY-MM-DD] |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    | [Name]                                |
+| **Date**           | [YYYY-MM-DD]                          |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | [Any additional notes] |
+| **Notes**          | [Any additional notes]                |

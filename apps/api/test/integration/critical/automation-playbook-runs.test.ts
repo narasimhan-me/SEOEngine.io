@@ -118,7 +118,9 @@ describe('CRITICAL – AutomationPlaybookRuns Integration', () => {
 
     // Entitlements mock
     const entitlementsMock = {
-      getAiSuggestionLimit: jest.fn().mockResolvedValue({ planId: 'pro', limit: 100 }),
+      getAiSuggestionLimit: jest
+        .fn()
+        .mockResolvedValue({ planId: 'pro', limit: 100 }),
       getDailyAiUsage: jest.fn().mockResolvedValue(0),
       getUserPlan: jest.fn().mockResolvedValue('pro'),
       ensureCanCreateProject: jest.fn().mockResolvedValue(undefined),
@@ -164,12 +166,19 @@ describe('CRITICAL – AutomationPlaybookRuns Integration', () => {
       tokenUsageMock as any,
       aiServiceMock as any,
       quotaServiceMock as any,
-      roleResolutionMock as any,
+      roleResolutionMock as any
     );
 
-    processor = new AutomationPlaybookRunProcessor(prismaMock, playbooksService);
+    processor = new AutomationPlaybookRunProcessor(
+      prismaMock,
+      playbooksService
+    );
 
-    runsService = new AutomationPlaybookRunsService(prismaMock, processor, roleResolutionMock as any);
+    runsService = new AutomationPlaybookRunsService(
+      prismaMock,
+      processor,
+      roleResolutionMock as any
+    );
   });
 
   afterEach(() => {
@@ -209,7 +218,7 @@ describe('CRITICAL – AutomationPlaybookRuns Integration', () => {
         expect.objectContaining({
           where: { id: run.id },
           data: expect.objectContaining({ status: 'RUNNING' }),
-        }),
+        })
       );
       expect(prismaMock.automationPlaybookRun.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -218,7 +227,7 @@ describe('CRITICAL – AutomationPlaybookRuns Integration', () => {
             status: 'SUCCEEDED',
             aiUsed: true,
           }),
-        }),
+        })
       );
     });
   });
@@ -259,7 +268,9 @@ describe('CRITICAL – AutomationPlaybookRuns Integration', () => {
         rules: { enabled: false },
       };
 
-      prismaMock.automationPlaybookDraft.findFirst.mockResolvedValue(existingDraft);
+      prismaMock.automationPlaybookDraft.findFirst.mockResolvedValue(
+        existingDraft
+      );
 
       // Reset AI mock to verify no calls
       aiServiceMock.generateMetadata.mockClear();
@@ -292,7 +303,7 @@ describe('CRITICAL – AutomationPlaybookRuns Integration', () => {
             status: 'SUCCEEDED',
             aiUsed: false,
           }),
-        }),
+        })
       );
 
       // Verify products were updated from draft
@@ -317,7 +328,9 @@ describe('CRITICAL – AutomationPlaybookRuns Integration', () => {
 
       // First call creates the run
       prismaMock.automationPlaybookRun.findFirst.mockResolvedValueOnce(null);
-      prismaMock.automationPlaybookRun.create.mockResolvedValueOnce(existingRun);
+      prismaMock.automationPlaybookRun.create.mockResolvedValueOnce(
+        existingRun
+      );
 
       const run1 = await runsService.createRun({
         userId: 'user-integration-1',
@@ -333,7 +346,9 @@ describe('CRITICAL – AutomationPlaybookRuns Integration', () => {
       expect(prismaMock.automationPlaybookRun.create).toHaveBeenCalledTimes(1);
 
       // Second call with same idempotency key returns existing
-      prismaMock.automationPlaybookRun.findFirst.mockResolvedValueOnce(existingRun);
+      prismaMock.automationPlaybookRun.findFirst.mockResolvedValueOnce(
+        existingRun
+      );
 
       const run2 = await runsService.createRun({
         userId: 'user-integration-1',
@@ -352,4 +367,3 @@ describe('CRITICAL – AutomationPlaybookRuns Integration', () => {
     });
   });
 });
-

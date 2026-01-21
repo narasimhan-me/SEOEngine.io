@@ -62,16 +62,19 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - Project with no existing Shopify integration
 - Shopify development store available
 
 **Steps:**
+
 1. Navigate to `/projects/{projectId}/settings#integrations`
 2. Click "Connect Shopify"
 3. Complete OAuth flow with the Shopify store
 4. Check server logs for scope storage info
 
 **Expected Results:**
+
 - **UI:** Shopify connection shows as connected
 - **Logs:** `[SHOPIFY-SCOPE-TRUTH-1] Storing connection: ... truthSource=access_scopes_endpoint (or oauth_scope)`
 - **Logs:** `accessScopesStatus=success` (or `accessScopesStatus=http_error` with oauth_scope fallback)
@@ -85,10 +88,12 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Project with existing Shopify integration (scopes already stored)
 - Ability to trigger reconnect flow
 
 **Steps:**
+
 1. Navigate to `/projects/{projectId}/settings#integrations`
 2. Note current stored scopes (from integration details or database)
 3. Click "Reconnect Shopify"
@@ -96,6 +101,7 @@
 5. Check server logs and database
 
 **Expected Results:**
+
 - **UI:** Shopify reconnection completes successfully
 - **Logs:** `truthSource=access_scopes_endpoint` (or fallback)
 - **Database:** `integration.config.scope` is non-empty (at least as many scopes as before)
@@ -108,16 +114,19 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Project with existing Shopify integration
 - Simulated Access Scopes endpoint failure (E2E mock or network manipulation)
 
 **Steps:**
+
 1. Configure test to simulate Access Scopes endpoint returning HTTP error
 2. Trigger reconnect flow
 3. Complete OAuth flow (ensure OAuth returns valid scopes)
 4. Check server logs
 
 **Expected Results:**
+
 - **Logs:** `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes endpoint returned non-OK: shop=..., status=4xx/5xx`
 - **Logs:** `truthSource=oauth_scope_fallback` (or `oauth_scope`)
 - **Database:** Scopes from OAuth token exchange are stored (not empty)
@@ -130,16 +139,19 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Project with existing Shopify integration and stored scopes
 - Simulated: Access Scopes returns empty, OAuth scope is empty
 
 **Steps:**
+
 1. (E2E mock) Configure Access Scopes to return empty list
 2. (E2E mock) Configure OAuth to return empty scope string
 3. Trigger reconnect flow
 4. Check server logs
 
 **Expected Results:**
+
 - **Logs:** `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes ... AND OAuth scope empty. Retaining existing stored scope`
 - **Logs:** `truthSource=existing_scope_retained`
 - **Database:** Scopes unchanged from before reconnect (no downgrade)
@@ -155,12 +167,14 @@
 **Description:** Fresh install where OAuth scope is empty AND Access Scopes endpoint fails/returns empty AND no existing integration
 
 **Steps:**
+
 1. (E2E mock) Ensure no existing integration for project
 2. (E2E mock) Configure Access Scopes to fail or return empty
 3. (E2E mock) Configure OAuth to return empty scope string
 4. Trigger fresh install flow
 
 **Expected Behavior:**
+
 - **Logs:** `[SHOPIFY-SCOPE-TRUTH-1] SCOPE_VERIFICATION_FAILED: All scope sources empty`
 - **UI:** Redirected to `/projects/{projectId}/settings#integrations?shopify=verify_failed`
 - **UI:** "Could not verify Shopify permissions" error message displayed
@@ -175,10 +189,12 @@
 **Description:** Access Scopes endpoint returns HTTP 401 (unauthorized)
 
 **Steps:**
+
 1. (Mock) Configure Access Scopes to return HTTP 401
 2. Trigger reconnect flow
 
 **Expected Behavior:**
+
 - **Logs:** `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes endpoint returned non-OK: shop=..., status=401 (4xx)`
 - **Fallback:** System falls back to OAuth scope (or existing scope)
 - **UI:** Connection proceeds normally if fallback has data
@@ -190,10 +206,12 @@
 **Description:** Access Scopes endpoint returns invalid JSON
 
 **Steps:**
+
 1. (Mock) Configure Access Scopes to return malformed JSON
 2. Trigger reconnect flow
 
 **Expected Behavior:**
+
 - **Logs:** `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes JSON parse error for ...`
 - **Logs:** `accessScopesStatus=parse_error`
 - **Fallback:** System falls back to OAuth scope (or existing scope)
@@ -205,10 +223,12 @@
 **Description:** Access Scopes endpoint times out or network error
 
 **Steps:**
+
 1. (Mock) Configure network to fail for Access Scopes request
 2. Trigger reconnect flow
 
 **Expected Behavior:**
+
 - **Logs:** `[SHOPIFY-SCOPE-TRUTH-1] Access Scopes fetch network error for ...`
 - **Logs:** `accessScopesStatus=http_error`
 - **Fallback:** System falls back to OAuth scope (or existing scope)
@@ -222,10 +242,12 @@
 **Scenario:** User sees verify_failed query param after callback failure
 
 **Steps:**
+
 1. Complete a flow that triggers SHOPIFY_SCOPE_VERIFICATION_FAILED
 2. Observe redirect to settings page
 
 **Expected Behavior:**
+
 - URL contains `?shopify=verify_failed`
 - Red error banner shows "Could not verify Shopify permissions"
 - "Try again" button triggers new connect flow
@@ -285,18 +307,18 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Name] |
-| **Date** | [YYYY-MM-DD] |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    | [Name]                                |
+| **Date**           | [YYYY-MM-DD]                          |
 | **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | [Any additional notes] |
+| **Notes**          | [Any additional notes]                |
 
 ---
 
 ## Document History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2026-01-20 | Initial SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-2 manual testing guide |
-| 1.1 | 2026-01-20 | FIXUP-3: Added assertion that verify_failed UI suppresses missing-scope list (ERR-001) |
+| Version | Date       | Changes                                                                                |
+| ------- | ---------- | -------------------------------------------------------------------------------------- |
+| 1.0     | 2026-01-20 | Initial SHOPIFY-SCOPE-TRUTH-AND-IMPLICATIONS-1 FIXUP-2 manual testing guide            |
+| 1.1     | 2026-01-20 | FIXUP-3: Added assertion that verify_failed UI suppresses missing-scope list (ERR-001) |

@@ -69,7 +69,9 @@ export default function AdminSubscriptionsPage() {
       // Refresh the list
       fetchData(currentPage);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to update subscription');
+      setError(
+        err instanceof Error ? err.message : 'Failed to update subscription'
+      );
     } finally {
       setUpdating(null);
     }
@@ -111,7 +113,9 @@ export default function AdminSubscriptionsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Subscription Management</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">
+        Subscription Management
+      </h1>
 
       {/* Status messages */}
       {error && (
@@ -130,7 +134,9 @@ export default function AdminSubscriptionsPage() {
         {plans.map((plan) => (
           <div key={plan.id} className="bg-white shadow rounded-lg p-4">
             <h3 className="text-sm font-medium text-gray-500">{plan.name}</h3>
-            <p className="text-lg font-semibold text-gray-900">{formatPrice(plan.price)}</p>
+            <p className="text-lg font-semibold text-gray-900">
+              {formatPrice(plan.price)}
+            </p>
           </div>
         ))}
       </div>
@@ -188,7 +194,9 @@ export default function AdminSubscriptionsPage() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {user.subscription?.currentPeriodEnd
-                    ? new Date(user.subscription.currentPeriodEnd).toLocaleDateString()
+                    ? new Date(
+                        user.subscription.currentPeriodEnd
+                      ).toLocaleDateString()
                     : '—'}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -228,7 +236,9 @@ export default function AdminSubscriptionsPage() {
               Previous
             </button>
             <button
-              onClick={() => setCurrentPage((p) => Math.min(pagination.pages, p + 1))}
+              onClick={() =>
+                setCurrentPage((p) => Math.min(pagination.pages, p + 1))
+              }
               disabled={currentPage === pagination.pages}
               className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >

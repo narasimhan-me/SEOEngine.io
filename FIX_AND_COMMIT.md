@@ -3,6 +3,7 @@
 ## Issue
 
 The pre-commit hook is failing due to linting errors in source files. The main errors are:
+
 - Unused variables/imports
 - Variables that should be prefixed with `_` if intentionally unused
 
@@ -11,6 +12,7 @@ The pre-commit hook is failing due to linting errors in source files. The main e
 ### Option 1: Fix Linting Errors (Recommended)
 
 **Step 1: Check linting errors**
+
 ```bash
 cd /Users/lavanya/engineo/EngineO.ai/apps/api
 pnpm lint
@@ -19,15 +21,18 @@ pnpm lint
 **Step 2: Fix the errors**
 
 The main errors are unused variables. Fix them by either:
+
 - Removing unused imports/variables
 - Prefixing with `_` if intentionally unused (e.g., `_project` instead of `project`)
 
 **Common fixes:**
+
 - `BadRequestException` imported but not used → Remove import
 - `_` or `__` assigned but not used → Already correct (should be allowed)
 - `missingCount`, `totalQuestions`, `signals` not used → Prefix with `_` or remove
 
 **Step 3: Retry commit**
+
 ```bash
 cd /Users/lavanya/engineo/EngineO.ai
 git add -A
@@ -70,6 +75,7 @@ cd ../..
 ```
 
 Then commit:
+
 ```bash
 git add -A
 git commit -m "feat: Add commit gate and push gate infrastructure"
@@ -80,6 +86,7 @@ git commit -m "feat: Add commit gate and push gate infrastructure"
 **Best practice:** Fix the linting errors first, then commit. This ensures code quality.
 
 **Quick fix script:**
+
 ```bash
 cd /Users/lavanya/engineo/EngineO.ai/apps/api
 
@@ -98,6 +105,7 @@ pnpm exec eslint "src/**/*.ts" | grep "error"
 ## Files with Known Linting Errors
 
 Based on the earlier output, these files have errors:
+
 - `src/admin/admin.service.ts` - Unused `BadRequestException`
 - `src/auth/auth.service.ts` - Unused `_` variables (should be allowed)
 - `src/projects/answer-engine.service.ts` - Unused `missingCount`, `totalQuestions`
@@ -148,4 +156,3 @@ git branch --show-current
 # Check status (should be clean)
 git status
 ```
-

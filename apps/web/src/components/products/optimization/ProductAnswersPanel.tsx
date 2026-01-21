@@ -98,7 +98,9 @@ export function ProductAnswersPanel({
   error,
   onGenerate,
 }: ProductAnswersPanelProps) {
-  const [expandedAnswers, setExpandedAnswers] = useState<Set<string>>(new Set());
+  const [expandedAnswers, setExpandedAnswers] = useState<Set<string>>(
+    new Set()
+  );
 
   const toggleAnswer = (answerId: string) => {
     setExpandedAnswers((prev) => {
@@ -194,15 +196,19 @@ export function ProductAnswersPanel({
         </div>
       </div>
       <p className="mb-3 text-xs text-gray-500">
-        Temporary AI-generated drafts used to evaluate answerability and data coverage. These
-        previews are not saved, not published, and not synced.
+        Temporary AI-generated drafts used to evaluate answerability and data
+        coverage. These previews are not saved, not published, and not synced.
       </p>
 
       {/* Error state */}
       {error && (
         <div className="mb-4 rounded-md bg-red-50 p-4">
           <div className="flex">
-            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <svg
+              className="h-5 w-5 text-red-400"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
               <path
                 fillRule="evenodd"
                 d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -290,7 +296,9 @@ export function ProductAnswersPanel({
         <div className="space-y-4">
           {/* Answerability score */}
           <div className="flex items-center justify-between rounded-md bg-gray-50 px-3 py-2">
-            <span className="text-xs font-medium text-gray-600">Answerability Score</span>
+            <span className="text-xs font-medium text-gray-600">
+              Answerability Score
+            </span>
             <span className="text-sm font-semibold text-gray-900">
               {response.answerabilityStatus.answerabilityScore ?? 0}/100
             </span>
@@ -315,8 +323,8 @@ export function ProductAnswersPanel({
                 </svg>
                 <div>
                   <p className="text-xs font-medium text-amber-800">
-                    {response.answerabilityStatus.missingQuestions.length} question(s) cannot be
-                    answered
+                    {response.answerabilityStatus.missingQuestions.length}{' '}
+                    question(s) cannot be answered
                   </p>
                   <p className="mt-1 text-xs text-amber-700">
                     Add more product details to improve answerability.
@@ -339,7 +347,9 @@ export function ProductAnswersPanel({
                     className="flex w-full items-center justify-between bg-gray-50 px-3 py-2 text-left hover:bg-gray-100"
                   >
                     <span className="text-sm font-medium text-gray-900">
-                      {ANSWER_QUESTION_LABELS[answer.questionId as AnswerBlockQuestionId] || answer.question}
+                      {ANSWER_QUESTION_LABELS[
+                        answer.questionId as AnswerBlockQuestionId
+                      ] || answer.question}
                     </span>
                     <div className="flex items-center gap-2">
                       {getConfidenceBadge(answer.confidence)}
@@ -365,7 +375,9 @@ export function ProductAnswersPanel({
                       <p className="text-sm text-gray-700">{answer.answer}</p>
                       {answer.factsUsed.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1">
-                          <span className="text-xs text-gray-500">Sources:</span>
+                          <span className="text-xs text-gray-500">
+                            Sources:
+                          </span>
                           {answer.factsUsed.map((fact, idx) => (
                             <span
                               key={idx}

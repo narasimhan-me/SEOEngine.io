@@ -21,6 +21,7 @@
 **Purpose:** Verify governance settings section appears and functions correctly.
 
 **Steps:**
+
 1. Login to the application
 2. Navigate to Project Settings (`/projects/{id}/settings`)
 3. Scroll to "Governance & Approvals" section
@@ -33,6 +34,7 @@
    - PII toggle (should be locked/disabled)
 
 **Expected Results:**
+
 - [ ] Governance section is visible under Project Settings
 - [ ] All toggles are interactive except PII
 - [ ] PII toggle shows locked/disabled visual indicator
@@ -45,6 +47,7 @@
 **Purpose:** Verify approval gating on GEO fixes and Answer Block sync.
 
 **Steps:**
+
 1. Navigate to Project Settings
 2. Enable "Require Approval" toggle
 3. Save settings
@@ -54,6 +57,7 @@
 7. Verify error message indicates approval required
 
 **Expected Results:**
+
 - [ ] Apply fails with "Approval Required" error when governance is enabled
 - [ ] Error message includes guidance on requesting approval
 - [ ] After approval is granted (via API), apply succeeds
@@ -65,6 +69,7 @@
 **Purpose:** Verify passcode creation, display, and verification.
 
 **Steps:**
+
 1. Navigate to Project Insights > GEO Insights
 2. Click "Share Report" button
 3. Select "Passcode Protected" audience
@@ -79,6 +84,7 @@
 12. Verify report loads
 
 **Expected Results:**
+
 - [ ] Passcode shown only once at creation (8 chars, uppercase A-Z + 0-9)
 - [ ] Share URL redirects to passcode entry form
 - [ ] Last 4 characters shown as hint on entry form
@@ -93,6 +99,7 @@
 **Purpose:** Verify governance policy controls share link expiry.
 
 **Steps:**
+
 1. Navigate to Project Settings > Governance
 2. Set "Share Link Expiry Days" to 3
 3. Save settings
@@ -100,6 +107,7 @@
 5. Check the expiration date in the share link list
 
 **Expected Results:**
+
 - [ ] New share links expire in 3 days (not default 14)
 - [ ] Expiry date shown correctly in UI
 - [ ] Expired links show "Expired" status when accessed
@@ -111,6 +119,7 @@
 **Purpose:** Verify governance policy restricts share link audience.
 
 **Steps:**
+
 1. Navigate to Project Settings > Governance
 2. Enable "Restrict Share Links"
 3. Set "Export Audience" to "Passcode"
@@ -119,6 +128,7 @@
 6. Attempt to create a public (Anyone with Link) share
 
 **Expected Results:**
+
 - [ ] Creating public link fails with 403 error
 - [ ] Error message indicates passcode protection required
 - [ ] Creating passcode-protected link succeeds
@@ -130,6 +140,7 @@
 **Purpose:** Verify competitor mentions are redacted when policy is set.
 
 **Steps:**
+
 1. Navigate to Project Settings > Governance
 2. Disable "Allow Competitor Mentions"
 3. Save settings
@@ -138,6 +149,7 @@
 6. Check for competitor-related text
 
 **Expected Results:**
+
 - [ ] Text patterns like "competitor X", "vs. X" show as "[REDACTED]"
 - [ ] Redaction applies to gaps, summary, and opportunity text
 - [ ] Authenticated view may still show unredacted (verify policy)
@@ -149,6 +161,7 @@
 **Purpose:** Verify PII export is always blocked.
 
 **API Test:**
+
 ```bash
 curl -X PUT http://localhost:3001/projects/{id}/governance/policy \
   -H "Authorization: Bearer {token}" \
@@ -157,6 +170,7 @@ curl -X PUT http://localhost:3001/projects/{id}/governance/policy \
 ```
 
 **Expected Results:**
+
 - [ ] API returns 400 Bad Request
 - [ ] Error message: "PII export is not allowed"
 - [ ] UI toggle remains locked/disabled
@@ -169,6 +183,7 @@ curl -X PUT http://localhost:3001/projects/{id}/governance/policy \
 **Purpose:** Verify all governance actions are logged.
 
 **Steps:**
+
 1. Perform various governance actions:
    - Update policy
    - Request approval
@@ -177,12 +192,14 @@ curl -X PUT http://localhost:3001/projects/{id}/governance/policy \
    - Revoke share link
    - Apply GEO fix
 2. Query audit events via API:
+
 ```bash
 curl http://localhost:3001/projects/{id}/governance/audit \
   -H "Authorization: Bearer {token}"
 ```
 
 **Expected Results:**
+
 - [ ] All actions appear in audit log
 - [ ] Each event has correct eventType
 - [ ] actorId matches the user who performed action
@@ -196,6 +213,7 @@ curl http://localhost:3001/projects/{id}/governance/audit \
 **Purpose:** Verify public share view performs no DB writes.
 
 **Steps:**
+
 1. Create a share link (passcode or public)
 2. Note the current database state (share link status)
 3. Access the share link URL multiple times
@@ -204,6 +222,7 @@ curl http://localhost:3001/projects/{id}/governance/audit \
 6. Check database state after accessing expired link
 
 **Expected Results:**
+
 - [ ] Share link status unchanged after view access
 - [ ] No auto-update of EXPIRED status on read
 - [ ] Status computed at read time, not persisted
@@ -216,11 +235,13 @@ curl http://localhost:3001/projects/{id}/governance/audit \
 **Purpose:** Verify print output has no side effects.
 
 **Steps:**
+
 1. Access a shared report (public or with passcode)
 2. Use browser print (Cmd+P / Ctrl+P)
 3. Check print preview
 
 **Expected Results:**
+
 - [ ] Print preview shows clean layout
 - [ ] White background for all sections
 - [ ] Proper margins (no cut-off content)
@@ -235,6 +256,7 @@ curl http://localhost:3001/projects/{id}/governance/audit \
 Location: `apps/web/tests/enterprise-geo-1.spec.ts`
 
 Run with:
+
 ```bash
 cd apps/web && npx playwright test enterprise-geo-1.spec.ts
 ```
@@ -246,6 +268,7 @@ cd apps/web && npx playwright test enterprise-geo-1.spec.ts
 Location: `apps/api/test/integration/enterprise-geo-1.test.ts`
 
 Run with:
+
 ```bash
 cd apps/api && pnpm test:e2e -- --testPathPattern=enterprise-geo-1
 ```

@@ -33,25 +33,85 @@ import type { DeoIssue, DeoIssueSeverity } from '@engineo/shared';
  * Known platform configurations for heuristic detection.
  * These are platforms where presence is highly valuable.
  */
-const KNOWN_PLATFORMS: { signalType: OffsiteSignalType; sourceName: string; description: string }[] = [
+const KNOWN_PLATFORMS: {
+  signalType: OffsiteSignalType;
+  sourceName: string;
+  description: string;
+}[] = [
   // Trust Proof platforms
-  { signalType: 'trust_proof', sourceName: 'Trustpilot', description: 'Third-party review platform' },
-  { signalType: 'trust_proof', sourceName: 'Google Reviews', description: 'Google Business reviews' },
-  { signalType: 'trust_proof', sourceName: 'Better Business Bureau', description: 'BBB accreditation' },
-  { signalType: 'trust_proof', sourceName: 'G2', description: 'Software review platform' },
-  { signalType: 'trust_proof', sourceName: 'Capterra', description: 'Software review platform' },
+  {
+    signalType: 'trust_proof',
+    sourceName: 'Trustpilot',
+    description: 'Third-party review platform',
+  },
+  {
+    signalType: 'trust_proof',
+    sourceName: 'Google Reviews',
+    description: 'Google Business reviews',
+  },
+  {
+    signalType: 'trust_proof',
+    sourceName: 'Better Business Bureau',
+    description: 'BBB accreditation',
+  },
+  {
+    signalType: 'trust_proof',
+    sourceName: 'G2',
+    description: 'Software review platform',
+  },
+  {
+    signalType: 'trust_proof',
+    sourceName: 'Capterra',
+    description: 'Software review platform',
+  },
   // Authoritative Listing platforms
-  { signalType: 'authoritative_listing', sourceName: 'Google Business Profile', description: 'Local business listing' },
-  { signalType: 'authoritative_listing', sourceName: 'Shopify App Store', description: 'App marketplace listing' },
-  { signalType: 'authoritative_listing', sourceName: 'Industry Directory', description: 'Vertical-specific directory' },
-  { signalType: 'authoritative_listing', sourceName: 'Chamber of Commerce', description: 'Business association listing' },
+  {
+    signalType: 'authoritative_listing',
+    sourceName: 'Google Business Profile',
+    description: 'Local business listing',
+  },
+  {
+    signalType: 'authoritative_listing',
+    sourceName: 'Shopify App Store',
+    description: 'App marketplace listing',
+  },
+  {
+    signalType: 'authoritative_listing',
+    sourceName: 'Industry Directory',
+    description: 'Vertical-specific directory',
+  },
+  {
+    signalType: 'authoritative_listing',
+    sourceName: 'Chamber of Commerce',
+    description: 'Business association listing',
+  },
   // Brand Mention platforms
-  { signalType: 'brand_mention', sourceName: 'Industry Blog', description: 'Blog mention or feature' },
-  { signalType: 'brand_mention', sourceName: 'News Publication', description: 'News article mention' },
-  { signalType: 'brand_mention', sourceName: 'Social Media', description: 'Social platform mention' },
+  {
+    signalType: 'brand_mention',
+    sourceName: 'Industry Blog',
+    description: 'Blog mention or feature',
+  },
+  {
+    signalType: 'brand_mention',
+    sourceName: 'News Publication',
+    description: 'News article mention',
+  },
+  {
+    signalType: 'brand_mention',
+    sourceName: 'Social Media',
+    description: 'Social platform mention',
+  },
   // Reference Content platforms
-  { signalType: 'reference_content', sourceName: 'Comparison Site', description: 'Product comparison guide' },
-  { signalType: 'reference_content', sourceName: 'Industry Report', description: 'Research or study citation' },
+  {
+    signalType: 'reference_content',
+    sourceName: 'Comparison Site',
+    description: 'Product comparison guide',
+  },
+  {
+    signalType: 'reference_content',
+    sourceName: 'Industry Report',
+    description: 'Research or study citation',
+  },
 ];
 
 /**
@@ -76,7 +136,7 @@ const KNOWN_PLATFORMS: { signalType: OffsiteSignalType; sourceName: string; desc
 export class OffsiteSignalsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly roleResolution: RoleResolutionService,
+    private readonly roleResolution: RoleResolutionService
   ) {}
 
   // ============================================================================
@@ -161,7 +221,9 @@ export class OffsiteSignalsService {
     return mapping[type];
   }
 
-  private toPrismaApplyTarget(target: OffsiteFixApplyTarget): PrismaApplyTarget {
+  private toPrismaApplyTarget(
+    target: OffsiteFixApplyTarget
+  ): PrismaApplyTarget {
     const mapping: Record<OffsiteFixApplyTarget, PrismaApplyTarget> = {
       NOTES: 'NOTES',
       CONTENT_WORKSPACE: 'CONTENT_WORKSPACE',
@@ -243,7 +305,9 @@ export class OffsiteSignalsService {
    * Compute off-site coverage for a project.
    * Uses simple weighting per signal type, with higher weight for trust proof and authoritative listings.
    */
-  async computeProjectCoverage(projectId: string): Promise<ProjectOffsiteCoverage> {
+  async computeProjectCoverage(
+    projectId: string
+  ): Promise<ProjectOffsiteCoverage> {
     // Get all signals
     const signals = await this.prisma.projectOffsiteSignal.findMany({
       where: { projectId },
@@ -314,10 +378,13 @@ export class OffsiteSignalsService {
     // Upsert the latest coverage (keep one row per project)
     await this.prisma.projectOffsiteCoverage.upsert({
       where: {
-        id: (await this.prisma.projectOffsiteCoverage.findFirst({
-          where: { projectId },
-          orderBy: { computedAt: 'desc' },
-        }))?.id ?? 'new',
+        id:
+          (
+            await this.prisma.projectOffsiteCoverage.findFirst({
+              where: { projectId },
+              orderBy: { computedAt: 'desc' },
+            })
+          )?.id ?? 'new',
       },
       create: {
         projectId,
@@ -377,7 +444,9 @@ export class OffsiteSignalsService {
    * INSIGHTS-1: Read-only coverage accessor (never computes or persists).
    * Returns null when no cached coverage exists.
    */
-  async getCachedProjectCoverage(projectId: string): Promise<ProjectOffsiteCoverage | null> {
+  async getCachedProjectCoverage(
+    projectId: string
+  ): Promise<ProjectOffsiteCoverage | null> {
     const row = await this.prisma.projectOffsiteCoverage.findFirst({
       where: { projectId },
       orderBy: { computedAt: 'desc' },
@@ -437,8 +506,10 @@ export class OffsiteSignalsService {
         gapType: 'competitor_has_offsite_signal',
         signalType: 'trust_proof',
         competitorCount: 2,
-        example: 'Competitors in your industry typically have third-party reviews on platforms like Trustpilot or G2.',
-        recommendedAction: 'Request reviews from customers or add review platform integration.',
+        example:
+          'Competitors in your industry typically have third-party reviews on platforms like Trustpilot or G2.',
+        recommendedAction:
+          'Request reviews from customers or add review platform integration.',
         severity: 'critical',
       });
     }
@@ -449,8 +520,10 @@ export class OffsiteSignalsService {
         gapType: 'competitor_has_offsite_signal',
         signalType: 'authoritative_listing',
         competitorCount: 2,
-        example: 'Competitors typically appear in industry directories and marketplace listings.',
-        recommendedAction: 'Submit your business to relevant industry directories and marketplaces.',
+        example:
+          'Competitors typically appear in industry directories and marketplace listings.',
+        recommendedAction:
+          'Submit your business to relevant industry directories and marketplaces.',
         severity: 'warning',
       });
     }
@@ -463,10 +536,14 @@ export class OffsiteSignalsService {
    */
   private getGapExample(signalType: OffsiteSignalType): string {
     const examples: Record<OffsiteSignalType, string> = {
-      brand_mention: 'No brand mentions detected in articles, blogs, or news publications.',
-      authoritative_listing: 'No presence found in industry directories or marketplace listings.',
-      trust_proof: 'No third-party reviews, testimonials, or certifications detected.',
-      reference_content: 'No guides, comparisons, or studies citing your brand were found.',
+      brand_mention:
+        'No brand mentions detected in articles, blogs, or news publications.',
+      authoritative_listing:
+        'No presence found in industry directories or marketplace listings.',
+      trust_proof:
+        'No third-party reviews, testimonials, or certifications detected.',
+      reference_content:
+        'No guides, comparisons, or studies citing your brand were found.',
     };
     return examples[signalType];
   }
@@ -476,10 +553,14 @@ export class OffsiteSignalsService {
    */
   private getRecommendedAction(signalType: OffsiteSignalType): string {
     const actions: Record<OffsiteSignalType, string> = {
-      brand_mention: 'Pitch guest posts or press releases to industry publications.',
-      authoritative_listing: 'Submit your business to relevant directories and marketplaces.',
-      trust_proof: 'Request reviews from customers and consider review platform integration.',
-      reference_content: 'Create shareable content that others can cite and reference.',
+      brand_mention:
+        'Pitch guest posts or press releases to industry publications.',
+      authoritative_listing:
+        'Submit your business to relevant directories and marketplaces.',
+      trust_proof:
+        'Request reviews from customers and consider review platform integration.',
+      reference_content:
+        'Create shareable content that others can cite and reference.',
     };
     return actions[signalType];
   }
@@ -520,10 +601,7 @@ export class OffsiteSignalsService {
     const draftRows = await this.prisma.projectOffsiteFixDraft.findMany({
       where: {
         projectId,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } },
-        ],
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
     });
 
@@ -568,7 +646,10 @@ export class OffsiteSignalsService {
     for (const signalType of OFFSITE_SIGNAL_TYPES) {
       if (coverage.signalCounts[signalType] === 0) {
         const gapType = getGapTypeForMissingSignal(signalType);
-        const severity: DeoIssueSeverity = calculateOffsiteSeverity(signalType, gapType);
+        const severity: DeoIssueSeverity = calculateOffsiteSeverity(
+          signalType,
+          gapType
+        );
 
         issues.push({
           id: `offsite_${gapType}_${projectId}`,
@@ -591,7 +672,8 @@ export class OffsiteSignalsService {
       issues.push({
         id: `offsite_competitor_trust_proof_${projectId}`,
         title: 'Competitors Have Third-Party Reviews',
-        description: 'Competitors in your industry typically have third-party reviews, which you appear to be missing.',
+        description:
+          'Competitors in your industry typically have third-party reviews, which you appear to be missing.',
         severity: 'critical',
         count: 1,
         pillarId: 'offsite_signals',
@@ -599,8 +681,10 @@ export class OffsiteSignalsService {
         signalType: 'trust_proof',
         offsiteGapType: 'competitor_has_offsite_signal',
         competitorCount: 2,
-        recommendedAction: 'Request reviews from customers to build third-party trust proof.',
-        whyItMatters: 'Third-party reviews are high-trust signals that AI models and discovery engines rely on to verify brand legitimacy.',
+        recommendedAction:
+          'Request reviews from customers to build third-party trust proof.',
+        whyItMatters:
+          'Third-party reviews are high-trust signals that AI models and discovery engines rely on to verify brand legitimacy.',
       });
     }
 
@@ -608,7 +692,8 @@ export class OffsiteSignalsService {
       issues.push({
         id: `offsite_competitor_listing_${projectId}`,
         title: 'Competitors Appear in Industry Directories',
-        description: 'Competitors typically appear in industry directories and marketplace listings.',
+        description:
+          'Competitors typically appear in industry directories and marketplace listings.',
         severity: 'warning',
         count: 1,
         pillarId: 'offsite_signals',
@@ -616,8 +701,10 @@ export class OffsiteSignalsService {
         signalType: 'authoritative_listing',
         offsiteGapType: 'competitor_has_offsite_signal',
         competitorCount: 2,
-        recommendedAction: 'Submit your business to relevant directories and marketplace platforms.',
-        whyItMatters: 'Directory listings provide authoritative backlinks and help discovery engines validate your business.',
+        recommendedAction:
+          'Submit your business to relevant directories and marketplace platforms.',
+        whyItMatters:
+          'Directory listings provide authoritative backlinks and help discovery engines validate your business.',
       });
     }
 
@@ -628,7 +715,9 @@ export class OffsiteSignalsService {
    * INSIGHTS-1: Read-only issue generation (never computes or persists coverage).
    * Returns [] when no cached coverage exists yet.
    */
-  async buildOffsiteIssuesForProjectReadOnly(projectId: string): Promise<DeoIssue[]> {
+  async buildOffsiteIssuesForProjectReadOnly(
+    projectId: string
+  ): Promise<DeoIssue[]> {
     const coverage = await this.getCachedProjectCoverage(projectId);
     if (!coverage) return [];
 
@@ -637,7 +726,10 @@ export class OffsiteSignalsService {
     for (const signalType of OFFSITE_SIGNAL_TYPES) {
       if (coverage.signalCounts[signalType] === 0) {
         const gapType = getGapTypeForMissingSignal(signalType);
-        const severity: DeoIssueSeverity = calculateOffsiteSeverity(signalType, gapType);
+        const severity: DeoIssueSeverity = calculateOffsiteSeverity(
+          signalType,
+          gapType
+        );
 
         issues.push({
           id: `offsite_${gapType}_${projectId}`,
@@ -659,7 +751,8 @@ export class OffsiteSignalsService {
       issues.push({
         id: `offsite_competitor_trust_proof_${projectId}`,
         title: 'Competitors Have Third-Party Reviews',
-        description: 'Competitors in your industry typically have third-party reviews, which you appear to be missing.',
+        description:
+          'Competitors in your industry typically have third-party reviews, which you appear to be missing.',
         severity: 'critical',
         count: 1,
         pillarId: 'offsite_signals',
@@ -667,8 +760,10 @@ export class OffsiteSignalsService {
         signalType: 'trust_proof',
         offsiteGapType: 'competitor_has_offsite_signal',
         competitorCount: 2,
-        recommendedAction: 'Request reviews from customers to build third-party trust proof.',
-        whyItMatters: 'Third-party reviews are high-trust signals that AI models and discovery engines rely on to verify brand legitimacy.',
+        recommendedAction:
+          'Request reviews from customers to build third-party trust proof.',
+        whyItMatters:
+          'Third-party reviews are high-trust signals that AI models and discovery engines rely on to verify brand legitimacy.',
       });
     }
 
@@ -676,7 +771,8 @@ export class OffsiteSignalsService {
       issues.push({
         id: `offsite_competitor_listing_${projectId}`,
         title: 'Competitors Appear in Industry Directories',
-        description: 'Competitors typically appear in industry directories and marketplace listings.',
+        description:
+          'Competitors typically appear in industry directories and marketplace listings.',
         severity: 'warning',
         count: 1,
         pillarId: 'offsite_signals',
@@ -684,8 +780,10 @@ export class OffsiteSignalsService {
         signalType: 'authoritative_listing',
         offsiteGapType: 'competitor_has_offsite_signal',
         competitorCount: 2,
-        recommendedAction: 'Submit your business to relevant directories and marketplace platforms.',
-        whyItMatters: 'Directory listings provide authoritative backlinks and help discovery engines validate your business.',
+        recommendedAction:
+          'Submit your business to relevant directories and marketplace platforms.',
+        whyItMatters:
+          'Directory listings provide authoritative backlinks and help discovery engines validate your business.',
       });
     }
 

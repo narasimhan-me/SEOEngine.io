@@ -34,7 +34,7 @@ export interface IssueDetectedEventFixture {
 
 export function makeProductSyncedEvent(
   productFixture: unknown,
-  plan: TestPlanId,
+  plan: TestPlanId
 ): ProductSyncedEventFixture {
   return {
     type: 'product_synced',
@@ -46,7 +46,7 @@ export function makeProductSyncedEvent(
 export function makeIssueDetectedEvent(
   productFixture: unknown,
   issueFixture: unknown,
-  plan: TestPlanId,
+  plan: TestPlanId
 ): IssueDetectedEventFixture {
   return {
     type: 'issue_detected',

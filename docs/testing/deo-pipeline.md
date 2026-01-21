@@ -50,16 +50,19 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - User has a project with a connected domain
 - No crawl currently in progress
 
 **Steps:**
+
 1. Navigate to Project Overview
 2. Click "Run Crawl" or "Scan Now" button
 3. Observe status indicator
 4. Wait for crawl completion
 
 **Expected Results:**
+
 - **UI:** Button shows loading state, status changes to "Crawling..."
 - **API:** `POST /api/projects/:id/crawl` returns 200/202
 - **Database:** CrawlResult record created with status transitions
@@ -72,15 +75,18 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Project has crawl frequency set (DAILY/WEEKLY/MONTHLY)
 - Scheduled time has arrived
 
 **Steps:**
+
 1. Configure project crawl frequency
 2. Wait for scheduled trigger (or manually trigger scheduler)
 3. Observe crawl execution
 
 **Expected Results:**
+
 - **Worker:** Crawl job picked up and executed
 - **Database:** CrawlResult created with `triggeredBy: SCHEDULED`
 - **Project:** `lastCrawledAt` updated
@@ -92,14 +98,17 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Crawl in progress
 
 **Steps:**
+
 1. Trigger a crawl
 2. Poll status endpoint or observe UI
 3. Track status through: PENDING → RUNNING → COMPLETE
 
 **Expected Results:**
+
 - **Status flow:** PENDING → RUNNING → COMPLETE (or FAILED)
 - **Timing:** Each transition logged with timestamp
 - **UI:** Status reflected accurately in real-time or on refresh
@@ -111,14 +120,17 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - Domain has multiple crawlable pages
 
 **Steps:**
+
 1. Trigger crawl on multi-page site
 2. Wait for completion
 3. Review crawl results
 
 **Expected Results:**
+
 - **Database:** Multiple page records in CrawlResult
 - **Metrics:** Page count, crawl duration recorded
 - **Data:** Per-page metadata (title, description, status codes) stored
@@ -132,10 +144,12 @@
 **Description:** Target domain returns no crawlable content.
 
 **Steps:**
+
 1. Connect a domain that returns 404 or empty response
 2. Trigger crawl
 
 **Expected Behavior:**
+
 - Crawl completes with 0 pages
 - Status: COMPLETE (not FAILED)
 - User informed of empty result
@@ -147,11 +161,13 @@
 **Description:** Crawl on site with many pages tests pagination and timeouts.
 
 **Steps:**
+
 1. Trigger crawl on large site
 2. Monitor progress
 3. Verify completion
 
 **Expected Behavior:**
+
 - Crawl respects page limits per plan
 - Progress updates shown
 - Completes within timeout or gracefully stops at limit
@@ -163,10 +179,12 @@
 **Description:** Site has multiple redirects (301/302).
 
 **Steps:**
+
 1. Crawl domain with redirect chains
 2. Review results
 
 **Expected Behavior:**
+
 - Final destination pages crawled
 - Redirect chain noted in results
 - No infinite loops
@@ -178,10 +196,12 @@
 **Description:** User triggers crawl while one is already running.
 
 **Steps:**
+
 1. Start a crawl
 2. Immediately try to start another
 
 **Expected Behavior:**
+
 - Second request rejected or queued
 - Clear message: "Crawl already in progress"
 - No duplicate crawl jobs
@@ -195,10 +215,12 @@
 **Scenario:** Target domain cannot be resolved or connected.
 
 **Steps:**
+
 1. Connect invalid/unreachable domain
 2. Trigger crawl
 
 **Expected Behavior:**
+
 - Status: FAILED
 - Error message: "Could not reach domain"
 - User can retry after fixing domain
@@ -210,9 +232,11 @@
 **Scenario:** Target site returns server errors.
 
 **Steps:**
+
 1. Crawl site returning 500 errors
 
 **Expected Behavior:**
+
 - Individual page errors recorded
 - Crawl continues for other pages
 - Summary shows error count
@@ -224,10 +248,12 @@
 **Scenario:** Crawl exceeds maximum allowed time.
 
 **Steps:**
+
 1. Trigger crawl on very slow site
 2. Wait for timeout
 
 **Expected Behavior:**
+
 - Crawl terminates at timeout
 - Status: FAILED or PARTIAL
 - Partial results preserved
@@ -240,9 +266,11 @@
 **Scenario:** Crawl worker crashes or queue is unavailable.
 
 **Steps:**
+
 1. Simulate worker failure during crawl
 
 **Expected Behavior:**
+
 - Status: FAILED
 - Error logged for debugging
 - Job can be retried
@@ -255,9 +283,11 @@
 **Scenario:** Cannot persist crawl results.
 
 **Steps:**
+
 1. Simulate database unavailability during crawl
 
 **Expected Behavior:**
+
 - Crawl fails gracefully
 - Error logged
 - User notified of failure
@@ -271,17 +301,19 @@
 
 **Scenario:** Verify crawl respects plan-based page limits.
 
-| Plan | Max Pages |
-|------|-----------|
-| Free | 50 |
-| Pro | 500 |
-| Business | 5000 |
+| Plan     | Max Pages |
+| -------- | --------- |
+| Free     | 50        |
+| Pro      | 500       |
+| Business | 5000      |
 
 **Steps:**
+
 1. Crawl site with more pages than limit
 2. Verify crawl stops at limit
 
 **Expected Behavior:**
+
 - Crawl stops at plan limit
 - User informed of limit
 - Upgrade prompt shown
@@ -293,10 +325,12 @@
 **Scenario:** Verify minimum time between crawls.
 
 **Steps:**
+
 1. Complete a crawl
 2. Immediately try to crawl again
 
 **Expected Behavior:**
+
 - Rate limit enforced (e.g., 1 crawl per hour for Free)
 - Clear messaging about when next crawl available
 
@@ -353,9 +387,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | Cross-cutting system-level tests for DEO pipeline |
+| Field              | Value                                             |
+| ------------------ | ------------------------------------------------- |
+| **Tester Name**    | [Pending]                                         |
+| **Date**           | [YYYY-MM-DD]                                      |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed             |
+| **Notes**          | Cross-cutting system-level tests for DEO pipeline |

@@ -58,7 +58,10 @@ export const FROM_CONTEXT_LABELS: Record<FromContext, string> = {
 /**
  * Default back routes for each navigation origin.
  */
-export const FROM_CONTEXT_ROUTES: Record<FromContext, (projectId: string) => string> = {
+export const FROM_CONTEXT_ROUTES: Record<
+  FromContext,
+  (projectId: string) => string
+> = {
   store_health: (projectId) => `/projects/${projectId}/store-health`,
   work_queue: (projectId) => `/projects/${projectId}/work-queue`,
   issues: (projectId) => `/projects/${projectId}/issues`,
@@ -95,7 +98,10 @@ export const FROM_CONTEXT_ROUTES: Record<FromContext, (projectId: string) => str
  * @param returnTo - The returnTo URL to validate
  * @returns Type guard indicating if returnTo is safe
  */
-export function isValidReturnTo(projectId: string, returnTo: string | null | undefined): returnTo is string {
+export function isValidReturnTo(
+  projectId: string,
+  returnTo: string | null | undefined
+): returnTo is string {
   if (!returnTo || typeof returnTo !== 'string') {
     return false;
   }
@@ -189,7 +195,12 @@ export function getValidatedReturnTo(
   }
 
   // Include returnLabel only if returnTo is valid
-  if (result.returnTo && returnLabel && typeof returnLabel === 'string' && returnLabel.length > 0) {
+  if (
+    result.returnTo &&
+    returnLabel &&
+    typeof returnLabel === 'string' &&
+    returnLabel.length > 0
+  ) {
     // Sanitize returnLabel (max 50 chars, no HTML)
     result.returnLabel = returnLabel.slice(0, 50).replace(/<[^>]*>/g, '');
   }
@@ -272,7 +283,9 @@ export function buildBackLink(params: {
 
   // Priority 1: Valid returnTo
   if (isValidReturnTo(projectId, returnTo)) {
-    const label = returnLabel || (from ? `Back to ${FROM_CONTEXT_LABELS[from]}` : 'Go back');
+    const label =
+      returnLabel ||
+      (from ? `Back to ${FROM_CONTEXT_LABELS[from]}` : 'Go back');
     return { href: returnTo, label };
   }
 

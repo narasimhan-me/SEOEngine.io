@@ -7,6 +7,7 @@
 ## Purpose
 
 This document tracks all critical paths in EngineO.ai that must be verified before any release. Each critical path:
+
 - Links to at least one manual testing document
 - Notes automated test coverage status
 - Tracks last verification date (manual and automated)
@@ -21,15 +22,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** User authentication flows including sign-up, login, logout, session management, sign-out-all, and role-based access control.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/user-profile-and-account-settings.md`, `docs/manual-testing/SELF-SERVICE-1.md`, `docs/manual-testing/SECURITY-LOGIN-QUERY-PARAMS.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md` |
-| **Automated Tests** | `apps/api/test/integration/self-service-1.test.ts`, `apps/web/tests/auth-security.spec.ts`, `apps/web/tests/nav-ia-consistency-1.spec.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Core Team |
+| Field                         | Value                                                                                                                                                                                                                                        |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/user-profile-and-account-settings.md`, `docs/manual-testing/SELF-SERVICE-1.md`, `docs/manual-testing/SECURITY-LOGIN-QUERY-PARAMS.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md` |
+| **Automated Tests**           | `apps/api/test/integration/self-service-1.test.ts`, `apps/web/tests/auth-security.spec.ts`, `apps/web/tests/nav-ia-consistency-1.spec.ts`                                                                                                    |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                                                                                                 |
+| **Last Verified (Automated)** | N/A                                                                                                                                                                                                                                          |
+| **Owner**                     | Core Team                                                                                                                                                                                                                                    |
 
 **Key Scenarios:**
+
 - [ ] New user sign-up flow
 - [ ] Existing user login
 - [ ] Session persistence and expiration
@@ -56,15 +58,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Stripe subscription management, plan entitlements enforcement, project limits, daily AI usage quotas, and owner-only billing restrictions.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/billing-and-limits.md`, `docs/testing/entitlements-matrix.md`, `docs/testing/plan-definitions.md`, `docs/manual-testing/SELF-SERVICE-1.md`, `docs/manual-testing/BILLING-GTM-1.md` |
-| **Automated Tests** | `apps/api/test/integration/self-service-1.test.ts`, `apps/web/tests/self-service-1.spec.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Core Team |
+| Field                         | Value                                                                                                                                                                                            |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Manual Testing Doc(s)**     | `docs/testing/billing-and-limits.md`, `docs/testing/entitlements-matrix.md`, `docs/testing/plan-definitions.md`, `docs/manual-testing/SELF-SERVICE-1.md`, `docs/manual-testing/BILLING-GTM-1.md` |
+| **Automated Tests**           | `apps/api/test/integration/self-service-1.test.ts`, `apps/web/tests/self-service-1.spec.ts`                                                                                                      |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                                                     |
+| **Last Verified (Automated)** | N/A                                                                                                                                                                                              |
+| **Owner**                     | Core Team                                                                                                                                                                                        |
 
 **Key Scenarios:**
+
 - [ ] New subscription creation
 - [ ] Plan upgrade/downgrade
 - [ ] Subscription cancellation
@@ -77,7 +80,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] BILLING-GTM-1: Public pricing page readable without login
 - [ ] BILLING-GTM-1: Billing page shows aiUsedRuns (not totalRuns) in quota display
 - [ ] BILLING-GTM-1: Trust messaging visible: "APPLY never uses AI", "Runs avoided via reuse"
-- [ ] BILLING-GTM-1: Env-driven AI quota limits (AI_USAGE_MONTHLY_RUN_LIMIT_<PLAN>)
+- [ ] BILLING-GTM-1: Env-driven AI quota limits (AI*USAGE_MONTHLY_RUN_LIMIT*<PLAN>)
 - [ ] BILLING-GTM-1: Contextual upgrade prompt on Insights when quota >=80%
 - [ ] BILLING-GTM-1: Limit-style toast with Upgrade CTA on Playbooks quota warning
 - [ ] BILLING-GTM-1: Marketing pricing aligned with backend limits (no mismatched claims)
@@ -88,15 +91,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** AI-powered product optimization including Gemini integration, token tracking, failover logic, and response handling.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/ai-systems.md`, `docs/testing/token-usage-tracking.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/PRODUCTS-LIST-2.0.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md` |
-| **Automated Tests** | `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | AI Team |
+| Field                         | Value                                                                                                                                                                                                                  |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/ai-systems.md`, `docs/testing/token-usage-tracking.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/PRODUCTS-LIST-2.0.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md` |
+| **Automated Tests**           | `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`                                                                                                                                                              |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                                                                           |
+| **Last Verified (Automated)** | N/A                                                                                                                                                                                                                    |
+| **Owner**                     | AI Team                                                                                                                                                                                                                |
 
 **Key Scenarios:**
+
 - [ ] Single product optimization
 - [ ] Batch optimization
 - [ ] Token usage tracking and display
@@ -123,15 +127,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Product crawling system including queue management, worker processing, progress tracking, and error handling.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/deo-pipeline.md`, `docs/testing/signals-collection.md` |
-| **Automated Tests** | Planned |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Pipeline Team |
+| Field                         | Value                                                                |
+| ----------------------------- | -------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/deo-pipeline.md`, `docs/testing/signals-collection.md` |
+| **Automated Tests**           | Planned                                                              |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                         |
+| **Last Verified (Automated)** | N/A                                                                  |
+| **Owner**                     | Pipeline Team                                                        |
 
 **Key Scenarios:**
+
 - [ ] Manual crawl trigger
 - [ ] Scheduled crawl execution
 - [ ] Progress feedback in UI
@@ -144,15 +149,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** DEO score calculation pipeline including signal aggregation, weighting, score persistence, snapshot history, and v2 explainability layer.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/deo-score-compute-pipeline.md`, `docs/testing/deo-score-snapshots.md`, `docs/manual-testing/phase-2.6-deo-score-v2-explainability.md` |
-| **Automated Tests** | Planned |
-| **Last Verified (Manual)** | 2025-12-08 |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | DEO Team |
+| Field                         | Value                                                                                                                                               |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/deo-score-compute-pipeline.md`, `docs/testing/deo-score-snapshots.md`, `docs/manual-testing/phase-2.6-deo-score-v2-explainability.md` |
+| **Automated Tests**           | Planned                                                                                                                                             |
+| **Last Verified (Manual)**    | 2025-12-08                                                                                                                                          |
+| **Last Verified (Automated)** | N/A                                                                                                                                                 |
+| **Owner**                     | DEO Team                                                                                                                                            |
 
 **Key Scenarios:**
+
 - [ ] Score computation after crawl
 - [ ] Score display in UI
 - [ ] Historical snapshot storage
@@ -179,6 +185,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | **Owner** | Integrations Team |
 
 **Key Scenarios:**
+
 - [ ] Shopify OAuth connection
 - [ ] Initial product import
 - [ ] Incremental sync
@@ -236,15 +243,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** AI service resilience including primary/fallback provider switching, timeout handling, and graceful degradation.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/ai-systems.md` (Failover section) |
-| **Automated Tests** | Planned |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | AI Team |
+| Field                         | Value                                           |
+| ----------------------------- | ----------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/ai-systems.md` (Failover section) |
+| **Automated Tests**           | Planned                                         |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                    |
+| **Last Verified (Automated)** | N/A                                             |
+| **Owner**                     | AI Team                                         |
 
 **Key Scenarios:**
+
 - [ ] Primary provider timeout triggers failover
 - [ ] Fallback provider success
 - [ ] All providers fail gracefully
@@ -257,15 +265,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Global UI feedback systems including toast notifications, loading states, error displays, inline validation, design tokens, theme support, trust-safe issue routing, and count integrity between Work Queue and Issues page.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.1.md` ✅, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md`, `docs/manual-testing/ISSUE-FIX-KIND-CLARITY-1.md` ✅ |
-| **Automated Tests** | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/web/tests/issue-to-fix-path-1.spec.ts`, `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/count-integrity-1-1.spec.ts` ✅ (backend API), `apps/web/tests/count-integrity-1-1.ui.spec.ts` ✅ (UI smoke test), `apps/web/tests/zero-affected-suppression-1.spec.ts` ✅, `apps/web/tests/issue-fix-kind-clarity-1.spec.ts` ✅, `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-002b) |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Frontend Team |
+| Field                         | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/frontend-ux-feedback-and-limits.md`, `docs/testing/toast-and-inline-feedback-system.md`, `docs/testing/modal-and-dialog-behavior.md`, `docs/manual-testing/NAV-IA-CONSISTENCY-1.md`, `docs/manual-testing/DRAFT-CLARITY-AND-ACTION-TRUST-1.md`, `docs/manual-testing/ISSUE-TO-FIX-PATH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.1.md` ✅, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md`, `docs/manual-testing/ISSUE-FIX-KIND-CLARITY-1.md` ✅  |
+| **Automated Tests**           | `apps/web/tests/nav-ia-consistency-1.spec.ts`, `apps/web/tests/draft-clarity-and-action-trust-1.spec.ts`, `apps/web/tests/issue-to-fix-path-1.spec.ts`, `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/count-integrity-1-1.spec.ts` ✅ (backend API), `apps/web/tests/count-integrity-1-1.ui.spec.ts` ✅ (UI smoke test), `apps/web/tests/zero-affected-suppression-1.spec.ts` ✅, `apps/web/tests/issue-fix-kind-clarity-1.spec.ts` ✅, `apps/web/tests/list-actions-clarity-1.spec.ts` (LAC1-002b) |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| **Last Verified (Automated)** | N/A                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **Owner**                     | Frontend Team                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 **Key Scenarios:**
+
 - [ ] Success toast display and auto-dismiss
 - [ ] Error toast with action buttons
 - [ ] Loading spinners during async operations
@@ -317,15 +326,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Product-focused DEO issues with actionable fix buttons (AI fix, manual fix, sync fix) and severity filtering. Includes MEDIA pillar issues and role-based actionability semantics.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/issue-engine-lite.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.1.md`, `docs/manual-testing/DIAGNOSTIC-GUIDANCE-1.md` ✅ |
-| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/count-integrity-1-1.spec.ts` ✅ (backend API), `apps/web/tests/count-integrity-1-1.ui.spec.ts` ✅ (UI smoke test) |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | DEO Team |
+| Field                         | Value                                                                                                                                                                                                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/issue-engine-lite.md`, `docs/manual-testing/MEDIA-1.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.md`, `docs/manual-testing/COUNT-INTEGRITY-1.1.md`, `docs/manual-testing/DIAGNOSTIC-GUIDANCE-1.md` ✅ |
+| **Automated Tests**           | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1), `apps/web/tests/count-integrity-1.spec.ts` ✅, `apps/web/tests/count-integrity-1-1.spec.ts` ✅ (backend API), `apps/web/tests/count-integrity-1-1.ui.spec.ts` ✅ (UI smoke test)           |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                                                                                                                  |
+| **Last Verified (Automated)** | N/A                                                                                                                                                                                                                                                           |
+| **Owner**                     | DEO Team                                                                                                                                                                                                                                                      |
 
 **Key Scenarios:**
+
 - [ ] Issues page displays all product issues with severity badges
 - [ ] Severity filtering (All/Critical/Warning/Info)
 - [ ] Fix with AI action routes to product workspace
@@ -357,15 +367,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Rich metadata enrichment for all DEO issues with categories, business impact explanations, fix guidance, AI fixability indicators, and effort estimation. Includes MEDIA pillar issue enrichment.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/manual-testing/phase-ux-8-issue-engine-full.md`, `docs/testing/issue-engine-full-*.md`, `docs/manual-testing/MEDIA-1.md` |
-| **Automated Tests** | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1) |
-| **Last Verified (Manual)** | 2025-12-08 |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | DEO Team |
+| Field                         | Value                                                                                                                          |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/phase-ux-8-issue-engine-full.md`, `docs/testing/issue-engine-full-*.md`, `docs/manual-testing/MEDIA-1.md` |
+| **Automated Tests**           | `packages/shared/src/media-accessibility-types.test.ts` (MEDIA-1)                                                              |
+| **Last Verified (Manual)**    | 2025-12-08                                                                                                                     |
+| **Last Verified (Automated)** | N/A                                                                                                                            |
+| **Owner**                     | DEO Team                                                                                                                       |
 
 **Key Scenarios:**
+
 - [ ] All issues include category field with valid taxonomy value
 - [ ] All issues include whyItMatters explanation
 - [ ] All issues include recommendedFix guidance
@@ -383,15 +394,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Answer Engine foundations including Answer Block model, answerability detection implementation, AI-based answer generation, and integration with DEO Score v2 and Issue Engine.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/answer-engine.md`, `docs/manual-testing/phase-ae-1-answer-engine-foundations.md`, `docs/manual-testing/phase-ae-1.1-answer-engine-detection.md`, `docs/manual-testing/phase-ae-1.2-answer-engine-generation-and-ui.md`, `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md` |
-| **Automated Tests** | `apps/api/test/e2e/answer-engine.e2e-spec.ts`, `apps/api/test/e2e/answer-generation.e2e-spec.ts` |
-| **Last Verified (Manual)** | 2025-12-09 |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | DEO Team |
+| Field                         | Value                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/answer-engine.md`, `docs/manual-testing/phase-ae-1-answer-engine-foundations.md`, `docs/manual-testing/phase-ae-1.1-answer-engine-detection.md`, `docs/manual-testing/phase-ae-1.2-answer-engine-generation-and-ui.md`, `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md` |
+| **Automated Tests**           | `apps/api/test/e2e/answer-engine.e2e-spec.ts`, `apps/api/test/e2e/answer-generation.e2e-spec.ts`                                                                                                                                                                                                                                                                                |
+| **Last Verified (Manual)**    | 2025-12-09                                                                                                                                                                                                                                                                                                                                                                      |
+| **Last Verified (Automated)** | N/A                                                                                                                                                                                                                                                                                                                                                                             |
+| **Owner**                     | DEO Team                                                                                                                                                                                                                                                                                                                                                                        |
 
 **Key Scenarios:**
+
 - [ ] Answer Block model consistency (types match spec)
 - [ ] Canonical 10-question taxonomy defined
 - [ ] Answerability detection rules alignment
@@ -418,15 +430,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Automation Engine framework covering automation rule model, trigger/evaluation/execution/log lifecycle, and entitlements-aware automation behavior across DEO systems. Includes Product Automations (AE-2) for metadata, content, drift correction, and Shopify sync.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/testing/automation-engine.md`, `docs/testing/automation-engine-product-automations.md`, `docs/manual-testing/phase-ae-1-automation-engine-foundations.md`, `docs/manual-testing/phase-ae-2-product-automations.md`, `docs/manual-testing/phase-aue-1-automation-new-product-seo-title.md`, `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-automation-1-playbooks.md`, `docs/manual-testing/auto-pb-1-1-playbooks-hardening.md`, `docs/manual-testing/auto-pb-1-2-playbooks-ux-coherence.md`, `docs/manual-testing/AUTOMATION-ENTRY-1.md`, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md`, `docs/manual-testing/PLAYBOOK-STEP-CONTINUITY-1.md`, `docs/manual-testing/AUTOMATION-TRIGGER-TRUTHFULNESS-1.md` |
-| **Automated Tests** | `apps/api/test/e2e/automation-new-product-seo-title.e2e-spec.ts`, `apps/api/test/e2e/automation-playbooks.e2e-spec.ts`, `apps/web/tests/first-deo-win.spec.ts`, `apps/web/tests/automation-entry-1.spec.ts`, `apps/web/tests/zero-affected-suppression-1.spec.ts` ✅ |
-| **Last Verified (Manual)** | 2025-12-14 |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | DEO Team |
+| Field                         | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/testing/automation-engine.md`, `docs/testing/automation-engine-product-automations.md`, `docs/manual-testing/phase-ae-1-automation-engine-foundations.md`, `docs/manual-testing/phase-ae-2-product-automations.md`, `docs/manual-testing/phase-aue-1-automation-new-product-seo-title.md`, `docs/manual-testing/phase-ux-2-product-workspace-aeo-and-automation-ui.md`, `docs/manual-testing/phase-aeo-2-shopify-metafields-sync.md`, `docs/manual-testing/phase-automation-1-playbooks.md`, `docs/manual-testing/auto-pb-1-1-playbooks-hardening.md`, `docs/manual-testing/auto-pb-1-2-playbooks-ux-coherence.md`, `docs/manual-testing/AUTOMATION-ENTRY-1.md`, `docs/manual-testing/ZERO-AFFECTED-SUPPRESSION-1.md`, `docs/manual-testing/PLAYBOOK-STEP-CONTINUITY-1.md`, `docs/manual-testing/AUTOMATION-TRIGGER-TRUTHFULNESS-1.md` |
+| **Automated Tests**           | `apps/api/test/e2e/automation-new-product-seo-title.e2e-spec.ts`, `apps/api/test/e2e/automation-playbooks.e2e-spec.ts`, `apps/web/tests/first-deo-win.spec.ts`, `apps/web/tests/automation-entry-1.spec.ts`, `apps/web/tests/zero-affected-suppression-1.spec.ts` ✅                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| **Last Verified (Manual)**    | 2025-12-14                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| **Last Verified (Automated)** | N/A                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| **Owner**                     | DEO Team                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 **Key Scenarios:**
+
 - [ ] Automation rule model and lifecycle documented and aligned with shared types
 - [ ] Entitlement and limit interactions for automations specified
 - [ ] Integration points with crawl pipeline and existing AutomationService documented
@@ -493,15 +506,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Internal-only operational control plane for Support Agents, Ops Admins, and Management/CEO with role-based access control, read-only impersonation, quota resets, safe resyncs, and immutable audit logging.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/manual-testing/ADMIN-OPS-1.md`, `docs/ADMIN_OPS.md` |
-| **Automated Tests** | `apps/api/test/integration/admin-ops-1.test.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Core Team |
+| Field                         | Value                                                     |
+| ----------------------------- | --------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/ADMIN-OPS-1.md`, `docs/ADMIN_OPS.md` |
+| **Automated Tests**           | `apps/api/test/integration/admin-ops-1.test.ts`           |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                              |
+| **Last Verified (Automated)** | N/A                                                       |
+| **Owner**                     | Core Team                                                 |
 
 **Key Scenarios:**
+
 - [ ] Internal admin role gating (role=ADMIN + adminRole required)
 - [ ] SUPPORT_AGENT can perform read + support actions (impersonation)
 - [ ] OPS_ADMIN can perform read + support + ops actions (quota reset, plan override, safe resync)
@@ -522,15 +536,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Customer self-service account management including profile, preferences, organization settings, AI usage visibility, session management, and role-based access control (OWNER/EDITOR/VIEWER).
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/manual-testing/SELF-SERVICE-1.md`, `docs/SELF_SERVICE.md` |
-| **Automated Tests** | `apps/api/test/integration/self-service-1.test.ts`, `apps/web/tests/self-service-1.spec.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Core Team |
+| Field                         | Value                                                                                       |
+| ----------------------------- | ------------------------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/SELF-SERVICE-1.md`, `docs/SELF_SERVICE.md`                             |
+| **Automated Tests**           | `apps/api/test/integration/self-service-1.test.ts`, `apps/web/tests/self-service-1.spec.ts` |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                |
+| **Last Verified (Automated)** | N/A                                                                                         |
+| **Owner**                     | Core Team                                                                                   |
 
 **Key Scenarios:**
+
 - [ ] Profile management (name, avatar, timezone, locale)
 - [ ] Preferences persistence (notification toggles, default behaviors)
 - [ ] Organization name editing (OWNER/EDITOR only)
@@ -551,20 +566,21 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Implementation Status:** Docs Complete; Implementation Pending
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/manual-testing/GTM-ONBOARD-1.md`, `docs/GTM_ONBOARDING.md` |
-| **Automated Tests** | Planned |
-| **Last Verified (Manual)** | N/A (Implementation Pending) |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Core Team |
+| Field                         | Value                                                            |
+| ----------------------------- | ---------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/GTM-ONBOARD-1.md`, `docs/GTM_ONBOARDING.md` |
+| **Automated Tests**           | Planned                                                          |
+| **Last Verified (Manual)**    | N/A (Implementation Pending)                                     |
+| **Last Verified (Automated)** | N/A                                                              |
+| **Owner**                     | Core Team                                                        |
 
 **Key Scenarios:**
+
 - [ ] Onboarding eligibility (Shopify connected + no APPLY run)
 - [ ] Issue selection ladder (Search & Intent > Media > Metadata)
 - [ ] Start/advance/skip persistence per user+project
 - [ ] Completion detection via AutomationPlaybookRun APPLY row
-- [ ] Banner visibility under /projects/[id]/* routes only
+- [ ] Banner visibility under /projects/[id]/\* routes only
 - [ ] Session dismissal (sessionStorage) vs persistent skip
 - [ ] Deep-link focus without auto-AI (trust contract)
 - [ ] Preview requires explicit user click (no auto-preview)
@@ -579,15 +595,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Read-only derived insights dashboard showing DEO progress, AI efficiency metrics, issue resolution, opportunity signals, and GEO insights. Never triggers AI or mutations. Extended by ENTERPRISE-GEO-1 for governance-aware share links.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/manual-testing/INSIGHTS-1.md`, `docs/manual-testing/GEO-INSIGHTS-2.md`, `docs/manual-testing/ENTERPRISE-GEO-1.md`, `docs/IMPLEMENTATION_PLAN.md` |
-| **Automated Tests** | `apps/api/test/integration/geo-insights-2.test.ts`, `apps/api/test/integration/enterprise-geo-1.test.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Core Team |
+| Field                         | Value                                                                                                                                                  |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/INSIGHTS-1.md`, `docs/manual-testing/GEO-INSIGHTS-2.md`, `docs/manual-testing/ENTERPRISE-GEO-1.md`, `docs/IMPLEMENTATION_PLAN.md` |
+| **Automated Tests**           | `apps/api/test/integration/geo-insights-2.test.ts`, `apps/api/test/integration/enterprise-geo-1.test.ts`                                               |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                           |
+| **Last Verified (Automated)** | N/A                                                                                                                                                    |
+| **Owner**                     | Core Team                                                                                                                                              |
 
 **Key Scenarios:**
+
 - [ ] Insights endpoint returns ProjectInsightsResponse (read-only)
 - [ ] DEO score trend visualization with sparklines
 - [ ] AI efficiency metrics (runs used, avoided, reuse rate)
@@ -615,15 +632,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** GEO (Generative Engine Optimization) foundation layer providing explainable answer readiness signals (Clarity, Specificity, Structure, Context, Accessibility) and derived Citation Confidence (Low/Medium/High). Includes Preview/Apply flow for answer improvements. Extended by ENTERPRISE-GEO-1 for governance approval gating.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/manual-testing/GEO-FOUNDATION-1.md`, `docs/GEO_FOUNDATION.md`, `docs/GEO_INSIGHTS.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/GEO-EXPORT-1.md`, `docs/manual-testing/ENTERPRISE-GEO-1.md` |
-| **Automated Tests** | `packages/shared/src/geo-types.test.ts`, `apps/api/test/integration/geo-insights-2.test.ts`, `apps/api/test/integration/enterprise-geo-1.test.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | DEO Team |
+| Field                         | Value                                                                                                                                                                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/GEO-FOUNDATION-1.md`, `docs/GEO_FOUNDATION.md`, `docs/GEO_INSIGHTS.md`, `docs/manual-testing/DEO-UX-REFRESH-1.md`, `docs/manual-testing/GEO-EXPORT-1.md`, `docs/manual-testing/ENTERPRISE-GEO-1.md` |
+| **Automated Tests**           | `packages/shared/src/geo-types.test.ts`, `apps/api/test/integration/geo-insights-2.test.ts`, `apps/api/test/integration/enterprise-geo-1.test.ts`                                                                        |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                                                                             |
+| **Last Verified (Automated)** | N/A                                                                                                                                                                                                                      |
+| **Owner**                     | DEO Team                                                                                                                                                                                                                 |
 
 **Key Scenarios:**
+
 - [ ] GEO readiness signals evaluate Answer Blocks correctly
 - [ ] Citation Confidence derived from signals (High/Medium/Low)
 - [ ] GEO issues generated and integrated into Issue Engine
@@ -656,15 +674,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** Role-based access control foundations with single-user emulation support. Extends approval workflow to Playbooks apply with role-aware UI affordances.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/manual-testing/ROLES-2.md` |
-| **Automated Tests** | `apps/api/test/integration/roles-2.test.ts`, `apps/web/tests/roles-2.spec.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Core Team |
+| Field                         | Value                                                                         |
+| ----------------------------- | ----------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/ROLES-2.md`                                              |
+| **Automated Tests**           | `apps/api/test/integration/roles-2.test.ts`, `apps/web/tests/roles-2.spec.ts` |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                  |
+| **Last Verified (Automated)** | N/A                                                                           |
+| **Owner**                     | Core Team                                                                     |
 
 **Key Scenarios:**
+
 - [ ] ROLES-2: OWNER can approve and apply playbooks when approval required
 - [ ] ROLES-2: Approval creates audit event (APPROVAL_APPROVED)
 - [ ] ROLES-2: Apply blocked with APPROVAL_REQUIRED error when missing approval (HTTP 400, structured error)
@@ -685,15 +704,16 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 **Description:** True multi-user projects with explicit membership management. Extends ROLES-2 with ProjectMember model, OWNER-only apply enforcement, approval chains, and multi-user auto-apply blocking.
 
-| Field | Value |
-|-------|-------|
-| **Manual Testing Doc(s)** | `docs/manual-testing/ROLES-3.md` |
-| **Automated Tests** | `apps/api/test/integration/roles-3.test.ts`, `apps/web/tests/roles-3.spec.ts` |
-| **Last Verified (Manual)** | [YYYY-MM-DD] |
-| **Last Verified (Automated)** | N/A |
-| **Owner** | Core Team |
+| Field                         | Value                                                                         |
+| ----------------------------- | ----------------------------------------------------------------------------- |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/ROLES-3.md`                                              |
+| **Automated Tests**           | `apps/api/test/integration/roles-3.test.ts`, `apps/web/tests/roles-3.spec.ts` |
+| **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                  |
+| **Last Verified (Automated)** | N/A                                                                           |
+| **Owner**                     | Core Team                                                                     |
 
 **Key Scenarios:**
+
 - [ ] ROLES-3: Non-owner member can view project (via ProjectMember)
 - [ ] ROLES-3: EDITOR cannot apply automation playbooks (OWNER-only)
 - [ ] ROLES-3: VIEWER cannot generate drafts or apply
@@ -740,29 +760,30 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 ## Coverage Summary
 
-| Critical Path | Manual Docs | Auto Tests | Status |
-|---------------|-------------|------------|--------|
-| CP-001: Auth | ✅ | ✅ | 🟢 Full Coverage |
-| CP-002: Billing & Limits | ✅ | ✅ | 🟢 Full Coverage |
-| CP-003: Product Optimize (AI) | ✅ | Planned | 🟡 Manual Only |
-| CP-004: Crawl Pipeline | ✅ | Planned | 🟡 Manual Only |
-| CP-005: DEO Score Compute | ✅ | Planned | 🟡 Manual Only |
-| CP-006: Shopify Sync | ✅ | Planned | 🟡 Manual Only |
-| CP-007: AI Failover Logic | ✅ | Planned | 🟡 Manual Only |
-| CP-008: Frontend Global UX Feedback | ✅ | ✅ | 🟢 Full Coverage |
-| CP-009: Issue Engine Lite | ✅ | ✅ | 🟢 Full Coverage |
-| CP-010: Issue Engine Full | ✅ | Planned | 🟡 Manual Only |
-| CP-011: Answer Engine | ✅ | Planned | 🟡 Manual Only |
-| CP-012: Automation Engine | ✅ | Planned | 🟡 Manual Only |
-| CP-013: Admin Operations | ✅ | ✅ | 🟢 Full Coverage |
-| CP-014: Self-Service Control Plane | ✅ | ✅ | 🟢 Full Coverage |
-| CP-015: Guided Onboarding | ✅ | Planned | 🟡 Manual Only (Impl Pending) |
-| CP-016: Project Insights | ✅ | ✅ | 🟢 Full Coverage |
-| CP-017: GEO Answer Readiness | ✅ | ✅ | 🟢 Full Coverage |
-| CP-018: ROLES-2 Project Roles | ✅ | ✅ | 🟢 Full Coverage |
-| CP-019: ROLES-3 Multi-User Projects | ✅ | ✅ | 🟢 Full Coverage |
+| Critical Path                       | Manual Docs | Auto Tests | Status                        |
+| ----------------------------------- | ----------- | ---------- | ----------------------------- |
+| CP-001: Auth                        | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-002: Billing & Limits            | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-003: Product Optimize (AI)       | ✅          | Planned    | 🟡 Manual Only                |
+| CP-004: Crawl Pipeline              | ✅          | Planned    | 🟡 Manual Only                |
+| CP-005: DEO Score Compute           | ✅          | Planned    | 🟡 Manual Only                |
+| CP-006: Shopify Sync                | ✅          | Planned    | 🟡 Manual Only                |
+| CP-007: AI Failover Logic           | ✅          | Planned    | 🟡 Manual Only                |
+| CP-008: Frontend Global UX Feedback | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-009: Issue Engine Lite           | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-010: Issue Engine Full           | ✅          | Planned    | 🟡 Manual Only                |
+| CP-011: Answer Engine               | ✅          | Planned    | 🟡 Manual Only                |
+| CP-012: Automation Engine           | ✅          | Planned    | 🟡 Manual Only                |
+| CP-013: Admin Operations            | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-014: Self-Service Control Plane  | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-015: Guided Onboarding           | ✅          | Planned    | 🟡 Manual Only (Impl Pending) |
+| CP-016: Project Insights            | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-017: GEO Answer Readiness        | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-018: ROLES-2 Project Roles       | ✅          | ✅         | 🟢 Full Coverage              |
+| CP-019: ROLES-3 Multi-User Projects | ✅          | ✅         | 🟢 Full Coverage              |
 
 **Legend:**
+
 - 🟢 Full Coverage (Manual + Automated)
 - 🟡 Manual Only
 - 🔴 No Coverage

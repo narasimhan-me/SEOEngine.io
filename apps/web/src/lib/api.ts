@@ -187,7 +187,13 @@ export interface CreateGeoReportShareLinkResponse {
 }
 
 export interface GeoReportPublicShareViewResponse {
-  status: 'valid' | 'expired' | 'revoked' | 'not_found' | 'passcode_required' | 'passcode_invalid';
+  status:
+    | 'valid'
+    | 'expired'
+    | 'revoked'
+    | 'not_found'
+    | 'passcode_required'
+    | 'passcode_invalid';
   report?: GeoReportData;
   expiresAt?: string;
   generatedAt?: string;
@@ -354,7 +360,9 @@ export interface RoleCapabilities {
  * [ROLES-3] Get role capabilities for a given effective role.
  * Updated: EDITOR cannot apply; must request approval
  */
-export function getRoleCapabilities(role: EffectiveProjectRole): RoleCapabilities {
+export function getRoleCapabilities(
+  role: EffectiveProjectRole
+): RoleCapabilities {
   switch (role) {
     case 'OWNER':
       return {
@@ -472,7 +480,11 @@ function buildApiError(response: Response, body: unknown): ApiError {
 
     // [ROLES-2 FIXUP-2] Handle nested structured error (NestJS BadRequestException with object payload)
     // Shape: { statusCode, error, message: { code, message, approvalStatus, ... } }
-    if (json.message && typeof json.message === 'object' && !Array.isArray(json.message)) {
+    if (
+      json.message &&
+      typeof json.message === 'object' &&
+      !Array.isArray(json.message)
+    ) {
       const nested = json.message as Record<string, unknown>;
       // Extract code from nested object
       if (typeof nested.code === 'string') {
@@ -490,8 +502,13 @@ function buildApiError(response: Response, body: unknown): ApiError {
     }
     // Handle NestJS validation errors (message is an array of strings)
     else if (Array.isArray(json.message)) {
-      const messages = json.message.filter((m): m is string => typeof m === 'string');
-      message = messages.length > 0 ? messages.join('. ') : getStatusMessage(response.status, response.statusText);
+      const messages = json.message.filter(
+        (m): m is string => typeof m === 'string'
+      );
+      message =
+        messages.length > 0
+          ? messages.join('. ')
+          : getStatusMessage(response.status, response.statusText);
       // Check for code at top level
       if (typeof json.code === 'string') {
         code = json.code;
@@ -566,7 +583,8 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
         error.code === 'ENTITLEMENTS_LIMIT_REACHED' ||
         (body &&
           typeof (body as Record<string, unknown>).error === 'string' &&
-          (body as Record<string, unknown>).error === 'ENTITLEMENTS_LIMIT_REACHED');
+          (body as Record<string, unknown>).error ===
+            'ENTITLEMENTS_LIMIT_REACHED');
 
       // Only redirect to login on 401 (unauthenticated), not 403 (unauthorized/forbidden)
       // 403 means the user IS authenticated but lacks permission - redirecting to login is wrong
@@ -588,7 +606,7 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
 
     throw new ApiError(
       'Network error. Please check your connection and try again.',
-      undefined,
+      undefined
     );
   }
 }
@@ -622,12 +640,14 @@ async function fetchWithoutAuth(endpoint: string, options: RequestInit = {}) {
 
     throw new ApiError(
       'Network error. Please check your connection and try again.',
-      undefined,
+      undefined
     );
   }
 }
 
-export type AutomationPlaybookId = 'missing_seo_title' | 'missing_seo_description';
+export type AutomationPlaybookId =
+  | 'missing_seo_title'
+  | 'missing_seo_description';
 
 // [ASSETS-PAGES-1.1] Asset type for automation playbooks
 export type AutomationAssetType = 'PRODUCTS' | 'PAGES' | 'COLLECTIONS';
@@ -683,7 +703,10 @@ export interface AutomationPlaybookEstimate {
   scopeId: string;
 }
 
-export type AutomationPlaybookRunType = 'PREVIEW_GENERATE' | 'DRAFT_GENERATE' | 'APPLY';
+export type AutomationPlaybookRunType =
+  | 'PREVIEW_GENERATE'
+  | 'DRAFT_GENERATE'
+  | 'APPLY';
 
 export type AutomationPlaybookRunStatus =
   | 'QUEUED'
@@ -731,7 +754,12 @@ export interface AutomationPlaybookDraftGenerateResult {
 /**
  * Draft status for automation playbooks.
  */
-export type AutomationPlaybookDraftStatus = 'PENDING' | 'READY' | 'APPLIED' | 'EXPIRED' | 'STALE';
+export type AutomationPlaybookDraftStatus =
+  | 'PENDING'
+  | 'READY'
+  | 'APPLIED'
+  | 'EXPIRED'
+  | 'STALE';
 
 /**
  * [DRAFT-ROUTING-INTEGRITY-1] Draft item for asset-scoped drafts
@@ -819,7 +847,10 @@ export interface AutomationPlaybookDraft {
 }
 
 // AI-USAGE-1: AI Usage Ledger Types
-export type AutomationPlaybookAiUsageRunType = 'PREVIEW_GENERATE' | 'DRAFT_GENERATE' | 'APPLY';
+export type AutomationPlaybookAiUsageRunType =
+  | 'PREVIEW_GENERATE'
+  | 'DRAFT_GENERATE'
+  | 'APPLY';
 
 export interface ProjectAiUsageSummary {
   projectId: string;
@@ -868,11 +899,20 @@ export interface AiUsageQuotaEvaluation {
   remainingAiRuns: number | null;
   currentUsagePercent: number | null;
   status: AiUsageQuotaStatus;
-  reason: 'unlimited' | 'below_soft_threshold' | 'soft_threshold_reached' | 'hard_limit_reached';
+  reason:
+    | 'unlimited'
+    | 'below_soft_threshold'
+    | 'soft_threshold_reached'
+    | 'hard_limit_reached';
 }
 
 export const authApi = {
-  signup: (data: { email: string; password: string; name?: string; captchaToken: string }) =>
+  signup: (data: {
+    email: string;
+    password: string;
+    name?: string;
+    captchaToken: string;
+  }) =>
     fetchWithoutAuth('/auth/signup', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -904,10 +944,12 @@ export const projectsApi = {
   deoIssues: (id: string) => fetchWithAuth(`/projects/${id}/deo-issues`),
 
   // COUNT-INTEGRITY-1: Read-only issues endpoint (no side effects)
-  deoIssuesReadOnly: (id: string) => fetchWithAuth(`/projects/${id}/deo-issues/read-only`),
+  deoIssuesReadOnly: (id: string) =>
+    fetchWithAuth(`/projects/${id}/deo-issues/read-only`),
 
   // COUNT-INTEGRITY-1: Canonical server-side counts summary
-  issueCountsSummary: (id: string) => fetchWithAuth(`/projects/${id}/issues/counts-summary`),
+  issueCountsSummary: (id: string) =>
+    fetchWithAuth(`/projects/${id}/issues/counts-summary`),
 
   // COUNT-INTEGRITY-1.1: Canonical triplet counts summary with explicit labels
   canonicalIssueCountsSummary: (
@@ -923,10 +965,12 @@ export const projectsApi = {
   ) => {
     const params = new URLSearchParams();
     if (filters?.actionKey) params.append('actionKey', filters.actionKey);
-    if (filters?.actionKeys) filters.actionKeys.forEach(k => params.append('actionKeys', k));
+    if (filters?.actionKeys)
+      filters.actionKeys.forEach((k) => params.append('actionKeys', k));
     if (filters?.scopeType) params.append('scopeType', filters.scopeType);
     if (filters?.pillar) params.append('pillar', filters.pillar);
-    if (filters?.pillars) filters.pillars.forEach(p => params.append('pillars', p));
+    if (filters?.pillars)
+      filters.pillars.forEach((p) => params.append('pillars', p));
     if (filters?.severity) params.append('severity', filters.severity);
 
     const queryString = params.toString();
@@ -947,7 +991,8 @@ export const projectsApi = {
   ) => {
     const params = new URLSearchParams();
     if (filters?.pillar) params.append('pillar', filters.pillar);
-    if (filters?.pillars) filters.pillars.forEach(p => params.append('pillars', p));
+    if (filters?.pillars)
+      filters.pillars.forEach((p) => params.append('pillars', p));
     if (filters?.severity) params.append('severity', filters.severity);
 
     const queryString = params.toString();
@@ -979,26 +1024,31 @@ export const projectsApi = {
       body: JSON.stringify(data),
     }),
 
-  update: (id: string, data: {
-    name?: string;
-    domain?: string;
-    autoCrawlEnabled?: boolean;
-    crawlFrequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY';
-    autoSuggestMissingMetadata?: boolean;
-    autoSuggestThinContent?: boolean;
-    autoSuggestDailyCap?: number;
-    aeoSyncToShopifyMetafields?: boolean;
-    // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Project-level setting for Answer Block generation on product sync
-    autoGenerateAnswerBlocksOnProductSync?: boolean;
-  }) =>
+  update: (
+    id: string,
+    data: {
+      name?: string;
+      domain?: string;
+      autoCrawlEnabled?: boolean;
+      crawlFrequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+      autoSuggestMissingMetadata?: boolean;
+      autoSuggestThinContent?: boolean;
+      autoSuggestDailyCap?: number;
+      aeoSyncToShopifyMetafields?: boolean;
+      // [AUTOMATION-TRIGGER-TRUTHFULNESS-1] Project-level setting for Answer Block generation on product sync
+      autoGenerateAnswerBlocksOnProductSync?: boolean;
+    }
+  ) =>
     fetchWithAuth(`/projects/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
 
-  integrationStatus: (id: string) => fetchWithAuth(`/projects/${id}/integration-status`),
+  integrationStatus: (id: string) =>
+    fetchWithAuth(`/projects/${id}/integration-status`),
 
-  automationSuggestions: (id: string) => fetchWithAuth(`/projects/${id}/automation-suggestions`),
+  automationSuggestions: (id: string) =>
+    fetchWithAuth(`/projects/${id}/automation-suggestions`),
 
   /**
    * [ASSETS-PAGES-1.1] Estimate automation playbook with optional assetType and scopeAssetRefs.
@@ -1010,12 +1060,14 @@ export const projectsApi = {
     playbookId: AutomationPlaybookId,
     scopeProductIds?: string[],
     assetType?: AutomationAssetType,
-    scopeAssetRefs?: string[],
+    scopeAssetRefs?: string[]
   ) => {
     // Use POST for scoped requests
-    if ((scopeProductIds && scopeProductIds.length > 0) ||
-        assetType ||
-        (scopeAssetRefs && scopeAssetRefs.length > 0)) {
+    if (
+      (scopeProductIds && scopeProductIds.length > 0) ||
+      assetType ||
+      (scopeAssetRefs && scopeAssetRefs.length > 0)
+    ) {
       return fetchWithAuth(`/projects/${id}/automation-playbooks/estimate`, {
         method: 'POST',
         body: JSON.stringify({
@@ -1028,8 +1080,8 @@ export const projectsApi = {
     }
     return fetchWithAuth(
       `/projects/${id}/automation-playbooks/estimate?playbookId=${encodeURIComponent(
-        playbookId,
-      )}`,
+        playbookId
+      )}`
     );
   },
 
@@ -1057,18 +1109,21 @@ export const projectsApi = {
     sampleSize?: number,
     scopeProductIds?: string[],
     assetType?: AutomationAssetType,
-    scopeAssetRefs?: string[],
+    scopeAssetRefs?: string[]
   ) =>
-    fetchWithAuth(`/projects/${id}/automation-playbooks/${playbookId}/preview`, {
-      method: 'POST',
-      body: JSON.stringify({
-        rules,
-        sampleSize,
-        scopeProductIds,
-        assetType,
-        scopeAssetRefs,
-      }),
-    }),
+    fetchWithAuth(
+      `/projects/${id}/automation-playbooks/${playbookId}/preview`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          rules,
+          sampleSize,
+          scopeProductIds,
+          assetType,
+          scopeAssetRefs,
+        }),
+      }
+    ),
 
   /**
    * Apply an automation playbook.
@@ -1087,23 +1142,20 @@ export const projectsApi = {
     /** [ROLES-2] Optional approvalId for governance-gated apply */
     approvalId?: string,
     assetType?: AutomationAssetType,
-    scopeAssetRefs?: string[],
+    scopeAssetRefs?: string[]
   ): Promise<AutomationPlaybookApplyResult> =>
-    fetchWithAuth(
-      `/projects/${id}/automation-playbooks/apply`,
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          playbookId,
-          scopeId,
-          rulesHash,
-          scopeProductIds,
-          approvalId,
-          assetType,
-          scopeAssetRefs,
-        }),
-      },
-    ),
+    fetchWithAuth(`/projects/${id}/automation-playbooks/apply`, {
+      method: 'POST',
+      body: JSON.stringify({
+        playbookId,
+        scopeId,
+        rulesHash,
+        scopeProductIds,
+        approvalId,
+        assetType,
+        scopeAssetRefs,
+      }),
+    }),
 
   /**
    * Create a new Automation Playbook run.
@@ -1116,7 +1168,7 @@ export const projectsApi = {
     scopeId: string,
     rulesHash: string,
     idempotencyKey?: string,
-    meta?: Record<string, unknown>,
+    meta?: Record<string, unknown>
   ): Promise<AutomationPlaybookRun> =>
     fetchWithAuth(
       `/projects/${projectId}/automation-playbooks/${playbookId}/runs`,
@@ -1129,13 +1181,16 @@ export const projectsApi = {
           idempotencyKey,
           meta,
         }),
-      },
+      }
     ),
 
   /**
    * Get a specific Automation Playbook run by ID.
    */
-  getPlaybookRun: (projectId: string, runId: string): Promise<AutomationPlaybookRun> =>
+  getPlaybookRun: (
+    projectId: string,
+    runId: string
+  ): Promise<AutomationPlaybookRun> =>
     fetchWithAuth(`/projects/${projectId}/automation-playbooks/runs/${runId}`),
 
   /**
@@ -1148,7 +1203,7 @@ export const projectsApi = {
       scopeId?: string;
       runType?: AutomationPlaybookRunType;
       limit?: number;
-    },
+    }
   ): Promise<AutomationPlaybookRun[]> => {
     const params = new URLSearchParams();
     if (opts?.playbookId) params.set('playbookId', opts.playbookId);
@@ -1157,7 +1212,7 @@ export const projectsApi = {
     if (opts?.limit) params.set('limit', String(opts.limit));
     const qs = params.toString() ? `?${params.toString()}` : '';
     return fetchWithAuth(
-      `/projects/${projectId}/automation-playbooks/runs${qs}`,
+      `/projects/${projectId}/automation-playbooks/runs${qs}`
     );
   },
 
@@ -1177,7 +1232,7 @@ export const projectsApi = {
     rulesHash: string,
     scopeProductIds?: string[],
     assetType?: AutomationAssetType,
-    scopeAssetRefs?: string[],
+    scopeAssetRefs?: string[]
   ): Promise<AutomationPlaybookDraftGenerateResult> =>
     fetchWithAuth(
       `/projects/${projectId}/automation-playbooks/${playbookId}/draft/generate`,
@@ -1190,7 +1245,7 @@ export const projectsApi = {
           assetType,
           scopeAssetRefs,
         }),
-      },
+      }
     ),
 
   /**
@@ -1199,10 +1254,10 @@ export const projectsApi = {
    */
   getLatestAutomationPlaybookDraft: (
     projectId: string,
-    playbookId: AutomationPlaybookId,
+    playbookId: AutomationPlaybookId
   ): Promise<AutomationPlaybookDraft | null> =>
     fetchWithAuth(
-      `/projects/${projectId}/automation-playbooks/${playbookId}/draft/latest`,
+      `/projects/${projectId}/automation-playbooks/${playbookId}/draft/latest`
     ),
 
   setAutomationPlaybookEntryConfig: (
@@ -1215,14 +1270,14 @@ export const projectsApi = {
       rulesHash: string;
       scopeProductIds?: string[];
       intent?: string;
-    },
+    }
   ) =>
     fetchWithAuth(
       `/projects/${projectId}/automation-playbooks/${playbookId}/config`,
       {
         method: 'POST',
         body: JSON.stringify(body),
-      },
+      }
     ),
 
   delete: (id: string) =>
@@ -1239,7 +1294,7 @@ export const projectsApi = {
 
   previewOffsiteFix: (
     projectId: string,
-    params: OffsiteFixPreviewRequest,
+    params: OffsiteFixPreviewRequest
   ): Promise<OffsiteFixPreviewResponse> =>
     fetchWithAuth(`/projects/${projectId}/offsite-signals/preview`, {
       method: 'POST',
@@ -1248,7 +1303,7 @@ export const projectsApi = {
 
   applyOffsiteFix: (
     projectId: string,
-    params: OffsiteFixApplyRequest,
+    params: OffsiteFixApplyRequest
   ): Promise<OffsiteFixApplyResponse> =>
     fetchWithAuth(`/projects/${projectId}/offsite-signals/apply`, {
       method: 'POST',
@@ -1267,7 +1322,7 @@ export const projectsApi = {
 
   updateLocalConfig: (
     projectId: string,
-    config: Partial<ProjectLocalConfig>,
+    config: Partial<ProjectLocalConfig>
   ): Promise<ProjectLocalConfig> =>
     fetchWithAuth(`/projects/${projectId}/local-discovery/config`, {
       method: 'PUT',
@@ -1276,7 +1331,7 @@ export const projectsApi = {
 
   previewLocalFix: (
     projectId: string,
-    params: LocalFixPreviewRequest,
+    params: LocalFixPreviewRequest
   ): Promise<LocalFixPreviewResponse> =>
     fetchWithAuth(`/projects/${projectId}/local-discovery/preview`, {
       method: 'POST',
@@ -1285,7 +1340,7 @@ export const projectsApi = {
 
   applyLocalFix: (
     projectId: string,
-    params: LocalFixApplyRequest,
+    params: LocalFixApplyRequest
   ): Promise<LocalFixApplyResponse> =>
     fetchWithAuth(`/projects/${projectId}/local-discovery/apply`, {
       method: 'POST',
@@ -1293,7 +1348,9 @@ export const projectsApi = {
     }),
 
   // MEDIA-1: Media & Accessibility endpoints
-  mediaAccessibility: (projectId: string): Promise<ProjectMediaAccessibilityResponse> =>
+  mediaAccessibility: (
+    projectId: string
+  ): Promise<ProjectMediaAccessibilityResponse> =>
     fetchWithAuth(`/projects/${projectId}/media`),
 
   mediaScorecard: (projectId: string): Promise<MediaAccessibilityScorecard> =>
@@ -1313,7 +1370,7 @@ export const projectsApi = {
    */
   createGeoReportShareLink: (
     projectId: string,
-    options?: { title?: string; audience?: 'ANYONE_WITH_LINK' | 'PASSCODE' },
+    options?: { title?: string; audience?: 'ANYONE_WITH_LINK' | 'PASSCODE' }
   ): Promise<CreateGeoReportShareLinkResponse> =>
     fetchWithAuth(`/projects/${projectId}/geo-reports/share-links`, {
       method: 'POST',
@@ -1321,13 +1378,15 @@ export const projectsApi = {
     }),
 
   /** List all share links for a project */
-  listGeoReportShareLinks: (projectId: string): Promise<GeoReportShareLinkResponse[]> =>
+  listGeoReportShareLinks: (
+    projectId: string
+  ): Promise<GeoReportShareLinkResponse[]> =>
     fetchWithAuth(`/projects/${projectId}/geo-reports/share-links`),
 
   /** Revoke a share link */
   revokeGeoReportShareLink: (
     projectId: string,
-    linkId: string,
+    linkId: string
   ): Promise<{ success: true }> =>
     fetchWithAuth(`/projects/${projectId}/geo-reports/share-links/${linkId}`, {
       method: 'DELETE',
@@ -1347,7 +1406,7 @@ export const projectsApi = {
       shareLinkExpiryDays: number;
       allowedExportAudience: 'ANYONE_WITH_LINK' | 'PASSCODE' | 'ORG_ONLY';
       allowCompetitorMentionsInExports: boolean;
-    }>,
+    }>
   ): Promise<GovernancePolicyResponse> =>
     fetchWithAuth(`/projects/${projectId}/governance/policy`, {
       method: 'PUT',
@@ -1359,7 +1418,13 @@ export const projectsApi = {
    */
   createApprovalRequest: (
     projectId: string,
-    params: { resourceType: 'GEO_FIX_APPLY' | 'ANSWER_BLOCK_SYNC' | 'AUTOMATION_PLAYBOOK_APPLY'; resourceId: string },
+    params: {
+      resourceType:
+        | 'GEO_FIX_APPLY'
+        | 'ANSWER_BLOCK_SYNC'
+        | 'AUTOMATION_PLAYBOOK_APPLY';
+      resourceId: string;
+    }
   ): Promise<ApprovalRequestResponse> =>
     fetchWithAuth(`/projects/${projectId}/governance/approvals`, {
       method: 'POST',
@@ -1370,31 +1435,37 @@ export const projectsApi = {
   approveRequest: (
     projectId: string,
     approvalId: string,
-    reason?: string,
+    reason?: string
   ): Promise<ApprovalRequestResponse> =>
-    fetchWithAuth(`/projects/${projectId}/governance/approvals/${approvalId}/approve`, {
-      method: 'POST',
-      body: JSON.stringify({ reason }),
-    }),
+    fetchWithAuth(
+      `/projects/${projectId}/governance/approvals/${approvalId}/approve`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      }
+    ),
 
   /** Reject an approval request */
   rejectRequest: (
     projectId: string,
     approvalId: string,
-    reason?: string,
+    reason?: string
   ): Promise<ApprovalRequestResponse> =>
-    fetchWithAuth(`/projects/${projectId}/governance/approvals/${approvalId}/reject`, {
-      method: 'POST',
-      body: JSON.stringify({ reason }),
-    }),
+    fetchWithAuth(
+      `/projects/${projectId}/governance/approvals/${approvalId}/reject`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      }
+    ),
 
   /** List pending approval requests */
   listApprovalRequests: (
     projectId: string,
-    status?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED',
+    status?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED'
   ): Promise<{ requests: ApprovalRequestResponse[] }> =>
     fetchWithAuth(
-      `/projects/${projectId}/governance/approvals${status ? `?status=${status}` : ''}`,
+      `/projects/${projectId}/governance/approvals${status ? `?status=${status}` : ''}`
     ),
 
   /**
@@ -1403,17 +1474,20 @@ export const projectsApi = {
    */
   getApprovalStatus: (
     projectId: string,
-    resourceType: 'GEO_FIX_APPLY' | 'ANSWER_BLOCK_SYNC' | 'AUTOMATION_PLAYBOOK_APPLY',
-    resourceId: string,
+    resourceType:
+      | 'GEO_FIX_APPLY'
+      | 'ANSWER_BLOCK_SYNC'
+      | 'AUTOMATION_PLAYBOOK_APPLY',
+    resourceId: string
   ): Promise<{ approval: ApprovalRequestResponse | null }> =>
     fetchWithAuth(
-      `/projects/${projectId}/governance/approvals?resourceType=${resourceType}&resourceId=${encodeURIComponent(resourceId)}`,
+      `/projects/${projectId}/governance/approvals?resourceType=${resourceType}&resourceId=${encodeURIComponent(resourceId)}`
     ),
 
   /** Get audit events for a project */
   listAuditEvents: (
     projectId: string,
-    options?: { cursor?: string; limit?: number; eventType?: string },
+    options?: { cursor?: string; limit?: number; eventType?: string }
   ): Promise<AuditEventListResponse> => {
     const params = new URLSearchParams();
     if (options?.cursor) params.set('cursor', options.cursor);
@@ -1433,14 +1507,20 @@ export const projectsApi = {
    */
   listViewerApprovals: (
     projectId: string,
-    options?: { status?: 'pending' | 'history'; cursor?: string; limit?: number },
+    options?: {
+      status?: 'pending' | 'history';
+      cursor?: string;
+      limit?: number;
+    }
   ): Promise<GovernanceViewerApprovalsResponse> => {
     const params = new URLSearchParams();
     if (options?.status) params.set('status', options.status);
     if (options?.cursor) params.set('cursor', options.cursor);
     if (options?.limit) params.set('limit', String(options.limit));
     const qs = params.toString() ? `?${params.toString()}` : '';
-    return fetchWithAuth(`/projects/${projectId}/governance/viewer/approvals${qs}`);
+    return fetchWithAuth(
+      `/projects/${projectId}/governance/viewer/approvals${qs}`
+    );
   },
 
   /**
@@ -1460,7 +1540,7 @@ export const projectsApi = {
       to?: string;
       cursor?: string;
       limit?: number;
-    },
+    }
   ): Promise<GovernanceViewerAuditEventsResponse> => {
     const params = new URLSearchParams();
     if (options?.types && options.types.length > 0) {
@@ -1472,7 +1552,9 @@ export const projectsApi = {
     if (options?.cursor) params.set('cursor', options.cursor);
     if (options?.limit) params.set('limit', String(options.limit));
     const qs = params.toString() ? `?${params.toString()}` : '';
-    return fetchWithAuth(`/projects/${projectId}/governance/viewer/audit-events${qs}`);
+    return fetchWithAuth(
+      `/projects/${projectId}/governance/viewer/audit-events${qs}`
+    );
   },
 
   /**
@@ -1482,14 +1564,20 @@ export const projectsApi = {
    */
   listViewerShareLinks: (
     projectId: string,
-    options?: { status?: 'ACTIVE' | 'EXPIRED' | 'REVOKED' | 'all'; cursor?: string; limit?: number },
+    options?: {
+      status?: 'ACTIVE' | 'EXPIRED' | 'REVOKED' | 'all';
+      cursor?: string;
+      limit?: number;
+    }
   ): Promise<GovernanceViewerShareLinksResponse> => {
     const params = new URLSearchParams();
     if (options?.status) params.set('status', options.status);
     if (options?.cursor) params.set('cursor', options.cursor);
     if (options?.limit) params.set('limit', String(options.limit));
     const qs = params.toString() ? `?${params.toString()}` : '';
-    return fetchWithAuth(`/projects/${projectId}/governance/viewer/share-links${qs}`);
+    return fetchWithAuth(
+      `/projects/${projectId}/governance/viewer/share-links${qs}`
+    );
   },
 
   // ===========================================================================
@@ -1508,7 +1596,7 @@ export const projectsApi = {
   addMember: (
     projectId: string,
     email: string,
-    role: EffectiveProjectRole,
+    role: EffectiveProjectRole
   ): Promise<ProjectMember> =>
     fetchWithAuth(`/projects/${projectId}/members`, {
       method: 'POST',
@@ -1519,7 +1607,7 @@ export const projectsApi = {
   changeMemberRole: (
     projectId: string,
     memberId: string,
-    role: EffectiveProjectRole,
+    role: EffectiveProjectRole
   ): Promise<ProjectMember> =>
     fetchWithAuth(`/projects/${projectId}/members/${memberId}`, {
       method: 'PUT',
@@ -1529,7 +1617,7 @@ export const projectsApi = {
   /** Remove a member from a project (OWNER-only) */
   removeMember: (
     projectId: string,
-    memberId: string,
+    memberId: string
   ): Promise<{ success: boolean; message: string }> =>
     fetchWithAuth(`/projects/${projectId}/members/${memberId}`, {
       method: 'DELETE',
@@ -1547,12 +1635,22 @@ export const projectsApi = {
   workQueue: (
     projectId: string,
     params?: {
-      tab?: 'Critical' | 'NeedsAttention' | 'PendingApproval' | 'DraftsReady' | 'AppliedRecently';
+      tab?:
+        | 'Critical'
+        | 'NeedsAttention'
+        | 'PendingApproval'
+        | 'DraftsReady'
+        | 'AppliedRecently';
       bundleType?: 'ASSET_OPTIMIZATION' | 'AUTOMATION_RUN' | 'GEO_EXPORT';
-      actionKey?: 'FIX_MISSING_METADATA' | 'RESOLVE_TECHNICAL_ISSUES' | 'IMPROVE_SEARCH_INTENT' | 'OPTIMIZE_CONTENT' | 'SHARE_LINK_GOVERNANCE';
+      actionKey?:
+        | 'FIX_MISSING_METADATA'
+        | 'RESOLVE_TECHNICAL_ISSUES'
+        | 'IMPROVE_SEARCH_INTENT'
+        | 'OPTIMIZE_CONTENT'
+        | 'SHARE_LINK_GOVERNANCE';
       scopeType?: 'PRODUCTS' | 'PAGES' | 'COLLECTIONS' | 'STORE_WIDE';
       bundleId?: string;
-    },
+    }
   ): Promise<import('./work-queue').WorkQueueResponse> => {
     const searchParams = new URLSearchParams();
     if (params?.tab) searchParams.set('tab', params.tab);
@@ -1580,13 +1678,13 @@ export const projectsApi = {
     params: {
       assetType: 'products' | 'pages' | 'collections';
       assetId: string;
-    },
+    }
   ): Promise<AssetScopedDraftsResponse> => {
     const searchParams = new URLSearchParams();
     searchParams.set('assetType', params.assetType);
     searchParams.set('assetId', params.assetId);
     return fetchWithAuth(
-      `/projects/${projectId}/automation-playbooks/drafts?${searchParams.toString()}`,
+      `/projects/${projectId}/automation-playbooks/drafts?${searchParams.toString()}`
     );
   },
 
@@ -1604,20 +1702,21 @@ export const projectsApi = {
     projectId: string,
     draftId: string,
     itemIndex: number,
-    value: string,
+    value: string
   ): Promise<UpdateDraftItemResponse> => {
     return fetchWithAuth(
       `/projects/${projectId}/automation-playbooks/drafts/${draftId}/items/${itemIndex}`,
       {
         method: 'PATCH',
         body: JSON.stringify({ value }),
-      },
+      }
     );
   },
 };
 
 export const integrationsApi = {
-  list: (projectId: string) => fetchWithAuth(`/integrations?projectId=${projectId}`),
+  list: (projectId: string) =>
+    fetchWithAuth(`/integrations?projectId=${projectId}`),
 
   create: (data: { projectId: string; type: string; config?: object }) =>
     fetchWithAuth('/integrations', {
@@ -1638,7 +1737,8 @@ export const seoScanApi = {
       body: JSON.stringify({ projectId }),
     }),
 
-  results: (projectId: string) => fetchWithAuth(`/seo-scan/results?projectId=${projectId}`),
+  results: (projectId: string) =>
+    fetchWithAuth(`/seo-scan/results?projectId=${projectId}`),
 
   scanProduct: (productId: string) =>
     fetchWithAuth('/seo-scan/product', {
@@ -1662,7 +1762,7 @@ export const aiApi = {
 
   fixIssueLite: (
     productId: string,
-    issueType: 'missing_seo_title' | 'missing_seo_description',
+    issueType: 'missing_seo_title' | 'missing_seo_description'
   ) =>
     fetchWithAuth('/ai/product-metadata/fix-from-issue', {
       method: 'POST',
@@ -1681,7 +1781,9 @@ export const aiApi = {
   /**
    * Get AI usage summary for a project (current billing month).
    */
-  getProjectAiUsageSummary: (projectId: string): Promise<ProjectAiUsageSummary> =>
+  getProjectAiUsageSummary: (
+    projectId: string
+  ): Promise<ProjectAiUsageSummary> =>
     fetchWithAuth(`/ai/projects/${projectId}/usage/summary`),
 
   /**
@@ -1689,7 +1791,7 @@ export const aiApi = {
    */
   getProjectAiUsageRuns: (
     projectId: string,
-    opts?: { runType?: AutomationPlaybookAiUsageRunType; limit?: number },
+    opts?: { runType?: AutomationPlaybookAiUsageRunType; limit?: number }
   ): Promise<ProjectAiUsageRunSummary[]> => {
     const params = new URLSearchParams();
     if (opts?.runType) params.set('runType', opts.runType);
@@ -1704,7 +1806,7 @@ export const aiApi = {
    */
   getProjectAiUsageQuota: (
     projectId: string,
-    params: { action: 'PREVIEW_GENERATE' | 'DRAFT_GENERATE' },
+    params: { action: 'PREVIEW_GENERATE' | 'DRAFT_GENERATE' }
   ): Promise<AiUsageQuotaEvaluation> => {
     const search = new URLSearchParams({ action: params.action }).toString();
     const qs = search ? `?${search}` : '';
@@ -1747,7 +1849,9 @@ export const productsApi = {
     if (opts?.hasDraft) params.set('hasDraft', 'true');
     if (opts?.issueType) params.set('issueType', opts.issueType);
     const qs = params.toString();
-    return fetchWithAuth(`/projects/${projectId}/products${qs ? `?${qs}` : ''}`);
+    return fetchWithAuth(
+      `/projects/${projectId}/products${qs ? `?${qs}` : ''}`
+    );
   },
 
   getAnswerBlocks: (productId: string) =>
@@ -1761,7 +1865,7 @@ export const productsApi = {
 
   triggerAnswerBlockAutomation: (
     productId: string,
-    triggerType: 'product_synced' | 'issue_detected' = 'issue_detected',
+    triggerType: 'product_synced' | 'issue_detected' = 'issue_detected'
   ) =>
     fetchWithAuth(`/products/${productId}/answer-blocks/automation-run`, {
       method: 'POST',
@@ -1777,16 +1881,17 @@ export const productsApi = {
     }),
 
   // MEDIA-1: Media & Accessibility endpoints
-  getMediaAccessibility: (productId: string): Promise<{
+  getMediaAccessibility: (
+    productId: string
+  ): Promise<{
     stats: ProductMediaStats;
     images: ProductImageView[];
     openDrafts: MediaFixDraft[];
-  }> =>
-    fetchWithAuth(`/products/${productId}/media`),
+  }> => fetchWithAuth(`/products/${productId}/media`),
 
   previewMediaFix: (
     productId: string,
-    params: MediaFixPreviewRequest,
+    params: MediaFixPreviewRequest
   ): Promise<MediaFixPreviewResponse> =>
     fetchWithAuth(`/products/${productId}/media/preview`, {
       method: 'POST',
@@ -1795,7 +1900,7 @@ export const productsApi = {
 
   applyMediaFix: (
     productId: string,
-    params: MediaFixApplyRequest,
+    params: MediaFixApplyRequest
   ): Promise<MediaFixApplyResponse> =>
     fetchWithAuth(`/products/${productId}/media/apply`, {
       method: 'POST',
@@ -1808,7 +1913,7 @@ export const productsApi = {
 
   previewGeoFix: (
     productId: string,
-    params: { questionId: string; issueType: string },
+    params: { questionId: string; issueType: string }
   ): Promise<GeoFixPreviewResponse> =>
     fetchWithAuth(`/products/${productId}/geo/preview`, {
       method: 'POST',
@@ -1817,7 +1922,7 @@ export const productsApi = {
 
   applyGeoFix: (
     productId: string,
-    params: { draftId: string },
+    params: { draftId: string }
   ): Promise<GeoFixApplyResponse> =>
     fetchWithAuth(`/products/${productId}/geo/apply`, {
       method: 'POST',
@@ -1838,7 +1943,10 @@ export type SearchIntentType =
 
 export type IntentCoverageStatus = 'none' | 'weak' | 'partial' | 'covered';
 
-export type IntentFixDraftType = 'answer_block' | 'content_snippet' | 'metadata_guidance';
+export type IntentFixDraftType =
+  | 'answer_block'
+  | 'content_snippet'
+  | 'metadata_guidance';
 
 export type IntentFixApplyTarget = 'ANSWER_BLOCK' | 'CONTENT_SNIPPET_SECTION';
 
@@ -1920,7 +2028,9 @@ export const searchIntentApi = {
   /**
    * Get product search intent data including coverage, scorecard, and open drafts.
    */
-  getProductSearchIntent: (productId: string): Promise<ProductSearchIntentResponse> =>
+  getProductSearchIntent: (
+    productId: string
+  ): Promise<ProductSearchIntentResponse> =>
     fetchWithAuth(`/products/${productId}/search-intent`),
 
   /**
@@ -1933,7 +2043,7 @@ export const searchIntentApi = {
       intentType: SearchIntentType;
       query: string;
       fixType: IntentFixDraftType;
-    },
+    }
   ): Promise<IntentFixPreviewResponse> =>
     fetchWithAuth(`/products/${productId}/search-intent/preview`, {
       method: 'POST',
@@ -1949,7 +2059,7 @@ export const searchIntentApi = {
     params: {
       draftId: string;
       applyTarget: IntentFixApplyTarget;
-    },
+    }
   ): Promise<IntentFixApplyResponse> =>
     fetchWithAuth(`/products/${productId}/search-intent/apply`, {
       method: 'POST',
@@ -1959,7 +2069,9 @@ export const searchIntentApi = {
   /**
    * Get project-level Search & Intent scorecard.
    */
-  getProjectSearchIntentSummary: (projectId: string): Promise<SearchIntentScorecard> =>
+  getProjectSearchIntentSummary: (
+    projectId: string
+  ): Promise<SearchIntentScorecard> =>
     fetchWithAuth(`/projects/${projectId}/search-intent/summary`),
 };
 
@@ -1967,7 +2079,10 @@ export const searchIntentApi = {
 // Competitive Positioning API (COMPETITORS-1)
 // ============================================================================
 
-export type CompetitorGapType = 'intent_gap' | 'content_section_gap' | 'trust_signal_gap';
+export type CompetitorGapType =
+  | 'intent_gap'
+  | 'content_section_gap'
+  | 'trust_signal_gap';
 
 export type CompetitiveCoverageAreaId =
   | 'transactional_intent'
@@ -1985,9 +2100,15 @@ export type CompetitiveCoverageAreaId =
 
 export type CompetitiveStatus = 'Ahead' | 'On par' | 'Behind';
 
-export type CompetitiveFixDraftType = 'answer_block' | 'comparison_copy' | 'positioning_section';
+export type CompetitiveFixDraftType =
+  | 'answer_block'
+  | 'comparison_copy'
+  | 'positioning_section';
 
-export type CompetitiveFixApplyTarget = 'ANSWER_BLOCK' | 'CONTENT_SECTION' | 'WHY_CHOOSE_SECTION';
+export type CompetitiveFixApplyTarget =
+  | 'ANSWER_BLOCK'
+  | 'CONTENT_SECTION'
+  | 'WHY_CHOOSE_SECTION';
 
 export interface ProductCompetitorRef {
   id: string;
@@ -2028,7 +2149,11 @@ export interface CompetitiveFixGap {
   exampleScenario: string;
   whyItMatters: string;
   competitorCount: number;
-  recommendedAction: 'answer_block' | 'comparison_section' | 'description_expansion' | 'faq_section';
+  recommendedAction:
+    | 'answer_block'
+    | 'comparison_section'
+    | 'description_expansion'
+    | 'faq_section';
   severity: 'critical' | 'warning' | 'info';
   automationAvailable: boolean;
 }
@@ -2098,7 +2223,9 @@ export const competitorsApi = {
   /**
    * Get product competitive data including coverage, gaps, and open drafts.
    */
-  getProductCompetitors: (productId: string): Promise<ProductCompetitiveResponse> =>
+  getProductCompetitors: (
+    productId: string
+  ): Promise<ProductCompetitiveResponse> =>
     fetchWithAuth(`/products/${productId}/competitors`),
 
   /**
@@ -2112,7 +2239,7 @@ export const competitorsApi = {
       intentType?: SearchIntentType;
       areaId: CompetitiveCoverageAreaId;
       draftType: CompetitiveFixDraftType;
-    },
+    }
   ): Promise<CompetitiveFixPreviewResponse> =>
     fetchWithAuth(`/products/${productId}/competitors/preview`, {
       method: 'POST',
@@ -2128,7 +2255,7 @@ export const competitorsApi = {
     params: {
       draftId: string;
       applyTarget: CompetitiveFixApplyTarget;
-    },
+    }
   ): Promise<CompetitiveFixApplyResponse> =>
     fetchWithAuth(`/products/${productId}/competitors/apply`, {
       method: 'POST',
@@ -2138,7 +2265,9 @@ export const competitorsApi = {
   /**
    * Get project-level Competitive Positioning scorecard.
    */
-  getProjectCompetitiveScorecard: (projectId: string): Promise<CompetitiveScorecard> =>
+  getProjectCompetitiveScorecard: (
+    projectId: string
+  ): Promise<CompetitiveScorecard> =>
     fetchWithAuth(`/projects/${projectId}/competitors/scorecard`),
 };
 
@@ -2148,16 +2277,23 @@ export const shopifyApi = {
       method: 'POST',
     }),
 
-  updateProductSeo: (productId: string, seoTitle: string, seoDescription: string) =>
+  updateProductSeo: (
+    productId: string,
+    seoTitle: string,
+    seoDescription: string
+  ) =>
     fetchWithAuth('/shopify/update-product-seo', {
       method: 'POST',
       body: JSON.stringify({ productId, seoTitle, seoDescription }),
     }),
 
   ensureMetafieldDefinitions: (projectId: string) =>
-    fetchWithAuth(`/shopify/ensure-metafield-definitions?projectId=${projectId}`, {
-      method: 'POST',
-    }),
+    fetchWithAuth(
+      `/shopify/ensure-metafield-definitions?projectId=${projectId}`,
+      {
+        method: 'POST',
+      }
+    ),
 
   // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Project-scoped sync endpoints
   syncPages: (projectId: string) =>
@@ -2182,30 +2318,33 @@ export const shopifyApi = {
     }),
 
   // [SHOPIFY-SCOPE-RECONSENT-UX-1] Server-authoritative missing scope detection
-  getMissingScopes: (projectId: string, capability: 'pages_sync' | 'collections_sync' | 'blogs_sync') =>
+  getMissingScopes: (
+    projectId: string,
+    capability: 'pages_sync' | 'collections_sync' | 'blogs_sync'
+  ) =>
     fetchWithAuth(
       `/projects/${projectId}/shopify/missing-scopes?capability=${encodeURIComponent(capability)}`,
-      { method: 'GET' },
+      { method: 'GET' }
     ),
 
   // [SHOPIFY-SCOPE-RECONSENT-UX-1-FIXUP-1] Server-authoritative reconnect URL (avoids localStorage token dependency)
   getReconnectUrl: (
     projectId: string,
     capability: 'pages_sync' | 'collections_sync' | 'blogs_sync',
-    returnTo: string,
+    returnTo: string
   ) =>
     fetchWithAuth(
       `/projects/${projectId}/shopify/reconnect-url?capability=${encodeURIComponent(
-        capability,
+        capability
       )}&returnTo=${encodeURIComponent(returnTo)}`,
-      { method: 'GET' },
+      { method: 'GET' }
     ),
 
   // [SHOPIFY-INTEGRATION-LIFECYCLE-INTEGRITY-1] Server-authoritative connect URL (user-initiated)
   getConnectUrl: (projectId: string, returnTo: string) =>
     fetchWithAuth(
       `/projects/${projectId}/shopify/connect-url?returnTo=${encodeURIComponent(returnTo)}`,
-      { method: 'GET' },
+      { method: 'GET' }
     ),
 };
 
@@ -2337,7 +2476,10 @@ export const adminApi = {
     }),
 
   /** Assign internal admin role (OPS_ADMIN only) */
-  updateAdminRole: (userId: string, adminRole: 'SUPPORT_AGENT' | 'OPS_ADMIN' | 'MANAGEMENT_CEO' | null) =>
+  updateAdminRole: (
+    userId: string,
+    adminRole: 'SUPPORT_AGENT' | 'OPS_ADMIN' | 'MANAGEMENT_CEO' | null
+  ) =>
     fetchWithAuth(`/admin/users/${userId}/admin-role`, {
       method: 'PUT',
       body: JSON.stringify({ adminRole }),
@@ -2382,8 +2524,10 @@ export const adminApi = {
     if (filters?.projectId) params.set('projectId', filters.projectId);
     if (filters?.runType) params.set('runType', filters.runType);
     if (filters?.status) params.set('status', filters.status);
-    if (filters?.aiUsed !== undefined) params.set('aiUsed', String(filters.aiUsed));
-    if (filters?.reused !== undefined) params.set('reused', String(filters.reused));
+    if (filters?.aiUsed !== undefined)
+      params.set('aiUsed', String(filters.aiUsed));
+    if (filters?.reused !== undefined)
+      params.set('reused', String(filters.reused));
     if (filters?.page) params.set('page', String(filters.page));
     if (filters?.limit) params.set('limit', String(filters.limit));
     const qs = params.toString() ? `?${params.toString()}` : '';
@@ -2438,7 +2582,8 @@ export const adminApi = {
     const params = new URLSearchParams();
     if (filters?.actorId) params.set('actorId', filters.actorId);
     if (filters?.targetUserId) params.set('targetUserId', filters.targetUserId);
-    if (filters?.targetProjectId) params.set('targetProjectId', filters.targetProjectId);
+    if (filters?.targetProjectId)
+      params.set('targetProjectId', filters.targetProjectId);
     if (filters?.actionType) params.set('actionType', filters.actionType);
     if (filters?.startDate) params.set('startDate', filters.startDate);
     if (filters?.endDate) params.set('endDate', filters.endDate);
@@ -2507,7 +2652,12 @@ export interface GovernanceAuditEventsResponse {
  */
 export const contactApi = {
   /** Submit contact form (public, requires CAPTCHA) */
-  submit: (data: { name: string; email: string; message: string; captchaToken: string }) =>
+  submit: (data: {
+    name: string;
+    email: string;
+    message: string;
+    captchaToken: string;
+  }) =>
     fetchWithoutAuth('/contact', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -2598,7 +2748,9 @@ export const accountApi = {
     fetchWithAuth('/account/preferences'),
 
   /** Update preferences (VIEWER cannot update) */
-  updatePreferences: (data: Partial<AccountPreferences>): Promise<AccountPreferences> =>
+  updatePreferences: (
+    data: Partial<AccountPreferences>
+  ): Promise<AccountPreferences> =>
     fetchWithAuth('/account/preferences', {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -2634,10 +2786,15 @@ export const accountApi = {
  */
 export const publicApi = {
   /** Get public GEO report share view */
-  getGeoReportShareView: async (shareToken: string): Promise<GeoReportPublicShareViewResponse> => {
-    const response = await fetch(`${API_URL}/public/geo-reports/${shareToken}`, {
-      headers: { 'Content-Type': 'application/json' },
-    });
+  getGeoReportShareView: async (
+    shareToken: string
+  ): Promise<GeoReportPublicShareViewResponse> => {
+    const response = await fetch(
+      `${API_URL}/public/geo-reports/${shareToken}`,
+      {
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
     if (!response.ok) {
       throw new Error('Failed to fetch share view');
     }
@@ -2647,13 +2804,16 @@ export const publicApi = {
   /** [ENTERPRISE-GEO-1] Verify passcode and get protected share view */
   verifyAndGetGeoReportShareView: async (
     shareToken: string,
-    passcode: string,
+    passcode: string
   ): Promise<GeoReportPublicShareViewResponse> => {
-    const response = await fetch(`${API_URL}/public/geo-reports/${shareToken}/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ passcode }),
-    });
+    const response = await fetch(
+      `${API_URL}/public/geo-reports/${shareToken}/verify`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passcode }),
+      }
+    );
     if (!response.ok) {
       throw new Error('Failed to verify passcode');
     }

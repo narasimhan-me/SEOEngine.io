@@ -1,6 +1,9 @@
 import type { DeoPillarId } from './deo-pillars';
 import type { SearchIntentType, IntentCoverageStatus } from './search-intent';
-import type { CompetitorGapType, CompetitiveCoverageAreaId } from './competitors';
+import type {
+  CompetitorGapType,
+  CompetitiveCoverageAreaId,
+} from './competitors';
 import type { OffsiteSignalType, OffsiteGapType } from './offsite-signals';
 import type { PerformanceSignalType } from './performance-signals';
 import type {
@@ -9,7 +12,11 @@ import type {
   LocalSignalType,
   LocalGapType,
 } from './local-discovery';
-import type { GeoIssueType, GeoReadinessSignalType, GeoPillarContext } from './geo';
+import type {
+  GeoIssueType,
+  GeoReadinessSignalType,
+  GeoPillarContext,
+} from './geo';
 
 export type DeoIssueSeverity = 'critical' | 'warning' | 'info';
 
@@ -337,16 +344,22 @@ export interface CanonicalIssueCountsSummary {
   actionable: CanonicalCountTriplet;
 
   // Breakdown by pillar (for pillar filter badges)
-  byPillar: Record<DeoPillarId, {
-    detected: CanonicalCountTriplet;
-    actionable: CanonicalCountTriplet;
-  }>;
+  byPillar: Record<
+    DeoPillarId,
+    {
+      detected: CanonicalCountTriplet;
+      actionable: CanonicalCountTriplet;
+    }
+  >;
 
   // Breakdown by severity (for severity filter badges)
-  bySeverity: Record<DeoIssueSeverity, {
-    detected: CanonicalCountTriplet;
-    actionable: CanonicalCountTriplet;
-  }>;
+  bySeverity: Record<
+    DeoIssueSeverity,
+    {
+      detected: CanonicalCountTriplet;
+      actionable: CanonicalCountTriplet;
+    }
+  >;
 }
 
 /**
@@ -367,13 +380,19 @@ export interface AssetIssuesResponse {
   summary: {
     detected: CanonicalCountTriplet;
     actionable: CanonicalCountTriplet;
-    byPillar: Record<DeoPillarId, {
-      detected: CanonicalCountTriplet;
-      actionable: CanonicalCountTriplet;
-    }>;
-    bySeverity: Record<DeoIssueSeverity, {
-      detected: CanonicalCountTriplet;
-      actionable: CanonicalCountTriplet;
-    }>;
+    byPillar: Record<
+      DeoPillarId,
+      {
+        detected: CanonicalCountTriplet;
+        actionable: CanonicalCountTriplet;
+      }
+    >;
+    bySeverity: Record<
+      DeoIssueSeverity,
+      {
+        detected: CanonicalCountTriplet;
+        actionable: CanonicalCountTriplet;
+      }
+    >;
   };
 }

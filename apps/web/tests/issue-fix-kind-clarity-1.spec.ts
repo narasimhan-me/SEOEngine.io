@@ -21,9 +21,12 @@ const API_BASE_URL = process.env.PLAYWRIGHT_API_URL || 'http://localhost:3001';
  * Uses the existing /testkit/e2e/seed-first-deo-win pattern.
  */
 async function seedTestProject(request: any) {
-  const res = await request.post(`${API_BASE_URL}/testkit/e2e/seed-first-deo-win`, {
-    data: {},
-  });
+  const res = await request.post(
+    `${API_BASE_URL}/testkit/e2e/seed-first-deo-win`,
+    {
+      data: {},
+    }
+  );
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   return {
@@ -59,7 +62,10 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC issues use Review CTA', () =
    * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] No no-op guard - test fails if no DIAGNOSTIC issues
    * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1-AUDIT-2] Require ≥1 DIAGNOSTIC card (not exactly 1)
    */
-  test('IFKC1-001: DIAGNOSTIC issue shows Review CTA in Issues Engine', async ({ page, request }) => {
+  test('IFKC1-001: DIAGNOSTIC issue shows Review CTA in Issues Engine', async ({
+    page,
+    request,
+  }) => {
     const { projectId } = await authenticatePage(page, request);
 
     // Navigate to project-level Issues page
@@ -93,7 +99,10 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC issues use Review CTA', () =
    *
    * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] No no-op guard - test fails if no EDIT issues
    */
-  test('IFKC1-002: Non-DIAGNOSTIC issue shows Fix CTA in Issues Engine', async ({ page, request }) => {
+  test('IFKC1-002: Non-DIAGNOSTIC issue shows Fix CTA in Issues Engine', async ({
+    page,
+    request,
+  }) => {
     const { projectId } = await authenticatePage(page, request);
 
     // Navigate to project-level Issues page
@@ -129,7 +138,10 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC arrival callout semantics', 
    *
    * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] fixKind is NOT passed via URL (derived from config)
    */
-  test('IFKC1-003: DIAGNOSTIC arrival callout uses blue styling', async ({ page, request }) => {
+  test('IFKC1-003: DIAGNOSTIC arrival callout uses blue styling', async ({
+    page,
+    request,
+  }) => {
     const { projectId, productIds } = await authenticatePage(page, request);
 
     // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] STRICT: Expect at least 1 product
@@ -169,7 +181,10 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC arrival callout semantics', 
    * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Link routes to Issues Engine, not product tab=issues
    * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1-AUDIT-2] Full click chain + pillar assertion
    */
-  test('IFKC1-004: DIAGNOSTIC callout shows View related issues CTA', async ({ page, request }) => {
+  test('IFKC1-004: DIAGNOSTIC callout shows View related issues CTA', async ({
+    page,
+    request,
+  }) => {
     const { projectId, productIds } = await authenticatePage(page, request);
 
     // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] STRICT: Expect at least 1 product
@@ -224,7 +239,10 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DEO Overview uses correct CTA wording',
    *
    * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Strict assertion - at least 1 CTA must exist
    */
-  test('IFKC1-005: DEO Overview shows correct CTA for DIAGNOSTIC issues', async ({ page, request }) => {
+  test('IFKC1-005: DEO Overview shows correct CTA for DIAGNOSTIC issues', async ({
+    page,
+    request,
+  }) => {
     const { projectId } = await authenticatePage(page, request);
 
     // Navigate to DEO Overview
@@ -259,7 +277,10 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1-FIXUP-2: Aggregation CTA and Work Queue 
    *
    * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Products list fixNextIsDiagnostic drives "Review" label
    */
-  test('IFKC1-006: Products list shows Review CTA for DIAGNOSTIC-topped product', async ({ page, request }) => {
+  test('IFKC1-006: Products list shows Review CTA for DIAGNOSTIC-topped product', async ({
+    page,
+    request,
+  }) => {
     const { projectId, productIds } = await authenticatePage(page, request);
 
     // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] STRICT: Expect at least 4 products (Product 4 is DIAGNOSTIC)
@@ -270,11 +291,17 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1-FIXUP-2: Aggregation CTA and Work Queue 
     await page.waitForLoadState('networkidle');
 
     // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Find Product 4 row by title
-    const diagnosticProductRow = page.locator('tr:has-text("Product 4 - DIAGNOSTIC Test"), div[class*="row"]:has-text("Product 4 - DIAGNOSTIC Test")').first();
+    const diagnosticProductRow = page
+      .locator(
+        'tr:has-text("Product 4 - DIAGNOSTIC Test"), div[class*="row"]:has-text("Product 4 - DIAGNOSTIC Test")'
+      )
+      .first();
     await expect(diagnosticProductRow).toBeVisible();
 
     // Assert primary action is "Review" (not "Fix next")
-    const primaryAction = diagnosticProductRow.locator('[data-testid="row-primary-action"]');
+    const primaryAction = diagnosticProductRow.locator(
+      '[data-testid="row-primary-action"]'
+    );
     await expect(primaryAction).toBeVisible();
     const ctaText = await primaryAction.textContent();
     expect(ctaText).toBe('Review');
@@ -290,11 +317,16 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1-FIXUP-2: Aggregation CTA and Work Queue 
    *
    * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Work Queue fixKind-aware banner styling and wording
    */
-  test('IFKC1-007: Work Queue shows blue review banner for DIAGNOSTIC issueId', async ({ page, request }) => {
+  test('IFKC1-007: Work Queue shows blue review banner for DIAGNOSTIC issueId', async ({
+    page,
+    request,
+  }) => {
     const { projectId } = await authenticatePage(page, request);
 
     // Navigate to Work Queue with DIAGNOSTIC issue context
-    await page.goto(`/projects/${projectId}/work-queue?from=issues&issueId=not_answer_ready`);
+    await page.goto(
+      `/projects/${projectId}/work-queue?from=issues&issueId=not_answer_ready`
+    );
     await page.waitForLoadState('networkidle');
 
     // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-2] Assert issue fix context banner is visible

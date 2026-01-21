@@ -89,8 +89,14 @@ describe('Shopify Scope Matrix (SHOPIFY-SCOPES-MATRIX-1)', () => {
     });
 
     it('parses whitespace-separated scopes (multiple spaces)', () => {
-      const result = parseShopifyScopesCsv('read_products   write_products   read_content');
-      expect(result).toEqual(['read_products', 'write_products', 'read_content']);
+      const result = parseShopifyScopesCsv(
+        'read_products   write_products   read_content'
+      );
+      expect(result).toEqual([
+        'read_products',
+        'write_products',
+        'read_content',
+      ]);
     });
 
     it('parses whitespace-separated scopes (tabs)', () => {
@@ -105,13 +111,26 @@ describe('Shopify Scope Matrix (SHOPIFY-SCOPES-MATRIX-1)', () => {
 
     // [SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1] Mixed delimiters
     it('parses mixed comma and whitespace delimiters', () => {
-      const result = parseShopifyScopesCsv('read_products, write_products read_content');
-      expect(result).toEqual(['read_products', 'write_products', 'read_content']);
+      const result = parseShopifyScopesCsv(
+        'read_products, write_products read_content'
+      );
+      expect(result).toEqual([
+        'read_products',
+        'write_products',
+        'read_content',
+      ]);
     });
 
     it('handles complex mixed delimiter strings', () => {
-      const result = parseShopifyScopesCsv('  read_products,  write_products \n read_content,read_themes  ');
-      expect(result).toEqual(['read_products', 'write_products', 'read_content', 'read_themes']);
+      const result = parseShopifyScopesCsv(
+        '  read_products,  write_products \n read_content,read_themes  '
+      );
+      expect(result).toEqual([
+        'read_products',
+        'write_products',
+        'read_content',
+        'read_themes',
+      ]);
     });
 
     // [SHOPIFY-SCOPE-PARSE-ROBUSTNESS-1] Array input (legacy JSON from Prisma)
@@ -121,22 +140,56 @@ describe('Shopify Scope Matrix (SHOPIFY-SCOPES-MATRIX-1)', () => {
     });
 
     it('parses array with whitespace in elements', () => {
-      const result = parseShopifyScopesCsv(['read_products', ' write_products ', '', 'read_content']);
-      expect(result).toEqual(['read_products', 'write_products', 'read_content']);
+      const result = parseShopifyScopesCsv([
+        'read_products',
+        ' write_products ',
+        '',
+        'read_content',
+      ]);
+      expect(result).toEqual([
+        'read_products',
+        'write_products',
+        'read_content',
+      ]);
     });
 
     it('parses array where elements contain multiple scopes (delimiter in element)', () => {
-      const result = parseShopifyScopesCsv(['read_products,write_products', 'read_content']);
-      expect(result).toEqual(['read_products', 'write_products', 'read_content']);
+      const result = parseShopifyScopesCsv([
+        'read_products,write_products',
+        'read_content',
+      ]);
+      expect(result).toEqual([
+        'read_products',
+        'write_products',
+        'read_content',
+      ]);
     });
 
     it('parses array with mixed string types and empty elements', () => {
-      const result = parseShopifyScopesCsv(['read_products', '', '  ', 'write_products read_content', 'read_themes']);
-      expect(result).toEqual(['read_products', 'write_products', 'read_content', 'read_themes']);
+      const result = parseShopifyScopesCsv([
+        'read_products',
+        '',
+        '  ',
+        'write_products read_content',
+        'read_themes',
+      ]);
+      expect(result).toEqual([
+        'read_products',
+        'write_products',
+        'read_content',
+        'read_themes',
+      ]);
     });
 
     it('skips non-string elements in array', () => {
-      const result = parseShopifyScopesCsv(['read_products', 123, null, 'write_products', undefined, {}] as unknown[]);
+      const result = parseShopifyScopesCsv([
+        'read_products',
+        123,
+        null,
+        'write_products',
+        undefined,
+        {},
+      ] as unknown[]);
       expect(result).toEqual(['read_products', 'write_products']);
     });
 
@@ -177,7 +230,10 @@ describe('Shopify Scope Matrix (SHOPIFY-SCOPES-MATRIX-1)', () => {
     });
 
     it('computes scopes for multiple capabilities', () => {
-      const result = computeShopifyRequiredScopes(['products_sync', 'products_apply']);
+      const result = computeShopifyRequiredScopes([
+        'products_sync',
+        'products_apply',
+      ]);
       expect(result).toEqual(['read_products', 'write_products']);
     });
 
@@ -209,7 +265,9 @@ describe('Shopify Scope Matrix (SHOPIFY-SCOPES-MATRIX-1)', () => {
     });
 
     it('computes full scope set for all capabilities', () => {
-      const result = computeShopifyRequiredScopes(ALL_SHOPIFY_CAPABILITIES as ShopifyCapability[]);
+      const result = computeShopifyRequiredScopes(
+        ALL_SHOPIFY_CAPABILITIES as ShopifyCapability[]
+      );
       expect(result).toEqual([
         'read_content',
         'read_products',
@@ -222,7 +280,10 @@ describe('Shopify Scope Matrix (SHOPIFY-SCOPES-MATRIX-1)', () => {
   describe('checkScopeCoverage', () => {
     it('returns covered:true when all required scopes are granted', () => {
       const granted = ['read_products', 'write_products', 'read_themes'];
-      const capabilities: ShopifyCapability[] = ['products_sync', 'products_apply'];
+      const capabilities: ShopifyCapability[] = [
+        'products_sync',
+        'products_apply',
+      ];
       const result = checkScopeCoverage(granted, capabilities);
       expect(result.covered).toBe(true);
       expect(result.missingScopes).toEqual([]);
@@ -230,7 +291,10 @@ describe('Shopify Scope Matrix (SHOPIFY-SCOPES-MATRIX-1)', () => {
 
     it('returns covered:false with missing scopes when not all are granted', () => {
       const granted = ['read_products'];
-      const capabilities: ShopifyCapability[] = ['products_sync', 'products_apply'];
+      const capabilities: ShopifyCapability[] = [
+        'products_sync',
+        'products_apply',
+      ];
       const result = checkScopeCoverage(granted, capabilities);
       expect(result.covered).toBe(false);
       expect(result.missingScopes).toEqual(['write_products']);
@@ -273,21 +337,29 @@ describe('Shopify Scope Matrix (SHOPIFY-SCOPES-MATRIX-1)', () => {
   describe('Scope Implications (SHOPIFY-SCOPE-IMPLICATIONS-1)', () => {
     describe('SHOPIFY_SCOPE_IMPLICATIONS', () => {
       it('write_products implies read_products', () => {
-        expect(SHOPIFY_SCOPE_IMPLICATIONS.write_products).toContain('read_products');
+        expect(SHOPIFY_SCOPE_IMPLICATIONS.write_products).toContain(
+          'read_products'
+        );
       });
 
       it('write_content implies read_content', () => {
-        expect(SHOPIFY_SCOPE_IMPLICATIONS.write_content).toContain('read_content');
+        expect(SHOPIFY_SCOPE_IMPLICATIONS.write_content).toContain(
+          'read_content'
+        );
       });
 
       it('write_themes implies read_themes', () => {
-        expect(SHOPIFY_SCOPE_IMPLICATIONS.write_themes).toContain('read_themes');
+        expect(SHOPIFY_SCOPE_IMPLICATIONS.write_themes).toContain(
+          'read_themes'
+        );
       });
     });
 
     describe('expandGrantedScopesWithImplications', () => {
       it('expands write_products to include read_products', () => {
-        const expanded = expandGrantedScopesWithImplications(['write_products']);
+        const expanded = expandGrantedScopesWithImplications([
+          'write_products',
+        ]);
         expect(expanded.has('write_products')).toBe(true);
         expect(expanded.has('read_products')).toBe(true);
       });
@@ -372,7 +444,10 @@ describe('Shopify Scope Matrix (SHOPIFY-SCOPES-MATRIX-1)', () => {
        */
       it('write_products covers both products_sync and products_apply', () => {
         const granted = ['write_products'];
-        const capabilities: ShopifyCapability[] = ['products_sync', 'products_apply'];
+        const capabilities: ShopifyCapability[] = [
+          'products_sync',
+          'products_apply',
+        ];
         const result = checkScopeCoverage(granted, capabilities);
         expect(result.covered).toBe(true);
         expect(result.missingScopes).toEqual([]);

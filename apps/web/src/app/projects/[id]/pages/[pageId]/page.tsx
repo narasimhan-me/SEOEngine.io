@@ -18,7 +18,10 @@ interface PageParams {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export default async function CanonicalPageDetailRoute({ params, searchParams }: PageParams) {
+export default async function CanonicalPageDetailRoute({
+  params,
+  searchParams,
+}: PageParams) {
   const { id: projectId, pageId } = await params;
   const query = await searchParams;
 
@@ -27,7 +30,9 @@ export default async function CanonicalPageDetailRoute({ params, searchParams }:
     .filter(([, value]) => value !== undefined)
     .map(([key, value]) => {
       if (Array.isArray(value)) {
-        return value.map((v) => `${encodeURIComponent(key)}=${encodeURIComponent(v)}`).join('&');
+        return value
+          .map((v) => `${encodeURIComponent(key)}=${encodeURIComponent(v)}`)
+          .join('&');
       }
       return `${encodeURIComponent(key)}=${encodeURIComponent(value as string)}`;
     })

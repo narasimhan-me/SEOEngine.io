@@ -393,7 +393,9 @@ function _getIssuePillarId(issue: DeoIssue): DeoPillarId | undefined {
  * @param issue - The DEO issue
  * @returns IssueFixPath if actionable in product workspace, null otherwise
  */
-export function getIssueFixPathForProduct(issue: DeoIssue): IssueFixPath | null {
+export function getIssueFixPathForProduct(
+  issue: DeoIssue
+): IssueFixPath | null {
   const issueKey = getIssueKey(issue);
   const fixConfig = ISSUE_FIX_PATH_MAP[issueKey];
 
@@ -432,7 +434,9 @@ export function getIssueFixPathForProduct(issue: DeoIssue): IssueFixPath | null 
  * @param issue - The DEO issue
  * @returns IssueFixPath if any fix destination exists, null otherwise
  */
-export function getIssueFixPathForProject(issue: DeoIssue): IssueFixPath | null {
+export function getIssueFixPathForProject(
+  issue: DeoIssue
+): IssueFixPath | null {
   const issueKey = getIssueKey(issue);
   const fixConfig = ISSUE_FIX_PATH_MAP[issueKey];
 
@@ -480,7 +484,14 @@ export function buildIssueFixHref(params: {
   /** [ISSUE-FIX-NAV-AND-ANCHORS-1] Label for back link */
   returnLabel?: string;
 }): string | null {
-  const { projectId, issue, primaryProductId, from = 'issues', returnTo, returnLabel } = params;
+  const {
+    projectId,
+    issue,
+    primaryProductId,
+    from = 'issues',
+    returnTo,
+    returnLabel,
+  } = params;
   const fixPath = getIssueFixPathForProject(issue);
 
   // No fix path = no href
@@ -517,7 +528,10 @@ export function buildIssueFixHref(params: {
   };
 
   // For product-level fixes, need a product ID
-  if (fixPath.fixSurface !== IssueFixSurface.WORK_QUEUE && fixPath.fixSurface !== IssueFixSurface.EXTERNAL_SHOPIFY) {
+  if (
+    fixPath.fixSurface !== IssueFixSurface.WORK_QUEUE &&
+    fixPath.fixSurface !== IssueFixSurface.EXTERNAL_SHOPIFY
+  ) {
     if (!productId) {
       // Fall back to first affected product
       const fallbackProductId = issue.affectedProducts?.[0];
@@ -562,7 +576,9 @@ export function buildIssueFixHref(params: {
  * @param issueId - The issue ID or type key
  * @returns Fix path config or null if not mapped
  */
-export function getIssueFixConfig(issueId: string): Omit<IssueFixPath, 'routeTarget'> | null {
+export function getIssueFixConfig(
+  issueId: string
+): Omit<IssueFixPath, 'routeTarget'> | null {
   return ISSUE_FIX_PATH_MAP[issueId] || null;
 }
 
@@ -617,7 +633,7 @@ export function getSafeIssueDescription(issue: DeoIssue): string {
   }
 
   // Fallback
-  return 'This issue may affect your store\'s discoverability. Review and resolve when possible.';
+  return "This issue may affect your store's discoverability. Review and resolve when possible.";
 }
 
 /**
@@ -627,7 +643,10 @@ export function getSafeIssueDescription(issue: DeoIssue): string {
  * @param issue - Object with issueId and optional title
  * @returns Human-readable title, falling back to "Issue detected"
  */
-export function getSafeInsightsIssueTitle(issue: { issueId: string; title?: string }): string {
+export function getSafeInsightsIssueTitle(issue: {
+  issueId: string;
+  title?: string;
+}): string {
   // First, check ISSUE_UI_CONFIG using issueId
   const uiConfig = ISSUE_UI_CONFIG[issue.issueId];
   if (uiConfig?.label) {

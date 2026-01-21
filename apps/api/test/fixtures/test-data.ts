@@ -2,7 +2,7 @@ import { testPrisma } from '../utils/test-db';
 import * as bcrypt from 'bcrypt';
 
 export async function createTestUser(
-  overrides: Partial<{ email: string; password: string; name: string }> = {},
+  overrides: Partial<{ email: string; password: string; name: string }> = {}
 ) {
   const password = overrides.password ?? 'testpassword123';
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -20,7 +20,7 @@ export async function createTestUser(
 
 export async function createTestProject(
   userId: string,
-  overrides: Partial<{ name: string; domain: string }> = {},
+  overrides: Partial<{ name: string; domain: string }> = {}
 ) {
   return testPrisma.project.create({
     data: {

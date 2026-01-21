@@ -41,14 +41,16 @@ const createRoleResolutionServiceMock = () => ({
 describe('SearchIntentService', () => {
   let service: SearchIntentService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
-  let roleResolutionServiceMock: ReturnType<typeof createRoleResolutionServiceMock>;
+  let roleResolutionServiceMock: ReturnType<
+    typeof createRoleResolutionServiceMock
+  >;
 
   beforeEach(() => {
     prismaMock = createPrismaMock();
     roleResolutionServiceMock = createRoleResolutionServiceMock();
     service = new SearchIntentService(
       prismaMock as unknown as PrismaService,
-      roleResolutionServiceMock as unknown as RoleResolutionService,
+      roleResolutionServiceMock as unknown as RoleResolutionService
     );
   });
 
@@ -96,7 +98,7 @@ describe('SearchIntentService', () => {
       prismaMock.product.findUnique.mockResolvedValue(null);
 
       await expect(service.analyzeProductIntent('prod-1')).rejects.toThrow(
-        NotFoundException,
+        NotFoundException
       );
     });
   });
@@ -129,7 +131,9 @@ describe('SearchIntentService', () => {
       ];
 
       prismaMock.product.findUnique.mockResolvedValue(mockProduct);
-      prismaMock.productIntentCoverage.findMany.mockResolvedValue(mockCoverageRows);
+      prismaMock.productIntentCoverage.findMany.mockResolvedValue(
+        mockCoverageRows
+      );
       prismaMock.productIntentFixDraft.findMany.mockResolvedValue([]);
 
       const result = await service.getProductIntentData('prod-1', 'user-1');
@@ -143,9 +147,9 @@ describe('SearchIntentService', () => {
     it('should throw NotFoundException when product does not exist', async () => {
       prismaMock.product.findUnique.mockResolvedValue(null);
 
-      await expect(service.getProductIntentData('prod-1', 'user-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.getProductIntentData('prod-1', 'user-1')
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException when user does not own product', async () => {
@@ -159,12 +163,12 @@ describe('SearchIntentService', () => {
 
       prismaMock.product.findUnique.mockResolvedValue(mockProduct);
       roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
-        new ForbiddenException('You do not have access to this project'),
+        new ForbiddenException('You do not have access to this project')
       );
 
-      await expect(service.getProductIntentData('prod-1', 'user-1')).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.getProductIntentData('prod-1', 'user-1')
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('should compute coverage when not cached', async () => {
@@ -249,7 +253,9 @@ describe('SearchIntentService', () => {
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
       prismaMock.product.findMany.mockResolvedValue(mockProducts);
-      prismaMock.productIntentCoverage.findMany.mockResolvedValue(mockCoverageRows);
+      prismaMock.productIntentCoverage.findMany.mockResolvedValue(
+        mockCoverageRows
+      );
 
       const result = await service.getProjectIntentSummary('proj-1', 'user-1');
 
@@ -262,9 +268,9 @@ describe('SearchIntentService', () => {
     it('should throw NotFoundException when project does not exist', async () => {
       prismaMock.project.findUnique.mockResolvedValue(null);
 
-      await expect(service.getProjectIntentSummary('proj-1', 'user-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.getProjectIntentSummary('proj-1', 'user-1')
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException when user does not own project', async () => {
@@ -275,12 +281,12 @@ describe('SearchIntentService', () => {
 
       prismaMock.project.findUnique.mockResolvedValue(mockProject);
       roleResolutionServiceMock.assertProjectAccess.mockRejectedValue(
-        new ForbiddenException('You do not have access to this project'),
+        new ForbiddenException('You do not have access to this project')
       );
 
-      await expect(service.getProjectIntentSummary('proj-1', 'user-1')).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.getProjectIntentSummary('proj-1', 'user-1')
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('should return empty summary when no products exist', async () => {
@@ -325,7 +331,9 @@ describe('SearchIntentService', () => {
       ];
 
       prismaMock.product.findMany.mockResolvedValue(mockProducts);
-      prismaMock.productIntentCoverage.findMany.mockResolvedValue(mockCoverageRows);
+      prismaMock.productIntentCoverage.findMany.mockResolvedValue(
+        mockCoverageRows
+      );
 
       const result = await service.buildSearchIntentIssues('proj-1');
 
@@ -349,7 +357,9 @@ describe('SearchIntentService', () => {
 
   describe('invalidateCoverage', () => {
     it('should delete coverage for a product', async () => {
-      prismaMock.productIntentCoverage.deleteMany.mockResolvedValue({ count: 1 });
+      prismaMock.productIntentCoverage.deleteMany.mockResolvedValue({
+        count: 1,
+      });
 
       await service.invalidateCoverage('prod-1');
 
@@ -359,4 +369,3 @@ describe('SearchIntentService', () => {
     });
   });
 });
-
