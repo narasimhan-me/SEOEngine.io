@@ -2,34 +2,816 @@
 @tailwind components;
 @tailwind utilities;
 
+/**
+ * [DARK-MODE-SYSTEM-1] Design Token System
+ * [DARK-MODE-POLISH-1] Token refinements for surface separation + readability
+ *
+ * Single-source-of-truth CSS variables for theming.
+ * Light mode values in :root, dark mode overrides in .dark
+ *
+ * Token categories:
+ * - Surfaces: background (page), surface-base (alias), surface-card, surface-raised
+ * - Text: foreground, muted-foreground
+ * - Borders/Inputs: border, input, ring
+ * - Interactive: muted, hover
+ * - Semantic: success, warning, danger, info (with foreground/background variants)
+ * - Brand: primary, signal
+ */
+
+/**
+ * [DARK-MODE-DROPDOWN-FIX-1] Color scheme declarations
+ *
+ * Set explicit color-scheme so browser-native UI surfaces (select dropdown lists,
+ * UA popovers, option hover/highlight states) render correctly in each mode.
+ */
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
 :root {
+  /* Legacy RGB values for backward compatibility */
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 255, 255, 255;
   --background-end-rgb: 255, 255, 255;
 
-  /* Design tokens (light mode) */
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --primary: 221.2 83.2% 53.3%;
-  --primary-foreground: 210 40% 98%;
-  --signal: 142.1 76.2% 36.3%;
-  --border: 214.3 31.8% 91.4%;
+  /* === Surface tokens === */
+  --background: 0 0% 100%;           /* #ffffff - page background */
+  --surface: 0 0% 100%;              /* #ffffff - card/panel background (legacy alias) */
+  --surface-elevated: 0 0% 98%;      /* #fafafa - elevated surfaces (modals, dropdowns) */
+
+  /* [DARK-MODE-POLISH-1] Explicit surface elevation aliases */
+  --surface-base: 0 0% 100%;         /* page background alias */
+  --surface-card: 0 0% 100%;         /* default cards/rows */
+  --surface-raised: 0 0% 96%;        /* hover/active/raised surfaces */
+
+  /* === Text tokens === */
+  --foreground: 222.2 84% 4.9%;      /* near-black - primary text */
+  --muted-foreground: 215.4 16.3% 46.9%; /* gray-500 - secondary text */
+
+  /* === Border/Input tokens === */
+  --border: 214.3 31.8% 91.4%;       /* gray-200 - borders */
+  --input: 214.3 31.8% 91.4%;        /* gray-200 - input borders */
+  --ring: 221.2 83.2% 53.3%;         /* blue-600 - focus ring */
+
+  /* === Interactive tokens === */
+  --muted: 210 40% 96.1%;            /* gray-100 - hover/muted backgrounds */
+  --hover: 210 40% 96.1%;            /* gray-100 - hover state */
+
+  /* [DARK-MODE-TABLE-HOVER-FIX-1-FIXUP-1] Menu/row hover tokens */
+  /* Derived from --primary; use with alpha at point of use (e.g., hsl(var(--menu-bg) / 0.10)) */
+  --menu-bg: 221.2 83.2% 53.3%;      /* matches --primary for consistency with sidebar pill */
+  --menu-hover-bg: 221.2 83.2% 53.3%; /* same as --menu-bg; hover uses same tone */
+
+  /* === Brand tokens === */
+  --primary: 221.2 83.2% 53.3%;      /* blue-600 */
+  --primary-foreground: 210 40% 98%; /* near-white on primary */
+  --signal: 142.1 76.2% 36.3%;       /* green - positive signals */
+
+  /* === Semantic tokens (light mode) === */
+  --success: 142.1 76.2% 36.3%;      /* green-600 */
+  --success-foreground: 142.1 76.2% 22%;
+  --success-background: 142.1 76.2% 95%;
+
+  --warning: 32 95% 44%;             /* amber-600 */
+  --warning-foreground: 32 95% 28%;
+  --warning-background: 48 96% 95%;
+
+  --danger: 0 84% 60%;               /* red-500 */
+  --danger-foreground: 0 84% 30%;
+  --danger-background: 0 86% 97%;
+
+  --info: 221.2 83.2% 53.3%;         /* blue-600 */
+  --info-foreground: 221.2 83.2% 30%;
+  --info-background: 213.8 93.9% 97%;
 }
 
+/**
+ * [DARK-MODE-SYSTEM-1] Dark Mode Token Overrides
+ * [DARK-MODE-POLISH-1] Refined surface separation + secondary text contrast
+ *
+ * Palette aligned to "Coming Soon" direction:
+ * - Dark surfaces with clear elevation separation
+ * - Crisp, readable text (secondary text ~15% more contrast)
+ * - Muted (not neon) semantic colors
+ */
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --signal: 142.1 70.6% 45.3%;
-  --border: 217.2 32.6% 17.5%;
+  /* === Surface tokens (dark) === */
+  --background: 222.2 47% 8%;        /* very dark blue-gray - page bg */
+  --surface: 222.2 47% 11%;          /* slightly lighter for cards (legacy alias) */
+  --surface-elevated: 222.2 47% 16%; /* elevated surfaces - increased separation */
+
+  /* [DARK-MODE-POLISH-1] Explicit surface elevation with clear separation */
+  --surface-base: 222.2 47% 8%;      /* page background alias */
+  --surface-card: 222.2 47% 11%;     /* default cards/rows */
+  --surface-raised: 222.2 47% 16%;   /* hover/active/raised - visible step up */
+
+  /* === Text tokens (dark) === */
+  --foreground: 210 40% 98%;         /* near-white - primary text */
+  --muted-foreground: 215 20% 72%;   /* ~15% brighter for secondary text readability */
+
+  /* === Border/Input tokens (dark) === */
+  --border: 217.2 32.6% 22%;         /* subtle borders - slightly brighter */
+  --input: 217.2 32.6% 22%;          /* input borders */
+  --ring: 217.2 91.2% 59.8%;         /* blue-400 - focus ring */
+
+  /* === Interactive tokens (dark) === */
+  --muted: 217.2 32.6% 14%;          /* muted backgrounds */
+  --hover: 222.2 47% 16%;            /* hover state = surface-raised */
+
+  /* [DARK-MODE-TABLE-HOVER-FIX-1-FIXUP-1] Menu/row hover tokens (dark) */
+  --menu-bg: 217.2 91.2% 59.8%;      /* matches --primary (dark) */
+  --menu-hover-bg: 217.2 91.2% 59.8%; /* same as --menu-bg */
+
+  /* === Brand tokens (dark) === */
+  --primary: 217.2 91.2% 59.8%;      /* blue-400 - brighter for dark bg */
+  --primary-foreground: 222.2 47.4% 11.2%; /* dark text on primary */
+  --signal: 142.1 70.6% 45.3%;       /* green - positive signals */
+
+  /* === Semantic tokens (dark - muted, not neon) === */
+  --success: 142.1 70.6% 45.3%;      /* green-500 - muted */
+  --success-foreground: 142.1 70.6% 80%;
+  --success-background: 142.1 50% 15%;
+
+  --warning: 38 92% 50%;             /* amber-500 - muted */
+  --warning-foreground: 48 96% 85%;
+  --warning-background: 32 50% 15%;
+
+  --danger: 0 72% 51%;               /* red-500 - muted */
+  --danger-foreground: 0 86% 85%;
+  --danger-background: 0 50% 15%;
+
+  --info: 217.2 91.2% 59.8%;         /* blue-400 - muted */
+  --info-foreground: 213.8 93.9% 85%;
+  --info-background: 221.2 50% 15%;
+
+  /* [DARK-MODE-POLISH-1] Ring offset color for focus ring clarity */
+  --tw-ring-offset-color: hsl(222.2 47% 8%);
 }
 
 body {
   color: hsl(var(--foreground));
   background-color: hsl(var(--background));
+}
+
+/**
+ * [DARK-MODE-SYSTEM-1] PATCH 4 - Centralized .dark Utility Remaps
+ *
+ * Remap common hardcoded Tailwind utility classes to use theme tokens
+ * so dark mode works cohesively across the app without mass file edits.
+ *
+ * These overrides only apply in .dark mode; light theme remains unchanged.
+ */
+
+/* === Background remaps === */
+.dark .bg-white {
+  background-color: hsl(var(--surface)) !important;
+}
+.dark .bg-gray-50 {
+  background-color: hsl(var(--background)) !important;
+}
+.dark .bg-gray-100 {
+  background-color: hsl(var(--muted)) !important;
+}
+.dark .bg-gray-200 {
+  background-color: hsl(var(--border)) !important;
+}
+
+/* === Text color remaps === */
+.dark .text-gray-900 {
+  color: hsl(var(--foreground)) !important;
+}
+.dark .text-gray-800 {
+  color: hsl(var(--foreground)) !important;
+}
+.dark .text-gray-700 {
+  color: hsl(210 40% 90%) !important;
+}
+.dark .text-gray-600 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+.dark .text-gray-500 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+.dark .text-gray-400 {
+  color: hsl(215 20% 55%) !important;
+}
+
+/* === Border remaps === */
+.dark .border-gray-100 {
+  border-color: hsl(var(--border)) !important;
+}
+.dark .border-gray-200 {
+  border-color: hsl(var(--border)) !important;
+}
+.dark .border-gray-300 {
+  border-color: hsl(217.2 32.6% 25%) !important;
+}
+
+/* === Divide remaps === */
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: hsl(var(--border)) !important;
+}
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: hsl(var(--border)) !important;
+}
+
+/* === Ring remaps === */
+.dark .ring-gray-200 {
+  --tw-ring-color: hsl(var(--border)) !important;
+}
+.dark .ring-gray-300 {
+  --tw-ring-color: hsl(217.2 32.6% 25%) !important;
+}
+
+/* === Placeholder remaps === */
+.dark .placeholder\:text-gray-400::placeholder {
+  color: hsl(215 20% 50%) !important;
+}
+.dark .placeholder-gray-400::placeholder {
+  color: hsl(215 20% 50%) !important;
+}
+
+/* === Semantic banner/callout remaps === */
+
+/* Danger/Error (red) */
+.dark .bg-red-50 {
+  background-color: hsl(var(--danger-background)) !important;
+}
+.dark .border-red-200 {
+  border-color: hsl(0 50% 30%) !important;
+}
+.dark .border-red-300 {
+  border-color: hsl(0 50% 35%) !important;
+}
+.dark .text-red-700 {
+  color: hsl(var(--danger-foreground)) !important;
+}
+.dark .text-red-800 {
+  color: hsl(var(--danger-foreground)) !important;
+}
+.dark .text-red-600 {
+  color: hsl(0 72% 65%) !important;
+}
+.dark .text-red-500 {
+  color: hsl(0 72% 60%) !important;
+}
+
+/* Warning (amber/yellow) */
+.dark .bg-amber-50 {
+  background-color: hsl(var(--warning-background)) !important;
+}
+.dark .bg-yellow-50 {
+  background-color: hsl(var(--warning-background)) !important;
+}
+.dark .border-amber-200 {
+  border-color: hsl(32 50% 30%) !important;
+}
+.dark .border-yellow-200 {
+  border-color: hsl(48 50% 30%) !important;
+}
+.dark .border-amber-300 {
+  border-color: hsl(32 50% 35%) !important;
+}
+.dark .text-amber-700 {
+  color: hsl(var(--warning-foreground)) !important;
+}
+.dark .text-amber-800 {
+  color: hsl(var(--warning-foreground)) !important;
+}
+.dark .text-yellow-700 {
+  color: hsl(var(--warning-foreground)) !important;
+}
+.dark .text-yellow-800 {
+  color: hsl(var(--warning-foreground)) !important;
+}
+
+/* Success (green) */
+.dark .bg-green-50 {
+  background-color: hsl(var(--success-background)) !important;
+}
+.dark .border-green-200 {
+  border-color: hsl(142 50% 25%) !important;
+}
+.dark .border-green-300 {
+  border-color: hsl(142 50% 30%) !important;
+}
+.dark .text-green-700 {
+  color: hsl(var(--success-foreground)) !important;
+}
+.dark .text-green-800 {
+  color: hsl(var(--success-foreground)) !important;
+}
+.dark .text-green-600 {
+  color: hsl(142 70% 55%) !important;
+}
+
+/* Info (blue) */
+.dark .bg-blue-50 {
+  background-color: hsl(var(--info-background)) !important;
+}
+.dark .border-blue-200 {
+  border-color: hsl(221 50% 30%) !important;
+}
+.dark .border-blue-300 {
+  border-color: hsl(221 50% 35%) !important;
+}
+.dark .text-blue-700 {
+  color: hsl(var(--info-foreground)) !important;
+}
+.dark .text-blue-800 {
+  color: hsl(var(--info-foreground)) !important;
+}
+.dark .text-blue-600 {
+  color: hsl(217 91% 65%) !important;
+}
+
+/* === Shadow remaps for dark mode === */
+.dark .shadow-sm {
+  --tw-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.3) !important;
+  --tw-shadow-colored: 0 1px 2px 0 var(--tw-shadow-color) !important;
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow) !important;
+}
+.dark .shadow {
+  --tw-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4) !important;
+  --tw-shadow-colored: 0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color) !important;
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow) !important;
+}
+.dark .shadow-md {
+  --tw-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4) !important;
+  --tw-shadow-colored: 0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color) !important;
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow) !important;
+}
+.dark .shadow-lg {
+  --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.5) !important;
+  --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color) !important;
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow) !important;
+}
+
+/* === Hover state remaps === */
+.dark .hover\:bg-gray-50:hover {
+  background-color: hsl(var(--hover)) !important;
+}
+.dark .hover\:bg-gray-100:hover {
+  background-color: hsl(var(--hover)) !important;
+}
+
+/* === Focus state remaps === */
+.dark .focus\:ring-blue-500:focus {
+  --tw-ring-color: hsl(var(--ring)) !important;
+}
+.dark .focus\:border-blue-500:focus {
+  border-color: hsl(var(--ring)) !important;
+}
+
+/**
+ * [DARK-MODE-POLISH-1] PATCH 2 - Card/Row Scannability
+ *
+ * Hover/active separation so rows don't merge into cards.
+ * Table headers distinguish from page background.
+ */
+
+/* Row hover uses surface-raised for visible separation */
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-gray-100:hover {
+  background-color: hsl(var(--surface-raised)) !important;
+}
+
+/* Table header backgrounds - slightly elevated from page */
+.dark thead .bg-gray-50,
+.dark thead.bg-gray-50,
+.dark th.bg-gray-50,
+.dark [role="rowgroup"] .bg-gray-50:first-child {
+  background-color: hsl(var(--surface-card)) !important;
+  border-bottom: 1px solid hsl(var(--border)) !important;
+}
+
+/* Active/selected row states */
+.dark .bg-blue-50 {
+  background-color: hsl(var(--info-background)) !important;
+}
+.dark .hover\:bg-blue-50:hover {
+  background-color: hsl(221.2 50% 18%) !important;
+}
+
+/**
+ * [DARK-MODE-POLISH-1] PATCH 3 - Status Chips & Badges Contrast Uplift
+ *
+ * Extend remaps for common chip/badge classes.
+ * Ensure chip text contrast is stronger than body text.
+ */
+
+/* === Info/Blue chips (bg-blue-100, text-blue-800) === */
+.dark .bg-blue-100 {
+  background-color: hsl(221.2 50% 18%) !important;
+}
+.dark .text-blue-800,
+.dark .text-blue-900 {
+  color: hsl(213.8 93.9% 88%) !important;
+}
+.dark .border-blue-300 {
+  border-color: hsl(221 50% 35%) !important;
+}
+
+/* === Success/Green chips (bg-green-100, text-green-800) === */
+.dark .bg-green-100 {
+  background-color: hsl(142.1 50% 18%) !important;
+}
+.dark .text-green-800,
+.dark .text-green-900 {
+  color: hsl(var(--success-foreground)) !important;
+}
+
+/* === Warning/Amber chips (bg-amber-100/bg-yellow-100, text-amber-800) === */
+.dark .bg-amber-100 {
+  background-color: hsl(32 50% 18%) !important;
+}
+.dark .bg-yellow-100 {
+  background-color: hsl(48 50% 18%) !important;
+}
+.dark .text-amber-800,
+.dark .text-amber-900 {
+  color: hsl(var(--warning-foreground)) !important;
+}
+.dark .text-yellow-800,
+.dark .text-yellow-900 {
+  color: hsl(var(--warning-foreground)) !important;
+}
+.dark .border-amber-300,
+.dark .border-yellow-300 {
+  border-color: hsl(38 50% 35%) !important;
+}
+
+/* === Danger/Red chips (bg-red-100, text-red-800) === */
+.dark .bg-red-100 {
+  background-color: hsl(0 50% 18%) !important;
+}
+.dark .text-red-900 {
+  color: hsl(var(--danger-foreground)) !important;
+}
+
+/* === Neutral/Gray chips (bg-gray-100, text-gray-800) === */
+.dark .bg-gray-100 {
+  background-color: hsl(var(--muted)) !important;
+}
+
+/* === Purple chips (for "New" badges etc) === */
+.dark .bg-purple-50 {
+  background-color: hsl(270 50% 15%) !important;
+}
+.dark .bg-purple-100 {
+  background-color: hsl(270 50% 18%) !important;
+}
+.dark .text-purple-700,
+.dark .text-purple-800 {
+  color: hsl(270 70% 80%) !important;
+}
+.dark .border-purple-200,
+.dark .border-purple-300 {
+  border-color: hsl(270 50% 35%) !important;
+}
+
+/**
+ * [DARK-MODE-POLISH-1] PATCH 4 - Forms & Inputs Clarity
+ *
+ * Distinguish editable vs read-only vs disabled inputs.
+ * Focus states unmistakable.
+ */
+
+/* Read-only inputs: elevated surface + subtle border */
+.dark input[readonly],
+.dark textarea[readonly],
+.dark select[readonly] {
+  background-color: hsl(var(--surface-raised)) !important;
+  border-color: hsl(217.2 32.6% 28%) !important;
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* Disabled inputs: clearly disabled but readable */
+.dark input:disabled,
+.dark textarea:disabled,
+.dark select:disabled,
+.dark button:disabled {
+  background-color: hsl(222.2 47% 10%) !important;
+  border-color: hsl(217.2 32.6% 18%) !important;
+  color: hsl(215 20% 50%) !important;
+  opacity: 1 !important; /* Prevent double-dim from browser defaults */
+  cursor: not-allowed !important;
+}
+
+/* Focus states: unmistakable border/ring */
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: hsl(var(--ring)) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px hsl(var(--surface-base)), 0 0 0 4px hsl(var(--ring) / 0.4) !important;
+}
+
+/* Input placeholder text */
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: hsl(215 20% 45%) !important;
+}
+
+/**
+ * [DARK-MODE-POLISH-1] PATCH 5 - Button Hierarchy Clarity
+ *
+ * Reinforce button hierarchy without changing actions.
+ * Primary solid, secondary outline visible, tertiary/ghost subtle hover.
+ */
+
+/* Secondary/outline buttons: visible borders on dark surfaces */
+.dark .border-gray-300 {
+  border-color: hsl(217.2 32.6% 28%) !important;
+}
+.dark .hover\:border-gray-400:hover {
+  border-color: hsl(217.2 32.6% 40%) !important;
+}
+
+/* Ghost/tertiary button hover */
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-gray-100:hover {
+  background-color: hsl(var(--surface-raised)) !important;
+}
+
+/**
+ * [DARK-MODE-TABLE-HOVER-FIX-1] Table/List Row Hover Fix
+ * [DARK-MODE-TABLE-HOVER-FIX-1-FIXUP-1] Force cell-level paint
+ * [DARK-MODE-TABLE-HOVER-FIX-1-FIXUP-3] Standardize hover to menuHoverBg / 0.14 for visibility
+ *
+ * Problem: Table row hover uses hover:bg-gray-50 on <tr>, but individual <td>/<th>
+ * cells may have explicit white backgrounds (or higher-specificity rules) that override
+ * the row hover, causing white cells to flash on hover in dark mode.
+ *
+ * Fix: Force cell-level background paint using --menu-hover-bg token with 0.14 alpha
+ * for visible hover feedback that matches the sidebar active pill tone. Dark-only.
+ */
+
+/* === Table row hover: force cell-level paint (dark-only) === */
+.dark tr.hover\:bg-gray-50:hover,
+.dark tr.hover\:bg-gray-100:hover {
+  background-color: hsl(var(--menu-hover-bg) / 0.14) !important;
+}
+.dark tr.hover\:bg-gray-50:hover > td,
+.dark tr.hover\:bg-gray-50:hover > th,
+.dark tr.hover\:bg-gray-100:hover > td,
+.dark tr.hover\:bg-gray-100:hover > th {
+  background-color: hsl(var(--menu-hover-bg) / 0.14) !important;
+}
+
+/* === List row hover: non-table row containers (dark-only) === */
+/* Target common row containers (div, li, label) that use hover:bg-gray-50/100 */
+.dark div.hover\:bg-gray-50:hover,
+.dark div.hover\:bg-gray-100:hover,
+.dark li.hover\:bg-gray-50:hover,
+.dark li.hover\:bg-gray-100:hover,
+.dark label.hover\:bg-gray-50:hover,
+.dark label.hover\:bg-gray-100:hover {
+  background-color: hsl(var(--menu-hover-bg) / 0.14) !important;
+}
+
+/**
+ * [DARK-MODE-TABLE-HOVER-FIX-1-FIXUP-1] Sidebar Active Pill Token Binding
+ * [DARK-MODE-TABLE-HOVER-FIX-1-FIXUP-3] Alpha adjusted to 0.14 to match hover visibility standard
+ *
+ * Explicitly bind the sidebar active pill (ProjectSideNav) to --menu-bg token.
+ * This confirms --menu-bg as the canonical token for the existing bg-primary/10 pill
+ * tone without changing component markup. Alpha adjusted to 0.14 so "match tone"
+ * with row hover is deterministic.
+ */
+.dark [data-testid="project-sidenav"] .bg-primary\/10 {
+  background-color: hsl(var(--menu-bg) / 0.14) !important;
+}
+
+/**
+ * [DARK-MODE-TABLE-HOVER-FIX-1-FIXUP-2] Table body/cell base paint (dark-only)
+ * [DARK-MODE-TABLE-HOVER-FIX-1-FIXUP-3] Hover standardized to menuHoverBg / 0.14
+ *
+ * Problem: Projects table and admin tables still paint white in dark mode because
+ * tbody.bg-white and cell backgrounds remain white; hover-only fixes are insufficient.
+ *
+ * Fix: Force token-based base + hover paint for tables with tbody.bg-white.
+ * Base paint uses --surface-card; hover uses --menu-hover-bg / 0.14 (matches sidebar pill).
+ */
+
+/* === Table body/cell base paint (non-hover) === */
+.dark table tbody.bg-white {
+  background-color: hsl(var(--surface-card)) !important;
+}
+.dark table tbody.bg-white > tr > td,
+.dark table tbody.bg-white > tr > th {
+  background-color: hsl(var(--surface-card)) !important;
+}
+
+/* === Table body/cell hover paint === */
+/* Target tr.hover:bg-gray-50 specifically to win specificity war */
+/* Hover uses menuHoverBg / 0.14 for visible contrast matching sidebar pill */
+.dark table tbody.bg-white > tr:hover > td,
+.dark table tbody.bg-white > tr:hover > th,
+.dark table tbody.bg-white > tr.hover\:bg-gray-50:hover > td,
+.dark table tbody.bg-white > tr.hover\:bg-gray-50:hover > th,
+.dark table tbody.bg-white > tr.hover\:bg-gray-100:hover > td,
+.dark table tbody.bg-white > tr.hover\:bg-gray-100:hover > th {
+  background-color: hsl(var(--menu-hover-bg) / 0.14) !important;
+}
+
+/* Also force the row itself (not just cells) */
+.dark table tbody.bg-white > tr.hover\:bg-gray-50:hover,
+.dark table tbody.bg-white > tr.hover\:bg-gray-100:hover {
+  background-color: hsl(var(--menu-hover-bg) / 0.14) !important;
+}
+
+/* Disabled buttons: consistent with disabled inputs */
+.dark button:disabled,
+.dark .btn:disabled,
+.dark [role="button"]:disabled {
+  background-color: hsl(222.2 47% 12%) !important;
+  border-color: hsl(217.2 32.6% 18%) !important;
+  color: hsl(215 20% 45%) !important;
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+}
+
+/* Primary button disabled - keep distinct from secondary */
+.dark .bg-blue-600:disabled,
+.dark .bg-primary:disabled {
+  background-color: hsl(217.2 50% 25%) !important;
+  color: hsl(215 20% 55%) !important;
+}
+
+/* Ensure primary buttons remain solid and visible */
+.dark .bg-blue-600,
+.dark .bg-primary {
+  background-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+.dark .hover\:bg-blue-700:hover {
+  background-color: hsl(217.2 91.2% 50%) !important;
+}
+
+/* Ring offset for focus rings - prevent white halo */
+.dark .ring-offset-white,
+.dark .ring-offset-2 {
+  --tw-ring-offset-color: hsl(var(--surface-base)) !important;
+}
+
+/**
+ * [DARK-MODE-DROPDOWN-FIX-1] PATCH 2 - Custom Dropdown Container Theming
+ *
+ * Ensure custom dropdown/menu containers (non-native) use raised surface tokens.
+ * Targets by data-testid where available for stability.
+ */
+
+/* Theme dropdown (TopNav) */
+.dark [data-testid="theme-dropdown"] {
+  background-color: hsl(var(--surface-raised)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Account dropdown (TopNav) */
+.dark [data-testid="account-dropdown"] {
+  background-color: hsl(var(--surface-raised)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Generic dropdown menus with role="menu" */
+.dark [role="menu"] {
+  background-color: hsl(var(--surface-raised)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Dropdown menu items hover state */
+.dark [role="menuitem"]:hover,
+.dark [role="option"]:hover,
+.dark [role="menu"] button:hover {
+  background-color: hsl(var(--hover)) !important;
+}
+
+/* Native select elements in dark mode - ensure dropdown list is dark */
+.dark select {
+  color-scheme: dark;
+  background-color: hsl(var(--surface-card)) !important;
+  border-color: hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Select option styling (where browser allows) */
+.dark select option {
+  background-color: hsl(222.2 47% 14%);
+  color: hsl(var(--foreground));
+}
+.dark select option:hover,
+.dark select option:checked {
+  background-color: hsl(var(--hover));
+}
+
+/**
+ * [SHOPIFY-EMBEDDED-CONTRAST-PASS-1] Embedded-Only CSS Overrides
+ * [SHOPIFY-EMBEDDED-CONTRAST-PASS-1 FIXUP-1] Token-based + contrast hardening
+ * [SHOPIFY-EMBEDDED-CONTRAST-PASS-1 REVIEW-2] Override existing tokens (no new names)
+ *
+ * These rules apply ONLY when the app is rendered inside Shopify Admin iframe.
+ * Detection flag: data-shopify-embedded="1" on <html> element (set by layout.tsx init script).
+ *
+ * Purpose:
+ * - Ensure EngineO UI is readable against Shopify Admin's own dark/light UI
+ * - Dropdowns/popovers stay consistent with host Admin palette
+ * - Focus rings and scrollbars don't clash
+ *
+ * Embedded overrides adjust existing theme tokens (--muted-foreground, --border)
+ * with small deltas for improved contrast in the Shopify Admin context.
+ */
+
+/* === Embedded: Token overrides for contrast hardening === */
+/* Override existing tokens with small deltas for embedded readability */
+html[data-shopify-embedded="1"] {
+  --muted-foreground: 215.4 16.3% 42%;  /* slightly darker than base for light mode */
+  --border: 214.3 31.8% 88%;            /* slightly darker border for light mode */
+}
+html[data-shopify-embedded="1"].dark {
+  --muted-foreground: 215 20% 76%;      /* slightly brighter than base for dark mode */
+  --border: 217.2 32.6% 26%;            /* slightly brighter border for dark mode */
+}
+
+/* === Embedded: Surface contrast boost === */
+/* Slightly elevate card surfaces to separate from Shopify Admin background */
+html[data-shopify-embedded="1"] .bg-white {
+  background-color: hsl(var(--surface-card)) !important;
+}
+html[data-shopify-embedded="1"].dark .bg-white {
+  background-color: hsl(var(--surface-card)) !important;
+}
+
+/* === Embedded: Dropdown/Popover containment === */
+/* Ensure dropdowns have solid backgrounds that don't inherit Shopify's */
+html[data-shopify-embedded="1"] [role="menu"],
+html[data-shopify-embedded="1"] [role="listbox"],
+html[data-shopify-embedded="1"] [data-testid="theme-dropdown"],
+html[data-shopify-embedded="1"] [data-testid="account-dropdown"] {
+  background-color: hsl(var(--surface-card));
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+html[data-shopify-embedded="1"].dark [role="menu"],
+html[data-shopify-embedded="1"].dark [role="listbox"],
+html[data-shopify-embedded="1"].dark [data-testid="theme-dropdown"],
+html[data-shopify-embedded="1"].dark [data-testid="account-dropdown"] {
+  background-color: hsl(var(--surface-raised)) !important;
+  border-color: hsl(var(--border)) !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+}
+
+/* === Embedded: Focus ring visibility (focus-visible only) === */
+/* Thicker focus rings for keyboard navigation; mouse clicks don't trigger heavy rings */
+html[data-shopify-embedded="1"] input:focus-visible,
+html[data-shopify-embedded="1"] textarea:focus-visible,
+html[data-shopify-embedded="1"] select:focus-visible,
+html[data-shopify-embedded="1"] button:focus-visible,
+html[data-shopify-embedded="1"] [role="button"]:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring) / 0.5) !important;
+}
+html[data-shopify-embedded="1"].dark input:focus-visible,
+html[data-shopify-embedded="1"].dark textarea:focus-visible,
+html[data-shopify-embedded="1"].dark select:focus-visible,
+html[data-shopify-embedded="1"].dark button:focus-visible,
+html[data-shopify-embedded="1"].dark [role="button"]:focus-visible {
+  box-shadow: 0 0 0 2px hsl(var(--surface-base)), 0 0 0 4px hsl(var(--ring) / 0.5) !important;
+}
+
+/* === Embedded: Scrollbar styling === */
+/* Subtle scrollbars that don't clash with Shopify Admin's chrome */
+html[data-shopify-embedded="1"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+html[data-shopify-embedded="1"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+html[data-shopify-embedded="1"] ::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+html[data-shopify-embedded="1"] ::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground) / 0.5);
+}
+html[data-shopify-embedded="1"].dark ::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground) / 0.25);
+}
+html[data-shopify-embedded="1"].dark ::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground) / 0.4);
+}
+
+/* === Embedded: Native select dropdown fix === */
+/* Ensure native <select> dropdowns render with correct color scheme */
+html[data-shopify-embedded="1"] select {
+  color-scheme: light;
+}
+html[data-shopify-embedded="1"].dark select {
+  color-scheme: dark;
 }

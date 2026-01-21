@@ -17,8 +17,9 @@ interface User {
   accountRole?: 'OWNER' | 'EDITOR' | 'VIEWER';
 }
 
-// [NAV-IA-CONSISTENCY-1] Theme preference key
+// [NAV-IA-CONSISTENCY-1] [DARK-MODE-SYSTEM-1] Theme preference key and types
 const THEME_STORAGE_KEY = 'engineo_theme';
+type ThemeMode = 'system' | 'light' | 'dark';
 
 export default function TopNav() {
   const router = useRouter();
@@ -28,32 +29,31 @@ export default function TopNav() {
   // [SELF-SERVICE-1] Account menu dropdown state
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
-  // [NAV-IA-CONSISTENCY-1] Theme state
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  // [DARK-MODE-SYSTEM-1] Theme state: system | light | dark
+  const [themeMode, setThemeMode] = useState<ThemeMode>('system');
+  // [DARK-MODE-SYSTEM-1] Theme selector dropdown state
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const themeMenuRef = useRef<HTMLDivElement>(null);
+
+  // [DARK-MODE-SYSTEM-1] Apply theme based on mode and system preference
+  const applyTheme = (mode: ThemeMode) => {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const shouldBeDark = mode === 'dark' || (mode === 'system' && prefersDark);
+    document.documentElement.classList.toggle('dark', shouldBeDark);
+  };
 
   useEffect(() => {
     setMounted(true);
     const isAuth = isAuthenticated();
     setAuthenticated(isAuth);
 
-    // [NAV-IA-CONSISTENCY-1] Load theme preference
-    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) as
-      | 'light'
-      | 'dark'
-      | null;
-    if (savedTheme) {
-      setTheme(savedTheme);
-      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-    } else {
-      // Check system preference
-      const prefersDark = window.matchMedia(
-        '(prefers-color-scheme: dark)'
-      ).matches;
-      if (prefersDark) {
-        setTheme('dark');
-        document.documentElement.classList.add('dark');
-      }
-    }
+    // [DARK-MODE-SYSTEM-1] Load theme preference (backward compatible with light/dark values)
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null;
+    const mode: ThemeMode = savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system'
+      ? savedTheme
+      : 'system';
+    setThemeMode(mode);
+    applyTheme(mode);
 
     // Fetch user data to check role
     if (isAuth) {
@@ -69,6 +69,16 @@ export default function TopNav() {
         });
     }
   }, []);
+
+  // [DARK-MODE-SYSTEM-1] Listen for OS theme changes when in system mode
+  useEffect(() => {
+    if (themeMode !== 'system') return;
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => applyTheme('system');
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [themeMode]);
 
   // [SELF-SERVICE-1] Close account menu when clicking outside
   useEffect(() => {
@@ -88,17 +98,46 @@ export default function TopNav() {
     }
   }, [accountMenuOpen]);
 
+  // [DARK-MODE-SYSTEM-1] Close theme menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        themeMenuRef.current &&
+        !themeMenuRef.current.contains(event.target as Node)
+      ) {
+        setThemeMenuOpen(false);
+      }
+    }
+
+    if (themeMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [themeMenuOpen]);
+
   const handleSignOut = () => {
     removeToken();
     router.push('/login');
   };
 
-  // [NAV-IA-CONSISTENCY-1] Toggle theme and persist
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem(THEME_STORAGE_KEY, newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+  // [DARK-MODE-SYSTEM-1] Set theme mode and persist
+  const setTheme = (mode: ThemeMode) => {
+    setThemeMode(mode);
+    localStorage.setItem(THEME_STORAGE_KEY, mode);
+    applyTheme(mode);
+    setThemeMenuOpen(false);
+  };
+
+  // [DARK-MODE-SYSTEM-1] Get current effective theme for icon display
+  const getEffectiveTheme = (): 'light' | 'dark' => {
+    if (themeMode === 'system') {
+      return typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light';
+    }
+    return themeMode;
   };
 
   // Prevent hydration mismatch by not rendering auth-dependent UI until mounted
@@ -174,47 +213,112 @@ export default function TopNav() {
           <div className="flex items-center space-x-4">
             {authenticated ? (
               <>
-                {/* [NAV-IA-CONSISTENCY-1] Theme Toggle */}
-                <button
-                  onClick={toggleTheme}
-                  className="p-2 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted"
-                  title={
-                    theme === 'light'
-                      ? 'Switch to dark mode'
-                      : 'Switch to light mode'
-                  }
-                  data-testid="theme-toggle"
-                >
-                  {theme === 'light' ? (
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                {/* [DARK-MODE-SYSTEM-1] Theme Toggle - 3-mode selector */}
+                <div className="relative" ref={themeMenuRef}>
+                  <button
+                    onClick={() => setThemeMenuOpen(!themeMenuOpen)}
+                    className="p-2 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted"
+                    title={`Theme: ${themeMode.charAt(0).toUpperCase() + themeMode.slice(1)}`}
+                    data-testid="theme-toggle"
+                  >
+                    {/* Show icon based on effective theme */}
+                    {themeMode === 'system' ? (
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                        />
+                      </svg>
+                    ) : getEffectiveTheme() === 'dark' ? (
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                        />
+                      </svg>
+                    )}
+                  </button>
+
+                  {themeMenuOpen && (
+                    <div
+                      className="absolute right-0 mt-2 w-36 rounded-md shadow-lg bg-background ring-1 ring-border z-50"
+                      data-testid="theme-dropdown"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                      />
-                    </svg>
-                  ) : (
-                    <svg
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                      />
-                    </svg>
+                      <div className="py-1" role="menu">
+                        <button
+                          onClick={() => setTheme('system')}
+                          className={`flex items-center w-full px-4 py-2 text-sm hover:bg-muted ${themeMode === 'system' ? 'text-primary font-medium' : 'text-foreground'}`}
+                        >
+                          <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                          System
+                          {themeMode === 'system' && (
+                            <svg className="h-4 w-4 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setTheme('light')}
+                          className={`flex items-center w-full px-4 py-2 text-sm hover:bg-muted ${themeMode === 'light' ? 'text-primary font-medium' : 'text-foreground'}`}
+                        >
+                          <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                          </svg>
+                          Light
+                          {themeMode === 'light' && (
+                            <svg className="h-4 w-4 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setTheme('dark')}
+                          className={`flex items-center w-full px-4 py-2 text-sm hover:bg-muted ${themeMode === 'dark' ? 'text-primary font-medium' : 'text-foreground'}`}
+                        >
+                          <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                          </svg>
+                          Dark
+                          {themeMode === 'dark' && (
+                            <svg className="h-4 w-4 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   )}
-                </button>
+                </div>
 
                 {/* [SELF-SERVICE-1] Account Menu Dropdown */}
                 <div className="relative" ref={accountMenuRef}>
