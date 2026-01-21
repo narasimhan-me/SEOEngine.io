@@ -23,6 +23,7 @@
 
 - **Related phases/sections in docs/IMPLEMENTATION_PLAN.md:**
   - Entry 6.81: SHOPIFY-EMBEDDED-SHELL-1
+  - Entry 6.85: SHOPIFY-EMBEDDED-SHELL-1-FIXUP-1 (CSP reliability)
 
 - **Related documentation:**
   - `SHOPIFY_INTEGRATION.md` (root) – Canonical Shopify integration guide: Partner config, embedded setup, env vars
@@ -166,6 +167,58 @@
 - **URL:** Automatically repaired to include `host`, `embedded=1`, `shop` (if available)
 - **UI:** Brief "Loading Shopify context…" then normal page
 - **Logs:** No errors in console
+
+---
+
+### Scenario 7: Embedded Deep Link and Hard Refresh (FIXUP-1)
+
+**ID:** HP-007
+
+**Preconditions:**
+- App opened from Shopify Admin (embedded context)
+- User is logged in
+- Host stored in sessionStorage
+
+**Steps:**
+1. Open app from Shopify Admin
+2. Navigate to a deep route (e.g., `/projects/[id]/settings`)
+3. **Hard refresh** the page (Cmd+Shift+R / Ctrl+Shift+R)
+4. Open DevTools → Network tab
+5. Find the document request for the deep route
+6. Inspect Response Headers
+
+**Expected Results:**
+- **UI:** App renders (shell or diagnostic), NOT a blank screen
+- **Headers:** Response includes `Content-Security-Policy: frame-ancestors 'self' https://admin.shopify.com https://*.myshopify.com;`
+- **Console:** No CSP-related errors (e.g., "Refused to frame...")
+- **Behavior:** If host was in sessionStorage, URL repair kicks in; if not, shows "Missing Shopify context" fallback
+
+**Why This Matters:**
+- Server-side middleware cannot access sessionStorage
+- Deep links inside Shopify iframe may not have `embedded=1` or `host` params
+- Without unconditional CSP, hard refresh inside iframe causes blank screen
+- FIXUP-1 ensures CSP is always present for all app routes
+
+---
+
+### Scenario 8: Standalone Access with CSP Header (Regression)
+
+**ID:** HP-008
+
+**Preconditions:**
+- User is logged in
+- No Shopify params in URL
+- NOT inside Shopify iframe (direct browser access)
+
+**Steps:**
+1. Open browser directly to `http://localhost:3000/projects`
+2. Open DevTools → Console
+3. Navigate through the app normally
+
+**Expected Results:**
+- **UI:** App works exactly as before (no embedded UI/notices)
+- **Console:** No CSP-related errors or warnings
+- **Behavior:** frame-ancestors CSP is present but has no effect on standalone users
 
 ---
 

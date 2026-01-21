@@ -8,25 +8,25 @@ import type { NextRequest } from 'next/server';
  *    - Prevents sensitive credentials from appearing in URLs
  *    - Redirects to sanitized URLs (preserving only safe params like `next`)
  *
- * 2. [SHOPIFY-EMBEDDED-SHELL-1] Shopify Embedded Frame Headers:
- *    - Adds Content-Security-Policy frame-ancestors for embedded context
- *    - Only applied when embedded=1 or host query param is present
+ * 2. [SHOPIFY-EMBEDDED-SHELL-1-FIXUP-1] Shopify Embedded Frame Headers:
+ *    - Adds Content-Security-Policy frame-ancestors UNCONDITIONALLY for all app routes
+ *    - Does NOT depend on embedded=1 or host query param (server has no sessionStorage)
+ *    - This ensures deep links and hard refreshes inside Shopify iframe never blank
  *    - Allows framing from admin.shopify.com and *.myshopify.com
  */
 
 const SENSITIVE_PARAMS = ['password', 'pass', 'pwd', 'confirmPassword'];
 
 /**
- * Check if request is from Shopify embedded context.
- * Embedded context is indicated by embedded=1 or host query param.
- */
-function isShopifyEmbedded(searchParams: URLSearchParams): boolean {
-  return searchParams.get('embedded') === '1' || searchParams.has('host');
-}
-
-/**
- * Add frame-ancestors CSP header for Shopify embedded context.
- * Allows the app to be framed by Shopify Admin and myshopify.com stores.
+ * [SHOPIFY-EMBEDDED-SHELL-1-FIXUP-1] Add frame-ancestors CSP header unconditionally.
+ *
+ * Why unconditional?
+ * - Server-side middleware cannot access sessionStorage (where host is persisted)
+ * - Deep links inside Shopify iframe may not have embedded=1 or host params
+ * - Hard refresh on a deep route inside the iframe loses query params
+ * - Without CSP header, browser blocks the iframe → blank screen
+ *
+ * This header is harmless for standalone users (frame-ancestors only affects framing).
  */
 function addShopifyFrameHeaders(response: NextResponse): NextResponse {
   // frame-ancestors directive allows Shopify to embed our app
@@ -58,9 +58,6 @@ function addShopifyFrameHeaders(response: NextResponse): NextResponse {
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
-  // [SHOPIFY-EMBEDDED-SHELL-1] Check for embedded context first
-  const isEmbedded = isShopifyEmbedded(searchParams);
-
   // [SECURITY] Auth URL Sanitization for /login and /signup
   if (pathname === '/login' || pathname === '/signup') {
     // Check if any sensitive params are present
@@ -87,24 +84,24 @@ export function middleware(request: NextRequest) {
         url.searchParams.set('sanitized', '1');
       }
 
-      // Use 307 to preserve HTTP method (though auth pages are typically GET)
-      return NextResponse.redirect(url, 307);
+      // [SHOPIFY-EMBEDDED-SHELL-1-FIXUP-1] CSP header on redirect responses too
+      const redirectResponse = NextResponse.redirect(url, 307);
+      return addShopifyFrameHeaders(redirectResponse);
     }
   }
 
   // Create response (continue to next handler)
   let response = NextResponse.next();
 
-  // [SHOPIFY-EMBEDDED-SHELL-1] Add frame headers for embedded context
-  if (isEmbedded) {
-    response = addShopifyFrameHeaders(response);
-  }
+  // [SHOPIFY-EMBEDDED-SHELL-1-FIXUP-1] Add frame headers UNCONDITIONALLY for all app routes
+  // This ensures embedded deep links and hard refreshes never blank due to missing CSP
+  response = addShopifyFrameHeaders(response);
 
   return response;
 }
 
-// Expanded matcher to cover app routes for frame header injection
-// Excludes static assets and Next.js internals
+// [SHOPIFY-EMBEDDED-SHELL-1-FIXUP-1] Matcher for unconditional CSP injection
+// All app routes get frame-ancestors CSP; excludes static assets and Next.js internals
 export const config = {
   matcher: [
     /*
@@ -114,6 +111,9 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder files (branding, images, etc.)
      * - api routes (handled separately)
+     *
+     * All matched routes receive frame-ancestors CSP unconditionally to support
+     * Shopify embedded deep links and hard refreshes without blank screens.
      */
     '/((?!_next/static|_next/image|favicon.ico|branding|images|api).*)',
   ],

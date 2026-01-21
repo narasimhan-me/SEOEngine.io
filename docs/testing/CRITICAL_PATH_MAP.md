@@ -236,6 +236,8 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] SHOPIFY-EMBEDDED-SHELL-1: 2FA flow preserves and uses stored next URL
 - [ ] SHOPIFY-EMBEDDED-SHELL-1: frame-ancestors CSP header allows admin.shopify.com + *.myshopify.com
 - [ ] SHOPIFY-EMBEDDED-SHELL-1: Standalone access unchanged (no embedded UI/notices)
+- [ ] SHOPIFY-EMBEDDED-SHELL-1-FIXUP-1: frame-ancestors CSP present for all app routes (unconditional, not query-param dependent)
+- [ ] SHOPIFY-EMBEDDED-SHELL-1-FIXUP-1: Embedded deep link + hard refresh never blanks (CSP always present)
 
 ---
 
@@ -880,3 +882,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 6.11 | 2026-01-20 | AUTOMATION-TRIGGER-TRUTHFULNESS-1: Added CP-012 scenarios for truthful automation triggers. Page load never triggers AI (DEO issues read-only), project-level setting gate `autoGenerateAnswerBlocksOnProductSync` (default OFF), DB-backed idempotency via AnswerBlockAutomationRun model, deterministic Sync CTA labels ("+ Generate Answer Blocks" only when setting ON + paid plan), worker run state tracking (QUEUED→RUNNING→terminal), diagnostic safety logs with suppressedReason. Added manual testing doc. |
 | 6.12 | 2026-01-20 | AUTOMATION-TRIGGER-TRUTHFULNESS-1 REVIEW-1: Fixed Playbooks CTA labels ("Sync products" not "Sync to Shopify"), neutral toast message, race-safe idempotency (FAILED→QUEUED transition via conditional updateMany, concurrent trigger handling), web API typing for new setting. Rewrote manual test doc to match template structure. |
 | 6.13 | 2026-01-20 | SHOPIFY-EMBEDDED-SHELL-1: Added CP-006 scenarios for Shopify embedded app launch. ShopifyEmbeddedShell wrapper with never-blank fallbacks, host/shop persistence to sessionStorage, URL auto-repair, frame-ancestors CSP headers, auth flow with next param preservation (login + 2FA). Added @shopify/app-bridge-react dep, NEXT_PUBLIC_SHOPIFY_API_KEY env var. Added SHOPIFY-EMBEDDED-SHELL-1.md manual testing doc. |
+| 6.14 | 2026-01-21 | SHOPIFY-EMBEDDED-SHELL-1-FIXUP-1: Added CP-006 scenarios for unconditional CSP header reliability. frame-ancestors CSP now applied to all app routes regardless of embedded query params (server has no sessionStorage). Ensures deep links and hard refreshes inside Shopify iframe never blank. Updated middleware.ts and manual testing doc. |
