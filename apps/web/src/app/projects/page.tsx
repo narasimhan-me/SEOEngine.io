@@ -1,10 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { projectsApi } from '@/lib/api';
 import { isAuthenticated, removeToken, getToken } from '@/lib/auth';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableRow,
+} from '@/components/tables/DataTable';
 
 interface Project {
   id: string;
@@ -14,6 +19,10 @@ interface Project {
   updatedAt: string;
 }
 
+/**
+ * [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-3] Projects list page migrated to canonical DataTable.
+ * Token-only styling, no legacy gray/white table utilities.
+ */
 export default function ProjectsPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -143,11 +152,67 @@ export default function ProjectsPage() {
     }
   };
 
+  // [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-3] Define DataTable columns
+  const columns: DataTableColumn<Project & DataTableRow>[] = useMemo(
+    () => [
+      {
+        key: 'name',
+        header: 'Name',
+        cell: (row) => (
+          <Link
+            href={`/projects/${row.id}`}
+            className="text-sm font-medium text-primary hover:text-primary/80"
+          >
+            {row.name}
+          </Link>
+        ),
+      },
+      {
+        key: 'domain',
+        header: 'Domain',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">{row.domain}</span>
+        ),
+      },
+      {
+        key: 'created',
+        header: 'Created',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {new Date(row.createdAt).toLocaleDateString()}
+          </span>
+        ),
+      },
+      {
+        key: 'actions',
+        header: 'Actions',
+        truncate: false,
+        cell: (row) => (
+          <div className="flex items-center justify-end gap-3">
+            <Link
+              href={`/projects/${row.id}`}
+              className="text-sm font-medium text-primary hover:text-primary/80"
+            >
+              View
+            </Link>
+            <button
+              onClick={() => handleDeleteProject(row.id)}
+              className="text-sm font-medium text-destructive hover:text-destructive/80"
+            >
+              Delete
+            </button>
+          </div>
+        ),
+      },
+    ],
+    []
+  );
+
   // Don't render anything until auth is checked - prevents flash of content before redirect
   if (!authChecked || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
@@ -156,130 +221,81 @@ export default function ProjectsPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
-          <p className="mt-1 text-gray-600">
+          <h1 className="text-2xl font-bold text-foreground">Projects</h1>
+          <p className="mt-1 text-muted-foreground">
             Manage your SEO projects and integrations.
           </p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90"
         >
           + New Project
         </button>
       </div>
 
       {error && (
-        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="mb-4 bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded">
           {error}
         </div>
       )}
 
-      {/* Projects Table */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        {projects.length === 0 ? (
-          <div className="text-center py-12 px-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Let&apos;s get your first DEO win
-            </h2>
-            <p className="text-sm text-gray-600 mb-6 max-w-md mx-auto">
-              EngineO will walk you through creating a project, connecting your
-              store or site, running your first crawl, and optimizing a few
-              products with AI.
-            </p>
+      {/* Projects Table - Canonical DataTable */}
+      {projects.length === 0 ? (
+        <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] text-center py-12 px-6">
+          <h2 className="text-xl font-semibold text-foreground mb-2">
+            Let&apos;s get your first DEO win
+          </h2>
+          <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+            EngineO will walk you through creating a project, connecting your
+            store or site, running your first crawl, and optimizing a few
+            products with AI.
+          </p>
 
-            {/* Static checklist preview */}
-            <div className="max-w-sm mx-auto mb-6 text-left">
-              <div className="space-y-3">
-                {[
-                  'Create a project and connect a store or site',
-                  'Run your first DEO crawl',
-                  'See your DEO Score and issues',
-                  'Optimize a few products with AI',
-                ].map((step, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <svg
-                      className="h-5 w-5 text-gray-300 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle cx="12" cy="12" r="9" strokeWidth="2" />
-                    </svg>
-                    <span className="text-sm text-gray-700">{step}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-            >
-              Create your first project
-            </button>
-          </div>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Domain
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Created
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {projects.map((project) => (
-                <tr key={project.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Link
-                      href={`/projects/${project.id}`}
-                      className="text-sm font-medium text-blue-600 hover:text-blue-800"
-                    >
-                      {project.name}
-                    </Link>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {project.domain}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(project.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Link
-                      href={`/projects/${project.id}`}
-                      className="text-blue-600 hover:text-blue-800 mr-4"
-                    >
-                      View
-                    </Link>
-                    <button
-                      onClick={() => handleDeleteProject(project.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
+          {/* Static checklist preview */}
+          <div className="max-w-sm mx-auto mb-6 text-left">
+            <div className="space-y-3">
+              {[
+                'Create a project and connect a store or site',
+                'Run your first DEO crawl',
+                'See your DEO Score and issues',
+                'Optimize a few products with AI',
+              ].map((step, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <svg
+                    className="h-5 w-5 text-muted-foreground/50 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle cx="12" cy="12" r="9" strokeWidth="2" />
+                  </svg>
+                  <span className="text-sm text-foreground">{step}</span>
+                </div>
               ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90"
+          >
+            Create your first project
+          </button>
+        </div>
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={projects}
+          hideContextAction={true}
+        />
+      )}
 
       {/* Create Project Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
+        <div className="fixed inset-0 bg-foreground/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg p-6 w-full max-w-md border border-border">
+            <h2 className="text-lg font-medium text-foreground mb-4">
               Create New Project
             </h2>
             <form onSubmit={handleCreateProject}>
@@ -287,7 +303,7 @@ export default function ProjectsPage() {
                 <div>
                   <label
                     htmlFor="name"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-foreground"
                   >
                     Project Name
                   </label>
@@ -299,14 +315,14 @@ export default function ProjectsPage() {
                     onChange={(e) =>
                       setNewProject({ ...newProject, name: e.target.value })
                     }
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm bg-background text-foreground focus:outline-none focus:ring-primary focus:border-primary"
                     placeholder="My Store"
                   />
                 </div>
                 <div>
                   <label
                     htmlFor="domain"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-foreground"
                   >
                     Domain
                   </label>
@@ -318,7 +334,7 @@ export default function ProjectsPage() {
                     onChange={(e) =>
                       setNewProject({ ...newProject, domain: e.target.value })
                     }
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 block w-full px-3 py-2 border border-border rounded-md shadow-sm bg-background text-foreground focus:outline-none focus:ring-primary focus:border-primary"
                     placeholder="mystore.com"
                   />
                 </div>
@@ -327,14 +343,14 @@ export default function ProjectsPage() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 disabled:opacity-50"
                 >
                   {creating ? 'Creating...' : 'Create Project'}
                 </button>

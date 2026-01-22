@@ -824,6 +824,13 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] TABLES-LISTS-1: ArrowUp/ArrowDown moves focus between rows
 - [ ] TABLES-LISTS-1: Enter/Space opens RCP for focused row
 - [ ] TABLES-LISTS-1: Shopify embedded: no horizontal overflow on tables/lists
+- [ ] TABLES-LISTS-1-FIXUP-3: /projects uses canonical DataTable (token-only styling)
+- [ ] TABLES-LISTS-1-FIXUP-3: /dashboard uses canonical DataTable (token-only styling)
+- [ ] TABLES-LISTS-1-FIXUP-3: /admin/users uses canonical DataTable with RCP integration
+- [ ] TABLES-LISTS-1-FIXUP-3: /admin/runs uses canonical DataTable with filter selects
+- [ ] TABLES-LISTS-1-FIXUP-3: /admin/ai-usage uses canonical DataTable for top consumers
+- [ ] TABLES-LISTS-1-FIXUP-3: /admin/subscriptions uses canonical DataTable with in-row selects
+- [ ] TABLES-LISTS-1-FIXUP-3: Keyboard guard prevents hijacking a/button/input/textarea/select/[contenteditable]/[data-no-row-keydown]
 - [ ] COMMAND-PALETTE-1: Cmd+K / Ctrl+K opens command palette
 - [ ] COMMAND-PALETTE-1: ESC closes command palette
 - [ ] COMMAND-PALETTE-1: Outside click (scrim) closes command palette

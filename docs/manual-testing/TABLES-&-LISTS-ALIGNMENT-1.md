@@ -369,6 +369,124 @@
 
 ---
 
+### Scenario 10: /projects page uses canonical DataTable
+
+**ID:** HP-010
+
+**Preconditions:**
+
+- [ ] Logged in with at least one project
+- [ ] On /projects page
+
+**Steps:**
+
+1. Navigate to /projects.
+2. Observe the projects table.
+3. Hover over a row.
+4. Tab into the table to focus a row.
+
+**Expected Results:**
+
+- UI: Table uses DataTable component (token-based surfaces: bg-[hsl(var(--surface-card))], text-foreground, hover:bg-[hsl(var(--menu-hover-bg)/0.14)]).
+- UI: No gray/white legacy styling (no bg-gray-*, bg-white on hover).
+- UI: Focus ring visible on focused row.
+
+---
+
+### Scenario 11: /dashboard page uses canonical DataTable
+
+**ID:** HP-011
+
+**Preconditions:**
+
+- [ ] Logged in with at least one project
+- [ ] On /dashboard page
+
+**Steps:**
+
+1. Navigate to /dashboard.
+2. Scroll to "Your Projects" section.
+3. Observe the projects table.
+4. Hover over a row.
+
+**Expected Results:**
+
+- UI: Table uses DataTable component with token-based styling.
+- UI: Columns display: Project (name + domain), SEO Score, Scans, Products, Action.
+- UI: No gray/white legacy styling.
+
+---
+
+### Scenario 12: /admin/users page uses canonical DataTable with RCP
+
+**ID:** HP-012
+
+**Preconditions:**
+
+- [ ] Logged in with admin role
+- [ ] On /admin/users page
+
+**Steps:**
+
+1. Navigate to /admin/users.
+2. Observe the users table.
+3. Click the "View details" eye icon on a user row.
+4. Observe RCP opens with user details.
+
+**Expected Results:**
+
+- UI: Table uses DataTable component with token-based styling.
+- UI: Eye icon (View details) in Actions column opens RCP.
+- UI: RCP shows user email as title, name as subtitle.
+
+---
+
+### Scenario 13: Keyboard guard prevents hijacking in-row interactive elements
+
+**ID:** HP-013
+
+**Preconditions:**
+
+- [ ] On /admin/subscriptions page (or any page with in-row <select>)
+
+**Steps:**
+
+1. Navigate to /admin/subscriptions.
+2. Focus the "Change Plan" select dropdown in a row.
+3. Press ArrowDown or Enter to interact with the select.
+4. Observe behavior.
+
+**Expected Results:**
+
+- UI: ArrowDown/Enter interact with the select dropdown (native browser behavior).
+- UI: DataTable does NOT hijack these keys (no row navigation occurs).
+- UI: The [data-no-row-keydown] attribute on the select prevents DataTable keyboard handling.
+
+---
+
+### Scenario 14: /admin/runs page filter selects work with keyboard
+
+**ID:** HP-014
+
+**Preconditions:**
+
+- [ ] Logged in with admin role
+- [ ] On /admin/runs page
+
+**Steps:**
+
+1. Navigate to /admin/runs.
+2. Focus one of the filter select dropdowns (Run Type, Status, AI Used).
+3. Use keyboard (ArrowDown, Enter) to select a filter value.
+
+**Expected Results:**
+
+- UI: Filter select responds to keyboard input normally.
+- UI: Selected filter value is applied; table data filters accordingly.
+- UI: DataTable does NOT hijack keyboard events in filter selects.
+
+---
+
 ## Regression
 
 ### Areas potentially impacted:

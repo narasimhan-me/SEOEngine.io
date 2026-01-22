@@ -1,12 +1,17 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { adminApi } from '@/lib/api';
 import {
   useRightContextPanel,
   type ContextDescriptor,
 } from '@/components/right-context-panel/RightContextPanelProvider';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableRow,
+} from '@/components/tables/DataTable';
 
 /**
  * [ADMIN-OPS-1] Extended User interface with new fields.
@@ -41,29 +46,10 @@ interface Pagination {
 
 /**
  * [ADMIN-OPS-1][D2 Users Table]
- * Updated columns: Email, Plan, Status, AI usage, Quota %, Projects count, Last activity.
- * Actions: View user, Impersonate (support+ops), Adjust plan (ops), Reset quota (ops).
+ * [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-3] Migrated to canonical DataTable.
+ * Token-only styling; no legacy gray/white table utilities.
+ * Uses canonical RCP integration via DataTable's onOpenContext + getRowDescriptor.
  */
-/**
- * Eye icon for View details button.
- * [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-3]
- */
-function ViewDetailsIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-      <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-    </svg>
-  );
-}
-
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
@@ -71,12 +57,12 @@ export default function AdminUsersPage() {
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-3] RCP integration
+  // [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1] RCP integration
   const { openPanel } = useRightContextPanel();
 
   // Build ContextDescriptor for a user row
   // [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-4] Fixed metadata keys
-  const getUserDescriptor = useCallback((user: User): ContextDescriptor => {
+  const getUserDescriptor = useCallback((user: User & DataTableRow): ContextDescriptor => {
     // Build metadata object, omitting null/undefined optional fields
     const metadata: Record<string, string> = {
       role: user.role,
@@ -133,13 +119,133 @@ export default function AdminUsersPage() {
     });
   }
 
+  // [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-3] Define DataTable columns
+  const columns: DataTableColumn<User & DataTableRow>[] = useMemo(
+    () => [
+      {
+        key: 'email',
+        header: 'Email',
+        cell: (row) => (
+          <div>
+            <div className="text-sm font-medium text-foreground">
+              {row.email}
+            </div>
+            {row.adminRole && (
+              <span className="text-xs text-purple-600">{row.adminRole}</span>
+            )}
+          </div>
+        ),
+      },
+      {
+        key: 'plan',
+        header: 'Plan',
+        cell: (row) => (
+          <span
+            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+              row.subscription?.plan === 'enterprise'
+                ? 'bg-purple-100 text-purple-800'
+                : row.subscription?.plan === 'pro'
+                  ? 'bg-blue-100 text-blue-800'
+                  : row.subscription?.plan === 'starter'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-muted text-muted-foreground'
+            }`}
+          >
+            {row.subscription?.plan || 'free'}
+          </span>
+        ),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        cell: (row) => (
+          <span
+            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+              row.accountStatus === 'ACTIVE'
+                ? 'bg-green-100 text-green-800'
+                : 'bg-red-100 text-red-800'
+            }`}
+          >
+            {row.accountStatus}
+          </span>
+        ),
+      },
+      {
+        key: 'aiUsage',
+        header: 'AI Usage',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {row.aiUsageThisMonth}
+          </span>
+        ),
+      },
+      {
+        key: 'quota',
+        header: 'Quota %',
+        cell: (row) => (
+          <div className="flex items-center">
+            <div className="w-16 bg-muted rounded-full h-2 mr-2">
+              <div
+                className={`h-2 rounded-full ${
+                  row.quotaPercent >= 90
+                    ? 'bg-red-500'
+                    : row.quotaPercent >= 70
+                      ? 'bg-yellow-500'
+                      : 'bg-green-500'
+                }`}
+                style={{
+                  width: `${Math.min(row.quotaPercent, 100)}%`,
+                }}
+              />
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {row.quotaPercent}%
+            </span>
+          </div>
+        ),
+      },
+      {
+        key: 'projects',
+        header: 'Projects',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {row._count.projects}
+          </span>
+        ),
+      },
+      {
+        key: 'lastActivity',
+        header: 'Last Activity',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {formatDate(row.lastActivity)}
+          </span>
+        ),
+      },
+      {
+        key: 'actions',
+        header: 'Actions',
+        truncate: false,
+        cell: (row) => (
+          <Link
+            href={`/admin/users/${row.id}`}
+            className="text-sm text-primary hover:text-primary/80"
+          >
+            View
+          </Link>
+        ),
+      },
+    ],
+    []
+  );
+
   if (loading && users.length === 0) {
-    return <p className="text-gray-600">Loading users...</p>;
+    return <p className="text-muted-foreground">Loading users...</p>;
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+      <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded">
         {error}
       </div>
     );
@@ -147,138 +253,20 @@ export default function AdminUsersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Users</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">Users</h1>
 
-      {/* Users Table */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Email
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Plan
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                AI Usage
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Quota %
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Projects
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Last Activity
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => (
-              <tr key={user.id}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
-                    {user.email}
-                  </div>
-                  {user.adminRole && (
-                    <span className="text-xs text-purple-600">
-                      {user.adminRole}
-                    </span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      user.subscription?.plan === 'enterprise'
-                        ? 'bg-purple-100 text-purple-800'
-                        : user.subscription?.plan === 'pro'
-                          ? 'bg-blue-100 text-blue-800'
-                          : user.subscription?.plan === 'starter'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    {user.subscription?.plan || 'free'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      user.accountStatus === 'ACTIVE'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}
-                  >
-                    {user.accountStatus}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {user.aiUsageThisMonth}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                      <div
-                        className={`h-2 rounded-full ${
-                          user.quotaPercent >= 90
-                            ? 'bg-red-500'
-                            : user.quotaPercent >= 70
-                              ? 'bg-yellow-500'
-                              : 'bg-green-500'
-                        }`}
-                        style={{
-                          width: `${Math.min(user.quotaPercent, 100)}%`,
-                        }}
-                      />
-                    </div>
-                    <span className="text-sm text-gray-500">
-                      {user.quotaPercent}%
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {user._count.projects}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {formatDate(user.lastActivity)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <div className="flex items-center gap-2">
-                    {/* [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-4] Token-based icon button */}
-                    <button
-                      type="button"
-                      onClick={() => openPanel(getUserDescriptor(user))}
-                      title="View details in panel"
-                      aria-label={`View details for ${user.email}`}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    >
-                      <ViewDetailsIcon className="h-4 w-4" />
-                    </button>
-                    <Link
-                      href={`/admin/users/${user.id}`}
-                      className="text-primary hover:text-primary/80"
-                    >
-                      View
-                    </Link>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Users Table - Canonical DataTable with RCP integration */}
+      <DataTable
+        columns={columns}
+        rows={users}
+        onOpenContext={openPanel}
+        getRowDescriptor={getUserDescriptor}
+      />
 
       {/* Pagination */}
       {pagination && pagination.pages > 1 && (
         <div className="mt-4 flex justify-between items-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
             {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
             {pagination.total} users
@@ -287,7 +275,7 @@ export default function AdminUsersPage() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-1 text-sm border border-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
             >
               Previous
             </button>
@@ -296,7 +284,7 @@ export default function AdminUsersPage() {
                 setCurrentPage((p) => Math.min(pagination.pages, p + 1))
               }
               disabled={currentPage === pagination.pages}
-              className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-1 text-sm border border-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
             >
               Next
             </button>

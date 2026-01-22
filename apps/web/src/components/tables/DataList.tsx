@@ -91,8 +91,32 @@ export function DataList<T extends DataListRow>({
 
   const paddingClass = density === 'dense' ? 'px-3 py-2' : 'px-4 py-3';
 
+  /**
+   * [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-3] Check if event target is an interactive element.
+   * When true, row keyboard handling should be skipped to allow native element behavior.
+   */
+  const isInteractiveElement = useCallback((target: EventTarget | null): boolean => {
+    if (!(target instanceof HTMLElement)) return false;
+    // Interactive elements: a, button, input, textarea, select, [contenteditable], [data-no-row-keydown]
+    return !!(
+      target.closest('a') ||
+      target.closest('button') ||
+      target.closest('input') ||
+      target.closest('textarea') ||
+      target.closest('select') ||
+      target.closest('[contenteditable]') ||
+      target.closest('[data-no-row-keydown]')
+    );
+  }, []);
+
   const handleRowKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>, rowIndex: number, row: T) => {
+      // [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-3] Skip row handling for interactive elements
+      // This prevents DataList from hijacking Enter/Arrow on links/buttons/selects inside rows
+      if (isInteractiveElement(event.target)) {
+        return;
+      }
+
       switch (event.key) {
         case 'ArrowDown':
           event.preventDefault();
@@ -117,7 +141,7 @@ export function DataList<T extends DataListRow>({
           break;
       }
     },
-    [rows.length, onOpenContext, getRowDescriptor]
+    [rows.length, onOpenContext, getRowDescriptor, isInteractiveElement]
   );
 
   const handleContextClick = useCallback(
