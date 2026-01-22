@@ -1,8 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { adminApi } from '@/lib/api';
+import {
+  useRightContextPanel,
+  type ContextDescriptor,
+} from '@/components/right-context-panel/RightContextPanelProvider';
 
 /**
  * [ADMIN-OPS-1] Extended User interface with new fields.
@@ -40,12 +44,69 @@ interface Pagination {
  * Updated columns: Email, Plan, Status, AI usage, Quota %, Projects count, Last activity.
  * Actions: View user, Impersonate (support+ops), Adjust plan (ops), Reset quota (ops).
  */
+/**
+ * Eye icon for View details button.
+ * [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-3]
+ */
+function ViewDetailsIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
+      <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    </svg>
+  );
+}
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+
+  // [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-3] RCP integration
+  const { openPanel } = useRightContextPanel();
+
+  // Build ContextDescriptor for a user row
+  // [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-4] Fixed metadata keys
+  const getUserDescriptor = useCallback((user: User): ContextDescriptor => {
+    // Build metadata object, omitting null/undefined optional fields
+    const metadata: Record<string, string> = {
+      role: user.role,
+      accountStatus: user.accountStatus,
+      plan: user.subscription?.plan || 'free',
+      projectsCount: String(user._count.projects),
+      aiUsage: String(user.aiUsageThisMonth),
+      // [FIXUP-4] quotaPercent is numeric-only (no % suffix); renderer adds %
+      quotaPercent: String(user.quotaPercent),
+      // [FIXUP-4] twoFactorEnabled is 'true'/'false' string
+      twoFactorEnabled: user.twoFactorEnabled ? 'true' : 'false',
+      createdAt: new Date(user.createdAt).toLocaleDateString(),
+      lastActivity: new Date(user.lastActivity).toLocaleDateString(),
+    };
+
+    // [FIXUP-4] Only include adminRole if present (don't force 'None')
+    if (user.adminRole) {
+      metadata.adminRole = user.adminRole;
+    }
+
+    return {
+      kind: 'user',
+      id: user.id,
+      title: user.email,
+      subtitle: user.name || 'No name set',
+      openHref: `/admin/users/${user.id}`,
+      openHrefLabel: 'Open user details',
+      metadata,
+    };
+  }, []);
 
   useEffect(() => {
     fetchUsers(currentPage);
@@ -188,13 +249,25 @@ export default function AdminUsersPage() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {formatDate(user.lastActivity)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                  <Link
-                    href={`/admin/users/${user.id}`}
-                    className="text-blue-600 hover:text-blue-800"
-                  >
-                    View
-                  </Link>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <div className="flex items-center gap-2">
+                    {/* [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-4] Token-based icon button */}
+                    <button
+                      type="button"
+                      onClick={() => openPanel(getUserDescriptor(user))}
+                      title="View details in panel"
+                      aria-label={`View details for ${user.email}`}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
+                      <ViewDetailsIcon className="h-4 w-4" />
+                    </button>
+                    <Link
+                      href={`/admin/users/${user.id}`}
+                      className="text-primary hover:text-primary/80"
+                    >
+                      View
+                    </Link>
+                  </div>
                 </td>
               </tr>
             ))}

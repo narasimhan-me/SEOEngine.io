@@ -2308,38 +2308,54 @@ _None at this time._
 
 **Status:** Complete
 **Date Started:** 2026-01-21
-**Date Completed:** 2026-01-21
+**Date Completed:** 2026-01-22 (FIXUP-3)
 
 #### Overview
 
-Add a deterministic Right Context Panel to the UI shell that provides contextual details for selected items without blocking the main work canvas.
+Add a deterministic Right Context Panel to the UI shell that provides contextual details for selected items without blocking the main work canvas. FIXUP-3 extends with view tabs, pin/width controls, and kind-specific content rendering.
 
 #### Affected Files
 
-- apps/web/src/components/right-context-panel/RightContextPanelProvider.tsx (NEW)
-- apps/web/src/components/right-context-panel/RightContextPanel.tsx (NEW)
+- apps/web/src/components/right-context-panel/RightContextPanelProvider.tsx (UPDATED)
+- apps/web/src/components/right-context-panel/RightContextPanel.tsx (UPDATED)
+- apps/web/src/components/right-context-panel/ContextPanelContentRenderer.tsx (NEW)
 - apps/web/src/components/layout/LayoutShell.tsx (UPDATED)
+- apps/web/src/components/products/ProductTable.tsx (UPDATED)
+- apps/web/src/app/admin/users/page.tsx (UPDATED)
+- apps/web/src/components/work-queue/ActionBundleCard.tsx (UPDATED)
 
 #### Technical Details
 
 - **RightContextPanelProvider**: React context/provider that owns deterministic panel state
-  - `ContextDescriptor` type: Required fields (kind, id, title); Optional fields (subtitle, metadata)
-  - `useRightContextPanel()` hook: isOpen, descriptor, openPanel, closePanel, togglePanel
-  - Auto-close on Left Nav segment switch (compares first path segment)
+  - `ContextDescriptor` type: Required fields (kind, id, title); Optional fields (subtitle, metadata, openHref, openHrefLabel, scopeProjectId)
+  - `PanelView` type: 'details' | 'recommendations' | 'history' | 'help'
+  - `PanelWidthMode` type: 'default' | 'wide'
+  - `useRightContextPanel()` hook: isOpen, descriptor, activeView, widthMode, isPinned, openPanel, closePanel, togglePanel, setActiveView, togglePinned, toggleWidthMode, openContextPanel
+  - Auto-close on Left Nav segment switch (respects isPinned)
   - Focus management (stores lastActiveElement, restores on close)
-  - ESC key to close (with modal dialog guard)
+  - ESC key to close (with modal dialog guard and editable element guard)
+  - Cmd/Ctrl + . keyboard shortcut to close
   - Shopify-safe (no window.top usage)
 
 - **RightContextPanel**: UI component consuming the context
   - Desktop (≥1024px): Pinned mode, pushes content
   - Narrow (<1024px): Overlay mode with scrim
+  - View tabs: Details, Recommendations, History, Help
+  - Header controls: Open full page link, width toggle, pin toggle, close button
+  - Z-index 40 (below Command Palette at z-50)
   - Accessible: role="complementary", aria-labelledby
   - Test hooks: data-testid attributes for automation
 
-- **LayoutShell Integration**:
-  - Wrapped with RightContextPanelProvider
-  - Single demo trigger button ("Details") replaces one placeholder Action button
-  - Panel renders alongside main content area
+- **ContextPanelContentRenderer**: Pure renderer for kind-specific content
+  - Maps (activeView, descriptor.kind) to content blocks
+  - Supported kinds: product, user, work_item
+  - Scope project mismatch detection and handling
+  - Truth-preserving: renders only provided metadata
+
+- **Integration Points**:
+  - ProductTable: Eye-icon Details button with MVP metadata fields (scopeProjectId, seoTitleStatus, seoDescriptionStatus, openHref)
+  - admin/users/page.tsx: Eye-icon Details button with user metadata
+  - ActionBundleCard: Eye-icon Details button with work_item metadata
 
 #### Manual Testing
 
@@ -2347,9 +2363,12 @@ Add a deterministic Right Context Panel to the UI shell that provides contextual
 
 #### Summary of Changes
 
-- Created `RightContextPanelProvider.tsx`: Context/provider with deterministic state management, auto-close on nav change, ESC key handling, and focus management
-- Created `RightContextPanel.tsx`: Slide-in panel UI with desktop pinned mode and narrow overlay mode with scrim
-- Updated `LayoutShell.tsx`: Integrated RightContextPanelProvider wrapper, added RightContextPanel to layout, replaced one Action button with Details demo trigger
+- Updated `RightContextPanelProvider.tsx`: Extended ContextDescriptor with openHref, openHrefLabel, scopeProjectId; added PanelView and PanelWidthMode types; added activeView, widthMode, isPinned state; added setActiveView, togglePinned, toggleWidthMode, openContextPanel actions; added Cmd/Ctrl+. shortcut; pinned panel respects auto-close guard
+- Updated `RightContextPanel.tsx`: Added view tabs, pin toggle, width toggle, open full page link, uses ContextPanelContentRenderer
+- Created `ContextPanelContentRenderer.tsx`: Kind-specific content rendering for product/user/work_item with scope mismatch handling
+- Updated `ProductTable.tsx`: Added MVP metadata fields to getRowDescriptor (scopeProjectId, seoTitleStatus, seoDescriptionStatus, openHref)
+- Updated `admin/users/page.tsx`: Added eye-icon Details button with RCP integration
+- Updated `ActionBundleCard.tsx`: Added eye-icon Details button with RCP integration
 
 ---
 
@@ -2797,3 +2816,4 @@ _None at this time._
 | 7.01 | 2026-01-21 | **COMMAND-PALETTE-IMPLEMENTATION-1-FIXUP-1**: Trust & positioning fixes. (1) Removed viewport-based positioning (`pt-[15vh]`) → container-centered (`items-center`) for Shopify iframe safety; (2) Fixed "Open Feedback" utility command routing to `/settings/help` (was `/help/shopify-permissions`); (3) Made Cmd+K/Ctrl+K case-insensitive (`event.key.toLowerCase() === 'k'`) for cross-OS reliability; (4) Added HP-017 ("Open Feedback routes correctly") to manual testing doc. **Core files:** CommandPalette.tsx, CommandPaletteProvider.tsx. **Manual Testing:** COMMAND-PALETTE-IMPLEMENTATION-1.md (updated). |
 | 7.02 | 2026-01-21 | **PRODUCTS-SHELL-REMOUNT-1 COMPLETE**: Products list remounted onto canonical DataTable per Design System v1.5. (1) Extended `DataTable.tsx` with `onRowClick`, `isRowExpanded`, `renderExpandedContent` props for progressive disclosure (row click expands/collapses, ignores interactive elements via data-no-row-click); (2) Refactored `ProductTable.tsx` to use canonical DataTable with columns (Product/Status/Actions), expansion support using ProductDetailPanel, RCP integration via descriptor pattern, preserved existing filtering/sorting/impact ladder logic; (3) Updated `ProductDetailPanel.tsx` with token-based styling; (4) Updated `products/page.tsx` with shell-safe styling (py-12 loading state, border-border/surface-card container); (5) Updated `products/[productId]/page.tsx` with shell-safe styling (py-12 loading, surface-raised/border-border sticky header); (6) Added "Go to Products" command to `CommandPalette.tsx` (project context aware); (7) Updated CP-003 with PRODUCTS-SHELL-REMOUNT-1 scenarios. **Core files:** DataTable.tsx, ProductTable.tsx, ProductDetailPanel.tsx, products/page.tsx, products/[productId]/page.tsx, CommandPalette.tsx. **Manual Testing:** PRODUCTS-SHELL-REMOUNT-1.md. |
 | 7.03 | 2026-01-21 | **PRODUCTS-SHELL-REMOUNT-1 FIXUP-1**: RCP + keyboard behavior corrections. (1) Extended `DataTable.tsx` with `rowEnterKeyBehavior` prop ('openContext' | 'rowClick', default 'openContext') to support deterministic Enter/Space behavior override for progressive disclosure remounts; (2) Fixed RCP descriptor field in `ProductTable.tsx`: changed `type: 'product'` to `kind: 'product'` to match ContextDescriptor contract; (3) Removed `hideContextAction` from ProductTable so eye icon is visible for explicit RCP access; (4) Added `rowEnterKeyBehavior="rowClick"` to ProductTable so Enter/Space on focused row expands/collapses (does NOT open RCP); (5) Updated manual testing doc with HP-013 (eye icon opens RCP) and HP-014 (Enter/Space expands row); (6) Updated CP-003 with FIXUP-1 scenarios. **Core files:** DataTable.tsx, ProductTable.tsx. **Manual Testing:** PRODUCTS-SHELL-REMOUNT-1.md (updated). |
+| 7.04 | 2026-01-22 | **RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-4**: Contract compliance tightening. (1) Scope safety: `ContextPanelContentRenderer.tsx` now treats `scopeProjectId` as authoritative - when present AND `currentProjectId === null` (outside `/projects/[id]`), shows "Unavailable in this project context." message instead of stale details; (2) Token-only styling: removed ALL non-token color utilities from renderer (replaced `bg-green-100/bg-red-100/bg-purple-100/text-*-800` with token-based `bg-muted border-border text-foreground`); chip/badge styling unified to neutral tokens; card blocks use `bg-[hsl(var(--surface-card))]`; (3) Product metaTitle/metaDescription display: Details view now shows actual SEO title/description values alongside status chips (not just status); (4) admin/users descriptor metadata key alignment: added `role`, `accountStatus`, changed `quotaPercent` to numeric-only (renderer adds %), changed `twoFactorEnabled` to 'true'/'false' string, omit `adminRole` when null instead of forcing 'None'; token-based button styling for eye icon; (5) ActionBundleCard descriptor metadata: added `scopeActionable`, `scopeDetected`, `aiDisclosureText` fields; token-based button styling for eye icon; (6) Manual testing doc expectations aligned with actual renderer behavior; (7) CP-020 scenarios added for scope invalidation outside projects, view tab stub copy, admin/users + work queue descriptor fields. **Core files:** ContextPanelContentRenderer.tsx, admin/users/page.tsx, ActionBundleCard.tsx. **Manual Testing:** RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md (updated). **Critical Path:** CP-020 updated. |

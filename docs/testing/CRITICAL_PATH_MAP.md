@@ -811,6 +811,11 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] RIGHT-CONTEXT-PANEL-1: Focus returns to trigger element when panel closes
 - [ ] RIGHT-CONTEXT-PANEL-1: Panel surfaces dark mode safe (no white backgrounds)
 - [ ] RIGHT-CONTEXT-PANEL-1: Panel works in Shopify embedded iframe context
+- [ ] RIGHT-CONTEXT-PANEL-1-FIXUP-4: Pin toggle + leave /projects/[id] shows "Unavailable in this project context." (no stale details)
+- [ ] RIGHT-CONTEXT-PANEL-1-FIXUP-4: Width toggle cycles between default (w-80) and wide (w-96/28rem)
+- [ ] RIGHT-CONTEXT-PANEL-1-FIXUP-4: View tabs render expected stub copy (History: "No history available.", Help: link to Help Center)
+- [ ] RIGHT-CONTEXT-PANEL-1-FIXUP-4: admin/users Details trigger opens panel with correct descriptor fields (role, accountStatus, quotaPercent numeric-only)
+- [ ] RIGHT-CONTEXT-PANEL-1-FIXUP-4: Work Queue Details trigger opens panel with scopeActionable/scopeDetected and aiDisclosureText
 - [ ] TABLES-LISTS-1: DataTable/DataList hover states dark-mode safe (no white)
 - [ ] TABLES-LISTS-1: DataTable/DataList focus ring visible in dark mode
 - [ ] TABLES-LISTS-1: Explicit "View details" action opens RCP (row click does not)

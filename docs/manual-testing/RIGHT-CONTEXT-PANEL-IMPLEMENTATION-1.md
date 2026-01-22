@@ -1,25 +1,24 @@
 # EngineO.ai – Manual Testing: RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1
 
-> Derived from `MANUAL_TESTING_TEMPLATE.md`
+> Derived from MANUAL_TESTING_TEMPLATE.md
 
 ---
 
 ## Overview
 
 - **Purpose of the feature/patch:**
-  Add a deterministic Right Context Panel to the UI shell that provides contextual details without blocking the main work canvas.
+  Implement the Right Context Panel (RCP) shell-level system with extended ContextDescriptor, panel view tabs, pin/width controls, and kind-specific content rendering. Integrates with ProductTable, admin/users, and ActionBundleCard via eye-icon Details triggers.
 
 - **High-level user impact and what "success" looks like:**
-  Users can click a "Details" button to open a slide-in panel on the right side. The panel displays contextual information, can be closed via button or ESC key, and auto-closes when navigating to a different nav section. Panel supports context switching (showing different content without close/reopen).
+  Users can view contextual details in a slide-in panel without leaving their current view. Panel supports pinning (persists across navigation within same section), width toggle (default/wide), and four view tabs (Details, Recommendations, History, Help). Eye-icon buttons in tables/cards open the panel with kind-specific content.
 
 - **Related phases/sections in docs/IMPLEMENTATION_PLAN.md:**
   Phase RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1
 
 - **Related documentation:**
-  - `docs/ENGINEERING_IMPLEMENTATION_CONTRACT.md`
-  - `docs/RIGHT_CONTEXT_PANEL_CONTRACT.md`
-  - `docs/UI_SHELL_DIRECTIONS.md`
-  - `docs/manual-testing/LAYOUT-SHELL-IMPLEMENTATION-1.md`
+  - docs/RIGHT_CONTEXT_PANEL_CONTRACT.md
+  - docs/ENGINEERING_IMPLEMENTATION_CONTRACT.md
+  - docs/DESIGN_SYSTEM_ALIGNMENT.md
 
 ---
 
@@ -27,213 +26,270 @@
 
 - **Environment requirements:**
   - apps/web running locally
-  - Dark mode enabled (set localStorage.engineo_theme = "dark" or use in-app theme controls if present)
+  - Dark mode toggle available for dark mode verification
+  - At least one project with synced products
 
 - **Test accounts and sample data:**
-  - Any authenticated account that can reach /dashboard and /projects
+  - Any authenticated account with project access
+  - Project with synced products (for ProductTable tests)
+  - Admin account for admin/users page tests
 
 - **Required user roles or subscriptions:**
-  - None for panel validation; role impacts only route access
+  - Standard user for most tests
+  - Admin role for admin/users page tests
 
 ---
 
 ## Test Scenarios (Happy Path)
 
-### Scenario 1: Panel opens via Details button
+### Scenario 1: RCP opens from ProductTable eye icon
 
 **ID:** HP-001
 
 **Preconditions:**
 
-- [ ] Shell is visible (e.g., /dashboard)
-- [ ] Right Context Panel is closed
+- [ ] Logged in and on /projects/[id]/products
+- [ ] Products list is visible with products
 
 **Steps:**
 
-1. Navigate to /dashboard.
-2. Click the "Details" button in the canvas header.
-3. Observe the panel sliding in from the right.
+1. Locate the eye icon (View details) button in the right column of a product row.
+2. Click the eye icon.
+3. Observe the Right Context Panel.
 
 **Expected Results:**
 
-- UI: Right Context Panel slides in from the right edge; displays "Demo Details A" title with subtitle and metadata.
-- API: N/A
-- Logs: N/A
+- UI: RCP slides in from the right with product details.
+- UI: Panel header shows product title and health state subtitle.
+- UI: Details tab shows: Handle/ID, Last Synced, SEO Title (with status chip + actual value if set), SEO Description (with status chip + actual value if set), Recommended Action.
+- UI: "Open full page" link in header navigates to /projects/[id]/products/[productId].
 
 ---
 
-### Scenario 2: Panel closes via close button
+### Scenario 2: RCP view tabs switch content
 
 **ID:** HP-002
 
 **Preconditions:**
 
-- [ ] Right Context Panel is open
+- [ ] RCP is open with a product descriptor
 
 **Steps:**
 
-1. Click the X (close) button in the panel header.
-2. Observe the panel closing.
+1. Observe the four tabs: Details, Recommendations, History, Help.
+2. Click "Recommendations" tab.
+3. Observe content change.
+4. Click "History" tab.
+5. Click "Help" tab.
+6. Click "Details" tab.
 
 **Expected Results:**
 
-- UI: Panel slides out/disappears; focus returns to previously active element.
-- API: N/A
+- UI: Each tab becomes active (border-b-2 border-primary).
+- UI: Content area updates to show tab-specific content.
+- UI: Details shows kind-specific metadata blocks.
+- UI: Recommendations shows "Recommendations (based on detected issues)" header with recommendedAction if available, otherwise "No recommendations available for this item."
+- UI: History shows "History" header with "No history available." message.
+- UI: Help shows "Help" header with "Help content is not yet available for this item." and a link to Help Center.
 
 ---
 
-### Scenario 3: Panel closes via ESC key
+### Scenario 3: RCP pin toggle persists across navigation
 
 **ID:** HP-003
 
 **Preconditions:**
 
-- [ ] Right Context Panel is open
-- [ ] No modal dialogs are open
-- [ ] Focus is NOT in a text input, textarea, select, or contenteditable element
+- [ ] RCP is open
+- [ ] Currently on /projects/[id]/products
 
 **Steps:**
 
-1. Press the ESC key.
-2. Observe the panel closing.
+1. Click the pin icon (thumbtack) in the panel header.
+2. Observe the pin button state change (filled icon, bg-primary/10).
+3. Navigate to a different page within the same section (e.g., /projects/[id]/work-queue).
+4. Observe the RCP.
+5. Navigate to a different section (e.g., /dashboard).
+6. Observe the RCP.
 
 **Expected Results:**
 
-- UI: Panel closes; focus returns to previously active element.
-- API: N/A
+- UI: Pin button shows active state when pinned (filled icon, primary background tint).
+- UI: When pinned, RCP stays open during navigation within same URL segment.
+- UI: When navigating to different first-segment (projects -> dashboard), RCP stays open (pinned ignores auto-close).
+- UI: Unpinned panel would close on first-segment change.
+- UI: [FIXUP-4] When pinned and navigating outside /projects/[id] (e.g., to /dashboard or /admin), panel shows "Unavailable in this project context." instead of stale details.
 
 ---
 
-### Scenario 4: Panel auto-closes on nav segment change
+### Scenario 4: RCP width toggle changes panel width
 
 **ID:** HP-004
 
 **Preconditions:**
 
-- [ ] Right Context Panel is open on /dashboard
+- [ ] RCP is open
+- [ ] Desktop viewport (>=1024px)
 
 **Steps:**
 
-1. Click on "Projects" in the left navigation.
-2. Observe the panel behavior.
+1. Observe the panel width (default: w-80).
+2. Click the width toggle icon (double-arrow).
+3. Observe the panel width change.
+4. Click the width toggle again.
+5. Observe the panel return to default width.
 
 **Expected Results:**
 
-- UI: Panel automatically closes when navigating to a different nav section (/projects).
-- API: N/A
+- UI: Default width is w-80 (320px).
+- UI: Wide mode width is w-96 lg:w-[28rem] (384px / 448px on larger screens).
+- UI: Width toggle cycles between default and wide.
 
 ---
 
-### Scenario 5: Desktop pinned mode (≥1024px)
+### Scenario 5: RCP close via X button, ESC key, Cmd+.
 
 **ID:** HP-005
 
 **Preconditions:**
 
-- [ ] Browser window width ≥1024px
-- [ ] Right Context Panel is open
+- [ ] RCP is open
 
 **Steps:**
 
-1. Verify the panel is displayed alongside the main content.
-2. Verify no scrim/overlay is visible.
-3. Verify main content area shrinks to accommodate panel.
+1. Click the X button in the panel header.
+2. Verify panel closes.
+3. Reopen the panel via eye icon.
+4. Press ESC key.
+5. Verify panel closes.
+6. Reopen the panel.
+7. Press Cmd+. (Mac) or Ctrl+. (Windows/Linux).
+8. Verify panel closes.
 
 **Expected Results:**
 
-- UI: Panel is pinned; no scrim; content area adjusts width.
-- API: N/A
+- UI: X button closes panel.
+- UI: ESC key closes panel (unless focus is in editable element or modal is open).
+- UI: Cmd/Ctrl+. closes panel.
+- UI: Focus returns to the element that was active before panel opened.
 
 ---
 
-### Scenario 6: Narrow overlay mode (<1024px)
+### Scenario 6: RCP opens from admin/users eye icon
 
 **ID:** HP-006
 
 **Preconditions:**
 
-- [ ] Browser window width <1024px
-- [ ] Right Context Panel is open
+- [ ] Logged in with admin role
+- [ ] On /admin/users page
+- [ ] Users list is visible
 
 **Steps:**
 
-1. Verify the panel overlays the content.
-2. Verify a dark scrim appears behind the panel (but does NOT cover the Top Bar).
-3. Click the scrim.
+1. Locate the eye icon in the Actions column of a user row.
+2. Click the eye icon.
+3. Observe the RCP.
 
 **Expected Results:**
 
-- UI: Panel overlays content with scrim; scrim is contained to the content area below Top Bar; clicking scrim closes panel.
-- API: N/A
+- UI: RCP opens with user details (email as title, name as subtitle).
+- UI: Metadata shows: Role (with adminRole chip if present), Plan, Account Status, Last Activity, Projects count, AI Usage, Quota Usage (renders as "N%"), Two-Factor Auth (renders as "Enabled"/"Disabled"), Created date.
+- UI: adminRole chip only appears if user has an admin role (not shown as "None").
+- UI: "Open full page" link navigates to /admin/users/[userId].
 
 ---
 
-### Scenario 7: Dark mode surface integrity
+### Scenario 7: RCP opens from ActionBundleCard eye icon
 
 **ID:** HP-007
 
 **Preconditions:**
 
-- [ ] Dark mode active
-- [ ] Right Context Panel is open
+- [ ] On /projects/[id]/work-queue page
+- [ ] Work queue has at least one action bundle
 
 **Steps:**
 
-1. Inspect panel background, borders, and text.
-2. Hover over close button.
+1. Locate the eye icon in the header row of an ActionBundleCard.
+2. Click the eye icon.
+3. Observe the RCP.
 
 **Expected Results:**
 
-- UI: No unexpected white surfaces; borders and text remain readable; hover states work correctly.
-- API: N/A
+- UI: RCP opens with work_item (bundle) details.
+- UI: Title shows recommendedActionLabel.
+- UI: Subtitle shows "HEALTH - State" format.
+- UI: Metadata shows: Type (bundleType), State, Health, Scope Type, Scope (actionable count + detected count if different), AI Usage, AI Disclosure text (if present), Approval Status.
 
 ---
 
-### Scenario 8: Context switching (A → B while open)
+### Scenario 8: RCP "Open full page" link navigates correctly
 
 **ID:** HP-008
 
 **Preconditions:**
 
-- [ ] Shell is visible (e.g., /dashboard)
-- [ ] Right Context Panel is closed
+- [ ] RCP is open with a product descriptor
 
 **Steps:**
 
-1. Click the "Details" button to open the panel with "Demo Details A".
-2. Verify panel shows "Demo Details A" title.
-3. Click the "Details" button again while panel is open.
-4. Observe the panel content change.
+1. Click the external link icon in the panel header.
+2. Observe navigation.
 
 **Expected Results:**
 
-- UI: Panel switches to "Demo Details B" content without closing/reopening (no flicker, no navigation). Title changes to "Demo Details B", metadata changes to show "Pending" status and "Secondary" type.
-- API: N/A
-- Logs: N/A
+- UI: Browser navigates to /projects/[id]/products/[productId].
+- URL: URL changes to the product detail page.
 
 ---
 
-### Scenario 9: Shopify embedded iframe interaction
+### Scenario 9: RCP overlay mode on narrow viewports
 
 **ID:** HP-009
 
 **Preconditions:**
 
-- [ ] App running inside Shopify Admin as embedded app (iframe)
-- [ ] Dark mode active (optional but recommended)
+- [ ] RCP is open
+- [ ] Browser window resized to <1024px
 
 **Steps:**
 
-1. Open the app inside Shopify Admin.
-2. Click the "Details" button to open the Right Context Panel.
-3. Verify panel opens correctly within the iframe.
-4. Scroll the main content in the Center Work Canvas.
-5. Close the panel via close button or ESC.
+1. Observe the RCP positioning.
+2. Observe the scrim (overlay background).
+3. Click the scrim area.
+4. Observe the RCP.
 
 **Expected Results:**
 
-- UI: Panel opens/closes correctly; scroll is contained to Center Work Canvas only; no double scrollbars; panel overlay (in narrow mode) does NOT cover the persistent Top Bar; Top Bar and Left Nav remain visible and interactive.
-- API: N/A
+- UI: Panel is absolutely positioned within the container (not viewport-fixed).
+- UI: Scrim (bg-foreground/50) covers the content area.
+- UI: Clicking scrim closes the panel.
+
+---
+
+### Scenario 10: RCP scope project mismatch handling
+
+**ID:** HP-010
+
+**Preconditions:**
+
+- [ ] RCP is open with a product descriptor from Project A
+- [ ] Navigate to Project B
+
+**Steps:**
+
+1. Open RCP from ProductTable in Project A.
+2. Pin the panel.
+3. Navigate to /projects/[projectB]/products.
+4. Observe the RCP content.
+
+**Expected Results:**
+
+- UI: RCP shows "Unavailable in this project context." message in Details tab.
+- UI: Panel title still shows the original product title.
+- UI: This prevents displaying stale/wrong data in different project context.
+- UI: [FIXUP-4] Also applies when pinned panel is open and navigating outside /projects/[id] entirely (e.g., to /dashboard) - panel renders safe "Unavailable" state instead of stale details.
 
 ---
 
@@ -241,137 +297,97 @@
 
 ### EC-001: ESC key with modal dialog open
 
-**Description:** ESC key should not close the panel when a modal dialog is active.
+**Description:** ESC should not close RCP if a modal dialog is open.
 
 **Steps:**
 
-1. Open Right Context Panel.
-2. Open a modal dialog (if available in the app).
+1. Open RCP.
+2. Open a modal dialog (e.g., Command Palette with Cmd+K).
 3. Press ESC.
 
 **Expected Behavior:**
 
-- Modal dialog closes (if it handles ESC); panel remains open.
+- Modal closes, but RCP stays open.
 
 ---
 
-### EC-002: Rapid toggle clicks
+### EC-002: ESC key with focus in input field
 
-**Description:** Rapidly clicking the Details button should not cause inconsistent state.
+**Description:** ESC should not close RCP if focus is in an editable element.
 
 **Steps:**
 
-1. Click the Details button multiple times rapidly.
+1. Open RCP.
+2. Focus an input field in the main content area.
+3. Press ESC.
 
 **Expected Behavior:**
 
-- Panel state remains consistent (open or closed); no visual glitches.
+- Input field loses focus (browser default), but RCP stays open.
 
 ---
 
-### EC-003: Focus management
+### EC-003: Multiple rapid panel opens
 
-**Description:** Focus should return to the triggering element when panel closes.
+**Description:** Opening panel with same descriptor should be no-op.
 
 **Steps:**
 
-1. Focus the Details button using keyboard (Tab).
-2. Press Enter to open panel.
-3. Close panel via ESC.
+1. Click eye icon for Product A.
+2. Rapidly click the same eye icon again.
 
 **Expected Behavior:**
 
-- Focus returns to the Details button.
+- Panel opens once, no flicker. Second click is no-op (same kind+id).
 
 ---
 
-### EC-004: ESC key with focus in text input
+### EC-004: Opening panel with different descriptor while open
 
-**Description:** ESC key should NOT close the panel when focus is in an editable element (input, textarea, select, contenteditable).
+**Description:** Panel should update content without closing/reopening.
 
 **Steps:**
 
-1. Open Right Context Panel.
-2. If there's a text input anywhere on the page, focus it (or add one temporarily for testing).
-3. Press ESC while focus is in the text input.
+1. Open RCP for Product A.
+2. Click eye icon for Product B.
 
 **Expected Behavior:**
 
-- Panel remains open; ESC does not close panel when focus is in editable element.
+- Panel stays open, content updates to Product B.
+- View resets to Details tab.
 
 ---
 
 ## Error Handling
 
-### ERR-001: External Service Failure (Stripe/Shopify/AI Provider)
+### ERR-001: ContextDescriptor with missing required fields
 
-**Scenario:** N/A (layout-only phase)
-
-**Steps:**
-
-1. N/A
-
-**Expected Behavior:**
-
-- N/A
-
----
-
-### ERR-002: Validation Errors
-
-**Scenario:** N/A (layout-only phase)
+**Scenario:** Descriptor missing kind or id.
 
 **Steps:**
 
-1. N/A
+1. (Development scenario) Pass descriptor with missing fields.
 
 **Expected Behavior:**
 
-- N/A
-
----
-
-### ERR-003: Permission Failures
-
-**Scenario:** N/A (layout-only phase)
-
-**Steps:**
-
-1. N/A
-
-**Expected Behavior:**
-
-- N/A
+- Panel should not crash. Fallback content displayed.
 
 ---
 
 ## Limits
 
-### LIM-001: Entitlement/Quota Limit
+### LIM-001: Very long title/subtitle
 
-**Scenario:** N/A (layout-only phase)
-
-**Steps:**
-
-1. N/A
-
-**Expected Behavior:**
-
-- N/A
-
----
-
-### LIM-002: [Another Limit Scenario]
-
-**Scenario:** N/A (layout-only phase)
+**Scenario:** Product with very long title.
 
 **Steps:**
 
-1. N/A
+1. Open RCP for a product with 200+ character title.
 
 **Expected Behavior:**
 
-- N/A
+- Title truncates with text-ellipsis.
+- Tooltip or scroll reveals full title.
 
 ---
 
@@ -379,18 +395,19 @@
 
 ### Areas potentially impacted:
 
-- [ ] Left Navigation collapse/expand (should not interfere)
-- [ ] Main content scroll containment
-- [ ] Dark mode surfaces
-- [ ] Shopify embedded iframe scroll behavior
+- [ ] Command Palette z-index (should still be above RCP at z-50)
+- [ ] Modal dialogs (should still work with RCP open)
+- [ ] ProductTable row expansion (should work independently of RCP)
+- [ ] Dark mode styling (RCP uses token-based surfaces)
+- [ ] Keyboard navigation in tables (should not conflict with RCP shortcuts)
 
 ### Quick sanity checks:
 
-- [ ] Left Nav toggle still works with panel open
-- [ ] Main content scrolls independently
-- [ ] Panel does not cause double scrollbars
-- [ ] ESC key only closes panel when no modals are open and focus not in editable element
-- [ ] Panel overlay does not cover Top Bar (container-contained)
+- [ ] Command Palette opens above RCP (Cmd+K)
+- [ ] ESC closes Command Palette before RCP
+- [ ] Left Nav collapse/expand unaffected
+- [ ] Product row click still expands/collapses row
+- [ ] DataTable eye icon still opens RCP
 
 ---
 
@@ -398,4 +415,19 @@
 
 ### Data cleanup steps:
 
-- [ ] None
+- [ ] None (read-only UI feature)
+
+---
+
+## Known Issues
+
+- Recommendations, History, Help tabs show placeholder content (future implementation).
+- Scope project mismatch detection requires scopeProjectId to be set in descriptor.
+
+---
+
+## Approval
+
+- [ ] QA verified all Happy Path scenarios
+- [ ] Edge cases reviewed
+- [ ] Regression areas checked

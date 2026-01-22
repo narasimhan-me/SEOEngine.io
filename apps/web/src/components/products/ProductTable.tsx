@@ -571,14 +571,29 @@ export function ProductTable({
   const { openPanel } = useRightContextPanel();
 
   // Get ContextDescriptor for a product row (for RCP integration)
+  // [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-3] MVP metadata fields for ContextPanelContentRenderer
   const getRowDescriptor = useCallback(
     (product: Product): ContextDescriptor => {
       const productIssueData = issuesByProductId.get(product.id);
+
+      // Derive SEO status truthfully from existing data (no fabrication)
+      const seoTitleStatus = product.seoTitle?.trim()
+        ? 'Set'
+        : 'Not set';
+      const seoDescriptionStatus = product.seoDescription?.trim()
+        ? 'Set'
+        : 'Not set';
+
       return {
         kind: 'product',
         id: product.id,
         title: product.title,
         subtitle: productIssueData?.healthState ?? 'Healthy',
+        // [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1] Scope to project for cross-project safety
+        scopeProjectId: projectId,
+        // [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1] Open full page link
+        openHref: `/projects/${projectId}/products/${product.id}`,
+        openHrefLabel: 'Open product details',
         metadata: {
           handle: product.handle ?? product.externalId ?? 'N/A',
           lastSynced: product.lastSyncedAt
@@ -586,12 +601,15 @@ export function ProductTable({
             : 'Not available',
           metaTitle: product.seoTitle?.trim() || 'Not set',
           metaDescription: product.seoDescription?.trim() || 'Not set',
+          // [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-3] Status flags for content renderer
+          seoTitleStatus,
+          seoDescriptionStatus,
           recommendedAction:
             productIssueData?.recommendedAction ?? 'No action needed',
         },
       };
     },
-    [issuesByProductId]
+    [issuesByProductId, projectId]
   );
 
   // Handle row click for expansion (progressive disclosure)

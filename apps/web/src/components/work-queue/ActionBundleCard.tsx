@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { WorkQueueActionBundle, WorkQueueViewer } from '@/lib/work-queue';
 import {
   getReturnToFromCurrentUrl,
@@ -16,6 +16,57 @@ import {
   isValidPlaybookId,
   type PlaybookId,
 } from '@/lib/playbooks-routing';
+// [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-3] RCP integration
+import {
+  useRightContextPanel,
+  type ContextDescriptor,
+} from '@/components/right-context-panel/RightContextPanelProvider';
+
+/**
+ * Eye icon for View details button.
+ * [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-3]
+ */
+function ViewDetailsIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
+      <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    </svg>
+  );
+}
+
+// Bundle type labels (module-scoped for reuse in getBundleDescriptor)
+const BUNDLE_TYPE_LABELS: Record<string, string> = {
+  ASSET_OPTIMIZATION: 'Issue',
+  AUTOMATION_RUN: 'Automation',
+  GEO_EXPORT: 'Export',
+};
+
+// State labels (module-scoped for reuse in getBundleDescriptor)
+const STATE_LABELS: Record<string, string> = {
+  NEW: 'New',
+  PREVIEWED: 'Previewed',
+  DRAFTS_READY: 'Drafts Ready',
+  PENDING_APPROVAL: 'Pending Approval',
+  APPROVED: 'Approved',
+  APPLIED: 'Applied',
+  FAILED: 'Failed',
+  BLOCKED: 'Blocked',
+};
+
+/**
+ * Format state for display.
+ */
+function formatState(state: string): string {
+  return STATE_LABELS[state] || state;
+}
 
 interface ActionBundleCardProps {
   bundle: WorkQueueActionBundle;
@@ -45,6 +96,44 @@ export function ActionBundleCard({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-3] RCP integration
+  const { openPanel } = useRightContextPanel();
+
+  // Build ContextDescriptor for work_item (bundle)
+  // [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-4] Fixed metadata keys
+  const getBundleDescriptor = useCallback((): ContextDescriptor => {
+    // Build metadata object with required fields
+    const metadata: Record<string, string> = {
+      bundleType: BUNDLE_TYPE_LABELS[bundle.bundleType] || bundle.bundleType,
+      health: bundle.health,
+      state: formatState(bundle.state),
+      scopeType: bundle.scopeType,
+      // [FIXUP-4] Add scopeActionable for renderer
+      scopeActionable: String(bundle.scopeCount),
+      aiUsage: bundle.aiUsage,
+      approvalStatus: bundle.approval?.approvalStatus || 'Not required',
+    };
+
+    // [FIXUP-4] Add scopeDetected if available
+    if (bundle.scopeDetectedCount !== undefined && bundle.scopeDetectedCount !== null) {
+      metadata.scopeDetected = String(bundle.scopeDetectedCount);
+    }
+
+    // [FIXUP-4] Add aiDisclosureText (truth-preserving)
+    if (bundle.aiDisclosureText) {
+      metadata.aiDisclosureText = bundle.aiDisclosureText;
+    }
+
+    return {
+      kind: 'work_item',
+      id: bundle.bundleId,
+      title: bundle.recommendedActionLabel,
+      subtitle: `${bundle.health} - ${formatState(bundle.state)}`,
+      scopeProjectId: projectId,
+      metadata,
+    };
+  }, [bundle, projectId]);
+
   // [ROUTE-INTEGRITY-1] Compute returnTo from current URL
   const returnTo = useMemo(() => {
     return getReturnToFromCurrentUrl(pathname, searchParams);
@@ -55,13 +144,6 @@ export function ActionBundleCard({
     CRITICAL: 'bg-red-100 text-red-700 border-red-200',
     NEEDS_ATTENTION: 'bg-yellow-100 text-yellow-700 border-yellow-200',
     HEALTHY: 'bg-green-100 text-green-700 border-green-200',
-  };
-
-  // Bundle type tag styling
-  const bundleTypeLabels: Record<string, string> = {
-    ASSET_OPTIMIZATION: 'Issue',
-    AUTOMATION_RUN: 'Automation',
-    GEO_EXPORT: 'Export',
   };
 
   // State badge styling
@@ -100,7 +182,7 @@ export function ActionBundleCard({
           : 'border-gray-200 hover:border-gray-300'
       }`}
     >
-      {/* Row 1: Health pill + bundle type tag */}
+      {/* Row 1: Health pill + bundle type tag + Details button */}
       <div className="flex items-center gap-2">
         <span
           className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
@@ -123,8 +205,18 @@ export function ActionBundleCard({
           {bundle.health}
         </span>
         <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-          {bundleTypeLabels[bundle.bundleType] || bundle.bundleType}
+          {BUNDLE_TYPE_LABELS[bundle.bundleType] || bundle.bundleType}
         </span>
+        {/* [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-4] Token-based icon button */}
+        <button
+          type="button"
+          onClick={() => openPanel(getBundleDescriptor())}
+          title="View details in panel"
+          aria-label={`View details for ${bundle.recommendedActionLabel}`}
+          className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
+          <ViewDetailsIcon className="h-3.5 w-3.5" />
+        </button>
         <span
           className={`ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
             stateStyles[bundle.state]
@@ -357,23 +449,6 @@ export function ActionBundleCard({
       </div>
     </div>
   );
-}
-
-/**
- * Format state for display.
- */
-function formatState(state: string): string {
-  const labels: Record<string, string> = {
-    NEW: 'New',
-    PREVIEWED: 'Previewed',
-    DRAFTS_READY: 'Drafts Ready',
-    PENDING_APPROVAL: 'Pending Approval',
-    APPROVED: 'Approved',
-    APPLIED: 'Applied',
-    FAILED: 'Failed',
-    BLOCKED: 'Blocked',
-  };
-  return labels[state] || state;
 }
 
 /**

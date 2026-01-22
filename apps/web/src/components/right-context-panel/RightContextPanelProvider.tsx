@@ -12,10 +12,21 @@ import {
 import { usePathname } from 'next/navigation';
 
 /**
+ * Active view tab for the Right Context Panel.
+ */
+export type PanelView = 'details' | 'recommendations' | 'history' | 'help';
+
+/**
+ * Width mode for the Right Context Panel.
+ */
+export type PanelWidthMode = 'default' | 'wide';
+
+/**
  * Describes the content to display in the Right Context Panel.
+ * Extended with optional fields to support shell-level system capabilities.
  */
 export interface ContextDescriptor {
-  /** Category/type of content (e.g., 'project', 'user', 'task') */
+  /** Category/type of content (e.g., 'product', 'user', 'work_item') */
   kind: string;
   /** Unique identifier for the content */
   id: string;
@@ -25,14 +36,42 @@ export interface ContextDescriptor {
   subtitle?: string;
   /** Optional key-value metadata for the panel */
   metadata?: Record<string, string>;
+  /** Optional "Open full page" link */
+  openHref?: string;
+  /** Optional label for the open link (default handled by UI) */
+  openHrefLabel?: string;
+  /** Optional project scope for "persist within same project" + safe invalidation */
+  scopeProjectId?: string;
+}
+
+/**
+ * Payload for programmatic openContextPanel({ type, payload }) API.
+ */
+export interface OpenContextPanelPayload {
+  type: string;
+  id: string;
+  title?: string;
+  subtitle?: string;
+  metadata?: Record<string, string>;
+  openHref?: string;
+  openHrefLabel?: string;
+  scopeProjectId?: string;
 }
 
 interface RightContextPanelState {
   isOpen: boolean;
   descriptor: ContextDescriptor | null;
+  activeView: PanelView;
+  widthMode: PanelWidthMode;
+  isPinned: boolean;
   openPanel: (descriptor: ContextDescriptor) => void;
   closePanel: () => void;
   togglePanel: (descriptor?: ContextDescriptor) => void;
+  setActiveView: (view: PanelView) => void;
+  togglePinned: () => void;
+  toggleWidthMode: () => void;
+  /** Programmatic trigger that maps { type } → descriptor.kind */
+  openContextPanel: (payload: OpenContextPanelPayload) => void;
 }
 
 const RightContextPanelContext = createContext<RightContextPanelState | null>(
@@ -82,6 +121,9 @@ export function RightContextPanelProvider({
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [descriptor, setDescriptor] = useState<ContextDescriptor | null>(null);
+  const [activeView, setActiveView] = useState<PanelView>('details');
+  const [widthMode, setWidthMode] = useState<PanelWidthMode>('default');
+  const [isPinned, setIsPinned] = useState(false);
   const lastActiveElementRef = useRef<Element | null>(null);
   const previousSegmentRef = useRef<string>(getFirstSegment(pathname));
 
@@ -89,6 +131,8 @@ export function RightContextPanelProvider({
   const closePanel = useCallback(() => {
     setIsOpen(false);
     setDescriptor(null);
+    // Reset view to details when closing
+    setActiveView('details');
 
     // Restore focus to the element that was active before opening
     if (
@@ -99,15 +143,19 @@ export function RightContextPanelProvider({
     }
   }, []);
 
-  // Auto-close on Left Nav segment switch
+  // Auto-close on Left Nav segment switch (unless pinned)
   useEffect(() => {
     const currentSegment = getFirstSegment(pathname);
     if (previousSegmentRef.current !== currentSegment && isOpen) {
-      setIsOpen(false);
-      setDescriptor(null);
+      // If pinned, do NOT auto-close on first-segment change
+      if (!isPinned) {
+        setIsOpen(false);
+        setDescriptor(null);
+        setActiveView('details');
+      }
     }
     previousSegmentRef.current = currentSegment;
-  }, [pathname, isOpen]);
+  }, [pathname, isOpen, isPinned]);
 
   // ESC key to close (with modal dialog guard and editable element guard)
   useEffect(() => {
@@ -133,6 +181,31 @@ export function RightContextPanelProvider({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, closePanel]);
 
+  // Cmd/Ctrl + . keyboard shortcut to toggle panel closed/open
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      // Cmd+. (Mac) or Ctrl+. (Windows/Linux)
+      if ((event.metaKey || event.ctrlKey) && event.key === '.') {
+        event.preventDefault();
+
+        // Guard: don't process if a modal dialog is open (would conflict)
+        const openDialog = document.querySelector(
+          'dialog[open], [role="dialog"][aria-modal="true"]'
+        );
+        if (openDialog) return;
+
+        // If open → close; if closed → NO-OP (panel requires explicit descriptor to open)
+        if (isOpen) {
+          closePanel();
+        }
+        // Closed state: do nothing (panel needs content to open)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, closePanel]);
+
   const openPanel = useCallback(
     (newDescriptor: ContextDescriptor) => {
       // If panel is already open with same kind+id → NO-OP (prevents flicker)
@@ -148,6 +221,8 @@ export function RightContextPanelProvider({
       // Update descriptor (handles both fresh open and context switch while open)
       setDescriptor(newDescriptor);
       setIsOpen(true);
+      // Reset to details view when opening with new descriptor
+      setActiveView('details');
     },
     [isOpen, descriptor]
   );
@@ -169,17 +244,52 @@ export function RightContextPanelProvider({
       } else {
         // OPEN + different kind+id → update descriptor (stay open)
         setDescriptor(newDescriptor);
+        setActiveView('details');
       }
     },
     [isOpen, descriptor, openPanel, closePanel]
   );
 
+  const togglePinned = useCallback(() => {
+    setIsPinned((prev) => !prev);
+  }, []);
+
+  const toggleWidthMode = useCallback(() => {
+    setWidthMode((prev) => (prev === 'default' ? 'wide' : 'default'));
+  }, []);
+
+  // Programmatic openContextPanel({ type, payload }) API
+  // Maps { type } → descriptor.kind
+  const openContextPanel = useCallback(
+    (payload: OpenContextPanelPayload) => {
+      const newDescriptor: ContextDescriptor = {
+        kind: payload.type,
+        id: payload.id,
+        title: payload.title || `${payload.type} details`,
+        subtitle: payload.subtitle,
+        metadata: payload.metadata,
+        openHref: payload.openHref,
+        openHrefLabel: payload.openHrefLabel,
+        scopeProjectId: payload.scopeProjectId,
+      };
+      openPanel(newDescriptor);
+    },
+    [openPanel]
+  );
+
   const value: RightContextPanelState = {
     isOpen,
     descriptor,
+    activeView,
+    widthMode,
+    isPinned,
     openPanel,
     closePanel,
     togglePanel,
+    setActiveView,
+    togglePinned,
+    toggleWidthMode,
+    openContextPanel,
   };
 
   return (
