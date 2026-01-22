@@ -505,6 +505,226 @@
 
 ---
 
+### Scenario 15: /admin/audit-log uses canonical DataTable
+
+**ID:** HP-015
+
+**Preconditions:**
+
+- [ ] Logged in with admin role
+- [ ] On /admin/audit-log page
+
+**Steps:**
+
+1. Navigate to /admin/audit-log.
+2. Observe the audit log table.
+3. Hover over a row.
+4. Tab into the table to focus a row.
+
+**Expected Results:**
+
+- UI: Table uses DataTable component with token-based styling.
+- UI: Columns display: Time, Actor, Role, Action, Target.
+- UI: No gray/white legacy styling (no bg-gray-*, bg-white on hover).
+- UI: Empty state rendered outside table (no colSpan rows).
+
+---
+
+### Scenario 16: /admin/governance-audit uses canonical DataTable
+
+**ID:** HP-016
+
+**Preconditions:**
+
+- [ ] Logged in with admin role
+- [ ] On /admin/governance-audit page
+
+**Steps:**
+
+1. Navigate to /admin/governance-audit.
+2. Observe the governance audit table.
+3. Hover over a row.
+
+**Expected Results:**
+
+- UI: Table uses DataTable component with token-based styling.
+- UI: Columns display: Time, Event Type, Actor, Project, Resource, Details.
+- UI: Empty state rendered outside DataTable with token-based styling.
+
+---
+
+### Scenario 17: /admin/projects uses canonical DataTable
+
+**ID:** HP-017
+
+**Preconditions:**
+
+- [ ] Logged in with admin role
+- [ ] On /admin/projects page
+
+**Steps:**
+
+1. Navigate to /admin/projects.
+2. Observe the projects table.
+3. Click a Resync button if available.
+
+**Expected Results:**
+
+- UI: Table uses DataTable component with token-based styling.
+- UI: Columns display: User, Project, Shopify, DEO, Products, Last Sync, Last Run, Actions.
+- UI: Resync button in Actions column functions correctly.
+
+---
+
+### Scenario 18: /admin/users/[id] Recent Runs uses canonical DataTable
+
+**ID:** HP-018
+
+**Preconditions:**
+
+- [ ] Logged in with admin role
+- [ ] On /admin/users/[id] page with a user that has recent runs
+
+**Steps:**
+
+1. Navigate to /admin/users, click on a user.
+2. Scroll to "Recent Runs" section.
+3. Observe the runs table.
+
+**Expected Results:**
+
+- UI: Table uses DataTable component with token-based styling.
+- UI: Columns display: Run Type, Status, AI Used, Created.
+- UI: Card container uses token-based styling (bg-[hsl(var(--surface-card))], border-border).
+
+---
+
+### Scenario 19: /projects/[id]/assets/pages uses canonical DataTable
+
+**ID:** HP-019
+
+**Preconditions:**
+
+- [ ] Logged in with project access
+- [ ] On /projects/[id]/assets/pages page with synced pages
+
+**Steps:**
+
+1. Navigate to a project's Assets > Pages.
+2. Observe the pages table.
+3. Hover over a row.
+
+**Expected Results:**
+
+- UI: Table uses DataTable component with token-based styling.
+- UI: Columns display: Health, Path, Title, Action.
+- UI: RowStatusChip renders correctly for health status.
+- UI: Empty state uses token-based styling.
+
+---
+
+### Scenario 20: /projects/[id]/assets/collections uses canonical DataTable
+
+**ID:** HP-020
+
+**Preconditions:**
+
+- [ ] Logged in with project access
+- [ ] On /projects/[id]/assets/collections page with synced collections
+
+**Steps:**
+
+1. Navigate to a project's Assets > Collections.
+2. Observe the collections table.
+3. Hover over a row.
+
+**Expected Results:**
+
+- UI: Table uses DataTable component with token-based styling.
+- UI: Columns display: Health, Handle, Title, Action.
+- UI: Handle column shows extracted collection handle (not full path).
+- UI: Empty state uses token-based styling.
+
+---
+
+### Scenario 21: /projects/[id]/assets/blogs uses canonical DataTable
+
+**ID:** HP-021
+
+**Preconditions:**
+
+- [ ] Logged in with project access
+- [ ] On /projects/[id]/assets/blogs page with synced blog posts
+
+**Steps:**
+
+1. Navigate to a project's Assets > Blog posts.
+2. Observe the blog posts table.
+3. Click "Open" link on a row.
+
+**Expected Results:**
+
+- UI: Table uses DataTable component with token-based styling.
+- UI: Columns display: Status, Handle, Title, Updated, Open.
+- UI: Status column shows Published/Draft badge.
+- UI: Open link opens blog post in new tab.
+
+---
+
+### Scenario 22: /projects/[id]/settings/governance uses canonical DataTable (3 tables)
+
+**ID:** HP-022
+
+**Preconditions:**
+
+- [ ] Logged in with project access
+- [ ] On /projects/[id]/settings/governance page
+
+**Steps:**
+
+1. Navigate to a project's Settings > Governance.
+2. Click through Approvals, Audit Log, and Sharing tabs.
+3. Observe each table.
+
+**Expected Results:**
+
+- UI: All 3 tables (Approvals, Audit, Sharing) use DataTable component.
+- UI: Approvals columns: Resource, Requested By, Status, Date, Actions.
+- UI: Audit columns: Event, Actor, Resource, Time, Actions.
+- UI: Sharing columns: Title/Report, Created By, Audience, Status, Views, Actions.
+- UI: Empty states rendered outside DataTable with token-based styling.
+
+---
+
+### Scenario 23: /projects/[id]/automation/playbooks per-product results use canonical DataTable (dense)
+
+**ID:** HP-023
+
+**Preconditions:**
+
+- [ ] Logged in with project access
+- [ ] On /projects/[id]/automation/playbooks page after running a playbook
+
+**Steps:**
+
+1. Navigate to a project's Automation > Playbooks.
+2. Run a playbook to completion (or view completed results).
+3. Expand per-product results section.
+4. Observe the results table implementation and styling.
+
+**Expected Results:**
+
+- UI: Per-product results use canonical DataTable component (not legacy `<table>` markup).
+- UI: DataTable uses `density="dense"` for compact presentation.
+- UI: No legacy gray/white table utility stack (no divide-gray-*, bg-gray-*, bg-white used for table styling).
+- UI: Columns display: Product, Status, Message.
+- UI: Product column links use text-primary and navigate via handleNavigate interception.
+- UI: Status badges preserve existing styling (UPDATED=green, SKIPPED=muted, LIMIT_REACHED=amber, error=red).
+- UI: Message column uses text-muted-foreground.
+- UI: Rows render with non-empty cells (Product/Status/Message visible; not blank due to missing cell renderer).
+
+---
+
 ## Post-Conditions
 
 ### Data cleanup steps:

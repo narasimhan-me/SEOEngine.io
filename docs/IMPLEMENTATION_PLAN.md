@@ -2582,6 +2582,62 @@ Styling-only polish phase to establish clear visual hierarchy across navigation 
 
 ---
 
+### Phase PANEL-DEEP-LINKS-1: Shareable Right Context Panel State ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-22
+**Design System Version:** 1.5
+**Activation:** URL deep-linking for Right Context Panel state
+
+#### Overview
+
+PANEL-DEEP-LINKS-1 adds shareable Right Context Panel state via URL deep-links. When the panel is opened via UI, URL params are written (replaceState semantics). When a URL with valid panel params is loaded, the panel opens deterministically. This enables copy/paste sharing of panel state and proper back/forward navigation.
+
+#### URL Schema
+
+| Parameter     | Required | Allowed Values                                           |
+| ------------- | -------- | -------------------------------------------------------- |
+| `panel`       | Yes      | `details`, `recommendations`, `history`, `help`          |
+| `entityType`  | Yes      | `product`, `page`, `collection`, `blog`, `issue`, `user` |
+| `entityId`    | Yes      | Any non-empty string (the entity's ID)                   |
+| `entityTitle` | No       | Optional entity title (fallback for panel title)         |
+| `panelOpen`   | No       | Accepted but not required (legacy compatibility)         |
+
+#### Key Features
+
+1. **URL → State Sync**: When URL contains valid deep-link params, panel opens deterministically on page load
+2. **State → URL Sync**: When panel opens/changes via UI, URL updates via replaceState (no history entry per change)
+3. **Close Cleans URL**: Closing panel removes all panel-related params
+4. **Back/Forward Support**: Browser history navigation restores panel state
+5. **Invalid Param Safety**: Invalid params fail safely (no crash, no auto-clean)
+6. **Shopify Embedded Preserved**: Shopify params (shop, host) preserved throughout
+
+#### Source of Truth Rules
+
+- URL is source of truth **only when URL includes valid panel params**
+- UI-opened panel also writes to URL for consistency
+- Re-entrancy guard prevents URL→state→URL loops
+- `openedViaUrlRef` tracks if panel was URL-opened (for back/forward close behavior)
+
+#### Affected Files
+
+- `apps/web/src/components/right-context-panel/RightContextPanelProvider.tsx` (UPDATED)
+
+#### Integration Proof Points (Verified)
+
+- **ProductTable.tsx**: Descriptor includes `kind: 'product'`, `title`, `scopeProjectId`, `openHref`
+- **Admin Users page.tsx**: Descriptor includes `kind: 'user'`, `title` (email), `openHref`
+
+#### Manual Testing
+
+- `docs/manual-testing/PANEL-DEEP-LINKS-1.md`
+
+#### Critical Path Map
+
+- Updated CP-020 with PANEL-DEEP-LINKS-1 scenarios and manual testing doc reference
+
+---
+
 ## Planned / Pending
 
 ### Phase GTM-ONBOARD-1: Guided Onboarding & First DEO Win 📄 DOCS COMPLETE — IMPLEMENTATION PENDING
@@ -2884,3 +2940,7 @@ _None at this time._
 | 7.10 | 2026-01-22 | **RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1 FIXUP-2**: Treat provided in-memory issues (including empty array) as authoritative to avoid unnecessary `projectsApi.assetIssues()` fetches; updates HP-003 API expectations accordingly. **Core files:** ContextPanelIssueDrilldown.tsx. **Manual Testing:** RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1.md (updated). |
 | 7.11 | 2026-01-22 | **RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1 FIXUP-3**: (1) Pillar-to-category mapping safety: unknown pillarId now maps to **Other** (matches manual test expectations). (2) Products issues loading now distinguishes "not loaded yet" (undefined) vs loaded empty array, enabling RCP to prefer in-memory issues (including empty) and avoid unnecessary `assetIssues` fetches. **Core files:** ContextPanelIssueDrilldown.tsx, page.tsx, ProductTable.tsx. |
 | 7.12 | 2026-01-22 | **TABLES-&-LISTS-ALIGNMENT-1 FIXUP-3**: Keyboard guard + route-level DataTable migration. (1) Added `isInteractiveElement()` guard to DataTable.tsx/DataList.tsx preventing keyboard hijacking on `a`, `button`, `input`, `textarea`, `select`, `[contenteditable]`, `[data-no-row-keydown]` elements; (2) Migrated `/projects` page to canonical DataTable with token-only styling; (3) Migrated `/dashboard` "Your Projects" table to canonical DataTable; (4) Migrated `/admin/users` to canonical DataTable with RCP integration via `onOpenContext`/`getRowDescriptor`; (5) Migrated `/admin/runs` to canonical DataTable with filter selects using `data-no-row-keydown`; (6) Migrated `/admin/ai-usage` top consumers to canonical DataTable; (7) Migrated `/admin/subscriptions` to canonical DataTable with in-row plan change selects using `data-no-row-keydown`. **Core files:** DataTable.tsx, DataList.tsx, projects/page.tsx, dashboard/page.tsx, admin/users/page.tsx, admin/runs/page.tsx, admin/ai-usage/page.tsx, admin/subscriptions/page.tsx. **Manual Testing:** TABLES-&-LISTS-ALIGNMENT-1.md (HP-010 through HP-014 added). **Critical Path:** CP-020 updated with FIXUP-3 scenarios. |
+| 7.13 | 2026-01-22 | **TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4**: Remaining legacy `<table>` migrations to canonical DataTable. 9 pages migrated: (1) `/admin/audit-log` - columns: Time, Actor, Role, Action, Target; (2) `/admin/governance-audit` - columns: Time, Event Type, Actor, Project, Resource, Details; (3) `/admin/projects` - columns: User, Project, Shopify, DEO, Products, Last Sync, Last Run, Actions; (4) `/admin/users/[id]` Recent Runs - columns: Run Type, Status, AI Used, Created; (5) `/projects/[id]/assets/pages` - columns: Health, Path, Title, Action; (6) `/projects/[id]/assets/collections` - columns: Health, Handle, Title, Action; (7) `/projects/[id]/assets/blogs` - columns: Status, Handle, Title, Updated, Open; (8) `/projects/[id]/settings/governance` - 3 tables (Approvals, Audit, Sharing) migrated; (9) `/projects/[id]/automation/playbooks` - per-product results table token styling. All use canonical DataTable with `hideContextAction={true}` or token-based inline styling. Empty states outside DataTable. **Core files:** admin/audit-log/page.tsx, admin/governance-audit/page.tsx, admin/projects/page.tsx, admin/users/[id]/page.tsx, assets/pages/page.tsx, assets/collections/page.tsx, assets/blogs/page.tsx, settings/governance/page.tsx, automation/playbooks/page.tsx. **Manual Testing:** TABLES-&-LISTS-ALIGNMENT-1.md (HP-015 through HP-023 added). **Critical Path:** CP-020 updated with FIXUP-4 scenarios. |
+| 7.14 | 2026-01-22 | **TABLES-&-LISTS-ALIGNMENT-1 FIXUP-5**: Playbooks per-product results migrated from legacy `<table>` to canonical DataTable (dense). Per-product results panel now uses DataTable component with `density="dense"` and `hideContextAction={true}`, replacing inline `<table>/<thead>/<tbody>` markup. Preserved navigation behavior (Product cell uses resultsContextUrl + handleNavigate interception) and status badge rendering. Removed legacy gray/white utility stack. **Manual Testing:** TABLES-&-LISTS-ALIGNMENT-1.md HP-023 updated to require canonical DataTable (not "token styling"). **Critical Path:** CP-020 updated: FIXUP-4 playbooks line clarified; FIXUP-5 checklist item added. |
+| 7.15 | 2026-01-22 | **TABLES-&-LISTS-ALIGNMENT-1 FIXUP-6**: Playbooks per-product results DataTable used `render` instead of `cell` for column renderers, causing blank cells at runtime. Updated columns to use `cell` (correct DataTableColumn contract). **Core files:** automation/playbooks/page.tsx. **Manual Testing:** TABLES-&-LISTS-ALIGNMENT-1.md HP-023 updated with cell renderer assertion. **Critical Path:** CP-020 updated with FIXUP-6 checklist item. |
+| 7.16 | 2026-01-22 | **PANEL-DEEP-LINKS-1**: Shareable Right Context Panel state via URL deep-links. URL schema: `panel` (details/recommendations/history/help), `entityType` (product/page/collection/blog/issue/user), `entityId` (required), `entityTitle` (optional fallback). Source-of-truth rules: URL is truth when valid params present; UI actions sync to URL via replaceState; close removes all panel params. Shopify embedded params (shop, host) preserved throughout. Integration proof points: Products list and Admin Users both pass complete descriptors. **Core files:** RightContextPanelProvider.tsx. **Manual Testing:** PANEL-DEEP-LINKS-1.md created. **Critical Path:** CP-020 updated with deep-link scenarios. |

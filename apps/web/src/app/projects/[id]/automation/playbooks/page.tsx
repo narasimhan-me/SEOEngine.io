@@ -9,6 +9,11 @@ import {
 } from 'next/navigation';
 import Link from 'next/link';
 
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableRow,
+} from '@/components/tables/DataTable';
 import type { DeoIssue } from '@/lib/deo-issues';
 import { isAuthenticated } from '@/lib/auth';
 import {
@@ -4369,91 +4374,104 @@ export default function AutomationPlaybooksPage() {
                     </div>
                   )}
                   {/* Per-item results panel */}
+                  {/* [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-5] Canonical DataTable (dense) for per-product results */}
                   {applyResult.results && applyResult.results.length > 0 && (
-                    <details className="rounded border border-gray-200 bg-gray-50">
-                      <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100">
+                    <details className="rounded border border-border bg-[hsl(var(--surface-card))]">
+                      <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-foreground hover:bg-[hsl(var(--menu-hover-bg)/0.14)]">
                         View per-product results ({applyResult.results.length}{' '}
                         items)
                       </summary>
-                      <div className="max-h-64 overflow-y-auto border-t border-gray-200">
-                        <table className="w-full text-xs">
-                          <thead className="sticky top-0 bg-gray-100">
-                            <tr>
-                              <th className="px-3 py-1.5 text-left font-medium text-gray-600">
-                                Product
-                              </th>
-                              <th className="px-3 py-1.5 text-left font-medium text-gray-600">
-                                Status
-                              </th>
-                              <th className="px-3 py-1.5 text-left font-medium text-gray-600">
-                                Message
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {applyResult.results.map((item) => {
-                              const product = products.find(
-                                (p) => p.id === item.productId
-                              );
-                              return (
-                                <tr
-                                  key={item.productId}
-                                  className="border-t border-gray-100"
-                                >
-                                  <td className="px-3 py-1.5">
-                                    {item.productId === 'LIMIT_REACHED' ? (
-                                      <span className="text-gray-500">—</span>
-                                    ) : (
-                                      (() => {
-                                        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Build results context URL for product deep link with canonical route
-                                        // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use shared scope args via playbookRunScopeForUrl
-                                        const returnToPath =
-                                          buildPlaybookRunHref({
-                                            projectId,
-                                            playbookId: selectedPlaybookId!,
-                                            step: 'preview',
-                                            source: 'product_details',
-                                            ...playbookRunScopeForUrl,
-                                          });
-                                        const resultsContextUrl = `/projects/${projectId}/products/${item.productId}?from=playbook_results&playbookId=${selectedPlaybookId}&returnTo=${encodeURIComponent(returnToPath)}`;
-                                        return (
-                                          <Link
-                                            href={resultsContextUrl}
-                                            onClick={(event) => {
-                                              event.preventDefault();
-                                              handleNavigate(resultsContextUrl);
-                                            }}
-                                            className="text-blue-600 hover:text-blue-800"
-                                          >
-                                            {product?.title || item.productId}
-                                          </Link>
-                                        );
-                                      })()
-                                    )}
-                                  </td>
-                                  <td className="px-3 py-1.5">
-                                    <span
-                                      className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium ${
-                                        item.status === 'UPDATED'
-                                          ? 'bg-green-100 text-green-800'
-                                          : item.status === 'SKIPPED'
-                                            ? 'bg-gray-100 text-gray-700'
-                                            : item.status === 'LIMIT_REACHED'
-                                              ? 'bg-amber-100 text-amber-800'
-                                              : 'bg-red-100 text-red-800'
-                                      }`}
+                      <div className="max-h-64 overflow-y-auto border-t border-border">
+                        <DataTable<{
+                          id: string;
+                          productId: string;
+                          status: string;
+                          message: string;
+                        }>
+                          columns={
+                            [
+                              {
+                                key: 'product',
+                                header: 'Product',
+                                cell: (row) => {
+                                  if (row.productId === 'LIMIT_REACHED') {
+                                    return (
+                                      <span className="text-muted-foreground">
+                                        —
+                                      </span>
+                                    );
+                                  }
+                                  const product = products.find(
+                                    (p) => p.id === row.productId
+                                  );
+                                  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Build results context URL for product deep link with canonical route
+                                  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use shared scope args via playbookRunScopeForUrl
+                                  const returnToPath = buildPlaybookRunHref({
+                                    projectId,
+                                    playbookId: selectedPlaybookId!,
+                                    step: 'preview',
+                                    source: 'product_details',
+                                    ...playbookRunScopeForUrl,
+                                  });
+                                  const resultsContextUrl = `/projects/${projectId}/products/${row.productId}?from=playbook_results&playbookId=${selectedPlaybookId}&returnTo=${encodeURIComponent(returnToPath)}`;
+                                  return (
+                                    <Link
+                                      href={resultsContextUrl}
+                                      onClick={(event) => {
+                                        event.preventDefault();
+                                        handleNavigate(resultsContextUrl);
+                                      }}
+                                      className="text-primary hover:text-primary/80"
                                     >
-                                      {item.status}
-                                    </span>
-                                  </td>
-                                  <td className="px-3 py-1.5 text-gray-600">
-                                    {item.message}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                                      {product?.title || row.productId}
+                                    </Link>
+                                  );
+                                },
+                              },
+                              {
+                                key: 'status',
+                                header: 'Status',
+                                cell: (row) => (
+                                  <span
+                                    className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium ${
+                                      row.status === 'UPDATED'
+                                        ? 'bg-green-100 text-green-800'
+                                        : row.status === 'SKIPPED'
+                                          ? 'bg-muted text-muted-foreground'
+                                          : row.status === 'LIMIT_REACHED'
+                                            ? 'bg-amber-100 text-amber-800'
+                                            : 'bg-red-100 text-red-800'
+                                    }`}
+                                  >
+                                    {row.status}
+                                  </span>
+                                ),
+                              },
+                              {
+                                key: 'message',
+                                header: 'Message',
+                                cell: (row) => (
+                                  <span className="text-muted-foreground">
+                                    {row.message}
+                                  </span>
+                                ),
+                              },
+                            ] as DataTableColumn<{
+                              id: string;
+                              productId: string;
+                              status: string;
+                              message: string;
+                            }>[]
+                          }
+                          rows={applyResult.results.map((item) => ({
+                            id: item.productId,
+                            productId: item.productId,
+                            status: item.status,
+                            message: item.message,
+                          }))}
+                          density="dense"
+                          hideContextAction={true}
+                        />
                       </div>
                     </details>
                   )}

@@ -1,10 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { adminApi } from '@/lib/api';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableRow,
+} from '@/components/tables/DataTable';
 
 /**
  * [ADMIN-OPS-1][D3 Projects Table]
+ * [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Migrated to canonical DataTable.
  */
 interface Project {
   id: string;
@@ -34,11 +40,7 @@ export default function AdminProjectsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [resyncLoading, setResyncLoading] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchProjects(currentPage);
-  }, [currentPage]);
-
-  async function fetchProjects(page: number) {
+  const fetchProjects = useCallback(async (page: number) => {
     setLoading(true);
     try {
       const data = await adminApi.getProjects(page);
@@ -49,7 +51,11 @@ export default function AdminProjectsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    fetchProjects(currentPage);
+  }, [currentPage, fetchProjects]);
 
   async function handleResync(projectId: string) {
     if (
@@ -81,13 +87,120 @@ export default function AdminProjectsPage() {
     });
   }
 
+  // [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Define DataTable columns
+  const columns: DataTableColumn<Project & DataTableRow>[] = useMemo(
+    () => [
+      {
+        key: 'user',
+        header: 'User',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {row.user.email}
+          </span>
+        ),
+      },
+      {
+        key: 'project',
+        header: 'Project',
+        cell: (row) => (
+          <div>
+            <div className="text-sm font-medium text-foreground">
+              {row.name}
+            </div>
+            <div className="text-xs text-muted-foreground">{row.domain}</div>
+          </div>
+        ),
+      },
+      {
+        key: 'shopify',
+        header: 'Shopify',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {row.shopifyStore || '-'}
+          </span>
+        ),
+      },
+      {
+        key: 'deo',
+        header: 'DEO',
+        cell: (row) =>
+          row.deoScore !== null ? (
+            <span
+              className={`text-sm font-medium ${
+                row.deoScore >= 80
+                  ? 'text-green-600'
+                  : row.deoScore >= 60
+                    ? 'text-yellow-600'
+                    : 'text-red-600'
+              }`}
+            >
+              {row.deoScore}
+            </span>
+          ) : (
+            <span className="text-sm text-muted-foreground">N/A</span>
+          ),
+      },
+      {
+        key: 'products',
+        header: 'Products',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {row.productCount}
+          </span>
+        ),
+      },
+      {
+        key: 'lastSync',
+        header: 'Last Sync',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {formatDate(row.lastSyncTime)}
+          </span>
+        ),
+      },
+      {
+        key: 'lastRun',
+        header: 'Last Run',
+        cell: (row) =>
+          row.lastRunStatus ? (
+            <span
+              className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                row.lastRunStatus === 'SUCCEEDED'
+                  ? 'bg-green-100 text-green-800'
+                  : row.lastRunStatus === 'FAILED'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {row.lastRunStatus}
+            </span>
+          ) : null,
+      },
+      {
+        key: 'actions',
+        header: 'Actions',
+        cell: (row) =>
+          row.shopifyStore ? (
+            <button
+              onClick={() => handleResync(row.id)}
+              disabled={resyncLoading === row.id}
+              className="text-sm text-primary hover:text-primary/80 disabled:opacity-50"
+            >
+              {resyncLoading === row.id ? 'Syncing...' : 'Resync'}
+            </button>
+          ) : null,
+      },
+    ],
+    [resyncLoading]
+  );
+
   if (loading && projects.length === 0) {
-    return <p className="text-gray-600">Loading projects...</p>;
+    return <p className="text-muted-foreground">Loading projects...</p>;
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+      <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded">
         {error}
       </div>
     );
@@ -95,111 +208,15 @@ export default function AdminProjectsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Projects</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">Projects</h1>
 
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                User
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Project
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Shopify
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                DEO
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Products
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Last Sync
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Last Run
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {projects.map((project) => (
-              <tr key={project.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {project.user.email}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
-                    {project.name}
-                  </div>
-                  <div className="text-xs text-gray-500">{project.domain}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {project.shopifyStore || '-'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {project.deoScore !== null ? (
-                    <span
-                      className={`font-medium ${
-                        project.deoScore >= 80
-                          ? 'text-green-600'
-                          : project.deoScore >= 60
-                            ? 'text-yellow-600'
-                            : 'text-red-600'
-                      }`}
-                    >
-                      {project.deoScore}
-                    </span>
-                  ) : (
-                    <span className="text-gray-400">N/A</span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {project.productCount}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {formatDate(project.lastSyncTime)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {project.lastRunStatus && (
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                        project.lastRunStatus === 'SUCCEEDED'
-                          ? 'bg-green-100 text-green-800'
-                          : project.lastRunStatus === 'FAILED'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {project.lastRunStatus}
-                    </span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {project.shopifyStore && (
-                    <button
-                      onClick={() => handleResync(project.id)}
-                      disabled={resyncLoading === project.id}
-                      className="text-blue-600 hover:text-blue-800 disabled:opacity-50"
-                    >
-                      {resyncLoading === project.id ? 'Syncing...' : 'Resync'}
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Projects Table - Canonical DataTable */}
+      <DataTable columns={columns} rows={projects} hideContextAction={true} />
 
+      {/* Pagination */}
       {pagination && pagination.pages > 1 && (
         <div className="mt-4 flex justify-between items-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Page {pagination.page} of {pagination.pages} ({pagination.total}{' '}
             total)
           </p>
@@ -207,7 +224,7 @@ export default function AdminProjectsPage() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50"
+              className="px-3 py-1 text-sm border border-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
             >
               Previous
             </button>
@@ -216,7 +233,7 @@ export default function AdminProjectsPage() {
                 setCurrentPage((p) => Math.min(pagination.pages, p + 1))
               }
               disabled={currentPage === pagination.pages}
-              className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50"
+              className="px-3 py-1 text-sm border border-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
             >
               Next
             </button>

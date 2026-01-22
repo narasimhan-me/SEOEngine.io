@@ -1,12 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { adminApi } from '@/lib/api';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableRow,
+} from '@/components/tables/DataTable';
 
 /**
  * [ADMIN-OPS-1][D2 User Detail]
+ * [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Recent Runs table migrated to canonical DataTable.
  */
 interface UserDetail {
   id: string;
@@ -132,19 +138,19 @@ export default function AdminUserDetailPage() {
   }
 
   if (loading) {
-    return <p className="text-gray-600">Loading user...</p>;
+    return <p className="text-muted-foreground">Loading user...</p>;
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+      <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded">
         {error}
       </div>
     );
   }
 
   if (!user) {
-    return <p className="text-gray-600">User not found</p>;
+    return <p className="text-muted-foreground">User not found</p>;
   }
 
   return (
@@ -158,27 +164,29 @@ export default function AdminUserDetailPage() {
         </Link>
       </div>
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">User Detail</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">User Detail</h1>
 
       {/* User Summary */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
+      <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-6 mb-6">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-sm text-gray-500">Email</p>
-            <p className="font-medium">{user.email}</p>
+            <p className="text-sm text-muted-foreground">Email</p>
+            <p className="font-medium text-foreground">{user.email}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-500">Name</p>
-            <p className="font-medium">{user.name || 'Not set'}</p>
+            <p className="text-sm text-muted-foreground">Name</p>
+            <p className="font-medium text-foreground">
+              {user.name || 'Not set'}
+            </p>
           </div>
           <div>
-            <p className="text-sm text-gray-500">Plan</p>
-            <p className="font-medium capitalize">
+            <p className="text-sm text-muted-foreground">Plan</p>
+            <p className="font-medium text-foreground capitalize">
               {user.subscription?.plan || 'free'}
             </p>
           </div>
           <div>
-            <p className="text-sm text-gray-500">Status</p>
+            <p className="text-sm text-muted-foreground">Status</p>
             <span
               className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                 user.accountStatus === 'ACTIVE'
@@ -190,22 +198,24 @@ export default function AdminUserDetailPage() {
             </span>
           </div>
           <div>
-            <p className="text-sm text-gray-500">AI Usage This Month</p>
-            <p className="font-medium">
+            <p className="text-sm text-muted-foreground">AI Usage This Month</p>
+            <p className="font-medium text-foreground">
               {user.usageSummary.aiUsageThisMonth} runs
             </p>
           </div>
           <div>
-            <p className="text-sm text-gray-500">Last Activity</p>
-            <p className="font-medium">{formatDate(user.updatedAt)}</p>
+            <p className="text-sm text-muted-foreground">Last Activity</p>
+            <p className="font-medium text-foreground">
+              {formatDate(user.updatedAt)}
+            </p>
           </div>
         </div>
       </div>
 
       {/* Actions (role-gated on backend) */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Actions</h2>
-        <p className="text-sm text-gray-500 mb-4">
+      <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-6 mb-6">
+        <h2 className="text-lg font-medium text-foreground mb-4">Actions</h2>
+        <p className="text-sm text-muted-foreground mb-4">
           All actions are logged in the audit log.
         </p>
         <div className="flex gap-3">
@@ -234,28 +244,30 @@ export default function AdminUserDetailPage() {
       </div>
 
       {/* Projects */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">
+      <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-6 mb-6">
+        <h2 className="text-lg font-medium text-foreground mb-4">
           Projects ({user.projects.length})
         </h2>
         {user.projects.length === 0 ? (
-          <p className="text-gray-500 text-sm">No projects</p>
+          <p className="text-muted-foreground text-sm">No projects</p>
         ) : (
           <div className="space-y-3">
             {user.projects.map((project) => (
               <div
                 key={project.id}
-                className="flex justify-between items-center border-b border-gray-100 pb-2"
+                className="flex justify-between items-center border-b border-border pb-2"
               >
                 <div>
-                  <p className="font-medium">{project.name}</p>
-                  <p className="text-sm text-gray-500">{project.domain}</p>
+                  <p className="font-medium text-foreground">{project.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {project.domain}
+                  </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm">
+                  <p className="text-sm text-foreground">
                     DEO: {project.currentDeoScore ?? 'N/A'}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     {project._count.products} products
                   </p>
                 </div>
@@ -266,43 +278,77 @@ export default function AdminUserDetailPage() {
       </div>
 
       {/* Recent Runs */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Recent Runs</h2>
-        {user.usageSummary.recentRuns.length === 0 ? (
-          <p className="text-gray-500 text-sm">No recent runs</p>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase">
-                  Run Type
-                </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase">
-                  Status
-                </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase">
-                  AI Used
-                </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase">
-                  Created
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {user.usageSummary.recentRuns.map((run) => (
-                <tr key={run.id}>
-                  <td className="py-2 text-sm">{run.runType}</td>
-                  <td className="py-2 text-sm">{run.status}</td>
-                  <td className="py-2 text-sm">{run.aiUsed ? 'Yes' : 'No'}</td>
-                  <td className="py-2 text-sm text-gray-500">
-                    {formatDate(run.createdAt)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <RecentRunsSection
+        runs={user.usageSummary.recentRuns}
+        formatDate={formatDate}
+      />
+    </div>
+  );
+}
+
+// [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Recent Runs section with canonical DataTable
+interface RecentRun {
+  id: string;
+  playbookId: string;
+  runType: string;
+  status: string;
+  aiUsed: boolean;
+  createdAt: string;
+}
+
+function RecentRunsSection({
+  runs,
+  formatDate,
+}: {
+  runs: RecentRun[];
+  formatDate: (dateString: string) => string;
+}) {
+  const columns: DataTableColumn<RecentRun & DataTableRow>[] = useMemo(
+    () => [
+      {
+        key: 'runType',
+        header: 'Run Type',
+        cell: (row) => (
+          <span className="text-sm text-foreground">{row.runType}</span>
+        ),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        cell: (row) => (
+          <span className="text-sm text-foreground">{row.status}</span>
+        ),
+      },
+      {
+        key: 'aiUsed',
+        header: 'AI Used',
+        cell: (row) => (
+          <span className="text-sm text-foreground">
+            {row.aiUsed ? 'Yes' : 'No'}
+          </span>
+        ),
+      },
+      {
+        key: 'created',
+        header: 'Created',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {formatDate(row.createdAt)}
+          </span>
+        ),
+      },
+    ],
+    [formatDate]
+  );
+
+  return (
+    <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-6">
+      <h2 className="text-lg font-medium text-foreground mb-4">Recent Runs</h2>
+      {runs.length === 0 ? (
+        <p className="text-muted-foreground text-sm">No recent runs</p>
+      ) : (
+        <DataTable columns={columns} rows={runs} hideContextAction={true} />
+      )}
     </div>
   );
 }

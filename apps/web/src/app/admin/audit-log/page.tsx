@@ -1,10 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { adminApi } from '@/lib/api';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableRow,
+} from '@/components/tables/DataTable';
 
 /**
  * [ADMIN-OPS-1][D8 Audit Log]
+ * [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Migrated to canonical DataTable.
  */
 interface AuditLogEntry {
   id: string;
@@ -66,13 +72,68 @@ export default function AdminAuditLogPage() {
     });
   }
 
+  // [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Define DataTable columns
+  const columns: DataTableColumn<AuditLogEntry & DataTableRow>[] = useMemo(
+    () => [
+      {
+        key: 'time',
+        header: 'Time',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {formatDate(row.createdAt)}
+          </span>
+        ),
+      },
+      {
+        key: 'actor',
+        header: 'Actor',
+        cell: (row) => (
+          <span className="text-sm text-foreground">
+            {row.performedBy.email}
+          </span>
+        ),
+      },
+      {
+        key: 'role',
+        header: 'Role',
+        cell: (row) => (
+          <span className="inline-flex px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">
+            {row.performedByAdminRole}
+          </span>
+        ),
+      },
+      {
+        key: 'action',
+        header: 'Action',
+        cell: (row) => (
+          <span className="text-sm font-medium text-foreground">
+            {row.actionType.replace(/_/g, ' ')}
+          </span>
+        ),
+      },
+      {
+        key: 'target',
+        header: 'Target',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {row.targetUser?.email ||
+              row.targetProject?.name ||
+              row.targetRunId ||
+              '-'}
+          </span>
+        ),
+      },
+    ],
+    []
+  );
+
   if (loading && logs.length === 0) {
-    return <p className="text-gray-600">Loading audit log...</p>;
+    return <p className="text-muted-foreground">Loading audit log...</p>;
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+      <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded">
         {error}
       </div>
     );
@@ -80,19 +141,20 @@ export default function AdminAuditLogPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Audit Log</h1>
-      <p className="text-sm text-gray-500 mb-4">
+      <h1 className="text-2xl font-bold text-foreground mb-6">Audit Log</h1>
+      <p className="text-sm text-muted-foreground mb-4">
         Immutable audit records of admin actions.
       </p>
 
       {/* Filters */}
-      <div className="bg-white shadow rounded-lg p-4 mb-6 flex gap-4">
+      <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-4 mb-6 flex gap-4">
         <select
           value={filters.actionType}
           onChange={(e) =>
             setFilters({ ...filters, actionType: e.target.value })
           }
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+          className="border border-border rounded-md px-3 py-2 text-sm bg-background text-foreground"
+          data-no-row-keydown
         >
           <option value="">All Action Types</option>
           <option value="impersonation">Impersonation</option>
@@ -104,59 +166,13 @@ export default function AdminAuditLogPage() {
         </select>
       </div>
 
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Time
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Actor
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Role
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Action
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Target
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {logs.map((log) => (
-              <tr key={log.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {formatDate(log.createdAt)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {log.performedBy.email}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <span className="inline-flex px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">
-                    {log.performedByAdminRole}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  {log.actionType.replace(/_/g, ' ')}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {log.targetUser?.email ||
-                    log.targetProject?.name ||
-                    log.targetRunId ||
-                    '-'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Audit Log Table - Canonical DataTable */}
+      <DataTable columns={columns} rows={logs} hideContextAction={true} />
 
+      {/* Pagination */}
       {pagination && pagination.pages > 1 && (
         <div className="mt-4 flex justify-between items-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Page {pagination.page} of {pagination.pages} ({pagination.total}{' '}
             total)
           </p>
@@ -164,7 +180,7 @@ export default function AdminAuditLogPage() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50"
+              className="px-3 py-1 text-sm border border-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
             >
               Previous
             </button>
@@ -173,7 +189,7 @@ export default function AdminAuditLogPage() {
                 setCurrentPage((p) => Math.min(pagination.pages, p + 1))
               }
               disabled={currentPage === pagination.pages}
-              className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50"
+              className="px-3 py-1 text-sm border border-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
             >
               Next
             </button>

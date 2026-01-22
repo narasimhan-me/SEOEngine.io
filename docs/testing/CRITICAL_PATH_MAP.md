@@ -782,7 +782,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field                         | Value                                                                                                                                                              |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Manual Testing Doc(s)**     | `docs/manual-testing/LAYOUT-SHELL-IMPLEMENTATION-1.md`, `docs/manual-testing/RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md`, `docs/manual-testing/TABLES-&-LISTS-ALIGNMENT-1.md`, `docs/manual-testing/COMMAND-PALETTE-IMPLEMENTATION-1.md`, `docs/manual-testing/NAV-HIERARCHY-POLISH-1.md`, `docs/manual-testing/RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1.md` |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/LAYOUT-SHELL-IMPLEMENTATION-1.md`, `docs/manual-testing/RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md`, `docs/manual-testing/TABLES-&-LISTS-ALIGNMENT-1.md`, `docs/manual-testing/COMMAND-PALETTE-IMPLEMENTATION-1.md`, `docs/manual-testing/NAV-HIERARCHY-POLISH-1.md`, `docs/manual-testing/RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1.md`, `docs/manual-testing/PANEL-DEEP-LINKS-1.md` |
 | **Automated Tests**           | Planned                                                                                                                                                            |
 | **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                       |
 | **Last Verified (Automated)** | N/A                                                                                                                                                                |
@@ -831,6 +831,19 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] TABLES-LISTS-1-FIXUP-3: /admin/ai-usage uses canonical DataTable for top consumers
 - [ ] TABLES-LISTS-1-FIXUP-3: /admin/subscriptions uses canonical DataTable with in-row selects
 - [ ] TABLES-LISTS-1-FIXUP-3: Keyboard guard prevents hijacking a/button/input/textarea/select/[contenteditable]/[data-no-row-keydown]
+- [ ] TABLES-LISTS-1-FIXUP-4: /admin/audit-log uses canonical DataTable (columns: Time, Actor, Role, Action, Target)
+- [ ] TABLES-LISTS-1-FIXUP-4: /admin/governance-audit uses canonical DataTable (columns: Time, Event Type, Actor, Project, Resource, Details)
+- [ ] TABLES-LISTS-1-FIXUP-4: /admin/projects uses canonical DataTable (columns: User, Project, Shopify, DEO, Products, Last Sync, Last Run, Actions)
+- [ ] TABLES-LISTS-1-FIXUP-4: /admin/users/[id] Recent Runs uses canonical DataTable (columns: Run Type, Status, AI Used, Created)
+- [ ] TABLES-LISTS-1-FIXUP-4: /projects/[id]/assets/pages uses canonical DataTable (columns: Health, Path, Title, Action)
+- [ ] TABLES-LISTS-1-FIXUP-4: /projects/[id]/assets/collections uses canonical DataTable (columns: Health, Handle, Title, Action)
+- [ ] TABLES-LISTS-1-FIXUP-4: /projects/[id]/assets/blogs uses canonical DataTable (columns: Status, Handle, Title, Updated, Open)
+- [ ] TABLES-LISTS-1-FIXUP-4: /projects/[id]/settings/governance Approvals tab uses canonical DataTable
+- [ ] TABLES-LISTS-1-FIXUP-4: /projects/[id]/settings/governance Audit tab uses canonical DataTable
+- [ ] TABLES-LISTS-1-FIXUP-4: /projects/[id]/settings/governance Sharing tab uses canonical DataTable
+- [ ] TABLES-LISTS-1-FIXUP-4: /projects/[id]/automation/playbooks per-product results - initial token-based styling (superseded by FIXUP-5)
+- [ ] TABLES-LISTS-1-FIXUP-5: /projects/[id]/automation/playbooks per-product results uses canonical DataTable (dense), with no legacy `<table>` markup
+- [ ] TABLES-LISTS-1-FIXUP-6: /projects/[id]/automation/playbooks per-product results DataTable renders rows correctly (columns use DataTableColumn.cell, not render)
 - [ ] COMMAND-PALETTE-1: Cmd+K / Ctrl+K opens command palette
 - [ ] COMMAND-PALETTE-1: ESC closes command palette
 - [ ] COMMAND-PALETTE-1: Outside click (scrim) closes command palette
@@ -853,6 +866,12 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1: Action preview is read-only and non-clickable (shows labels only when metadata present)
 - [ ] RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1: AI assist hints are collapsible and non-blocking (collapsed by default, no links, no chat)
 - [ ] RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1: Shopify embedded iframe safe (no overflow, scroll contained)
+- [ ] PANEL-DEEP-LINKS-1: UI open updates URL (replaceState semantics, panel/entityType/entityId/entityTitle params)
+- [ ] PANEL-DEEP-LINKS-1: Copy/paste deep link reproduces same panel state in new tab
+- [ ] PANEL-DEEP-LINKS-1: Close panel removes all panel params from URL
+- [ ] PANEL-DEEP-LINKS-1: Back/forward restores panel open/closed + entity state
+- [ ] PANEL-DEEP-LINKS-1: Invalid params (bad entityId/entityType/panel) fail safely, no crash
+- [ ] PANEL-DEEP-LINKS-1: Shopify embedded query params preserved (shop, host) throughout panel open/close
 
 ---
 
@@ -984,3 +1003,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 6.16 | 2026-01-21 | PRODUCTS-SHELL-REMOUNT-1: Added CP-003 scenarios for Products list remount onto canonical DataTable. DataTable extended with onRowClick/isRowExpanded/renderExpandedContent props. ProductTable refactored to use DataTable with expansion support for progressive disclosure. Token-based shell-safe styling (no min-h-screen, no bg-white). Command Palette "Go to Products" navigation command. Added PRODUCTS-SHELL-REMOUNT-1.md manual testing doc. |
 | 6.17 | 2026-01-22 | NAV-HIERARCHY-POLISH-1: Added CP-020 scenarios for navigation tier visual hierarchy. Global Nav (strongest tier) with font-semibold active + primary color. Section Nav (demoted) with font-medium heading + neutral active state. Entity Tabs as view switchers (token-only border-primary). RCP as auxiliary non-navigational. Mobile drawer with token-only surfaces. Added NAV-HIERARCHY-POLISH-1.md manual testing doc. |
 | 6.18 | 2026-01-22 | RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1: Added CP-020 scenarios for RCP content expansion. No in-body navigation links (header external-link only). Asset summary renders (Type/Status/Last synced/Last applied). Issues drilldown truthfulness + empty/loading states. Pillar-to-category mapping (Metadata/Content/Search Intent/Technical/Other). "Why this matters" uses server-provided fields. Action preview is read-only (no buttons/links). AI assist hints are collapsible and non-blocking. Shopify iframe safe (scroll contained). Added RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1.md manual testing doc. |
+| 6.19 | 2026-01-22 | TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4: Added CP-020 scenarios for remaining DataTable migrations. 9 pages migrated: /admin/audit-log, /admin/governance-audit, /admin/projects, /admin/users/[id] Recent Runs, /projects/[id]/assets/pages, /projects/[id]/assets/collections, /projects/[id]/assets/blogs, /projects/[id]/settings/governance (3 tables), /projects/[id]/automation/playbooks per-product results. All use canonical DataTable or token-based styling. Empty states outside DataTable. Updated TABLES-&-LISTS-ALIGNMENT-1.md with HP-015 through HP-023 test scenarios. |
+| 6.20 | 2026-01-22 | TABLES-&-LISTS-ALIGNMENT-1 FIXUP-5: Completed Playbooks per-item results DataTable migration. Per-product results now uses canonical DataTable (dense) instead of legacy `<table>` markup. Updated CP-020 FIXUP-4 playbooks line to not claim "token-based styling" as end state. Added FIXUP-5 checklist item. Updated TABLES-&-LISTS-ALIGNMENT-1.md HP-023 to require canonical DataTable usage. |
+| 6.21 | 2026-01-22 | TABLES-&-LISTS-ALIGNMENT-1 FIXUP-6: DataTable column contract correctness. Playbooks per-product results DataTable used `render` instead of `cell` for column renderers, causing blank cells at runtime. Updated columns to use `cell` (correct DataTableColumn contract). Updated CP-020 checklist and TABLES-&-LISTS-ALIGNMENT-1.md HP-023. |
+| 6.22 | 2026-01-22 | PANEL-DEEP-LINKS-1: Added CP-020 scenarios for shareable Right Context Panel state via URL deep-links. URL schema (panel, entityType, entityId, optional entityTitle). UI open writes URL params (replaceState semantics). Tab switch updates panel param. Close removes all panel params. Back/forward restores state. Invalid params fail safely (no crash, no auto-clean). Shopify embedded params preserved. Products list and Admin Users verified as integration proof points. Added PANEL-DEEP-LINKS-1.md manual testing doc. |
