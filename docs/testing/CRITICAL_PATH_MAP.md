@@ -782,7 +782,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field                         | Value                                                                                                                                                              |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Manual Testing Doc(s)**     | `docs/manual-testing/LAYOUT-SHELL-IMPLEMENTATION-1.md`, `docs/manual-testing/RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md`, `docs/manual-testing/TABLES-&-LISTS-ALIGNMENT-1.md`, `docs/manual-testing/COMMAND-PALETTE-IMPLEMENTATION-1.md` |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/LAYOUT-SHELL-IMPLEMENTATION-1.md`, `docs/manual-testing/RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md`, `docs/manual-testing/TABLES-&-LISTS-ALIGNMENT-1.md`, `docs/manual-testing/COMMAND-PALETTE-IMPLEMENTATION-1.md`, `docs/manual-testing/NAV-HIERARCHY-POLISH-1.md` |
 | **Automated Tests**           | Planned                                                                                                                                                            |
 | **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                       |
 | **Last Verified (Automated)** | N/A                                                                                                                                                                |
@@ -832,6 +832,12 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] COMMAND-PALETTE-1: No destructive/write/apply/run/generate commands present
 - [ ] COMMAND-PALETTE-1: Admin command role-gated (hidden for non-admins)
 - [ ] COMMAND-PALETTE-1: Shopify embedded: overlay contained, no overflow
+- [ ] NAV-HIERARCHY-POLISH-1: Global Nav reads as strongest navigational tier (font-semibold active, primary color)
+- [ ] NAV-HIERARCHY-POLISH-1: Section Nav reads as secondary tier (font-medium heading, neutral active state, no primary color)
+- [ ] NAV-HIERARCHY-POLISH-1: Entity Tabs read as view switchers (token-only border-primary, no primary background)
+- [ ] NAV-HIERARCHY-POLISH-1: RCP reads as auxiliary non-navigational (slides in, does not compete with nav hierarchy)
+- [ ] NAV-HIERARCHY-POLISH-1: Mobile drawer uses token-only surfaces (bg-foreground/50 scrim, surface-raised panel)
+- [ ] NAV-HIERARCHY-POLISH-1: Dark mode contrast preserved across all navigation tiers
 
 ---
 
@@ -961,3 +967,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 6.14 | 2026-01-21 | SHOPIFY-EMBEDDED-SHELL-1-FIXUP-1: Added CP-006 scenarios for unconditional CSP header reliability. frame-ancestors CSP now applied to all app routes regardless of embedded query params (server has no sessionStorage). Ensures deep links and hard refreshes inside Shopify iframe never blank. Updated middleware.ts and manual testing doc. |
 | 6.15 | 2026-01-21 | DARK-MODE-SYSTEM-1: Added CP-008 scenarios for global theme system. 3-mode theme selector (System/Light/Dark) with localStorage persistence, no-FOUC early theme init script, single-source-of-truth CSS design tokens with dark palette aligned to Coming Soon direction, centralized .dark utility remaps for broad coverage without mass file edits. Theme works in Shopify embedded iframe. Added DARK-MODE-SYSTEM-1.md manual testing doc. |
 | 6.16 | 2026-01-21 | PRODUCTS-SHELL-REMOUNT-1: Added CP-003 scenarios for Products list remount onto canonical DataTable. DataTable extended with onRowClick/isRowExpanded/renderExpandedContent props. ProductTable refactored to use DataTable with expansion support for progressive disclosure. Token-based shell-safe styling (no min-h-screen, no bg-white). Command Palette "Go to Products" navigation command. Added PRODUCTS-SHELL-REMOUNT-1.md manual testing doc. |
+| 6.17 | 2026-01-22 | NAV-HIERARCHY-POLISH-1: Added CP-020 scenarios for navigation tier visual hierarchy. Global Nav (strongest tier) with font-semibold active + primary color. Section Nav (demoted) with font-medium heading + neutral active state. Entity Tabs as view switchers (token-only border-primary). RCP as auxiliary non-navigational. Mobile drawer with token-only surfaces. Added NAV-HIERARCHY-POLISH-1.md manual testing doc. |

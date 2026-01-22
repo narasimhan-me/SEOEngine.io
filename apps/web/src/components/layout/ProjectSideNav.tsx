@@ -102,7 +102,8 @@ export default function ProjectSideNav({ onNavigate }: ProjectSideNavProps) {
       <div className="space-y-6">
         {navSections.map((section) => (
           <div key={section.heading}>
-            <h3 className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            {/* [NAV-HIERARCHY-POLISH-1] Section headings: reduced weight vs Global Nav */}
+            <h3 className="px-3 mb-2 text-xs font-medium text-muted-foreground/80 uppercase tracking-wider">
               {section.heading}
             </h3>
             <ul className="space-y-1">
@@ -110,12 +111,13 @@ export default function ProjectSideNav({ onNavigate }: ProjectSideNavProps) {
                 const active = isActive(item.path);
                 return (
                   <li key={item.path}>
+                    {/* [NAV-HIERARCHY-POLISH-1] Active state: neutral (no primary color) to demote vs Global Nav */}
                     <GuardedLink
                       href={`/projects/${projectId}/${item.path}`}
                       onClick={onNavigate}
-                      className={`block rounded-md px-3 py-2 text-sm transition-colors ${
+                      className={`block rounded-md px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                         active
-                          ? 'border-l-2 border-primary bg-primary/10 font-medium text-primary'
+                          ? 'bg-muted font-medium text-foreground'
                           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                       }`}
                     >

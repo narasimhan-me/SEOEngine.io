@@ -12,14 +12,14 @@ export default function ProjectLayout({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Mobile top bar - visible only on small screens */}
+      {/* [NAV-HIERARCHY-POLISH-1] Mobile top bar - token-only styling */}
       <div className="mb-4 flex items-center justify-between md:hidden">
-        <span className="text-sm font-medium text-gray-700">
+        <span className="text-sm font-medium text-muted-foreground">
           Project navigation
         </span>
         <button
           onClick={() => setMobileNavOpen(true)}
-          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+          className="inline-flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <svg
             className="mr-1.5 h-4 w-4"
@@ -49,24 +49,24 @@ export default function ProjectLayout({
         <main className="min-w-0 flex-1">{children}</main>
       </div>
 
-      {/* Mobile drawer overlay */}
+      {/* [NAV-HIERARCHY-POLISH-1] Mobile drawer overlay - token-only styling */}
       {mobileNavOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black bg-opacity-40 md:hidden"
+          className="fixed inset-0 z-40 bg-foreground/50 md:hidden"
           onClick={() => setMobileNavOpen(false)}
         >
           <div
-            className="absolute bottom-0 left-0 top-0 w-64 bg-white shadow-xl"
+            className="absolute bottom-0 left-0 top-0 w-64 bg-[hsl(var(--surface-raised))] shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drawer header */}
-            <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-              <span className="text-sm font-semibold text-gray-900">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <span className="text-sm font-semibold text-foreground">
                 Navigation
               </span>
               <button
                 onClick={() => setMobileNavOpen(false)}
-                className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <svg
                   className="h-5 w-5"

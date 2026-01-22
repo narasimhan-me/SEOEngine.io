@@ -2523,6 +2523,65 @@ Add a global Command Palette accessible via keyboard shortcut (Cmd+K / Ctrl+K) o
 
 ---
 
+### Phase NAV-HIERARCHY-POLISH-1: Navigation Tier Visual Hierarchy ✅ COMPLETE
+
+**Status:** Complete
+**Date Started:** 2026-01-22
+**Date Completed:** 2026-01-22
+
+#### Overview
+
+Styling-only polish phase to establish clear visual hierarchy across navigation tiers per Design System v1.5 and Engineering Implementation Contract v1.5. Global Nav reads as strongest navigational tier, Section Nav demoted to secondary, Entity Tabs read as view switchers (not navigation), RCP reads as auxiliary and non-navigational.
+
+#### Scope
+
+**In Scope:**
+- Global Nav (LayoutShell.tsx): Increased visual weight with font-medium base, font-semibold active state, primary color retained
+- Section Nav (ProjectSideNav.tsx): Demoted with font-medium heading (text-muted-foreground/80), neutral active state (bg-muted, no primary color)
+- Mobile drawer (layout.tsx): Token-only styling (bg-foreground/50 scrim, bg-[hsl(var(--surface-raised))] panel, border-border, token-based buttons)
+- Entity Tabs (WorkQueueTabs, ProductDetailsTabs, InsightsSubnav, asset detail pages): Token-only view switcher styling (border-primary text-foreground active, border-transparent text-muted-foreground inactive)
+- Focus-visible ring pattern standardized across all interactive elements
+
+**Out of Scope:**
+- No new components
+- No functional changes
+- No routing changes
+- Focus-visible ring styling standardized (styling-only, no behavior change)
+
+#### Affected Files
+
+- apps/web/src/components/layout/LayoutShell.tsx (UPDATED)
+- apps/web/src/components/layout/ProjectSideNav.tsx (UPDATED)
+- apps/web/src/app/projects/[id]/layout.tsx (UPDATED)
+- apps/web/src/components/work-queue/WorkQueueTabs.tsx (UPDATED)
+- apps/web/src/components/products/optimization/ProductDetailsTabs.tsx (UPDATED)
+- apps/web/src/app/projects/[id]/insights/InsightsSubnav.tsx (UPDATED)
+- apps/web/src/app/projects/[id]/assets/pages/[pageId]/page.tsx (UPDATED)
+- apps/web/src/app/projects/[id]/assets/collections/[collectionId]/page.tsx (UPDATED)
+
+#### Technical Details
+
+- **Global Nav**: Added font-medium to nav item base class, font-semibold to active state alongside existing bg-primary/10 and text-primary
+- **Section Nav**: Changed heading from font-semibold to font-medium with text-muted-foreground/80 for reduced prominence, changed active state from border-l-2 border-primary bg-primary/10 text-primary to bg-muted font-medium text-foreground (neutral, no primary color)
+- **Mobile Drawer**: Updated scrim to bg-foreground/50, panel to bg-[hsl(var(--surface-raised))], buttons to token-based classes
+- **Entity Tabs**: Unified pattern across all tab components - border-b border-border container, active tab uses border-primary text-foreground, inactive uses border-transparent text-muted-foreground hover:text-foreground hover:border-border
+
+#### Manual Testing
+
+- docs/manual-testing/NAV-HIERARCHY-POLISH-1.md
+
+#### Summary of Changes
+
+- Updated `LayoutShell.tsx`: Added font-medium base, font-semibold active for Global Nav visual weight
+- Updated `ProjectSideNav.tsx`: Demoted section heading weight, changed to neutral active state
+- Updated `layout.tsx`: Token-only mobile drawer styling
+- Updated `WorkQueueTabs.tsx`: Token-only entity tab styling
+- Updated `ProductDetailsTabs.tsx`: Token-only entity tab styling with neutral badge
+- Updated `InsightsSubnav.tsx`: Token-only entity tab styling
+- Updated asset detail pages: Token-only tab styling for Pages and Collections detail pages
+
+---
+
 ## Planned / Pending
 
 ### Phase GTM-ONBOARD-1: Guided Onboarding & First DEO Win 📄 DOCS COMPLETE — IMPLEMENTATION PENDING
@@ -2817,3 +2876,5 @@ _None at this time._
 | 7.02 | 2026-01-21 | **PRODUCTS-SHELL-REMOUNT-1 COMPLETE**: Products list remounted onto canonical DataTable per Design System v1.5. (1) Extended `DataTable.tsx` with `onRowClick`, `isRowExpanded`, `renderExpandedContent` props for progressive disclosure (row click expands/collapses, ignores interactive elements via data-no-row-click); (2) Refactored `ProductTable.tsx` to use canonical DataTable with columns (Product/Status/Actions), expansion support using ProductDetailPanel, RCP integration via descriptor pattern, preserved existing filtering/sorting/impact ladder logic; (3) Updated `ProductDetailPanel.tsx` with token-based styling; (4) Updated `products/page.tsx` with shell-safe styling (py-12 loading state, border-border/surface-card container); (5) Updated `products/[productId]/page.tsx` with shell-safe styling (py-12 loading, surface-raised/border-border sticky header); (6) Added "Go to Products" command to `CommandPalette.tsx` (project context aware); (7) Updated CP-003 with PRODUCTS-SHELL-REMOUNT-1 scenarios. **Core files:** DataTable.tsx, ProductTable.tsx, ProductDetailPanel.tsx, products/page.tsx, products/[productId]/page.tsx, CommandPalette.tsx. **Manual Testing:** PRODUCTS-SHELL-REMOUNT-1.md. |
 | 7.03 | 2026-01-21 | **PRODUCTS-SHELL-REMOUNT-1 FIXUP-1**: RCP + keyboard behavior corrections. (1) Extended `DataTable.tsx` with `rowEnterKeyBehavior` prop ('openContext' | 'rowClick', default 'openContext') to support deterministic Enter/Space behavior override for progressive disclosure remounts; (2) Fixed RCP descriptor field in `ProductTable.tsx`: changed `type: 'product'` to `kind: 'product'` to match ContextDescriptor contract; (3) Removed `hideContextAction` from ProductTable so eye icon is visible for explicit RCP access; (4) Added `rowEnterKeyBehavior="rowClick"` to ProductTable so Enter/Space on focused row expands/collapses (does NOT open RCP); (5) Updated manual testing doc with HP-013 (eye icon opens RCP) and HP-014 (Enter/Space expands row); (6) Updated CP-003 with FIXUP-1 scenarios. **Core files:** DataTable.tsx, ProductTable.tsx. **Manual Testing:** PRODUCTS-SHELL-REMOUNT-1.md (updated). |
 | 7.04 | 2026-01-22 | **RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-4**: Contract compliance tightening. (1) Scope safety: `ContextPanelContentRenderer.tsx` now treats `scopeProjectId` as authoritative - when present AND `currentProjectId === null` (outside `/projects/[id]`), shows "Unavailable in this project context." message instead of stale details; (2) Token-only styling: removed ALL non-token color utilities from renderer (replaced `bg-green-100/bg-red-100/bg-purple-100/text-*-800` with token-based `bg-muted border-border text-foreground`); chip/badge styling unified to neutral tokens; card blocks use `bg-[hsl(var(--surface-card))]`; (3) Product metaTitle/metaDescription display: Details view now shows actual SEO title/description values alongside status chips (not just status); (4) admin/users descriptor metadata key alignment: added `role`, `accountStatus`, changed `quotaPercent` to numeric-only (renderer adds %), changed `twoFactorEnabled` to 'true'/'false' string, omit `adminRole` when null instead of forcing 'None'; token-based button styling for eye icon; (5) ActionBundleCard descriptor metadata: added `scopeActionable`, `scopeDetected`, `aiDisclosureText` fields; token-based button styling for eye icon; (6) Manual testing doc expectations aligned with actual renderer behavior; (7) CP-020 scenarios added for scope invalidation outside projects, view tab stub copy, admin/users + work queue descriptor fields. **Core files:** ContextPanelContentRenderer.tsx, admin/users/page.tsx, ActionBundleCard.tsx. **Manual Testing:** RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md (updated). **Critical Path:** CP-020 updated. |
+| 7.05 | 2026-01-22 | **NAV-HIERARCHY-POLISH-1 COMPLETE**: Navigation tier visual hierarchy styling per Design System v1.5. (1) Global Nav (LayoutShell.tsx): Added `font-medium` base class, `font-semibold` active state alongside existing primary color for strongest navigational tier; (2) Section Nav (ProjectSideNav.tsx): Changed heading from `font-semibold` to `font-medium text-muted-foreground/80`, changed active state from primary-colored border+background to neutral `bg-muted text-foreground` (demoted secondary tier); (3) Mobile drawer (layout.tsx): Token-only scrim (`bg-foreground/50`), panel surface (`bg-[hsl(var(--surface-raised))]`), and button styling; (4) Entity Tabs (WorkQueueTabs, ProductDetailsTabs, InsightsSubnav, asset detail pages): Unified token-only view switcher pattern - `border-primary text-foreground` active, `border-transparent text-muted-foreground hover:text-foreground hover:border-border` inactive; (5) Focus-visible ring pattern standardized with `focus-visible:ring-primary focus-visible:ring-offset-background`. **Scope:** Styling-only, no functional changes. **Core files:** LayoutShell.tsx, ProjectSideNav.tsx, layout.tsx, WorkQueueTabs.tsx, ProductDetailsTabs.tsx, InsightsSubnav.tsx, pages/[pageId]/page.tsx, collections/[collectionId]/page.tsx. **Manual Testing:** NAV-HIERARCHY-POLISH-1.md. **Critical Path:** CP-020 updated with NAV-HIERARCHY-POLISH-1 scenarios. |
+| 7.06 | 2026-01-22 | **NAV-HIERARCHY-POLISH-1 FIXUP-1**: Docs-only consistency fix. Updated "Out of Scope" wording from "No accessibility changes (focus-visible already present)" to "Focus-visible ring styling standardized (styling-only, no behavior change)" for accuracy. Documentation-only; no code changes. |

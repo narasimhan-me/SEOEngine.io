@@ -131,7 +131,7 @@ export default function PageDetailPage() {
         </p>
         <Link
           href={`/projects/${projectId}/assets/pages`}
-          className="text-indigo-600 hover:text-indigo-800"
+          className="text-primary hover:text-primary/80"
         >
           ← Back to Pages
         </Link>
@@ -155,7 +155,7 @@ export default function PageDetailPage() {
       <div className="mb-6">
         <Link
           href={`/projects/${projectId}/assets/pages`}
-          className="text-sm text-indigo-600 hover:text-indigo-800 mb-2 inline-block"
+          className="text-sm text-primary hover:text-primary/80 mb-2 inline-block"
         >
           ← Back to Pages
         </Link>
@@ -181,16 +181,16 @@ export default function PageDetailPage() {
         <p className="text-sm text-gray-400 mt-1">{page.url}</p>
       </div>
 
-      {/* Tab Bar */}
-      <div className="border-b border-gray-200 mb-6">
+      {/* [NAV-HIERARCHY-POLISH-1] Tab Bar - token-only entity tabs */}
+      <div className="border-b border-border mb-6">
         <nav className="-mb-px flex gap-4" aria-label="Tabs">
           <button
             type="button"
             onClick={() => handleTabChange('overview')}
-            className={`py-2 px-1 text-sm font-medium border-b-2 ${
+            className={`py-2 px-1 text-sm font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
               activeTab === 'overview'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
             }`}
           >
             Overview
@@ -198,10 +198,10 @@ export default function PageDetailPage() {
           <button
             type="button"
             onClick={() => handleTabChange('drafts')}
-            className={`py-2 px-1 text-sm font-medium border-b-2 ${
+            className={`py-2 px-1 text-sm font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
               activeTab === 'drafts'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
             }`}
           >
             Drafts
