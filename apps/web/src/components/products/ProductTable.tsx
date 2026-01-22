@@ -572,9 +572,14 @@ export function ProductTable({
 
   // Get ContextDescriptor for a product row (for RCP integration)
   // [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-3] MVP metadata fields for ContextPanelContentRenderer
+  // [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] Enriched metadata for RCP content expansion
   const getRowDescriptor = useCallback(
     (product: Product): ContextDescriptor => {
       const productIssueData = issuesByProductId.get(product.id);
+      const resolvedActions = resolvedActionsById.get(product.id);
+      // [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1 FIXUP-3] When productIssues is loaded (including empty),
+      // pass in-memory issues for every product to prevent unnecessary per-asset fetch
+      const inMemoryIssues = productIssues !== undefined ? (productIssueData?.issues ?? []) : undefined;
 
       // Derive SEO status truthfully from existing data (no fabrication)
       const seoTitleStatus = product.seoTitle?.trim()
@@ -583,6 +588,48 @@ export function ProductTable({
       const seoDescriptionStatus = product.seoDescription?.trim()
         ? 'Set'
         : 'Not set';
+
+      // [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] Derive statusLabel using locked vocabulary
+      // Prefer resolvedActionsById.get(product.id)?.chipLabel when available
+      // Otherwise fall back to existing health state string
+      const statusLabel = resolvedActions?.chipLabel ?? (productIssueData?.healthState ?? 'Healthy');
+
+      // Build metadata with enriched fields for RCP content expansion
+      const metadata: Record<string, string> = {
+        // [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] entityType for summary component
+        entityType: 'Product',
+        // [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] statusLabel using locked vocabulary
+        statusLabel,
+        handle: product.handle ?? product.externalId ?? 'N/A',
+        lastSynced: product.lastSyncedAt
+          ? new Date(product.lastSyncedAt).toLocaleString()
+          : 'Not available',
+        metaTitle: product.seoTitle?.trim() || 'Not set',
+        metaDescription: product.seoDescription?.trim() || 'Not set',
+        // [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-3] Status flags for content renderer
+        seoTitleStatus,
+        seoDescriptionStatus,
+        recommendedAction:
+          productIssueData?.recommendedAction ?? 'No action needed',
+      };
+
+      // [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] shopifyStatus from product when present
+      if (product.shopifyStatus) {
+        metadata.shopifyStatus = product.shopifyStatus;
+      }
+
+      // [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] lastApplied from product.lastOptimizedAt when present
+      if (product.lastOptimizedAt) {
+        metadata.lastApplied = new Date(product.lastOptimizedAt).toLocaleString();
+      }
+
+      // [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] Action preview labels (non-navigational)
+      if (resolvedActions?.primaryAction?.label) {
+        metadata.primaryActionLabel = resolvedActions.primaryAction.label;
+      }
+      if (resolvedActions?.secondaryAction?.label) {
+        metadata.secondaryActionLabel = resolvedActions.secondaryAction.label;
+      }
 
       return {
         kind: 'product',
@@ -594,22 +641,13 @@ export function ProductTable({
         // [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1] Open full page link
         openHref: `/projects/${projectId}/products/${product.id}`,
         openHrefLabel: 'Open product details',
-        metadata: {
-          handle: product.handle ?? product.externalId ?? 'N/A',
-          lastSynced: product.lastSyncedAt
-            ? new Date(product.lastSyncedAt).toLocaleString()
-            : 'Not available',
-          metaTitle: product.seoTitle?.trim() || 'Not set',
-          metaDescription: product.seoDescription?.trim() || 'Not set',
-          // [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-3] Status flags for content renderer
-          seoTitleStatus,
-          seoDescriptionStatus,
-          recommendedAction:
-            productIssueData?.recommendedAction ?? 'No action needed',
-        },
+        metadata,
+        // [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] Prefer in-memory issues for immediate render
+        // [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1 FIXUP-3] Pass in-memory issues (including []) when loaded
+        issues: inMemoryIssues,
       };
     },
-    [issuesByProductId, projectId]
+    [issuesByProductId, resolvedActionsById, projectId, productIssues]
   );
 
   // Handle row click for expansion (progressive disclosure)

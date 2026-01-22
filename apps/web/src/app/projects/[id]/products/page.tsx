@@ -121,7 +121,8 @@ export default function ProductsPage() {
   const [projectInfo, setProjectInfo] = useState<IntegrationStatus | null>(
     null
   );
-  const [productIssues, setProductIssues] = useState<DeoIssue[]>([]);
+  // [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1 FIXUP-3] undefined = not loaded yet; [] = loaded empty
+  const [productIssues, setProductIssues] = useState<DeoIssue[] | undefined>(undefined);
   const [overview, setOverview] = useState<ProjectOverview | null>(null);
   const [showPreCrawlGuard, setShowPreCrawlGuard] = useState(true);
 

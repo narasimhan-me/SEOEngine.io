@@ -1,8 +1,11 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ContextDescriptor, PanelView } from './RightContextPanelProvider';
+import { ContextPanelEntitySummary } from './ContextPanelEntitySummary';
+import { ContextPanelIssueDrilldown } from './ContextPanelIssueDrilldown';
+import { ContextPanelActionPreview } from './ContextPanelActionPreview';
+import { ContextPanelAiAssistHints } from './ContextPanelAiAssistHints';
 
 interface ContextPanelContentRendererProps {
   activeView: PanelView;
@@ -18,8 +21,36 @@ function extractProjectIdFromPath(pathname: string): string | null {
 }
 
 /**
+ * Check if descriptor.kind is an asset kind that should use the expanded content system.
+ * [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] Supports: product, page, collection
+ */
+function isAssetKind(kind: string): boolean {
+  return kind === 'product' || kind === 'page' || kind === 'collection';
+}
+
+/**
+ * Map descriptor.kind to assetType for API calls.
+ */
+function kindToAssetType(kind: string): 'products' | 'pages' | 'collections' {
+  switch (kind) {
+    case 'product':
+      return 'products';
+    case 'page':
+      return 'pages';
+    case 'collection':
+      return 'collections';
+    default:
+      return 'products';
+  }
+}
+
+/**
  * Pure renderer that maps (activeView, descriptor.kind) → content blocks.
  * Token-only and truth-preserving (no fabricated history/recommendations).
+ *
+ * [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] GLOBAL RULE:
+ * Keep ONLY the RCP header external-link (descriptor.openHref) as the single allowed navigation affordance.
+ * NO in-body navigation links inside the panel (including Help tab links).
  */
 export function ContextPanelContentRenderer({
   activeView,
@@ -48,7 +79,7 @@ export function ContextPanelContentRenderer({
 
   switch (activeView) {
     case 'details':
-      return renderDetailsView(descriptor);
+      return renderDetailsView(descriptor, currentProjectId);
     case 'recommendations':
       return renderRecommendationsView(descriptor);
     case 'history':
@@ -56,17 +87,22 @@ export function ContextPanelContentRenderer({
     case 'help':
       return renderHelpView();
     default:
-      return renderDetailsView(descriptor);
+      return renderDetailsView(descriptor, currentProjectId);
   }
 }
 
 /**
  * Render the Details view based on descriptor.kind.
+ * [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] Asset kinds (product, page, collection) use expanded content system.
  */
-function renderDetailsView(descriptor: ContextDescriptor) {
+function renderDetailsView(descriptor: ContextDescriptor, currentProjectId: string | null) {
+  // Asset kinds use the new content expansion system
+  if (isAssetKind(descriptor.kind)) {
+    return <AssetDetailsContent descriptor={descriptor} projectId={currentProjectId} />;
+  }
+
+  // Non-asset kinds use existing renderers
   switch (descriptor.kind) {
-    case 'product':
-      return <ProductDetailsContent descriptor={descriptor} />;
     case 'user':
       return <UserDetailsContent descriptor={descriptor} />;
     case 'work_item':
@@ -77,85 +113,86 @@ function renderDetailsView(descriptor: ContextDescriptor) {
 }
 
 /**
- * Product details (MVP) from descriptor fields/metadata.
- * [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-4] Token-only styling + metaTitle/metaDescription display.
+ * [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] Asset details with expanded content system.
+ * Replaces ProductDetailsContent MVP layout with new content sections:
+ * A) Contextual Product Summary (always shown for asset kinds)
+ * B) Issue Drilldown (read-only, fetch-based; progressive disclosure)
+ * C) Action Preview (read-only; no buttons; only shown when relevant metadata exists)
+ * D) AI Assist Hints (optional, collapsed by default; no chat UI; no links)
+ *
+ * NO in-body navigation links.
  */
-function ProductDetailsContent({
+function AssetDetailsContent({
   descriptor,
+  projectId,
 }: {
   descriptor: ContextDescriptor;
+  projectId: string | null;
 }) {
   const metadata = descriptor.metadata || {};
+  const issuesCount = descriptor.issues?.length || 0;
 
   return (
     <div className="space-y-4">
-      {/* Handle / External ID */}
-      {(metadata.handle || metadata.externalId) && (
-        <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Handle / ID
-          </p>
-          <p className="mt-1 text-sm text-foreground break-words">
-            {metadata.handle || metadata.externalId}
-          </p>
-        </div>
+      {/* A) Contextual Summary (always shown) */}
+      <ContextPanelEntitySummary descriptor={descriptor} />
+
+      {/* B) Issue Drilldown (only when projectId available) */}
+      {projectId && (
+        <ContextPanelIssueDrilldown
+          projectId={projectId}
+          assetType={kindToAssetType(descriptor.kind)}
+          assetId={descriptor.id}
+          initialIssues={descriptor.issues}
+        />
       )}
 
-      {/* Shopify Status (only if provided) */}
-      {metadata.shopifyStatus && (
-        <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Shopify Status
-          </p>
-          <p className="mt-1 text-sm text-foreground">{metadata.shopifyStatus}</p>
-        </div>
-      )}
+      {/* C) Action Preview (only when relevant metadata exists) */}
+      <ContextPanelActionPreview descriptor={descriptor} />
 
-      {/* Last Synced (only if provided) */}
-      {metadata.lastSynced && (
-        <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Last Synced
-          </p>
-          <p className="mt-1 text-sm text-foreground">{metadata.lastSynced}</p>
-        </div>
-      )}
+      {/* D) AI Assist Hints (optional, collapsed by default) */}
+      <ContextPanelAiAssistHints descriptor={descriptor} issuesCount={issuesCount} />
 
+      {/* Legacy SEO metadata blocks (retained for backwards compatibility) */}
       {/* SEO Title - Status + Value */}
-      <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          SEO Title
-        </p>
-        {metadata.seoTitleStatus && (
-          <span className="mt-1 inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
-            {metadata.seoTitleStatus}
-          </span>
-        )}
-        {metadata.metaTitle && metadata.metaTitle !== 'Not set' && (
-          <p className="mt-2 text-sm text-foreground break-words">
-            {metadata.metaTitle}
+      {(metadata.seoTitleStatus || metadata.metaTitle) && (
+        <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            SEO Title
           </p>
-        )}
-      </div>
+          {metadata.seoTitleStatus && (
+            <span className="mt-1 inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+              {metadata.seoTitleStatus}
+            </span>
+          )}
+          {metadata.metaTitle && metadata.metaTitle !== 'Not set' && (
+            <p className="mt-2 text-sm text-foreground break-words">
+              {metadata.metaTitle}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* SEO Description - Status + Value */}
-      <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          SEO Description
-        </p>
-        {metadata.seoDescriptionStatus && (
-          <span className="mt-1 inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
-            {metadata.seoDescriptionStatus}
-          </span>
-        )}
-        {metadata.metaDescription && metadata.metaDescription !== 'Not set' && (
-          <p className="mt-2 text-sm text-foreground break-words line-clamp-3">
-            {metadata.metaDescription}
+      {(metadata.seoDescriptionStatus || metadata.metaDescription) && (
+        <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            SEO Description
           </p>
-        )}
-      </div>
+          {metadata.seoDescriptionStatus && (
+            <span className="mt-1 inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+              {metadata.seoDescriptionStatus}
+            </span>
+          )}
+          {metadata.metaDescription && metadata.metaDescription !== 'Not set' && (
+            <p className="mt-2 text-sm text-foreground break-words line-clamp-3">
+              {metadata.metaDescription}
+            </p>
+          )}
+        </div>
+      )}
 
-      {/* Recommended Action */}
+      {/* Recommended Action (text only, no link) */}
       {metadata.recommendedAction && (
         <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -167,30 +204,7 @@ function ProductDetailsContent({
         </div>
       )}
 
-      {/* Open Full Page Link */}
-      {descriptor.openHref && (
-        <div className="pt-2">
-          <Link
-            href={descriptor.openHref}
-            className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors"
-          >
-            <span>{descriptor.openHrefLabel || 'Open full EngineO.ai page'}</span>
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-              />
-            </svg>
-          </Link>
-        </div>
-      )}
+      {/* NO "Open Full Page Link" in body - header external-link is the only navigation affordance */}
     </div>
   );
 }
@@ -198,6 +212,7 @@ function ProductDetailsContent({
 /**
  * Admin User details (MVP) from descriptor metadata.
  * [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-4] Token-only styling.
+ * [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] Removed in-body "Open Full Page Link".
  */
 function UserDetailsContent({ descriptor }: { descriptor: ContextDescriptor }) {
   const metadata = descriptor.metadata || {};
@@ -307,30 +322,7 @@ function UserDetailsContent({ descriptor }: { descriptor: ContextDescriptor }) {
         </div>
       )}
 
-      {/* Open Full Page Link */}
-      {descriptor.openHref && (
-        <div className="pt-2">
-          <Link
-            href={descriptor.openHref}
-            className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors"
-          >
-            <span>{descriptor.openHrefLabel || 'View user details'}</span>
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-              />
-            </svg>
-          </Link>
-        </div>
-      )}
+      {/* NO "Open Full Page Link" in body - header external-link is the only navigation affordance */}
     </div>
   );
 }
@@ -458,6 +450,7 @@ function WorkItemDetailsContent({
 /**
  * Generic details content for unknown kinds.
  * [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-4] Token-only styling.
+ * [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] Removed in-body "Open Full Page Link".
  */
 function GenericDetailsContent({
   descriptor,
@@ -492,29 +485,7 @@ function GenericDetailsContent({
           <p className="mt-1 text-sm text-foreground">{value}</p>
         </div>
       ))}
-      {descriptor.openHref && (
-        <div className="pt-2">
-          <Link
-            href={descriptor.openHref}
-            className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors"
-          >
-            <span>{descriptor.openHrefLabel || 'Open full page'}</span>
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-              />
-            </svg>
-          </Link>
-        </div>
-      )}
+      {/* NO "Open Full Page Link" in body - header external-link is the only navigation affordance */}
     </div>
   );
 }
@@ -571,6 +542,7 @@ function renderHistoryView() {
  * Render the Help view.
  * Stub content only (truthfully labeled).
  * [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-4] Token-only styling.
+ * [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] Removed Help Center link - no in-body navigation links.
  */
 function renderHelpView() {
   return (
@@ -581,14 +553,7 @@ function renderHelpView() {
           Help content is not yet available for this item.
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
-          Visit the{' '}
-          <Link
-            href="/help/shopify-permissions"
-            className="text-primary hover:text-primary/80"
-          >
-            Help Center
-          </Link>{' '}
-          for general documentation.
+          Visit the Help Center for general documentation.
         </p>
       </div>
     </div>

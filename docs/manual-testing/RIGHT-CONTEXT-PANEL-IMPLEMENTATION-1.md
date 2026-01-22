@@ -90,7 +90,7 @@
 - UI: Details shows kind-specific metadata blocks.
 - UI: Recommendations shows "Recommendations (based on detected issues)" header with recommendedAction if available, otherwise "No recommendations available for this item."
 - UI: History shows "History" header with "No history available." message.
-- UI: Help shows "Help" header with "Help content is not yet available for this item." and a link to Help Center.
+- UI: Help shows "Help" header with "Help content is not yet available for this item." and non-navigational stub copy "Visit the Help Center for general documentation." (no link - header external-link is the only navigation affordance per RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1).
 
 ---
 

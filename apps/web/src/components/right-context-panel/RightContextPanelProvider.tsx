@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import { usePathname } from 'next/navigation';
+import type { DeoIssue } from '@/lib/deo-issues';
 
 /**
  * Active view tab for the Right Context Panel.
@@ -26,7 +27,7 @@ export type PanelWidthMode = 'default' | 'wide';
  * Extended with optional fields to support shell-level system capabilities.
  */
 export interface ContextDescriptor {
-  /** Category/type of content (e.g., 'product', 'user', 'work_item') */
+  /** Category/type of content (e.g., 'product', 'page', 'collection', 'user', 'work_item') */
   kind: string;
   /** Unique identifier for the content */
   id: string;
@@ -42,6 +43,11 @@ export interface ContextDescriptor {
   openHrefLabel?: string;
   /** Optional project scope for "persist within same project" + safe invalidation */
   scopeProjectId?: string;
+  /**
+   * [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] Optional in-memory issues for "prefer in-memory" support.
+   * When provided, ContextPanelIssueDrilldown renders immediately without API fetch.
+   */
+  issues?: DeoIssue[];
 }
 
 /**
@@ -56,6 +62,8 @@ export interface OpenContextPanelPayload {
   openHref?: string;
   openHrefLabel?: string;
   scopeProjectId?: string;
+  /** [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] Optional in-memory issues for "prefer in-memory" support */
+  issues?: DeoIssue[];
 }
 
 interface RightContextPanelState {
@@ -271,6 +279,7 @@ export function RightContextPanelProvider({
         openHref: payload.openHref,
         openHrefLabel: payload.openHrefLabel,
         scopeProjectId: payload.scopeProjectId,
+        issues: payload.issues,
       };
       openPanel(newDescriptor);
     },

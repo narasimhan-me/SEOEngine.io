@@ -782,7 +782,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field                         | Value                                                                                                                                                              |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Manual Testing Doc(s)**     | `docs/manual-testing/LAYOUT-SHELL-IMPLEMENTATION-1.md`, `docs/manual-testing/RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md`, `docs/manual-testing/TABLES-&-LISTS-ALIGNMENT-1.md`, `docs/manual-testing/COMMAND-PALETTE-IMPLEMENTATION-1.md`, `docs/manual-testing/NAV-HIERARCHY-POLISH-1.md` |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/LAYOUT-SHELL-IMPLEMENTATION-1.md`, `docs/manual-testing/RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md`, `docs/manual-testing/TABLES-&-LISTS-ALIGNMENT-1.md`, `docs/manual-testing/COMMAND-PALETTE-IMPLEMENTATION-1.md`, `docs/manual-testing/NAV-HIERARCHY-POLISH-1.md`, `docs/manual-testing/RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1.md` |
 | **Automated Tests**           | Planned                                                                                                                                                            |
 | **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                       |
 | **Last Verified (Automated)** | N/A                                                                                                                                                                |
@@ -838,6 +838,14 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] NAV-HIERARCHY-POLISH-1: RCP reads as auxiliary non-navigational (slides in, does not compete with nav hierarchy)
 - [ ] NAV-HIERARCHY-POLISH-1: Mobile drawer uses token-only surfaces (bg-foreground/50 scrim, surface-raised panel)
 - [ ] NAV-HIERARCHY-POLISH-1: Dark mode contrast preserved across all navigation tiers
+- [ ] RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1: No in-body navigation links in RCP (header external-link only)
+- [ ] RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1: Asset summary renders (Type/Status/Last synced/Last applied) for product/page/collection
+- [ ] RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1: Issues drilldown truthfulness + empty/loading states
+- [ ] RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1: Pillar-to-category mapping (Metadata/Content/Search Intent/Technical/Other)
+- [ ] RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1: "Why this matters" uses server-provided fields (whyItMatters else description)
+- [ ] RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1: Action preview is read-only and non-clickable (shows labels only when metadata present)
+- [ ] RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1: AI assist hints are collapsible and non-blocking (collapsed by default, no links, no chat)
+- [ ] RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1: Shopify embedded iframe safe (no overflow, scroll contained)
 
 ---
 
@@ -968,3 +976,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 6.15 | 2026-01-21 | DARK-MODE-SYSTEM-1: Added CP-008 scenarios for global theme system. 3-mode theme selector (System/Light/Dark) with localStorage persistence, no-FOUC early theme init script, single-source-of-truth CSS design tokens with dark palette aligned to Coming Soon direction, centralized .dark utility remaps for broad coverage without mass file edits. Theme works in Shopify embedded iframe. Added DARK-MODE-SYSTEM-1.md manual testing doc. |
 | 6.16 | 2026-01-21 | PRODUCTS-SHELL-REMOUNT-1: Added CP-003 scenarios for Products list remount onto canonical DataTable. DataTable extended with onRowClick/isRowExpanded/renderExpandedContent props. ProductTable refactored to use DataTable with expansion support for progressive disclosure. Token-based shell-safe styling (no min-h-screen, no bg-white). Command Palette "Go to Products" navigation command. Added PRODUCTS-SHELL-REMOUNT-1.md manual testing doc. |
 | 6.17 | 2026-01-22 | NAV-HIERARCHY-POLISH-1: Added CP-020 scenarios for navigation tier visual hierarchy. Global Nav (strongest tier) with font-semibold active + primary color. Section Nav (demoted) with font-medium heading + neutral active state. Entity Tabs as view switchers (token-only border-primary). RCP as auxiliary non-navigational. Mobile drawer with token-only surfaces. Added NAV-HIERARCHY-POLISH-1.md manual testing doc. |
+| 6.18 | 2026-01-22 | RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1: Added CP-020 scenarios for RCP content expansion. No in-body navigation links (header external-link only). Asset summary renders (Type/Status/Last synced/Last applied). Issues drilldown truthfulness + empty/loading states. Pillar-to-category mapping (Metadata/Content/Search Intent/Technical/Other). "Why this matters" uses server-provided fields. Action preview is read-only (no buttons/links). AI assist hints are collapsible and non-blocking. Shopify iframe safe (scroll contained). Added RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1.md manual testing doc. |
