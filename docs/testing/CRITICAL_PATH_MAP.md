@@ -869,9 +869,10 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] PANEL-DEEP-LINKS-1: UI open updates URL (replaceState semantics, panel/entityType/entityId/entityTitle params)
 - [ ] PANEL-DEEP-LINKS-1: Copy/paste deep link reproduces same panel state in new tab
 - [ ] PANEL-DEEP-LINKS-1: Close panel removes all panel params from URL
-- [ ] PANEL-DEEP-LINKS-1: Back/forward restores panel open/closed + entity state
+- [ ] PANEL-DEEP-LINKS-1: Back/forward restores panel state when navigating between routes (replaceState does not create history entries for panel-only changes)
 - [ ] PANEL-DEEP-LINKS-1: Invalid params (bad entityId/entityType/panel) fail safely, no crash
 - [ ] PANEL-DEEP-LINKS-1: Shopify embedded query params preserved (shop, host) throughout panel open/close
+- [ ] PANEL-DEEP-LINKS-1: Project-scoped deep link on non-project route shows "Unavailable in this project context." and does not fetch project data
 
 ---
 
@@ -1007,3 +1008,4 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 6.20 | 2026-01-22 | TABLES-&-LISTS-ALIGNMENT-1 FIXUP-5: Completed Playbooks per-item results DataTable migration. Per-product results now uses canonical DataTable (dense) instead of legacy `<table>` markup. Updated CP-020 FIXUP-4 playbooks line to not claim "token-based styling" as end state. Added FIXUP-5 checklist item. Updated TABLES-&-LISTS-ALIGNMENT-1.md HP-023 to require canonical DataTable usage. |
 | 6.21 | 2026-01-22 | TABLES-&-LISTS-ALIGNMENT-1 FIXUP-6: DataTable column contract correctness. Playbooks per-product results DataTable used `render` instead of `cell` for column renderers, causing blank cells at runtime. Updated columns to use `cell` (correct DataTableColumn contract). Updated CP-020 checklist and TABLES-&-LISTS-ALIGNMENT-1.md HP-023. |
 | 6.22 | 2026-01-22 | PANEL-DEEP-LINKS-1: Added CP-020 scenarios for shareable Right Context Panel state via URL deep-links. URL schema (panel, entityType, entityId, optional entityTitle). UI open writes URL params (replaceState semantics). Tab switch updates panel param. Close removes all panel params. Back/forward restores state. Invalid params fail safely (no crash, no auto-clean). Shopify embedded params preserved. Products list and Admin Users verified as integration proof points. Added PANEL-DEEP-LINKS-1.md manual testing doc. |
+| 6.23 | 2026-01-22 | PANEL-DEEP-LINKS-1 FIXUP-1: Type safety + back/forward semantics + project-scope guard. (1) Fixed type mismatch: parseDeepLinkParams now uses structural type `ReadableSearchParams` compatible with Next.js useSearchParams(). (2) Updated HP-005 manual test to match replaceState semantics (back/forward applies across route navigations, not panel-only changes on same route). (3) Added project-scope guard: product/page/collection/blog/issue deep links on non-/projects/:id routes set scopeProjectId to sentinel `__outside_project__` to force "Unavailable in this project context." state. User entity type remains non-project-scoped. Added EC-007 edge case scenario. |

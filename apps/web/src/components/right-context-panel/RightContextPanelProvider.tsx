@@ -9,8 +9,120 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { DeoIssue } from '@/lib/deo-issues';
+
+// ============================================================================
+// [PANEL-DEEP-LINKS-1] URL Deep-Link Schema + Validation
+// ============================================================================
+
+/**
+ * Allowed panel views for URL deep-links.
+ */
+const ALLOWED_PANEL_VIEWS = new Set<PanelView>([
+  'details',
+  'recommendations',
+  'history',
+  'help',
+]);
+
+/**
+ * Allowed entity types for URL deep-links.
+ */
+const ALLOWED_ENTITY_TYPES = new Set([
+  'product',
+  'page',
+  'collection',
+  'blog',
+  'issue',
+  'user',
+]);
+
+/**
+ * [PANEL-DEEP-LINKS-1 FIXUP-1] Entity types that require project scope.
+ * When opened via deep-link on a non-project route, show "Unavailable" instead of fetching.
+ */
+const PROJECT_SCOPED_ENTITY_TYPES = new Set([
+  'product',
+  'page',
+  'collection',
+  'blog',
+  'issue',
+]);
+
+/**
+ * [PANEL-DEEP-LINKS-1 FIXUP-1] Sentinel value for scopeProjectId when a project-scoped
+ * entity deep-link is opened outside /projects/[id] routes. Forces "Unavailable" state.
+ */
+const OUTSIDE_PROJECT_SENTINEL = '__outside_project__';
+
+/**
+ * [PANEL-DEEP-LINKS-1 FIXUP-1] Minimal structural type for search params.
+ * Compatible with both URLSearchParams and Next.js useSearchParams() return type.
+ */
+interface ReadableSearchParams {
+  get(name: string): string | null;
+  has(name: string): boolean;
+  toString(): string;
+}
+
+/**
+ * Parsed deep-link params from URL.
+ */
+interface DeepLinkParams {
+  panelView: PanelView;
+  entityType: string;
+  entityId: string;
+  entityTitle?: string;
+}
+
+/**
+ * Parses URL search params for panel deep-link state.
+ * Returns null if any required key is missing or invalid.
+ * Never throws (must not crash on invalid params).
+ * [PANEL-DEEP-LINKS-1 FIXUP-1] Uses structural type for Next.js useSearchParams() compatibility.
+ */
+function parseDeepLinkParams(
+  searchParams: ReadableSearchParams | null
+): DeepLinkParams | null {
+  if (!searchParams) return null;
+
+  const panel = searchParams.get('panel');
+  const entityType = searchParams.get('entityType');
+  const entityId = searchParams.get('entityId');
+  const entityTitle = searchParams.get('entityTitle');
+
+  // Required keys: panel + entityType + entityId
+  if (!panel || !entityType || !entityId) {
+    return null;
+  }
+
+  // Validate panel value
+  if (!ALLOWED_PANEL_VIEWS.has(panel as PanelView)) {
+    return null;
+  }
+
+  // Validate entityType value
+  if (!ALLOWED_ENTITY_TYPES.has(entityType)) {
+    return null;
+  }
+
+  return {
+    panelView: panel as PanelView,
+    entityType,
+    entityId,
+    entityTitle: entityTitle || undefined,
+  };
+}
+
+/**
+ * Extracts project ID from pathname if under /projects/[id].
+ * Returns undefined if not in a project route.
+ */
+function extractProjectIdFromPath(pathname: string): string | undefined {
+  const match = pathname.match(/^\/projects\/([^/]+)/);
+  return match ? match[1] : undefined;
+}
 
 /**
  * Active view tab for the Right Context Panel.
@@ -121,12 +233,25 @@ function isEditableElement(target: EventTarget | null): boolean {
   return false;
 }
 
+// ============================================================================
+// [PANEL-DEEP-LINKS-1] URL Panel Param Keys
+// ============================================================================
+const PANEL_URL_KEYS = [
+  'panel',
+  'entityType',
+  'entityId',
+  'entityTitle',
+  'panelOpen',
+] as const;
+
 export function RightContextPanelProvider({
   children,
 }: {
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
   const [descriptor, setDescriptor] = useState<ContextDescriptor | null>(null);
   const [activeView, setActiveView] = useState<PanelView>('details');
@@ -135,12 +260,65 @@ export function RightContextPanelProvider({
   const lastActiveElementRef = useRef<Element | null>(null);
   const previousSegmentRef = useRef<string>(getFirstSegment(pathname));
 
+  // [PANEL-DEEP-LINKS-1] Re-entrancy guard to prevent URL→state→URL loops
+  const isApplyingUrlStateRef = useRef(false);
+  // [PANEL-DEEP-LINKS-1] Track if panel was opened via URL (for back/forward close behavior)
+  const openedViaUrlRef = useRef(false);
+
+  // [PANEL-DEEP-LINKS-1] URL update helper - preserves existing params, only adds/updates/removes panel keys
+  const updateUrlParams = useCallback(
+    (
+      updates: {
+        panel?: string | null;
+        entityType?: string | null;
+        entityId?: string | null;
+        entityTitle?: string | null;
+      },
+      removeAll?: boolean
+    ) => {
+      // Skip if we're applying URL state (re-entrancy guard)
+      if (isApplyingUrlStateRef.current) return;
+
+      const params = new URLSearchParams(searchParams?.toString() || '');
+
+      if (removeAll) {
+        // Remove all panel-related params
+        for (const key of PANEL_URL_KEYS) {
+          params.delete(key);
+        }
+      } else {
+        // Add/update/remove specific keys
+        for (const [key, value] of Object.entries(updates)) {
+          if (value === null || value === undefined) {
+            params.delete(key);
+          } else {
+            params.set(key, value);
+          }
+        }
+      }
+
+      // Build new URL preserving pathname
+      const newUrl = params.toString()
+        ? `${pathname}?${params.toString()}`
+        : pathname;
+
+      // Use replace to avoid adding to history for panel state changes
+      router.replace(newUrl, { scroll: false });
+    },
+    [pathname, searchParams, router]
+  );
+
   // Define closePanel first so it can be used in effects
   const closePanel = useCallback(() => {
     setIsOpen(false);
     setDescriptor(null);
     // Reset view to details when closing
     setActiveView('details');
+    // [PANEL-DEEP-LINKS-1] Reset URL-opened flag
+    openedViaUrlRef.current = false;
+
+    // [PANEL-DEEP-LINKS-1] Remove panel params from URL when closing
+    updateUrlParams({}, true);
 
     // Restore focus to the element that was active before opening
     if (
@@ -149,7 +327,7 @@ export function RightContextPanelProvider({
     ) {
       lastActiveElementRef.current.focus();
     }
-  }, []);
+  }, [updateUrlParams]);
 
   // Auto-close on Left Nav segment switch (unless pinned)
   useEffect(() => {
@@ -214,6 +392,100 @@ export function RightContextPanelProvider({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, closePanel]);
 
+  // ============================================================================
+  // [PANEL-DEEP-LINKS-1] URL → State Sync (source of truth when URL has params)
+  // ============================================================================
+  useEffect(() => {
+    const deepLinkParams = parseDeepLinkParams(searchParams);
+
+    if (deepLinkParams) {
+      // Valid deep-link params exist → open panel deterministically
+      const { panelView, entityType, entityId, entityTitle } = deepLinkParams;
+
+      // Derive scopeProjectId from pathname if under /projects/[id]
+      const derivedProjectId = extractProjectIdFromPath(pathname);
+
+      // [PANEL-DEEP-LINKS-1 FIXUP-1] Project-scope guard:
+      // If entityType is project-scoped but we're not under /projects/[id],
+      // use sentinel value to force "Unavailable in this project context." state.
+      const isProjectScoped = PROJECT_SCOPED_ENTITY_TYPES.has(entityType);
+      const scopeProjectId =
+        isProjectScoped && !derivedProjectId
+          ? OUTSIDE_PROJECT_SENTINEL
+          : derivedProjectId;
+
+      // Build descriptor from URL params
+      const urlDescriptor: ContextDescriptor = {
+        kind: entityType,
+        id: entityId,
+        title: entityTitle ?? entityId, // Truth-preserving fallback
+        scopeProjectId,
+      };
+
+      // Apply state with re-entrancy guard
+      isApplyingUrlStateRef.current = true;
+
+      // Check if we need to update state
+      const needsUpdate =
+        !isOpen ||
+        !isSameDescriptor(descriptor, urlDescriptor) ||
+        activeView !== panelView;
+
+      if (needsUpdate) {
+        setDescriptor(urlDescriptor);
+        setIsOpen(true);
+        setActiveView(panelView);
+        openedViaUrlRef.current = true;
+      }
+
+      // Clear re-entrancy guard after state update cycle
+      // Use setTimeout to ensure state updates have been processed
+      setTimeout(() => {
+        isApplyingUrlStateRef.current = false;
+      }, 0);
+    } else {
+      // No valid deep-link params
+      // Check if panel params are present but invalid (e.g., bad entityType)
+      const hasAnyPanelParam =
+        searchParams?.has('panel') ||
+        searchParams?.has('entityType') ||
+        searchParams?.has('entityId');
+
+      if (hasAnyPanelParam) {
+        // Panel params present but invalid → ensure panel is CLOSED (do not crash)
+        // Do NOT auto-clean URL (user may want to fix it manually)
+        if (isOpen && openedViaUrlRef.current) {
+          isApplyingUrlStateRef.current = true;
+          setIsOpen(false);
+          setDescriptor(null);
+          setActiveView('details');
+          openedViaUrlRef.current = false;
+          setTimeout(() => {
+            isApplyingUrlStateRef.current = false;
+          }, 0);
+        }
+      } else {
+        // Panel params absent
+        // Only force-close if previously opened via URL (for back/forward behavior)
+        if (isOpen && openedViaUrlRef.current) {
+          isApplyingUrlStateRef.current = true;
+          setIsOpen(false);
+          setDescriptor(null);
+          setActiveView('details');
+          openedViaUrlRef.current = false;
+          setTimeout(() => {
+            isApplyingUrlStateRef.current = false;
+          }, 0);
+        }
+        // If panel was opened via UI (not URL), do NOT force-close
+      }
+    }
+    // Note: We intentionally exclude isOpen, descriptor, activeView from deps
+    // to avoid re-running when those change from UI actions.
+    // The effect should only run when URL params change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, pathname]);
+
   const openPanel = useCallback(
     (newDescriptor: ContextDescriptor) => {
       // If panel is already open with same kind+id → NO-OP (prevents flicker)
@@ -231,8 +503,16 @@ export function RightContextPanelProvider({
       setIsOpen(true);
       // Reset to details view when opening with new descriptor
       setActiveView('details');
+
+      // [PANEL-DEEP-LINKS-1] Sync to URL (replaceState semantics)
+      updateUrlParams({
+        panel: 'details',
+        entityType: newDescriptor.kind,
+        entityId: newDescriptor.id,
+        entityTitle: newDescriptor.title || null,
+      });
     },
-    [isOpen, descriptor]
+    [isOpen, descriptor, updateUrlParams]
   );
 
   const togglePanel = useCallback(
@@ -253,9 +533,16 @@ export function RightContextPanelProvider({
         // OPEN + different kind+id → update descriptor (stay open)
         setDescriptor(newDescriptor);
         setActiveView('details');
+        // [PANEL-DEEP-LINKS-1] Sync entity switch to URL
+        updateUrlParams({
+          panel: 'details',
+          entityType: newDescriptor.kind,
+          entityId: newDescriptor.id,
+          entityTitle: newDescriptor.title || null,
+        });
       }
     },
-    [isOpen, descriptor, openPanel, closePanel]
+    [isOpen, descriptor, openPanel, closePanel, updateUrlParams]
   );
 
   const togglePinned = useCallback(() => {
@@ -265,6 +552,18 @@ export function RightContextPanelProvider({
   const toggleWidthMode = useCallback(() => {
     setWidthMode((prev) => (prev === 'default' ? 'wide' : 'default'));
   }, []);
+
+  // [PANEL-DEEP-LINKS-1] Wrapped setActiveView that syncs to URL
+  const handleSetActiveView = useCallback(
+    (view: PanelView) => {
+      setActiveView(view);
+      // Only update URL if panel is open (has entity context)
+      if (isOpen && descriptor) {
+        updateUrlParams({ panel: view });
+      }
+    },
+    [isOpen, descriptor, updateUrlParams]
+  );
 
   // Programmatic openContextPanel({ type, payload }) API
   // Maps { type } → descriptor.kind
@@ -295,7 +594,7 @@ export function RightContextPanelProvider({
     openPanel,
     closePanel,
     togglePanel,
-    setActiveView,
+    setActiveView: handleSetActiveView,
     togglePinned,
     toggleWidthMode,
     openContextPanel,
