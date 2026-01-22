@@ -80,7 +80,7 @@ export default function TablesListsDemoPage() {
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Canonical DataTable and DataList components for Design System v1.5.
-          Use "View details" (eye icon) to open the Right Context Panel.
+          Use &quot;View details&quot; (eye icon) to open the Right Context Panel.
         </p>
       </div>
 
