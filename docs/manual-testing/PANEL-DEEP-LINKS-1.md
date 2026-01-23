@@ -1,6 +1,8 @@
 # EngineO.ai – Manual Testing: PANEL-DEEP-LINKS-1
 
 > Derived from MANUAL_TESTING_TEMPLATE.md
+>
+> **Updated:** RIGHT-CONTEXT-PANEL-AUTONOMY-1 (Panel normalized to `details`; no view tabs)
 
 ---
 
@@ -10,7 +12,7 @@
   Add shareable Right Context Panel state via URL deep-links. When the panel is opened via UI, URL params are written (replaceState semantics). When a URL with valid panel params is loaded, the panel opens deterministically. This enables copy/paste sharing of panel state and proper back/forward navigation.
 
 - **High-level user impact and what "success" looks like:**
-  Users can copy a URL while viewing a product/page/collection/user in the Right Context Panel and paste it into a new browser tab to reproduce the exact same panel state. Tab switches (details → history) are reflected in the URL. Closing the panel cleans the URL. Invalid params fail safely without crashing. Shopify embedded query params are preserved throughout.
+  Users can copy a URL while viewing a product/page/collection/user in the Right Context Panel and paste it into a new browser tab to reproduce the exact same panel state. Under RIGHT-CONTEXT-PANEL-AUTONOMY-1, the panel is normalized to `details` (legacy values are accepted but coerced). Closing the panel cleans the URL. Invalid params fail safely without crashing. Shopify embedded query params are preserved throughout.
 
 - **Related phases/sections in docs/IMPLEMENTATION_PLAN.md:**
   Phase PANEL-DEEP-LINKS-1
@@ -41,13 +43,15 @@
 
 ## URL Deep-Link Schema
 
-| Parameter     | Required | Allowed Values                                           |
-| ------------- | -------- | -------------------------------------------------------- |
-| `panel`       | Yes      | `details`, `recommendations`, `history`, `help`          |
-| `entityType`  | Yes      | `product`, `page`, `collection`, `blog`, `issue`, `user` |
-| `entityId`    | Yes      | Any non-empty string (the entity's ID)                   |
-| `entityTitle` | No       | Optional entity title (used as fallback for panel title) |
-| `panelOpen`   | No       | Accepted but not required (legacy compatibility)         |
+| Parameter     | Required | Allowed Values                                                   |
+| ------------- | -------- | ---------------------------------------------------------------- |
+| `panel`       | Yes      | `details` (canonical under autonomy)                             |
+| `entityType`  | Yes      | `product`, `page`, `collection`, `blog`, `issue`, `user`, `playbook` |
+| `entityId`    | Yes      | Any non-empty string (the entity's ID)                           |
+| `entityTitle` | No       | Optional entity title (used as fallback for panel title)         |
+| `panelOpen`   | No       | Accepted but not required (legacy compatibility)                 |
+
+**Note:** [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Legacy `panel` values (`recommendations`, `history`, `help`) are accepted for backward compatibility but normalized to `details` via replaceState. No view tabs exist under autonomy.
 
 ---
 
@@ -95,30 +99,33 @@
 **Expected Results:**
 
 - UI: RCP opens automatically with the same product details visible.
-- The panel tab is "details" (matching the `panel=details` param).
+- [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Panel shows Details view only (no tabs exist).
 - The entity shown matches the entityId/entityTitle from the URL.
 
 ---
 
-### Scenario 3: Switch panel tab updates URL
+### Scenario 3: [UPDATED] Legacy panel value is normalized to details
 
 **ID:** HP-003
 
+**[RIGHT-CONTEXT-PANEL-AUTONOMY-1] Updated for autonomous behavior.**
+
 **Preconditions:**
 
-- [ ] RCP is open showing product details
-- [ ] URL contains `panel=details`
+- [ ] Valid project with at least one issue (or any valid entity)
 
 **Steps:**
 
-1. Click the "History" tab in the RCP.
-2. Observe the URL change.
-3. Reload the page (F5 or Cmd+R).
+1. Construct a URL with a legacy panel value: `/projects/:projectId/issues?panel=history&entityType=issue&entityId=<issueId>`
+2. Load this URL in the browser.
+3. Observe the URL and panel state.
 
 **Expected Results:**
 
-- UI: Tab switches to History view; URL updates to `panel=history`.
-- After reload: RCP opens on the History tab (state preserved via URL).
+- UI: RCP opens showing issue details (no History tab exists under autonomy).
+- URL: Updates to `panel=details` via replaceState (normalized from `history`).
+- No crash, no error modal.
+- Panel shows the Details view only (no tabs visible).
 
 ---
 
@@ -392,19 +399,14 @@
 
 ---
 
-### Scenario 16: Cmd/Ctrl+. still closes panel
+### Scenario 16: [OBSOLETE] Cmd/Ctrl+. shortcut removed
 
 **ID:** REG-002
 
-**Steps:**
+**[RIGHT-CONTEXT-PANEL-AUTONOMY-1] This scenario is obsolete.**
 
-1. Open RCP via UI.
-2. Press Cmd+. (Mac) or Ctrl+. (Windows/Linux).
-
-**Expected Results:**
-
-- Panel closes.
-- URL params are removed.
+The Cmd/Ctrl+. shortcut has been removed as part of the RCP autonomy redesign.
+Panel close is triggered only via close button (X), ESC key, or scrim click (narrow viewports).
 
 ---
 

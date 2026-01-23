@@ -5,10 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect, useMemo, type ReactNode } from 'react';
 import { GuardedLink } from '@/components/navigation/GuardedLink';
 import { projectsApi } from '@/lib/api';
-import {
-  RightContextPanelProvider,
-  useRightContextPanel,
-} from '@/components/right-context-panel/RightContextPanelProvider';
+import { RightContextPanelProvider } from '@/components/right-context-panel/RightContextPanelProvider';
 import { RightContextPanel } from '@/components/right-context-panel/RightContextPanel';
 import {
   CommandPaletteProvider,
@@ -227,29 +224,6 @@ const navItems = [
   { href: '/admin', label: 'Admin', Icon: AdminIcon },
 ] as const;
 
-// Demo descriptors for context switching demonstration
-const DEMO_DESCRIPTOR_A = {
-  kind: 'demo',
-  id: 'demo-1',
-  title: 'Demo Details A',
-  subtitle: 'First demo panel',
-  metadata: {
-    Status: 'Active',
-    Type: 'Primary',
-  },
-} as const;
-
-const DEMO_DESCRIPTOR_B = {
-  kind: 'demo',
-  id: 'demo-2',
-  title: 'Demo Details B',
-  subtitle: 'Second demo panel',
-  metadata: {
-    Status: 'Pending',
-    Type: 'Secondary',
-  },
-} as const;
-
 // [UI-POLISH-&-CLARITY-1] Section label mapping for breadcrumbs
 const SECTION_LABELS: Record<string, string> = {
   'store-health': 'Store Health',
@@ -305,11 +279,6 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [navState, setNavState] = useState<NavState>(() => readNavState());
   const collapsed = navState === 'collapsed';
-  const {
-    isOpen: isRightPanelOpen,
-    descriptor,
-    togglePanel,
-  } = useRightContextPanel();
   const { openPalette } = useCommandPalette();
 
   // [UI-POLISH-&-CLARITY-1] Breadcrumb state
@@ -393,20 +362,6 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
       persistNavState(next);
       return next;
     });
-  };
-
-  // Demo handler: First click opens A, subsequent clicks while open switch to B (or close if same)
-  const handleToggleDetails = () => {
-    if (!isRightPanelOpen) {
-      // Panel closed → open with A
-      togglePanel(DEMO_DESCRIPTOR_A);
-    } else if (descriptor?.id === 'demo-1') {
-      // Panel open with A → switch to B (context switch demo)
-      togglePanel(DEMO_DESCRIPTOR_B);
-    } else {
-      // Panel open with B (or other) → close
-      togglePanel();
-    }
   };
 
   // [UI-POLISH-&-CLARITY-1] Derive breadcrumb and title text
@@ -597,31 +552,7 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
                   {titleText}
                 </div>
               </div>
-              {/* [UI-POLISH-&-CLARITY-1] Grouped Action + Details controls */}
-              <div className="flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))]">
-                <button
-                  type="button"
-                  aria-disabled="true"
-                  className="inline-flex items-center px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
-                >
-                  Action
-                </button>
-                <div className="h-5 w-px bg-border" />
-                <button
-                  type="button"
-                  onClick={handleToggleDetails}
-                  aria-expanded={isRightPanelOpen}
-                  aria-controls="right-context-panel"
-                  data-testid="rcp-demo-open"
-                  className={`inline-flex items-center px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${
-                    isRightPanelOpen
-                      ? 'bg-muted text-foreground'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                  }`}
-                >
-                  Details
-                </button>
-              </div>
+              {/* [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Shell-level panel controls removed; panel opens autonomously based on route context */}
             </div>
           </div>
           <main className="min-h-0 flex-1 overflow-y-auto bg-background">

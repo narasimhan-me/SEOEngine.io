@@ -233,7 +233,12 @@ export default function AutomationPlaybooksPage() {
   const projectId = params.id as string;
   const feedback = useFeedback();
   // [PLAYBOOKS-SHELL-REMOUNT-1] RCP integration
-  const { openPanel } = useRightContextPanel();
+  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] Extended destructure for descriptor hydration
+  const {
+    openPanel,
+    isOpen: rcpIsOpen,
+    descriptor: rcpDescriptor,
+  } = useRightContextPanel();
 
   // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Deep-link support: read playbookId from path param or query param
   // Path param is preferred (canonical route: /playbooks/:playbookId)
@@ -443,6 +448,34 @@ export default function AutomationPlaybooksPage() {
       }
     }
   }, [searchParams, selectedPlaybookId]);
+
+  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] Hydrate RCP descriptor with playbook name
+  // Only runs when panel is open with matching playbook; does NOT reopen if dismissed
+  useEffect(() => {
+    if (
+      !rcpIsOpen ||
+      rcpDescriptor?.kind !== 'playbook' ||
+      !rcpDescriptor.id
+    ) {
+      return;
+    }
+    // Find the matching playbook definition
+    const matchingPlaybook = PLAYBOOKS.find((pb) => pb.id === rcpDescriptor.id);
+    if (!matchingPlaybook) {
+      return;
+    }
+    // Check if title differs
+    if (rcpDescriptor.title === matchingPlaybook.name) {
+      return;
+    }
+    // Enrich descriptor with display title (in-place update, no close/reopen)
+    openPanel({
+      kind: 'playbook',
+      id: matchingPlaybook.id,
+      title: matchingPlaybook.name,
+      scopeProjectId: projectId,
+    });
+  }, [rcpIsOpen, rcpDescriptor, projectId, openPanel]);
 
   const fetchInitialData = useCallback(async () => {
     try {

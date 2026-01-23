@@ -1,24 +1,43 @@
 # Right Context Panel - Behavioral Contract
 
+> **Updated:** RIGHT-CONTEXT-PANEL-AUTONOMY-1 (Autonomous panel behavior)
+
 ## 1. Trigger Mechanics
-- **Automatic (System-Driven)**: 
-  - Opens when a single row is selected in a `Dense Table`.
-  - Opens upon navigation to a `Detail View` if the primary object has unresolved critical actions.
-- **Requested (User-Driven)**:
-  - Invoked via the "Info" icon or "View Details" button on any list item.
-  - Toggled via the "Panel" icon in the Top Bar (persists last state).
+
+### [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Autonomous Context-Driven Behavior
+- **Automatic (System-Driven)**:
+  - Opens automatically when navigating to entity detail routes:
+    - `/projects/{projectId}/products/{productId}` → product context
+    - `/projects/{projectId}/pages/{pageId}` → page context
+    - `/projects/{projectId}/collections/{collectionId}` → collection context
+    - `/projects/{projectId}/playbooks/{playbookId}` → playbook context
+  - Closes automatically when navigating to contextless routes:
+    - `/projects` (projects list)
+    - `/dashboard`
+    - List pages without selection
+  - Opens when a single row is selected in a `Dense Table` (issues, playbooks lists).
+- **URL as Source of Truth**:
+  - Panel state is synced to URL params: `panel`, `entityType`, `entityId`, `entityTitle`
+  - Deep-links (PANEL-DEEP-LINKS-1) restore panel state deterministically
+
+### [REMOVED] User-Driven Mode Controls
+- ~~"Panel" icon in the Top Bar~~ → **Removed** (no global toggle)
+- ~~"Pin" toggle~~ → **Removed** (no pinning)
+- ~~Width toggle~~ → **Removed** (fixed default width)
+- ~~View tabs (Details/Recommendations/History/Help)~~ → **Removed** (Details view only)
 
 ## 2. Navigation Behavior
-- **Context Preservation**: The panel stays open (with updated data) when paging through items in a list (e.g., clicking "Next Product").
-- **Auto-Dismissal**: The panel closes automatically if the user switches high-level navigation segments (e.g., moving from "Products" to "Automation").
-- **Persistence Toggle**: Users can "Pin" the panel to prevent auto-dismissal.
+- **Context Preservation**: The panel stays open (with updated data) when switching between items in a list selection.
+- **Autonomous Close**: The panel closes automatically when navigating to contextless routes (no meaningful entity context).
+- **Dismissal Respect**: User-driven close (X, ESC, scrim click) sets dismissal for the current context; dismissal is respected until navigating to a different entity.
 
 ## 3. Interaction Patterns
 - **Complement vs Replace**:
-  - In **Operational Command**, it *complements* the canvas by shifting content to the left, maintaining visibility of the selected row.
-  - In **Contextual Specialist**, it *overlays* the canvas, providing a focus on the panel's data while blurring out background distractions.
-- **Dismissal**: Must support `ESC` key, a clear close `(X)` button, and clicking outside (if in Overlay mode).
+  - Desktop (≥1024px): Part of flex layout, shifts content to the left.
+  - Narrow (<1024px): Overlay mode with scrim; click scrim to close.
+- **Dismissal**: Must support `ESC` key, close `(X)` button, and clicking scrim (in Overlay mode).
+- **[REMOVED]** ~~Cmd/Ctrl + '.' shortcut~~ → Removed
 
 ## 4. Link Policy
-- **Default**: No in-body navigation links; header external-link is the primary navigation affordance.
-- **Exception**: Issue Details may include a single guidance CTA "View playbook" per ISSUE-TO-ACTION-GUIDANCE-1 (navigation-only; no execution).
+- **Single Rule**: No in-body navigation links; header external-link is the only navigation affordance.
+- **[RIGHT-CONTEXT-PANEL-AUTONOMY-1]** All in-body CTAs removed (including "View playbook"). Guidance sections are informational only.

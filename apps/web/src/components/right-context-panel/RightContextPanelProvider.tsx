@@ -18,6 +18,10 @@ import type { DeoIssue } from '@/lib/deo-issues';
 
 /**
  * Allowed panel views for URL deep-links.
+ * [RIGHT-CONTEXT-PANEL-AUTONOMY-1] View tabs removed from UI; only 'details' is active.
+ * [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-2] Legacy panel values (recommendations, history, help)
+ * are accepted for backward compatibility but normalized to 'details' at runtime.
+ * No view tabs exist under autonomy.
  */
 const ALLOWED_PANEL_VIEWS = new Set<PanelView>([
   'details',
@@ -128,15 +132,97 @@ function extractProjectIdFromPath(pathname: string): string | undefined {
   return match ? match[1] : undefined;
 }
 
-/**
- * Active view tab for the Right Context Panel.
- */
-export type PanelView = 'details' | 'recommendations' | 'history' | 'help';
+// ============================================================================
+// [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Context Derivation for Autonomous Open
+// ============================================================================
 
 /**
- * Width mode for the Right Context Panel.
+ * Derived route context for autonomous panel behavior.
  */
-export type PanelWidthMode = 'default' | 'wide';
+interface DerivedRouteContext {
+  kind: 'product' | 'page' | 'collection' | 'playbook';
+  id: string;
+  scopeProjectId: string;
+}
+
+/**
+ * Derives "meaningful context" from the current route for autonomous panel open.
+ * Returns null for routes without meaningful entity context (list pages, dashboard, etc.).
+ *
+ * Project detail contexts that MUST auto-open:
+ * - /projects/{projectId}/products/{productId}
+ * - /projects/{projectId}/pages/{pageId}
+ * - /projects/{projectId}/assets/pages/{pageId}
+ * - /projects/{projectId}/collections/{collectionId}
+ * - /projects/{projectId}/assets/collections/{collectionId}
+ * - /projects/{projectId}/playbooks/{playbookId}
+ */
+function deriveRouteContext(pathname: string): DerivedRouteContext | null {
+  // Product detail: /projects/{projectId}/products/{productId}
+  const productMatch = pathname.match(
+    /^\/projects\/([^/]+)\/products\/([^/]+)$/
+  );
+  if (productMatch) {
+    return {
+      kind: 'product',
+      id: productMatch[2],
+      scopeProjectId: productMatch[1],
+    };
+  }
+
+  // Page detail: /projects/{projectId}/pages/{pageId} OR /projects/{projectId}/assets/pages/{pageId}
+  const pageMatch = pathname.match(
+    /^\/projects\/([^/]+)\/(?:assets\/)?pages\/([^/]+)$/
+  );
+  if (pageMatch) {
+    return {
+      kind: 'page',
+      id: pageMatch[2],
+      scopeProjectId: pageMatch[1],
+    };
+  }
+
+  // Collection detail: /projects/{projectId}/collections/{collectionId} OR /projects/{projectId}/assets/collections/{collectionId}
+  const collectionMatch = pathname.match(
+    /^\/projects\/([^/]+)\/(?:assets\/)?collections\/([^/]+)$/
+  );
+  if (collectionMatch) {
+    return {
+      kind: 'collection',
+      id: collectionMatch[2],
+      scopeProjectId: collectionMatch[1],
+    };
+  }
+
+  // Playbook run: /projects/{projectId}/playbooks/{playbookId}
+  const playbookMatch = pathname.match(
+    /^\/projects\/([^/]+)\/playbooks\/([^/]+)$/
+  );
+  if (playbookMatch) {
+    return {
+      kind: 'playbook',
+      id: playbookMatch[2],
+      scopeProjectId: playbookMatch[1],
+    };
+  }
+
+  // No meaningful context
+  return null;
+}
+
+/**
+ * Generates a context key for dismissal tracking.
+ * Format: kind:id:scopeProjectId
+ */
+function getContextKey(ctx: DerivedRouteContext): string {
+  return `${ctx.kind}:${ctx.id}:${ctx.scopeProjectId}`;
+}
+
+/**
+ * Active view tab for the Right Context Panel.
+ * [RIGHT-CONTEXT-PANEL-AUTONOMY-1] View tabs removed from UI; 'details' is the only active view.
+ */
+export type PanelView = 'details' | 'recommendations' | 'history' | 'help';
 
 /**
  * Describes the content to display in the Right Context Panel.
@@ -182,18 +268,17 @@ export interface OpenContextPanelPayload {
   issues?: DeoIssue[];
 }
 
+/**
+ * [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Simplified state interface.
+ * Removed: widthMode, isPinned, togglePinned, toggleWidthMode, setActiveView
+ */
 interface RightContextPanelState {
   isOpen: boolean;
   descriptor: ContextDescriptor | null;
   activeView: PanelView;
-  widthMode: PanelWidthMode;
-  isPinned: boolean;
   openPanel: (descriptor: ContextDescriptor) => void;
   closePanel: () => void;
   togglePanel: (descriptor?: ContextDescriptor) => void;
-  setActiveView: (view: PanelView) => void;
-  togglePinned: () => void;
-  toggleWidthMode: () => void;
   /** Programmatic trigger that maps { type } → descriptor.kind */
   openContextPanel: (payload: OpenContextPanelPayload) => void;
 }
@@ -201,15 +286,6 @@ interface RightContextPanelState {
 const RightContextPanelContext = createContext<RightContextPanelState | null>(
   null
 );
-
-/**
- * Extracts the first segment of a pathname for route comparison.
- * e.g., '/projects/123' -> 'projects'
- */
-function getFirstSegment(pathname: string): string {
-  const segments = pathname.split('/').filter(Boolean);
-  return segments[0] || '';
-}
 
 /**
  * Checks if two descriptors have the same identity (kind + id).
@@ -259,15 +335,16 @@ export function RightContextPanelProvider({
   const [isOpen, setIsOpen] = useState(false);
   const [descriptor, setDescriptor] = useState<ContextDescriptor | null>(null);
   const [activeView, setActiveView] = useState<PanelView>('details');
-  const [widthMode, setWidthMode] = useState<PanelWidthMode>('default');
-  const [isPinned, setIsPinned] = useState(false);
   const lastActiveElementRef = useRef<Element | null>(null);
-  const previousSegmentRef = useRef<string>(getFirstSegment(pathname));
 
   // [PANEL-DEEP-LINKS-1] Re-entrancy guard to prevent URL→state→URL loops
   const isApplyingUrlStateRef = useRef(false);
   // [PANEL-DEEP-LINKS-1] Track if panel was opened via URL (for back/forward close behavior)
   const openedViaUrlRef = useRef(false);
+
+  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Dismissal tracking (NOT persisted preference)
+  // Tracks the context key that was manually dismissed
+  const dismissedContextKeyRef = useRef<string | null>(null);
 
   // [PANEL-DEEP-LINKS-1] URL update helper - preserves existing params, only adds/updates/removes panel keys
   const updateUrlParams = useCallback(
@@ -312,16 +389,22 @@ export function RightContextPanelProvider({
     [pathname, searchParams, router]
   );
 
-  // Define closePanel first so it can be used in effects
-  const closePanel = useCallback(() => {
+  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1] User-driven close: sets dismissal for current context
+  const closePanelUserDriven = useCallback(() => {
+    // Set dismissal for current context if panel is open with a descriptor
+    if (isOpen && descriptor) {
+      const routeContext = deriveRouteContext(pathname);
+      if (routeContext) {
+        dismissedContextKeyRef.current = getContextKey(routeContext);
+      }
+    }
+
     setIsOpen(false);
     setDescriptor(null);
-    // Reset view to details when closing
     setActiveView('details');
-    // [PANEL-DEEP-LINKS-1] Reset URL-opened flag
     openedViaUrlRef.current = false;
 
-    // [PANEL-DEEP-LINKS-1] Remove panel params from URL when closing
+    // Remove panel params from URL
     updateUrlParams({}, true);
 
     // Restore focus to the element that was active before opening
@@ -331,21 +414,29 @@ export function RightContextPanelProvider({
     ) {
       lastActiveElementRef.current.focus();
     }
+  }, [isOpen, descriptor, pathname, updateUrlParams]);
+
+  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1] System-driven close: does NOT set dismissal
+  const closePanelSystemDriven = useCallback(() => {
+    setIsOpen(false);
+    setDescriptor(null);
+    setActiveView('details');
+    openedViaUrlRef.current = false;
+
+    // Remove panel params from URL
+    updateUrlParams({}, true);
+
+    // Restore focus
+    if (
+      lastActiveElementRef.current &&
+      lastActiveElementRef.current instanceof HTMLElement
+    ) {
+      lastActiveElementRef.current.focus();
+    }
   }, [updateUrlParams]);
 
-  // Auto-close on Left Nav segment switch (unless pinned)
-  useEffect(() => {
-    const currentSegment = getFirstSegment(pathname);
-    if (previousSegmentRef.current !== currentSegment && isOpen) {
-      // If pinned, do NOT auto-close on first-segment change
-      if (!isPinned) {
-        setIsOpen(false);
-        setDescriptor(null);
-        setActiveView('details');
-      }
-    }
-    previousSegmentRef.current = currentSegment;
-  }, [pathname, isOpen, isPinned]);
+  // Public closePanel uses user-driven behavior (for X button, ESC, scrim click)
+  const closePanel = closePanelUserDriven;
 
   // ESC key to close (with modal dialog guard and editable element guard)
   useEffect(() => {
@@ -362,56 +453,39 @@ export function RightContextPanelProvider({
         // Guard: don't close if focus is in an editable element
         if (isEditableElement(event.target)) return;
 
-        // Use closePanel for consistent close behavior
-        closePanel();
+        // Use user-driven close for ESC
+        closePanelUserDriven();
       }
     }
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, closePanel]);
+  }, [isOpen, closePanelUserDriven]);
 
-  // Cmd/Ctrl + . keyboard shortcut to toggle panel closed/open
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      // Cmd+. (Mac) or Ctrl+. (Windows/Linux)
-      if ((event.metaKey || event.ctrlKey) && event.key === '.') {
-        event.preventDefault();
-
-        // Guard: don't process if a modal dialog is open (would conflict)
-        const openDialog = document.querySelector(
-          'dialog[open], [role="dialog"][aria-modal="true"]'
-        );
-        if (openDialog) return;
-
-        // If open → close; if closed → NO-OP (panel requires explicit descriptor to open)
-        if (isOpen) {
-          closePanel();
-        }
-        // Closed state: do nothing (panel needs content to open)
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, closePanel]);
+  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Removed Cmd/Ctrl + '.' shortcut entirely
 
   // ============================================================================
-  // [PANEL-DEEP-LINKS-1] URL → State Sync (source of truth when URL has params)
+  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Autonomous Open/Close + URL Sync
   // ============================================================================
   useEffect(() => {
     const deepLinkParams = parseDeepLinkParams(searchParams);
 
+    // PRIORITY 1: Valid PANEL-DEEP-LINKS-1 state exists → use URL as source of truth
     if (deepLinkParams) {
-      // Valid deep-link params exist → open panel deterministically
       const { panelView, entityType, entityId, entityTitle } = deepLinkParams;
+
+      // [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-2] Normalize legacy panel values to 'details'
+      // Under autonomy, only 'details' view is active (no view tabs).
+      if (panelView !== 'details') {
+        // Normalize URL to 'details' via replaceState, then let next effect run apply state
+        updateUrlParams({ panel: 'details' });
+        return;
+      }
 
       // Derive scopeProjectId from pathname if under /projects/[id]
       const derivedProjectId = extractProjectIdFromPath(pathname);
 
-      // [PANEL-DEEP-LINKS-1 FIXUP-1] Project-scope guard:
-      // If entityType is project-scoped but we're not under /projects/[id],
-      // use sentinel value to force "Unavailable in this project context." state.
+      // Project-scope guard
       const isProjectScoped = PROJECT_SCOPED_ENTITY_TYPES.has(entityType);
       const scopeProjectId =
         isProjectScoped && !derivedProjectId
@@ -422,93 +496,156 @@ export function RightContextPanelProvider({
       const urlDescriptor: ContextDescriptor = {
         kind: entityType,
         id: entityId,
-        title: entityTitle ?? entityId, // Truth-preserving fallback
+        title: entityTitle ?? entityId,
         scopeProjectId,
       };
 
       // Apply state with re-entrancy guard
       isApplyingUrlStateRef.current = true;
 
-      // Check if we need to update state
       const needsUpdate =
         !isOpen ||
         !isSameDescriptor(descriptor, urlDescriptor) ||
-        activeView !== panelView;
+        activeView !== 'details'; // [FIXUP-2] Always compare against 'details'
 
       if (needsUpdate) {
+        // Clear dismissal when opening via deep-link (explicit navigation intent)
+        dismissedContextKeyRef.current = null;
         setDescriptor(urlDescriptor);
         setIsOpen(true);
-        setActiveView(panelView);
+        setActiveView('details'); // [FIXUP-2] Always set to 'details' (no view tabs)
         openedViaUrlRef.current = true;
       }
 
-      // Clear re-entrancy guard after state update cycle
-      // Use setTimeout to ensure state updates have been processed
       setTimeout(() => {
         isApplyingUrlStateRef.current = false;
       }, 0);
+      return;
+    }
+
+    // PRIORITY 2: Route-derived context exists → auto-open (unless dismissed)
+    const routeContext = deriveRouteContext(pathname);
+
+    if (routeContext) {
+      const contextKey = getContextKey(routeContext);
+
+      // Check if this context was manually dismissed
+      if (dismissedContextKeyRef.current === contextKey) {
+        // Respect dismissal - keep panel closed, ensure URL is clean
+        // [FIXUP-1] No re-entrancy guard here - this is state→URL write, not URL→state
+        if (searchParams?.has('panel')) {
+          updateUrlParams({}, true);
+        }
+        return;
+      }
+
+      // Context changed from dismissed context → clear dismissal
+      if (
+        dismissedContextKeyRef.current &&
+        dismissedContextKeyRef.current !== contextKey
+      ) {
+        dismissedContextKeyRef.current = null;
+      }
+
+      // Build minimal descriptor for auto-open
+      const autoDescriptor: ContextDescriptor = {
+        kind: routeContext.kind,
+        id: routeContext.id,
+        title: routeContext.id, // Title will be populated by content renderer
+        scopeProjectId: routeContext.scopeProjectId,
+      };
+
+      // Check if we need to update
+      const needsUpdate = !isOpen || !isSameDescriptor(descriptor, autoDescriptor);
+
+      if (needsUpdate) {
+        setDescriptor(autoDescriptor);
+        setIsOpen(true);
+        setActiveView('details');
+        openedViaUrlRef.current = true;
+
+        // [FIXUP-1] Write URL params via replaceState - no re-entrancy guard needed
+        // (this is state→URL write, not URL→state application)
+        updateUrlParams({
+          panel: 'details',
+          entityType: routeContext.kind,
+          entityId: routeContext.id,
+        });
+      }
+      return;
+    }
+
+    // PRIORITY 3: No route-derived context and no valid deep-link params
+    // Auto-close if panel is open (navigated to contextless route)
+    // [FIXUP-1] No re-entrancy guard here - these are state→URL writes, not URL→state
+    if (isOpen) {
+      closePanelSystemDriven();
     } else {
-      // No valid deep-link params
-      // Check if panel params are present but invalid (e.g., bad entityType)
+      // Ensure URL is clean of any lingering panel params
       const hasAnyPanelParam =
         searchParams?.has('panel') ||
         searchParams?.has('entityType') ||
         searchParams?.has('entityId');
 
       if (hasAnyPanelParam) {
-        // Panel params present but invalid → ensure panel is CLOSED (do not crash)
-        // Do NOT auto-clean URL (user may want to fix it manually)
-        if (isOpen && openedViaUrlRef.current) {
-          isApplyingUrlStateRef.current = true;
-          setIsOpen(false);
-          setDescriptor(null);
-          setActiveView('details');
-          openedViaUrlRef.current = false;
-          setTimeout(() => {
-            isApplyingUrlStateRef.current = false;
-          }, 0);
-        }
-      } else {
-        // Panel params absent
-        // Only force-close if previously opened via URL (for back/forward behavior)
-        if (isOpen && openedViaUrlRef.current) {
-          isApplyingUrlStateRef.current = true;
-          setIsOpen(false);
-          setDescriptor(null);
-          setActiveView('details');
-          openedViaUrlRef.current = false;
-          setTimeout(() => {
-            isApplyingUrlStateRef.current = false;
-          }, 0);
-        }
-        // If panel was opened via UI (not URL), do NOT force-close
+        updateUrlParams({}, true);
       }
     }
-    // Note: We intentionally exclude isOpen, descriptor, activeView from deps
-    // to avoid re-running when those change from UI actions.
-    // The effect should only run when URL params change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, pathname]);
+  }, [pathname, searchParams]);
 
   const openPanel = useCallback(
     (newDescriptor: ContextDescriptor) => {
-      // If panel is already open with same kind+id → NO-OP (prevents flicker)
+      // [FIXUP-3] In-place descriptor enrichment when panel is open with same kind+id
       if (isOpen && isSameDescriptor(descriptor, newDescriptor)) {
+        // Check if newDescriptor has meaningful display field updates
+        const hasDisplayUpdates =
+          (newDescriptor.title && newDescriptor.title !== descriptor?.title) ||
+          (newDescriptor.subtitle && newDescriptor.subtitle !== descriptor?.subtitle) ||
+          (newDescriptor.openHref && newDescriptor.openHref !== descriptor?.openHref) ||
+          (newDescriptor.openHrefLabel && newDescriptor.openHrefLabel !== descriptor?.openHrefLabel) ||
+          (newDescriptor.metadata && JSON.stringify(newDescriptor.metadata) !== JSON.stringify(descriptor?.metadata));
+
+        if (!hasDisplayUpdates) {
+          // True NO-OP: no meaningful display changes
+          return;
+        }
+
+        // Merge/enrich descriptor in-place (no flicker, no close/reopen)
+        setDescriptor((prev) => {
+          if (!prev) return newDescriptor;
+          return {
+            ...prev,
+            title: newDescriptor.title || prev.title,
+            subtitle: newDescriptor.subtitle ?? prev.subtitle,
+            openHref: newDescriptor.openHref ?? prev.openHref,
+            openHrefLabel: newDescriptor.openHrefLabel ?? prev.openHrefLabel,
+            scopeProjectId: newDescriptor.scopeProjectId ?? prev.scopeProjectId,
+            issues: newDescriptor.issues ?? prev.issues,
+            metadata: { ...prev.metadata, ...newDescriptor.metadata },
+          };
+        });
+
+        // Sync URL entityTitle to enriched title
+        if (newDescriptor.title && newDescriptor.title !== descriptor?.title) {
+          updateUrlParams({ entityTitle: newDescriptor.title });
+        }
         return;
       }
+
+      // Clear dismissal (explicit selection intent)
+      dismissedContextKeyRef.current = null;
 
       // Only store lastActiveElement when transitioning CLOSED → OPEN
       if (!isOpen) {
         lastActiveElementRef.current = document.activeElement;
       }
 
-      // Update descriptor (handles both fresh open and context switch while open)
       setDescriptor(newDescriptor);
       setIsOpen(true);
-      // Reset to details view when opening with new descriptor
       setActiveView('details');
 
-      // [PANEL-DEEP-LINKS-1] Sync to URL (replaceState semantics)
+      // Sync to URL (replaceState semantics)
       updateUrlParams({
         panel: 'details',
         entityType: newDescriptor.kind,
@@ -522,22 +659,18 @@ export function RightContextPanelProvider({
   const togglePanel = useCallback(
     (newDescriptor?: ContextDescriptor) => {
       if (!isOpen) {
-        // CLOSED: open with descriptor if provided
         if (newDescriptor) {
           openPanel(newDescriptor);
         }
-        // CLOSED + no descriptor → do nothing (panel needs content to open)
       } else if (!newDescriptor) {
-        // OPEN + no descriptor → close
         closePanel();
       } else if (isSameDescriptor(descriptor, newDescriptor)) {
-        // OPEN + same kind+id → true toggle (close)
         closePanel();
       } else {
-        // OPEN + different kind+id → update descriptor (stay open)
+        // Clear dismissal on explicit context switch
+        dismissedContextKeyRef.current = null;
         setDescriptor(newDescriptor);
         setActiveView('details');
-        // [PANEL-DEEP-LINKS-1] Sync entity switch to URL
         updateUrlParams({
           panel: 'details',
           entityType: newDescriptor.kind,
@@ -549,28 +682,7 @@ export function RightContextPanelProvider({
     [isOpen, descriptor, openPanel, closePanel, updateUrlParams]
   );
 
-  const togglePinned = useCallback(() => {
-    setIsPinned((prev) => !prev);
-  }, []);
-
-  const toggleWidthMode = useCallback(() => {
-    setWidthMode((prev) => (prev === 'default' ? 'wide' : 'default'));
-  }, []);
-
-  // [PANEL-DEEP-LINKS-1] Wrapped setActiveView that syncs to URL
-  const handleSetActiveView = useCallback(
-    (view: PanelView) => {
-      setActiveView(view);
-      // Only update URL if panel is open (has entity context)
-      if (isOpen && descriptor) {
-        updateUrlParams({ panel: view });
-      }
-    },
-    [isOpen, descriptor, updateUrlParams]
-  );
-
   // Programmatic openContextPanel({ type, payload }) API
-  // Maps { type } → descriptor.kind
   const openContextPanel = useCallback(
     (payload: OpenContextPanelPayload) => {
       const newDescriptor: ContextDescriptor = {
@@ -593,14 +705,9 @@ export function RightContextPanelProvider({
     isOpen,
     descriptor,
     activeView,
-    widthMode,
-    isPinned,
     openPanel,
     closePanel,
     togglePanel,
-    setActiveView: handleSetActiveView,
-    togglePinned,
-    toggleWidthMode,
     openContextPanel,
   };
 

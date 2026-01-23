@@ -2771,6 +2771,60 @@ ISSUE-TO-ACTION-GUIDANCE-1 provides deterministic, static mapping from issue typ
 
 ---
 
+### Phase RIGHT-CONTEXT-PANEL-AUTONOMY-1: Autonomous Context Panel ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-23
+**Design System Version:** 1.5
+**EIC Version:** 1.5
+**Activation:** Behavior-only, token-only, Shopify-safe autonomous panel behavior
+
+#### Overview
+
+RIGHT-CONTEXT-PANEL-AUTONOMY-1 implements autonomous context-driven Right Context Panel behavior. The panel opens/closes deterministically based on route context, removing all manual mode switching controls (pin, width toggle, view tabs). All in-body navigation CTAs have been removed—header external-link is the only navigation affordance. Manual dismissal is respected until context meaningfully changes.
+
+#### Key Behavior Changes
+
+- **Autonomous Open**: Panel auto-opens on entity detail routes (products, pages, collections, playbooks)
+- **Autonomous Close**: Panel auto-closes on contextless list routes (projects list, dashboard, list pages without selection)
+- **Dismissal Model**: User-driven close (X, ESC, scrim click) sets dismissal for current context; respected until navigating to different entity
+- **URL Sync**: Auto-open writes URL params (`panel`, `entityType`, `entityId`) via replaceState semantics
+- **Deep-links**: PANEL-DEEP-LINKS-1 continues to work correctly
+
+#### Removed Controls
+
+- Shell-level Action/Details grouped control in LayoutShell header
+- Pin toggle in RCP header
+- Width toggle in RCP header
+- View tabs (Details/Recommendations/History/Help)
+- Cmd/Ctrl + '.' close shortcut
+- All in-body navigation links (including "View playbook" CTA)
+
+#### Non-Goals
+
+- **No new content types**: Does not introduce new panel content kinds
+- **No backend APIs**: Purely frontend behavior change
+- **No redesign**: Only removes controls and adds autonomy logic
+
+#### Core Files
+
+- `apps/web/src/components/layout/LayoutShell.tsx` (UPDATED)
+- `apps/web/src/components/right-context-panel/RightContextPanel.tsx` (UPDATED)
+- `apps/web/src/components/right-context-panel/RightContextPanelProvider.tsx` (UPDATED)
+- `apps/web/src/components/right-context-panel/ContextPanelIssueDetails.tsx` (UPDATED)
+
+#### Manual Testing
+
+- `docs/manual-testing/RIGHT-CONTEXT-PANEL-AUTONOMY-1.md`
+
+#### Critical Path Map
+
+- Updated CP-009 (Issue Engine Lite) with guidance-only scenarios (no CTA)
+- Updated CP-012 (Automation Engine) with removed "View playbook" CTA scenario
+- Updated CP-020 (UI Shell & Right Context Panel) with autonomy scenarios
+
+---
+
 ## Planned / Pending
 
 ### Phase GTM-ONBOARD-1: Guided Onboarding & First DEO Win 📄 DOCS COMPLETE — IMPLEMENTATION PENDING
@@ -3094,3 +3148,7 @@ _None at this time._
 | 7.31 | 2026-01-23 | **ISSUE-TO-ACTION-GUIDANCE-1**: Issue → Playbook Guidance (guidance-only, token-only, trust-preserving). (1) Created `issue-to-action-guidance.ts` with deterministic mapping from issueType to RecommendedPlaybook metadata (playbookId, name, oneLineWhatItDoes, affects, preconditions); initial mappings: missing_seo_title, missing_seo_description; (2) Added "Recommended action" section to ContextPanelIssueDetails.tsx: shows playbook guidance for actionable issues with mapping, shows "No automated action available." for informational/blocked issues or unmapped actionable issues; single CTA "View playbook" navigates to `/projects/:id/playbooks/:playbookId?step=preview&source=entry&returnTo=...&returnLabel=Issues` (no auto-execution); (3) Added subtle non-interactive playbook indicator (lightning bolt icon) to Issues list Issue column for actionable issues with mapping (no buttons/links); (4) Manual testing doc ISSUE-TO-ACTION-GUIDANCE-1.md; (5) Critical Path: CP-009 updated with RCP/list scenarios, CP-012 updated with navigation safety scenario, CRITICAL_PATH_MAP.md 6.36 added. **No backend changes.** **Core files:** issue-to-action-guidance.ts (NEW), ContextPanelIssueDetails.tsx, issues/page.tsx. |
 | 7.32 | 2026-01-23 | **ISSUE-TO-ACTION-GUIDANCE-1 FIXUP-1**: Trust language alignment + GuardedLink CTA. (1) Non-actionable states (blocked/informational) now use "Automation Guidance" section label instead of "Recommended Action" (no "Recommended" language when nothing to recommend); (2) "View playbook" CTA uses GuardedLink for unsaved-changes protection instead of raw next/link; (3) Mapping copy made non-overclaiming: uses "assets within playbook scope" instead of explicitly listing products/pages/collections. **No backend changes.** **Core files:** ContextPanelIssueDetails.tsx, issue-to-action-guidance.ts. **Manual Testing:** ISSUE-TO-ACTION-GUIDANCE-1.md updated (HP-001/003/004 expected section labels). **Critical Path:** CP-009 updated with FIXUP-1 checklist items (6.37). |
 | 7.33 | 2026-01-23 | **ISSUE-TO-ACTION-GUIDANCE-1 FIXUP-2**: Documentation coherence updates (RCP link policy exception + manual testing corrections). No code changes. (1) Updated RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1.md: Overview now states "header external-link is the default/primary navigation affordance" and "no in-body navigation links except the single guidance CTA 'View playbook' shown only for issue kind per ISSUE-TO-ACTION-GUIDANCE-1"; HP-009 expected results updated to allow Issue Details exception; (2) Updated RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md: HP-002 Help tab line updated to acknowledge Issue Details exception; (3) Updated RIGHT_CONTEXT_PANEL_CONTRACT.md: added "Link Policy" section (§4) with default rule and Issue Details exception; (4) Updated ISSUE-TO-ACTION-GUIDANCE-1.md: EC-001 now references "Automation Guidance" section label for unmapped actionable issues; ERR-001 corrected to note existing RCP read-only fetch may occur while guidance mapping introduces no new API calls. **Docs only:** RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1.md, RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md, RIGHT_CONTEXT_PANEL_CONTRACT.md, ISSUE-TO-ACTION-GUIDANCE-1.md, CRITICAL_PATH_MAP.md (6.38). |
+| 7.34 | 2026-01-23 | **RIGHT-CONTEXT-PANEL-AUTONOMY-1**: Autonomous context-driven panel behavior. (1) Removed shell-level Action/Details grouped control from LayoutShell header; (2) Removed RCP pin toggle, width toggle, view tabs (Details/Recommendations/History/Help), Cmd/Ctrl+. shortcut; (3) Added autonomous open on entity detail routes (products, pages, collections, playbooks); (4) Added autonomous close on contextless routes (projects list, dashboard, list pages without selection); (5) Added dismissal model - user-driven close (X, ESC, scrim click) respected until context meaningfully changes; (6) Auto-open writes URL params (panel, entityType, entityId) via replaceState; (7) Deep-links (PANEL-DEEP-LINKS-1) continue to work; (8) Removed all in-body navigation CTAs including "View playbook" - guidance is informational only; (9) Header external-link is the only navigation affordance. **Core files:** LayoutShell.tsx, RightContextPanel.tsx, RightContextPanelProvider.tsx, ContextPanelIssueDetails.tsx. **Manual Testing:** RIGHT-CONTEXT-PANEL-AUTONOMY-1.md. **Critical Path:** CP-009, CP-012, CP-020 updated (6.39). |
+| 7.35 | 2026-01-23 | **RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-1**: URL sync correctness fix. (1) Removed incorrect `isApplyingUrlStateRef` re-entrancy guard wrappers from state→URL write paths: dismissed context URL cleanup, auto-open URL writes, contextless close URL cleanup; (2) Re-entrancy guard now only protects URL→state application (deep-link path); (3) Removed obsolete CP-020 checklist items conflicting with autonomy (Details button click, pin toggle, width toggle, view tabs scenarios). **Core files:** RightContextPanelProvider.tsx. **Docs:** CRITICAL_PATH_MAP.md (6.40), RIGHT-CONTEXT-PANEL-AUTONOMY-1.md (doc paths), IMPLEMENTATION_PLAN.md. |
+| 7.36 | 2026-01-23 | **RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-2**: Deep-link panel view normalization. (1) Legacy `panel` URL values (recommendations, history, help) now normalized to `details` via replaceState on load; (2) `ALLOWED_PANEL_VIEWS` comment updated to document backward-compat acceptance + runtime coercion; (3) PRIORITY 1 deep-link branch now checks `panelView !== 'details'` and writes normalized URL before applying state; (4) `setActiveView` always receives `'details'` (no tabs under autonomy). **Core files:** RightContextPanelProvider.tsx. **Docs:** PANEL-DEEP-LINKS-1.md (HP-003 replaced with normalization scenario, REG-002 marked obsolete, URL schema updated), CRITICAL_PATH_MAP.md (6.41). |
+| 7.37 | 2026-01-23 | **RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3**: Pane header display title hydration. (1) `openPanel` now supports in-place descriptor enrichment when panel already open with same kind+id: merges title/subtitle/metadata/openHref without close/reopen, syncs URL entityTitle; (2) Added hydration useEffects to product detail (`/products/[productId]`), page detail (`/assets/pages/[pageId]`), collection detail (`/assets/collections/[collectionId]`), and playbooks page; (3) Hydration is "hydrate-only" - does NOT reopen panel if user dismissed. **Core files:** RightContextPanelProvider.tsx, products/[productId]/page.tsx, pages/[pageId]/page.tsx, collections/[collectionId]/page.tsx, automation/playbooks/page.tsx. **Docs:** RIGHT-CONTEXT-PANEL-AUTONOMY-1.md (HP-001/002 expected results, Known Issues), CRITICAL_PATH_MAP.md (6.42, CP-020 checklist). |

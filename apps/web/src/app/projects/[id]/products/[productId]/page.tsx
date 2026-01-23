@@ -71,6 +71,8 @@ import { useUnsavedChanges } from '@/components/unsaved-changes/UnsavedChangesPr
 // [DRAFT-REVIEW-ISOLATION-1] Import isolated non-AI Draft Review component
 // [DRAFT-FIELD-COVERAGE-1] Generalized to AssetDraftsTab supporting Products, Pages, Collections
 import { AssetDraftsTab } from '@/components/products/AssetDraftsTab';
+// [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] Import RCP hook for descriptor hydration
+import { useRightContextPanel } from '@/components/right-context-panel/RightContextPanelProvider';
 
 // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft state types
 type MetadataDraftState = 'unsaved' | 'saved' | 'applied';
@@ -265,6 +267,12 @@ export default function ProductOptimizationPage() {
 
   // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft lifecycle state
   const { setHasUnsavedChanges } = useUnsavedChanges();
+  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] RCP descriptor hydration
+  const {
+    isOpen: rcpIsOpen,
+    descriptor: rcpDescriptor,
+    openPanel: rcpOpenPanel,
+  } = useRightContextPanel();
   const [savedDraft, setSavedDraft] = useState<MetadataDraft | null>(null);
   const [appliedAt, setAppliedAt] = useState<string | null>(null);
   const [seoEditorHighlighted, setSeoEditorHighlighted] = useState(false);
@@ -896,6 +904,27 @@ export default function ProductOptimizationPage() {
     }
     fetchData();
   }, [router, fetchData]);
+
+  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] Hydrate RCP descriptor with product title
+  // Only runs when panel is open with matching product; does NOT reopen if dismissed
+  useEffect(() => {
+    if (
+      !rcpIsOpen ||
+      rcpDescriptor?.kind !== 'product' ||
+      rcpDescriptor.id !== productId ||
+      !product?.title ||
+      rcpDescriptor.title === product.title
+    ) {
+      return;
+    }
+    // Enrich descriptor with display title (in-place update, no close/reopen)
+    rcpOpenPanel({
+      kind: 'product',
+      id: productId,
+      title: product.title,
+      scopeProjectId: projectId,
+    });
+  }, [rcpIsOpen, rcpDescriptor, productId, projectId, product?.title, rcpOpenPanel]);
 
   if (loading) {
     return (

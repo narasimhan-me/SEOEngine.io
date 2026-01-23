@@ -20,6 +20,8 @@ import Link from 'next/link';
 import { isAuthenticated } from '@/lib/auth';
 import { projectsApi } from '@/lib/api';
 import { AssetDraftsTab } from '@/components/products/AssetDraftsTab';
+// [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] Import RCP hook for descriptor hydration
+import { useRightContextPanel } from '@/components/right-context-panel/RightContextPanelProvider';
 
 interface PageAsset {
   id: string;
@@ -58,6 +60,13 @@ export default function PageDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<PageAsset | null>(null);
 
+  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] RCP descriptor hydration
+  const {
+    isOpen: rcpIsOpen,
+    descriptor: rcpDescriptor,
+    openPanel: rcpOpenPanel,
+  } = useRightContextPanel();
+
   // Auth check and fetch on mount
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -92,6 +101,31 @@ export default function PageDetailPage() {
 
     fetchPage();
   }, [router, projectId, pageId]);
+
+  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] Hydrate RCP descriptor with page title
+  // Only runs when panel is open with matching page; does NOT reopen if dismissed
+  useEffect(() => {
+    if (
+      !rcpIsOpen ||
+      rcpDescriptor?.kind !== 'page' ||
+      rcpDescriptor.id !== pageId ||
+      !page
+    ) {
+      return;
+    }
+    // Compute display title (page.title or URL pathname as fallback)
+    const displayTitle = page.title || new URL(page.url).pathname;
+    if (rcpDescriptor.title === displayTitle) {
+      return;
+    }
+    // Enrich descriptor with display title (in-place update, no close/reopen)
+    rcpOpenPanel({
+      kind: 'page',
+      id: pageId,
+      title: displayTitle,
+      scopeProjectId: projectId,
+    });
+  }, [rcpIsOpen, rcpDescriptor, pageId, projectId, page, rcpOpenPanel]);
 
   /**
    * Switch tabs while preserving other URL params

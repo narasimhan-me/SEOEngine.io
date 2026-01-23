@@ -4,12 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { projectsApi } from '@/lib/api';
 import type { DeoIssue } from '@/lib/deo-issues';
 import { DEO_PILLARS } from '@/lib/deo-pillars';
-import {
-  getIssueToActionGuidance,
-  type RecommendedPlaybook,
-} from '@/lib/issue-to-action-guidance';
-import { buildPlaybookRunHref } from '@/lib/playbooks-routing';
-import { GuardedLink } from '@/components/navigation/GuardedLink';
+import { getIssueToActionGuidance } from '@/lib/issue-to-action-guidance';
 
 /**
  * [ISSUES-ENGINE-REMOUNT-1] Read-only issue details renderer for RCP.
@@ -18,9 +13,10 @@ import { GuardedLink } from '@/components/navigation/GuardedLink';
  *   - Why this matters (truthful fallback)
  *   - Actionability section with guidance
  *   - Affected assets list (when present)
- * [ISSUE-TO-ACTION-GUIDANCE-1] Added "Recommended action" section with playbook guidance.
- * Token-only styling; no in-body navigation links EXCEPT the single "View playbook" CTA
- * in the Recommended action section.
+ * [ISSUE-TO-ACTION-GUIDANCE-1] Added "Automation guidance" section with playbook info.
+ * [RIGHT-CONTEXT-PANEL-AUTONOMY-1] NO in-body navigation links.
+ *   - Guidance is strictly informational (no CTAs/links)
+ *   - Header external-link is the only navigation affordance
  */
 
 interface ContextPanelIssueDetailsProps {
@@ -33,18 +29,17 @@ type LoadState = 'loading' | 'loaded' | 'not_found' | 'error';
 
 /**
  * [ISSUE-TO-ACTION-GUIDANCE-1] Automation guidance section component.
+ * [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Strictly informational (NO CTAs/links in body).
  * [ISSUE-TO-ACTION-GUIDANCE-1 FIXUP-1] Trust language alignment:
  *   - Non-actionable states use "Automation Guidance" label (no "Recommended" when nothing to recommend)
  *   - Actionable + mapped states use "Recommended Action" label (recommendation is present)
- * Shows playbook guidance when issue is actionable and has a mapping.
+ * Shows playbook info when issue is actionable and has a mapping.
  * Shows "No automated action available." for informational or blocked issues.
  */
-function RecommendedActionSection({
+function AutomationGuidanceSection({
   issue,
-  projectId,
 }: {
   issue: DeoIssue;
-  projectId: string;
 }) {
   // Determine if we should show recommendations
   const isActionable =
@@ -86,7 +81,7 @@ function RecommendedActionSection({
     );
   }
 
-  // Render recommended playbook(s) - use "Recommended Action" since we have a recommendation
+  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Render playbook info (informational only, no CTAs)
   return (
     <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
       <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -94,11 +89,7 @@ function RecommendedActionSection({
       </p>
       <div className="mt-2 space-y-3">
         {guidance.map((playbook) => (
-          <RecommendedPlaybookBlock
-            key={playbook.playbookId}
-            playbook={playbook}
-            projectId={projectId}
-          />
+          <PlaybookInfoBlock key={playbook.playbookId} playbook={playbook} />
         ))}
       </div>
     </div>
@@ -106,29 +97,15 @@ function RecommendedActionSection({
 }
 
 /**
- * [ISSUE-TO-ACTION-GUIDANCE-1] Individual playbook recommendation block.
- * [ISSUE-TO-ACTION-GUIDANCE-1 FIXUP-1] CTA uses GuardedLink for unsaved-changes protection.
- * Displays playbook name, description, affects, preconditions, and CTA.
+ * [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Informational playbook block (NO navigation CTAs).
+ * Displays playbook name, description, affects, and preconditions.
+ * Navigation is via RCP header external-link only.
  */
-function RecommendedPlaybookBlock({
+function PlaybookInfoBlock({
   playbook,
-  projectId,
 }: {
-  playbook: RecommendedPlaybook;
-  projectId: string;
+  playbook: { playbookId: string; name: string; oneLineWhatItDoes: string; affects: string; preconditions: string[] };
 }) {
-  // Build canonical playbook route with returnTo context
-  const playbookHref = buildPlaybookRunHref({
-    projectId,
-    playbookId: playbook.playbookId,
-    step: 'preview',
-    source: 'entry',
-    extraParams: {
-      returnTo: `/projects/${projectId}/issues`,
-      returnLabel: 'Issues',
-    },
-  });
-
   return (
     <div className="space-y-2">
       {/* Playbook name */}
@@ -163,14 +140,8 @@ function RecommendedPlaybookBlock({
         </ul>
       </div>
 
-      {/* [FIXUP-1] CTA: View playbook (uses GuardedLink for unsaved-changes protection) */}
-      <GuardedLink
-        href={playbookHref}
-        className="mt-2 inline-flex items-center rounded-md border border-border bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/80 transition-colors"
-        data-testid="issue-rcp-view-playbook-cta"
-      >
-        View playbook
-      </GuardedLink>
+      {/* [RIGHT-CONTEXT-PANEL-AUTONOMY-1] NO in-body navigation links.
+          Header external-link is the only navigation affordance. */}
     </div>
   );
 }
@@ -421,11 +392,8 @@ export function ContextPanelIssueDetails({
         </p>
       </div>
 
-      {/* [ISSUE-TO-ACTION-GUIDANCE-1] Recommended action section */}
-      <RecommendedActionSection
-        issue={issue}
-        projectId={projectId}
-      />
+      {/* [ISSUE-TO-ACTION-GUIDANCE-1][RIGHT-CONTEXT-PANEL-AUTONOMY-1] Automation guidance section (informational only) */}
+      <AutomationGuidanceSection issue={issue} />
 
       {/* [FIXUP-3] Affected Assets List */}
       <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
@@ -473,11 +441,10 @@ export function ContextPanelIssueDetails({
       )}
 
       {/*
-       * [ISSUE-TO-ACTION-GUIDANCE-1] Navigation link policy:
-       * - NO in-body navigation links EXCEPT the single "View playbook" CTA in the
-       *   Recommended action section above.
-       * - Header external-link remains the primary navigation affordance for direct issue access.
-       * - "View playbook" navigates to playbook page in preview step; does NOT execute any operation.
+       * [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Navigation link policy:
+       * - NO in-body navigation links (all removed)
+       * - Header external-link is the only navigation affordance
+       * - Guidance sections are strictly informational
        */}
     </div>
   );

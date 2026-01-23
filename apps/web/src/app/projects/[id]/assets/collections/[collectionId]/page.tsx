@@ -20,6 +20,8 @@ import Link from 'next/link';
 import { isAuthenticated } from '@/lib/auth';
 import { projectsApi } from '@/lib/api';
 import { AssetDraftsTab } from '@/components/products/AssetDraftsTab';
+// [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] Import RCP hook for descriptor hydration
+import { useRightContextPanel } from '@/components/right-context-panel/RightContextPanelProvider';
 
 interface CollectionAsset {
   id: string;
@@ -57,6 +59,13 @@ export default function CollectionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [collection, setCollection] = useState<CollectionAsset | null>(null);
+
+  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] RCP descriptor hydration
+  const {
+    isOpen: rcpIsOpen,
+    descriptor: rcpDescriptor,
+    openPanel: rcpOpenPanel,
+  } = useRightContextPanel();
 
   // Auth check and fetch on mount
   useEffect(() => {
@@ -97,6 +106,31 @@ export default function CollectionDetailPage() {
 
     fetchCollection();
   }, [router, projectId, collectionId]);
+
+  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] Hydrate RCP descriptor with collection title
+  // Only runs when panel is open with matching collection; does NOT reopen if dismissed
+  useEffect(() => {
+    if (
+      !rcpIsOpen ||
+      rcpDescriptor?.kind !== 'collection' ||
+      rcpDescriptor.id !== collectionId ||
+      !collection
+    ) {
+      return;
+    }
+    // Compute display title (collection.title or URL pathname as fallback)
+    const displayTitle = collection.title || new URL(collection.url).pathname;
+    if (rcpDescriptor.title === displayTitle) {
+      return;
+    }
+    // Enrich descriptor with display title (in-place update, no close/reopen)
+    rcpOpenPanel({
+      kind: 'collection',
+      id: collectionId,
+      title: displayTitle,
+      scopeProjectId: projectId,
+    });
+  }, [rcpIsOpen, rcpDescriptor, collectionId, projectId, collection, rcpOpenPanel]);
 
   /**
    * Switch tabs while preserving other URL params

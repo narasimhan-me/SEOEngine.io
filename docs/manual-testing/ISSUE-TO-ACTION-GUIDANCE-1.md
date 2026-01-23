@@ -3,6 +3,8 @@
 > **Feature:** Issue → Playbook Guidance (Guidance-Only, Token-Only, Trust-Preserving)
 >
 > **Phase:** ISSUE-TO-ACTION-GUIDANCE-1
+>
+> **Updated:** RIGHT-CONTEXT-PANEL-AUTONOMY-1 (removed "View playbook" CTA)
 
 ---
 
@@ -10,17 +12,17 @@
 
 - **Purpose of the feature/patch:**
   - Provide deterministic, static mapping from issue types to recommended playbook metadata
-  - Display guidance section in RCP Issue Details with playbook recommendations (when available)
+  - Display guidance section in RCP Issue Details with playbook information (when available)
   - Add subtle, non-interactive playbook indicator in Issues list
-  - Ensure "View playbook" CTA navigates to playbook preview step WITHOUT auto-execution
+  - [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Guidance is informational only (no CTAs/links in RCP body)
   - Maintain trust contract: no automatic preview generation, no auto-apply
   - [FIXUP-1] Trust language: non-actionable states use "Automation Guidance" label (no "Recommended" when nothing to recommend)
 
 - **High-level user impact and what "success" looks like:**
-  - Users can discover available playbooks for actionable issues directly from the RCP
-  - "View playbook" CTA navigates to playbook page at preview step (no AI executed automatically)
+  - Users can see playbook information for actionable issues directly from the RCP
+  - [RIGHT-CONTEXT-PANEL-AUTONOMY-1] No in-body navigation links; header external-link is the only navigation affordance
   - Blocked and informational issues show calm "No automated action available." message with "Automation Guidance" label
-  - Actionable issues with playbook mapping show "Recommended Action" label (since a recommendation is present)
+  - Actionable issues with playbook mapping show "Recommended Action" label with informational playbook details
   - Issues list shows subtle indicator (icon) for issues with playbook options
   - No buttons, links, or interactive elements in the indicator — purely informational
 
@@ -55,7 +57,7 @@
 
 ## Test Scenarios (Happy Path)
 
-### Scenario 1: Issue with Mapping Shows "Recommended Action" in RCP
+### Scenario 1: Issue with Mapping Shows "Recommended Action" in RCP (Informational)
 
 **ID:** HP-001
 
@@ -77,32 +79,27 @@
 - **UI:** Section shows one-line description
 - **UI:** Section shows "Affects" line with asset scope summary
 - **UI:** Section shows "Before you proceed" preconditions list
-- **UI:** "View playbook" CTA button is visible (secondary styling, token-only, uses GuardedLink)
+- **UI:** [RIGHT-CONTEXT-PANEL-AUTONOMY-1] NO "View playbook" CTA button (guidance is informational only)
+- **UI:** No in-body navigation links; header external-link is the only navigation affordance
 - **API:** No API calls for playbook execution on panel open
 
 ---
 
-### Scenario 2: Clicking "View playbook" Navigates to Playbook Page
+### Scenario 2: [REMOVED] "View playbook" CTA No Longer Exists
 
 **ID:** HP-002
 
-**Preconditions:**
+**[RIGHT-CONTEXT-PANEL-AUTONOMY-1] This scenario is obsolete.**
 
-- RCP is open with issue showing "Recommended action" and "View playbook" CTA
-
-**Steps:**
-
-1. With RCP showing "Recommended action" section, click "View playbook" CTA
-2. Observe the navigation
-3. Observe the playbook page state
+The "View playbook" CTA has been removed as part of the RCP autonomy redesign.
+Guidance sections are now strictly informational with no in-body navigation links.
+The header external-link is the only navigation affordance in the RCP.
 
 **Expected Results:**
 
-- **UI:** Navigation occurs to `/projects/{projectId}/playbooks/{playbookId}?step=preview&source=entry&returnTo=...&returnLabel=Issues`
-- **UI:** Playbook page shows at Step 1 (Preview) — NOT automatically generating preview
-- **UI:** No "Generating..." or loading spinner visible for preview content
-- **API:** No AI preview generation API call on navigation
-- **Trust:** User must explicitly click to generate preview (no auto-AI)
+- **UI:** No "View playbook" CTA exists in the RCP body
+- **UI:** Playbook information is displayed as read-only text
+- **UI:** Navigation to playbooks must occur via header external-link or Playbooks list page
 
 ---
 
@@ -198,8 +195,8 @@
 **Expected Results:**
 
 - **UI:** RCP opens with the same issue details
-- **UI:** "Recommended Action" section shows same playbook guidance
-- **UI:** "View playbook" CTA is visible and functional
+- **UI:** "Recommended Action" section shows same playbook guidance (informational)
+- **UI:** [RIGHT-CONTEXT-PANEL-AUTONOMY-1] No "View playbook" CTA (removed)
 - **UI:** Deep-link restores complete panel state
 
 ---
@@ -218,13 +215,12 @@
 2. Navigate to Issues page
 3. Click on an actionable issue with playbook mapping
 4. Observe the RCP panel
-5. Click "View playbook" CTA
 
 **Expected Results:**
 
 - **UI:** RCP displays correctly within iframe (no overflow)
-- **UI:** "Recommended Action" section renders without visual issues
-- **UI:** "View playbook" CTA navigates correctly within iframe
+- **UI:** "Recommended Action" section renders without visual issues (informational only)
+- **UI:** [RIGHT-CONTEXT-PANEL-AUTONOMY-1] No "View playbook" CTA (removed)
 - **UI:** No horizontal scrolling required
 - **UI:** Token-only styling preserved (dark mode safe)
 

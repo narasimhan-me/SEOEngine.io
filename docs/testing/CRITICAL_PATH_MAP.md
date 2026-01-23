@@ -390,10 +390,10 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] ISSUES-ENGINE-REMOUNT-1 FIXUP-3: Issue selection updates RCP without navigation (no route change)
 - [ ] ISSUES-ENGINE-REMOUNT-1 FIXUP-3/FIXUP-4: Blocked issue shows "Blocked — not actionable in this context" guidance (non-speculative, no Fix/Apply language)
 - [ ] ISSUES-ENGINE-REMOUNT-1 FIXUP-3: Informational issue shows "Informational — outside EngineO.ai control" guidance (no urgency language)
-- [ ] ISSUE-TO-ACTION-GUIDANCE-1: RCP Issue Details shows "Recommended Action" section for actionable issues with playbook mapping
+- [ ] ISSUE-TO-ACTION-GUIDANCE-1: RCP Issue Details shows informational guidance when mapping exists (no CTAs/links per RIGHT-CONTEXT-PANEL-AUTONOMY-1)
 - [ ] ISSUE-TO-ACTION-GUIDANCE-1 FIXUP-1: Blocked/informational issues show "Automation Guidance" section (no "Recommended" language when nothing to recommend)
 - [ ] ISSUE-TO-ACTION-GUIDANCE-1: Issues list shows subtle indicator (icon) for issues with playbook options (no buttons/links)
-- [ ] ISSUE-TO-ACTION-GUIDANCE-1 FIXUP-1: "View playbook" CTA uses GuardedLink for unsaved-changes protection
+- [ ] RIGHT-CONTEXT-PANEL-AUTONOMY-1: Panel contains no in-body navigation links; guidance is informational only
 
 ---
 
@@ -541,7 +541,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] PLAYBOOKS-SHELL-REMOUNT-1: Zero-actionable estimate shows "No applicable changes" (no silent stall)
 - [ ] PLAYBOOKS-SHELL-REMOUNT-1: Blocked messaging (Free plan) is truthful and non-urgent
 - [ ] PLAYBOOKS-SHELL-REMOUNT-1: Shopify embedded iframe check (no horizontal overflow; RCP usable)
-- [ ] ISSUE-TO-ACTION-GUIDANCE-1: Navigating from Issue RCP "View playbook" lands on playbook preview step without auto-preview generation
+- [ ] RIGHT-CONTEXT-PANEL-AUTONOMY-1: No "View playbook" CTA exists in Issue RCP (removed; guidance is informational only)
 - [ ] PLAYBOOKS-SHELL-REMOUNT-1 FIXUP-2: RCP header external-link for playbooks uses canonical /playbooks/:playbookId route
 
 ---
@@ -808,7 +808,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 
 | Field                         | Value                                                                                                                                                              |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Manual Testing Doc(s)**     | `docs/manual-testing/LAYOUT-SHELL-IMPLEMENTATION-1.md`, `docs/manual-testing/RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md`, `docs/manual-testing/TABLES-&-LISTS-ALIGNMENT-1.md`, `docs/manual-testing/COMMAND-PALETTE-IMPLEMENTATION-1.md`, `docs/manual-testing/NAV-HIERARCHY-POLISH-1.md`, `docs/manual-testing/RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1.md`, `docs/manual-testing/PANEL-DEEP-LINKS-1.md`, `docs/manual-testing/UI-POLISH-&-CLARITY-1.md` |
+| **Manual Testing Doc(s)**     | `docs/manual-testing/LAYOUT-SHELL-IMPLEMENTATION-1.md`, `docs/manual-testing/RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md`, `docs/manual-testing/TABLES-&-LISTS-ALIGNMENT-1.md`, `docs/manual-testing/COMMAND-PALETTE-IMPLEMENTATION-1.md`, `docs/manual-testing/NAV-HIERARCHY-POLISH-1.md`, `docs/manual-testing/RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1.md`, `docs/manual-testing/PANEL-DEEP-LINKS-1.md`, `docs/manual-testing/UI-POLISH-&-CLARITY-1.md`, `docs/manual-testing/RIGHT-CONTEXT-PANEL-AUTONOMY-1.md` |
 | **Automated Tests**           | Planned                                                                                                                                                            |
 | **Last Verified (Manual)**    | [YYYY-MM-DD]                                                                                                                                                       |
 | **Last Verified (Automated)** | N/A                                                                                                                                                                |
@@ -826,7 +826,6 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] LAYOUT-SHELL-1: Shell renders correctly in Shopify embedded iframe
 - [ ] LAYOUT-SHELL-1: No double scrollbars in Shopify embedded context
 - [ ] LAYOUT-SHELL-1: Common laptop widths (1024px) do not cause overlap
-- [ ] RIGHT-CONTEXT-PANEL-1: Panel opens via Details button click
 - [ ] RIGHT-CONTEXT-PANEL-1: Panel closes via close button click
 - [ ] RIGHT-CONTEXT-PANEL-1: Panel closes via ESC key (when no modal dialog open)
 - [ ] RIGHT-CONTEXT-PANEL-1: ESC key does NOT close panel when modal dialog is open
@@ -837,11 +836,9 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] RIGHT-CONTEXT-PANEL-1: Focus returns to trigger element when panel closes
 - [ ] RIGHT-CONTEXT-PANEL-1: Panel surfaces dark mode safe (no white backgrounds)
 - [ ] RIGHT-CONTEXT-PANEL-1: Panel works in Shopify embedded iframe context
-- [ ] RIGHT-CONTEXT-PANEL-1-FIXUP-4: Pin toggle + leave /projects/[id] shows "Unavailable in this project context." (no stale details)
-- [ ] RIGHT-CONTEXT-PANEL-1-FIXUP-4: Width toggle cycles between default (w-80) and wide (w-96/28rem)
-- [ ] RIGHT-CONTEXT-PANEL-1-FIXUP-4: View tabs render expected stub copy (History: "No history available.", Help: link to Help Center)
 - [ ] RIGHT-CONTEXT-PANEL-1-FIXUP-4: admin/users Details trigger opens panel with correct descriptor fields (role, accountStatus, quotaPercent numeric-only)
 - [ ] RIGHT-CONTEXT-PANEL-1-FIXUP-4: Work Queue Details trigger opens panel with scopeActionable/scopeDetected and aiDisclosureText
+- [ ] RIGHT-CONTEXT-PANEL-AUTONOMY-1: Panel header displays entity name/title (not raw entityId) after detail data loads (products/pages/collections/playbooks)
 - [ ] TABLES-LISTS-1: DataTable/DataList hover states dark-mode safe (no white)
 - [ ] TABLES-LISTS-1: DataTable/DataList focus ring visible in dark mode
 - [ ] TABLES-LISTS-1: Explicit "View details" action opens RCP (row click does not)
@@ -937,6 +934,19 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 - [ ] UI-POLISH-&-CLARITY-1 FIXUP-3: Playbooks checkbox uses token-only primary (no border-gray-300 text-blue-600 focus:ring-blue-500 literals)
 - [ ] UI-POLISH-&-CLARITY-1 FIXUP-3: Playbooks generate/apply buttons use token-only primary/warning/danger styling
 - [ ] UI-POLISH-&-CLARITY-1 FIXUP-4: Playbooks "AI usage this month" callout uses token-only styling (no purple-* literals)
+- [ ] RIGHT-CONTEXT-PANEL-AUTONOMY-1: Panel auto-opens on entity detail routes (products, pages, collections, playbooks)
+- [ ] RIGHT-CONTEXT-PANEL-AUTONOMY-1: Panel auto-closes on contextless list routes (projects list, dashboard, list pages without selection)
+- [ ] RIGHT-CONTEXT-PANEL-AUTONOMY-1: Manual dismissal (X, ESC, scrim click) respected until context meaningfully changes
+- [ ] RIGHT-CONTEXT-PANEL-AUTONOMY-1: URL params (panel, entityType, entityId) written on auto-open (replaceState semantics)
+- [ ] RIGHT-CONTEXT-PANEL-AUTONOMY-1: Deep-links (PANEL-DEEP-LINKS-1) continue to work correctly
+- [ ] RIGHT-CONTEXT-PANEL-AUTONOMY-1: Shell-level Action/Details grouped control removed (only breadcrumbs + title in header)
+- [ ] RIGHT-CONTEXT-PANEL-AUTONOMY-1: Pin toggle removed from RCP header
+- [ ] RIGHT-CONTEXT-PANEL-AUTONOMY-1: Width toggle removed from RCP header
+- [ ] RIGHT-CONTEXT-PANEL-AUTONOMY-1: View tabs (Details/Recommendations/History/Help) removed
+- [ ] RIGHT-CONTEXT-PANEL-AUTONOMY-1: Cmd/Ctrl + '.' shortcut removed
+- [ ] RIGHT-CONTEXT-PANEL-AUTONOMY-1: No in-body navigation links exist anywhere in RCP body
+- [ ] RIGHT-CONTEXT-PANEL-AUTONOMY-1: Header external-link is the only navigation affordance
+- [ ] RIGHT-CONTEXT-PANEL-AUTONOMY-1: Shopify embedded iframe safe (no overflow, scroll contained)
 
 ---
 
@@ -1088,3 +1098,7 @@ This document tracks all critical paths in EngineO.ai that must be verified befo
 | 6.36 | 2026-01-23 | ISSUE-TO-ACTION-GUIDANCE-1: Added deterministic issue→playbook guidance mapping. RCP Issue Details shows "Recommended action" section with playbook name/description/preconditions for actionable issues with mapping. Issues list shows subtle non-interactive indicator. "View playbook" CTA navigates to preview step WITHOUT auto-execution. Updated CP-009 and CP-012 with new manual testing doc and key scenarios. |
 | 6.37 | 2026-01-23 | ISSUE-TO-ACTION-GUIDANCE-1 FIXUP-1: Trust language alignment + GuardedLink CTA. (1) Non-actionable states (blocked/informational) now use "Automation Guidance" section label instead of "Recommended Action" (no "Recommended" language when nothing to recommend); (2) "View playbook" CTA uses GuardedLink for unsaved-changes protection; (3) Mapping copy made non-overclaiming (uses "assets within playbook scope" instead of asserting specific asset types). Updated CP-009 checklist items and manual testing doc. |
 | 6.38 | 2026-01-23 | ISSUE-TO-ACTION-GUIDANCE-1 FIXUP-2: Documentation-only coherence update aligning RCP "no in-body links" policy with ISSUE-TO-ACTION-GUIDANCE-1's single CTA exception; manual test doc corrections. Updated RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1.md (Overview + HP-009), RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md (HP-002), RIGHT_CONTEXT_PANEL_CONTRACT.md (Link Policy section), ISSUE-TO-ACTION-GUIDANCE-1.md (EC-001 + ERR-001). |
+| 6.39 | 2026-01-23 | RIGHT-CONTEXT-PANEL-AUTONOMY-1: Autonomous context-driven panel behavior. (1) Removed shell-level Action/Details grouped control from LayoutShell; (2) Removed RCP pin toggle, width toggle, view tabs (Details/Recommendations/History/Help); (3) Removed Cmd/Ctrl+. shortcut; (4) Added autonomous open on entity detail routes (products, pages, collections, playbooks); (5) Added autonomous close on contextless routes; (6) Added dismissal model (user-driven close respected until context changes); (7) Auto-open writes URL params via replaceState; (8) Removed all in-body navigation CTAs including "View playbook" (guidance is informational only); (9) Header external-link is the only navigation affordance. Updated CP-009, CP-012, CP-020. Added RIGHT-CONTEXT-PANEL-AUTONOMY-1.md manual testing doc. |
+| 6.40 | 2026-01-23 | RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-1: URL sync correctness fix. Removed incorrect `isApplyingUrlStateRef` re-entrancy guard wrappers from state→URL write paths (dismissed context cleanup, auto-open URL writes, contextless close). Re-entrancy guard now only protects URL→state application (deep-link path). Removed obsolete CP-020 checklist items (Details button click, pin toggle, width toggle, view tabs scenarios). |
+| 6.41 | 2026-01-23 | RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-2: Deep-link panel param normalized to `details` under autonomy. Legacy `panel` values (recommendations, history, help) accepted for backward compatibility but coerced to `details` via replaceState. Updated PANEL-DEEP-LINKS-1.md: removed tab-switch scenario (HP-003 now tests normalization), marked Cmd/Ctrl+. scenario obsolete, updated URL schema to show `details` as canonical value. |
+| 6.42 | 2026-01-23 | RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3: Descriptor hydration for display titles. Panel header now shows entity display title (not raw entityId) after detail data loads. (1) `openPanel` supports in-place descriptor enrichment for same kind+id; (2) Added hydration effects to product, page, collection detail pages and playbooks page; (3) Title sync via `updateUrlParams({ entityTitle })`. Added CP-020 checklist item. Updated RIGHT-CONTEXT-PANEL-AUTONOMY-1.md (HP-001/HP-002 expected results, removed Known Issue). |

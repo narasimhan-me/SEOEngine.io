@@ -1,16 +1,19 @@
 # EngineO.ai – Manual Testing: RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1
 
 > Derived from MANUAL_TESTING_TEMPLATE.md
+>
+> **Updated:** RIGHT-CONTEXT-PANEL-AUTONOMY-1 (Autonomous panel behavior)
 
 ---
 
 ## Overview
 
 - **Purpose of the feature/patch:**
-  Implement the Right Context Panel (RCP) shell-level system with extended ContextDescriptor, panel view tabs, pin/width controls, and kind-specific content rendering. Integrates with ProductTable, admin/users, and ActionBundleCard via eye-icon Details triggers.
+  Implement the Right Context Panel (RCP) shell-level system with extended ContextDescriptor and kind-specific content rendering. Integrates with ProductTable, admin/users, and ActionBundleCard via eye-icon Details triggers.
+  [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Panel now uses autonomous context-driven behavior; pin/width/tabs controls have been removed.
 
 - **High-level user impact and what "success" looks like:**
-  Users can view contextual details in a slide-in panel without leaving their current view. Panel supports pinning (persists across navigation within same section), width toggle (default/wide), and four view tabs (Details, Recommendations, History, Help). Eye-icon buttons in tables/cards open the panel with kind-specific content.
+  Users can view contextual details in a slide-in panel without leaving their current view. [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Panel opens/closes autonomously based on route context. Eye-icon buttons in tables/cards open the panel with kind-specific content. Close button (X), ESC key, and scrim click are the only manual close controls.
 
 - **Related phases/sections in docs/IMPLEMENTATION_PLAN.md:**
   Phase RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1
@@ -66,88 +69,43 @@
 
 ---
 
-### Scenario 2: RCP view tabs switch content
+### Scenario 2: [OBSOLETE] RCP view tabs switch content
 
 **ID:** HP-002
 
-**Preconditions:**
+**[RIGHT-CONTEXT-PANEL-AUTONOMY-1] This scenario is obsolete.**
 
-- [ ] RCP is open with a product descriptor
-
-**Steps:**
-
-1. Observe the four tabs: Details, Recommendations, History, Help.
-2. Click "Recommendations" tab.
-3. Observe content change.
-4. Click "History" tab.
-5. Click "Help" tab.
-6. Click "Details" tab.
-
-**Expected Results:**
-
-- UI: Each tab becomes active (border-b-2 border-primary).
-- UI: Content area updates to show tab-specific content.
-- UI: Details shows kind-specific metadata blocks.
-- UI: Recommendations shows "Recommendations (based on detected issues)" header with recommendedAction if available, otherwise "No recommendations available for this item."
-- UI: History shows "History" header with "No history available." message.
-- UI: Help shows "Help" header with "Help content is not yet available for this item." and non-navigational stub copy "Visit the Help Center for general documentation." (no link - header external-link is the default navigation affordance; no links in Help body. Exception: Issue Details may show a single "View playbook" guidance CTA per ISSUE-TO-ACTION-GUIDANCE-1).
+View tabs (Details, Recommendations, History, Help) have been removed as part of the RCP autonomy redesign.
+The panel now shows Details view only. No tab switching UI exists.
 
 ---
 
-### Scenario 3: RCP pin toggle persists across navigation
+### Scenario 3: [OBSOLETE] RCP pin toggle persists across navigation
 
 **ID:** HP-003
 
-**Preconditions:**
+**[RIGHT-CONTEXT-PANEL-AUTONOMY-1] This scenario is obsolete.**
 
-- [ ] RCP is open
-- [ ] Currently on /projects/[id]/products
-
-**Steps:**
-
-1. Click the pin icon (thumbtack) in the panel header.
-2. Observe the pin button state change (filled icon, bg-primary/10).
-3. Navigate to a different page within the same section (e.g., /projects/[id]/work-queue).
-4. Observe the RCP.
-5. Navigate to a different section (e.g., /dashboard).
-6. Observe the RCP.
-
-**Expected Results:**
-
-- UI: Pin button shows active state when pinned (filled icon, primary background tint).
-- UI: When pinned, RCP stays open during navigation within same URL segment.
-- UI: When navigating to different first-segment (projects -> dashboard), RCP stays open (pinned ignores auto-close).
-- UI: Unpinned panel would close on first-segment change.
-- UI: [FIXUP-4] When pinned and navigating outside /projects/[id] (e.g., to /dashboard or /admin), panel shows "Unavailable in this project context." instead of stale details.
+Pin toggle has been removed as part of the RCP autonomy redesign.
+Panel now uses autonomous context-driven behavior:
+- Auto-opens on entity detail routes
+- Auto-closes on contextless routes
+- User dismissal is respected until context changes
 
 ---
 
-### Scenario 4: RCP width toggle changes panel width
+### Scenario 4: [OBSOLETE] RCP width toggle changes panel width
 
 **ID:** HP-004
 
-**Preconditions:**
+**[RIGHT-CONTEXT-PANEL-AUTONOMY-1] This scenario is obsolete.**
 
-- [ ] RCP is open
-- [ ] Desktop viewport (>=1024px)
-
-**Steps:**
-
-1. Observe the panel width (default: w-80).
-2. Click the width toggle icon (double-arrow).
-3. Observe the panel width change.
-4. Click the width toggle again.
-5. Observe the panel return to default width.
-
-**Expected Results:**
-
-- UI: Default width is w-80 (320px).
-- UI: Wide mode width is w-96 lg:w-[28rem] (384px / 448px on larger screens).
-- UI: Width toggle cycles between default and wide.
+Width toggle has been removed as part of the RCP autonomy redesign.
+Panel now has fixed default width (w-80 / 320px).
 
 ---
 
-### Scenario 5: RCP close via X button, ESC key, Cmd+.
+### Scenario 5: RCP close via X button, ESC key
 
 **ID:** HP-005
 
@@ -162,15 +120,12 @@
 3. Reopen the panel via eye icon.
 4. Press ESC key.
 5. Verify panel closes.
-6. Reopen the panel.
-7. Press Cmd+. (Mac) or Ctrl+. (Windows/Linux).
-8. Verify panel closes.
 
 **Expected Results:**
 
 - UI: X button closes panel.
 - UI: ESC key closes panel (unless focus is in editable element or modal is open).
-- UI: Cmd/Ctrl+. closes panel.
+- UI: [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Cmd/Ctrl+. shortcut removed.
 - UI: Focus returns to the element that was active before panel opened.
 
 ---
@@ -268,9 +223,11 @@
 
 ---
 
-### Scenario 10: RCP scope project mismatch handling
+### Scenario 10: [UPDATED] RCP scope project mismatch handling
 
 **ID:** HP-010
+
+**[RIGHT-CONTEXT-PANEL-AUTONOMY-1] Updated for autonomous behavior.**
 
 **Preconditions:**
 
@@ -280,16 +237,14 @@
 **Steps:**
 
 1. Open RCP from ProductTable in Project A.
-2. Pin the panel.
-3. Navigate to /projects/[projectB]/products.
-4. Observe the RCP content.
+2. Navigate to /projects/[projectB]/products.
+3. Observe the RCP content.
 
 **Expected Results:**
 
-- UI: RCP shows "Unavailable in this project context." message in Details tab.
-- UI: Panel title still shows the original product title.
-- UI: This prevents displaying stale/wrong data in different project context.
-- UI: [FIXUP-4] Also applies when pinned panel is open and navigating outside /projects/[id] entirely (e.g., to /dashboard) - panel renders safe "Unavailable" state instead of stale details.
+- UI: [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Panel closes automatically when navigating to a different project (context changed).
+- UI: If deep-link params are in URL, panel shows "Unavailable in this project context." message.
+- UI: No pinning exists (removed per RIGHT-CONTEXT-PANEL-AUTONOMY-1).
 
 ---
 
