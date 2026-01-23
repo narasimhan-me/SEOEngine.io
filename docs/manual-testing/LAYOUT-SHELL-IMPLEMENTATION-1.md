@@ -66,9 +66,13 @@
 
 ---
 
-### Scenario 2: Left Nav collapses/expands and persists
+### Scenario 2: Left Nav is icon-only always (OBSOLETE - see WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1)
 
 **ID:** HP-002
+
+> ⚠️ **OBSOLETE**: This scenario is superseded by WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1.
+> The left rail is now icon-only always with no collapse/expand toggle.
+> See `docs/manual-testing/WORK-CANVAS-ARCHITECTURE-LOCK-1.md` for current test scenarios.
 
 **Preconditions:**
 
@@ -76,15 +80,16 @@
 
 **Steps:**
 
-1. Click the Left Nav toggle to collapse.
-2. Confirm icons remain visible and labels hide.
-3. Refresh the page.
-4. Confirm Left Nav remains collapsed after refresh.
-5. Click the toggle to expand.
+1. ~~Click the Left Nav toggle to collapse.~~ (Toggle removed)
+2. Confirm left rail shows icons only (no labels visible).
+3. Confirm no collapse/expand toggle exists.
+4. Confirm left rail width is fixed at 72px.
+5. Refresh the page.
+6. Confirm left rail remains icon-only (no state change).
 
 **Expected Results:**
 
-- UI: Collapse/expand transitions are clean; state persists across refresh.
+- UI: Left rail is always icon-only; no collapse/expand toggle; no localStorage persistence needed.
 - API: N/A
 
 ---
@@ -141,11 +146,12 @@
 **Steps:**
 
 1. Resize to ~1024px width (or similar).
-2. Collapse and expand Left Nav.
+2. ~~Collapse and expand Left Nav.~~ (Toggle removed per WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1)
+3. Verify left rail remains icon-only at fixed 72px width.
 
 **Expected Behavior:**
 
-- No overlap; Canvas remains usable; header and nav remain visible.
+- No overlap; Canvas remains usable; header and nav remain visible; left rail is icon-only.
 
 ---
 
@@ -235,7 +241,8 @@
 
 - [ ] /login and marketing routes still render without the shell
 - [ ] /projects and /dashboard render with shell
-- [ ] Left Nav toggle persists after refresh
+- [ ] ~~Left Nav toggle persists after refresh~~ (OBSOLETE - toggle removed per WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1)
+- [ ] Left rail is icon-only always (no expand state)
 
 ---
 

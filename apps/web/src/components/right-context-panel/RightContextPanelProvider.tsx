@@ -134,6 +134,11 @@ function extractProjectIdFromPath(pathname: string): string | undefined {
 
 // ============================================================================
 // [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Context Derivation for Autonomous Open
+// [WORK-CANVAS-ARCHITECTURE-LOCK-1] Autonomy Boundaries + URL/State Contract:
+// - RCP state is DERIVED from route context, not independently routed
+// - URL may reflect selection (deep-links), but provider does NOT introduce new routing decisions
+// - Dismissal behavior: "respect intent until context meaningfully changes"
+// - RCP NEVER initiates navigation - it is read-only context display
 // ============================================================================
 
 /**

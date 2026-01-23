@@ -6,12 +6,18 @@ import { useParams, usePathname } from 'next/navigation';
 /**
  * [NAV-IA-CONSISTENCY-1] Project navigation with grouped sections.
  * [CENTER-PANE-NAV-REMODEL-1] Demoted to low-emphasis contextual index.
+ * [WORK-CANVAS-ARCHITECTURE-LOCK-1] Scoped nav container with "inside this project" visual cue.
  *
  * Styling changes (CENTER-PANE-NAV-REMODEL-1):
  * - Reduced visual weight (lighter typography/contrast, tighter spacing)
  * - Subtle active state: thin accent indicator + readable text (no heavy background blocks)
  * - No icons added
  * - Calm hover state (must not compete with Global Nav)
+ *
+ * Styling changes (WORK-CANVAS-ARCHITECTURE-LOCK-1):
+ * - Distinct container surface (bg-[hsl(var(--surface-card))]) with border
+ * - Strengthened active-state: more visible accent bar + font-semibold
+ * - No icons or counters/badges added
  *
  * Sections:
  * - OPERATE: Store Health, Work Queue
@@ -108,8 +114,11 @@ export default function ProjectSideNav({ onNavigate }: ProjectSideNavProps) {
       className="w-full max-w-xs flex-shrink-0 md:w-44"
       data-testid="project-sidenav"
     >
-      {/* [CENTER-PANE-NAV-REMODEL-1] Tighter spacing (space-y-4 instead of space-y-6) */}
-      <div className="space-y-4">
+      {/* [WORK-CANVAS-ARCHITECTURE-LOCK-1] Distinct container surface: "inside this project" visual cue */}
+      {/* Low-emphasis background (surface-card) with border to separate from center content without competing with left rail */}
+      <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-2">
+        {/* [CENTER-PANE-NAV-REMODEL-1] Tighter spacing (space-y-4 instead of space-y-6) */}
+        <div className="space-y-4">
         {navSections.map((section) => (
           <div key={section.heading}>
             {/* [CENTER-PANE-NAV-REMODEL-1] Section headings: lighter weight, reduced opacity */}
@@ -127,13 +136,17 @@ export default function ProjectSideNav({ onNavigate }: ProjectSideNavProps) {
                         - Lighter inactive text (text-muted-foreground)
                         - Calm hover (transparent bg with slight text emphasis)
                         - Tighter padding (py-1.5 px-2)
-                        - Smaller text (text-xs) */}
+                        - Smaller text (text-xs)
+                        [WORK-CANVAS-ARCHITECTURE-LOCK-1] Strengthened active-state:
+                        - More visible accent bar (bg-primary/70 instead of bg-primary/50)
+                        - Font weight increase (font-semibold instead of font-medium)
+                        - No icons or counters/badges */}
                     <GuardedLink
                       href={`/projects/${projectId}/${item.path}`}
                       onClick={onNavigate}
                       className={`relative block rounded px-2 py-1.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
                         active
-                          ? 'text-foreground font-medium before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-3/5 before:w-0.5 before:rounded-full before:bg-primary/50'
+                          ? 'text-foreground font-semibold before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-3/5 before:w-0.5 before:rounded-full before:bg-primary/70'
                           : 'text-muted-foreground hover:text-foreground/80'
                       }`}
                     >
@@ -145,6 +158,7 @@ export default function ProjectSideNav({ onNavigate }: ProjectSideNavProps) {
             </ul>
           </div>
         ))}
+        </div>
       </div>
     </nav>
   );

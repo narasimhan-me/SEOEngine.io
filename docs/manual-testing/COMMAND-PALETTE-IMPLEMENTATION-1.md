@@ -517,7 +517,7 @@
 
 - [ ] RCP still opens/closes normally
 - [ ] ESC closes RCP when palette is not open
-- [ ] Left Nav collapse/expand unaffected
+- [ ] Left rail is icon-only always (no expand/collapse toggle) — regression sanity check [FIXUP-2]
 - [ ] Dark mode toggle still works
 - [ ] Theme selector dropdown still works
 

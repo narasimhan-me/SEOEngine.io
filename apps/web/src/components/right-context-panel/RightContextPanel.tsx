@@ -45,6 +45,12 @@ function ExternalLinkIcon({ className }: { className?: string }) {
  * - Only manual control: Close button (X), ESC key, scrim click
  * - Header external-link is the sole navigation affordance
  *
+ * [WORK-CANVAS-ARCHITECTURE-LOCK-1] RCP Contract Lock:
+ * - Only close/collapse control remains (no mode switching)
+ * - Header external-link is the ONLY navigation affordance
+ * - RCP NEVER changes route - it displays context only
+ * - Content rhythm: Why this matters → Impact/risk → What can be done → Optional deep detail
+ *
  * Z-index: below Command Palette (z-50), above main content.
  */
 export function RightContextPanel() {
@@ -141,9 +147,11 @@ export function RightContextPanel() {
         </div>
 
         {/* [RIGHT-CONTEXT-PANEL-AUTONOMY-1] View tabs removed; panel shows Details view only */}
+        {/* [WORK-CANVAS-ARCHITECTURE-LOCK-1] No navigation/mode controls - RCP is context display only */}
 
         {/* Panel Content */}
         {/* [UI-POLISH-&-CLARITY-1] Increased content padding */}
+        {/* [WORK-CANVAS-ARCHITECTURE-LOCK-1] Content rhythm: Why this matters → Impact/risk → What can be done → Optional deep detail */}
         <div className="flex-1 overflow-y-auto p-5">
           <ContextPanelContentRenderer
             activeView={activeView}

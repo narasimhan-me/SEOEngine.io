@@ -17,27 +17,8 @@ import {
   useCenterPaneHeaderState,
 } from '@/components/layout/CenterPaneHeaderProvider';
 
-type NavState = 'expanded' | 'collapsed';
-
-const NAV_STATE_STORAGE_KEY = 'engineo_nav_state';
-
-function readNavState(): NavState {
-  if (typeof window === 'undefined') return 'expanded';
-  try {
-    const value = window.localStorage.getItem(NAV_STATE_STORAGE_KEY);
-    return value === 'collapsed' ? 'collapsed' : 'expanded';
-  } catch {
-    return 'expanded';
-  }
-}
-
-function persistNavState(next: NavState) {
-  try {
-    window.localStorage.setItem(NAV_STATE_STORAGE_KEY, next);
-  } catch {
-    // ignore
-  }
-}
+// [WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1] Left rail is icon-only always (no expand/collapse toggle)
+// Removed: NavState type, NAV_STATE_STORAGE_KEY, readNavState(), persistNavState()
 
 function isActivePath(pathname: string, href: string) {
   if (href === '/') return pathname === '/';
@@ -127,20 +108,7 @@ function HelpIcon({ className }: { className?: string }) {
   );
 }
 
-function ChevronLeftIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <path d="M15 18l-6-6 6-6" />
-    </svg>
-  );
-}
+// [WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1] Removed ChevronLeftIcon - no longer needed (collapse toggle removed)
 
 function ChevronRightIcon({ className }: { className?: string }) {
   return (
@@ -281,9 +249,8 @@ function setCachedProjectName(projectId: string, name: string): void {
 
 function LayoutShellInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [navState, setNavState] = useState<NavState>(() => readNavState());
-  const collapsed = navState === 'collapsed';
   const { openPalette } = useCommandPalette();
+  // [WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1] Left rail is icon-only always (no collapse state)
 
   // [CENTER-PANE-NAV-REMODEL-1] Read header state from context
   const headerState = useCenterPaneHeaderState();
@@ -363,13 +330,7 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
     };
   }, [routeInfo]);
 
-  const toggleNav = () => {
-    setNavState((prev) => {
-      const next: NavState = prev === 'collapsed' ? 'expanded' : 'collapsed';
-      persistNavState(next);
-      return next;
-    });
-  };
+  // [WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1] Removed toggleNav - left rail is always icon-only
 
   // [UI-POLISH-&-CLARITY-1] Derive breadcrumb and title text
   const breadcrumbText = useMemo(() => {
@@ -475,52 +436,25 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
         </div>
       </header>
       {/* Main content row - relative positioning context for overlay panel containment */}
+      {/* [WORK-CANVAS-ARCHITECTURE-LOCK-1] Visual hierarchy: left rail (global) | center pane (work canvas) | RCP (context) */}
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
         {/* Command Palette overlay */}
         <CommandPalette />
+        {/* [WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1] Left Rail: icon-only always (no expand/collapse toggle) */}
         <aside
-          className={[
-            'z-40 shrink-0 border-r border-border bg-[hsl(var(--surface-card))] transition-[width] duration-200',
-            collapsed ? 'w-[72px]' : 'w-64',
-          ].join(' ')}
+          className="z-40 w-[72px] shrink-0 border-r border-border bg-[hsl(var(--surface-card))]"
         >
           <div className="flex h-full flex-col">
-            <div
-              className={[
-                'flex items-center px-3 py-3',
-                collapsed ? 'justify-center' : 'justify-between',
-              ].join(' ')}
-            >
-              {!collapsed && (
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Navigation
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={toggleNav}
-                aria-label={
-                  collapsed
-                    ? 'Expand left navigation'
-                    : 'Collapse left navigation'
-                }
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              >
-                {collapsed ? (
-                  <ChevronRightIcon className="h-4 w-4" />
-                ) : (
-                  <ChevronLeftIcon className="h-4 w-4" />
-                )}
-              </button>
-            </div>
+            {/* [WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1] Removed "Navigation" heading and collapse toggle */}
+            <div className="h-3" aria-hidden="true" />
             <nav className="flex-1 px-2 pb-3">
               <ul className="space-y-1">
                 {navItems.map((item) => {
                   const active = isActivePath(pathname, item.href);
                   // [NAV-HIERARCHY-POLISH-1] Global Nav: increased visual weight
+                  // [WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1] Always icon-only, centered
                   const itemClassName = [
-                    'group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                    collapsed ? 'justify-center' : 'gap-3',
+                    'group flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                     active
                       ? 'bg-primary/10 text-primary font-semibold'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground',
@@ -531,14 +465,11 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
                         href={item.href}
                         className={itemClassName}
                         title={item.label}
+                        aria-label={item.label}
                         aria-current={active ? 'page' : undefined}
                       >
                         <item.Icon className="h-5 w-5 shrink-0" />
-                        {!collapsed && (
-                          <span className="min-w-0 flex-1 truncate">
-                            {item.label}
-                          </span>
-                        )}
+                        {/* [WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1] No visible label text - icon only */}
                       </GuardedLink>
                     </li>
                   );
@@ -547,8 +478,10 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
             </nav>
           </div>
         </aside>
+        {/* [WORK-CANVAS-ARCHITECTURE-LOCK-1] Center Pane: Work Canvas - first-class surface, distinct from side surfaces */}
         <div className="flex min-w-0 flex-1 flex-col bg-background">
           {/* [CENTER-PANE-NAV-REMODEL-1] Standardized center-pane header: Breadcrumbs (small, secondary) → Title (primary) → Description (muted) → Actions (right-aligned) */}
+          {/* [WORK-CANVAS-ARCHITECTURE-LOCK-1] No ambiguous global "Action" button - actions are context-specific only */}
           {!headerState.hideHeader && (
             <div className="shrink-0 border-b border-border bg-[hsl(var(--surface-card))] px-4 py-3">
               <div className="flex items-center justify-between gap-4">
@@ -581,6 +514,7 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
             <div className="min-h-full p-4">{children}</div>
           </main>
         </div>
+        {/* [WORK-CANVAS-ARCHITECTURE-LOCK-1] RCP: Raised surface with border divider, no navigation/mode controls */}
         <RightContextPanel />
       </div>
     </div>
