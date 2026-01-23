@@ -19,16 +19,22 @@ export interface RowStatusChipProps {
   chipLabel: RowChipLabel;
 }
 
+// [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only chip styles
 const chipStyles: Record<RowChipLabel, string> = {
-  '✅ Optimized': 'bg-green-50 text-green-700 border-green-200',
-  '⚠ Needs attention': 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  '🟡 Draft saved (not applied)': 'bg-blue-50 text-blue-700 border-blue-200',
-  '⛔ Blocked': 'bg-red-50 text-red-700 border-red-200',
+  '✅ Optimized':
+    'border-border bg-[hsl(var(--success-background))] text-[hsl(var(--success-foreground))]',
+  '⚠ Needs attention':
+    'border-border bg-[hsl(var(--warning-background))] text-[hsl(var(--warning-foreground))]',
+  '🟡 Draft saved (not applied)':
+    'border-border bg-[hsl(var(--info-background))] text-[hsl(var(--info-foreground))]',
+  '⛔ Blocked':
+    'border-border bg-[hsl(var(--danger-background))] text-[hsl(var(--danger-foreground))]',
 };
 
 export function RowStatusChip({ chipLabel }: RowStatusChipProps) {
+  // [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only fallback
   const styles =
-    chipStyles[chipLabel] || 'bg-gray-50 text-gray-700 border-gray-200';
+    chipStyles[chipLabel] || 'border-border bg-muted text-muted-foreground';
 
   return (
     <span

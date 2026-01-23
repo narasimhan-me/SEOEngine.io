@@ -12,7 +12,6 @@ import Link from 'next/link';
 import {
   DataTable,
   type DataTableColumn,
-  type DataTableRow,
 } from '@/components/tables/DataTable';
 import type { DeoIssue } from '@/lib/deo-issues';
 import { isAuthenticated } from '@/lib/auth';
@@ -1602,21 +1601,22 @@ export default function AutomationPlaybooksPage() {
   const showContinueBlockedPanel =
     previewPresent && !canContinueToEstimate && continueBlockers.length > 0;
 
+  // [UI-POLISH-&-CLARITY-1 FIXUP-2] Token-only previewValidityClass
   let previewValidityLabel: string | null = null;
   let previewValidityClass = '';
   if (hasPreview) {
     if (previewStale) {
       previewValidityLabel = 'Rules changed — preview out of date';
       previewValidityClass =
-        'border border-amber-200 bg-amber-50 text-amber-800';
+        'border border-border bg-[hsl(var(--warning-background))] text-[hsl(var(--warning-foreground))]';
     } else if (!estimatePresent) {
       previewValidityLabel = 'Estimate required to continue';
       previewValidityClass =
-        'border border-amber-200 bg-amber-50 text-amber-800';
+        'border border-border bg-[hsl(var(--warning-background))] text-[hsl(var(--warning-foreground))]';
     } else if (planEligible && estimateEligible) {
       previewValidityLabel = 'Preview valid';
       previewValidityClass =
-        'border border-green-200 bg-green-50 text-green-800';
+        'border border-border bg-[hsl(var(--success-background))] text-[hsl(var(--success-foreground))]';
     }
   }
 
@@ -1960,7 +1960,7 @@ export default function AutomationPlaybooksPage() {
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="text-gray-600">Loading playbooks...</div>
+        <div className="text-muted-foreground">Loading playbooks...</div>
       </div>
     );
   }
@@ -2015,8 +2015,8 @@ export default function AutomationPlaybooksPage() {
 
         {/* Header */}
         <div className="mb-6 mt-4">
-          <h1 className="text-2xl font-bold text-gray-900">Draft Review</h1>
-          <p className="text-gray-600">
+          <h1 className="text-2xl font-bold text-foreground">Draft Review</h1>
+          <p className="text-muted-foreground">
             Review pending drafts for this {assetTypeLower.slice(0, -1)}.
           </p>
         </div>
@@ -2024,14 +2024,14 @@ export default function AutomationPlaybooksPage() {
         {/* Loading state */}
         {draftReviewLoading && (
           <div className="flex min-h-[200px] items-center justify-center">
-            <div className="text-gray-600">Loading drafts...</div>
+            <div className="text-muted-foreground">Loading drafts...</div>
           </div>
         )}
 
         {/* Error state */}
         {draftReviewError && (
-          <div className="rounded-md bg-red-50 p-4">
-            <p className="text-sm text-red-800">{draftReviewError}</p>
+          <div className="rounded-md bg-[hsl(var(--danger-background))] p-4">
+            <p className="text-sm text-[hsl(var(--danger-foreground))]">{draftReviewError}</p>
           </div>
         )}
 
@@ -2043,16 +2043,16 @@ export default function AutomationPlaybooksPage() {
                 {draftReviewData?.drafts.map((draft) => (
                   <div
                     key={draft.id}
-                    className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+                    className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-4 shadow-sm"
                   >
                     <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="font-medium text-gray-900">
+                        <h3 className="font-medium text-foreground">
                           {draft.playbookId === 'missing_seo_title'
                             ? 'SEO Title Suggestion'
                             : 'SEO Description Suggestion'}
                         </h3>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-muted-foreground">
                           Status: {draft.status} · Updated:{' '}
                           {new Date(draft.updatedAt).toLocaleDateString()}
                         </p>
@@ -2060,8 +2060,8 @@ export default function AutomationPlaybooksPage() {
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                           draft.status === 'READY'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
+                            ? 'bg-[hsl(var(--success-background))] text-[hsl(var(--success-foreground))]'
+                            : 'bg-[hsl(var(--warning-background))] text-[hsl(var(--warning-foreground))]'
                         }`}
                       >
                         {draft.status}
@@ -2119,10 +2119,10 @@ export default function AutomationPlaybooksPage() {
                               <div
                                 key={itemIndex}
                                 data-testid={`draft-item-${draft.id}-${itemIndex}`}
-                                className="rounded border border-gray-200 bg-white p-4 text-sm"
+                                className="rounded border border-border bg-[hsl(var(--surface-card))] p-4 text-sm"
                               >
                                 <div className="flex items-center justify-between mb-3">
-                                  <div className="font-medium text-gray-900">
+                                  <div className="font-medium text-foreground">
                                     {item.field === 'seoTitle'
                                       ? 'Title'
                                       : 'Description'}
@@ -2139,7 +2139,7 @@ export default function AutomationPlaybooksPage() {
                                           currentValue
                                         )
                                       }
-                                      className="text-xs text-indigo-600 hover:text-indigo-800"
+                                      className="text-xs text-primary hover:text-primary/80"
                                     >
                                       Edit
                                     </button>
@@ -2149,14 +2149,14 @@ export default function AutomationPlaybooksPage() {
                                 {/* [DRAFT-DIFF-CLARITY-1] Diff UI: Current (live) vs Draft (staged) */}
                                 <div
                                   data-testid="draft-diff-current"
-                                  className="rounded bg-gray-50 p-3 mb-3"
+                                  className="rounded bg-[hsl(var(--surface-raised))] p-3 mb-3"
                                 >
-                                  <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
                                     Current (live)
                                   </div>
-                                  <div className="text-gray-700">
+                                  <div className="text-foreground">
                                     {liveValue || (
-                                      <span className="italic text-gray-400">
+                                      <span className="italic text-muted-foreground/70">
                                         (empty)
                                       </span>
                                     )}
@@ -2165,9 +2165,9 @@ export default function AutomationPlaybooksPage() {
 
                                 <div
                                   data-testid="draft-diff-draft"
-                                  className="rounded bg-indigo-50 p-3"
+                                  className="rounded bg-[hsl(var(--info-background))] p-3"
                                 >
-                                  <div className="text-xs font-medium text-indigo-600 uppercase tracking-wide mb-1">
+                                  <div className="text-xs font-medium text-[hsl(var(--info-foreground))] uppercase tracking-wide mb-1">
                                     Draft (staged)
                                   </div>
 
@@ -2180,7 +2180,7 @@ export default function AutomationPlaybooksPage() {
                                         onChange={(e) =>
                                           setEditValue(e.target.value)
                                         }
-                                        className="w-full rounded border border-gray-300 p-2 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                        className="w-full rounded border border-border bg-background p-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                                         rows={
                                           item.field === 'seoDescription'
                                             ? 4
@@ -2190,7 +2190,7 @@ export default function AutomationPlaybooksPage() {
                                       />
                                       {/* Edit error inline */}
                                       {editError && (
-                                        <div className="mt-1 text-xs text-red-600">
+                                        <div className="mt-1 text-xs text-[hsl(var(--danger-foreground))]">
                                           {editError}
                                         </div>
                                       )}
@@ -2209,7 +2209,7 @@ export default function AutomationPlaybooksPage() {
                                             )
                                           }
                                           disabled={editSaving}
-                                          className="inline-flex items-center rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                                          className="inline-flex items-center rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                                         >
                                           {editSaving
                                             ? 'Saving...'
@@ -2220,7 +2220,7 @@ export default function AutomationPlaybooksPage() {
                                           data-testid={`draft-item-cancel-${draft.id}-${itemIndex}`}
                                           onClick={handleCancelEdit}
                                           disabled={editSaving}
-                                          className="inline-flex items-center rounded bg-white px-3 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                                          className="inline-flex items-center rounded bg-[hsl(var(--surface-card))] px-3 py-1.5 text-xs font-medium text-foreground ring-1 ring-inset ring-border hover:bg-muted disabled:opacity-50"
                                         >
                                           Cancel
                                         </button>
@@ -2228,29 +2228,29 @@ export default function AutomationPlaybooksPage() {
                                     </div>
                                   ) : (
                                     /* Display mode with empty draft messaging */
-                                    <div className="text-indigo-900">
+                                    <div className="text-[hsl(var(--info-foreground))]">
                                       {hasDraftContent ? (
                                         <>
                                           {draftValue}
                                           {item.ruleWarnings &&
                                             item.ruleWarnings.length > 0 && (
-                                              <div className="mt-1 text-xs text-amber-600">
+                                              <div className="mt-1 text-xs text-[hsl(var(--warning-foreground))]">
                                                 Warnings:{' '}
                                                 {item.ruleWarnings.join(', ')}
                                               </div>
                                             )}
                                         </>
                                       ) : wasExplicitlyCleared ? (
-                                        <span className="italic text-amber-600">
+                                        <span className="italic text-[hsl(var(--warning-foreground))]">
                                           Draft will clear this field when
                                           applied
                                         </span>
                                       ) : noDraftGenerated ? (
-                                        <span className="italic text-gray-400">
+                                        <span className="italic text-muted-foreground/70">
                                           No draft generated yet
                                         </span>
                                       ) : (
-                                        <span className="italic text-gray-400">
+                                        <span className="italic text-muted-foreground/70">
                                           (empty)
                                         </span>
                                       )}
@@ -2269,29 +2269,29 @@ export default function AutomationPlaybooksPage() {
                                 className="space-y-2"
                               >
                                 {legacyItem.suggestedTitle && (
-                                  <div className="rounded bg-gray-50 p-3 text-sm">
-                                    <div className="font-medium text-gray-700">
+                                  <div className="rounded bg-[hsl(var(--surface-raised))] p-3 text-sm">
+                                    <div className="font-medium text-foreground">
                                       Title
                                     </div>
-                                    <div className="mt-1 text-gray-900">
+                                    <div className="mt-1 text-foreground">
                                       {legacyItem.suggestedTitle}
                                     </div>
                                   </div>
                                 )}
                                 {legacyItem.suggestedDescription && (
-                                  <div className="rounded bg-gray-50 p-3 text-sm">
-                                    <div className="font-medium text-gray-700">
+                                  <div className="rounded bg-[hsl(var(--surface-raised))] p-3 text-sm">
+                                    <div className="font-medium text-foreground">
                                       Description
                                     </div>
-                                    <div className="mt-1 text-gray-900">
+                                    <div className="mt-1 text-foreground">
                                       {legacyItem.suggestedDescription}
                                     </div>
                                   </div>
                                 )}
                                 {!legacyItem.suggestedTitle &&
                                   !legacyItem.suggestedDescription && (
-                                    <div className="rounded bg-gray-50 p-3 text-sm">
-                                      <div className="text-gray-500">
+                                    <div className="rounded bg-[hsl(var(--surface-raised))] p-3 text-sm">
+                                      <div className="text-muted-foreground">
                                         (No suggestion)
                                       </div>
                                     </div>
@@ -2309,10 +2309,10 @@ export default function AutomationPlaybooksPage() {
               /* Zero-draft empty state - MANDATORY per DRAFT-ROUTING-INTEGRITY-1 */
               <div
                 data-testid="draft-review-empty"
-                className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center"
+                className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-[hsl(var(--surface-raised))] p-8 text-center"
               >
                 <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
+                  className="mx-auto h-12 w-12 text-muted-foreground"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -2325,14 +2325,14 @@ export default function AutomationPlaybooksPage() {
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                   />
                 </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                <h3 className="mt-2 text-sm font-medium text-foreground">
                   No drafts available for this item.
                 </h3>
                 <div className="mt-6 flex gap-3">
                   {/* Primary CTA: View issues */}
                   <Link
                     href={viewIssuesHref}
-                    className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                    className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
                     View issues
                   </Link>
@@ -2340,7 +2340,7 @@ export default function AutomationPlaybooksPage() {
                   <Link
                     href={backHref}
                     data-testid="draft-review-back"
-                    className="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                    className="inline-flex items-center rounded-md bg-[hsl(var(--surface-card))] px-4 py-2 text-sm font-semibold text-foreground shadow-sm ring-1 ring-inset ring-border hover:bg-muted"
                   >
                     Back
                   </Link>
@@ -2357,7 +2357,7 @@ export default function AutomationPlaybooksPage() {
     <div>
       {/* Breadcrumbs */}
       <nav className="mb-4 text-sm">
-        <ol className="flex flex-wrap items-center gap-2 text-gray-500">
+        <ol className="flex flex-wrap items-center gap-2 text-muted-foreground">
           <li>
             <Link
               href="/projects"
@@ -2365,7 +2365,7 @@ export default function AutomationPlaybooksPage() {
                 event.preventDefault();
                 handleNavigate('/projects');
               }}
-              className="hover:text-gray-700"
+              className="hover:text-foreground"
             >
               Projects
             </Link>
@@ -2378,7 +2378,7 @@ export default function AutomationPlaybooksPage() {
                 event.preventDefault();
                 handleNavigate(`/projects/${projectId}/store-health`);
               }}
-              className="hover:text-gray-700"
+              className="hover:text-foreground"
             >
               {projectName || 'Project'}
             </Link>
@@ -2392,7 +2392,7 @@ export default function AutomationPlaybooksPage() {
                 event.preventDefault();
                 handleNavigate(`/projects/${projectId}/playbooks`);
               }}
-              className="hover:text-gray-700"
+              className="hover:text-foreground"
             >
               Playbooks
             </Link>
@@ -2403,21 +2403,21 @@ export default function AutomationPlaybooksPage() {
       {/* Header */}
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-foreground">
             Playbooks
             {/* [ASSETS-PAGES-1.1] Show asset type badge when not PRODUCTS */}
             {currentAssetType !== 'PRODUCTS' && (
-              <span className="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+              <span className="ml-2 inline-flex items-center rounded-full bg-[hsl(var(--info-background))] px-2.5 py-0.5 text-xs font-medium text-[hsl(var(--info-foreground))]">
                 {getAssetTypeLabel(currentAssetType).plural}
               </span>
             )}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Safely apply AI-powered fixes to missing SEO metadata, with preview
             and token estimates before you run anything.
           </p>
           {/* [ROLES-3] Role visibility label */}
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             You are the {getRoleDisplayLabel(effectiveRole)}
           </p>
         </div>
@@ -2428,7 +2428,7 @@ export default function AutomationPlaybooksPage() {
               `/projects/${projectId}/automation/playbooks/entry?source=playbooks_page`
             )
           }
-          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+          className="inline-flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted"
         >
           Create playbook
         </button>
@@ -2449,11 +2449,11 @@ export default function AutomationPlaybooksPage() {
 
       {/* [ASSETS-PAGES-1.1-UI-HARDEN] Missing scope safety block for PAGES/COLLECTIONS */}
       {isMissingScopeForPagesCollections && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+        <div className="mb-6 rounded-lg border border-border bg-[hsl(var(--danger-background))] p-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0">
               <svg
-                className="h-5 w-5 text-red-500"
+                className="h-5 w-5 text-[hsl(var(--danger-foreground))]"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -2467,11 +2467,11 @@ export default function AutomationPlaybooksPage() {
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-red-800">
+              <p className="text-sm font-semibold text-[hsl(var(--danger-foreground))]">
                 Missing scope for {getAssetTypeLabel(currentAssetType).plural}.
                 Return to Work Queue.
               </p>
-              <p className="mt-1 text-xs text-red-700">
+              <p className="mt-1 text-xs text-[hsl(var(--danger-foreground))]">
                 To run playbooks on {getAssetTypeLabel(currentAssetType).plural}
                 , you must navigate from the Work Queue with a specific scope.
                 This prevents unintended project-wide changes.
@@ -2479,7 +2479,7 @@ export default function AutomationPlaybooksPage() {
               <div className="mt-3">
                 <Link
                   href={`/projects/${projectId}/work-queue`}
-                  className="inline-flex items-center rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-red-700"
+                  className="inline-flex items-center rounded-md bg-[hsl(var(--danger))] px-3 py-1.5 text-xs font-medium text-[hsl(var(--primary-foreground))] shadow-sm hover:opacity-90"
                 >
                   Return to Work Queue
                 </Link>
@@ -2491,11 +2491,11 @@ export default function AutomationPlaybooksPage() {
 
       {/* [ASSETS-PAGES-1.1-UI-HARDEN] Scope summary for PAGES/COLLECTIONS with valid scope */}
       {currentAssetType !== 'PRODUCTS' && currentScopeAssetRefs.length > 0 && (
-        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+        <div className="mb-6 rounded-lg border border-border bg-[hsl(var(--info-background))] p-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0">
               <svg
-                className="h-5 w-5 text-blue-600"
+                className="h-5 w-5 text-[hsl(var(--info-foreground))]"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -2509,14 +2509,14 @@ export default function AutomationPlaybooksPage() {
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-blue-900">
+              <p className="text-sm font-semibold text-[hsl(var(--info-foreground))]">
                 Scope summary
               </p>
               <div className="mt-1 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                <span className="inline-flex items-center rounded-full bg-[hsl(var(--info-background))] px-2.5 py-0.5 text-xs font-medium text-[hsl(var(--info-foreground))]">
                   {getAssetTypeLabel(currentAssetType).plural}
                 </span>
-                <span className="text-xs text-blue-700">
+                <span className="text-xs text-[hsl(var(--info-foreground))]">
                   {currentScopeAssetRefs
                     .slice(0, 3)
                     .map((ref) => {
@@ -2526,7 +2526,7 @@ export default function AutomationPlaybooksPage() {
                     })
                     .join(', ')}
                   {currentScopeAssetRefs.length > 3 && (
-                    <span className="text-blue-500">
+                    <span className="text-[hsl(var(--info-foreground))]/70">
                       {' '}
                       +{currentScopeAssetRefs.length - 3} more
                     </span>
@@ -2540,11 +2540,11 @@ export default function AutomationPlaybooksPage() {
 
       {/* [ROLES-3] VIEWER mode banner */}
       {effectiveRole === 'VIEWER' && (
-        <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+        <div className="mb-6 rounded-lg border border-border bg-[hsl(var(--surface-raised))] p-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0">
               <svg
-                className="h-5 w-5 text-gray-500"
+                className="h-5 w-5 text-muted-foreground"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -2564,10 +2564,10 @@ export default function AutomationPlaybooksPage() {
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-700">
+              <p className="text-sm font-semibold text-foreground">
                 View-only mode
               </p>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 You are viewing this project as a Viewer. To generate previews
                 or apply changes, ask the project Owner to upgrade your role.
               </p>
@@ -2578,12 +2578,12 @@ export default function AutomationPlaybooksPage() {
 
       {/* Next DEO Win Banner - shown when navigating from overview card */}
       {showNextDeoWinBanner && !bannerDismissed && (
-        <div className="mb-6 rounded-lg border border-purple-200 bg-purple-50 p-4">
+        <div className="mb-6 rounded-lg border border-border bg-[hsl(var(--success-background))] p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0">
                 <svg
-                  className="h-5 w-5 text-purple-600"
+                  className="h-5 w-5 text-[hsl(var(--success-foreground))]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -2597,10 +2597,10 @@ export default function AutomationPlaybooksPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-purple-900">
+                <h3 className="text-sm font-semibold text-[hsl(var(--success-foreground))]">
                   Nice work on your first DEO win
                 </h3>
-                <p className="mt-1 text-xs text-purple-800">
+                <p className="mt-1 text-xs text-[hsl(var(--success-foreground))]">
                   Next up, use Playbooks to fix missing SEO titles and
                   descriptions in bulk. Start with a preview — no changes are
                   applied until you confirm.
@@ -2609,7 +2609,7 @@ export default function AutomationPlaybooksPage() {
             </div>
             <button
               onClick={() => setBannerDismissed(true)}
-              className="flex-shrink-0 text-purple-500 hover:text-purple-700"
+              className="flex-shrink-0 text-[hsl(var(--success-foreground))]/70 hover:text-[hsl(var(--success-foreground))]"
             >
               <svg
                 className="h-4 w-4"
@@ -2634,12 +2634,12 @@ export default function AutomationPlaybooksPage() {
       {cnabState === 'NO_RUN_WITH_ISSUES' &&
         !cnabDismissed &&
         primaryCnabPlaybookId && (
-          <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <div className="mb-6 rounded-lg border border-border bg-[hsl(var(--info-background))] p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0">
                   <svg
-                    className="h-5 w-5 text-blue-600"
+                    className="h-5 w-5 text-[hsl(var(--info-foreground))]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -2653,10 +2653,10 @@ export default function AutomationPlaybooksPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-blue-900">
+                  <h3 className="text-sm font-semibold text-[hsl(var(--info-foreground))]">
                     Next step: Fix missing SEO metadata
                   </h3>
-                  <p className="mt-1 text-xs text-blue-800">
+                  <p className="mt-1 text-xs text-[hsl(var(--info-foreground))]">
                     {primaryCnabPlaybookId === 'missing_seo_title'
                       ? 'Use Playbooks to safely generate missing SEO titles in bulk. Start with a preview — nothing is applied until you confirm.'
                       : 'Use Playbooks to safely generate missing SEO descriptions in bulk. Start with a preview — nothing is applied until you confirm.'}
@@ -2678,7 +2678,7 @@ export default function AutomationPlaybooksPage() {
                         setCnabDismissed(true);
                         handleNavigate(href);
                       }}
-                      className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                      className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     >
                       {primaryCnabPlaybookId === 'missing_seo_title'
                         ? 'Preview missing SEO titles'
@@ -2690,7 +2690,7 @@ export default function AutomationPlaybooksPage() {
                         setCnabDismissed(true);
                         handleNavigate(`/projects/${projectId}/playbooks`);
                       }}
-                      className="inline-flex items-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
+                      className="inline-flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted"
                     >
                       How Playbooks work
                     </button>
@@ -2700,7 +2700,7 @@ export default function AutomationPlaybooksPage() {
               <button
                 type="button"
                 onClick={() => setCnabDismissed(true)}
-                className="flex-shrink-0 text-blue-500 hover:text-blue-700"
+                className="flex-shrink-0 text-[hsl(var(--info-foreground))]/70 hover:text-[hsl(var(--info-foreground))]"
               >
                 <svg
                   className="h-4 w-4"
@@ -2721,12 +2721,12 @@ export default function AutomationPlaybooksPage() {
         )}
 
       {cnabState === 'DESCRIPTIONS_DONE_TITLES_REMAIN' && !cnabDismissed && (
-        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+        <div className="mb-6 rounded-lg border border-border bg-[hsl(var(--info-background))] p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0">
                 <svg
-                  className="h-5 w-5 text-blue-600"
+                  className="h-5 w-5 text-[hsl(var(--info-foreground))]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -2740,10 +2740,10 @@ export default function AutomationPlaybooksPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-blue-900">
+                <h3 className="text-sm font-semibold text-[hsl(var(--info-foreground))]">
                   SEO descriptions updated — next, fix titles
                 </h3>
-                <p className="mt-1 text-xs text-blue-800">
+                <p className="mt-1 text-xs text-[hsl(var(--info-foreground))]">
                   You&apos;ve improved SEO descriptions. Run the titles playbook
                   using the same safe preview → estimate → apply flow.
                 </p>
@@ -2764,7 +2764,7 @@ export default function AutomationPlaybooksPage() {
                       setCnabDismissed(true);
                       handleNavigate(href);
                     }}
-                    className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
                     Preview missing SEO titles
                   </button>
@@ -2776,7 +2776,7 @@ export default function AutomationPlaybooksPage() {
                         `/projects/${projectId}/products?from=playbook_results`
                       );
                     }}
-                    className="inline-flex items-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
+                    className="inline-flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted"
                   >
                     View updated products
                   </button>
@@ -2786,7 +2786,7 @@ export default function AutomationPlaybooksPage() {
             <button
               type="button"
               onClick={() => setCnabDismissed(true)}
-              className="flex-shrink-0 text-blue-500 hover:text-blue-700"
+              className="flex-shrink-0 text-[hsl(var(--info-foreground))]/70 hover:text-[hsl(var(--info-foreground))]"
             >
               <svg
                 className="h-4 w-4"
@@ -2807,12 +2807,12 @@ export default function AutomationPlaybooksPage() {
       )}
 
       {cnabState === 'TITLES_DONE_DESCRIPTIONS_REMAIN' && !cnabDismissed && (
-        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+        <div className="mb-6 rounded-lg border border-border bg-[hsl(var(--info-background))] p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0">
                 <svg
-                  className="h-5 w-5 text-blue-600"
+                  className="h-5 w-5 text-[hsl(var(--info-foreground))]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -2826,10 +2826,10 @@ export default function AutomationPlaybooksPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-blue-900">
+                <h3 className="text-sm font-semibold text-[hsl(var(--info-foreground))]">
                   SEO titles updated — next, fix descriptions
                 </h3>
-                <p className="mt-1 text-xs text-blue-800">
+                <p className="mt-1 text-xs text-[hsl(var(--info-foreground))]">
                   You&apos;ve improved SEO titles. Run the descriptions playbook
                   using the same safe preview → estimate → apply flow.
                 </p>
@@ -2850,7 +2850,7 @@ export default function AutomationPlaybooksPage() {
                       setCnabDismissed(true);
                       handleNavigate(href);
                     }}
-                    className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
                     Preview missing SEO descriptions
                   </button>
@@ -2862,7 +2862,7 @@ export default function AutomationPlaybooksPage() {
                         `/projects/${projectId}/products?from=playbook_results`
                       );
                     }}
-                    className="inline-flex items-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
+                    className="inline-flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted"
                   >
                     View updated products
                   </button>
@@ -2872,7 +2872,7 @@ export default function AutomationPlaybooksPage() {
             <button
               type="button"
               onClick={() => setCnabDismissed(true)}
-              className="flex-shrink-0 text-blue-500 hover:text-blue-700"
+              className="flex-shrink-0 text-[hsl(var(--info-foreground))]/70 hover:text-[hsl(var(--info-foreground))]"
             >
               <svg
                 className="h-4 w-4"
@@ -2893,12 +2893,12 @@ export default function AutomationPlaybooksPage() {
       )}
 
       {cnabState === 'ALL_DONE' && !cnabDismissed && (
-        <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4">
+        <div className="mb-6 rounded-lg border border-border bg-[hsl(var(--success-background))] p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0">
                 <svg
-                  className="h-5 w-5 text-green-600"
+                  className="h-5 w-5 text-[hsl(var(--success-foreground))]"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -2912,10 +2912,10 @@ export default function AutomationPlaybooksPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-green-900">
+                <h3 className="text-sm font-semibold text-[hsl(var(--success-foreground))]">
                   SEO metadata is up to date
                 </h3>
-                <p className="mt-1 text-xs text-green-800">
+                <p className="mt-1 text-xs text-[hsl(var(--success-foreground))]">
                   All eligible products have SEO titles and descriptions. You
                   can sync changes to Shopify or explore other optimizations.
                 </p>
@@ -2926,7 +2926,7 @@ export default function AutomationPlaybooksPage() {
                       setCnabDismissed(true);
                       handleSyncProducts();
                     }}
-                    className="inline-flex items-center rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                    className="inline-flex items-center rounded-md bg-[hsl(var(--success))] px-3 py-1.5 text-xs font-medium text-[hsl(var(--primary-foreground))] shadow-sm hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--success))] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
                     {/* [AUTOMATION-TRIGGER-TRUTHFULNESS-1] CTA label is deterministic */}
                     {willGenerateAnswerBlocksOnProductSync
@@ -2939,7 +2939,7 @@ export default function AutomationPlaybooksPage() {
                       setCnabDismissed(true);
                       handleNavigate(`/projects/${projectId}/store-health`);
                     }}
-                    className="inline-flex items-center rounded-md border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-green-700 shadow-sm hover:bg-green-50"
+                    className="inline-flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted"
                   >
                     Explore other optimizations
                   </button>
@@ -2949,7 +2949,7 @@ export default function AutomationPlaybooksPage() {
             <button
               type="button"
               onClick={() => setCnabDismissed(true)}
-              className="flex-shrink-0 text-green-500 hover:text-green-700"
+              className="flex-shrink-0 text-[hsl(var(--success-foreground))]/70 hover:text-[hsl(var(--success-foreground))]"
             >
               <svg
                 className="h-4 w-4"
@@ -2970,14 +2970,14 @@ export default function AutomationPlaybooksPage() {
       )}
 
       {/* Automation tabs */}
-      <div className="mb-6 border-b border-gray-200">
+      <div className="mb-6 border-b border-border">
         <div className="-mb-px flex gap-6 text-sm">
           <Link
             href={`/projects/${projectId}/automation`}
             className={`border-b-2 px-1 pb-2 ${
               pathname === `/projects/${projectId}/automation`
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
             onClick={(event) => {
               event.preventDefault();
@@ -2994,8 +2994,8 @@ export default function AutomationPlaybooksPage() {
               pathname?.startsWith(
                 `/projects/${projectId}/automation/playbooks`
               )
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
             Playbooks
@@ -3005,7 +3005,7 @@ export default function AutomationPlaybooksPage() {
 
       {/* Error message */}
       {error && (
-        <div className="mb-6 rounded border border-red-400 bg-red-100 p-4 text-red-700">
+        <div className="mb-6 rounded border border-border bg-[hsl(var(--danger-background))] p-4 text-[hsl(var(--danger-foreground))]">
           {error}
         </div>
       )}
@@ -3022,19 +3022,19 @@ export default function AutomationPlaybooksPage() {
               onClick={() => handleSelectPlaybook(pb.id)}
               className={`flex flex-col items-start rounded-lg border p-4 text-left transition-colors ${
                 isSelected
-                  ? 'border-blue-600 bg-blue-50'
-                  : 'border-gray-200 bg-white hover:border-blue-300'
+                  ? 'border-primary bg-primary/10'
+                  : 'border-border bg-[hsl(var(--surface-card))] hover:border-primary/50'
               }`}
             >
               <div className="mb-2 flex w-full items-center justify-between gap-2">
-                <h2 className="text-base font-semibold text-gray-900">
+                <h2 className="text-base font-semibold text-foreground">
                   {pb.name}
                 </h2>
                 <span
                   className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                     isEligible
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-600'
+                      ? 'bg-[hsl(var(--success-background))] text-[hsl(var(--success-foreground))]'
+                      : 'bg-muted text-muted-foreground'
                   }`}
                 >
                   {isEligible
@@ -3042,17 +3042,17 @@ export default function AutomationPlaybooksPage() {
                     : 'Upgrade for bulk automations'}
                 </span>
               </div>
-              <p className="mb-3 text-sm text-gray-600">{pb.description}</p>
-              <div className="mt-auto flex w-full items-center justify-between text-xs text-gray-500">
+              <p className="mb-3 text-sm text-muted-foreground">{pb.description}</p>
+              <div className="mt-auto flex w-full items-center justify-between text-xs text-muted-foreground">
                 <span>
                   Affected products:{' '}
-                  <span className="font-semibold text-gray-900">
+                  <span className="font-semibold text-foreground">
                     {pb.totalAffected}
                   </span>
                 </span>
                 <span>
                   Target field:{' '}
-                  <span className="font-mono text-gray-700">{pb.field}</span>
+                  <span className="font-mono text-muted-foreground">{pb.field}</span>
                 </span>
               </div>
             </button>
@@ -3061,8 +3061,8 @@ export default function AutomationPlaybooksPage() {
       </div>
 
       {!selectedDefinition && (
-        <div className="rounded-lg border border-gray-200 bg-white p-6 text-center">
-          <p className="text-sm text-gray-600">
+        <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-6 text-center">
+          <p className="text-sm text-muted-foreground">
             Select a playbook above to see preview, estimate, and apply steps.
           </p>
         </div>
@@ -3071,14 +3071,14 @@ export default function AutomationPlaybooksPage() {
       {selectedDefinition &&
         (isEligibilityEmptyState ? (
           <div
-            className="rounded-lg border border-gray-200 bg-white p-6"
+            className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-6"
             data-testid="playbook-zero-eligible-empty-state"
           >
             {/* [PLAYBOOK-STEP-CONTINUITY-1] Primary message: "No applicable changes found" */}
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-foreground">
               No applicable changes found
             </h2>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-muted-foreground">
               This playbook only applies to{' '}
               {currentAssetType === 'PRODUCTS'
                 ? 'products'
@@ -3091,7 +3091,7 @@ export default function AutomationPlaybooksPage() {
                 : 'descriptions'}{' '}
               in the current scope.
             </p>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-muted-foreground">
               Common reasons: items are already optimized, the selected scope is
               out of date, or Shopify data hasn&apos;t been synced recently.
             </p>
@@ -3102,7 +3102,7 @@ export default function AutomationPlaybooksPage() {
                 onClick={() =>
                   handleNavigate(`/projects/${projectId}/playbooks`)
                 }
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                className="inline-flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted"
               >
                 ← Return to Playbooks
               </button>
@@ -3112,7 +3112,7 @@ export default function AutomationPlaybooksPage() {
                 onClick={() =>
                   handleNavigate(`/projects/${projectId}/products`)
                 }
-                className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center rounded-md border border-transparent bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {currentAssetType === 'PRODUCTS'
                   ? 'View products that need optimization'
@@ -3124,7 +3124,7 @@ export default function AutomationPlaybooksPage() {
               <button
                 type="button"
                 onClick={() => handleSyncProducts()}
-                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                className="inline-flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted"
               >
                 {willGenerateAnswerBlocksOnProductSync
                   ? 'Sync products + Generate Answer Blocks'
@@ -3143,8 +3143,8 @@ export default function AutomationPlaybooksPage() {
                 <span
                   className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
                     activeStep === 1
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-foreground'
                   }`}
                 >
                   1
@@ -3152,22 +3152,22 @@ export default function AutomationPlaybooksPage() {
                 <span
                   className={
                     activeStep === 1
-                      ? 'font-semibold text-gray-900'
-                      : 'text-gray-600'
+                      ? 'font-semibold text-foreground'
+                      : 'text-muted-foreground'
                   }
                 >
                   Preview
                 </span>
               </div>
-              <div className="h-px flex-1 bg-gray-200" />
+              <div className="h-px flex-1 bg-border" />
               <div className="flex items-center gap-2">
                 <span
                   className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
                     activeStep === 2
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-primary text-primary-foreground'
                       : step2Locked
-                        ? 'bg-gray-200 text-gray-400'
-                        : 'bg-gray-200 text-gray-700'
+                        ? 'bg-muted text-muted-foreground/50'
+                        : 'bg-muted text-foreground'
                   }`}
                   title={step2Locked ? 'Generate preview first' : undefined}
                 >
@@ -3176,24 +3176,24 @@ export default function AutomationPlaybooksPage() {
                 <span
                   className={
                     activeStep === 2
-                      ? 'font-semibold text-gray-900'
+                      ? 'font-semibold text-foreground'
                       : step2Locked
-                        ? 'text-gray-400'
-                        : 'text-gray-600'
+                        ? 'text-muted-foreground/50'
+                        : 'text-muted-foreground'
                   }
                 >
                   Estimate
                 </span>
               </div>
-              <div className="h-px flex-1 bg-gray-200" />
+              <div className="h-px flex-1 bg-border" />
               <div className="flex items-center gap-2">
                 <span
                   className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
                     activeStep === 3
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-primary text-primary-foreground'
                       : step3Locked
-                        ? 'bg-gray-200 text-gray-400'
-                        : 'bg-gray-200 text-gray-700'
+                        ? 'bg-muted text-muted-foreground/50'
+                        : 'bg-muted text-foreground'
                   }`}
                   title={step3Locked ? 'Generate preview first' : undefined}
                 >
@@ -3202,10 +3202,10 @@ export default function AutomationPlaybooksPage() {
                 <span
                   className={
                     activeStep === 3
-                      ? 'font-semibold text-gray-900'
+                      ? 'font-semibold text-foreground'
                       : step3Locked
-                        ? 'text-gray-400'
-                        : 'text-gray-600'
+                        ? 'text-muted-foreground/50'
+                        : 'text-muted-foreground'
                   }
                 >
                   Apply
@@ -3218,23 +3218,23 @@ export default function AutomationPlaybooksPage() {
               aiUsageSummary &&
               (aiUsageSummary.previewRuns > 0 ||
                 aiUsageSummary.draftGenerateRuns > 0) && (
-                <div className="rounded-lg border border-purple-100 bg-purple-50 p-3 text-sm">
-                  <p className="text-xs font-semibold text-purple-900">
+                <div className="rounded-lg border border-border bg-[hsl(var(--surface-raised))] p-3 text-sm">
+                  <p className="text-xs font-semibold text-foreground">
                     AI usage this month
                   </p>
-                  <p className="mt-1 text-xs text-purple-700">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     Previews and drafts generated:{' '}
                     {aiUsageSummary.previewRuns +
                       aiUsageSummary.draftGenerateRuns}
                   </p>
                   {/* CACHE/REUSE v2: Show AI runs avoided */}
                   {aiUsageSummary.aiRunsAvoided > 0 && (
-                    <p className="mt-0.5 text-xs text-green-700">
+                    <p className="mt-0.5 text-xs text-[hsl(var(--success-foreground))]">
                       AI runs avoided (reused): {aiUsageSummary.aiRunsAvoided}
                     </p>
                   )}
                   {aiUsageSummary.totalAiRuns > 0 && (
-                    <p className="mt-0.5 text-xs text-purple-600">
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                       Apply uses saved drafts only — no new AI runs.
                     </p>
                   )}
@@ -3243,8 +3243,8 @@ export default function AutomationPlaybooksPage() {
 
             {(flowState === 'APPLY_COMPLETED' ||
               flowState === 'APPLY_STOPPED') && (
-              <div className="rounded-lg border border-green-100 bg-green-50 p-3 text-sm text-green-800">
-                <p className="text-sm font-semibold text-green-900">
+              <div className="rounded-lg border border-border bg-[hsl(var(--success-background))] p-3 text-sm text-[hsl(var(--success-foreground))]">
+                <p className="text-sm font-semibold text-foreground">
                   {flowState === 'APPLY_COMPLETED'
                     ? 'Playbook run completed'
                     : 'Playbook stopped safely'}
@@ -3257,14 +3257,14 @@ export default function AutomationPlaybooksPage() {
             )}
 
             {/* Step 1: Preview */}
-            <section className="rounded-lg border border-gray-200 bg-white p-4">
+            <section className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-4">
               <>
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div>
-                    <h2 className="text-sm font-semibold text-gray-900">
+                    <h2 className="text-sm font-semibold text-foreground">
                       Step 1 – Preview changes
                     </h2>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-muted-foreground">
                       Generate a preview for a few sample products. No changes
                       are saved during this step.
                     </p>
@@ -3282,8 +3282,8 @@ export default function AutomationPlaybooksPage() {
                     }
                     className={`inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium shadow-sm disabled:cursor-not-allowed disabled:opacity-50 ${
                       hasPreview
-                        ? 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                        : 'border border-transparent bg-blue-600 text-white hover:bg-blue-700'
+                        ? 'border border-border bg-[hsl(var(--surface-card))] text-foreground hover:bg-muted'
+                        : 'border border-transparent bg-primary text-primary-foreground hover:bg-primary/90'
                     }`}
                   >
                     {loadingPreview
@@ -3294,10 +3294,10 @@ export default function AutomationPlaybooksPage() {
                 {/* [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI usage disclosure for generation */}
                 <DraftAiBoundaryNote mode="generate" />
                 {resumedFromSession && hasPreview && (
-                  <div className="mb-3 rounded-md border border-blue-100 bg-blue-50 p-3 text-xs text-blue-800">
+                  <div className="mb-3 rounded-md border border-border bg-[hsl(var(--info-background))] p-3 text-xs text-[hsl(var(--info-foreground))]">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="font-semibold text-blue-900">
+                        <p className="font-semibold text-foreground">
                           Saved preview found
                         </p>
                         <p className="mt-1">
@@ -3320,7 +3320,7 @@ export default function AutomationPlaybooksPage() {
                               }
                             }}
                             disabled={loadingPreview}
-                            className="inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="inline-flex items-center rounded-md bg-[hsl(var(--warning))] px-3 py-1.5 text-xs font-medium text-[hsl(var(--primary-foreground))] shadow-sm hover:bg-[hsl(var(--warning))]/90 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             Regenerate preview (uses AI)
                           </button>
@@ -3334,7 +3334,7 @@ export default function AutomationPlaybooksPage() {
                                 // handled via state
                               });
                             }}
-                            className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700"
+                            className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
                           >
                             Recalculate estimate
                           </button>
@@ -3345,7 +3345,7 @@ export default function AutomationPlaybooksPage() {
                             <button
                               type="button"
                               onClick={handleNextStep}
-                              className="inline-flex items-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
+                              className="inline-flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted"
                             >
                               Continue
                             </button>
@@ -3354,21 +3354,23 @@ export default function AutomationPlaybooksPage() {
                     </div>
                   </div>
                 )}
-                <div className="mb-4 rounded-md border border-gray-200 bg-gray-50 p-3">
+                {/* [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only rules block styling */}
+                <div className="mb-4 rounded-md border border-border bg-[hsl(var(--surface-card))] p-4">
                   <div className="flex items-center justify-between gap-2">
                     <div>
-                      <h3 className="text-xs font-semibold text-gray-900">
+                      <h3 className="text-xs font-semibold text-foreground">
                         Playbook rules
                       </h3>
-                      <p className="mt-1 text-[11px] text-gray-600">
+                      <p className="mt-1 text-[11px] text-muted-foreground">
                         Rules shape the AI drafts you preview and apply. Rules
                         do not change Shopify until you Apply.
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-gray-600">
+                      <span className="text-[11px] text-muted-foreground">
                         Use rules for this run
                       </span>
+                      {/* [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only toggle switch */}
                       <button
                         type="button"
                         onClick={() =>
@@ -3377,22 +3379,23 @@ export default function AutomationPlaybooksPage() {
                             enabled: !previous.enabled,
                           }))
                         }
-                        className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                          rules.enabled ? 'bg-blue-600' : 'bg-gray-200'
+                        className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                          rules.enabled ? 'bg-primary' : 'bg-muted'
                         }`}
                         aria-pressed={rules.enabled}
                       >
                         <span
-                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow ring-0 transition duration-200 ease-in-out ${
                             rules.enabled ? 'translate-x-4' : 'translate-x-0'
                           }`}
                         />
                       </button>
                     </div>
                   </div>
+                  {/* [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only input styling with increased padding */}
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
                     <div>
-                      <label className="block text-[11px] font-medium text-gray-700">
+                      <label className="block text-[11px] font-medium text-muted-foreground">
                         Find
                       </label>
                       <input
@@ -3402,12 +3405,12 @@ export default function AutomationPlaybooksPage() {
                           handleRulesChange({ find: event.target.value });
                           markRulesEdited();
                         }}
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                         placeholder="e.g. AI"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-medium text-gray-700">
+                      <label className="block text-[11px] font-medium text-muted-foreground">
                         Replace
                       </label>
                       <input
@@ -3417,14 +3420,14 @@ export default function AutomationPlaybooksPage() {
                           handleRulesChange({ replace: event.target.value });
                           markRulesEdited();
                         }}
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                         placeholder="e.g. EngineO"
                       />
                     </div>
                   </div>
                   <div className="mt-3 grid gap-3 md:grid-cols-3">
                     <div>
-                      <label className="block text-[11px] font-medium text-gray-700">
+                      <label className="block text-[11px] font-medium text-muted-foreground">
                         Prefix
                       </label>
                       <input
@@ -3434,12 +3437,12 @@ export default function AutomationPlaybooksPage() {
                           handleRulesChange({ prefix: event.target.value });
                           markRulesEdited();
                         }}
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                         placeholder="e.g. EngineO | "
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-medium text-gray-700">
+                      <label className="block text-[11px] font-medium text-muted-foreground">
                         Suffix
                       </label>
                       <input
@@ -3449,12 +3452,12 @@ export default function AutomationPlaybooksPage() {
                           handleRulesChange({ suffix: event.target.value });
                           markRulesEdited();
                         }}
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                         placeholder="e.g. | Official Store"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-medium text-gray-700">
+                      <label className="block text-[11px] font-medium text-muted-foreground">
                         Max length
                       </label>
                       <input
@@ -3468,17 +3471,17 @@ export default function AutomationPlaybooksPage() {
                           });
                           markRulesEdited();
                         }}
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                         placeholder="e.g. 60"
                       />
-                      <p className="mt-1 text-[11px] text-gray-500">
+                      <p className="mt-1 text-[11px] text-muted-foreground">
                         Enforced by trimming the AI suggestion to this many
                         characters.
                       </p>
                     </div>
                   </div>
                   <div className="mt-3">
-                    <label className="block text-[11px] font-medium text-gray-700">
+                    <label className="block text-[11px] font-medium text-muted-foreground">
                       Forbidden phrases (one per line)
                     </label>
                     <textarea
@@ -3490,41 +3493,43 @@ export default function AutomationPlaybooksPage() {
                         markRulesEdited();
                       }}
                       rows={3}
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="mt-1 block w-full rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                       placeholder={'e.g.\nclick here\nbest ever'}
                     />
-                    <p className="mt-1 text-[11px] text-gray-500">
+                    <p className="mt-1 text-[11px] text-muted-foreground">
                       Forbidden phrases are highlighted in preview but not
                       removed in v1.
                     </p>
                   </div>
                 </div>
-                <div className="mb-3 text-xs text-gray-500">
+                <div className="mb-3 text-xs text-muted-foreground">
                   Total affected products:{' '}
-                  <span className="font-semibold text-gray-900">
+                  <span className="font-semibold text-foreground">
                     {totalAffectedProducts}
                   </span>
                 </div>
                 {planIsFree && (
-                  <p className="mb-3 text-xs text-amber-700">
+                  <p className="mb-3 text-xs text-[hsl(var(--warning-foreground))]">
                     Bulk Playbooks are gated on the Free plan. Upgrade to Pro to
                     unlock bulk metadata fixes.
                   </p>
                 )}
+                {/* [UI-POLISH-&-CLARITY-1 FIXUP-2] Token-only loading/empty states */}
                 {loadingPreview && (
-                  <div className="rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                  <div className="rounded-md border border-border bg-[hsl(var(--surface-raised))] p-4 text-sm text-muted-foreground">
                     Generating AI previews for sample products…
                   </div>
                 )}
                 {!loadingPreview && !hasPreview && (
-                  <div className="rounded-md border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                  <div className="rounded-md border border-dashed border-border bg-[hsl(var(--surface-raised))] p-4 text-sm text-muted-foreground">
                     No preview yet. Click &quot;Generate preview&quot; to see
                     Before/After examples for a few sample products.
                   </div>
                 )}
+                {/* [UI-POLISH-&-CLARITY-1 FIXUP-2] Token-only preview sample section */}
                 {!loadingPreview && hasPreview && (
                   <div className="mt-3 space-y-3">
-                    <p className="text-xs font-medium text-gray-600">
+                    <p className="text-xs font-medium text-muted-foreground">
                       Sample preview (up to 3 products)
                       {previewValidityLabel && (
                         <span
@@ -3537,10 +3542,10 @@ export default function AutomationPlaybooksPage() {
                     {previewSamples.map((sample) => (
                       <div
                         key={sample.productId}
-                        className="rounded-md border border-gray-200 bg-gray-50 p-3"
+                        className="rounded-md border border-border bg-[hsl(var(--surface-raised))] p-3"
                       >
                         <div className="mb-1 flex items-center justify-between text-xs">
-                          <span className="font-semibold text-gray-900">
+                          <span className="font-semibold text-foreground">
                             {sample.productTitle}
                           </span>
                           {(() => {
@@ -3561,7 +3566,7 @@ export default function AutomationPlaybooksPage() {
                                   event.preventDefault();
                                   handleNavigate(previewContextUrl);
                                 }}
-                                className="text-xs text-blue-600 hover:text-blue-800"
+                                className="text-xs text-primary hover:text-primary/80"
                               >
                                 Open product →
                               </Link>
@@ -3570,32 +3575,32 @@ export default function AutomationPlaybooksPage() {
                         </div>
                         <div className="grid gap-3 text-xs md:grid-cols-2">
                           <div>
-                            <div className="mb-1 font-medium text-gray-700">
+                            <div className="mb-1 font-medium text-foreground">
                               Before ({selectedDefinition.field})
                             </div>
-                            <div className="rounded border border-gray-200 bg-white p-2 text-gray-800">
+                            <div className="rounded border border-border bg-[hsl(var(--surface-card))] p-2 text-foreground">
                               {selectedDefinition.field === 'seoTitle'
                                 ? sample.currentTitle || (
-                                    <span className="text-gray-400">Empty</span>
+                                    <span className="text-muted-foreground/70">Empty</span>
                                   )
                                 : sample.currentDescription || (
-                                    <span className="text-gray-400">Empty</span>
+                                    <span className="text-muted-foreground/70">Empty</span>
                                   )}
                             </div>
                           </div>
                           <div>
-                            <div className="mb-1 font-medium text-gray-700">
+                            <div className="mb-1 font-medium text-foreground">
                               After (AI suggestion)
                             </div>
-                            <div className="rounded border border-gray-200 bg-white p-2 text-gray-800">
+                            <div className="rounded border border-border bg-[hsl(var(--surface-card))] p-2 text-foreground">
                               {selectedDefinition.field === 'seoTitle'
                                 ? sample.suggestedTitle || (
-                                    <span className="text-gray-400">
+                                    <span className="text-muted-foreground/70">
                                       No suggestion
                                     </span>
                                   )
                                 : sample.suggestedDescription || (
-                                    <span className="text-gray-400">
+                                    <span className="text-muted-foreground/70">
                                       No suggestion
                                     </span>
                                   )}
@@ -3604,7 +3609,7 @@ export default function AutomationPlaybooksPage() {
                         </div>
                         {sample.ruleWarnings &&
                           sample.ruleWarnings.length > 0 && (
-                            <p className="mt-2 text-[11px] text-amber-700">
+                            <p className="mt-2 text-[11px] text-[hsl(var(--warning-foreground))]">
                               Rules applied:{' '}
                               {sample.ruleWarnings
                                 .map((warning) =>
@@ -3623,7 +3628,7 @@ export default function AutomationPlaybooksPage() {
                   </div>
                 )}
                 {hasPreview && showContinueBlockedPanel && (
-                  <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                  <div className="mt-4 rounded-md border border-border bg-[hsl(var(--warning-background))] p-3 text-xs text-[hsl(var(--warning-foreground))]">
                     <p className="font-medium">
                       Why you can&apos;t continue yet
                     </p>
@@ -3680,7 +3685,7 @@ export default function AutomationPlaybooksPage() {
                             }
                           }}
                           disabled={loadingPreview}
-                          className="inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex items-center rounded-md bg-[hsl(var(--warning))] px-3 py-1.5 text-xs font-medium text-[hsl(var(--primary-foreground))] shadow-sm hover:bg-[hsl(var(--warning))]/90 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Regenerate preview (uses AI)
                         </button>
@@ -3689,7 +3694,7 @@ export default function AutomationPlaybooksPage() {
                         <button
                           type="button"
                           onClick={() => handleNavigate('/settings/billing')}
-                          className="inline-flex items-center rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
+                          className="inline-flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted"
                         >
                           View plans
                         </button>
@@ -3703,7 +3708,7 @@ export default function AutomationPlaybooksPage() {
                               // handled via state
                             });
                           }}
-                          className="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700"
+                          className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
                         >
                           Recalculate estimate
                         </button>
@@ -3717,7 +3722,7 @@ export default function AutomationPlaybooksPage() {
                       type="button"
                       onClick={handleNextStep}
                       disabled={!canContinueToEstimate}
-                      className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex items-center rounded-md border border-transparent bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Continue to Estimate
                     </button>
@@ -3728,16 +3733,16 @@ export default function AutomationPlaybooksPage() {
 
             {/* Step 2: Estimate */}
             <section
-              className={`rounded-lg border border-gray-200 bg-white p-4 ${
+              className={`rounded-lg border border-border bg-[hsl(var(--surface-card))] p-4 ${
                 step2Locked ? 'opacity-50' : ''
               }`}
             >
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div>
-                  <h2 className="text-sm font-semibold text-gray-900">
+                  <h2 className="text-sm font-semibold text-foreground">
                     Step 2 – Estimate impact & tokens
                   </h2>
-                  <p className="text-xs text-gray-600">
+                  <p className="text-xs text-muted-foreground">
                     Estimate updates automatically from your latest preview.
                     Review how many products will be updated and approximate
                     token usage before you apply.
@@ -3745,34 +3750,34 @@ export default function AutomationPlaybooksPage() {
                 </div>
               </div>
               {loadingEstimate && (
-                <div className="rounded-md border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                <div className="rounded-md border border-border bg-[hsl(var(--surface-raised))] p-4 text-sm text-muted-foreground">
                   Calculating playbook estimate…
                 </div>
               )}
               {!loadingEstimate && estimate && (
-                <div className="space-y-3 text-sm text-gray-700">
+                <div className="space-y-3 text-sm text-foreground">
                   <div className="grid gap-3 md:grid-cols-3">
-                    <div className="rounded border border-gray-100 bg-gray-50 p-3">
-                      <div className="text-xs text-gray-500">
+                    <div className="rounded border border-border bg-[hsl(var(--surface-raised))] p-3">
+                      <div className="text-xs text-muted-foreground">
                         Products to update
                       </div>
-                      <div className="text-lg font-semibold text-gray-900">
+                      <div className="text-lg font-semibold text-foreground">
                         {estimate.totalAffectedProducts}
                       </div>
                     </div>
-                    <div className="rounded border border-gray-100 bg-gray-50 p-3">
-                      <div className="text-xs text-gray-500">
+                    <div className="rounded border border-border bg-[hsl(var(--surface-raised))] p-3">
+                      <div className="text-xs text-muted-foreground">
                         Estimated token usage (approx)
                       </div>
-                      <div className="text-lg font-semibold text-gray-900">
+                      <div className="text-lg font-semibold text-foreground">
                         {estimate.estimatedTokens.toLocaleString()}
                       </div>
                     </div>
-                    <div className="rounded border border-gray-100 bg-gray-50 p-3">
-                      <div className="text-xs text-gray-500">
+                    <div className="rounded border border-border bg-[hsl(var(--surface-raised))] p-3">
+                      <div className="text-xs text-muted-foreground">
                         Plan & daily capacity
                       </div>
-                      <div className="text-xs text-gray-700">
+                      <div className="text-xs text-foreground">
                         Plan:{' '}
                         <span className="font-medium">
                           {estimate.planId.toUpperCase()}
@@ -3786,7 +3791,7 @@ export default function AutomationPlaybooksPage() {
                     </div>
                   </div>
                   {estimateBlockingReasons.length > 0 && (
-                    <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-700">
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">
                       {estimateBlockingReasons.includes(
                         'plan_not_eligible'
                       ) && (
@@ -3818,21 +3823,21 @@ export default function AutomationPlaybooksPage() {
                     </ul>
                   )}
                   {estimate.canProceed && (
-                    <p className="mt-2 text-xs text-green-700">
+                    <p className="mt-2 text-xs text-[hsl(var(--success-foreground))]">
                       This playbook can run safely within your current plan and
                       daily AI limits.
                     </p>
                   )}
-                  <p className="mt-2 text-xs text-gray-500">
+                  <p className="mt-2 text-xs text-muted-foreground">
                     {rulesSummaryLabel}
                   </p>
                   {/* [PLAYBOOK-STEP-CONTINUITY-1] Draft status blocker evaluation */}
                   {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-2] Permission-safe blocker CTAs */}
                   {estimate.draftStatus === 'EXPIRED' && (
-                    <div className="mt-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                    <div className="mt-3 rounded border border-border bg-[hsl(var(--warning-background))] p-3 text-xs text-[hsl(var(--warning-foreground))]">
                       <div className="flex items-start gap-2">
                         <svg
-                          className="h-4 w-4 flex-shrink-0 text-amber-600"
+                          className="h-4 w-4 flex-shrink-0 text-[hsl(var(--warning-foreground))]"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -3858,16 +3863,16 @@ export default function AutomationPlaybooksPage() {
                                   loadPreview(selectedPlaybookId);
                                 }
                               }}
-                              className="mt-2 inline-flex items-center rounded-md bg-amber-600 px-2 py-1 text-xs font-medium text-white hover:bg-amber-700"
+                              className="mt-2 inline-flex items-center rounded-md bg-[hsl(var(--warning))] px-2 py-1 text-xs font-medium text-[hsl(var(--primary-foreground))] hover:bg-[hsl(var(--warning))]/90"
                             >
                               Regenerate Preview
                             </button>
                           ) : (
-                            <p className="mt-2 text-xs text-gray-600">
+                            <p className="mt-2 text-xs text-muted-foreground">
                               Viewer role cannot generate previews.{' '}
                               <Link
                                 href={`/projects/${projectId}/settings/members`}
-                                className="text-blue-600 hover:underline"
+                                className="text-primary hover:underline"
                               >
                                 Request access
                               </Link>
@@ -3878,10 +3883,10 @@ export default function AutomationPlaybooksPage() {
                     </div>
                   )}
                   {estimate.draftStatus === 'FAILED' && (
-                    <div className="mt-3 rounded border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+                    <div className="mt-3 rounded border border-border bg-[hsl(var(--danger-background))] p-3 text-xs text-[hsl(var(--danger-foreground))]">
                       <div className="flex items-start gap-2">
                         <svg
-                          className="h-4 w-4 flex-shrink-0 text-red-600"
+                          className="h-4 w-4 flex-shrink-0 text-[hsl(var(--danger))]"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -3909,16 +3914,16 @@ export default function AutomationPlaybooksPage() {
                                   loadPreview(selectedPlaybookId);
                                 }
                               }}
-                              className="mt-2 inline-flex items-center rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700"
+                              className="mt-2 inline-flex items-center rounded-md bg-[hsl(var(--danger))] px-2 py-1 text-xs font-medium text-[hsl(var(--primary-foreground))] hover:bg-[hsl(var(--danger))]/90"
                             >
                               Retry Preview
                             </button>
                           ) : (
-                            <p className="mt-2 text-xs text-gray-600">
+                            <p className="mt-2 text-xs text-muted-foreground">
                               Viewer role cannot generate previews.{' '}
                               <Link
                                 href={`/projects/${projectId}/settings/members`}
-                                className="text-blue-600 hover:underline"
+                                className="text-primary hover:underline"
                               >
                                 Request access
                               </Link>
@@ -3931,10 +3936,10 @@ export default function AutomationPlaybooksPage() {
                   {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-1] Blocker panel for draft missing/unknown */}
                   {/* [PLAYBOOK-STEP-CONTINUITY-1-FIXUP-2] Permission-safe blocker CTA */}
                   {!estimate.draftStatus && (
-                    <div className="mt-3 rounded border border-gray-200 bg-gray-50 p-3 text-xs text-gray-800">
+                    <div className="mt-3 rounded border border-border bg-[hsl(var(--surface-raised))] p-3 text-xs text-foreground">
                       <div className="flex items-start gap-2">
                         <svg
-                          className="h-4 w-4 flex-shrink-0 text-gray-600"
+                          className="h-4 w-4 flex-shrink-0 text-muted-foreground"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -3960,16 +3965,16 @@ export default function AutomationPlaybooksPage() {
                                   loadPreview(selectedPlaybookId);
                                 }
                               }}
-                              className="mt-2 inline-flex items-center rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700"
+                              className="mt-2 inline-flex items-center rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                             >
                               Generate Preview
                             </button>
                           ) : (
-                            <p className="mt-2 text-xs text-gray-600">
+                            <p className="mt-2 text-xs text-muted-foreground">
                               Viewer role cannot generate previews.{' '}
                               <Link
                                 href={`/projects/${projectId}/settings/members`}
-                                className="text-blue-600 hover:underline"
+                                className="text-primary hover:underline"
                               >
                                 Request access
                               </Link>
@@ -3996,7 +4001,7 @@ export default function AutomationPlaybooksPage() {
                       hasPreview ? 'PREVIEW_GENERATED' : 'PREVIEW_READY'
                     )
                   }
-                  className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                  className="inline-flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted"
                 >
                   Back to Preview
                 </button>
@@ -4013,7 +4018,7 @@ export default function AutomationPlaybooksPage() {
                       !estimate.canProceed ||
                       loadingEstimate
                     }
-                    className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex items-center rounded-md border border-transparent bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Continue to Apply
                   </button>
@@ -4026,13 +4031,13 @@ export default function AutomationPlaybooksPage() {
             <section
               id="automation-playbook-apply-step"
               tabIndex={-1}
-              className="rounded-lg border border-gray-200 bg-white p-4 focus:outline-none"
+              className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-4 focus:outline-none"
             >
               <div className="mb-3">
-                <h2 className="text-sm font-semibold text-gray-900">
+                <h2 className="text-sm font-semibold text-foreground">
                   Step 3 – Apply playbook
                 </h2>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-muted-foreground">
                   Confirm that you want EngineO.ai to write AI-generated SEO{' '}
                   {selectedDefinition.field === 'seoTitle'
                     ? 'titles'
@@ -4041,7 +4046,7 @@ export default function AutomationPlaybooksPage() {
                 </p>
               </div>
               {rules.enabled && (
-                <p className="mb-3 text-xs text-gray-600">
+                <p className="mb-3 text-xs text-muted-foreground">
                   These drafts were generated using your Playbook rules.
                 </p>
               )}
@@ -4050,17 +4055,17 @@ export default function AutomationPlaybooksPage() {
                   (sample) =>
                     sample.ruleWarnings && sample.ruleWarnings.length > 0
                 ) && (
-                  <div className="mb-3 rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
+                  <div className="mb-3 rounded border border-border bg-[hsl(var(--warning-background))] p-2 text-xs text-[hsl(var(--warning-foreground))]">
                     Some suggestions were trimmed or flagged to fit your rules.
                     Review the preview before applying.
                   </div>
                 )}
               {/* Inline error panels for 409 Conflict errors */}
               {applyInlineError?.code === 'PLAYBOOK_RULES_CHANGED' && (
-                <div className="mb-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                <div className="mb-3 rounded border border-border bg-[hsl(var(--warning-background))] p-3 text-xs text-[hsl(var(--warning-foreground))]">
                   <div className="flex items-start gap-2">
                     <svg
-                      className="h-4 w-4 flex-shrink-0 text-amber-600"
+                      className="h-4 w-4 flex-shrink-0 text-[hsl(var(--warning-foreground))]"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -4092,7 +4097,7 @@ export default function AutomationPlaybooksPage() {
                           }
                         }}
                         disabled={loadingPreview}
-                        className="mt-2 inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="mt-2 inline-flex items-center rounded-md bg-[hsl(var(--warning))] px-3 py-1.5 text-xs font-medium text-[hsl(var(--primary-foreground))] shadow-sm hover:bg-[hsl(var(--warning))]/90 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Regenerate preview (uses AI)
                       </button>
@@ -4101,10 +4106,10 @@ export default function AutomationPlaybooksPage() {
                 </div>
               )}
               {applyInlineError?.code === 'PLAYBOOK_SCOPE_INVALID' && (
-                <div className="mb-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                <div className="mb-3 rounded border border-border bg-[hsl(var(--warning-background))] p-3 text-xs text-[hsl(var(--warning-foreground))]">
                   <div className="flex items-start gap-2">
                     <svg
-                      className="h-4 w-4 flex-shrink-0 text-amber-600"
+                      className="h-4 w-4 flex-shrink-0 text-[hsl(var(--warning))]"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -4135,7 +4140,7 @@ export default function AutomationPlaybooksPage() {
                           }
                         }}
                         disabled={loadingPreview}
-                        className="mt-2 inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="mt-2 inline-flex items-center rounded-md bg-[hsl(var(--warning))] px-3 py-1.5 text-xs font-medium text-[hsl(var(--primary-foreground))] shadow-sm hover:bg-[hsl(var(--warning))]/90 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Regenerate preview (uses AI)
                       </button>
@@ -4144,10 +4149,10 @@ export default function AutomationPlaybooksPage() {
                 </div>
               )}
               {applyInlineError?.code === 'PLAYBOOK_DRAFT_NOT_FOUND' && (
-                <div className="mb-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                <div className="mb-3 rounded border border-border bg-[hsl(var(--warning-background))] p-3 text-xs text-[hsl(var(--warning-foreground))]">
                   <div className="flex items-start gap-2">
                     <svg
-                      className="h-4 w-4 flex-shrink-0 text-amber-600"
+                      className="h-4 w-4 flex-shrink-0 text-[hsl(var(--warning))]"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -4182,7 +4187,7 @@ export default function AutomationPlaybooksPage() {
                             ? 'Viewer role cannot generate previews'
                             : undefined
                         }
-                        className="mt-2 inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="mt-2 inline-flex items-center rounded-md bg-[hsl(var(--warning))] px-3 py-1.5 text-xs font-medium text-[hsl(var(--primary-foreground))] shadow-sm hover:bg-[hsl(var(--warning))]/90 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Generate preview (uses AI)
                       </button>
@@ -4191,10 +4196,10 @@ export default function AutomationPlaybooksPage() {
                 </div>
               )}
               {applyInlineError?.code === 'PLAYBOOK_DRAFT_EXPIRED' && (
-                <div className="mb-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                <div className="mb-3 rounded border border-border bg-[hsl(var(--warning-background))] p-3 text-xs text-[hsl(var(--warning-foreground))]">
                   <div className="flex items-start gap-2">
                     <svg
-                      className="h-4 w-4 flex-shrink-0 text-amber-600"
+                      className="h-4 w-4 flex-shrink-0 text-[hsl(var(--warning))]"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -4223,7 +4228,7 @@ export default function AutomationPlaybooksPage() {
                           }
                         }}
                         disabled={loadingPreview}
-                        className="mt-2 inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="mt-2 inline-flex items-center rounded-md bg-[hsl(var(--warning))] px-3 py-1.5 text-xs font-medium text-[hsl(var(--primary-foreground))] shadow-sm hover:bg-[hsl(var(--warning))]/90 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Regenerate preview (uses AI)
                       </button>
@@ -4231,7 +4236,7 @@ export default function AutomationPlaybooksPage() {
                   </div>
                 </div>
               )}
-              <div className="mb-3 rounded border border-gray-100 bg-gray-50 p-3 text-xs text-gray-700">
+              <div className="mb-3 rounded border border-border bg-[hsl(var(--surface-raised))] p-3 text-xs text-foreground">
                 <p>
                   This playbook will attempt to update up to{' '}
                   <span className="font-semibold">
@@ -4248,17 +4253,17 @@ export default function AutomationPlaybooksPage() {
                 </p>
               </div>
               {/* Trust contract note */}
-              <p className="mb-3 text-[11px] text-gray-500">
+              <p className="mb-3 text-[11px] text-muted-foreground">
                 EngineO.ai validates that your rules and product scope
                 haven&apos;t changed since the preview. If they have,
                 you&apos;ll be asked to regenerate the preview before applying.
               </p>
-              <label className="mb-3 flex items-start gap-2 text-xs text-gray-700">
+              <label className="mb-3 flex items-start gap-2 text-xs text-foreground">
                 <input
                   type="checkbox"
                   checked={confirmApply}
                   onChange={(e) => setConfirmApply(e.target.checked)}
-                  className="mt-0.5 h-3 w-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="mt-0.5 h-3 w-3 rounded border-border text-primary focus:ring-primary"
                 />
                 <span>
                   I understand that this will write AI-generated SEO{' '}
@@ -4269,7 +4274,7 @@ export default function AutomationPlaybooksPage() {
                 </span>
               </label>
               {applying && (
-                <div className="mb-3 rounded border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
+                <div className="mb-3 rounded border border-border bg-[hsl(var(--surface-raised))] p-3 text-xs text-foreground">
                   Applying Automation Playbook… This may take a moment for
                   larger catalogs.
                 </div>
@@ -4277,7 +4282,7 @@ export default function AutomationPlaybooksPage() {
               {applyResult && (
                 <div className="mb-3 space-y-3">
                   {/* Summary */}
-                  <div className="rounded border border-green-200 bg-green-50 p-3 text-xs text-green-800">
+                  <div className="rounded border border-border bg-[hsl(var(--success-background))] p-3 text-xs text-[hsl(var(--success-foreground))]">
                     <p>
                       Updated products:{' '}
                       <span className="font-semibold">
@@ -4300,10 +4305,10 @@ export default function AutomationPlaybooksPage() {
                   </div>
                   {/* Stopped safely banner */}
                   {applyResult.stopped && (
-                    <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                    <div className="rounded border border-border bg-[hsl(var(--warning-background))] p-3 text-xs text-[hsl(var(--warning-foreground))]">
                       <div className="flex items-start gap-2">
                         <svg
-                          className="h-4 w-4 flex-shrink-0 text-amber-600"
+                          className="h-4 w-4 flex-shrink-0 text-[hsl(var(--warning-foreground))]"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -4327,7 +4332,7 @@ export default function AutomationPlaybooksPage() {
                               Stopped at product:{' '}
                               <Link
                                 href={`/projects/${projectId}/products/${applyResult.stoppedAtProductId}`}
-                                className="font-medium text-amber-700 underline hover:text-amber-900"
+                                className="font-medium underline hover:text-foreground"
                               >
                                 {products.find(
                                   (p) => p.id === applyResult.stoppedAtProductId
@@ -4341,10 +4346,10 @@ export default function AutomationPlaybooksPage() {
                   )}
                   {/* Skipped products warning */}
                   {applyResult.skippedCount > 0 && !applyResult.stopped && (
-                    <div className="rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                    <div className="rounded border border-border bg-[hsl(var(--warning-background))] p-3 text-xs text-[hsl(var(--warning-foreground))]">
                       <div className="flex items-start gap-2">
                         <svg
-                          className="h-4 w-4 flex-shrink-0 text-amber-600"
+                          className="h-4 w-4 flex-shrink-0 text-[hsl(var(--warning-foreground))]"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -4435,12 +4440,12 @@ export default function AutomationPlaybooksPage() {
                                   <span
                                     className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium ${
                                       row.status === 'UPDATED'
-                                        ? 'bg-green-100 text-green-800'
+                                        ? 'bg-[hsl(var(--success-background))] text-[hsl(var(--success-foreground))]'
                                         : row.status === 'SKIPPED'
                                           ? 'bg-muted text-muted-foreground'
                                           : row.status === 'LIMIT_REACHED'
-                                            ? 'bg-amber-100 text-amber-800'
-                                            : 'bg-red-100 text-red-800'
+                                            ? 'bg-[hsl(var(--warning-background))] text-[hsl(var(--warning-foreground))]'
+                                            : 'bg-[hsl(var(--danger-background))] text-[hsl(var(--danger-foreground))]'
                                     }`}
                                   >
                                     {row.status}
@@ -4489,7 +4494,7 @@ export default function AutomationPlaybooksPage() {
                             `/projects/${projectId}/products?from=playbook_results&playbookId=${selectedPlaybookId}`
                           )
                         }
-                        className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center rounded-md border border-transparent bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         View updated products
                       </button>
@@ -4497,7 +4502,7 @@ export default function AutomationPlaybooksPage() {
                       <button
                         type="button"
                         onClick={handleSyncProducts}
-                        className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                        className="inline-flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted"
                       >
                         {willGenerateAnswerBlocksOnProductSync
                           ? 'Sync products + Generate Answer Blocks'
@@ -4509,7 +4514,7 @@ export default function AutomationPlaybooksPage() {
                         onClick={() =>
                           handleNavigate(`/projects/${projectId}/playbooks`)
                         }
-                        className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                        className="inline-flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted"
                       >
                         Return to Playbooks
                       </button>
@@ -4540,12 +4545,12 @@ export default function AutomationPlaybooksPage() {
                           !roleCapabilities.canApply
                         ) {
                           return (
-                            <p className="mr-4 text-xs text-gray-500">
+                            <p className="mr-4 text-xs text-muted-foreground">
                               Viewer role cannot apply. Preview and export
                               remain available.{' '}
                               <Link
                                 href={`/projects/${projectId}/settings/members`}
-                                className="text-blue-600 hover:underline"
+                                className="text-primary hover:underline"
                               >
                                 Request access
                               </Link>
@@ -4560,12 +4565,12 @@ export default function AutomationPlaybooksPage() {
                         ) {
                           if (!approvalRequired) {
                             return (
-                              <p className="mr-4 text-xs text-gray-500">
+                              <p className="mr-4 text-xs text-muted-foreground">
                                 Editor role cannot apply. An owner must apply
                                 this playbook.{' '}
                                 <Link
                                   href={`/projects/${projectId}/settings/members`}
-                                  className="text-blue-600 hover:underline"
+                                  className="text-primary hover:underline"
                                 >
                                   Manage members
                                 </Link>
@@ -4574,20 +4579,20 @@ export default function AutomationPlaybooksPage() {
                           }
                           if (hasPendingApproval) {
                             return (
-                              <p className="mr-4 text-xs text-amber-600">
+                              <p className="mr-4 text-xs text-[hsl(var(--warning-foreground))]">
                                 Approval pending. Waiting for owner to approve.
                               </p>
                             );
                           }
                           if (hasApprovedApproval) {
                             return (
-                              <p className="mr-4 text-xs text-green-600">
+                              <p className="mr-4 text-xs text-[hsl(var(--success-foreground))]">
                                 Approved — an owner must apply this playbook.
                               </p>
                             );
                           }
                           return (
-                            <p className="mr-4 text-xs text-amber-600">
+                            <p className="mr-4 text-xs text-[hsl(var(--warning-foreground))]">
                               Approval required. Click to request owner
                               approval.
                             </p>
@@ -4598,7 +4603,7 @@ export default function AutomationPlaybooksPage() {
                         if (roleCapabilities.canApply && approvalRequired) {
                           if (hasPendingApproval) {
                             return (
-                              <p className="mr-4 text-xs text-amber-600">
+                              <p className="mr-4 text-xs text-[hsl(var(--warning-foreground))]">
                                 Pending approval from Editor. Click to approve
                                 and apply.
                               </p>
@@ -4606,20 +4611,20 @@ export default function AutomationPlaybooksPage() {
                           }
                           if (hasApprovedApproval) {
                             return (
-                              <p className="mr-4 text-xs text-green-600">
+                              <p className="mr-4 text-xs text-[hsl(var(--success-foreground))]">
                                 Approval granted. Ready to apply.
                               </p>
                             );
                           }
                           if (isMultiUserProject && needsNewRequest) {
                             return (
-                              <p className="mr-4 text-xs text-amber-600">
+                              <p className="mr-4 text-xs text-[hsl(var(--warning-foreground))]">
                                 An Editor must request approval first.
                               </p>
                             );
                           }
                           return (
-                            <p className="mr-4 text-xs text-amber-600">
+                            <p className="mr-4 text-xs text-[hsl(var(--warning-foreground))]">
                               Approval required before apply.
                             </p>
                           );
@@ -4629,7 +4634,7 @@ export default function AutomationPlaybooksPage() {
                       })()}
                       {/* [ROLES-3 PENDING-1] Approval Attribution Panel */}
                       {pendingApproval && approvalRequired && (
-                        <div className="mr-4 flex flex-col gap-0.5 text-xs text-gray-500">
+                        <div className="mr-4 flex flex-col gap-0.5 text-xs text-muted-foreground">
                           <span>
                             Requested by{' '}
                             {getUserDisplayName(
@@ -4711,7 +4716,7 @@ export default function AutomationPlaybooksPage() {
                           }
                           return false;
                         })()}
-                        className="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex items-center rounded-md border border-transparent bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {(() => {
                           if (applying || approvalLoading) return 'Processing…';

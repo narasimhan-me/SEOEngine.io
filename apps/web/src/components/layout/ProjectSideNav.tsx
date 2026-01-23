@@ -112,13 +112,14 @@ export default function ProjectSideNav({ onNavigate }: ProjectSideNavProps) {
                 return (
                   <li key={item.path}>
                     {/* [NAV-HIERARCHY-POLISH-1] Active state: neutral (no primary color) to demote vs Global Nav */}
+                    {/* [UI-POLISH-&-CLARITY-1] Active accent bar + increased inactive contrast */}
                     <GuardedLink
                       href={`/projects/${projectId}/${item.path}`}
                       onClick={onNavigate}
-                      className={`block rounded-md px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                      className={`relative block rounded-md px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                         active
-                          ? 'bg-muted font-medium text-foreground'
-                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                          ? 'bg-muted font-medium text-foreground before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-4/5 before:w-0.5 before:rounded-full before:bg-primary/60'
+                          : 'text-foreground/70 hover:bg-muted hover:text-foreground'
                       }`}
                     >
                       {item.label}

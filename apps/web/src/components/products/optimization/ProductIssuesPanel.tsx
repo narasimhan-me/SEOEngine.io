@@ -90,9 +90,10 @@ export function ProductIssuesPanel({
   return (
     <div className="space-y-6">
       {/* [COUNT-INTEGRITY-1.1 FIX-UP] Canonical triplet summary display - always visible when summary provided */}
+      {/* [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only triplet container */}
       {summary && (
         <div
-          className="grid grid-cols-3 gap-4 rounded-lg border border-gray-200 bg-white p-4"
+          className="grid grid-cols-3 gap-4 rounded-lg border border-border bg-[hsl(var(--surface-card))] p-4"
           data-testid="product-issues-triplet"
         >
           <div
@@ -100,48 +101,49 @@ export function ProductIssuesPanel({
             data-testid="product-triplet-issue-types"
           >
             <div
-              className="text-xl font-semibold text-gray-900"
+              className="text-xl font-semibold text-foreground"
               data-testid="product-triplet-issue-types-value"
             >
               {/* Use detected counts to show asset-scoped detected issues even when zero actionable */}
               {summary.detected.issueTypesCount}
             </div>
-            <div className="text-xs text-gray-600">Issue types</div>
+            <div className="text-xs text-muted-foreground">Issue types</div>
           </div>
           <div
             className="text-center"
             data-testid="product-triplet-items-affected"
           >
             <div
-              className="text-xl font-semibold text-gray-900"
+              className="text-xl font-semibold text-foreground"
               data-testid="product-triplet-items-affected-value"
             >
               {summary.detected.affectedItemsCount}
             </div>
-            <div className="text-xs text-gray-600">Items affected</div>
+            <div className="text-xs text-muted-foreground">Items affected</div>
           </div>
           <div
             className="text-center"
             data-testid="product-triplet-actionable-now"
           >
             <div
-              className="text-xl font-semibold text-gray-900"
+              className="text-xl font-semibold text-foreground"
               data-testid="product-triplet-actionable-now-value"
             >
               {summary.actionable.actionableNowCount}
             </div>
-            <div className="text-xs text-gray-600">Actionable now</div>
+            <div className="text-xs text-muted-foreground">Actionable now</div>
           </div>
         </div>
       )}
 
       {/* [COUNT-INTEGRITY-1.1 PATCH 6] Zero-actionable suppression message */}
+      {/* [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only warning styling */}
       {hasZeroActionable && (
         <div
-          className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-center"
+          className="rounded-lg border border-border bg-[hsl(var(--warning-background))] p-4 text-center"
           data-testid="product-no-eligible-items-message"
         >
-          <p className="text-sm text-amber-800">
+          <p className="text-sm text-[hsl(var(--warning-foreground))]">
             No items currently eligible for action.
           </p>
         </div>
@@ -153,14 +155,15 @@ export function ProductIssuesPanel({
           {/* Summary header */}
           <div className="flex items-center justify-between">
             <div>
+              {/* [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only text styling */}
               <h3
-                className="text-sm font-semibold text-gray-900"
+                className="text-sm font-semibold text-foreground"
                 data-testid="product-issues-actionable-count"
               >
                 {actionableIssues.length} actionable{' '}
                 {actionableIssues.length === 1 ? 'issue' : 'issues'}
               </h3>
-              <p className="mt-0.5 text-xs text-gray-500">
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 Grouped by pillar for easier prioritization
               </p>
             </div>
@@ -176,21 +179,22 @@ export function ProductIssuesPanel({
 
           {/* Issues by pillar */}
           <div className="space-y-4">
+            {/* [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only pillar group styling */}
             {issuesByPillar.map((group) => (
               <div
                 key={group.pillarId}
-                className="rounded-lg border border-gray-200 bg-white"
+                className="rounded-lg border border-border bg-[hsl(var(--surface-card))]"
               >
-                <div className="border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-                  <h4 className="text-sm font-medium text-gray-900">
+                <div className="border-b border-border px-4 py-3 flex items-center justify-between">
+                  <h4 className="text-sm font-medium text-foreground">
                     {group.label}
                   </h4>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-muted-foreground">
                     {group.issues.length}{' '}
                     {group.issues.length === 1 ? 'issue' : 'issues'}
                   </span>
                 </div>
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-border">
                   {group.issues.map((issue) => (
                     <IssueRow
                       key={issue.id}
@@ -229,10 +233,11 @@ function FixNextBadge({
   // If no fix href (shouldn't happen for actionable issues), don't render
   if (!href) return null;
 
+  // [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only primary CTA styling
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+      className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       <svg
         className="h-3.5 w-3.5"
@@ -262,10 +267,13 @@ function IssueRow({
   projectId: string;
   productId: string;
 }) {
+  // [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only severity colors
   const severityColors = {
-    critical: 'bg-red-100 text-red-800 border-red-200',
-    warning: 'bg-orange-100 text-orange-800 border-orange-200',
-    info: 'bg-blue-100 text-blue-800 border-blue-200',
+    critical:
+      'border-border bg-[hsl(var(--danger-background))] text-[hsl(var(--danger-foreground))]',
+    warning:
+      'border-border bg-[hsl(var(--warning-background))] text-[hsl(var(--warning-foreground))]',
+    info: 'border-border bg-[hsl(var(--info-background))] text-[hsl(var(--info-foreground))]',
   };
 
   // [ISSUE-TO-FIX-PATH-1] Use buildIssueFixHref for deterministic routing
@@ -278,6 +286,7 @@ function IssueRow({
   const safeDescription = getSafeIssueDescription(issue);
 
   // Shouldn't happen for actionable issues, but handle gracefully
+  // [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only text styling
   if (!href) {
     return (
       <div className="px-4 py-3 flex items-start gap-3">
@@ -289,8 +298,8 @@ function IssueRow({
           {issue.severity}
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900">{safeTitle}</p>
-          <p className="mt-0.5 text-xs text-gray-600 line-clamp-2">
+          <p className="text-sm font-medium text-foreground">{safeTitle}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
             {safeDescription}
           </p>
         </div>
@@ -298,11 +307,12 @@ function IssueRow({
     );
   }
 
+  // [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only row hover and text styling
   return (
     <Link
       href={href}
       data-testid="product-issue-row-actionable"
-      className="px-4 py-3 flex items-start gap-3 hover:bg-blue-50/50 transition-colors cursor-pointer"
+      className="px-4 py-3 flex items-start gap-3 hover:bg-[hsl(var(--surface-raised))] transition-colors cursor-pointer"
     >
       <span
         className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${
@@ -312,19 +322,19 @@ function IssueRow({
         {issue.severity}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900">{safeTitle}</p>
-        <p className="mt-0.5 text-xs text-gray-600 line-clamp-2">
+        <p className="text-sm font-medium text-foreground">{safeTitle}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
           {issue.whyItMatters || safeDescription}
         </p>
         {issue.recommendedFix && (
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             <span className="font-medium">Recommended fix:</span>{' '}
             {issue.recommendedFix}
           </p>
         )}
         {/* [COUNT-INTEGRITY-1.1 Step 2B] Store-wide impact display */}
         {issue.assetTypeCounts && (
-          <div className="mt-2 flex gap-2 text-[11px] text-gray-500 border-t border-gray-100 pt-2">
+          <div className="mt-2 flex gap-2 text-[11px] text-muted-foreground border-t border-border pt-2">
             <span title="Total products affected across store">
               <strong>{issue.assetTypeCounts.products}</strong> product
               {issue.assetTypeCounts.products !== 1 ? 's' : ''}
@@ -350,8 +360,9 @@ function IssueRow({
           </div>
         )}
       </div>
+      {/* [UI-POLISH-&-CLARITY-1 FIXUP-1] AI fixable badge - de-emphasized neutral token styling */}
       {issue.aiFixable && (
-        <span className="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">
+        <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
           AI fixable
         </span>
       )}

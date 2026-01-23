@@ -170,22 +170,23 @@ export function ContextPanelIssueDrilldown({
   const categoryOrder: IssueCategory[] = ['Metadata', 'Content', 'Search Intent', 'Technical', 'Other'];
   const sortedCategories = categoryOrder.filter((cat) => groupedIssues[cat]?.length > 0);
 
+  // [UI-POLISH-&-CLARITY-1] Improved spacing and nested readability
   return (
-    <div className="space-y-3" data-testid="context-panel-issue-drilldown">
+    <div className="space-y-4" data-testid="context-panel-issue-drilldown">
       {sortedCategories.map((category) => (
         <div
           key={category}
-          className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3"
+          className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-4"
           data-testid={`issue-category-${category.toLowerCase().replace(' ', '-')}`}
         >
-          <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
+          <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
             {category}
           </h4>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {groupedIssues[category].map((issue) => (
               <div
                 key={issue.id}
-                className="rounded border border-border bg-background p-2"
+                className="rounded border border-border bg-[hsl(var(--surface-raised))] p-3"
                 data-testid={`issue-row-${issue.id}`}
               >
                 {/* Issue title */}
@@ -198,8 +199,8 @@ export function ContextPanelIssueDrilldown({
                   {getSeverityLabel(issue.severity)}
                 </span>
 
-                {/* "Why this matters" line */}
-                <p className="mt-1.5 text-xs text-muted-foreground line-clamp-1">
+                {/* "Why this matters" line - increased clamp for scannability */}
+                <p className="mt-1.5 text-xs text-muted-foreground line-clamp-2">
                   {issue.whyItMatters || issue.description}
                 </p>
               </div>

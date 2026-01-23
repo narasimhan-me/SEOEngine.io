@@ -910,10 +910,11 @@ export default function ProductOptimizationPage() {
   return (
     <div>
       {/* Breadcrumbs */}
+      {/* [UI-POLISH-&-CLARITY-1] Token-only breadcrumb styling */}
       <nav className="mb-4 text-sm">
-        <ol className="flex flex-wrap items-center gap-2 text-gray-500">
+        <ol className="flex flex-wrap items-center gap-2 text-muted-foreground">
           <li>
-            <Link href="/projects" className="hover:text-gray-700">
+            <Link href="/projects" className="hover:text-foreground">
               Projects
             </Link>
           </li>
@@ -921,7 +922,7 @@ export default function ProductOptimizationPage() {
           <li>
             <Link
               href={`/projects/${projectId}/store-health`}
-              className="hover:text-gray-700"
+              className="hover:text-foreground"
             >
               {projectName || 'Project'}
             </Link>
@@ -930,50 +931,51 @@ export default function ProductOptimizationPage() {
           {/* [TRUST-ROUTING-1] Context-aware Products breadcrumb */}
           <li>
             {isPreviewMode && validatedReturnTo ? (
-              <Link href={validatedReturnTo} className="hover:text-gray-700">
+              <Link href={validatedReturnTo} className="hover:text-foreground">
                 Preview
               </Link>
             ) : isResultsMode && validatedReturnTo ? (
-              <Link href={validatedReturnTo} className="hover:text-gray-700">
+              <Link href={validatedReturnTo} className="hover:text-foreground">
                 Results
               </Link>
             ) : (
               <Link
                 href={`/projects/${projectId}/products`}
-                className="hover:text-gray-700"
+                className="hover:text-foreground"
               >
                 Products
               </Link>
             )}
           </li>
           <li>/</li>
-          <li className="text-gray-900">{product?.title || 'Product'}</li>
+          <li className="text-foreground">{product?.title || 'Product'}</li>
         </ol>
       </nav>
 
       {/* Product not found */}
+      {/* [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only styling */}
       {!product && !loading && (
-        <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
-          <p className="text-gray-600">Product not found.</p>
+        <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-8 text-center">
+          <p className="text-muted-foreground">Product not found.</p>
           {/* [TRUST-ROUTING-1] Context-aware back link */}
           {isPreviewMode && validatedReturnTo ? (
             <Link
               href={validatedReturnTo}
-              className="mt-4 inline-block text-blue-600 hover:text-blue-800"
+              className="mt-4 inline-block text-primary hover:text-primary/80"
             >
               ← Back to preview
             </Link>
           ) : isResultsMode && validatedReturnTo ? (
             <Link
               href={validatedReturnTo}
-              className="mt-4 inline-block text-blue-600 hover:text-blue-800"
+              className="mt-4 inline-block text-primary hover:text-primary/80"
             >
               ← Back to results
             </Link>
           ) : (
             <Link
               href={`/projects/${projectId}/products`}
-              className="mt-4 inline-block text-blue-600 hover:text-blue-800"
+              className="mt-4 inline-block text-primary hover:text-primary/80"
             >
               ← Back to Products
             </Link>
@@ -989,34 +991,36 @@ export default function ProductOptimizationPage() {
             <div className="flex items-center justify-between gap-4 px-1 py-3 sm:px-2">
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 {/* [TRUST-ROUTING-1] Context-aware back link in sticky header */}
+                {/* [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only link styling */}
                 {isPreviewMode && validatedReturnTo ? (
                   <Link
                     href={validatedReturnTo}
-                    className="text-xs font-medium text-blue-600 hover:text-blue-800"
+                    className="text-xs font-medium text-primary hover:text-primary/80"
                   >
                     ← Back to preview
                   </Link>
                 ) : isResultsMode && validatedReturnTo ? (
                   <Link
                     href={validatedReturnTo}
-                    className="text-xs font-medium text-blue-600 hover:text-blue-800"
+                    className="text-xs font-medium text-primary hover:text-primary/80"
                   >
                     ← Back to results
                   </Link>
                 ) : (
                   <Link
                     href={`/projects/${projectId}/products`}
-                    className="text-xs font-medium text-blue-600 hover:text-blue-800"
+                    className="text-xs font-medium text-primary hover:text-primary/80"
                   >
                     ← Back to Products
                   </Link>
                 )}
+                {/* [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only text and pill styling */}
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-gray-900">
+                  <div className="truncate text-sm font-semibold text-foreground">
                     {product.title || 'Product'}
                   </div>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                    <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-700">
+                  <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 font-medium text-foreground">
                       {status === 'optimized'
                         ? 'Optimized'
                         : status === 'needs-optimization'
@@ -1030,10 +1034,11 @@ export default function ProductOptimizationPage() {
                       </span>
                     )}
                     {/* [DEO-UX-REFRESH-1] DEO Issues indicator in header */}
+                    {/* [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only danger pill styling */}
                     {productIssues.length > 0 && (
                       <Link
                         href={`/projects/${projectId}/products/${productId}?tab=issues`}
-                        className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 font-medium text-red-700 hover:bg-red-100"
+                        className="inline-flex items-center gap-1 rounded-full border border-border bg-[hsl(var(--danger-background))] px-2 py-0.5 font-medium text-[hsl(var(--danger-foreground))] hover:opacity-90"
                       >
                         <span>
                           {productIssues.length} DEO{' '}
@@ -1049,14 +1054,15 @@ export default function ProductOptimizationPage() {
               {activeTab !== 'drafts' && (
                 <div className="flex items-center gap-2">
                   {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Compact header draft state indicator */}
+                  {/* [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only draft state indicator */}
                   <span
                     data-testid="header-draft-state-indicator"
-                    className={`hidden sm:inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                    className={`hidden sm:inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[11px] font-medium ${
                       draftState === 'unsaved'
-                        ? 'bg-yellow-100 text-yellow-800'
+                        ? 'bg-[hsl(var(--warning-background))] text-[hsl(var(--warning-foreground))]'
                         : draftState === 'saved'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-green-100 text-green-800'
+                          ? 'bg-[hsl(var(--info-background))] text-[hsl(var(--info-foreground))]'
+                          : 'bg-[hsl(var(--success-background))] text-[hsl(var(--success-foreground))]'
                     }`}
                   >
                     {draftState === 'unsaved' && 'Draft — not applied'}
@@ -1074,14 +1080,16 @@ export default function ProductOptimizationPage() {
                       </>
                     )}
                   </span>
+                  {/* [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only secondary button */}
                   <button
                     type="button"
                     onClick={handleAutomateThisFix}
-                    className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                    className="inline-flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
                     Automate this fix
                   </button>
                   {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Header Apply button - disabled unless draft is saved */}
+                  {/* [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only success primary button */}
                   <button
                     type="button"
                     data-testid="header-apply-to-shopify-button"
@@ -1092,7 +1100,7 @@ export default function ProductOptimizationPage() {
                         ? 'Save draft first; Apply uses saved drafts only and never auto-saves.'
                         : 'Apply saved draft to Shopify'
                     }
-                    className="inline-flex items-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center rounded-md border border-transparent bg-[hsl(var(--success))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] shadow-sm hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--success))] focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {applyingToShopify ? 'Applying…' : 'Apply to Shopify'}
                   </button>
@@ -1127,12 +1135,13 @@ export default function ProductOptimizationPage() {
           </div>
 
           {/* [TRUST-ROUTING-1] Preview Mode Banner - shown when from=playbook_preview */}
+          {/* [UI-POLISH-&-CLARITY-1 FIXUP-2] Token-only INFO styling */}
           {isPreviewMode && previewSample && !previewExpired && (
-            <div className="mb-6 mt-4 rounded-lg border border-purple-200 bg-purple-50 p-4">
+            <div className="mb-6 mt-4 rounded-lg border border-border bg-[hsl(var(--info-background))] p-4">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0">
                   <svg
-                    className="h-5 w-5 text-purple-600"
+                    className="h-5 w-5 text-[hsl(var(--info-foreground))]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1152,42 +1161,42 @@ export default function ProductOptimizationPage() {
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-purple-900">
+                  <h3 className="text-sm font-semibold text-[hsl(var(--info-foreground))]">
                     Previewing draft (not applied)
                   </h3>
-                  <p className="mt-1 text-xs text-purple-800">
+                  <p className="mt-1 text-xs text-[hsl(var(--info-foreground))]">
                     This is a preview from the Playbooks workflow. Changes have
                     not been applied yet.
                   </p>
                   {/* Draft vs Current comparison */}
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    <div className="rounded border border-purple-200 bg-white p-2">
-                      <div className="text-xs font-medium text-purple-700 mb-1">
+                    <div className="rounded border border-border bg-[hsl(var(--surface-card))] p-2">
+                      <div className="text-xs font-medium text-muted-foreground mb-1">
                         Current
                       </div>
-                      <div className="text-xs text-gray-700">
+                      <div className="text-xs text-foreground">
                         {playbookIdParam === 'missing_seo_title'
                           ? previewSample.currentTitle || (
-                              <span className="text-gray-400">Empty</span>
+                              <span className="text-muted-foreground/70">Empty</span>
                             )
                           : previewSample.currentDescription || (
-                              <span className="text-gray-400">Empty</span>
+                              <span className="text-muted-foreground/70">Empty</span>
                             )}
                       </div>
                     </div>
-                    <div className="rounded border border-purple-200 bg-white p-2">
-                      <div className="text-xs font-medium text-purple-700 mb-1">
+                    <div className="rounded border border-border bg-[hsl(var(--surface-card))] p-2">
+                      <div className="text-xs font-medium text-muted-foreground mb-1">
                         Draft (suggested)
                       </div>
-                      <div className="text-xs text-gray-700">
+                      <div className="text-xs text-foreground">
                         {playbookIdParam === 'missing_seo_title'
                           ? previewSample.suggestedTitle || (
-                              <span className="text-gray-400">
+                              <span className="text-muted-foreground/70">
                                 No suggestion
                               </span>
                             )
                           : previewSample.suggestedDescription || (
-                              <span className="text-gray-400">
+                              <span className="text-muted-foreground/70">
                                 No suggestion
                               </span>
                             )}
@@ -1200,12 +1209,13 @@ export default function ProductOptimizationPage() {
           )}
 
           {/* [TRUST-ROUTING-1] Preview Expired Banner */}
+          {/* [UI-POLISH-&-CLARITY-1 FIXUP-2] Token-only WARNING styling */}
           {isPreviewMode && previewExpired && (
-            <div className="mb-6 mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <div className="mb-6 mt-4 rounded-lg border border-border bg-[hsl(var(--warning-background))] p-4">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0">
                   <svg
-                    className="h-5 w-5 text-amber-600"
+                    className="h-5 w-5 text-[hsl(var(--warning-foreground))]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1219,10 +1229,10 @@ export default function ProductOptimizationPage() {
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-amber-900">
+                  <h3 className="text-sm font-semibold text-[hsl(var(--warning-foreground))]">
                     Preview expired — regenerate
                   </h3>
-                  <p className="mt-1 text-xs text-amber-800">
+                  <p className="mt-1 text-xs text-[hsl(var(--warning-foreground))]">
                     The preview session has expired or this product was not in
                     the sample set. Return to Playbooks to regenerate the
                     preview.
@@ -1236,7 +1246,7 @@ export default function ProductOptimizationPage() {
                           ? `/projects/${projectId}/playbooks/${playbookIdParam}?step=preview&source=product_details`
                           : `/projects/${projectId}/playbooks`)
                       }
-                      className="inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-700"
+                      className="inline-flex items-center rounded-md bg-[hsl(var(--warning))] px-3 py-1.5 text-xs font-medium text-[hsl(var(--primary-foreground))] shadow-sm hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--warning))] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     >
                       ← Back to preview
                     </Link>
@@ -1311,7 +1321,7 @@ export default function ProductOptimizationPage() {
                         <div className="mt-3 flex flex-wrap items-center gap-2">
                           <Link
                             href={issueFixBackLink.href}
-                            className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-indigo-700"
+                            className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                           >
                             ← {issueFixBackLink.label}
                           </Link>
@@ -1320,7 +1330,7 @@ export default function ProductOptimizationPage() {
                             <Link
                               href={buildViewRelatedIssuesHref()}
                               data-testid="issue-fix-view-related-issues"
-                              className="inline-flex items-center rounded-md border border-blue-300 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-50"
+                              className="inline-flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                             >
                               View related issues
                             </Link>
@@ -1335,15 +1345,16 @@ export default function ProductOptimizationPage() {
 
           {/* CNAB-1: Product optimization banner */}
           {/* [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Hide AI/generation banner on Drafts tab */}
+          {/* [UI-POLISH-&-CLARITY-1 FIXUP-2] Token-only INFO styling */}
           {activeTab !== 'drafts' &&
             (productIssues.length > 0 ||
               status === 'missing-metadata' ||
               status === 'needs-optimization') && (
-              <div className="mb-6 mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <div className="mb-6 mt-4 rounded-lg border border-border bg-[hsl(var(--info-background))] p-4">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0">
                     <svg
-                      className="h-5 w-5 text-blue-600"
+                      className="h-5 w-5 text-[hsl(var(--info-foreground))]"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -1357,10 +1368,10 @@ export default function ProductOptimizationPage() {
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold text-blue-900">
+                    <h3 className="text-sm font-semibold text-[hsl(var(--info-foreground))]">
                       Optimization suggestions available
                     </h3>
-                    <p className="mt-1 text-xs text-blue-800">
+                    <p className="mt-1 text-xs text-[hsl(var(--info-foreground))]">
                       {productIssues.length > 0
                         ? `${productIssues.length} issue${productIssues.length !== 1 ? 's' : ''} detected for this product. `
                         : 'This product has missing or incomplete SEO metadata. '}
@@ -1372,22 +1383,24 @@ export default function ProductOptimizationPage() {
             )}
 
           {/* Success message */}
+          {/* [UI-POLISH-&-CLARITY-1 FIXUP-2] Token-only SUCCESS styling */}
           {successMessage && (
-            <div className="mb-6 mt-4 rounded border border-green-400 bg-green-100 p-4 text-green-700">
+            <div className="mb-6 mt-4 rounded border border-border bg-[hsl(var(--success-background))] p-4 text-[hsl(var(--success-foreground))]">
               {successMessage}
             </div>
           )}
 
           {/* Error message */}
           {/* [DRAFT-ENTRYPOINT-UNIFICATION-1-FIXUP-1] Hide AI limit upsell on Drafts tab */}
+          {/* [UI-POLISH-&-CLARITY-1 FIXUP-2] Token-only DANGER styling */}
           {error && (
-            <div className="mb-6 rounded border border-red-400 bg-red-100 p-4 text-red-700">
+            <div className="mb-6 rounded border border-border bg-[hsl(var(--danger-background))] p-4 text-[hsl(var(--danger-foreground))]">
               <p>{error}</p>
               {isAiLimitError && activeTab !== 'drafts' && (
                 <p className="mt-2">
                   <Link
                     href="/settings/billing"
-                    className="font-semibold text-red-800 underline hover:text-red-900"
+                    className="font-semibold text-[hsl(var(--danger-foreground))] underline hover:opacity-90"
                   >
                     Upgrade your plan to unlock more AI suggestions.
                   </Link>
@@ -1406,18 +1419,20 @@ export default function ProductOptimizationPage() {
                 {/* Metadata Tab */}
                 {activeTab === 'metadata' && (
                   <section aria-label="Metadata">
-                    <h2 className="mb-4 text-base font-semibold text-gray-900">
+                    {/* [UI-POLISH-&-CLARITY-1 FIXUP-2] Token-only heading styling */}
+                    <h2 className="mb-4 text-base font-semibold text-foreground">
                       Metadata
                     </h2>
                     {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft state banner */}
+                    {/* [UI-POLISH-&-CLARITY-1 FIXUP-2] Token-only semantic backgrounds/foregrounds */}
                     <div
                       data-testid="draft-state-banner"
                       className={`mb-4 rounded-md border px-4 py-3 text-sm ${
                         draftState === 'unsaved'
-                          ? 'border-yellow-200 bg-yellow-50 text-yellow-800'
+                          ? 'border-border bg-[hsl(var(--warning-background))] text-[hsl(var(--warning-foreground))]'
                           : draftState === 'saved'
-                            ? 'border-blue-200 bg-blue-50 text-blue-800'
-                            : 'border-green-200 bg-green-50 text-green-800'
+                            ? 'border-border bg-[hsl(var(--info-background))] text-[hsl(var(--info-foreground))]'
+                            : 'border-border bg-[hsl(var(--success-background))] text-[hsl(var(--success-foreground))]'
                       }`}
                     >
                       {draftState === 'unsaved' && (
@@ -1443,7 +1458,8 @@ export default function ProductOptimizationPage() {
                         </span>
                       )}
                     </div>
-                    <div className="mb-3 rounded-md border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs text-indigo-800">
+                    {/* [UI-POLISH-&-CLARITY-1 FIXUP-2] Token-only INFO guidance callout */}
+                    <div className="mb-3 rounded-md border border-border bg-[hsl(var(--info-background))] px-3 py-2 text-xs text-[hsl(var(--info-foreground))]">
                       Generate drafts, review, then apply to Shopify.
                     </div>
                     <div className="space-y-6">
@@ -1459,7 +1475,7 @@ export default function ProductOptimizationPage() {
                         data-testid="seo-editor-anchor"
                         className={`rounded-md transition-all duration-300 ${
                           seoEditorHighlighted
-                            ? 'ring-2 ring-indigo-400 ring-offset-2'
+                            ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
                             : ''
                         }`}
                       >
@@ -1487,15 +1503,15 @@ export default function ProductOptimizationPage() {
                     aria-label="Answers"
                     data-testid="answers-tab-anchor"
                   >
-                    <h2 className="mb-4 text-base font-semibold text-gray-900">
+                    <h2 className="mb-4 text-base font-semibold text-foreground">
                       Answers (AEO)
                     </h2>
-                    <p className="mb-2 text-xs text-gray-500">
+                    <p className="mb-2 text-xs text-muted-foreground">
                       Answer Blocks are your canonical, persistent AEO answers.
                       When enabled in{' '}
                       <Link
                         href={`/projects/${projectId}/settings`}
-                        className="underline hover:text-indigo-700"
+                        className="underline hover:text-primary"
                       >
                         Settings
                       </Link>
@@ -1503,9 +1519,9 @@ export default function ProductOptimizationPage() {
                       metafields.
                     </p>
                     {hasAnswerBlocks && (
-                      <div className="mb-3 flex flex-col gap-2 rounded-md border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="mb-3 flex flex-col gap-2 rounded-md border border-dashed border-border bg-[hsl(var(--surface-raised))] px-3 py-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                         <div className="max-w-md">
-                          <p className="font-medium text-gray-700">
+                          <p className="font-medium text-foreground">
                             {showAiDiagnosticPreviews
                               ? 'AI Answer previews are visible for diagnostics.'
                               : 'AI Answer previews are hidden because canonical Answer Blocks already exist for this product.'}
@@ -1520,7 +1536,7 @@ export default function ProductOptimizationPage() {
                           onClick={() =>
                             setShowAiDiagnosticPreviews((previous) => !previous)
                           }
-                          className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+                          className="inline-flex items-center justify-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                         >
                           {showAiDiagnosticPreviews
                             ? 'Hide AI diagnostic previews'
@@ -1553,10 +1569,10 @@ export default function ProductOptimizationPage() {
                     aria-label="Search & Intent"
                     data-testid="search-intent-tab-anchor"
                   >
-                    <h2 className="mb-4 text-base font-semibold text-gray-900">
+                    <h2 className="mb-4 text-base font-semibold text-foreground">
                       Search & Intent
                     </h2>
-                    <p className="mb-3 text-xs text-gray-500">
+                    <p className="mb-3 text-xs text-muted-foreground">
                       Analyze how well this product covers common search
                       intents. High-value intents (transactional, comparative)
                       have the most impact on conversions.
@@ -1571,10 +1587,10 @@ export default function ProductOptimizationPage() {
                     aria-label="Competitive Positioning"
                     data-testid="competitors-tab-anchor"
                   >
-                    <h2 className="mb-4 text-base font-semibold text-gray-900">
+                    <h2 className="mb-4 text-base font-semibold text-foreground">
                       Competitive Positioning
                     </h2>
-                    <p className="mb-3 text-xs text-gray-500">
+                    <p className="mb-3 text-xs text-muted-foreground">
                       See how this product compares to typical competitors in
                       your category. Address gaps in intent coverage, content
                       sections, and trust signals.
@@ -1589,10 +1605,10 @@ export default function ProductOptimizationPage() {
                     aria-label="GEO Readiness"
                     data-testid="geo-tab-anchor"
                   >
-                    <h2 className="mb-4 text-base font-semibold text-gray-900">
+                    <h2 className="mb-4 text-base font-semibold text-foreground">
                       GEO Readiness
                     </h2>
-                    <p className="mb-3 text-xs text-gray-500">
+                    <p className="mb-3 text-xs text-muted-foreground">
                       Evaluate how AI-engine-ready your product content is. GEO
                       readiness signals measure clarity, specificity, structure,
                       context, and accessibility.
@@ -1604,7 +1620,7 @@ export default function ProductOptimizationPage() {
                 {/* Automations Tab */}
                 {activeTab === 'automations' && (
                   <section aria-label="Automations">
-                    <h2 className="mb-4 text-base font-semibold text-gray-900">
+                    <h2 className="mb-4 text-base font-semibold text-foreground">
                       Automations
                     </h2>
                     <ProductAutomationHistoryPanel productId={product.id} />
@@ -1614,10 +1630,10 @@ export default function ProductOptimizationPage() {
                 {/* [DEO-UX-REFRESH-1] Issues Tab */}
                 {activeTab === 'issues' && (
                   <section aria-label="DEO Issues">
-                    <h2 className="mb-4 text-base font-semibold text-gray-900">
+                    <h2 className="mb-4 text-base font-semibold text-foreground">
                       DEO Issues
                     </h2>
-                    <p className="mb-3 text-xs text-gray-500">
+                    <p className="mb-3 text-xs text-muted-foreground">
                       Issues are grouped by pillar. Address them in priority
                       order for the best DEO impact.
                     </p>

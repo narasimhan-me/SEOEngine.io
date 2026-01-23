@@ -2,8 +2,9 @@
 
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useState, type ReactNode } from 'react';
+import { useState, useEffect, useMemo, type ReactNode } from 'react';
 import { GuardedLink } from '@/components/navigation/GuardedLink';
+import { projectsApi } from '@/lib/api';
 import {
   RightContextPanelProvider,
   useRightContextPanel,
@@ -249,6 +250,57 @@ const DEMO_DESCRIPTOR_B = {
   },
 } as const;
 
+// [UI-POLISH-&-CLARITY-1] Section label mapping for breadcrumbs
+const SECTION_LABELS: Record<string, string> = {
+  'store-health': 'Store Health',
+  'work-queue': 'Work Queue',
+  products: 'Products',
+  'assets/pages': 'Pages',
+  'assets/collections': 'Collections',
+  'assets/blogs': 'Blog Posts',
+  automation: 'Playbooks',
+  insights: 'Insights',
+  deo: 'DEO Overview',
+  keywords: 'Keywords',
+  competitors: 'Competitors',
+  backlinks: 'Backlinks',
+  local: 'Local',
+  performance: 'Performance',
+  settings: 'Project Settings',
+  issues: 'Issues',
+};
+
+const ADMIN_SECTION_LABELS: Record<string, string> = {
+  users: 'Users',
+  projects: 'Projects',
+  'audit-log': 'Audit Log',
+  'governance-audit': 'Governance Audit',
+};
+
+// [UI-POLISH-&-CLARITY-1] Project name cache key
+const PROJECT_NAME_CACHE_KEY = 'engineo_project_name_cache';
+
+function getCachedProjectName(projectId: string): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const cache = JSON.parse(sessionStorage.getItem(PROJECT_NAME_CACHE_KEY) || '{}');
+    return cache[projectId] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedProjectName(projectId: string, name: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const cache = JSON.parse(sessionStorage.getItem(PROJECT_NAME_CACHE_KEY) || '{}');
+    cache[projectId] = name;
+    sessionStorage.setItem(PROJECT_NAME_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 function LayoutShellInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [navState, setNavState] = useState<NavState>(() => readNavState());
@@ -259,6 +311,81 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
     togglePanel,
   } = useRightContextPanel();
   const { openPalette } = useCommandPalette();
+
+  // [UI-POLISH-&-CLARITY-1] Breadcrumb state
+  const [projectLabel, setProjectLabel] = useState<string | null>(null);
+
+  // [UI-POLISH-&-CLARITY-1] Derive route info for breadcrumbs
+  const routeInfo = useMemo(() => {
+    // /projects/[id]/* pattern
+    const projectMatch = pathname.match(/^\/projects\/([^/]+)(?:\/(.*))?$/);
+    if (projectMatch) {
+      const projectId = projectMatch[1];
+      const rest = projectMatch[2] ?? '';
+      // Find section label
+      let sectionLabel = 'Overview';
+      for (const [key, label] of Object.entries(SECTION_LABELS)) {
+        if (rest === key || rest.startsWith(`${key}/`)) {
+          sectionLabel = label;
+          break;
+        }
+      }
+      return { type: 'project' as const, projectId, sectionLabel };
+    }
+
+    // /admin/* pattern
+    const adminMatch = pathname.match(/^\/admin(?:\/(.*))?$/);
+    if (adminMatch) {
+      const rest = adminMatch[1] ?? '';
+      let sectionLabel = 'Dashboard';
+      for (const [key, label] of Object.entries(ADMIN_SECTION_LABELS)) {
+        if (rest === key || rest.startsWith(`${key}/`)) {
+          sectionLabel = label;
+          break;
+        }
+      }
+      return { type: 'admin' as const, sectionLabel };
+    }
+
+    return { type: 'other' as const, sectionLabel: 'Work Canvas' };
+  }, [pathname]);
+
+  // [UI-POLISH-&-CLARITY-1] Fetch project name for breadcrumbs
+  useEffect(() => {
+    if (routeInfo.type !== 'project') {
+      setProjectLabel(null);
+      return;
+    }
+
+    const projectId = routeInfo.projectId;
+
+    // Check cache first
+    const cached = getCachedProjectName(projectId);
+    if (cached) {
+      setProjectLabel(cached);
+      return;
+    }
+
+    // Fetch from API (read-only)
+    let cancelled = false;
+    projectsApi
+      .get(projectId)
+      .then((project) => {
+        if (cancelled) return;
+        const name = project.name || project.shopifyShopDomain || projectId;
+        setProjectLabel(name);
+        setCachedProjectName(projectId, name);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // Fallback to projectId
+        setProjectLabel(projectId);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [routeInfo]);
 
   const toggleNav = () => {
     setNavState((prev) => {
@@ -281,6 +408,19 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
       togglePanel();
     }
   };
+
+  // [UI-POLISH-&-CLARITY-1] Derive breadcrumb and title text
+  const breadcrumbText = useMemo(() => {
+    if (routeInfo.type === 'project') {
+      return `Projects > ${projectLabel || routeInfo.projectId} > ${routeInfo.sectionLabel}`;
+    }
+    if (routeInfo.type === 'admin') {
+      return `Admin > ${routeInfo.sectionLabel}`;
+    }
+    return '';
+  }, [routeInfo, projectLabel]);
+
+  const titleText = routeInfo.sectionLabel;
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
@@ -449,28 +589,35 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
           <div className="shrink-0 border-b border-border bg-[hsl(var(--surface-card))] px-4 py-3">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <div className="text-xs font-medium text-muted-foreground">
-                  Breadcrumbs (placeholder)
+                {/* [UI-POLISH-&-CLARITY-1] Real breadcrumbs from route */}
+                <div className="truncate text-xs font-medium text-muted-foreground">
+                  {breadcrumbText || 'EngineO.ai'}
                 </div>
                 <div className="truncate text-sm font-semibold text-foreground">
-                  Work Canvas
+                  {titleText}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              {/* [UI-POLISH-&-CLARITY-1] Grouped Action + Details controls */}
+              <div className="flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))]">
                 <button
                   type="button"
                   aria-disabled="true"
-                  className="inline-flex items-center rounded-md border border-border bg-background px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className="inline-flex items-center px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
                 >
                   Action
                 </button>
+                <div className="h-5 w-px bg-border" />
                 <button
                   type="button"
                   onClick={handleToggleDetails}
                   aria-expanded={isRightPanelOpen}
                   aria-controls="right-context-panel"
                   data-testid="rcp-demo-open"
-                  className="inline-flex items-center rounded-md border border-border bg-background px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  className={`inline-flex items-center px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${
+                    isRightPanelOpen
+                      ? 'bg-muted text-foreground'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  }`}
                 >
                   Details
                 </button>

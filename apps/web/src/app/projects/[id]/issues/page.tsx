@@ -25,7 +25,6 @@ import { GuardedLink } from '@/components/navigation/GuardedLink';
 import {
   buildIssueFixHref,
   getSafeIssueTitle,
-  getSafeIssueDescription,
   getIssueFixConfig,
 } from '@/lib/issue-to-fix-path';
 // [ISSUE-FIX-NAV-AND-ANCHORS-1] Navigation utilities available in @/lib/issue-fix-navigation if needed
@@ -40,6 +39,16 @@ import {
   normalizeScopeParams,
   buildClearFiltersHref,
 } from '@/lib/scope-normalization';
+// [ISSUES-ENGINE-REMOUNT-1] DataTable + RCP integration
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableRow as DataTableRowType,
+} from '@/components/tables/DataTable';
+import {
+  useRightContextPanel,
+  type ContextDescriptor,
+} from '@/components/right-context-panel/RightContextPanelProvider';
 
 type SeverityFilter = 'all' | 'critical' | 'warning' | 'info';
 type PillarFilter = 'all' | DeoPillarId;
@@ -117,11 +126,17 @@ function deleteIssueDraftFromStorage(
   }
 }
 
+// [ISSUES-ENGINE-REMOUNT-1] Extend DeoIssue with DataTableRow for type safety
+interface IssueRow extends DeoIssue, DataTableRowType {}
+
 export default function IssuesPage() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const projectId = params.id as string;
+
+  // [ISSUES-ENGINE-REMOUNT-1] RCP integration
+  const { openPanel } = useRightContextPanel();
 
   // Read pillar filter from URL query param (?pillar=metadata_snippet_quality)
   const pillarParam = searchParams.get('pillar') as DeoPillarId | null;
@@ -1079,10 +1094,384 @@ export default function IssuesPage() {
     }
   };
 
+  // [ISSUES-ENGINE-REMOUNT-1] Create ContextDescriptor for RCP from issue
+  const getIssueDescriptor = useCallback(
+    (issue: DeoIssue): ContextDescriptor => {
+      const safeTitle = getSafeIssueTitle(issue);
+      const fixHref = buildIssueFixHref({
+        projectId,
+        issue,
+        from: 'issues_engine',
+      });
+
+      return {
+        kind: 'issue',
+        id: issue.id,
+        title: safeTitle,
+        scopeProjectId: projectId,
+        openHref: fixHref || undefined,
+        metadata: {
+          pillarId: issue.pillarId || '',
+          severity: issue.severity,
+          isActionableNow: String(issue.isActionableNow ?? false),
+          actionability: issue.actionability || '',
+          count: String(issue.count),
+          type: issue.type || '',
+          whyItMatters: issue.whyItMatters || issue.description || '',
+          primaryProductId: issue.primaryProductId || '',
+          productsCount: String(issue.assetTypeCounts?.products ?? 0),
+          pagesCount: String(issue.assetTypeCounts?.pages ?? 0),
+          collectionsCount: String(issue.assetTypeCounts?.collections ?? 0),
+        },
+      };
+    },
+    [projectId]
+  );
+
+  // [ISSUES-ENGINE-REMOUNT-1] DataTable columns definition
+  const issueColumns = useMemo((): DataTableColumn<IssueRow>[] => {
+    return [
+      {
+        key: 'summary',
+        header: 'Issue',
+        width: 'w-1/3',
+        truncate: false,
+        cell: (row) => {
+          const safeTitle = getSafeIssueTitle(row);
+          const isOutsideEngineControl = row.actionability === 'informational';
+          const fixHref = isOutsideEngineControl
+            ? null
+            : buildIssueFixHref({ projectId, issue: row, from: 'issues_engine' });
+          const isClickableIssue =
+            !isOutsideEngineControl &&
+            row.isActionableNow === true &&
+            fixHref !== null;
+          const fixAction = getFixAction(row);
+
+          return (
+            <div
+              data-testid={
+                isClickableIssue
+                  ? 'issue-card-actionable'
+                  : 'issue-card-informational'
+              }
+              data-fix-kind={fixAction?.fixKind}
+            >
+              {fixHref && isClickableIssue ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleIssueClick(fixHref);
+                  }}
+                  data-no-row-click
+                  className="text-left hover:underline"
+                >
+                  <span className="font-semibold text-foreground">
+                    {safeTitle}
+                  </span>
+                </button>
+              ) : (
+                <span className="font-semibold text-foreground">{safeTitle}</span>
+              )}
+              {!isClickableIssue && (
+                <span className="ml-2 inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  {row.actionability === 'informational'
+                    ? 'Outside control'
+                    : 'Informational'}
+                </span>
+              )}
+            </div>
+          );
+        },
+      },
+      {
+        key: 'scope',
+        header: 'Asset Scope',
+        width: 'w-1/6',
+        cell: (row) => {
+          const counts = row.assetTypeCounts;
+          if (!counts) {
+            return (
+              <span className="text-sm text-muted-foreground">
+                {row.count} item{row.count !== 1 ? 's' : ''}
+              </span>
+            );
+          }
+          const parts: string[] = [];
+          if (counts.products > 0) parts.push(`${counts.products} product${counts.products !== 1 ? 's' : ''}`);
+          if (counts.pages > 0) parts.push(`${counts.pages} page${counts.pages !== 1 ? 's' : ''}`);
+          if (counts.collections > 0) parts.push(`${counts.collections} collection${counts.collections !== 1 ? 's' : ''}`);
+          return (
+            <span className="text-sm text-muted-foreground">
+              {parts.join(', ') || `${row.count} item${row.count !== 1 ? 's' : ''}`}
+            </span>
+          );
+        },
+      },
+      {
+        key: 'pillar',
+        header: 'Pillar',
+        width: 'w-1/8',
+        cell: (row) => {
+          const pillar = DEO_PILLARS.find((p) => p.id === row.pillarId);
+          return (
+            <span className="text-sm text-muted-foreground">
+              {pillar?.shortName || row.pillarId || 'Unknown'}
+            </span>
+          );
+        },
+      },
+      {
+        key: 'severity',
+        header: 'Severity',
+        width: 'w-1/12',
+        cell: (row) => {
+          const severityClass =
+            row.severity === 'critical'
+              ? 'border-[hsl(var(--danger-background))]/50 bg-[hsl(var(--danger-background))] text-[hsl(var(--danger-foreground))]'
+              : row.severity === 'warning'
+                ? 'border-[hsl(var(--warning-background))]/50 bg-[hsl(var(--warning-background))] text-[hsl(var(--warning-foreground))]'
+                : 'border-border bg-muted text-muted-foreground';
+          return (
+            <span
+              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${severityClass}`}
+            >
+              {row.severity.charAt(0).toUpperCase() + row.severity.slice(1)}
+            </span>
+          );
+        },
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        width: 'w-1/8',
+        cell: (row) => {
+          const statusLabel =
+            row.actionability === 'informational'
+              ? 'Informational'
+              : row.isActionableNow === false
+                ? 'Blocked'
+                : 'Detected';
+          return (
+            <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              {statusLabel}
+            </span>
+          );
+        },
+      },
+      {
+        key: 'actions',
+        header: 'Actions',
+        width: 'w-1/8',
+        truncate: false,
+        cell: (row) => {
+          const fixAction = getFixAction(row);
+          if (!fixAction) {
+            return <span className="text-muted-foreground">—</span>;
+          }
+
+          if (fixAction.kind === 'ai-fix-now') {
+            return (
+              <button
+                id={`issue-fix-next-${row.id}`}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenPreview(row);
+                }}
+                disabled={fixingIssueId === row.id}
+                data-testid="issue-fix-next-button"
+                data-no-row-click
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-primary bg-primary px-2 py-1 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {fixingIssueId === row.id ? 'Fixing…' : 'Fix next'}
+              </button>
+            );
+          }
+
+          if (fixAction.kind === 'link') {
+            return (
+              <GuardedLink
+                href={fixAction.href}
+                data-testid="issue-card-cta"
+                data-no-row-click
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
+              >
+                {fixAction.label}
+              </GuardedLink>
+            );
+          }
+
+          return null;
+        },
+      },
+    ];
+  }, [projectId, fixingIssueId, handleIssueClick, handleOpenPreview, getFixAction]);
+
+  // [ISSUES-ENGINE-REMOUNT-1] Render expansion row content for ai-fix-now preview
+  const renderExpandedContent = useCallback(
+    (row: IssueRow) => {
+      if (previewIssueId !== row.id) return null;
+
+      const isOutsideEngineControl = row.actionability === 'informational';
+      const fixHref = isOutsideEngineControl
+        ? null
+        : buildIssueFixHref({ projectId, issue: row, from: 'issues_engine' });
+      const isClickableIssue =
+        !isOutsideEngineControl &&
+        row.isActionableNow === true &&
+        fixHref !== null;
+
+      if (!isClickableIssue) return null;
+
+      return (
+        <div
+          ref={previewPanelRef}
+          tabIndex={-1}
+          data-testid="issue-preview-draft-panel"
+          className="rounded-md border border-border bg-[hsl(var(--surface-raised))] p-3 text-xs focus:outline-none"
+        >
+          {previewLoading ? (
+            <p className="text-sm text-muted-foreground">Generating preview…</p>
+          ) : previewError ? (
+            <p className="text-sm text-[hsl(var(--danger-foreground))]">{previewError}</p>
+          ) : previewValue ? (
+            <>
+              {/* Draft state banner */}
+              <div
+                data-testid="issue-draft-state-banner"
+                className={`mb-2 rounded px-2 py-1 text-[11px] font-medium ${
+                  getDraftState() === 'unsaved'
+                    ? 'bg-[hsl(var(--warning-background))] text-[hsl(var(--warning-foreground))]'
+                    : getDraftState() === 'saved'
+                      ? 'bg-primary/20 text-primary'
+                      : 'bg-[hsl(var(--success-background))] text-[hsl(var(--success-foreground))]'
+                }`}
+              >
+                {getDraftState() === 'unsaved' && 'Draft — not applied'}
+                {getDraftState() === 'saved' && 'Draft saved — not applied'}
+                {getDraftState() === 'applied' && (
+                  <>
+                    Applied to Shopify on{' '}
+                    {appliedAt
+                      ? new Date(appliedAt).toLocaleString()
+                      : 'unknown date'}
+                  </>
+                )}
+              </div>
+              <p className="text-xs font-semibold text-foreground">
+                {previewProductName || 'Selected product'}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Field: {previewFieldLabel ?? 'SEO field'}
+              </p>
+              <div className="mt-2 grid gap-3 md:grid-cols-2">
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground">
+                    Current value
+                  </p>
+                  <p className="mt-1 rounded bg-[hsl(var(--surface-card))] px-2 py-1 text-[11px] text-foreground">
+                    {previewFieldLabel === 'SEO title' ? (
+                      previewCurrentTitle &&
+                      previewCurrentTitle.trim().length > 0 ? (
+                        previewCurrentTitle
+                      ) : (
+                        <span className="italic text-muted-foreground">
+                          Missing
+                        </span>
+                      )
+                    ) : previewCurrentDescription &&
+                      previewCurrentDescription.trim().length > 0 ? (
+                      previewCurrentDescription
+                    ) : (
+                      <span className="italic text-muted-foreground">
+                        Missing
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold text-muted-foreground">
+                    AI preview
+                  </p>
+                  <p className="mt-1 rounded bg-[hsl(var(--surface-card))] px-2 py-1 text-[11px] text-foreground">
+                    {previewValue}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {getDraftState() === 'unsaved' && (
+                  <button
+                    type="button"
+                    data-testid="issue-save-draft-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSaveDraft(row);
+                    }}
+                    className="inline-flex items-center rounded-md border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary shadow-sm hover:bg-primary/20"
+                  >
+                    Save draft
+                  </button>
+                )}
+                <button
+                  type="button"
+                  data-testid="issue-apply-to-shopify-button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleApplyFixFromPreview(row);
+                  }}
+                  disabled={
+                    fixingIssueId === row.id || getDraftState() !== 'saved'
+                  }
+                  title={
+                    getDraftState() !== 'saved'
+                      ? 'Save your draft first before applying to Shopify'
+                      : 'Applies saved draft only. Does not use AI.'
+                  }
+                  className="inline-flex items-center rounded-md border border-[hsl(var(--success-background))]/50 bg-[hsl(var(--success-background))] px-3 py-1.5 text-xs font-medium text-[hsl(var(--success-foreground))] shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {fixingIssueId === row.id ? 'Applying…' : 'Apply to Shopify'}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCancelPreview(row);
+                  }}
+                  className="inline-flex items-center rounded-md border border-border bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/80"
+                >
+                  Cancel
+                </button>
+              </div>
+            </>
+          ) : null}
+        </div>
+      );
+    },
+    [
+      previewIssueId,
+      previewLoading,
+      previewError,
+      previewValue,
+      previewProductName,
+      previewFieldLabel,
+      previewCurrentTitle,
+      previewCurrentDescription,
+      appliedAt,
+      fixingIssueId,
+      getDraftState,
+      handleSaveDraft,
+      handleApplyFixFromPreview,
+      handleCancelPreview,
+      projectId,
+    ]
+  );
+
   if (loading) {
     return (
       <div className="min-h-[400px] flex items-center justify-center">
-        <div className="text-gray-600">Loading issues...</div>
+        <div className="text-muted-foreground">Loading issues...</div>
       </div>
     );
   }
@@ -1091,12 +1480,12 @@ export default function IssuesPage() {
     <div className="overflow-x-hidden">
       {/* Error Banner */}
       {error && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+        <div className="mb-6 rounded-lg border border-[hsl(var(--danger-background))]/50 bg-[hsl(var(--danger-background))] p-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-red-700">{error}</p>
+            <p className="text-sm text-[hsl(var(--danger-foreground))]">{error}</p>
             <button
               onClick={fetchIssues}
-              className="text-sm font-medium text-red-700 hover:text-red-800"
+              className="text-sm font-medium text-[hsl(var(--danger-foreground))] hover:opacity-80"
             >
               Retry
             </button>
@@ -1107,12 +1496,12 @@ export default function IssuesPage() {
       {/* [COUNT-INTEGRITY-1 PATCH ERR-001] Counts-summary warning banner (non-blocking) */}
       {countsSummaryWarning && !error && (
         <div
-          className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4"
+          className="mb-6 rounded-lg border border-[hsl(var(--warning-background))]/50 bg-[hsl(var(--warning-background))] p-4"
           data-testid="counts-summary-warning-banner"
         >
           <div className="flex items-start gap-3">
             <svg
-              className="h-5 w-5 flex-shrink-0 text-yellow-600 mt-0.5"
+              className="h-5 w-5 flex-shrink-0 text-[hsl(var(--warning))] mt-0.5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1125,11 +1514,11 @@ export default function IssuesPage() {
               />
             </svg>
             <div className="flex-1">
-              <p className="text-sm text-yellow-800">{countsSummaryWarning}</p>
+              <p className="text-sm text-[hsl(var(--warning-foreground))]">{countsSummaryWarning}</p>
             </div>
             <button
               onClick={fetchIssues}
-              className="text-sm font-medium text-yellow-700 hover:text-yellow-800 underline"
+              className="text-sm font-medium text-[hsl(var(--warning-foreground))] hover:opacity-80 underline"
             >
               Retry
             </button>
@@ -1141,13 +1530,13 @@ export default function IssuesPage() {
       <div className="mb-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Issues Engine</h1>
-            {projectName && <p className="text-gray-600">{projectName}</p>}
+            <h1 className="text-2xl font-bold text-foreground">Issues Engine</h1>
+            {projectName && <p className="text-muted-foreground">{projectName}</p>}
           </div>
           <button
             onClick={handleRescan}
             disabled={rescanning}
-            className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center justify-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
           >
             {rescanning ? (
               <>
@@ -1209,7 +1598,7 @@ export default function IssuesPage() {
         {/* [COUNT-INTEGRITY-1.1 Step 2A] Canonical Triplet Summary Display */}
         {/* [COUNT-INTEGRITY-1.1 UI HARDEN] Use currentTriplet (pillar-aware) instead of root triplet */}
         {currentTriplet ? (
-          <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
+          <div className="mt-4 rounded-lg border border-border bg-[hsl(var(--surface-card))] p-6">
             <TripletDisplay
               triplet={currentTriplet}
               layout="horizontal"
@@ -1217,8 +1606,8 @@ export default function IssuesPage() {
             />
           </div>
         ) : (
-          <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-6 text-center">
-            <div className="text-sm text-gray-500">
+          <div className="mt-4 rounded-lg border border-border bg-[hsl(var(--surface-card))] p-6 text-center">
+            <div className="text-sm text-muted-foreground">
               Issue counts unavailable
             </div>
           </div>
@@ -1230,13 +1619,13 @@ export default function IssuesPage() {
           effectiveMode === 'actionable' &&
           currentTriplet.actionableNowCount === 0 && (
             <div
-              className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-center"
+              className="mt-4 rounded-lg border border-[hsl(var(--warning-background))]/50 bg-[hsl(var(--warning-background))] p-4 text-center"
               data-testid="no-eligible-items-message"
             >
-              <p className="text-sm text-amber-800">
+              <p className="text-sm text-[hsl(var(--warning-foreground))]">
                 No items currently eligible for action.
               </p>
-              <p className="mt-1 text-xs text-amber-600">
+              <p className="mt-1 text-xs text-[hsl(var(--warning-foreground))]/80">
                 Switch to Detected mode to view all detected issues.
               </p>
             </div>
@@ -1244,23 +1633,23 @@ export default function IssuesPage() {
 
         {/* Severity Breakdown Cards */}
         <div className="mt-4 grid grid-cols-3 gap-4">
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-            <div className="text-2xl font-bold text-red-700">
+          <div className="rounded-lg border border-[hsl(var(--danger-background))]/50 bg-[hsl(var(--danger-background))] p-4">
+            <div className="text-2xl font-bold text-[hsl(var(--danger-foreground))]">
               {criticalCount !== null ? criticalCount : '—'}
             </div>
-            <div className="text-sm text-red-600">Critical issue types</div>
+            <div className="text-sm text-[hsl(var(--danger-foreground))]/80">Critical issue types</div>
           </div>
-          <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
-            <div className="text-2xl font-bold text-orange-700">
+          <div className="rounded-lg border border-[hsl(var(--warning-background))]/50 bg-[hsl(var(--warning-background))] p-4">
+            <div className="text-2xl font-bold text-[hsl(var(--warning-foreground))]">
               {warningCount !== null ? warningCount : '—'}
             </div>
-            <div className="text-sm text-orange-600">Warning issue types</div>
+            <div className="text-sm text-[hsl(var(--warning-foreground))]/80">Warning issue types</div>
           </div>
-          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <div className="text-2xl font-bold text-blue-700">
+          <div className="rounded-lg border border-[hsl(var(--info-background))]/50 bg-[hsl(var(--info-background))] p-4">
+            <div className="text-2xl font-bold text-[hsl(var(--info-foreground))]">
               {infoCount !== null ? infoCount : '—'}
             </div>
-            <div className="text-sm text-blue-600">Info issue types</div>
+            <div className="text-sm text-[hsl(var(--info-foreground))]/80">Info issue types</div>
           </div>
         </div>
       </div>
@@ -1269,7 +1658,7 @@ export default function IssuesPage() {
       <div className="mb-6 space-y-4">
         {/* Pillar Filter */}
         <div>
-          <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
+          <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Filter by DEO Pillar
           </label>
           <div className="flex flex-wrap gap-2">
@@ -1279,8 +1668,8 @@ export default function IssuesPage() {
               aria-pressed={pillarFilter === 'all'}
               className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 pillarFilter === 'all'
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-foreground hover:bg-muted/80'
               }`}
             >
               All pillars
@@ -1302,8 +1691,8 @@ export default function IssuesPage() {
                   aria-pressed={pillarFilter === pillar.id}
                   className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                     pillarFilter === pillar.id
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-foreground hover:bg-muted/80'
                   }`}
                 >
                   {pillar.shortName}
@@ -1320,7 +1709,7 @@ export default function IssuesPage() {
 
         {/* [COUNT-INTEGRITY-1 PATCH 6] Mode Toggle (Actionable/Detected) */}
         <div>
-          <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
+          <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Issue Mode
           </label>
           <div className="flex flex-wrap gap-2">
@@ -1340,10 +1729,10 @@ export default function IssuesPage() {
                   disabled={isDisabled}
                   className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                     effectiveMode === mode
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-primary text-primary-foreground'
                       : isDisabled
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-muted text-muted-foreground opacity-50 cursor-not-allowed'
+                        : 'bg-muted text-foreground hover:bg-muted/80'
                   }`}
                   data-testid={`mode-toggle-${mode}`}
                 >
@@ -1356,7 +1745,7 @@ export default function IssuesPage() {
 
         {/* Severity Filter */}
         <div>
-          <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
+          <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Filter by Severity
           </label>
           <div className="flex flex-wrap gap-2">
@@ -1366,8 +1755,8 @@ export default function IssuesPage() {
                 onClick={() => setSeverityFilter(filter)}
                 className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   severityFilter === filter
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-foreground hover:bg-muted/80'
                 }`}
               >
                 {filter === 'all'
@@ -1394,11 +1783,11 @@ export default function IssuesPage() {
         </div>
       </div>
 
-      {/* Issues List with Fix Actions */}
+      {/* [ISSUES-ENGINE-REMOUNT-1] Issues List with DataTable + RCP integration */}
       {filteredIssues.length === 0 ? (
-        <div className="rounded-lg border border-green-200 bg-green-50 p-6 text-center">
+        <div className="rounded-lg border border-[hsl(var(--success-background))]/50 bg-[hsl(var(--success-background))] p-6 text-center">
           <svg
-            className="mx-auto h-12 w-12 text-green-400"
+            className="mx-auto h-12 w-12 text-[hsl(var(--success-foreground))]"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -1411,7 +1800,7 @@ export default function IssuesPage() {
             />
           </svg>
           {/* [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] Mode-aware empty state text */}
-          <h3 className="mt-2 text-sm font-medium text-green-800">
+          <h3 className="mt-2 text-sm font-medium text-[hsl(var(--success-foreground))]">
             {severityFilter === 'all' && pillarFilter === 'all'
               ? effectiveMode === 'actionable'
                 ? 'No actionable issues'
@@ -1420,385 +1809,22 @@ export default function IssuesPage() {
                 ? `No ${effectiveMode === 'actionable' ? 'actionable ' : ''}issues for ${DEO_PILLARS.find((p) => p.id === pillarFilter)?.shortName ?? pillarFilter}`
                 : `No ${effectiveMode === 'actionable' ? 'actionable ' : ''}${severityFilter} issues`}
           </h3>
-          <p className="mt-1 text-sm text-green-700">
+          <p className="mt-1 text-sm text-muted-foreground">
             {severityFilter === 'all' && pillarFilter === 'all'
               ? 'Your project looks healthy based on the latest analysis.'
               : 'Try selecting a different filter to see other issues.'}
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filteredIssues.map((issue) => {
-            // [ISSUE-TO-FIX-PATH-1] Use safe title/description helpers
-            const safeTitle = getSafeIssueTitle(issue);
-            const safeDescription = getSafeIssueDescription(issue);
-
-            // [DIAGNOSTIC-GUIDANCE-1 FIXUP-1] Hard-gate for outside-control issues (trust principle)
-            // Frontend explicitly prevents clickability regardless of backend isActionableNow flag
-            const isOutsideEngineControl =
-              issue.actionability === 'informational';
-
-            // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Compute fixHref unconditionally, then define isClickableIssue
-            // [DIAGNOSTIC-GUIDANCE-1 FIXUP-1] Outside-control issues always yield null fixHref
-            const fixHref = isOutsideEngineControl
-              ? null
-              : buildIssueFixHref({ projectId, issue, from: 'issues_engine' });
-            // [DIAGNOSTIC-GUIDANCE-1 FIXUP-1] Outside-control issues are never clickable, even if isActionableNow is true
-            const isClickableIssue =
-              !isOutsideEngineControl &&
-              issue.isActionableNow === true &&
-              fixHref !== null;
-            const fixAction = getFixAction(issue);
-
-            return (
-              <div
-                key={issue.id}
-                // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Test hooks use isClickableIssue (both isActionableNow AND fixHref)
-                data-testid={
-                  isClickableIssue
-                    ? 'issue-card-actionable'
-                    : 'issue-card-informational'
-                }
-                // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Expose fixKind for test hooks
-                data-fix-kind={fixAction?.fixKind}
-                className="rounded-lg border border-gray-200 bg-white p-4"
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  {/* [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Only render as button if isClickableIssue */}
-                  {isClickableIssue ? (
-                    <button
-                      type="button"
-                      onClick={() => handleIssueClick(fixHref)}
-                      className="flex-1 text-left"
-                    >
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-gray-900">
-                          {safeTitle}
-                        </span>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                            issue.severity === 'critical'
-                              ? 'border border-red-200 bg-red-50 text-red-700'
-                              : issue.severity === 'warning'
-                                ? 'border border-orange-200 bg-orange-50 text-orange-700'
-                                : 'border border-blue-200 bg-blue-50 text-blue-700'
-                          }`}
-                        >
-                          {issue.severity.charAt(0).toUpperCase() +
-                            issue.severity.slice(1)}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-sm text-gray-600">
-                        {safeDescription}
-                      </p>
-                      {/* [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Suppress for DIAGNOSTIC issues */}
-                      {issue.fixType === 'aiFix' &&
-                        fixAction?.fixKind !== 'DIAGNOSTIC' && (
-                          <p className="mt-1 text-xs text-gray-500">
-                            Fixes one affected product at a time for safe
-                            review.
-                          </p>
-                        )}
-                      <p className="mt-1 text-xs text-gray-500">
-                        {issue.count} {issue.count === 1 ? 'item' : 'items'}{' '}
-                        affected
-                      </p>
-                    </button>
-                  ) : (
-                    <div className="flex-1 text-left">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-gray-900">
-                          {safeTitle}
-                        </span>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                            issue.severity === 'critical'
-                              ? 'border border-red-200 bg-red-50 text-red-700'
-                              : issue.severity === 'warning'
-                                ? 'border border-orange-200 bg-orange-50 text-orange-700'
-                                : 'border border-blue-200 bg-blue-50 text-blue-700'
-                          }`}
-                        >
-                          {issue.severity.charAt(0).toUpperCase() +
-                            issue.severity.slice(1)}
-                        </span>
-                        {/* [DIAGNOSTIC-GUIDANCE-1] Outside-control issues get specific label */}
-                        {/* [ISSUE-TO-FIX-PATH-1] Informational badge for orphan issues (non-outside-control) */}
-                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 border border-gray-200">
-                          {issue.actionability === 'informational'
-                            ? 'Informational — outside EngineO.ai control'
-                            : 'Informational — no action required'}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-sm text-gray-600">
-                        {safeDescription}
-                      </p>
-                      <p className="mt-1 text-xs text-gray-500">
-                        {issue.count} {issue.count === 1 ? 'item' : 'items'}{' '}
-                        affected
-                      </p>
-                      {/* [DIAGNOSTIC-GUIDANCE-1] Diagnostic guidance block for outside-control issues */}
-                      {issue.actionability === 'informational' && (
-                        <div
-                          className="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3"
-                          data-testid="diagnostic-guidance-block"
-                        >
-                          <p className="text-xs text-gray-600">
-                            EngineO.ai cannot directly fix this issue because it
-                            depends on your theme, hosting, or Shopify
-                            configuration.
-                          </p>
-                          <div className="mt-2">
-                            <p className="text-xs font-semibold text-gray-700">
-                              How to address this
-                            </p>
-                            <ul className="mt-1 list-disc list-inside text-xs text-gray-600 space-y-0.5">
-                              <li>Check your Shopify theme settings</li>
-                              <li>Verify robots.txt and meta tags</li>
-                              <li>
-                                Use Google Search Console → Pages → Indexing
-                              </li>
-                              <li>
-                                Validate structured data using Rich Results Test
-                              </li>
-                            </ul>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Preview panel for actionable issues */}
-                  {isClickableIssue && previewIssueId === issue.id && (
-                    <div
-                      ref={previewPanelRef}
-                      tabIndex={-1}
-                      data-testid="issue-preview-draft-panel"
-                      className="mt-3 rounded-md border border-purple-100 bg-purple-50 p-3 text-xs text-gray-800 focus:outline-none"
-                    >
-                      {previewLoading ? (
-                        <p className="text-xs text-gray-600">
-                          Generating preview…
-                        </p>
-                      ) : previewError ? (
-                        <p className="text-xs text-red-600">{previewError}</p>
-                      ) : previewValue ? (
-                        <>
-                          {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft state banner */}
-                          <div
-                            data-testid="issue-draft-state-banner"
-                            className={`mb-2 rounded px-2 py-1 text-[11px] font-medium ${
-                              getDraftState() === 'unsaved'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : getDraftState() === 'saved'
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : 'bg-green-100 text-green-800'
-                            }`}
-                          >
-                            {getDraftState() === 'unsaved' &&
-                              'Draft — not applied'}
-                            {getDraftState() === 'saved' &&
-                              'Draft saved — not applied'}
-                            {getDraftState() === 'applied' && (
-                              <>
-                                Applied to Shopify on{' '}
-                                {appliedAt
-                                  ? new Date(appliedAt).toLocaleString()
-                                  : 'unknown date'}
-                              </>
-                            )}
-                          </div>
-                          <p className="text-xs font-semibold">
-                            {previewProductName || 'Selected product'}
-                          </p>
-                          <p className="mt-1 text-xs text-gray-700">
-                            Field: {previewFieldLabel ?? 'SEO field'}
-                          </p>
-                          <div className="mt-2 grid gap-3 md:grid-cols-2">
-                            <div>
-                              <p className="text-[11px] font-semibold text-gray-700">
-                                Current value
-                              </p>
-                              <p className="mt-1 rounded bg-white px-2 py-1 text-[11px] text-gray-700">
-                                {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-1] Show correct current value for the field being edited */}
-                                {previewFieldLabel === 'SEO title' ? (
-                                  previewCurrentTitle &&
-                                  previewCurrentTitle.trim().length > 0 ? (
-                                    previewCurrentTitle
-                                  ) : (
-                                    <span className="italic text-gray-500">
-                                      Missing
-                                    </span>
-                                  )
-                                ) : previewCurrentDescription &&
-                                  previewCurrentDescription.trim().length >
-                                    0 ? (
-                                  previewCurrentDescription
-                                ) : (
-                                  <span className="italic text-gray-500">
-                                    Missing
-                                  </span>
-                                )}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-[11px] font-semibold text-gray-700">
-                                AI preview
-                              </p>
-                              <p className="mt-1 rounded bg-white px-2 py-1 text-[11px] text-gray-800">
-                                {previewValue}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Save draft button */}
-                            {getDraftState() === 'unsaved' && (
-                              <button
-                                type="button"
-                                data-testid="issue-save-draft-button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSaveDraft(issue);
-                                }}
-                                className="inline-flex items-center rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 shadow-sm hover:bg-blue-100"
-                              >
-                                Save draft
-                              </button>
-                            )}
-                            {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1] Apply to Shopify button - disabled unless draft is saved */}
-                            <button
-                              type="button"
-                              data-testid="issue-apply-to-shopify-button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleApplyFixFromPreview(issue);
-                              }}
-                              disabled={
-                                fixingIssueId === issue.id ||
-                                getDraftState() !== 'saved'
-                              }
-                              title={
-                                getDraftState() !== 'saved'
-                                  ? 'Save your draft first before applying to Shopify'
-                                  : 'Applies saved draft only. Does not use AI.'
-                              }
-                              className="inline-flex items-center rounded-md border border-green-600 bg-green-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              {fixingIssueId === issue.id
-                                ? 'Applying…'
-                                : 'Apply to Shopify'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCancelPreview(issue);
-                              }}
-                              className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </>
-                      ) : null}
-                    </div>
-                  )}
-
-                  {fixAction && fixAction.kind === 'ai-fix-now' && (
-                    <button
-                      id={`issue-fix-next-${issue.id}`}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenPreview(issue);
-                      }}
-                      disabled={fixingIssueId === issue.id}
-                      data-testid="issue-fix-next-button"
-                      className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-purple-500 bg-purple-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {fixingIssueId === issue.id ? (
-                        <>
-                          <svg
-                            className="-ml-0.5 mr-1.5 h-3.5 w-3.5 animate-spin text-white"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
-                          Fixing…
-                        </>
-                      ) : (
-                        'Fix next'
-                      )}
-                    </button>
-                  )}
-
-                  {/* [DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-3] Use GuardedLink for unsaved changes blocking */}
-                  {/* [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] Added diagnostic variant and issue-card-cta testid */}
-                  {fixAction && fixAction.kind === 'link' && (
-                    <GuardedLink
-                      href={fixAction.href}
-                      data-testid="issue-card-cta"
-                      className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ${
-                        fixAction.variant === 'ai'
-                          ? 'border border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100'
-                          : fixAction.variant === 'sync'
-                            ? 'border border-green-300 bg-green-50 text-green-700 hover:bg-green-100'
-                            : fixAction.variant === 'diagnostic'
-                              ? 'border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100'
-                              : 'border border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      {fixAction.variant === 'ai' && (
-                        <svg
-                          className="mr-1.5 h-4 w-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                          />
-                        </svg>
-                      )}
-                      {fixAction.variant === 'sync' && (
-                        <svg
-                          className="mr-1.5 h-4 w-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                          />
-                        </svg>
-                      )}
-                      {fixAction.label}
-                    </GuardedLink>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <DataTable<IssueRow>
+          rows={filteredIssues as IssueRow[]}
+          columns={issueColumns}
+          onRowClick={(row) => openPanel(getIssueDescriptor(row))}
+          onOpenContext={openPanel}
+          getRowDescriptor={getIssueDescriptor}
+          isRowExpanded={(row) => previewIssueId === row.id}
+          renderExpandedContent={renderExpandedContent}
+        />
       )}
     </div>
   );

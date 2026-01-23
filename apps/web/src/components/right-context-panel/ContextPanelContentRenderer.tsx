@@ -6,6 +6,8 @@ import { ContextPanelEntitySummary } from './ContextPanelEntitySummary';
 import { ContextPanelIssueDrilldown } from './ContextPanelIssueDrilldown';
 import { ContextPanelActionPreview } from './ContextPanelActionPreview';
 import { ContextPanelAiAssistHints } from './ContextPanelAiAssistHints';
+// [ISSUES-ENGINE-REMOUNT-1] Import issue details component
+import { ContextPanelIssueDetails } from './ContextPanelIssueDetails';
 
 interface ContextPanelContentRendererProps {
   activeView: PanelView;
@@ -94,6 +96,7 @@ export function ContextPanelContentRenderer({
 /**
  * Render the Details view based on descriptor.kind.
  * [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] Asset kinds (product, page, collection) use expanded content system.
+ * [ISSUES-ENGINE-REMOUNT-1] Issue kind uses dedicated ContextPanelIssueDetails component.
  */
 function renderDetailsView(descriptor: ContextDescriptor, currentProjectId: string | null) {
   // Asset kinds use the new content expansion system
@@ -103,6 +106,24 @@ function renderDetailsView(descriptor: ContextDescriptor, currentProjectId: stri
 
   // Non-asset kinds use existing renderers
   switch (descriptor.kind) {
+    // [ISSUES-ENGINE-REMOUNT-1] Issue kind - read-only issue details in RCP
+    case 'issue':
+      if (currentProjectId) {
+        return (
+          <ContextPanelIssueDetails
+            projectId={currentProjectId}
+            issueId={descriptor.id}
+          />
+        );
+      }
+      // No project context - show unavailable state
+      return (
+        <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-4">
+          <p className="text-sm text-muted-foreground">
+            Unavailable in this project context.
+          </p>
+        </div>
+      );
     case 'user':
       return <UserDetailsContent descriptor={descriptor} />;
     case 'work_item':
@@ -133,7 +154,8 @@ function AssetDetailsContent({
   const issuesCount = descriptor.issues?.length || 0;
 
   return (
-    <div className="space-y-4">
+    // [UI-POLISH-&-CLARITY-1] Increased section separation
+    <div className="space-y-5">
       {/* A) Contextual Summary (always shown) */}
       <ContextPanelEntitySummary descriptor={descriptor} />
 
@@ -218,7 +240,8 @@ function UserDetailsContent({ descriptor }: { descriptor: ContextDescriptor }) {
   const metadata = descriptor.metadata || {};
 
   return (
-    <div className="space-y-4">
+    // [UI-POLISH-&-CLARITY-1] Increased section separation
+    <div className="space-y-5">
       {/* Role */}
       {metadata.role && (
         <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">

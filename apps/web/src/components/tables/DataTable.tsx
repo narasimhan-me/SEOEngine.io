@@ -131,7 +131,7 @@ export function DataTable<T extends DataTableRow>({
     }
   }, [rows.length, focusedRowIndex]);
 
-  const paddingClass = density === 'dense' ? 'px-3 py-2' : 'px-4 py-3';
+  const paddingClass = density === 'dense' ? 'px-3 py-2.5' : 'px-4 py-3.5';
 
   /**
    * [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-3] Check if event target is an interactive element.
@@ -240,7 +240,7 @@ export function DataTable<T extends DataTableRow>({
                 key={column.key}
                 className={[
                   paddingClass,
-                  'text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+                  'text-left text-xs font-semibold uppercase tracking-wider text-foreground/80',
                   column.width || '',
                 ].join(' ')}
               >
@@ -251,7 +251,7 @@ export function DataTable<T extends DataTableRow>({
               <th
                 className={[
                   paddingClass,
-                  'w-12 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+                  'w-12 text-right text-xs font-semibold uppercase tracking-wider text-foreground/80',
                 ].join(' ')}
               >
                 <span className="sr-only">Actions</span>
@@ -280,7 +280,7 @@ export function DataTable<T extends DataTableRow>({
                     'border-b border-border transition-colors',
                     isExpanded ? '' : 'last:border-b-0',
                     onRowClick ? 'cursor-pointer' : '',
-                    'hover:bg-[hsl(var(--menu-hover-bg)/0.14)]',
+                    'hover:bg-[hsl(var(--surface-raised))]',
                     'focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary',
                   ].join(' ')}
                 >

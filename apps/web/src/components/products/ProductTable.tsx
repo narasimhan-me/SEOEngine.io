@@ -742,14 +742,14 @@ export function ProductTable({
           const productIssueData = issuesByProductId.get(product.id);
           const healthState = productIssueData?.healthState ?? 'Healthy';
 
-          // Health pill styling (fallback)
+          // [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only health pill styling (fallback)
           const healthPillClasses = {
             Healthy:
-              'bg-green-50 text-green-700 ring-1 ring-green-200 dark:bg-green-950 dark:text-green-400 dark:ring-green-800',
+              'border border-border bg-[hsl(var(--success-background))] text-[hsl(var(--success-foreground))]',
             'Needs Attention':
-              'bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200 dark:bg-yellow-950 dark:text-yellow-400 dark:ring-yellow-800',
+              'border border-border bg-[hsl(var(--warning-background))] text-[hsl(var(--warning-foreground))]',
             Critical:
-              'bg-red-50 text-red-700 ring-1 ring-red-200 dark:bg-red-950 dark:text-red-400 dark:ring-red-800',
+              'border border-border bg-[hsl(var(--danger-background))] text-[hsl(var(--danger-foreground))]',
           };
 
           return resolvedActions?.chipLabel ? (

@@ -145,7 +145,8 @@ export function RightContextPanel() {
         ].join(' ')}
       >
         {/* Panel Header */}
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        {/* [UI-POLISH-&-CLARITY-1] Increased header vertical padding */}
+        <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
           <div className="min-w-0 flex-1">
             <h2
               id={titleId}
@@ -232,7 +233,8 @@ export function RightContextPanel() {
         </div>
 
         {/* Panel Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        {/* [UI-POLISH-&-CLARITY-1] Increased content padding */}
+        <div className="flex-1 overflow-y-auto p-5">
           <ContextPanelContentRenderer
             activeView={activeView}
             descriptor={descriptor}
