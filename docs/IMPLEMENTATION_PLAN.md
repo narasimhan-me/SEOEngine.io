@@ -2598,7 +2598,7 @@ PANEL-DEEP-LINKS-1 adds shareable Right Context Panel state via URL deep-links. 
 | Parameter     | Required | Allowed Values                                           |
 | ------------- | -------- | -------------------------------------------------------- |
 | `panel`       | Yes      | `details`, `recommendations`, `history`, `help`          |
-| `entityType`  | Yes      | `product`, `page`, `collection`, `blog`, `issue`, `user` |
+| `entityType`  | Yes      | `product`, `page`, `collection`, `blog`, `issue`, `user`, `playbook` |
 | `entityId`    | Yes      | Any non-empty string (the entity's ID)                   |
 | `entityTitle` | No       | Optional entity title (fallback for panel title)         |
 | `panelOpen`   | No       | Accepted but not required (legacy compatibility)         |
@@ -2674,6 +2674,100 @@ ISSUES-ENGINE-REMOUNT-1 remounts the Issues Engine list from a card-based layout
 #### Critical Path Map
 
 - Updated CP-009 (Issue Engine Lite) with ISSUES-ENGINE-REMOUNT-1 scenarios and manual testing doc reference
+
+---
+
+### Phase PLAYBOOKS-SHELL-REMOUNT-1: Playbooks DataTable + RCP Integration ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-22
+**Design System Version:** 1.5
+**EIC Version:** 1.5
+**Activation:** DataTable migration for Playbooks with RCP playbook details support
+
+#### Overview
+
+PLAYBOOKS-SHELL-REMOUNT-1 remounts the Playbooks list from a card-based grid layout to the canonical DataTable component. Integrates Right Context Panel (RCP) playbook details view with PANEL-DEEP-LINKS-1 deep-link support. Selection is now in-page state (no navigation on row click). Enforces token-only styling (Design System v1.5) and preserves existing Preview → Estimate → Apply step flow.
+
+#### Key Features
+
+1. **DataTable Migration**: Playbooks list uses canonical DataTable with columns: Playbook, What It Fixes, Asset Type, Availability
+2. **RCP Playbook Details**: New PlaybookDetailsContent component renders playbook description, applicable assets, preconditions, availability state, history stub
+3. **Row Click → Selection**: Clicking a row sets in-page selectedPlaybookId state (no navigation)
+4. **Eye Icon → RCP**: Context icon (eye) opens RCP with playbook details (via `onOpenContext` + `getRowDescriptor`)
+5. **Deep-Link Support**: PANEL-DEEP-LINKS-1 integration for playbooks (entityType='playbook')
+6. **Selection Highlight**: Selected playbook row has font-semibold title (token-only, no background change)
+7. **No Auto-Navigation**: Landing on Playbooks with no playbookId in URL remains neutral (no route changes)
+8. **Token-Only Styling**: No literal `bg-white`, `bg-gray-*`, `text-gray-*` classes (dark mode safe)
+
+#### Affected Files
+
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (UPDATED)
+- `apps/web/src/components/right-context-panel/RightContextPanelProvider.tsx` (UPDATED)
+- `apps/web/src/components/right-context-panel/ContextPanelContentRenderer.tsx` (UPDATED)
+
+#### Manual Testing
+
+- `docs/manual-testing/PLAYBOOKS-SHELL-REMOUNT-1.md`
+
+#### Critical Path Map
+
+- Updated CP-012 (Automation Engine) with PLAYBOOKS-SHELL-REMOUNT-1 scenarios and manual testing doc reference
+
+---
+
+### Phase ISSUE-TO-ACTION-GUIDANCE-1: Issue → Playbook Guidance ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-23
+**Design System Version:** 1.5
+**EIC Version:** 1.5
+**Activation:** Guidance-only, token-only, trust-preserving issue-to-playbook mapping
+
+#### Overview
+
+ISSUE-TO-ACTION-GUIDANCE-1 provides deterministic, static mapping from issue types to recommended playbook metadata. Displays "Recommended action" section in RCP Issue Details with playbook guidance when issues are actionable and have a mapping. Adds subtle, non-interactive playbook indicator in Issues list. Ensures "View playbook" CTA navigates to playbook preview step WITHOUT auto-execution or AI generation.
+
+#### Non-Goals
+
+- **No auto-execution**: Landing on playbook page via "View playbook" does NOT auto-generate preview or trigger any AI
+- **No new entry points**: Does not create new ways to execute playbooks; only surfaces existing playbook information
+- **No runtime evaluation**: Preconditions are static text, not dynamically evaluated against current user/project state
+
+#### Key Behaviors
+
+1. **Static Mapping**: `getIssueToActionGuidance(issueType)` returns pre-defined playbook metadata (no API calls)
+2. **RCP Section Placement**: "Recommended action" appears after "Actionability" section and before "Affected Assets"
+3. **Display Rules**:
+   - If `actionability === 'informational'` OR `isActionableNow !== true`: Show "No automated action available." (no CTA)
+   - If `isActionableNow === true` AND mapping exists: Show playbook name, description, affects, preconditions, "View playbook" CTA
+4. **CTA Rules (Strict)**:
+   - Only allowed CTA: "View playbook" (secondary styling, token-only)
+   - Must navigate to canonical playbook route with `step=preview`, `source=entry`, `returnTo=/projects/${projectId}/issues`, `returnLabel=Issues`
+   - Must NOT use "Generate", "Run", "Apply" language (no execution connotation)
+5. **Issues List Indicator**: Subtle, non-interactive icon (lightning bolt) indicates playbook availability; no button/link/tooltip that could mislead
+
+#### Initial Mappings
+
+| Issue Type | Playbook ID | Playbook Name |
+|------------|-------------|---------------|
+| `missing_seo_title` | `missing_seo_title` | Fix missing SEO titles |
+| `missing_seo_description` | `missing_seo_description` | Fix missing SEO descriptions |
+
+#### Affected Files
+
+- `apps/web/src/lib/issue-to-action-guidance.ts` (NEW)
+- `apps/web/src/components/right-context-panel/ContextPanelIssueDetails.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/issues/page.tsx` (UPDATED)
+
+#### Manual Testing
+
+- `docs/manual-testing/ISSUE-TO-ACTION-GUIDANCE-1.md`
+
+#### Critical Path Map
+
+- Updated CP-009 (Issue Engine Lite) with ISSUE-TO-ACTION-GUIDANCE-1 scenarios and manual testing doc reference
+- Updated CP-012 (Automation Engine) with navigation safety scenario
 
 ---
 
@@ -2994,3 +3088,9 @@ _None at this time._
 | 7.25 | 2026-01-22 | **UI-POLISH-&-CLARITY-1 FIXUP-4**: Tokenized remaining "AI usage this month" callout on Playbooks page. Removed all purple-* literal palette classes (border-purple-100, bg-purple-50, text-purple-900, text-purple-700, text-purple-600) and replaced with token-only styling (border-border, bg-[hsl(var(--surface-raised))], text-foreground, text-muted-foreground). Preserved success-foreground for "AI runs avoided" line. **No behavior changes.** **Core files:** playbooks/page.tsx. **Manual Testing:** UI-POLISH-&-CLARITY-1.md updated (HP-018). **Critical Path:** CP-020 updated (6.31). |
 | 7.26 | 2026-01-22 | **ISSUES-ENGINE-REMOUNT-1 FIXUP-3**: RCP Issue Details completeness and truthfulness. (1) Added Issue Summary section: title + description (plain text, no rewriting); (2) Added Why This Matters section with truthful fallback: prefers issue.whyItMatters when present, renders "Not available for this issue." when missing (does NOT fall back to description to avoid duplication); (3) Replaced Status section with Actionability section: informational issues show "Informational — outside EngineO.ai control" + guidance (no Fix/Apply wording), blocked issues show "Blocked — insufficient permissions" + guidance (recommend elevated access), actionable issues show "Actionable now" + guidance (actions from Work Canvas); (4) Added Affected Assets list: renders affectedProducts/affectedPages up to 6 items each with "+ N more" overflow, renders "No affected asset list available." when neither list present; (5) Kept existing Affected Items counts block (counts remain useful even without lists). All content read-only with token-only styling, no in-body navigation links, no buttons added. **No backend, scoring, or issue semantics changes.** **Core files:** ContextPanelIssueDetails.tsx. **Manual Testing:** ISSUES-ENGINE-REMOUNT-1.md updated (HP-008/009/010, EC-004/005). **Critical Path:** CP-009 updated (6.32). |
 | 7.27 | 2026-01-22 | **ISSUES-ENGINE-REMOUNT-1 FIXUP-4**: Actionability truthfulness correction. (1) Changed blocked label from "Blocked — insufficient permissions" to "Blocked — not actionable in this context" (no speculative claims about permissions or elevated access); (2) Updated blocked guidance to remove permission/role speculation: now says "This issue cannot be acted upon in the current context. Review the issue details in the Work Canvas for more information."; (3) Changed isActionableNow truthiness check to explicit `=== true` so that undefined values are treated as blocked (not actionable); (4) Preserved informational and actionable-now paths unchanged. **No backend, scoring, or issue semantics changes.** **Core files:** ContextPanelIssueDetails.tsx. **Manual Testing:** ISSUES-ENGINE-REMOUNT-1.md updated (HP-009 expected results). **Critical Path:** CP-009 updated (6.33). |
+| 7.28 | 2026-01-22 | **PLAYBOOKS-SHELL-REMOUNT-1**: Playbooks list remounted to canonical DataTable + RCP integration. (1) Extended RightContextPanelProvider.tsx: added 'playbook' to ALLOWED_ENTITY_TYPES and PROJECT_SCOPED_ENTITY_TYPES for PANEL-DEEP-LINKS-1 deep-link support; (2) Added PlaybookDetailsContent renderer to ContextPanelContentRenderer.tsx: read-only sections for "What This Playbook Does" (description), "Applicable Assets" (asset types + scope summary), "Preconditions" (truthful list), "Availability" (Ready/Blocked/Informational state + guidance), "History" stub; no in-body navigation links; (3) Replaced card-based playbooks grid with canonical DataTable in page.tsx: columns Playbook (name + description), What It Fixes, Asset Type, Availability (state badge + affected count); (4) Changed selection model: row click sets selectedPlaybookId in-page state (no navigation via router.push); reset flow state on selection change; (5) Integrated RCP via useRightContextPanel(): added getPlaybookDescriptor() helper, onOpenContext wired to openPanel, eye icon opens playbook details panel; (6) Added deep-link compatibility: useEffect syncs selectedPlaybookId from panel params (entityType=playbook) for highlight alignment. Preview → Estimate → Apply continuity preserved (no step skipping). Token-only styling throughout. **No backend changes.** **Core files:** RightContextPanelProvider.tsx, ContextPanelContentRenderer.tsx, playbooks/page.tsx. **Manual Testing:** PLAYBOOKS-SHELL-REMOUNT-1.md created. **Critical Path:** CP-012 updated (6.34). |
+| 7.29 | 2026-01-22 | **PLAYBOOKS-SHELL-REMOUNT-1 FIXUP-1**: No auto-navigation + selection highlight + plan doc completeness. (1) Removed legacy deterministic default selection auto-navigation effect: landing on Playbooks with no playbookId in URL now remains neutral (no route changes, no implicit selection); (2) Fixed playbook selection highlight: moved conditional font-semibold/font-medium from wrapper div to title `<p>` element so it visibly applies; (3) Updated getPlaybookDescriptor openHref to per-playbook canonical route with step=preview&source=default params; (4) Added missing Phase section for PLAYBOOKS-SHELL-REMOUNT-1 to IMPLEMENTATION_PLAN.md (Status, Date, Design System Version, Overview, Key Features, Affected Files, Manual Testing, Critical Path Map); (5) Updated PANEL-DEEP-LINKS-1 URL Schema table to include `playbook` in entityType allowed values; (6) Updated PLAYBOOKS-SHELL-REMOUNT-1.md manual testing doc with explicit no-auto-navigate scenario (HP-012). **No backend changes.** **Core files:** playbooks/page.tsx, IMPLEMENTATION_PLAN.md, PLAYBOOKS-SHELL-REMOUNT-1.md. |
+| 7.30 | 2026-01-22 | **PLAYBOOKS-SHELL-REMOUNT-1 FIXUP-2**: Canonical header external-link + cleanup. (1) Changed RCP header external-link in getPlaybookDescriptor from query-based `/projects/:id/automation/playbooks?playbookId=...` to canonical playbook run route `/projects/:id/playbooks/:playbookId?step=preview&source=default`; (2) Removed unused `navigateToPlaybookRunReplace` import from playbooks-routing. Updated HP-004 with explicit external-link route expectation. Added CP-012 checklist item and changelog 6.35. **No backend changes.** **Core files:** playbooks/page.tsx. **Docs:** PLAYBOOKS-SHELL-REMOUNT-1.md, CRITICAL_PATH_MAP.md. |
+| 7.31 | 2026-01-23 | **ISSUE-TO-ACTION-GUIDANCE-1**: Issue → Playbook Guidance (guidance-only, token-only, trust-preserving). (1) Created `issue-to-action-guidance.ts` with deterministic mapping from issueType to RecommendedPlaybook metadata (playbookId, name, oneLineWhatItDoes, affects, preconditions); initial mappings: missing_seo_title, missing_seo_description; (2) Added "Recommended action" section to ContextPanelIssueDetails.tsx: shows playbook guidance for actionable issues with mapping, shows "No automated action available." for informational/blocked issues or unmapped actionable issues; single CTA "View playbook" navigates to `/projects/:id/playbooks/:playbookId?step=preview&source=entry&returnTo=...&returnLabel=Issues` (no auto-execution); (3) Added subtle non-interactive playbook indicator (lightning bolt icon) to Issues list Issue column for actionable issues with mapping (no buttons/links); (4) Manual testing doc ISSUE-TO-ACTION-GUIDANCE-1.md; (5) Critical Path: CP-009 updated with RCP/list scenarios, CP-012 updated with navigation safety scenario, CRITICAL_PATH_MAP.md 6.36 added. **No backend changes.** **Core files:** issue-to-action-guidance.ts (NEW), ContextPanelIssueDetails.tsx, issues/page.tsx. |
+| 7.32 | 2026-01-23 | **ISSUE-TO-ACTION-GUIDANCE-1 FIXUP-1**: Trust language alignment + GuardedLink CTA. (1) Non-actionable states (blocked/informational) now use "Automation Guidance" section label instead of "Recommended Action" (no "Recommended" language when nothing to recommend); (2) "View playbook" CTA uses GuardedLink for unsaved-changes protection instead of raw next/link; (3) Mapping copy made non-overclaiming: uses "assets within playbook scope" instead of explicitly listing products/pages/collections. **No backend changes.** **Core files:** ContextPanelIssueDetails.tsx, issue-to-action-guidance.ts. **Manual Testing:** ISSUE-TO-ACTION-GUIDANCE-1.md updated (HP-001/003/004 expected section labels). **Critical Path:** CP-009 updated with FIXUP-1 checklist items (6.37). |
+| 7.33 | 2026-01-23 | **ISSUE-TO-ACTION-GUIDANCE-1 FIXUP-2**: Documentation coherence updates (RCP link policy exception + manual testing corrections). No code changes. (1) Updated RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1.md: Overview now states "header external-link is the default/primary navigation affordance" and "no in-body navigation links except the single guidance CTA 'View playbook' shown only for issue kind per ISSUE-TO-ACTION-GUIDANCE-1"; HP-009 expected results updated to allow Issue Details exception; (2) Updated RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md: HP-002 Help tab line updated to acknowledge Issue Details exception; (3) Updated RIGHT_CONTEXT_PANEL_CONTRACT.md: added "Link Policy" section (§4) with default rule and Issue Details exception; (4) Updated ISSUE-TO-ACTION-GUIDANCE-1.md: EC-001 now references "Automation Guidance" section label for unmapped actionable issues; ERR-001 corrected to note existing RCP read-only fetch may occur while guidance mapping introduces no new API calls. **Docs only:** RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1.md, RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md, RIGHT_CONTEXT_PANEL_CONTRACT.md, ISSUE-TO-ACTION-GUIDANCE-1.md, CRITICAL_PATH_MAP.md (6.38). |

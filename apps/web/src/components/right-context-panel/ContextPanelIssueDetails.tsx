@@ -4,6 +4,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { projectsApi } from '@/lib/api';
 import type { DeoIssue } from '@/lib/deo-issues';
 import { DEO_PILLARS } from '@/lib/deo-pillars';
+import {
+  getIssueToActionGuidance,
+  type RecommendedPlaybook,
+} from '@/lib/issue-to-action-guidance';
+import { buildPlaybookRunHref } from '@/lib/playbooks-routing';
+import { GuardedLink } from '@/components/navigation/GuardedLink';
 
 /**
  * [ISSUES-ENGINE-REMOUNT-1] Read-only issue details renderer for RCP.
@@ -12,7 +18,9 @@ import { DEO_PILLARS } from '@/lib/deo-pillars';
  *   - Why this matters (truthful fallback)
  *   - Actionability section with guidance
  *   - Affected assets list (when present)
- * Token-only styling; no in-body navigation links.
+ * [ISSUE-TO-ACTION-GUIDANCE-1] Added "Recommended action" section with playbook guidance.
+ * Token-only styling; no in-body navigation links EXCEPT the single "View playbook" CTA
+ * in the Recommended action section.
  */
 
 interface ContextPanelIssueDetailsProps {
@@ -22,6 +30,150 @@ interface ContextPanelIssueDetailsProps {
 }
 
 type LoadState = 'loading' | 'loaded' | 'not_found' | 'error';
+
+/**
+ * [ISSUE-TO-ACTION-GUIDANCE-1] Automation guidance section component.
+ * [ISSUE-TO-ACTION-GUIDANCE-1 FIXUP-1] Trust language alignment:
+ *   - Non-actionable states use "Automation Guidance" label (no "Recommended" when nothing to recommend)
+ *   - Actionable + mapped states use "Recommended Action" label (recommendation is present)
+ * Shows playbook guidance when issue is actionable and has a mapping.
+ * Shows "No automated action available." for informational or blocked issues.
+ */
+function RecommendedActionSection({
+  issue,
+  projectId,
+}: {
+  issue: DeoIssue;
+  projectId: string;
+}) {
+  // Determine if we should show recommendations
+  const isActionable =
+    issue.actionability !== 'informational' && issue.isActionableNow === true;
+
+  // Derive issue type deterministically
+  const issueType = (issue.type as string | undefined) ?? issue.id;
+
+  // Get playbook guidance
+  const guidance = getIssueToActionGuidance(issueType);
+  const hasGuidance = guidance.length > 0;
+
+  // [FIXUP-1] If not actionable, show calm "no action" message with neutral label
+  // (no "Recommended" language when there is no recommendation)
+  if (!isActionable) {
+    return (
+      <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Automation Guidance
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          No automated action available. Review the Work Canvas for next steps.
+        </p>
+      </div>
+    );
+  }
+
+  // [FIXUP-1] If actionable but no guidance mapping, show calm "no action" message with neutral label
+  if (!hasGuidance) {
+    return (
+      <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Automation Guidance
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          No automated action available. Review the Work Canvas for next steps.
+        </p>
+      </div>
+    );
+  }
+
+  // Render recommended playbook(s) - use "Recommended Action" since we have a recommendation
+  return (
+    <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
+      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        Recommended Action
+      </p>
+      <div className="mt-2 space-y-3">
+        {guidance.map((playbook) => (
+          <RecommendedPlaybookBlock
+            key={playbook.playbookId}
+            playbook={playbook}
+            projectId={projectId}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * [ISSUE-TO-ACTION-GUIDANCE-1] Individual playbook recommendation block.
+ * [ISSUE-TO-ACTION-GUIDANCE-1 FIXUP-1] CTA uses GuardedLink for unsaved-changes protection.
+ * Displays playbook name, description, affects, preconditions, and CTA.
+ */
+function RecommendedPlaybookBlock({
+  playbook,
+  projectId,
+}: {
+  playbook: RecommendedPlaybook;
+  projectId: string;
+}) {
+  // Build canonical playbook route with returnTo context
+  const playbookHref = buildPlaybookRunHref({
+    projectId,
+    playbookId: playbook.playbookId,
+    step: 'preview',
+    source: 'entry',
+    extraParams: {
+      returnTo: `/projects/${projectId}/issues`,
+      returnLabel: 'Issues',
+    },
+  });
+
+  return (
+    <div className="space-y-2">
+      {/* Playbook name */}
+      <p className="text-sm font-semibold text-foreground">{playbook.name}</p>
+
+      {/* One-line description */}
+      <p className="text-xs text-muted-foreground">
+        {playbook.oneLineWhatItDoes}
+      </p>
+
+      {/* Affects */}
+      <div>
+        <p className="text-[11px] font-medium text-muted-foreground">Affects</p>
+        <p className="text-xs text-foreground">{playbook.affects}</p>
+      </div>
+
+      {/* Preconditions */}
+      <div>
+        <p className="text-[11px] font-medium text-muted-foreground">
+          Before you proceed
+        </p>
+        <ul className="mt-1 space-y-0.5">
+          {playbook.preconditions.map((precondition, idx) => (
+            <li
+              key={idx}
+              className="text-xs text-muted-foreground flex items-start gap-1.5"
+            >
+              <span className="text-muted-foreground/60">•</span>
+              <span>{precondition}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* [FIXUP-1] CTA: View playbook (uses GuardedLink for unsaved-changes protection) */}
+      <GuardedLink
+        href={playbookHref}
+        className="mt-2 inline-flex items-center rounded-md border border-border bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/80 transition-colors"
+        data-testid="issue-rcp-view-playbook-cta"
+      >
+        View playbook
+      </GuardedLink>
+    </div>
+  );
+}
 
 export function ContextPanelIssueDetails({
   projectId,
@@ -269,6 +421,12 @@ export function ContextPanelIssueDetails({
         </p>
       </div>
 
+      {/* [ISSUE-TO-ACTION-GUIDANCE-1] Recommended action section */}
+      <RecommendedActionSection
+        issue={issue}
+        projectId={projectId}
+      />
+
       {/* [FIXUP-3] Affected Assets List */}
       <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
@@ -314,7 +472,13 @@ export function ContextPanelIssueDetails({
         </div>
       )}
 
-      {/* NO in-body navigation links - header external-link is the only navigation affordance */}
+      {/*
+       * [ISSUE-TO-ACTION-GUIDANCE-1] Navigation link policy:
+       * - NO in-body navigation links EXCEPT the single "View playbook" CTA in the
+       *   Recommended action section above.
+       * - Header external-link remains the primary navigation affordance for direct issue access.
+       * - "View playbook" navigates to playbook page in preview step; does NOT execute any operation.
+       */}
     </div>
   );
 }

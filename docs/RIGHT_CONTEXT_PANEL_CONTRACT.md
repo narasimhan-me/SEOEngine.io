@@ -18,3 +18,7 @@
   - In **Operational Command**, it *complements* the canvas by shifting content to the left, maintaining visibility of the selected row.
   - In **Contextual Specialist**, it *overlays* the canvas, providing a focus on the panel's data while blurring out background distractions.
 - **Dismissal**: Must support `ESC` key, a clear close `(X)` button, and clicking outside (if in Overlay mode).
+
+## 4. Link Policy
+- **Default**: No in-body navigation links; header external-link is the primary navigation affordance.
+- **Exception**: Issue Details may include a single guidance CTA "View playbook" per ISSUE-TO-ACTION-GUIDANCE-1 (navigation-only; no execution).

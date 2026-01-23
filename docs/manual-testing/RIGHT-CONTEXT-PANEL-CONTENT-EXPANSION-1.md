@@ -8,12 +8,13 @@
 
 - **Purpose of the feature/patch:**
   - Expand Right Context Panel (RCP) content for asset kinds (product, page, collection) with read-only contextual information including entity summary, issue drilldown, action preview, and AI assist hints.
-  - Enforce "header external-link only" rule: no in-body navigation links inside the panel.
+  - Header external-link is the default/primary navigation affordance.
+  - No in-body navigation links inside the panel body except the single guidance CTA "View playbook" shown only for issue kind per ISSUE-TO-ACTION-GUIDANCE-1 (navigation-only; no execution).
 
 - **High-level user impact and what "success" looks like:**
   - Users see enriched, scannable information in the RCP when viewing product/page/collection rows.
   - Issues are grouped by UX category (Metadata, Content, Search Intent, Technical) with severity badges.
-  - All navigation happens via the header external-link; no clickable links inside panel body.
+  - Header external-link is the primary navigation affordance; no clickable links inside panel body (exception: "View playbook" CTA for issue kind per ISSUE-TO-ACTION-GUIDANCE-1).
   - RCP remains secondary; does not affect canvas behavior.
   - Shopify iframe safe (no overflow, scroll contained).
 
@@ -261,10 +262,11 @@
 **Expected Results:**
 
 - **UI:**
-  - Header external-link (openHref) is the ONLY navigation affordance
+  - Header external-link (openHref) is the ONLY navigation affordance for standard panel content.
+  - Exception: Issue Details may show a single "View playbook" CTA in the Automation Guidance section per ISSUE-TO-ACTION-GUIDANCE-1.
   - NO "Open full page" links inside panel body
   - Help view shows "Visit the Help Center for general documentation." as plain text (no link)
-  - No clickable links anywhere in panel body
+  - No other clickable links anywhere in panel body
 - **API:** N/A
 - **Logs:** N/A
 

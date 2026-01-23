@@ -97,6 +97,7 @@ export function ContextPanelContentRenderer({
  * Render the Details view based on descriptor.kind.
  * [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] Asset kinds (product, page, collection) use expanded content system.
  * [ISSUES-ENGINE-REMOUNT-1] Issue kind uses dedicated ContextPanelIssueDetails component.
+ * [PLAYBOOKS-SHELL-REMOUNT-1] Playbook kind uses dedicated PlaybookDetailsContent component.
  */
 function renderDetailsView(descriptor: ContextDescriptor, currentProjectId: string | null) {
   // Asset kinds use the new content expansion system
@@ -115,6 +116,19 @@ function renderDetailsView(descriptor: ContextDescriptor, currentProjectId: stri
             issueId={descriptor.id}
           />
         );
+      }
+      // No project context - show unavailable state
+      return (
+        <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-4">
+          <p className="text-sm text-muted-foreground">
+            Unavailable in this project context.
+          </p>
+        </div>
+      );
+    // [PLAYBOOKS-SHELL-REMOUNT-1] Playbook kind - read-only playbook details in RCP
+    case 'playbook':
+      if (currentProjectId) {
+        return <PlaybookDetailsContent descriptor={descriptor} />;
       }
       // No project context - show unavailable state
       return (
@@ -466,6 +480,136 @@ function WorkItemDetailsContent({
           </span>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * [PLAYBOOKS-SHELL-REMOUNT-1] Playbook details content for RCP.
+ * Read-only, token-only styling, no in-body navigation links.
+ * Sections:
+ * - What this playbook does (from metadata.description)
+ * - Which assets it can affect (asset types + scope summary)
+ * - Preconditions (plan/eligibility/permissions/data readiness)
+ * - Runnable state (Ready/Blocked/Informational)
+ * - History stub
+ */
+function PlaybookDetailsContent({
+  descriptor,
+}: {
+  descriptor: ContextDescriptor;
+}) {
+  const metadata = descriptor.metadata || {};
+
+  // Derive runnable state from metadata
+  const runnableState = metadata.runnableState || 'Blocked';
+  const getRunnableStateClass = () => {
+    switch (runnableState) {
+      case 'Ready':
+        return 'bg-[hsl(var(--success-background))] text-[hsl(var(--success-foreground))]';
+      case 'Informational':
+        return 'bg-[hsl(var(--info-background))] text-[hsl(var(--info-foreground))]';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  };
+
+  // Parse preconditions from metadata (comma-separated string or already array-like)
+  const preconditions = metadata.preconditions
+    ? metadata.preconditions.split(',').map((p: string) => p.trim()).filter(Boolean)
+    : [];
+
+  return (
+    <div className="space-y-4">
+      {/* What this playbook does */}
+      <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          What This Playbook Does
+        </p>
+        <p className="mt-1 text-sm text-foreground">
+          {metadata.description || 'Not available.'}
+        </p>
+      </div>
+
+      {/* Which assets it can affect */}
+      <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Applicable Assets
+        </p>
+        {metadata.assetTypes ? (
+          <div className="mt-1 flex flex-wrap gap-2">
+            {metadata.assetTypes.split(',').map((assetType: string) => (
+              <span
+                key={assetType.trim()}
+                className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground"
+              >
+                {assetType.trim()}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-1 text-sm text-muted-foreground">Products</p>
+        )}
+        {metadata.scopeSummary && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            {metadata.scopeSummary}
+          </p>
+        )}
+      </div>
+
+      {/* Preconditions */}
+      <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Preconditions
+        </p>
+        {preconditions.length > 0 ? (
+          <ul className="mt-1 space-y-1">
+            {preconditions.map((condition: string, idx: number) => (
+              <li key={idx} className="text-sm text-foreground flex items-start gap-2">
+                <span className="text-muted-foreground">•</span>
+                <span>{condition}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-1 text-sm text-muted-foreground">
+            No specific preconditions.
+          </p>
+        )}
+      </div>
+
+      {/* Runnable State */}
+      <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Availability
+        </p>
+        <span
+          className={`mt-1 inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs font-medium ${getRunnableStateClass()}`}
+        >
+          {runnableState}
+        </span>
+        {metadata.runnableGuidance && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            {metadata.runnableGuidance}
+          </p>
+        )}
+      </div>
+
+      {/* History stub */}
+      <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          History
+        </p>
+        {metadata.lastRunSummary ? (
+          <p className="mt-1 text-sm text-foreground">{metadata.lastRunSummary}</p>
+        ) : (
+          <p className="mt-1 text-sm text-muted-foreground">
+            No history available.
+          </p>
+        )}
+      </div>
+
+      {/* NO in-body navigation links - header external-link is the only navigation affordance */}
     </div>
   );
 }

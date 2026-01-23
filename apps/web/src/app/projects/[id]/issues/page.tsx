@@ -39,6 +39,8 @@ import {
   normalizeScopeParams,
   buildClearFiltersHref,
 } from '@/lib/scope-normalization';
+// [ISSUE-TO-ACTION-GUIDANCE-1] Import playbook guidance mapping
+import { getIssueToActionGuidance } from '@/lib/issue-to-action-guidance';
 // [ISSUES-ENGINE-REMOUNT-1] DataTable + RCP integration
 import {
   DataTable,
@@ -1148,6 +1150,13 @@ export default function IssuesPage() {
             fixHref !== null;
           const fixAction = getFixAction(row);
 
+          // [ISSUE-TO-ACTION-GUIDANCE-1] Check if playbook guidance exists for this issue
+          const issueType = (row.type as string | undefined) ?? row.id;
+          const hasPlaybookGuidance =
+            row.actionability !== 'informational' &&
+            row.isActionableNow === true &&
+            getIssueToActionGuidance(issueType).length > 0;
+
           return (
             <div
               data-testid={
@@ -1179,6 +1188,29 @@ export default function IssuesPage() {
                   {row.actionability === 'informational'
                     ? 'Outside control'
                     : 'Informational'}
+                </span>
+              )}
+              {/* [ISSUE-TO-ACTION-GUIDANCE-1] Subtle playbook indicator (non-interactive) */}
+              {hasPlaybookGuidance && (
+                <span
+                  className="ml-2 inline-flex items-center text-[10px] text-muted-foreground"
+                  data-testid="issue-playbook-indicator"
+                  title="Playbook available"
+                >
+                  <svg
+                    className="h-3 w-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                    />
+                  </svg>
                 </span>
               )}
             </div>

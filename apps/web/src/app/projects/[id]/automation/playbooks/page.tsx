@@ -51,6 +51,8 @@ import type { Product } from '@/lib/products';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 // [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI boundary note for human-only review and AI generation surfaces
 import { DraftAiBoundaryNote } from '@/components/common/DraftAiBoundaryNote';
+// [PLAYBOOKS-SHELL-REMOUNT-1] RCP integration for playbook details panel
+import { useRightContextPanel, type ContextDescriptor } from '@/components/right-context-panel/RightContextPanelProvider';
 // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Centralized routing helper
 // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Added buildPlaybookScopePayload
 // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Added getRoutingScopeFromPayload
@@ -59,8 +61,6 @@ import {
   buildPlaybookRunHrefOrNull,
   buildPlaybookScopePayload,
   getRoutingScopeFromPayload,
-  navigateToPlaybookRun,
-  navigateToPlaybookRunReplace,
   isValidPlaybookId,
   type PlaybookSource,
   type PlaybookScopePayload,
@@ -232,6 +232,8 @@ export default function AutomationPlaybooksPage() {
   const searchParams = useSearchParams();
   const projectId = params.id as string;
   const feedback = useFeedback();
+  // [PLAYBOOKS-SHELL-REMOUNT-1] RCP integration
+  const { openPanel } = useRightContextPanel();
 
   // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Deep-link support: read playbookId from path param or query param
   // Path param is preferred (canonical route: /playbooks/:playbookId)
@@ -327,10 +329,9 @@ export default function AutomationPlaybooksPage() {
   const [planId, setPlanId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [issues, setIssues] = useState<DeoIssue[]>([]);
-  // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] URL is source of truth (path param preferred). No implicit default.
-  // Default selection navigates via router.replace, not setState. Setter intentionally unused.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [selectedPlaybookId, _setSelectedPlaybookId] =
+  // [PLAYBOOKS-SHELL-REMOUNT-1] Selection is now in-page state (no navigation on selection).
+  // URL params still used for step/source routing but playbook selection is local state.
+  const [selectedPlaybookId, setSelectedPlaybookId] =
     useState<PlaybookId | null>(validUrlPlaybookId);
   // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Track eligibility counts for default selection + banner visibility
   const [titlesEligibleCount, setTitlesEligibleCount] = useState<number | null>(
@@ -429,6 +430,19 @@ export default function AutomationPlaybooksPage() {
     seoTitle?: string | null;
     seoDescription?: string | null;
   } | null>(null);
+
+  // [PLAYBOOKS-SHELL-REMOUNT-1] Deep-link compatibility: sync selectedPlaybookId from panel params
+  // When URL includes panel=details&entityType=playbook&entityId=<playbookId>, select that playbook
+  useEffect(() => {
+    const panelType = searchParams.get('panel');
+    const entityType = searchParams.get('entityType');
+    const entityId = searchParams.get('entityId');
+    if (panelType === 'details' && entityType === 'playbook' && entityId) {
+      if (isValidPlaybookId(entityId) && entityId !== selectedPlaybookId) {
+        setSelectedPlaybookId(entityId as PlaybookId);
+      }
+    }
+  }, [searchParams, selectedPlaybookId]);
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -1180,16 +1194,54 @@ export default function AutomationPlaybooksPage() {
     projectId,
   ]);
 
+  // [PLAYBOOKS-SHELL-REMOUNT-1] Helper to build RCP descriptor for a playbook
+  const getPlaybookDescriptor = useCallback(
+    (pb: { id: PlaybookId; name: string; description: string; field: string; totalAffected?: number }): ContextDescriptor => {
+      const isEligible = planId !== 'free';
+      const runnableState = isEligible
+        ? (pb.totalAffected ?? 0) > 0
+          ? 'Ready'
+          : 'Informational'
+        : 'Blocked';
+      const runnableGuidance = !isEligible
+        ? 'This playbook requires a Pro or Business plan.'
+        : (pb.totalAffected ?? 0) === 0
+          ? 'No applicable items found for this playbook.'
+          : 'This playbook can be run on the applicable items.';
+
+      return {
+        kind: 'playbook',
+        id: pb.id,
+        title: pb.name,
+        scopeProjectId: projectId,
+        // [PLAYBOOKS-SHELL-REMOUNT-1 FIXUP-2] Canonical playbook run route
+        openHref: `/projects/${projectId}/playbooks/${pb.id}?step=preview&source=default`,
+        openHrefLabel: 'Open playbook',
+        metadata: {
+          description: pb.description,
+          assetTypes: 'Products',
+          scopeSummary: `${pb.totalAffected ?? 0} item${(pb.totalAffected ?? 0) !== 1 ? 's' : ''} affected`,
+          preconditions: isEligible
+            ? 'Pro or Business plan active'
+            : 'Pro or Business plan required',
+          runnableState,
+          runnableGuidance,
+        },
+      };
+    },
+    [planId, projectId]
+  );
+
   const handleSelectPlaybook = (playbookId: PlaybookId) => {
-    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Route canonically via URL, no local selection state
-    // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use shared scope args via playbookRunScopeForUrl
-    navigateToPlaybookRun(router, {
-      projectId,
-      playbookId,
-      step: 'preview',
-      source: 'tile',
-      ...playbookRunScopeForUrl,
-    });
+    // [PLAYBOOKS-SHELL-REMOUNT-1] Selection is in-page state only (no navigation).
+    // Sets selectedPlaybookId for highlighting and step flow.
+    setSelectedPlaybookId(playbookId);
+    // Reset flow state for new selection
+    setFlowState('PREVIEW_READY');
+    setPreviewSamples([]);
+    setEstimate(null);
+    setApplyResult(null);
+    setApplyInlineError(null);
   };
 
   const handleGeneratePreview = async () => {
@@ -1878,68 +1930,9 @@ export default function AutomationPlaybooksPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /**
-   * [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-1] Effect 2: Deterministic default selection.
-   *
-   * Runs when:
-   * - Not in Draft Review mode
-   * - No playbookId in URL (path or query)
-   * - Both eligibility counts are known (not null)
-   *
-   * Navigates via router.replace to canonical run URL.
-   * If both counts are 0, stays neutral (no navigation).
-   */
-  useEffect(() => {
-    // Skip in Draft Review mode
-    if (isDraftReviewMode) {
-      return;
-    }
-
-    // Skip if playbookId already in URL
-    if (validUrlPlaybookId) {
-      return;
-    }
-
-    // Wait until eligibility counts are fetched (not null)
-    if (titlesEligibleCount === null || descriptionsEligibleCount === null) {
-      return;
-    }
-
-    // Determine which playbook to select
-    let chosenPlaybook: PlaybookId | null = null;
-
-    if (descriptionsEligibleCount > titlesEligibleCount) {
-      chosenPlaybook = 'missing_seo_description';
-    } else if (titlesEligibleCount > descriptionsEligibleCount) {
-      chosenPlaybook = 'missing_seo_title';
-    } else if (titlesEligibleCount > 0 || descriptionsEligibleCount > 0) {
-      // Tie with at least one > 0 → prefer descriptions
-      chosenPlaybook = 'missing_seo_description';
-    }
-    // else: both 0 → stay neutral (no navigation)
-
-    if (chosenPlaybook) {
-      // Navigate via replace to avoid history pollution
-      // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-4] Use shared scope args via playbookRunScopeForUrl
-      navigateToPlaybookRunReplace(router, {
-        projectId,
-        playbookId: chosenPlaybook,
-        step: 'preview',
-        source: urlSource,
-        ...playbookRunScopeForUrl,
-      });
-    }
-    // Run when eligibility counts become available
-  }, [
-    isDraftReviewMode,
-    validUrlPlaybookId,
-    titlesEligibleCount,
-    descriptionsEligibleCount,
-    router,
-    projectId,
-    urlSource,
-    playbookRunScopeForUrl,
-  ]);
+  // [PLAYBOOKS-SHELL-REMOUNT-1 FIXUP-1] Removed legacy auto-navigation effect.
+  // Landing on Playbooks with no playbookId in URL must remain neutral (no route change, no implicit selection).
+  // Selection is now explicit in-page state via row click.
 
   const handleNavigate = useCallback(
     (href: string) => {
@@ -3010,54 +3003,79 @@ export default function AutomationPlaybooksPage() {
         </div>
       )}
 
-      {/* Playbooks list */}
-      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2">
-        {playbookSummaries.map((pb) => {
-          const isSelected = pb.id === selectedPlaybookId;
-          const isEligible = planId !== 'free';
-          return (
-            <button
-              key={pb.id}
-              type="button"
-              onClick={() => handleSelectPlaybook(pb.id)}
-              className={`flex flex-col items-start rounded-lg border p-4 text-left transition-colors ${
-                isSelected
-                  ? 'border-primary bg-primary/10'
-                  : 'border-border bg-[hsl(var(--surface-card))] hover:border-primary/50'
-              }`}
-            >
-              <div className="mb-2 flex w-full items-center justify-between gap-2">
-                <h2 className="text-base font-semibold text-foreground">
-                  {pb.name}
-                </h2>
-                <span
-                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                    isEligible
-                      ? 'bg-[hsl(var(--success-background))] text-[hsl(var(--success-foreground))]'
-                      : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {isEligible
-                    ? 'Pro / Business'
-                    : 'Upgrade for bulk automations'}
+      {/* [PLAYBOOKS-SHELL-REMOUNT-1] Playbooks list - canonical DataTable */}
+      <div className="mb-8">
+        <DataTable<(typeof playbookSummaries)[0] & { id: string }>
+          rows={playbookSummaries}
+          columns={[
+            {
+              key: 'name',
+              header: 'Playbook',
+              cell: (row) => (
+                <div>
+                  {/* [PLAYBOOKS-SHELL-REMOUNT-1 FIXUP-1] Selection highlight on title itself */}
+                  <p className={`text-foreground ${row.id === selectedPlaybookId ? 'font-semibold' : 'font-medium'}`}>
+                    {row.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground line-clamp-1">
+                    {row.description}
+                  </p>
+                </div>
+              ),
+            },
+            {
+              key: 'field',
+              header: 'What It Fixes',
+              cell: (row) => (
+                <span className="text-sm text-muted-foreground">
+                  {row.field === 'seoTitle' ? 'Missing SEO titles' : 'Missing SEO descriptions'}
                 </span>
-              </div>
-              <p className="mb-3 text-sm text-muted-foreground">{pb.description}</p>
-              <div className="mt-auto flex w-full items-center justify-between text-xs text-muted-foreground">
-                <span>
-                  Affected products:{' '}
-                  <span className="font-semibold text-foreground">
-                    {pb.totalAffected}
-                  </span>
+              ),
+            },
+            {
+              key: 'assetType',
+              header: 'Asset Type',
+              cell: () => (
+                <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+                  Products
                 </span>
-                <span>
-                  Target field:{' '}
-                  <span className="font-mono text-muted-foreground">{pb.field}</span>
-                </span>
-              </div>
-            </button>
-          );
-        })}
+              ),
+            },
+            {
+              key: 'availability',
+              header: 'Availability',
+              cell: (row) => {
+                const isEligible = planId !== 'free';
+                const hasItems = row.totalAffected > 0;
+                const availabilityState = !isEligible
+                  ? 'Blocked'
+                  : !hasItems
+                    ? 'Informational'
+                    : 'Ready';
+                const stateClass = availabilityState === 'Ready'
+                  ? 'bg-[hsl(var(--success-background))] text-[hsl(var(--success-foreground))]'
+                  : availabilityState === 'Informational'
+                    ? 'bg-[hsl(var(--info-background))] text-[hsl(var(--info-foreground))]'
+                    : 'bg-muted text-muted-foreground';
+                return (
+                  <div className="flex flex-col gap-1">
+                    <span className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-xs font-medium ${stateClass}`}>
+                      {availabilityState}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {row.totalAffected} item{row.totalAffected !== 1 ? 's' : ''} affected
+                    </span>
+                  </div>
+                );
+              },
+            },
+          ]}
+          getRowDescriptor={(row) => getPlaybookDescriptor(row)}
+          onRowClick={(row) => handleSelectPlaybook(row.id as PlaybookId)}
+          onOpenContext={(descriptor) => openPanel(descriptor)}
+          density="comfortable"
+          hideContextAction={false}
+        />
       </div>
 
       {!selectedDefinition && (

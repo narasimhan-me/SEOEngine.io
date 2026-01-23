@@ -28,6 +28,7 @@ const ALLOWED_PANEL_VIEWS = new Set<PanelView>([
 
 /**
  * Allowed entity types for URL deep-links.
+ * [PLAYBOOKS-SHELL-REMOUNT-1] Added 'playbook' for playbook RCP deep-links.
  */
 const ALLOWED_ENTITY_TYPES = new Set([
   'product',
@@ -36,11 +37,13 @@ const ALLOWED_ENTITY_TYPES = new Set([
   'blog',
   'issue',
   'user',
+  'playbook',
 ]);
 
 /**
  * [PANEL-DEEP-LINKS-1 FIXUP-1] Entity types that require project scope.
  * When opened via deep-link on a non-project route, show "Unavailable" instead of fetching.
+ * [PLAYBOOKS-SHELL-REMOUNT-1] Added 'playbook' (project-scoped deep links must fail safely outside /projects/[id]).
  */
 const PROJECT_SCOPED_ENTITY_TYPES = new Set([
   'product',
@@ -48,6 +51,7 @@ const PROJECT_SCOPED_ENTITY_TYPES = new Set([
   'collection',
   'blog',
   'issue',
+  'playbook',
 ]);
 
 /**
