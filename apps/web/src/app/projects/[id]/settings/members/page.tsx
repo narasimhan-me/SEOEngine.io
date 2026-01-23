@@ -12,6 +12,8 @@ import {
 } from '@/lib/api';
 import type { ProjectMember, EffectiveProjectRole } from '@/lib/api';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
+// [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Shell header integration
+import { useCenterPaneHeader } from '@/components/layout/CenterPaneHeaderProvider';
 
 /**
  * [ROLES-3] Members Management Page
@@ -50,6 +52,9 @@ export default function MembersPage() {
   // Remove member state
   const [removingMember, setRemovingMember] = useState<string | null>(null);
 
+  // [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Shell header integration
+  const { setHeader } = useCenterPaneHeader();
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -79,6 +84,15 @@ export default function MembersPage() {
     }
     fetchData();
   }, [router, fetchData]);
+
+  // [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Set shell header
+  useEffect(() => {
+    setHeader({
+      breadcrumbs: `Projects > ${projectName || projectId} > Settings`,
+      title: 'Team Members',
+      description: 'Manage who has access to this project and their permissions.',
+    });
+  }, [setHeader, projectName, projectId]);
 
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,46 +168,13 @@ export default function MembersPage() {
 
   return (
     <div>
-      {/* Breadcrumbs */}
-      <nav className="mb-4 text-sm">
-        <ol className="flex flex-wrap items-center gap-2 text-gray-500">
-          <li>
-            <Link href="/projects" className="hover:text-gray-700">
-              Projects
-            </Link>
-          </li>
-          <li>/</li>
-          <li>
-            <Link
-              href={`/projects/${projectId}/store-health`}
-              className="hover:text-gray-700"
-            >
-              {projectName || 'Project'}
-            </Link>
-          </li>
-          <li>/</li>
-          <li>
-            <Link
-              href={`/projects/${projectId}/settings`}
-              className="hover:text-gray-700"
-            >
-              Settings
-            </Link>
-          </li>
-          <li>/</li>
-          <li className="text-gray-900">Members</li>
-        </ol>
-      </nav>
+      {/* [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] In-canvas breadcrumbs and header removed - shell header owns these */}
 
-      {/* Header */}
-      <div className="mb-6 flex items-start justify-between">
+      {/* Header row for role info and add button */}
+      <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Team Members</h1>
-          <p className="text-gray-600">
-            Manage who has access to this project and their permissions.
-          </p>
           {userRole && (
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="text-xs text-gray-500">
               You are the {getRoleDisplayLabel(userRole)}
             </p>
           )}

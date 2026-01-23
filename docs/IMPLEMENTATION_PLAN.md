@@ -2825,6 +2825,63 @@ RIGHT-CONTEXT-PANEL-AUTONOMY-1 implements autonomous context-driven Right Contex
 
 ---
 
+### Phase CENTER-PANE-NAV-REMODEL-1: Center Header Standardization + Scoped Nav Demotion ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-23
+**Design System Version:** v1.5
+
+#### Overview
+
+CENTER-PANE-NAV-REMODEL-1 implements center pane header standardization via a new `CenterPaneHeaderProvider` context, and demotes the scoped section navigation (ProjectSideNav) to a low-emphasis contextual index. Issues and Playbooks pages migrate their in-canvas headers to the standardized shell header. Product detail uses `hideHeader` to avoid duplicate headers. This is a UI/navigation remodel with no feature logic changes.
+
+#### Key Features
+
+1. **CenterPaneHeaderProvider**: Shell-level context for per-page header customization (breadcrumbs, title, description, actions, hideHeader)
+2. **Standardized Header Structure**: Breadcrumbs (small, secondary) → Title (primary) → Description (optional, muted) → Actions (right-aligned, minimal)
+3. **Issues Page Migration**: Title "Issues" + description (project name) + "Re-scan Issues" button in shell header; removed in-canvas header block
+4. **Playbooks Page Migration**: Title "Playbooks" + description + role label in shell header; removed in-canvas breadcrumbs nav and header block
+5. **Product Detail hideHeader**: Shell header not rendered; product page uses own sticky workspace header + tabs
+6. **ProjectSideNav Demotion**: Lighter typography/contrast, tighter spacing, subtle active state (thin accent bar only, no heavy background blocks), calm hover state
+7. **Layout Container Cleanup**: Removed max-width container + extra padding wrappers from projects layout
+
+#### Affected Files
+
+- `apps/web/src/components/layout/CenterPaneHeaderProvider.tsx` (NEW)
+- `apps/web/src/components/layout/LayoutShell.tsx` (UPDATED)
+- `apps/web/src/components/layout/ProjectSideNav.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/layout.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/issues/page.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` (UPDATED)
+
+#### FIXUP-1: Extended Shell Header Integration
+
+- `apps/web/src/app/projects/[id]/keywords/page.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/performance/page.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/media/page.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/competitors/page.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/local/page.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/settings/members/page.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/automation/playbooks/entry/page.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/content/[pageId]/page.tsx` (UPDATED)
+
+#### FIXUP-2: GEO Insights Shell Header Integration
+
+- `apps/web/src/app/projects/[id]/insights/geo-insights/page.tsx` (UPDATED)
+
+#### Manual Testing
+
+- `docs/manual-testing/CENTER-PANE-NAV-REMODEL-1.md`
+
+#### Critical Path Map
+
+- Updated CP-020 (UI Shell & Right Context Panel) with CENTER-PANE-NAV-REMODEL-1 scenarios
+- FIXUP-1: Added CP-020 checklist items for pillar pages, Members, New Playbook entry, and Content Workspace
+- FIXUP-2: Added CP-020 checklist item for GEO Insights page
+
+---
+
 ## Planned / Pending
 
 ### Phase GTM-ONBOARD-1: Guided Onboarding & First DEO Win 📄 DOCS COMPLETE — IMPLEMENTATION PENDING
@@ -3152,3 +3209,7 @@ _None at this time._
 | 7.35 | 2026-01-23 | **RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-1**: URL sync correctness fix. (1) Removed incorrect `isApplyingUrlStateRef` re-entrancy guard wrappers from state→URL write paths: dismissed context URL cleanup, auto-open URL writes, contextless close URL cleanup; (2) Re-entrancy guard now only protects URL→state application (deep-link path); (3) Removed obsolete CP-020 checklist items conflicting with autonomy (Details button click, pin toggle, width toggle, view tabs scenarios). **Core files:** RightContextPanelProvider.tsx. **Docs:** CRITICAL_PATH_MAP.md (6.40), RIGHT-CONTEXT-PANEL-AUTONOMY-1.md (doc paths), IMPLEMENTATION_PLAN.md. |
 | 7.36 | 2026-01-23 | **RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-2**: Deep-link panel view normalization. (1) Legacy `panel` URL values (recommendations, history, help) now normalized to `details` via replaceState on load; (2) `ALLOWED_PANEL_VIEWS` comment updated to document backward-compat acceptance + runtime coercion; (3) PRIORITY 1 deep-link branch now checks `panelView !== 'details'` and writes normalized URL before applying state; (4) `setActiveView` always receives `'details'` (no tabs under autonomy). **Core files:** RightContextPanelProvider.tsx. **Docs:** PANEL-DEEP-LINKS-1.md (HP-003 replaced with normalization scenario, REG-002 marked obsolete, URL schema updated), CRITICAL_PATH_MAP.md (6.41). |
 | 7.37 | 2026-01-23 | **RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3**: Pane header display title hydration. (1) `openPanel` now supports in-place descriptor enrichment when panel already open with same kind+id: merges title/subtitle/metadata/openHref without close/reopen, syncs URL entityTitle; (2) Added hydration useEffects to product detail (`/products/[productId]`), page detail (`/assets/pages/[pageId]`), collection detail (`/assets/collections/[collectionId]`), and playbooks page; (3) Hydration is "hydrate-only" - does NOT reopen panel if user dismissed. **Core files:** RightContextPanelProvider.tsx, products/[productId]/page.tsx, pages/[pageId]/page.tsx, collections/[collectionId]/page.tsx, automation/playbooks/page.tsx. **Docs:** RIGHT-CONTEXT-PANEL-AUTONOMY-1.md (HP-001/002 expected results, Known Issues), CRITICAL_PATH_MAP.md (6.42, CP-020 checklist). |
+| 7.38 | 2026-01-23 | **CENTER-PANE-NAV-REMODEL-1**: Center header standardization + scoped nav demotion. (1) Created CenterPaneHeaderProvider for per-page shell header customization (breadcrumbs/title/description/actions/hideHeader); (2) Updated LayoutShell to render standardized header structure (breadcrumbs → title → description → actions); (3) Issues page: migrated header to shell (title "Issues", description=project name, actions="Re-scan Issues" button), removed in-canvas header block; (4) Playbooks page: migrated header to shell, removed in-canvas breadcrumbs nav and header block; (5) Product detail: hideHeader=true to avoid duplicate headers, removed in-canvas breadcrumbs nav; (6) ProjectSideNav demoted to low-emphasis contextual index (lighter typography, tighter spacing, subtle active state with thin accent bar only); (7) layout.tsx removed max-width container wrappers. RCP remains autonomous (no new toggles/modes). **Core files:** CenterPaneHeaderProvider.tsx (NEW), LayoutShell.tsx, ProjectSideNav.tsx, layout.tsx, issues/page.tsx, playbooks/page.tsx, products/[productId]/page.tsx. **Manual Testing:** CENTER-PANE-NAV-REMODEL-1.md. **Critical Path:** CP-020 updated (6.43). |
+| 7.39 | 2026-01-23 | **CENTER-PANE-NAV-REMODEL-1 FIXUP-1**: Extended shell header integration to remaining surfaces. (1) Pillar pages (keywords, performance, media, competitors, local) now use shell header with breadcrumbs/title/description, removed in-canvas breadcrumb nav and h1 header blocks; (2) Members settings page (settings/members) uses shell header, removed in-canvas breadcrumbs and header; (3) New Playbook entry page (automation/playbooks/entry) uses shell header, removed in-canvas breadcrumbs and header; (4) Content Workspace page (content/[pageId]) uses shell header, removed in-canvas breadcrumbs and header; (5) ProjectSideNav insightsPillarRoutes now includes 'media' for correct active-state coverage. **Core files:** ProjectSideNav.tsx, keywords/page.tsx, performance/page.tsx, media/page.tsx, competitors/page.tsx, local/page.tsx, settings/members/page.tsx, automation/playbooks/entry/page.tsx, content/[pageId]/page.tsx. **Manual Testing:** CENTER-PANE-NAV-REMODEL-1.md updated (HP-008 through HP-012). **Critical Path:** CP-020 updated (6.44). |
+| 7.40 | 2026-01-23 | **CENTER-PANE-NAV-REMODEL-1 FIXUP-2**: Completed shell header integration for GEO Insights page. Removed in-canvas breadcrumbs nav and h1/action header block, moved "Export Report" action into shell header actions. **Core files:** insights/geo-insights/page.tsx. **Manual Testing:** CENTER-PANE-NAV-REMODEL-1.md updated (HP-013). **Critical Path:** CP-020 updated (6.45). |
+| 7.41 | 2026-01-23 | **CENTER-PANE-NAV-REMODEL-1 FIXUP-3**: Removed GEO Insights header breadcrumbs override so canonical shell breadcrumbs display correctly (real project name instead of placeholder "Project" text). **Core files:** insights/geo-insights/page.tsx. **Manual Testing:** CENTER-PANE-NAV-REMODEL-1.md HP-013 updated. **Critical Path:** CP-020 updated (6.46). |

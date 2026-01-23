@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { isAuthenticated } from '@/lib/auth';
 import { projectsApi } from '@/lib/api';
 import { getDeoPillarById } from '@/lib/deo-pillars';
+// [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Shell header integration
+import { useCenterPaneHeader } from '@/components/layout/CenterPaneHeaderProvider';
 import type {
   LocalDiscoveryScorecard,
   LocalSignal,
@@ -100,6 +102,9 @@ export default function LocalDiscoveryPage() {
   const [configLoading, setConfigLoading] = useState(false);
 
   const pillar = getDeoPillarById('local_discovery');
+
+  // [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Shell header integration
+  const { setHeader } = useCenterPaneHeader();
 
   const fetchData = useCallback(async () => {
     // Guard against invalid projectId
@@ -197,6 +202,17 @@ export default function LocalDiscoveryPage() {
     fetchData();
   }, [router, fetchData]);
 
+  // [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Set shell header
+  useEffect(() => {
+    setHeader({
+      breadcrumbs: `Projects > ${projectName || projectId} > Insights`,
+      title: 'Local Discovery',
+      description:
+        pillar?.description ||
+        'Optimize for local search queries and geo-intent signals.',
+    });
+  }, [setHeader, projectName, projectId, pillar?.description]);
+
   if (loading) {
     return (
       <div className="animate-pulse space-y-6">
@@ -228,36 +244,7 @@ export default function LocalDiscoveryPage() {
 
   return (
     <div>
-      {/* Breadcrumbs */}
-      <nav className="mb-4 text-sm">
-        <ol className="flex flex-wrap items-center gap-2 text-gray-500">
-          <li>
-            <Link href="/projects" className="hover:text-gray-700">
-              Projects
-            </Link>
-          </li>
-          <li>/</li>
-          <li>
-            <Link
-              href={`/projects/${projectId}/store-health`}
-              className="hover:text-gray-700"
-            >
-              {projectName || 'Project'}
-            </Link>
-          </li>
-          <li>/</li>
-          <li className="text-gray-900">Local Discovery</li>
-        </ol>
-      </nav>
-
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Local Discovery</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          {pillar?.description ||
-            'Optimize for local search queries and geo-intent signals.'}
-        </p>
-      </div>
+      {/* [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] In-canvas breadcrumbs and header removed - shell header owns these */}
 
       <InsightsPillarsSubnav />
 

@@ -9,6 +9,7 @@ import { projectsApi } from '@/lib/api';
 import type { ProjectInsightsResponse } from '@/lib/insights';
 import { InsightsSubnav } from '@/components/projects/InsightsSubnav';
 import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
+import { useCenterPaneHeader } from '@/components/layout/CenterPaneHeaderProvider';
 
 /**
  * [GEO-INSIGHTS-2] GEO Insights Page
@@ -20,12 +21,42 @@ export default function GeoInsightsPage() {
   const router = useRouter();
   const params = useParams();
   const projectId = params.id as string;
+  const { setHeader } = useCenterPaneHeader();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [insights, setInsights] = useState<ProjectInsightsResponse | null>(
     null
   );
+
+  // Set shell header on mount and when projectId changes
+  useEffect(() => {
+    setHeader({
+      title: 'GEO Insights',
+      description: 'GEO-specific metrics: answer readiness, intent coverage, reuse efficiency, and trust trajectory',
+      actions: (
+        <Link
+          href={`/projects/${projectId}/insights/geo-insights/export`}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-[hsl(var(--surface-raised))]"
+        >
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            />
+          </svg>
+          Export Report
+        </Link>
+      ),
+    });
+  }, [projectId, setHeader]);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -73,62 +104,6 @@ export default function GeoInsightsPage() {
 
   return (
     <div className="p-6">
-      {/* Breadcrumbs */}
-      <nav className="mb-4 text-sm">
-        <ol className="flex items-center gap-2 text-gray-500">
-          <li>
-            <Link href="/projects" className="hover:text-gray-700">
-              Projects
-            </Link>
-          </li>
-          <li>/</li>
-          <li>
-            <Link
-              href={`/projects/${projectId}/store-health`}
-              className="hover:text-gray-700"
-            >
-              Project
-            </Link>
-          </li>
-          <li>/</li>
-          <li>
-            <Link
-              href={`/projects/${projectId}/insights`}
-              className="hover:text-gray-700"
-            >
-              Insights
-            </Link>
-          </li>
-          <li>/</li>
-          <li className="text-gray-900">GEO Insights</li>
-        </ol>
-      </nav>
-
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">GEO Insights</h1>
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/projects/${projectId}/insights/geo-insights/export`}
-            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-              />
-            </svg>
-            Export Report
-          </Link>
-        </div>
-      </div>
-
       <InsightsSubnav projectId={projectId} activeTab="geo-insights" />
       <InsightsPillarsSubnav />
 

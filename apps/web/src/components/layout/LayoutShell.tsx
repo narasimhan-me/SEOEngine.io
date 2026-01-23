@@ -12,6 +12,10 @@ import {
   useCommandPalette,
 } from '@/components/command-palette/CommandPaletteProvider';
 import { CommandPalette } from '@/components/command-palette/CommandPalette';
+import {
+  CenterPaneHeaderProvider,
+  useCenterPaneHeaderState,
+} from '@/components/layout/CenterPaneHeaderProvider';
 
 type NavState = 'expanded' | 'collapsed';
 
@@ -281,6 +285,9 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
   const collapsed = navState === 'collapsed';
   const { openPalette } = useCommandPalette();
 
+  // [CENTER-PANE-NAV-REMODEL-1] Read header state from context
+  const headerState = useCenterPaneHeaderState();
+
   // [UI-POLISH-&-CLARITY-1] Breadcrumb state
   const [projectLabel, setProjectLabel] = useState<string | null>(null);
 
@@ -541,20 +548,35 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
           </div>
         </aside>
         <div className="flex min-w-0 flex-1 flex-col bg-background">
-          <div className="shrink-0 border-b border-border bg-[hsl(var(--surface-card))] px-4 py-3">
-            <div className="flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                {/* [UI-POLISH-&-CLARITY-1] Real breadcrumbs from route */}
-                <div className="truncate text-xs font-medium text-muted-foreground">
-                  {breadcrumbText || 'EngineO.ai'}
+          {/* [CENTER-PANE-NAV-REMODEL-1] Standardized center-pane header: Breadcrumbs (small, secondary) → Title (primary) → Description (muted) → Actions (right-aligned) */}
+          {!headerState.hideHeader && (
+            <div className="shrink-0 border-b border-border bg-[hsl(var(--surface-card))] px-4 py-3">
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  {/* Breadcrumbs: small, secondary */}
+                  <div className="truncate text-xs font-medium text-muted-foreground">
+                    {headerState.breadcrumbs || breadcrumbText || 'EngineO.ai'}
+                  </div>
+                  {/* Title: primary */}
+                  <div className="truncate text-sm font-semibold text-foreground">
+                    {headerState.title || titleText}
+                  </div>
+                  {/* Description: optional one-line, muted */}
+                  {headerState.description && (
+                    <div className="truncate text-xs text-muted-foreground mt-0.5">
+                      {headerState.description}
+                    </div>
+                  )}
                 </div>
-                <div className="truncate text-sm font-semibold text-foreground">
-                  {titleText}
-                </div>
+                {/* Actions: right-aligned, minimal */}
+                {headerState.actions && (
+                  <div className="shrink-0 flex items-center gap-2">
+                    {headerState.actions}
+                  </div>
+                )}
               </div>
-              {/* [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Shell-level panel controls removed; panel opens autonomously based on route context */}
             </div>
-          </div>
+          )}
           <main className="min-h-0 flex-1 overflow-y-auto bg-background">
             <div className="min-h-full p-4">{children}</div>
           </main>
@@ -569,7 +591,10 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
   return (
     <CommandPaletteProvider>
       <RightContextPanelProvider>
-        <LayoutShellInner>{children}</LayoutShellInner>
+        {/* [CENTER-PANE-NAV-REMODEL-1] CenterPaneHeaderProvider for per-page header state */}
+        <CenterPaneHeaderProvider>
+          <LayoutShellInner>{children}</LayoutShellInner>
+        </CenterPaneHeaderProvider>
       </RightContextPanelProvider>
     </CommandPaletteProvider>
   );

@@ -51,6 +51,8 @@ import {
   useRightContextPanel,
   type ContextDescriptor,
 } from '@/components/right-context-panel/RightContextPanelProvider';
+// [CENTER-PANE-NAV-REMODEL-1] Shell header integration
+import { useCenterPaneHeader } from '@/components/layout/CenterPaneHeaderProvider';
 
 type SeverityFilter = 'all' | 'critical' | 'warning' | 'info';
 type PillarFilter = 'all' | DeoPillarId;
@@ -139,6 +141,9 @@ export default function IssuesPage() {
 
   // [ISSUES-ENGINE-REMOUNT-1] RCP integration
   const { openPanel } = useRightContextPanel();
+
+  // [CENTER-PANE-NAV-REMODEL-1] Shell header integration
+  const { setHeader } = useCenterPaneHeader();
 
   // Read pillar filter from URL query param (?pillar=metadata_snippet_quality)
   const pillarParam = searchParams.get('pillar') as DeoPillarId | null;
@@ -518,7 +523,7 @@ export default function IssuesPage() {
     }
   }, [previewIssueId]);
 
-  const handleRescan = async () => {
+  const handleRescan = useCallback(async () => {
     setRescanning(true);
     try {
       await fetchIssues();
@@ -528,7 +533,64 @@ export default function IssuesPage() {
     } finally {
       setRescanning(false);
     }
-  };
+  }, [fetchIssues, feedback]);
+
+  // [CENTER-PANE-NAV-REMODEL-1] Set shell header: Title + Description + Actions
+  useEffect(() => {
+    setHeader({
+      title: 'Issues',
+      description: projectName ?? undefined,
+      actions: (
+        <button
+          onClick={handleRescan}
+          disabled={rescanning}
+          className="inline-flex items-center justify-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-1.5 text-xs font-medium text-foreground shadow-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {rescanning ? (
+            <>
+              <svg
+                className="-ml-0.5 mr-1.5 h-3.5 w-3.5 animate-spin"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              Scanning...
+            </>
+          ) : (
+            <>
+              <svg
+                className="-ml-0.5 mr-1.5 h-3.5 w-3.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              Re-scan Issues
+            </>
+          )}
+        </button>
+      ),
+    });
+  }, [setHeader, projectName, rescanning, handleRescan]);
 
   // [COUNT-INTEGRITY-1.1 UI HARDEN] Compute "current triplet" based on pillar filter
   // When pillarFilter !== 'all', select triplet from countsSummary.byPillar[pillarFilter]
@@ -1558,63 +1620,9 @@ export default function IssuesPage() {
         </div>
       )}
 
-      {/* Issue Summary Header */}
+      {/* [CENTER-PANE-NAV-REMODEL-1] In-canvas Issue Summary Header removed - title/description/actions moved to shell header */}
       <div className="mb-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Issues Engine</h1>
-            {projectName && <p className="text-muted-foreground">{projectName}</p>}
-          </div>
-          <button
-            onClick={handleRescan}
-            disabled={rescanning}
-            className="inline-flex items-center justify-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {rescanning ? (
-              <>
-                <svg
-                  className="-ml-1 mr-2 h-4 w-4 animate-spin"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                Scanning...
-              </>
-            ) : (
-              <>
-                <svg
-                  className="-ml-1 mr-2 h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-                Re-scan Issues
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* [ROUTE-INTEGRITY-1 FIXUP-2] [SCOPE-CLARITY-1] ScopeBanner - placed immediately after h1 header row ("on arrival") */}
+        {/* [ROUTE-INTEGRITY-1 FIXUP-2] [SCOPE-CLARITY-1] ScopeBanner - placed at top of content area ("on arrival") */}
         {/* Uses normalized scope chips for explicit scope display */}
         <ScopeBanner
           from={fromParam}

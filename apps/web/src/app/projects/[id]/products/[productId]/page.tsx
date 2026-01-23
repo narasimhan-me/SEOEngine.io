@@ -73,6 +73,8 @@ import { useUnsavedChanges } from '@/components/unsaved-changes/UnsavedChangesPr
 import { AssetDraftsTab } from '@/components/products/AssetDraftsTab';
 // [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] Import RCP hook for descriptor hydration
 import { useRightContextPanel } from '@/components/right-context-panel/RightContextPanelProvider';
+// [CENTER-PANE-NAV-REMODEL-1] Shell header integration
+import { useCenterPaneHeader } from '@/components/layout/CenterPaneHeaderProvider';
 
 // [DRAFT-CLARITY-AND-ACTION-TRUST-1] Draft state types
 type MetadataDraftState = 'unsaved' | 'saved' | 'applied';
@@ -104,6 +106,12 @@ export default function ProductOptimizationPage() {
   const projectId = params.id as string;
   const productId = params.productId as string;
   const feedback = useFeedback();
+
+  // [CENTER-PANE-NAV-REMODEL-1] Hide shell header - product page has its own sticky workspace header + tabs
+  const { setHeader } = useCenterPaneHeader();
+  useEffect(() => {
+    setHeader({ hideHeader: true });
+  }, [setHeader]);
 
   // [TRUST-ROUTING-1] Read playbook context from URL query params
   const fromContext = searchParams.get('from') as FromContext | null;
@@ -938,48 +946,7 @@ export default function ProductOptimizationPage() {
 
   return (
     <div>
-      {/* Breadcrumbs */}
-      {/* [UI-POLISH-&-CLARITY-1] Token-only breadcrumb styling */}
-      <nav className="mb-4 text-sm">
-        <ol className="flex flex-wrap items-center gap-2 text-muted-foreground">
-          <li>
-            <Link href="/projects" className="hover:text-foreground">
-              Projects
-            </Link>
-          </li>
-          <li>/</li>
-          <li>
-            <Link
-              href={`/projects/${projectId}/store-health`}
-              className="hover:text-foreground"
-            >
-              {projectName || 'Project'}
-            </Link>
-          </li>
-          <li>/</li>
-          {/* [TRUST-ROUTING-1] Context-aware Products breadcrumb */}
-          <li>
-            {isPreviewMode && validatedReturnTo ? (
-              <Link href={validatedReturnTo} className="hover:text-foreground">
-                Preview
-              </Link>
-            ) : isResultsMode && validatedReturnTo ? (
-              <Link href={validatedReturnTo} className="hover:text-foreground">
-                Results
-              </Link>
-            ) : (
-              <Link
-                href={`/projects/${projectId}/products`}
-                className="hover:text-foreground"
-              >
-                Products
-              </Link>
-            )}
-          </li>
-          <li>/</li>
-          <li className="text-foreground">{product?.title || 'Product'}</li>
-        </ol>
-      </nav>
+      {/* [CENTER-PANE-NAV-REMODEL-1] In-canvas breadcrumbs nav removed - product page uses hideHeader with its own sticky workspace header */}
 
       {/* Product not found */}
       {/* [UI-POLISH-&-CLARITY-1 FIXUP-1] Token-only styling */}

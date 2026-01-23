@@ -53,6 +53,8 @@ import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { DraftAiBoundaryNote } from '@/components/common/DraftAiBoundaryNote';
 // [PLAYBOOKS-SHELL-REMOUNT-1] RCP integration for playbook details panel
 import { useRightContextPanel, type ContextDescriptor } from '@/components/right-context-panel/RightContextPanelProvider';
+// [CENTER-PANE-NAV-REMODEL-1] Shell header integration
+import { useCenterPaneHeader } from '@/components/layout/CenterPaneHeaderProvider';
 // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Centralized routing helper
 // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Added buildPlaybookScopePayload
 // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Added getRoutingScopeFromPayload
@@ -239,6 +241,9 @@ export default function AutomationPlaybooksPage() {
     isOpen: rcpIsOpen,
     descriptor: rcpDescriptor,
   } = useRightContextPanel();
+
+  // [CENTER-PANE-NAV-REMODEL-1] Shell header integration
+  const { setHeader } = useCenterPaneHeader();
 
   // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Deep-link support: read playbookId from path param or query param
   // Path param is preferred (canonical route: /playbooks/:playbookId)
@@ -476,6 +481,19 @@ export default function AutomationPlaybooksPage() {
       scopeProjectId: projectId,
     });
   }, [rcpIsOpen, rcpDescriptor, projectId, openPanel]);
+
+  // [CENTER-PANE-NAV-REMODEL-1] Set shell header: Title + Description + Actions
+  useEffect(() => {
+    setHeader({
+      title: 'Playbooks',
+      description: 'Safely apply AI-powered fixes to missing SEO metadata, with preview and token estimates before you run anything.',
+      actions: effectiveRole ? (
+        <span className="text-xs text-muted-foreground">
+          {getRoleDisplayLabel(effectiveRole)}
+        </span>
+      ) : undefined,
+    });
+  }, [setHeader, effectiveRole]);
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -2381,86 +2399,17 @@ export default function AutomationPlaybooksPage() {
 
   return (
     <div>
-      {/* Breadcrumbs */}
-      <nav className="mb-4 text-sm">
-        <ol className="flex flex-wrap items-center gap-2 text-muted-foreground">
-          <li>
-            <Link
-              href="/projects"
-              onClick={(event) => {
-                event.preventDefault();
-                handleNavigate('/projects');
-              }}
-              className="hover:text-foreground"
-            >
-              Projects
-            </Link>
-          </li>
-          <li>/</li>
-          <li>
-            <Link
-              href={`/projects/${projectId}/store-health`}
-              onClick={(event) => {
-                event.preventDefault();
-                handleNavigate(`/projects/${projectId}/store-health`);
-              }}
-              className="hover:text-foreground"
-            >
-              {projectName || 'Project'}
-            </Link>
-          </li>
-          <li>/</li>
-          <li>
-            {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-2] Breadcrumb uses canonical /playbooks route */}
-            <Link
-              href={`/projects/${projectId}/playbooks`}
-              onClick={(event) => {
-                event.preventDefault();
-                handleNavigate(`/projects/${projectId}/playbooks`);
-              }}
-              className="hover:text-foreground"
-            >
-              Playbooks
-            </Link>
-          </li>
-        </ol>
-      </nav>
-
-      {/* Header */}
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Playbooks
-            {/* [ASSETS-PAGES-1.1] Show asset type badge when not PRODUCTS */}
-            {currentAssetType !== 'PRODUCTS' && (
-              <span className="ml-2 inline-flex items-center rounded-full bg-[hsl(var(--info-background))] px-2.5 py-0.5 text-xs font-medium text-[hsl(var(--info-foreground))]">
-                {getAssetTypeLabel(currentAssetType).plural}
-              </span>
-            )}
-          </h1>
-          <p className="text-muted-foreground">
-            Safely apply AI-powered fixes to missing SEO metadata, with preview
-            and token estimates before you run anything.
-          </p>
-          {/* [ROLES-3] Role visibility label */}
-          <p className="mt-1 text-xs text-muted-foreground">
-            You are the {getRoleDisplayLabel(effectiveRole)}
-          </p>
+      {/* [CENTER-PANE-NAV-REMODEL-1] In-canvas breadcrumbs nav and header block removed - title/description/actions moved to shell header */}
+      {/* [ASSETS-PAGES-1.1] Asset type badge shown inline when not PRODUCTS */}
+      {currentAssetType !== 'PRODUCTS' && (
+        <div className="mb-4 flex items-center gap-2">
+          <span className="inline-flex items-center rounded-full bg-[hsl(var(--info-background))] px-2.5 py-0.5 text-xs font-medium text-[hsl(var(--info-foreground))]">
+            {getAssetTypeLabel(currentAssetType).plural}
+          </span>
         </div>
-        <button
-          type="button"
-          onClick={() =>
-            router.push(
-              `/projects/${projectId}/automation/playbooks/entry?source=playbooks_page`
-            )
-          }
-          className="inline-flex items-center rounded-md border border-border bg-[hsl(var(--surface-card))] px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted"
-        >
-          Create playbook
-        </button>
-      </div>
+      )}
 
-      {/* [ROUTE-INTEGRITY-1 FIXUP-1] [SCOPE-CLARITY-1] ScopeBanner - moved after header for visual hierarchy */}
+      {/* [ROUTE-INTEGRITY-1 FIXUP-1] [SCOPE-CLARITY-1] ScopeBanner - placed at top of content area */}
       {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Uses canonical /playbooks route */}
       <ScopeBanner
         from={fromParam}

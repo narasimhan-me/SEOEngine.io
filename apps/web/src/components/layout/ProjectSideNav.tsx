@@ -5,6 +5,13 @@ import { useParams, usePathname } from 'next/navigation';
 
 /**
  * [NAV-IA-CONSISTENCY-1] Project navigation with grouped sections.
+ * [CENTER-PANE-NAV-REMODEL-1] Demoted to low-emphasis contextual index.
+ *
+ * Styling changes (CENTER-PANE-NAV-REMODEL-1):
+ * - Reduced visual weight (lighter typography/contrast, tighter spacing)
+ * - Subtle active state: thin accent indicator + readable text (no heavy background blocks)
+ * - No icons added
+ * - Calm hover state (must not compete with Global Nav)
  *
  * Sections:
  * - OPERATE: Store Health, Work Queue
@@ -58,6 +65,7 @@ const navSections: NavSection[] = [
 ];
 
 // [NAV-IA-CONSISTENCY-1] Pillar routes that should activate the Insights item
+// [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Added 'media' for correct active-state coverage
 const insightsPillarRoutes = [
   'deo',
   'keywords',
@@ -65,6 +73,7 @@ const insightsPillarRoutes = [
   'backlinks',
   'local',
   'performance',
+  'media',
   'insights',
 ];
 
@@ -96,30 +105,36 @@ export default function ProjectSideNav({ onNavigate }: ProjectSideNavProps) {
 
   return (
     <nav
-      className="w-full max-w-xs flex-shrink-0 md:w-48"
+      className="w-full max-w-xs flex-shrink-0 md:w-44"
       data-testid="project-sidenav"
     >
-      <div className="space-y-6">
+      {/* [CENTER-PANE-NAV-REMODEL-1] Tighter spacing (space-y-4 instead of space-y-6) */}
+      <div className="space-y-4">
         {navSections.map((section) => (
           <div key={section.heading}>
-            {/* [NAV-HIERARCHY-POLISH-1] Section headings: reduced weight vs Global Nav */}
-            <h3 className="px-3 mb-2 text-xs font-medium text-muted-foreground/80 uppercase tracking-wider">
+            {/* [CENTER-PANE-NAV-REMODEL-1] Section headings: lighter weight, reduced opacity */}
+            <h3 className="px-2 mb-1.5 text-[10px] font-normal text-muted-foreground/60 uppercase tracking-wider">
               {section.heading}
             </h3>
-            <ul className="space-y-1">
+            {/* [CENTER-PANE-NAV-REMODEL-1] Tighter item spacing */}
+            <ul className="space-y-0.5">
               {section.items.map((item) => {
                 const active = isActive(item.path);
                 return (
                   <li key={item.path}>
-                    {/* [NAV-HIERARCHY-POLISH-1] Active state: neutral (no primary color) to demote vs Global Nav */}
-                    {/* [UI-POLISH-&-CLARITY-1] Active accent bar + increased inactive contrast */}
+                    {/* [CENTER-PANE-NAV-REMODEL-1] Low-emphasis contextual index styling:
+                        - Subtle active state: thin accent bar only, no heavy background block
+                        - Lighter inactive text (text-muted-foreground)
+                        - Calm hover (transparent bg with slight text emphasis)
+                        - Tighter padding (py-1.5 px-2)
+                        - Smaller text (text-xs) */}
                     <GuardedLink
                       href={`/projects/${projectId}/${item.path}`}
                       onClick={onNavigate}
-                      className={`relative block rounded-md px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                      className={`relative block rounded px-2 py-1.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
                         active
-                          ? 'bg-muted font-medium text-foreground before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-4/5 before:w-0.5 before:rounded-full before:bg-primary/60'
-                          : 'text-foreground/70 hover:bg-muted hover:text-foreground'
+                          ? 'text-foreground font-medium before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-3/5 before:w-0.5 before:rounded-full before:bg-primary/50'
+                          : 'text-muted-foreground hover:text-foreground/80'
                       }`}
                     >
                       {item.label}
