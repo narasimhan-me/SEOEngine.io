@@ -2927,6 +2927,58 @@ WORK-CANVAS-ARCHITECTURE-LOCK-1 establishes structural contracts for the Work Ca
 
 ---
 
+### Phase ICONS-LOCAL-LIBRARY-1: Local SVG Icon System ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-23
+**Design System Version:** v1.5
+
+#### Overview
+
+ICONS-LOCAL-LIBRARY-1 implements a local SVG icon system based on Material Symbols, eliminating runtime CDN dependencies. Icons are served from a committed SVG sprite with semantic key abstraction for maintainability.
+
+#### Key Features
+
+1. **No CDN Dependencies**: All icons served locally from `/icons/material-symbols/sprite.svg`
+2. **Semantic Icon Keys**: Abstraction layer (`nav.dashboard`, `status.critical`, etc.) decouples UI code from raw icon names
+3. **Curated Icon Set**: 33 icons extracted from Stitch design HTML (Material Symbols Outlined, weight 300, grade 0, optical size 20)
+4. **Accessibility**: Decorative icons use `aria-hidden="true"`; meaningful icons support `aria-label` with `role="img"`
+5. **Size Variants**: 16px (dense), 20px (default), 24px (prominent)
+
+#### Core Files
+
+- `apps/web/src/components/icons/Icon.tsx` - Main Icon component
+- `apps/web/src/components/icons/material-symbols-manifest.ts` - Semantic key manifest
+- `apps/web/src/components/icons/index.ts` - Public exports
+- `apps/web/public/icons/material-symbols/sprite.svg` - SVG sprite
+- `apps/web/public/icons/material-symbols/svg/*.svg` - Individual icon files
+
+#### Build Scripts (dev-only)
+
+- `scripts/extract-stitch-material-symbols.mjs` - Extract icon names from Stitch HTML
+- `scripts/download-material-symbols.mjs` - Download/generate SVG files
+- `scripts/build-material-symbols-sprite.mjs` - Build sprite from SVG files
+
+#### Migration Points
+
+- `apps/web/src/components/layout/LayoutShell.tsx` - Left rail nav icons migrated to Icon component
+- `apps/web/src/components/layout/LayoutShell.tsx` - Search icon in command palette triggers migrated
+- `apps/web/src/components/common/RowStatusChip.tsx` - Status chips now show Icon + clean label (emoji prefix stripped)
+
+#### Manual Testing
+
+- `docs/manual-testing/ICONS-LOCAL-LIBRARY-1.md`
+
+#### Documentation
+
+- `docs/icons.md` - Icon system usage guide
+
+#### Critical Path Map
+
+- Updated CP-020 (UI Shell & Right Context Panel) with ICONS-LOCAL-LIBRARY-1 scenarios
+
+---
+
 ## Planned / Pending
 
 ### Phase GTM-ONBOARD-1: Guided Onboarding & First DEO Win 📄 DOCS COMPLETE — IMPLEMENTATION PENDING
@@ -3261,3 +3313,5 @@ _None at this time._
 | 7.42 | 2026-01-23 | **WORK-CANVAS-ARCHITECTURE-LOCK-1**: Structural contracts + minimal shell adjustments. (1) Created WORK_CANVAS_ARCHITECTURE.md: one-page architecture contract documenting Left Rail/Center Pane/RCP responsibilities, navigation rules, URL/state policy, action hierarchy, visual constraints; (2) Updated LayoutShell.tsx: added visual hierarchy comments, left rail icon-only annotations, center pane elevation comments, RCP divider annotations; (3) Updated ProjectSideNav.tsx: wrapped scoped nav in distinct container surface (bg-[hsl(var(--surface-card))] + border), strengthened active-state (bg-primary/70 accent bar, font-semibold); (4) Updated RightContextPanel.tsx: added RCP contract lock comments (no navigation/mode controls, header external-link only navigation, content rhythm); (5) Updated RightContextPanelProvider.tsx: added autonomy boundaries documentation (state derived, no routing decisions, dismissal respect); (6) Created WORK-CANVAS-ARCHITECTURE-LOCK-1.md manual testing checklist. **Structural/documentation-only phase, no functional changes.** **Core files:** LayoutShell.tsx, ProjectSideNav.tsx, RightContextPanel.tsx, RightContextPanelProvider.tsx. **New docs:** WORK_CANVAS_ARCHITECTURE.md, WORK-CANVAS-ARCHITECTURE-LOCK-1.md. **Critical Path:** CP-020 updated (6.47). |
 | 7.43 | 2026-01-23 | **WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1**: Left rail locked to icon-only always (no expand/collapse toggle). (1) Updated LayoutShell.tsx: removed NavState type, NAV_STATE_STORAGE_KEY, readNavState(), persistNavState(), toggleNav(), collapsed state, "Navigation" heading, collapse/expand toggle button, ChevronLeftIcon; left rail now fixed at 72px width with aria-label on each nav item for accessibility; (2) Updated WORK_CANVAS_ARCHITECTURE.md: changed "Icon-only display when collapsed" to "Icon-only always visible", changed width from "72px collapsed, 256px expanded" to "Fixed 72px"; (3) Updated WORK-CANVAS-ARCHITECTURE-LOCK-1.md: renamed "Icon-Only Behavior" to "Icon-Only Always [FIXUP-1]", added explicit "No collapse/expand toggle exists" check, added aria-label check; (4) Updated LAYOUT-SHELL-IMPLEMENTATION-1.md: marked HP-002 collapse/expand scenario as OBSOLETE, updated EC-001 and regression sanity checks; (5) Updated CRITICAL_PATH_MAP.md: marked LAYOUT-SHELL-1 collapse/expand items as OBSOLETE, updated WORK-CANVAS-ARCHITECTURE-LOCK-1 checklist item wording. **Functional change: left rail no longer toggles.** **Core files:** LayoutShell.tsx. **Docs:** WORK_CANVAS_ARCHITECTURE.md, WORK-CANVAS-ARCHITECTURE-LOCK-1.md, LAYOUT-SHELL-IMPLEMENTATION-1.md. **Critical Path:** CP-020 updated (6.48). |
 | 7.44 | 2026-01-23 | **WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-2**: Documentation contract coherence. (1) Updated ENGINEERING_IMPLEMENTATION_CONTRACT.md: Left Navigation row changed to "Icon-only. No expand/collapse toggle", Command Palette changed from "Future (v1.6)" to "Core (v1.5)", panel state wording changed from "expanded/collapsed" to "open/closed", removed navState from Global State (marked as removed), marked "Command Palette reserved for v1.6" as implemented; (2) Updated IMPLEMENTATION_PLAN.md LAYOUT-SHELL-IMPLEMENTATION-1 section: scope bullet updated to "Left Rail (icon-only always; fixed ~72px; no expand/collapse toggle)", added historical note about FIXUP-1 removal in both Scope and Summary of Changes sections; (3) Updated COMMAND-PALETTE-IMPLEMENTATION-1.md: replaced "Left Nav collapse/expand unaffected" regression check with "Left rail is icon-only always (no expand/collapse toggle) — regression sanity check". **Documentation-only phase, no code changes.** **Docs:** ENGINEERING_IMPLEMENTATION_CONTRACT.md, IMPLEMENTATION_PLAN.md, COMMAND-PALETTE-IMPLEMENTATION-1.md. **Critical Path:** CP-020 updated (6.49). |
+| 7.45 | 2026-01-23 | **ICONS-LOCAL-LIBRARY-1**: Local SVG icon system implementation. (1) Created curated 33-icon Material Symbols manifest with semantic keys (nav.*, utility.*, status.*, workflow.*, playbook.*) in `material-symbols-manifest.ts`; (2) Created build scripts: `extract-stitch-material-symbols.mjs` (extracts icon names from Stitch HTML), `download-material-symbols.mjs` (generates SVG files), `build-material-symbols-sprite.mjs` (creates sprite.svg); (3) Downloaded all 33 SVG icons to `public/icons/material-symbols/svg/` and built `sprite.svg` for CDN-free serving; (4) Created `Icon.tsx` component with semantic key resolution, size variants (16/20/24px), and accessibility support (aria-hidden for decorative, aria-label with role="img" for meaningful); (5) Migrated LayoutShell left rail nav icons from inline SVG components to Icon component using semantic keys; (6) Migrated search icon in command palette triggers (desktop bar + mobile icon button); (7) Migrated RowStatusChip to show Icon + clean label (stripped emoji prefixes from display text). **Core files:** Icon.tsx, material-symbols-manifest.ts, LayoutShell.tsx, RowStatusChip.tsx, sprite.svg. **Docs:** docs/icons.md, ICONS-LOCAL-LIBRARY-1.md. **Critical Path:** CP-020 updated (6.50). |
+| 7.46 | 2026-01-23 | **ICONS-LOCAL-LIBRARY-1 FIXUP-1**: auto_fix_high viewBox-safe path correction. (1) Fixed out-of-viewBox coordinate in auto_fix_high icon path data: changed `L25 12` to `L24 12` to fit within 24x24 viewBox (prevents clipped right edge); (2) Updated download-material-symbols.mjs ICON_PATHS.auto_fix_high; (3) Updated auto_fix_high.svg; (4) Updated sprite.svg symbol; (5) Corrected dev-script header comment from "downloads from CDN" to "generates from embedded path data" for accuracy. **Core files:** download-material-symbols.mjs, auto_fix_high.svg, sprite.svg. **Manual Testing:** ICONS-LOCAL-LIBRARY-1.md updated (Icon Inventory verification note). **Critical Path:** CP-020 updated (6.51). |

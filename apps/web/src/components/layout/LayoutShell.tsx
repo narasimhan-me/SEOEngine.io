@@ -16,6 +16,8 @@ import {
   CenterPaneHeaderProvider,
   useCenterPaneHeaderState,
 } from '@/components/layout/CenterPaneHeaderProvider';
+// [ICONS-LOCAL-LIBRARY-1] Import Icon component for local SVG sprite rendering
+import { Icon, type IconManifestKey } from '@/components/icons';
 
 // [WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1] Left rail is icon-only always (no expand/collapse toggle)
 // Removed: NavState type, NAV_STATE_STORAGE_KEY, readNavState(), persistNavState()
@@ -59,21 +61,7 @@ function AppSwitcherIcon({ className }: { className?: string }) {
   );
 }
 
-function SearchIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <path d="M21 21l-4.35-4.35" />
-      <circle cx="11" cy="11" r="7" />
-    </svg>
-  );
-}
+// [ICONS-LOCAL-LIBRARY-1] SearchIcon replaced with Icon component in command palette triggers
 
 function BellIcon({ className }: { className?: string }) {
   return (
@@ -125,76 +113,22 @@ function ChevronRightIcon({ className }: { className?: string }) {
   );
 }
 
-function DashboardIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <path d="M3 13h8V3H3zM13 21h8V11h-8zM13 3h8v6h-8zM3 21h8v-6H3z" />
-    </svg>
-  );
-}
+// [ICONS-LOCAL-LIBRARY-1] Removed DashboardIcon, ProjectsIcon, SettingsIcon, AdminIcon
+// These are now rendered via the Icon component with semantic keys from the manifest
 
-function ProjectsIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <path d="M4 6h16M4 12h16M4 18h16" />
-    </svg>
-  );
-}
-
-function SettingsIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <path d="M12 15.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z" />
-      <path d="M19.4 15a1.8 1.8 0 00.35 1.98l.06.06a2.2 2.2 0 01-1.56 3.76h-.1a1.8 1.8 0 00-1.66 1.18 2.2 2.2 0 01-4.18 0A1.8 1.8 0 0010.65 20h-.1a2.2 2.2 0 01-1.56-3.76l.06-.06A1.8 1.8 0 009.4 15a1.8 1.8 0 00-.35-1.98l-.06-.06A2.2 2.2 0 0110.55 9.2h.1A1.8 1.8 0 0012.3 8.02a2.2 2.2 0 014.18 0A1.8 1.8 0 0018.15 9.2h.1a2.2 2.2 0 011.56 3.76l-.06.06A1.8 1.8 0 0019.4 15z" />
-    </svg>
-  );
-}
-
-function AdminIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-    >
-      <path d="M12 2l7 4v6c0 5-3 9-7 10-4-1-7-5-7-10V6l7-4z" />
-      <path d="M9 12h6" />
-      <path d="M12 9v6" />
-    </svg>
-  );
-}
-
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', Icon: DashboardIcon },
-  { href: '/projects', label: 'Projects', Icon: ProjectsIcon },
-  { href: '/settings', label: 'Settings', Icon: SettingsIcon },
-  { href: '/help/shopify-permissions', label: 'Help', Icon: HelpIcon },
-  { href: '/admin', label: 'Admin', Icon: AdminIcon },
-] as const;
+// [ICONS-LOCAL-LIBRARY-1] Nav items using semantic icon keys from manifest
+// Icons are decorative (aria-hidden) since the parent link has aria-label
+const navItems: {
+  href: string;
+  label: string;
+  iconKey: IconManifestKey;
+}[] = [
+  { href: '/dashboard', label: 'Dashboard', iconKey: 'nav.dashboard' },
+  { href: '/projects', label: 'Projects', iconKey: 'nav.projects' },
+  { href: '/settings', label: 'Settings', iconKey: 'nav.settings' },
+  { href: '/help/shopify-permissions', label: 'Help', iconKey: 'nav.help' },
+  { href: '/admin', label: 'Admin', iconKey: 'nav.admin' },
+];
 
 // [UI-POLISH-&-CLARITY-1] Section label mapping for breadcrumbs
 const SECTION_LABELS: Record<string, string> = {
@@ -385,7 +319,8 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
               data-testid="command-palette-open"
               className="hidden w-full max-w-xl items-center gap-2 rounded-md border border-border bg-[hsl(var(--surface-card))] px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background md:flex"
             >
-              <SearchIcon className="h-4 w-4" />
+              {/* [ICONS-LOCAL-LIBRARY-1] Using Icon component for search icon */}
+              <Icon name="utility.search" size={16} />
               <span className="flex-1 text-left">Search…</span>
               <kbd className="rounded border border-border bg-background px-2 py-0.5 text-xs text-muted-foreground">
                 ⌘K
@@ -402,7 +337,8 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
               data-testid="command-palette-open-mobile"
               className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-[hsl(var(--surface-card))] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background md:hidden"
             >
-              <SearchIcon className="h-5 w-5" />
+              {/* [ICONS-LOCAL-LIBRARY-1] Using Icon component for search icon */}
+              <Icon name="utility.search" size={20} />
             </button>
           </div>
           <div className="flex items-center gap-2">
@@ -468,7 +404,8 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
                         aria-label={item.label}
                         aria-current={active ? 'page' : undefined}
                       >
-                        <item.Icon className="h-5 w-5 shrink-0" />
+                        {/* [ICONS-LOCAL-LIBRARY-1] Using Icon component with semantic key (decorative, parent has aria-label) */}
+                        <Icon name={item.iconKey} size={20} />
                         {/* [WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1] No visible label text - icon only */}
                       </GuardedLink>
                     </li>
