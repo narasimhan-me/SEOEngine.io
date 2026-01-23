@@ -208,6 +208,82 @@
 
 ---
 
+### Scenario 8: RCP Issue Details Content (FIXUP-3)
+
+**ID:** HP-008
+
+**Preconditions:**
+
+- Project has at least one issue with full metadata (whyItMatters, affectedProducts or affectedPages)
+
+**Steps:**
+
+1. Navigate to `/projects/{projectId}/issues`
+2. Click on an issue row to open RCP
+3. Observe all sections in the panel
+
+**Expected Results:**
+
+- **UI:** RCP displays these sections in order:
+  - **Issue Summary:** Title + description (plain text)
+  - **Pillar:** Pillar name
+  - **Severity:** Critical/Warning/Info badge
+  - **Why This Matters:** issue.whyItMatters text (or fallback)
+  - **Actionability:** Label + guidance text
+  - **Affected Assets:** List of products/pages (max 6 each)
+  - **Affected Items:** Count summary with asset type badges
+- **UI:** No navigation occurs when issue is selected (row click updates RCP only)
+- **UI:** All sections use token-only styling
+
+---
+
+### Scenario 9: Blocked Issue Shows Non-Speculative Guidance (FIXUP-3/FIXUP-4)
+
+**ID:** HP-009
+
+**Preconditions:**
+
+- User has VIEWER role on a project with actionable issues
+- Or: Project has an issue where isActionableNow is false or undefined
+
+**Steps:**
+
+1. Navigate to `/projects/{projectId}/issues`
+2. Click on a blocked issue row to open RCP
+3. Observe the Actionability section
+
+**Expected Results:**
+
+- **UI:** Actionability label shows "Blocked — not actionable in this context"
+- **UI:** Guidance text is non-speculative and references Work Canvas for more information
+- **UI:** No "Fix" or "Apply" wording present
+- **UI:** No buttons, CTAs, or links in the guidance
+- **UI:** No speculative claims about permissions or elevated access
+
+---
+
+### Scenario 10: Informational Issue Shows Outside-Control Guidance (FIXUP-3)
+
+**ID:** HP-010
+
+**Preconditions:**
+
+- Project has at least one informational issue (actionability='informational')
+
+**Steps:**
+
+1. Navigate to `/projects/{projectId}/issues`
+2. Click on an informational issue row to open RCP
+3. Observe the Actionability section
+
+**Expected Results:**
+
+- **UI:** Actionability label shows "Informational — outside EngineO.ai control"
+- **UI:** Guidance text explains EngineO.ai cannot act directly, references Work Canvas
+- **UI:** No urgency language or CTAs present
+
+---
+
 ## Edge Cases
 
 ### EC-001: Invalid entityId in Deep-Link
@@ -256,6 +332,42 @@
 
 - Empty state message displays with token-only styling
 - Message varies based on mode: "No actionable issues" vs "No issues detected"
+
+---
+
+### EC-004: Issue Without whyItMatters (FIXUP-3)
+
+**Description:** Issue that does not have whyItMatters field populated
+
+**Steps:**
+
+1. Navigate to `/projects/{projectId}/issues`
+2. Click on an issue that has no whyItMatters metadata
+3. Observe the "Why This Matters" section in RCP
+
+**Expected Behavior:**
+
+- Section renders with neutral text: "Not available for this issue."
+- Does NOT fall back to showing issue.description (avoids duplication)
+- Uses muted token styling (text-muted-foreground)
+
+---
+
+### EC-005: Issue Without Affected Asset Lists (FIXUP-3)
+
+**Description:** Issue that has counts but no affectedProducts or affectedPages arrays
+
+**Steps:**
+
+1. Navigate to `/projects/{projectId}/issues`
+2. Click on an issue that has no affected asset lists
+3. Observe the "Affected Assets" section in RCP
+
+**Expected Behavior:**
+
+- Section renders with neutral text: "No affected asset list available."
+- Affected Items (counts) section still displays separately
+- Uses muted token styling
 
 ---
 
