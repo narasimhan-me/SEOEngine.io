@@ -109,6 +109,8 @@ function renderDetailsView(descriptor: ContextDescriptor, currentProjectId: stri
   switch (descriptor.kind) {
     // [ISSUES-ENGINE-REMOUNT-1] Issue kind - read-only issue details in RCP
     // [DRAFT-LIFECYCLE-VISIBILITY-1 PATCH 4] Pass draftLifecycleState from descriptor metadata
+    // [ERROR-&-BLOCKED-STATE-UX-1 PATCH 3] Pass blockedState and integration status from descriptor metadata
+    // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2 PATCH 4] Pass integrationStatusOk for aligned blocked state derivation
     case 'issue':
       if (currentProjectId) {
         return (
@@ -116,6 +118,11 @@ function renderDetailsView(descriptor: ContextDescriptor, currentProjectId: stri
             projectId={currentProjectId}
             issueId={descriptor.id}
             draftLifecycleState={descriptor.metadata?.draftLifecycleState as string | undefined}
+            blockedState={descriptor.metadata?.blockedState as string | undefined}
+            shopifyConnected={descriptor.metadata?.shopifyConnected as string | undefined}
+            shopifyScope={descriptor.metadata?.shopifyScope as string | undefined}
+            lastCrawledAt={descriptor.metadata?.lastCrawledAt as string | undefined}
+            integrationStatusOk={descriptor.metadata?.integrationStatusOk as string | undefined}
           />
         );
       }

@@ -54,6 +54,12 @@ import {
   checkSavedDraftInSessionStorage,
   type DraftLifecycleState,
 } from '@/lib/issues/draftLifecycleState';
+// [ERROR-&-BLOCKED-STATE-UX-1] Import blocked state helpers
+import {
+  deriveBlockedState,
+  getBlockedStateCopy,
+  buildBlockedTooltip,
+} from '@/lib/issues/blockedState';
 // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Import Icon component for CTA icons
 import { Icon } from '@/components/icons/Icon';
 // [ISSUES-ENGINE-REMOUNT-1] DataTable + RCP integration
@@ -251,6 +257,13 @@ export default function IssuesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [projectName, setProjectName] = useState<string | null>(null);
+  // [ERROR-&-BLOCKED-STATE-UX-1] Integration status for blocked state derivation
+  // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2] Track whether integration-status fetch succeeded with trusted data
+  const [integrationStatusOk, setIntegrationStatusOk] = useState<boolean>(false);
+  const [shopifyConnected, setShopifyConnected] = useState<boolean>(false);
+  const [shopifyScope, setShopifyScope] = useState<string>('');
+  // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2] Initialize to undefined (unknown), not null (known missing)
+  const [lastCrawledAt, setLastCrawledAt] = useState<string | null | undefined>(undefined);
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all');
   // [COUNT-INTEGRITY-1 PATCH 6 FIXUP] Don't auto-apply pillar param when click-integrity filters present
   // [COUNT-INTEGRITY-1.1 UI HARDEN] Include actionKeys in filter detection
@@ -441,7 +454,7 @@ export default function IssuesPage() {
           setError(
             results[0].reason instanceof Error
               ? results[0].reason.message
-              : 'Failed to load issues'
+              : 'Issues are unavailable due to a system error. Retry, or refresh the page.'
           );
         }
 
@@ -458,7 +471,7 @@ export default function IssuesPage() {
       }
     } catch (err: unknown) {
       console.error('Unexpected error fetching issues:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load issues');
+      setError(err instanceof Error ? err.message : 'Issues are unavailable due to a system error. Retry, or refresh the page.');
     } finally {
       setLoading(false);
     }
@@ -491,9 +504,17 @@ export default function IssuesPage() {
       if (response.ok) {
         const data = await response.json();
         setProjectName(data.projectName ?? null);
+        // [ERROR-&-BLOCKED-STATE-UX-1] Extract integration status for blocked state derivation
+        setShopifyConnected(data.shopify?.connected === true);
+        setShopifyScope(data.shopify?.scope ?? '');
+        // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2] On success, set to null if missing (known missing) vs undefined (unknown)
+        setLastCrawledAt(data.lastCrawledAt ?? null);
+        // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2] Mark integration-status as trusted (success with data)
+        setIntegrationStatusOk(true);
       }
     } catch (err) {
       console.error('Error fetching project info:', err);
+      // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2] On failure, integrationStatusOk stays false (untrusted)
     }
   }, [projectId]);
 
@@ -1253,6 +1274,7 @@ export default function IssuesPage() {
 
   // [ISSUES-ENGINE-REMOUNT-1] Create ContextDescriptor for RCP from issue
   // [DRAFT-LIFECYCLE-VISIBILITY-1 FIXUP-1] Pass draftLifecycleState to RCP for accurate echo
+  // [ERROR-&-BLOCKED-STATE-UX-1 PATCH 6] Pass blockedState to RCP for consistency check
   const getIssueDescriptor = useCallback(
     (issue: DeoIssue): ContextDescriptor => {
       const safeTitle = getSafeIssueTitle(issue);
@@ -1286,6 +1308,25 @@ export default function IssuesPage() {
         }
       }
 
+      // [ERROR-&-BLOCKED-STATE-UX-1 PATCH 6] Derive blocked state for RCP metadata
+      // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-3 PATCH 1] Only compute blockedState when integrationStatusOk is true
+      const destinations = getIssueActionDestinations({
+        projectId,
+        issue,
+        returnTo: currentIssuesPathWithQuery,
+      });
+      const blockedState = integrationStatusOk
+        ? deriveBlockedState({
+            issue,
+            destinations,
+            draftLifecycleState,
+            shopifyConnected,
+            shopifyScope,
+            lastCrawledAt,
+            uiErrorFlag: false,
+          })
+        : null;
+
       return {
         kind: 'issue',
         id: issue.id,
@@ -1306,10 +1347,18 @@ export default function IssuesPage() {
           collectionsCount: String(issue.assetTypeCounts?.collections ?? 0),
           // [DRAFT-LIFECYCLE-VISIBILITY-1 FIXUP-1] Draft lifecycle state for RCP echo
           draftLifecycleState,
+          // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-3 PATCH 1] Blocked state only when integration status is trusted
+          blockedState: blockedState ?? '',
+          // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-3 PATCH 1] Integration status only meaningful when trusted
+          shopifyConnected: integrationStatusOk ? String(shopifyConnected) : '',
+          shopifyScope: integrationStatusOk ? shopifyScope : '',
+          lastCrawledAt: integrationStatusOk ? (lastCrawledAt ?? '') : '',
+          // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2 PATCH 4] Pass integrationStatusOk (trusted data) to RCP
+          integrationStatusOk: String(integrationStatusOk),
         },
       };
     },
-    [projectId, previewIssueId, previewValue, savedDraft, appliedAt]
+    [projectId, previewIssueId, previewValue, savedDraft, appliedAt, currentIssuesPathWithQuery, shopifyConnected, shopifyScope, lastCrawledAt, integrationStatusOk]
   );
 
   // [ISSUES-ENGINE-REMOUNT-1] DataTable columns definition
@@ -1545,7 +1594,44 @@ export default function IssuesPage() {
             );
           };
 
+          // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-1 PATCH 1] Compute blocked state FIRST, before any CTA rendering
+          // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2] Only consider integration-status-dependent blocked reasons when data is trusted (ok)
+          const blockedState = integrationStatusOk
+            ? deriveBlockedState({
+                issue: row,
+                destinations,
+                draftLifecycleState: rowDraftState,
+                shopifyConnected,
+                shopifyScope,
+                lastCrawledAt,
+                uiErrorFlag: false,
+              })
+            : null; // Don't infer blocked state from missing/untrusted integration data
+
+          // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-1] If blocked, render blocked chip and skip all CTAs
+          if (blockedState) {
+            const blockedCopy = getBlockedStateCopy(blockedState);
+            const blockedTooltip = buildBlockedTooltip(blockedCopy);
+
+            // [PATCH 6] Dev-time guardrail: warn if blocked state has no description copy
+            if (process.env.NODE_ENV !== 'production' && !blockedCopy.description) {
+              console.warn(`[ERROR-&-BLOCKED-STATE-UX-1] Blocked state ${blockedState} has no description copy`);
+            }
+
+            return (
+              <span
+                className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+                title={blockedTooltip}
+                data-testid="issue-blocked-chip"
+                data-no-row-click
+              >
+                {blockedCopy.chipLabel}
+              </span>
+            );
+          }
+
           // [PATCH 2] Priority 1: Fix action (AI preview or direct navigation)
+          // Only reaches here if not blocked
           if (destinations.fix.kind !== 'none') {
             const fixAction = getFixAction(row); // Still needed to determine ai-fix-now vs link
 
@@ -1655,13 +1741,7 @@ export default function IssuesPage() {
             );
           }
 
-          // [PATCH 2] No actions available: explicit blocked state
-          const blockedReason =
-            destinations.fix.reasonBlocked ||
-            destinations.viewAffected.reasonBlocked ||
-            destinations.open.reasonBlocked ||
-            'No actions available';
-
+          // [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-1] Fallback: no actions available (should be rare - blocked check above handles most cases)
           // [PATCH 3] Dev-time guardrail: warn about mapping gaps
           if (process.env.NODE_ENV !== 'production' && row.isActionableNow === true && destinations.fix.kind === 'none') {
             console.warn(`[ISSUE-FIX-ROUTE-INTEGRITY-1] Mapping gap for issue ${row.id}: marked actionable but no fix destination. Reason: ${destinations.fix.reasonBlocked}`);
@@ -1680,19 +1760,24 @@ export default function IssuesPage() {
             }
           }
 
+          // Fallback blocked chip for issues with no available actions
+          const fallbackCopy = getBlockedStateCopy('DESTINATION_UNAVAILABLE');
+          const fallbackTooltip = buildBlockedTooltip(fallbackCopy);
+
           return (
             <span
               className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
-              title={blockedReason}
+              title={fallbackTooltip}
               data-testid="issue-blocked-chip"
+              data-no-row-click
             >
-              Blocked
+              {fallbackCopy.chipLabel}
             </span>
           );
         },
       },
     ];
-  }, [projectId, fixingIssueId, handleIssueClick, handleOpenPreview, getFixAction, currentIssuesPathWithQuery, previewIssueId, previewValue, savedDraft, appliedAt, getDraftState]);
+  }, [projectId, fixingIssueId, handleIssueClick, handleOpenPreview, getFixAction, currentIssuesPathWithQuery, previewIssueId, previewValue, savedDraft, appliedAt, getDraftState, shopifyConnected, shopifyScope, lastCrawledAt, integrationStatusOk]);
 
   // [ISSUES-ENGINE-REMOUNT-1] Render expansion row content for ai-fix-now preview
   const renderExpandedContent = useCallback(
@@ -2182,36 +2267,64 @@ export default function IssuesPage() {
       </div>
 
       {/* [ISSUES-ENGINE-REMOUNT-1] Issues List: Three-section decision engine */}
+      {/* [ERROR-&-BLOCKED-STATE-UX-1 PATCH 4] Differentiate sync-pending empty state */}
+      {/* [ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2] Only show sync-pending when integration-status is trusted (ok) and lastCrawledAt is explicitly null */}
       {filteredIssues.length === 0 ? (
-        <div className="rounded-lg border border-[hsl(var(--success-background))]/50 bg-[hsl(var(--success-background))] p-6 text-center">
-          <svg
-            className="mx-auto h-12 w-12 text-[hsl(var(--success-foreground))]"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <h3 className="mt-2 text-sm font-medium text-[hsl(var(--success-foreground))]">
-            {severityFilter === 'all' && pillarFilter === 'all'
-              ? effectiveMode === 'actionable'
-                ? 'No actionable issues'
-                : 'No issues detected'
-              : pillarFilter !== 'all'
-                ? `No ${effectiveMode === 'actionable' ? 'actionable ' : ''}issues for ${DEO_PILLARS.find((p) => p.id === pillarFilter)?.shortName ?? pillarFilter}`
-                : `No ${effectiveMode === 'actionable' ? 'actionable ' : ''}${severityFilter} issues`}
-          </h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {severityFilter === 'all' && pillarFilter === 'all'
-              ? 'Your project looks healthy based on the latest analysis.'
-              : 'Try selecting a different filter to see other issues.'}
-          </p>
-        </div>
+        integrationStatusOk && lastCrawledAt === null ? (
+          // [ERROR-&-BLOCKED-STATE-UX-1] SYNC_PENDING-aligned empty state
+          <div className="rounded-lg border border-[hsl(var(--warning-background))]/50 bg-[hsl(var(--warning-background))] p-6 text-center">
+            <svg
+              className="mx-auto h-12 w-12 text-[hsl(var(--warning-foreground))]"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <h3 className="mt-2 text-sm font-medium text-[hsl(var(--warning-foreground))]">
+              Syncing data
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              We can&apos;t show fixes yet because data sync is still in progress. Try again after the sync completes.
+            </p>
+          </div>
+        ) : (
+          // Normal empty state (sync complete, no issues)
+          <div className="rounded-lg border border-[hsl(var(--success-background))]/50 bg-[hsl(var(--success-background))] p-6 text-center">
+            <svg
+              className="mx-auto h-12 w-12 text-[hsl(var(--success-foreground))]"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <h3 className="mt-2 text-sm font-medium text-[hsl(var(--success-foreground))]">
+              {severityFilter === 'all' && pillarFilter === 'all'
+                ? effectiveMode === 'actionable'
+                  ? 'No actionable issues'
+                  : 'No issues detected'
+                : pillarFilter !== 'all'
+                  ? `No ${effectiveMode === 'actionable' ? 'actionable ' : ''}issues for ${DEO_PILLARS.find((p) => p.id === pillarFilter)?.shortName ?? pillarFilter}`
+                  : `No ${effectiveMode === 'actionable' ? 'actionable ' : ''}${severityFilter} issues`}
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {severityFilter === 'all' && pillarFilter === 'all'
+                ? 'Your project looks healthy based on the latest analysis.'
+                : 'Try selecting a different filter to see other issues.'}
+            </p>
+          </div>
+        )
       ) : (
         <div className="space-y-6">
           {/* [ISSUES-ENGINE-REMOUNT-1] Section 1: Actionable now (dominant, comfortable density) */}

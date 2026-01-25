@@ -3137,6 +3137,57 @@ ISSUE-FIX-ROUTE-INTEGRITY-1 eliminates "dead clicks" in the Issues Engine by imp
 
 ---
 
+### Phase ERROR-&-BLOCKED-STATE-UX-1: Blocked State UX Alignment ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-25
+**Design System Version:** 1.5
+**Activation:** Centralized blocked-state derivation and trust-safe error copy
+
+#### Overview
+
+ERROR-&-BLOCKED-STATE-UX-1 centralizes blocked-state derivation and user-facing copy across the Issues Engine and Right Context Panel (RCP). All blocked states use canonical, trust-safe explanations with clear next steps. Eliminates vague error messages and ensures consistent blocked state display across surfaces.
+
+#### Key Features
+
+1. **Centralized Blocked State Helper** (`blockedState.ts`): BlockedState type with 6 canonical reasons (PERMISSIONS_MISSING, SHOPIFY_SCOPE_MISSING, DRAFT_REQUIRED, DESTINATION_UNAVAILABLE, SYNC_PENDING, SYSTEM_ERROR), deriveBlockedState() function, getBlockedStateCopy() for user-facing text
+2. **Issues Table Blocked Chips**: Blocked chips use centralized copy.chipLabel, tooltip shows description + nextStep, data-no-row-click prevents row expansion, no Fix/Apply CTA when blocked
+3. **RCP "Why this is blocked" Line**: Actionability section shows blocked explanation when applicable, matches table tooltip content
+4. **Empty/Error State Alignment**: Sync-pending empty state uses SYNC_PENDING copy, error states use SYSTEM_ERROR-aligned copy
+5. **Dev-time Guardrails**: Console warnings for Fix/Apply CTA rendering while blocked, missing description copy, RCP vs table blocked state mismatch
+
+#### Canonical Blocked States
+
+| State | Chip Label | Description | Next Step |
+|-------|------------|-------------|-----------|
+| PERMISSIONS_MISSING | Blocked — permissions | You don't have permission to run fixes for this project. | Ask a project owner to grant access, then try again. |
+| SHOPIFY_SCOPE_MISSING | Blocked — Shopify permissions | Required Shopify permissions weren't granted, so fixes can't be applied. | Reconnect Shopify to grant the missing permissions. |
+| DRAFT_REQUIRED | Blocked — save draft | Save the draft before applying it to Shopify. | Click "Save draft", then apply the saved draft. |
+| DESTINATION_UNAVAILABLE | Blocked — unavailable | This action isn't available in the current UI. | Open the issue details to review context. |
+| SYNC_PENDING | Blocked — syncing | We can't show fixes yet because data sync is still in progress. | Try again after the sync completes. |
+| SYSTEM_ERROR | Blocked — system error | This action is unavailable due to a system error. | Retry, or refresh the page. |
+
+#### Priority Order
+
+When multiple blocked conditions apply: PERMISSIONS_MISSING → SHOPIFY_SCOPE_MISSING → DRAFT_REQUIRED → DESTINATION_UNAVAILABLE → SYNC_PENDING → SYSTEM_ERROR
+
+#### Core Files
+
+- `apps/web/src/lib/issues/blockedState.ts` (NEW)
+- `apps/web/src/app/projects/[id]/issues/page.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelContentRenderer.tsx`
+- `apps/web/src/components/right-context-panel/ContextPanelIssueDetails.tsx`
+
+#### Manual Testing
+
+- `docs/manual-testing/ERROR-&-BLOCKED-STATE-UX-1.md`
+
+#### Critical Path Map
+
+- CP-020 (UI Shell & Right Context Panel) - Updated with ERROR-&-BLOCKED-STATE-UX-1 checklist items
+
+---
+
 ## Planned / Pending
 
 ### Phase GTM-ONBOARD-1: Guided Onboarding & First DEO Win 📄 DOCS COMPLETE — IMPLEMENTATION PENDING
@@ -3477,3 +3528,7 @@ _None at this time._
 | 7.48 | 2026-01-24 | **ISSUES-ENGINE-REMOUNT-1 FIXUP-6**: Semantics and consistency corrections. (1) Updated page.tsx: fixed blocked chip logic to only render "Outside control" chip for actionability === 'informational' (blocked status conveyed by section + Actions pill, no chip needed); added stable sorting tie-breaker (after title comparison, sort by id for deterministic ordering); normalized Action column labels to exactly "Fix now" / "Review" / "Blocked" ("Review" for DIAGNOSTIC and "View affected" flows, "Fix now" for other actionable fix flows, preserve original meaning in title attribute); (2) Updated TripletDisplay.tsx: fixed emphasis so both count and label render as text-primary when emphasis='actionable' (not text-muted-foreground); (3) Updated ISSUES-ENGINE-REMOUNT-1.md: corrected HP-013 expected results to match actual UI semantics (Fix now action for inline/link flows, Review for View affected with title preservation). **No backend changes.** **Core files:** page.tsx, TripletDisplay.tsx. **Manual Testing:** ISSUES-ENGINE-REMOUNT-1.md (HP-013). **Critical Path:** CP-009 updated (6.53). |
 | 7.49 | 2026-01-24 | **ISSUES-ENGINE-REMOUNT-1 FIXUP-7**: Trust copy tightening for Issues preview Apply CTA. (1) Updated page.tsx: changed inline preview Apply button label from "Apply to Shopify" to "Apply saved draft to Shopify" for trust clarity (no behavior change; data-testid="issue-apply-to-shopify-button" preserved; disabled gating unchanged; loading label "Applying…" unchanged; title attribute already clarifies "Applies saved draft only. Does not use AI."). **Copy-only trust tightening.** **No Playwright test changes required** - tests use stable data-testid selector. **Core files:** issues/page.tsx. **Phase ISSUES-ENGINE-REMOUNT-1 now COMPLETE.** |
 | 7.50 | 2026-01-24 | **ISSUES-ENGINE-REMOUNT-1 FIXUP-8**: Doc/Playwright alignment + config fix. **PATCH A (Manual testing doc copy alignment):** Updated DRAFT-CLARITY-AND-ACTION-TRUST-1.md Scenario 7 to reflect new button labels (replaced "Fix next" with "Fix now" in 4 instances; replaced "Apply button" with "Apply saved draft to Shopify button" in 4 instances; Issues preview Apply button trust copy now aligned with UI from FIXUP-7). **PATCH B (Playwright selector hardening):** Replaced text-based selector `button:has-text("Fix next")` with stable data-testid selector `[data-testid="issue-fix-next-button"]` in 2 instances; updated 3 comment references from "Fix next" to "Fix now" for consistency; hardened tests against UI copy drift. **PATCH C (Config fix + regression verification):** Fixed playwright.config.ts testDir from './tests/e2e' to './tests' (corrected test discovery: 38 tests in ./tests vs 2 in ./tests/e2e); verified test execution: 14 tests discovered and ran; selector changes validated (no selector-related errors); tests blocked by missing API server (environmental; not code-related). **Core files:** draft-clarity-and-action-trust-1.spec.ts, DRAFT-CLARITY-AND-ACTION-TRUST-1.md, playwright.config.ts. **Phase ISSUES-ENGINE-REMOUNT-1 doc/test alignment complete.** |
+| 7.51 | 2026-01-25 | **ERROR-&-BLOCKED-STATE-UX-1**: Centralized blocked-state derivation and trust-safe error copy. (1) Created blockedState.ts with BlockedState type, deriveBlockedState(), getBlockedStateCopy(), buildBlockedTooltip() helpers; 6 canonical blocked reasons: PERMISSIONS_MISSING, SHOPIFY_SCOPE_MISSING, DRAFT_REQUIRED, DESTINATION_UNAVAILABLE, SYNC_PENDING, SYSTEM_ERROR; (2) Updated issues/page.tsx: blocked chips use deriveBlockedState() with centralized copy, tooltip shows description + nextStep, chips have data-no-row-click attribute, no Fix/Apply CTA when blocked, empty state differentiates sync-pending vs healthy; (3) Updated ContextPanelContentRenderer.tsx: passes blockedState/shopifyConnected/shopifyScope/lastCrawledAt to ContextPanelIssueDetails; (4) Updated ContextPanelIssueDetails.tsx: derives blocked state, shows "Why this is blocked" line in Actionability section when blocked, error state uses SYSTEM_ERROR-aligned copy; (5) Added dev-time guardrails: console.warn on Fix/Apply CTA rendering while blocked, on missing description copy, on RCP vs table blocked state mismatch. **No backend changes.** **Core files:** blockedState.ts (NEW), issues/page.tsx, ContextPanelContentRenderer.tsx, ContextPanelIssueDetails.tsx. **Manual Testing:** ERROR-&-BLOCKED-STATE-UX-1.md. **Critical Path:** CP-020 updated (6.64). |
+| 7.52 | 2026-01-25 | **ERROR-&-BLOCKED-STATE-UX-1 FIXUP-1**: Enforce blocked gating + integration-status-load semantics. (1) Blocked state computed FIRST in Actions cell, before any Fix/View/Open CTA checks; if blocked, render blocked chip and return early (no Fix CTA ever shown for blocked issues); (2) Added `integrationStatusLoaded` state to prevent false SYNC_PENDING/SHOPIFY_SCOPE_MISSING while integration-status is loading; (3) Updated `deriveBlockedState()` to only infer SYNC_PENDING when lastCrawledAt is explicitly `null` (known missing), not `undefined` (unknown); (4) Sync-pending empty state only shown when `integrationStatusLoaded === true`; (5) `integrationStatusLoaded` passed through RCP metadata chain for aligned blocked state derivation. **No backend changes.** **Core files:** blockedState.ts, issues/page.tsx, ContextPanelContentRenderer.tsx, ContextPanelIssueDetails.tsx. **Manual Testing:** ERROR-&-BLOCKED-STATE-UX-1.md updated. **Critical Path:** CP-020 updated (6.65). |
+| 7.53 | 2026-01-25 | **ERROR-&-BLOCKED-STATE-UX-1 FIXUP-2**: Distinguish "loaded" from "trusted" integration status. (1) Replaced `integrationStatusLoaded` with `integrationStatusOk` (true only on successful fetch with trusted data); (2) Changed `lastCrawledAt` initialization from `null` to `undefined` (unknown vs known-missing semantics); (3) Removed `finally` block from fetch - `integrationStatusOk` only set `true` inside `if (response.ok)` block; (4) Updated blocked state derivation gating to use `integrationStatusOk` instead of `integrationStatusLoaded`; (5) Updated sync-pending empty state gating to `integrationStatusOk && lastCrawledAt === null`; (6) Updated RCP prop chain: `integrationStatusOk` passed through ContextPanelContentRenderer to ContextPanelIssueDetails. **No backend changes.** **Core files:** issues/page.tsx, ContextPanelContentRenderer.tsx, ContextPanelIssueDetails.tsx. **Manual Testing:** ERROR-&-BLOCKED-STATE-UX-1.md updated. **Critical Path:** CP-020 updated (6.66). |
+| 7.54 | 2026-01-25 | **ERROR-&-BLOCKED-STATE-UX-1 FIXUP-3**: Suppress mismatch warning when integration status untrusted. (1) Updated `getIssueDescriptor()` in page.tsx: only compute `blockedState` when `integrationStatusOk === true`; pass empty strings for `shopifyConnected`, `shopifyScope`, `lastCrawledAt` metadata when untrusted; (2) Updated ContextPanelIssueDetails.tsx: dev-time mismatch warning now gated on `isIntegrationOk === true` (prevents false positives when neither table nor RCP have trusted data to compare). **No backend changes.** **Core files:** issues/page.tsx, ContextPanelIssueDetails.tsx. **Critical Path:** CP-020 updated (6.67). |
