@@ -2103,7 +2103,7 @@ Semantic CTA labels with fix-action kinds for Issues Decision Engine:
 2. **Issues Page CTA Updates**: Updated `apps/web/src/app/projects/[id]/issues/page.tsx`:
    - AI preview buttons show "Review AI fix" with sparkle icon
    - Direct fix links show "Fix in workspace" with inventory icon
-   - View affected links show "Review guidance" with article icon
+   - View affected links show "View affected" with inventory icon (updated in FIXUP-4)
    - Sublabels added via title attribute (e.g., "Preview changes before saving")
    - All existing `data-testid` selectors preserved for backward compatibility
 
@@ -2114,6 +2114,33 @@ Semantic CTA labels with fix-action kinds for Issues Decision Engine:
 4. **RCP Copy Alignment**: Updated `ContextPanelIssueDetails.tsx` Actionability section with fix-action kind sentence (no CTAs in RCP body, read-only panel).
 
 5. **Manual Testing**: Added FIXUP-3 section to `ISSUE-FIX-KIND-CLARITY-1.md` with 5 new scenarios (F3-001 through F3-005) and verification checklist.
+
+#### FIXUP-4 (2026-01-25)
+
+Preview eligibility tightening + viewAffected label fix:
+
+1. **Inline Preview Support Helper**: Created `apps/web/src/lib/issues/inlineAiPreviewSupport.ts`:
+   - `INLINE_AI_PREVIEW_SUPPORTED_ISSUE_TYPES` Set: `missing_seo_title`, `missing_seo_description`
+   - `isInlineAiPreviewSupportedIssueType(issueType)`: Single source of truth
+   - Prevents drift between derivation logic and UI rendering
+
+2. **AI_PREVIEW_FIX Tightened**: Updated `issueFixActionKind.ts`:
+   - AI_PREVIEW_FIX now requires `isInlineAiPreviewSupportedIssueType(issueType)` check
+   - Prevents "Review AI fix" CTA appearing for issues without inline preview UI
+
+3. **View Affected Label Fix**: Updated `getIssueFixActionKindInfo()`:
+   - GUIDANCE_ONLY issues with viewAffected (no fix) show "View affected" (exploration label)
+   - GUIDANCE_ONLY issues with fix (DIAGNOSTIC) still show "Review guidance"
+   - Correct semantic distinction between exploration and guidance
+
+4. **Issues UI Integration**: Updated `apps/web/src/app/projects/[id]/issues/page.tsx`:
+   - Imported `isInlineAiPreviewSupportedIssueType` helper
+   - Replaced inline `supportsInlineFix` check with centralized helper
+   - Added dev-time guardrail: console warning if AI_PREVIEW_FIX derived but `supportsInlineFix` is false
+
+5. **Manual Testing**: Added FIXUP-4 section to `ISSUE-FIX-KIND-CLARITY-1.md` with scenarios F4-001 (AI fix without inline preview) and F4-002 (View affected exploration label).
+
+6. **UI Drift Prevention (Completion Patch)**: Updated viewAffected CTA block in Issues page to use `fixActionKindInfo.label`, `fixActionKindInfo.iconKey`, and `fixActionKindInfo.sublabel` instead of hardcoded values. Ensures UI can't diverge from `getIssueFixActionKindInfo()` derivation.
 
 #### Core Files
 

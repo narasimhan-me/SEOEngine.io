@@ -45,6 +45,8 @@ import { getIssueToActionGuidance } from '@/lib/issue-to-action-guidance';
 import { getIssueActionDestinations } from '@/lib/issues/issueActionDestinations';
 // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Import fix-action-kind helper for semantic CTAs
 import { getIssueFixActionKindInfo } from '@/lib/issues/issueFixActionKind';
+// [ISSUE-FIX-KIND-CLARITY-1 FIXUP-4] Import inline preview support helper (single source of truth)
+import { isInlineAiPreviewSupportedIssueType } from '@/lib/issues/inlineAiPreviewSupport';
 // [DRAFT-LIFECYCLE-VISIBILITY-1] Import draft lifecycle state helpers
 import {
   deriveDraftLifecycleState,
@@ -898,9 +900,23 @@ export default function IssuesPage() {
 
     // [ISSUE-TO-FIX-PATH-1 FIXUP-2] Reuse fixHref computed above - no dead-click risk
     if (fixType === 'aiFix' && fixReady && primaryProductId && fixHref) {
-      const supportsInlineFix =
-        issueType === 'missing_seo_title' ||
-        issueType === 'missing_seo_description';
+      // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-4] Use centralized helper for inline preview support
+      const supportsInlineFix = isInlineAiPreviewSupportedIssueType(issueType);
+
+      // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-4] Dev-time guardrail: warn if AI_PREVIEW_FIX is derived but inline preview UI can't render
+      if (process.env.NODE_ENV === 'development') {
+        const actionKindInfo = getIssueFixActionKindInfo({
+          projectId,
+          issue,
+          returnTo: getReturnToFromCurrentUrl(),
+        });
+        if (actionKindInfo.kind === 'AI_PREVIEW_FIX' && !supportsInlineFix) {
+          console.warn(
+            `[ISSUE-FIX-KIND-CLARITY] AI_PREVIEW_FIX derived for issue ${issueType} but supportsInlineFix is false. Check inlineAiPreviewSupport.ts allowlist.`
+          );
+        }
+      }
+
       if (supportsInlineFix) {
         return {
           kind: 'ai-fix-now' as const,
@@ -1587,7 +1603,8 @@ export default function IssuesPage() {
             }
           }
 
-          // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Priority 2: View affected - "Review guidance"
+          // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-4] Priority 2: View affected - exploration (not guidance)
+          // Uses fixActionKindInfo to prevent label/icon drift
           if (destinations.viewAffected.kind !== 'none' && destinations.viewAffected.href) {
             return (
               <div className="flex items-center gap-1">
@@ -1595,11 +1612,11 @@ export default function IssuesPage() {
                   href={destinations.viewAffected.href}
                   data-testid="issue-view-affected-button"
                   data-no-row-click
-                  title="See affected items"
+                  title={fixActionKindInfo.sublabel}
                   className="inline-flex items-center gap-1.5 justify-center whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
                 >
-                  <Icon name="playbook.content" size={16} className="shrink-0" />
-                  <span data-testid="issue-card-cta">Review guidance</span>
+                  <Icon name={fixActionKindInfo.iconKey} size={16} className="shrink-0" />
+                  <span data-testid="issue-card-cta">{fixActionKindInfo.label}</span>
                 </GuardedLink>
                 {renderDraftIndicator()}
               </div>
