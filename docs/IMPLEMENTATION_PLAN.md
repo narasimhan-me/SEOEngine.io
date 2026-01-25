@@ -2979,6 +2979,49 @@ ICONS-LOCAL-LIBRARY-1 implements a local SVG icon system based on Material Symbo
 
 ---
 
+### Phase ISSUE-FIX-ROUTE-INTEGRITY-1: Issues Decision Engine — No Dead Clicks ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-25
+**Design System Version:** v1.5
+
+#### Overview
+
+ISSUE-FIX-ROUTE-INTEGRITY-1 eliminates "dead clicks" in the Issues Engine by implementing a centralized destination map that serves as the source of truth for issue action availability. Every clickable action now leads to a valid, implemented destination with explicit blocked states when actions are unavailable.
+
+#### Key Features
+
+1. **Issue Action Destination Map**: Centralized `getIssueActionDestinations()` function that models where each action (fix/open/viewAffected) leads
+2. **Explicit Blocked States**: When actions are unavailable, "Blocked" chip is shown with tooltip explaining why (no fake CTAs)
+3. **Destination Priority**: Fix → View affected → Open → Blocked (truthful fallback hierarchy)
+4. **External Link Safety**: External "Open" links (Shopify admin) use `target="_blank"` and `rel="noopener noreferrer"`
+5. **Dev-Time Guardrails**: Non-fatal console warnings in development when actionable issues lack fix destinations (mapping gap detection)
+6. **Route Context Preservation**: All internal links include `returnTo` param for back navigation
+
+#### Core Files
+
+- `apps/web/src/lib/issues/issueActionDestinations.ts` - Destination map source of truth
+- `apps/web/src/app/projects/[id]/issues/page.tsx` - Actions column wired to destination map
+
+#### Test Coverage
+
+- **Playwright Regression:** `apps/web/tests/issue-fix-route-integrity-1.spec.ts`
+- **Manual Testing:** `docs/manual-testing/ISSUE-FIX-ROUTE-INTEGRITY-1.md`
+
+#### Critical Path Map
+
+- CP-009 (Issue Engine Lite) - Updated with ISSUE-FIX-ROUTE-INTEGRITY-1 scenarios
+
+#### Implementation Notes
+
+- Uses proper DeoIssue typing with optional `shopifyAdminUrl?: string` extension
+- All selectors use canonical `data-testid` attributes (no `data-testid-new`)
+- "View affected" label preserved for Playwright test compatibility
+- Action buttons include `data-no-row-click` attribute and `stopPropagation` to prevent RCP opening
+- **FIXUP-4:** IFRI-005 test strengthened with explicit `right-context-panel` assertions (open/close via UI, not URL heuristic); manual testing doc updated to use `issue-fix-button` / `issue-view-affected-button` as canonical selectors with `issue-card-cta` nested for backward compatibility
+
+---
+
 ## Planned / Pending
 
 ### Phase GTM-ONBOARD-1: Guided Onboarding & First DEO Win 📄 DOCS COMPLETE — IMPLEMENTATION PENDING
