@@ -222,7 +222,6 @@ export default function ProductOptimizationPage() {
   const [isAiLimitError, setIsAiLimitError] = useState(false);
 
   // Data states
-  const [projectName, setProjectName] = useState<string | null>(null);
   const [planId, setPlanId] = useState<string | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
   const [productIssues, setProductIssues] = useState<DeoIssue[]>([]);
@@ -402,14 +401,14 @@ export default function ProductOptimizationPage() {
 
       // Fetch project, integrations, products, issues, automation suggestions, and entitlements in parallel
       const [
-        projectData,
+        ,
         integrationStatus,
         productsData,
         issuesResponse,
         automationResponse,
         entitlements,
       ] = await Promise.all([
-        projectsApi.get(projectId),
+        projectsApi.get(projectId), // Project name unused for now
         projectsApi.integrationStatus(projectId),
         productsApi.list(projectId),
         // [COUNT-INTEGRITY-1.1 PATCH 6] Use asset-specific issues endpoint
@@ -433,8 +432,6 @@ export default function ProductOptimizationPage() {
           .catch(() => ({ suggestions: [] })),
         billingApi.getEntitlements().catch(() => null),
       ]);
-
-      setProjectName(projectData.name);
       setAeoSyncToShopifyMetafields(
         Boolean((integrationStatus as any)?.aeoSyncToShopifyMetafields)
       );

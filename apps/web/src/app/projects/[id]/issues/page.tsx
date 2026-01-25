@@ -41,6 +41,8 @@ import {
 } from '@/lib/scope-normalization';
 // [ISSUE-TO-ACTION-GUIDANCE-1] Import playbook guidance mapping
 import { getIssueToActionGuidance } from '@/lib/issue-to-action-guidance';
+// [ISSUE-FIX-ROUTE-INTEGRITY-1] Import destination map for truthful CTAs
+import { getIssueActionDestinations } from '@/lib/issues/issueActionDestinations';
 // [ISSUES-ENGINE-REMOUNT-1] DataTable + RCP integration
 import {
   DataTable,
@@ -1432,68 +1434,127 @@ export default function IssuesPage() {
         width: 'w-1/8',
         truncate: false,
         cell: (row) => {
-          // [ISSUES-ENGINE-REMOUNT-1] Blocked state handling
-          const isBlocked = row.actionability !== 'informational' && row.isActionableNow !== true;
-          if (isBlocked) {
-            return (
-              <span
-                className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
-                title="Not actionable in this context"
-              >
-                Blocked
-              </span>
-            );
+          // [ISSUE-FIX-ROUTE-INTEGRITY-1 PATCH 2] Use destination map for truthful CTAs
+          const destinations = getIssueActionDestinations({
+            projectId,
+            issue: row,
+            returnTo: currentIssuesPathWithQuery,
+          });
+
+          // [PATCH 2] Priority 1: Fix action (AI preview or direct navigation)
+          if (destinations.fix.kind !== 'none') {
+            const fixAction = getFixAction(row); // Still needed to determine ai-fix-now vs link
+
+            // [PATCH 2] AI fix with inline preview
+            if (fixAction?.kind === 'ai-fix-now') {
+              return (
+                <button
+                  id={`issue-fix-next-${row.id}`}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenPreview(row);
+                  }}
+                  disabled={fixingIssueId === row.id}
+                  data-testid="issue-fix-next-button"
+                  data-no-row-click
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-primary bg-primary px-2 py-1 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span data-testid="issue-card-cta">
+                    {fixingIssueId === row.id ? 'Fixing…' : 'Fix now'}
+                  </span>
+                </button>
+              );
+            }
+
+            // [PATCH 2] Direct fix navigation (internal link)
+            if (destinations.fix.href) {
+              const fixConfig = getIssueFixConfig((row.type as string | undefined) || row.id);
+              const isDiagnostic = fixConfig?.fixKind === 'DIAGNOSTIC';
+              const normalizedLabel = isDiagnostic ? 'Review' : 'Fix now';
+
+              return (
+                <GuardedLink
+                  href={destinations.fix.href}
+                  data-testid="issue-fix-button"
+                  data-no-row-click
+                  title={isDiagnostic ? 'Review issue details' : undefined}
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
+                >
+                  <span data-testid="issue-card-cta">{normalizedLabel}</span>
+                </GuardedLink>
+              );
+            }
           }
 
-          const fixAction = getFixAction(row);
-          if (!fixAction) {
-            return <span className="text-muted-foreground">—</span>;
-          }
-
-          if (fixAction.kind === 'ai-fix-now') {
-            return (
-              <button
-                id={`issue-fix-next-${row.id}`}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOpenPreview(row);
-                }}
-                disabled={fixingIssueId === row.id}
-                data-testid="issue-fix-next-button"
-                data-no-row-click
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-primary bg-primary px-2 py-1 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {fixingIssueId === row.id ? 'Fixing…' : 'Fix now'}
-              </button>
-            );
-          }
-
-          if (fixAction.kind === 'link') {
-            // [ISSUES-ENGINE-REMOUNT-1 FIXUP-6] Normalize to "Fix now" / "Review" only
-            // "Review" for DIAGNOSTIC and "View affected" flows
-            // "Fix now" for other actionable fix flows
-            const isDiagnosticOrViewAffected =
-              fixAction.variant === 'diagnostic' ||
-              fixAction.label === 'View affected';
-            const normalizedLabel = isDiagnosticOrViewAffected ? 'Review' : 'Fix now';
-            // Preserve original meaning in title
-            const titleText = fixAction.label !== normalizedLabel ? fixAction.label : undefined;
-
+          // [PATCH 2] Priority 2: View affected (when fix not available)
+          if (destinations.viewAffected.kind !== 'none' && destinations.viewAffected.href) {
             return (
               <GuardedLink
-                href={fixAction.href}
-                data-testid="issue-card-cta"
+                href={destinations.viewAffected.href}
+                data-testid="issue-view-affected-button"
                 data-no-row-click
-                title={titleText}
+                title="View affected products"
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
               >
-                {normalizedLabel}
+                <span data-testid="issue-card-cta">View affected</span>
               </GuardedLink>
             );
           }
 
-          return null;
+          // [PATCH 2] Priority 3: Open asset (when fix and view affected not available)
+          if (destinations.open.kind !== 'none' && destinations.open.href) {
+            if (destinations.open.kind === 'external') {
+              return (
+                <a
+                  href={destinations.open.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid="issue-open-button"
+                  data-no-row-click
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
+                >
+                  Open
+                  <svg className="ml-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              );
+            }
+            return (
+              <GuardedLink
+                href={destinations.open.href}
+                data-testid="issue-open-button"
+                data-no-row-click
+                className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
+              >
+                Open
+              </GuardedLink>
+            );
+          }
+
+          // [PATCH 2] No actions available: explicit blocked state
+          const blockedReason =
+            destinations.fix.reasonBlocked ||
+            destinations.viewAffected.reasonBlocked ||
+            destinations.open.reasonBlocked ||
+            'No actions available';
+
+          // [PATCH 3] Dev-time guardrail: warn about mapping gaps
+          if (process.env.NODE_ENV !== 'production' && row.isActionableNow === true && destinations.fix.kind === 'none') {
+            console.warn(`[ISSUE-FIX-ROUTE-INTEGRITY-1] Mapping gap for issue ${row.id}: marked actionable but no fix destination. Reason: ${destinations.fix.reasonBlocked}`);
+          }
+
+          return (
+            <span
+              className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+              title={blockedReason}
+              data-testid="issue-blocked-chip"
+            >
+              Blocked
+            </span>
+          );
         },
       },
     ];

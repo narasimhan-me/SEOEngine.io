@@ -335,7 +335,6 @@ export default function AutomationPlaybooksPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [projectName, setProjectName] = useState<string | null>(null);
   const [planId, setPlanId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [issues, setIssues] = useState<DeoIssue[]>([]);
@@ -499,14 +498,13 @@ export default function AutomationPlaybooksPage() {
     try {
       setLoading(true);
       setError('');
-      const [projectData, productsData, issuesResponse, entitlements] =
+      const [, productsData, issuesResponse, entitlements] =
         await Promise.all([
-          projectsApi.get(projectId),
+          projectsApi.get(projectId), // Project name unused for now
           productsApi.list(projectId),
           projectsApi.deoIssues(projectId).catch(() => ({ issues: [] })),
           billingApi.getEntitlements().catch(() => null),
         ]);
-      setProjectName(projectData.name);
       setProducts(productsData);
       setIssues((issuesResponse.issues ?? []) as DeoIssue[]);
       if (entitlements && typeof (entitlements as any).plan === 'string') {

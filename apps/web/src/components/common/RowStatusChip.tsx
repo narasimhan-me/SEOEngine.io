@@ -47,7 +47,7 @@ const chipIcons: Record<RowChipLabel, IconManifestKey> = {
 // [ICONS-LOCAL-LIBRARY-1] Strip emoji prefix from chip label for display
 function getCleanLabel(chipLabel: RowChipLabel): string {
   // Remove leading emoji + space (pattern: emoji followed by space)
-  return chipLabel.replace(/^[✅⚠🟡⛔]\s*/, '');
+  return chipLabel.replace(/^[✅⚠🟡⛔]\s*/u, '');
 }
 
 export function RowStatusChip({ chipLabel }: RowStatusChipProps) {
