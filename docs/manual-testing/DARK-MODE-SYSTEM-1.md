@@ -732,9 +732,9 @@ If a white row is observed, inspect the `tbody.bg-white` element and a `td` cell
 
 ## Approval
 
-| Field              | Value                                    |
-| ------------------ | ---------------------------------------- |
-| **Tester Name**    | [Pending]                                |
-| **Date**           | [YYYY-MM-DD]                             |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed    |
-| **Notes**          | DARK-MODE-SYSTEM-1 manual testing        |
+| Field              | Value                                 |
+| ------------------ | ------------------------------------- |
+| **Tester Name**    | [Pending]                             |
+| **Date**           | [YYYY-MM-DD]                          |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
+| **Notes**          | DARK-MODE-SYSTEM-1 manual testing     |

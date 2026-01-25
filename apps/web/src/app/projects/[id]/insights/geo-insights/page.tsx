@@ -33,7 +33,8 @@ export default function GeoInsightsPage() {
   useEffect(() => {
     setHeader({
       title: 'GEO Insights',
-      description: 'GEO-specific metrics: answer readiness, intent coverage, reuse efficiency, and trust trajectory',
+      description:
+        'GEO-specific metrics: answer readiness, intent coverage, reuse efficiency, and trust trajectory',
       actions: (
         <Link
           href={`/projects/${projectId}/insights/geo-insights/export`}

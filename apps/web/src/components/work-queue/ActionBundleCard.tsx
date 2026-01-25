@@ -115,7 +115,10 @@ export function ActionBundleCard({
     };
 
     // [FIXUP-4] Add scopeDetected if available
-    if (bundle.scopeDetectedCount !== undefined && bundle.scopeDetectedCount !== null) {
+    if (
+      bundle.scopeDetectedCount !== undefined &&
+      bundle.scopeDetectedCount !== null
+    ) {
       metadata.scopeDetected = String(bundle.scopeDetectedCount);
     }
 
@@ -270,7 +273,9 @@ export function ActionBundleCard({
                       {' '}
                       <span className="text-gray-500">
                         ({bundle.scopeDetectedCount} detected issue
-                        {bundle.scopeDetectedCount !== 1 ? 's' : ''} affecting{' '}
+                        {bundle.scopeDetectedCount !== 1
+                          ? 's'
+                          : ''} affecting{' '}
                         {getScopeTypeLabel(
                           bundle.scopeType,
                           bundle.scopeDetectedCount

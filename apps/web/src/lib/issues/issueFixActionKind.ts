@@ -38,7 +38,11 @@ export interface IssueFixActionKindInfo {
   /** Secondary hint/sublabel */
   sublabel: string;
   /** Semantic icon key */
-  iconKey: 'workflow.ai' | 'nav.projects' | 'playbook.content' | 'status.blocked';
+  iconKey:
+    | 'workflow.ai'
+    | 'nav.projects'
+    | 'playbook.content'
+    | 'status.blocked';
 }
 
 /**
@@ -89,7 +93,8 @@ export function deriveIssueFixActionKind(
 
   // Case 2: No fix destination - check if viewAffected or open is available
   const hasAlternativeAction =
-    (destinations.viewAffected.kind !== 'none' && destinations.viewAffected.href) ||
+    (destinations.viewAffected.kind !== 'none' &&
+      destinations.viewAffected.href) ||
     (destinations.open.kind !== 'none' && destinations.open.href);
 
   if (hasAlternativeAction) {

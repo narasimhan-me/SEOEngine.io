@@ -122,7 +122,9 @@ export default function ProductsPage() {
     null
   );
   // [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1 FIXUP-3] undefined = not loaded yet; [] = loaded empty
-  const [productIssues, setProductIssues] = useState<DeoIssue[] | undefined>(undefined);
+  const [productIssues, setProductIssues] = useState<DeoIssue[] | undefined>(
+    undefined
+  );
   const [overview, setOverview] = useState<ProjectOverview | null>(null);
   const [showPreCrawlGuard, setShowPreCrawlGuard] = useState(true);
 

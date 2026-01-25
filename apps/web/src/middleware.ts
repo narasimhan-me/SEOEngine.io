@@ -33,7 +33,8 @@ function addShopifyFrameHeaders(response: NextResponse): NextResponse {
   // self: allow same-origin framing
   // admin.shopify.com: Shopify Admin panel
   // *.myshopify.com: Individual Shopify stores
-  const frameAncestors = "frame-ancestors 'self' https://admin.shopify.com https://*.myshopify.com;";
+  const frameAncestors =
+    "frame-ancestors 'self' https://admin.shopify.com https://*.myshopify.com;";
 
   // Get existing CSP or create new one
   const existingCsp = response.headers.get('Content-Security-Policy');
@@ -41,7 +42,10 @@ function addShopifyFrameHeaders(response: NextResponse): NextResponse {
   if (existingCsp) {
     // If CSP exists and doesn't have frame-ancestors, append it
     if (!existingCsp.includes('frame-ancestors')) {
-      response.headers.set('Content-Security-Policy', `${existingCsp} ${frameAncestors}`);
+      response.headers.set(
+        'Content-Security-Policy',
+        `${existingCsp} ${frameAncestors}`
+      );
     }
     // If it already has frame-ancestors, leave it alone
   } else {

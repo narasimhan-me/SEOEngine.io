@@ -166,7 +166,8 @@ export function getArrivalCalloutContent(
       secondaryMessage:
         'This fix surface is not yet available. Check back later.',
       showBackLink: true,
-      containerClass: 'bg-[hsl(var(--surface-raised))] border-border text-muted-foreground',
+      containerClass:
+        'bg-[hsl(var(--surface-raised))] border-border text-muted-foreground',
     };
   }
 
@@ -178,7 +179,8 @@ export function getArrivalCalloutContent(
       secondaryMessage: nextActionLabel || 'Open Shopify to make this change.',
       showBackLink: true,
       showExternalLink: true,
-      containerClass: 'bg-[hsl(var(--warning-background))] border-border text-[hsl(var(--warning-foreground))]',
+      containerClass:
+        'bg-[hsl(var(--warning-background))] border-border text-[hsl(var(--warning-foreground))]',
     };
   }
 
@@ -189,7 +191,8 @@ export function getArrivalCalloutContent(
       primaryMessage: 'No action needed — already compliant',
       secondaryMessage: `The issue "${issueTitle}" is no longer detected on this product.`,
       showBackLink: true,
-      containerClass: 'bg-[hsl(var(--success-background))] border-border text-[hsl(var(--success-foreground))]',
+      containerClass:
+        'bg-[hsl(var(--success-background))] border-border text-[hsl(var(--success-foreground))]',
     };
   }
 
@@ -204,7 +207,8 @@ export function getArrivalCalloutContent(
         'Review the analysis below. No direct fix is available for this issue.',
       showBackLink: true,
       showViewRelatedIssues: true,
-      containerClass: 'bg-[hsl(var(--info-background))] border-border text-[hsl(var(--info-foreground))]',
+      containerClass:
+        'bg-[hsl(var(--info-background))] border-border text-[hsl(var(--info-foreground))]',
     };
   }
 
@@ -217,7 +221,8 @@ export function getArrivalCalloutContent(
       secondaryMessage:
         'Fix surface not available. Use the options below or go back.',
       showBackLink: true,
-      containerClass: 'bg-[hsl(var(--warning-background))] border-border text-[hsl(var(--warning-foreground))]',
+      containerClass:
+        'bg-[hsl(var(--warning-background))] border-border text-[hsl(var(--warning-foreground))]',
     };
   }
 

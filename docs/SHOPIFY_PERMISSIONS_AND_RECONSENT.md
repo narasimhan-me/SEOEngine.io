@@ -32,6 +32,7 @@ Users must click an explicit "Reconnect Shopify" CTA. EngineO.ai never silently 
 ### Minimal Scope Requests
 
 Re-consent requests the minimal union of:
+
 - Scopes already granted for this installation, plus
 - Missing required scopes for the specific capability (e.g., `pages_sync`)
 
@@ -65,11 +66,11 @@ After OAuth, the user returns to the originating screen and the blocked sync is 
 
 The permission notice uses capability-aware wording:
 
-| Missing Scope(s) | Copy |
-|------------------|------|
-| `read_products` only | "Product catalog access" |
-| `read_content` only | "Pages and blog posts access" |
-| Both | "Product catalog and content access" |
+| Missing Scope(s)     | Copy                                 |
+| -------------------- | ------------------------------------ |
+| `read_products` only | "Product catalog access"             |
+| `read_content` only  | "Pages and blog posts access"        |
+| Both                 | "Product catalog and content access" |
 
 ---
 

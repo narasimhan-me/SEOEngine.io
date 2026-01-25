@@ -163,7 +163,9 @@ const PROJECT_NAME_CACHE_KEY = 'engineo_project_name_cache';
 function getCachedProjectName(projectId: string): string | null {
   if (typeof window === 'undefined') return null;
   try {
-    const cache = JSON.parse(sessionStorage.getItem(PROJECT_NAME_CACHE_KEY) || '{}');
+    const cache = JSON.parse(
+      sessionStorage.getItem(PROJECT_NAME_CACHE_KEY) || '{}'
+    );
     return cache[projectId] ?? null;
   } catch {
     return null;
@@ -173,7 +175,9 @@ function getCachedProjectName(projectId: string): string | null {
 function setCachedProjectName(projectId: string, name: string): void {
   if (typeof window === 'undefined') return;
   try {
-    const cache = JSON.parse(sessionStorage.getItem(PROJECT_NAME_CACHE_KEY) || '{}');
+    const cache = JSON.parse(
+      sessionStorage.getItem(PROJECT_NAME_CACHE_KEY) || '{}'
+    );
     cache[projectId] = name;
     sessionStorage.setItem(PROJECT_NAME_CACHE_KEY, JSON.stringify(cache));
   } catch {
@@ -377,9 +381,7 @@ function LayoutShellInner({ children }: { children: ReactNode }) {
         {/* Command Palette overlay */}
         <CommandPalette />
         {/* [WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1] Left Rail: icon-only always (no expand/collapse toggle) */}
-        <aside
-          className="z-40 w-[72px] shrink-0 border-r border-border bg-[hsl(var(--surface-card))]"
-        >
+        <aside className="z-40 w-[72px] shrink-0 border-r border-border bg-[hsl(var(--surface-card))]">
           <div className="flex h-full flex-col">
             {/* [WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1] Removed "Navigation" heading and collapse toggle */}
             <div className="h-3" aria-hidden="true" />

@@ -178,8 +178,14 @@ export type IconManifestKey =
  * @returns Raw icon name like 'home' or 'error'
  */
 export function resolveIconName(key: IconManifestKey): MaterialSymbolRawName {
-  const [category, name] = key.split('.') as [keyof typeof ICON_MANIFEST, string];
-  const categoryManifest = ICON_MANIFEST[category] as Record<string, MaterialSymbolRawName>;
+  const [category, name] = key.split('.') as [
+    keyof typeof ICON_MANIFEST,
+    string,
+  ];
+  const categoryManifest = ICON_MANIFEST[category] as Record<
+    string,
+    MaterialSymbolRawName
+  >;
   return categoryManifest[name];
 }
 

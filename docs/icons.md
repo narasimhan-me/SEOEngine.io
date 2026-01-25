@@ -40,59 +40,59 @@ Icons are referenced using semantic keys in the format `category.name`. This abs
 
 ### Navigation (`nav.*`)
 
-| Key | Description | Raw Icon |
-|-----|-------------|----------|
-| `nav.dashboard` | Home/Dashboard | `home` |
-| `nav.projects` | Projects/Inventory | `inventory_2` |
-| `nav.settings` | Settings | `settings` |
-| `nav.help` | Help/Campaign | `campaign` |
-| `nav.admin` | Admin Panel | `admin_panel_settings` |
-| `nav.storeHealth` | Store Health | `health_and_safety` |
-| `nav.automations` | Automations | `settings_suggest` |
-| `nav.insights` | Insights/Monitoring | `monitoring` |
+| Key               | Description         | Raw Icon               |
+| ----------------- | ------------------- | ---------------------- |
+| `nav.dashboard`   | Home/Dashboard      | `home`                 |
+| `nav.projects`    | Projects/Inventory  | `inventory_2`          |
+| `nav.settings`    | Settings            | `settings`             |
+| `nav.help`        | Help/Campaign       | `campaign`             |
+| `nav.admin`       | Admin Panel         | `admin_panel_settings` |
+| `nav.storeHealth` | Store Health        | `health_and_safety`    |
+| `nav.automations` | Automations         | `settings_suggest`     |
+| `nav.insights`    | Insights/Monitoring | `monitoring`           |
 
 ### Utility (`utility.*`)
 
-| Key | Description | Raw Icon |
-|-----|-------------|----------|
-| `utility.search` | Search | `search` |
-| `utility.download` | Download | `download` |
-| `utility.semantic` | Knowledge Graph | `hub` |
-| `utility.technical` | Technical/Memory | `memory` |
-| `utility.schema` | Schema/Data Object | `data_object` |
-| `utility.visibility` | View/Read-only | `visibility` |
+| Key                  | Description        | Raw Icon      |
+| -------------------- | ------------------ | ------------- |
+| `utility.search`     | Search             | `search`      |
+| `utility.download`   | Download           | `download`    |
+| `utility.semantic`   | Knowledge Graph    | `hub`         |
+| `utility.technical`  | Technical/Memory   | `memory`      |
+| `utility.schema`     | Schema/Data Object | `data_object` |
+| `utility.visibility` | View/Read-only     | `visibility`  |
 
 ### Status (`status.*`)
 
-| Key | Description | Raw Icon |
-|-----|-------------|----------|
-| `status.critical` | Error/Critical | `error` |
-| `status.warning` | Warning | `warning` |
-| `status.healthy` | Success/Healthy | `check_circle` |
-| `status.aiFixable` | AI can fix | `auto_fix_high` |
-| `status.check` | Check/Complete | `check` |
-| `status.blocked` | Blocked/Forbidden | `block` |
+| Key                | Description       | Raw Icon        |
+| ------------------ | ----------------- | --------------- |
+| `status.critical`  | Error/Critical    | `error`         |
+| `status.warning`   | Warning           | `warning`       |
+| `status.healthy`   | Success/Healthy   | `check_circle`  |
+| `status.aiFixable` | AI can fix        | `auto_fix_high` |
+| `status.check`     | Check/Complete    | `check`         |
+| `status.blocked`   | Blocked/Forbidden | `block`         |
 
 ### Workflow (`workflow.*`)
 
-| Key | Description | Raw Icon |
-|-----|-------------|----------|
-| `workflow.ai` | AI/Auto Awesome | `auto_awesome` |
-| `workflow.preview` | Preview | `preview` |
-| `workflow.estimate` | Estimate/Calculate | `calculate` |
-| `workflow.apply` | Apply/Publish | `publish` |
-| `workflow.history` | History | `history` |
+| Key                 | Description        | Raw Icon       |
+| ------------------- | ------------------ | -------------- |
+| `workflow.ai`       | AI/Auto Awesome    | `auto_awesome` |
+| `workflow.preview`  | Preview            | `preview`      |
+| `workflow.estimate` | Estimate/Calculate | `calculate`    |
+| `workflow.apply`    | Apply/Publish      | `publish`      |
+| `workflow.history`  | History            | `history`      |
 
 ### Playbook (`playbook.*`)
 
-| Key | Description | Raw Icon |
-|-----|-------------|----------|
-| `playbook.title` | Title | `title` |
-| `playbook.content` | Content/Article | `article` |
-| `playbook.intent` | Intent/Target | `target` |
-| `playbook.metadata` | Metadata | `data_object` |
-| `playbook.authority` | Authority/Award | `award_star` |
-| `playbook.voice` | Voice Search | `settings_voice` |
+| Key                  | Description     | Raw Icon         |
+| -------------------- | --------------- | ---------------- |
+| `playbook.title`     | Title           | `title`          |
+| `playbook.content`   | Content/Article | `article`        |
+| `playbook.intent`    | Intent/Target   | `target`         |
+| `playbook.metadata`  | Metadata        | `data_object`    |
+| `playbook.authority` | Authority/Award | `award_star`     |
+| `playbook.voice`     | Voice Search    | `settings_voice` |
 
 ## How to Add an Icon
 

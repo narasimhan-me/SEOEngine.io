@@ -929,7 +929,14 @@ export default function ProductOptimizationPage() {
       title: product.title,
       scopeProjectId: projectId,
     });
-  }, [rcpIsOpen, rcpDescriptor, productId, projectId, product?.title, rcpOpenPanel]);
+  }, [
+    rcpIsOpen,
+    rcpDescriptor,
+    productId,
+    projectId,
+    product?.title,
+    rcpOpenPanel,
+  ]);
 
   if (loading) {
     return (
@@ -1170,10 +1177,14 @@ export default function ProductOptimizationPage() {
                       <div className="text-xs text-foreground">
                         {playbookIdParam === 'missing_seo_title'
                           ? previewSample.currentTitle || (
-                              <span className="text-muted-foreground/70">Empty</span>
+                              <span className="text-muted-foreground/70">
+                                Empty
+                              </span>
                             )
                           : previewSample.currentDescription || (
-                              <span className="text-muted-foreground/70">Empty</span>
+                              <span className="text-muted-foreground/70">
+                                Empty
+                              </span>
                             )}
                       </div>
                     </div>

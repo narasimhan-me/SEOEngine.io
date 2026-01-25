@@ -159,10 +159,9 @@ function getViewAffectedDestination({
   if (!hasAffectedProducts || !issue.type) {
     return {
       kind: 'none',
-      reasonBlocked:
-        !issue.type
-          ? 'No issueType filter available'
-          : 'Affected list not available for this issue',
+      reasonBlocked: !issue.type
+        ? 'No issueType filter available'
+        : 'Affected list not available for this issue',
     };
   }
 

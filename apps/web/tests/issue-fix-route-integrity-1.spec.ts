@@ -90,7 +90,9 @@ test.describe('ISSUE-FIX-ROUTE-INTEGRITY-1: No dead clicks in Issues Engine', ()
     expect(currentUrl).toBe(initialUrl);
 
     // Assert: Preview panel is visible via deterministic data-testid
-    const previewPanel = page.locator('[data-testid="issue-preview-draft-panel"]');
+    const previewPanel = page.locator(
+      '[data-testid="issue-preview-draft-panel"]'
+    );
     await expect(previewPanel).toBeVisible();
   });
 
@@ -129,7 +131,9 @@ test.describe('ISSUE-FIX-ROUTE-INTEGRITY-1: No dead clicks in Issues Engine', ()
     expect(currentUrl.pathname).toMatch(/\/projects\/.*\/products\/.*/);
 
     // Assert: No 404 page
-    const notFoundHeading = page.locator('h1:has-text("404"), h1:has-text("Not Found")');
+    const notFoundHeading = page.locator(
+      'h1:has-text("404"), h1:has-text("Not Found")'
+    );
     await expect(notFoundHeading).toHaveCount(0);
   });
 
@@ -173,7 +177,9 @@ test.describe('ISSUE-FIX-ROUTE-INTEGRITY-1: No dead clicks in Issues Engine', ()
     expect(issueType).toBeTruthy();
 
     // Assert: No 404 page
-    const notFoundHeading = page.locator('h1:has-text("404"), h1:has-text("Not Found")');
+    const notFoundHeading = page.locator(
+      'h1:has-text("404"), h1:has-text("Not Found")'
+    );
     await expect(notFoundHeading).toHaveCount(0);
   });
 
@@ -197,7 +203,9 @@ test.describe('ISSUE-FIX-ROUTE-INTEGRITY-1: No dead clicks in Issues Engine', ()
 
     // Find blocked chip (deterministic selector)
     // seed-first-deo-win MUST provide at least one blocked issue
-    const blockedChip = page.locator('[data-testid="issue-blocked-chip"]').first();
+    const blockedChip = page
+      .locator('[data-testid="issue-blocked-chip"]')
+      .first();
 
     // Assert blocked chip exists (fail loudly if seed data doesn't provide it)
     await expect(blockedChip).toBeVisible();
@@ -208,10 +216,14 @@ test.describe('ISSUE-FIX-ROUTE-INTEGRITY-1: No dead clicks in Issues Engine', ()
     expect(title).toMatch(/blocked|actionable|control/i);
 
     // Find the parent row containing this blocked chip
-    const parentRow = blockedChip.locator('xpath=ancestor::tr | ancestor::div[contains(@class, "row")]').first();
+    const parentRow = blockedChip
+      .locator('xpath=ancestor::tr | ancestor::div[contains(@class, "row")]')
+      .first();
 
     // Assert no Fix buttons in the same row
-    const fixButtonsInRow = parentRow.locator('[data-testid="issue-fix-next-button"], [data-testid="issue-fix-button"]');
+    const fixButtonsInRow = parentRow.locator(
+      '[data-testid="issue-fix-next-button"], [data-testid="issue-fix-button"]'
+    );
     await expect(fixButtonsInRow).toHaveCount(0);
   });
 
@@ -235,7 +247,10 @@ test.describe('ISSUE-FIX-ROUTE-INTEGRITY-1: No dead clicks in Issues Engine', ()
     await page.waitForLoadState('networkidle');
 
     // Find the first issue row with a Fix button
-    const firstRow = page.locator('tr').filter({ has: page.locator('[data-testid="issue-fix-next-button"]') }).first();
+    const firstRow = page
+      .locator('tr')
+      .filter({ has: page.locator('[data-testid="issue-fix-next-button"]') })
+      .first();
     await expect(firstRow).toBeVisible();
 
     // Click on the row (not on the button) to open RCP
@@ -260,7 +275,9 @@ test.describe('ISSUE-FIX-ROUTE-INTEGRITY-1: No dead clicks in Issues Engine', ()
     await expect(rightContextPanel).toHaveCount(0);
 
     // Now find and click an action button
-    const actionButton = page.locator('[data-testid="issue-fix-next-button"]').first();
+    const actionButton = page
+      .locator('[data-testid="issue-fix-next-button"]')
+      .first();
     await expect(actionButton).toBeVisible();
 
     // Verify action button has data-no-row-click attribute
@@ -273,7 +290,9 @@ test.describe('ISSUE-FIX-ROUTE-INTEGRITY-1: No dead clicks in Issues Engine', ()
 
     // Assert BOTH: preview opens AND RCP remains closed
     // Action should execute (preview opens inline), not open RCP via row click
-    const previewPanel = page.locator('[data-testid="issue-preview-draft-panel"]');
+    const previewPanel = page.locator(
+      '[data-testid="issue-preview-draft-panel"]'
+    );
     await expect(previewPanel).toBeVisible();
 
     // Assert: RCP remains not present after action click (action did not trigger row click)
@@ -300,7 +319,9 @@ test.describe('ISSUE-FIX-ROUTE-INTEGRITY-1: No dead clicks in Issues Engine', ()
 
     // Find external "Open" links (identified by target="_blank")
     // seed-first-deo-win MUST provide at least one external open link
-    const externalOpenLinks = page.locator('[data-testid="issue-open-button"][target="_blank"]');
+    const externalOpenLinks = page.locator(
+      '[data-testid="issue-open-button"][target="_blank"]'
+    );
 
     // Assert: At least one external open link exists (fail loudly if not)
     await expect(externalOpenLinks.first()).toBeVisible();

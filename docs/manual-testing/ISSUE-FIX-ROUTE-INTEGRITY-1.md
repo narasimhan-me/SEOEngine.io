@@ -375,7 +375,7 @@ This feature does not have entitlement/quota limits.
 ### Open Routes
 
 - **Internal (product workspace):** `/projects/{projectId}/products/{productId}?from=issues_engine&returnTo=...`
-- **External (Shopify admin):** `{issue.shopifyAdminUrl}` (target="_blank", rel="noopener noreferrer")
+- **External (Shopify admin):** `{issue.shopifyAdminUrl}` (target="\_blank", rel="noopener noreferrer")
 
 ---
 

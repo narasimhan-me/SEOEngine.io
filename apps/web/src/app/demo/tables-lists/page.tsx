@@ -15,9 +15,19 @@ interface TableRow {
 }
 
 const TABLE_ROWS: TableRow[] = [
-  { id: 'row-1', name: 'Product Alpha', status: 'Active', category: 'Electronics' },
+  {
+    id: 'row-1',
+    name: 'Product Alpha',
+    status: 'Active',
+    category: 'Electronics',
+  },
   { id: 'row-2', name: 'Product Beta', status: 'Pending', category: 'Apparel' },
-  { id: 'row-3', name: 'Product Gamma', status: 'Draft', category: 'Home & Garden' },
+  {
+    id: 'row-3',
+    name: 'Product Gamma',
+    status: 'Draft',
+    category: 'Home & Garden',
+  },
 ];
 
 const TABLE_COLUMNS: DataTableColumn<TableRow>[] = [
@@ -47,30 +57,39 @@ export default function TablesListsDemoPage() {
   const { openPanel } = useRightContextPanel();
 
   // Stable descriptor generators (no changing values)
-  const getTableRowDescriptor = useCallback((row: TableRow): ContextDescriptor => ({
-    kind: 'product',
-    id: row.id,
-    title: row.name,
-    subtitle: row.category,
-    metadata: {
-      Status: row.status,
-      Type: 'Table Row',
-    },
-  }), []);
+  const getTableRowDescriptor = useCallback(
+    (row: TableRow): ContextDescriptor => ({
+      kind: 'product',
+      id: row.id,
+      title: row.name,
+      subtitle: row.category,
+      metadata: {
+        Status: row.status,
+        Type: 'Table Row',
+      },
+    }),
+    []
+  );
 
-  const getListRowDescriptor = useCallback((row: ListRow): ContextDescriptor => ({
-    kind: 'task',
-    id: row.id,
-    title: row.title,
-    subtitle: row.description,
-    metadata: {
-      Type: 'List Item',
-    },
-  }), []);
+  const getListRowDescriptor = useCallback(
+    (row: ListRow): ContextDescriptor => ({
+      kind: 'task',
+      id: row.id,
+      title: row.title,
+      subtitle: row.description,
+      metadata: {
+        Type: 'List Item',
+      },
+    }),
+    []
+  );
 
-  const handleOpenContext = useCallback((descriptor: ContextDescriptor) => {
-    openPanel(descriptor);
-  }, [openPanel]);
+  const handleOpenContext = useCallback(
+    (descriptor: ContextDescriptor) => {
+      openPanel(descriptor);
+    },
+    [openPanel]
+  );
 
   return (
     <div className="space-y-8">
@@ -80,13 +99,16 @@ export default function TablesListsDemoPage() {
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Canonical DataTable and DataList components for Design System v1.5.
-          Use &quot;View details&quot; (eye icon) to open the Right Context Panel.
+          Use &quot;View details&quot; (eye icon) to open the Right Context
+          Panel.
         </p>
       </div>
 
       {/* DataTable Section */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-foreground">DataTable</h2>
+        <h2 className="mb-4 text-lg font-semibold text-foreground">
+          DataTable
+        </h2>
         <DataTable
           columns={TABLE_COLUMNS}
           rows={TABLE_ROWS}

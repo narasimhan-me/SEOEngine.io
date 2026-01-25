@@ -135,7 +135,9 @@ export default function AdminAiUsagePage() {
             {Object.entries(data?.usageByPlan || {}).map(([plan, count]) => (
               <div key={plan} className="flex justify-between items-center">
                 <span className="text-muted-foreground capitalize">{plan}</span>
-                <span className="font-medium text-foreground">{count} runs</span>
+                <span className="font-medium text-foreground">
+                  {count} runs
+                </span>
               </div>
             ))}
             {Object.keys(data?.usageByPlan || {}).length === 0 && (
@@ -199,7 +201,9 @@ export default function AdminAiUsagePage() {
           Top Consumers (This Month)
         </h2>
         {consumerRows.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No consumers this month</p>
+          <p className="text-muted-foreground text-sm">
+            No consumers this month
+          </p>
         ) : (
           <DataTable
             columns={columns}

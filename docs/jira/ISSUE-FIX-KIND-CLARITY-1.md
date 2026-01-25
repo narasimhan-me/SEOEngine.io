@@ -19,6 +19,7 @@ Eliminate semantic ambiguity in Issue row actions by making the "kind" of fix ex
 As part of ISSUE-FIX-ROUTE-INTEGRITY-1, we introduced strict routing and action destination validation. However, the current UI does not clearly communicate WHAT kind of fix will happen when a user clicks "Fix".
 
 Users cannot answer at a glance:
+
 - Is this AI-generated or rule/template-based?
 - Will this take me to a preview, a configuration screen, or guidance?
 - Am I applying something now, or reviewing first?
@@ -49,6 +50,7 @@ This phase addresses semantic clarity only—no behavior changes, no new flows, 
 Eliminate semantic ambiguity in Issue row actions by making the "kind" of fix explicit at the point of decision, without adding new flows.
 
 Users must be able to answer, at a glance:
+
 - Is this AI-generated or rule/template-based?
 - Will this take me to a preview, a configuration screen, or guidance?
 - Am I applying something now, or reviewing first?
@@ -60,6 +62,7 @@ Users must be able to answer, at a glance:
 Issues Decision Engine page only (no new pages).
 
 Changes limited to:
+
 - Labels
 - Secondary text
 - Icons
@@ -76,6 +79,7 @@ NO new buttons. NO new navigation.
 Introduce the following canonical fix kinds (frontend-only classification):
 
 ### 1. AI_PREVIEW_FIX
+
 - **Meaning:** AI will generate a preview; nothing is applied automatically.
 - **Example label:**
   - Primary: "Review AI fix"
@@ -83,6 +87,7 @@ Introduce the following canonical fix kinds (frontend-only classification):
 - **Icon:** AI / sparkle (from local icon set)
 
 ### 2. DIRECT_FIX
+
 - **Meaning:** User is routed to an existing internal UI where they manually apply changes.
 - **Example label:**
   - Primary: "Fix in workspace"
@@ -90,6 +95,7 @@ Introduce the following canonical fix kinds (frontend-only classification):
 - **Icon:** wrench / edit
 
 ### 3. GUIDANCE_ONLY
+
 - **Meaning:** No direct fix available; user receives instructions or context.
 - **Example label:**
   - Primary: "View guidance"
@@ -97,6 +103,7 @@ Introduce the following canonical fix kinds (frontend-only classification):
 - **Icon:** info / book
 
 ### 4. BLOCKED (already exists; do not redesign)
+
 - **Meaning:** Action is not reachable in current context.
 - **Label remains "Blocked".**
 
@@ -107,6 +114,7 @@ Introduce the following canonical fix kinds (frontend-only classification):
 ### PATCH 1 — Derive fix kind per Issue row (frontend-only)
 
 Add a small helper (co-located with issueActionDestinations) that derives a `fixKind` for each issue row using existing data:
+
 - Presence of AI preview route → AI_PREVIEW_FIX
 - Presence of direct internal fix route without preview → DIRECT_FIX
 - No fix route but informational content → GUIDANCE_ONLY
@@ -118,15 +126,18 @@ Do NOT add heuristics based on guesswork; use existing routing/destination signa
 ### PATCH 2 — Update Issue row Fix CTA labels to reflect fix kind
 
 In:
+
 - apps/web/src/app/projects/[id]/issues/page.tsx
 
 Update the primary Fix action rendering to:
+
 - Change the visible label based on `fixKind`
 - Add a small secondary line or tooltip explaining what will happen next
 - Keep data-testids unchanged
 - Keep disabled gating unchanged
 
 Examples:
+
 - AI_PREVIEW_FIX → "Review AI fix"
 - DIRECT_FIX → "Fix in workspace"
 - GUIDANCE_ONLY → Replace Fix button with "View guidance" action (uses existing Open/View logic)
@@ -141,6 +152,7 @@ Examples:
 ### PATCH 4 — Right Context Panel consistency
 
 Ensure the RCP header or first section reflects the same fix kind language:
+
 - If Issue row says "Review AI fix", RCP should echo:
   - "This issue has an AI-generated fix preview."
 - If "Fix in workspace", RCP should state:
@@ -151,9 +163,11 @@ No new RCP sections. Copy-only alignment.
 ### PATCH 5 — Manual testing documentation
 
 Create:
+
 - docs/manual-testing/ISSUE-FIX-KIND-CLARITY-1.md
 
 Include:
+
 - At least one example for each fix kind:
   - AI preview issue
   - Direct fix issue
@@ -165,11 +179,13 @@ Include:
   - Clicking the CTA leads to the expected flow
 
 Update:
+
 - IMPLEMENTATION_PLAN.md with this phase and reference the new manual testing doc.
 
 ### PATCH 6 — Regression guardrails
 
 Add a lightweight dev-time warning:
+
 - If fixKind === AI_PREVIEW_FIX but label does not include "Review"
 - If fixKind === DIRECT_FIX but label implies AI or automation
 

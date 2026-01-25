@@ -46,11 +46,13 @@ export function ContextPanelAiAssistHints({
       </summary>
       <div className="border-t border-border px-3 py-2">
         <p className="text-xs text-muted-foreground leading-relaxed">
-          AI assistance may be available in the main workspace for draft generation.
+          AI assistance may be available in the main workspace for draft
+          generation.
         </p>
         {issuesCount > 0 && (
           <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
-            {issuesCount} issue{issuesCount !== 1 ? 's' : ''} detected. Review issues in the main workspace to explore fix options.
+            {issuesCount} issue{issuesCount !== 1 ? 's' : ''} detected. Review
+            issues in the main workspace to explore fix options.
           </p>
         )}
       </div>

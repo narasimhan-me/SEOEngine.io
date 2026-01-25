@@ -388,7 +388,7 @@
 **Expected Results:**
 
 - UI: Table uses DataTable component (token-based surfaces: bg-[hsl(var(--surface-card))], text-foreground, hover:bg-[hsl(var(--menu-hover-bg)/0.14)]).
-- UI: No gray/white legacy styling (no bg-gray-*, bg-white on hover).
+- UI: No gray/white legacy styling (no bg-gray-\*, bg-white on hover).
 - UI: Focus ring visible on focused row.
 
 ---
@@ -525,7 +525,7 @@
 
 - UI: Table uses DataTable component with token-based styling.
 - UI: Columns display: Time, Actor, Role, Action, Target.
-- UI: No gray/white legacy styling (no bg-gray-*, bg-white on hover).
+- UI: No gray/white legacy styling (no bg-gray-\*, bg-white on hover).
 - UI: Empty state rendered outside table (no colSpan rows).
 
 ---
@@ -716,7 +716,7 @@
 
 - UI: Per-product results use canonical DataTable component (not legacy `<table>` markup).
 - UI: DataTable uses `density="dense"` for compact presentation.
-- UI: No legacy gray/white table utility stack (no divide-gray-*, bg-gray-*, bg-white used for table styling).
+- UI: No legacy gray/white table utility stack (no divide-gray-_, bg-gray-_, bg-white used for table styling).
 - UI: Columns display: Product, Status, Message.
 - UI: Product column links use text-primary and navigate via handleNavigate interception.
 - UI: Status badges preserve existing styling (UPDATED=green, SKIPPED=muted, LIMIT_REACHED=amber, error=red).

@@ -43,13 +43,13 @@
 
 ## URL Deep-Link Schema
 
-| Parameter     | Required | Allowed Values                                                   |
-| ------------- | -------- | ---------------------------------------------------------------- |
-| `panel`       | Yes      | `details` (canonical under autonomy)                             |
+| Parameter     | Required | Allowed Values                                                       |
+| ------------- | -------- | -------------------------------------------------------------------- |
+| `panel`       | Yes      | `details` (canonical under autonomy)                                 |
 | `entityType`  | Yes      | `product`, `page`, `collection`, `blog`, `issue`, `user`, `playbook` |
-| `entityId`    | Yes      | Any non-empty string (the entity's ID)                           |
-| `entityTitle` | No       | Optional entity title (used as fallback for panel title)         |
-| `panelOpen`   | No       | Accepted but not required (legacy compatibility)                 |
+| `entityId`    | Yes      | Any non-empty string (the entity's ID)                               |
+| `entityTitle` | No       | Optional entity title (used as fallback for panel title)             |
+| `panelOpen`   | No       | Accepted but not required (legacy compatibility)                     |
 
 **Note:** [RIGHT-CONTEXT-PANEL-AUTONOMY-1] Legacy `panel` values (`recommendations`, `history`, `help`) are accepted for backward compatibility but normalized to `details` via replaceState. No view tabs exist under autonomy.
 

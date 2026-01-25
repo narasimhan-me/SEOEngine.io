@@ -62,37 +62,40 @@ export default function AdminUsersPage() {
 
   // Build ContextDescriptor for a user row
   // [RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-4] Fixed metadata keys
-  const getUserDescriptor = useCallback((user: User & DataTableRow): ContextDescriptor => {
-    // Build metadata object, omitting null/undefined optional fields
-    const metadata: Record<string, string> = {
-      role: user.role,
-      accountStatus: user.accountStatus,
-      plan: user.subscription?.plan || 'free',
-      projectsCount: String(user._count.projects),
-      aiUsage: String(user.aiUsageThisMonth),
-      // [FIXUP-4] quotaPercent is numeric-only (no % suffix); renderer adds %
-      quotaPercent: String(user.quotaPercent),
-      // [FIXUP-4] twoFactorEnabled is 'true'/'false' string
-      twoFactorEnabled: user.twoFactorEnabled ? 'true' : 'false',
-      createdAt: new Date(user.createdAt).toLocaleDateString(),
-      lastActivity: new Date(user.lastActivity).toLocaleDateString(),
-    };
+  const getUserDescriptor = useCallback(
+    (user: User & DataTableRow): ContextDescriptor => {
+      // Build metadata object, omitting null/undefined optional fields
+      const metadata: Record<string, string> = {
+        role: user.role,
+        accountStatus: user.accountStatus,
+        plan: user.subscription?.plan || 'free',
+        projectsCount: String(user._count.projects),
+        aiUsage: String(user.aiUsageThisMonth),
+        // [FIXUP-4] quotaPercent is numeric-only (no % suffix); renderer adds %
+        quotaPercent: String(user.quotaPercent),
+        // [FIXUP-4] twoFactorEnabled is 'true'/'false' string
+        twoFactorEnabled: user.twoFactorEnabled ? 'true' : 'false',
+        createdAt: new Date(user.createdAt).toLocaleDateString(),
+        lastActivity: new Date(user.lastActivity).toLocaleDateString(),
+      };
 
-    // [FIXUP-4] Only include adminRole if present (don't force 'None')
-    if (user.adminRole) {
-      metadata.adminRole = user.adminRole;
-    }
+      // [FIXUP-4] Only include adminRole if present (don't force 'None')
+      if (user.adminRole) {
+        metadata.adminRole = user.adminRole;
+      }
 
-    return {
-      kind: 'user',
-      id: user.id,
-      title: user.email,
-      subtitle: user.name || 'No name set',
-      openHref: `/admin/users/${user.id}`,
-      openHrefLabel: 'Open user details',
-      metadata,
-    };
-  }, []);
+      return {
+        kind: 'user',
+        id: user.id,
+        title: user.email,
+        subtitle: user.name || 'No name set',
+        openHref: `/admin/users/${user.id}`,
+        openHrefLabel: 'Open user details',
+        metadata,
+      };
+    },
+    []
+  );
 
   useEffect(() => {
     fetchUsers(currentPage);

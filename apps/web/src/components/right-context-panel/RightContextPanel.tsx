@@ -54,12 +54,7 @@ function ExternalLinkIcon({ className }: { className?: string }) {
  * Z-index: below Command Palette (z-50), above main content.
  */
 export function RightContextPanel() {
-  const {
-    isOpen,
-    descriptor,
-    activeView,
-    closePanel,
-  } = useRightContextPanel();
+  const { isOpen, descriptor, activeView, closePanel } = useRightContextPanel();
   const panelRef = useRef<HTMLElement>(null);
   const titleId = 'right-context-panel-title';
 
