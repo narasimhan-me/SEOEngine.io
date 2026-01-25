@@ -1,8 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { adminApi, billingApi } from '@/lib/api';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableRow,
+} from '@/components/tables/DataTable';
 
+/**
+ * [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-3] Migrated to canonical DataTable.
+ * Token-only styling; no legacy gray/white table utilities.
+ * Preserves in-row <select> behavior; keyboard guard prevents DataTable hijacking.
+ */
 interface User {
   id: string;
   email: string;
@@ -37,11 +47,7 @@ export default function AdminSubscriptionsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [updating, setUpdating] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchData(currentPage);
-  }, [currentPage]);
-
-  async function fetchData(page: number) {
+  const fetchData = useCallback(async (page: number) => {
     setLoading(true);
     try {
       const [usersData, plansData] = await Promise.all([
@@ -56,7 +62,11 @@ export default function AdminSubscriptionsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    fetchData(currentPage);
+  }, [currentPage, fetchData]);
 
   async function handlePlanChange(userId: string, planId: string) {
     setError('');
@@ -90,7 +100,7 @@ export default function AdminSubscriptionsPage() {
       case 'starter':
         return 'bg-green-100 text-green-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-muted-foreground';
     }
   }
 
@@ -103,23 +113,99 @@ export default function AdminSubscriptionsPage() {
       case 'past_due':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-muted-foreground';
     }
   }
 
+  // [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-3] Define DataTable columns
+  const columns: DataTableColumn<User & DataTableRow>[] = useMemo(
+    () => [
+      {
+        key: 'user',
+        header: 'User',
+        cell: (row) => (
+          <div>
+            <div className="text-sm font-medium text-foreground">
+              {row.name || 'No name'}
+            </div>
+            <div className="text-sm text-muted-foreground">{row.email}</div>
+          </div>
+        ),
+      },
+      {
+        key: 'plan',
+        header: 'Current Plan',
+        cell: (row) => (
+          <span
+            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full capitalize ${getPlanBadgeColor(
+              row.subscription?.plan || 'free'
+            )}`}
+          >
+            {row.subscription?.plan || 'free'}
+          </span>
+        ),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        cell: (row) => (
+          <span
+            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full capitalize ${getStatusBadgeColor(
+              row.subscription?.status || 'active'
+            )}`}
+          >
+            {row.subscription?.status || 'active'}
+          </span>
+        ),
+      },
+      {
+        key: 'periodEnd',
+        header: 'Period End',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {row.subscription?.currentPeriodEnd
+              ? new Date(row.subscription.currentPeriodEnd).toLocaleDateString()
+              : '—'}
+          </span>
+        ),
+      },
+      {
+        key: 'changePlan',
+        header: 'Change Plan',
+        truncate: false,
+        cell: (row) => (
+          <select
+            value={row.subscription?.plan || 'free'}
+            onChange={(e) => handlePlanChange(row.id, e.target.value)}
+            disabled={updating === row.id}
+            className="text-sm border border-border rounded-md shadow-sm bg-background text-foreground focus:ring-primary focus:border-primary disabled:opacity-50"
+            data-no-row-keydown
+          >
+            {plans.map((plan) => (
+              <option key={plan.id} value={plan.id}>
+                {plan.name} ({formatPrice(plan.price)})
+              </option>
+            ))}
+          </select>
+        ),
+      },
+    ],
+    [plans, updating]
+  );
+
   if (loading && users.length === 0) {
-    return <p className="text-gray-600">Loading subscriptions...</p>;
+    return <p className="text-muted-foreground">Loading subscriptions...</p>;
   }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">
+      <h1 className="text-2xl font-bold text-foreground mb-6">
         Subscription Management
       </h1>
 
       {/* Status messages */}
       {error && (
-        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="mb-4 bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded">
           {error}
         </div>
       )}
@@ -132,97 +218,27 @@ export default function AdminSubscriptionsPage() {
       {/* Plans Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {plans.map((plan) => (
-          <div key={plan.id} className="bg-white shadow rounded-lg p-4">
-            <h3 className="text-sm font-medium text-gray-500">{plan.name}</h3>
-            <p className="text-lg font-semibold text-gray-900">
+          <div
+            key={plan.id}
+            className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-4"
+          >
+            <h3 className="text-sm font-medium text-muted-foreground">
+              {plan.name}
+            </h3>
+            <p className="text-lg font-semibold text-foreground">
               {formatPrice(plan.price)}
             </p>
           </div>
         ))}
       </div>
 
-      {/* Subscriptions Table */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                User
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Current Plan
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Period End
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Change Plan
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => (
-              <tr key={user.id}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">
-                      {user.name || 'No name'}
-                    </div>
-                    <div className="text-sm text-gray-500">{user.email}</div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`inline-flex px-2 py-1 text-xs font-medium rounded-full capitalize ${getPlanBadgeColor(
-                      user.subscription?.plan || 'free'
-                    )}`}
-                  >
-                    {user.subscription?.plan || 'free'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`inline-flex px-2 py-1 text-xs font-medium rounded-full capitalize ${getStatusBadgeColor(
-                      user.subscription?.status || 'active'
-                    )}`}
-                  >
-                    {user.subscription?.status || 'active'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {user.subscription?.currentPeriodEnd
-                    ? new Date(
-                        user.subscription.currentPeriodEnd
-                      ).toLocaleDateString()
-                    : '—'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <select
-                    value={user.subscription?.plan || 'free'}
-                    onChange={(e) => handlePlanChange(user.id, e.target.value)}
-                    disabled={updating === user.id}
-                    className="text-sm border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
-                  >
-                    {plans.map((plan) => (
-                      <option key={plan.id} value={plan.id}>
-                        {plan.name} ({formatPrice(plan.price)})
-                      </option>
-                    ))}
-                  </select>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Subscriptions Table - Canonical DataTable */}
+      <DataTable columns={columns} rows={users} hideContextAction={true} />
 
       {/* Pagination */}
       {pagination && pagination.pages > 1 && (
         <div className="mt-4 flex justify-between items-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
             {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
             {pagination.total} users
@@ -231,7 +247,7 @@ export default function AdminSubscriptionsPage() {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-1 text-sm border border-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
             >
               Previous
             </button>
@@ -240,7 +256,7 @@ export default function AdminSubscriptionsPage() {
                 setCurrentPage((p) => Math.min(pagination.pages, p + 1))
               }
               disabled={currentPage === pagination.pages}
-              className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-1 text-sm border border-border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
             >
               Next
             </button>

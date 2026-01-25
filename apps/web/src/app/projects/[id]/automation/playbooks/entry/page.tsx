@@ -12,6 +12,8 @@ import {
   buildPlaybooksListHref,
   navigateToPlaybooksList,
 } from '@/lib/playbooks-routing';
+// [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Shell header integration
+import { useCenterPaneHeader } from '@/components/layout/CenterPaneHeaderProvider';
 
 type EntryIntent =
   | 'missing_metadata'
@@ -78,6 +80,9 @@ export default function AutomationPlaybooksEntryPage() {
   const [enabled, setEnabled] = useState(false);
   const [enableLoading, setEnableLoading] = useState(false);
   const [enabledAt, setEnabledAt] = useState<string | null>(null);
+
+  // [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Shell header integration
+  const { setHeader } = useCenterPaneHeader();
 
   const intentSummary = useMemo(() => {
     if (intentParam === 'missing_metadata') {
@@ -146,6 +151,15 @@ export default function AutomationPlaybooksEntryPage() {
       router.push('/login');
     }
   }, [router]);
+
+  // [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Set shell header
+  useEffect(() => {
+    setHeader({
+      breadcrumbs: `Playbooks`,
+      title: 'New Playbook',
+      description: intentSummary,
+    });
+  }, [setHeader, intentSummary]);
 
   useEffect(() => {
     const key = ENTRY_CONTEXT_KEY(projectId);
@@ -384,43 +398,25 @@ export default function AutomationPlaybooksEntryPage() {
 
   return (
     <div>
-      <nav className="mb-4 text-sm">
-        <ol className="flex flex-wrap items-center gap-2 text-gray-500">
-          <li>
-            {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5] Use canonical route via helper */}
-            <Link
-              href={buildPlaybooksListHref({ projectId })}
-              className="hover:text-gray-700"
-            >
-              Playbooks
-            </Link>
-          </li>
-          <li>/</li>
-          <li className="text-gray-900">New Playbook</li>
-        </ol>
-      </nav>
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-gray-900">New Playbook</h1>
-          <p className="mt-1 text-gray-600">{intentSummary}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Stable CTA for Playwright/manual testing (no AI dependency) */}
-          <button
-            type="button"
-            data-testid="automation-entry-open-playbooks"
-            onClick={handleViewAutomation}
-            className="inline-flex items-center rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700"
-          >
-            Open Playbooks
-          </button>
-          <Link
-            href={buildPlaybooksListHref({ projectId })}
-            className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Back to playbooks
-          </Link>
-        </div>
+      {/* [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] In-canvas breadcrumbs and header removed - shell header owns these */}
+
+      {/* Action buttons row */}
+      <div className="mb-6 flex items-center justify-end gap-2">
+        {/* [PLAYBOOK-ENTRYPOINT-INTEGRITY-1-FIXUP-5-FOLLOWUP-1] Stable CTA for Playwright/manual testing (no AI dependency) */}
+        <button
+          type="button"
+          data-testid="automation-entry-open-playbooks"
+          onClick={handleViewAutomation}
+          className="inline-flex items-center rounded-md bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700"
+        >
+          Open Playbooks
+        </button>
+        <Link
+          href={buildPlaybooksListHref({ projectId })}
+          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Back to playbooks
+        </Link>
       </div>
       {error && (
         <div className="mb-6 rounded border border-red-400 bg-red-100 p-4 text-red-700">

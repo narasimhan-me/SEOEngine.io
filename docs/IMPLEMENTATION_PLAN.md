@@ -2090,6 +2090,31 @@ Aggregation surfaces (Products list, Work Queue) now use fixKind-aware semantics
 
 1. **Work Queue helper line semantics**: DIAGNOSTIC issue banner now uses explicit "To review this issue:" helper prefix (never "fix" language); IFKC1-007 asserts this to prevent regression.
 
+#### FIXUP-3 (2026-01-25)
+
+Semantic CTA labels with fix-action kinds for Issues Decision Engine:
+
+1. **Fix-Action Kind Helper**: Created `apps/web/src/lib/issues/issueFixActionKind.ts` with 4 canonical kinds:
+   - `AI_PREVIEW_FIX`: AI fix with inline preview → "Review AI fix" (workflow.ai icon)
+   - `DIRECT_FIX`: Direct navigation to workspace → "Fix in workspace" (nav.projects icon)
+   - `GUIDANCE_ONLY`: Diagnostic/review only → "Review guidance" (playbook.content icon)
+   - `BLOCKED`: No action reachable → "Blocked" chip (status.blocked icon)
+
+2. **Issues Page CTA Updates**: Updated `apps/web/src/app/projects/[id]/issues/page.tsx`:
+   - AI preview buttons show "Review AI fix" with sparkle icon
+   - Direct fix links show "Fix in workspace" with inventory icon
+   - View affected links show "Review guidance" with article icon
+   - Sublabels added via title attribute (e.g., "Preview changes before saving")
+   - All existing `data-testid` selectors preserved for backward compatibility
+
+3. **Dev-Time Trust Guardrails**: Added console warnings (dev mode only):
+   - AI_PREVIEW_FIX labels must include "Review"
+   - DIRECT_FIX labels must NOT include "AI", "Apply", or "Automation"
+
+4. **RCP Copy Alignment**: Updated `ContextPanelIssueDetails.tsx` Actionability section with fix-action kind sentence (no CTAs in RCP body, read-only panel).
+
+5. **Manual Testing**: Added FIXUP-3 section to `ISSUE-FIX-KIND-CLARITY-1.md` with 5 new scenarios (F3-001 through F3-005) and verification checklist.
+
 #### Core Files
 
 - `apps/web/src/lib/issue-to-fix-path.ts` - IssueFixKind type + issue configs
@@ -2106,6 +2131,69 @@ Aggregation surfaces (Products list, Work Queue) now use fixKind-aware semantics
 #### Manual Testing
 
 - `docs/manual-testing/ISSUE-FIX-KIND-CLARITY-1.md`
+
+---
+
+### Phase DRAFT-LIFECYCLE-VISIBILITY-1: Draft Lifecycle State Visibility ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-25
+**Activation:** Trust/clarity for draft lifecycle in Issues Engine
+
+#### Goals
+
+1. Centralize draft lifecycle state derivation (NO_DRAFT, GENERATED_UNSAVED, SAVED_NOT_APPLIED, APPLIED).
+2. Show subtle draft state indicator in Issues table row actions.
+3. State-driven gating for inline preview Apply button (only enabled when SAVED_NOT_APPLIED).
+4. Applied confirmation chip replaces Apply button after apply.
+5. RCP echoes draft lifecycle state in Actionability section.
+
+#### Strict Non-Goals
+
+- No backend/schema changes
+- No AI execution changes
+- No bulk actions
+- No silent auto-apply
+
+#### Key Changes
+
+1. **Draft Lifecycle State Helper**: Created `apps/web/src/lib/issues/draftLifecycleState.ts` with:
+   - `DraftLifecycleState` type (NO_DRAFT, GENERATED_UNSAVED, SAVED_NOT_APPLIED, APPLIED)
+   - `deriveDraftLifecycleState()` - derives state from existing UI signals only
+   - `getDraftLifecycleCopy()` - returns canonical labels/descriptions
+   - `checkSavedDraftInSessionStorage()` - checks existing draft key scheme
+
+2. **Issues Table Row Indicator**: Actions column renders small, non-clickable draft indicator when state !== NO_DRAFT. Shows "Draft not saved", "Draft saved", or "Applied" as appropriate.
+
+3. **Inline Preview State-Driven Gating**:
+   - GENERATED_UNSAVED: Apply disabled with "Save draft before applying" tooltip
+   - SAVED_NOT_APPLIED: Apply enabled
+   - APPLIED: Apply button replaced with non-interactive "Applied" chip; Cancel → Close
+
+4. **RCP Draft State Echo**: ContextPanelIssueDetails renders draft lifecycle line in Actionability section when draft exists. Uses passed-in state or falls back to sessionStorage check.
+
+5. **Dev-Time Guardrails**: Console warnings when:
+   - Apply enabled but state != SAVED_NOT_APPLIED
+   - Applied shown but appliedAt not set
+   - Row indicator state disagrees with preview state
+
+#### Core Files
+
+- `apps/web/src/lib/issues/draftLifecycleState.ts` - Draft lifecycle state helper (new)
+- `apps/web/src/app/projects/[id]/issues/page.tsx` - Row indicator + preview strip
+- `apps/web/src/components/right-context-panel/ContextPanelIssueDetails.tsx` - RCP echo
+- `apps/web/src/components/right-context-panel/ContextPanelContentRenderer.tsx` - Pass state to RCP
+
+#### Manual Testing
+
+- `docs/manual-testing/DRAFT-LIFECYCLE-VISIBILITY-1.md`
+
+#### FIXUP-1: RCP Echo + Conservative Derivation (2026-01-25)
+
+1. **RCP always shows draft line**: RCP Actionability section now displays draft lifecycle line for all states (including NO_DRAFT: "Draft: No draft exists") for complete state visibility.
+2. **Issues descriptor passes draftLifecycleState**: `getIssueDescriptor()` now derives and passes `metadata.draftLifecycleState` to RCP for accurate echo during preview states.
+3. **Conservative APPLIED derivation**: `deriveDraftLifecycleState()` now requires explicit `hasAppliedSignal === true` to return APPLIED. Legacy `legacyDraftState === 'applied'` alone no longer elevates to APPLIED, preventing premature "Applied" display.
+4. **NO_DRAFT displayable copy**: `getDraftLifecycleCopy('NO_DRAFT')` now returns displayable `shortLabel: 'No draft exists'` instead of empty string.
 
 ---
 
@@ -2262,6 +2350,763 @@ Implements diagnostic guidance pattern for issues with `actionability === 'infor
 ## In Progress
 
 _None at this time._
+
+### Phase LAYOUT-SHELL-IMPLEMENTATION-1: Foundational UI Shell (Design System v1.5) ✅ COMPLETE
+
+**Status:** Complete
+**Date Started:** 2026-01-21
+**Date Completed:** 2026-01-21
+
+#### Scope (Layout Only)
+
+- Persistent Global Top Bar (placeholders only)
+- Left Rail (icon-only always; fixed ~72px; no expand/collapse toggle) [Updated per WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1]
+- Center Work Canvas container (internal vertical scroll; breadcrumbs/actions placeholders)
+
+> **Note:** Left rail collapse/expand + `engineo_nav_state` localStorage persistence were removed in WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1.
+
+#### Constraints
+
+- Token-only styling; dark mode default-safe
+- Shopify embedded iframe safe (scroll containment inside Center Work Canvas)
+- No Right Context Panel
+- No feature UI work (no dashboards/tables/cards added as part of this phase)
+
+#### Core Files
+
+- apps/web/src/components/layout/LayoutShell.tsx
+- apps/web/src/app/layout.tsx
+- apps/web/src/app/dashboard/layout.tsx
+- apps/web/src/app/projects/layout.tsx
+- apps/web/src/app/settings/layout.tsx
+- apps/web/src/app/admin/layout.tsx
+
+#### Manual Testing
+
+- docs/manual-testing/LAYOUT-SHELL-IMPLEMENTATION-1.md
+
+#### Summary of Changes
+
+- Created `LayoutShell.tsx`: Canonical UI shell component with Top Bar, Left Rail (icon-only), and Center Work Canvas with scroll containment
+- Updated root `layout.tsx`: Changed hardcoded gray colors to token-based theming (`bg-background`, `text-foreground`, `text-primary`, `text-muted-foreground`)
+- Updated dashboard/projects/settings layouts: Replaced TopNav+wrapper pattern with unified LayoutShell
+- Updated admin layout: Replaced TopNav with LayoutShell while preserving admin auth gating and mobile drawer; converted all hardcoded colors to design tokens
+
+> **Note:** Left rail collapse/expand + `engineo_nav_state` persistence were removed in WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1.
+
+---
+
+### Phase RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1: Right Context Panel (Design System v1.5) ✅ COMPLETE
+
+**Status:** Complete
+**Date Started:** 2026-01-21
+**Date Completed:** 2026-01-22 (FIXUP-3)
+
+#### Overview
+
+Add a deterministic Right Context Panel to the UI shell that provides contextual details for selected items without blocking the main work canvas. FIXUP-3 extends with view tabs, pin/width controls, and kind-specific content rendering.
+
+#### Affected Files
+
+- apps/web/src/components/right-context-panel/RightContextPanelProvider.tsx (UPDATED)
+- apps/web/src/components/right-context-panel/RightContextPanel.tsx (UPDATED)
+- apps/web/src/components/right-context-panel/ContextPanelContentRenderer.tsx (NEW)
+- apps/web/src/components/layout/LayoutShell.tsx (UPDATED)
+- apps/web/src/components/products/ProductTable.tsx (UPDATED)
+- apps/web/src/app/admin/users/page.tsx (UPDATED)
+- apps/web/src/components/work-queue/ActionBundleCard.tsx (UPDATED)
+
+#### Technical Details
+
+- **RightContextPanelProvider**: React context/provider that owns deterministic panel state
+  - `ContextDescriptor` type: Required fields (kind, id, title); Optional fields (subtitle, metadata, openHref, openHrefLabel, scopeProjectId)
+  - `PanelView` type: 'details' | 'recommendations' | 'history' | 'help'
+  - `PanelWidthMode` type: 'default' | 'wide'
+  - `useRightContextPanel()` hook: isOpen, descriptor, activeView, widthMode, isPinned, openPanel, closePanel, togglePanel, setActiveView, togglePinned, toggleWidthMode, openContextPanel
+  - Auto-close on Left Nav segment switch (respects isPinned)
+  - Focus management (stores lastActiveElement, restores on close)
+  - ESC key to close (with modal dialog guard and editable element guard)
+  - Cmd/Ctrl + . keyboard shortcut to close
+  - Shopify-safe (no window.top usage)
+
+- **RightContextPanel**: UI component consuming the context
+  - Desktop (≥1024px): Pinned mode, pushes content
+  - Narrow (<1024px): Overlay mode with scrim
+  - View tabs: Details, Recommendations, History, Help
+  - Header controls: Open full page link, width toggle, pin toggle, close button
+  - Z-index 40 (below Command Palette at z-50)
+  - Accessible: role="complementary", aria-labelledby
+  - Test hooks: data-testid attributes for automation
+
+- **ContextPanelContentRenderer**: Pure renderer for kind-specific content
+  - Maps (activeView, descriptor.kind) to content blocks
+  - Supported kinds: product, user, work_item
+  - Scope project mismatch detection and handling
+  - Truth-preserving: renders only provided metadata
+
+- **Integration Points**:
+  - ProductTable: Eye-icon Details button with MVP metadata fields (scopeProjectId, seoTitleStatus, seoDescriptionStatus, openHref)
+  - admin/users/page.tsx: Eye-icon Details button with user metadata
+  - ActionBundleCard: Eye-icon Details button with work_item metadata
+
+#### Manual Testing
+
+- docs/manual-testing/RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md
+
+#### Summary of Changes
+
+- Updated `RightContextPanelProvider.tsx`: Extended ContextDescriptor with openHref, openHrefLabel, scopeProjectId; added PanelView and PanelWidthMode types; added activeView, widthMode, isPinned state; added setActiveView, togglePinned, toggleWidthMode, openContextPanel actions; added Cmd/Ctrl+. shortcut; pinned panel respects auto-close guard
+- Updated `RightContextPanel.tsx`: Added view tabs, pin toggle, width toggle, open full page link, uses ContextPanelContentRenderer
+- Created `ContextPanelContentRenderer.tsx`: Kind-specific content rendering for product/user/work_item with scope mismatch handling
+- Updated `ProductTable.tsx`: Added MVP metadata fields to getRowDescriptor (scopeProjectId, seoTitleStatus, seoDescriptionStatus, openHref)
+- Updated `admin/users/page.tsx`: Added eye-icon Details button with RCP integration
+- Updated `ActionBundleCard.tsx`: Added eye-icon Details button with RCP integration
+
+---
+
+### Phase TABLES-&-LISTS-ALIGNMENT-1: Canonical DataTable & DataList (Design System v1.5) ✅ COMPLETE
+
+**Status:** Complete
+**Date Started:** 2026-01-21
+**Date Completed:** 2026-01-21
+
+#### Overview
+
+Introduce canonical DataTable and DataList components aligned with Design System v1.5 and Engineering Implementation Contract v1.5. Token-only styling, dark-mode native, Shopify iframe safe.
+
+#### Scope
+
+**In Scope:**
+- Canonical DataTable component with semantic `<table>` markup
+- Canonical DataList component for list-style rows
+- Minimal column model (header label + cell renderer) and row model (id + data)
+- Token-based density prop (comfortable/dense)
+- Row interaction contract: no row-click navigation, explicit "View details" action only
+- Hover/active/focus states token-based (never white in dark mode)
+- RCP integration via `onOpenContext(descriptor)` callback
+- Keyboard accessibility: Tab entry, ArrowUp/ArrowDown navigation, Enter/Space triggers context action
+- Demo route `/demo/tables-lists` for manual testing
+- Roving focus for rows (single focusable row at a time)
+- No horizontal overflow by default (truncation/wrapping)
+
+**Out of Scope:**
+- No feature migrations (existing tables unchanged)
+- No sorting/filtering changes
+- No bulk actions
+- No pagination redesign
+- No virtualization
+
+#### Affected Files
+
+- apps/web/src/components/tables/DataTable.tsx (NEW)
+- apps/web/src/components/tables/DataList.tsx (NEW)
+- apps/web/src/app/demo/tables-lists/page.tsx (NEW)
+
+#### Technical Details
+
+- **DataTable**: Semantic `<table>` with `<thead>` and `<tbody>`
+  - Column model: key, header, cell renderer, optional truncate and width
+  - Row model: requires id field
+  - Hover: `hsl(var(--menu-hover-bg)/0.14)` (dark-mode safe)
+  - Focus: inset ring with primary color
+  - Context action: right-aligned eye icon with tooltip
+  - Test hooks: `data-testid="data-table"`, `data-testid="data-table-row"`, `data-testid="data-table-open-context"`
+
+- **DataList**: Vertical list with same interaction model
+  - Custom row renderer via `renderRow` prop
+  - Same hover/focus states and context action
+  - Test hooks: `data-testid="data-list"`, `data-testid="data-list-row"`, `data-testid="data-list-open-context"`
+
+- **RCP Integration**: Both components accept `onOpenContext(descriptor)` and `getRowDescriptor(row)` props
+  - Stable descriptors prevent flicker on re-click (relies on RCP provider descriptor-stability)
+
+#### Manual Testing
+
+- docs/manual-testing/TABLES-&-LISTS-ALIGNMENT-1.md
+
+#### Summary of Changes
+
+- Created `DataTable.tsx`: Canonical table component with column/row model, token-based styling, keyboard navigation, and RCP integration
+- Created `DataList.tsx`: Canonical list component with same interaction contract
+- Created `/demo/tables-lists/page.tsx`: Demo route with sample data, RCP integration, and ESC-in-input test field
+
+---
+
+### Phase COMMAND-PALETTE-IMPLEMENTATION-1: Global Command Palette (Design System v1.5) ✅ COMPLETE
+
+**Status:** Complete
+**Date Started:** 2026-01-21
+**Date Completed:** 2026-01-21
+
+#### Overview
+
+Add a global Command Palette accessible via keyboard shortcut (Cmd+K / Ctrl+K) or top-bar trigger. Provides quick navigation and entity jump commands without destructive/write/apply/run/generate actions. Token-only styling, dark-mode native, Shopify iframe safe.
+
+#### Scope
+
+**In Scope:**
+- CommandPaletteProvider context with deterministic state (isOpen, query, open/close/toggle)
+- Global keyboard shortcut Cmd+K / Ctrl+K toggles palette
+- Focus management: store opener on open, restore on close
+- CommandPalette UI component with search input and command results
+- Accessible dialog semantics (role="dialog", aria-modal="true")
+- Navigation commands: Overview, Assets, Automation, Insights, Governance, Admin (role-gated)
+- Entity Jump commands (placeholder): Project, Product, Issue
+- Utility commands: Help/Docs, Feedback
+- Deterministic routing: project-context-aware vs fallback
+- Unsaved changes guard (same confirm text as GuardedLink)
+- Admin command visibility gated by user.role === 'ADMIN' AND user.adminRole present
+- Top-bar search trigger converted from placeholder to functional trigger
+- Small-screen icon button trigger
+- Token-based styling (no raw hex, no bg-black/bg-white)
+- Container-contained overlay (Shopify iframe safe)
+
+**Out of Scope:**
+- No destructive commands (delete, remove)
+- No write commands (create, update, save)
+- No apply commands (apply draft, apply fix)
+- No run/generate commands (run automation, generate AI)
+- No real entity search backend (placeholders only)
+- No new routing system
+
+#### Affected Files
+
+- apps/web/src/components/command-palette/CommandPaletteProvider.tsx (NEW)
+- apps/web/src/components/command-palette/CommandPalette.tsx (NEW)
+- apps/web/src/components/layout/LayoutShell.tsx (UPDATED)
+
+#### Technical Details
+
+- **CommandPaletteProvider**: React context/provider with useState for isOpen and query
+  - openPalette(): stores document.activeElement, sets isOpen true, clears query
+  - closePalette(): sets isOpen false, restores focus to opener (best-effort)
+  - togglePalette(): calls open or close based on current state
+  - Global keydown listener for Cmd+K / Ctrl+K
+  - inputRef for focus management from CommandPalette
+
+- **CommandPalette**: UI component consuming useCommandPalette()
+  - Renders nothing when closed
+  - Centered overlay dialog with search input auto-focused
+  - Results grouped by section (Navigation, Entity Jump, Utility)
+  - Arrow key navigation with roving selection
+  - Enter executes selected command and closes
+  - ESC closes palette (even with input focused)
+  - Outside click (scrim) closes palette
+  - Admin command visibility checked via /users/me API
+  - Unsaved changes guard via useUnsavedChanges() before navigation
+  - Container-contained positioning (not viewport-fixed)
+
+- **LayoutShell Integration**:
+  - Wrapped with CommandPaletteProvider (outermost)
+  - CommandPalette mounted inside main content row
+  - Search trigger onClick calls openPalette()
+  - data-testid="command-palette-open" on desktop trigger
+  - data-testid="command-palette-open-mobile" on small-screen trigger
+
+#### Manual Testing
+
+- docs/manual-testing/COMMAND-PALETTE-IMPLEMENTATION-1.md
+
+#### Summary of Changes
+
+- Created `CommandPaletteProvider.tsx`: Context/provider with global keyboard shortcut and focus management
+- Created `CommandPalette.tsx`: Accessible command palette UI with navigation commands and unsaved changes guard
+- Updated `LayoutShell.tsx`: Integrated CommandPaletteProvider wrapper, converted search placeholder to functional trigger, added mobile trigger
+
+---
+
+### Phase NAV-HIERARCHY-POLISH-1: Navigation Tier Visual Hierarchy ✅ COMPLETE
+
+**Status:** Complete
+**Date Started:** 2026-01-22
+**Date Completed:** 2026-01-22
+
+#### Overview
+
+Styling-only polish phase to establish clear visual hierarchy across navigation tiers per Design System v1.5 and Engineering Implementation Contract v1.5. Global Nav reads as strongest navigational tier, Section Nav demoted to secondary, Entity Tabs read as view switchers (not navigation), RCP reads as auxiliary and non-navigational.
+
+#### Scope
+
+**In Scope:**
+- Global Nav (LayoutShell.tsx): Increased visual weight with font-medium base, font-semibold active state, primary color retained
+- Section Nav (ProjectSideNav.tsx): Demoted with font-medium heading (text-muted-foreground/80), neutral active state (bg-muted, no primary color)
+- Mobile drawer (layout.tsx): Token-only styling (bg-foreground/50 scrim, bg-[hsl(var(--surface-raised))] panel, border-border, token-based buttons)
+- Entity Tabs (WorkQueueTabs, ProductDetailsTabs, InsightsSubnav, asset detail pages): Token-only view switcher styling (border-primary text-foreground active, border-transparent text-muted-foreground inactive)
+- Focus-visible ring pattern standardized across all interactive elements
+
+**Out of Scope:**
+- No new components
+- No functional changes
+- No routing changes
+- Focus-visible ring styling standardized (styling-only, no behavior change)
+
+#### Affected Files
+
+- apps/web/src/components/layout/LayoutShell.tsx (UPDATED)
+- apps/web/src/components/layout/ProjectSideNav.tsx (UPDATED)
+- apps/web/src/app/projects/[id]/layout.tsx (UPDATED)
+- apps/web/src/components/work-queue/WorkQueueTabs.tsx (UPDATED)
+- apps/web/src/components/products/optimization/ProductDetailsTabs.tsx (UPDATED)
+- apps/web/src/components/projects/InsightsSubnav.tsx (UPDATED)
+- apps/web/src/app/projects/[id]/assets/pages/[pageId]/page.tsx (UPDATED)
+- apps/web/src/app/projects/[id]/assets/collections/[collectionId]/page.tsx (UPDATED)
+
+#### Technical Details
+
+- **Global Nav**: Added font-medium to nav item base class, font-semibold to active state alongside existing bg-primary/10 and text-primary
+- **Section Nav**: Changed heading from font-semibold to font-medium with text-muted-foreground/80 for reduced prominence, changed active state from border-l-2 border-primary bg-primary/10 text-primary to bg-muted font-medium text-foreground (neutral, no primary color)
+- **Mobile Drawer**: Updated scrim to bg-foreground/50, panel to bg-[hsl(var(--surface-raised))], buttons to token-based classes
+- **Entity Tabs**: Unified pattern across all tab components - border-b border-border container, active tab uses border-primary text-foreground, inactive uses border-transparent text-muted-foreground hover:text-foreground hover:border-border
+
+#### Manual Testing
+
+- docs/manual-testing/NAV-HIERARCHY-POLISH-1.md
+
+#### Summary of Changes
+
+- Updated `LayoutShell.tsx`: Added font-medium base, font-semibold active for Global Nav visual weight
+- Updated `ProjectSideNav.tsx`: Demoted section heading weight, changed to neutral active state
+- Updated `layout.tsx`: Token-only mobile drawer styling
+- Updated `WorkQueueTabs.tsx`: Token-only entity tab styling
+- Updated `ProductDetailsTabs.tsx`: Token-only entity tab styling with neutral badge
+- Updated `InsightsSubnav.tsx`: Token-only entity tab styling
+- Updated asset detail pages: Token-only tab styling for Pages and Collections detail pages
+
+---
+
+### Phase PANEL-DEEP-LINKS-1: Shareable Right Context Panel State ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-22
+**Design System Version:** 1.5
+**Activation:** URL deep-linking for Right Context Panel state
+
+#### Overview
+
+PANEL-DEEP-LINKS-1 adds shareable Right Context Panel state via URL deep-links. When the panel is opened via UI, URL params are written (replaceState semantics). When a URL with valid panel params is loaded, the panel opens deterministically. This enables copy/paste sharing of panel state and proper back/forward navigation.
+
+#### URL Schema
+
+| Parameter     | Required | Allowed Values                                           |
+| ------------- | -------- | -------------------------------------------------------- |
+| `panel`       | Yes      | `details`, `recommendations`, `history`, `help`          |
+| `entityType`  | Yes      | `product`, `page`, `collection`, `blog`, `issue`, `user`, `playbook` |
+| `entityId`    | Yes      | Any non-empty string (the entity's ID)                   |
+| `entityTitle` | No       | Optional entity title (fallback for panel title)         |
+| `panelOpen`   | No       | Accepted but not required (legacy compatibility)         |
+
+#### Key Features
+
+1. **URL → State Sync**: When URL contains valid deep-link params, panel opens deterministically on page load
+2. **State → URL Sync**: When panel opens/changes via UI, URL updates via replaceState (no history entry per change)
+3. **Close Cleans URL**: Closing panel removes all panel-related params
+4. **Back/Forward Support**: Browser history navigation restores panel state
+5. **Invalid Param Safety**: Invalid params fail safely (no crash, no auto-clean)
+6. **Shopify Embedded Preserved**: Shopify params (shop, host) preserved throughout
+
+#### Source of Truth Rules
+
+- URL is source of truth **only when URL includes valid panel params**
+- UI-opened panel also writes to URL for consistency
+- Re-entrancy guard prevents URL→state→URL loops
+- `openedViaUrlRef` tracks if panel was URL-opened (for back/forward close behavior)
+
+#### Affected Files
+
+- `apps/web/src/components/right-context-panel/RightContextPanelProvider.tsx` (UPDATED)
+
+#### Integration Proof Points (Verified)
+
+- **ProductTable.tsx**: Descriptor includes `kind: 'product'`, `title`, `scopeProjectId`, `openHref`
+- **Admin Users page.tsx**: Descriptor includes `kind: 'user'`, `title` (email), `openHref`
+
+#### Manual Testing
+
+- `docs/manual-testing/PANEL-DEEP-LINKS-1.md`
+
+#### Critical Path Map
+
+- Updated CP-020 with PANEL-DEEP-LINKS-1 scenarios and manual testing doc reference
+
+---
+
+### Phase ISSUES-ENGINE-REMOUNT-1: Issues List DataTable + RCP Integration ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-24
+**Design System Version:** 1.5
+**EIC Version:** 1.5
+**Activation:** DataTable migration for Issues Engine with RCP issue details support
+
+#### Overview
+
+ISSUES-ENGINE-REMOUNT-1 remounts the Issues Engine list from a card-based layout to the canonical DataTable component. Integrates Right Context Panel (RCP) issue details view with PANEL-DEEP-LINKS-1 deep-link support. Enforces token-only styling (Design System v1.5) and preserves all existing Playwright selectors and trust/navigation behavior.
+
+#### Key Features
+
+1. **DataTable Migration**: Issues list uses canonical DataTable with columns: Issue, Asset Scope, Pillar, Severity, Status, Actions
+2. **RCP Issue Details**: New ContextPanelIssueDetails component renders issue title, pillar, severity, status, affected counts
+3. **Row Click → RCP**: Clicking a row opens RCP with issue details (via `onRowClick`)
+4. **Eye Icon → RCP**: Context icon (eye) also opens RCP (via `onOpenContext` + `getRowDescriptor`)
+5. **Deep-Link Support**: PANEL-DEEP-LINKS-1 integration for issues (entityType='issue')
+6. **Expansion Rows**: Existing ai-fix-now preview/draft/apply flow preserved via DataTable `isRowExpanded`/`renderExpandedContent`
+7. **Playwright Selectors Preserved**: `data-testid="issue-card-actionable"`, `data-testid="issue-card-informational"`, `data-fix-kind`, `data-testid="issue-card-cta"`, `data-testid="issue-preview-draft-panel"`
+8. **Token-Only Styling**: No literal `bg-white`, `bg-gray-*`, `text-gray-*` classes (dark mode safe)
+
+#### Affected Files
+
+- `apps/web/src/app/projects/[id]/issues/page.tsx` (UPDATED)
+- `apps/web/src/components/right-context-panel/ContextPanelIssueDetails.tsx` (NEW)
+- `apps/web/src/components/right-context-panel/ContextPanelContentRenderer.tsx` (UPDATED)
+
+#### Manual Testing
+
+- `docs/manual-testing/ISSUES-ENGINE-REMOUNT-1.md`
+
+#### Critical Path Map
+
+- Updated CP-009 (Issue Engine Lite) with ISSUES-ENGINE-REMOUNT-1 scenarios and manual testing doc reference
+
+---
+
+### Phase PLAYBOOKS-SHELL-REMOUNT-1: Playbooks DataTable + RCP Integration ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-22
+**Design System Version:** 1.5
+**EIC Version:** 1.5
+**Activation:** DataTable migration for Playbooks with RCP playbook details support
+
+#### Overview
+
+PLAYBOOKS-SHELL-REMOUNT-1 remounts the Playbooks list from a card-based grid layout to the canonical DataTable component. Integrates Right Context Panel (RCP) playbook details view with PANEL-DEEP-LINKS-1 deep-link support. Selection is now in-page state (no navigation on row click). Enforces token-only styling (Design System v1.5) and preserves existing Preview → Estimate → Apply step flow.
+
+#### Key Features
+
+1. **DataTable Migration**: Playbooks list uses canonical DataTable with columns: Playbook, What It Fixes, Asset Type, Availability
+2. **RCP Playbook Details**: New PlaybookDetailsContent component renders playbook description, applicable assets, preconditions, availability state, history stub
+3. **Row Click → Selection**: Clicking a row sets in-page selectedPlaybookId state (no navigation)
+4. **Eye Icon → RCP**: Context icon (eye) opens RCP with playbook details (via `onOpenContext` + `getRowDescriptor`)
+5. **Deep-Link Support**: PANEL-DEEP-LINKS-1 integration for playbooks (entityType='playbook')
+6. **Selection Highlight**: Selected playbook row has font-semibold title (token-only, no background change)
+7. **No Auto-Navigation**: Landing on Playbooks with no playbookId in URL remains neutral (no route changes)
+8. **Token-Only Styling**: No literal `bg-white`, `bg-gray-*`, `text-gray-*` classes (dark mode safe)
+
+#### Affected Files
+
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (UPDATED)
+- `apps/web/src/components/right-context-panel/RightContextPanelProvider.tsx` (UPDATED)
+- `apps/web/src/components/right-context-panel/ContextPanelContentRenderer.tsx` (UPDATED)
+
+#### Manual Testing
+
+- `docs/manual-testing/PLAYBOOKS-SHELL-REMOUNT-1.md`
+
+#### Critical Path Map
+
+- Updated CP-012 (Automation Engine) with PLAYBOOKS-SHELL-REMOUNT-1 scenarios and manual testing doc reference
+
+---
+
+### Phase ISSUE-TO-ACTION-GUIDANCE-1: Issue → Playbook Guidance ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-23
+**Design System Version:** 1.5
+**EIC Version:** 1.5
+**Activation:** Guidance-only, token-only, trust-preserving issue-to-playbook mapping
+
+#### Overview
+
+ISSUE-TO-ACTION-GUIDANCE-1 provides deterministic, static mapping from issue types to recommended playbook metadata. Displays "Recommended action" section in RCP Issue Details with playbook guidance when issues are actionable and have a mapping. Adds subtle, non-interactive playbook indicator in Issues list. Ensures "View playbook" CTA navigates to playbook preview step WITHOUT auto-execution or AI generation.
+
+#### Non-Goals
+
+- **No auto-execution**: Landing on playbook page via "View playbook" does NOT auto-generate preview or trigger any AI
+- **No new entry points**: Does not create new ways to execute playbooks; only surfaces existing playbook information
+- **No runtime evaluation**: Preconditions are static text, not dynamically evaluated against current user/project state
+
+#### Key Behaviors
+
+1. **Static Mapping**: `getIssueToActionGuidance(issueType)` returns pre-defined playbook metadata (no API calls)
+2. **RCP Section Placement**: "Recommended action" appears after "Actionability" section and before "Affected Assets"
+3. **Display Rules**:
+   - If `actionability === 'informational'` OR `isActionableNow !== true`: Show "No automated action available." (no CTA)
+   - If `isActionableNow === true` AND mapping exists: Show playbook name, description, affects, preconditions, "View playbook" CTA
+4. **CTA Rules (Strict)**:
+   - Only allowed CTA: "View playbook" (secondary styling, token-only)
+   - Must navigate to canonical playbook route with `step=preview`, `source=entry`, `returnTo=/projects/${projectId}/issues`, `returnLabel=Issues`
+   - Must NOT use "Generate", "Run", "Apply" language (no execution connotation)
+5. **Issues List Indicator**: Subtle, non-interactive icon (lightning bolt) indicates playbook availability; no button/link/tooltip that could mislead
+
+#### Initial Mappings
+
+| Issue Type | Playbook ID | Playbook Name |
+|------------|-------------|---------------|
+| `missing_seo_title` | `missing_seo_title` | Fix missing SEO titles |
+| `missing_seo_description` | `missing_seo_description` | Fix missing SEO descriptions |
+
+#### Affected Files
+
+- `apps/web/src/lib/issue-to-action-guidance.ts` (NEW)
+- `apps/web/src/components/right-context-panel/ContextPanelIssueDetails.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/issues/page.tsx` (UPDATED)
+
+#### Manual Testing
+
+- `docs/manual-testing/ISSUE-TO-ACTION-GUIDANCE-1.md`
+
+#### Critical Path Map
+
+- Updated CP-009 (Issue Engine Lite) with ISSUE-TO-ACTION-GUIDANCE-1 scenarios and manual testing doc reference
+- Updated CP-012 (Automation Engine) with navigation safety scenario
+
+---
+
+### Phase RIGHT-CONTEXT-PANEL-AUTONOMY-1: Autonomous Context Panel ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-23
+**Design System Version:** 1.5
+**EIC Version:** 1.5
+**Activation:** Behavior-only, token-only, Shopify-safe autonomous panel behavior
+
+#### Overview
+
+RIGHT-CONTEXT-PANEL-AUTONOMY-1 implements autonomous context-driven Right Context Panel behavior. The panel opens/closes deterministically based on route context, removing all manual mode switching controls (pin, width toggle, view tabs). All in-body navigation CTAs have been removed—header external-link is the only navigation affordance. Manual dismissal is respected until context meaningfully changes.
+
+#### Key Behavior Changes
+
+- **Autonomous Open**: Panel auto-opens on entity detail routes (products, pages, collections, playbooks)
+- **Autonomous Close**: Panel auto-closes on contextless list routes (projects list, dashboard, list pages without selection)
+- **Dismissal Model**: User-driven close (X, ESC, scrim click) sets dismissal for current context; respected until navigating to different entity
+- **URL Sync**: Auto-open writes URL params (`panel`, `entityType`, `entityId`) via replaceState semantics
+- **Deep-links**: PANEL-DEEP-LINKS-1 continues to work correctly
+
+#### Removed Controls
+
+- Shell-level Action/Details grouped control in LayoutShell header
+- Pin toggle in RCP header
+- Width toggle in RCP header
+- View tabs (Details/Recommendations/History/Help)
+- Cmd/Ctrl + '.' close shortcut
+- All in-body navigation links (including "View playbook" CTA)
+
+#### Non-Goals
+
+- **No new content types**: Does not introduce new panel content kinds
+- **No backend APIs**: Purely frontend behavior change
+- **No redesign**: Only removes controls and adds autonomy logic
+
+#### Core Files
+
+- `apps/web/src/components/layout/LayoutShell.tsx` (UPDATED)
+- `apps/web/src/components/right-context-panel/RightContextPanel.tsx` (UPDATED)
+- `apps/web/src/components/right-context-panel/RightContextPanelProvider.tsx` (UPDATED)
+- `apps/web/src/components/right-context-panel/ContextPanelIssueDetails.tsx` (UPDATED)
+
+#### Manual Testing
+
+- `docs/manual-testing/RIGHT-CONTEXT-PANEL-AUTONOMY-1.md`
+
+#### Critical Path Map
+
+- Updated CP-009 (Issue Engine Lite) with guidance-only scenarios (no CTA)
+- Updated CP-012 (Automation Engine) with removed "View playbook" CTA scenario
+- Updated CP-020 (UI Shell & Right Context Panel) with autonomy scenarios
+
+---
+
+### Phase CENTER-PANE-NAV-REMODEL-1: Center Header Standardization + Scoped Nav Demotion ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-23
+**Design System Version:** v1.5
+
+#### Overview
+
+CENTER-PANE-NAV-REMODEL-1 implements center pane header standardization via a new `CenterPaneHeaderProvider` context, and demotes the scoped section navigation (ProjectSideNav) to a low-emphasis contextual index. Issues and Playbooks pages migrate their in-canvas headers to the standardized shell header. Product detail uses `hideHeader` to avoid duplicate headers. This is a UI/navigation remodel with no feature logic changes.
+
+#### Key Features
+
+1. **CenterPaneHeaderProvider**: Shell-level context for per-page header customization (breadcrumbs, title, description, actions, hideHeader)
+2. **Standardized Header Structure**: Breadcrumbs (small, secondary) → Title (primary) → Description (optional, muted) → Actions (right-aligned, minimal)
+3. **Issues Page Migration**: Title "Issues" + description (project name) + "Re-scan Issues" button in shell header; removed in-canvas header block
+4. **Playbooks Page Migration**: Title "Playbooks" + description + role label in shell header; removed in-canvas breadcrumbs nav and header block
+5. **Product Detail hideHeader**: Shell header not rendered; product page uses own sticky workspace header + tabs
+6. **ProjectSideNav Demotion**: Lighter typography/contrast, tighter spacing, subtle active state (thin accent bar only, no heavy background blocks), calm hover state
+7. **Layout Container Cleanup**: Removed max-width container + extra padding wrappers from projects layout
+
+#### Affected Files
+
+- `apps/web/src/components/layout/CenterPaneHeaderProvider.tsx` (NEW)
+- `apps/web/src/components/layout/LayoutShell.tsx` (UPDATED)
+- `apps/web/src/components/layout/ProjectSideNav.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/layout.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/issues/page.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/automation/playbooks/page.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/products/[productId]/page.tsx` (UPDATED)
+
+#### FIXUP-1: Extended Shell Header Integration
+
+- `apps/web/src/app/projects/[id]/keywords/page.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/performance/page.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/media/page.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/competitors/page.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/local/page.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/settings/members/page.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/automation/playbooks/entry/page.tsx` (UPDATED)
+- `apps/web/src/app/projects/[id]/content/[pageId]/page.tsx` (UPDATED)
+
+#### FIXUP-2: GEO Insights Shell Header Integration
+
+- `apps/web/src/app/projects/[id]/insights/geo-insights/page.tsx` (UPDATED)
+
+#### Manual Testing
+
+- `docs/manual-testing/CENTER-PANE-NAV-REMODEL-1.md`
+
+#### Critical Path Map
+
+- Updated CP-020 (UI Shell & Right Context Panel) with CENTER-PANE-NAV-REMODEL-1 scenarios
+- FIXUP-1: Added CP-020 checklist items for pillar pages, Members, New Playbook entry, and Content Workspace
+- FIXUP-2: Added CP-020 checklist item for GEO Insights page
+
+---
+
+### Phase WORK-CANVAS-ARCHITECTURE-LOCK-1: Structural Contracts + Minimal Shell Adjustments ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-23
+**Design System Version:** v1.5
+
+#### Overview
+
+WORK-CANVAS-ARCHITECTURE-LOCK-1 establishes structural contracts for the Work Canvas layout system, documenting the responsibilities and boundaries of the Left Rail, Center Pane, and Right Context Panel. This phase adds visual polish (dividers, scoped nav container) and creates the definitive architecture document without introducing new functionality.
+
+#### Key Features
+
+1. **Left Rail Contract Lock**: Icon-only when collapsed (labels via tooltip only), no badges/counters, clear active state, domain-reset behavior
+2. **Center Pane Elevation**: First-class work canvas with stable distinct background (`bg-background`), no ambiguous global "Action" button
+3. **Visual Dividers**: Persistent border between left rail and center pane, persistent border between center pane and RCP
+4. **Scoped Nav Container**: ProjectSideNav wrapped in distinct surface (`bg-[hsl(var(--surface-card))]` + border) with strengthened active-state (more visible accent bar + `font-semibold`)
+5. **RCP Contract Lock**: No navigation/mode controls, header external-link is the only navigation affordance, RCP never changes route
+6. **Architecture Document**: `docs/WORK_CANVAS_ARCHITECTURE.md` - one-page contract for layout responsibilities, navigation rules, URL/state policy, action hierarchy, visual constraints
+
+#### Affected Files
+
+- `apps/web/src/components/layout/LayoutShell.tsx` (UPDATED) - visual hierarchy comments, divider annotations
+- `apps/web/src/components/layout/ProjectSideNav.tsx` (UPDATED) - distinct container surface, strengthened active state
+- `apps/web/src/components/right-context-panel/RightContextPanel.tsx` (UPDATED) - RCP contract lock comments
+- `apps/web/src/components/right-context-panel/RightContextPanelProvider.tsx` (UPDATED) - autonomy boundaries documentation
+
+#### New Documents
+
+- `docs/WORK_CANVAS_ARCHITECTURE.md` - Architecture contract
+- `docs/manual-testing/WORK-CANVAS-ARCHITECTURE-LOCK-1.md` - Manual testing checklist
+
+#### Manual Testing
+
+- `docs/manual-testing/WORK-CANVAS-ARCHITECTURE-LOCK-1.md`
+
+#### Critical Path Map
+
+- Updated CP-020 (UI Shell & Right Context Panel) with WORK-CANVAS-ARCHITECTURE-LOCK-1 scenarios
+
+---
+
+### Phase ICONS-LOCAL-LIBRARY-1: Local SVG Icon System ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-23
+**Design System Version:** v1.5
+
+#### Overview
+
+ICONS-LOCAL-LIBRARY-1 implements a local SVG icon system based on Material Symbols, eliminating runtime CDN dependencies. Icons are served from a committed SVG sprite with semantic key abstraction for maintainability.
+
+#### Key Features
+
+1. **No CDN Dependencies**: All icons served locally from `/icons/material-symbols/sprite.svg`
+2. **Semantic Icon Keys**: Abstraction layer (`nav.dashboard`, `status.critical`, etc.) decouples UI code from raw icon names
+3. **Curated Icon Set**: 33 icons extracted from Stitch design HTML (Material Symbols Outlined, weight 300, grade 0, optical size 20)
+4. **Accessibility**: Decorative icons use `aria-hidden="true"`; meaningful icons support `aria-label` with `role="img"`
+5. **Size Variants**: 16px (dense), 20px (default), 24px (prominent)
+
+#### Core Files
+
+- `apps/web/src/components/icons/Icon.tsx` - Main Icon component
+- `apps/web/src/components/icons/material-symbols-manifest.ts` - Semantic key manifest
+- `apps/web/src/components/icons/index.ts` - Public exports
+- `apps/web/public/icons/material-symbols/sprite.svg` - SVG sprite
+- `apps/web/public/icons/material-symbols/svg/*.svg` - Individual icon files
+
+#### Build Scripts (dev-only)
+
+- `scripts/extract-stitch-material-symbols.mjs` - Extract icon names from Stitch HTML
+- `scripts/download-material-symbols.mjs` - Download/generate SVG files
+- `scripts/build-material-symbols-sprite.mjs` - Build sprite from SVG files
+
+#### Migration Points
+
+- `apps/web/src/components/layout/LayoutShell.tsx` - Left rail nav icons migrated to Icon component
+- `apps/web/src/components/layout/LayoutShell.tsx` - Search icon in command palette triggers migrated
+- `apps/web/src/components/common/RowStatusChip.tsx` - Status chips now show Icon + clean label (emoji prefix stripped)
+
+#### Manual Testing
+
+- `docs/manual-testing/ICONS-LOCAL-LIBRARY-1.md`
+
+#### Documentation
+
+- `docs/icons.md` - Icon system usage guide
+
+#### Critical Path Map
+
+- Updated CP-020 (UI Shell & Right Context Panel) with ICONS-LOCAL-LIBRARY-1 scenarios
+
+---
+
+### Phase ISSUE-FIX-ROUTE-INTEGRITY-1: Issues Decision Engine — No Dead Clicks ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-25
+**Design System Version:** v1.5
+
+#### Overview
+
+ISSUE-FIX-ROUTE-INTEGRITY-1 eliminates "dead clicks" in the Issues Engine by implementing a centralized destination map that serves as the source of truth for issue action availability. Every clickable action now leads to a valid, implemented destination with explicit blocked states when actions are unavailable.
+
+#### Key Features
+
+1. **Issue Action Destination Map**: Centralized `getIssueActionDestinations()` function that models where each action (fix/open/viewAffected) leads
+2. **Explicit Blocked States**: When actions are unavailable, "Blocked" chip is shown with tooltip explaining why (no fake CTAs)
+3. **Destination Priority**: Fix → View affected → Open → Blocked (truthful fallback hierarchy)
+4. **External Link Safety**: External "Open" links (Shopify admin) use `target="_blank"` and `rel="noopener noreferrer"`
+5. **Dev-Time Guardrails**: Non-fatal console warnings in development when actionable issues lack fix destinations (mapping gap detection)
+6. **Route Context Preservation**: All internal links include `returnTo` param for back navigation
+
+#### Core Files
+
+- `apps/web/src/lib/issues/issueActionDestinations.ts` - Destination map source of truth
+- `apps/web/src/app/projects/[id]/issues/page.tsx` - Actions column wired to destination map
+
+#### Test Coverage
+
+- **Playwright Regression:** `apps/web/tests/issue-fix-route-integrity-1.spec.ts`
+- **Manual Testing:** `docs/manual-testing/ISSUE-FIX-ROUTE-INTEGRITY-1.md`
+
+#### Critical Path Map
+
+- CP-009 (Issue Engine Lite) - Updated with ISSUE-FIX-ROUTE-INTEGRITY-1 scenarios
+
+#### Implementation Notes
+
+- Uses proper DeoIssue typing with optional `shopifyAdminUrl?: string` extension
+- All selectors use canonical `data-testid` attributes (no `data-testid-new`)
+- "View affected" label preserved for Playwright test compatibility
+- Action buttons include `data-no-row-click` attribute and `stopPropagation` to prevent RCP opening
+- **FIXUP-4:** IFRI-005 test strengthened with explicit `right-context-panel` assertions (open/close via UI, not URL heuristic); manual testing doc updated to use `issue-fix-button` / `issue-view-affected-button` as canonical selectors with `issue-card-cta` nested for backward compatibility
 
 ---
 
@@ -2548,3 +3393,60 @@ _None at this time._
 | 6.91 | 2026-01-21 | **DARK-MODE-TABLE-HOVER-FIX-1-FIXUP-1**: Force cell-level paint and standardize hover to menuHoverBg. **Root cause:** Cell-level backgrounds (or higher-specificity rules) still caused white hover leaks despite prior tr/td overrides; --surface-raised was inconsistent with existing sidebar active pill tone. **Fix:** (1) Introduced `--menu-bg` and `--menu-hover-bg` tokens derived from `--primary` (applied with 0.10 alpha at usage); (2) Force cell-level hover paint for table rows (`tr.hover:bg-gray-50/100:hover > td/th`) using `hsl(var(--menu-hover-bg) / 0.10)`; (3) Added list-row hover overrides for `div`, `li`, `label` containers with `hover:bg-gray-50/100`; (4) Bound sidebar active pill (`[data-testid="project-sidenav"] .bg-primary/10`) to `--menu-bg` token for consistency; (5) All rules dark-only scope. **Manual Testing:** HP-019 updated to require visual verification that Projects table row hover matches sidebar active pill tone. **Core files:** globals.css. **Manual Testing:** DARK-MODE-SYSTEM-1.md (HP-019 updated). |
 | 6.92 | 2026-01-21 | **DARK-MODE-TABLE-HOVER-FIX-1-FIXUP-2**: Fix table base paint (not just hover). **Problem:** Projects table and admin tables still paint white in dark mode because `tbody.bg-white` and cell backgrounds remain white; hover-only fixes are insufficient when the base row background is already white. **Fix:** Added dark-only table base + hover paint overrides for `table tbody.bg-white` and its `td`/`th` children: (1) Base paint uses `--surface-card` token; (2) Hover paint uses `hsl(var(--menu-hover-bg) / 0.10)` to match sidebar pill tone. Prior FIXUP-1 rules retained as additional safety net for tables using `hover:bg-gray-*` classes. **Manual Testing:** HP-019 updated to require "base row check" before hovering - rows must NOT be white even before hover. **Core files:** globals.css. **Manual Testing:** DARK-MODE-SYSTEM-1.md (HP-019 updated with FIXUP-2 checks). |
 | 6.93 | 2026-01-21 | **DARK-MODE-TABLE-HOVER-FIX-1-FIXUP-3**: Make hover visibly distinct using menuHoverBg / 0.14 alpha. **Problem:** After base-paint fix (FIXUP-2), hover became too subtle to perceive - the 0.10 alpha was invisible against `--surface-card`. **Fix:** (1) Standardized all dark hover rules to `hsl(var(--menu-hover-bg) / 0.14)` for visible contrast - applies to: `tr.hover:bg-gray-50/100:hover` (row + cells), `table tbody.bg-white > tr:hover` (row + cells), specificity-war variants, and list-row containers (div/li/label); (2) Aligned sidebar active pill to same 0.14 alpha so "match tone" comparison is deterministic; (3) Base paint rules (FIXUP-2) remain unchanged at `--surface-card`. **Manual Testing:** HP-019 updated to require: (a) hover is visibly distinguishable from base surface, (b) hover tone matches sidebar active pill (both 0.14 alpha). **Core files:** globals.css. **Manual Testing:** DARK-MODE-SYSTEM-1.md (HP-019 updated with FIXUP-3 visibility checks). |
+| 6.94 | 2026-01-21 | **LAYOUT-SHELL-IMPLEMENTATION-1 COMPLETE**: Foundational UI shell per Design System v1.5. (1) Created `LayoutShell.tsx`: canonical shell component with Top Bar (logo, search placeholder, notifications, account), collapsible Left Nav (Dashboard, Projects, Settings, Help, Admin links with active state highlighting, per-user persistence via localStorage key `engineo_nav_state`), and Center Work Canvas with scroll containment and breadcrumbs/actions placeholders; (2) Updated root `layout.tsx`: token-based theming (`bg-background`, `text-foreground`, `text-primary`, `text-muted-foreground`) for loading fallback; (3) Updated dashboard/projects/settings layouts: replaced TopNav+wrapper with unified LayoutShell; (4) Updated admin layout: replaced TopNav with LayoutShell while preserving admin auth gating and mobile drawer, converted all hardcoded grays to design tokens. **Constraints:** Token-only styling, dark mode safe, Shopify iframe scroll containment, no Right Context Panel, no feature UI. **Core files:** LayoutShell.tsx, layout.tsx, dashboard/layout.tsx, projects/layout.tsx, settings/layout.tsx, admin/layout.tsx. **Manual Testing:** LAYOUT-SHELL-IMPLEMENTATION-1.md |
+| 6.95 | 2026-01-21 | **RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 COMPLETE**: Right Context Panel per Design System v1.5. (1) Created `RightContextPanelProvider.tsx`: React context/provider with deterministic state (isOpen, descriptor), `useRightContextPanel()` hook (openPanel/closePanel/togglePanel), auto-close on Left Nav segment switch, ESC key handling with modal dialog guard, focus management (store/restore lastActiveElement), Shopify-safe (no window.top); (2) Created `RightContextPanel.tsx`: slide-in panel UI with desktop pinned mode (≥1024px, pushes content) and narrow overlay mode (<1024px, scrim), accessible (role="complementary", aria-labelledby), test hooks (data-testid attributes); (3) Updated `LayoutShell.tsx`: wrapped with RightContextPanelProvider, added RightContextPanel to layout, replaced one Action button with Details demo trigger. **Core files:** RightContextPanelProvider.tsx, RightContextPanel.tsx, LayoutShell.tsx. **Manual Testing:** RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md |
+| 6.96 | 2026-01-21 | **RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1-FIXUP-1**: Contract compliance fixes. (1) `openPanel()` now descriptor-stable: same kind+id = NO-OP (prevents flicker); only stores lastActiveElement on CLOSED→OPEN transition; different kind+id while open = update descriptor (context switch); (2) `togglePanel()` deterministic rules: CLOSED+descriptor = open; OPEN+no descriptor = close; OPEN+same kind+id = true toggle (close); OPEN+different kind+id = update descriptor (stay open); (3) ESC handling guards: modal dialog check + editable element check (input/textarea/select/contenteditable do not close panel); (4) Token compliance: scrim uses `bg-foreground/50` (not raw black), panel surface uses `--surface-raised` (not `--surface-card`); (5) Shell-safe positioning: overlay mode uses container-contained absolute (not viewport-fixed), does NOT cover Top Bar; added `id="right-context-panel"` for aria-controls reference; (6) Demo trigger: renamed to `data-testid="rcp-demo-open"`, handler cycles A→B→close for context switching demo, removed non-deterministic Date() metadata; (7) LayoutShell content row is now `relative` positioning context for overlay containment; (8) Manual testing doc: added HP-008 (context switching), HP-009 (Shopify embedded), EC-004 (ESC in text input), LIM-002 section. **Core files:** RightContextPanelProvider.tsx, RightContextPanel.tsx, LayoutShell.tsx. **Manual Testing:** RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md (updated). |
+| 6.97 | 2026-01-21 | **RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1-FIXUP-2**: Completion tightening. (1) ESC close path centralized: removed duplicated inline close logic (setIsOpen/setDescriptor/focus restore) from ESC handler, now calls `closePanel()` directly; moved `closePanel` useCallback definition above ESC useEffect; added `closePanel` to ESC useEffect dependency array; (2) Manual testing doc path normalization: "Derived from" line now uses backticks around `MANUAL_TESTING_TEMPLATE.md`; Related documentation paths now use backticks and full paths (`docs/ENGINEERING_IMPLEMENTATION_CONTRACT.md`, `docs/RIGHT_CONTEXT_PANEL_CONTRACT.md`, `docs/UI_SHELL_DIRECTIONS.md`, `docs/manual-testing/LAYOUT-SHELL-IMPLEMENTATION-1.md`); (3) CP-020 label normalization: Coverage Summary table row label changed from "UI Shell & Context Panel" to "UI Shell & Right Context Panel" to match heading. **Core files:** RightContextPanelProvider.tsx. **Docs:** RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md, CRITICAL_PATH_MAP.md. |
+| 6.98 | 2026-01-21 | **TABLES-&-LISTS-ALIGNMENT-1 COMPLETE**: Canonical DataTable & DataList components per Design System v1.5. (1) Created `DataTable.tsx`: semantic `<table>` with column/row model, token-based styling (`--surface-card`, `--surface-raised`, `--menu-hover-bg/0.14`), keyboard navigation (Tab entry, ArrowUp/ArrowDown, Enter/Space), roving focus, RCP integration via `onOpenContext(descriptor)`, explicit "View details" eye icon action, test hooks (`data-testid`); (2) Created `DataList.tsx`: vertical list with same interaction contract, custom `renderRow` prop, same hover/focus/action behavior; (3) Created `/demo/tables-lists/page.tsx`: demo route with sample DataTable/DataList, RCP integration, ESC-in-input test field, keyboard instructions; (4) Row interaction contract enforced: no row-click navigation, explicit action only; (5) Updated CP-020 with DataTable/DataList scenarios. **Out of scope:** No feature migrations, no sorting/filtering, no bulk actions, no pagination redesign, no virtualization. **Core files:** DataTable.tsx, DataList.tsx, page.tsx. **Manual Testing:** TABLES-&-LISTS-ALIGNMENT-1.md. |
+| 6.99 | 2026-01-21 | **TABLES-&-LISTS-ALIGNMENT-1-FIXUP-1**: Demo route + keyboard entry fixes. (1) Created `/demo/layout.tsx`: wraps all `/demo/*` routes in LayoutShell (provides RightContextPanelProvider context); (2) DataTable keyboard fix: first row tabbable by default (`focusedRowIndex` initialized to 0 when rows.length > 0), context action button removed from Tab order (`tabIndex={-1}`), added focus clamping useEffect for dynamic row changes; (3) DataList keyboard fix: same roving focus initialization, `tabIndex={-1}` on context button, and focus clamping useEffect; (4) Manual testing doc template reference: MANUAL_TESTING_TEMPLATE.md. **Core files:** layout.tsx (demo), DataTable.tsx, DataList.tsx. **Manual Testing:** TABLES-&-LISTS-ALIGNMENT-1.md (updated). |
+| 7.00 | 2026-01-21 | **COMMAND-PALETTE-IMPLEMENTATION-1 COMPLETE**: Global Command Palette per Design System v1.5. (1) Created `CommandPaletteProvider.tsx`: React context/provider with deterministic state (isOpen, query), global Cmd+K/Ctrl+K keyboard shortcut, focus management (store opener on open, restore on close), inputRef for palette focus; (2) Created `CommandPalette.tsx`: accessible command palette UI (role="dialog", aria-modal="true") with search input, grouped results (Navigation/Entity Jump/Utility), arrow key navigation, Enter execution, ESC/outside-click close, admin command role-gating via /users/me API, unsaved changes guard (same confirm text as GuardedLink), container-contained positioning (Shopify iframe safe); (3) Updated `LayoutShell.tsx`: wrapped with CommandPaletteProvider (outermost), mounted CommandPalette in main content row, converted search placeholder to functional trigger with data-testid="command-palette-open", added mobile icon trigger; (4) Commands: Navigation (Overview/Assets/Automation/Insights/Governance/Admin), Entity Jump placeholders (Project/Product/Issue), Utility (Help/Feedback) - NO destructive/write/apply/run/generate commands; (5) Updated CP-020 with command palette scenarios. **Core files:** CommandPaletteProvider.tsx, CommandPalette.tsx, LayoutShell.tsx. **Manual Testing:** COMMAND-PALETTE-IMPLEMENTATION-1.md. |
+| 7.01 | 2026-01-21 | **COMMAND-PALETTE-IMPLEMENTATION-1-FIXUP-1**: Trust & positioning fixes. (1) Removed viewport-based positioning (`pt-[15vh]`) → container-centered (`items-center`) for Shopify iframe safety; (2) Fixed "Open Feedback" utility command routing to `/settings/help` (was `/help/shopify-permissions`); (3) Made Cmd+K/Ctrl+K case-insensitive (`event.key.toLowerCase() === 'k'`) for cross-OS reliability; (4) Added HP-017 ("Open Feedback routes correctly") to manual testing doc. **Core files:** CommandPalette.tsx, CommandPaletteProvider.tsx. **Manual Testing:** COMMAND-PALETTE-IMPLEMENTATION-1.md (updated). |
+| 7.02 | 2026-01-21 | **PRODUCTS-SHELL-REMOUNT-1 COMPLETE**: Products list remounted onto canonical DataTable per Design System v1.5. (1) Extended `DataTable.tsx` with `onRowClick`, `isRowExpanded`, `renderExpandedContent` props for progressive disclosure (row click expands/collapses, ignores interactive elements via data-no-row-click); (2) Refactored `ProductTable.tsx` to use canonical DataTable with columns (Product/Status/Actions), expansion support using ProductDetailPanel, RCP integration via descriptor pattern, preserved existing filtering/sorting/impact ladder logic; (3) Updated `ProductDetailPanel.tsx` with token-based styling; (4) Updated `products/page.tsx` with shell-safe styling (py-12 loading state, border-border/surface-card container); (5) Updated `products/[productId]/page.tsx` with shell-safe styling (py-12 loading, surface-raised/border-border sticky header); (6) Added "Go to Products" command to `CommandPalette.tsx` (project context aware); (7) Updated CP-003 with PRODUCTS-SHELL-REMOUNT-1 scenarios. **Core files:** DataTable.tsx, ProductTable.tsx, ProductDetailPanel.tsx, products/page.tsx, products/[productId]/page.tsx, CommandPalette.tsx. **Manual Testing:** PRODUCTS-SHELL-REMOUNT-1.md. |
+| 7.03 | 2026-01-21 | **PRODUCTS-SHELL-REMOUNT-1 FIXUP-1**: RCP + keyboard behavior corrections. (1) Extended `DataTable.tsx` with `rowEnterKeyBehavior` prop ('openContext' | 'rowClick', default 'openContext') to support deterministic Enter/Space behavior override for progressive disclosure remounts; (2) Fixed RCP descriptor field in `ProductTable.tsx`: changed `type: 'product'` to `kind: 'product'` to match ContextDescriptor contract; (3) Removed `hideContextAction` from ProductTable so eye icon is visible for explicit RCP access; (4) Added `rowEnterKeyBehavior="rowClick"` to ProductTable so Enter/Space on focused row expands/collapses (does NOT open RCP); (5) Updated manual testing doc with HP-013 (eye icon opens RCP) and HP-014 (Enter/Space expands row); (6) Updated CP-003 with FIXUP-1 scenarios. **Core files:** DataTable.tsx, ProductTable.tsx. **Manual Testing:** PRODUCTS-SHELL-REMOUNT-1.md (updated). |
+| 7.04 | 2026-01-22 | **RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1 FIXUP-4**: Contract compliance tightening. (1) Scope safety: `ContextPanelContentRenderer.tsx` now treats `scopeProjectId` as authoritative - when present AND `currentProjectId === null` (outside `/projects/[id]`), shows "Unavailable in this project context." message instead of stale details; (2) Token-only styling: removed ALL non-token color utilities from renderer (replaced `bg-green-100/bg-red-100/bg-purple-100/text-*-800` with token-based `bg-muted border-border text-foreground`); chip/badge styling unified to neutral tokens; card blocks use `bg-[hsl(var(--surface-card))]`; (3) Product metaTitle/metaDescription display: Details view now shows actual SEO title/description values alongside status chips (not just status); (4) admin/users descriptor metadata key alignment: added `role`, `accountStatus`, changed `quotaPercent` to numeric-only (renderer adds %), changed `twoFactorEnabled` to 'true'/'false' string, omit `adminRole` when null instead of forcing 'None'; token-based button styling for eye icon; (5) ActionBundleCard descriptor metadata: added `scopeActionable`, `scopeDetected`, `aiDisclosureText` fields; token-based button styling for eye icon; (6) Manual testing doc expectations aligned with actual renderer behavior; (7) CP-020 scenarios added for scope invalidation outside projects, view tab stub copy, admin/users + work queue descriptor fields. **Core files:** ContextPanelContentRenderer.tsx, admin/users/page.tsx, ActionBundleCard.tsx. **Manual Testing:** RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md (updated). **Critical Path:** CP-020 updated. |
+| 7.05 | 2026-01-22 | **NAV-HIERARCHY-POLISH-1 COMPLETE**: Navigation tier visual hierarchy styling per Design System v1.5. (1) Global Nav (LayoutShell.tsx): Added `font-medium` base class, `font-semibold` active state alongside existing primary color for strongest navigational tier; (2) Section Nav (ProjectSideNav.tsx): Changed heading from `font-semibold` to `font-medium text-muted-foreground/80`, changed active state from primary-colored border+background to neutral `bg-muted text-foreground` (demoted secondary tier); (3) Mobile drawer (layout.tsx): Token-only scrim (`bg-foreground/50`), panel surface (`bg-[hsl(var(--surface-raised))]`), and button styling; (4) Entity Tabs (WorkQueueTabs, ProductDetailsTabs, InsightsSubnav, asset detail pages): Unified token-only view switcher pattern - `border-primary text-foreground` active, `border-transparent text-muted-foreground hover:text-foreground hover:border-border` inactive; (5) Focus-visible ring pattern standardized with `focus-visible:ring-primary focus-visible:ring-offset-background`. **Scope:** Styling-only, no functional changes. **Core files:** LayoutShell.tsx, ProjectSideNav.tsx, layout.tsx, WorkQueueTabs.tsx, ProductDetailsTabs.tsx, InsightsSubnav.tsx, pages/[pageId]/page.tsx, collections/[collectionId]/page.tsx. **Manual Testing:** NAV-HIERARCHY-POLISH-1.md. **Critical Path:** CP-020 updated with NAV-HIERARCHY-POLISH-1 scenarios. |
+| 7.06 | 2026-01-22 | **NAV-HIERARCHY-POLISH-1 FIXUP-1**: Docs-only consistency fix. Updated "Out of Scope" wording from "No accessibility changes (focus-visible already present)" to "Focus-visible ring styling standardized (styling-only, no behavior change)" for accuracy. Documentation-only; no code changes. |
+| 7.07 | 2026-01-22 | **NAV-HIERARCHY-POLISH-1 FIXUP-2**: Docs-only path correction. Fixed InsightsSubnav.tsx path in Affected Files from `apps/web/src/app/projects/[id]/insights/InsightsSubnav.tsx` to correct path `apps/web/src/components/projects/InsightsSubnav.tsx`. Documentation-only; no code changes. |
+| 7.08 | 2026-01-22 | **RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1 COMPLETE**: RCP content expansion for asset kinds (product, page, collection) per Design System v1.5 + EIC v1.5. (1) New RCP content components: `ContextPanelEntitySummary.tsx` (Type/Status/Last synced/Last applied), `ContextPanelIssueDrilldown.tsx` (pillar-grouped issues with severity badges and "Why this matters" truthfulness), `ContextPanelActionPreview.tsx` (read-only action labels, no buttons), `ContextPanelAiAssistHints.tsx` (collapsed-by-default hints, no links, no chat); (2) Extended `ContextDescriptor` with optional `issues?: DeoIssue[]` for in-memory issues preference; (3) Updated `ContextPanelContentRenderer.tsx` to use expanded content system for asset kinds, removed ALL in-body navigation links (Help tab link, "Open full page" links) - header external-link is the only navigation affordance; (4) Enriched `ProductTable.tsx` `getRowDescriptor()` with expanded metadata (entityType, statusLabel from locked vocabulary, shopifyStatus, lastApplied, primaryActionLabel, secondaryActionLabel) and in-memory issues for immediate render; (5) Read-only issues fetching via `projectsApi.assetIssues()` with stale-response discard on descriptor change; (6) Pillar-to-UX-category mapping (metadata_snippet_quality→Metadata, search_intent_fit→Search Intent, technical_indexability→Technical, others→Content, missing→Other). **Core files:** ContextPanelEntitySummary.tsx, ContextPanelIssueDrilldown.tsx, ContextPanelActionPreview.tsx, ContextPanelAiAssistHints.tsx, ContextPanelContentRenderer.tsx, RightContextPanelProvider.tsx, ProductTable.tsx. **Manual Testing:** RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1.md. **Critical Path:** CP-020 updated with content expansion scenarios. |
+| 7.09 | 2026-01-22 | **RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1 FIXUP-1**: Token-only compliance fix for Issue Drilldown. (1) Replaced raw color utilities in `getSeverityClasses()` (bg-red-*, text-red-*, bg-yellow-*, text-yellow-*, bg-blue-*, text-blue-*, and dark variants) with token-only neutral badge styling (`border border-border bg-muted text-foreground`); severity differentiation is by label text only (Critical / Needs Attention / Informational); (2) Replaced error-state text classes `text-red-600 dark:text-red-400` with token-only `text-muted-foreground`; (3) Updated manual testing doc HP-002 to reflect token-only severity badge expectation (readable, neutral, differentiate by label text - not by raw color). **Core files:** ContextPanelIssueDrilldown.tsx. **Manual Testing:** RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1.md (updated). |
+| 7.10 | 2026-01-22 | **RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1 FIXUP-2**: Treat provided in-memory issues (including empty array) as authoritative to avoid unnecessary `projectsApi.assetIssues()` fetches; updates HP-003 API expectations accordingly. **Core files:** ContextPanelIssueDrilldown.tsx. **Manual Testing:** RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1.md (updated). |
+| 7.11 | 2026-01-22 | **RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1 FIXUP-3**: (1) Pillar-to-category mapping safety: unknown pillarId now maps to **Other** (matches manual test expectations). (2) Products issues loading now distinguishes "not loaded yet" (undefined) vs loaded empty array, enabling RCP to prefer in-memory issues (including empty) and avoid unnecessary `assetIssues` fetches. **Core files:** ContextPanelIssueDrilldown.tsx, page.tsx, ProductTable.tsx. |
+| 7.12 | 2026-01-22 | **TABLES-&-LISTS-ALIGNMENT-1 FIXUP-3**: Keyboard guard + route-level DataTable migration. (1) Added `isInteractiveElement()` guard to DataTable.tsx/DataList.tsx preventing keyboard hijacking on `a`, `button`, `input`, `textarea`, `select`, `[contenteditable]`, `[data-no-row-keydown]` elements; (2) Migrated `/projects` page to canonical DataTable with token-only styling; (3) Migrated `/dashboard` "Your Projects" table to canonical DataTable; (4) Migrated `/admin/users` to canonical DataTable with RCP integration via `onOpenContext`/`getRowDescriptor`; (5) Migrated `/admin/runs` to canonical DataTable with filter selects using `data-no-row-keydown`; (6) Migrated `/admin/ai-usage` top consumers to canonical DataTable; (7) Migrated `/admin/subscriptions` to canonical DataTable with in-row plan change selects using `data-no-row-keydown`. **Core files:** DataTable.tsx, DataList.tsx, projects/page.tsx, dashboard/page.tsx, admin/users/page.tsx, admin/runs/page.tsx, admin/ai-usage/page.tsx, admin/subscriptions/page.tsx. **Manual Testing:** TABLES-&-LISTS-ALIGNMENT-1.md (HP-010 through HP-014 added). **Critical Path:** CP-020 updated with FIXUP-3 scenarios. |
+| 7.13 | 2026-01-22 | **TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4**: Remaining legacy `<table>` migrations to canonical DataTable. 9 pages migrated: (1) `/admin/audit-log` - columns: Time, Actor, Role, Action, Target; (2) `/admin/governance-audit` - columns: Time, Event Type, Actor, Project, Resource, Details; (3) `/admin/projects` - columns: User, Project, Shopify, DEO, Products, Last Sync, Last Run, Actions; (4) `/admin/users/[id]` Recent Runs - columns: Run Type, Status, AI Used, Created; (5) `/projects/[id]/assets/pages` - columns: Health, Path, Title, Action; (6) `/projects/[id]/assets/collections` - columns: Health, Handle, Title, Action; (7) `/projects/[id]/assets/blogs` - columns: Status, Handle, Title, Updated, Open; (8) `/projects/[id]/settings/governance` - 3 tables (Approvals, Audit, Sharing) migrated; (9) `/projects/[id]/automation/playbooks` - per-product results table token styling. All use canonical DataTable with `hideContextAction={true}` or token-based inline styling. Empty states outside DataTable. **Core files:** admin/audit-log/page.tsx, admin/governance-audit/page.tsx, admin/projects/page.tsx, admin/users/[id]/page.tsx, assets/pages/page.tsx, assets/collections/page.tsx, assets/blogs/page.tsx, settings/governance/page.tsx, automation/playbooks/page.tsx. **Manual Testing:** TABLES-&-LISTS-ALIGNMENT-1.md (HP-015 through HP-023 added). **Critical Path:** CP-020 updated with FIXUP-4 scenarios. |
+| 7.14 | 2026-01-22 | **TABLES-&-LISTS-ALIGNMENT-1 FIXUP-5**: Playbooks per-product results migrated from legacy `<table>` to canonical DataTable (dense). Per-product results panel now uses DataTable component with `density="dense"` and `hideContextAction={true}`, replacing inline `<table>/<thead>/<tbody>` markup. Preserved navigation behavior (Product cell uses resultsContextUrl + handleNavigate interception) and status badge rendering. Removed legacy gray/white utility stack. **Manual Testing:** TABLES-&-LISTS-ALIGNMENT-1.md HP-023 updated to require canonical DataTable (not "token styling"). **Critical Path:** CP-020 updated: FIXUP-4 playbooks line clarified; FIXUP-5 checklist item added. |
+| 7.15 | 2026-01-22 | **TABLES-&-LISTS-ALIGNMENT-1 FIXUP-6**: Playbooks per-product results DataTable used `render` instead of `cell` for column renderers, causing blank cells at runtime. Updated columns to use `cell` (correct DataTableColumn contract). **Core files:** automation/playbooks/page.tsx. **Manual Testing:** TABLES-&-LISTS-ALIGNMENT-1.md HP-023 updated with cell renderer assertion. **Critical Path:** CP-020 updated with FIXUP-6 checklist item. |
+| 7.16 | 2026-01-22 | **PANEL-DEEP-LINKS-1**: Shareable Right Context Panel state via URL deep-links. URL schema: `panel` (details/recommendations/history/help), `entityType` (product/page/collection/blog/issue/user), `entityId` (required), `entityTitle` (optional fallback). Source-of-truth rules: URL is truth when valid params present; UI actions sync to URL via replaceState; close removes all panel params. Shopify embedded params (shop, host) preserved throughout. Integration proof points: Products list and Admin Users both pass complete descriptors. **Core files:** RightContextPanelProvider.tsx. **Manual Testing:** PANEL-DEEP-LINKS-1.md created. **Critical Path:** CP-020 updated with deep-link scenarios. |
+| 7.17 | 2026-01-22 | **PANEL-DEEP-LINKS-1 FIXUP-1**: Type safety + back/forward semantics + project-scope guard. (1) Type-safe searchParams parsing: introduced `ReadableSearchParams` structural type compatible with Next.js `useSearchParams()` return type, fixing TypeScript mismatch with `URLSearchParams`; (2) Manual test HP-005 corrected to match replaceState semantics: back/forward restores panel state when navigating between routes (route changes create history entries), not when switching panels on same route (replaceState does not create history entries); (3) Project-scoped deep link guard: entity types `product`, `page`, `collection`, `blog`, `issue` set `scopeProjectId` to sentinel `__outside_project__` when opened via deep-link on non-/projects/:id routes, forcing "Unavailable in this project context." state and preventing invalid data fetches; `user` entity type remains non-project-scoped for admin routes. **Core files:** RightContextPanelProvider.tsx. **Manual Testing:** PANEL-DEEP-LINKS-1.md (HP-005 updated, EC-007 added). **Critical Path:** CP-020 updated with project-scope guard scenario and clarified back/forward checklist wording. |
+| 7.18 | 2026-01-22 | **ISSUES-ENGINE-REMOUNT-1**: Issues Engine list remounted to canonical DataTable with RCP issue details integration. (1) Updated page.tsx: imported DataTable + useRightContextPanel, added getIssueDescriptor() for RCP, defined issueColumns with columns (Issue/Asset Scope/Pillar/Severity/Status/Actions), replaced card-based list with DataTable using onRowClick/onOpenContext/getRowDescriptor, preserved preview/draft/apply flow via isRowExpanded/renderExpandedContent, preserved Playwright selectors (issue-card-actionable/informational, data-fix-kind, issue-card-cta, issue-preview-draft-panel); (2) Created ContextPanelIssueDetails.tsx: read-only issue details renderer for RCP showing title/pillar/severity/status/affected counts, fetch-based loading with loading/not_found/error states, token-only styling; (3) Updated ContextPanelContentRenderer.tsx: wired case 'issue' to render ContextPanelIssueDetails with projectId scope check; (4) Token-only empty state styling. **Core files:** page.tsx, ContextPanelIssueDetails.tsx, ContextPanelContentRenderer.tsx. **Manual Testing:** ISSUES-ENGINE-REMOUNT-1.md. **Critical Path:** CP-009 updated with ISSUES-ENGINE-REMOUNT-1 scenarios. |
+| 7.19 | 2026-01-22 | **ISSUES-ENGINE-REMOUNT-1 FIXUP-1**: Token-only enforcement + removed invalid semantic Tailwind classes. (1) Updated page.tsx: replaced remaining literal palette classes (bg-white, bg-gray-*, text-gray-*, border-red/yellow/amber/blue-*, text-red/yellow/amber/blue-*) with token-only arbitrary values using --danger-*, --warning-*, --info-*, --success-* CSS variables; removed invalid semantic classes not configured in tailwind.config.ts (bg-destructive, bg-warning, bg-success, text-destructive, text-success, text-warning-foreground, hover:bg-accent); affected areas: loading state, error banner, warning banner, header/subtitle, triplet container, zero-actionable banner, severity breakdown cards, filter labels, filter buttons, DataTable severity badges, expanded preview panel draft banners/buttons, empty state block; (2) Updated ContextPanelIssueDetails.tsx: replaced text-destructive with token-only danger foreground, updated getSeverityClass() to use token-only arbitrary values; (3) Updated ISSUES-ENGINE-REMOUNT-1.md: fixed doc paths (CRITICAL_PATH_MAP.md, TABLES-&-LISTS-ALIGNMENT-1.md), corrected HP-003 API expectation to note read-only fetch via `projectsApi.deoIssuesReadOnly()`. **Core files:** page.tsx, ContextPanelIssueDetails.tsx. **Docs:** ISSUES-ENGINE-REMOUNT-1.md, CRITICAL_PATH_MAP.md (6.25). |
+| 7.20 | 2026-01-22 | **ISSUES-ENGINE-REMOUNT-1 FIXUP-2**: TypeScript safety fix for nullable fixHref. Changed conditional render in Issues DataTable "Issue" column from `isClickableIssue ? (...)` to `fixHref && isClickableIssue ? (...)` so `fixHref` is narrowed to a non-null string before being passed to `handleIssueClick()`. No behavioral change - same actionable logic preserved. **Core files:** page.tsx. **Docs:** CRITICAL_PATH_MAP.md (6.26). |
+| 7.21 | 2026-01-22 | **UI-POLISH-&-CLARITY-1**: Visual polish pass for Design System v1.5 alignment. Styling-only changes, no behavior modifications. (1) Updated DataTable.tsx/DataList.tsx: density padding py-2→py-2.5 (dense) / py-3→py-3.5 (comfortable), header text color text-muted-foreground→text-foreground/80, hover states hover:bg-[hsl(var(--surface-raised))] (dark mode safe); (2) Updated ProjectSideNav.tsx: active nav item has accent bar via before: pseudo-element (primary/60), inactive items use text-foreground/70 for increased contrast; (3) Updated LayoutShell.tsx: added breadcrumb derivation (Projects > {name} > {section}) with sessionStorage caching for project names, section label mapping for SECTION_LABELS and ADMIN_SECTION_LABELS; (4) Updated RightContextPanel.tsx: header padding py-3→py-3.5, content padding p-4→p-5; (5) Updated ContextPanelContentRenderer.tsx: section separation space-y-4→space-y-5; (6) Updated ContextPanelIssueDrilldown.tsx: outer spacing space-y-3→space-y-4, card padding p-3→p-4, header margin mb-2→mb-3, inner list spacing space-y-2→space-y-3, issue row padding p-2→p-3, line-clamp-1→line-clamp-2; (7) Created RowStatusChip.tsx: token-only chip styles for optimized/needs_attention/draft_saved/blocked states; (8) Created ProductIssuesPanel.tsx: de-emphasized AI fixable badge using neutral tokens. **All styling is token-only (no literal palette classes). Issues page already token-compliant - no changes needed.** **Core files:** DataTable.tsx, DataList.tsx, ProjectSideNav.tsx, LayoutShell.tsx, RightContextPanel.tsx, ContextPanelContentRenderer.tsx, ContextPanelIssueDrilldown.tsx, RowStatusChip.tsx, ProductIssuesPanel.tsx. **Manual Testing:** UI-POLISH-&-CLARITY-1.md. **Critical Path:** CP-020 updated with UI-POLISH-&-CLARITY-1 scenarios (6.27). |
+| 7.22 | 2026-01-22 | **UI-POLISH-&-CLARITY-1 FIXUP-1**: Token compliance corrections and removal of unintended new components. (1) Updated common/RowStatusChip.tsx: converted literal palette classes (bg-green-50, bg-yellow-50, bg-blue-50, bg-red-50) to token-only styling using --success-background, --warning-background, --info-background, --danger-background; fallback uses bg-muted text-muted-foreground; (2) Deleted unintended new files: `/components/ui/RowStatusChip.tsx` and `/components/panels/ProductIssuesPanel.tsx` (created in error by 7.21); (3) Updated optimization/ProductIssuesPanel.tsx: token-only triplet container (border-border bg-[hsl(var(--surface-card))]), text colors (text-foreground, text-muted-foreground), pillar group styling, severity colors (--danger-*, --warning-*, --info-*), FixNextBadge (bg-primary), IssueRow hover (surface-raised), AI fixable badge (neutral border-border bg-muted text-muted-foreground); (4) Updated ProductTable.tsx: token-only healthPillClasses fallback (--success-background, --warning-background, --danger-background); (5) Updated products/[productId]/page.tsx: token-only "Product not found" panel, back links (text-primary), sticky header title/subtext (text-foreground, text-muted-foreground), status pill (border-border bg-muted text-foreground), DEO issues pill (--danger-background/foreground), draft state indicator (--warning-*, --info-*, --success-*), "Automate this fix" secondary button (border-border bg-[hsl(var(--surface-card))] text-foreground), "Apply to Shopify" success primary button (bg-[hsl(var(--success))] text-[hsl(var(--primary-foreground))]); (6) Updated playbooks/page.tsx "Playbook rules" block: container (border-border bg-[hsl(var(--surface-card))] p-4), headings/labels (text-foreground, text-muted-foreground), toggle switch (bg-primary/bg-muted, bg-background knob, focus-visible:ring-primary), inputs/textareas (border-border bg-background text-foreground px-3 py-2 focus-visible:ring-primary). **All styling is token-only. No behavior changes.** **Core files:** common/RowStatusChip.tsx, optimization/ProductIssuesPanel.tsx, ProductTable.tsx, products/[productId]/page.tsx, playbooks/page.tsx. **Manual Testing:** UI-POLISH-&-CLARITY-1.md updated. **Critical Path:** CP-020 updated (6.28). |
+| 7.23 | 2026-01-22 | **UI-POLISH-&-CLARITY-1 FIXUP-2**: Token-only completion for remaining high-signal surfaces. (1) Updated issue-fix-anchors.ts: tokenized all getArrivalCalloutContent() containerClass outputs (coming_soon→--surface-raised, external_fix→--warning-*, already_compliant→--success-*, diagnostic→--info-*, anchor_not_found→--warning-*, actionable→primary/10 border-border text-foreground); tokenized HIGHLIGHT_CSS outline colors from rgb(99 102 241 / alpha) to hsl(var(--primary) / alpha); (2) Updated products/[productId]/page.tsx: preview mode banner (purple→--info-* tokens), preview expired banner (amber→--warning-* tokens with token-only CTA button), issue fix context banner actions (bg-indigo-600→bg-primary, border-blue-300→border-border), optimization banner (blue→--info-* tokens), success/error banners (green/red→--success-*/--danger-* tokens with token-only upgrade link), metadata tab header (text-gray-900→text-foreground), draft state banner (yellow/blue/green→--warning-*/--info-*/--success-* tokens), guidance callout (indigo→--info-* tokens); (3) Updated playbooks/page.tsx: previewValidityClass (amber/green→--warning-*/--success-* tokens), preview loading/empty states (gray→--surface-raised/muted-foreground), preview sample section (gray→token-only surfaces/links with text-primary for "Open product" link). **All styling is token-only. No behavior changes.** **Core files:** issue-fix-anchors.ts, products/[productId]/page.tsx, playbooks/page.tsx. **Manual Testing:** UI-POLISH-&-CLARITY-1.md updated. **Critical Path:** CP-020 updated (6.29). |
+| 7.24 | 2026-01-22 | **UI-POLISH-&-CLARITY-1 FIXUP-3**: Complete token-only cleanup for ALL remaining literal palette classes. (1) Updated issue-fix-anchors.ts: tokenized commented example block to match runtime HIGHLIGHT_CSS (rgb→hsl(var(--primary))); (2) Updated products/[productId]/page.tsx: tokenized tab section headers (Answers, Search & Intent, Competitors, GEO, Automations, Issues tabs) with text-foreground/text-muted-foreground/text-primary, tokenized AI diagnostic preview toggle button (border-border bg-surface-card text-foreground hover:bg-muted focus-visible:ring-primary), tokenized ring highlight for SEO editor (ring-primary ring-offset-background); (3) Updated playbooks/page.tsx: COMPLETE token cleanup removing ALL literal palette classes (bg-gray-*, text-gray-*, border-gray-*, bg-blue-*, text-blue-*, border-blue-*, bg-amber-*, text-amber-*, border-amber-*, bg-red-*, text-red-*, border-red-*, bg-green-*, text-green-*, border-green-*, bg-yellow-*, text-yellow-*, text-white, focus:ring-blue-*) → converted to token-only styling (--primary-*, --success-*, --warning-*, --danger-*, --info-*, --surface-card, --surface-raised, border-border, text-foreground, text-muted-foreground); affected areas: loading/empty states, draft review mode, CNAB banners, VIEWER mode banner, next DEO win banner, error messages, automation tabs, playbook list cards, step indicators, primary/secondary buttons, saved preview callout, continue blocked panel, estimate blockers, draft status panels (EXPIRED/FAILED/missing), warning banners (scope invalid/draft not found/draft expired/rules changed), apply result summary, stopped safely banner, skipped products warning, status column badges (UPDATED/SKIPPED/LIMIT_REACHED/error), approval status messages, checkbox, final apply button. **All styling is now 100% token-only across the entire playbooks page. No behavior changes.** **Core files:** issue-fix-anchors.ts, products/[productId]/page.tsx, playbooks/page.tsx. **Manual Testing:** UI-POLISH-&-CLARITY-1.md updated. **Critical Path:** CP-020 updated (6.30). |
+| 7.25 | 2026-01-22 | **UI-POLISH-&-CLARITY-1 FIXUP-4**: Tokenized remaining "AI usage this month" callout on Playbooks page. Removed all purple-* literal palette classes (border-purple-100, bg-purple-50, text-purple-900, text-purple-700, text-purple-600) and replaced with token-only styling (border-border, bg-[hsl(var(--surface-raised))], text-foreground, text-muted-foreground). Preserved success-foreground for "AI runs avoided" line. **No behavior changes.** **Core files:** playbooks/page.tsx. **Manual Testing:** UI-POLISH-&-CLARITY-1.md updated (HP-018). **Critical Path:** CP-020 updated (6.31). |
+| 7.26 | 2026-01-22 | **ISSUES-ENGINE-REMOUNT-1 FIXUP-3**: RCP Issue Details completeness and truthfulness. (1) Added Issue Summary section: title + description (plain text, no rewriting); (2) Added Why This Matters section with truthful fallback: prefers issue.whyItMatters when present, renders "Not available for this issue." when missing (does NOT fall back to description to avoid duplication); (3) Replaced Status section with Actionability section: informational issues show "Informational — outside EngineO.ai control" + guidance (no Fix/Apply wording), blocked issues show "Blocked — insufficient permissions" + guidance (recommend elevated access), actionable issues show "Actionable now" + guidance (actions from Work Canvas); (4) Added Affected Assets list: renders affectedProducts/affectedPages up to 6 items each with "+ N more" overflow, renders "No affected asset list available." when neither list present; (5) Kept existing Affected Items counts block (counts remain useful even without lists). All content read-only with token-only styling, no in-body navigation links, no buttons added. **No backend, scoring, or issue semantics changes.** **Core files:** ContextPanelIssueDetails.tsx. **Manual Testing:** ISSUES-ENGINE-REMOUNT-1.md updated (HP-008/009/010, EC-004/005). **Critical Path:** CP-009 updated (6.32). |
+| 7.27 | 2026-01-22 | **ISSUES-ENGINE-REMOUNT-1 FIXUP-4**: Actionability truthfulness correction. (1) Changed blocked label from "Blocked — insufficient permissions" to "Blocked — not actionable in this context" (no speculative claims about permissions or elevated access); (2) Updated blocked guidance to remove permission/role speculation: now says "This issue cannot be acted upon in the current context. Review the issue details in the Work Canvas for more information."; (3) Changed isActionableNow truthiness check to explicit `=== true` so that undefined values are treated as blocked (not actionable); (4) Preserved informational and actionable-now paths unchanged. **No backend, scoring, or issue semantics changes.** **Core files:** ContextPanelIssueDetails.tsx. **Manual Testing:** ISSUES-ENGINE-REMOUNT-1.md updated (HP-009 expected results). **Critical Path:** CP-009 updated (6.33). |
+| 7.28 | 2026-01-22 | **PLAYBOOKS-SHELL-REMOUNT-1**: Playbooks list remounted to canonical DataTable + RCP integration. (1) Extended RightContextPanelProvider.tsx: added 'playbook' to ALLOWED_ENTITY_TYPES and PROJECT_SCOPED_ENTITY_TYPES for PANEL-DEEP-LINKS-1 deep-link support; (2) Added PlaybookDetailsContent renderer to ContextPanelContentRenderer.tsx: read-only sections for "What This Playbook Does" (description), "Applicable Assets" (asset types + scope summary), "Preconditions" (truthful list), "Availability" (Ready/Blocked/Informational state + guidance), "History" stub; no in-body navigation links; (3) Replaced card-based playbooks grid with canonical DataTable in page.tsx: columns Playbook (name + description), What It Fixes, Asset Type, Availability (state badge + affected count); (4) Changed selection model: row click sets selectedPlaybookId in-page state (no navigation via router.push); reset flow state on selection change; (5) Integrated RCP via useRightContextPanel(): added getPlaybookDescriptor() helper, onOpenContext wired to openPanel, eye icon opens playbook details panel; (6) Added deep-link compatibility: useEffect syncs selectedPlaybookId from panel params (entityType=playbook) for highlight alignment. Preview → Estimate → Apply continuity preserved (no step skipping). Token-only styling throughout. **No backend changes.** **Core files:** RightContextPanelProvider.tsx, ContextPanelContentRenderer.tsx, playbooks/page.tsx. **Manual Testing:** PLAYBOOKS-SHELL-REMOUNT-1.md created. **Critical Path:** CP-012 updated (6.34). |
+| 7.29 | 2026-01-22 | **PLAYBOOKS-SHELL-REMOUNT-1 FIXUP-1**: No auto-navigation + selection highlight + plan doc completeness. (1) Removed legacy deterministic default selection auto-navigation effect: landing on Playbooks with no playbookId in URL now remains neutral (no route changes, no implicit selection); (2) Fixed playbook selection highlight: moved conditional font-semibold/font-medium from wrapper div to title `<p>` element so it visibly applies; (3) Updated getPlaybookDescriptor openHref to per-playbook canonical route with step=preview&source=default params; (4) Added missing Phase section for PLAYBOOKS-SHELL-REMOUNT-1 to IMPLEMENTATION_PLAN.md (Status, Date, Design System Version, Overview, Key Features, Affected Files, Manual Testing, Critical Path Map); (5) Updated PANEL-DEEP-LINKS-1 URL Schema table to include `playbook` in entityType allowed values; (6) Updated PLAYBOOKS-SHELL-REMOUNT-1.md manual testing doc with explicit no-auto-navigate scenario (HP-012). **No backend changes.** **Core files:** playbooks/page.tsx, IMPLEMENTATION_PLAN.md, PLAYBOOKS-SHELL-REMOUNT-1.md. |
+| 7.30 | 2026-01-22 | **PLAYBOOKS-SHELL-REMOUNT-1 FIXUP-2**: Canonical header external-link + cleanup. (1) Changed RCP header external-link in getPlaybookDescriptor from query-based `/projects/:id/automation/playbooks?playbookId=...` to canonical playbook run route `/projects/:id/playbooks/:playbookId?step=preview&source=default`; (2) Removed unused `navigateToPlaybookRunReplace` import from playbooks-routing. Updated HP-004 with explicit external-link route expectation. Added CP-012 checklist item and changelog 6.35. **No backend changes.** **Core files:** playbooks/page.tsx. **Docs:** PLAYBOOKS-SHELL-REMOUNT-1.md, CRITICAL_PATH_MAP.md. |
+| 7.31 | 2026-01-23 | **ISSUE-TO-ACTION-GUIDANCE-1**: Issue → Playbook Guidance (guidance-only, token-only, trust-preserving). (1) Created `issue-to-action-guidance.ts` with deterministic mapping from issueType to RecommendedPlaybook metadata (playbookId, name, oneLineWhatItDoes, affects, preconditions); initial mappings: missing_seo_title, missing_seo_description; (2) Added "Recommended action" section to ContextPanelIssueDetails.tsx: shows playbook guidance for actionable issues with mapping, shows "No automated action available." for informational/blocked issues or unmapped actionable issues; single CTA "View playbook" navigates to `/projects/:id/playbooks/:playbookId?step=preview&source=entry&returnTo=...&returnLabel=Issues` (no auto-execution); (3) Added subtle non-interactive playbook indicator (lightning bolt icon) to Issues list Issue column for actionable issues with mapping (no buttons/links); (4) Manual testing doc ISSUE-TO-ACTION-GUIDANCE-1.md; (5) Critical Path: CP-009 updated with RCP/list scenarios, CP-012 updated with navigation safety scenario, CRITICAL_PATH_MAP.md 6.36 added. **No backend changes.** **Core files:** issue-to-action-guidance.ts (NEW), ContextPanelIssueDetails.tsx, issues/page.tsx. |
+| 7.32 | 2026-01-23 | **ISSUE-TO-ACTION-GUIDANCE-1 FIXUP-1**: Trust language alignment + GuardedLink CTA. (1) Non-actionable states (blocked/informational) now use "Automation Guidance" section label instead of "Recommended Action" (no "Recommended" language when nothing to recommend); (2) "View playbook" CTA uses GuardedLink for unsaved-changes protection instead of raw next/link; (3) Mapping copy made non-overclaiming: uses "assets within playbook scope" instead of explicitly listing products/pages/collections. **No backend changes.** **Core files:** ContextPanelIssueDetails.tsx, issue-to-action-guidance.ts. **Manual Testing:** ISSUE-TO-ACTION-GUIDANCE-1.md updated (HP-001/003/004 expected section labels). **Critical Path:** CP-009 updated with FIXUP-1 checklist items (6.37). |
+| 7.33 | 2026-01-23 | **ISSUE-TO-ACTION-GUIDANCE-1 FIXUP-2**: Documentation coherence updates (RCP link policy exception + manual testing corrections). No code changes. (1) Updated RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1.md: Overview now states "header external-link is the default/primary navigation affordance" and "no in-body navigation links except the single guidance CTA 'View playbook' shown only for issue kind per ISSUE-TO-ACTION-GUIDANCE-1"; HP-009 expected results updated to allow Issue Details exception; (2) Updated RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md: HP-002 Help tab line updated to acknowledge Issue Details exception; (3) Updated RIGHT_CONTEXT_PANEL_CONTRACT.md: added "Link Policy" section (§4) with default rule and Issue Details exception; (4) Updated ISSUE-TO-ACTION-GUIDANCE-1.md: EC-001 now references "Automation Guidance" section label for unmapped actionable issues; ERR-001 corrected to note existing RCP read-only fetch may occur while guidance mapping introduces no new API calls. **Docs only:** RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1.md, RIGHT-CONTEXT-PANEL-IMPLEMENTATION-1.md, RIGHT_CONTEXT_PANEL_CONTRACT.md, ISSUE-TO-ACTION-GUIDANCE-1.md, CRITICAL_PATH_MAP.md (6.38). |
+| 7.34 | 2026-01-23 | **RIGHT-CONTEXT-PANEL-AUTONOMY-1**: Autonomous context-driven panel behavior. (1) Removed shell-level Action/Details grouped control from LayoutShell header; (2) Removed RCP pin toggle, width toggle, view tabs (Details/Recommendations/History/Help), Cmd/Ctrl+. shortcut; (3) Added autonomous open on entity detail routes (products, pages, collections, playbooks); (4) Added autonomous close on contextless routes (projects list, dashboard, list pages without selection); (5) Added dismissal model - user-driven close (X, ESC, scrim click) respected until context meaningfully changes; (6) Auto-open writes URL params (panel, entityType, entityId) via replaceState; (7) Deep-links (PANEL-DEEP-LINKS-1) continue to work; (8) Removed all in-body navigation CTAs including "View playbook" - guidance is informational only; (9) Header external-link is the only navigation affordance. **Core files:** LayoutShell.tsx, RightContextPanel.tsx, RightContextPanelProvider.tsx, ContextPanelIssueDetails.tsx. **Manual Testing:** RIGHT-CONTEXT-PANEL-AUTONOMY-1.md. **Critical Path:** CP-009, CP-012, CP-020 updated (6.39). |
+| 7.35 | 2026-01-23 | **RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-1**: URL sync correctness fix. (1) Removed incorrect `isApplyingUrlStateRef` re-entrancy guard wrappers from state→URL write paths: dismissed context URL cleanup, auto-open URL writes, contextless close URL cleanup; (2) Re-entrancy guard now only protects URL→state application (deep-link path); (3) Removed obsolete CP-020 checklist items conflicting with autonomy (Details button click, pin toggle, width toggle, view tabs scenarios). **Core files:** RightContextPanelProvider.tsx. **Docs:** CRITICAL_PATH_MAP.md (6.40), RIGHT-CONTEXT-PANEL-AUTONOMY-1.md (doc paths), IMPLEMENTATION_PLAN.md. |
+| 7.36 | 2026-01-23 | **RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-2**: Deep-link panel view normalization. (1) Legacy `panel` URL values (recommendations, history, help) now normalized to `details` via replaceState on load; (2) `ALLOWED_PANEL_VIEWS` comment updated to document backward-compat acceptance + runtime coercion; (3) PRIORITY 1 deep-link branch now checks `panelView !== 'details'` and writes normalized URL before applying state; (4) `setActiveView` always receives `'details'` (no tabs under autonomy). **Core files:** RightContextPanelProvider.tsx. **Docs:** PANEL-DEEP-LINKS-1.md (HP-003 replaced with normalization scenario, REG-002 marked obsolete, URL schema updated), CRITICAL_PATH_MAP.md (6.41). |
+| 7.37 | 2026-01-23 | **RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3**: Pane header display title hydration. (1) `openPanel` now supports in-place descriptor enrichment when panel already open with same kind+id: merges title/subtitle/metadata/openHref without close/reopen, syncs URL entityTitle; (2) Added hydration useEffects to product detail (`/products/[productId]`), page detail (`/assets/pages/[pageId]`), collection detail (`/assets/collections/[collectionId]`), and playbooks page; (3) Hydration is "hydrate-only" - does NOT reopen panel if user dismissed. **Core files:** RightContextPanelProvider.tsx, products/[productId]/page.tsx, pages/[pageId]/page.tsx, collections/[collectionId]/page.tsx, automation/playbooks/page.tsx. **Docs:** RIGHT-CONTEXT-PANEL-AUTONOMY-1.md (HP-001/002 expected results, Known Issues), CRITICAL_PATH_MAP.md (6.42, CP-020 checklist). |
+| 7.38 | 2026-01-23 | **CENTER-PANE-NAV-REMODEL-1**: Center header standardization + scoped nav demotion. (1) Created CenterPaneHeaderProvider for per-page shell header customization (breadcrumbs/title/description/actions/hideHeader); (2) Updated LayoutShell to render standardized header structure (breadcrumbs → title → description → actions); (3) Issues page: migrated header to shell (title "Issues", description=project name, actions="Re-scan Issues" button), removed in-canvas header block; (4) Playbooks page: migrated header to shell, removed in-canvas breadcrumbs nav and header block; (5) Product detail: hideHeader=true to avoid duplicate headers, removed in-canvas breadcrumbs nav; (6) ProjectSideNav demoted to low-emphasis contextual index (lighter typography, tighter spacing, subtle active state with thin accent bar only); (7) layout.tsx removed max-width container wrappers. RCP remains autonomous (no new toggles/modes). **Core files:** CenterPaneHeaderProvider.tsx (NEW), LayoutShell.tsx, ProjectSideNav.tsx, layout.tsx, issues/page.tsx, playbooks/page.tsx, products/[productId]/page.tsx. **Manual Testing:** CENTER-PANE-NAV-REMODEL-1.md. **Critical Path:** CP-020 updated (6.43). |
+| 7.39 | 2026-01-23 | **CENTER-PANE-NAV-REMODEL-1 FIXUP-1**: Extended shell header integration to remaining surfaces. (1) Pillar pages (keywords, performance, media, competitors, local) now use shell header with breadcrumbs/title/description, removed in-canvas breadcrumb nav and h1 header blocks; (2) Members settings page (settings/members) uses shell header, removed in-canvas breadcrumbs and header; (3) New Playbook entry page (automation/playbooks/entry) uses shell header, removed in-canvas breadcrumbs and header; (4) Content Workspace page (content/[pageId]) uses shell header, removed in-canvas breadcrumbs and header; (5) ProjectSideNav insightsPillarRoutes now includes 'media' for correct active-state coverage. **Core files:** ProjectSideNav.tsx, keywords/page.tsx, performance/page.tsx, media/page.tsx, competitors/page.tsx, local/page.tsx, settings/members/page.tsx, automation/playbooks/entry/page.tsx, content/[pageId]/page.tsx. **Manual Testing:** CENTER-PANE-NAV-REMODEL-1.md updated (HP-008 through HP-012). **Critical Path:** CP-020 updated (6.44). |
+| 7.40 | 2026-01-23 | **CENTER-PANE-NAV-REMODEL-1 FIXUP-2**: Completed shell header integration for GEO Insights page. Removed in-canvas breadcrumbs nav and h1/action header block, moved "Export Report" action into shell header actions. **Core files:** insights/geo-insights/page.tsx. **Manual Testing:** CENTER-PANE-NAV-REMODEL-1.md updated (HP-013). **Critical Path:** CP-020 updated (6.45). |
+| 7.41 | 2026-01-23 | **CENTER-PANE-NAV-REMODEL-1 FIXUP-3**: Removed GEO Insights header breadcrumbs override so canonical shell breadcrumbs display correctly (real project name instead of placeholder "Project" text). **Core files:** insights/geo-insights/page.tsx. **Manual Testing:** CENTER-PANE-NAV-REMODEL-1.md HP-013 updated. **Critical Path:** CP-020 updated (6.46). |
+| 7.42 | 2026-01-23 | **WORK-CANVAS-ARCHITECTURE-LOCK-1**: Structural contracts + minimal shell adjustments. (1) Created WORK_CANVAS_ARCHITECTURE.md: one-page architecture contract documenting Left Rail/Center Pane/RCP responsibilities, navigation rules, URL/state policy, action hierarchy, visual constraints; (2) Updated LayoutShell.tsx: added visual hierarchy comments, left rail icon-only annotations, center pane elevation comments, RCP divider annotations; (3) Updated ProjectSideNav.tsx: wrapped scoped nav in distinct container surface (bg-[hsl(var(--surface-card))] + border), strengthened active-state (bg-primary/70 accent bar, font-semibold); (4) Updated RightContextPanel.tsx: added RCP contract lock comments (no navigation/mode controls, header external-link only navigation, content rhythm); (5) Updated RightContextPanelProvider.tsx: added autonomy boundaries documentation (state derived, no routing decisions, dismissal respect); (6) Created WORK-CANVAS-ARCHITECTURE-LOCK-1.md manual testing checklist. **Structural/documentation-only phase, no functional changes.** **Core files:** LayoutShell.tsx, ProjectSideNav.tsx, RightContextPanel.tsx, RightContextPanelProvider.tsx. **New docs:** WORK_CANVAS_ARCHITECTURE.md, WORK-CANVAS-ARCHITECTURE-LOCK-1.md. **Critical Path:** CP-020 updated (6.47). |
+| 7.43 | 2026-01-23 | **WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-1**: Left rail locked to icon-only always (no expand/collapse toggle). (1) Updated LayoutShell.tsx: removed NavState type, NAV_STATE_STORAGE_KEY, readNavState(), persistNavState(), toggleNav(), collapsed state, "Navigation" heading, collapse/expand toggle button, ChevronLeftIcon; left rail now fixed at 72px width with aria-label on each nav item for accessibility; (2) Updated WORK_CANVAS_ARCHITECTURE.md: changed "Icon-only display when collapsed" to "Icon-only always visible", changed width from "72px collapsed, 256px expanded" to "Fixed 72px"; (3) Updated WORK-CANVAS-ARCHITECTURE-LOCK-1.md: renamed "Icon-Only Behavior" to "Icon-Only Always [FIXUP-1]", added explicit "No collapse/expand toggle exists" check, added aria-label check; (4) Updated LAYOUT-SHELL-IMPLEMENTATION-1.md: marked HP-002 collapse/expand scenario as OBSOLETE, updated EC-001 and regression sanity checks; (5) Updated CRITICAL_PATH_MAP.md: marked LAYOUT-SHELL-1 collapse/expand items as OBSOLETE, updated WORK-CANVAS-ARCHITECTURE-LOCK-1 checklist item wording. **Functional change: left rail no longer toggles.** **Core files:** LayoutShell.tsx. **Docs:** WORK_CANVAS_ARCHITECTURE.md, WORK-CANVAS-ARCHITECTURE-LOCK-1.md, LAYOUT-SHELL-IMPLEMENTATION-1.md. **Critical Path:** CP-020 updated (6.48). |
+| 7.44 | 2026-01-23 | **WORK-CANVAS-ARCHITECTURE-LOCK-1 FIXUP-2**: Documentation contract coherence. (1) Updated ENGINEERING_IMPLEMENTATION_CONTRACT.md: Left Navigation row changed to "Icon-only. No expand/collapse toggle", Command Palette changed from "Future (v1.6)" to "Core (v1.5)", panel state wording changed from "expanded/collapsed" to "open/closed", removed navState from Global State (marked as removed), marked "Command Palette reserved for v1.6" as implemented; (2) Updated IMPLEMENTATION_PLAN.md LAYOUT-SHELL-IMPLEMENTATION-1 section: scope bullet updated to "Left Rail (icon-only always; fixed ~72px; no expand/collapse toggle)", added historical note about FIXUP-1 removal in both Scope and Summary of Changes sections; (3) Updated COMMAND-PALETTE-IMPLEMENTATION-1.md: replaced "Left Nav collapse/expand unaffected" regression check with "Left rail is icon-only always (no expand/collapse toggle) — regression sanity check". **Documentation-only phase, no code changes.** **Docs:** ENGINEERING_IMPLEMENTATION_CONTRACT.md, IMPLEMENTATION_PLAN.md, COMMAND-PALETTE-IMPLEMENTATION-1.md. **Critical Path:** CP-020 updated (6.49). |
+| 7.45 | 2026-01-23 | **ICONS-LOCAL-LIBRARY-1**: Local SVG icon system implementation. (1) Created curated 33-icon Material Symbols manifest with semantic keys (nav.*, utility.*, status.*, workflow.*, playbook.*) in `material-symbols-manifest.ts`; (2) Created build scripts: `extract-stitch-material-symbols.mjs` (extracts icon names from Stitch HTML), `download-material-symbols.mjs` (generates SVG files), `build-material-symbols-sprite.mjs` (creates sprite.svg); (3) Downloaded all 33 SVG icons to `public/icons/material-symbols/svg/` and built `sprite.svg` for CDN-free serving; (4) Created `Icon.tsx` component with semantic key resolution, size variants (16/20/24px), and accessibility support (aria-hidden for decorative, aria-label with role="img" for meaningful); (5) Migrated LayoutShell left rail nav icons from inline SVG components to Icon component using semantic keys; (6) Migrated search icon in command palette triggers (desktop bar + mobile icon button); (7) Migrated RowStatusChip to show Icon + clean label (stripped emoji prefixes from display text). **Core files:** Icon.tsx, material-symbols-manifest.ts, LayoutShell.tsx, RowStatusChip.tsx, sprite.svg. **Docs:** docs/icons.md, ICONS-LOCAL-LIBRARY-1.md. **Critical Path:** CP-020 updated (6.50). |
+| 7.46 | 2026-01-23 | **ICONS-LOCAL-LIBRARY-1 FIXUP-1**: auto_fix_high viewBox-safe path correction. (1) Fixed out-of-viewBox coordinate in auto_fix_high icon path data: changed `L25 12` to `L24 12` to fit within 24x24 viewBox (prevents clipped right edge); (2) Updated download-material-symbols.mjs ICON_PATHS.auto_fix_high; (3) Updated auto_fix_high.svg; (4) Updated sprite.svg symbol; (5) Corrected dev-script header comment from "downloads from CDN" to "generates from embedded path data" for accuracy. **Core files:** download-material-symbols.mjs, auto_fix_high.svg, sprite.svg. **Manual Testing:** ICONS-LOCAL-LIBRARY-1.md updated (Icon Inventory verification note). **Critical Path:** CP-020 updated (6.51). |
+| 7.47 | 2026-01-24 | **ISSUES-ENGINE-REMOUNT-1 FIXUP-5**: Decision engine remount with three-section hierarchy (Actionable now → Blocked → Informational) and action semantics. (1) Updated TripletDisplay.tsx: replaced all text-gray-* with text-muted-foreground (token-only labels), reordered triplet blocks so "Actionable now" renders first, added emphasis prop ('none' | 'actionable') with bg-primary/10 text-primary highlight wrapper when emphasis='actionable'; (2) Updated DataTable.tsx: added headerContrast prop ('default' | 'strong') for Issues-only stronger table header contrast (text-foreground when 'strong', text-foreground/80 when 'default'); (3) Updated issues/page.tsx: removed mode-based upfront filtering (keep all matching issues), derived three classification arrays (actionableNowIssues, blockedIssues, informationalIssues) with severity→impact→title sorting, replaced single DataTable with three stacked sections (Actionable now comfortable + strong headers, Blocked dense collapsible, Informational dense collapsible), removed Status column (section membership communicates status), changed Severity from pill badge to dot+label, added Issue column compact meta line (severity + fixability + impact), updated Actions column to show Blocked non-clickable pill with tooltip for blocked rows, renamed "Fix next" button to "Fix now", updated mode toggle copy ("Actionable" → "Actionable now", "Detected" → "All detected"), passed emphasis='actionable' prop to TripletDisplay. **No backend changes.** **Core files:** TripletDisplay.tsx, DataTable.tsx, issues/page.tsx. **Manual Testing:** ISSUES-ENGINE-REMOUNT-1.md updated (HP-002, HP-011 through HP-015). **Critical Path:** CP-009 updated with 8 checklist items (6.52). |
+| 7.48 | 2026-01-24 | **ISSUES-ENGINE-REMOUNT-1 FIXUP-6**: Semantics and consistency corrections. (1) Updated page.tsx: fixed blocked chip logic to only render "Outside control" chip for actionability === 'informational' (blocked status conveyed by section + Actions pill, no chip needed); added stable sorting tie-breaker (after title comparison, sort by id for deterministic ordering); normalized Action column labels to exactly "Fix now" / "Review" / "Blocked" ("Review" for DIAGNOSTIC and "View affected" flows, "Fix now" for other actionable fix flows, preserve original meaning in title attribute); (2) Updated TripletDisplay.tsx: fixed emphasis so both count and label render as text-primary when emphasis='actionable' (not text-muted-foreground); (3) Updated ISSUES-ENGINE-REMOUNT-1.md: corrected HP-013 expected results to match actual UI semantics (Fix now action for inline/link flows, Review for View affected with title preservation). **No backend changes.** **Core files:** page.tsx, TripletDisplay.tsx. **Manual Testing:** ISSUES-ENGINE-REMOUNT-1.md (HP-013). **Critical Path:** CP-009 updated (6.53). |
+| 7.49 | 2026-01-24 | **ISSUES-ENGINE-REMOUNT-1 FIXUP-7**: Trust copy tightening for Issues preview Apply CTA. (1) Updated page.tsx: changed inline preview Apply button label from "Apply to Shopify" to "Apply saved draft to Shopify" for trust clarity (no behavior change; data-testid="issue-apply-to-shopify-button" preserved; disabled gating unchanged; loading label "Applying…" unchanged; title attribute already clarifies "Applies saved draft only. Does not use AI."). **Copy-only trust tightening.** **No Playwright test changes required** - tests use stable data-testid selector. **Core files:** issues/page.tsx. **Phase ISSUES-ENGINE-REMOUNT-1 now COMPLETE.** |
+| 7.50 | 2026-01-24 | **ISSUES-ENGINE-REMOUNT-1 FIXUP-8**: Doc/Playwright alignment + config fix. **PATCH A (Manual testing doc copy alignment):** Updated DRAFT-CLARITY-AND-ACTION-TRUST-1.md Scenario 7 to reflect new button labels (replaced "Fix next" with "Fix now" in 4 instances; replaced "Apply button" with "Apply saved draft to Shopify button" in 4 instances; Issues preview Apply button trust copy now aligned with UI from FIXUP-7). **PATCH B (Playwright selector hardening):** Replaced text-based selector `button:has-text("Fix next")` with stable data-testid selector `[data-testid="issue-fix-next-button"]` in 2 instances; updated 3 comment references from "Fix next" to "Fix now" for consistency; hardened tests against UI copy drift. **PATCH C (Config fix + regression verification):** Fixed playwright.config.ts testDir from './tests/e2e' to './tests' (corrected test discovery: 38 tests in ./tests vs 2 in ./tests/e2e); verified test execution: 14 tests discovered and ran; selector changes validated (no selector-related errors); tests blocked by missing API server (environmental; not code-related). **Core files:** draft-clarity-and-action-trust-1.spec.ts, DRAFT-CLARITY-AND-ACTION-TRUST-1.md, playwright.config.ts. **Phase ISSUES-ENGINE-REMOUNT-1 doc/test alignment complete.** |

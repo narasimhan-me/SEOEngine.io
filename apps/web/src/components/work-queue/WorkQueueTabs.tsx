@@ -10,6 +10,7 @@ interface WorkQueueTabsProps {
 
 /**
  * [WORK-QUEUE-1] Work Queue Tabs Component
+ * [NAV-HIERARCHY-POLISH-1] Token-only styling - entity tabs as view switchers
  *
  * Tab navigation: Critical | Needs Attention | Pending Approval | Drafts Ready | Applied Recently
  */
@@ -19,15 +20,15 @@ export function WorkQueueTabs({
   onTabChange,
 }: WorkQueueTabsProps) {
   return (
-    <div className="border-b border-gray-200">
+    <div className="border-b border-border">
       <nav className="-mb-px flex space-x-8" aria-label="Work Queue Tabs">
         {/* All tab - show when no specific tab is selected */}
         <button
           onClick={() => onTabChange(undefined)}
-          className={`whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
+          className={`whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
             !currentTab
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+              ? 'border-primary text-foreground'
+              : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
           }`}
         >
           All
@@ -37,10 +38,10 @@ export function WorkQueueTabs({
           <button
             key={tab.key}
             onClick={() => onTabChange(tab.key)}
-            className={`whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
+            className={`whitespace-nowrap border-b-2 px-1 py-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
               currentTab === tab.key
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
             }`}
           >
             {tab.label}

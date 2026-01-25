@@ -16,6 +16,8 @@ import {
 import type { Product } from '@/lib/products';
 import { getDeoPillarById } from '@/lib/deo-pillars';
 import InsightsPillarsSubnav from '@/components/projects/InsightsPillarsSubnav';
+// [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Shell header integration
+import { useCenterPaneHeader } from '@/components/layout/CenterPaneHeaderProvider';
 
 // Intent type labels for display
 const INTENT_LABELS: Record<SearchIntentType, string> = {
@@ -72,6 +74,9 @@ export default function SearchIntentWorkspacePage() {
 
   const pillar = getDeoPillarById('search_intent_fit');
 
+  // [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Shell header integration
+  const { setHeader } = useCenterPaneHeader();
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -102,6 +107,17 @@ export default function SearchIntentWorkspacePage() {
     fetchData();
   }, [router, fetchData]);
 
+  // [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Set shell header
+  useEffect(() => {
+    setHeader({
+      breadcrumbs: `Projects > ${projectName || projectId} > Insights`,
+      title: 'Search & Intent',
+      description:
+        pillar?.description ||
+        'Analyze query coverage and intent gaps across your products.',
+    });
+  }, [setHeader, projectName, projectId, pillar?.description]);
+
   if (loading) {
     return (
       <div className="animate-pulse space-y-6">
@@ -129,36 +145,7 @@ export default function SearchIntentWorkspacePage() {
 
   return (
     <div>
-      {/* Breadcrumbs */}
-      <nav className="mb-4 text-sm">
-        <ol className="flex flex-wrap items-center gap-2 text-gray-500">
-          <li>
-            <Link href="/projects" className="hover:text-gray-700">
-              Projects
-            </Link>
-          </li>
-          <li>/</li>
-          <li>
-            <Link
-              href={`/projects/${projectId}/store-health`}
-              className="hover:text-gray-700"
-            >
-              {projectName || 'Project'}
-            </Link>
-          </li>
-          <li>/</li>
-          <li className="text-gray-900">Search & Intent</li>
-        </ol>
-      </nav>
-
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Search & Intent</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          {pillar?.description ||
-            'Analyze query coverage and intent gaps across your products.'}
-        </p>
-      </div>
+      {/* [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] In-canvas breadcrumbs and header removed - shell header owns these */}
 
       <InsightsPillarsSubnav />
 

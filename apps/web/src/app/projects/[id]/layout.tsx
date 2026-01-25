@@ -11,18 +11,18 @@ export default function ProjectLayout({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Mobile top bar - visible only on small screens */}
-      <div className="mb-4 flex items-center justify-between md:hidden">
-        <span className="text-sm font-medium text-gray-700">
-          Project navigation
-        </span>
+    <>
+      {/* [CENTER-PANE-NAV-REMODEL-1] Removed max-width container + extra padding wrappers
+          to align center pane with shell. Same functional behavior preserved. */}
+
+      {/* [CENTER-PANE-NAV-REMODEL-1] Mobile trigger: low-emphasis, no extra mini header */}
+      <div className="mb-2 flex items-center justify-end md:hidden">
         <button
           onClick={() => setMobileNavOpen(true)}
-          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+          className="inline-flex items-center gap-1.5 rounded px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
         >
           <svg
-            className="mr-1.5 h-4 w-4"
+            className="h-3.5 w-3.5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -34,12 +34,12 @@ export default function ProjectLayout({
               d="M4 6h16M4 12h16M4 18h16"
             />
           </svg>
-          Menu
+          Sections
         </button>
       </div>
 
       {/* Desktop/tablet layout - hidden on mobile */}
-      <div className="hidden gap-8 md:flex">
+      <div className="hidden gap-6 md:flex">
         <ProjectSideNav />
         <main className="min-w-0 flex-1">{children}</main>
       </div>
@@ -49,27 +49,27 @@ export default function ProjectLayout({
         <main className="min-w-0 flex-1">{children}</main>
       </div>
 
-      {/* Mobile drawer overlay */}
+      {/* [CENTER-PANE-NAV-REMODEL-1] Mobile drawer: low-emphasis styling preserved */}
       {mobileNavOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black bg-opacity-40 md:hidden"
+          className="fixed inset-0 z-40 bg-foreground/50 md:hidden"
           onClick={() => setMobileNavOpen(false)}
         >
           <div
-            className="absolute bottom-0 left-0 top-0 w-64 bg-white shadow-xl"
+            className="absolute bottom-0 left-0 top-0 w-56 bg-[hsl(var(--surface-raised))] shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Drawer header */}
-            <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-              <span className="text-sm font-semibold text-gray-900">
-                Navigation
+            {/* Drawer header: demoted styling */}
+            <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
+              <span className="text-xs font-medium text-muted-foreground">
+                Sections
               </span>
               <button
                 onClick={() => setMobileNavOpen(false)}
-                className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
               >
                 <svg
-                  className="h-5 w-5"
+                  className="h-4 w-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -84,12 +84,12 @@ export default function ProjectLayout({
               </button>
             </div>
             {/* Drawer content */}
-            <div className="p-4">
+            <div className="p-3">
               <ProjectSideNav onNavigate={() => setMobileNavOpen(false)} />
             </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

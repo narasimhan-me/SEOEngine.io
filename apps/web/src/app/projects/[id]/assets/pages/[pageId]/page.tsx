@@ -20,6 +20,8 @@ import Link from 'next/link';
 import { isAuthenticated } from '@/lib/auth';
 import { projectsApi } from '@/lib/api';
 import { AssetDraftsTab } from '@/components/products/AssetDraftsTab';
+// [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] Import RCP hook for descriptor hydration
+import { useRightContextPanel } from '@/components/right-context-panel/RightContextPanelProvider';
 
 interface PageAsset {
   id: string;
@@ -58,6 +60,13 @@ export default function PageDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState<PageAsset | null>(null);
 
+  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] RCP descriptor hydration
+  const {
+    isOpen: rcpIsOpen,
+    descriptor: rcpDescriptor,
+    openPanel: rcpOpenPanel,
+  } = useRightContextPanel();
+
   // Auth check and fetch on mount
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -92,6 +101,31 @@ export default function PageDetailPage() {
 
     fetchPage();
   }, [router, projectId, pageId]);
+
+  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] Hydrate RCP descriptor with page title
+  // Only runs when panel is open with matching page; does NOT reopen if dismissed
+  useEffect(() => {
+    if (
+      !rcpIsOpen ||
+      rcpDescriptor?.kind !== 'page' ||
+      rcpDescriptor.id !== pageId ||
+      !page
+    ) {
+      return;
+    }
+    // Compute display title (page.title or URL pathname as fallback)
+    const displayTitle = page.title || new URL(page.url).pathname;
+    if (rcpDescriptor.title === displayTitle) {
+      return;
+    }
+    // Enrich descriptor with display title (in-place update, no close/reopen)
+    rcpOpenPanel({
+      kind: 'page',
+      id: pageId,
+      title: displayTitle,
+      scopeProjectId: projectId,
+    });
+  }, [rcpIsOpen, rcpDescriptor, pageId, projectId, page, rcpOpenPanel]);
 
   /**
    * Switch tabs while preserving other URL params
@@ -131,7 +165,7 @@ export default function PageDetailPage() {
         </p>
         <Link
           href={`/projects/${projectId}/assets/pages`}
-          className="text-indigo-600 hover:text-indigo-800"
+          className="text-primary hover:text-primary/80"
         >
           ← Back to Pages
         </Link>
@@ -155,7 +189,7 @@ export default function PageDetailPage() {
       <div className="mb-6">
         <Link
           href={`/projects/${projectId}/assets/pages`}
-          className="text-sm text-indigo-600 hover:text-indigo-800 mb-2 inline-block"
+          className="text-sm text-primary hover:text-primary/80 mb-2 inline-block"
         >
           ← Back to Pages
         </Link>
@@ -181,16 +215,16 @@ export default function PageDetailPage() {
         <p className="text-sm text-gray-400 mt-1">{page.url}</p>
       </div>
 
-      {/* Tab Bar */}
-      <div className="border-b border-gray-200 mb-6">
+      {/* [NAV-HIERARCHY-POLISH-1] Tab Bar - token-only entity tabs */}
+      <div className="border-b border-border mb-6">
         <nav className="-mb-px flex gap-4" aria-label="Tabs">
           <button
             type="button"
             onClick={() => handleTabChange('overview')}
-            className={`py-2 px-1 text-sm font-medium border-b-2 ${
+            className={`py-2 px-1 text-sm font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
               activeTab === 'overview'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
             }`}
           >
             Overview
@@ -198,10 +232,10 @@ export default function PageDetailPage() {
           <button
             type="button"
             onClick={() => handleTabChange('drafts')}
-            className={`py-2 px-1 text-sm font-medium border-b-2 ${
+            className={`py-2 px-1 text-sm font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
               activeTab === 'drafts'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
             }`}
           >
             Drafts

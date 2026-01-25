@@ -105,17 +105,17 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className={`${inter.className} min-h-screen bg-gray-50`}>
+      <body className={`${inter.className} min-h-screen bg-background text-foreground`}>
         <UnsavedChangesProvider>
           <FeedbackProvider>
             {/* [SHOPIFY-EMBEDDED-SHELL-1] Wrap in ShopifyEmbeddedShell for embedded context detection */}
             {/* [REVIEW-2] Never-blank Suspense fallback with visible loading indicator */}
             <Suspense
               fallback={
-                <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="min-h-screen flex items-center justify-center bg-background">
                   <div className="text-center">
                     <svg
-                      className="animate-spin h-8 w-8 text-blue-600 mx-auto mb-4"
+                      className="animate-spin h-8 w-8 text-primary mx-auto mb-4"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
@@ -134,7 +134,7 @@ export default function RootLayout({
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       />
                     </svg>
-                    <p className="text-gray-600">Loading EngineO.ai…</p>
+                    <p className="text-muted-foreground">Loading EngineO.ai…</p>
                   </div>
                 </div>
               }

@@ -1,10 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { adminApi } from '@/lib/api';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableRow,
+} from '@/components/tables/DataTable';
 
 /**
  * [ADMIN-OPS-1][D6 AI Usage Console]
+ * [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-3] Migrated to canonical DataTable.
  */
 interface AiUsageData {
   usageByPlan: Record<string, number>;
@@ -20,6 +26,14 @@ interface AiUsageData {
   };
   applyInvariantRedAlert: boolean;
   applyRunsWithAiCount: number;
+}
+
+/** Row type for DataTable */
+interface ConsumerRow extends DataTableRow {
+  id: string;
+  rank: number;
+  email: string;
+  aiRunsThisMonth: number;
 }
 
 export default function AdminAiUsagePage() {
@@ -44,13 +58,51 @@ export default function AdminAiUsagePage() {
     fetchAiUsage();
   }, []);
 
+  // Transform top consumers for DataTable
+  const consumerRows: ConsumerRow[] = useMemo(
+    () =>
+      (data?.topConsumers || []).map((consumer, idx) => ({
+        id: consumer.userId,
+        rank: idx + 1,
+        email: consumer.email,
+        aiRunsThisMonth: consumer.aiRunsThisMonth,
+      })),
+    [data?.topConsumers]
+  );
+
+  // [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-3] Define DataTable columns
+  const columns: DataTableColumn<ConsumerRow>[] = useMemo(
+    () => [
+      {
+        key: 'email',
+        header: 'Email',
+        cell: (row) => (
+          <span className="text-sm text-foreground">
+            <span className="text-muted-foreground mr-2">#{row.rank}</span>
+            {row.email}
+          </span>
+        ),
+      },
+      {
+        key: 'aiRuns',
+        header: 'AI Runs',
+        cell: (row) => (
+          <span className="text-sm font-medium text-foreground">
+            {row.aiRunsThisMonth}
+          </span>
+        ),
+      },
+    ],
+    []
+  );
+
   if (loading) {
-    return <p className="text-gray-600">Loading AI usage...</p>;
+    return <p className="text-muted-foreground">Loading AI usage...</p>;
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+      <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded">
         {error}
       </div>
     );
@@ -58,7 +110,7 @@ export default function AdminAiUsagePage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">AI Usage</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">AI Usage</h1>
 
       {/* Red Alert Banner */}
       {data?.applyInvariantRedAlert && (
@@ -75,43 +127,43 @@ export default function AdminAiUsagePage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {/* Usage by Plan */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
+        <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-6">
+          <h2 className="text-lg font-medium text-foreground mb-4">
             Usage by Plan
           </h2>
           <div className="space-y-3">
             {Object.entries(data?.usageByPlan || {}).map(([plan, count]) => (
               <div key={plan} className="flex justify-between items-center">
-                <span className="text-gray-600 capitalize">{plan}</span>
-                <span className="font-medium text-gray-900">{count} runs</span>
+                <span className="text-muted-foreground capitalize">{plan}</span>
+                <span className="font-medium text-foreground">{count} runs</span>
               </div>
             ))}
             {Object.keys(data?.usageByPlan || {}).length === 0 && (
-              <p className="text-gray-500 text-sm">No usage data</p>
+              <p className="text-muted-foreground text-sm">No usage data</p>
             )}
           </div>
         </div>
 
         {/* Reuse Effectiveness */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
+        <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-6">
+          <h2 className="text-lg font-medium text-foreground mb-4">
             Reuse Effectiveness
           </h2>
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total AI Runs</span>
-              <span className="font-medium text-gray-900">
+              <span className="text-muted-foreground">Total AI Runs</span>
+              <span className="font-medium text-foreground">
                 {data?.reuseEffectiveness.totalAiRuns || 0}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Reused Runs</span>
+              <span className="text-muted-foreground">Reused Runs</span>
               <span className="font-medium text-green-600">
                 {data?.reuseEffectiveness.reusedRuns || 0}
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Reuse Rate</span>
+              <span className="text-muted-foreground">Reuse Rate</span>
               <span className="font-bold text-green-600">
                 {data?.reuseEffectiveness.reuseRate || 0}%
               </span>
@@ -120,8 +172,8 @@ export default function AdminAiUsagePage() {
         </div>
 
         {/* Invariant Status */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
+        <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-6">
+          <h2 className="text-lg font-medium text-foreground mb-4">
             APPLY Invariant
           </h2>
           <div
@@ -142,38 +194,19 @@ export default function AdminAiUsagePage() {
       </div>
 
       {/* Top Consumers */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">
+      <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-6">
+        <h2 className="text-lg font-medium text-foreground mb-4">
           Top Consumers (This Month)
         </h2>
-        {(data?.topConsumers || []).length === 0 ? (
-          <p className="text-gray-500 text-sm">No consumers this month</p>
+        {consumerRows.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No consumers this month</p>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase">
-                  Email
-                </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase">
-                  AI Runs
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {data?.topConsumers.map((consumer, idx) => (
-                <tr key={consumer.userId}>
-                  <td className="py-2 text-sm">
-                    <span className="text-gray-500 mr-2">#{idx + 1}</span>
-                    {consumer.email}
-                  </td>
-                  <td className="py-2 text-sm font-medium">
-                    {consumer.aiRunsThisMonth}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            columns={columns}
+            rows={consumerRows}
+            hideContextAction={true}
+            density="dense"
+          />
         )}
       </div>
     </div>

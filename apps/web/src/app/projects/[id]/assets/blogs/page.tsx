@@ -21,6 +21,15 @@ import {
   normalizeScopeParams,
   buildClearFiltersHref,
 } from '@/lib/scope-normalization';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableRow,
+} from '@/components/tables/DataTable';
+
+/**
+ * [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Migrated to canonical DataTable.
+ */
 
 interface BlogPostAsset {
   id: string;
@@ -183,6 +192,76 @@ export default function BlogPostsAssetListPage() {
   }, [fetchBlogPosts, fetchCapabilities, fetchSyncStatus]);
 
   const hasMissingScopes = (scopeStatus?.missingScopes?.length ?? 0) > 0;
+
+  // [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Define DataTable columns
+  const columns: DataTableColumn<BlogPostAsset & DataTableRow>[] = useMemo(
+    () => [
+      {
+        key: 'status',
+        header: 'Status',
+        cell: (row) => {
+          const isPublished = !!row.publishedAt;
+          return (
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                isPublished
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {isPublished ? 'Published' : 'Draft'}
+            </span>
+          );
+        },
+      },
+      {
+        key: 'handle',
+        header: 'Handle',
+        cell: (row) => (
+          <span className="text-sm text-foreground">
+            {row.blogHandle && row.handle
+              ? `${row.blogHandle}/${row.handle}`
+              : row.handle || '—'}
+          </span>
+        ),
+      },
+      {
+        key: 'title',
+        header: 'Title',
+        truncate: true,
+        cell: (row) => (
+          <span className="text-sm text-foreground">
+            {row.title || 'Untitled'}
+          </span>
+        ),
+      },
+      {
+        key: 'updated',
+        header: 'Updated',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {row.updatedAt ? new Date(row.updatedAt).toLocaleString() : '—'}
+          </span>
+        ),
+      },
+      {
+        key: 'open',
+        header: 'Open',
+        cell: (row) => (
+          <a
+            data-testid="blog-post-open"
+            href={row.url}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm font-medium text-primary hover:text-primary/80"
+          >
+            Open
+          </a>
+        ),
+      },
+    ],
+    []
+  );
 
   const handleReconnectShopify = useCallback(async () => {
     setReconnectError(null);
@@ -375,14 +454,14 @@ export default function BlogPostsAssetListPage() {
       )}
 
       {!loading && !error && (
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <>
           {blogPosts.length === 0 ? (
             hasActiveFilters ? (
-              <div className="px-4 py-8 text-center text-sm text-gray-500">
+              <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] px-4 py-8 text-center text-sm text-muted-foreground">
                 No blog posts match your search.
               </div>
             ) : (
-              <div className="px-4 py-8 text-center text-sm text-gray-500">
+              <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] px-4 py-8 text-center text-sm text-muted-foreground">
                 {syncStatus.shopifyConnected && !syncStatus.lastBlogsSyncAt ? (
                   <>
                     <p>Not yet synced.</p>
@@ -400,73 +479,14 @@ export default function BlogPostsAssetListPage() {
               </div>
             )
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Handle
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Title
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Updated
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Open
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {blogPosts.map((post) => {
-                  const isPublished = !!post.publishedAt;
-                  return (
-                    <tr key={post.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            isPublished
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {isPublished ? 'Published' : 'Draft'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {post.blogHandle && post.handle
-                          ? `${post.blogHandle}/${post.handle}`
-                          : post.handle || '—'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {post.title || 'Untitled'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
-                        {post.updatedAt
-                          ? new Date(post.updatedAt).toLocaleString()
-                          : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <a
-                          data-testid="blog-post-open"
-                          href={post.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm font-medium text-blue-600 hover:text-blue-800"
-                        >
-                          Open
-                        </a>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            // [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Canonical DataTable
+            <DataTable
+              columns={columns}
+              rows={blogPosts}
+              hideContextAction={true}
+            />
           )}
-        </div>
+        </>
       )}
     </div>
   );

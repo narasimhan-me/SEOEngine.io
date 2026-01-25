@@ -14,6 +14,8 @@ import {
   getSafeIssueTitle,
   getSafeIssueDescription,
 } from '@/lib/issue-to-fix-path';
+// [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Shell header integration
+import { useCenterPaneHeader } from '@/components/layout/CenterPaneHeaderProvider';
 
 // PERFORMANCE-1 signal types for filtering
 const PERFORMANCE_SIGNAL_TYPES: PerformanceSignalType[] = [
@@ -212,6 +214,9 @@ export default function TechnicalPerformancePage() {
 
   const pillar = getDeoPillarById('technical_indexability');
 
+  // [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Shell header integration
+  const { setHeader } = useCenterPaneHeader();
+
   const fetchData = useCallback(async () => {
     if (!projectId || typeof projectId !== 'string') {
       console.warn('[TechnicalPerformancePage] Invalid projectId:', projectId);
@@ -265,6 +270,17 @@ export default function TechnicalPerformancePage() {
     fetchData();
   }, [router, fetchData]);
 
+  // [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Set shell header
+  useEffect(() => {
+    setHeader({
+      breadcrumbs: `Projects > ${projectName || projectId} > Insights`,
+      title: 'Technical & Indexability',
+      description:
+        pillar?.description ||
+        'Monitor crawl health, indexability status, page weight, and discovery-critical performance signals.',
+    });
+  }, [setHeader, projectName, projectId, pillar?.description]);
+
   if (loading) {
     return (
       <div className="animate-pulse space-y-6">
@@ -294,38 +310,7 @@ export default function TechnicalPerformancePage() {
 
   return (
     <div>
-      {/* Breadcrumbs */}
-      <nav className="mb-4 text-sm">
-        <ol className="flex flex-wrap items-center gap-2 text-gray-500">
-          <li>
-            <Link href="/projects" className="hover:text-gray-700">
-              Projects
-            </Link>
-          </li>
-          <li>/</li>
-          <li>
-            <Link
-              href={`/projects/${projectId}/store-health`}
-              className="hover:text-gray-700"
-            >
-              {projectName || 'Project'}
-            </Link>
-          </li>
-          <li>/</li>
-          <li className="text-gray-900">Technical & Indexability</li>
-        </ol>
-      </nav>
-
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Technical & Indexability
-        </h1>
-        <p className="mt-1 text-sm text-gray-600">
-          {pillar?.description ||
-            'Monitor crawl health, indexability status, page weight, and discovery-critical performance signals.'}
-        </p>
-      </div>
+      {/* [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] In-canvas breadcrumbs and header removed - shell header owns these */}
 
       <InsightsPillarsSubnav />
 

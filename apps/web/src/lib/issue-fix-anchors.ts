@@ -166,7 +166,7 @@ export function getArrivalCalloutContent(
       secondaryMessage:
         'This fix surface is not yet available. Check back later.',
       showBackLink: true,
-      containerClass: 'bg-gray-50 border-gray-200 text-gray-700',
+      containerClass: 'bg-[hsl(var(--surface-raised))] border-border text-muted-foreground',
     };
   }
 
@@ -178,7 +178,7 @@ export function getArrivalCalloutContent(
       secondaryMessage: nextActionLabel || 'Open Shopify to make this change.',
       showBackLink: true,
       showExternalLink: true,
-      containerClass: 'bg-amber-50 border-amber-200 text-amber-800',
+      containerClass: 'bg-[hsl(var(--warning-background))] border-border text-[hsl(var(--warning-foreground))]',
     };
   }
 
@@ -189,7 +189,7 @@ export function getArrivalCalloutContent(
       primaryMessage: 'No action needed — already compliant',
       secondaryMessage: `The issue "${issueTitle}" is no longer detected on this product.`,
       showBackLink: true,
-      containerClass: 'bg-green-50 border-green-200 text-green-700',
+      containerClass: 'bg-[hsl(var(--success-background))] border-border text-[hsl(var(--success-foreground))]',
     };
   }
 
@@ -204,7 +204,7 @@ export function getArrivalCalloutContent(
         'Review the analysis below. No direct fix is available for this issue.',
       showBackLink: true,
       showViewRelatedIssues: true,
-      containerClass: 'bg-blue-50 border-blue-200 text-blue-800',
+      containerClass: 'bg-[hsl(var(--info-background))] border-border text-[hsl(var(--info-foreground))]',
     };
   }
 
@@ -217,7 +217,7 @@ export function getArrivalCalloutContent(
       secondaryMessage:
         'Fix surface not available. Use the options below or go back.',
       showBackLink: true,
-      containerClass: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+      containerClass: 'bg-[hsl(var(--warning-background))] border-border text-[hsl(var(--warning-foreground))]',
     };
   }
 
@@ -229,7 +229,7 @@ export function getArrivalCalloutContent(
       ? `To fix this issue: ${nextActionLabel}`
       : undefined,
     showBackLink: true,
-    containerClass: 'bg-indigo-50 border-indigo-200 text-indigo-900',
+    containerClass: 'bg-primary/10 border-border text-foreground',
   };
 }
 
@@ -244,17 +244,17 @@ export function getArrivalCalloutContent(
  * ```css
  * .issue-fix-highlight {
  *   animation: issue-fix-pulse 2s ease-in-out;
- *   outline: 2px solid rgb(99 102 241 / 0.5);
+ *   outline: 2px solid hsl(var(--primary) / 0.5);
  *   outline-offset: 4px;
  *   border-radius: 8px;
  * }
  *
  * @keyframes issue-fix-pulse {
  *   0%, 100% {
- *     outline-color: rgb(99 102 241 / 0.5);
+ *     outline-color: hsl(var(--primary) / 0.5);
  *   }
  *   50% {
- *     outline-color: rgb(99 102 241 / 0.8);
+ *     outline-color: hsl(var(--primary) / 0.8);
  *   }
  * }
  * ```
@@ -262,17 +262,17 @@ export function getArrivalCalloutContent(
 export const HIGHLIGHT_CSS = `
 .issue-fix-highlight {
   animation: issue-fix-pulse 2s ease-in-out;
-  outline: 2px solid rgb(99 102 241 / 0.5);
+  outline: 2px solid hsl(var(--primary) / 0.5);
   outline-offset: 4px;
   border-radius: 8px;
 }
 
 @keyframes issue-fix-pulse {
   0%, 100% {
-    outline-color: rgb(99 102 241 / 0.5);
+    outline-color: hsl(var(--primary) / 0.5);
   }
   50% {
-    outline-color: rgb(99 102 241 / 0.8);
+    outline-color: hsl(var(--primary) / 0.8);
   }
 }
 `;
