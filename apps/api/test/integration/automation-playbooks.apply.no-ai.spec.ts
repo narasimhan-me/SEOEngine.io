@@ -18,6 +18,7 @@ import { RoleResolutionService } from '../../src/common/role-resolution.service'
 
 describe('AutomationPlaybooksService.applyPlaybook – no AI contract', () => {
   let service: AutomationPlaybooksService;
+  let module: TestingModule;
   let aiServiceMock: { generateMetadata: jest.Mock };
 
   beforeAll(async () => {
@@ -28,7 +29,7 @@ describe('AutomationPlaybooksService.applyPlaybook – no AI contract', () => {
       }),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         AutomationPlaybooksService,
         {
@@ -140,5 +141,27 @@ describe('AutomationPlaybooksService.applyPlaybook – no AI contract', () => {
 
     // The critical assertion: AI should NOT have been called
     expect(aiServiceMock.generateMetadata).not.toHaveBeenCalled();
+  });
+
+  it('[EA-18] APPLY-ACTION-GOVERNANCE-1: applyPlaybook enforces OWNER role via assertOwnerRole', async () => {
+    // [EA-18] This test verifies the governance contract: Apply requires OWNER role.
+    // RoleResolutionService.assertOwnerRole must be called before any apply logic executes.
+    const roleServiceMock = module.get(RoleResolutionService) as any;
+    const assertOwnerRoleSpy = jest.spyOn(roleServiceMock, 'assertOwnerRole');
+
+    try {
+      await service.applyPlaybook(
+        'user-123',
+        'project-456',
+        'missing_seo_title',
+        'scope-abc',
+        'rules-hash-xyz'
+      );
+    } catch {
+      // Expected to fail due to missing draft or other validation
+    }
+
+    // [EA-18] GOVERNANCE SIGNAL: Verify that assertOwnerRole was called with correct parameters
+    expect(assertOwnerRoleSpy).toHaveBeenCalledWith('project-456', 'user-123');
   });
 });
