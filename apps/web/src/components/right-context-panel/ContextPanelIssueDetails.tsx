@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { projectsApi } from '@/lib/api';
 import type { DeoIssue } from '@/lib/deo-issues';
 import { DEO_PILLARS } from '@/lib/deo-pillars';

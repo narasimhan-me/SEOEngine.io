@@ -7,7 +7,7 @@
  * NO GUESSWORK: Only uses signals that are already computed and deterministic.
  */
 
-import type { DeoIssue, DeoIssueFixType } from '../deo-issues';
+import type { DeoIssueFixType } from '../deo-issues';
 import { getIssueFixConfig } from '../issue-to-fix-path';
 import {
   getIssueActionDestinations,
