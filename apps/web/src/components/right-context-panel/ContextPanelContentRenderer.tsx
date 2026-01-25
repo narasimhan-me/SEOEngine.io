@@ -108,12 +108,14 @@ function renderDetailsView(descriptor: ContextDescriptor, currentProjectId: stri
   // Non-asset kinds use existing renderers
   switch (descriptor.kind) {
     // [ISSUES-ENGINE-REMOUNT-1] Issue kind - read-only issue details in RCP
+    // [DRAFT-LIFECYCLE-VISIBILITY-1 PATCH 4] Pass draftLifecycleState from descriptor metadata
     case 'issue':
       if (currentProjectId) {
         return (
           <ContextPanelIssueDetails
             projectId={currentProjectId}
             issueId={descriptor.id}
+            draftLifecycleState={descriptor.metadata?.draftLifecycleState as string | undefined}
           />
         );
       }

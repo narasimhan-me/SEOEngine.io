@@ -45,6 +45,13 @@ import { getIssueToActionGuidance } from '@/lib/issue-to-action-guidance';
 import { getIssueActionDestinations } from '@/lib/issues/issueActionDestinations';
 // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Import fix-action-kind helper for semantic CTAs
 import { getIssueFixActionKindInfo } from '@/lib/issues/issueFixActionKind';
+// [DRAFT-LIFECYCLE-VISIBILITY-1] Import draft lifecycle state helpers
+import {
+  deriveDraftLifecycleState,
+  getDraftLifecycleCopy,
+  checkSavedDraftInSessionStorage,
+  type DraftLifecycleState,
+} from '@/lib/issues/draftLifecycleState';
 // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Import Icon component for CTA icons
 import { Icon } from '@/components/icons/Icon';
 // [ISSUES-ENGINE-REMOUNT-1] DataTable + RCP integration
@@ -1452,6 +1459,49 @@ export default function IssuesPage() {
             returnTo: currentIssuesPathWithQuery,
           });
 
+          // [DRAFT-LIFECYCLE-VISIBILITY-1 PATCH 2] Derive draft lifecycle state for this row
+          // For preview row: use current preview state; for others: check sessionStorage conservatively
+          const isPreviewRow = previewIssueId === row.id;
+          const rowProductId = row.primaryProductId || '';
+          let rowDraftState: DraftLifecycleState = 'NO_DRAFT';
+
+          if (isPreviewRow && previewValue) {
+            // Use preview panel state for the currently-open row
+            rowDraftState = deriveDraftLifecycleState({
+              hasPreviewOpen: true,
+              hasGeneratedValue: !!previewValue,
+              hasSavedDraft: !!savedDraft && savedDraft.issueId === row.id,
+              hasAppliedSignal: !!appliedAt,
+              legacyDraftState: getDraftState(),
+            });
+          } else if (rowProductId) {
+            // Check sessionStorage for saved drafts on other rows
+            const hasSavedInStorage = checkSavedDraftInSessionStorage(
+              projectId,
+              row.id,
+              rowProductId,
+              ['SEO title', 'SEO description']
+            );
+            if (hasSavedInStorage) {
+              rowDraftState = 'SAVED_NOT_APPLIED';
+            }
+          }
+
+          const draftCopy = getDraftLifecycleCopy(rowDraftState);
+
+          // [DRAFT-LIFECYCLE-VISIBILITY-1 PATCH 2] Helper to render draft state indicator
+          const renderDraftIndicator = () => {
+            if (rowDraftState === 'NO_DRAFT') return null;
+            return (
+              <span
+                className="text-[10px] text-muted-foreground ml-1"
+                title={draftCopy.description}
+              >
+                ({draftCopy.shortLabel})
+              </span>
+            );
+          };
+
           // [PATCH 2] Priority 1: Fix action (AI preview or direct navigation)
           if (destinations.fix.kind !== 'none') {
             const fixAction = getFixAction(row); // Still needed to determine ai-fix-now vs link
@@ -1459,24 +1509,27 @@ export default function IssuesPage() {
             // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] AI fix with inline preview - "Review AI fix"
             if (fixAction?.kind === 'ai-fix-now') {
               return (
-                <button
-                  id={`issue-fix-next-${row.id}`}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenPreview(row);
-                  }}
-                  disabled={fixingIssueId === row.id}
-                  data-testid="issue-fix-next-button"
-                  data-no-row-click
-                  title="Preview changes before saving"
-                  className="inline-flex items-center gap-1.5 justify-center whitespace-nowrap rounded-md border border-primary bg-primary px-2 py-1 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <Icon name="workflow.ai" size={16} className="shrink-0" />
-                  <span data-testid="issue-card-cta">
-                    {fixingIssueId === row.id ? 'Fixing…' : 'Review AI fix'}
-                  </span>
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    id={`issue-fix-next-${row.id}`}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenPreview(row);
+                    }}
+                    disabled={fixingIssueId === row.id}
+                    data-testid="issue-fix-next-button"
+                    data-no-row-click
+                    title="Preview changes before saving"
+                    className="inline-flex items-center gap-1.5 justify-center whitespace-nowrap rounded-md border border-primary bg-primary px-2 py-1 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Icon name="workflow.ai" size={16} className="shrink-0" />
+                    <span data-testid="issue-card-cta">
+                      {fixingIssueId === row.id ? 'Fixing…' : 'Review AI fix'}
+                    </span>
+                  </button>
+                  {renderDraftIndicator()}
+                </div>
               );
             }
 
@@ -1490,16 +1543,19 @@ export default function IssuesPage() {
               const ctaTitle = isDiagnostic ? 'No automatic fix available' : fixActionKindInfo.sublabel;
 
               return (
-                <GuardedLink
-                  href={destinations.fix.href}
-                  data-testid="issue-fix-button"
-                  data-no-row-click
-                  title={ctaTitle}
-                  className="inline-flex items-center gap-1.5 justify-center whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
-                >
-                  <Icon name={ctaIcon as 'workflow.ai' | 'nav.projects' | 'playbook.content' | 'status.blocked'} size={16} className="shrink-0" />
-                  <span data-testid="issue-card-cta">{ctaLabel}</span>
-                </GuardedLink>
+                <div className="flex items-center gap-1">
+                  <GuardedLink
+                    href={destinations.fix.href}
+                    data-testid="issue-fix-button"
+                    data-no-row-click
+                    title={ctaTitle}
+                    className="inline-flex items-center gap-1.5 justify-center whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
+                  >
+                    <Icon name={ctaIcon as 'workflow.ai' | 'nav.projects' | 'playbook.content' | 'status.blocked'} size={16} className="shrink-0" />
+                    <span data-testid="issue-card-cta">{ctaLabel}</span>
+                  </GuardedLink>
+                  {renderDraftIndicator()}
+                </div>
               );
             }
           }
@@ -1507,16 +1563,19 @@ export default function IssuesPage() {
           // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Priority 2: View affected - "Review guidance"
           if (destinations.viewAffected.kind !== 'none' && destinations.viewAffected.href) {
             return (
-              <GuardedLink
-                href={destinations.viewAffected.href}
-                data-testid="issue-view-affected-button"
-                data-no-row-click
-                title="See affected items"
-                className="inline-flex items-center gap-1.5 justify-center whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
-              >
-                <Icon name="playbook.content" size={16} className="shrink-0" />
-                <span data-testid="issue-card-cta">Review guidance</span>
-              </GuardedLink>
+              <div className="flex items-center gap-1">
+                <GuardedLink
+                  href={destinations.viewAffected.href}
+                  data-testid="issue-view-affected-button"
+                  data-no-row-click
+                  title="See affected items"
+                  className="inline-flex items-center gap-1.5 justify-center whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
+                >
+                  <Icon name="playbook.content" size={16} className="shrink-0" />
+                  <span data-testid="issue-card-cta">Review guidance</span>
+                </GuardedLink>
+                {renderDraftIndicator()}
+              </div>
             );
           }
 
@@ -1589,7 +1648,7 @@ export default function IssuesPage() {
         },
       },
     ];
-  }, [projectId, fixingIssueId, handleIssueClick, handleOpenPreview, getFixAction, currentIssuesPathWithQuery]);
+  }, [projectId, fixingIssueId, handleIssueClick, handleOpenPreview, getFixAction, currentIssuesPathWithQuery, previewIssueId, previewValue, savedDraft, appliedAt, getDraftState]);
 
   // [ISSUES-ENGINE-REMOUNT-1] Render expansion row content for ai-fix-now preview
   const renderExpandedContent = useCallback(
@@ -1682,50 +1741,116 @@ export default function IssuesPage() {
                   </p>
                 </div>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {getDraftState() === 'unsaved' && (
-                  <button
-                    type="button"
-                    data-testid="issue-save-draft-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSaveDraft(row);
-                    }}
-                    className="inline-flex items-center rounded-md border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary shadow-sm hover:bg-primary/20"
-                  >
-                    Save draft
-                  </button>
-                )}
-                <button
-                  type="button"
-                  data-testid="issue-apply-to-shopify-button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleApplyFixFromPreview(row);
-                  }}
-                  disabled={
-                    fixingIssueId === row.id || getDraftState() !== 'saved'
+              {/* [DRAFT-LIFECYCLE-VISIBILITY-1 PATCH 3] State-driven action strip */}
+              {(() => {
+                // Derive draft lifecycle state for the preview panel
+                const previewDraftState = deriveDraftLifecycleState({
+                  hasPreviewOpen: true,
+                  hasGeneratedValue: !!previewValue,
+                  hasSavedDraft: !!savedDraft && savedDraft.issueId === row.id,
+                  hasAppliedSignal: !!appliedAt,
+                  legacyDraftState: getDraftState(),
+                });
+
+                // [DRAFT-LIFECYCLE-VISIBILITY-1 PATCH 6] Dev-time guardrails
+                if (process.env.NODE_ENV !== 'production') {
+                  // Warn if Apply would be enabled but state is not SAVED_NOT_APPLIED
+                  if (getDraftState() === 'saved' && previewDraftState !== 'SAVED_NOT_APPLIED') {
+                    console.warn(`[DRAFT-LIFECYCLE-VISIBILITY-1] State mismatch: legacyDraftState='saved' but previewDraftState='${previewDraftState}'`);
                   }
-                  title={
-                    getDraftState() !== 'saved'
-                      ? 'Save your draft first before applying to Shopify'
-                      : 'Applies saved draft only. Does not use AI.'
+                  // Warn if showing Applied but no appliedAt signal
+                  if (previewDraftState === 'APPLIED' && !appliedAt) {
+                    console.warn(`[DRAFT-LIFECYCLE-VISIBILITY-1] Applied state shown but appliedAt is not set`);
                   }
-                  className="inline-flex items-center rounded-md border border-[hsl(var(--success-background))]/50 bg-[hsl(var(--success-background))] px-3 py-1.5 text-xs font-medium text-[hsl(var(--success-foreground))] shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {fixingIssueId === row.id ? 'Applying…' : 'Apply saved draft to Shopify'}
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCancelPreview(row);
-                  }}
-                  className="inline-flex items-center rounded-md border border-border bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/80"
-                >
-                  Cancel
-                </button>
-              </div>
+                }
+
+                return (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {/* GENERATED_UNSAVED: Show Save draft button */}
+                    {previewDraftState === 'GENERATED_UNSAVED' && (
+                      <button
+                        type="button"
+                        data-testid="issue-save-draft-button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSaveDraft(row);
+                        }}
+                        className="inline-flex items-center rounded-md border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary shadow-sm hover:bg-primary/20"
+                      >
+                        Save draft
+                      </button>
+                    )}
+
+                    {/* GENERATED_UNSAVED: Apply disabled with tightened tooltip */}
+                    {previewDraftState === 'GENERATED_UNSAVED' && (
+                      <button
+                        type="button"
+                        data-testid="issue-apply-to-shopify-button"
+                        disabled
+                        title="Save draft before applying"
+                        className="inline-flex items-center rounded-md border border-[hsl(var(--success-background))]/50 bg-[hsl(var(--success-background))] px-3 py-1.5 text-xs font-medium text-[hsl(var(--success-foreground))] shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Apply saved draft to Shopify
+                      </button>
+                    )}
+
+                    {/* SAVED_NOT_APPLIED: Apply enabled */}
+                    {previewDraftState === 'SAVED_NOT_APPLIED' && (
+                      <button
+                        type="button"
+                        data-testid="issue-apply-to-shopify-button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleApplyFixFromPreview(row);
+                        }}
+                        disabled={fixingIssueId === row.id}
+                        title="Applies saved draft only. Does not use AI."
+                        className="inline-flex items-center rounded-md border border-[hsl(var(--success-background))]/50 bg-[hsl(var(--success-background))] px-3 py-1.5 text-xs font-medium text-[hsl(var(--success-foreground))] shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {fixingIssueId === row.id ? 'Applying…' : 'Apply saved draft to Shopify'}
+                      </button>
+                    )}
+
+                    {/* APPLIED: Non-interactive confirmation chip */}
+                    {previewDraftState === 'APPLIED' && (
+                      <span
+                        className="inline-flex items-center rounded-md border border-[hsl(var(--success-background))]/50 bg-[hsl(var(--success-background))] px-3 py-1.5 text-xs font-medium text-[hsl(var(--success-foreground))]"
+                        data-testid="issue-applied-confirmation"
+                      >
+                        Applied
+                      </span>
+                    )}
+
+                    {/* Cancel button (always shown except for APPLIED state) */}
+                    {previewDraftState !== 'APPLIED' && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCancelPreview(row);
+                        }}
+                        className="inline-flex items-center rounded-md border border-border bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/80"
+                      >
+                        Cancel
+                      </button>
+                    )}
+
+                    {/* APPLIED: Close button to dismiss the panel */}
+                    {previewDraftState === 'APPLIED' && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCancelPreview(row);
+                        }}
+                        className="inline-flex items-center rounded-md border border-border bg-muted px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted/80"
+                      >
+                        Close
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </>
           ) : null}
         </div>

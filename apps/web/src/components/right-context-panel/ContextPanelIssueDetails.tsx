@@ -10,6 +10,12 @@ import {
   deriveIssueFixActionKind,
   getRcpActionabilitySentence,
 } from '@/lib/issues/issueFixActionKind';
+// [DRAFT-LIFECYCLE-VISIBILITY-1 PATCH 4] Import draft lifecycle state helpers
+import {
+  getDraftLifecycleCopy,
+  checkSavedDraftInSessionStorage,
+  type DraftLifecycleState,
+} from '@/lib/issues/draftLifecycleState';
 
 /**
  * [ISSUES-ENGINE-REMOUNT-1] Read-only issue details renderer for RCP.
@@ -28,6 +34,8 @@ interface ContextPanelIssueDetailsProps {
   projectId: string;
   issueId: string;
   initialIssue?: DeoIssue;
+  // [DRAFT-LIFECYCLE-VISIBILITY-1 PATCH 4] Optional draft lifecycle state passed from parent
+  draftLifecycleState?: string;
 }
 
 type LoadState = 'loading' | 'loaded' | 'not_found' | 'error';
@@ -155,6 +163,7 @@ export function ContextPanelIssueDetails({
   projectId,
   issueId,
   initialIssue,
+  draftLifecycleState: passedDraftLifecycleState,
 }: ContextPanelIssueDetailsProps) {
   const [issue, setIssue] = useState<DeoIssue | null>(initialIssue ?? null);
   const [loadState, setLoadState] = useState<LoadState>(
@@ -409,6 +418,37 @@ export function ContextPanelIssueDetails({
         <p className="mt-1 text-xs text-muted-foreground italic">
           {fixActionSentence}
         </p>
+        {/* [DRAFT-LIFECYCLE-VISIBILITY-1 PATCH 4] Draft lifecycle state line */}
+        {(() => {
+          // Prefer passed-in state when present/valid, otherwise fall back conservatively
+          let draftState: DraftLifecycleState = 'NO_DRAFT';
+          const validStates: DraftLifecycleState[] = ['NO_DRAFT', 'GENERATED_UNSAVED', 'SAVED_NOT_APPLIED', 'APPLIED'];
+
+          if (passedDraftLifecycleState && validStates.includes(passedDraftLifecycleState as DraftLifecycleState)) {
+            draftState = passedDraftLifecycleState as DraftLifecycleState;
+          } else if (issue.primaryProductId) {
+            // Fall back: check sessionStorage for saved drafts
+            const hasSavedInStorage = checkSavedDraftInSessionStorage(
+              projectId,
+              issue.id,
+              issue.primaryProductId,
+              ['SEO title', 'SEO description']
+            );
+            if (hasSavedInStorage) {
+              draftState = 'SAVED_NOT_APPLIED';
+            }
+          }
+
+          // Only show if there's a draft
+          if (draftState === 'NO_DRAFT') return null;
+
+          const draftCopy = getDraftLifecycleCopy(draftState);
+          return (
+            <p className="mt-1 text-xs text-muted-foreground" title={draftCopy.description}>
+              Draft: {draftCopy.shortLabel}
+            </p>
+          );
+        })()}
       </div>
 
       {/* [ISSUE-TO-ACTION-GUIDANCE-1][RIGHT-CONTEXT-PANEL-AUTONOMY-1] Automation guidance section (informational only) */}

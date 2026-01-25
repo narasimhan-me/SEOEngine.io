@@ -2134,6 +2134,62 @@ Semantic CTA labels with fix-action kinds for Issues Decision Engine:
 
 ---
 
+### Phase DRAFT-LIFECYCLE-VISIBILITY-1: Draft Lifecycle State Visibility ✅ COMPLETE
+
+**Status:** Complete
+**Date Completed:** 2026-01-25
+**Activation:** Trust/clarity for draft lifecycle in Issues Engine
+
+#### Goals
+
+1. Centralize draft lifecycle state derivation (NO_DRAFT, GENERATED_UNSAVED, SAVED_NOT_APPLIED, APPLIED).
+2. Show subtle draft state indicator in Issues table row actions.
+3. State-driven gating for inline preview Apply button (only enabled when SAVED_NOT_APPLIED).
+4. Applied confirmation chip replaces Apply button after apply.
+5. RCP echoes draft lifecycle state in Actionability section.
+
+#### Strict Non-Goals
+
+- No backend/schema changes
+- No AI execution changes
+- No bulk actions
+- No silent auto-apply
+
+#### Key Changes
+
+1. **Draft Lifecycle State Helper**: Created `apps/web/src/lib/issues/draftLifecycleState.ts` with:
+   - `DraftLifecycleState` type (NO_DRAFT, GENERATED_UNSAVED, SAVED_NOT_APPLIED, APPLIED)
+   - `deriveDraftLifecycleState()` - derives state from existing UI signals only
+   - `getDraftLifecycleCopy()` - returns canonical labels/descriptions
+   - `checkSavedDraftInSessionStorage()` - checks existing draft key scheme
+
+2. **Issues Table Row Indicator**: Actions column renders small, non-clickable draft indicator when state !== NO_DRAFT. Shows "Draft not saved", "Draft saved", or "Applied" as appropriate.
+
+3. **Inline Preview State-Driven Gating**:
+   - GENERATED_UNSAVED: Apply disabled with "Save draft before applying" tooltip
+   - SAVED_NOT_APPLIED: Apply enabled
+   - APPLIED: Apply button replaced with non-interactive "Applied" chip; Cancel → Close
+
+4. **RCP Draft State Echo**: ContextPanelIssueDetails renders draft lifecycle line in Actionability section when draft exists. Uses passed-in state or falls back to sessionStorage check.
+
+5. **Dev-Time Guardrails**: Console warnings when:
+   - Apply enabled but state != SAVED_NOT_APPLIED
+   - Applied shown but appliedAt not set
+   - Row indicator state disagrees with preview state
+
+#### Core Files
+
+- `apps/web/src/lib/issues/draftLifecycleState.ts` - Draft lifecycle state helper (new)
+- `apps/web/src/app/projects/[id]/issues/page.tsx` - Row indicator + preview strip
+- `apps/web/src/components/right-context-panel/ContextPanelIssueDetails.tsx` - RCP echo
+- `apps/web/src/components/right-context-panel/ContextPanelContentRenderer.tsx` - Pass state to RCP
+
+#### Manual Testing
+
+- `docs/manual-testing/DRAFT-LIFECYCLE-VISIBILITY-1.md`
+
+---
+
 ### Phase ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1: View Affected → Filtered Products List ✅ COMPLETE
 
 **Status:** Complete
