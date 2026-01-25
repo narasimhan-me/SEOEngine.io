@@ -1621,7 +1621,7 @@ export default function IssuesPage() {
                   }
                   className="inline-flex items-center rounded-md border border-[hsl(var(--success-background))]/50 bg-[hsl(var(--success-background))] px-3 py-1.5 text-xs font-medium text-[hsl(var(--success-foreground))] shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {fixingIssueId === row.id ? 'Applying…' : 'Apply to Shopify'}
+                  {fixingIssueId === row.id ? 'Applying…' : 'Apply saved draft to Shopify'}
                 </button>
                 <button
                   type="button"
