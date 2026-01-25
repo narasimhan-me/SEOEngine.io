@@ -217,6 +217,40 @@ This scenario confirms that `integrationStatusOk` (not `integrationStatusLoaded`
 
 ---
 
+### Scenario 7: Inline Blocked Explanation Visible Without Hover (FIXUP-1)
+
+**ID:** EBSUX1-HP-007
+
+**Preconditions:**
+- User is viewing Issues page
+- At least one issue has a blocked state
+
+**Steps:**
+
+1. Navigate to `/projects/[id]/issues`
+2. Find an issue row with a blocked action (blocked chip visible)
+3. Observe the Actions column WITHOUT hovering over the chip
+4. Verify the description text is visible below the chip
+
+**Expected Results:**
+
+- **UI:**
+  - Blocked chip displays canonical label (e.g., "Blocked — Shopify permissions")
+  - Description text visible below chip WITHOUT requiring hover (e.g., "Required Shopify permissions weren't granted, so fixes can't be applied.")
+  - Text styling is subtle: small (10px), muted color, snug line height
+  - Tooltip still available on hover (contains full description + next step)
+  - Clicking chip or description does NOT trigger row click (RCP does not open)
+- **Accessibility:**
+  - Description is plain text (no ARIA attributes needed)
+  - DOM order is chip → description (correct screen-reader order)
+- **API:** N/A
+- **Logs:** No console warnings in development mode (description copy exists)
+
+**Verification Note:**
+This scenario confirms that blocked state explanations are visible without hover, addressing accessibility concerns about tooltip-only information. The inline description ensures users can understand why an action is blocked at a glance.
+
+---
+
 ## Edge Cases
 
 ### EC-001: PERMISSIONS_MISSING State

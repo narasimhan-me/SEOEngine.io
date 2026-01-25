@@ -1613,20 +1613,26 @@ export default function IssuesPage() {
             const blockedCopy = getBlockedStateCopy(blockedState);
             const blockedTooltip = buildBlockedTooltip(blockedCopy);
 
-            // [PATCH 6] Dev-time guardrail: warn if blocked state has no description copy
+            // [PATCH 6 / FIXUP-1 PATCH 4] Dev-time guardrail: warn if blocked state has no description copy
+            // (inline explanation would be empty without description)
             if (process.env.NODE_ENV !== 'production' && !blockedCopy.description) {
-              console.warn(`[ERROR-&-BLOCKED-STATE-UX-1] Blocked state ${blockedState} has no description copy`);
+              console.warn(`[ERROR-&-BLOCKED-STATE-UX-1] Blocked state ${blockedState} has no description copy (inline explanation empty)`);
             }
 
             return (
-              <span
-                className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
-                title={blockedTooltip}
-                data-testid="issue-blocked-chip"
-                data-no-row-click
-              >
-                {blockedCopy.chipLabel}
-              </span>
+              <div className="flex flex-col items-start gap-0.5" data-no-row-click>
+                <span
+                  className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+                  title={blockedTooltip}
+                  data-testid="issue-blocked-chip"
+                  data-no-row-click
+                >
+                  {blockedCopy.chipLabel}
+                </span>
+                <span className="text-[10px] leading-snug text-muted-foreground">
+                  {blockedCopy.description}
+                </span>
+              </div>
             );
           }
 
