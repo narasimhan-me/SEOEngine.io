@@ -908,7 +908,7 @@ export default function IssuesPage() {
         const actionKindInfo = getIssueFixActionKindInfo({
           projectId,
           issue,
-          returnTo: getReturnToFromCurrentUrl(),
+          returnTo: getReturnToFromCurrentUrl(pathname, searchParams),
         });
         if (actionKindInfo.kind === 'AI_PREVIEW_FIX' && !supportsInlineFix) {
           console.warn(
