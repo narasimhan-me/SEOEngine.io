@@ -214,23 +214,23 @@
 **Steps:**
 
 1. Navigate to `/projects/{projectId}/issues`
-2. Click "Fix next" on an AI-fixable issue
+2. Click "Fix now" on an AI-fixable issue
 3. Wait for preview to load
 4. Observe draft state banner shows "Draft — not applied"
-5. Verify Apply button is disabled
+5. Verify "Apply saved draft to Shopify" button is disabled
 6. Click "Save draft" button
 7. Observe state transitions to "Draft saved — not applied"
-8. Verify Apply button is now enabled
+8. Verify "Apply saved draft to Shopify" button is now enabled
 9. Navigate away from the page (e.g., click "Back to Store Health")
-10. Return to Issues page and click "Fix next" on the same issue
+10. Return to Issues page and click "Fix now" on the same issue
 11. Observe that saved draft is restored without calling AI
 
 **Expected Results:**
 
 - **UI:** Draft state banner shows "Draft — not applied" initially
-- **UI:** Apply button disabled until draft is saved
+- **UI:** "Apply saved draft to Shopify" button disabled until draft is saved
 - **UI:** After save, banner shows "Draft saved — not applied"
-- **UI:** After save, Apply button becomes enabled
+- **UI:** After save, "Apply saved draft to Shopify" button becomes enabled
 - **Storage:** sessionStorage contains draft values (key format: `issue_draft:{projectId}:{issueId}:{productId}:{fieldLabel}`)
 - **UI:** Returning to the same issue restores the saved draft (no AI call made)
 - **API:** Apply calls Shopify directly (not AI) when clicked
@@ -238,7 +238,7 @@
 
 **FIXUP-4 Additional Test (Unsaved State Leave):**
 
-1. On Issues page, click "Fix next" to trigger unsaved preview
+1. On Issues page, click "Fix now" to trigger unsaved preview
 2. Click the issue title (button navigation) to trigger confirmation dialog
 3. Accept the confirmation dialog
 4. On the destination product page, click a sidebar nav link (e.g., "Projects")
