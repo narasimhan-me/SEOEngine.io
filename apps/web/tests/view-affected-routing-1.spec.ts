@@ -93,7 +93,7 @@ test.describe('ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1: View affected routes to fi
 
     // Find and click the "View affected" CTA within this specific card
     const viewAffectedCta = missingMetadataCard.locator(
-      '[data-testid="issue-card-cta"]:has-text("View affected")'
+      '[data-testid="issue-view-affected-button"]'
     );
     await expect(viewAffectedCta).toBeVisible();
     await viewAffectedCta.click();
@@ -215,7 +215,7 @@ test.describe('ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1: View affected routes to fi
     await expect(missingMetadataCard).toBeVisible();
 
     const viewAffectedCta = missingMetadataCard.locator(
-      '[data-testid="issue-card-cta"]:has-text("View affected")'
+      '[data-testid="issue-view-affected-button"]'
     );
     await viewAffectedCta.click();
     await page.waitForLoadState('networkidle');

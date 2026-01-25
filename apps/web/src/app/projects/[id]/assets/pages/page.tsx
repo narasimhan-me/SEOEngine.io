@@ -14,6 +14,11 @@ import { RowStatusChip } from '@/components/common/RowStatusChip';
 import { ScopeBanner } from '@/components/common/ScopeBanner';
 import { ShopifyPermissionNotice } from '@/components/shopify/ShopifyPermissionNotice';
 import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableRow,
+} from '@/components/tables/DataTable';
+import {
   resolveRowNextAction,
   buildAssetIssuesHref,
   buildAssetWorkspaceHref,
@@ -35,6 +40,7 @@ import {
 
 /**
  * [ASSETS-PAGES-1] [LIST-SEARCH-FILTER-1.1] [LIST-ACTIONS-CLARITY-1] Pages Asset List
+ * [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Migrated to canonical DataTable.
  *
  * Displays Shopify pages (/pages/*) with health status and recommended actions.
  * Decision-first UX: one health pill, one action label per row.
@@ -479,7 +485,7 @@ export default function PagesAssetListPage() {
       case 'Healthy':
         return 'bg-green-100 text-green-700 border-green-200';
       default:
-        return 'bg-gray-100 text-gray-700 border-gray-200';
+        return 'bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -487,6 +493,89 @@ export default function PagesAssetListPage() {
   const needsAttentionCount = pages.filter(
     (p) => p.health === 'Needs Attention'
   ).length;
+
+  // [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Define DataTable columns
+  const columns: DataTableColumn<PageAsset & DataTableRow>[] = useMemo(
+    () => [
+      {
+        key: 'health',
+        header: 'Health',
+        cell: (row) => {
+          const resolved = resolvedActionsById.get(row.id);
+          return resolved?.chipLabel ? (
+            <RowStatusChip chipLabel={resolved.chipLabel} />
+          ) : (
+            <span
+              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getHealthStyles(row.health)}`}
+            >
+              {row.health}
+            </span>
+          );
+        },
+      },
+      {
+        key: 'path',
+        header: 'Path',
+        cell: (row) => (
+          <code className="rounded bg-muted px-1.5 py-0.5 text-xs text-foreground">
+            {row.path}
+          </code>
+        ),
+      },
+      {
+        key: 'title',
+        header: 'Title',
+        truncate: true,
+        cell: (row) =>
+          row.title ? (
+            <span className="text-sm text-foreground">{row.title}</span>
+          ) : (
+            <span className="text-sm italic text-muted-foreground">
+              No title
+            </span>
+          ),
+      },
+      {
+        key: 'action',
+        header: 'Action',
+        cell: (row) => {
+          const resolved = resolvedActionsById.get(row.id);
+          return (
+            <div className="flex items-center gap-3">
+              {resolved?.primaryAction ? (
+                <Link
+                  href={resolved.primaryAction.href}
+                  className="font-medium text-primary hover:text-primary/80"
+                  data-testid="row-primary-action"
+                >
+                  {resolved.primaryAction.label}
+                </Link>
+              ) : resolved?.helpText ? (
+                <span
+                  className="text-muted-foreground"
+                  data-testid="row-help-text"
+                >
+                  {resolved.helpText}
+                </span>
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              )}
+              {resolved?.secondaryAction && (
+                <Link
+                  href={resolved.secondaryAction.href}
+                  className="text-muted-foreground hover:text-foreground"
+                  data-testid="row-secondary-action"
+                >
+                  {resolved.secondaryAction.label}
+                </Link>
+              )}
+            </div>
+          );
+        },
+      },
+    ],
+    [resolvedActionsById, getHealthStyles]
+  );
 
   return (
     <div className="space-y-6">
@@ -647,13 +736,13 @@ export default function PagesAssetListPage() {
 
       {/* Pages list */}
       {!loading && !error && (
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <>
           {pages.length === 0 ? (
             hasActiveFilters ? (
               // [LIST-SEARCH-FILTER-1.1] Filtered empty state
-              <div className="text-center py-12">
+              <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] text-center py-12">
                 <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
+                  className="mx-auto h-12 w-12 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -665,16 +754,16 @@ export default function PagesAssetListPage() {
                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                   />
                 </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                <h3 className="mt-2 text-sm font-medium text-foreground">
                   No pages match your filters.
                 </h3>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-muted-foreground">
                   Try adjusting your search or filter criteria.
                 </p>
                 <div className="mt-4">
                   <button
                     onClick={handleClearFilters}
-                    className="text-blue-600 hover:text-blue-800"
+                    className="text-primary hover:text-primary/80"
                   >
                     Clear filters
                   </button>
@@ -682,7 +771,7 @@ export default function PagesAssetListPage() {
               </div>
             ) : (
               // [SHOPIFY-ASSET-SYNC-COVERAGE-1] Unfiltered empty state - distinguish never synced vs synced but empty
-              <div className="px-4 py-8 text-center text-sm text-gray-500">
+              <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] px-4 py-8 text-center text-sm text-muted-foreground">
                 {syncStatus.shopifyConnected && !syncStatus.lastPagesSyncAt ? (
                   <>
                     <p>Not yet synced.</p>
@@ -699,88 +788,14 @@ export default function PagesAssetListPage() {
               </div>
             )
           ) : (
-            // [LIST-ACTIONS-CLARITY-1 FIXUP-1] Removed bulk selection checkboxes
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Health
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Path
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Title
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {pages.map((page) => {
-                  const resolved = resolvedActionsById.get(page.id);
-                  return (
-                    <tr key={page.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        {/* [LIST-ACTIONS-CLARITY-1] Use RowStatusChip */}
-                        {resolved?.chipLabel ? (
-                          <RowStatusChip chipLabel={resolved.chipLabel} />
-                        ) : (
-                          <span
-                            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getHealthStyles(page.health)}`}
-                          >
-                            {page.health}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">
-                          {page.path}
-                        </code>
-                      </td>
-                      <td className="max-w-xs truncate px-4 py-3 text-sm text-gray-900">
-                        {page.title || (
-                          <span className="italic text-gray-400">No title</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        {/* [LIST-ACTIONS-CLARITY-1] Use resolved actions */}
-                        {resolved?.primaryAction ? (
-                          <Link
-                            href={resolved.primaryAction.href}
-                            className="font-medium text-blue-600 hover:text-blue-800"
-                            data-testid="row-primary-action"
-                          >
-                            {resolved.primaryAction.label}
-                          </Link>
-                        ) : resolved?.helpText ? (
-                          <span
-                            className="text-gray-500"
-                            data-testid="row-help-text"
-                          >
-                            {resolved.helpText}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
-                        {resolved?.secondaryAction && (
-                          <Link
-                            href={resolved.secondaryAction.href}
-                            className="ml-3 text-gray-600 hover:text-gray-800"
-                            data-testid="row-secondary-action"
-                          >
-                            {resolved.secondaryAction.label}
-                          </Link>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            // [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Canonical DataTable
+            <DataTable
+              columns={columns}
+              rows={pages}
+              hideContextAction={true}
+            />
           )}
-        </div>
+        </>
       )}
     </div>
   );

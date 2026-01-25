@@ -91,13 +91,14 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC issues use Review CTA', () =
   });
 
   /**
-   * IFKC1-002: Non-DIAGNOSTIC issues show "Fix" CTA in Issues Engine
+   * IFKC1-002: Non-DIAGNOSTIC issues show semantic Fix CTA in Issues Engine
    *
    * Given: An issue with fixKind=EDIT (e.g., missing_seo_title)
    * When: User views the issue in the Issues Engine
-   * Then: CTA should show "Fix" or similar action label (not "Review")
+   * Then: CTA should show semantic action label ("Fix in workspace" or "Review AI fix")
    *
    * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-1] No no-op guard - test fails if no EDIT issues
+   * [ISSUE-FIX-KIND-CLARITY-1-FIXUP-3] Semantic labels: AI preview or direct fix
    */
   test('IFKC1-002: Non-DIAGNOSTIC issue shows Fix CTA in Issues Engine', async ({
     page,
@@ -117,14 +118,15 @@ test.describe('ISSUE-FIX-KIND-CLARITY-1: DIAGNOSTIC issues use Review CTA', () =
     const editCount = await editCards.count();
     expect(editCount).toBeGreaterThan(0);
 
-    // First EDIT card should show a non-Review CTA
+    // First EDIT card should show a semantic fix CTA
     const firstCard = editCards.first();
     const ctaElement = firstCard.getByTestId('issue-card-cta');
 
-    // CTA should be visible and NOT contain "Review"
+    // [ISSUE-FIX-KIND-CLARITY-1-FIXUP-3] CTA should show semantic label
+    // Either "Fix in workspace" (direct fix) or "Review AI fix" (AI preview)
     await expect(ctaElement).toBeVisible();
     const ctaText = await ctaElement.textContent();
-    expect(ctaText).not.toContain('Review');
+    expect(ctaText).toMatch(/Fix in workspace|Review AI fix/);
   });
 });
 

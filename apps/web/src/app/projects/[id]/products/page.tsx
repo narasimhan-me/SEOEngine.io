@@ -121,7 +121,8 @@ export default function ProductsPage() {
   const [projectInfo, setProjectInfo] = useState<IntegrationStatus | null>(
     null
   );
-  const [productIssues, setProductIssues] = useState<DeoIssue[]>([]);
+  // [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1 FIXUP-3] undefined = not loaded yet; [] = loaded empty
+  const [productIssues, setProductIssues] = useState<DeoIssue[] | undefined>(undefined);
   const [overview, setOverview] = useState<ProjectOverview | null>(null);
   const [showPreCrawlGuard, setShowPreCrawlGuard] = useState(true);
 
@@ -319,8 +320,8 @@ export default function ProductsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
+      <div className="flex items-center justify-center py-12">
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
@@ -484,14 +485,14 @@ export default function ProductsPage() {
         }}
       />
 
-      {/* Products List */}
-      <div className="overflow-hidden rounded-lg bg-white shadow md:overflow-visible">
+      {/* Products List - token-based shell-safe styling */}
+      <div className="overflow-hidden rounded-lg border border-border bg-[hsl(var(--surface-card))] md:overflow-visible">
         {products.length === 0 ? (
           hasActiveFilters ? (
-            // [LIST-SEARCH-FILTER-1] Filtered empty state
+            // [LIST-SEARCH-FILTER-1] Filtered empty state - token-based styling
             <div className="text-center py-12">
               <svg
-                className="mx-auto h-12 w-12 text-gray-400"
+                className="mx-auto h-12 w-12 text-muted-foreground"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -503,26 +504,26 @@ export default function ProductsPage() {
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">
+              <h3 className="mt-2 text-sm font-medium text-foreground">
                 No products match your filters.
               </h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Try adjusting your search or filter criteria.
               </p>
               <div className="mt-4">
                 <button
                   onClick={handleClearFilters}
-                  className="text-blue-600 hover:text-blue-800"
+                  className="text-primary hover:text-primary/80"
                 >
                   Clear filters
                 </button>
               </div>
             </div>
           ) : (
-            // Unfiltered empty state (existing)
+            // Unfiltered empty state - token-based styling
             <div className="text-center py-12">
               <svg
-                className="mx-auto h-12 w-12 text-gray-400"
+                className="mx-auto h-12 w-12 text-muted-foreground"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -534,10 +535,10 @@ export default function ProductsPage() {
                   d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
                 />
               </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">
+              <h3 className="mt-2 text-sm font-medium text-foreground">
                 No products
               </h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {projectInfo?.shopify.connected
                   ? 'Sync products and run your first crawl to see DEO insights. Issues will be surfaced in the Issues Engine for AI-powered fixes.'
                   : 'Step 1: Connect your Shopify store, then sync products and run your first crawl to surface issues.'}
@@ -546,7 +547,7 @@ export default function ProductsPage() {
                 <div className="mt-4">
                   <Link
                     href={`/projects/${projectId}/settings#integrations`}
-                    className="text-blue-600 hover:text-blue-800"
+                    className="text-primary hover:text-primary/80"
                   >
                     Go to project settings to connect Shopify
                   </Link>

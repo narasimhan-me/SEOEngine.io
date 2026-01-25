@@ -13,23 +13,37 @@ const SHOPIFY_API_KEY = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY;
 
 /**
  * [SHOPIFY-EMBEDDED-SHELL-1] Detect whether we're in a Shopify embedded context.
+ * [SHOPIFY-EMBEDDED-CONTRAST-PASS-1 REVIEW-3] Stored host only counts when in iframe.
  *
  * Embedded context is detected if:
  * - embedded=1 query param is present, OR
  * - host query param is present (Shopify always sends this for embedded apps), OR
- * - A stored host exists from a prior embedded navigation
+ * - (isInIframe AND stored host exists from a prior embedded navigation)
+ *
+ * This prevents embedded-only styling from leaking into standalone sessions
+ * due to stale sessionStorage.shopify_host values.
  */
 function useEmbeddedDetection() {
   const searchParams = useSearchParams();
   const [storedHost, setStoredHost] = useState<string | null>(null);
   const [storedShop, setStoredShop] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isInIframe, setIsInIframe] = useState(false);
 
-  // Read from sessionStorage on mount (client-side only)
+  // Read from sessionStorage and detect iframe on mount (client-side only)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setStoredHost(sessionStorage.getItem(SHOPIFY_HOST_KEY));
       setStoredShop(sessionStorage.getItem(SHOPIFY_SHOP_KEY));
+
+      // [REVIEW-4] Guarded window.top access; if it throws, treat as cross-origin iframe
+      try {
+        setIsInIframe(window.self !== window.top);
+      } catch {
+        // If accessing window.top throws, we're definitely in a cross-origin iframe
+        setIsInIframe(true);
+      }
+
       setIsInitialized(true);
     }
   }, []);
@@ -42,8 +56,8 @@ function useEmbeddedDetection() {
   const currentHost = hostParam || storedHost;
   const currentShop = shopParam || storedShop;
 
-  // Embedded if: explicit param, host param present, or we have a stored host
-  const isEmbedded = embeddedParam === '1' || !!hostParam || !!storedHost;
+  // [REVIEW-3] Stored host only enables embedded mode when actually in iframe
+  const isEmbedded = embeddedParam === '1' || !!hostParam || (isInIframe && !!storedHost);
 
   // Persist host/shop when present in URL
   useEffect(() => {
@@ -62,6 +76,7 @@ function useEmbeddedDetection() {
   return {
     isEmbedded,
     isInitialized,
+    isInIframe,
     currentHost,
     currentShop,
     hostParam,
@@ -235,7 +250,7 @@ function BootstrapErrorFallback({ standaloneUrl }: { standaloneUrl: string }) {
  * [SHOPIFY-EMBEDDED-SHELL-1] Shopify Embedded Shell wrapper component.
  *
  * This component:
- * 1. Detects Shopify embedded context (embedded=1, host param, or stored host)
+ * 1. Detects Shopify embedded context (embedded=1, host param, or (in iframe AND stored host))
  * 2. Persists host/shop to sessionStorage for navigation continuity
  * 3. Repairs URLs when host is missing but stored (router.replace)
  * 4. Initializes App Bridge when in embedded context with valid host
@@ -268,7 +283,9 @@ export function ShopifyEmbeddedShell({ children }: { children: ReactNode }) {
   }, []);
 
   // Build standalone URL (strip Shopify params)
+  // SSR guard: return pathname-only fallback during server render
   const standaloneUrl = useMemo(() => {
+    if (typeof window === 'undefined') return pathname;
     const url = new URL(pathname, window.location.origin);
     // Copy non-Shopify params
     searchParams.forEach((value, key) => {
@@ -280,7 +297,9 @@ export function ShopifyEmbeddedShell({ children }: { children: ReactNode }) {
   }, [pathname, searchParams]);
 
   // Build return URL for auth (embedded context preserved)
+  // SSR guard: return pathname-only fallback during server render
   const buildReturnUrl = useCallback(() => {
+    if (typeof window === 'undefined') return pathname;
     const url = new URL(pathname, window.location.origin);
     // Preserve embedded params
     if (currentHost) url.searchParams.set('host', currentHost);
@@ -359,6 +378,17 @@ export function ShopifyEmbeddedShell({ children }: { children: ReactNode }) {
       setBootstrapError('Missing NEXT_PUBLIC_SHOPIFY_API_KEY environment variable');
     }
   }, [isEmbedded, currentHost]);
+
+  // [SHOPIFY-EMBEDDED-CONTRAST-PASS-1] Keep data-shopify-embedded in sync post-hydration
+  // This handles SPA navigations where the layout.tsx init script won't re-run
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (isEmbedded) {
+      document.documentElement.dataset.shopifyEmbedded = '1';
+    } else {
+      delete document.documentElement.dataset.shopifyEmbedded;
+    }
+  }, [isEmbedded]);
 
   // Not initialized yet - show loading
   if (!isInitialized) {

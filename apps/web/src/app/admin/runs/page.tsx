@@ -1,11 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { adminApi } from '@/lib/api';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableRow,
+} from '@/components/tables/DataTable';
 
 /**
  * [ADMIN-OPS-1][D4 Runs Explorer]
+ * [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-3] Migrated to canonical DataTable.
  */
 interface Run {
   id: string;
@@ -78,13 +84,102 @@ export default function AdminRunsPage() {
     });
   }
 
+  // [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-3] Define DataTable columns
+  const columns: DataTableColumn<Run & DataTableRow>[] = useMemo(
+    () => [
+      {
+        key: 'project',
+        header: 'Project',
+        cell: (row) => (
+          <div>
+            <div className="text-sm font-medium text-foreground">
+              {row.project.name}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {row.project.user.email}
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'runType',
+        header: 'Run Type',
+        cell: (row) => (
+          <span className="text-sm text-foreground">{row.runType}</span>
+        ),
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        cell: (row) => (
+          <span
+            className={`inline-flex px-2 py-1 text-xs rounded-full ${
+              row.status === 'SUCCEEDED'
+                ? 'bg-green-100 text-green-800'
+                : row.status === 'FAILED'
+                  ? 'bg-red-100 text-red-800'
+                  : row.status === 'RUNNING'
+                    ? 'bg-blue-100 text-blue-800'
+                    : 'bg-muted text-muted-foreground'
+            }`}
+          >
+            {row.status}
+          </span>
+        ),
+      },
+      {
+        key: 'aiUsed',
+        header: 'AI Used',
+        cell: (row) =>
+          row.aiUsed ? (
+            <span className="text-sm text-orange-600">Yes</span>
+          ) : (
+            <span className="text-sm text-muted-foreground">No</span>
+          ),
+      },
+      {
+        key: 'reused',
+        header: 'Reused',
+        cell: (row) =>
+          row.reused ? (
+            <span className="text-sm text-green-600">Yes</span>
+          ) : (
+            <span className="text-sm text-muted-foreground">No</span>
+          ),
+      },
+      {
+        key: 'created',
+        header: 'Created',
+        cell: (row) => (
+          <span className="text-sm text-muted-foreground">
+            {formatDate(row.createdAt)}
+          </span>
+        ),
+      },
+      {
+        key: 'actions',
+        header: 'Actions',
+        truncate: false,
+        cell: (row) => (
+          <Link
+            href={`/admin/runs/${row.id}`}
+            className="text-sm text-primary hover:text-primary/80"
+          >
+            View
+          </Link>
+        ),
+      },
+    ],
+    []
+  );
+
   if (loading && runs.length === 0) {
-    return <p className="text-gray-600">Loading runs...</p>;
+    return <p className="text-muted-foreground">Loading runs...</p>;
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+      <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded">
         {error}
       </div>
     );
@@ -92,14 +187,15 @@ export default function AdminRunsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Runs</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">Runs</h1>
 
       {/* Filters */}
-      <div className="bg-white shadow rounded-lg p-4 mb-6 flex gap-4">
+      <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-4 mb-6 flex gap-4">
         <select
           value={filters.runType}
           onChange={(e) => setFilters({ ...filters, runType: e.target.value })}
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+          className="border border-border rounded-md px-3 py-2 text-sm bg-background text-foreground"
+          data-no-row-keydown
         >
           <option value="">All Run Types</option>
           <option value="PREVIEW_GENERATE">Preview Generate</option>
@@ -109,7 +205,8 @@ export default function AdminRunsPage() {
         <select
           value={filters.status}
           onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+          className="border border-border rounded-md px-3 py-2 text-sm bg-background text-foreground"
+          data-no-row-keydown
         >
           <option value="">All Statuses</option>
           <option value="QUEUED">Queued</option>
@@ -121,7 +218,8 @@ export default function AdminRunsPage() {
         <select
           value={filters.aiUsed}
           onChange={(e) => setFilters({ ...filters, aiUsed: e.target.value })}
-          className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+          className="border border-border rounded-md px-3 py-2 text-sm bg-background text-foreground"
+          data-no-row-keydown
         >
           <option value="">AI Used: Any</option>
           <option value="true">AI Used: Yes</option>
@@ -129,103 +227,19 @@ export default function AdminRunsPage() {
         </select>
       </div>
 
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Project
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Run Type
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                AI Used
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Reused
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Created
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {runs.map((run) => (
-              <tr key={run.id}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
-                    {run.project.name}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {run.project.user.email}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {run.runType}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                      run.status === 'SUCCEEDED'
-                        ? 'bg-green-100 text-green-800'
-                        : run.status === 'FAILED'
-                          ? 'bg-red-100 text-red-800'
-                          : run.status === 'RUNNING'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    {run.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {run.aiUsed ? (
-                    <span className="text-orange-600">Yes</span>
-                  ) : (
-                    'No'
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {run.reused ? (
-                    <span className="text-green-600">Yes</span>
-                  ) : (
-                    'No'
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {formatDate(run.createdAt)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <Link
-                    href={`/admin/runs/${run.id}`}
-                    className="text-blue-600 hover:text-blue-800"
-                  >
-                    View
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Runs Table - Canonical DataTable */}
+      <DataTable columns={columns} rows={runs} hideContextAction={true} />
 
       {pagination && pagination.pages > 1 && (
         <div className="mt-4 flex justify-between items-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Page {pagination.page} of {pagination.pages}
           </p>
           <div className="flex gap-2">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50"
+              className="px-3 py-1 text-sm border border-border rounded-md disabled:opacity-50 hover:bg-muted"
             >
               Previous
             </button>
@@ -234,7 +248,7 @@ export default function AdminRunsPage() {
                 setCurrentPage((p) => Math.min(pagination.pages, p + 1))
               }
               disabled={currentPage === pagination.pages}
-              className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50"
+              className="px-3 py-1 text-sm border border-border rounded-md disabled:opacity-50 hover:bg-muted"
             >
               Next
             </button>

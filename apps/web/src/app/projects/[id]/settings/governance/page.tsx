@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { projectsApi } from '@/lib/api';
 import type {
   GovernanceViewerApprovalsResponse,
@@ -11,9 +11,15 @@ import type {
   GovernanceViewerAuditEventItem,
   GovernanceViewerShareLinkItem,
 } from '@/lib/api';
+import {
+  DataTable,
+  type DataTableColumn,
+  type DataTableRow,
+} from '@/components/tables/DataTable';
 
 /**
  * [GOV-AUDIT-VIEWER-1] Governance Viewer Tab
+ * [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Migrated 3 tables to canonical DataTable.
  */
 type GovernanceViewerTab = 'approvals' | 'audit' | 'sharing';
 
@@ -153,14 +159,14 @@ export default function GovernanceViewerPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Governance</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-foreground">Governance</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           View approval requests, audit events, and share link activity.
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-border">
         <nav className="-mb-px flex space-x-8">
           {tabs.map((tab) => (
             <button
@@ -168,8 +174,8 @@ export default function GovernanceViewerPage() {
               onClick={() => handleTabChange(tab.key)}
               className={`whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium ${
                 currentTab === tab.key
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
               }`}
             >
               {tab.label}
@@ -267,17 +273,74 @@ function ApprovalsTab({
 }: ApprovalsTabProps) {
   const items = data?.items || [];
 
+  // [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Define DataTable columns
+  const columns: DataTableColumn<GovernanceViewerApprovalItem & DataTableRow>[] =
+    useMemo(
+      () => [
+        {
+          key: 'resource',
+          header: 'Resource',
+          cell: (row) => (
+            <div>
+              <div className="font-medium text-foreground">
+                {formatResourceType(row.resourceType)}
+              </div>
+              <div className="text-xs text-muted-foreground truncate max-w-xs">
+                {row.resourceId}
+              </div>
+            </div>
+          ),
+        },
+        {
+          key: 'requestedBy',
+          header: 'Requested By',
+          cell: (row) => (
+            <span className="text-sm text-muted-foreground">
+              {row.requestedByName || 'Unknown user'}
+            </span>
+          ),
+        },
+        {
+          key: 'status',
+          header: 'Status',
+          cell: (row) => <ApprovalStatusBadge status={row.status} />,
+        },
+        {
+          key: 'date',
+          header: 'Date',
+          cell: (row) => (
+            <span className="text-sm text-muted-foreground">
+              {formatDate(row.requestedAt)}
+            </span>
+          ),
+        },
+        {
+          key: 'actions',
+          header: 'Actions',
+          cell: (row) => (
+            <button
+              onClick={() => onSelectApproval(row)}
+              className="text-sm text-primary hover:text-primary/80"
+            >
+              View details
+            </button>
+          ),
+        },
+      ],
+      [onSelectApproval]
+    );
+
   return (
     <div className="space-y-4">
       {/* Status filter */}
       <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-500">Show:</span>
+        <span className="text-sm text-muted-foreground">Show:</span>
         <button
           onClick={() => onStatusChange('pending')}
           className={`rounded-full px-3 py-1 text-sm font-medium ${
             status === 'pending'
               ? 'bg-yellow-100 text-yellow-800'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80'
           }`}
         >
           Pending
@@ -286,8 +349,8 @@ function ApprovalsTab({
           onClick={() => onStatusChange('history')}
           className={`rounded-full px-3 py-1 text-sm font-medium ${
             status === 'history'
-              ? 'bg-gray-700 text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-foreground text-background'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80'
           }`}
         >
           History
@@ -297,18 +360,18 @@ function ApprovalsTab({
       {/* Loading state */}
       {loading && (
         <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-          <span className="ml-3 text-gray-500">Loading approvals...</span>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <span className="ml-3 text-muted-foreground">Loading approvals...</span>
         </div>
       )}
 
       {/* Error state */}
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4">
+          <p className="text-sm text-destructive">{error}</p>
           <button
             onClick={onRefresh}
-            className="mt-2 text-sm font-medium text-red-700 hover:text-red-800"
+            className="mt-2 text-sm font-medium text-destructive hover:text-destructive/80"
           >
             Try again
           </button>
@@ -317,9 +380,9 @@ function ApprovalsTab({
 
       {/* Empty state */}
       {!loading && !error && items.length === 0 && (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
+        <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-8 text-center">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-muted-foreground"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -331,12 +394,12 @@ function ApprovalsTab({
               d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">
+          <h3 className="mt-4 text-lg font-medium text-foreground">
             {status === 'pending'
               ? 'No pending approvals'
               : 'No approval history'}
           </h3>
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-muted-foreground">
             {status === 'pending'
               ? 'Approval requests will appear here when team members request changes.'
               : 'Approved and rejected requests will appear here.'}
@@ -344,64 +407,9 @@ function ApprovalsTab({
         </div>
       )}
 
-      {/* Approval list */}
+      {/* Approval list - Canonical DataTable */}
       {!loading && !error && items.length > 0 && (
-        <div className="overflow-hidden rounded-lg border border-gray-200">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Resource
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Requested By
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {items.map((approval) => (
-                <tr key={approval.id} className="hover:bg-gray-50">
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                    <div>
-                      <div className="font-medium">
-                        {formatResourceType(approval.resourceType)}
-                      </div>
-                      <div className="text-xs text-gray-500 truncate max-w-xs">
-                        {approval.resourceId}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                    {approval.requestedByName || 'Unknown user'}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm">
-                    <ApprovalStatusBadge status={approval.status} />
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                    {formatDate(approval.requestedAt)}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right text-sm">
-                    <button
-                      onClick={() => onSelectApproval(approval)}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      View details
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable columns={columns} rows={items} hideContextAction={true} />
       )}
     </div>
   );
@@ -428,6 +436,61 @@ function AuditTab({
 }: AuditTabProps) {
   const items = data?.items || [];
 
+  // [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Define DataTable columns
+  const columns: DataTableColumn<GovernanceViewerAuditEventItem & DataTableRow>[] =
+    useMemo(
+      () => [
+        {
+          key: 'event',
+          header: 'Event',
+          cell: (row) => <AuditEventTypeBadge eventType={row.eventType} />,
+        },
+        {
+          key: 'actor',
+          header: 'Actor',
+          cell: (row) => (
+            <span className="text-sm text-muted-foreground">
+              {row.actorName || 'System'}
+            </span>
+          ),
+        },
+        {
+          key: 'resource',
+          header: 'Resource',
+          cell: (row) =>
+            row.resourceType ? (
+              <span className="text-sm text-muted-foreground truncate max-w-xs block">
+                {formatResourceType(row.resourceType)}
+              </span>
+            ) : (
+              <span className="text-muted-foreground">-</span>
+            ),
+        },
+        {
+          key: 'time',
+          header: 'Time',
+          cell: (row) => (
+            <span className="text-sm text-muted-foreground">
+              {formatDate(row.createdAt)}
+            </span>
+          ),
+        },
+        {
+          key: 'actions',
+          header: 'Actions',
+          cell: (row) => (
+            <button
+              onClick={() => onSelectEvent(row)}
+              className="text-sm text-primary hover:text-primary/80"
+            >
+              View details
+            </button>
+          ),
+        },
+      ],
+      [onSelectEvent]
+    );
+
   return (
     <div className="space-y-4">
       {/* Info banner */}
@@ -441,18 +504,18 @@ function AuditTab({
       {/* Loading state */}
       {loading && (
         <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-          <span className="ml-3 text-gray-500">Loading audit events...</span>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <span className="ml-3 text-muted-foreground">Loading audit events...</span>
         </div>
       )}
 
       {/* Error state */}
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4">
+          <p className="text-sm text-destructive">{error}</p>
           <button
             onClick={onRefresh}
-            className="mt-2 text-sm font-medium text-red-700 hover:text-red-800"
+            className="mt-2 text-sm font-medium text-destructive hover:text-destructive/80"
           >
             Try again
           </button>
@@ -461,9 +524,9 @@ function AuditTab({
 
       {/* Empty state */}
       {!loading && !error && items.length === 0 && (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
+        <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-8 text-center">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-muted-foreground"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -475,72 +538,18 @@ function AuditTab({
               d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">
+          <h3 className="mt-4 text-lg font-medium text-foreground">
             No audit events
           </h3>
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-muted-foreground">
             Approval and sharing events will appear here as they occur.
           </p>
         </div>
       )}
 
-      {/* Audit event list */}
+      {/* Audit event list - Canonical DataTable */}
       {!loading && !error && items.length > 0 && (
-        <div className="overflow-hidden rounded-lg border border-gray-200">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Event
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Actor
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Resource
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Time
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {items.map((event) => (
-                <tr key={event.id} className="hover:bg-gray-50">
-                  <td className="whitespace-nowrap px-6 py-4 text-sm">
-                    <AuditEventTypeBadge eventType={event.eventType} />
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                    {event.actorName || 'System'}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                    {event.resourceType ? (
-                      <span className="truncate max-w-xs block">
-                        {formatResourceType(event.resourceType)}
-                      </span>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                    {formatDate(event.createdAt)}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right text-sm">
-                    <button
-                      onClick={() => onSelectEvent(event)}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      View details
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable columns={columns} rows={items} hideContextAction={true} />
       )}
     </div>
   );
@@ -571,11 +580,78 @@ function SharingTab({
 }: SharingTabProps) {
   const items = data?.items || [];
 
+  // [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-4] Define DataTable columns
+  const columns: DataTableColumn<GovernanceViewerShareLinkItem & DataTableRow>[] =
+    useMemo(
+      () => [
+        {
+          key: 'title',
+          header: 'Title / Report',
+          cell: (row) => (
+            <div>
+              <div className="font-medium text-foreground">
+                {row.title || 'Untitled'}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {row.reportType}
+              </div>
+            </div>
+          ),
+        },
+        {
+          key: 'createdBy',
+          header: 'Created By',
+          cell: (row) => (
+            <span className="text-sm text-muted-foreground">
+              {row.createdByName || 'Unknown'}
+            </span>
+          ),
+        },
+        {
+          key: 'audience',
+          header: 'Audience',
+          cell: (row) => (
+            <AudienceBadge
+              audience={row.audience}
+              passcodeLast4={row.passcodeLast4}
+            />
+          ),
+        },
+        {
+          key: 'status',
+          header: 'Status',
+          cell: (row) => <ShareLinkStatusBadge status={row.status} />,
+        },
+        {
+          key: 'views',
+          header: 'Views',
+          cell: (row) => (
+            <span className="text-sm text-muted-foreground">
+              {row.viewCount}
+            </span>
+          ),
+        },
+        {
+          key: 'actions',
+          header: 'Actions',
+          cell: (row) => (
+            <button
+              onClick={() => onSelectLink(row)}
+              className="text-sm text-primary hover:text-primary/80"
+            >
+              View details
+            </button>
+          ),
+        },
+      ],
+      [onSelectLink]
+    );
+
   return (
     <div className="space-y-4">
       {/* Status filter */}
       <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-500">Show:</span>
+        <span className="text-sm text-muted-foreground">Show:</span>
         {(['all', 'ACTIVE', 'EXPIRED', 'REVOKED'] as const).map((s) => (
           <button
             key={s}
@@ -588,8 +664,8 @@ function SharingTab({
                     ? 'bg-yellow-100 text-yellow-800'
                     : s === 'REVOKED'
                       ? 'bg-red-100 text-red-800'
-                      : 'bg-gray-700 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      : 'bg-foreground text-background'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}
           >
             {s === 'all' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
@@ -600,18 +676,18 @@ function SharingTab({
       {/* Loading state */}
       {loading && (
         <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
-          <span className="ml-3 text-gray-500">Loading share links...</span>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <span className="ml-3 text-muted-foreground">Loading share links...</span>
         </div>
       )}
 
       {/* Error state */}
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4">
+          <p className="text-sm text-destructive">{error}</p>
           <button
             onClick={onRefresh}
-            className="mt-2 text-sm font-medium text-red-700 hover:text-red-800"
+            className="mt-2 text-sm font-medium text-destructive hover:text-destructive/80"
           >
             Try again
           </button>
@@ -620,9 +696,9 @@ function SharingTab({
 
       {/* Empty state */}
       {!loading && !error && items.length === 0 && (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
+        <div className="rounded-lg border border-border bg-[hsl(var(--surface-card))] p-8 text-center">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-muted-foreground"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -634,82 +710,18 @@ function SharingTab({
               d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
             />
           </svg>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">
+          <h3 className="mt-4 text-lg font-medium text-foreground">
             No share links
           </h3>
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-muted-foreground">
             Share links created for reports will appear here.
           </p>
         </div>
       )}
 
-      {/* Share link list */}
+      {/* Share link list - Canonical DataTable */}
       {!loading && !error && items.length > 0 && (
-        <div className="overflow-hidden rounded-lg border border-gray-200">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Title / Report
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Created By
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Audience
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Views
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {items.map((link) => (
-                <tr key={link.id} className="hover:bg-gray-50">
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                    <div>
-                      <div className="font-medium">
-                        {link.title || 'Untitled'}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {link.reportType}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                    {link.createdByName || 'Unknown'}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm">
-                    <AudienceBadge
-                      audience={link.audience}
-                      passcodeLast4={link.passcodeLast4}
-                    />
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm">
-                    <ShareLinkStatusBadge status={link.status} />
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                    {link.viewCount}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right text-sm">
-                    <button
-                      onClick={() => onSelectLink(link)}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      View details
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable columns={columns} rows={items} hideContextAction={true} />
       )}
     </div>
   );

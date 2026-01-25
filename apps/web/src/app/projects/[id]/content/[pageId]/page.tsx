@@ -11,6 +11,8 @@ import type { ContentPage } from '@/lib/content';
 import { getContentStatus, getPageTypeLabel } from '@/lib/content';
 import { ContentDeoInsightsPanel } from '@/components/content/ContentDeoInsightsPanel';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
+// [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Shell header integration
+import { useCenterPaneHeader } from '@/components/layout/CenterPaneHeaderProvider';
 
 interface MetadataSuggestion {
   crawlResultId: string;
@@ -47,6 +49,9 @@ export default function ContentWorkspacePage() {
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
 
   const feedback = useFeedback();
+
+  // [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Shell header integration
+  const { setHeader } = useCenterPaneHeader();
 
   const fetchData = useCallback(async () => {
     try {
@@ -170,6 +175,15 @@ export default function ContentWorkspacePage() {
     fetchData();
   }, [router, fetchData]);
 
+  // [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] Set shell header
+  useEffect(() => {
+    setHeader({
+      breadcrumbs: `Projects > ${projectName || projectId} > Content`,
+      title: 'Content Optimization Workspace',
+      description: `Optimize SEO metadata for ${page?.path || 'this page'}`,
+    });
+  }, [setHeader, projectName, projectId, page?.path]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -192,66 +206,25 @@ export default function ContentWorkspacePage() {
 
   return (
     <div>
-      {/* Breadcrumbs */}
-      <nav className="mb-4 text-sm">
-        <ol className="flex flex-wrap items-center gap-2 text-gray-500">
-          <li>
-            <Link href="/projects" className="hover:text-gray-700">
-              Projects
-            </Link>
-          </li>
-          <li>/</li>
-          <li>
-            <Link
-              href={`/projects/${projectId}/store-health`}
-              className="hover:text-gray-700"
-            >
-              {projectName || 'Project'}
-            </Link>
-          </li>
-          <li>/</li>
-          <li>
-            <Link
-              href={`/projects/${projectId}/content`}
-              className="hover:text-gray-700"
-            >
-              Content
-            </Link>
-          </li>
-          <li>/</li>
-          <li className="text-gray-900">{page?.path || 'Page'}</li>
-        </ol>
-      </nav>
+      {/* [CENTER-PANE-NAV-REMODEL-1 FIXUP-1] In-canvas breadcrumbs and header removed - shell header owns these */}
 
-      {/* Back link */}
-      <div className="mb-4">
+      {/* Back link and page type badge */}
+      <div className="mb-4 flex items-center justify-between">
         <Link
           href={`/projects/${projectId}/content`}
           className="text-blue-600 hover:text-blue-800"
         >
           ← Back to Content
         </Link>
-      </div>
-
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Content Optimization Workspace
-          </h1>
-          {page && (
-            <span
-              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${
-                pageTypeColors[page.pageType] || pageTypeColors.misc
-              }`}
-            >
-              {pageTypeLabel}
-            </span>
-          )}
-        </div>
-        <p className="text-gray-600">
-          Optimize SEO metadata for {page?.path || 'this page'}
-        </p>
+        {page && (
+          <span
+            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${
+              pageTypeColors[page.pageType] || pageTypeColors.misc
+            }`}
+          >
+            {pageTypeLabel}
+          </span>
+        )}
       </div>
 
       {/* Success message */}

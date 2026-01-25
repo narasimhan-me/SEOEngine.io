@@ -20,6 +20,8 @@ import Link from 'next/link';
 import { isAuthenticated } from '@/lib/auth';
 import { projectsApi } from '@/lib/api';
 import { AssetDraftsTab } from '@/components/products/AssetDraftsTab';
+// [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] Import RCP hook for descriptor hydration
+import { useRightContextPanel } from '@/components/right-context-panel/RightContextPanelProvider';
 
 interface CollectionAsset {
   id: string;
@@ -57,6 +59,13 @@ export default function CollectionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [collection, setCollection] = useState<CollectionAsset | null>(null);
+
+  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] RCP descriptor hydration
+  const {
+    isOpen: rcpIsOpen,
+    descriptor: rcpDescriptor,
+    openPanel: rcpOpenPanel,
+  } = useRightContextPanel();
 
   // Auth check and fetch on mount
   useEffect(() => {
@@ -98,6 +107,31 @@ export default function CollectionDetailPage() {
     fetchCollection();
   }, [router, projectId, collectionId]);
 
+  // [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] Hydrate RCP descriptor with collection title
+  // Only runs when panel is open with matching collection; does NOT reopen if dismissed
+  useEffect(() => {
+    if (
+      !rcpIsOpen ||
+      rcpDescriptor?.kind !== 'collection' ||
+      rcpDescriptor.id !== collectionId ||
+      !collection
+    ) {
+      return;
+    }
+    // Compute display title (collection.title or URL pathname as fallback)
+    const displayTitle = collection.title || new URL(collection.url).pathname;
+    if (rcpDescriptor.title === displayTitle) {
+      return;
+    }
+    // Enrich descriptor with display title (in-place update, no close/reopen)
+    rcpOpenPanel({
+      kind: 'collection',
+      id: collectionId,
+      title: displayTitle,
+      scopeProjectId: projectId,
+    });
+  }, [rcpIsOpen, rcpDescriptor, collectionId, projectId, collection, rcpOpenPanel]);
+
   /**
    * Switch tabs while preserving other URL params
    */
@@ -136,7 +170,7 @@ export default function CollectionDetailPage() {
         </p>
         <Link
           href={`/projects/${projectId}/assets/collections`}
-          className="text-indigo-600 hover:text-indigo-800"
+          className="text-primary hover:text-primary/80"
         >
           ← Back to Collections
         </Link>
@@ -160,7 +194,7 @@ export default function CollectionDetailPage() {
       <div className="mb-6">
         <Link
           href={`/projects/${projectId}/assets/collections`}
-          className="text-sm text-indigo-600 hover:text-indigo-800 mb-2 inline-block"
+          className="text-sm text-primary hover:text-primary/80 mb-2 inline-block"
         >
           ← Back to Collections
         </Link>
@@ -186,16 +220,16 @@ export default function CollectionDetailPage() {
         <p className="text-sm text-gray-400 mt-1">{collection.url}</p>
       </div>
 
-      {/* Tab Bar */}
-      <div className="border-b border-gray-200 mb-6">
+      {/* [NAV-HIERARCHY-POLISH-1] Tab Bar - token-only entity tabs */}
+      <div className="border-b border-border mb-6">
         <nav className="-mb-px flex gap-4" aria-label="Tabs">
           <button
             type="button"
             onClick={() => handleTabChange('overview')}
-            className={`py-2 px-1 text-sm font-medium border-b-2 ${
+            className={`py-2 px-1 text-sm font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
               activeTab === 'overview'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
             }`}
           >
             Overview
@@ -203,10 +237,10 @@ export default function CollectionDetailPage() {
           <button
             type="button"
             onClick={() => handleTabChange('drafts')}
-            className={`py-2 px-1 text-sm font-medium border-b-2 ${
+            className={`py-2 px-1 text-sm font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
               activeTab === 'drafts'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
             }`}
           >
             Drafts
