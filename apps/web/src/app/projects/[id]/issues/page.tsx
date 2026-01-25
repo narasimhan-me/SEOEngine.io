@@ -651,15 +651,9 @@ export default function IssuesPage() {
     return false;
   };
 
-  // [COUNT-INTEGRITY-1 PATCH 6] Filter issues: mode → actionKey/actionKeys → scopeType → UI filters
+  // [ISSUES-ENGINE-REMOUNT-1] Filter issues: Keep all matching issues, don't drop non-actionable upfront
   const filteredIssues = issues.filter((issue) => {
-    // 1. Mode filter (actionable vs detected) - use effectiveMode for correct default
-    if (effectiveMode === 'actionable' && !issue.isActionableNow) {
-      return false;
-    }
-    // Note: mode=detected shows all issues (no filter needed)
-
-    // 2. Action key filter (from Work Queue routing)
+    // 1. Action key filter (from Work Queue routing)
     // [COUNT-INTEGRITY-1.1 UI HARDEN] Support actionKeys (OR across keys) with actionKey as fallback
     if (actionKeysParam && actionKeysParam.length > 0) {
       // OR across multiple action keys
@@ -676,7 +670,7 @@ export default function IssuesPage() {
       }
     }
 
-    // 3. Scope type filter (PRODUCTS/PAGES/COLLECTIONS/STORE_WIDE)
+    // 2. Scope type filter (PRODUCTS/PAGES/COLLECTIONS/STORE_WIDE)
     if (scopeTypeParam && scopeTypeParam !== 'STORE_WIDE') {
       const assetTypeKey = scopeTypeParam.toLowerCase() as
         | 'products'
@@ -688,24 +682,94 @@ export default function IssuesPage() {
     }
     // Note: STORE_WIDE shows all issues (no filter needed)
 
-    // 3b. [LIST-ACTIONS-CLARITY-1 FIXUP-1] Asset-specific filter (assetType + assetId)
+    // 2b. [LIST-ACTIONS-CLARITY-1 FIXUP-1] Asset-specific filter (assetType + assetId)
     // NOTE: When assetTypeParam + assetIdParam are present, issues are already filtered server-side
     // via projectsApi.assetIssues(). This client-side filter is kept as a fallback guard.
     // It will only match issues that were already fetched for this specific asset.
     // No additional client-side filtering needed - issues array is already asset-specific.
 
-    // 4. Severity filter (existing UI filter)
+    // 3. Severity filter (existing UI filter)
     if (severityFilter !== 'all' && issue.severity !== severityFilter) {
       return false;
     }
 
-    // 5. Pillar filter (existing UI filter)
+    // 4. Pillar filter (existing UI filter)
     if (pillarFilter !== 'all' && issue.pillarId !== pillarFilter) {
       return false;
     }
 
     return true;
   });
+
+  // [ISSUES-ENGINE-REMOUNT-1] Classification + hierarchy: derive three arrays
+  const actionableNowIssues = useMemo(() => {
+    const filtered = filteredIssues.filter(
+      (issue) => issue.actionability !== 'informational' && issue.isActionableNow === true
+    );
+    // Sort: severity (critical → warning → info) → impact (assetTypeCounts total) → title
+    return filtered.sort((a, b) => {
+      // Severity order
+      const severityOrder = { critical: 0, warning: 1, info: 2 };
+      const severityDiff = severityOrder[a.severity] - severityOrder[b.severity];
+      if (severityDiff !== 0) return severityDiff;
+
+      // Impact (total assetTypeCounts)
+      const aImpact = (a.assetTypeCounts?.products ?? 0) + (a.assetTypeCounts?.pages ?? 0) + (a.assetTypeCounts?.collections ?? 0) || a.count || 0;
+      const bImpact = (b.assetTypeCounts?.products ?? 0) + (b.assetTypeCounts?.pages ?? 0) + (b.assetTypeCounts?.collections ?? 0) || b.count || 0;
+      if (bImpact !== aImpact) return bImpact - aImpact; // Descending impact
+
+      // Stable tie-breaker (title → id)
+      const aTitle = getSafeIssueTitle(a);
+      const bTitle = getSafeIssueTitle(b);
+      const titleCompare = aTitle.localeCompare(bTitle);
+      if (titleCompare !== 0) return titleCompare;
+      return a.id.localeCompare(b.id);
+    });
+  }, [filteredIssues]);
+
+  const blockedIssues = useMemo(() => {
+    const filtered = filteredIssues.filter(
+      (issue) => issue.actionability !== 'informational' && issue.isActionableNow !== true
+    );
+    // Sort: severity → impact → title → id
+    return filtered.sort((a, b) => {
+      const severityOrder = { critical: 0, warning: 1, info: 2 };
+      const severityDiff = severityOrder[a.severity] - severityOrder[b.severity];
+      if (severityDiff !== 0) return severityDiff;
+
+      const aImpact = (a.assetTypeCounts?.products ?? 0) + (a.assetTypeCounts?.pages ?? 0) + (a.assetTypeCounts?.collections ?? 0) || a.count || 0;
+      const bImpact = (b.assetTypeCounts?.products ?? 0) + (b.assetTypeCounts?.pages ?? 0) + (b.assetTypeCounts?.collections ?? 0) || b.count || 0;
+      if (bImpact !== aImpact) return bImpact - aImpact;
+
+      const aTitle = getSafeIssueTitle(a);
+      const bTitle = getSafeIssueTitle(b);
+      const titleCompare = aTitle.localeCompare(bTitle);
+      if (titleCompare !== 0) return titleCompare;
+      return a.id.localeCompare(b.id);
+    });
+  }, [filteredIssues]);
+
+  const informationalIssues = useMemo(() => {
+    const filtered = filteredIssues.filter(
+      (issue) => issue.actionability === 'informational'
+    );
+    // Sort: severity → impact → title → id
+    return filtered.sort((a, b) => {
+      const severityOrder = { critical: 0, warning: 1, info: 2 };
+      const severityDiff = severityOrder[a.severity] - severityOrder[b.severity];
+      if (severityDiff !== 0) return severityDiff;
+
+      const aImpact = (a.assetTypeCounts?.products ?? 0) + (a.assetTypeCounts?.pages ?? 0) + (a.assetTypeCounts?.collections ?? 0) || a.count || 0;
+      const bImpact = (b.assetTypeCounts?.products ?? 0) + (b.assetTypeCounts?.pages ?? 0) + (b.assetTypeCounts?.collections ?? 0) || b.count || 0;
+      if (bImpact !== aImpact) return bImpact - aImpact;
+
+      const aTitle = getSafeIssueTitle(a);
+      const bTitle = getSafeIssueTitle(b);
+      const titleCompare = aTitle.localeCompare(bTitle);
+      if (titleCompare !== 0) return titleCompare;
+      return a.id.localeCompare(b.id);
+    });
+  }, [filteredIssues]);
 
   // Handler to update pillar filter and URL
   // [SCOPE-CLARITY-1 FIXUP-1] When user explicitly picks a pillar, clear conflicting higher-priority scope params
@@ -1219,6 +1283,11 @@ export default function IssuesPage() {
             row.isActionableNow === true &&
             getIssueToActionGuidance(issueType).length > 0;
 
+          // [ISSUES-ENGINE-REMOUNT-1] Derive fixability and impact for meta line
+          const fixType = row.fixType;
+          const fixabilityLabel = fixType === 'aiFix' ? 'AI' : fixType === 'manualFix' ? 'Manual' : fixType === 'syncFix' ? 'Automation' : null;
+          const totalImpact = (row.assetTypeCounts?.products ?? 0) + (row.assetTypeCounts?.pages ?? 0) + (row.assetTypeCounts?.collections ?? 0) || row.count || 0;
+
           return (
             <div
               data-testid={
@@ -1245,11 +1314,9 @@ export default function IssuesPage() {
               ) : (
                 <span className="font-semibold text-foreground">{safeTitle}</span>
               )}
-              {!isClickableIssue && (
+              {row.actionability === 'informational' && (
                 <span className="ml-2 inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                  {row.actionability === 'informational'
-                    ? 'Outside control'
-                    : 'Informational'}
+                  Outside control
                 </span>
               )}
               {/* [ISSUE-TO-ACTION-GUIDANCE-1] Subtle playbook indicator (non-interactive) */}
@@ -1275,6 +1342,24 @@ export default function IssuesPage() {
                   </svg>
                 </span>
               )}
+              {/* [ISSUES-ENGINE-REMOUNT-1] Compact meta line for priority signaling */}
+              <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
+                <span className={row.severity === 'critical' ? 'text-[hsl(var(--danger-foreground))]' : row.severity === 'warning' ? 'text-[hsl(var(--warning-foreground))]' : ''}>
+                  {row.severity.charAt(0).toUpperCase() + row.severity.slice(1)}
+                </span>
+                {fixabilityLabel && (
+                  <>
+                    <span>•</span>
+                    <span>{fixabilityLabel}</span>
+                  </>
+                )}
+                {totalImpact > 0 && (
+                  <>
+                    <span>•</span>
+                    <span>{totalImpact} affected</span>
+                  </>
+                )}
+              </div>
             </div>
           );
         },
@@ -1321,35 +1406,22 @@ export default function IssuesPage() {
         header: 'Severity',
         width: 'w-1/12',
         cell: (row) => {
-          const severityClass =
+          const dotColor =
             row.severity === 'critical'
-              ? 'border-[hsl(var(--danger-background))]/50 bg-[hsl(var(--danger-background))] text-[hsl(var(--danger-foreground))]'
+              ? 'bg-[hsl(var(--danger-foreground))]'
               : row.severity === 'warning'
-                ? 'border-[hsl(var(--warning-background))]/50 bg-[hsl(var(--warning-background))] text-[hsl(var(--warning-foreground))]'
-                : 'border-border bg-muted text-muted-foreground';
+                ? 'bg-[hsl(var(--warning-foreground))]'
+                : 'bg-muted-foreground';
+          const textColor =
+            row.severity === 'critical'
+              ? 'text-[hsl(var(--danger-foreground))]'
+              : row.severity === 'warning'
+                ? 'text-[hsl(var(--warning-foreground))]'
+                : 'text-muted-foreground';
           return (
-            <span
-              className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${severityClass}`}
-            >
+            <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${textColor}`}>
+              <span className={`h-2 w-2 rounded-full ${dotColor}`} />
               {row.severity.charAt(0).toUpperCase() + row.severity.slice(1)}
-            </span>
-          );
-        },
-      },
-      {
-        key: 'status',
-        header: 'Status',
-        width: 'w-1/8',
-        cell: (row) => {
-          const statusLabel =
-            row.actionability === 'informational'
-              ? 'Informational'
-              : row.isActionableNow === false
-                ? 'Blocked'
-                : 'Detected';
-          return (
-            <span className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-              {statusLabel}
             </span>
           );
         },
@@ -1360,6 +1432,19 @@ export default function IssuesPage() {
         width: 'w-1/8',
         truncate: false,
         cell: (row) => {
+          // [ISSUES-ENGINE-REMOUNT-1] Blocked state handling
+          const isBlocked = row.actionability !== 'informational' && row.isActionableNow !== true;
+          if (isBlocked) {
+            return (
+              <span
+                className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+                title="Not actionable in this context"
+              >
+                Blocked
+              </span>
+            );
+          }
+
           const fixAction = getFixAction(row);
           if (!fixAction) {
             return <span className="text-muted-foreground">—</span>;
@@ -1379,20 +1464,31 @@ export default function IssuesPage() {
                 data-no-row-click
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-primary bg-primary px-2 py-1 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {fixingIssueId === row.id ? 'Fixing…' : 'Fix next'}
+                {fixingIssueId === row.id ? 'Fixing…' : 'Fix now'}
               </button>
             );
           }
 
           if (fixAction.kind === 'link') {
+            // [ISSUES-ENGINE-REMOUNT-1 FIXUP-6] Normalize to "Fix now" / "Review" only
+            // "Review" for DIAGNOSTIC and "View affected" flows
+            // "Fix now" for other actionable fix flows
+            const isDiagnosticOrViewAffected =
+              fixAction.variant === 'diagnostic' ||
+              fixAction.label === 'View affected';
+            const normalizedLabel = isDiagnosticOrViewAffected ? 'Review' : 'Fix now';
+            // Preserve original meaning in title
+            const titleText = fixAction.label !== normalizedLabel ? fixAction.label : undefined;
+
             return (
               <GuardedLink
                 href={fixAction.href}
                 data-testid="issue-card-cta"
                 data-no-row-click
+                title={titleText}
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
               >
-                {fixAction.label}
+                {normalizedLabel}
               </GuardedLink>
             );
           }
@@ -1643,6 +1739,7 @@ export default function IssuesPage() {
               triplet={currentTriplet}
               layout="horizontal"
               size="lg"
+              emphasis="actionable"
             />
           </div>
         ) : (
@@ -1776,7 +1873,7 @@ export default function IssuesPage() {
                   }`}
                   data-testid={`mode-toggle-${mode}`}
                 >
-                  {mode === 'actionable' ? 'Actionable' : 'Detected'}
+                  {mode === 'actionable' ? 'Actionable now' : 'All detected'}
                 </button>
               );
             })}
@@ -1823,7 +1920,7 @@ export default function IssuesPage() {
         </div>
       </div>
 
-      {/* [ISSUES-ENGINE-REMOUNT-1] Issues List with DataTable + RCP integration */}
+      {/* [ISSUES-ENGINE-REMOUNT-1] Issues List: Three-section decision engine */}
       {filteredIssues.length === 0 ? (
         <div className="rounded-lg border border-[hsl(var(--success-background))]/50 bg-[hsl(var(--success-background))] p-6 text-center">
           <svg
@@ -1839,7 +1936,6 @@ export default function IssuesPage() {
               d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          {/* [COUNT-INTEGRITY-1 PATCH 6 FIXUP-2] Mode-aware empty state text */}
           <h3 className="mt-2 text-sm font-medium text-[hsl(var(--success-foreground))]">
             {severityFilter === 'all' && pillarFilter === 'all'
               ? effectiveMode === 'actionable'
@@ -1856,15 +1952,91 @@ export default function IssuesPage() {
           </p>
         </div>
       ) : (
-        <DataTable<IssueRow>
-          rows={filteredIssues as IssueRow[]}
-          columns={issueColumns}
-          onRowClick={(row) => openPanel(getIssueDescriptor(row))}
-          onOpenContext={openPanel}
-          getRowDescriptor={getIssueDescriptor}
-          isRowExpanded={(row) => previewIssueId === row.id}
-          renderExpandedContent={renderExpandedContent}
-        />
+        <div className="space-y-6">
+          {/* [ISSUES-ENGINE-REMOUNT-1] Section 1: Actionable now (dominant, comfortable density) */}
+          {actionableNowIssues.length > 0 && (
+            <div data-testid="issues-section-actionable">
+              <h2 className="mb-3 text-lg font-semibold text-foreground">
+                Actionable now ({actionableNowIssues.length})
+              </h2>
+              <DataTable<IssueRow>
+                rows={actionableNowIssues as IssueRow[]}
+                columns={issueColumns}
+                density="comfortable"
+                headerContrast="strong"
+                onRowClick={(row) => openPanel(getIssueDescriptor(row))}
+                onOpenContext={openPanel}
+                getRowDescriptor={getIssueDescriptor}
+                isRowExpanded={(row) => previewIssueId === row.id}
+                renderExpandedContent={renderExpandedContent}
+              />
+            </div>
+          )}
+
+          {/* [ISSUES-ENGINE-REMOUNT-1] Section 2: Blocked (reduced weight, dense, collapsible in actionable mode) */}
+          {blockedIssues.length > 0 && (
+            <details
+              open={effectiveMode !== 'actionable'}
+              data-testid="issues-section-blocked"
+              className="group"
+            >
+              <summary className="mb-3 flex cursor-pointer items-center gap-2 text-base font-medium text-muted-foreground hover:text-foreground">
+                <svg
+                  className="h-4 w-4 transition-transform group-open:rotate-90"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                Blocked ({blockedIssues.length})
+              </summary>
+              <DataTable<IssueRow>
+                rows={blockedIssues as IssueRow[]}
+                columns={issueColumns}
+                density="dense"
+                headerContrast="default"
+                onRowClick={(row) => openPanel(getIssueDescriptor(row))}
+                onOpenContext={openPanel}
+                getRowDescriptor={getIssueDescriptor}
+                isRowExpanded={(row) => previewIssueId === row.id}
+                renderExpandedContent={renderExpandedContent}
+              />
+            </details>
+          )}
+
+          {/* [ISSUES-ENGINE-REMOUNT-1] Section 3: Informational (reduced weight, dense, collapsible in actionable mode) */}
+          {informationalIssues.length > 0 && (
+            <details
+              open={effectiveMode !== 'actionable'}
+              data-testid="issues-section-informational"
+              className="group"
+            >
+              <summary className="mb-3 flex cursor-pointer items-center gap-2 text-base font-medium text-muted-foreground hover:text-foreground">
+                <svg
+                  className="h-4 w-4 transition-transform group-open:rotate-90"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                Informational ({informationalIssues.length})
+              </summary>
+              <DataTable<IssueRow>
+                rows={informationalIssues as IssueRow[]}
+                columns={issueColumns}
+                density="dense"
+                headerContrast="default"
+                onRowClick={(row) => openPanel(getIssueDescriptor(row))}
+                onOpenContext={openPanel}
+                getRowDescriptor={getIssueDescriptor}
+                isRowExpanded={(row) => previewIssueId === row.id}
+                renderExpandedContent={renderExpandedContent}
+              />
+            </details>
+          )}
+        </div>
       )}
     </div>
   );

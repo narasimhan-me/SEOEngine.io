@@ -88,10 +88,13 @@
 
 **Expected Results:**
 
-- **UI:** Issues display in a DataTable with columns: Issue, Asset Scope, Pillar, Severity, Status, Actions
+- **UI:** Issues display in three stacked sections: Actionable now (first, comfortable density), Blocked (collapsible, dense), Informational (collapsible, dense)
+- **UI:** DataTable columns: Issue (with meta line), Asset Scope, Pillar, Severity (dot+label), Actions
+- **UI:** Status column removed (section membership now communicates status)
 - **UI:** Hover state visible (token-based: no bg-white flashes)
 - **UI:** Focus ring visible when tabbing through rows
 - **UI:** No literal palette classes (no bg-white, bg-gray-*, text-gray-* in dark mode)
+- **UI:** TripletDisplay shows "Actionable now" first with token-only highlight (bg-primary/10, text-primary)
 
 ---
 
@@ -281,6 +284,121 @@
 - **UI:** Actionability label shows "Informational — outside EngineO.ai control"
 - **UI:** Guidance text explains EngineO.ai cannot act directly, references Work Canvas
 - **UI:** No urgency language or CTAs present
+
+---
+
+### Scenario 11: Three-Section Decision Engine Hierarchy (FIXUP-5)
+
+**ID:** HP-011
+
+**Preconditions:**
+
+- Project has issues in all three categories: actionable, blocked, and informational
+
+**Steps:**
+
+1. Navigate to `/projects/{projectId}/issues`
+2. Observe the section ordering and visual hierarchy
+3. Toggle between "Actionable now" and "All detected" modes
+
+**Expected Results:**
+
+- **UI:** Sections render in order: Actionable now → Blocked → Informational
+- **UI:** Actionable now section is visually dominant with comfortable density
+- **UI:** Blocked and Informational sections use dense density
+- **UI:** In Actionable mode, Blocked and Informational sections are collapsed by default
+- **UI:** In All detected mode, all sections are expanded
+- **UI:** Section headings show counts: "Actionable now (N)", "Blocked (N)", "Informational (N)"
+
+---
+
+### Scenario 12: Sorting and Priority Signaling (FIXUP-5)
+
+**ID:** HP-012
+
+**Preconditions:**
+
+- Project has multiple issues with different severities and impact levels
+
+**Steps:**
+
+1. Navigate to `/projects/{projectId}/issues`
+2. Observe the Actionable now section
+3. Check the ordering of issues
+
+**Expected Results:**
+
+- **UI:** Issues sorted by severity (critical → warning → info)
+- **UI:** Within same severity, higher impact issues (more affected assets) appear first
+- **UI:** Issue column displays compact meta line showing: Severity, Fixability (AI/Manual/Automation), Impact (N affected)
+- **UI:** Critical issues visually prioritized at top of each section
+
+---
+
+### Scenario 13: Action Column Semantics (FIXUP-5)
+
+**ID:** HP-013
+
+**Preconditions:**
+
+- Project has actionable issues, diagnostic issues, and blocked issues
+
+**Steps:**
+
+1. Navigate to `/projects/{projectId}/issues`
+2. Observe the Actions column across different issue types
+3. Interact with action buttons
+
+**Expected Results:**
+
+- **UI:** Actionable issues show one of: "Fix now" action (button for inline AI preview flows; otherwise link), or "Review" link (for diagnostic and "View affected" flows)
+- **UI:** "View affected" displays as "Review" with title/tooltip preserving original meaning ("View affected")
+- **UI:** "Fix with AI", "Open", "Sync" display as "Fix now" with title preserving original specific action
+- **UI:** Blocked issues show non-clickable "Blocked" pill with tooltip "Not actionable in this context"
+- **UI:** "Fix next" button renamed to "Fix now" (button id preserved for focus restore)
+
+---
+
+### Scenario 14: Mode Toggle Copy Update (FIXUP-5)
+
+**ID:** HP-014
+
+**Preconditions:**
+
+- Project has both actionable and detected issues
+
+**Steps:**
+
+1. Navigate to `/projects/{projectId}/issues`
+2. Observe the mode toggle buttons
+3. Click between modes
+
+**Expected Results:**
+
+- **UI:** Toggle buttons read "Actionable now" and "All detected" (not "Actionable" and "Detected")
+- **UI:** Mode toggle behavior unchanged - filters issues appropriately
+
+---
+
+### Scenario 15: TripletDisplay Token-Only Enforcement (FIXUP-5)
+
+**ID:** HP-015
+
+**Preconditions:**
+
+- Project has canonical count triplet data
+
+**Steps:**
+
+1. Navigate to `/projects/{projectId}/issues`
+2. Observe the TripletDisplay component
+3. Inspect with browser DevTools in dark mode
+
+**Expected Results:**
+
+- **UI:** "Actionable now" renders first with highlight wrapper (bg-primary/10, text-primary)
+- **UI:** All labels use text-muted-foreground (no text-gray-600 literals)
+- **UI:** Dark mode shows no unexpected gray flashes or literal palette classes
 
 ---
 

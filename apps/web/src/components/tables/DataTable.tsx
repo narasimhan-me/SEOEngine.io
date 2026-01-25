@@ -74,6 +74,8 @@ export interface DataTableProps<T extends DataTableRow> {
    * - 'rowClick': triggers onRowClick (for progressive disclosure remounts)
    */
   rowEnterKeyBehavior?: 'openContext' | 'rowClick';
+  /** Optional: header contrast strength ('default' or 'strong') */
+  headerContrast?: 'default' | 'strong';
 }
 
 function ViewDetailsIcon({ className }: { className?: string }) {
@@ -113,6 +115,7 @@ export function DataTable<T extends DataTableRow>({
   isRowExpanded,
   renderExpandedContent,
   rowEnterKeyBehavior = 'openContext',
+  headerContrast = 'default',
 }: DataTableProps<T>) {
   // Initialize focused row to 0 so first row is tabbable when rows exist
   const [focusedRowIndex, setFocusedRowIndex] = useState<number>(
@@ -240,7 +243,8 @@ export function DataTable<T extends DataTableRow>({
                 key={column.key}
                 className={[
                   paddingClass,
-                  'text-left text-xs font-semibold uppercase tracking-wider text-foreground/80',
+                  'text-left text-xs font-semibold uppercase tracking-wider',
+                  headerContrast === 'strong' ? 'text-foreground' : 'text-foreground/80',
                   column.width || '',
                 ].join(' ')}
               >
@@ -251,7 +255,8 @@ export function DataTable<T extends DataTableRow>({
               <th
                 className={[
                   paddingClass,
-                  'w-12 text-right text-xs font-semibold uppercase tracking-wider text-foreground/80',
+                  'w-12 text-right text-xs font-semibold uppercase tracking-wider',
+                  headerContrast === 'strong' ? 'text-foreground' : 'text-foreground/80',
                 ].join(' ')}
               >
                 <span className="sr-only">Actions</span>
