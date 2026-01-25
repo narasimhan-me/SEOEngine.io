@@ -1236,6 +1236,7 @@ export default function IssuesPage() {
   };
 
   // [ISSUES-ENGINE-REMOUNT-1] Create ContextDescriptor for RCP from issue
+  // [DRAFT-LIFECYCLE-VISIBILITY-1 FIXUP-1] Pass draftLifecycleState to RCP for accurate echo
   const getIssueDescriptor = useCallback(
     (issue: DeoIssue): ContextDescriptor => {
       const safeTitle = getSafeIssueTitle(issue);
@@ -1244,6 +1245,30 @@ export default function IssuesPage() {
         issue,
         from: 'issues_engine',
       });
+
+      // [DRAFT-LIFECYCLE-VISIBILITY-1 FIXUP-1] Derive draft lifecycle state for RCP metadata
+      let draftLifecycleState: DraftLifecycleState = 'NO_DRAFT';
+
+      if (issue.id === previewIssueId && previewValue) {
+        // Active preview row: derive from live UI signals
+        draftLifecycleState = deriveDraftLifecycleState({
+          hasPreviewOpen: true,
+          hasGeneratedValue: !!previewValue,
+          hasSavedDraft: !!savedDraft && savedDraft.issueId === issue.id,
+          hasAppliedSignal: !!appliedAt,
+        });
+      } else if (issue.primaryProductId) {
+        // Not previewing this row: check sessionStorage for saved drafts
+        const hasSavedInStorage = checkSavedDraftInSessionStorage(
+          projectId,
+          issue.id,
+          issue.primaryProductId,
+          ['SEO title', 'SEO description']
+        );
+        if (hasSavedInStorage) {
+          draftLifecycleState = 'SAVED_NOT_APPLIED';
+        }
+      }
 
       return {
         kind: 'issue',
@@ -1263,10 +1288,12 @@ export default function IssuesPage() {
           productsCount: String(issue.assetTypeCounts?.products ?? 0),
           pagesCount: String(issue.assetTypeCounts?.pages ?? 0),
           collectionsCount: String(issue.assetTypeCounts?.collections ?? 0),
+          // [DRAFT-LIFECYCLE-VISIBILITY-1 FIXUP-1] Draft lifecycle state for RCP echo
+          draftLifecycleState,
         },
       };
     },
-    [projectId]
+    [projectId, previewIssueId, previewValue, savedDraft, appliedAt]
   );
 
   // [ISSUES-ENGINE-REMOUNT-1] DataTable columns definition

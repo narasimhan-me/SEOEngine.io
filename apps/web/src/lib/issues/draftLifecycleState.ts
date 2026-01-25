@@ -5,6 +5,10 @@
  * Uses ONLY existing UI signals (no new backend calls, no guesswork).
  *
  * States flow: NO_DRAFT -> GENERATED_UNSAVED -> SAVED_NOT_APPLIED -> APPLIED
+ *
+ * [FIXUP-1] Hardened derivation:
+ *   - APPLIED requires explicit hasAppliedSignal (no legacy elevation)
+ *   - NO_DRAFT has displayable shortLabel for RCP echo
  */
 
 /**
@@ -42,10 +46,14 @@ export interface DraftLifecycleSignals {
  * Derives canonical draft lifecycle state from existing UI signals.
  *
  * Priority order (highest first):
- * 1. APPLIED - if hasAppliedSignal or legacyDraftState === 'applied'
+ * 1. APPLIED - ONLY if hasAppliedSignal === true (trust guard: requires explicit apply-completion)
  * 2. SAVED_NOT_APPLIED - if hasSavedDraft or legacyDraftState === 'saved'
  * 3. GENERATED_UNSAVED - if hasPreviewOpen && hasGeneratedValue
  * 4. NO_DRAFT - default
+ *
+ * [FIXUP-1] Conservative APPLIED derivation: legacyDraftState === 'applied' alone is NOT
+ * sufficient to elevate to APPLIED; requires explicit hasAppliedSignal to prevent premature
+ * "Applied" display without a confirmed apply-completion signal.
  */
 export function deriveDraftLifecycleState(
   signals: DraftLifecycleSignals
@@ -58,8 +66,8 @@ export function deriveDraftLifecycleState(
     legacyDraftState,
   } = signals;
 
-  // Check APPLIED first (highest priority)
-  if (hasAppliedSignal || legacyDraftState === 'applied') {
+  // [FIXUP-1] Check APPLIED first (highest priority) - ONLY with explicit apply signal
+  if (hasAppliedSignal === true) {
     return 'APPLIED';
   }
 
@@ -97,9 +105,10 @@ export function getDraftLifecycleCopy(
 ): DraftLifecycleCopy {
   switch (state) {
     case 'NO_DRAFT':
+      // [FIXUP-1] shortLabel is displayable so RCP can render "Draft: No draft exists"
       return {
         label: 'No draft exists',
-        shortLabel: '',
+        shortLabel: 'No draft exists',
         description: 'No draft has been generated for this issue.',
       };
     case 'GENERATED_UNSAVED':

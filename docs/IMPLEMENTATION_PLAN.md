@@ -2188,6 +2188,13 @@ Semantic CTA labels with fix-action kinds for Issues Decision Engine:
 
 - `docs/manual-testing/DRAFT-LIFECYCLE-VISIBILITY-1.md`
 
+#### FIXUP-1: RCP Echo + Conservative Derivation (2026-01-25)
+
+1. **RCP always shows draft line**: RCP Actionability section now displays draft lifecycle line for all states (including NO_DRAFT: "Draft: No draft exists") for complete state visibility.
+2. **Issues descriptor passes draftLifecycleState**: `getIssueDescriptor()` now derives and passes `metadata.draftLifecycleState` to RCP for accurate echo during preview states.
+3. **Conservative APPLIED derivation**: `deriveDraftLifecycleState()` now requires explicit `hasAppliedSignal === true` to return APPLIED. Legacy `legacyDraftState === 'applied'` alone no longer elevates to APPLIED, preventing premature "Applied" display.
+4. **NO_DRAFT displayable copy**: `getDraftLifecycleCopy('NO_DRAFT')` now returns displayable `shortLabel: 'No draft exists'` instead of empty string.
+
 ---
 
 ### Phase ISSUES-ENGINE-VIEW-AFFECTED-ROUTING-1: View Affected → Filtered Products List ✅ COMPLETE

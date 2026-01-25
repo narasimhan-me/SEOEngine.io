@@ -418,7 +418,8 @@ export function ContextPanelIssueDetails({
         <p className="mt-1 text-xs text-muted-foreground italic">
           {fixActionSentence}
         </p>
-        {/* [DRAFT-LIFECYCLE-VISIBILITY-1 PATCH 4] Draft lifecycle state line */}
+        {/* [DRAFT-LIFECYCLE-VISIBILITY-1 PATCH 4] Draft lifecycle state line
+            [FIXUP-1] Always show draft line (including NO_DRAFT) for complete state visibility */}
         {(() => {
           // Prefer passed-in state when present/valid, otherwise fall back conservatively
           let draftState: DraftLifecycleState = 'NO_DRAFT';
@@ -439,9 +440,7 @@ export function ContextPanelIssueDetails({
             }
           }
 
-          // Only show if there's a draft
-          if (draftState === 'NO_DRAFT') return null;
-
+          // [FIXUP-1] Always render the draft line (removed NO_DRAFT gating)
           const draftCopy = getDraftLifecycleCopy(draftState);
           return (
             <p className="mt-1 text-xs text-muted-foreground" title={draftCopy.description}>

@@ -35,10 +35,13 @@ This phase ensures that draft lifecycle states (NO_DRAFT, GENERATED_UNSAVED, SAV
 
 1. Navigate to Issues Engine
 2. Locate an issue row that has NOT been previewed
-3. **Verify:**
+3. Click on the issue row to open RCP
+4. **Verify:**
    - [ ] No draft indicator shown next to CTA (row is clean)
    - [ ] CTA shows "Review AI fix" or appropriate action label
-   - [ ] RCP Actionability section shows NO draft line
+   - [ ] RCP Actionability section shows draft line: "Draft: No draft exists"
+
+   > [FIXUP-1] RCP now always displays the draft lifecycle line for complete state visibility.
 
 ---
 
