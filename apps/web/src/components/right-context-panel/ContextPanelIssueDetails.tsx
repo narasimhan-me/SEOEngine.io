@@ -1,10 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { projectsApi } from '@/lib/api';
 import type { DeoIssue } from '@/lib/deo-issues';
 import { DEO_PILLARS } from '@/lib/deo-pillars';
 import { getIssueToActionGuidance } from '@/lib/issue-to-action-guidance';
+// [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Import fix-action-kind helper for RCP copy alignment
+import {
+  deriveIssueFixActionKind,
+  getRcpActionabilitySentence,
+} from '@/lib/issues/issueFixActionKind';
 
 /**
  * [ISSUES-ENGINE-REMOUNT-1] Read-only issue details renderer for RCP.
@@ -249,6 +254,15 @@ export function ContextPanelIssueDetails({
 
   const actionabilityInfo = getActionabilityInfo();
 
+  // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Derive fix-action kind for RCP copy alignment
+  // Note: RCP doesn't have a real returnTo path, use a placeholder since destinations only need issue signals
+  const fixActionKind = deriveIssueFixActionKind({
+    projectId,
+    issue,
+    returnTo: `/projects/${projectId}/issues`, // Placeholder for RCP context
+  });
+  const fixActionSentence = getRcpActionabilitySentence(fixActionKind);
+
   // Derive severity display
   const getSeverityClass = () => {
     switch (issue.severity) {
@@ -380,6 +394,7 @@ export function ContextPanelIssueDetails({
       </div>
 
       {/* [FIXUP-3] Actionability (replaces Status) */}
+      {/* [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Added fix-action kind sentence for copy alignment */}
       <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-3">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           Actionability
@@ -389,6 +404,10 @@ export function ContextPanelIssueDetails({
         </span>
         <p className="mt-2 text-xs text-muted-foreground">
           {actionabilityInfo.guidance}
+        </p>
+        {/* [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Fix-action kind sentence */}
+        <p className="mt-1 text-xs text-muted-foreground italic">
+          {fixActionSentence}
         </p>
       </div>
 

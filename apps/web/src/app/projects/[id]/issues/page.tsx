@@ -43,6 +43,10 @@ import {
 import { getIssueToActionGuidance } from '@/lib/issue-to-action-guidance';
 // [ISSUE-FIX-ROUTE-INTEGRITY-1] Import destination map for truthful CTAs
 import { getIssueActionDestinations } from '@/lib/issues/issueActionDestinations';
+// [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Import fix-action-kind helper for semantic CTAs
+import { getIssueFixActionKindInfo } from '@/lib/issues/issueFixActionKind';
+// [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Import Icon component for CTA icons
+import { Icon } from '@/components/icons/Icon';
 // [ISSUES-ENGINE-REMOUNT-1] DataTable + RCP integration
 import {
   DataTable,
@@ -1441,11 +1445,18 @@ export default function IssuesPage() {
             returnTo: currentIssuesPathWithQuery,
           });
 
+          // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Derive fix-action kind for semantic CTAs
+          const fixActionKindInfo = getIssueFixActionKindInfo({
+            projectId,
+            issue: row,
+            returnTo: currentIssuesPathWithQuery,
+          });
+
           // [PATCH 2] Priority 1: Fix action (AI preview or direct navigation)
           if (destinations.fix.kind !== 'none') {
             const fixAction = getFixAction(row); // Still needed to determine ai-fix-now vs link
 
-            // [PATCH 2] AI fix with inline preview
+            // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] AI fix with inline preview - "Review AI fix"
             if (fixAction?.kind === 'ai-fix-now') {
               return (
                 <button
@@ -1458,46 +1469,53 @@ export default function IssuesPage() {
                   disabled={fixingIssueId === row.id}
                   data-testid="issue-fix-next-button"
                   data-no-row-click
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-primary bg-primary px-2 py-1 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  title="Preview changes before saving"
+                  className="inline-flex items-center gap-1.5 justify-center whitespace-nowrap rounded-md border border-primary bg-primary px-2 py-1 text-xs font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
+                  <Icon name="workflow.ai" size={16} className="shrink-0" />
                   <span data-testid="issue-card-cta">
-                    {fixingIssueId === row.id ? 'Fixing…' : 'Fix now'}
+                    {fixingIssueId === row.id ? 'Fixing…' : 'Review AI fix'}
                   </span>
                 </button>
               );
             }
 
-            // [PATCH 2] Direct fix navigation (internal link)
+            // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Direct fix navigation - use kind-based labels
             if (destinations.fix.href) {
               const fixConfig = getIssueFixConfig((row.type as string | undefined) || row.id);
               const isDiagnostic = fixConfig?.fixKind === 'DIAGNOSTIC';
-              const normalizedLabel = isDiagnostic ? 'Review' : 'Fix now';
+              // Use fixActionKindInfo for semantic label/icon
+              const ctaLabel = isDiagnostic ? 'Review guidance' : fixActionKindInfo.label;
+              const ctaIcon = isDiagnostic ? 'playbook.content' : fixActionKindInfo.iconKey;
+              const ctaTitle = isDiagnostic ? 'No automatic fix available' : fixActionKindInfo.sublabel;
 
               return (
                 <GuardedLink
                   href={destinations.fix.href}
                   data-testid="issue-fix-button"
                   data-no-row-click
-                  title={isDiagnostic ? 'Review issue details' : undefined}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
+                  title={ctaTitle}
+                  className="inline-flex items-center gap-1.5 justify-center whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
                 >
-                  <span data-testid="issue-card-cta">{normalizedLabel}</span>
+                  <Icon name={ctaIcon as 'workflow.ai' | 'nav.projects' | 'playbook.content' | 'status.blocked'} size={16} className="shrink-0" />
+                  <span data-testid="issue-card-cta">{ctaLabel}</span>
                 </GuardedLink>
               );
             }
           }
 
-          // [PATCH 2] Priority 2: View affected (when fix not available)
+          // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3] Priority 2: View affected - "Review guidance"
           if (destinations.viewAffected.kind !== 'none' && destinations.viewAffected.href) {
             return (
               <GuardedLink
                 href={destinations.viewAffected.href}
                 data-testid="issue-view-affected-button"
                 data-no-row-click
-                title="View affected products"
-                className="inline-flex items-center justify-center whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
+                title="See affected items"
+                className="inline-flex items-center gap-1.5 justify-center whitespace-nowrap rounded-md border border-border bg-muted px-2 py-1 text-xs font-medium text-foreground hover:bg-muted/80"
               >
-                <span data-testid="issue-card-cta">View affected</span>
+                <Icon name="playbook.content" size={16} className="shrink-0" />
+                <span data-testid="issue-card-cta">Review guidance</span>
               </GuardedLink>
             );
           }
@@ -1546,6 +1564,19 @@ export default function IssuesPage() {
             console.warn(`[ISSUE-FIX-ROUTE-INTEGRITY-1] Mapping gap for issue ${row.id}: marked actionable but no fix destination. Reason: ${destinations.fix.reasonBlocked}`);
           }
 
+          // [ISSUE-FIX-KIND-CLARITY-1 FIXUP-3 PATCH 3] Dev-time trust guardrails for label consistency
+          if (process.env.NODE_ENV !== 'production') {
+            const { kind, label } = fixActionKindInfo;
+            // AI_PREVIEW_FIX must include "Review" in label
+            if (kind === 'AI_PREVIEW_FIX' && !label.includes('Review')) {
+              console.warn(`[ISSUE-FIX-KIND-CLARITY-1] Trust violation: AI_PREVIEW_FIX label "${label}" should include "Review"`);
+            }
+            // DIRECT_FIX must not include misleading automation language
+            if (kind === 'DIRECT_FIX' && (label.includes('AI') || label.includes('Apply') || label.includes('Automation'))) {
+              console.warn(`[ISSUE-FIX-KIND-CLARITY-1] Trust violation: DIRECT_FIX label "${label}" should not include AI/Apply/Automation`);
+            }
+          }
+
           return (
             <span
               className="inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
@@ -1558,7 +1589,7 @@ export default function IssuesPage() {
         },
       },
     ];
-  }, [projectId, fixingIssueId, handleIssueClick, handleOpenPreview, getFixAction]);
+  }, [projectId, fixingIssueId, handleIssueClick, handleOpenPreview, getFixAction, currentIssuesPathWithQuery]);
 
   // [ISSUES-ENGINE-REMOUNT-1] Render expansion row content for ai-fix-now preview
   const renderExpandedContent = useCallback(

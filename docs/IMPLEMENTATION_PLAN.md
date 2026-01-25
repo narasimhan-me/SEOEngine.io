@@ -2090,6 +2090,31 @@ Aggregation surfaces (Products list, Work Queue) now use fixKind-aware semantics
 
 1. **Work Queue helper line semantics**: DIAGNOSTIC issue banner now uses explicit "To review this issue:" helper prefix (never "fix" language); IFKC1-007 asserts this to prevent regression.
 
+#### FIXUP-3 (2026-01-25)
+
+Semantic CTA labels with fix-action kinds for Issues Decision Engine:
+
+1. **Fix-Action Kind Helper**: Created `apps/web/src/lib/issues/issueFixActionKind.ts` with 4 canonical kinds:
+   - `AI_PREVIEW_FIX`: AI fix with inline preview → "Review AI fix" (workflow.ai icon)
+   - `DIRECT_FIX`: Direct navigation to workspace → "Fix in workspace" (nav.projects icon)
+   - `GUIDANCE_ONLY`: Diagnostic/review only → "Review guidance" (playbook.content icon)
+   - `BLOCKED`: No action reachable → "Blocked" chip (status.blocked icon)
+
+2. **Issues Page CTA Updates**: Updated `apps/web/src/app/projects/[id]/issues/page.tsx`:
+   - AI preview buttons show "Review AI fix" with sparkle icon
+   - Direct fix links show "Fix in workspace" with inventory icon
+   - View affected links show "Review guidance" with article icon
+   - Sublabels added via title attribute (e.g., "Preview changes before saving")
+   - All existing `data-testid` selectors preserved for backward compatibility
+
+3. **Dev-Time Trust Guardrails**: Added console warnings (dev mode only):
+   - AI_PREVIEW_FIX labels must include "Review"
+   - DIRECT_FIX labels must NOT include "AI", "Apply", or "Automation"
+
+4. **RCP Copy Alignment**: Updated `ContextPanelIssueDetails.tsx` Actionability section with fix-action kind sentence (no CTAs in RCP body, read-only panel).
+
+5. **Manual Testing**: Added FIXUP-3 section to `ISSUE-FIX-KIND-CLARITY-1.md` with 5 new scenarios (F3-001 through F3-005) and verification checklist.
+
 #### Core Files
 
 - `apps/web/src/lib/issue-to-fix-path.ts` - IssueFixKind type + issue configs

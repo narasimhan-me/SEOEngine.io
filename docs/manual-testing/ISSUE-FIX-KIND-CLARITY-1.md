@@ -170,3 +170,116 @@ This phase ensures that DIAGNOSTIC issues (informational, no direct fix availabl
 - [FIXUP-2] Products list uses `fixNextIsDiagnostic` flag to show "Review" instead of "Fix next"
 - [FIXUP-2] Work Queue derives `fixKind` from `getIssueFixConfig(issueIdParam)` for banner wording
 - [FIXUP-2] Product 4 in seed has SEO populated + thin content to trigger not_answer_ready as top issue
+
+---
+
+## FIXUP-3: Issues Decision Engine Fix-Action Kinds (2026-01-25)
+
+### Canonical Fix-Action Kinds
+
+| Kind              | Meaning                                    | Issues CTA Label     | Icon              | Sublabel/Tooltip                   |
+| ----------------- | ------------------------------------------ | -------------------- | ----------------- | ---------------------------------- |
+| `AI_PREVIEW_FIX`  | AI fix with inline preview                 | "Review AI fix"      | workflow.ai       | "Preview changes before saving"    |
+| `DIRECT_FIX`      | Direct navigation to workspace             | "Fix in workspace"   | nav.projects      | "Manual changes required"          |
+| `GUIDANCE_ONLY`   | Diagnostic/review only, no automatic fix   | "Review guidance"    | playbook.content  | "No automatic fix available"       |
+| `BLOCKED`         | No action reachable in current UI          | "Blocked"            | status.blocked    | "No action available"              |
+
+### Derivation Logic
+
+The fix-action kind is derived from existing signals (no guesswork):
+
+1. Uses `getIssueActionDestinations()` to determine which destinations are reachable
+2. Uses `getIssueFixConfig(issueType)?.fixKind` to check for DIAGNOSTIC issues
+3. Uses `issue.fixType` and `issue.fixReady` to determine AI preview support
+
+### Test Scenarios (FIXUP-3)
+
+#### Scenario F3-001: AI Preview Issue Shows "Review AI fix"
+
+**Route:** `/projects/{projectId}/issues`
+
+**Setup:** Issue with `fixType='aiFix'`, `fixReady=true`, and `primaryProductId` set
+
+1. Navigate to Issues Engine
+2. Locate an issue with AI preview fix
+3. **Verify:**
+   - [ ] CTA button shows "Review AI fix" (not "Fix now")
+   - [ ] Button has AI icon (workflow.ai - sparkle icon)
+   - [ ] Title attribute shows "Preview changes before saving"
+   - [ ] Click opens inline preview panel (no navigation)
+   - [ ] `data-testid="issue-fix-next-button"` preserved
+
+---
+
+#### Scenario F3-002: Direct Fix Issue Shows "Fix in workspace"
+
+**Route:** `/projects/{projectId}/issues`
+
+**Setup:** Issue with `fixType='manualFix'` or non-AI fix destination
+
+1. Navigate to Issues Engine
+2. Locate an issue with direct fix (non-AI)
+3. **Verify:**
+   - [ ] CTA link shows "Fix in workspace" (not "Fix now")
+   - [ ] Link has projects icon (nav.projects - inventory icon)
+   - [ ] Title attribute shows "Manual changes required"
+   - [ ] Click navigates to product workspace
+   - [ ] `data-testid="issue-fix-button"` preserved
+
+---
+
+#### Scenario F3-003: Guidance-Only Issue Shows "Review guidance"
+
+**Route:** `/projects/{projectId}/issues`
+
+**Setup:** Issue with `fixKind='DIAGNOSTIC'` or no fix but viewAffected/open available
+
+1. Navigate to Issues Engine
+2. Locate a diagnostic or guidance-only issue
+3. **Verify:**
+   - [ ] CTA link shows "Review guidance"
+   - [ ] Link has content icon (playbook.content - article icon)
+   - [ ] Title attribute shows "No automatic fix available" or "See affected items"
+   - [ ] `data-testid="issue-fix-button"` or `data-testid="issue-view-affected-button"` preserved
+
+---
+
+#### Scenario F3-004: Blocked Issue Shows "Blocked" Chip
+
+**Route:** `/projects/{projectId}/issues`
+
+**Setup:** Issue with no reachable actions
+
+1. Navigate to Issues Engine
+2. Locate a blocked issue
+3. **Verify:**
+   - [ ] "Blocked" chip displayed (not a button/link)
+   - [ ] Tooltip shows reason why blocked
+   - [ ] `data-testid="issue-blocked-chip"` preserved
+
+---
+
+#### Scenario F3-005: RCP Actionability Shows Fix-Action Kind Sentence
+
+**Route:** `/projects/{projectId}/issues` → click any issue row
+
+1. Navigate to Issues Engine
+2. Click on any issue row to open RCP
+3. Observe the Actionability section
+4. **Verify:**
+   - [ ] Actionability section shows one of these sentences in italic:
+     - AI: "This issue offers an AI-generated preview. Nothing is applied automatically."
+     - Direct: "This fix requires manual changes in the workspace."
+     - Guidance: "This issue is guidance-only. No automatic fix is available."
+     - Blocked: "No fix action is reachable in the current UI."
+   - [ ] No buttons/CTAs/links in the RCP body
+
+---
+
+### Verification Checklist (FIXUP-3)
+
+- [ ] **No misleading "Apply/automation" language** unless the inline preview apply CTA is present and enabled
+- [ ] **AI preview CTAs include "Review"** in label (dev-time warning if not)
+- [ ] **Direct fix CTAs do NOT include "AI/Apply/Automation"** in label (dev-time warning if they do)
+- [ ] **All existing data-testid selectors preserved** (issue-fix-next-button, issue-fix-button, issue-view-affected-button, issue-blocked-chip)
+- [ ] **Icons render correctly** via Icon component (workflow.ai, nav.projects, playbook.content)
