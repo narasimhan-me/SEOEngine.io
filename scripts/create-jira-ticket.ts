@@ -406,6 +406,81 @@ class JiraClient {
       `/issue/${issueKey}?fields=summary,status`
     );
   }
+
+  async updateIssue(issueKey: string, data: JiraTicketData): Promise<void> {
+    // Convert description to ADF format (same as createIssue)
+    const lines = data.description.split('\n').filter(l => l.trim());
+    const descriptionContent: any[] = [];
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      
+      if (trimmed.startsWith('h2. ')) {
+        descriptionContent.push({
+          type: 'heading',
+          attrs: { level: 2 },
+          content: [{ type: 'text', text: trimmed.replace(/^h2\.\s+/, '') }],
+        });
+        continue;
+      }
+      
+      const content: any[] = [];
+      const tokens = trimmed.split(/(\*[^*]+\*|_[^_]+_)/);
+      
+      for (const token of tokens) {
+        if (!token) continue;
+        
+        if (token.startsWith('*') && token.endsWith('*') && token.length > 2) {
+          content.push({
+            type: 'text',
+            text: token.slice(1, -1),
+            marks: [{ type: 'strong' }],
+          });
+        } else if (token.startsWith('_') && token.endsWith('_') && token.length > 2) {
+          content.push({
+            type: 'text',
+            text: token.slice(1, -1),
+            marks: [{ type: 'em' }],
+          });
+        } else {
+          content.push({ type: 'text', text: token });
+        }
+      }
+      
+      if (content.length > 0) {
+        descriptionContent.push({
+          type: 'paragraph',
+          content: content,
+        });
+      }
+    }
+
+    const summary = data.summary.length > 255 
+      ? data.summary.substring(0, 252) + '...'
+      : data.summary;
+
+    const updatePayload: any = {
+      fields: {
+        summary: summary,
+        description: {
+          type: 'doc',
+          version: 1,
+          content: descriptionContent.length > 0 ? descriptionContent : [{
+            type: 'paragraph',
+            content: [{ type: 'text', text: data.description }],
+          }],
+        },
+      },
+    };
+
+    // Update labels if provided
+    if (data.labels && data.labels.length > 0) {
+      updatePayload.fields.labels = data.labels;
+    }
+
+    await this.request('PUT', `/issue/${issueKey}`, updatePayload);
+  }
 }
 
 function parseMarkdownTicket(filePath: string): JiraTicketData {
@@ -558,8 +633,108 @@ async function main() {
   }
 }
 
-// Check if this is an update/transition command
-if (process.argv[2] === 'update' || process.argv[2] === 'transition') {
+// Check if this is an update command
+if (process.argv[2] === 'update') {
+  const issueKey = process.argv[3];
+  
+  if (!issueKey) {
+    console.error('Usage: ts-node scripts/create-jira-ticket.ts update <ISSUE-KEY> [--project <PROJECT-KEY>]');
+    console.error('Example: ts-node scripts/create-jira-ticket.ts update EA-14 --project EA');
+    process.exit(1);
+  }
+
+  // Parse project key if provided
+  const args = process.argv.slice(3);
+  let projectKey: string | undefined;
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--project' || args[i] === '-p') {
+      projectKey = args[i + 1];
+      i++;
+    }
+  }
+
+  const finalProjectKey = projectKey || process.env.JIRA_PROJECT_KEY || 'ENGINEO';
+  const client = new JiraClient(finalProjectKey);
+
+  (async () => {
+    try {
+      console.log(`🔗 Connecting to Jira: ${process.env.JIRA_BASE_URL}`);
+      console.log(`📦 Project Key: ${finalProjectKey}`);
+      
+      // Test connection
+      const connectionOk = await client.testConnection();
+      if (!connectionOk) {
+        console.error(`❌ Failed to connect to Jira.`);
+        process.exit(1);
+      }
+
+      // Get issue info
+      const issue = await client.getIssue(issueKey);
+      console.log(`\n📋 Issue: ${issue.key} - ${issue.fields.summary}`);
+      console.log(`   Current Status: ${issue.fields.status.name}`);
+
+      // Find markdown file - try to get issue summary to find matching file
+      const scriptPath = process.argv[1] || require.main?.filename || __filename;
+      const scriptDir = dirname(scriptPath);
+      const projectRoot = join(scriptDir, '..');
+      const jiraDir = join(projectRoot, 'docs', 'jira');
+      
+      // Try to find file by looking for the issue key or summary in filename
+      // First try: issue key without project prefix (e.g., EA-14 -> 14.md or DRAFT-LIFECYCLE-VISIBILITY-1.md)
+      let ticketFile = join(jiraDir, `${issueKey.replace(/^[^-]+-/, '')}.md`);
+      
+      // If that doesn't exist, try to find by searching for files that might match
+      if (!existsSync(ticketFile)) {
+        // Try common patterns
+        const possibleNames = [
+          'DRAFT-LIFECYCLE-VISIBILITY-1.md',
+          'ISSUE-FIX-ROUTE-INTEGRITY-1.md',
+          'ISSUE-FIX-KIND-CLARITY-1.md',
+          'ISSUE-ACTION-DESTINATION-GAPS-1.md',
+        ];
+        
+        // For EA-14, we know it's DRAFT-LIFECYCLE-VISIBILITY-1
+        if (issueKey === 'EA-14') {
+          ticketFile = join(jiraDir, 'DRAFT-LIFECYCLE-VISIBILITY-1.md');
+        } else {
+          // Try to find by matching summary keywords
+          const summaryLower = issue.fields.summary.toLowerCase();
+          for (const name of possibleNames) {
+            const keyPart = name.replace('.md', '').toLowerCase();
+            if (summaryLower.includes(keyPart)) {
+              ticketFile = join(jiraDir, name);
+              break;
+            }
+          }
+        }
+      }
+      
+      // Check if file exists
+      if (!existsSync(ticketFile)) {
+        console.error(`❌ Ticket file not found: ${ticketFile}`);
+        console.error(`   Tried: ${ticketFile}`);
+        console.error(`   Make sure the file exists in docs/jira/`);
+        process.exit(1);
+      }
+
+      console.log(`📄 Reading ticket file: ${ticketFile}`);
+      const ticketData = parseMarkdownTicket(ticketFile);
+      
+      console.log(`\n🔄 Updating issue...`);
+      await client.updateIssue(issueKey, ticketData);
+      
+      console.log(`✅ Successfully updated ${issueKey}!`);
+      console.log(`   URL: ${process.env.JIRA_BASE_URL}/browse/${issueKey}`);
+    } catch (error: any) {
+      console.error(`\n❌ Error updating Jira ticket:`);
+      console.error(error.message);
+      if (error.stack) {
+        console.error(error.stack);
+      }
+      process.exit(1);
+    }
+  })();
+} else if (process.argv[2] === 'transition') {
   const issueKey = process.argv[3];
   const action = process.argv[2];
   

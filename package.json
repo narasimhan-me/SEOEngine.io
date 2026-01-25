@@ -24,6 +24,8 @@
     "test:shopify:live": "ENGINEO_LIVE_SHOPIFY_TEST=1 pnpm --filter api test:shopify:live",
     "test:shopify:live:dry": "ENGINEO_LIVE_SHOPIFY_TEST=1 pnpm --filter api test:shopify:live:dry",
     "jira:create": "ts-node --project apps/api/tsconfig.json scripts/create-jira-ticket.ts",
+    "jira:read": "ts-node --project apps/api/tsconfig.json scripts/read-jira-tickets.ts",
+    "jira": "ts-node --project apps/api/tsconfig.json scripts/jira-crud.ts",
     "prepare": "husky install"
   },
   "engines": {
