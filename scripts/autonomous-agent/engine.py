@@ -13,7 +13,7 @@ This engine coordinates THREE STRICT ROLES:
    - Reads Ideas from Atlassian Product Discovery
    - Creates Epics with business goals and acceptance criteria
 
-2) GPT-5.x Supervisor v3.2
+2) Claude Supervisor v3.2
    - NEVER writes code
    - ONLY produces PATCH BATCH instructions (surgical, minimal diffs)
    - Decomposes Epics into Stories with exact implementation specs
@@ -118,7 +118,7 @@ ROLE_UEP = {
 }
 
 ROLE_SUPERVISOR = {
-    'name': 'GPT-5.x Supervisor',
+    'name': 'Claude Supervisor',
     'version': '3.2',
     'responsibilities': [
         'Validate UEP intent and resolve ambiguities',
@@ -1019,37 +1019,69 @@ Business Intent Defined:
     def _claude_code_analyze_idea(self, idea_key: str, summary: str, description: str) -> List[dict]:
         """Use Claude Code CLI to analyze Idea and define business intent (no API key required)"""
         try:
-            prompt = f"""You are the Unified Executive Persona (UEP) in an autonomous development system.
-Your role is to analyze Ideas (initiatives) and define business intent for Epics.
+            prompt = f"""You are the Execution Unified Executive Persona (UEP) for EngineO.ai.
 
-## Idea to Analyze
+You operate INSIDE an autonomous execution engine protected by Guardrails v2.
+You do NOT have access to the codebase and you do NOT perform implementation.
+
+Your sole responsibility is to translate approved Product Discovery initiatives (EA-*) into an enforceable Epic description for Jira Software (KAN-*), so downstream agents can execute WITHOUT ambiguity or scope drift.
+
+HARD RULES (NON-NEGOTIABLE)
+1) NO GUESSING: If input is ambiguous/incomplete, do NOT invent. Output a "Blocked — Clarification Required" section with ONE precise question.
+2) NO SCOPE EXPANSION: Do not add new features, combine phases, or broaden objectives.
+3) CONTRACT FIRST: Output must be machine-enforceable. You MUST include these sections exactly:
+   - SCOPE CLASS:
+   - ALLOWED ROOTS:
+   - DIFF BUDGET:
+   - VERIFICATION REQUIRED:
+4) TRUST OVER COVERAGE: choose trust if tradeoffs exist.
+5) NO DESIGN: no redesign, no microcopy invention, intent-level only.
+
+IDEA
 {idea_key}: {summary}
 
-## Description
+DESCRIPTION
 {description}
 
-## Your Task
-As UEP, you must:
-1. Define WHAT we're building and WHY
-2. Establish clear business goals
-3. Create specific, measurable acceptance criteria
-4. Define scope boundaries
-5. NEVER include implementation details or code
+OUTPUT FORMAT (IMPORTANT: output ONLY this markdown, no extra text)
 
-## Output Format
-Generate the Epic description in markdown format with these sections:
-- Initiative (reference the idea)
-- Business Intent: What We're Building
-- Business Goals (bullet list)
-- Acceptance Criteria (checkbox list)
-- Scope Boundaries (In Scope, Out of Scope, Dependencies)
-- UX/Product Expectations (if applicable)
+# Initiative
+- Source: {idea_key}
+- Title: {summary}
 
-Be specific and actionable. The Supervisor will use this to create implementation Stories.
+# Business Intent
+(Verbatim restatement of what we are building and why.)
 
-IMPORTANT: Output ONLY the Epic description markdown. Do not include any other text, explanations, or commentary.
+# In Scope
+- ...
 
-Generate the Epic description now:"""
+# Out of Scope
+- ...
+
+# Trust Contract
+- Non-negotiable truths the UI must uphold (trust over coverage).
+- Explicitly restate any "no backend/schema changes", "no bulk actions", "no silent auto-apply", etc. if present.
+
+# Constraints (Machine-Readable)
+SCOPE CLASS: <choose ONE: FRONTEND-ONLY | AUTONOMOUS-AGENT-ONLY | SCRIPTS-ONLY | BACKEND-ONLY | UNKNOWN>
+ALLOWED ROOTS:
+- <repo root patterns, e.g. apps/web/**, docs/**>
+DIFF BUDGET: <number of files, default 15 unless idea states smaller>
+VERIFICATION REQUIRED:
+- reports/<KAN-KEY>-verification.md (must include "## Checklist")
+
+# Acceptance Criteria
+- [ ] <binary, testable outcome>
+- [ ] <binary, testable outcome>
+
+# Dependencies
+- None (or explicit list)
+
+If you cannot choose SCOPE CLASS or ALLOWED ROOTS without guessing, set:
+SCOPE CLASS: UNKNOWN
+and include a "Blocked — Clarification Required" section with ONE question.
+
+IMPORTANT: Output ONLY the markdown in the required format."""
 
             self.log("UEP", f"Calling Claude Code CLI ({MODEL_UEP}) for business analysis...")
 
@@ -1222,7 +1254,7 @@ Generate the Epic description now:"""
             story_list = created_list + ('\n' if created_list and reused_list else '') + reused_list
 
             self.jira.add_comment(epic_key, f"""
-Epic decomposed by Supervisor (GPT-5.x Supervisor v3.2)
+Epic decomposed by Supervisor (Claude Supervisor v3.2)
 
 **Stories ({len(all_stories)} total):**
 {story_list}
@@ -1455,7 +1487,7 @@ SCOPE FENCE: Check labels/description for FRONTEND-ONLY constraints.
             for f in files:
                 files_context += f"\n\n### FILE: {f['path']}\n```\n{f['content']}\n```"
 
-            prompt = f"""You are a Supervisor in an autonomous development system. Your role is to analyze code and generate PATCH BATCH instructions for implementation.
+            prompt = f"""You are the Claude Supervisor in an autonomous development system. Your role is to analyze code and generate PATCH BATCH instructions for implementation.
 
 ## Epic Requirements
 {epic_key}: {summary}
@@ -1594,7 +1626,7 @@ Please update this Story with specific PATCH BATCH instructions
 after identifying the relevant codebase locations.
 
 ---
-*Story created by GPT-5.x Supervisor v3.2*
+*Story created by Claude Supervisor v3.2*
 *Human assistance required for PATCH BATCH specification*
 """
 
@@ -2328,7 +2360,7 @@ Business Intent Defined - Ready for Supervisor decomposition.
             story_list = created_list + ('\n' if created_list and reused_list else '') + reused_list
 
             self.jira.add_comment(epic_key, f"""
-Epic decomposed by Supervisor (GPT-5.x Supervisor v3.2)
+Epic decomposed by Supervisor (Claude Supervisor v3.2)
 
 **Stories ({len(all_stories)} total):**
 {story_list}
