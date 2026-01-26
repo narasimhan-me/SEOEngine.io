@@ -21,11 +21,45 @@ echo " EngineO Autonomous Execution Engine"
 echo "=========================================="
 echo ""
 
-# Load environment variables
+# Load environment variables from ~/.zshrc (if exists)
 if [ -f "$HOME/.zshrc" ]; then
     echo "[SETUP] Loading environment from ~/.zshrc..."
-    source "$HOME/.zshrc"
+    source "$HOME/.zshrc" 2>/dev/null || true
 fi
+
+# Load .env file (if exists) - fills missing vars only
+load_dotenv() {
+    local envfile="$1"
+    if [ -f "$envfile" ]; then
+        echo "[SETUP] Loading environment from $envfile..."
+        while IFS= read -r line || [ -n "$line" ]; do
+            # Skip comments and blank lines
+            [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+            # Strip 'export ' prefix if present
+            line="${line#export }"
+            # Parse KEY=VALUE
+            if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+                key="${BASH_REMATCH[1]}"
+                value="${BASH_REMATCH[2]}"
+                # Strip surrounding quotes
+                value="${value#\"}" && value="${value%\"}"
+                value="${value#\'}" && value="${value%\'}"
+                # Only set if not already set (env > .env)
+                if [ -z "${!key}" ]; then
+                    export "$key=$value"
+                fi
+            fi
+        done < "$envfile"
+    fi
+}
+
+# Try .env in script dir first, then repo root
+load_dotenv "$SCRIPT_DIR/.env"
+load_dotenv "$REPO_ROOT/.env"
+
+# Apply credential aliases (JIRA_EMAIL -> JIRA_USERNAME, JIRA_API_TOKEN -> JIRA_TOKEN)
+[ -z "$JIRA_USERNAME" ] && [ -n "$JIRA_EMAIL" ] && export JIRA_USERNAME="$JIRA_EMAIL"
+[ -z "$JIRA_TOKEN" ] && [ -n "$JIRA_API_TOKEN" ] && export JIRA_TOKEN="$JIRA_API_TOKEN"
 
 # Verify required environment variables
 REQUIRED_VARS=("JIRA_URL" "JIRA_USERNAME" "JIRA_TOKEN" "GITHUB_TOKEN")
@@ -43,7 +77,8 @@ if [ ${#MISSING_VARS[@]} -ne 0 ]; then
         echo "  - $var"
     done
     echo ""
-    echo "Please set these in ~/.zshrc and try again."
+    echo "Please set these in ~/.zshrc or scripts/autonomous-agent/.env"
+    echo "See .env.example for template."
     exit 1
 fi
 
