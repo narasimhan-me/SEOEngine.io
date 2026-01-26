@@ -124,6 +124,63 @@ def _redact_secrets(text: str) -> str:
     return result
 
 
+def _parse_stream_json_line(line: str) -> Optional[str]:
+    """Parse a Claude CLI stream-json line and extract displayable content.
+
+    Returns human-readable text for display, or None if nothing to display.
+    """
+    if not line.strip():
+        return None
+
+    try:
+        data = json.loads(line)
+    except json.JSONDecodeError:
+        # Not JSON, return as-is
+        return line if line.strip() else None
+
+    msg_type = data.get("type", "")
+
+    # System init - show model info
+    if msg_type == "system" and data.get("subtype") == "init":
+        model = data.get("model", "unknown")
+        return f"[init] model={model}"
+
+    # Assistant message - extract text content
+    if msg_type == "assistant":
+        message = data.get("message", {})
+        content = message.get("content", [])
+        texts = []
+        for block in content:
+            if isinstance(block, dict):
+                if block.get("type") == "text":
+                    text = block.get("text", "")
+                    if text:
+                        texts.append(text)
+                elif block.get("type") == "tool_use":
+                    tool_name = block.get("name", "unknown")
+                    texts.append(f"[tool_use: {tool_name}]")
+        if texts:
+            return " ".join(texts)
+
+    # Tool result
+    if msg_type == "user":
+        content = data.get("message", {}).get("content", [])
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "tool_result":
+                is_error = block.get("is_error", False)
+                status = "error" if is_error else "ok"
+                return f"[tool_result: {status}]"
+
+    # Final result
+    if msg_type == "result":
+        subtype = data.get("subtype", "")
+        duration = data.get("duration_ms", 0)
+        cost = data.get("total_cost_usd", 0)
+        return f"[result: {subtype}] duration={duration}ms cost=${cost:.4f}"
+
+    return None
+
+
 def rotate_logs(log_dir: Path, max_age_days: int = 2) -> int:
     """Delete log files older than max_age_days.
 
@@ -2360,9 +2417,11 @@ Begin implementation now.
                                 break
 
                     # Flush remaining line buffer (PATCH 4-C)
-                    if line_buf:
-                        redacted_line = _redact_secrets(line_buf)
-                        self.log("CLAUDE", redacted_line)
+                    if line_buf.strip():
+                        display_text = _parse_stream_json_line(line_buf)
+                        if display_text:
+                            redacted = _redact_secrets(display_text)
+                            self.log("CLAUDE", redacted)
 
                     # Close master_fd safely (PATCH 4-E)
                     if master_fd is not None:
