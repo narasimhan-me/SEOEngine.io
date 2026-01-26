@@ -52,6 +52,9 @@ import difflib
 import select
 import pty
 
+# Script directory for relative paths (logs, reports)
+SCRIPT_DIR = Path(__file__).parent.resolve()
+
 # Claude Code CLI is used for all personas (no API key required)
 # Model configuration per persona:
 # - UEP: opus (high-quality business analysis)
@@ -93,12 +96,13 @@ def _claude_output_relpath(issue_key: str, run_id: str, attempt: int) -> str:
 def _write_claude_attempt_output(repo_path: str, issue_key: str, run_id: str, attempt: int, content: str) -> str:
     """Write Claude attempt output to artifact file.
 
+    Reports are written to scripts/autonomous-agent/reports/ (SCRIPT_DIR).
     Returns: The relative path to the written artifact.
     """
-    reports_dir = Path(repo_path) / CLAUDE_OUTPUT_DIRNAME
+    reports_dir = SCRIPT_DIR / CLAUDE_OUTPUT_DIRNAME
     reports_dir.mkdir(parents=True, exist_ok=True)
     rel_path = _claude_output_relpath(issue_key, run_id, attempt)
-    output_path = Path(repo_path) / rel_path
+    output_path = SCRIPT_DIR / rel_path
     output_path.write_text(content)
     return rel_path
 
@@ -351,6 +355,7 @@ def _select_newest_verification_report(issue_key: str, relpaths: List[str], mtim
 def _resolve_verification_report(repo_path: str, issue_key: str) -> Optional[str]:
     """Resolve the most recent verification report for an issue.
 
+    Reports are read from scripts/autonomous-agent/reports/ (SCRIPT_DIR).
     Accepts:
     - Legacy path: <KAN-KEY>-verification.md
     - Timestamped paths: <KAN-KEY>-<run_id>-verification.md
@@ -359,7 +364,7 @@ def _resolve_verification_report(repo_path: str, issue_key: str) -> Optional[str
     """
     import glob
 
-    reports_dir = Path(repo_path) / CLAUDE_OUTPUT_DIRNAME
+    reports_dir = SCRIPT_DIR / CLAUDE_OUTPUT_DIRNAME
 
     if not reports_dir.exists():
         return None
@@ -405,8 +410,8 @@ def _resolve_verification_report(repo_path: str, issue_key: str) -> Optional[str
     candidates.sort(key=lambda x: x[0], reverse=True)
     newest_path = candidates[0][1]
 
-    # Return repo-relative path
-    return str(newest_path.relative_to(repo_path))
+    # Return path relative to SCRIPT_DIR
+    return str(newest_path.relative_to(SCRIPT_DIR))
 
 
 def _is_transient_claude_failure(text: str) -> bool:
@@ -1271,7 +1276,8 @@ class ExecutionEngine:
         self.run_id = self._utc_ts()
 
         # Setup logs directory and engine log file (PATCH 2)
-        self.logs_dir = Path(self.config.repo_path) / "logs"
+        # Logs are stored under scripts/autonomous-agent/logs (SCRIPT_DIR)
+        self.logs_dir = SCRIPT_DIR / "logs"
         self.logs_dir.mkdir(parents=True, exist_ok=True)
         self.engine_log_path = self.logs_dir / f"engine-{self.run_id}.log"
 
