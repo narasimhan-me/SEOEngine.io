@@ -48,6 +48,7 @@ Thumbs.db
 # Misc
 *.tsbuildinfo
 .eslintcache
+*.zip
 
 # TypeScript build artifacts in shared package
 packages/shared/src/**/*.js
