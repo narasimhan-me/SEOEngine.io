@@ -2588,14 +2588,16 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python engine.py                    # Run continuous loop
-  python engine.py --issue KAN-10     # Process specific issue
-  python engine.py --issue KAN-10 --type story  # Process as Story
+  python engine.py                           # Run continuous loop
+  python engine.py --issue KAN-10            # Process single issue
+  python engine.py --issue KAN-10 KAN-11     # Process multiple issues
+  python engine.py --issue KAN-10 --type story  # Force issue type
 """
     )
     parser.add_argument(
         '--issue', '-i',
-        help='Specific Jira issue key to process (e.g., KAN-10, EA-18)'
+        nargs='+',
+        help='Jira issue key(s) to process (e.g., KAN-10 KAN-11 EA-18)'
     )
     parser.add_argument(
         '--type', '-t',
@@ -2645,26 +2647,32 @@ Examples:
         print(f"[ERROR] Failed to checkout {config.feature_branch}")
         return
 
-    # Process specific issue or run loop
+    # Process specific issue(s) or run loop
     if args.issue:
+        issue_keys = args.issue  # Now a list
         print(f"\n{'=' * 60}")
-        print(f"  PROCESSING SPECIFIC ISSUE: {args.issue}")
+        print(f"  PROCESSING {len(issue_keys)} ISSUE(S): {', '.join(issue_keys)}")
         print(f"{'=' * 60}\n")
 
-        if args.type:
-            # Force specific issue type
-            issue = engine.jira.get_issue(args.issue)
-            if issue:
-                # Override issue type
-                issue['fields']['issuetype']['name'] = args.type.title()
-                if args.type == 'idea':
-                    engine._process_idea(issue)
-                elif args.type == 'epic':
-                    engine._process_epic(issue)
-                elif args.type in ('story', 'bug'):
-                    engine._process_story(issue)
-        else:
-            engine.process_issue(args.issue)
+        for issue_key in issue_keys:
+            print(f"\n{'-' * 40}")
+            print(f"  Processing: {issue_key}")
+            print(f"{'-' * 40}\n")
+
+            if args.type:
+                # Force specific issue type
+                issue = engine.jira.get_issue(issue_key)
+                if issue:
+                    # Override issue type
+                    issue['fields']['issuetype']['name'] = args.type.title()
+                    if args.type == 'idea':
+                        engine._process_idea(issue)
+                    elif args.type == 'epic':
+                        engine._process_epic(issue)
+                    elif args.type in ('story', 'bug'):
+                        engine._process_story(issue)
+            else:
+                engine.process_issue(issue_key)
     elif args.once:
         # Run one iteration
         engine.step_1_initiative_intake() or \
