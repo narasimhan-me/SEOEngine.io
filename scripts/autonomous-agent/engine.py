@@ -2271,7 +2271,7 @@ Begin implementation now.
                     master_fd, slave_fd = pty.openpty()
 
                     process = subprocess.Popen(
-                        ['claude', '--model', MODEL_DEVELOPER, '-p', prompt, '--dangerously-skip-permissions'],
+                        ['claude', '--model', MODEL_DEVELOPER, '-p', prompt, '--dangerously-skip-permissions', '--verbose'],
                         cwd=self.config.repo_path,
                         stdin=slave_fd,
                         stdout=slave_fd,
