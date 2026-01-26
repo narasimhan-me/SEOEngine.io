@@ -108,6 +108,17 @@ class JiraClient:
         jql = f"project = {self.config.software_project} AND issuetype = Story AND statusCategory = 'In Progress' ORDER BY created ASC"
         return self.search_issues(jql, ['summary', 'status', 'description', 'parent', 'labels'])
 
+    def get_executable_work_items(self) -> List[dict]:
+        """Get executable work items (Stories and Bugs) with To Do or In Progress status.
+
+        Bug Execution Enablement: Bugs are treated as first-class executable work items
+        alongside Stories, subject to the same guardrails pipeline.
+
+        Note: Uses exact status names 'To Do' and 'In Progress' to exclude 'In Review'.
+        """
+        jql = f'project = {self.config.software_project} AND issuetype IN (Story, Bug) AND status IN ("To Do", "In Progress") ORDER BY created ASC'
+        return self.search_issues(jql, ['summary', 'status', 'issuetype', 'description', 'labels', 'parent'])
+
     def get_issue(self, issue_key: str) -> Optional[dict]:
         """Get a specific issue by key"""
         result = self._request('GET', f'/rest/api/3/issue/{issue_key}')

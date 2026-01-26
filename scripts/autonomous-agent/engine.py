@@ -177,6 +177,16 @@ STATE_LEDGER_IGNORED_FILES = {".engineo/state.json"}  # Exclude from diff checks
 # 3. Change files after Step 3 but before Step 4; verify Step 4 detects drift and blocks.
 # 4. Use a glob pattern in ALLOWED NEW FILES; verify matching occurs only via fnmatch
 #    and only when explicitly provided.
+#
+# Bug Execution Enablement:
+# 5. Create a Bug with ALLOWED FILES, DIFF BUDGET, VERIFICATION REQUIRED; verify
+#    it executes through Step 3 same as a Story.
+# 6. Create a Bug missing any one of ALLOWED FILES, DIFF BUDGET, or VERIFICATION
+#    REQUIRED; verify fail-closed gate blocks with informative Jira comment.
+# 7. Create both a Story and a Bug in To Do; verify Story is selected first
+#    (Story priority preserved).
+# 8. Transition Bug to In Progress after Step 3; verify Step 4 applies identical
+#    verification gates (report, ledger, drift check) and transitions on pass.
 # -----------------------------------------------------------------------------
 
 
@@ -673,6 +683,39 @@ class ExecutionEngine:
                         allowed_new_patterns.append(path)
 
         return allowed_files, allowed_new_patterns
+
+    def _missing_machine_constraints_for_bug(self, description_text: str, allowed_files: set) -> List[str]:
+        """Check for missing machine-enforceable constraints required for Bug execution.
+
+        Bug Execution Enablement: Bugs must have the same constraints as Stories
+        to be executable by the autonomous agent. This helper returns a list of
+        missing constraint labels.
+
+        Required constraints:
+        - ALLOWED FILES (non-empty)
+        - DIFF BUDGET (line matching 'DIFF BUDGET:' with non-empty value)
+        - VERIFICATION REQUIRED (header exists OR *-verification.md path present)
+
+        Returns: List of missing constraint labels (empty if all present)
+        """
+        missing = []
+
+        # Check ALLOWED FILES (already parsed by caller)
+        if not allowed_files:
+            missing.append("ALLOWED FILES")
+
+        # Check DIFF BUDGET
+        diff_budget_pattern = re.compile(r'DIFF\s+BUDGET\s*:\s*\S', re.IGNORECASE)
+        if not diff_budget_pattern.search(description_text):
+            missing.append("DIFF BUDGET")
+
+        # Check VERIFICATION REQUIRED (header OR -verification.md path)
+        has_verification_header = re.search(r'VERIFICATION\s+REQUIRED\s*:', description_text, re.IGNORECASE)
+        has_verification_path = '-verification.md' in description_text
+        if not has_verification_header and not has_verification_path:
+            missing.append("VERIFICATION REQUIRED")
+
+        return missing
 
     # =========================================================================
     # GUARDRAILS v1: Guardrail Violation Handler
@@ -1636,41 +1679,79 @@ after identifying the relevant codebase locations.
         }
 
     def step_3_story_implementation(self) -> bool:
-        """Developer: Implement Stories using Claude Code CLI
+        """Developer: Implement Stories and Bugs using Claude Code CLI
 
         Guardrails v1: Full enforcement of scope fence, diff budget, patch list, and verification artifact
+        Bug Execution Enablement: Bugs are executable with same guardrails; Story priority preserved.
         """
-        self.log("DEVELOPER", "STEP 3: Checking for Stories with 'To Do' status...")
+        self.log("DEVELOPER", "STEP 3: Checking for executable work items with 'To Do' status...")
 
-        stories = self.jira.get_stories_todo()
+        # Bug Execution Enablement: Get all executable work items (Stories and Bugs)
+        all_items = self.jira.get_executable_work_items()
+        todo_items = [i for i in all_items if i['fields']['status']['name'].lower() == 'to do']
 
-        if not stories:
-            self.log("DEVELOPER", "No Stories in 'To Do' status")
+        if not todo_items:
+            self.log("DEVELOPER", "No Stories or Bugs in 'To Do' status")
             return False
 
-        self.log("DEVELOPER", f"Found {len(stories)} Stories in 'To Do' status")
+        # Story priority: select oldest Story first; only select Bug if no Stories exist
+        todo_stories = [i for i in todo_items if i['fields']['issuetype']['name'].lower() == 'story']
+        todo_bugs = [i for i in todo_items if i['fields']['issuetype']['name'].lower() == 'bug']
 
-        # Process oldest (FIFO)
-        story = stories[0]
-        story_key = story['key']
-        summary = story['fields']['summary']
-        description = self.jira.parse_adf_to_text(story['fields'].get('description', {}))
+        if todo_stories:
+            work_item = todo_stories[0]
+            self.log("DEVELOPER", f"Found {len(todo_stories)} Stories in 'To Do' status")
+        elif todo_bugs:
+            work_item = todo_bugs[0]
+            self.log("DEVELOPER", f"Found {len(todo_bugs)} Bugs in 'To Do' status (no Stories pending)")
+            self.log("DEVELOPER", "Executing Bug as first-class work item")
+        else:
+            self.log("DEVELOPER", "No Stories or Bugs in 'To Do' status")
+            return False
 
-        self.log("DEVELOPER", f"Implementing: [{story_key}] {summary}")
+        work_item_key = work_item['key']
+        work_item_type = work_item['fields']['issuetype']['name']
+        summary = work_item['fields']['summary']
+        description = self.jira.parse_adf_to_text(work_item['fields'].get('description', {}))
+
+        self.log("DEVELOPER", f"Implementing: [{work_item_key}] {summary} ({work_item_type})")
 
         # Guardrails v1: Parse ALLOWED FILES from description
         allowed_files, allowed_new_patterns = self._parse_allowed_files(description)
-        frontend_only = self._is_frontend_only(story, description)
+        frontend_only = self._is_frontend_only(work_item, description)
         max_files = int(os.environ.get("ENGINE_MAX_CHANGED_FILES", str(DEFAULT_MAX_CHANGED_FILES)))
 
         self.log("DEVELOPER", f"Guardrails v1: frontend_only={frontend_only}, max_files={max_files}, allowed_files={len(allowed_files)}")
 
-        # Guardrails v1: Fail-fast if ALLOWED FILES missing
+        # Bug Execution Enablement: Fail-closed gate for Bugs missing machine-enforceable constraints
+        is_bug = work_item_type.lower() == 'bug'
+        if is_bug:
+            missing_constraints = self._missing_machine_constraints_for_bug(description, allowed_files)
+            if missing_constraints:
+                # Attempt Blocked; fallback to To Do if unavailable
+                if not self.jira.transition_issue(work_item_key, 'Blocked'):
+                    self.jira.transition_issue(work_item_key, 'To Do')
+                self.jira.add_comment(work_item_key, f"""
+Bug is not executable by autonomous agent — missing machine-enforceable constraints.
+
+**Missing sections:**
+{chr(10).join('- ' + c for c in missing_constraints)}
+
+*Bug blocked. Human intervention required to add missing constraints.*
+""")
+                self.escalate(
+                    "DEVELOPER",
+                    f"Bug {work_item_key} missing machine-enforceable constraints",
+                    f"Bug: {summary}\n\nMissing: {', '.join(missing_constraints)}"
+                )
+                return True
+
+        # Guardrails v1: Fail-fast if ALLOWED FILES missing (Stories only; Bugs handled above)
         if not allowed_files:
             self._fail_story_guardrail(
-                story_key,
+                work_item_key,
                 "Missing ALLOWED FILES",
-                "ALLOWED FILES section missing or empty in Story description. Supervisor must include it.",
+                f"ALLOWED FILES section missing or empty in {work_item_type} description. Supervisor must include it.",
                 target_status="Blocked"
             )
             return True
@@ -1681,7 +1762,7 @@ after identifying the relevant codebase locations.
         dirty_lines = [l for l in dirty_status.split('\n') if l.strip() and STATE_LEDGER_PATH not in l]
         if dirty_lines:
             self._fail_story_guardrail(
-                story_key,
+                work_item_key,
                 "Dirty Working Tree",
                 f"Working tree not clean before implementation. Dirty files:\n{chr(10).join(dirty_lines[:10])}",
                 target_status="Blocked"
@@ -1697,10 +1778,10 @@ after identifying the relevant codebase locations.
         self.log("DEVELOPER", f"Base SHA: {base_sha[:8]}")
 
         # Transition to In Progress
-        self.jira.transition_issue(story_key, 'In Progress')
+        self.jira.transition_issue(work_item_key, 'In Progress')
 
         # Add comment noting implementation started
-        self.jira.add_comment(story_key, f"""
+        self.jira.add_comment(work_item_key, f"""
 Implementation started by Claude Code Developer
 Branch: {self.config.feature_branch}
 Base SHA: {base_sha[:8]}
@@ -1711,14 +1792,14 @@ Base SHA: {base_sha[:8]}
 - Allowed files: {len(allowed_files)}
 """)
 
-        # Use Claude Code CLI to implement the story
+        # Use Claude Code CLI to implement the work item
         self.log("DEVELOPER", "Invoking Claude Code CLI for implementation...")
 
-        success, output, _ = self._invoke_claude_code(story_key, summary, description)
+        success, output, _ = self._invoke_claude_code(work_item_key, summary, description)
 
         if not success:
             self.log("DEVELOPER", f"Claude Code encountered issues")
-            self.jira.add_comment(story_key, f"""
+            self.jira.add_comment(work_item_key, f"""
 Claude Code implementation encountered issues.
 
 Output:
@@ -1728,26 +1809,26 @@ Human intervention may be required.
 """)
             self.escalate(
                 "DEVELOPER",
-                f"Story {story_key} Claude Code implementation issue",
-                f"Story: {summary}\n\nClaude Code output:\n{output[:1000] if output else 'No output'}"
+                f"{work_item_type} {work_item_key} Claude Code implementation issue",
+                f"{work_item_type}: {summary}\n\nClaude Code output:\n{output[:1000] if output else 'No output'}"
             )
             return True
 
         self.log("DEVELOPER", f"Claude Code completed implementation")
 
         # Guardrails v1 PATCH 1: Authoritative diff against remote branch base
-        changed_files_remote = self._diff_against_remote_base(story_key)
+        changed_files_remote = self._diff_against_remote_base(work_item_key)
         if changed_files_remote is None:
-            # Fetch/diff failed - story already blocked by _diff_against_remote_base
+            # Fetch/diff failed - work item already blocked by _diff_against_remote_base
             return True
 
         changed_count = len(changed_files_remote)
         self.log("DEVELOPER", f"Changed files via origin/feature/agent...HEAD ({changed_count}): {', '.join(changed_files_remote) if changed_files_remote else 'None'}")
 
-        # Resolve allowed new patterns (replace <KAN-KEY> with story_key)
+        # Resolve allowed new patterns (replace <KAN-KEY> with work_item_key)
         resolved_new_patterns = []
         for pattern in allowed_new_patterns:
-            resolved = pattern.replace('<KAN-KEY>', story_key)
+            resolved = pattern.replace('<KAN-KEY>', work_item_key)
             resolved_new_patterns.append(resolved)
 
         # Build full allowed set (PATCH 2: only exact paths, no wildcards)
@@ -1761,7 +1842,7 @@ Human intervention may be required.
 
         # Guardrails v1 Check A: Scope Fence (frontend-only)
         if frontend_only:
-            verification_report_path = f"{VERIFICATION_REPORT_DIR}/{story_key}-verification.md"
+            verification_report_path = f"{VERIFICATION_REPORT_DIR}/{work_item_key}-verification.md"
             violating_files = []
             for f in changed_files_remote:
                 is_allowed_root = any(f.startswith(root) for root in FRONTEND_ONLY_ALLOWED_ROOTS)
@@ -1771,7 +1852,7 @@ Human intervention may be required.
 
             if violating_files:
                 self._fail_story_guardrail(
-                    story_key,
+                    work_item_key,
                     "Scope Fence Violation (frontend-only)",
                     f"Changed files outside allowed frontend-only roots ({FRONTEND_ONLY_ALLOWED_ROOTS})",
                     violating_files=violating_files,
@@ -1782,7 +1863,7 @@ Human intervention may be required.
         # Guardrails v1 Check B: Diff Budget
         if changed_count > max_files:
             self._fail_story_guardrail(
-                story_key,
+                work_item_key,
                 "Diff Budget Exceeded",
                 f"Changed {changed_count} files, maximum allowed is {max_files}",
                 violating_files=changed_files_remote,
@@ -1800,7 +1881,7 @@ Human intervention may be required.
 
         if violating_files:
             self._fail_story_guardrail(
-                story_key,
+                work_item_key,
                 "Patch-List Violation",
                 "Changed files outside allowed patch list",
                 violating_files=violating_files,
@@ -1809,21 +1890,21 @@ Human intervention may be required.
             return True
 
         # Guardrails v1 Check D: Verification Artifact Gate
-        verification_report_path = Path(self.config.repo_path) / VERIFICATION_REPORT_DIR / f"{story_key}-verification.md"
+        verification_report_path = Path(self.config.repo_path) / VERIFICATION_REPORT_DIR / f"{work_item_key}-verification.md"
         if not verification_report_path.exists():
-            self.jira.add_comment(story_key, f"""
+            self.jira.add_comment(work_item_key, f"""
 **Verification Artifact Missing**
 
-Required file: `{VERIFICATION_REPORT_DIR}/{story_key}-verification.md`
+Required file: `{VERIFICATION_REPORT_DIR}/{work_item_key}-verification.md`
 
-The Developer must create this file with a `{VERIFICATION_REPORT_CHECKLIST_HEADER}` section before the story can be committed.
+The Developer must create this file with a `{VERIFICATION_REPORT_CHECKLIST_HEADER}` section before the {work_item_type.lower()} can be committed.
 
-*Story remains In Progress - no commit/push performed.*
+*{work_item_type} remains In Progress - no commit/push performed.*
 """)
             self.escalate(
                 "DEVELOPER",
-                f"Verification artifact missing for {story_key}",
-                f"Missing: {VERIFICATION_REPORT_DIR}/{story_key}-verification.md"
+                f"Verification artifact missing for {work_item_key}",
+                f"Missing: {VERIFICATION_REPORT_DIR}/{work_item_key}-verification.md"
             )
             return True
 
@@ -1831,16 +1912,16 @@ The Developer must create this file with a `{VERIFICATION_REPORT_CHECKLIST_HEADE
         try:
             report_content = verification_report_path.read_text()
             if VERIFICATION_REPORT_CHECKLIST_HEADER not in report_content:
-                self.jira.add_comment(story_key, f"""
+                self.jira.add_comment(work_item_key, f"""
 **Verification Artifact Invalid**
 
-File `{VERIFICATION_REPORT_DIR}/{story_key}-verification.md` exists but does not contain required header: `{VERIFICATION_REPORT_CHECKLIST_HEADER}`
+File `{VERIFICATION_REPORT_DIR}/{work_item_key}-verification.md` exists but does not contain required header: `{VERIFICATION_REPORT_CHECKLIST_HEADER}`
 
-*Story remains In Progress - no commit/push performed.*
+*{work_item_type} remains In Progress - no commit/push performed.*
 """)
                 self.escalate(
                     "DEVELOPER",
-                    f"Verification artifact invalid for {story_key}",
+                    f"Verification artifact invalid for {work_item_key}",
                     f"Missing header '{VERIFICATION_REPORT_CHECKLIST_HEADER}' in report"
                 )
                 return True
@@ -1849,7 +1930,7 @@ File `{VERIFICATION_REPORT_DIR}/{story_key}-verification.md` exists but does not
             return True
 
         # All guardrails passed - record to ledger (PATCH 1D: add changedFilesRemoteBase)
-        self.state['kan_story_runs'][story_key] = {
+        self.state['kan_story_runs'][work_item_key] = {
             'baseSha': base_sha,
             'changedFiles': changed_files_remote,  # For backward compatibility
             'changedFilesRemoteBase': changed_files_remote,  # Authoritative diff
@@ -1865,13 +1946,13 @@ File `{VERIFICATION_REPORT_DIR}/{story_key}-verification.md` exists but does not
 
         # Update IMPLEMENTATION_PLAN.md
         if changed_files_remote:
-            self._update_implementation_plan(story_key, summary, changed_files_remote)
+            self._update_implementation_plan(work_item_key, summary, changed_files_remote)
 
         # Commit and push changes to feature branch
         commit_success = False
         if changed_files_remote:
             self.log("DEVELOPER", "Committing changes to git...")
-            commit_success = self._commit_implementation(story_key, summary, changed_files_remote)
+            commit_success = self._commit_implementation(work_item_key, summary, changed_files_remote)
             if commit_success:
                 self.log("DEVELOPER", f"Changes committed and pushed to {self.config.feature_branch}")
             else:
@@ -1879,7 +1960,7 @@ File `{VERIFICATION_REPORT_DIR}/{story_key}-verification.md` exists but does not
 
         # Add success comment to Jira (PATCH 5B: reference authoritative diff base)
         commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
-        self.jira.add_comment(story_key, f"""
+        self.jira.add_comment(work_item_key, f"""
 Implementation completed by Claude Code Developer.
 
 Branch: {self.config.feature_branch}
@@ -1889,7 +1970,7 @@ Status: {commit_status}
 - ✅ Scope fence: {'frontend-only enforced' if frontend_only else 'N/A'}
 - ✅ Diff budget: {changed_count}/{max_files} files
 - ✅ Patch-list: All files in allowed list
-- ✅ Verification artifact: {VERIFICATION_REPORT_DIR}/{story_key}-verification.md
+- ✅ Verification artifact: {VERIFICATION_REPORT_DIR}/{work_item_key}-verification.md
 
 **Authoritative diff base:** `origin/feature/agent...HEAD`
 
@@ -1898,7 +1979,7 @@ Files modified:
 
 Ready for Supervisor verification.
 """)
-        self.log("DEVELOPER", f"Story {story_key} implementation complete")
+        self.log("DEVELOPER", f"{work_item_type} {work_item_key} implementation complete")
 
         self.log("DEVELOPER", "Notifying Supervisor for verification...")
         return True
@@ -1988,35 +2069,58 @@ Branch: {self.config.feature_branch}
         return True
 
     def step_4_story_verification(self) -> bool:
-        """Supervisor: Verify completed Stories
+        """Supervisor: Verify completed Stories and Bugs
+
+        Bug Execution Enablement: Bugs are verified through the same pipeline as Stories.
 
         Guardrails v1: Real verification using ledger and verification reports
         """
-        self.log("SUPERVISOR", "STEP 4: Checking for Stories awaiting verification...")
+        self.log("SUPERVISOR", "STEP 4: Checking for work items awaiting verification...")
 
+        # Existing Story verification intake (unchanged)
         stories = self.jira.get_stories_in_progress()
 
-        if not stories:
-            self.log("SUPERVISOR", "No Stories in 'In Progress' status")
+        # Bug verification intake: filter executable_work_items to Bug + In Progress
+        # Note: Do NOT include Bugs in "In Review" - only "In Progress"
+        all_executable = self.jira.get_executable_work_items()
+        bugs_in_progress = [
+            item for item in all_executable
+            if item['fields'].get('issuetype', {}).get('name', '').lower() == 'bug'
+            and item['fields'].get('status', {}).get('name', '') == 'In Progress'
+        ]
+
+        # Build combined work item list with type info
+        work_items = []
+        for story in stories:
+            work_items.append({'issue': story, 'type': 'Story'})
+        for bug in bugs_in_progress:
+            work_items.append({'issue': bug, 'type': 'Bug'})
+
+        if not work_items:
+            self.log("SUPERVISOR", "No Stories or Bugs in 'In Progress' status")
             return False
 
-        self.log("SUPERVISOR", f"Found {len(stories)} Stories in 'In Progress' status")
+        story_count = len(stories)
+        bug_count = len(bugs_in_progress)
+        self.log("SUPERVISOR", f"Found {len(work_items)} work items in 'In Progress' status ({story_count} Stories, {bug_count} Bugs)")
 
         verified_count = 0
-        for story in stories:
-            story_key = story['key']
-            summary = story['fields']['summary']
-            self.log("SUPERVISOR", f"Verifying: [{story_key}] {summary}")
+        for work_item in work_items:
+            issue = work_item['issue']
+            item_type = work_item['type']
+            work_item_key = issue['key']
+            summary = issue['fields']['summary']
+            self.log("SUPERVISOR", f"Verifying {item_type}: [{work_item_key}] {summary}")
 
             # Check for verification report
-            verification_report_path = Path(self.config.repo_path) / VERIFICATION_REPORT_DIR / f"{story_key}-verification.md"
+            verification_report_path = Path(self.config.repo_path) / VERIFICATION_REPORT_DIR / f"{work_item_key}-verification.md"
 
             if not verification_report_path.exists():
-                self.log("SUPERVISOR", f"Verification report missing for {story_key}")
-                self.jira.add_comment(story_key, f"""
+                self.log("SUPERVISOR", f"Verification report missing for {work_item_key}")
+                self.jira.add_comment(work_item_key, f"""
 **Supervisor Verification: Pending**
 
-Verification report not found: `{VERIFICATION_REPORT_DIR}/{story_key}-verification.md`
+Verification report not found: `{VERIFICATION_REPORT_DIR}/{work_item_key}-verification.md`
 
 Please create the verification report to proceed.
 """)
@@ -2026,8 +2130,8 @@ Please create the verification report to proceed.
             try:
                 report_content = verification_report_path.read_text()
                 if VERIFICATION_REPORT_CHECKLIST_HEADER not in report_content:
-                    self.log("SUPERVISOR", f"Verification report invalid for {story_key}")
-                    self.jira.add_comment(story_key, f"""
+                    self.log("SUPERVISOR", f"Verification report invalid for {work_item_key}")
+                    self.jira.add_comment(work_item_key, f"""
 **Supervisor Verification: Invalid Report**
 
 Report exists but missing required header: `{VERIFICATION_REPORT_CHECKLIST_HEADER}`
@@ -2038,65 +2142,65 @@ Report exists but missing required header: `{VERIFICATION_REPORT_CHECKLIST_HEADE
                 continue
 
             # Check ledger for guardrails record
-            ledger_entry = self.state.get('kan_story_runs', {}).get(story_key, {})
+            ledger_entry = self.state.get('kan_story_runs', {}).get(work_item_key, {})
 
             if not ledger_entry:
-                self.log("SUPERVISOR", f"No guardrails record for {story_key}")
-                self.jira.add_comment(story_key, f"""
+                self.log("SUPERVISOR", f"No guardrails record for {work_item_key}")
+                self.jira.add_comment(work_item_key, f"""
 **Supervisor Verification: Cannot Verify**
 
-Guardrails record missing for {story_key}. Story requires human review.
+Guardrails record missing for {work_item_key}. {item_type} requires human review.
 
 *Guardrails v1 - Ledger entry not found*
 """)
                 # Transition to Blocked
-                if not self.jira.transition_issue(story_key, 'Blocked'):
-                    self.jira.transition_issue(story_key, 'To Do')
+                if not self.jira.transition_issue(work_item_key, 'Blocked'):
+                    self.jira.transition_issue(work_item_key, 'To Do')
                 self.escalate(
                     "SUPERVISOR",
-                    f"Cannot verify {story_key} - guardrails record missing",
-                    f"Story: {summary}\n\nLedger entry not found. Manual review required."
+                    f"Cannot verify {work_item_key} - guardrails record missing",
+                    f"{item_type}: {summary}\n\nLedger entry not found. Manual review required."
                 )
                 continue
 
             if not ledger_entry.get('guardrailsPassed'):
-                self.log("SUPERVISOR", f"Guardrails failed for {story_key}")
-                self.jira.add_comment(story_key, f"""
+                self.log("SUPERVISOR", f"Guardrails failed for {work_item_key}")
+                self.jira.add_comment(work_item_key, f"""
 **Supervisor Verification: Cannot Verify**
 
-Guardrails record shows failed checks for {story_key}. Story requires human review.
+Guardrails record shows failed checks for {work_item_key}. {item_type} requires human review.
 
 *Guardrails v1 - guardrailsPassed=false*
 """)
                 # Transition to Blocked
-                if not self.jira.transition_issue(story_key, 'Blocked'):
-                    self.jira.transition_issue(story_key, 'To Do')
+                if not self.jira.transition_issue(work_item_key, 'Blocked'):
+                    self.jira.transition_issue(work_item_key, 'To Do')
                 self.escalate(
                     "SUPERVISOR",
-                    f"Cannot verify {story_key} - guardrails failed",
-                    f"Story: {summary}\n\nGuardrails record: {json.dumps(ledger_entry, indent=2)}"
+                    f"Cannot verify {work_item_key} - guardrails failed",
+                    f"{item_type}: {summary}\n\nGuardrails record: {json.dumps(ledger_entry, indent=2)}"
                 )
                 continue
 
             # PATCH 4: Drift detection - re-check remote-base diff vs recorded
-            self.log("SUPERVISOR", f"Checking for post-guardrail drift on {story_key}...")
-            current_diff = self._diff_against_remote_base(story_key)
+            self.log("SUPERVISOR", f"Checking for post-guardrail drift on {work_item_key}...")
+            current_diff = self._diff_against_remote_base(work_item_key)
             if current_diff is None:
                 # Fetch/diff failed - cannot verify safely
-                self.log("SUPERVISOR", f"Failed to compute current diff for {story_key}")
-                self.jira.add_comment(story_key, """
+                self.log("SUPERVISOR", f"Failed to compute current diff for {work_item_key}")
+                self.jira.add_comment(work_item_key, """
 **Supervisor Verification: FAILED — Cannot compute current diff**
 
 Failed to fetch/diff `origin/feature/agent...HEAD`.
 
 Verification cannot proceed safely. Please check git remote state.
 """)
-                if not self.jira.transition_issue(story_key, 'Blocked'):
-                    self.jira.transition_issue(story_key, 'To Do')
+                if not self.jira.transition_issue(work_item_key, 'Blocked'):
+                    self.jira.transition_issue(work_item_key, 'To Do')
                 self.escalate(
                     "SUPERVISOR",
-                    f"Cannot verify {story_key} - diff computation failed",
-                    f"Story: {summary}\n\nFailed to compute origin/feature/agent...HEAD"
+                    f"Cannot verify {work_item_key} - diff computation failed",
+                    f"{item_type}: {summary}\n\nFailed to compute origin/feature/agent...HEAD"
                 )
                 continue
 
@@ -2109,8 +2213,8 @@ Verification cannot proceed safely. Please check git remote state.
                 # Drift detected
                 symmetric_diff = current_set.symmetric_difference(recorded_set)
                 diff_sample = sorted(list(symmetric_diff))[:20]
-                self.log("SUPERVISOR", f"Post-guardrail drift detected for {story_key}: {len(symmetric_diff)} file(s) differ")
-                self.jira.add_comment(story_key, f"""
+                self.log("SUPERVISOR", f"Post-guardrail drift detected for {work_item_key}: {len(symmetric_diff)} file(s) differ")
+                self.jira.add_comment(work_item_key, f"""
 **Supervisor Verification: FAILED — Post-guardrail drift detected**
 
 Enforcement/verification uses: `origin/feature/agent...HEAD`
@@ -2130,22 +2234,22 @@ The branch diff changed after Step 3 guardrails ran. This could indicate:
 
 *Guardrails v1 - Drift detection*
 """)
-                if not self.jira.transition_issue(story_key, 'Blocked'):
-                    self.jira.transition_issue(story_key, 'To Do')
+                if not self.jira.transition_issue(work_item_key, 'Blocked'):
+                    self.jira.transition_issue(work_item_key, 'To Do')
                 self.escalate(
                     "SUPERVISOR",
-                    f"Post-guardrail drift detected for {story_key}",
-                    f"Story: {summary}\n\nRecorded: {len(recorded_set)} files\nCurrent: {len(current_set)} files\nDiff: {diff_sample}"
+                    f"Post-guardrail drift detected for {work_item_key}",
+                    f"{item_type}: {summary}\n\nRecorded: {len(recorded_set)} files\nCurrent: {len(current_set)} files\nDiff: {diff_sample}"
                 )
                 continue
 
-            # All checks passed - verify the story
-            self.log("SUPERVISOR", f"✅ Verification passed for {story_key}")
+            # All checks passed - verify the work item
+            self.log("SUPERVISOR", f"✅ Verification passed for {work_item_key}")
 
-            self.jira.add_comment(story_key, f"""
+            self.jira.add_comment(work_item_key, f"""
 **Supervisor Verification: PASSED**
 
-Verified via `{VERIFICATION_REPORT_DIR}/{story_key}-verification.md`
+Verified via `{VERIFICATION_REPORT_DIR}/{work_item_key}-verification.md`
 
 **Guardrails v1 Record:**
 - Base SHA: {ledger_entry.get('baseSha', 'N/A')[:8]}
@@ -2155,22 +2259,22 @@ Verified via `{VERIFICATION_REPORT_DIR}/{story_key}-verification.md`
 
 **Authoritative diff base:** `origin/feature/agent...HEAD`
 
-Story implementation verified and ready for completion.
+{item_type} implementation verified and ready for completion.
 """)
 
             # Transition to Resolved (preferred) or Done (fallback)
-            if not self.jira.transition_issue(story_key, 'Resolved'):
-                if not self.jira.transition_issue(story_key, 'Done'):
-                    self.log("SUPERVISOR", f"Could not transition {story_key} to Resolved/Done")
-                    self.jira.add_comment(story_key, "Note: Could not auto-transition. Please manually move to Done.")
+            if not self.jira.transition_issue(work_item_key, 'Resolved'):
+                if not self.jira.transition_issue(work_item_key, 'Done'):
+                    self.log("SUPERVISOR", f"Could not transition {work_item_key} to Resolved/Done")
+                    self.jira.add_comment(work_item_key, "Note: Could not auto-transition. Please manually move to Done.")
                 else:
-                    self.log("SUPERVISOR", f"Transitioned {story_key} to Done (fallback)")
+                    self.log("SUPERVISOR", f"Transitioned {work_item_key} to Done (fallback)")
             else:
-                self.log("SUPERVISOR", f"Transitioned {story_key} to Resolved")
+                self.log("SUPERVISOR", f"Transitioned {work_item_key} to Resolved")
 
             verified_count += 1
 
-        self.log("SUPERVISOR", f"Verified {verified_count}/{len(stories)} stories")
+        self.log("SUPERVISOR", f"Verified {verified_count}/{len(work_items)} work items")
         return verified_count > 0
 
     def escalate(self, role: str, title: str, details: str):
@@ -2218,8 +2322,8 @@ This is an automated escalation from the EngineO Autonomous Execution Engine.
         elif issue_type == 'epic':
             # Supervisor decomposes Epics
             return self._process_epic(issue)
-        elif issue_type == 'story':
-            # Developer implements Stories
+        elif issue_type in ('story', 'bug'):
+            # Developer implements Stories and Bugs (same guardrails pipeline)
             return self._process_story(issue)
         else:
             self.log("SYSTEM", f"Unknown issue type: {issue_type}")
@@ -2377,16 +2481,23 @@ Ready for Developer implementation.
         return False
 
     def _process_story(self, issue: dict) -> bool:
-        """Developer: Implement a specific Story using Claude Code CLI
+        """Developer: Implement a specific Story or Bug using Claude Code CLI
 
         Guardrails v1: Full enforcement (same as step_3_story_implementation)
+        Bug Execution Enablement: Bugs are routed here and subject to same guardrails.
         """
-        story_key = issue['key']
+        work_item_key = issue['key']
+        work_item_type = issue['fields']['issuetype']['name']
         summary = issue['fields']['summary']
         description = self.jira.parse_adf_to_text(issue['fields'].get('description', {}))
         status = issue['fields']['status']['name'].lower()
 
-        self.log("DEVELOPER", f"Implementing Story: [{story_key}] {summary}")
+        self.log("DEVELOPER", f"Implementing {work_item_type}: [{work_item_key}] {summary}")
+
+        # Bug Execution Enablement: Log when executing Bug
+        is_bug = work_item_type.lower() == 'bug'
+        if is_bug:
+            self.log("DEVELOPER", "Executing Bug as first-class work item")
 
         # Guardrails v1: Parse constraints
         allowed_files, allowed_new_patterns = self._parse_allowed_files(description)
@@ -2395,12 +2506,34 @@ Ready for Developer implementation.
 
         self.log("DEVELOPER", f"Guardrails v1: frontend_only={frontend_only}, max_files={max_files}, allowed_files={len(allowed_files)}")
 
-        # Fail-fast if ALLOWED FILES missing
+        # Bug Execution Enablement: Fail-closed gate for Bugs missing machine-enforceable constraints
+        if is_bug:
+            missing_constraints = self._missing_machine_constraints_for_bug(description, allowed_files)
+            if missing_constraints:
+                # Attempt Blocked; fallback to To Do if unavailable
+                if not self.jira.transition_issue(work_item_key, 'Blocked'):
+                    self.jira.transition_issue(work_item_key, 'To Do')
+                self.jira.add_comment(work_item_key, f"""
+Bug is not executable by autonomous agent — missing machine-enforceable constraints.
+
+**Missing sections:**
+{chr(10).join('- ' + c for c in missing_constraints)}
+
+*Bug blocked. Human intervention required to add missing constraints.*
+""")
+                self.escalate(
+                    "DEVELOPER",
+                    f"Bug {work_item_key} missing machine-enforceable constraints",
+                    f"Bug: {summary}\n\nMissing: {', '.join(missing_constraints)}"
+                )
+                return True
+
+        # Fail-fast if ALLOWED FILES missing (Stories only; Bugs handled above)
         if not allowed_files:
             self._fail_story_guardrail(
-                story_key,
+                work_item_key,
                 "Missing ALLOWED FILES",
-                "ALLOWED FILES section missing or empty in Story description.",
+                f"ALLOWED FILES section missing or empty in {work_item_type} description.",
                 target_status="Blocked"
             )
             return True
@@ -2410,7 +2543,7 @@ Ready for Developer implementation.
         dirty_lines = [l for l in dirty_status.split('\n') if l.strip() and STATE_LEDGER_PATH not in l]
         if dirty_lines:
             self._fail_story_guardrail(
-                story_key,
+                work_item_key,
                 "Dirty Working Tree",
                 f"Working tree not clean. Dirty files:\n{chr(10).join(dirty_lines[:10])}",
                 target_status="Blocked"
@@ -2425,8 +2558,8 @@ Ready for Developer implementation.
 
         # Transition to In Progress if not already
         if 'to do' in status:
-            self.jira.transition_issue(story_key, 'In Progress')
-            self.jira.add_comment(story_key, f"""
+            self.jira.transition_issue(work_item_key, 'In Progress')
+            self.jira.add_comment(work_item_key, f"""
 Implementation started by Claude Code Developer
 Branch: {self.config.feature_branch}
 Base SHA: {base_sha[:8]}
@@ -2438,11 +2571,11 @@ Base SHA: {base_sha[:8]}
 
         # Invoke Claude
         self.log("DEVELOPER", "Invoking Claude Code CLI for implementation...")
-        success, output, _ = self._invoke_claude_code(story_key, summary, description)
+        success, output, _ = self._invoke_claude_code(work_item_key, summary, description)
 
         if not success:
             self.log("DEVELOPER", f"Claude Code encountered issues")
-            self.jira.add_comment(story_key, f"""
+            self.jira.add_comment(work_item_key, f"""
 Claude Code implementation encountered issues.
 
 Output:
@@ -2452,24 +2585,24 @@ Human intervention may be required.
 """)
             self.escalate(
                 "DEVELOPER",
-                f"Story {story_key} Claude Code implementation issue",
-                f"Story: {summary}\n\nClaude Code output:\n{output[:1000] if output else 'No output'}"
+                f"{work_item_type} {work_item_key} Claude Code implementation issue",
+                f"{work_item_type}: {summary}\n\nClaude Code output:\n{output[:1000] if output else 'No output'}"
             )
             return True
 
         self.log("DEVELOPER", f"Claude Code completed implementation")
 
         # PATCH 1: Authoritative diff against remote branch base
-        changed_files_remote = self._diff_against_remote_base(story_key)
+        changed_files_remote = self._diff_against_remote_base(work_item_key)
         if changed_files_remote is None:
-            # Fetch/diff failed - story already blocked by _diff_against_remote_base
+            # Fetch/diff failed - work item already blocked by _diff_against_remote_base
             return True
 
         changed_count = len(changed_files_remote)
         self.log("DEVELOPER", f"Changed files via origin/feature/agent...HEAD ({changed_count}): {', '.join(changed_files_remote) if changed_files_remote else 'None'}")
 
         # Resolve patterns (PATCH 2: only exact paths, no wildcards in full_allowed)
-        resolved_new_patterns = [p.replace('<KAN-KEY>', story_key) for p in allowed_new_patterns]
+        resolved_new_patterns = [p.replace('<KAN-KEY>', work_item_key) for p in allowed_new_patterns]
         full_allowed = allowed_files.copy()
         for pattern in resolved_new_patterns:
             has_wildcard = any(c in pattern for c in ('*', '?', '['))
@@ -2479,18 +2612,18 @@ Human intervention may be required.
 
         # Guardrail A: Scope fence
         if frontend_only:
-            verification_report_path = f"{VERIFICATION_REPORT_DIR}/{story_key}-verification.md"
+            verification_report_path = f"{VERIFICATION_REPORT_DIR}/{work_item_key}-verification.md"
             violating_files = [f for f in changed_files_remote
                               if not any(f.startswith(root) for root in FRONTEND_ONLY_ALLOWED_ROOTS)
                               and f != verification_report_path]
             if violating_files:
-                self._fail_story_guardrail(story_key, "Scope Fence Violation", "Files outside frontend-only roots",
+                self._fail_story_guardrail(work_item_key, "Scope Fence Violation", "Files outside frontend-only roots",
                                           violating_files=violating_files, allowed_files=full_allowed)
                 return True
 
         # Guardrail B: Diff budget
         if changed_count > max_files:
-            self._fail_story_guardrail(story_key, "Diff Budget Exceeded",
+            self._fail_story_guardrail(work_item_key, "Diff Budget Exceeded",
                                       f"Changed {changed_count} files, max is {max_files}",
                                       violating_files=changed_files_remote, allowed_files=full_allowed)
             return True
@@ -2500,40 +2633,40 @@ Human intervention may be required.
                           if f not in full_allowed
                           and not self._matches_allowed_new(f, resolved_new_patterns)]
         if violating_files:
-            self._fail_story_guardrail(story_key, "Patch-List Violation", "Files outside allowed list",
+            self._fail_story_guardrail(work_item_key, "Patch-List Violation", "Files outside allowed list",
                                       violating_files=violating_files, allowed_files=full_allowed)
             return True
 
         # Guardrail D: Verification artifact
-        verification_report_path = Path(self.config.repo_path) / VERIFICATION_REPORT_DIR / f"{story_key}-verification.md"
+        verification_report_path = Path(self.config.repo_path) / VERIFICATION_REPORT_DIR / f"{work_item_key}-verification.md"
         if not verification_report_path.exists():
-            self.jira.add_comment(story_key, f"""
+            self.jira.add_comment(work_item_key, f"""
 **Verification Artifact Missing**
 
-Required: `{VERIFICATION_REPORT_DIR}/{story_key}-verification.md`
+Required: `{VERIFICATION_REPORT_DIR}/{work_item_key}-verification.md`
 
-*Story remains In Progress*
+*{work_item_type} remains In Progress*
 """)
-            self.escalate("DEVELOPER", f"Verification artifact missing for {story_key}",
-                         f"Missing: {VERIFICATION_REPORT_DIR}/{story_key}-verification.md")
+            self.escalate("DEVELOPER", f"Verification artifact missing for {work_item_key}",
+                         f"Missing: {VERIFICATION_REPORT_DIR}/{work_item_key}-verification.md")
             return True
 
         try:
             report_content = verification_report_path.read_text()
             if VERIFICATION_REPORT_CHECKLIST_HEADER not in report_content:
-                self.jira.add_comment(story_key, f"""
+                self.jira.add_comment(work_item_key, f"""
 **Verification Artifact Invalid**
 
 Missing header: `{VERIFICATION_REPORT_CHECKLIST_HEADER}`
 """)
-                self.escalate("DEVELOPER", f"Verification artifact invalid for {story_key}", "Missing checklist header")
+                self.escalate("DEVELOPER", f"Verification artifact invalid for {work_item_key}", "Missing checklist header")
                 return True
         except Exception as e:
             self.log("DEVELOPER", f"Failed to read verification report: {e}")
             return True
 
         # All guardrails passed - record to ledger (PATCH 1D: add changedFilesRemoteBase)
-        self.state['kan_story_runs'][story_key] = {
+        self.state['kan_story_runs'][work_item_key] = {
             'baseSha': base_sha,
             'changedFiles': changed_files_remote,  # For backward compatibility
             'changedFilesRemoteBase': changed_files_remote,  # Authoritative diff
@@ -2549,13 +2682,13 @@ Missing header: `{VERIFICATION_REPORT_CHECKLIST_HEADER}`
 
         # Update implementation plan and commit
         if changed_files_remote:
-            self._update_implementation_plan(story_key, summary, changed_files_remote)
-            commit_success = self._commit_implementation(story_key, summary, changed_files_remote)
+            self._update_implementation_plan(work_item_key, summary, changed_files_remote)
+            commit_success = self._commit_implementation(work_item_key, summary, changed_files_remote)
         else:
             commit_success = False
 
         commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
-        self.jira.add_comment(story_key, f"""
+        self.jira.add_comment(work_item_key, f"""
 Implementation completed by Claude Code Developer.
 
 Branch: {self.config.feature_branch}
@@ -2565,7 +2698,7 @@ Status: {commit_status}
 - ✅ Scope fence: {'frontend-only enforced' if frontend_only else 'N/A'}
 - ✅ Diff budget: {changed_count}/{max_files} files
 - ✅ Patch-list: All files in allowed list
-- ✅ Verification artifact: {VERIFICATION_REPORT_DIR}/{story_key}-verification.md
+- ✅ Verification artifact: {VERIFICATION_REPORT_DIR}/{work_item_key}-verification.md
 
 **Authoritative diff base:** `origin/feature/agent...HEAD`
 
@@ -2574,7 +2707,7 @@ Files modified:
 
 Ready for Supervisor verification.
 """)
-        self.log("DEVELOPER", f"Story {story_key} implementation complete")
+        self.log("DEVELOPER", f"{work_item_type} {work_item_key} implementation complete")
         return True
 
     def _invoke_claude_code(self, story_key: str, summary: str, description: str) -> Tuple[bool, str, List[str]]:
