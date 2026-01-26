@@ -56,3 +56,7 @@ packages/shared/src/**/*.d.ts
 apps/api/.env_old
 test-results/*
 apps/web/test-results/.last-run.json
+
+# Scripts folder zip files
+scripts/**/*.zip
+scripts/*.zip
