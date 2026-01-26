@@ -49,6 +49,7 @@ from enum import Enum
 from pathlib import Path
 import re
 import difflib
+import select
 
 # Claude Code CLI is used for all personas (no API key required)
 # Model configuration per persona:
@@ -61,6 +62,164 @@ CLAUDE_CODE_AVAILABLE = True  # Will be verified at runtime
 MODEL_UEP = "opus"        # Best for business analysis
 MODEL_SUPERVISOR = "opus"  # Best for code analysis
 MODEL_DEVELOPER = "sonnet" # Faster for implementation
+
+# -----------------------------------------------------------------------------
+# CLAUDE EXECUTION HARDENING
+# -----------------------------------------------------------------------------
+CLAUDE_OUTPUT_DIRNAME = "reports"
+CLAUDE_MAX_ATTEMPTS = 3
+CLAUDE_RETRY_BACKOFF_SECONDS = [10, 30]  # attempt2 waits 10s, attempt3 waits 30s
+CLAUDE_TRANSIENT_SUBSTRINGS = ["tool use concurrency", "api error: 400", "rate limit", "timeout"]
+CLAUDE_LOCK_REL_PATH = ".engineo/claude.lock"
+CLAUDE_LOCK_STALE_SECONDS = 900  # 15 minutes
+CLAUDE_TIMEOUT_SECONDS = 300  # 5 minute timeout per attempt
+CLAUDE_HEARTBEAT_INTERVAL = 30  # Emit heartbeat if no output for 30s
+
+# Secret env vars to redact from output (values only, not names)
+CLAUDE_SECRET_ENV_VARS = ["JIRA_TOKEN", "JIRA_API_TOKEN", "GITHUB_TOKEN"]
+
+
+def _claude_output_relpath(issue_key: str, run_id: str, attempt: int) -> str:
+    """Get relative path for Claude attempt output artifact.
+
+    New naming contract: <KAN-KEY>-<run_id>-claude-output-attempt<N>.txt
+    """
+    return f"{CLAUDE_OUTPUT_DIRNAME}/{issue_key}-{run_id}-claude-output-attempt{attempt}.txt"
+
+
+def _write_claude_attempt_output(repo_path: str, issue_key: str, run_id: str, attempt: int, content: str) -> str:
+    """Write Claude attempt output to artifact file.
+
+    Returns: The relative path to the written artifact.
+    """
+    reports_dir = Path(repo_path) / CLAUDE_OUTPUT_DIRNAME
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    rel_path = _claude_output_relpath(issue_key, run_id, attempt)
+    output_path = Path(repo_path) / rel_path
+    output_path.write_text(content)
+    return rel_path
+
+
+def _redact_secrets(text: str) -> str:
+    """Redact secret values from text for safe logging/artifact storage.
+
+    Redacts:
+    - Values of known secret env vars (JIRA_TOKEN, GITHUB_TOKEN, etc.)
+    - Authorization: Bearer <token> patterns
+    """
+    result = text
+
+    # Redact known secret env var values
+    for var_name in CLAUDE_SECRET_ENV_VARS:
+        secret_value = os.environ.get(var_name, "")
+        if secret_value and len(secret_value) > 4:
+            result = result.replace(secret_value, "[REDACTED]")
+
+    # Redact Authorization: Bearer patterns
+    result = re.sub(r'(Authorization:\s*Bearer\s+)[^\s"\']+', r'\1[REDACTED]', result, flags=re.IGNORECASE)
+
+    return result
+
+
+def _resolve_verification_report(repo_path: str, issue_key: str) -> Optional[str]:
+    """Resolve the most recent verification report for an issue.
+
+    Accepts:
+    - Legacy path: <KAN-KEY>-verification.md
+    - Timestamped paths: <KAN-KEY>-<run_id>-verification.md
+
+    Returns: Relative path to the newest verification report, or None if not found.
+    """
+    import glob
+
+    reports_dir = Path(repo_path) / CLAUDE_OUTPUT_DIRNAME
+
+    if not reports_dir.exists():
+        return None
+
+    # Pattern for timestamped reports: KAN-17-20260126-143047Z-verification.md
+    timestamped_pattern = str(reports_dir / f"{issue_key}-*-verification.md")
+    timestamped_matches = glob.glob(timestamped_pattern)
+
+    # Legacy pattern: KAN-17-verification.md
+    legacy_path = reports_dir / f"{issue_key}-verification.md"
+
+    candidates = []
+
+    # Add timestamped matches with parsed timestamps for sorting
+    for match in timestamped_matches:
+        path = Path(match)
+        # Extract run_id from filename: KAN-17-20260126-143047Z-verification.md
+        # Pattern: {key}-{run_id}-verification.md where run_id is like 20260126-143047Z
+        filename = path.name
+        # Remove key prefix and -verification.md suffix
+        prefix = f"{issue_key}-"
+        suffix = "-verification.md"
+        if filename.startswith(prefix) and filename.endswith(suffix):
+            run_id = filename[len(prefix):-len(suffix)]
+            # Try to parse run_id as timestamp (YYYYMMDD-HHMMSSZ)
+            try:
+                ts = datetime.strptime(run_id, "%Y%m%d-%H%M%SZ")
+                candidates.append((ts, path))
+            except ValueError:
+                # Can't parse - use file mtime as fallback
+                mtime = path.stat().st_mtime
+                candidates.append((datetime.fromtimestamp(mtime), path))
+
+    # Add legacy path if it exists (use mtime for sorting)
+    if legacy_path.exists():
+        mtime = legacy_path.stat().st_mtime
+        candidates.append((datetime.fromtimestamp(mtime), legacy_path))
+
+    if not candidates:
+        return None
+
+    # Sort by timestamp descending (newest first) and return the newest
+    candidates.sort(key=lambda x: x[0], reverse=True)
+    newest_path = candidates[0][1]
+
+    # Return repo-relative path
+    return str(newest_path.relative_to(repo_path))
+
+
+def _is_transient_claude_failure(text: str) -> bool:
+    """Check if Claude failure is transient and retryable."""
+    text_lower = text.lower()
+    return any(substr in text_lower for substr in CLAUDE_TRANSIENT_SUBSTRINGS)
+
+
+def _lock_path(repo_path: str) -> Path:
+    """Get path to Claude session lock file."""
+    return Path(repo_path) / CLAUDE_LOCK_REL_PATH
+
+
+def _acquire_claude_lock(repo_path: str, issue_key: str) -> tuple:
+    """Acquire Claude session lock.
+
+    Returns: (acquired: bool, message: str)
+    """
+    lock_file = _lock_path(repo_path)
+    lock_file.parent.mkdir(parents=True, exist_ok=True)
+
+    if lock_file.exists():
+        mtime = lock_file.stat().st_mtime
+        age_seconds = time.time() - mtime
+        if age_seconds < CLAUDE_LOCK_STALE_SECONDS:
+            return (False, "Claude session already running")
+        # Stale lock - remove and continue
+        lock_file.unlink(missing_ok=True)
+
+    # Create lock file
+    lock_file.write_text(f"{datetime.now(timezone.utc).isoformat()}\n{issue_key}\n")
+    return (True, "")
+
+
+def _release_claude_lock(repo_path: str) -> None:
+    """Release Claude session lock (best-effort)."""
+    try:
+        _lock_path(repo_path).unlink(missing_ok=True)
+    except Exception:
+        pass  # Best-effort removal
 
 
 # =============================================================================
@@ -808,12 +967,20 @@ class ExecutionEngine:
         self.running = True
         self.impl_plan_path = Path(config.repo_path) / 'docs' / 'IMPLEMENTATION_PLAN.md'
 
+        # Generate unique run ID for this engine session (UTC timestamp)
+        self.run_id = self._utc_ts()
+        self.log("SYSTEM", f"Run ID: {self.run_id}")
+
         # Verify Claude Code CLI is available
         self.claude_code_available = self._verify_claude_code()
         if self.claude_code_available:
             print("[SYSTEM] Claude Code CLI enabled for all personas (no API key required)")
         else:
             print("[WARNING] Claude Code CLI not found - install with: npm install -g @anthropic-ai/claude-code")
+
+    def _utc_ts(self) -> str:
+        """Generate UTC timestamp string for artifact naming."""
+        return datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%SZ")
 
     def _verify_claude_code(self) -> bool:
         """Verify Claude Code CLI is available"""
@@ -1511,7 +1678,7 @@ after identifying the relevant codebase locations.
         # Use Claude Code CLI to implement the story
         self.log("DEVELOPER", "Invoking Claude Code CLI for implementation...")
 
-        success, output, modified_files = self._invoke_claude_code(key, summary, description)
+        success, output, modified_files, artifact_path = self._invoke_claude_code(key, summary, description)
 
         if success:
             self.log("DEVELOPER", f"Claude Code completed implementation")
@@ -1550,8 +1717,10 @@ Ready for Supervisor verification.
             self.jira.add_comment(key, f"""
 Claude Code implementation encountered issues.
 
-Output:
-{output[:2000] if output else 'No output captured'}
+Claude Code failed; output saved to {artifact_path}
+Run ID: {self.run_id}
+
+**Output artifact:** `{artifact_path}`
 
 Human intervention may be required.
 """)
@@ -1559,7 +1728,7 @@ Human intervention may be required.
             self.escalate(
                 "DEVELOPER",
                 f"Story {key} Claude Code implementation issue",
-                f"Story: {summary}\n\nClaude Code output:\n{output[:1000] if output else 'No output'}"
+                f"Claude Code failed; output saved to {artifact_path}\nRun ID: {self.run_id}\n\nStory: {summary}"
             )
 
         self.log("DEVELOPER", "Notifying Supervisor for verification...")
@@ -1666,6 +1835,13 @@ Branch: {self.config.feature_branch}
             key = story['key']
             summary = story['fields']['summary']
             self.log("SUPERVISOR", f"Awaiting verification: [{key}] {summary}")
+
+            # Resolve verification report (logging only - no status transitions)
+            report_path = _resolve_verification_report(self.config.repo_path, key)
+            if report_path:
+                self.log("SUPERVISOR", f"Verification report found: {report_path}")
+            else:
+                self.log("SUPERVISOR", f"No verification report found for {key}")
 
         return False  # Don't loop on verification yet
 
@@ -1809,7 +1985,7 @@ Ready for Developer implementation.
         # Use Claude Code CLI to implement the story
         self.log("DEVELOPER", "Invoking Claude Code CLI for implementation...")
 
-        success, output, modified_files = self._invoke_claude_code(key, summary, description)
+        success, _, modified_files, artifact_path = self._invoke_claude_code(key, summary, description)
 
         if success:
             self.log("DEVELOPER", f"Claude Code completed implementation")
@@ -1839,9 +2015,6 @@ Status: {commit_status}
 Files modified:
 {chr(10).join(['- ' + f for f in modified_files]) if modified_files else '(see git log for details)'}
 
-Claude Code Output (summary):
-{output[:1000] if output else 'Implementation completed successfully'}
-
 Ready for Supervisor verification.
 """)
             self.log("DEVELOPER", f"Story {key} implementation complete")
@@ -1851,8 +2024,10 @@ Ready for Supervisor verification.
             self.jira.add_comment(key, f"""
 Claude Code implementation encountered issues.
 
-Output:
-{output[:2000] if output else 'No output captured'}
+Claude Code failed; output saved to {artifact_path}
+Run ID: {self.run_id}
+
+**Output artifact:** `{artifact_path}`
 
 Human intervention may be required.
 """)
@@ -1860,16 +2035,23 @@ Human intervention may be required.
             self.escalate(
                 "DEVELOPER",
                 f"Story {key} Claude Code implementation issue",
-                f"Story: {summary}\n\nClaude Code output:\n{output[:1000] if output else 'No output'}"
+                f"Claude Code failed; output saved to {artifact_path}\nRun ID: {self.run_id}\n\nStory: {summary}"
             )
 
         self.log("DEVELOPER", "Notifying Supervisor for verification...")
         return True
 
-    def _invoke_claude_code(self, story_key: str, summary: str, description: str) -> Tuple[bool, str, List[str]]:
-        """Invoke Claude Code CLI to implement a story
+    def _invoke_claude_code(self, story_key: str, summary: str, description: str) -> Tuple[bool, str, List[str], str]:
+        """Invoke Claude Code CLI to implement a story with streaming output.
 
-        Returns: (success, output, list of modified files)
+        Claude Execution Hardening:
+        - Acquires lock to prevent concurrent sessions
+        - Streams output live with [CLAUDE] prefix (secrets redacted)
+        - Emits heartbeat if no output for 30s
+        - Writes per-attempt artifacts
+        - Retries transient failures up to CLAUDE_MAX_ATTEMPTS times
+
+        Returns: (success, output, list of modified files, artifact_path)
         """
         # Build the prompt for Claude Code
         prompt = f"""You are the Developer persona in an autonomous execution system.
@@ -1893,48 +2075,168 @@ Important:
 - Do NOT refactor or change unrelated code
 - Preserve existing formatting and structure
 - If PATCH BATCH is unclear, implement based on the Epic requirements
+- Run tool/command actions sequentially (one at a time); do not run concurrent tool operations.
 
 Begin implementation now.
 """
 
-        try:
-            self.log("DEVELOPER", f"Starting Claude Code CLI ({MODEL_DEVELOPER})...")
+        final_artifact_path = ""
 
-            # Run Claude Code with the prompt (using sonnet for faster implementation)
-            # Using --print to get output, --dangerously-skip-permissions to avoid interactive prompts
-            result = subprocess.run(
-                ['claude', '--model', MODEL_DEVELOPER, '-p', prompt, '--dangerously-skip-permissions'],
-                cwd=self.config.repo_path,
-                capture_output=True,
-                text=True,
-                timeout=300  # 5 minute timeout
+        # Acquire lock to prevent overlapping sessions
+        acquired, lock_msg = _acquire_claude_lock(self.config.repo_path, story_key)
+        if not acquired:
+            artifact_content = f"Lock acquisition failed: {lock_msg}"
+            final_artifact_path = _write_claude_attempt_output(
+                self.config.repo_path, story_key, self.run_id, 1, artifact_content
             )
+            return False, lock_msg, [], final_artifact_path
 
-            output = result.stdout + result.stderr
-            self.log("DEVELOPER", f"Claude Code exit code: {result.returncode}")
+        try:
+            for attempt in range(1, CLAUDE_MAX_ATTEMPTS + 1):
+                self.log("DEVELOPER", f"Claude attempt {attempt}/{CLAUDE_MAX_ATTEMPTS}...")
+                attempt_output = []
+                attempt_output.append(f"=== Attempt {attempt}/{CLAUDE_MAX_ATTEMPTS} ===\n")
 
-            # Check git status to find modified files
-            git_status = self.git.status()
-            modified_files = []
-            for line in git_status.split('\n'):
-                if line.strip():
-                    # Parse git status output (e.g., "M  file.ts" or "?? newfile.ts")
-                    parts = line.strip().split()
-                    if len(parts) >= 2:
-                        modified_files.append(parts[-1])
+                try:
+                    # Run Claude Code with streaming via Popen
+                    process = subprocess.Popen(
+                        ['claude', '--model', MODEL_DEVELOPER, '-p', prompt, '--dangerously-skip-permissions'],
+                        cwd=self.config.repo_path,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                        bufsize=1  # Line buffered
+                    )
 
-            success = result.returncode == 0
-            return success, output, modified_files
+                    start_time = time.time()
+                    last_output_time = start_time
+                    timed_out = False
 
-        except subprocess.TimeoutExpired:
-            self.log("DEVELOPER", "Claude Code timed out after 5 minutes")
-            return False, "Claude Code timed out", []
-        except FileNotFoundError:
-            self.log("DEVELOPER", "Claude Code CLI not found - ensure 'claude' is installed")
-            return False, "Claude Code CLI not found. Install with: npm install -g @anthropic-ai/claude-code", []
-        except Exception as e:
-            self.log("DEVELOPER", f"Claude Code error: {e}")
-            return False, str(e), []
+                    # Stream output line by line with heartbeat
+                    while True:
+                        # Check timeout
+                        elapsed = time.time() - start_time
+                        if elapsed >= CLAUDE_TIMEOUT_SECONDS:
+                            timed_out = True
+                            process.terminate()
+                            try:
+                                process.wait(timeout=5)
+                            except subprocess.TimeoutExpired:
+                                process.kill()
+                            break
+
+                        # Check for output with short timeout for heartbeat
+                        if select.select([process.stdout], [], [], 1.0)[0]:
+                            line = process.stdout.readline()
+                            if line:
+                                last_output_time = time.time()
+                                # Redact secrets and print with prefix
+                                redacted_line = _redact_secrets(line.rstrip())
+                                print(f"[CLAUDE] {redacted_line}")
+                                attempt_output.append(_redact_secrets(line))
+                            elif process.poll() is not None:
+                                # Process ended
+                                break
+                        else:
+                            # No output - check for heartbeat
+                            silent_seconds = time.time() - last_output_time
+                            if silent_seconds >= CLAUDE_HEARTBEAT_INTERVAL:
+                                elapsed_mins = int(elapsed // 60)
+                                elapsed_secs = int(elapsed % 60)
+                                self.log("DEVELOPER", f"Claude still running... (elapsed: {elapsed_mins}m {elapsed_secs}s)")
+                                last_output_time = time.time()  # Reset heartbeat timer
+
+                            # Check if process ended
+                            if process.poll() is not None:
+                                break
+
+                    # Drain any remaining output
+                    remaining = process.stdout.read()
+                    if remaining:
+                        for line in remaining.splitlines(keepends=True):
+                            redacted_line = _redact_secrets(line.rstrip())
+                            print(f"[CLAUDE] {redacted_line}")
+                            attempt_output.append(_redact_secrets(line))
+
+                    returncode = process.returncode if not timed_out else -1
+
+                    # Write per-attempt artifact (always)
+                    final_artifact_path = _write_claude_attempt_output(
+                        self.config.repo_path, story_key, self.run_id, attempt, "".join(attempt_output)
+                    )
+                    self.log("DEVELOPER", f"Attempt artifact: {final_artifact_path}")
+
+                    if timed_out:
+                        timeout_msg = f"Claude Code timed out after {CLAUDE_TIMEOUT_SECONDS // 60} minutes (attempt {attempt})"
+                        self.log("DEVELOPER", timeout_msg)
+
+                        # Timeout is transient - retry if attempts remain
+                        if attempt < CLAUDE_MAX_ATTEMPTS:
+                            sleep_seconds = CLAUDE_RETRY_BACKOFF_SECONDS[attempt - 1]
+                            self.log("DEVELOPER", f"Retrying in {sleep_seconds}s due to timeout...")
+                            time.sleep(sleep_seconds)
+                            continue
+
+                        return False, "Claude Code timed out", [], final_artifact_path
+
+                    self.log("DEVELOPER", f"Claude Code exit code: {returncode}")
+
+                    if returncode == 0:
+                        # Success - get modified files and return
+                        git_status = self.git.status()
+                        modified_files = []
+                        for line in git_status.split('\n'):
+                            if line.strip():
+                                parts = line.strip().split()
+                                if len(parts) >= 2:
+                                    modified_files.append(parts[-1])
+
+                        return True, "".join(attempt_output), modified_files, final_artifact_path
+
+                    # Failure - check if retryable
+                    output_text = "".join(attempt_output)
+                    if _is_transient_claude_failure(output_text) and attempt < CLAUDE_MAX_ATTEMPTS:
+                        sleep_seconds = CLAUDE_RETRY_BACKOFF_SECONDS[attempt - 1]
+                        self.log("DEVELOPER", f"Retrying in {sleep_seconds}s due to transient error...")
+                        time.sleep(sleep_seconds)
+                        continue
+
+                    # Non-retryable failure or max attempts reached
+                    return False, output_text, [], final_artifact_path
+
+                except FileNotFoundError:
+                    msg = "Claude Code CLI not found. Install with: npm install -g @anthropic-ai/claude-code"
+                    self.log("DEVELOPER", "Claude Code CLI not found - ensure 'claude' is installed")
+                    attempt_output.append(f"\n{msg}\n")
+                    final_artifact_path = _write_claude_attempt_output(
+                        self.config.repo_path, story_key, self.run_id, attempt, "".join(attempt_output)
+                    )
+                    return False, msg, [], final_artifact_path
+
+                except Exception as e:
+                    error_msg = str(e)
+                    self.log("DEVELOPER", f"Claude Code error: {e}")
+                    attempt_output.append(f"\nException: {error_msg}\n")
+
+                    # Write attempt artifact before potentially retrying
+                    final_artifact_path = _write_claude_attempt_output(
+                        self.config.repo_path, story_key, self.run_id, attempt, "".join(attempt_output)
+                    )
+
+                    # Check if exception text indicates transient failure
+                    if _is_transient_claude_failure(error_msg) and attempt < CLAUDE_MAX_ATTEMPTS:
+                        sleep_seconds = CLAUDE_RETRY_BACKOFF_SECONDS[attempt - 1]
+                        self.log("DEVELOPER", f"Retrying in {sleep_seconds}s due to transient error...")
+                        time.sleep(sleep_seconds)
+                        continue
+
+                    return False, error_msg, [], final_artifact_path
+
+            # Should not reach here, but safety fallback
+            return False, "Max attempts exhausted", [], final_artifact_path
+
+        finally:
+            _release_claude_lock(self.config.repo_path)
 
 
 # =============================================================================
