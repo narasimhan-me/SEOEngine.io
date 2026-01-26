@@ -50,6 +50,7 @@ from pathlib import Path
 import re
 import difflib
 import select
+import pty
 
 # Claude Code CLI is used for all personas (no API key required)
 # Model configuration per persona:
@@ -72,8 +73,10 @@ CLAUDE_RETRY_BACKOFF_SECONDS = [10, 30]  # attempt2 waits 10s, attempt3 waits 30
 CLAUDE_TRANSIENT_SUBSTRINGS = ["tool use concurrency", "api error: 400", "rate limit", "timeout"]
 CLAUDE_LOCK_REL_PATH = ".engineo/claude.lock"
 CLAUDE_LOCK_STALE_SECONDS = 900  # 15 minutes
-CLAUDE_TIMEOUT_SECONDS = 300  # 5 minute timeout per attempt
+CLAUDE_TIMEOUT_SECONDS = 14400  # 4 hour default timeout per attempt
 CLAUDE_HEARTBEAT_INTERVAL = 30  # Emit heartbeat if no output for 30s
+CLAUDE_TIMEOUT_ENV_VAR = "ENGINEO_CLAUDE_TIMEOUT_SECONDS"  # Env override for timeout
+CLAUDE_PER_TICKET_TIMEOUT_MAX = 8 * 60 * 60  # 8 hour cap for per-ticket override
 
 # Secret env vars to redact from output (values only, not names)
 CLAUDE_SECRET_ENV_VARS = ["JIRA_TOKEN", "JIRA_API_TOKEN", "GITHUB_TOKEN"]
@@ -119,6 +122,123 @@ def _redact_secrets(text: str) -> str:
     result = re.sub(r'(Authorization:\s*Bearer\s+)[^\s"\']+', r'\1[REDACTED]', result, flags=re.IGNORECASE)
 
     return result
+
+
+def rotate_logs(log_dir: Path, max_age_days: int = 2) -> int:
+    """Delete log files older than max_age_days.
+
+    Args:
+        log_dir: Directory containing log files.
+        max_age_days: Maximum age in days before deletion.
+
+    Returns: Number of deleted files.
+    """
+    if not log_dir.exists():
+        return 0
+
+    deleted_count = 0
+    now = time.time()
+    max_age_seconds = max_age_days * 86400
+
+    for file_path in log_dir.iterdir():
+        if file_path.is_file():
+            try:
+                mtime = file_path.stat().st_mtime
+                if now - mtime > max_age_seconds:
+                    file_path.unlink()
+                    deleted_count += 1
+            except OSError:
+                # Skip files that can't be accessed/deleted
+                pass
+
+    return deleted_count
+
+
+def _parse_per_ticket_timeout(description: str) -> Optional[int]:
+    """Parse optional per-ticket hard timeout from description.
+
+    Looks for a line: HARD TIMEOUT: <minutes>
+
+    Args:
+        description: Story/bug description text.
+
+    Returns: Timeout in seconds if valid, None otherwise.
+    """
+    if not description:
+        return None
+
+    # Match "HARD TIMEOUT: <minutes>" (case insensitive)
+    match = re.search(r'HARD\s+TIMEOUT:\s*(\d+)', description, re.IGNORECASE)
+    if match:
+        try:
+            minutes = int(match.group(1))
+            if minutes > 0:
+                # Cap at 8 hours
+                return min(minutes * 60, CLAUDE_PER_TICKET_TIMEOUT_MAX)
+        except ValueError:
+            pass
+
+    return None
+
+
+def _select_newest_verification_report(issue_key: str, relpaths: List[str], mtimes: Optional[Dict[str, float]] = None) -> Optional[str]:
+    """Pure helper: select the newest verification report from a list of paths.
+
+    This is the testable pure function extracted from _resolve_verification_report.
+    Takes relative paths and optional mtime dict (no filesystem IO).
+
+    Args:
+        issue_key: The issue key to match (e.g., "KAN-17").
+        relpaths: List of relative paths to verification reports.
+        mtimes: Optional dict mapping relpath -> mtime (for legacy path sorting).
+
+    Returns:
+        The relative path to the newest matching verification report, or None.
+    """
+    if not relpaths:
+        return None
+
+    candidates = []
+    prefix = f"{issue_key}-"
+    suffix = "-verification.md"
+    legacy_suffix = f"{issue_key}-verification.md"
+
+    for relpath in relpaths:
+        filename = Path(relpath).name
+
+        # Check if this is for the right issue key
+        if not filename.startswith(prefix):
+            continue
+
+        # Legacy format: KAN-17-verification.md
+        if filename == legacy_suffix:
+            # Use mtime if provided, else very old date
+            if mtimes and relpath in mtimes:
+                ts = datetime.fromtimestamp(mtimes[relpath])
+            else:
+                ts = datetime.min
+            candidates.append((ts, relpath))
+            continue
+
+        # Timestamped format: KAN-17-20260126-143047Z-verification.md
+        if filename.endswith(suffix):
+            run_id = filename[len(prefix):-len(suffix)]
+            # Try to parse run_id as timestamp (YYYYMMDD-HHMMSSZ)
+            try:
+                ts = datetime.strptime(run_id, "%Y%m%d-%H%M%SZ")
+                candidates.append((ts, relpath))
+            except ValueError:
+                # Can't parse - use mtime if available, else skip
+                if mtimes and relpath in mtimes:
+                    ts = datetime.fromtimestamp(mtimes[relpath])
+                    candidates.append((ts, relpath))
+
+    if not candidates:
+        return None
+
+    # Sort by timestamp descending and return newest
+    candidates.sort(key=lambda x: x[0], reverse=True)
+    return candidates[0][1]
 
 
 def _resolve_verification_report(repo_path: str, issue_key: str) -> Optional[str]:
@@ -969,14 +1089,38 @@ class ExecutionEngine:
 
         # Generate unique run ID for this engine session (UTC timestamp)
         self.run_id = self._utc_ts()
+
+        # Setup logs directory and engine log file (PATCH 2)
+        self.logs_dir = Path(self.config.repo_path) / "logs"
+        self.logs_dir.mkdir(parents=True, exist_ok=True)
+        self.engine_log_path = self.logs_dir / f"engine-{self.run_id}.log"
+
+        # Now we can log (after engine_log_path is set)
         self.log("SYSTEM", f"Run ID: {self.run_id}")
+
+        # Log rotation: delete logs older than 2 days (PATCH 3)
+        deleted_count = rotate_logs(self.logs_dir, max_age_days=2)
+        self.log("SYSTEM", f"Log rotation: deleted {deleted_count} old logs (>2 days)")
+
+        # Compute effective Claude timeout from env or default (PATCH 1)
+        self.claude_timeout_seconds = CLAUDE_TIMEOUT_SECONDS
+        env_timeout = os.environ.get(CLAUDE_TIMEOUT_ENV_VAR, "")
+        if env_timeout:
+            try:
+                parsed = int(env_timeout)
+                if parsed > 0:
+                    self.claude_timeout_seconds = parsed
+            except ValueError:
+                pass  # Fall back to default
+        timeout_hours = round(self.claude_timeout_seconds / 3600, 2)
+        self.log("SYSTEM", f"Claude timeout configured: {self.claude_timeout_seconds}s ({timeout_hours}h)")
 
         # Verify Claude Code CLI is available
         self.claude_code_available = self._verify_claude_code()
         if self.claude_code_available:
-            print("[SYSTEM] Claude Code CLI enabled for all personas (no API key required)")
+            self.log("SYSTEM", "Claude Code CLI enabled for all personas (no API key required)")
         else:
-            print("[WARNING] Claude Code CLI not found - install with: npm install -g @anthropic-ai/claude-code")
+            self.log("WARNING", "Claude Code CLI not found - install with: npm install -g @anthropic-ai/claude-code")
 
     def _utc_ts(self) -> str:
         """Generate UTC timestamp string for artifact naming."""
@@ -1000,9 +1144,24 @@ class ExecutionEngine:
             return False
 
     def log(self, role: str, message: str):
-        """Log with role prefix"""
+        """Log with role prefix to both console and run-scoped log file.
+
+        PATCH 2 & 5: Tee structured logs to console AND engine-<run_id>.log with flush.
+        """
         timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
-        print(f"[{timestamp}] [{role}] {message}")
+        log_line = f"[{timestamp}] [{role}] {message}"
+
+        # Write to stdout with flush (PATCH 5)
+        print(log_line, flush=True)
+
+        # Append to engine log file with flush (PATCH 2 & 5)
+        if hasattr(self, 'engine_log_path') and self.engine_log_path:
+            try:
+                with open(self.engine_log_path, 'a', encoding='utf-8') as f:
+                    f.write(log_line + '\n')
+                    f.flush()
+            except OSError:
+                pass  # Don't fail on log write errors
 
     def run(self):
         """Main execution loop"""
@@ -2042,12 +2201,14 @@ Human intervention may be required.
         return True
 
     def _invoke_claude_code(self, story_key: str, summary: str, description: str) -> Tuple[bool, str, List[str], str]:
-        """Invoke Claude Code CLI to implement a story with streaming output.
+        """Invoke Claude Code CLI to implement a story with PTY streaming output.
 
-        Claude Execution Hardening:
+        Claude Execution Hardening (OBSERVABILITY-HARDENING-1):
         - Acquires lock to prevent concurrent sessions
-        - Streams output live with [CLAUDE] prefix (secrets redacted)
+        - Streams output live via PTY with [CLAUDE] prefix (secrets redacted)
+        - Line-buffered output prevents cross-chunk leakage
         - Emits heartbeat if no output for 30s
+        - Configurable timeout (default 4h, env override, per-ticket cap)
         - Writes per-attempt artifacts
         - Retries transient failures up to CLAUDE_MAX_ATTEMPTS times
 
@@ -2082,6 +2243,13 @@ Begin implementation now.
 
         final_artifact_path = ""
 
+        # Compute effective timeout for this run (PATCH 1-D: per-ticket override)
+        timeout_seconds = self.claude_timeout_seconds
+        per_ticket_timeout = _parse_per_ticket_timeout(description)
+        if per_ticket_timeout is not None:
+            timeout_seconds = per_ticket_timeout
+            self.log("DEVELOPER", f"Per-ticket hard timeout override: {per_ticket_timeout // 60}m (capped to {per_ticket_timeout}s)")
+
         # Acquire lock to prevent overlapping sessions
         acquired, lock_msg = _acquire_claude_lock(self.config.repo_path, story_key)
         if not acquired:
@@ -2096,27 +2264,33 @@ Begin implementation now.
                 self.log("DEVELOPER", f"Claude attempt {attempt}/{CLAUDE_MAX_ATTEMPTS}...")
                 attempt_output = []
                 attempt_output.append(f"=== Attempt {attempt}/{CLAUDE_MAX_ATTEMPTS} ===\n")
+                master_fd = None
 
                 try:
-                    # Run Claude Code with streaming via Popen
+                    # PATCH 4-B: Use PTY for real streaming output
+                    master_fd, slave_fd = pty.openpty()
+
                     process = subprocess.Popen(
                         ['claude', '--model', MODEL_DEVELOPER, '-p', prompt, '--dangerously-skip-permissions'],
                         cwd=self.config.repo_path,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT,
-                        text=True,
-                        bufsize=1  # Line buffered
+                        stdin=slave_fd,
+                        stdout=slave_fd,
+                        stderr=slave_fd,
                     )
+
+                    # Parent closes slave_fd immediately
+                    os.close(slave_fd)
 
                     start_time = time.time()
                     last_output_time = start_time
                     timed_out = False
+                    line_buf = ""  # PATCH 4-C: Line buffer for cross-chunk handling
 
-                    # Stream output line by line with heartbeat
+                    # Stream output with PTY
                     while True:
-                        # Check timeout
+                        # Check timeout (PATCH 4-E: use computed timeout_seconds)
                         elapsed = time.time() - start_time
-                        if elapsed >= CLAUDE_TIMEOUT_SECONDS:
+                        if elapsed >= timeout_seconds:
                             timed_out = True
                             process.terminate()
                             try:
@@ -2126,19 +2300,54 @@ Begin implementation now.
                             break
 
                         # Check for output with short timeout for heartbeat
-                        if select.select([process.stdout], [], [], 1.0)[0]:
-                            line = process.stdout.readline()
-                            if line:
-                                last_output_time = time.time()
-                                # Redact secrets and print with prefix
-                                redacted_line = _redact_secrets(line.rstrip())
-                                print(f"[CLAUDE] {redacted_line}")
-                                attempt_output.append(_redact_secrets(line))
-                            elif process.poll() is not None:
-                                # Process ended
+                        try:
+                            readable, _, _ = select.select([master_fd], [], [], 1.0)
+                        except (ValueError, OSError):
+                            # master_fd closed or invalid
+                            if process.poll() is not None:
                                 break
+                            continue
+
+                        if readable:
+                            try:
+                                chunk = os.read(master_fd, 4096)
+                            except OSError:
+                                # PTY closed
+                                if process.poll() is not None:
+                                    break
+                                continue
+
+                            if chunk:
+                                last_output_time = time.time()
+                                # Decode chunk (PATCH 4-C: line-buffer handling)
+                                decoded = chunk.decode('utf-8', errors='replace')
+                                line_buf += decoded
+
+                                # Process complete lines (split on \n or \r)
+                                while '\n' in line_buf or '\r' in line_buf:
+                                    # Find earliest delimiter
+                                    newline_idx = len(line_buf)
+                                    for delim in ['\n', '\r']:
+                                        idx = line_buf.find(delim)
+                                        if idx != -1 and idx < newline_idx:
+                                            newline_idx = idx
+
+                                    # Extract line and emit
+                                    line = line_buf[:newline_idx]
+                                    line_buf = line_buf[newline_idx + 1:]
+
+                                    if line:  # Skip empty lines from \r\n sequences
+                                        redacted_line = _redact_secrets(line)
+                                        self.log("CLAUDE", redacted_line)
+
+                                # Append raw decoded chunk to attempt output for artifact
+                                attempt_output.append(decoded)
+                            else:
+                                # EOF
+                                if process.poll() is not None:
+                                    break
                         else:
-                            # No output - check for heartbeat
+                            # No output - check for heartbeat (PATCH 4-D)
                             silent_seconds = time.time() - last_output_time
                             if silent_seconds >= CLAUDE_HEARTBEAT_INTERVAL:
                                 elapsed_mins = int(elapsed // 60)
@@ -2150,24 +2359,31 @@ Begin implementation now.
                             if process.poll() is not None:
                                 break
 
-                    # Drain any remaining output
-                    remaining = process.stdout.read()
-                    if remaining:
-                        for line in remaining.splitlines(keepends=True):
-                            redacted_line = _redact_secrets(line.rstrip())
-                            print(f"[CLAUDE] {redacted_line}")
-                            attempt_output.append(_redact_secrets(line))
+                    # Flush remaining line buffer (PATCH 4-C)
+                    if line_buf:
+                        redacted_line = _redact_secrets(line_buf)
+                        self.log("CLAUDE", redacted_line)
+
+                    # Close master_fd safely (PATCH 4-E)
+                    if master_fd is not None:
+                        try:
+                            os.close(master_fd)
+                        except OSError:
+                            pass
+                        master_fd = None
 
                     returncode = process.returncode if not timed_out else -1
 
-                    # Write per-attempt artifact (always)
+                    # Write per-attempt artifact with redaction (PATCH 4-F)
+                    artifact_content = _redact_secrets("".join(attempt_output))
                     final_artifact_path = _write_claude_attempt_output(
-                        self.config.repo_path, story_key, self.run_id, attempt, "".join(attempt_output)
+                        self.config.repo_path, story_key, self.run_id, attempt, artifact_content
                     )
                     self.log("DEVELOPER", f"Attempt artifact: {final_artifact_path}")
 
                     if timed_out:
-                        timeout_msg = f"Claude Code timed out after {CLAUDE_TIMEOUT_SECONDS // 60} minutes (attempt {attempt})"
+                        timeout_mins = timeout_seconds // 60
+                        timeout_msg = f"Claude Code timed out after {timeout_mins} minutes (attempt {attempt})"
                         self.log("DEVELOPER", timeout_msg)
 
                         # Timeout is transient - retry if attempts remain
@@ -2231,6 +2447,14 @@ Begin implementation now.
                         continue
 
                     return False, error_msg, [], final_artifact_path
+
+                finally:
+                    # Ensure master_fd is closed on any exit path
+                    if master_fd is not None:
+                        try:
+                            os.close(master_fd)
+                        except OSError:
+                            pass
 
             # Should not reach here, but safety fallback
             return False, "Max attempts exhausted", [], final_artifact_path
