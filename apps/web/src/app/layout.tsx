@@ -105,7 +105,9 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className={`${inter.className} min-h-screen bg-background text-foreground`}>
+      <body
+        className={`${inter.className} min-h-screen bg-background text-foreground`}
+      >
         <UnsavedChangesProvider>
           <FeedbackProvider>
             {/* [SHOPIFY-EMBEDDED-SHELL-1] Wrap in ShopifyEmbeddedShell for embedded context detection */}

@@ -1,14 +1,14 @@
 #!/usr/bin/env ts-node
 /**
  * Jira Ticket Reader
- * 
+ *
  * Reads Jira tickets from EA and KAN projects for AI agents
- * 
+ *
  * Usage:
  *   ts-node scripts/read-jira-tickets.ts <TICKET-KEY>
  *   ts-node scripts/read-jira-tickets.ts --list [--project EA|KAN|ALL]
  *   ts-node scripts/read-jira-tickets.ts --search <QUERY>
- * 
+ *
  * Examples:
  *   ts-node scripts/read-jira-tickets.ts EA-14
  *   ts-node scripts/read-jira-tickets.ts --list --project EA
@@ -27,7 +27,7 @@ const envPath = join(projectRoot, '.env');
 
 if (existsSync(envPath)) {
   const envContent = readFileSync(envPath, 'utf-8');
-  envContent.split('\n').forEach(line => {
+  envContent.split('\n').forEach((line) => {
     const trimmed = line.trim();
     if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
       const [key, ...valueParts] = trimmed.split('=');
@@ -79,22 +79,28 @@ class JiraClient {
     if (!this.baseUrl || !this.email || !this.apiToken) {
       throw new Error(
         'Missing required environment variables:\n' +
-        '  - JIRA_BASE_URL\n' +
-        '  - JIRA_EMAIL\n' +
-        '  - JIRA_API_TOKEN'
+          '  - JIRA_BASE_URL\n' +
+          '  - JIRA_EMAIL\n' +
+          '  - JIRA_API_TOKEN'
       );
     }
 
-    this.auth = Buffer.from(`${this.email}:${this.apiToken}`).toString('base64');
+    this.auth = Buffer.from(`${this.email}:${this.apiToken}`).toString(
+      'base64'
+    );
   }
 
-  private async request<T>(method: string, endpoint: string, body?: unknown): Promise<T> {
+  private async request<T>(
+    method: string,
+    endpoint: string,
+    body?: unknown
+  ): Promise<T> {
     const url = `${this.baseUrl}/rest/api/3${endpoint}`;
     const response = await fetch(url, {
       method,
       headers: {
-        'Authorization': `Basic ${this.auth}`,
-        'Accept': 'application/json',
+        Authorization: `Basic ${this.auth}`,
+        Accept: 'application/json',
         'Content-Type': 'application/json',
       },
       body: body ? JSON.stringify(body) : undefined,
@@ -107,7 +113,11 @@ class JiraClient {
 
     const contentType = response.headers.get('content-type');
     const contentLength = response.headers.get('content-length');
-    if (response.status === 204 || contentLength === '0' || !contentType?.includes('application/json')) {
+    if (
+      response.status === 204 ||
+      contentLength === '0' ||
+      !contentType?.includes('application/json')
+    ) {
       return {} as T;
     }
 
@@ -126,24 +136,29 @@ class JiraClient {
     );
   }
 
-  async searchIssues(jql: string, maxResults: number = 100, nextPageToken?: string): Promise<JiraSearchResult> {
+  async searchIssues(
+    jql: string,
+    maxResults: number = 100,
+    nextPageToken?: string
+  ): Promise<JiraSearchResult> {
     // Use the new /search/jql endpoint with GET
     const params = new URLSearchParams({
       jql: jql,
       maxResults: maxResults.toString(),
-      fields: 'summary,description,status,issuetype,priority,labels,components,created,updated,assignee,reporter'
+      fields:
+        'summary,description,status,issuetype,priority,labels,components,created,updated,assignee,reporter',
     });
-    
+
     if (nextPageToken) {
       params.append('nextPageToken', nextPageToken);
     }
-    
+
     const url = `${this.baseUrl}/rest/api/3/search/jql?${params.toString()}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': `Basic ${this.auth}`,
-        'Accept': 'application/json',
+        Authorization: `Basic ${this.auth}`,
+        Accept: 'application/json',
       },
     });
 
@@ -155,7 +170,10 @@ class JiraClient {
     return response.json() as Promise<JiraSearchResult>;
   }
 
-  async listProjectIssues(projectKey: string, maxResults: number = 100): Promise<JiraIssue[]> {
+  async listProjectIssues(
+    projectKey: string,
+    maxResults: number = 100
+  ): Promise<JiraIssue[]> {
     const jql = `project = ${projectKey} ORDER BY created DESC`;
     const result = await this.searchIssues(jql, maxResults);
     return result.issues;
@@ -165,31 +183,33 @@ class JiraClient {
 function formatDescription(description: any): string {
   if (!description) return '';
   if (typeof description === 'string') return description;
-  
+
   if (description.type === 'doc' && description.content) {
     return formatAdfContent(description.content);
   }
-  
+
   return JSON.stringify(description, null, 2);
 }
 
 function formatAdfContent(content: any[]): string {
   if (!Array.isArray(content)) return '';
-  
-  return content.map(node => {
-    if (node.type === 'paragraph') {
-      return formatAdfParagraph(node);
-    } else if (node.type === 'heading') {
-      const level = node.attrs?.level || 2;
-      const text = formatAdfText(node.content || []);
-      return `${'#'.repeat(level)} ${text}`;
-    } else if (node.type === 'bulletList' || node.type === 'orderedList') {
-      return formatAdfList(node);
-    } else if (node.type === 'codeBlock') {
+
+  return content
+    .map((node) => {
+      if (node.type === 'paragraph') {
+        return formatAdfParagraph(node);
+      } else if (node.type === 'heading') {
+        const level = node.attrs?.level || 2;
+        const text = formatAdfText(node.content || []);
+        return `${'#'.repeat(level)} ${text}`;
+      } else if (node.type === 'bulletList' || node.type === 'orderedList') {
+        return formatAdfList(node);
+      } else if (node.type === 'codeBlock') {
+        return formatAdfText(node.content || []);
+      }
       return formatAdfText(node.content || []);
-    }
-    return formatAdfText(node.content || []);
-  }).join('\n\n');
+    })
+    .join('\n\n');
 }
 
 function formatAdfParagraph(node: any): string {
@@ -198,40 +218,47 @@ function formatAdfParagraph(node: any): string {
 
 function formatAdfList(node: any): string {
   if (!node.content || !Array.isArray(node.content)) return '';
-  
-  return node.content.map((item: any, index: number) => {
-    const prefix = node.type === 'orderedList' ? `${index + 1}.` : '-';
-    const text = formatAdfText(item.content || []);
-    return `${prefix} ${text}`;
-  }).join('\n');
+
+  return node.content
+    .map((item: any, index: number) => {
+      const prefix = node.type === 'orderedList' ? `${index + 1}.` : '-';
+      const text = formatAdfText(item.content || []);
+      return `${prefix} ${text}`;
+    })
+    .join('\n');
 }
 
 function formatAdfText(content: any[]): string {
   if (!Array.isArray(content)) return '';
-  
-  return content.map(node => {
-    if (node.type === 'text') {
-      let text = node.text || '';
-      if (node.marks) {
-        for (const mark of node.marks) {
-          if (mark.type === 'strong') {
-            text = `**${text}**`;
-          } else if (mark.type === 'em') {
-            text = `_${text}_`;
-          } else if (mark.type === 'code') {
-            text = `\`${text}\``;
+
+  return content
+    .map((node) => {
+      if (node.type === 'text') {
+        let text = node.text || '';
+        if (node.marks) {
+          for (const mark of node.marks) {
+            if (mark.type === 'strong') {
+              text = `**${text}**`;
+            } else if (mark.type === 'em') {
+              text = `_${text}_`;
+            } else if (mark.type === 'code') {
+              text = `\`${text}\``;
+            }
           }
         }
+        return text;
       }
-      return text;
-    }
-    return '';
-  }).join('');
+      return '';
+    })
+    .join('');
 }
 
-function formatIssue(issue: JiraIssue, includeDescription: boolean = true): string {
+function formatIssue(
+  issue: JiraIssue,
+  includeDescription: boolean = true
+): string {
   const lines: string[] = [];
-  
+
   lines.push(`# ${issue.key}: ${issue.fields.summary}`);
   lines.push('');
   lines.push(`**Type:** ${issue.fields.issuetype.name}`);
@@ -243,7 +270,9 @@ function formatIssue(issue: JiraIssue, includeDescription: boolean = true): stri
     lines.push(`**Labels:** ${issue.fields.labels.join(', ')}`);
   }
   if (issue.fields.components && issue.fields.components.length > 0) {
-    lines.push(`**Components:** ${issue.fields.components.map(c => c.name).join(', ')}`);
+    lines.push(
+      `**Components:** ${issue.fields.components.map((c) => c.name).join(', ')}`
+    );
   }
   lines.push(`**Created:** ${new Date(issue.fields.created).toLocaleString()}`);
   lines.push(`**Updated:** ${new Date(issue.fields.updated).toLocaleString()}`);
@@ -255,7 +284,7 @@ function formatIssue(issue: JiraIssue, includeDescription: boolean = true): stri
   }
   lines.push(`**URL:** ${process.env.JIRA_BASE_URL}/browse/${issue.key}`);
   lines.push('');
-  
+
   if (includeDescription && issue.fields.description) {
     lines.push('---');
     lines.push('');
@@ -264,7 +293,7 @@ function formatIssue(issue: JiraIssue, includeDescription: boolean = true): stri
     lines.push(formatDescription(issue.fields.description));
     lines.push('');
   }
-  
+
   return lines.join('\n');
 }
 
@@ -274,18 +303,24 @@ function formatIssueSummary(issue: JiraIssue): string {
 
 async function main() {
   const args = process.argv.slice(2);
-  
+
   if (args.length === 0) {
     console.error('Usage:');
     console.error('  ts-node scripts/read-jira-tickets.ts <TICKET-KEY>');
-    console.error('  ts-node scripts/read-jira-tickets.ts --list [--project EA|KAN|ALL]');
+    console.error(
+      '  ts-node scripts/read-jira-tickets.ts --list [--project EA|KAN|ALL]'
+    );
     console.error('  ts-node scripts/read-jira-tickets.ts --search <QUERY>');
     console.error('');
     console.error('Examples:');
     console.error('  ts-node scripts/read-jira-tickets.ts EA-14');
     console.error('  ts-node scripts/read-jira-tickets.ts --list --project EA');
-    console.error('  ts-node scripts/read-jira-tickets.ts --list --project ALL');
-    console.error('  ts-node scripts/read-jira-tickets.ts --search "DRAFT-LIFECYCLE"');
+    console.error(
+      '  ts-node scripts/read-jira-tickets.ts --list --project ALL'
+    );
+    console.error(
+      '  ts-node scripts/read-jira-tickets.ts --search "DRAFT-LIFECYCLE"'
+    );
     process.exit(1);
   }
 
@@ -296,10 +331,10 @@ async function main() {
     if (!args[0].startsWith('--')) {
       const issueKey = args[0];
       console.log(`📋 Fetching ticket: ${issueKey}\n`);
-      
+
       const issue = await client.getIssue(issueKey);
       console.log(formatIssue(issue));
-      
+
       return;
     }
 
@@ -313,66 +348,66 @@ async function main() {
         }
       }
 
-      const projects = projectFilter === 'ALL' ? ['EA', 'KAN'] : [projectFilter];
-      
+      const projects =
+        projectFilter === 'ALL' ? ['EA', 'KAN'] : [projectFilter];
+
       console.log(`📋 Listing tickets from: ${projects.join(', ')}\n`);
-      
+
       for (const projectKey of projects) {
         console.log(`\n${'='.repeat(60)}`);
         console.log(`Project: ${projectKey}`);
         console.log('='.repeat(60));
-        
+
         const issues = await client.listProjectIssues(projectKey, 100);
-        
+
         if (issues.length === 0) {
           console.log('No tickets found.');
           continue;
         }
-        
+
         console.log(`\nFound ${issues.length} ticket(s):\n`);
         console.log('Key | Status | Type | Summary');
         console.log('-'.repeat(80));
-        
+
         for (const issue of issues) {
           console.log(formatIssueSummary(issue));
         }
       }
-      
+
       return;
     }
 
     // Search tickets
     if (args[0] === '--search') {
       const query = args.slice(1).join(' ');
-      
+
       if (!query) {
         console.error('Error: Search query is required');
         process.exit(1);
       }
 
       console.log(`🔍 Searching for: "${query}"\n`);
-      
+
       const jql = `(project = EA OR project = KAN) AND (summary ~ "${query}" OR description ~ "${query}") ORDER BY created DESC`;
       const result = await client.searchIssues(jql, 50);
-      
+
       if (result.issues.length === 0) {
         console.log('No tickets found matching the search query.');
         return;
       }
-      
+
       console.log(`Found ${result.issues.length} ticket(s):\n`);
-      
+
       for (const issue of result.issues) {
         console.log(formatIssue(issue, false));
         console.log('\n' + '-'.repeat(80) + '\n');
       }
-      
+
       return;
     }
 
     console.error(`Unknown command: ${args[0]}`);
     process.exit(1);
-    
   } catch (error: any) {
     console.error(`\n❌ Error reading Jira tickets:`);
     console.error(error.message);

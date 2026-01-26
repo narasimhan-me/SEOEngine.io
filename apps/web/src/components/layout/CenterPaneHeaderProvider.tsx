@@ -34,12 +34,18 @@ interface CenterPaneHeaderContextValue {
   resetHeaderState: () => void;
 }
 
-const CenterPaneHeaderContext = createContext<CenterPaneHeaderContextValue | null>(null);
+const CenterPaneHeaderContext =
+  createContext<CenterPaneHeaderContextValue | null>(null);
 
 const DEFAULT_HEADER_STATE: CenterPaneHeaderState = {};
 
-export function CenterPaneHeaderProvider({ children }: { children: ReactNode }) {
-  const [headerState, setHeaderStateInternal] = useState<CenterPaneHeaderState>(DEFAULT_HEADER_STATE);
+export function CenterPaneHeaderProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const [headerState, setHeaderStateInternal] =
+    useState<CenterPaneHeaderState>(DEFAULT_HEADER_STATE);
 
   const setHeaderState = useCallback((state: CenterPaneHeaderState) => {
     setHeaderStateInternal(state);
@@ -50,7 +56,9 @@ export function CenterPaneHeaderProvider({ children }: { children: ReactNode }) 
   }, []);
 
   return (
-    <CenterPaneHeaderContext.Provider value={{ headerState, setHeaderState, resetHeaderState }}>
+    <CenterPaneHeaderContext.Provider
+      value={{ headerState, setHeaderState, resetHeaderState }}
+    >
       {children}
     </CenterPaneHeaderContext.Provider>
   );
@@ -63,7 +71,9 @@ export function CenterPaneHeaderProvider({ children }: { children: ReactNode }) 
 export function useCenterPaneHeader() {
   const context = useContext(CenterPaneHeaderContext);
   if (!context) {
-    throw new Error('useCenterPaneHeader must be used within CenterPaneHeaderProvider');
+    throw new Error(
+      'useCenterPaneHeader must be used within CenterPaneHeaderProvider'
+    );
   }
 
   const { setHeaderState, resetHeaderState, headerState } = context;
@@ -96,7 +106,9 @@ export function useCenterPaneHeader() {
 export function useCenterPaneHeaderState() {
   const context = useContext(CenterPaneHeaderContext);
   if (!context) {
-    throw new Error('useCenterPaneHeaderState must be used within CenterPaneHeaderProvider');
+    throw new Error(
+      'useCenterPaneHeaderState must be used within CenterPaneHeaderProvider'
+    );
   }
   return context.headerState;
 }

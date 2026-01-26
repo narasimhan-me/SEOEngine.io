@@ -204,7 +204,9 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1: Issues Page Draft Lifecycle', (
     await page.goto(`/projects/${projectId}/issues`);
 
     // Wait for issues to load - look for "Fix now" button
-    const fixNextButton = page.locator('[data-testid="issue-fix-next-button"]').first();
+    const fixNextButton = page
+      .locator('[data-testid="issue-fix-next-button"]')
+      .first();
 
     // If there are AI-fixable issues
     if (await fixNextButton.isVisible({ timeout: 10000 }).catch(() => false)) {
@@ -704,7 +706,9 @@ test.describe('DRAFT-CLARITY-AND-ACTION-TRUST-1 FIXUP-4: No Double Prompt After 
     });
 
     // Find "Fix now" button if available
-    const fixNextButton = page.locator('[data-testid="issue-fix-next-button"]').first();
+    const fixNextButton = page
+      .locator('[data-testid="issue-fix-next-button"]')
+      .first();
     if (await fixNextButton.isVisible({ timeout: 5000 }).catch(() => false)) {
       // Click "Fix now" to trigger AI preview (creates unsaved state)
       await fixNextButton.click();

@@ -130,7 +130,14 @@ export default function CollectionDetailPage() {
       title: displayTitle,
       scopeProjectId: projectId,
     });
-  }, [rcpIsOpen, rcpDescriptor, collectionId, projectId, collection, rcpOpenPanel]);
+  }, [
+    rcpIsOpen,
+    rcpDescriptor,
+    collectionId,
+    projectId,
+    collection,
+    rcpOpenPanel,
+  ]);
 
   /**
    * Switch tabs while preserving other URL params

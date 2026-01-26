@@ -28,7 +28,10 @@ import {
  */
 export type IconSize = 16 | 20 | 24;
 
-export interface IconProps extends Omit<ComponentPropsWithoutRef<'svg'>, 'children'> {
+export interface IconProps extends Omit<
+  ComponentPropsWithoutRef<'svg'>,
+  'children'
+> {
   /**
    * Semantic icon key from the manifest.
    * Format: 'category.name' (e.g., 'nav.dashboard', 'status.critical')
@@ -95,7 +98,10 @@ export function Icon({
  * Raw icon component for cases where you need to use the raw icon name directly.
  * Prefer using Icon with semantic keys when possible.
  */
-export interface RawIconProps extends Omit<ComponentPropsWithoutRef<'svg'>, 'children'> {
+export interface RawIconProps extends Omit<
+  ComponentPropsWithoutRef<'svg'>,
+  'children'
+> {
   /**
    * Raw Material Symbol name (e.g., 'home', 'settings', 'check_circle')
    */

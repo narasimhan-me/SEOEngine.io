@@ -9,10 +9,7 @@ import {
 } from 'next/navigation';
 import Link from 'next/link';
 
-import {
-  DataTable,
-  type DataTableColumn,
-} from '@/components/tables/DataTable';
+import { DataTable, type DataTableColumn } from '@/components/tables/DataTable';
 import type { DeoIssue } from '@/lib/deo-issues';
 import { isAuthenticated } from '@/lib/auth';
 import {
@@ -52,7 +49,10 @@ import { useFeedback } from '@/components/feedback/FeedbackProvider';
 // [DRAFT-AI-ENTRYPOINT-CLARITY-1] AI boundary note for human-only review and AI generation surfaces
 import { DraftAiBoundaryNote } from '@/components/common/DraftAiBoundaryNote';
 // [PLAYBOOKS-SHELL-REMOUNT-1] RCP integration for playbook details panel
-import { useRightContextPanel, type ContextDescriptor } from '@/components/right-context-panel/RightContextPanelProvider';
+import {
+  useRightContextPanel,
+  type ContextDescriptor,
+} from '@/components/right-context-panel/RightContextPanelProvider';
 // [CENTER-PANE-NAV-REMODEL-1] Shell header integration
 import { useCenterPaneHeader } from '@/components/layout/CenterPaneHeaderProvider';
 // [PLAYBOOK-ENTRYPOINT-INTEGRITY-1] Centralized routing helper
@@ -456,11 +456,7 @@ export default function AutomationPlaybooksPage() {
   // [RIGHT-CONTEXT-PANEL-AUTONOMY-1 FIXUP-3] Hydrate RCP descriptor with playbook name
   // Only runs when panel is open with matching playbook; does NOT reopen if dismissed
   useEffect(() => {
-    if (
-      !rcpIsOpen ||
-      rcpDescriptor?.kind !== 'playbook' ||
-      !rcpDescriptor.id
-    ) {
+    if (!rcpIsOpen || rcpDescriptor?.kind !== 'playbook' || !rcpDescriptor.id) {
       return;
     }
     // Find the matching playbook definition
@@ -485,7 +481,8 @@ export default function AutomationPlaybooksPage() {
   useEffect(() => {
     setHeader({
       title: 'Playbooks',
-      description: 'Safely apply AI-powered fixes to missing SEO metadata, with preview and token estimates before you run anything.',
+      description:
+        'Safely apply AI-powered fixes to missing SEO metadata, with preview and token estimates before you run anything.',
       actions: effectiveRole ? (
         <span className="text-xs text-muted-foreground">
           {getRoleDisplayLabel(effectiveRole)}
@@ -498,13 +495,12 @@ export default function AutomationPlaybooksPage() {
     try {
       setLoading(true);
       setError('');
-      const [, productsData, issuesResponse, entitlements] =
-        await Promise.all([
-          projectsApi.get(projectId), // Project name unused for now
-          productsApi.list(projectId),
-          projectsApi.deoIssues(projectId).catch(() => ({ issues: [] })),
-          billingApi.getEntitlements().catch(() => null),
-        ]);
+      const [, productsData, issuesResponse, entitlements] = await Promise.all([
+        projectsApi.get(projectId), // Project name unused for now
+        productsApi.list(projectId),
+        projectsApi.deoIssues(projectId).catch(() => ({ issues: [] })),
+        billingApi.getEntitlements().catch(() => null),
+      ]);
       setProducts(productsData);
       setIssues((issuesResponse.issues ?? []) as DeoIssue[]);
       if (entitlements && typeof (entitlements as any).plan === 'string') {
@@ -1245,7 +1241,13 @@ export default function AutomationPlaybooksPage() {
 
   // [PLAYBOOKS-SHELL-REMOUNT-1] Helper to build RCP descriptor for a playbook
   const getPlaybookDescriptor = useCallback(
-    (pb: { id: PlaybookId; name: string; description: string; field: string; totalAffected?: number }): ContextDescriptor => {
+    (pb: {
+      id: PlaybookId;
+      name: string;
+      description: string;
+      field: string;
+      totalAffected?: number;
+    }): ContextDescriptor => {
       const isEligible = planId !== 'free';
       const runnableState = isEligible
         ? (pb.totalAffected ?? 0) > 0
@@ -2073,7 +2075,9 @@ export default function AutomationPlaybooksPage() {
         {/* Error state */}
         {draftReviewError && (
           <div className="rounded-md bg-[hsl(var(--danger-background))] p-4">
-            <p className="text-sm text-[hsl(var(--danger-foreground))]">{draftReviewError}</p>
+            <p className="text-sm text-[hsl(var(--danger-foreground))]">
+              {draftReviewError}
+            </p>
           </div>
         )}
 
@@ -2994,7 +2998,9 @@ export default function AutomationPlaybooksPage() {
               cell: (row) => (
                 <div>
                   {/* [PLAYBOOKS-SHELL-REMOUNT-1 FIXUP-1] Selection highlight on title itself */}
-                  <p className={`text-foreground ${row.id === selectedPlaybookId ? 'font-semibold' : 'font-medium'}`}>
+                  <p
+                    className={`text-foreground ${row.id === selectedPlaybookId ? 'font-semibold' : 'font-medium'}`}
+                  >
                     {row.name}
                   </p>
                   <p className="text-xs text-muted-foreground line-clamp-1">
@@ -3008,7 +3014,9 @@ export default function AutomationPlaybooksPage() {
               header: 'What It Fixes',
               cell: (row) => (
                 <span className="text-sm text-muted-foreground">
-                  {row.field === 'seoTitle' ? 'Missing SEO titles' : 'Missing SEO descriptions'}
+                  {row.field === 'seoTitle'
+                    ? 'Missing SEO titles'
+                    : 'Missing SEO descriptions'}
                 </span>
               ),
             },
@@ -3032,18 +3040,22 @@ export default function AutomationPlaybooksPage() {
                   : !hasItems
                     ? 'Informational'
                     : 'Ready';
-                const stateClass = availabilityState === 'Ready'
-                  ? 'bg-[hsl(var(--success-background))] text-[hsl(var(--success-foreground))]'
-                  : availabilityState === 'Informational'
-                    ? 'bg-[hsl(var(--info-background))] text-[hsl(var(--info-foreground))]'
-                    : 'bg-muted text-muted-foreground';
+                const stateClass =
+                  availabilityState === 'Ready'
+                    ? 'bg-[hsl(var(--success-background))] text-[hsl(var(--success-foreground))]'
+                    : availabilityState === 'Informational'
+                      ? 'bg-[hsl(var(--info-background))] text-[hsl(var(--info-foreground))]'
+                      : 'bg-muted text-muted-foreground';
                 return (
                   <div className="flex flex-col gap-1">
-                    <span className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-xs font-medium ${stateClass}`}>
+                    <span
+                      className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-xs font-medium ${stateClass}`}
+                    >
                       {availabilityState}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {row.totalAffected} item{row.totalAffected !== 1 ? 's' : ''} affected
+                      {row.totalAffected} item
+                      {row.totalAffected !== 1 ? 's' : ''} affected
                     </span>
                   </div>
                 );
@@ -3579,10 +3591,14 @@ export default function AutomationPlaybooksPage() {
                             <div className="rounded border border-border bg-[hsl(var(--surface-card))] p-2 text-foreground">
                               {selectedDefinition.field === 'seoTitle'
                                 ? sample.currentTitle || (
-                                    <span className="text-muted-foreground/70">Empty</span>
+                                    <span className="text-muted-foreground/70">
+                                      Empty
+                                    </span>
                                   )
                                 : sample.currentDescription || (
-                                    <span className="text-muted-foreground/70">Empty</span>
+                                    <span className="text-muted-foreground/70">
+                                      Empty
+                                    </span>
                                   )}
                             </div>
                           </div>

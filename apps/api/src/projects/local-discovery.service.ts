@@ -241,9 +241,7 @@ export class LocalDiscoveryService {
    * Determine local applicability for a project.
    * Uses multiple signals to decide if local discovery is relevant.
    */
-  async determineApplicability(
-    projectId: string
-  ): Promise<{
+  async determineApplicability(projectId: string): Promise<{
     status: LocalApplicabilityStatus;
     reasons: LocalApplicabilityReason[];
   }> {

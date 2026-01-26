@@ -34,7 +34,10 @@ export function ContextPanelEntitySummary({
 
   // Derive status from metadata (locked vocabulary, never infer)
   const status =
-    metadata.statusLabel || metadata.chipLabel || metadata.shopifyStatus || null;
+    metadata.statusLabel ||
+    metadata.chipLabel ||
+    metadata.shopifyStatus ||
+    null;
 
   // Timestamps
   const lastSynced = metadata.lastSynced || 'Not available';

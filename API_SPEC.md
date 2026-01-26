@@ -741,7 +741,7 @@ Scoped estimate for a playbook with explicit asset targeting.
 
 - `scopeProductIds` can only be used with `assetType: PRODUCTS`
 - `scopeAssetRefs` can only be used with `assetType: PAGES` or `COLLECTIONS`
-- Ref format must match asset type (page_handle:_ for PAGES, collection_handle:_ for COLLECTIONS)
+- Ref format must match asset type (page*handle:* for PAGES, collection*handle:* for COLLECTIONS)
 
 ---
 

@@ -25,7 +25,12 @@ interface ContextPanelIssueDrilldownProps {
 }
 
 /** UX category derived from pillarId mapping */
-type IssueCategory = 'Metadata' | 'Content' | 'Search Intent' | 'Technical' | 'Other';
+type IssueCategory =
+  | 'Metadata'
+  | 'Content'
+  | 'Search Intent'
+  | 'Technical'
+  | 'Other';
 
 /** Map pillarId to UX category */
 function getCategoryFromPillar(pillarId?: DeoPillarId | string): IssueCategory {
@@ -80,7 +85,9 @@ export function ContextPanelIssueDrilldown({
 }: ContextPanelIssueDrilldownProps) {
   // Use in-memory issues if provided (including empty array) - treat as authoritative
   const hasInitialIssues = initialIssues !== undefined;
-  const [issues, setIssues] = useState<DeoIssue[]>(hasInitialIssues ? (initialIssues ?? []) : []);
+  const [issues, setIssues] = useState<DeoIssue[]>(
+    hasInitialIssues ? (initialIssues ?? []) : []
+  );
   const [loading, setLoading] = useState(!hasInitialIssues);
   const [error, setError] = useState<string | null>(null);
 
@@ -148,7 +155,9 @@ export function ContextPanelIssueDrilldown({
         className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-4"
         data-testid="context-panel-issue-drilldown-empty"
       >
-        <p className="text-sm text-muted-foreground">No issues for this item.</p>
+        <p className="text-sm text-muted-foreground">
+          No issues for this item.
+        </p>
       </div>
     );
   }
@@ -156,7 +165,9 @@ export function ContextPanelIssueDrilldown({
   // Group issues by UX category
   const groupedIssues = issues.reduce(
     (acc, issue) => {
-      const category = getCategoryFromPillar(issue.pillarId as DeoPillarId | undefined);
+      const category = getCategoryFromPillar(
+        issue.pillarId as DeoPillarId | undefined
+      );
       if (!acc[category]) {
         acc[category] = [];
       }
@@ -167,8 +178,16 @@ export function ContextPanelIssueDrilldown({
   );
 
   // Sort categories for consistent rendering
-  const categoryOrder: IssueCategory[] = ['Metadata', 'Content', 'Search Intent', 'Technical', 'Other'];
-  const sortedCategories = categoryOrder.filter((cat) => groupedIssues[cat]?.length > 0);
+  const categoryOrder: IssueCategory[] = [
+    'Metadata',
+    'Content',
+    'Search Intent',
+    'Technical',
+    'Other',
+  ];
+  const sortedCategories = categoryOrder.filter(
+    (cat) => groupedIssues[cat]?.length > 0
+  );
 
   // [UI-POLISH-&-CLARITY-1] Improved spacing and nested readability
   return (
@@ -190,7 +209,9 @@ export function ContextPanelIssueDrilldown({
                 data-testid={`issue-row-${issue.id}`}
               >
                 {/* Issue title */}
-                <p className="text-sm font-medium text-foreground">{issue.title}</p>
+                <p className="text-sm font-medium text-foreground">
+                  {issue.title}
+                </p>
 
                 {/* Severity badge */}
                 <span

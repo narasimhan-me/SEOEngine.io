@@ -284,11 +284,7 @@ export default function ProjectsPage() {
           </button>
         </div>
       ) : (
-        <DataTable
-          columns={columns}
-          rows={projects}
-          hideContextAction={true}
-        />
+        <DataTable columns={columns} rows={projects} hideContextAction={true} />
       )}
 
       {/* Create Project Modal */}

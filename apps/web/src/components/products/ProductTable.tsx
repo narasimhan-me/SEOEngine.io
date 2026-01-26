@@ -579,12 +579,13 @@ export function ProductTable({
       const resolvedActions = resolvedActionsById.get(product.id);
       // [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1 FIXUP-3] When productIssues is loaded (including empty),
       // pass in-memory issues for every product to prevent unnecessary per-asset fetch
-      const inMemoryIssues = productIssues !== undefined ? (productIssueData?.issues ?? []) : undefined;
+      const inMemoryIssues =
+        productIssues !== undefined
+          ? (productIssueData?.issues ?? [])
+          : undefined;
 
       // Derive SEO status truthfully from existing data (no fabrication)
-      const seoTitleStatus = product.seoTitle?.trim()
-        ? 'Set'
-        : 'Not set';
+      const seoTitleStatus = product.seoTitle?.trim() ? 'Set' : 'Not set';
       const seoDescriptionStatus = product.seoDescription?.trim()
         ? 'Set'
         : 'Not set';
@@ -592,7 +593,10 @@ export function ProductTable({
       // [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] Derive statusLabel using locked vocabulary
       // Prefer resolvedActionsById.get(product.id)?.chipLabel when available
       // Otherwise fall back to existing health state string
-      const statusLabel = resolvedActions?.chipLabel ?? (productIssueData?.healthState ?? 'Healthy');
+      const statusLabel =
+        resolvedActions?.chipLabel ??
+        productIssueData?.healthState ??
+        'Healthy';
 
       // Build metadata with enriched fields for RCP content expansion
       const metadata: Record<string, string> = {
@@ -620,7 +624,9 @@ export function ProductTable({
 
       // [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] lastApplied from product.lastOptimizedAt when present
       if (product.lastOptimizedAt) {
-        metadata.lastApplied = new Date(product.lastOptimizedAt).toLocaleString();
+        metadata.lastApplied = new Date(
+          product.lastOptimizedAt
+        ).toLocaleString();
       }
 
       // [RIGHT-CONTEXT-PANEL-CONTENT-EXPANSION-1] Action preview labels (non-navigational)

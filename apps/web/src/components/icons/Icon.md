@@ -29,6 +29,7 @@ import { Icon } from '@/components/icons/Icon';
 Icons are referenced using semantic keys in the format `category.name`:
 
 ### Navigation (`nav.*`)
+
 - `nav.dashboard` - Home/Dashboard
 - `nav.projects` - Projects/Inventory
 - `nav.settings` - Settings
@@ -36,12 +37,14 @@ Icons are referenced using semantic keys in the format `category.name`:
 - `nav.admin` - Admin Panel
 
 ### Utility (`utility.*`)
+
 - `utility.search` - Search
 - `utility.download` - Download
 - `utility.semantic` - Knowledge Graph
 - `utility.visibility` - View/Read-only
 
 ### Status (`status.*`)
+
 - `status.critical` - Error/Critical
 - `status.warning` - Warning
 - `status.healthy` - Success/Healthy
@@ -49,12 +52,14 @@ Icons are referenced using semantic keys in the format `category.name`:
 - `status.blocked` - Blocked/Forbidden
 
 ### Workflow (`workflow.*`)
+
 - `workflow.ai` - AI/Auto Awesome
 - `workflow.preview` - Preview
 - `workflow.apply` - Apply/Publish
 - `workflow.history` - History
 
 ### Playbook (`playbook.*`)
+
 - `playbook.title` - Title
 - `playbook.content` - Content/Article
 - `playbook.intent` - Intent/Target
@@ -62,6 +67,7 @@ Icons are referenced using semantic keys in the format `category.name`:
 ## How to Add an Icon
 
 1. **Discover the icon name**: Run the extraction script on Stitch HTML
+
    ```bash
    node scripts/extract-stitch-material-symbols.mjs path/to/stitch.html
    ```
@@ -71,6 +77,7 @@ Icons are referenced using semantic keys in the format `category.name`:
    - Ensure `viewBox="0 0 24 24"` and `fill="currentColor"`
 
 3. **Regenerate sprite**:
+
    ```bash
    node scripts/build-material-symbols-sprite.mjs
    ```
@@ -91,6 +98,7 @@ In the left rail navigation, icons are decorative because the parent `<a>` eleme
 ## Design Specifications
 
 Per Stitch design system:
+
 - Grid: 20 × 20 px
 - Stroke: 1.5 pt
 - Default size: 20px
@@ -99,6 +107,7 @@ Per Stitch design system:
 ## No CDN Policy
 
 This icon system intentionally avoids runtime CDN dependencies:
+
 - All SVGs are committed to the repository
 - Sprite is served from `/icons/material-symbols/sprite.svg`
 - App works fully offline once loaded

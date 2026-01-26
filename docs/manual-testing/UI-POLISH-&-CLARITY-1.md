@@ -538,7 +538,7 @@
   - **Apply button:** `bg-primary text-primary-foreground hover:bg-primary/90`
   - **Generate preview button (hasPreview false):** `bg-primary text-primary-foreground hover:bg-primary/90`
   - **Generate preview button (hasPreview true):** `border-border bg-[hsl(var(--surface-card))] text-foreground hover:bg-muted`
-  - **ZERO literal palette classes** in the entire playbooks page (no bg-gray-*, text-blue-*, border-amber-*, etc.)
+  - **ZERO literal palette classes** in the entire playbooks page (no bg-gray-_, text-blue-_, border-amber-\*, etc.)
   - All elements work correctly in dark mode
 
 ---
@@ -570,7 +570,7 @@
   - **Body text (counts):** `text-xs text-muted-foreground` (no text-purple-700 literal)
   - **AI runs avoided line:** `text-[hsl(var(--success-foreground))]` (unchanged, success semantic)
   - **Apply uses saved drafts line:** `text-xs text-muted-foreground` (no text-purple-600 literal)
-  - **No purple-* literal palette classes** anywhere in the callout
+  - **No purple-\* literal palette classes** anywhere in the callout
   - All elements remain readable in dark mode
 
 ---

@@ -16,12 +16,12 @@ This phase ensures that draft lifecycle states (NO_DRAFT, GENERATED_UNSAVED, SAV
 
 ## Draft Lifecycle States
 
-| State               | Meaning                                | Row Indicator      | Apply Button State    | Banner Copy                    |
-| ------------------- | -------------------------------------- | ------------------ | --------------------- | ------------------------------ |
-| `NO_DRAFT`          | No draft exists for this issue/product | (none)             | N/A                   | N/A                            |
-| `GENERATED_UNSAVED` | Draft generated but not saved          | "Draft not saved"  | Disabled              | "Draft — not applied"          |
-| `SAVED_NOT_APPLIED` | Draft saved but not applied to Shopify | "Draft saved"      | Enabled               | "Draft saved — not applied"    |
-| `APPLIED`           | Draft has been applied to Shopify      | "Applied"          | Hidden (chip shown)   | "Applied to Shopify on [date]" |
+| State               | Meaning                                | Row Indicator     | Apply Button State  | Banner Copy                    |
+| ------------------- | -------------------------------------- | ----------------- | ------------------- | ------------------------------ |
+| `NO_DRAFT`          | No draft exists for this issue/product | (none)            | N/A                 | N/A                            |
+| `GENERATED_UNSAVED` | Draft generated but not saved          | "Draft not saved" | Disabled            | "Draft — not applied"          |
+| `SAVED_NOT_APPLIED` | Draft saved but not applied to Shopify | "Draft saved"     | Enabled             | "Draft saved — not applied"    |
+| `APPLIED`           | Draft has been applied to Shopify      | "Applied"         | Hidden (chip shown) | "Applied to Shopify on [date]" |
 
 ---
 

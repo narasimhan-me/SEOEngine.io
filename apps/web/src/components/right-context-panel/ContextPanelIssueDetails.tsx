@@ -63,11 +63,7 @@ type LoadState = 'loading' | 'loaded' | 'not_found' | 'error';
  * Shows playbook info when issue is actionable and has a mapping.
  * Shows "No automated action available." for informational or blocked issues.
  */
-function AutomationGuidanceSection({
-  issue,
-}: {
-  issue: DeoIssue;
-}) {
+function AutomationGuidanceSection({ issue }: { issue: DeoIssue }) {
   // Determine if we should show recommendations
   const isActionable =
     issue.actionability !== 'informational' && issue.isActionableNow === true;
@@ -131,7 +127,13 @@ function AutomationGuidanceSection({
 function PlaybookInfoBlock({
   playbook,
 }: {
-  playbook: { playbookId: string; name: string; oneLineWhatItDoes: string; affects: string; preconditions: string[] };
+  playbook: {
+    playbookId: string;
+    name: string;
+    oneLineWhatItDoes: string;
+    affects: string;
+    preconditions: string[];
+  };
 }) {
   return (
     <div className="space-y-2">
@@ -219,7 +221,9 @@ export function ContextPanelIssueDetails({
   if (loadState === 'loading') {
     return (
       <div className="rounded-md border border-border bg-[hsl(var(--surface-card))] p-4">
-        <p className="text-sm text-muted-foreground">Loading issue details...</p>
+        <p className="text-sm text-muted-foreground">
+          Loading issue details...
+        </p>
       </div>
     );
   }
@@ -382,14 +386,16 @@ export function ContextPanelIssueDetails({
               Products
             </p>
             <ul className="space-y-1">
-              {issue.affectedProducts!.slice(0, maxItems).map((product, idx) => (
-                <li
-                  key={`product-${idx}`}
-                  className="text-sm text-foreground truncate"
-                >
-                  {product}
-                </li>
-              ))}
+              {issue
+                .affectedProducts!.slice(0, maxItems)
+                .map((product, idx) => (
+                  <li
+                    key={`product-${idx}`}
+                    className="text-sm text-foreground truncate"
+                  >
+                    {product}
+                  </li>
+                ))}
               {issue.affectedProducts!.length > maxItems && (
                 <li className="text-sm text-muted-foreground">
                   + {issue.affectedProducts!.length - maxItems} more
@@ -496,9 +502,19 @@ export function ContextPanelIssueDetails({
         {(() => {
           // Prefer passed-in state when present/valid, otherwise fall back conservatively
           let draftState: DraftLifecycleState = 'NO_DRAFT';
-          const validStates: DraftLifecycleState[] = ['NO_DRAFT', 'GENERATED_UNSAVED', 'SAVED_NOT_APPLIED', 'APPLIED'];
+          const validStates: DraftLifecycleState[] = [
+            'NO_DRAFT',
+            'GENERATED_UNSAVED',
+            'SAVED_NOT_APPLIED',
+            'APPLIED',
+          ];
 
-          if (passedDraftLifecycleState && validStates.includes(passedDraftLifecycleState as DraftLifecycleState)) {
+          if (
+            passedDraftLifecycleState &&
+            validStates.includes(
+              passedDraftLifecycleState as DraftLifecycleState
+            )
+          ) {
             draftState = passedDraftLifecycleState as DraftLifecycleState;
           } else if (issue.primaryProductId) {
             // Fall back: check sessionStorage for saved drafts
@@ -516,7 +532,10 @@ export function ContextPanelIssueDetails({
           // [FIXUP-1] Always render the draft line (removed NO_DRAFT gating)
           const draftCopy = getDraftLifecycleCopy(draftState);
           return (
-            <p className="mt-1 text-xs text-muted-foreground" title={draftCopy.description}>
+            <p
+              className="mt-1 text-xs text-muted-foreground"
+              title={draftCopy.description}
+            >
               Draft: {draftCopy.shortLabel}
             </p>
           );

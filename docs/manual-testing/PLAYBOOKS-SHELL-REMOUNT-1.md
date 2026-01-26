@@ -13,7 +13,7 @@
   - Integrate Right Context Panel (RCP) playbook details view with PANEL-DEEP-LINKS-1 deep-link support
   - Selection is now in-page state (no navigation on row click)
   - Preserve existing Preview → Estimate → Apply flow step continuity
-  - Enforce token-only styling (Design System v1.5) - no literal bg-white/bg-gray-*/text-gray-* classes
+  - Enforce token-only styling (Design System v1.5) - no literal bg-white/bg-gray-_/text-gray-_ classes
 
 - **High-level user impact and what "success" looks like:**
   - Playbooks page displays playbooks in a DataTable with consistent hover/focus states
@@ -96,7 +96,7 @@
 - **UI:** Playbooks display in a DataTable with columns: Playbook, What It Fixes, Asset Type, Availability
 - **UI:** Hover state visible (token-based: no bg-white flashes)
 - **UI:** Focus ring visible when tabbing through rows
-- **UI:** No literal palette classes (no bg-white, bg-gray-*, text-gray-* in dark mode)
+- **UI:** No literal palette classes (no bg-white, bg-gray-_, text-gray-_ in dark mode)
 
 ---
 

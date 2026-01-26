@@ -57,15 +57,18 @@
 **ID:** HP-001
 
 **Preconditions:**
+
 - Shopify app installed on test store
 - EngineO.ai user is logged in (token in localStorage)
 
 **Steps:**
+
 1. Open Shopify Admin for your test store
 2. Navigate to Apps section
 3. Click on EngineO.ai app
 
 **Expected Results:**
+
 - **UI:** App loads inside Shopify Admin iframe without blank screen
 - **URL:** Contains `embedded=1` and `host` query params
 - **Browser:** App Bridge CDN script loads (check Network tab)
@@ -78,14 +81,17 @@
 **ID:** HP-002
 
 **Preconditions:**
+
 - Shopify app installed on test store
 - EngineO.ai user is NOT logged in (no token)
 
 **Steps:**
+
 1. Clear EngineO.ai token from localStorage
 2. Open Shopify Admin → Apps → EngineO.ai
 
 **Expected Results:**
+
 - **UI:** Shows "Connecting to Shopify…" message with "Reconnect Shopify" button
 - **UI:** NOT a blank screen
 - **Action:** Clicking "Reconnect Shopify" redirects to /login with `next` param containing embedded return URL
@@ -97,14 +103,17 @@
 **ID:** HP-003
 
 **Preconditions:**
+
 - Scenario HP-002 completed (at auth required screen)
 
 **Steps:**
+
 1. Click "Reconnect Shopify" button
 2. Complete login (email/password)
 3. If 2FA enabled, complete 2FA verification
 
 **Expected Results:**
+
 - **UI:** After login, redirects back to embedded URL (with `host`, `embedded=1`)
 - **UI:** App loads normally inside Shopify iframe
 - **Session:** `next` param correctly preserved through 2FA flow if applicable
@@ -116,16 +125,19 @@
 **ID:** HP-004
 
 **Preconditions:**
+
 - App opened from Shopify Admin (embedded context)
 - User is logged in
 
 **Steps:**
+
 1. Navigate from dashboard to Projects list
 2. Open a specific project
 3. Navigate to Settings tab
 4. Navigate to Products tab
 
 **Expected Results:**
+
 - **URL:** All pages maintain `host` and `embedded=1` params
 - **UI:** No "Missing Shopify context" messages
 - **Session:** `shopify_host` persisted in sessionStorage
@@ -137,14 +149,17 @@
 **ID:** HP-005
 
 **Preconditions:**
+
 - User is logged in
 - No Shopify params in URL
 
 **Steps:**
+
 1. Open browser directly to `http://localhost:3000/projects`
 2. Navigate through the app normally
 
 **Expected Results:**
+
 - **UI:** App works exactly as before (no embedded UI/notices)
 - **URL:** No `host`, `embedded`, or `shop` params added
 - **Behavior:** All existing functionality unchanged
@@ -156,14 +171,17 @@
 **ID:** HP-006
 
 **Preconditions:**
+
 - App was previously opened from Shopify (host in sessionStorage)
 
 **Steps:**
+
 1. Open app from Shopify Admin (stores host)
 2. Manually navigate to `/projects` without host param
 3. Observe URL
 
 **Expected Results:**
+
 - **URL:** Automatically repaired to include `host`, `embedded=1`, `shop` (if available)
 - **UI:** Brief "Loading Shopify context…" then normal page
 - **Logs:** No errors in console
@@ -175,11 +193,13 @@
 **ID:** HP-007
 
 **Preconditions:**
+
 - App opened from Shopify Admin (embedded context)
 - User is logged in
 - Host stored in sessionStorage
 
 **Steps:**
+
 1. Open app from Shopify Admin
 2. Navigate to a deep route (e.g., `/projects/[id]/settings`)
 3. **Hard refresh** the page (Cmd+Shift+R / Ctrl+Shift+R)
@@ -188,12 +208,14 @@
 6. Inspect Response Headers
 
 **Expected Results:**
+
 - **UI:** App renders (shell or diagnostic), NOT a blank screen
 - **Headers:** Response includes `Content-Security-Policy: frame-ancestors 'self' https://admin.shopify.com https://*.myshopify.com;`
 - **Console:** No CSP-related errors (e.g., "Refused to frame...")
 - **Behavior:** If host was in sessionStorage, URL repair kicks in; if not, shows "Missing Shopify context" fallback
 
 **Why This Matters:**
+
 - Server-side middleware cannot access sessionStorage
 - Deep links inside Shopify iframe may not have `embedded=1` or `host` params
 - Without unconditional CSP, hard refresh inside iframe causes blank screen
@@ -206,16 +228,19 @@
 **ID:** HP-008
 
 **Preconditions:**
+
 - User is logged in
 - No Shopify params in URL
 - NOT inside Shopify iframe (direct browser access)
 
 **Steps:**
+
 1. Open browser directly to `http://localhost:3000/projects`
 2. Open DevTools → Console
 3. Navigate through the app normally
 
 **Expected Results:**
+
 - **UI:** App works exactly as before (no embedded UI/notices)
 - **Console:** No CSP-related errors or warnings
 - **Behavior:** frame-ancestors CSP is present but has no effect on standalone users
@@ -229,10 +254,12 @@
 **Description:** User opens embedded URL without host param and no prior session.
 
 **Steps:**
+
 1. Clear sessionStorage
 2. Navigate to `http://localhost:3000/projects?embedded=1` (no host)
 
 **Expected Behavior:**
+
 - Shows "Missing Shopify context. Please reopen the app from Shopify Admin."
 - Retry button reloads the page
 - NOT a blank screen
@@ -244,11 +271,13 @@
 **Description:** App Bridge cannot initialize due to missing env var.
 
 **Steps:**
+
 1. Remove `NEXT_PUBLIC_SHOPIFY_API_KEY` from `.env.local`
 2. Restart web server
 3. Open app from Shopify Admin
 
 **Expected Behavior:**
+
 - Shows "Unable to load inside Shopify" message
 - Provides "Open in EngineO.ai" link to standalone version
 - NOT a blank screen
@@ -260,9 +289,11 @@
 **Description:** Host param is present but malformed.
 
 **Steps:**
+
 1. Navigate to `http://localhost:3000/projects?embedded=1&host=invalid`
 
 **Expected Behavior:**
+
 - App attempts to load (App Bridge may fail gracefully)
 - If App Bridge fails, shows error fallback
 - NOT a blank screen
@@ -276,10 +307,12 @@
 **Scenario:** CDN script fails to load (network issue).
 
 **Steps:**
+
 1. Block `cdn.shopify.com` in browser DevTools
 2. Open app from Shopify Admin
 
 **Expected Behavior:**
+
 - App still renders (with degraded functionality)
 - Shows appropriate error if App Bridge features are used
 - NOT a blank screen
@@ -291,11 +324,13 @@
 **Scenario:** User's EngineO.ai token expires while using embedded app.
 
 **Steps:**
+
 1. Open app from Shopify Admin
 2. Manually clear token from localStorage
 3. Perform an API action (e.g., sync products)
 
 **Expected Behavior:**
+
 - API returns 401
 - UI handles gracefully (shows login prompt or redirects)
 - Embedded context preserved if redirected to login
@@ -307,10 +342,12 @@
 **Scenario:** Attacker tries to use `next` param for open redirect.
 
 **Steps:**
+
 1. Navigate to `/login?next=https://evil.com/steal`
 2. Complete login
 
 **Expected Behavior:**
+
 - Unsafe `next` URL is rejected
 - User redirected to `/projects` instead
 - No open redirect vulnerability
@@ -324,9 +361,11 @@
 **Scenario:** No specific limits apply to embedded shell functionality.
 
 **Steps:**
+
 1. N/A
 
 **Expected Behavior:**
+
 - N/A
 
 ---
@@ -380,9 +419,9 @@
 
 ## Approval
 
-| Field | Value |
-|-------|-------|
-| **Tester Name** | [Pending] |
-| **Date** | [YYYY-MM-DD] |
-| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed |
-| **Notes** | SHOPIFY-EMBEDDED-SHELL-1 manual testing |
+| Field              | Value                                   |
+| ------------------ | --------------------------------------- |
+| **Tester Name**    | [Pending]                               |
+| **Date**           | [YYYY-MM-DD]                            |
+| **Overall Status** | [ ] Passed / [ ] Blocked / [ ] Failed   |
+| **Notes**          | SHOPIFY-EMBEDDED-SHELL-1 manual testing |

@@ -55,7 +55,11 @@ export function TripletDisplay({
         >
           {triplet.actionableNowCount}
         </div>
-        <div className={`${classes.label} ${emphasis === 'actionable' ? 'text-primary' : ''}`}>Actionable now</div>
+        <div
+          className={`${classes.label} ${emphasis === 'actionable' ? 'text-primary' : ''}`}
+        >
+          Actionable now
+        </div>
       </div>
       <div
         className="flex flex-col items-center"

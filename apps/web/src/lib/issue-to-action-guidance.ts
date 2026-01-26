@@ -55,7 +55,8 @@ const ISSUE_TO_PLAYBOOK_MAP: Record<string, RecommendedPlaybook[]> = {
       name: 'Fix missing SEO descriptions',
       oneLineWhatItDoes:
         'Generates SEO descriptions for assets within the playbook scope that are missing them.',
-      affects: 'Assets within the current playbook scope missing SEO descriptions',
+      affects:
+        'Assets within the current playbook scope missing SEO descriptions',
       preconditions: [
         'Preview generation may require appropriate permissions.',
         'No changes are applied unless you explicitly proceed to the Apply step.',

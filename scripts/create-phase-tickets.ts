@@ -15,7 +15,7 @@ const envPath = join(projectRoot, '.env');
 
 if (existsSync(envPath)) {
   const envContent = readFileSync(envPath, 'utf-8');
-  envContent.split('\n').forEach(line => {
+  envContent.split('\n').forEach((line) => {
     const trimmed = line.trim();
     if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
       const [key, ...valueParts] = trimmed.split('=');
@@ -56,16 +56,22 @@ class JiraClient {
       throw new Error('Missing required Jira environment variables');
     }
 
-    this.auth = Buffer.from(`${this.email}:${this.apiToken}`).toString('base64');
+    this.auth = Buffer.from(`${this.email}:${this.apiToken}`).toString(
+      'base64'
+    );
   }
 
-  private async request<T>(method: string, endpoint: string, body?: unknown): Promise<T> {
+  private async request<T>(
+    method: string,
+    endpoint: string,
+    body?: unknown
+  ): Promise<T> {
     const url = `${this.baseUrl}/rest/api/3${endpoint}`;
     const response = await fetch(url, {
       method,
       headers: {
-        'Authorization': `Basic ${this.auth}`,
-        'Accept': 'application/json',
+        Authorization: `Basic ${this.auth}`,
+        Accept: 'application/json',
         'Content-Type': 'application/json',
       },
       body: body ? JSON.stringify(body) : undefined,
@@ -78,7 +84,11 @@ class JiraClient {
 
     const contentType = response.headers.get('content-type');
     const contentLength = response.headers.get('content-length');
-    if (response.status === 204 || contentLength === '0' || !contentType?.includes('application/json')) {
+    if (
+      response.status === 204 ||
+      contentLength === '0' ||
+      !contentType?.includes('application/json')
+    ) {
       return {} as T;
     }
 
@@ -92,40 +102,53 @@ class JiraClient {
 
   async getIssueTypes(): Promise<Array<{ id: string; name: string }>> {
     try {
-      const projectData = await this.request<{ issueTypes: Array<{ id: string; name: string }> }>(
-        'GET',
-        `/project/${this.projectKey}`
-      );
+      const projectData = await this.request<{
+        issueTypes: Array<{ id: string; name: string }>;
+      }>('GET', `/project/${this.projectKey}`);
       return projectData.issueTypes || [];
     } catch {
-      return this.request<Array<{ id: string; name: string }>>('GET', '/issuetype');
+      return this.request<Array<{ id: string; name: string }>>(
+        'GET',
+        '/issuetype'
+      );
     }
   }
 
   async getPriorities(): Promise<Array<{ id: string; name: string }>> {
-    return this.request<Array<{ id: string; name: string }>>('GET', '/priority');
+    return this.request<Array<{ id: string; name: string }>>(
+      'GET',
+      '/priority'
+    );
   }
 
-  async createIssue(data: PhaseTicket): Promise<{ key: string; id: string; self: string }> {
+  async createIssue(
+    data: PhaseTicket
+  ): Promise<{ key: string; id: string; self: string }> {
     const issueTypes = await this.getIssueTypes();
-    const issueType = issueTypes.find(
-      it => it.name.toLowerCase() === data.type.toLowerCase() ||
-            (it.name.toLowerCase().includes('task') && data.type.toLowerCase().includes('task'))
-    ) || issueTypes[0];
+    const issueType =
+      issueTypes.find(
+        (it) =>
+          it.name.toLowerCase() === data.type.toLowerCase() ||
+          (it.name.toLowerCase().includes('task') &&
+            data.type.toLowerCase().includes('task'))
+      ) || issueTypes[0];
 
     const priorities = await this.getPriorities();
-    const priority = priorities.find(
-      p => p.name.toLowerCase() === data.priority.toLowerCase()
-    ) || priorities.find(p => p.name.toLowerCase() === 'medium') || priorities[2];
+    const priority =
+      priorities.find(
+        (p) => p.name.toLowerCase() === data.priority.toLowerCase()
+      ) ||
+      priorities.find((p) => p.name.toLowerCase() === 'medium') ||
+      priorities[2];
 
     // Convert description to ADF format
-    const lines = data.description.split('\n').filter(l => l.trim());
+    const lines = data.description.split('\n').filter((l) => l.trim());
     const descriptionContent: any[] = [];
-    
+
     for (const line of lines) {
       const trimmed = line.trim();
       if (!trimmed) continue;
-      
+
       if (trimmed.startsWith('h2. ')) {
         descriptionContent.push({
           type: 'heading',
@@ -134,20 +157,24 @@ class JiraClient {
         });
         continue;
       }
-      
+
       const content: any[] = [];
       const tokens = trimmed.split(/(\*[^*]+\*|_[^_]+_)/);
-      
+
       for (const token of tokens) {
         if (!token) continue;
-        
+
         if (token.startsWith('*') && token.endsWith('*') && token.length > 2) {
           content.push({
             type: 'text',
             text: token.slice(1, -1),
             marks: [{ type: 'strong' }],
           });
-        } else if (token.startsWith('_') && token.endsWith('_') && token.length > 2) {
+        } else if (
+          token.startsWith('_') &&
+          token.endsWith('_') &&
+          token.length > 2
+        ) {
           content.push({
             type: 'text',
             text: token.slice(1, -1),
@@ -157,7 +184,7 @@ class JiraClient {
           content.push({ type: 'text', text: token });
         }
       }
-      
+
       if (content.length > 0) {
         descriptionContent.push({
           type: 'paragraph',
@@ -169,14 +196,22 @@ class JiraClient {
     const issue: any = {
       fields: {
         project: { key: this.projectKey },
-        summary: data.summary.length > 255 ? data.summary.substring(0, 252) + '...' : data.summary,
+        summary:
+          data.summary.length > 255
+            ? data.summary.substring(0, 252) + '...'
+            : data.summary,
         description: {
           type: 'doc',
           version: 1,
-          content: descriptionContent.length > 0 ? descriptionContent : [{
-            type: 'paragraph',
-            content: [{ type: 'text', text: data.description }],
-          }],
+          content:
+            descriptionContent.length > 0
+              ? descriptionContent
+              : [
+                  {
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: data.description }],
+                  },
+                ],
         },
         issuetype: { id: issueType.id },
         priority: { id: priority.id },
@@ -184,14 +219,19 @@ class JiraClient {
       },
     };
 
-    return this.request<{ key: string; id: string; self: string }>('POST', '/issue', issue);
+    return this.request<{ key: string; id: string; self: string }>(
+      'POST',
+      '/issue',
+      issue
+    );
   }
 }
 
 const phases: PhaseTicket[] = [
   {
     phaseName: 'ISSUE-FIX-ROUTE-INTEGRITY-1',
-    summary: 'ISSUE-FIX-ROUTE-INTEGRITY-1: Issues Decision Engine — No Dead Clicks',
+    summary:
+      'ISSUE-FIX-ROUTE-INTEGRITY-1: Issues Decision Engine — No Dead Clicks',
     description: `h2. Overview
 
 ISSUE-FIX-ROUTE-INTEGRITY-1 eliminates "dead clicks" in the Issues Engine by implementing a centralized destination map that serves as the source of truth for issue action availability. Every clickable action now leads to a valid, implemented destination with explicit blocked states when actions are unavailable.
@@ -215,7 +255,8 @@ Date Completed: 2026-01-25`,
   },
   {
     phaseName: 'ISSUE-FIX-KIND-CLARITY-1',
-    summary: 'ISSUE-FIX-KIND-CLARITY-1: Diagnostic vs Fixable Issue CTA Semantics',
+    summary:
+      'ISSUE-FIX-KIND-CLARITY-1: Diagnostic vs Fixable Issue CTA Semantics',
     description: `h2. Overview
 
 ISSUE-FIX-KIND-CLARITY-1 eliminates semantic ambiguity in Issue row actions by making the "kind" of fix explicit at the point of decision, without adding new flows or backend changes.
@@ -244,7 +285,8 @@ Date Completed: 2026-01-25 (FIXUP-3)`,
   },
   {
     phaseName: 'DRAFT-LIFECYCLE-VISIBILITY-1',
-    summary: 'DRAFT-LIFECYCLE-VISIBILITY-1: Make the draft lifecycle explicit and unmistakable everywhere it appears',
+    summary:
+      'DRAFT-LIFECYCLE-VISIBILITY-1: Make the draft lifecycle explicit and unmistakable everywhere it appears',
     description: `h2. Overview
 
 Make the draft lifecycle explicit and unmistakable everywhere it appears, so users always know whether a draft exists, is saved, has been applied, and what will happen next.
@@ -275,7 +317,8 @@ h2. Status
   },
   {
     phaseName: 'ISSUE-ACTION-DESTINATION-GAPS-1',
-    summary: 'ISSUE-ACTION-DESTINATION-GAPS-1: Known destination gaps that should be addressed to expand fix/open coverage safely',
+    summary:
+      'ISSUE-ACTION-DESTINATION-GAPS-1: Known destination gaps that should be addressed to expand fix/open coverage safely',
     description: `h2. Overview
 
 Some Issue row actions intentionally fall back to Blocked due to missing or incomplete action destinations (e.g., missing Shopify admin URLs or unsupported asset types). These are not regressions, but known destination gaps that should be addressed to expand fix/open coverage safely.
@@ -310,9 +353,13 @@ async function main() {
       console.log(`📝 Creating: ${phase.summary}`);
       const result = await client.createIssue(phase);
       console.log(`✅ Created: ${result.key} - ${result.id}`);
-      console.log(`   URL: ${process.env.JIRA_BASE_URL}/browse/${result.key}\n`);
+      console.log(
+        `   URL: ${process.env.JIRA_BASE_URL}/browse/${result.key}\n`
+      );
     } catch (error: any) {
-      console.error(`❌ Failed to create ${phase.phaseName}: ${error.message}\n`);
+      console.error(
+        `❌ Failed to create ${phase.phaseName}: ${error.message}\n`
+      );
     }
   }
 

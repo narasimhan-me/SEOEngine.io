@@ -173,7 +173,9 @@ export default function AdminGovernanceAuditPage() {
 
   if (loading && events.length === 0) {
     return (
-      <p className="text-muted-foreground">Loading governance audit events...</p>
+      <p className="text-muted-foreground">
+        Loading governance audit events...
+      </p>
     );
   }
 

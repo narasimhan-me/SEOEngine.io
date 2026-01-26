@@ -140,19 +140,22 @@ export function DataTable<T extends DataTableRow>({
    * [TABLES-&-LISTS-ALIGNMENT-1 FIXUP-3] Check if event target is an interactive element.
    * When true, row keyboard handling should be skipped to allow native element behavior.
    */
-  const isInteractiveElement = useCallback((target: EventTarget | null): boolean => {
-    if (!(target instanceof HTMLElement)) return false;
-    // Interactive elements: a, button, input, textarea, select, [contenteditable], [data-no-row-keydown]
-    return !!(
-      target.closest('a') ||
-      target.closest('button') ||
-      target.closest('input') ||
-      target.closest('textarea') ||
-      target.closest('select') ||
-      target.closest('[contenteditable]') ||
-      target.closest('[data-no-row-keydown]')
-    );
-  }, []);
+  const isInteractiveElement = useCallback(
+    (target: EventTarget | null): boolean => {
+      if (!(target instanceof HTMLElement)) return false;
+      // Interactive elements: a, button, input, textarea, select, [contenteditable], [data-no-row-keydown]
+      return !!(
+        target.closest('a') ||
+        target.closest('button') ||
+        target.closest('input') ||
+        target.closest('textarea') ||
+        target.closest('select') ||
+        target.closest('[contenteditable]') ||
+        target.closest('[data-no-row-keydown]')
+      );
+    },
+    []
+  );
 
   const handleRowKeyDown = useCallback(
     (event: KeyboardEvent<HTMLTableRowElement>, rowIndex: number, row: T) => {
@@ -189,7 +192,14 @@ export function DataTable<T extends DataTableRow>({
           break;
       }
     },
-    [rows.length, onOpenContext, getRowDescriptor, rowEnterKeyBehavior, onRowClick, isInteractiveElement]
+    [
+      rows.length,
+      onOpenContext,
+      getRowDescriptor,
+      rowEnterKeyBehavior,
+      onRowClick,
+      isInteractiveElement,
+    ]
   );
 
   const handleContextClick = useCallback(
@@ -232,10 +242,7 @@ export function DataTable<T extends DataTableRow>({
 
   return (
     <div className="w-full overflow-hidden rounded-md border border-border">
-      <table
-        className="w-full border-collapse"
-        data-testid="data-table"
-      >
+      <table className="w-full border-collapse" data-testid="data-table">
         <thead>
           <tr className="border-b border-border bg-[hsl(var(--surface-raised))]">
             {columns.map((column) => (
@@ -244,7 +251,9 @@ export function DataTable<T extends DataTableRow>({
                 className={[
                   paddingClass,
                   'text-left text-xs font-semibold uppercase tracking-wider',
-                  headerContrast === 'strong' ? 'text-foreground' : 'text-foreground/80',
+                  headerContrast === 'strong'
+                    ? 'text-foreground'
+                    : 'text-foreground/80',
                   column.width || '',
                 ].join(' ')}
               >
@@ -256,7 +265,9 @@ export function DataTable<T extends DataTableRow>({
                 className={[
                   paddingClass,
                   'w-12 text-right text-xs font-semibold uppercase tracking-wider',
-                  headerContrast === 'strong' ? 'text-foreground' : 'text-foreground/80',
+                  headerContrast === 'strong'
+                    ? 'text-foreground'
+                    : 'text-foreground/80',
                 ].join(' ')}
               >
                 <span className="sr-only">Actions</span>

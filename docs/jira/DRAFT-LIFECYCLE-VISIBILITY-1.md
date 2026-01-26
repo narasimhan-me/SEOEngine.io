@@ -31,6 +31,7 @@ Make the draft lifecycle explicit and unmistakable everywhere it appears, so use
 Make the draft lifecycle explicit and unmistakable everywhere it appears.
 
 A user must always know:
+
 - Whether a draft exists
 - Whether it is generated but unsaved
 - Whether it is saved (pending apply)
@@ -44,6 +45,7 @@ If state is ambiguous, default to conservative language and disabled actions.
 ## Objective
 
 Surface a clear, consistent, and user-comprehensible draft lifecycle across:
+
 - Issues Decision Engine (table rows + inline preview strip)
 - Right Context Panel (issue details)
 
@@ -64,19 +66,23 @@ NO new pages. NO new flows.
 Derive from existing client/server signals only:
 
 ### 1. NO_DRAFT
+
 - No draft exists
 - No apply possible
 
 ### 2. GENERATED_UNSAVED
+
 - Preview exists
 - Not persisted
 - Apply must be disabled
 
 ### 3. SAVED_NOT_APPLIED
+
 - Persisted draft exists
 - Apply is available
 
 ### 4. APPLIED
+
 - Draft has been applied
 - No further apply action
 
@@ -87,13 +93,16 @@ Derive from existing client/server signals only:
 ### PATCH 1 — Centralize draft state derivation helper
 
 Create (or extend) a helper near existing draft logic, e.g.:
+
 - `apps/web/src/lib/drafts/draftLifecycleState.ts`
 
 Export:
+
 - `deriveDraftLifecycleState(inputSignals) -> DraftLifecycleState`
 - `getDraftLifecycleCopy(state) -> { label, shortLabel, description }`
 
 Input signals must come ONLY from what the UI already has:
+
 - `hasPreview` / `previewGenerated`
 - `getDraftState()` (existing)
 - any existing apply result flag already present in UI state
@@ -104,15 +113,18 @@ Do NOT invent state.
 ### PATCH 2 — Issues table row: subtle draft state indicator
 
 In:
+
 - `apps/web/src/app/projects/[id]/issues/page.tsx`
 
 Add a small, non-action indicator in the row (near Actions column or beneath the Fix CTA) WHEN a draft exists:
+
 - GENERATED_UNSAVED → "Draft not saved"
 - SAVED_NOT_APPLIED → "Draft saved"
 - APPLIED → "Applied"
-NO indicator for NO_DRAFT.
+  NO indicator for NO_DRAFT.
 
 Rules:
+
 - Must not look clickable.
 - Must not compete with the primary CTA.
 - Must not introduce a new button.
@@ -120,6 +132,7 @@ Rules:
 ### PATCH 3 — Inline preview strip: enforce state-driven gating + copy
 
 Where the inline preview actions exist (Generate/Save/Apply):
+
 - **GENERATED_UNSAVED:**
   - Apply disabled
   - Tooltip: "Save draft before applying"
@@ -140,9 +153,11 @@ Do NOT change existing handlers; only align copy/visibility to state.
 ### PATCH 4 — Right Context Panel: echo the same draft lifecycle state
 
 In the issue details panel component (where actionability is shown):
+
 - Add a single line (copy only) that reflects draft lifecycle state using `getDraftLifecycleCopy()`.
 
 Examples:
+
 - "No draft exists"
 - "Draft generated (not saved)"
 - "Draft saved (not applied)"
@@ -153,15 +168,18 @@ No new panel sections; keep it tight.
 ### PATCH 5 — Manual testing doc + Implementation Plan
 
 Create:
+
 - `docs/manual-testing/DRAFT-LIFECYCLE-VISIBILITY-1.md`
 
 Include explicit test cases for:
+
 - Each canonical state
 - Apply enable/disable rules
 - No silent transitions
 - Consistency between Issues table + inline preview + RCP
 
 Update:
+
 - `docs/IMPLEMENTATION_PLAN.md`
 
 Add this phase with a link to the manual testing doc.
@@ -169,6 +187,7 @@ Add this phase with a link to the manual testing doc.
 ### PATCH 6 — Dev-time regression guardrails (non-fatal)
 
 Add console warnings in dev when:
+
 - Apply is enabled but derived state != SAVED_NOT_APPLIED
 - UI shows "Applied" state without an apply completion signal
 - Any mismatch between inline preview state and row indicator state

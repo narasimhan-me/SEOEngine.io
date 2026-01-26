@@ -24,23 +24,24 @@ Configure these settings in your Shopify Partner Dashboard → Apps → [Your Ap
 
 ### App URLs
 
-| Setting | Value | Notes |
-|---------|-------|-------|
-| **App URL** | `https://app.engineo.ai` | Frontend app URL (Next.js). Supports embedded context. |
-| **Allowed redirection URL(s)** | `https://api.engineo.ai/shopify/callback` | Backend OAuth callback (NestJS API). Different subdomain! |
-| **Embedded app home URL** | `https://app.engineo.ai/projects` | Entry point when opened from Shopify Admin. Shopify appends `host`, `embedded=1`, `shop`, etc. |
+| Setting                        | Value                                     | Notes                                                                                          |
+| ------------------------------ | ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| **App URL**                    | `https://app.engineo.ai`                  | Frontend app URL (Next.js). Supports embedded context.                                         |
+| **Allowed redirection URL(s)** | `https://api.engineo.ai/shopify/callback` | Backend OAuth callback (NestJS API). Different subdomain!                                      |
+| **Embedded app home URL**      | `https://app.engineo.ai/projects`         | Entry point when opened from Shopify Admin. Shopify appends `host`, `embedded=1`, `shop`, etc. |
 
 **Important:** The App URL (`app.engineo.ai`) and OAuth callback URL (`api.engineo.ai/shopify/callback`) intentionally use different subdomains:
+
 - **App URL** → Next.js frontend (`apps/web`)
 - **OAuth callback** → NestJS API (`apps/api`)
 
 ### GDPR Webhooks (Required for App Store)
 
-| Endpoint | URL |
-|----------|-----|
+| Endpoint              | URL                                                              |
+| --------------------- | ---------------------------------------------------------------- |
 | Customer data request | `https://api.engineo.ai/shopify/webhooks/customers/data_request` |
-| Customer data erasure | `https://api.engineo.ai/shopify/webhooks/customers/redact` |
-| Shop data erasure | `https://api.engineo.ai/shopify/webhooks/shop/redact` |
+| Customer data erasure | `https://api.engineo.ai/shopify/webhooks/customers/redact`       |
+| Shop data erasure     | `https://api.engineo.ai/shopify/webhooks/shop/redact`            |
 
 ### Required Scopes
 
@@ -68,6 +69,7 @@ See `docs/SHOPIFY_SCOPES_MATRIX.md` for the full scope matrix. Key scopes:
 ### Embedded OAuth
 
 When the app is opened from Shopify Admin, OAuth may be triggered if:
+
 - User is not authenticated in EngineO.ai
 - Store is not connected to current project
 
@@ -98,11 +100,13 @@ This must match the Shopify app's **Client ID** from the Partner Dashboard.
 App Bridge v4 uses a CDN-hosted script approach (not an npm provider).
 
 1. **Meta tag** (in `<head>` of `layout.tsx`):
+
    ```html
    <meta name="shopify-api-key" content="YOUR_SHOPIFY_API_KEY" />
    ```
 
 2. **App Bridge script** (in `<head>` of `layout.tsx`):
+
    ```html
    <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
    ```
@@ -117,14 +121,14 @@ App Bridge v4 uses a CDN-hosted script approach (not an npm provider).
 
 When opened from Shopify Admin, these params are appended to the App URL:
 
-| Param | Description |
-|-------|-------------|
-| `host` | Base64-encoded Shopify Admin host (required for App Bridge) |
-| `shop` | Shop domain (e.g., `mystore.myshopify.com`) |
-| `embedded` | Set to `1` when in embedded context |
-| `hmac` | HMAC signature for request validation |
-| `timestamp` | Request timestamp |
-| `locale` | Merchant's locale |
+| Param       | Description                                                 |
+| ----------- | ----------------------------------------------------------- |
+| `host`      | Base64-encoded Shopify Admin host (required for App Bridge) |
+| `shop`      | Shop domain (e.g., `mystore.myshopify.com`)                 |
+| `embedded`  | Set to `1` when in embedded context                         |
+| `hmac`      | HMAC signature for request validation                       |
+| `timestamp` | Request timestamp                                           |
+| `locale`    | Merchant's locale                                           |
 
 ### Frame Embedding Headers
 
@@ -170,6 +174,7 @@ NEXT_PUBLIC_SHOPIFY_API_KEY=your_client_id_here
 **Cause:** Embedded context detected but no `host` available.
 
 **Solutions:**
+
 1. Reopen the app from Shopify Admin
 2. Check that `NEXT_PUBLIC_SHOPIFY_API_KEY` is set correctly
 3. Clear browser sessionStorage and retry
@@ -179,6 +184,7 @@ NEXT_PUBLIC_SHOPIFY_API_KEY=your_client_id_here
 **Cause:** App Bridge failed to initialize (e.g., missing API key).
 
 **Solutions:**
+
 1. Verify `NEXT_PUBLIC_SHOPIFY_API_KEY` matches Partner Dashboard Client ID
 2. Check that App Bridge CDN script loads (Network tab)
 3. Use standalone mode as fallback
@@ -188,6 +194,7 @@ NEXT_PUBLIC_SHOPIFY_API_KEY=your_client_id_here
 **Cause:** OAuth flow failed during token exchange.
 
 **Solutions:**
+
 1. Verify `SHOPIFY_API_SECRET` is correct
 2. Check that callback URL matches Partner Dashboard configuration exactly
 3. Review API server logs for specific error
