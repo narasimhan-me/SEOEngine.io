@@ -212,15 +212,22 @@ class Config:
     @classmethod
     def load(cls) -> 'Config':
         """Load configuration from environment variables"""
+        # Jira credential aliases (JIRA_USERNAME/JIRA_EMAIL, JIRA_TOKEN/JIRA_API_TOKEN)
+        jira_username = os.environ.get('JIRA_USERNAME') or os.environ.get('JIRA_EMAIL', '')
+        jira_token = os.environ.get('JIRA_TOKEN') or os.environ.get('JIRA_API_TOKEN', '')
+
         return cls(
             jira_url=os.environ.get('JIRA_URL', ''),
-            jira_username=os.environ.get('JIRA_USERNAME', ''),
-            jira_token=os.environ.get('JIRA_TOKEN', ''),
+            jira_username=jira_username,
+            jira_token=jira_token,
             github_token=os.environ.get('GITHUB_TOKEN', ''),
             gmail_address=os.environ.get('GMAIL_ADDRESS'),
             gmail_password=os.environ.get('GMAIL_APP_PASSWORD'),
             escalation_email=os.environ.get('ESCALATION_EMAIL', 'nm@narasimhan.me'),
             repo_path=os.environ.get('REPO_PATH', '/Users/lavanya/engineo/EngineO.ai'),
+            feature_branch=os.environ.get('FEATURE_BRANCH', 'feature/agent'),
+            product_discovery_project=os.environ.get('PRODUCT_DISCOVERY_PROJECT', 'EA'),
+            software_project=os.environ.get('SOFTWARE_PROJECT', 'KAN'),
         )
 
     def validate(self) -> List[str]:
@@ -2801,6 +2808,58 @@ Begin implementation now.
 import argparse
 
 
+def load_dotenv(dotenv_path: Path) -> int:
+    """Load environment variables from .env file.
+
+    Args:
+        dotenv_path: Path to .env file.
+
+    Returns:
+        Number of variables loaded (excludes already-set vars).
+
+    Safety: Never prints/logs keys or values.
+    """
+    if not dotenv_path.exists():
+        return 0
+
+    count = 0
+    content = dotenv_path.read_text()
+
+    for line in content.splitlines():
+        line = line.strip()
+
+        # Ignore blank lines and comments
+        if not line or line.startswith('#'):
+            continue
+
+        # Strip 'export ' prefix if present
+        if line.startswith('export '):
+            line = line[7:]
+
+        # Split on first '=' only
+        if '=' not in line:
+            continue
+
+        key, _, value = line.partition('=')
+        key = key.strip()
+        value = value.strip()
+
+        # Strip paired quotes from value
+        if len(value) >= 2:
+            if (value.startswith('"') and value.endswith('"')) or \
+               (value.startswith("'") and value.endswith("'")):
+                value = value[1:-1]
+
+        # Skip if already set in environment (env > .env)
+        if key in os.environ:
+            continue
+
+        os.environ[key] = value
+        count += 1
+
+    return count
+
+
 def main():
     """Main entry point"""
     parser = argparse.ArgumentParser(
@@ -2852,8 +2911,23 @@ Examples:
                           'GMAIL_ADDRESS', 'GMAIL_APP_PASSWORD', 'ESCALATION_EMAIL']:
                     os.environ[key] = value
 
+    # Load .env file (env > .env: existing vars take precedence)
+    script_dir = Path(__file__).resolve().parent
+    dotenv_loaded_count = 0
+    dotenv_candidates = [
+        script_dir / '.env',                    # scripts/autonomous-agent/.env
+        script_dir.parent.parent / '.env',      # repo root .env
+    ]
+    for dotenv_path in dotenv_candidates:
+        if dotenv_path.exists():
+            dotenv_loaded_count = load_dotenv(dotenv_path)
+            break
+
     config = Config.load()
     engine = ExecutionEngine(config)
+
+    # Log dotenv load count (no keys/values for safety)
+    engine.log("SYSTEM", f"Loaded {dotenv_loaded_count} variables from .env")
 
     # Guardrails v1: Wire up --until-done
     engine.until_done = args.until_done
