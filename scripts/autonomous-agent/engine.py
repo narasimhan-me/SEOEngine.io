@@ -1708,14 +1708,16 @@ This is an automated escalation from the EngineO Autonomous Execution Engine.
         self.log("SYSTEM", f"Issue: [{issue_key}] {summary}")
         self.log("SYSTEM", f"Type: {issue_type}, Status: {status}")
 
-        if issue_type == 'idea':
-            # UEP processes Ideas
+        dispatch_kind = resolve_dispatch_kind(issue_type)
+
+        if dispatch_kind == 'initiative':
+            # UEP processes Ideas/Initiatives
             return self._process_idea(issue)
-        elif issue_type == 'epic':
+        elif dispatch_kind == 'epic':
             # Supervisor decomposes Epics
             return self._process_epic(issue)
-        elif issue_type == 'story':
-            # Developer implements Stories
+        elif dispatch_kind == 'implement':
+            # Developer implements Stories and Bugs (same pipeline)
             return self._process_story(issue)
         else:
             self.log("SYSTEM", f"Unknown issue type: {issue_type}")
@@ -1942,6 +1944,26 @@ Begin implementation now.
 import argparse
 
 
+def resolve_dispatch_kind(issue_type: str) -> str:
+    """Resolve issue type to dispatch kind for --issue mode.
+
+    Args:
+        issue_type: Raw issue type string from Jira.
+
+    Returns:
+        Dispatch kind: "implement", "epic", "initiative", or "unknown".
+    """
+    normalized = issue_type.strip().lower()
+    if normalized in ('story', 'bug'):
+        return 'implement'
+    elif normalized == 'epic':
+        return 'epic'
+    elif normalized in ('initiative', 'idea'):
+        return 'initiative'
+    else:
+        return 'unknown'
+
+
 def main():
     """Main entry point"""
     parser = argparse.ArgumentParser(
@@ -1960,7 +1982,7 @@ Examples:
     )
     parser.add_argument(
         '--type', '-t',
-        choices=['idea', 'epic', 'story'],
+        choices=['idea', 'epic', 'story', 'bug'],
         help='Force issue type (overrides auto-detection)'
     )
     parser.add_argument(
@@ -2022,7 +2044,7 @@ Examples:
                     engine._process_idea(issue)
                 elif args.type == 'epic':
                     engine._process_epic(issue)
-                elif args.type == 'story':
+                elif args.type in ('story', 'bug'):
                     engine._process_story(issue)
         else:
             engine.process_issue(args.issue)

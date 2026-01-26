@@ -85,8 +85,8 @@ fi
 echo "[SETUP] Environment variables loaded:"
 echo "  JIRA_URL: $JIRA_URL"
 echo "  JIRA_USERNAME: $JIRA_USERNAME"
-echo "  JIRA_TOKEN: ${JIRA_TOKEN:0:10}..."
-echo "  GITHUB_TOKEN: ${GITHUB_TOKEN:0:10}..."
+echo "  JIRA_TOKEN: (set)"
+echo "  GITHUB_TOKEN: (set)"
 echo ""
 
 # Export repo path
