@@ -238,6 +238,56 @@ def _parse_per_ticket_timeout(description: str) -> Optional[int]:
     return None
 
 
+def _parse_allowed_files(description: str) -> List[str]:
+    """Parse ALLOWED FILES constraint from description.
+
+    Extracts file patterns from ALLOWED FILES section, supporting various bullet formats
+    including Jira-rendered Unicode bullets (•).
+
+    Args:
+        description: Story/bug description text.
+
+    Returns:
+        List of allowed file patterns (e.g., ['apps/web/**', 'docs/**']).
+        Empty list if no ALLOWED FILES section found.
+    """
+    if not description:
+        return []
+
+    allowed_files = []
+    in_allowed_files_section = False
+
+    for line in description.split('\n'):
+        stripped = line.strip()
+
+        # Check for ALLOWED FILES header
+        if re.match(r'^ALLOWED\s+FILES:', stripped, re.IGNORECASE):
+            in_allowed_files_section = True
+            continue
+
+        # Stop parsing at next section header or empty line after content
+        if in_allowed_files_section:
+            # Empty line or new section header ends the ALLOWED FILES section
+            if not stripped or re.match(r'^[A-Z][A-Z\s]+:', stripped):
+                if not stripped:
+                    # Only break on empty line if we already found some files
+                    if allowed_files:
+                        break
+                    continue
+                else:
+                    # New section header
+                    break
+
+            # Parse bullet points: -, *, or • (Unicode bullet U+2022)
+            # Strip leading bullet characters and whitespace
+            cleaned = stripped.lstrip('-*•').strip()
+            if cleaned and cleaned != stripped.lstrip():
+                # Line started with a bullet - it's a file pattern
+                allowed_files.append(cleaned)
+
+    return allowed_files
+
+
 def _select_newest_verification_report(issue_key: str, relpaths: List[str], mtimes: Optional[Dict[str, float]] = None) -> Optional[str]:
     """Pure helper: select the newest verification report from a list of paths.
 
@@ -363,6 +413,27 @@ def _is_transient_claude_failure(text: str) -> bool:
     """Check if Claude failure is transient and retryable."""
     text_lower = text.lower()
     return any(substr in text_lower for substr in CLAUDE_TRANSIENT_SUBSTRINGS)
+
+
+def choose_transition(names: List[str]) -> Optional[str]:
+    """Choose best transition name from available options.
+
+    PATCH 2-B: Priority order (case-insensitive exact match):
+    1. Resolved
+    2. Done
+    3. Closed
+    4. Complete
+
+    Returns: Chosen transition name or None if no match.
+    """
+    priority = ['Resolved', 'Done', 'Closed', 'Complete']
+    names_lower = {n.lower(): n for n in names}
+
+    for target in priority:
+        if target.lower() in names_lower:
+            return names_lower[target.lower()]
+
+    return None
 
 
 def _lock_path(repo_path: str) -> Path:
@@ -611,6 +682,26 @@ class JiraClient:
         """
         jql = f"project = {self.config.software_project} AND issuetype = Story AND statusCategory = 'In Progress' ORDER BY created ASC"
         return self.search_issues(jql, ['summary', 'status', 'description', 'parent'])
+
+    def get_work_items_in_progress(self) -> List[dict]:
+        """Get Stories and Bugs with exact 'In Progress' status (for Step 4 verification).
+
+        PATCH 1-A: Query for both Story and Bug types with exact status match.
+        """
+        jql = f'project = {self.config.software_project} AND issuetype IN (Story, Bug) AND status = "In Progress" ORDER BY created ASC'
+        return self.search_issues(jql, ['summary', 'status', 'issuetype', 'description'])
+
+    def get_available_transition_names(self, issue_key: str) -> List[str]:
+        """Get available transition names for an issue.
+
+        PATCH 2-A: Probe available transitions for auto-close.
+        Returns list of transition name strings (empty on error).
+        """
+        result = self._request('GET', f'/rest/api/3/issue/{issue_key}/transitions')
+        if 'error' in result:
+            return []
+        transitions = result.get('transitions', [])
+        return [t.get('name', '') for t in transitions if t.get('name')]
 
     def get_issue(self, issue_key: str) -> Optional[dict]:
         """Get a specific issue by key"""
@@ -1231,6 +1322,80 @@ class ExecutionEngine:
             return False
         except (FileNotFoundError, subprocess.TimeoutExpired):
             return False
+
+    def _load_guardrails_ledger(self) -> Optional[dict]:
+        """Load guardrails ledger from repo-root state.json.
+
+        PATCH 1-B: Read-only, fail-closed if missing/unreadable.
+        """
+        ledger_path = Path(self.config.repo_path) / "state.json"
+        try:
+            if ledger_path.exists():
+                return json.loads(ledger_path.read_text())
+        except (json.JSONDecodeError, OSError):
+            pass
+        return None
+
+    def _find_ledger_entry(self, ledger: Any, issue_key: str) -> Optional[dict]:
+        """Recursively search ledger for entry associated with issue_key.
+
+        PATCH 1-B: Returns found dict or None.
+        """
+        if ledger is None:
+            return None
+
+        if isinstance(ledger, dict):
+            # Check if this dict is the entry (has issueKey or issue_key matching)
+            if ledger.get('issueKey') == issue_key or ledger.get('issue_key') == issue_key:
+                return ledger
+            # Check if key matches directly
+            if issue_key in ledger:
+                val = ledger[issue_key]
+                if isinstance(val, dict):
+                    return val
+            # Recurse into values
+            for v in ledger.values():
+                found = self._find_ledger_entry(v, issue_key)
+                if found:
+                    return found
+
+        elif isinstance(ledger, list):
+            for item in ledger:
+                found = self._find_ledger_entry(item, issue_key)
+                if found:
+                    return found
+
+        return None
+
+    def _ledger_passed(self, entry: dict) -> bool:
+        """Check if ledger entry indicates guardrails passed.
+
+        PATCH 1-B: Require guardrailsPassed or guardrails_passed is exactly True.
+        """
+        if not entry:
+            return False
+        return entry.get('guardrailsPassed') is True or entry.get('guardrails_passed') is True
+
+    def _ledger_evidence(self, entry: dict) -> tuple:
+        """Extract evidence from ledger entry.
+
+        PATCH 1-B: Returns (base_sha_short, changed_files_count).
+        """
+        if not entry:
+            return ("unknown", 0)
+
+        # Get base SHA (first 8 chars)
+        base_sha = entry.get('baseSha') or entry.get('base_sha') or ""
+        base_sha_short = base_sha[:8] if base_sha else "unknown"
+
+        # Get changed files count
+        changed_files = entry.get('changedFilesRemoteBase') or entry.get('changedFiles') or []
+        if isinstance(changed_files, list):
+            changed_files_count = len(changed_files)
+        else:
+            changed_files_count = 0
+
+        return (base_sha_short, changed_files_count)
 
     def log(self, role: str, message: str):
         """Log with role prefix to both console and run-scoped log file.
@@ -2066,32 +2231,125 @@ Branch: {self.config.feature_branch}
         self.log("DEVELOPER", "Changes committed and pushed successfully")
         return True
 
-    def step_4_story_verification(self) -> bool:
-        """Supervisor: Verify completed Stories"""
-        self.log("SUPERVISOR", "STEP 4: Checking for Stories awaiting verification...")
+    def verify_work_item(self, issue: dict) -> bool:
+        """Verify a single work item (Story or Bug) and auto-transition if passed.
 
-        stories = self.jira.get_stories_in_progress()
+        PATCH 1-C: Real verification with ledger gate and auto-transition.
 
-        if not stories:
-            self.log("SUPERVISOR", "No Stories in 'In Progress' status")
+        Returns: True if any action was taken, False otherwise.
+        """
+        key = issue['key']
+        summary = issue['fields']['summary']
+        issue_type = issue['fields']['issuetype']['name']
+        status = issue['fields']['status']['name']
+
+        # Only process items in "In Progress"
+        if status != "In Progress":
             return False
 
-        self.log("SUPERVISOR", f"Found {len(stories)} Stories in 'In Progress' status")
+        self.log("SUPERVISOR", f"Verifying [{key}] {issue_type}: {summary}")
 
-        # For now, just log - actual verification would compare implementation to spec
-        for story in stories:
-            key = story['key']
-            summary = story['fields']['summary']
-            self.log("SUPERVISOR", f"Awaiting verification: [{key}] {summary}")
+        # Step 1: Resolve verification report
+        report_path = _resolve_verification_report(self.config.repo_path, key)
 
-            # Resolve verification report (logging only - no status transitions)
-            report_path = _resolve_verification_report(self.config.repo_path, key)
-            if report_path:
-                self.log("SUPERVISOR", f"Verification report found: {report_path}")
-            else:
-                self.log("SUPERVISOR", f"No verification report found for {key}")
+        if not report_path:
+            # PENDING: No verification report found
+            self.log("SUPERVISOR", f"[{key}] Verification report not found")
+            comment = f"""Supervisor Verification: PENDING — verification report not found
 
-        return False  # Don't loop on verification yet
+Expected pattern: {key}-*-verification.md"""
+            self.jira.add_comment(key, comment)
+            return True
+
+        # Step 2: Load and check ledger
+        ledger = self._load_guardrails_ledger()
+        entry = self._find_ledger_entry(ledger, key) if ledger else None
+
+        if not ledger or not entry or not self._ledger_passed(entry):
+            # FAILED: Ledger missing or not passed
+            reason = "ledger file missing" if not ledger else \
+                     "no entry for issue" if not entry else \
+                     "guardrails not passed"
+            self.log("SUPERVISOR", f"[{key}] Verification FAILED: {reason}")
+
+            comment = f"""Supervisor Verification: FAILED — guardrails ledger missing or not passed
+
+Report: {report_path}
+Reason: {reason}"""
+            self.jira.add_comment(key, comment)
+
+            # Transition to Blocked (fallback to To Do)
+            if not self.jira.transition_issue(key, "Blocked"):
+                self.jira.transition_issue(key, "To Do")
+
+            # Escalate
+            self.escalate("SUPERVISOR", f"{issue_type} {key} verification failed (ledger gate)",
+                         f"Issue: {key}\nSummary: {summary}\nReason: {reason}\nReport: {report_path}")
+            return True
+
+        # Step 3: PASSED - get evidence and attempt auto-transition
+        base_sha_short, changed_files_count = self._ledger_evidence(entry)
+        self.log("SUPERVISOR", f"[{key}] Verification PASSED (base={base_sha_short}, files={changed_files_count})")
+
+        # Probe available transitions (PATCH 2-C)
+        names = self.jira.get_available_transition_names(key)
+        chosen = choose_transition(names)
+
+        if chosen is None:
+            # No matching transition found
+            comment = f"""Supervisor Verification: PASSED — cannot auto-transition (no matching transition found)
+
+Report: {report_path}
+Base SHA: {base_sha_short}
+Changed files: {changed_files_count}
+Available transitions: {', '.join(names) if names else 'none'}"""
+            self.jira.add_comment(key, comment)
+            self.log("SUPERVISOR", f"[{key}] No matching transition found: {names}")
+            return True
+
+        # Attempt transition
+        if self.jira.transition_issue(key, chosen):
+            comment = f"""Supervisor Verification: PASSED
+
+Report: {report_path}
+Base SHA: {base_sha_short}
+Changed files: {changed_files_count}
+Status: Transitioned to {chosen}"""
+            self.jira.add_comment(key, comment)
+            self.log("SUPERVISOR", f"[{key}] Transitioned to {chosen}")
+        else:
+            comment = f"""Supervisor Verification: PASSED — auto-transition failed; manual move required
+
+Report: {report_path}
+Base SHA: {base_sha_short}
+Changed files: {changed_files_count}
+Attempted transition: {chosen}"""
+            self.jira.add_comment(key, comment)
+            self.log("SUPERVISOR", f"[{key}] Transition to {chosen} failed")
+
+        return True
+
+    def step_4_story_verification(self) -> bool:
+        """Supervisor: Verify completed Stories and Bugs.
+
+        PATCH 1-D: Real verification flow with ledger gate and auto-transition.
+        """
+        self.log("SUPERVISOR", "STEP 4: Checking for work items awaiting verification...")
+
+        items = self.jira.get_work_items_in_progress()
+
+        if not items:
+            self.log("SUPERVISOR", "No Stories/Bugs in 'In Progress' status")
+            return False
+
+        self.log("SUPERVISOR", f"Found {len(items)} work items in 'In Progress' status")
+
+        any_action = False
+        for item in items:
+            if self.verify_work_item(item):
+                any_action = True
+
+        return any_action
 
     def escalate(self, role: str, title: str, details: str):
         """Human escalation"""
@@ -2671,8 +2929,18 @@ Examples:
                         engine._process_epic(issue)
                     elif args.type in ('story', 'bug'):
                         engine._process_story(issue)
+                        # PATCH 3-A: Run verification after forced story/bug
+                        issue = engine.jira.get_issue(issue_key)
+                        if issue:
+                            engine.verify_work_item(issue)
             else:
                 engine.process_issue(issue_key)
+                # PATCH 3-B: Run verification after auto-detect if Story or Bug
+                issue = engine.jira.get_issue(issue_key)
+                if issue:
+                    issue_type = issue['fields']['issuetype']['name'].lower()
+                    if issue_type in ('story', 'bug'):
+                        engine.verify_work_item(issue)
     elif args.once:
         # Run one iteration
         engine.step_1_initiative_intake() or \
