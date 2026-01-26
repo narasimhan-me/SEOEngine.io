@@ -49,6 +49,7 @@ from enum import Enum
 from pathlib import Path
 import re
 import difflib
+import fnmatch
 
 # Claude Code CLI is used for all personas (no API key required)
 # Model configuration per persona:
@@ -131,6 +132,29 @@ ROLE_IMPLEMENTER = {
         'No autonomous enhancements'
     ]
 }
+
+
+# =============================================================================
+# GUARDRAILS v1 CONFIGURATION
+# =============================================================================
+
+STATE_LEDGER_PATH = ".engineo/state.json"
+DEFAULT_MAX_CHANGED_FILES = 15
+FRONTEND_ONLY_ALLOWED_ROOTS = ["apps/web/", "docs/"]
+VERIFICATION_REPORT_DIR = "reports"
+VERIFICATION_REPORT_CHECKLIST_HEADER = "## Checklist"
+STATE_LEDGER_VERSION = 1
+STATE_LEDGER_IGNORED_FILES = {".engineo/state.json"}  # Exclude from diff checks
+
+# -----------------------------------------------------------------------------
+# GUARDRAILS v1 ENFORCEMENT HARDENING - Manual Testing Checklist
+# -----------------------------------------------------------------------------
+# 1. Create drift on branch before engine run; verify remote-base diff catches it.
+# 2. Provide an ALLOWED NEW FILES pattern where only basename collides; verify it fails.
+# 3. Change files after Step 3 but before Step 4; verify Step 4 detects drift and blocks.
+# 4. Use a glob pattern in ALLOWED NEW FILES; verify matching occurs only via fnmatch
+#    and only when explicitly provided.
+# -----------------------------------------------------------------------------
 
 
 # =============================================================================
@@ -252,7 +276,7 @@ class JiraClient:
         not those in 'Parking lot' or other statuses within the To Do category.
         """
         jql = f'project = {self.config.product_discovery_project} AND status = "TO DO" ORDER BY created ASC'
-        return self.search_issues(jql, ['summary', 'status', 'issuetype', 'description'])
+        return self.search_issues(jql, ['summary', 'status', 'issuetype', 'description', 'labels'])
 
     def get_epics_todo(self) -> List[dict]:
         """Get Epics with exact 'To Do' status from software project
@@ -260,12 +284,12 @@ class JiraClient:
         Note: KAN project uses 'To Do' (title case), different from EA's 'TO DO'.
         """
         jql = f'project = {self.config.software_project} AND issuetype = Epic AND status = "To Do" ORDER BY created ASC'
-        return self.search_issues(jql, ['summary', 'status', 'description', 'parent'])
+        return self.search_issues(jql, ['summary', 'status', 'description', 'parent', 'labels'])
 
     def get_stories_todo(self) -> List[dict]:
         """Get Stories with exact 'To Do' status from software project"""
         jql = f'project = {self.config.software_project} AND issuetype = Story AND status = "To Do" ORDER BY created ASC'
-        return self.search_issues(jql, ['summary', 'status', 'description', 'parent'])
+        return self.search_issues(jql, ['summary', 'status', 'description', 'parent', 'labels'])
 
     def get_stories_in_progress(self) -> List[dict]:
         """Get Stories in progress (for verification)
@@ -274,7 +298,7 @@ class JiraClient:
         in-progress statuses (e.g., 'In Progress', 'In Review', etc.)
         """
         jql = f"project = {self.config.software_project} AND issuetype = Story AND statusCategory = 'In Progress' ORDER BY created ASC"
-        return self.search_issues(jql, ['summary', 'status', 'description', 'parent'])
+        return self.search_issues(jql, ['summary', 'status', 'description', 'parent', 'labels'])
 
     def get_issue(self, issue_key: str) -> Optional[dict]:
         """Get a specific issue by key"""
@@ -284,7 +308,7 @@ class JiraClient:
             return None
         return result
 
-    def create_epic(self, summary: str, description: str, parent_key: str = None) -> Optional[str]:
+    def create_epic(self, summary: str, description: str, parent_key: str = None, labels: Optional[List[str]] = None) -> Optional[str]:
         """Create an Epic in the software project"""
         payload = {
             'fields': {
@@ -295,6 +319,9 @@ class JiraClient:
             }
         }
 
+        if labels:
+            payload['fields']['labels'] = labels
+
         result = self._request('POST', '/rest/api/3/issue', payload)
 
         if 'error' in result:
@@ -303,7 +330,7 @@ class JiraClient:
 
         return result.get('key')
 
-    def create_story(self, summary: str, description: str, epic_key: str = None) -> Optional[str]:
+    def create_story(self, summary: str, description: str, epic_key: str = None, labels: Optional[List[str]] = None) -> Optional[str]:
         """Create a Story in the software project"""
         payload = {
             'fields': {
@@ -316,6 +343,9 @@ class JiraClient:
 
         if epic_key:
             payload['fields']['parent'] = {'key': epic_key}
+
+        if labels:
+            payload['fields']['labels'] = labels
 
         result = self._request('POST', '/rest/api/3/issue', payload)
 
@@ -380,24 +410,88 @@ class JiraClient:
         }
 
     def parse_adf_to_text(self, adf: dict) -> str:
-        """Parse Atlassian Document Format to plain text"""
+        """Parse Atlassian Document Format to plain text with structure preservation
+
+        Guardrails v1 FIXUP-2: Preserves newlines and bullets for ALLOWED FILES parsing.
+        - Paragraphs/headings separated by \\n\\n
+        - Bullet list items rendered as '- item\\n'
+        - Hard breaks rendered as \\n
+        """
         if not adf or not isinstance(adf, dict):
             return ''
 
-        text_parts = []
+        output_parts = []
 
-        def extract_text(node):
+        def render_inline(node) -> str:
+            """Render inline content (text, marks, etc.)"""
             if isinstance(node, dict):
-                if node.get('type') == 'text':
-                    text_parts.append(node.get('text', ''))
-                for child in node.get('content', []):
-                    extract_text(child)
-            elif isinstance(node, list):
-                for item in node:
-                    extract_text(item)
+                node_type = node.get('type', '')
+                if node_type == 'text':
+                    return node.get('text', '')
+                elif node_type == 'hardBreak':
+                    return '\n'
+                elif 'content' in node:
+                    return ''.join(render_inline(child) for child in node.get('content', []))
+            return ''
 
-        extract_text(adf)
-        return ' '.join(text_parts)
+        def render_block(node) -> str:
+            """Render a block-level node"""
+            if not isinstance(node, dict):
+                return ''
+
+            node_type = node.get('type', '')
+            content = node.get('content', [])
+
+            if node_type in ('paragraph', 'heading'):
+                # Render inline content, return as block
+                text = ''.join(render_inline(child) for child in content)
+                return text.strip()
+
+            elif node_type == 'bulletList':
+                # Render each list item with '- ' prefix
+                items = []
+                for item in content:
+                    if item.get('type') == 'listItem':
+                        item_text = '\n'.join(render_block(child) for child in item.get('content', []))
+                        items.append(f"- {item_text.strip()}")
+                return '\n'.join(items)
+
+            elif node_type == 'orderedList':
+                # Render each list item with number prefix
+                items = []
+                for i, item in enumerate(content, 1):
+                    if item.get('type') == 'listItem':
+                        item_text = '\n'.join(render_block(child) for child in item.get('content', []))
+                        items.append(f"{i}. {item_text.strip()}")
+                return '\n'.join(items)
+
+            elif node_type == 'codeBlock':
+                # Preserve code block content
+                text = ''.join(render_inline(child) for child in content)
+                return f"```\n{text}\n```"
+
+            elif node_type == 'blockquote':
+                # Render blockquote with > prefix
+                lines = []
+                for child in content:
+                    lines.append(f"> {render_block(child)}")
+                return '\n'.join(lines)
+
+            elif node_type == 'rule':
+                return '---'
+
+            elif node_type == 'doc':
+                # Top-level document
+                blocks = [render_block(child) for child in content]
+                return '\n\n'.join(b for b in blocks if b)
+
+            else:
+                # Unknown block type - try to render content
+                if content:
+                    return ''.join(render_inline(child) for child in content)
+                return ''
+
+        return render_block(adf)
 
 
 # =============================================================================
@@ -459,6 +553,42 @@ class GitClient:
         """Get git status"""
         success, output = self._run('status', '--porcelain')
         return output if success else ''
+
+    def get_head_sha(self) -> Optional[str]:
+        """Get current HEAD SHA"""
+        success, output = self._run('rev-parse', 'HEAD')
+        return output.strip() if success else None
+
+    def get_status_porcelain(self) -> str:
+        """Get git status in porcelain format"""
+        success, output = self._run('status', '--porcelain')
+        return output.strip() if success else ''
+
+    def diff_name_only(self, base_sha: str) -> List[str]:
+        """Get list of changed files since base_sha"""
+        success, output = self._run('diff', '--name-only', base_sha)
+        if success:
+            return [f.strip() for f in output.strip().split('\n') if f.strip()]
+        return []
+
+    def diff_name_status(self, base_sha: str) -> str:
+        """Get diff name-status output since base_sha"""
+        success, output = self._run('diff', '--name-status', base_sha)
+        return output if success else ''
+
+    def fetch_remote_branch(self, remote: str, branch: str) -> bool:
+        """Fetch remote branch. Returns success boolean."""
+        success, output = self._run('fetch', remote, branch)
+        if not success:
+            print(f"[GitClient] fetch {remote}/{branch} failed: {output}")
+        return success
+
+    def diff_name_only_range(self, range_spec: str) -> List[str]:
+        """Get list of changed files for a range spec (e.g., origin/branch...HEAD)"""
+        success, output = self._run('diff', '--name-only', range_spec)
+        if success:
+            return [f.strip() for f in output.strip().split('\n') if f.strip()]
+        return []
 
 
 # =============================================================================
@@ -806,7 +936,12 @@ class ExecutionEngine:
         self.email = EmailClient(config)
         self.files = FileOperations(config.repo_path)
         self.running = True
+        self.until_done = False  # Guardrails v1: --until-done mode
         self.impl_plan_path = Path(config.repo_path) / 'docs' / 'IMPLEMENTATION_PLAN.md'
+
+        # Guardrails v1: State ledger for idempotency
+        self.state_path = Path(config.repo_path) / STATE_LEDGER_PATH
+        self.state = self._load_state_ledger()
 
         # Verify Claude Code CLI is available
         self.claude_code_available = self._verify_claude_code()
@@ -836,6 +971,318 @@ class ExecutionEngine:
         """Log with role prefix"""
         timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
         print(f"[{timestamp}] [{role}] {message}")
+
+    # =========================================================================
+    # GUARDRAILS v1: State Ledger Helpers
+    # =========================================================================
+
+    def _load_state_ledger(self) -> dict:
+        """Load state ledger from disk, creating if missing
+
+        Guardrails v1 FIXUP-2: Includes one-time migration from legacy paths.
+        """
+        try:
+            # Check canonical path first
+            if self.state_path.exists():
+                with open(self.state_path, 'r') as f:
+                    state = json.load(f)
+                    if state.get('version') == STATE_LEDGER_VERSION:
+                        return state
+
+            # One-time migration: check legacy paths from prior fixups
+            legacy_paths = [
+                Path(self.config.repo_path) / '.engineo' / 'state.json',  # FIXUP-3 legacy
+                Path(self.config.repo_path) / 'state.json',  # repo-root legacy from FIXUP-2
+            ]
+            migrated_state = None
+            for legacy_path in legacy_paths:
+                if legacy_path.exists() and legacy_path != self.state_path:
+                    try:
+                        with open(legacy_path, 'r') as f:
+                            legacy_state = json.load(f)
+                            if legacy_state.get('version') == STATE_LEDGER_VERSION:
+                                migrated_state = legacy_state
+                                print(f"[SYSTEM] Migrated ledger from legacy path: {legacy_path}")
+                                # Remove legacy file after migration
+                                legacy_path.unlink()
+                                break
+                    except Exception:
+                        pass
+
+            if migrated_state:
+                self._save_state_ledger_raw(migrated_state)
+                return migrated_state
+
+            # Create default state
+            self.state_path.parent.mkdir(parents=True, exist_ok=True)
+            default_state = {
+                "version": STATE_LEDGER_VERSION,
+                "ea_to_kan": {},
+                "kan_story_runs": {}
+            }
+            self._save_state_ledger_raw(default_state)
+            return default_state
+        except Exception as e:
+            self.log("SYSTEM", f"Error loading state ledger: {e}")
+            return {"version": STATE_LEDGER_VERSION, "ea_to_kan": {}, "kan_story_runs": {}}
+
+    def _save_state_ledger(self) -> None:
+        """Save state ledger to disk (atomic write via temp file + rename)"""
+        self._save_state_ledger_raw(self.state)
+
+    def _save_state_ledger_raw(self, state: dict) -> None:
+        """Atomic write of state ledger"""
+        import tempfile
+        try:
+            self.state_path.parent.mkdir(parents=True, exist_ok=True)
+            # Write to temp file then rename for atomicity
+            fd, temp_path = tempfile.mkstemp(dir=self.state_path.parent, suffix='.json')
+            try:
+                with os.fdopen(fd, 'w') as f:
+                    json.dump(state, f, indent=2)
+                os.rename(temp_path, self.state_path)
+            except:
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+                raise
+        except Exception as e:
+            self.log("SYSTEM", f"Error saving state ledger: {e}")
+
+    def _ea_label(self, ea_key: str) -> str:
+        """Produce Jira-safe label from EA key: EA-18 -> source-ea-18"""
+        # Only allow [a-z0-9-]
+        normalized = ea_key.lower().replace('_', '-')
+        return f"source-{re.sub(r'[^a-z0-9-]', '', normalized)}"
+
+    def _extract_ea_key(self, text: str) -> Optional[str]:
+        """Extract EA key from text (e.g., [EA-18] or EA-18)"""
+        match = re.search(r'(?:\[)?(EA-\d+)(?:\])?', text, re.IGNORECASE)
+        return match.group(1).upper() if match else None
+
+    # =========================================================================
+    # GUARDRAILS v1: Idempotent Epic/Story Creation Helpers
+    # =========================================================================
+
+    def _find_or_reuse_epic_for_ea(self, ea_key: str) -> Optional[str]:
+        """Find existing Epic for EA key via JQL (label or summary)"""
+        ea_label = self._ea_label(ea_key)
+
+        # Primary: Label scheme
+        jql_label = f'project = {self.config.software_project} AND issuetype = Epic AND labels = "{ea_label}" ORDER BY created ASC'
+        epics = self.jira.search_issues(jql_label, ['key', 'summary'], max_results=1)
+        if epics:
+            return epics[0]['key']
+
+        # Fallback: Summary scheme
+        jql_summary = f'project = {self.config.software_project} AND issuetype = Epic AND summary ~ "\"[{ea_key}]\"" ORDER BY created ASC'
+        epics = self.jira.search_issues(jql_summary, ['key', 'summary'], max_results=1)
+        if epics:
+            return epics[0]['key']
+
+        return None
+
+    def _find_or_reuse_story(self, epic_key: str, story_summary: str, ea_key: Optional[str] = None) -> Optional[str]:
+        """Find existing Story under Epic with matching summary"""
+        # Build JQL
+        jql = f'project = {self.config.software_project} AND issuetype = Story AND (parent = {epic_key} OR "Epic Link" = {epic_key}) AND summary ~ "\\"{story_summary[:50]}\\"" ORDER BY created ASC'
+        if ea_key:
+            ea_label = self._ea_label(ea_key)
+            jql = f'project = {self.config.software_project} AND issuetype = Story AND (parent = {epic_key} OR "Epic Link" = {epic_key}) AND summary ~ "\\"{story_summary[:50]}\\"" AND labels = "{ea_label}" ORDER BY created ASC'
+
+        stories = self.jira.search_issues(jql, ['key', 'summary'], max_results=1)
+        if stories:
+            return stories[0]['key']
+        return None
+
+    # =========================================================================
+    # GUARDRAILS v1: Scope Detection & Patch-List Parsing
+    # =========================================================================
+
+    def _is_frontend_only(self, issue: dict, description_text: str) -> bool:
+        """Check if issue is frontend-only scoped"""
+        labels = issue.get('fields', {}).get('labels', [])
+        if 'frontend-only' in [l.lower() for l in labels]:
+            return True
+        if re.search(r'frontend[-\s]?only', description_text, re.IGNORECASE):
+            return True
+        return False
+
+    def _parse_allowed_files(self, description_text: str) -> Tuple[set, List[str]]:
+        """Parse ALLOWED FILES and ALLOWED NEW FILES from Story description
+
+        Guardrails v1 FIXUP-3: Robust line-walk parser that handles blank lines
+        between headers and bullets (common in ADF→text rendering).
+
+        Guardrails v1 PATCH 3: Preserve glob wildcards (*) - only unwrap paired
+        markdown bold markers (**text**), never strip single *.
+
+        Returns: (allowed_files_set, allowed_new_patterns)
+        """
+        def unwrap_paired_bold(s: str) -> str:
+            """Unwrap paired markdown bold markers (**text**) only."""
+            s = s.strip()
+            if s.startswith('**') and s.endswith('**') and len(s) > 4:
+                return s[2:-2].strip()
+            return s
+
+        allowed_files = set()
+        allowed_new_patterns = []
+
+        lines = description_text.split('\n')
+        current_section = None  # 'allowed' or 'new'
+
+        for line in lines:
+            # Normalize: strip whitespace and unwrap paired bold markers only
+            normalized = unwrap_paired_bold(line.strip())
+
+            # Check for section headers
+            if re.match(r'^ALLOWED\s+FILES\s*:?\s*$', normalized, re.IGNORECASE):
+                current_section = 'allowed'
+                continue
+            elif re.match(r'^ALLOWED\s+NEW\s+FILES\s*:?\s*$', normalized, re.IGNORECASE):
+                current_section = 'new'
+                continue
+
+            # Check if we hit a different section header (ends current section)
+            if normalized and not normalized.startswith('-') and not normalized.startswith('*'):
+                # If line looks like a new header (e.g., "DIFF BUDGET:", "SCOPE FENCE:", etc.)
+                if ':' in normalized and not normalized.startswith('`'):
+                    current_section = None
+                    continue
+
+            # Skip empty lines (but stay in current section)
+            if not normalized:
+                continue
+
+            # Parse bullet lines in current section
+            if current_section and (normalized.startswith('-') or normalized.startswith('*')):
+                # Strip bullet prefix (- or * followed by space), backticks, and unwrap bold
+                path = re.sub(r'^[-*]\s+', '', normalized).strip().strip('`').strip()
+                path = unwrap_paired_bold(path)
+                if path and not path.startswith('#'):
+                    if current_section == 'allowed':
+                        allowed_files.add(path)
+                    elif current_section == 'new':
+                        allowed_new_patterns.append(path)
+
+        return allowed_files, allowed_new_patterns
+
+    # =========================================================================
+    # GUARDRAILS v1: Guardrail Violation Handler
+    # =========================================================================
+
+    def _fail_story_guardrail(self, story_key: str, guardrail_name: str, reason: str,
+                               violating_files: Optional[List[str]] = None,
+                               target_status: str = "Blocked",
+                               allowed_files: Optional[set] = None) -> None:
+        """Handle guardrail violation with consistent behavior"""
+        # Build detailed comment
+        comment_parts = [
+            f"**Guardrail Violation: {guardrail_name}**",
+            "",
+            f"**Reason:** {reason}",
+        ]
+
+        if violating_files:
+            comment_parts.extend([
+                "",
+                "**Violating Files:**",
+                *[f"- `{f}`" for f in violating_files]
+            ])
+
+        if allowed_files:
+            comment_parts.extend([
+                "",
+                "**Allowed Files (for reference):**",
+                *[f"- `{f}`" for f in sorted(allowed_files)[:20]]
+            ])
+
+        comment_parts.extend([
+            "",
+            "**Authoritative diff base:** `origin/feature/agent...HEAD`",
+            "",
+            "**Action Required:** Fix the violation and retry, or request human review.",
+            "",
+            f"*Guardrails v1 - Autonomous Engine Protection*"
+        ])
+
+        comment = '\n'.join(comment_parts)
+
+        # Add comment to Jira
+        self.jira.add_comment(story_key, comment)
+
+        # Transition to target status
+        if not self.jira.transition_issue(story_key, target_status):
+            # Fallback to To Do if Blocked not available
+            self.jira.transition_issue(story_key, 'To Do')
+
+        # Escalate via email
+        self.escalate(
+            "DEVELOPER",
+            f"Guardrail Violation: {guardrail_name} on {story_key}",
+            f"Story: {story_key}\n\nGuardrail: {guardrail_name}\nReason: {reason}\n\nViolating files:\n" +
+            ('\n'.join(violating_files) if violating_files else 'N/A')
+        )
+
+    # =========================================================================
+    # GUARDRAILS v1: Authoritative Remote-Base Diff Enforcement
+    # =========================================================================
+
+    def _fetch_remote_branch(self, story_key: Optional[str] = None) -> bool:
+        """Fetch remote branch for authoritative diff baseline.
+
+        HARDENING-1: Exactly origin/feature/agent per contract.
+        If fetch fails, treats as guardrail violation (cannot proceed safely).
+        Returns True on success, False on failure.
+        """
+        success = self.git.fetch_remote_branch("origin", "feature/agent")
+        if not success:
+            self.log("DEVELOPER", "Failed to fetch origin/feature/agent")
+            if story_key:
+                self._fail_story_guardrail(
+                    story_key,
+                    "Remote Fetch Failed",
+                    "Cannot fetch origin/feature/agent - guardrail enforcement cannot proceed safely",
+                    target_status="Blocked"
+                )
+            return False
+        return True
+
+    def _diff_against_remote_base(self, story_key: Optional[str] = None) -> Optional[List[str]]:
+        """Compute authoritative changed files against remote branch base.
+
+        HARDENING-1: Uses exactly origin/feature/agent...HEAD per contract.
+        Returns list of changed files, or None if fetch/diff fails.
+        """
+        if not self._fetch_remote_branch(story_key):
+            return None
+
+        range_spec = "origin/feature/agent...HEAD"
+        changed_files = self.git.diff_name_only_range(range_spec)
+
+        # Filter out ledger-ignored files
+        changed_files = [f for f in changed_files if f not in STATE_LEDGER_IGNORED_FILES]
+
+        self.log("DEVELOPER", f"Authoritative diff ({range_spec}): {len(changed_files)} files")
+        return changed_files
+
+    def _matches_allowed_new(self, filepath: str, patterns: List[str]) -> bool:
+        """Check if filepath matches any ALLOWED NEW FILES pattern.
+
+        Guardrails v1 PATCH 2: Only exact paths or explicit fnmatch globs.
+        No basename/endswith bypass.
+        """
+        for pattern in patterns:
+            # Check if pattern contains wildcard chars
+            if any(c in pattern for c in ('*', '?', '[')):
+                # Use fnmatch for glob patterns
+                if fnmatch.fnmatch(filepath, pattern):
+                    return True
+            else:
+                # Exact path match only
+                if filepath == pattern:
+                    return True
+        return False
 
     def run(self):
         """Main execution loop"""
@@ -891,6 +1338,12 @@ class ExecutionEngine:
 
                 # No work found - idle
                 self.log("SYSTEM", "STATUS: IDLE - No work items found")
+
+                # Guardrails v1: --until-done exits on idle
+                if self.until_done:
+                    self.log("SYSTEM", "STATUS: IDLE — exiting due to --until-done")
+                    return
+
                 self.log("SYSTEM", "Waiting for new Initiatives in Product Discovery...")
 
                 # Wait before next iteration
@@ -912,6 +1365,8 @@ class ExecutionEngine:
         - Analyzes the initiative to define WHAT we build and WHY
         - Creates one or more Epics with business goals and acceptance criteria
         - NEVER writes code or implementation details
+
+        Guardrails v1: Idempotent Epic creation (reuse existing if found)
         """
         self.log("UEP", "STEP 1: Checking for Ideas with 'To Do' status...")
 
@@ -925,39 +1380,112 @@ class ExecutionEngine:
 
         # Process oldest (FIFO)
         idea = ideas[0]
-        key = idea['key']
+        ea_key = idea['key']  # Idea keys are EA-##
         summary = idea['fields']['summary']
         description = self.jira.parse_adf_to_text(idea['fields'].get('description', {}))
+        ea_label = self._ea_label(ea_key)
 
-        self.log("UEP", f"Processing: [{key}] {summary}")
+        self.log("UEP", f"Processing: [{ea_key}] {summary}")
+
+        # Guardrails v1: Check ledger for existing Epic
+        ledger_entry = self.state.get('ea_to_kan', {}).get(ea_key, {})
+        existing_epic = ledger_entry.get('epic')
+        reused = False
+
+        if existing_epic:
+            self.log("UEP", f"Ledger: Found existing Epic {existing_epic} for {ea_key}")
+            reused = True
+        else:
+            # Search Jira for existing Epic
+            existing_epic = self._find_or_reuse_epic_for_ea(ea_key)
+            if existing_epic:
+                self.log("UEP", f"JQL: Found existing Epic {existing_epic} for {ea_key}")
+                reused = True
+
+        if reused and existing_epic:
+            # Update ledger
+            if ea_key not in self.state['ea_to_kan']:
+                self.state['ea_to_kan'][ea_key] = {}
+            self.state['ea_to_kan'][ea_key]['epic'] = existing_epic
+            self.state['ea_to_kan'][ea_key]['updatedAt'] = datetime.now(timezone.utc).isoformat()
+            self._save_state_ledger()
+
+            # Transition Idea to In Progress
+            self.jira.transition_issue(ea_key, 'In Progress')
+
+            # Add comment noting reuse
+            self.jira.add_comment(ea_key, f"""
+Initiative processed by UEP (Unified Executive Persona)
+
+**Reused existing Epic:** {existing_epic}
+**EA Label:** {ea_label}
+
+*Guardrails v1: Idempotent processing - no duplicate Epic created.*
+""")
+            return True
+
+        # No existing Epic found - create new one
         self.log("UEP", "Analyzing initiative to define business intent...")
 
         # UEP Analysis: Extract business goals, scope, and acceptance criteria
-        epics_to_create = self._uep_analyze_idea(key, summary, description)
+        epics_to_create = self._uep_analyze_idea(ea_key, summary, description)
 
-        created_epics = []
-        for epic_def in epics_to_create:
-            epic_key = self.jira.create_epic(epic_def['summary'], epic_def['description'])
-            if epic_key:
-                self.log("UEP", f"Created Epic: {epic_key} - {epic_def['summary']}")
-                created_epics.append(epic_key)
+        # Guardrails v1: Enforce 1 Epic per EA key
+        if len(epics_to_create) > 1:
+            ignored_epics = [e['summary'] for e in epics_to_create[1:]]
+            self.log("UEP", f"Guardrails v1: Multiple epics proposed ({len(epics_to_create)}), enforcing 1 Epic per EA key")
 
-        if created_epics:
+            # Add comment about ignored epics
+            self.jira.add_comment(ea_key, f"""
+**Guardrails v1 Notice:** UEP proposed {len(epics_to_create)} Epics, but Guardrails v1 enforces 1 Epic per EA key (conservative).
+
+**Ignored Epic summaries:**
+{chr(10).join(['- ' + s for s in ignored_epics])}
+
+Creating only the first Epic.
+""")
+            # Escalate for visibility
+            self.escalate(
+                "UEP",
+                f"Multiple Epics proposed for {ea_key} - only first created",
+                f"Guardrails v1 enforced 1 Epic limit.\n\nIgnored: {', '.join(ignored_epics)}"
+            )
+
+        # Create exactly ONE epic
+        epic_def = epics_to_create[0]
+        epic_key = self.jira.create_epic(
+            epic_def['summary'],
+            epic_def['description'],
+            labels=[ea_label]
+        )
+
+        if epic_key:
+            self.log("UEP", f"Created Epic: {epic_key} - {epic_def['summary']}")
+
+            # Update ledger
+            if ea_key not in self.state['ea_to_kan']:
+                self.state['ea_to_kan'][ea_key] = {}
+            self.state['ea_to_kan'][ea_key]['epic'] = epic_key
+            self.state['ea_to_kan'][ea_key]['stories'] = []
+            self.state['ea_to_kan'][ea_key]['updatedAt'] = datetime.now(timezone.utc).isoformat()
+            self._save_state_ledger()
+
             # Update Initiative status to In Progress
-            self.jira.transition_issue(key, 'In Progress')
+            self.jira.transition_issue(ea_key, 'In Progress')
 
-            # Add comment with all created Epics
-            epic_list = '\n'.join([f"- {e}" for e in created_epics])
-            self.jira.add_comment(key, f"""
+            # Add comment
+            self.jira.add_comment(ea_key, f"""
 Initiative processed by UEP (Unified Executive Persona)
 
-Created {len(created_epics)} Epic(s):
-{epic_list}
+**Created new Epic:** {epic_key}
+**EA Label:** {ea_label}
 
 Business Intent Defined:
 - Scope analyzed and decomposed
 - Acceptance criteria established
 - Ready for Supervisor decomposition into Stories
+
+*Guardrails v1: Epic created with source label for idempotent tracking.*
 """)
             return True
 
@@ -1114,6 +1642,8 @@ Generate the Epic description now:"""
         - Creates PATCH BATCH instructions (surgical, minimal diffs)
         - Decomposes into one or more Stories
         - NEVER writes actual code, only PATCH BATCH specs
+
+        Guardrails v1: Idempotent Story creation (reuse existing if found)
         """
         self.log("SUPERVISOR", "STEP 2: Checking for Epics with 'To Do' status...")
 
@@ -1127,34 +1657,72 @@ Generate the Epic description now:"""
 
         # Process oldest (FIFO)
         epic = epics[0]
-        key = epic['key']
+        epic_key = epic['key']
         summary = epic['fields']['summary']
         description = self.jira.parse_adf_to_text(epic['fields'].get('description', {}))
 
-        self.log("SUPERVISOR", f"Decomposing: [{key}] {summary}")
+        # Guardrails v1: Extract EA key from Epic summary for idempotent tracking
+        ea_key = self._extract_ea_key(summary)
+        ea_label = self._ea_label(ea_key) if ea_key else None
+
+        self.log("SUPERVISOR", f"Decomposing: [{epic_key}] {summary}")
+        if ea_key:
+            self.log("SUPERVISOR", f"Guardrails v1: EA key={ea_key}, label={ea_label}")
         self.log("SUPERVISOR", "Analyzing codebase to identify implementation targets...")
 
         # Supervisor Analysis: Read codebase, identify files, create PATCH BATCH
-        stories_to_create = self._supervisor_analyze_epic(key, summary, description)
+        stories_to_create = self._supervisor_analyze_epic(epic_key, summary, description)
 
         created_stories = []
+        reused_stories = []
+
         for story_def in stories_to_create:
-            story_key = self.jira.create_story(story_def['summary'], story_def['description'], key)
-            if story_key:
-                self.log("SUPERVISOR", f"Created Story: {story_key} - {story_def['summary']}")
-                created_stories.append(story_key)
+            story_summary = story_def['summary']
 
-        if created_stories:
+            # Guardrails v1: Check for existing Story
+            existing_story = self._find_or_reuse_story(epic_key, story_summary, ea_key)
+
+            if existing_story:
+                self.log("SUPERVISOR", f"Reused Story: {existing_story} - {story_summary}")
+                reused_stories.append(existing_story)
+            else:
+                # Create new Story with EA label
+                labels = [ea_label] if ea_label else None
+                story_key = self.jira.create_story(story_def['summary'], story_def['description'], epic_key, labels=labels)
+                if story_key:
+                    self.log("SUPERVISOR", f"Created Story: {story_key} - {story_def['summary']}")
+                    created_stories.append(story_key)
+
+        all_stories = created_stories + reused_stories
+
+        if all_stories:
+            # Update ledger
+            if ea_key:
+                if ea_key not in self.state['ea_to_kan']:
+                    self.state['ea_to_kan'][ea_key] = {}
+                self.state['ea_to_kan'][ea_key]['stories'] = list(set(
+                    self.state['ea_to_kan'].get(ea_key, {}).get('stories', []) + all_stories
+                ))
+                self.state['ea_to_kan'][ea_key]['updatedAt'] = datetime.now(timezone.utc).isoformat()
+                self._save_state_ledger()
+
             # Transition Epic to In Progress
-            self.jira.transition_issue(key, 'In Progress')
+            self.jira.transition_issue(epic_key, 'In Progress')
 
-            # Add comment with all created Stories
-            story_list = '\n'.join([f"- {s}" for s in created_stories])
-            self.jira.add_comment(key, f"""
+            # Add comment with all Stories
+            created_list = '\n'.join([f"- {s} (new)" for s in created_stories]) if created_stories else ''
+            reused_list = '\n'.join([f"- {s} (reused)" for s in reused_stories]) if reused_stories else ''
+            story_list = created_list + ('\n' if created_list and reused_list else '') + reused_list
+
+            self.jira.add_comment(epic_key, f"""
 Epic decomposed by Supervisor (GPT-5.x Supervisor v3.2)
 
-Created {len(created_stories)} Story(ies):
+**Stories ({len(all_stories)} total):**
 {story_list}
+
+**Guardrails v1:**
+- EA Label: {ea_label or 'N/A'}
+- Created: {len(created_stories)}, Reused: {len(reused_stories)}
 
 Analysis Complete:
 - Codebase scanned for relevant files
@@ -1256,7 +1824,10 @@ Analysis Complete:
         return relevant_files[:10]  # Limit to 10 most relevant files
 
     def _generate_patch_batch(self, epic_key: str, summary: str, description: str, files: List[dict]) -> dict:
-        """Generate Story with PATCH BATCH instructions using Claude Code CLI"""
+        """Generate Story with PATCH BATCH instructions using Claude Code CLI
+
+        Guardrails v1: Includes ALLOWED FILES section for enforcement
+        """
 
         # Read full file contents for Claude analysis
         file_contents = []
@@ -1293,7 +1864,17 @@ DESCRIPTION: Add changes per Epic requirements
         file_analysis = []
         for f in files[:5]:
             file_analysis.append(f"### {f['path']}\n```\n{f['preview'][:300]}...\n```")
-        file_analysis_text = '\n\n'.join(file_analysis) if file_analysis else "No files analyzed"
+        file_analysis_text = '\n'.join(file_analysis) if file_analysis else "No files analyzed"
+
+        # Guardrails v1: Extract unique FILE: paths from patch_batch_text for ALLOWED FILES
+        file_paths_in_patches = set(re.findall(r'^FILE:\s*(.+?)$', patch_batch_text, re.MULTILINE))
+        # Normalize paths (strip whitespace, backticks)
+        allowed_files = {p.strip().strip('`') for p in file_paths_in_patches if p.strip()}
+        # Always include IMPLEMENTATION_PLAN.md
+        allowed_files.add('docs/IMPLEMENTATION_PLAN.md')
+
+        # Build ALLOWED FILES section
+        allowed_files_list = '\n'.join([f"- `{f}`" for f in sorted(allowed_files)])
 
         story_description = f"""
 ## Parent Epic
@@ -1322,18 +1903,33 @@ PATCH BATCH: {summary}
 
 ---
 
+## Guardrails v1 — Patch List
+
+ALLOWED FILES:
+{allowed_files_list}
+
+ALLOWED NEW FILES:
+- `{VERIFICATION_REPORT_DIR}/<KAN-KEY>-verification.md`
+
+DIFF BUDGET: {DEFAULT_MAX_CHANGED_FILES} files
+
+SCOPE FENCE: Check labels/description for FRONTEND-ONLY constraints.
+
+---
+
 ## Verification Checklist
 - [ ] Code implemented per PATCH BATCH specs
 - [ ] Changes are surgical and minimal
 - [ ] Existing functionality preserved
 - [ ] Tests pass
 - [ ] IMPLEMENTATION_PLAN.md updated
+- [ ] Verification report created: {VERIFICATION_REPORT_DIR}/<KAN-KEY>-verification.md
 - [ ] Committed to {self.config.feature_branch}
 
 ---
 *Story created by Supervisor (Claude Code CLI with Opus model)*
 *PATCH BATCH instructions generated from codebase analysis*
-*No API key required - using local Claude Code*
+*Guardrails v1 enforced - ALLOWED FILES section included*
 """
 
         return {
@@ -1342,7 +1938,10 @@ PATCH BATCH: {summary}
         }
 
     def _claude_code_generate_patches(self, epic_key: str, summary: str, description: str, files: List[dict]) -> str:
-        """Use Claude Code CLI to analyze code and generate actual PATCH BATCH instructions (no API key required)"""
+        """Use Claude Code CLI to analyze code and generate actual PATCH BATCH instructions (no API key required)
+
+        Guardrails v1: Prompt requires ALLOWED FILES section in output
+        """
         try:
             # Build the file context for Claude
             files_context = ""
@@ -1369,6 +1968,8 @@ IMPORTANT RULES:
 4. Generate working code for ---NEW--- sections
 5. Do NOT rewrite entire files - only modify necessary parts
 6. Follow existing code patterns and conventions
+7. DIFF BUDGET: Maximum {DEFAULT_MAX_CHANGED_FILES} files may be modified
+8. SCOPE FENCE: If description mentions FRONTEND-ONLY, only modify files under apps/web/ or docs/
 
 ## Required Output Format
 
@@ -1383,7 +1984,20 @@ DESCRIPTION: <what this change does>
 <new code with the changes>
 ---END---
 
-IMPORTANT: Output ONLY the PATCH BATCH instructions. Do not include any other text, explanations, or commentary.
+## REQUIRED: At the end, include an ALLOWED FILES section:
+
+ALLOWED FILES:
+- <every FILE: path you mentioned above>
+- docs/IMPLEMENTATION_PLAN.md
+
+ALLOWED NEW FILES:
+- {VERIFICATION_REPORT_DIR}/<KAN-KEY>-verification.md
+
+DIFF BUDGET: {DEFAULT_MAX_CHANGED_FILES}
+
+SCOPE FENCE: <restate any FRONTEND-ONLY constraint here, or "None">
+
+IMPORTANT: Output ONLY the PATCH BATCH instructions followed by the ALLOWED FILES section. Do not include any other text, explanations, or commentary.
 
 Generate the PATCH BATCH instructions now:"""
 
@@ -1483,7 +2097,10 @@ after identifying the relevant codebase locations.
         }
 
     def step_3_story_implementation(self) -> bool:
-        """Developer: Implement Stories using Claude Code CLI"""
+        """Developer: Implement Stories using Claude Code CLI
+
+        Guardrails v1: Full enforcement of scope fence, diff budget, patch list, and verification artifact
+        """
         self.log("DEVELOPER", "STEP 3: Checking for Stories with 'To Do' status...")
 
         stories = self.jira.get_stories_todo()
@@ -1496,58 +2113,73 @@ after identifying the relevant codebase locations.
 
         # Process oldest (FIFO)
         story = stories[0]
-        key = story['key']
+        story_key = story['key']
         summary = story['fields']['summary']
         description = self.jira.parse_adf_to_text(story['fields'].get('description', {}))
 
-        self.log("DEVELOPER", f"Implementing: [{key}] {summary}")
+        self.log("DEVELOPER", f"Implementing: [{story_key}] {summary}")
+
+        # Guardrails v1: Parse ALLOWED FILES from description
+        allowed_files, allowed_new_patterns = self._parse_allowed_files(description)
+        frontend_only = self._is_frontend_only(story, description)
+        max_files = int(os.environ.get("ENGINE_MAX_CHANGED_FILES", str(DEFAULT_MAX_CHANGED_FILES)))
+
+        self.log("DEVELOPER", f"Guardrails v1: frontend_only={frontend_only}, max_files={max_files}, allowed_files={len(allowed_files)}")
+
+        # Guardrails v1: Fail-fast if ALLOWED FILES missing
+        if not allowed_files:
+            self._fail_story_guardrail(
+                story_key,
+                "Missing ALLOWED FILES",
+                "ALLOWED FILES section missing or empty in Story description. Supervisor must include it.",
+                target_status="Blocked"
+            )
+            return True
+
+        # Guardrails v1: Check for clean working tree BEFORE invoking Claude
+        dirty_status = self.git.get_status_porcelain()
+        # Filter out state.json from dirty check
+        dirty_lines = [l for l in dirty_status.split('\n') if l.strip() and STATE_LEDGER_PATH not in l]
+        if dirty_lines:
+            self._fail_story_guardrail(
+                story_key,
+                "Dirty Working Tree",
+                f"Working tree not clean before implementation. Dirty files:\n{chr(10).join(dirty_lines[:10])}",
+                target_status="Blocked"
+            )
+            return True
+
+        # Capture base SHA before implementation
+        base_sha = self.git.get_head_sha()
+        if not base_sha:
+            self.log("DEVELOPER", "Failed to capture base SHA")
+            return False
+
+        self.log("DEVELOPER", f"Base SHA: {base_sha[:8]}")
 
         # Transition to In Progress
-        self.jira.transition_issue(key, 'In Progress')
+        self.jira.transition_issue(story_key, 'In Progress')
 
         # Add comment noting implementation started
-        self.jira.add_comment(key, f"Implementation started by Claude Code Developer\nBranch: {self.config.feature_branch}")
+        self.jira.add_comment(story_key, f"""
+Implementation started by Claude Code Developer
+Branch: {self.config.feature_branch}
+Base SHA: {base_sha[:8]}
+
+**Guardrails v1 Active:**
+- Diff budget: {max_files} files
+- Frontend-only: {frontend_only}
+- Allowed files: {len(allowed_files)}
+""")
 
         # Use Claude Code CLI to implement the story
         self.log("DEVELOPER", "Invoking Claude Code CLI for implementation...")
 
-        success, output, modified_files = self._invoke_claude_code(key, summary, description)
+        success, output, _ = self._invoke_claude_code(story_key, summary, description)
 
-        if success:
-            self.log("DEVELOPER", f"Claude Code completed implementation")
-            self.log("DEVELOPER", f"Modified files: {', '.join(modified_files) if modified_files else 'None detected'}")
-
-            # Update IMPLEMENTATION_PLAN.md
-            if modified_files:
-                self._update_implementation_plan(key, summary, modified_files)
-
-            # Commit and push changes to feature branch
-            commit_success = False
-            if modified_files:
-                self.log("DEVELOPER", "Committing changes to git...")
-                commit_success = self._commit_implementation(key, summary, modified_files)
-                if commit_success:
-                    self.log("DEVELOPER", f"Changes committed and pushed to {self.config.feature_branch}")
-                else:
-                    self.log("DEVELOPER", "Failed to commit changes - manual commit required")
-
-            # Add success comment to Jira
-            commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
-            self.jira.add_comment(key, f"""
-Implementation completed by Claude Code Developer.
-
-Branch: {self.config.feature_branch}
-Status: {commit_status}
-Files modified:
-{chr(10).join(['- ' + f for f in modified_files]) if modified_files else '(see git log for details)'}
-
-Ready for Supervisor verification.
-""")
-            self.log("DEVELOPER", f"Story {key} implementation complete")
-        else:
+        if not success:
             self.log("DEVELOPER", f"Claude Code encountered issues")
-
-            self.jira.add_comment(key, f"""
+            self.jira.add_comment(story_key, f"""
 Claude Code implementation encountered issues.
 
 Output:
@@ -1555,12 +2187,179 @@ Output:
 
 Human intervention may be required.
 """)
-
             self.escalate(
                 "DEVELOPER",
-                f"Story {key} Claude Code implementation issue",
+                f"Story {story_key} Claude Code implementation issue",
                 f"Story: {summary}\n\nClaude Code output:\n{output[:1000] if output else 'No output'}"
             )
+            return True
+
+        self.log("DEVELOPER", f"Claude Code completed implementation")
+
+        # Guardrails v1 PATCH 1: Authoritative diff against remote branch base
+        changed_files_remote = self._diff_against_remote_base(story_key)
+        if changed_files_remote is None:
+            # Fetch/diff failed - story already blocked by _diff_against_remote_base
+            return True
+
+        changed_count = len(changed_files_remote)
+        self.log("DEVELOPER", f"Changed files via origin/feature/agent...HEAD ({changed_count}): {', '.join(changed_files_remote) if changed_files_remote else 'None'}")
+
+        # Resolve allowed new patterns (replace <KAN-KEY> with story_key)
+        resolved_new_patterns = []
+        for pattern in allowed_new_patterns:
+            resolved = pattern.replace('<KAN-KEY>', story_key)
+            resolved_new_patterns.append(resolved)
+
+        # Build full allowed set (PATCH 2: only exact paths, no wildcards)
+        full_allowed = allowed_files.copy()
+        for pattern in resolved_new_patterns:
+            # Only add if it's an exact path (no wildcard chars or placeholder tokens)
+            has_wildcard = any(c in pattern for c in ('*', '?', '['))
+            has_placeholder = '<' in pattern or '>' in pattern
+            if not has_wildcard and not has_placeholder:
+                full_allowed.add(pattern)
+
+        # Guardrails v1 Check A: Scope Fence (frontend-only)
+        if frontend_only:
+            verification_report_path = f"{VERIFICATION_REPORT_DIR}/{story_key}-verification.md"
+            violating_files = []
+            for f in changed_files_remote:
+                is_allowed_root = any(f.startswith(root) for root in FRONTEND_ONLY_ALLOWED_ROOTS)
+                is_verification_report = f == verification_report_path
+                if not is_allowed_root and not is_verification_report:
+                    violating_files.append(f)
+
+            if violating_files:
+                self._fail_story_guardrail(
+                    story_key,
+                    "Scope Fence Violation (frontend-only)",
+                    f"Changed files outside allowed frontend-only roots ({FRONTEND_ONLY_ALLOWED_ROOTS})",
+                    violating_files=violating_files,
+                    allowed_files=full_allowed
+                )
+                return True
+
+        # Guardrails v1 Check B: Diff Budget
+        if changed_count > max_files:
+            self._fail_story_guardrail(
+                story_key,
+                "Diff Budget Exceeded",
+                f"Changed {changed_count} files, maximum allowed is {max_files}",
+                violating_files=changed_files_remote,
+                allowed_files=full_allowed
+            )
+            return True
+
+        # Guardrails v1 Check C: Patch-List Enforcement (PATCH 2: fnmatch, no endswith bypass)
+        violating_files = []
+        for f in changed_files_remote:
+            in_allowed = f in full_allowed
+            matches_pattern = self._matches_allowed_new(f, resolved_new_patterns)
+            if not in_allowed and not matches_pattern:
+                violating_files.append(f)
+
+        if violating_files:
+            self._fail_story_guardrail(
+                story_key,
+                "Patch-List Violation",
+                "Changed files outside allowed patch list",
+                violating_files=violating_files,
+                allowed_files=full_allowed
+            )
+            return True
+
+        # Guardrails v1 Check D: Verification Artifact Gate
+        verification_report_path = Path(self.config.repo_path) / VERIFICATION_REPORT_DIR / f"{story_key}-verification.md"
+        if not verification_report_path.exists():
+            self.jira.add_comment(story_key, f"""
+**Verification Artifact Missing**
+
+Required file: `{VERIFICATION_REPORT_DIR}/{story_key}-verification.md`
+
+The Developer must create this file with a `{VERIFICATION_REPORT_CHECKLIST_HEADER}` section before the story can be committed.
+
+*Story remains In Progress - no commit/push performed.*
+""")
+            self.escalate(
+                "DEVELOPER",
+                f"Verification artifact missing for {story_key}",
+                f"Missing: {VERIFICATION_REPORT_DIR}/{story_key}-verification.md"
+            )
+            return True
+
+        # Check verification report contains checklist header
+        try:
+            report_content = verification_report_path.read_text()
+            if VERIFICATION_REPORT_CHECKLIST_HEADER not in report_content:
+                self.jira.add_comment(story_key, f"""
+**Verification Artifact Invalid**
+
+File `{VERIFICATION_REPORT_DIR}/{story_key}-verification.md` exists but does not contain required header: `{VERIFICATION_REPORT_CHECKLIST_HEADER}`
+
+*Story remains In Progress - no commit/push performed.*
+""")
+                self.escalate(
+                    "DEVELOPER",
+                    f"Verification artifact invalid for {story_key}",
+                    f"Missing header '{VERIFICATION_REPORT_CHECKLIST_HEADER}' in report"
+                )
+                return True
+        except Exception as e:
+            self.log("DEVELOPER", f"Failed to read verification report: {e}")
+            return True
+
+        # All guardrails passed - record to ledger (PATCH 1D: add changedFilesRemoteBase)
+        self.state['kan_story_runs'][story_key] = {
+            'baseSha': base_sha,
+            'changedFiles': changed_files_remote,  # For backward compatibility
+            'changedFilesRemoteBase': changed_files_remote,  # Authoritative diff
+            'maxFiles': max_files,
+            'frontendOnly': frontend_only,
+            'guardrailsPassed': True,
+            'verificationReportPath': str(verification_report_path.relative_to(self.config.repo_path)),
+            'updatedAt': datetime.now(timezone.utc).isoformat()
+        }
+        self._save_state_ledger()
+
+        self.log("DEVELOPER", "All Guardrails v1 checks passed!")
+
+        # Update IMPLEMENTATION_PLAN.md
+        if changed_files_remote:
+            self._update_implementation_plan(story_key, summary, changed_files_remote)
+
+        # Commit and push changes to feature branch
+        commit_success = False
+        if changed_files_remote:
+            self.log("DEVELOPER", "Committing changes to git...")
+            commit_success = self._commit_implementation(story_key, summary, changed_files_remote)
+            if commit_success:
+                self.log("DEVELOPER", f"Changes committed and pushed to {self.config.feature_branch}")
+            else:
+                self.log("DEVELOPER", "Failed to commit changes - manual commit required")
+
+        # Add success comment to Jira (PATCH 5B: reference authoritative diff base)
+        commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
+        self.jira.add_comment(story_key, f"""
+Implementation completed by Claude Code Developer.
+
+Branch: {self.config.feature_branch}
+Status: {commit_status}
+
+**Guardrails v1 Results:**
+- ✅ Scope fence: {'frontend-only enforced' if frontend_only else 'N/A'}
+- ✅ Diff budget: {changed_count}/{max_files} files
+- ✅ Patch-list: All files in allowed list
+- ✅ Verification artifact: {VERIFICATION_REPORT_DIR}/{story_key}-verification.md
+
+**Authoritative diff base:** `origin/feature/agent...HEAD`
+
+Files modified:
+{chr(10).join(['- ' + f for f in changed_files_remote]) if changed_files_remote else '(none)'}
+
+Ready for Supervisor verification.
+""")
+        self.log("DEVELOPER", f"Story {story_key} implementation complete")
 
         self.log("DEVELOPER", "Notifying Supervisor for verification...")
         return True
@@ -1650,7 +2449,10 @@ Branch: {self.config.feature_branch}
         return True
 
     def step_4_story_verification(self) -> bool:
-        """Supervisor: Verify completed Stories"""
+        """Supervisor: Verify completed Stories
+
+        Guardrails v1: Real verification using ledger and verification reports
+        """
         self.log("SUPERVISOR", "STEP 4: Checking for Stories awaiting verification...")
 
         stories = self.jira.get_stories_in_progress()
@@ -1661,13 +2463,176 @@ Branch: {self.config.feature_branch}
 
         self.log("SUPERVISOR", f"Found {len(stories)} Stories in 'In Progress' status")
 
-        # For now, just log - actual verification would compare implementation to spec
+        verified_count = 0
         for story in stories:
-            key = story['key']
+            story_key = story['key']
             summary = story['fields']['summary']
-            self.log("SUPERVISOR", f"Awaiting verification: [{key}] {summary}")
+            self.log("SUPERVISOR", f"Verifying: [{story_key}] {summary}")
 
-        return False  # Don't loop on verification yet
+            # Check for verification report
+            verification_report_path = Path(self.config.repo_path) / VERIFICATION_REPORT_DIR / f"{story_key}-verification.md"
+
+            if not verification_report_path.exists():
+                self.log("SUPERVISOR", f"Verification report missing for {story_key}")
+                self.jira.add_comment(story_key, f"""
+**Supervisor Verification: Pending**
+
+Verification report not found: `{VERIFICATION_REPORT_DIR}/{story_key}-verification.md`
+
+Please create the verification report to proceed.
+""")
+                continue
+
+            # Validate report contains checklist
+            try:
+                report_content = verification_report_path.read_text()
+                if VERIFICATION_REPORT_CHECKLIST_HEADER not in report_content:
+                    self.log("SUPERVISOR", f"Verification report invalid for {story_key}")
+                    self.jira.add_comment(story_key, f"""
+**Supervisor Verification: Invalid Report**
+
+Report exists but missing required header: `{VERIFICATION_REPORT_CHECKLIST_HEADER}`
+""")
+                    continue
+            except Exception as e:
+                self.log("SUPERVISOR", f"Failed to read verification report: {e}")
+                continue
+
+            # Check ledger for guardrails record
+            ledger_entry = self.state.get('kan_story_runs', {}).get(story_key, {})
+
+            if not ledger_entry:
+                self.log("SUPERVISOR", f"No guardrails record for {story_key}")
+                self.jira.add_comment(story_key, f"""
+**Supervisor Verification: Cannot Verify**
+
+Guardrails record missing for {story_key}. Story requires human review.
+
+*Guardrails v1 - Ledger entry not found*
+""")
+                # Transition to Blocked
+                if not self.jira.transition_issue(story_key, 'Blocked'):
+                    self.jira.transition_issue(story_key, 'To Do')
+                self.escalate(
+                    "SUPERVISOR",
+                    f"Cannot verify {story_key} - guardrails record missing",
+                    f"Story: {summary}\n\nLedger entry not found. Manual review required."
+                )
+                continue
+
+            if not ledger_entry.get('guardrailsPassed'):
+                self.log("SUPERVISOR", f"Guardrails failed for {story_key}")
+                self.jira.add_comment(story_key, f"""
+**Supervisor Verification: Cannot Verify**
+
+Guardrails record shows failed checks for {story_key}. Story requires human review.
+
+*Guardrails v1 - guardrailsPassed=false*
+""")
+                # Transition to Blocked
+                if not self.jira.transition_issue(story_key, 'Blocked'):
+                    self.jira.transition_issue(story_key, 'To Do')
+                self.escalate(
+                    "SUPERVISOR",
+                    f"Cannot verify {story_key} - guardrails failed",
+                    f"Story: {summary}\n\nGuardrails record: {json.dumps(ledger_entry, indent=2)}"
+                )
+                continue
+
+            # PATCH 4: Drift detection - re-check remote-base diff vs recorded
+            self.log("SUPERVISOR", f"Checking for post-guardrail drift on {story_key}...")
+            current_diff = self._diff_against_remote_base(story_key)
+            if current_diff is None:
+                # Fetch/diff failed - cannot verify safely
+                self.log("SUPERVISOR", f"Failed to compute current diff for {story_key}")
+                self.jira.add_comment(story_key, """
+**Supervisor Verification: FAILED — Cannot compute current diff**
+
+Failed to fetch/diff `origin/feature/agent...HEAD`.
+
+Verification cannot proceed safely. Please check git remote state.
+""")
+                if not self.jira.transition_issue(story_key, 'Blocked'):
+                    self.jira.transition_issue(story_key, 'To Do')
+                self.escalate(
+                    "SUPERVISOR",
+                    f"Cannot verify {story_key} - diff computation failed",
+                    f"Story: {summary}\n\nFailed to compute origin/feature/agent...HEAD"
+                )
+                continue
+
+            # Get recorded diff (prefer changedFilesRemoteBase, fallback to changedFiles)
+            recorded_diff = ledger_entry.get('changedFilesRemoteBase') or ledger_entry.get('changedFiles', [])
+            current_set = set(current_diff)
+            recorded_set = set(recorded_diff)
+
+            if current_set != recorded_set:
+                # Drift detected
+                symmetric_diff = current_set.symmetric_difference(recorded_set)
+                diff_sample = sorted(list(symmetric_diff))[:20]
+                self.log("SUPERVISOR", f"Post-guardrail drift detected for {story_key}: {len(symmetric_diff)} file(s) differ")
+                self.jira.add_comment(story_key, f"""
+**Supervisor Verification: FAILED — Post-guardrail drift detected**
+
+Enforcement/verification uses: `origin/feature/agent...HEAD`
+
+**Recorded file count:** {len(recorded_set)}
+**Current file count:** {len(current_set)}
+
+**Files in symmetric difference (first 20):**
+{chr(10).join(['- `' + f + '`' for f in diff_sample])}
+
+The branch diff changed after Step 3 guardrails ran. This could indicate:
+- Additional commits after guardrail checks
+- Force-push or rebase changing history
+- Uncommitted changes during verification
+
+**Action Required:** Re-run Step 3 or request manual review.
+
+*Guardrails v1 - Drift detection*
+""")
+                if not self.jira.transition_issue(story_key, 'Blocked'):
+                    self.jira.transition_issue(story_key, 'To Do')
+                self.escalate(
+                    "SUPERVISOR",
+                    f"Post-guardrail drift detected for {story_key}",
+                    f"Story: {summary}\n\nRecorded: {len(recorded_set)} files\nCurrent: {len(current_set)} files\nDiff: {diff_sample}"
+                )
+                continue
+
+            # All checks passed - verify the story
+            self.log("SUPERVISOR", f"✅ Verification passed for {story_key}")
+
+            self.jira.add_comment(story_key, f"""
+**Supervisor Verification: PASSED**
+
+Verified via `{VERIFICATION_REPORT_DIR}/{story_key}-verification.md`
+
+**Guardrails v1 Record:**
+- Base SHA: {ledger_entry.get('baseSha', 'N/A')[:8]}
+- Changed files: {len(ledger_entry.get('changedFiles', []))}
+- Drift check: ✅ No post-guardrail drift detected
+- Guardrails passed: ✅
+
+**Authoritative diff base:** `origin/feature/agent...HEAD`
+
+Story implementation verified and ready for completion.
+""")
+
+            # Transition to Resolved (preferred) or Done (fallback)
+            if not self.jira.transition_issue(story_key, 'Resolved'):
+                if not self.jira.transition_issue(story_key, 'Done'):
+                    self.log("SUPERVISOR", f"Could not transition {story_key} to Resolved/Done")
+                    self.jira.add_comment(story_key, "Note: Could not auto-transition. Please manually move to Done.")
+                else:
+                    self.log("SUPERVISOR", f"Transitioned {story_key} to Done (fallback)")
+            else:
+                self.log("SUPERVISOR", f"Transitioned {story_key} to Resolved")
+
+            verified_count += 1
+
+        self.log("SUPERVISOR", f"Verified {verified_count}/{len(stories)} stories")
+        return verified_count > 0
 
     def escalate(self, role: str, title: str, details: str):
         """Human escalation"""
@@ -1722,66 +2687,148 @@ This is an automated escalation from the EngineO Autonomous Execution Engine.
             return False
 
     def _process_idea(self, issue: dict) -> bool:
-        """UEP: Process a specific Idea (uses enhanced analysis)"""
-        key = issue['key']
+        """UEP: Process a specific Idea (uses enhanced analysis)
+
+        Guardrails v1: Idempotent Epic creation
+        """
+        ea_key = issue['key']
         summary = issue['fields']['summary']
         description = self.jira.parse_adf_to_text(issue['fields'].get('description', {}))
+        ea_label = self._ea_label(ea_key)
 
-        self.log("UEP", f"Processing Idea: [{key}] {summary}")
+        self.log("UEP", f"Processing Idea: [{ea_key}] {summary}")
+
+        # Guardrails v1: Check for existing Epic
+        ledger_entry = self.state.get('ea_to_kan', {}).get(ea_key, {})
+        existing_epic = ledger_entry.get('epic')
+
+        if not existing_epic:
+            existing_epic = self._find_or_reuse_epic_for_ea(ea_key)
+
+        if existing_epic:
+            self.log("UEP", f"Reusing existing Epic: {existing_epic}")
+            if ea_key not in self.state['ea_to_kan']:
+                self.state['ea_to_kan'][ea_key] = {}
+            self.state['ea_to_kan'][ea_key]['epic'] = existing_epic
+            self.state['ea_to_kan'][ea_key]['updatedAt'] = datetime.now(timezone.utc).isoformat()
+            self._save_state_ledger()
+
+            self.jira.transition_issue(ea_key, 'In Progress')
+            self.jira.add_comment(ea_key, f"""
+Initiative processed by UEP (Unified Executive Persona)
+
+**Reused existing Epic:** {existing_epic}
+**EA Label:** {ea_label}
+
+*Guardrails v1: Idempotent processing*
+""")
+            return True
+
         self.log("UEP", "Analyzing initiative to define business intent...")
 
         # Use enhanced UEP analysis
-        epics_to_create = self._uep_analyze_idea(key, summary, description)
+        epics_to_create = self._uep_analyze_idea(ea_key, summary, description)
 
-        created_epics = []
-        for epic_def in epics_to_create:
-            epic_key = self.jira.create_epic(epic_def['summary'], epic_def['description'])
-            if epic_key:
-                self.log("UEP", f"Created Epic: {epic_key}")
-                created_epics.append(epic_key)
+        # Guardrails v1: Enforce 1 Epic
+        if len(epics_to_create) > 1:
+            self.log("UEP", f"Guardrails v1: Enforcing 1 Epic (proposed: {len(epics_to_create)})")
 
-        if created_epics:
-            self.jira.transition_issue(key, 'In Progress')
-            epic_list = '\n'.join([f"- {e}" for e in created_epics])
-            self.jira.add_comment(key, f"""
+        epic_def = epics_to_create[0]
+        epic_key = self.jira.create_epic(epic_def['summary'], epic_def['description'], labels=[ea_label])
+
+        if epic_key:
+            self.log("UEP", f"Created Epic: {epic_key}")
+
+            if ea_key not in self.state['ea_to_kan']:
+                self.state['ea_to_kan'][ea_key] = {}
+            self.state['ea_to_kan'][ea_key]['epic'] = epic_key
+            self.state['ea_to_kan'][ea_key]['stories'] = []
+            self.state['ea_to_kan'][ea_key]['updatedAt'] = datetime.now(timezone.utc).isoformat()
+            self._save_state_ledger()
+
+            self.jira.transition_issue(ea_key, 'In Progress')
+            self.jira.add_comment(ea_key, f"""
 Initiative processed by UEP (Unified Executive Persona)
 
-Created {len(created_epics)} Epic(s):
-{epic_list}
+**Created new Epic:** {epic_key}
+**EA Label:** {ea_label}
 
 Business Intent Defined - Ready for Supervisor decomposition.
+
+*Guardrails v1: Epic created with source label*
 """)
             return True
 
         return False
 
     def _process_epic(self, issue: dict) -> bool:
-        """Supervisor: Decompose a specific Epic into Stories (uses enhanced analysis)"""
-        key = issue['key']
+        """Supervisor: Decompose a specific Epic into Stories (uses enhanced analysis)
+
+        Guardrails v1: Idempotent Story creation
+        """
+        epic_key = issue['key']
         summary = issue['fields']['summary']
         description = self.jira.parse_adf_to_text(issue['fields'].get('description', {}))
 
-        self.log("SUPERVISOR", f"Decomposing Epic: [{key}] {summary}")
+        # Extract EA key for idempotent tracking
+        ea_key = self._extract_ea_key(summary)
+        ea_label = self._ea_label(ea_key) if ea_key else None
+
+        self.log("SUPERVISOR", f"Decomposing Epic: [{epic_key}] {summary}")
+        if ea_key:
+            self.log("SUPERVISOR", f"Guardrails v1: EA key={ea_key}, label={ea_label}")
         self.log("SUPERVISOR", "Analyzing codebase to identify implementation targets...")
 
         # Use enhanced Supervisor analysis
-        stories_to_create = self._supervisor_analyze_epic(key, summary, description)
+        stories_to_create = self._supervisor_analyze_epic(epic_key, summary, description)
 
         created_stories = []
-        for story_def in stories_to_create:
-            story_key = self.jira.create_story(story_def['summary'], story_def['description'], key)
-            if story_key:
-                self.log("SUPERVISOR", f"Created Story: {story_key}")
-                created_stories.append(story_key)
+        reused_stories = []
 
-        if created_stories:
-            self.jira.transition_issue(key, 'In Progress')
-            story_list = '\n'.join([f"- {s}" for s in created_stories])
-            self.jira.add_comment(key, f"""
+        for story_def in stories_to_create:
+            story_summary = story_def['summary']
+
+            # Check for existing Story
+            existing_story = self._find_or_reuse_story(epic_key, story_summary, ea_key)
+
+            if existing_story:
+                self.log("SUPERVISOR", f"Reused Story: {existing_story}")
+                reused_stories.append(existing_story)
+            else:
+                labels = [ea_label] if ea_label else None
+                story_key = self.jira.create_story(story_def['summary'], story_def['description'], epic_key, labels=labels)
+                if story_key:
+                    self.log("SUPERVISOR", f"Created Story: {story_key}")
+                    created_stories.append(story_key)
+
+        all_stories = created_stories + reused_stories
+
+        if all_stories:
+            # Update ledger
+            if ea_key:
+                if ea_key not in self.state['ea_to_kan']:
+                    self.state['ea_to_kan'][ea_key] = {}
+                self.state['ea_to_kan'][ea_key]['stories'] = list(set(
+                    self.state['ea_to_kan'].get(ea_key, {}).get('stories', []) + all_stories
+                ))
+                self.state['ea_to_kan'][ea_key]['updatedAt'] = datetime.now(timezone.utc).isoformat()
+                self._save_state_ledger()
+
+            self.jira.transition_issue(epic_key, 'In Progress')
+
+            created_list = '\n'.join([f"- {s} (new)" for s in created_stories]) if created_stories else ''
+            reused_list = '\n'.join([f"- {s} (reused)" for s in reused_stories]) if reused_stories else ''
+            story_list = created_list + ('\n' if created_list and reused_list else '') + reused_list
+
+            self.jira.add_comment(epic_key, f"""
 Epic decomposed by Supervisor (GPT-5.x Supervisor v3.2)
 
-Created {len(created_stories)} Story(ies):
+**Stories ({len(all_stories)} total):**
 {story_list}
+
+**Guardrails v1:**
+- EA Label: {ea_label or 'N/A'}
+- Created: {len(created_stories)}, Reused: {len(reused_stories)}
 
 Codebase analyzed - PATCH BATCH instructions generated.
 Ready for Developer implementation.
@@ -1791,62 +2838,72 @@ Ready for Developer implementation.
         return False
 
     def _process_story(self, issue: dict) -> bool:
-        """Developer: Implement a specific Story using Claude Code CLI"""
-        key = issue['key']
+        """Developer: Implement a specific Story using Claude Code CLI
+
+        Guardrails v1: Full enforcement (same as step_3_story_implementation)
+        """
+        story_key = issue['key']
         summary = issue['fields']['summary']
         description = self.jira.parse_adf_to_text(issue['fields'].get('description', {}))
         status = issue['fields']['status']['name'].lower()
 
-        self.log("DEVELOPER", f"Implementing Story: [{key}] {summary}")
+        self.log("DEVELOPER", f"Implementing Story: [{story_key}] {summary}")
+
+        # Guardrails v1: Parse constraints
+        allowed_files, allowed_new_patterns = self._parse_allowed_files(description)
+        frontend_only = self._is_frontend_only(issue, description)
+        max_files = int(os.environ.get("ENGINE_MAX_CHANGED_FILES", str(DEFAULT_MAX_CHANGED_FILES)))
+
+        self.log("DEVELOPER", f"Guardrails v1: frontend_only={frontend_only}, max_files={max_files}, allowed_files={len(allowed_files)}")
+
+        # Fail-fast if ALLOWED FILES missing
+        if not allowed_files:
+            self._fail_story_guardrail(
+                story_key,
+                "Missing ALLOWED FILES",
+                "ALLOWED FILES section missing or empty in Story description.",
+                target_status="Blocked"
+            )
+            return True
+
+        # Check for clean working tree
+        dirty_status = self.git.get_status_porcelain()
+        dirty_lines = [l for l in dirty_status.split('\n') if l.strip() and STATE_LEDGER_PATH not in l]
+        if dirty_lines:
+            self._fail_story_guardrail(
+                story_key,
+                "Dirty Working Tree",
+                f"Working tree not clean. Dirty files:\n{chr(10).join(dirty_lines[:10])}",
+                target_status="Blocked"
+            )
+            return True
+
+        # Capture base SHA
+        base_sha = self.git.get_head_sha()
+        if not base_sha:
+            self.log("DEVELOPER", "Failed to capture base SHA")
+            return False
 
         # Transition to In Progress if not already
         if 'to do' in status:
-            self.jira.transition_issue(key, 'In Progress')
-            self.jira.add_comment(key, f"Implementation started by Claude Code Developer\nBranch: {self.config.feature_branch}")
-
-        # Use Claude Code CLI to implement the story
-        self.log("DEVELOPER", "Invoking Claude Code CLI for implementation...")
-
-        success, output, modified_files = self._invoke_claude_code(key, summary, description)
-
-        if success:
-            self.log("DEVELOPER", f"Claude Code completed implementation")
-            self.log("DEVELOPER", f"Modified files: {', '.join(modified_files) if modified_files else 'None detected'}")
-
-            # Update IMPLEMENTATION_PLAN.md
-            if modified_files:
-                self._update_implementation_plan(key, summary, modified_files)
-
-            # Commit and push changes to feature branch
-            commit_success = False
-            if modified_files:
-                self.log("DEVELOPER", "Committing changes to git...")
-                commit_success = self._commit_implementation(key, summary, modified_files)
-                if commit_success:
-                    self.log("DEVELOPER", f"Changes committed and pushed to {self.config.feature_branch}")
-                else:
-                    self.log("DEVELOPER", "Failed to commit changes - manual commit required")
-
-            # Add success comment to Jira
-            commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
-            self.jira.add_comment(key, f"""
-Implementation completed by Claude Code Developer.
-
+            self.jira.transition_issue(story_key, 'In Progress')
+            self.jira.add_comment(story_key, f"""
+Implementation started by Claude Code Developer
 Branch: {self.config.feature_branch}
-Status: {commit_status}
-Files modified:
-{chr(10).join(['- ' + f for f in modified_files]) if modified_files else '(see git log for details)'}
+Base SHA: {base_sha[:8]}
 
-Claude Code Output (summary):
-{output[:1000] if output else 'Implementation completed successfully'}
-
-Ready for Supervisor verification.
+**Guardrails v1 Active:**
+- Diff budget: {max_files} files
+- Frontend-only: {frontend_only}
 """)
-            self.log("DEVELOPER", f"Story {key} implementation complete")
-        else:
-            self.log("DEVELOPER", f"Claude Code encountered issues")
 
-            self.jira.add_comment(key, f"""
+        # Invoke Claude
+        self.log("DEVELOPER", "Invoking Claude Code CLI for implementation...")
+        success, output, _ = self._invoke_claude_code(story_key, summary, description)
+
+        if not success:
+            self.log("DEVELOPER", f"Claude Code encountered issues")
+            self.jira.add_comment(story_key, f"""
 Claude Code implementation encountered issues.
 
 Output:
@@ -1854,21 +2911,142 @@ Output:
 
 Human intervention may be required.
 """)
-
             self.escalate(
                 "DEVELOPER",
-                f"Story {key} Claude Code implementation issue",
+                f"Story {story_key} Claude Code implementation issue",
                 f"Story: {summary}\n\nClaude Code output:\n{output[:1000] if output else 'No output'}"
             )
+            return True
 
-        self.log("DEVELOPER", "Notifying Supervisor for verification...")
+        self.log("DEVELOPER", f"Claude Code completed implementation")
+
+        # PATCH 1: Authoritative diff against remote branch base
+        changed_files_remote = self._diff_against_remote_base(story_key)
+        if changed_files_remote is None:
+            # Fetch/diff failed - story already blocked by _diff_against_remote_base
+            return True
+
+        changed_count = len(changed_files_remote)
+        self.log("DEVELOPER", f"Changed files via origin/feature/agent...HEAD ({changed_count}): {', '.join(changed_files_remote) if changed_files_remote else 'None'}")
+
+        # Resolve patterns (PATCH 2: only exact paths, no wildcards in full_allowed)
+        resolved_new_patterns = [p.replace('<KAN-KEY>', story_key) for p in allowed_new_patterns]
+        full_allowed = allowed_files.copy()
+        for pattern in resolved_new_patterns:
+            has_wildcard = any(c in pattern for c in ('*', '?', '['))
+            has_placeholder = '<' in pattern or '>' in pattern
+            if not has_wildcard and not has_placeholder:
+                full_allowed.add(pattern)
+
+        # Guardrail A: Scope fence
+        if frontend_only:
+            verification_report_path = f"{VERIFICATION_REPORT_DIR}/{story_key}-verification.md"
+            violating_files = [f for f in changed_files_remote
+                              if not any(f.startswith(root) for root in FRONTEND_ONLY_ALLOWED_ROOTS)
+                              and f != verification_report_path]
+            if violating_files:
+                self._fail_story_guardrail(story_key, "Scope Fence Violation", "Files outside frontend-only roots",
+                                          violating_files=violating_files, allowed_files=full_allowed)
+                return True
+
+        # Guardrail B: Diff budget
+        if changed_count > max_files:
+            self._fail_story_guardrail(story_key, "Diff Budget Exceeded",
+                                      f"Changed {changed_count} files, max is {max_files}",
+                                      violating_files=changed_files_remote, allowed_files=full_allowed)
+            return True
+
+        # Guardrail C: Patch-list (PATCH 2: fnmatch, no endswith bypass)
+        violating_files = [f for f in changed_files_remote
+                          if f not in full_allowed
+                          and not self._matches_allowed_new(f, resolved_new_patterns)]
+        if violating_files:
+            self._fail_story_guardrail(story_key, "Patch-List Violation", "Files outside allowed list",
+                                      violating_files=violating_files, allowed_files=full_allowed)
+            return True
+
+        # Guardrail D: Verification artifact
+        verification_report_path = Path(self.config.repo_path) / VERIFICATION_REPORT_DIR / f"{story_key}-verification.md"
+        if not verification_report_path.exists():
+            self.jira.add_comment(story_key, f"""
+**Verification Artifact Missing**
+
+Required: `{VERIFICATION_REPORT_DIR}/{story_key}-verification.md`
+
+*Story remains In Progress*
+""")
+            self.escalate("DEVELOPER", f"Verification artifact missing for {story_key}",
+                         f"Missing: {VERIFICATION_REPORT_DIR}/{story_key}-verification.md")
+            return True
+
+        try:
+            report_content = verification_report_path.read_text()
+            if VERIFICATION_REPORT_CHECKLIST_HEADER not in report_content:
+                self.jira.add_comment(story_key, f"""
+**Verification Artifact Invalid**
+
+Missing header: `{VERIFICATION_REPORT_CHECKLIST_HEADER}`
+""")
+                self.escalate("DEVELOPER", f"Verification artifact invalid for {story_key}", "Missing checklist header")
+                return True
+        except Exception as e:
+            self.log("DEVELOPER", f"Failed to read verification report: {e}")
+            return True
+
+        # All guardrails passed - record to ledger (PATCH 1D: add changedFilesRemoteBase)
+        self.state['kan_story_runs'][story_key] = {
+            'baseSha': base_sha,
+            'changedFiles': changed_files_remote,  # For backward compatibility
+            'changedFilesRemoteBase': changed_files_remote,  # Authoritative diff
+            'maxFiles': max_files,
+            'frontendOnly': frontend_only,
+            'guardrailsPassed': True,
+            'verificationReportPath': str(verification_report_path.relative_to(self.config.repo_path)),
+            'updatedAt': datetime.now(timezone.utc).isoformat()
+        }
+        self._save_state_ledger()
+
+        self.log("DEVELOPER", "All Guardrails v1 checks passed!")
+
+        # Update implementation plan and commit
+        if changed_files_remote:
+            self._update_implementation_plan(story_key, summary, changed_files_remote)
+            commit_success = self._commit_implementation(story_key, summary, changed_files_remote)
+        else:
+            commit_success = False
+
+        commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
+        self.jira.add_comment(story_key, f"""
+Implementation completed by Claude Code Developer.
+
+Branch: {self.config.feature_branch}
+Status: {commit_status}
+
+**Guardrails v1 Results:**
+- ✅ Scope fence: {'frontend-only enforced' if frontend_only else 'N/A'}
+- ✅ Diff budget: {changed_count}/{max_files} files
+- ✅ Patch-list: All files in allowed list
+- ✅ Verification artifact: {VERIFICATION_REPORT_DIR}/{story_key}-verification.md
+
+**Authoritative diff base:** `origin/feature/agent...HEAD`
+
+Files modified:
+{chr(10).join(['- ' + f for f in changed_files_remote]) if changed_files_remote else '(none)'}
+
+Ready for Supervisor verification.
+""")
+        self.log("DEVELOPER", f"Story {story_key} implementation complete")
         return True
 
     def _invoke_claude_code(self, story_key: str, summary: str, description: str) -> Tuple[bool, str, List[str]]:
         """Invoke Claude Code CLI to implement a story
 
         Returns: (success, output, list of modified files)
+
+        Guardrails v1: Prompt includes explicit constraints to prevent bypass
         """
+        max_files = int(os.environ.get("ENGINE_MAX_CHANGED_FILES", str(DEFAULT_MAX_CHANGED_FILES)))
+
         # Build the prompt for Claude Code
         prompt = f"""You are the Developer persona in an autonomous execution system.
 
@@ -1882,15 +3060,24 @@ Human intervention may be required.
 1. Implement the changes described in the PATCH BATCH instructions above
 2. Apply each patch surgically and minimally
 3. Follow existing code patterns and conventions
-4. After implementation, commit the changes with message:
-   "feat({story_key}): {summary}"
-5. Do NOT push to remote - just commit locally
+4. Create verification report: {VERIFICATION_REPORT_DIR}/{story_key}-verification.md (must include "{VERIFICATION_REPORT_CHECKLIST_HEADER}")
 
-Important:
+## GUARDRAILS v1 - MANDATORY CONSTRAINTS
+
+**Do NOT commit.** Do NOT push. The engine handles git operations.
+
+**You may ONLY modify files listed under ALLOWED FILES / ALLOWED NEW FILES in the story description.**
+
+**Diff budget: Maximum {max_files} files may be modified.**
+
+**If constraints conflict or are unclear, STOP and report in output; do not proceed.**
+
+## Important Rules
 - Make ONLY the changes specified in the PATCH BATCH
 - Do NOT refactor or change unrelated code
 - Preserve existing formatting and structure
 - If PATCH BATCH is unclear, implement based on the Epic requirements
+- ALWAYS create the verification report as your final step
 
 Begin implementation now.
 """
@@ -1952,6 +3139,7 @@ Examples:
   python engine.py                    # Run continuous loop
   python engine.py --issue KAN-10     # Process specific issue
   python engine.py --issue KAN-10 --type story  # Process as Story
+  python engine.py --until-done       # Run until no work, then exit
 """
     )
     parser.add_argument(
@@ -1967,6 +3155,12 @@ Examples:
         '--once',
         action='store_true',
         help='Run one iteration and exit'
+    )
+    parser.add_argument(
+        '--until-done',
+        action='store_true',
+        dest='until_done',
+        help='Guardrails v1: Exit cleanly when no To Do work exists (instead of sleeping)'
     )
 
     args = parser.parse_args()
@@ -1988,6 +3182,9 @@ Examples:
 
     config = Config.load()
     engine = ExecutionEngine(config)
+
+    # Guardrails v1: Wire up --until-done
+    engine.until_done = args.until_done
 
     # Validate configuration
     errors = config.validate()
