@@ -7,6 +7,24 @@ This document tracks all implementation phases and their completion status.
 
 
 
+## AUTONOMOUS-AGENT-STEP4-VERIFICATION-RESTORE-1 FIXUP-1
+
+**Implemented:** 2026-01-26 19:30 UTC
+**Branch:** feature/agent
+
+### Summary:
+Cleanup fixup for Step 4 verification restore - removed out-of-scope test file and unrelated verification artifact.
+
+### Changes:
+- PATCH 1: Verified ledger path to state.json is correct (no code change needed)
+- PATCH 2: Removed `scripts/autonomous-agent/tests/test_parse_allowed_files.py` (out-of-scope)
+- PATCH 3: Removed `scripts/autonomous-agent/reports/AUTONOMOUS-AGENT-ALLOWED-FILES-BULLET-PARSER-FIXUP-1-verification.md` (unrelated)
+
+### Test Results:
+- 28 tests pass (down from 39 after removing out-of-scope test file with 11 tests)
+
+---
+
 ## [KAN-17] AUTONOMOUS-AGENT-ISSUE-MODE-BUG-DISPATCH-FIXUP-1
 
 **Implemented:** 2026-01-26 16:32 UTC
