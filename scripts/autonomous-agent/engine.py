@@ -85,8 +85,11 @@ CLAUDE_PER_TICKET_TIMEOUT_MAX = 8 * 60 * 60  # 8 hour cap for per-ticket overrid
 LEDGER_REL_PATH = ".engineo/state.json"
 LEDGER_VERSION = 1
 
+# Escalation queue path (runtime-only, never tracked)
+ESCALATIONS_REL_PATH = ".engineo/escalations.json"
+
 # Runtime paths that must NEVER be staged/committed
-RUNTIME_IGNORED_PATHS = {LEDGER_REL_PATH, CLAUDE_LOCK_REL_PATH}
+RUNTIME_IGNORED_PATHS = {LEDGER_REL_PATH, CLAUDE_LOCK_REL_PATH, ESCALATIONS_REL_PATH}
 
 # Secret env vars to redact from output (values only, not names)
 CLAUDE_SECRET_ENV_VARS = ["JIRA_TOKEN", "JIRA_API_TOKEN", "GITHUB_TOKEN"]
@@ -297,6 +300,34 @@ def _parse_allowed_files(description: str) -> List[str]:
                 allowed_files.append(cleaned)
 
     return allowed_files
+
+
+def _docs_allowed_by_constraints(description: str) -> bool:
+    """Check if docs/ modifications are allowed by ALLOWED FILES constraints.
+
+    Rules:
+    - If no ALLOWED FILES section found (empty list): return True (preserve legacy)
+    - If ALLOWED FILES section exists: return True only if any pattern permits docs/
+      (i.e., pattern starts with 'docs/' or is 'docs/**' or similar)
+
+    Args:
+        description: Story/bug description text.
+
+    Returns:
+        True if docs modifications are allowed, False otherwise.
+    """
+    allowed_patterns = _parse_allowed_files(description)
+
+    # No ALLOWED FILES section = legacy behavior, docs allowed
+    if not allowed_patterns:
+        return True
+
+    # Check if any pattern permits docs/
+    for pattern in allowed_patterns:
+        if pattern.startswith('docs/') or pattern.startswith('docs\\') or pattern == 'docs':
+            return True
+
+    return False
 
 
 def _select_newest_verification_report(issue_key: str, relpaths: List[str], mtimes: Optional[Dict[str, float]] = None) -> Optional[str]:
@@ -1164,7 +1195,10 @@ class EmailClient:
 
     def __init__(self, config: Config):
         self.config = config
-        self.escalation_file = Path(config.repo_path) / 'scripts' / 'autonomous-agent' / 'escalations.json'
+        # Use runtime-only path in .engineo/ (never tracked)
+        self.escalation_file = Path(config.repo_path) / ESCALATIONS_REL_PATH
+        # Ensure directory exists
+        self.escalation_file.parent.mkdir(parents=True, exist_ok=True)
 
     def send_escalation(self, subject: str, body: str) -> bool:
         """Send escalation email via Gmail MCP server or fallback to file queue
@@ -2140,6 +2174,9 @@ after identifying the relevant codebase locations.
 
         self.log("DEVELOPER", f"Implementing: [{key}] {summary}")
 
+        # Check if docs modifications are allowed by ALLOWED FILES constraints
+        allow_docs = _docs_allowed_by_constraints(description)
+
         # Transition to In Progress
         self.jira.transition_issue(key, 'In Progress')
 
@@ -2155,15 +2192,18 @@ after identifying the relevant codebase locations.
             self.log("DEVELOPER", f"Claude Code completed implementation")
             self.log("DEVELOPER", f"Modified files: {', '.join(modified_files) if modified_files else 'None detected'}")
 
-            # Update IMPLEMENTATION_PLAN.md
+            # Update IMPLEMENTATION_PLAN.md only if docs allowed
             if modified_files:
-                self._update_implementation_plan(key, summary, modified_files)
+                if allow_docs:
+                    self._update_implementation_plan(key, summary, modified_files)
+                else:
+                    self.log("DEVELOPER", "Skipping IMPLEMENTATION_PLAN.md update (docs not allowed by ALLOWED FILES)")
 
             # Commit and push changes to feature branch
             commit_success = False
             if modified_files:
                 self.log("DEVELOPER", "Committing changes to git...")
-                commit_success = self._commit_implementation(key, summary, modified_files)
+                commit_success = self._commit_implementation(key, summary, modified_files, allow_docs)
                 if commit_success:
                     self.log("DEVELOPER", f"Changes committed and pushed to {self.config.feature_branch}")
                 else:
@@ -2247,7 +2287,7 @@ Human intervention may be required.
         except Exception as e:
             self.log("DEVELOPER", f"Failed to update IMPLEMENTATION_PLAN.md: {e}")
 
-    def _commit_implementation(self, story_key: str, summary: str, files: List[str]) -> bool:
+    def _commit_implementation(self, story_key: str, summary: str, files: List[str], allow_docs: bool = True) -> bool:
         """Commit and push implementation changes with ledger pre-commit gate."""
         # PATCH 3A: Record ledger evidence BEFORE staging
         head_sha = self.git.get_head_sha()
@@ -2280,11 +2320,14 @@ Human intervention may be required.
             error_msg = "Cannot commit: ledger write failed"
             self.log("DEVELOPER", error_msg)
             self.jira.add_comment(story_key, f"Implementation blocked: {error_msg}")
-            self._escalate("DEVELOPER", f"Story {story_key} commit blocked", error_msg)
+            self.escalate("DEVELOPER", f"Story {story_key} commit blocked", error_msg)
             return False
 
         # Stage modified files (excluding runtime ignored paths)
-        files_to_stage = filtered_files + [str(self.impl_plan_path)]
+        # Only include impl_plan_path if docs are allowed
+        files_to_stage = filtered_files[:]
+        if allow_docs:
+            files_to_stage.append(str(self.impl_plan_path))
 
         # Filter to only existing files AND exclude runtime paths
         existing_files = []
@@ -2602,6 +2645,9 @@ Ready for Developer implementation.
 
         self.log("DEVELOPER", f"Implementing Story: [{key}] {summary}")
 
+        # Check if docs modifications are allowed by ALLOWED FILES constraints
+        allow_docs = _docs_allowed_by_constraints(description)
+
         # Transition to In Progress if not already
         if 'to do' in status:
             self.jira.transition_issue(key, 'In Progress')
@@ -2616,15 +2662,18 @@ Ready for Developer implementation.
             self.log("DEVELOPER", f"Claude Code completed implementation")
             self.log("DEVELOPER", f"Modified files: {', '.join(modified_files) if modified_files else 'None detected'}")
 
-            # Update IMPLEMENTATION_PLAN.md
+            # Update IMPLEMENTATION_PLAN.md only if docs allowed
             if modified_files:
-                self._update_implementation_plan(key, summary, modified_files)
+                if allow_docs:
+                    self._update_implementation_plan(key, summary, modified_files)
+                else:
+                    self.log("DEVELOPER", "Skipping IMPLEMENTATION_PLAN.md update (docs not allowed by ALLOWED FILES)")
 
             # Commit and push changes to feature branch
             commit_success = False
             if modified_files:
                 self.log("DEVELOPER", "Committing changes to git...")
-                commit_success = self._commit_implementation(key, summary, modified_files)
+                commit_success = self._commit_implementation(key, summary, modified_files, allow_docs)
                 if commit_success:
                     self.log("DEVELOPER", f"Changes committed and pushed to {self.config.feature_branch}")
                 else:
