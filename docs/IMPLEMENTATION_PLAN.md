@@ -4,8 +4,35 @@ This document tracks all implementation phases and their completion status.
 
 > ⚠️ **Authoritative:** `docs/IMPLEMENTATION_PLAN.md` is the single source of truth for EngineO.ai execution. The root `IMPLEMENTATION_PLAN.md` is deprecated.
 
+## AUTONOMOUS-AGENT-RUNTIME-RELIABILITY-FIXUP-2
 
+**Implemented:** 2026-01-27 14:35 UTC
+**Branch:** feature/agent
 
+### Summary:
+6-patch fixup for determinism and robustness in the autonomous-agent execution engine.
+
+### Patches:
+- **PATCH 0**: Workspace hygiene - .gitignore entries for runtime artifacts
+- **PATCH 1**: Remove .zshrc sourcing, add deterministic load_dotenv() helper
+- **PATCH 2**: Persona naming normalization to UEP, SUPERVISOR, IMPLEMENTER
+- **PATCH 3**: Fix VERIFICATION REQUIRED parsing (markdown headers) and canonical paths
+- **PATCH 4**: Epic decomposition idempotency (JQL fix, proper handling of existing stories)
+- **PATCH 5**: Fatal output rolling buffer detection (8KB boundary-safe)
+- **PATCH 6**: Documentation alignment in ENGINE-RUN-ARTIFACTS.md
+
+### Files Modified:
+- `.gitignore`
+- `scripts/autonomous-agent/engine.py`
+- `scripts/autonomous-agent/reports/ENGINE-RUN-ARTIFACTS.md`
+- `scripts/autonomous-agent/tests/test_epic_decomposition_idempotency.py` (new)
+- `scripts/autonomous-agent/tests/test_fatal_output_detection.py` (new)
+- `scripts/autonomous-agent/tests/test_verification_required_parser.py` (new)
+
+### Test Results:
+- 86 tests pass
+
+---
 
 
 
