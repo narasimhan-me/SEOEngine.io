@@ -22,21 +22,41 @@ This document defines the canonical locations and naming conventions for artifac
 
 ## Verification Reports
 
-**Canonical Location:** `scripts/autonomous-agent/reports/`
+### Default Canonical Path
+
+**Default Location:** `scripts/autonomous-agent/reports/{ISSUE_KEY}-verification.md`
+
+This default is used when no `## VERIFICATION REQUIRED` section is present in the story description.
+
+### Custom Path via VERIFICATION REQUIRED
+
+Stories can specify a custom verification report path in their description:
+
+```markdown
+## VERIFICATION REQUIRED
+- reports/{ISSUE_KEY}-custom-verification.md
+```
+
+The engine parses this section and uses the first matching path as the expected location.
 
 ### Naming Patterns
 
 | Pattern | Status | Example |
 |---------|--------|---------|
 | `{ISSUE_KEY}-{RUN_ID}-verification.md` | **Preferred** | `KAN-16-20260127-143047Z-verification.md` |
-| `{ISSUE_KEY}-verification.md` | Legacy acceptable | `KAN-16-verification.md` |
+| `{ISSUE_KEY}-verification.md` | **Default canonical** | `KAN-16-verification.md` |
 | `TITLE-PREFIX-...-verification.md` | **Non-canonical** | Ignored by Supervisor |
+
+### Report Requirements
+
+Verification reports **MUST** contain a `## Checklist` section to be considered valid. Reports without this header will be rejected by the Supervisor.
 
 ### Important Notes
 
 - Title-prefixed verification reports (e.g., `AUTONOMOUS-AGENT-...-verification.md`) are **non-canonical** and will be **ignored** by the Supervisor during verification.
 - If Claude produces a title-prefixed report, the engine will attempt to copy it to a canonical issue-key-prefixed filename.
 - When multiple verification reports exist for an issue, the **newest by timestamp** is selected.
+- The Supervisor searches `reports/` at the repo root **first**, then falls back to `scripts/autonomous-agent/reports/`.
 
 ## Claude Output Artifacts
 

@@ -21,7 +21,7 @@ This engine coordinates THREE STRICT ROLES:
    - Verifies Stories and Epics
    - Ends each phase with instruction to update Implementation Plan
 
-3) CLAUDE DEVELOPER v3.2
+3) IMPLEMENTER v3.2
    - Applies PATCH BATCH diffs EXACTLY as specified
    - Writes all code
    - Makes ONLY the modifications shown in patches
@@ -65,7 +65,7 @@ CLAUDE_CODE_AVAILABLE = True  # Will be verified at runtime
 # Model aliases for Claude Code CLI
 MODEL_UEP = "opus"        # Best for business analysis
 MODEL_SUPERVISOR = "opus"  # Best for code analysis
-MODEL_DEVELOPER = "sonnet" # Faster for implementation
+MODEL_IMPLEMENTER = "sonnet" # Faster for implementation
 
 # -----------------------------------------------------------------------------
 # CLAUDE EXECUTION HARDENING
@@ -346,6 +346,100 @@ def _docs_allowed_by_constraints(description: str) -> bool:
     return False
 
 
+def _parse_verification_required_paths(description: str) -> List[str]:
+    """Parse VERIFICATION REQUIRED section from description.
+
+    Extracts repo-relative file paths from VERIFICATION REQUIRED: section,
+    supporting various bullet formats including Jira-rendered Unicode bullets (•).
+
+    Args:
+        description: Story/bug description text.
+
+    Returns:
+        List of repo-relative paths exactly as written (no normalization).
+        Empty list if no VERIFICATION REQUIRED section found.
+    """
+    if not description:
+        return []
+
+    paths = []
+    in_section = False
+
+    for line in description.split('\n'):
+        stripped = line.strip()
+
+        # Check for VERIFICATION REQUIRED header (case-insensitive)
+        if re.match(r'^VERIFICATION\s+REQUIRED:', stripped, re.IGNORECASE):
+            in_section = True
+            continue
+
+        # Stop parsing at next section header or empty line after content
+        if in_section:
+            # Empty line or new section header ends the section
+            if not stripped or re.match(r'^[A-Z][A-Z\s]+:', stripped):
+                if not stripped:
+                    if paths:
+                        break
+                    continue
+                else:
+                    break
+
+            # Parse bullet points: -, *, or • (Unicode bullet U+2022)
+            cleaned = stripped.lstrip('-*•').strip()
+            if cleaned and cleaned != stripped.lstrip():
+                paths.append(cleaned)
+
+    return paths
+
+
+def _expected_verification_report_path(issue_key: str, description: str) -> str:
+    """Get expected verification report path based on description or default.
+
+    If VERIFICATION REQUIRED section exists with matching paths, returns the
+    first path containing the issue key and ending with -verification.md.
+    Otherwise returns the canonical default: reports/{ISSUE_KEY}-verification.md
+
+    Args:
+        issue_key: The issue key (e.g., "KAN-16").
+        description: Story/bug description text.
+
+    Returns:
+        Repo-relative path to expected verification report.
+    """
+    paths = _parse_verification_required_paths(description)
+
+    # Find first path containing issue key and ending with -verification.md
+    for path in paths:
+        if issue_key in path and path.endswith('-verification.md'):
+            return path
+
+    # Default: repo-root reports/{ISSUE_KEY}-verification.md
+    return f"reports/{issue_key}-verification.md"
+
+
+def _is_fatal_claude_output(text: str) -> bool:
+    """Check if Claude output indicates a fatal error requiring immediate termination.
+
+    Fatal errors (case-insensitive):
+    - "Error: No messages returned"
+    - "UnhandledPromiseRejection"
+    - cli.js stack traces
+
+    Args:
+        text: Claude CLI output text.
+
+    Returns:
+        True if fatal error detected, False otherwise.
+    """
+    text_lower = text.lower()
+    fatal_patterns = [
+        "error: no messages returned",
+        "unhandledpromiserejection",
+        "cli.js:",
+    ]
+    return any(pattern in text_lower for pattern in fatal_patterns)
+
+
 def _select_newest_verification_report(issue_key: str, relpaths: List[str], mtimes: Optional[Dict[str, float]] = None) -> Optional[str]:
     """Pure helper: select the newest verification report from a list of paths.
 
@@ -409,15 +503,19 @@ def _select_newest_verification_report(issue_key: str, relpaths: List[str], mtim
 def _resolve_verification_report(repo_path: str, issue_key: str) -> Optional[str]:
     """Resolve the most recent verification report for an issue.
 
-    Searches BOTH locations for backward compatibility:
-    1. Primary: scripts/autonomous-agent/reports/ (SCRIPT_DIR)
-    2. Legacy: repo-root reports/
+    Search precedence (PATCH 2-A):
+    1. Repo-root reports/ (PREFERRED)
+    2. scripts/autonomous-agent/reports/ (fallback)
 
     IMPORTANT: Only considers issue-key-prefixed reports:
     - {ISSUE_KEY}-verification.md (legacy)
     - {ISSUE_KEY}-{RUN_ID}-verification.md (timestamped)
 
     Title-prefixed reports (e.g., AUTONOMOUS-AGENT-...-verification.md) are IGNORED.
+
+    Selection rules:
+    - Newest by timestamp wins
+    - Break ties in favor of repo-root reports/
 
     Returns: Repo-relative path to the newest verification report, or None if not found.
     """
@@ -427,54 +525,17 @@ def _resolve_verification_report(repo_path: str, issue_key: str) -> Optional[str
     suffix = "-verification.md"
     legacy_suffix = f"{issue_key}-verification.md"
 
-    candidates = []  # List of (timestamp, repo_relative_path)
-    mtimes = {}  # For legacy files without parseable timestamps
+    # List of (timestamp, repo_relative_path, is_preferred_dir)
+    candidates = []
+    mtimes = {}
 
-    # Search location 1: scripts/autonomous-agent/reports/ (primary)
-    primary_dir = SCRIPT_DIR / CLAUDE_OUTPUT_DIRNAME
-    if primary_dir.exists():
-        pattern = str(primary_dir / f"{issue_key}-*-verification.md")
-        for match in glob.glob(pattern):
-            path = Path(match)
-            filename = path.name
+    def add_candidates_from_dir(dir_path: Path, rel_prefix: str, is_preferred: bool):
+        """Helper to add candidates from a directory."""
+        if not dir_path.exists():
+            return
 
-            # ONLY consider issue-key-prefixed files (ignore title-prefixed)
-            if not filename.startswith(prefix):
-                continue
-
-            # Build repo-relative path
-            rel_path = f"scripts/autonomous-agent/{CLAUDE_OUTPUT_DIRNAME}/{filename}"
-
-            if filename == legacy_suffix:
-                # Legacy format: use mtime
-                mtime = path.stat().st_mtime
-                mtimes[rel_path] = mtime
-                candidates.append((datetime.fromtimestamp(mtime), rel_path))
-            elif filename.endswith(suffix):
-                # Timestamped format: parse run_id
-                run_id = filename[len(prefix):-len(suffix)]
-                try:
-                    ts = datetime.strptime(run_id, "%Y%m%d-%H%M%SZ")
-                    candidates.append((ts, rel_path))
-                except ValueError:
-                    # Can't parse - use mtime as fallback
-                    mtime = path.stat().st_mtime
-                    mtimes[rel_path] = mtime
-                    candidates.append((datetime.fromtimestamp(mtime), rel_path))
-
-        # Also check for legacy file in primary location
-        legacy_path = primary_dir / legacy_suffix
-        if legacy_path.exists():
-            rel_path = f"scripts/autonomous-agent/{CLAUDE_OUTPUT_DIRNAME}/{legacy_suffix}"
-            if rel_path not in [c[1] for c in candidates]:
-                mtime = legacy_path.stat().st_mtime
-                mtimes[rel_path] = mtime
-                candidates.append((datetime.fromtimestamp(mtime), rel_path))
-
-    # Search location 2: repo-root reports/ (legacy backward compat)
-    legacy_dir = Path(repo_path) / "reports"
-    if legacy_dir.exists():
-        pattern = str(legacy_dir / f"{issue_key}-*-verification.md")
+        # Search for timestamped reports
+        pattern = str(dir_path / f"{issue_key}-*-verification.md")
         for match in glob.glob(pattern):
             path = Path(match)
             filename = path.name
@@ -483,36 +544,45 @@ def _resolve_verification_report(repo_path: str, issue_key: str) -> Optional[str
             if not filename.startswith(prefix):
                 continue
 
-            rel_path = f"reports/{filename}"
+            rel_path = f"{rel_prefix}{filename}"
 
             if filename == legacy_suffix:
                 mtime = path.stat().st_mtime
                 mtimes[rel_path] = mtime
-                candidates.append((datetime.fromtimestamp(mtime), rel_path))
+                candidates.append((datetime.fromtimestamp(mtime), rel_path, is_preferred))
             elif filename.endswith(suffix):
                 run_id = filename[len(prefix):-len(suffix)]
                 try:
                     ts = datetime.strptime(run_id, "%Y%m%d-%H%M%SZ")
-                    candidates.append((ts, rel_path))
+                    candidates.append((ts, rel_path, is_preferred))
                 except ValueError:
                     mtime = path.stat().st_mtime
                     mtimes[rel_path] = mtime
-                    candidates.append((datetime.fromtimestamp(mtime), rel_path))
+                    candidates.append((datetime.fromtimestamp(mtime), rel_path, is_preferred))
 
-        # Also check for legacy file in legacy location
-        legacy_path = legacy_dir / legacy_suffix
+        # Also check for legacy file
+        legacy_path = dir_path / legacy_suffix
         if legacy_path.exists():
-            rel_path = f"reports/{legacy_suffix}"
+            rel_path = f"{rel_prefix}{legacy_suffix}"
             if rel_path not in [c[1] for c in candidates]:
                 mtime = legacy_path.stat().st_mtime
                 mtimes[rel_path] = mtime
-                candidates.append((datetime.fromtimestamp(mtime), rel_path))
+                candidates.append((datetime.fromtimestamp(mtime), rel_path, is_preferred))
+
+    # Search location 1: repo-root reports/ (PREFERRED)
+    repo_reports_dir = Path(repo_path) / "reports"
+    add_candidates_from_dir(repo_reports_dir, "reports/", is_preferred=True)
+
+    # Search location 2: scripts/autonomous-agent/reports/ (fallback)
+    script_reports_dir = SCRIPT_DIR / CLAUDE_OUTPUT_DIRNAME
+    add_candidates_from_dir(script_reports_dir, f"scripts/autonomous-agent/{CLAUDE_OUTPUT_DIRNAME}/", is_preferred=False)
 
     if not candidates:
         return None
 
-    # Sort by timestamp descending (newest first) and return the newest
-    candidates.sort(key=lambda x: x[0], reverse=True)
+    # Sort by: timestamp desc, then preferred dir (True > False)
+    # is_preferred=True should come first when timestamps are equal
+    candidates.sort(key=lambda x: (x[0], x[2]), reverse=True)
     return candidates[0][1]
 
 
@@ -627,7 +697,7 @@ ROLE_SUPERVISOR = {
 }
 
 ROLE_IMPLEMENTER = {
-    'name': 'CLAUDE DEVELOPER',
+    'name': 'IMPLEMENTER',
     'version': '3.2',
     'responsibilities': [
         'Apply PATCH BATCH diffs EXACTLY as provided',
@@ -797,6 +867,15 @@ class JiraClient:
         """
         jql = f'project = {self.config.software_project} AND issuetype IN (Story, Bug) AND status = "In Progress" ORDER BY created ASC'
         return self.search_issues(jql, ['summary', 'status', 'issuetype', 'description'])
+
+    def get_implement_stories_for_epic(self, epic_key: str) -> List[dict]:
+        """Get existing implement-stories linked to this epic.
+
+        PATCH 3-A: Check for existing stories before decomposition.
+        JQL: parent = {epic_key} AND summary ~ "Implement:*"
+        """
+        jql = f'project = {self.config.software_project} AND issuetype = Story AND parent = {epic_key} AND summary ~ "Implement:*" ORDER BY created ASC'
+        return self.search_issues(jql, ['summary', 'status', 'description', 'parent'])
 
     def get_available_transition_names(self, issue_key: str) -> List[str]:
         """Get available transition names for an issue.
@@ -1385,8 +1464,9 @@ class EmailClient:
 class ExecutionEngine:
     """Main execution engine coordinating all personas"""
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, cli_timeout_secs: Optional[int] = None):
         self.config = config
+        self._cli_timeout_secs = cli_timeout_secs  # PATCH 5: Store for timeout precedence
         self.jira = JiraClient(config)
         self.git = GitClient(config)
         self.email = EmailClient(config)
@@ -1410,19 +1490,30 @@ class ExecutionEngine:
         deleted_count = rotate_logs(self.logs_dir, max_age_days=2)
         self.log("SYSTEM", f"Log rotation: deleted {deleted_count} old logs (>2 days)")
 
-        # Compute effective Claude timeout from env or default (PATCH 5: alias support)
+        # PATCH 5: Compute effective Claude timeout (CLI > env > default)
+        # Precedence: --claude-timeout-secs > CLAUDE_TIMEOUT_SECS > ENGINEO_CLAUDE_TIMEOUT_SECONDS > CLAUDE_TIMEOUT_SECONDS > default
         self.claude_timeout_seconds = CLAUDE_TIMEOUT_SECONDS
-        # Prefer ENGINEO_CLAUDE_TIMEOUT_SECONDS, fall back to CLAUDE_TIMEOUT_SECONDS alias
-        env_timeout = os.environ.get(CLAUDE_TIMEOUT_ENV_VAR, "") or os.environ.get("CLAUDE_TIMEOUT_SECONDS", "")
-        if env_timeout:
-            try:
-                parsed = int(env_timeout)
-                if parsed > 0:
-                    self.claude_timeout_seconds = parsed
-            except ValueError:
-                pass  # Fall back to default
+        timeout_source = "default"
+
+        # Check env vars (lowest precedence of overrides)
+        for env_name in ["CLAUDE_TIMEOUT_SECONDS", "ENGINEO_CLAUDE_TIMEOUT_SECONDS", "CLAUDE_TIMEOUT_SECS"]:
+            env_val = os.environ.get(env_name, "")
+            if env_val:
+                try:
+                    parsed = int(env_val)
+                    if parsed > 0:
+                        self.claude_timeout_seconds = parsed
+                        timeout_source = f"env:{env_name}"
+                except ValueError:
+                    pass
+
+        # CLI flag has highest precedence
+        if self._cli_timeout_secs is not None and self._cli_timeout_secs > 0:
+            self.claude_timeout_seconds = self._cli_timeout_secs
+            timeout_source = "cli:--claude-timeout-secs"
+
         timeout_hours = round(self.claude_timeout_seconds / 3600, 2)
-        self.log("SYSTEM", f"Claude timeout configured: {self.claude_timeout_seconds}s ({timeout_hours}h)")
+        self.log("SYSTEM", f"Claude timeout configured: {self.claude_timeout_seconds}s ({timeout_hours}h) [source: {timeout_source}]")
 
         # Verify Claude Code CLI is available
         self.claude_code_available = self._verify_claude_code()
@@ -1608,56 +1699,76 @@ class ExecutionEngine:
 
         return (base_sha_short, changed_files_count)
 
-    def _normalize_verification_report_filename(self, issue_key: str) -> Optional[str]:
-        """Normalize title-prefixed verification report to canonical issue-key-prefixed name.
+    def _ensure_verification_report(self, issue_key: str, description: str) -> Optional[str]:
+        """Ensure verification report exists at expected path.
 
-        If a canonical/legacy issue-key-prefixed report already exists, does nothing.
-        Otherwise, searches for title-prefixed reports containing the issue key in content,
-        and COPIES (not moves) the newest to the canonical filename.
+        Computes expected path from VERIFICATION REQUIRED section or default.
+        If expected path already exists, returns it.
+        Otherwise searches for candidate reports and copies newest to expected path.
 
-        Returns: Repo-relative path to canonical report if copy occurred, else None.
+        PATCH 1-D: Copy-only, never creates stub reports.
+
+        Args:
+            issue_key: The issue key (e.g., "KAN-16").
+            description: Story/bug description text.
+
+        Returns: Repo-relative path to verification report if exists/copied, else None.
         """
         import glob
         import shutil
 
-        reports_dir = SCRIPT_DIR / CLAUDE_OUTPUT_DIRNAME
-        if not reports_dir.exists():
-            return None
+        expected_path = _expected_verification_report_path(issue_key, description)
+        expected_fullpath = Path(self.config.repo_path) / expected_path
+
+        # If expected path already exists, return it
+        if expected_fullpath.exists():
+            return expected_path
+
+        # Create parent directories if needed
+        expected_fullpath.parent.mkdir(parents=True, exist_ok=True)
 
         prefix = f"{issue_key}-"
+        candidates = []  # List of (mtime, Path)
 
-        # Check if canonical/legacy issue-key-prefixed report already exists
-        canonical_pattern = str(reports_dir / f"{issue_key}-*-verification.md")
-        legacy_path = reports_dir / f"{issue_key}-verification.md"
+        # Search location 1: repo-root reports/
+        repo_reports_dir = Path(self.config.repo_path) / "reports"
+        if repo_reports_dir.exists():
+            for match in glob.glob(str(repo_reports_dir / "*-verification.md")):
+                path = Path(match)
+                filename = path.name
 
-        existing = glob.glob(canonical_pattern)
-        if existing or legacy_path.exists():
-            # Already have an issue-key-prefixed report, no normalization needed
-            return None
-
-        # Search for title-prefixed reports (not starting with issue_key-)
-        all_reports = glob.glob(str(reports_dir / "*-verification.md"))
-        candidates = []
-
-        for match in all_reports:
-            path = Path(match)
-            filename = path.name
-
-            # Skip issue-key-prefixed files (already handled)
-            if filename.startswith(prefix):
-                continue
-
-            # Check if file content contains the issue key (safety check)
-            try:
-                content = path.read_text(encoding='utf-8')
-                if issue_key not in content:
+                # Accept issue-key-prefixed files
+                if filename.startswith(prefix):
+                    candidates.append((path.stat().st_mtime, path))
                     continue
-            except (OSError, UnicodeDecodeError):
-                continue
 
-            # Use mtime for sorting
-            mtime = path.stat().st_mtime
-            candidates.append((mtime, path))
+                # Accept title-prefixed ONLY if content contains issue key (safety)
+                try:
+                    content = path.read_text(encoding='utf-8')
+                    if issue_key in content:
+                        candidates.append((path.stat().st_mtime, path))
+                except (OSError, UnicodeDecodeError):
+                    pass
+
+        # Search location 2: scripts/autonomous-agent/reports/
+        script_reports_dir = SCRIPT_DIR / CLAUDE_OUTPUT_DIRNAME
+        if script_reports_dir.exists():
+            for match in glob.glob(str(script_reports_dir / "*-verification.md")):
+                path = Path(match)
+                filename = path.name
+
+                # Accept issue-key-prefixed files
+                if filename.startswith(prefix):
+                    candidates.append((path.stat().st_mtime, path))
+                    continue
+
+                # Accept title-prefixed ONLY if content contains issue key (safety)
+                try:
+                    content = path.read_text(encoding='utf-8')
+                    if issue_key in content:
+                        candidates.append((path.stat().st_mtime, path))
+                except (OSError, UnicodeDecodeError):
+                    pass
 
         if not candidates:
             return None
@@ -1666,16 +1777,13 @@ class ExecutionEngine:
         candidates.sort(key=lambda x: x[0], reverse=True)
         source_path = candidates[0][1]
 
-        # Copy to canonical filename
-        canonical_filename = f"{issue_key}-{self.run_id}-verification.md"
-        dest_path = reports_dir / canonical_filename
+        # Copy to expected path
         try:
-            shutil.copy2(source_path, dest_path)
-            rel_path = f"scripts/autonomous-agent/{CLAUDE_OUTPUT_DIRNAME}/{canonical_filename}"
-            self.log("DEVELOPER", f"Normalized verification report: {source_path.name} -> {canonical_filename}")
-            return rel_path
+            shutil.copy2(source_path, expected_fullpath)
+            self.log("IMPLEMENTER", f"Copied verification report: {source_path.name} -> {expected_path}")
+            return expected_path
         except OSError as e:
-            self.log("DEVELOPER", f"Failed to copy verification report: {e}")
+            self.log("IMPLEMENTER", f"Failed to copy verification report: {e}")
             return None
 
     def log(self, role: str, message: str):
@@ -1688,7 +1796,7 @@ class ExecutionEngine:
         role_display_map = {
             'UEP': 'EXECUTION UEP',
             'SUPERVISOR': 'CLAUDE SUPERVISOR',
-            'DEVELOPER': 'CLAUDE DEVELOPER',
+            'IMPLEMENTER': 'IMPLEMENTER',
         }
         display_role = role_display_map.get(role, role)
 
@@ -2354,15 +2462,15 @@ after identifying the relevant codebase locations.
 
     def step_3_story_implementation(self) -> bool:
         """Developer: Implement Stories using Claude Code CLI"""
-        self.log("DEVELOPER", "STEP 3: Checking for Stories with 'To Do' status...")
+        self.log("IMPLEMENTER", "STEP 3: Checking for Stories with 'To Do' status...")
 
         stories = self.jira.get_stories_todo()
 
         if not stories:
-            self.log("DEVELOPER", "No Stories in 'To Do' status")
+            self.log("IMPLEMENTER", "No Stories in 'To Do' status")
             return False
 
-        self.log("DEVELOPER", f"Found {len(stories)} Stories in 'To Do' status")
+        self.log("IMPLEMENTER", f"Found {len(stories)} Stories in 'To Do' status")
 
         # Process oldest (FIFO)
         story = stories[0]
@@ -2370,7 +2478,7 @@ after identifying the relevant codebase locations.
         summary = story['fields']['summary']
         description = self.jira.parse_adf_to_text(story['fields'].get('description', {}))
 
-        self.log("DEVELOPER", f"Implementing: [{key}] {summary}")
+        self.log("IMPLEMENTER", f"Implementing: [{key}] {summary}")
 
         # Check if docs modifications are allowed by ALLOWED FILES constraints
         allow_docs = _docs_allowed_by_constraints(description)
@@ -2379,10 +2487,10 @@ after identifying the relevant codebase locations.
         self.jira.transition_issue(key, 'In Progress')
 
         # Add comment noting implementation started
-        self.jira.add_comment(key, f"Implementation started by CLAUDE DEVELOPER\nBranch: {self.config.feature_branch}")
+        self.jira.add_comment(key, f"Implementation started by IMPLEMENTER\nBranch: {self.config.feature_branch}")
 
         # Use Claude Code CLI to implement the story
-        self.log("DEVELOPER", "Invoking Claude Code CLI for implementation...")
+        self.log("IMPLEMENTER", "Invoking Claude Code CLI for implementation...")
 
         # PATCH 2-A: Capture head SHA before Claude execution
         head_sha_before = self.git.get_head_sha()
@@ -2394,30 +2502,30 @@ after identifying the relevant codebase locations.
         commit_detected = bool(head_sha_after and head_sha_before and head_sha_after != head_sha_before)
 
         if success:
-            self.log("DEVELOPER", f"Claude Code completed implementation")
-            self.log("DEVELOPER", f"Modified files: {', '.join(modified_files) if modified_files else 'None detected'}")
+            self.log("IMPLEMENTER", f"Claude Code completed implementation")
+            self.log("IMPLEMENTER", f"Modified files: {', '.join(modified_files) if modified_files else 'None detected'}")
 
             # Update IMPLEMENTATION_PLAN.md only if docs allowed
             if modified_files:
                 if allow_docs:
                     self._update_implementation_plan(key, summary, modified_files)
                 else:
-                    self.log("DEVELOPER", "Skipping IMPLEMENTATION_PLAN.md update (docs not allowed by ALLOWED FILES)")
+                    self.log("IMPLEMENTER", "Skipping IMPLEMENTATION_PLAN.md update (docs not allowed by ALLOWED FILES)")
 
             # Commit and push changes to feature branch
             commit_success = False
             if modified_files:
-                self.log("DEVELOPER", "Committing changes to git...")
+                self.log("IMPLEMENTER", "Committing changes to git...")
                 commit_success = self._commit_implementation(key, summary, modified_files, allow_docs)
                 if commit_success:
-                    self.log("DEVELOPER", f"Changes committed and pushed to {self.config.feature_branch}")
+                    self.log("IMPLEMENTER", f"Changes committed and pushed to {self.config.feature_branch}")
                 else:
-                    self.log("DEVELOPER", "Failed to commit changes - manual commit required")
+                    self.log("IMPLEMENTER", "Failed to commit changes - manual commit required")
 
             # Add success comment to Jira
             commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
             self.jira.add_comment(key, f"""
-Implementation completed by CLAUDE DEVELOPER.
+Implementation completed by IMPLEMENTER.
 
 Branch: {self.config.feature_branch}
 Status: {commit_status}
@@ -2426,10 +2534,10 @@ Files modified:
 
 Ready for Supervisor verification.
 """)
-            self.log("DEVELOPER", f"Story {key} implementation complete")
+            self.log("IMPLEMENTER", f"Story {key} implementation complete")
 
-            # Normalize verification report filename (copy title-prefixed to canonical)
-            self._normalize_verification_report_filename(key)
+            # PATCH 1-D: Ensure verification report at expected path
+            self._ensure_verification_report(key, description)
 
             # PATCH 2-B: Resolve verification report path for ledger
             resolved_report_path = _resolve_verification_report(self.config.repo_path, key) or ""
@@ -2444,7 +2552,7 @@ Ready for Supervisor verification.
                 "guardrailsPassed": commit_detected or commit_success,
             })
         else:
-            self.log("DEVELOPER", f"Claude Code encountered issues")
+            self.log("IMPLEMENTER", f"Claude Code encountered issues")
 
             self.jira.add_comment(key, f"""
 Claude Code implementation encountered issues.
@@ -2458,7 +2566,7 @@ Human intervention may be required.
 """)
 
             self.escalate(
-                "DEVELOPER",
+                "IMPLEMENTER",
                 f"Story {key} Claude Code implementation issue",
                 f"Claude Code failed; output saved to {artifact_path}\nRun ID: {self.run_id}\n\nStory: {summary}"
             )
@@ -2473,7 +2581,7 @@ Human intervention may be required.
                 "guardrailsPassed": False,
             })
 
-        self.log("DEVELOPER", "Notifying Supervisor for verification...")
+        self.log("IMPLEMENTER", "Notifying Supervisor for verification...")
         return True
 
     def _update_implementation_plan(self, story_key: str, summary: str, files: List[str]):
@@ -2514,9 +2622,9 @@ Human intervention may be required.
                 content = f"# Implementation Plan\n\nAutomatically updated by EngineO Autonomous Execution Engine.\n{entry}"
 
             self.impl_plan_path.write_text(content)
-            self.log("DEVELOPER", f"Updated {self.impl_plan_path}")
+            self.log("IMPLEMENTER", f"Updated {self.impl_plan_path}")
         except Exception as e:
-            self.log("DEVELOPER", f"Failed to update IMPLEMENTATION_PLAN.md: {e}")
+            self.log("IMPLEMENTER", f"Failed to update IMPLEMENTATION_PLAN.md: {e}")
 
     def _commit_implementation(self, story_key: str, summary: str, files: List[str], allow_docs: bool = True) -> bool:
         """Commit and push implementation changes with ledger pre-commit gate."""
@@ -2549,9 +2657,9 @@ Human intervention may be required.
         # Save ledger - MUST succeed before committing
         if not self._save_guardrails_ledger(ledger):
             error_msg = "Cannot commit: ledger write failed"
-            self.log("DEVELOPER", error_msg)
+            self.log("IMPLEMENTER", error_msg)
             self.jira.add_comment(story_key, f"Implementation blocked: {error_msg}")
-            self.escalate("DEVELOPER", f"Story {story_key} commit blocked", error_msg)
+            self.escalate("IMPLEMENTER", f"Story {story_key} commit blocked", error_msg)
             return False
 
         # Stage modified files (excluding runtime ignored paths)
@@ -2571,32 +2679,32 @@ Human intervention may be required.
                 existing_files.append(f)
 
         if not existing_files:
-            self.log("DEVELOPER", "No files to commit")
+            self.log("IMPLEMENTER", "No files to commit")
             return False
 
         # Stage files
         if not self.git.add_files(existing_files):
-            self.log("DEVELOPER", "Failed to stage files")
+            self.log("IMPLEMENTER", "Failed to stage files")
             return False
 
         # PATCH 3B: Safety check - ensure ledger/lock never staged
         staged = self.git.get_staged_files()
         for ignored_path in RUNTIME_IGNORED_PATHS:
             if ignored_path in staged:
-                self.log("DEVELOPER", f"Safety abort: {ignored_path} found in staged files, unstaging")
+                self.log("IMPLEMENTER", f"Safety abort: {ignored_path} found in staged files, unstaging")
                 self.git.unstage_file(ignored_path)
 
         # Re-check staged files after cleanup
         staged = self.git.get_staged_files()
         for ignored_path in RUNTIME_IGNORED_PATHS:
             if ignored_path in staged:
-                self.log("DEVELOPER", f"CRITICAL: Cannot remove {ignored_path} from staging, aborting commit")
+                self.log("IMPLEMENTER", f"CRITICAL: Cannot remove {ignored_path} from staging, aborting commit")
                 return False
 
         # Create commit message
         commit_message = f"""feat({story_key}): {summary}
 
-Implemented by EngineO Autonomous Execution Engine (CLAUDE DEVELOPER v3.2)
+Implemented by EngineO Autonomous Execution Engine (IMPLEMENTER v3.2)
 
 Files modified:
 {chr(10).join(['- ' + f for f in filtered_files])}
@@ -2607,15 +2715,15 @@ Branch: {self.config.feature_branch}
 
         # Commit
         if not self.git.commit(commit_message):
-            self.log("DEVELOPER", "Failed to create commit")
+            self.log("IMPLEMENTER", "Failed to create commit")
             return False
 
         # Push
         if not self.git.push():
-            self.log("DEVELOPER", "Failed to push to remote")
+            self.log("IMPLEMENTER", "Failed to push to remote")
             return False
 
-        self.log("DEVELOPER", "Changes committed and pushed successfully")
+        self.log("IMPLEMENTER", "Changes committed and pushed successfully")
         return True
 
     def verify_work_item(self, issue: dict) -> bool:
@@ -2645,6 +2753,28 @@ Branch: {self.config.feature_branch}
             comment = f"""Supervisor Verification: PENDING — verification report not found
 
 Expected pattern: {key}-*-verification.md"""
+            self.jira.add_comment(key, comment)
+            return True
+
+        # PATCH 2-B: Checklist header validation
+        report_full_path = Path(self.config.repo_path) / report_path
+        try:
+            report_content = report_full_path.read_text(encoding='utf-8')
+        except (OSError, UnicodeDecodeError) as e:
+            self.log("SUPERVISOR", f"[{key}] Cannot read report: {e}")
+            comment = f"""Supervisor Verification: INVALID — cannot read report
+
+Report: {report_path}
+Error: {e}"""
+            self.jira.add_comment(key, comment)
+            return True
+
+        if "## Checklist" not in report_content:
+            self.log("SUPERVISOR", f"[{key}] Invalid report: missing ## Checklist")
+            comment = f"""Supervisor Verification: INVALID — report missing ## Checklist header
+
+Report: {report_path}
+Note: Verification reports MUST contain a ## Checklist section."""
             self.jira.add_comment(key, comment)
             return True
 
@@ -2864,6 +2994,14 @@ Business Intent Defined - Ready for Supervisor decomposition.
         description = self.jira.parse_adf_to_text(issue['fields'].get('description', {}))
 
         self.log("SUPERVISOR", f"Decomposing Epic: [{key}] {summary}")
+
+        # PATCH 3-B: Idempotency check - skip if implement-stories already exist
+        existing_stories = self.jira.get_implement_stories_for_epic(key)
+        if existing_stories:
+            keys = [s['key'] for s in existing_stories]
+            self.log("SUPERVISOR", f"[{key}] Skipping decomposition: {len(existing_stories)} implement-stories already exist: {', '.join(keys)}")
+            return False
+
         self.log("SUPERVISOR", "Analyzing codebase to identify implementation targets...")
 
         # Use enhanced Supervisor analysis
@@ -2899,7 +3037,7 @@ Ready for Developer implementation.
         description = self.jira.parse_adf_to_text(issue['fields'].get('description', {}))
         status = issue['fields']['status']['name'].lower()
 
-        self.log("DEVELOPER", f"Implementing Story: [{key}] {summary}")
+        self.log("IMPLEMENTER", f"Implementing Story: [{key}] {summary}")
 
         # Check if docs modifications are allowed by ALLOWED FILES constraints
         allow_docs = _docs_allowed_by_constraints(description)
@@ -2907,10 +3045,10 @@ Ready for Developer implementation.
         # Transition to In Progress if not already
         if 'to do' in status:
             self.jira.transition_issue(key, 'In Progress')
-            self.jira.add_comment(key, f"Implementation started by CLAUDE DEVELOPER\nBranch: {self.config.feature_branch}")
+            self.jira.add_comment(key, f"Implementation started by IMPLEMENTER\nBranch: {self.config.feature_branch}")
 
         # Use Claude Code CLI to implement the story
-        self.log("DEVELOPER", "Invoking Claude Code CLI for implementation...")
+        self.log("IMPLEMENTER", "Invoking Claude Code CLI for implementation...")
 
         # PATCH 2-A: Capture head SHA before Claude execution
         head_sha_before = self.git.get_head_sha()
@@ -2922,30 +3060,30 @@ Ready for Developer implementation.
         commit_detected = bool(head_sha_after and head_sha_before and head_sha_after != head_sha_before)
 
         if success:
-            self.log("DEVELOPER", f"Claude Code completed implementation")
-            self.log("DEVELOPER", f"Modified files: {', '.join(modified_files) if modified_files else 'None detected'}")
+            self.log("IMPLEMENTER", f"Claude Code completed implementation")
+            self.log("IMPLEMENTER", f"Modified files: {', '.join(modified_files) if modified_files else 'None detected'}")
 
             # Update IMPLEMENTATION_PLAN.md only if docs allowed
             if modified_files:
                 if allow_docs:
                     self._update_implementation_plan(key, summary, modified_files)
                 else:
-                    self.log("DEVELOPER", "Skipping IMPLEMENTATION_PLAN.md update (docs not allowed by ALLOWED FILES)")
+                    self.log("IMPLEMENTER", "Skipping IMPLEMENTATION_PLAN.md update (docs not allowed by ALLOWED FILES)")
 
             # Commit and push changes to feature branch
             commit_success = False
             if modified_files:
-                self.log("DEVELOPER", "Committing changes to git...")
+                self.log("IMPLEMENTER", "Committing changes to git...")
                 commit_success = self._commit_implementation(key, summary, modified_files, allow_docs)
                 if commit_success:
-                    self.log("DEVELOPER", f"Changes committed and pushed to {self.config.feature_branch}")
+                    self.log("IMPLEMENTER", f"Changes committed and pushed to {self.config.feature_branch}")
                 else:
-                    self.log("DEVELOPER", "Failed to commit changes - manual commit required")
+                    self.log("IMPLEMENTER", "Failed to commit changes - manual commit required")
 
             # Add success comment to Jira
             commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
             self.jira.add_comment(key, f"""
-Implementation completed by CLAUDE DEVELOPER.
+Implementation completed by IMPLEMENTER.
 
 Branch: {self.config.feature_branch}
 Status: {commit_status}
@@ -2954,10 +3092,10 @@ Files modified:
 
 Ready for Supervisor verification.
 """)
-            self.log("DEVELOPER", f"Story {key} implementation complete")
+            self.log("IMPLEMENTER", f"Story {key} implementation complete")
 
-            # Normalize verification report filename (copy title-prefixed to canonical)
-            self._normalize_verification_report_filename(key)
+            # PATCH 1-D: Ensure verification report at expected path
+            self._ensure_verification_report(key, description)
 
             # PATCH 2-B: Resolve verification report path for ledger
             resolved_report_path = _resolve_verification_report(self.config.repo_path, key) or ""
@@ -2972,7 +3110,7 @@ Ready for Supervisor verification.
                 "guardrailsPassed": commit_detected or commit_success,
             })
         else:
-            self.log("DEVELOPER", f"Claude Code encountered issues")
+            self.log("IMPLEMENTER", f"Claude Code encountered issues")
 
             self.jira.add_comment(key, f"""
 Claude Code implementation encountered issues.
@@ -2986,7 +3124,7 @@ Human intervention may be required.
 """)
 
             self.escalate(
-                "DEVELOPER",
+                "IMPLEMENTER",
                 f"Story {key} Claude Code implementation issue",
                 f"Claude Code failed; output saved to {artifact_path}\nRun ID: {self.run_id}\n\nStory: {summary}"
             )
@@ -3001,7 +3139,7 @@ Human intervention may be required.
                 "guardrailsPassed": False,
             })
 
-        self.log("DEVELOPER", "Notifying Supervisor for verification...")
+        self.log("IMPLEMENTER", "Notifying Supervisor for verification...")
         return True
 
     def _invoke_claude_code(self, story_key: str, summary: str, description: str) -> Tuple[bool, str, List[str], str]:
@@ -3019,10 +3157,10 @@ Human intervention may be required.
         Returns: (success, output, list of modified files, artifact_path)
         """
         # Build the prompt for Claude Code
-        # Compute canonical verification report path for this run
-        canonical_report = f"{story_key}-{self.run_id}-verification.md"
+        # Compute expected verification report path (from description or default)
+        expected_report_path = _expected_verification_report_path(story_key, description)
 
-        prompt = f"""You are the CLAUDE DEVELOPER in an autonomous execution system.
+        prompt = f"""You are the IMPLEMENTER in an autonomous execution system.
 
 ## Story to Implement
 {story_key}: {summary}
@@ -3039,13 +3177,11 @@ Human intervention may be required.
 5. Do NOT push to remote - just commit locally
 
 ## Verification Report (REQUIRED)
-If creating a verification report, write it to:
-  scripts/autonomous-agent/reports/{canonical_report}
+Write verification report EXACTLY to: {expected_report_path}
 
-IMPORTANT: Use issue-key-prefixed filenames ONLY. Do NOT use title-prefixed filenames like
-AUTONOMOUS-AGENT-...-verification.md. The canonical pattern is:
-  Preferred: {story_key}-<RUN_ID>-verification.md
-  Legacy acceptable: {story_key}-verification.md
+CRITICAL: You MUST use the exact path above. Do NOT use title-prefixed filenames like
+AUTONOMOUS-AGENT-...-verification.md. Title-prefixed reports are NOT accepted as valid
+verification output and will cause verification to fail.
 
 Important:
 - Make ONLY the changes specified in the PATCH BATCH
@@ -3064,7 +3200,7 @@ Begin implementation now.
         per_ticket_timeout = _parse_per_ticket_timeout(description)
         if per_ticket_timeout is not None:
             timeout_seconds = per_ticket_timeout
-            self.log("DEVELOPER", f"Per-ticket hard timeout override: {per_ticket_timeout // 60}m (capped to {per_ticket_timeout}s)")
+            self.log("IMPLEMENTER", f"Per-ticket hard timeout override: {per_ticket_timeout // 60}m (capped to {per_ticket_timeout}s)")
 
         # Acquire lock to prevent overlapping sessions
         acquired, lock_msg = _acquire_claude_lock(self.config.repo_path, story_key)
@@ -3077,7 +3213,7 @@ Begin implementation now.
 
         try:
             for attempt in range(1, CLAUDE_MAX_ATTEMPTS + 1):
-                self.log("DEVELOPER", f"Claude attempt {attempt}/{CLAUDE_MAX_ATTEMPTS}...")
+                self.log("IMPLEMENTER", f"Claude attempt {attempt}/{CLAUDE_MAX_ATTEMPTS}...")
                 attempt_output = []
                 attempt_output.append(f"=== Attempt {attempt}/{CLAUDE_MAX_ATTEMPTS} ===\n")
                 master_fd = None
@@ -3088,7 +3224,7 @@ Begin implementation now.
 
                     # PATCH 4-D: Start subprocess in its own process group for clean timeout kill
                     process = subprocess.Popen(
-                        ['claude', '--model', MODEL_DEVELOPER, '-p', prompt, '--dangerously-skip-permissions', '--verbose'],
+                        ['claude', '--model', MODEL_IMPLEMENTER, '-p', prompt, '--dangerously-skip-permissions', '--verbose'],
                         cwd=self.config.repo_path,
                         stdin=slave_fd,
                         stdout=slave_fd,
@@ -3110,6 +3246,7 @@ Begin implementation now.
                     start_time = time.time()
                     last_output_time = start_time
                     timed_out = False
+                    fatal_detected = False  # PATCH 4-B: Track fatal output detection
                     line_buf = ""  # PATCH 4-C: Line buffer for cross-chunk handling
                     LINE_BUF_THRESHOLD = 2048  # PATCH 4-E: Emit partial buffer if exceeds 2KB
 
@@ -3180,6 +3317,21 @@ Begin implementation now.
                                 artifact_file.flush()
                                 attempt_output.append(decoded)
 
+                                # PATCH 4-B: Fatal output detection - kill immediately
+                                if _is_fatal_claude_output(decoded):
+                                    self.log("IMPLEMENTER", f"[{issue_key}] Fatal error detected, killing process")
+                                    try:
+                                        os.killpg(os.getpgid(process.pid), 15)  # SIGTERM
+                                        process.wait(timeout=5)
+                                    except (subprocess.TimeoutExpired, OSError):
+                                        try:
+                                            os.killpg(os.getpgid(process.pid), 9)  # SIGKILL
+                                            process.wait(timeout=2)
+                                        except (subprocess.TimeoutExpired, OSError):
+                                            process.kill()
+                                    fatal_detected = True
+                                    break
+
                                 # Process complete lines (split on \n or \r)
                                 while '\n' in line_buf or '\r' in line_buf:
                                     # Find earliest delimiter
@@ -3212,7 +3364,7 @@ Begin implementation now.
                             if silent_seconds >= CLAUDE_HEARTBEAT_INTERVAL:
                                 elapsed_mins = int(elapsed // 60)
                                 elapsed_secs = int(elapsed % 60)
-                                self.log("DEVELOPER", f"Claude still running... (elapsed: {elapsed_mins}m {elapsed_secs}s)")
+                                self.log("IMPLEMENTER", f"Claude still running... (elapsed: {elapsed_mins}m {elapsed_secs}s)")
                                 last_output_time = time.time()  # Reset heartbeat timer
 
                     # Flush remaining line buffer (PATCH 4-C)
@@ -3243,23 +3395,29 @@ Begin implementation now.
 
                     # Artifact was written live, just log the path
                     final_artifact_path = artifact_relpath
-                    self.log("DEVELOPER", f"Attempt artifact: {final_artifact_path}")
+                    self.log("IMPLEMENTER", f"Attempt artifact: {final_artifact_path}")
 
                     if timed_out:
                         timeout_mins = timeout_seconds // 60
                         timeout_msg = f"Claude Code timed out after {timeout_mins} minutes (attempt {attempt})"
-                        self.log("DEVELOPER", timeout_msg)
+                        self.log("IMPLEMENTER", timeout_msg)
 
                         # Timeout is transient - retry if attempts remain
                         if attempt < CLAUDE_MAX_ATTEMPTS:
                             sleep_seconds = CLAUDE_RETRY_BACKOFF_SECONDS[attempt - 1]
-                            self.log("DEVELOPER", f"Retrying in {sleep_seconds}s due to timeout...")
+                            self.log("IMPLEMENTER", f"Retrying in {sleep_seconds}s due to timeout...")
                             time.sleep(sleep_seconds)
                             continue
 
                         return False, "Claude Code timed out", [], final_artifact_path
 
-                    self.log("DEVELOPER", f"Claude Code exit code: {returncode}")
+                    # PATCH 4-B: Fatal output detected - no retry
+                    if fatal_detected:
+                        output_text = "".join(attempt_output)
+                        self.log("IMPLEMENTER", "Fatal error detected - no retry")
+                        return False, output_text, [], final_artifact_path
+
+                    self.log("IMPLEMENTER", f"Claude Code exit code: {returncode}")
 
                     if returncode == 0:
                         # Success - get modified files and return
@@ -3280,7 +3438,7 @@ Begin implementation now.
                     output_text = "".join(attempt_output)
                     if _is_transient_claude_failure(output_text) and attempt < CLAUDE_MAX_ATTEMPTS:
                         sleep_seconds = CLAUDE_RETRY_BACKOFF_SECONDS[attempt - 1]
-                        self.log("DEVELOPER", f"Retrying in {sleep_seconds}s due to transient error...")
+                        self.log("IMPLEMENTER", f"Retrying in {sleep_seconds}s due to transient error...")
                         time.sleep(sleep_seconds)
                         continue
 
@@ -3289,7 +3447,7 @@ Begin implementation now.
 
                 except FileNotFoundError:
                     msg = "Claude Code CLI not found. Install with: npm install -g @anthropic-ai/claude-code"
-                    self.log("DEVELOPER", "Claude Code CLI not found - ensure 'claude' is installed")
+                    self.log("IMPLEMENTER", "Claude Code CLI not found - ensure 'claude' is installed")
                     attempt_output.append(f"\n{msg}\n")
                     final_artifact_path = _write_claude_attempt_output(
                         self.config.repo_path, story_key, self.run_id, attempt, "".join(attempt_output)
@@ -3298,7 +3456,7 @@ Begin implementation now.
 
                 except Exception as e:
                     error_msg = str(e)
-                    self.log("DEVELOPER", f"Claude Code error: {e}")
+                    self.log("IMPLEMENTER", f"Claude Code error: {e}")
                     attempt_output.append(f"\nException: {error_msg}\n")
 
                     # Write attempt artifact before potentially retrying
@@ -3309,7 +3467,7 @@ Begin implementation now.
                     # Check if exception text indicates transient failure
                     if _is_transient_claude_failure(error_msg) and attempt < CLAUDE_MAX_ATTEMPTS:
                         sleep_seconds = CLAUDE_RETRY_BACKOFF_SECONDS[attempt - 1]
-                        self.log("DEVELOPER", f"Retrying in {sleep_seconds}s due to transient error...")
+                        self.log("IMPLEMENTER", f"Retrying in {sleep_seconds}s due to transient error...")
                         time.sleep(sleep_seconds)
                         continue
 
@@ -3391,6 +3549,11 @@ Examples:
         action='store_true',
         help='Run one iteration and exit'
     )
+    parser.add_argument(
+        '--claude-timeout-secs',
+        type=int,
+        help='Claude Code CLI timeout in seconds (overrides env vars)'
+    )
 
     args = parser.parse_args()
 
@@ -3410,7 +3573,7 @@ Examples:
                     os.environ[key] = value
 
     config = Config.load()
-    engine = ExecutionEngine(config)
+    engine = ExecutionEngine(config, cli_timeout_secs=args.claude_timeout_secs)
 
     # Validate configuration
     errors = config.validate()
