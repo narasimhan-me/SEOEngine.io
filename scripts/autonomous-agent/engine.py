@@ -4,7 +4,7 @@ EngineO Autonomous Multi-Persona Execution Engine v3.2
 
 This engine coordinates THREE STRICT ROLES:
 
-1) EXECUTION UEP v3.2
+1) UEP v3.2
    - Combines: Lead PM, Tech Architect, UX Designer, CTO, CFO, Content Strategist
    - Acts as ONE integrated executive brain
    - Produces high-level intent ONLY — never implementation
@@ -13,7 +13,7 @@ This engine coordinates THREE STRICT ROLES:
    - Reads Ideas from Atlassian Product Discovery
    - Creates Epics with business goals and acceptance criteria
 
-2) CLAUDE SUPERVISOR v3.2
+2) SUPERVISOR v3.2
    - NEVER writes code
    - ONLY produces PATCH BATCH instructions (surgical, minimal diffs)
    - Decomposes Epics into Stories with exact implementation specs
@@ -349,8 +349,13 @@ def _docs_allowed_by_constraints(description: str) -> bool:
 def _parse_verification_required_paths(description: str) -> List[str]:
     """Parse VERIFICATION REQUIRED section from description.
 
-    Extracts repo-relative file paths from VERIFICATION REQUIRED: section,
-    supporting various bullet formats including Jira-rendered Unicode bullets (•).
+    PATCH 3-A: Extracts repo-relative file paths from VERIFICATION REQUIRED section,
+    supporting various header formats:
+    - VERIFICATION REQUIRED: (existing)
+    - ## VERIFICATION REQUIRED (markdown header, with or without trailing :)
+
+    Also detects markdown-prefixed section headers (e.g., ## DIFF BUDGET:) as
+    end-of-section markers.
 
     Args:
         description: Story/bug description text.
@@ -369,20 +374,23 @@ def _parse_verification_required_paths(description: str) -> List[str]:
         stripped = line.strip()
 
         # Check for VERIFICATION REQUIRED header (case-insensitive)
-        if re.match(r'^VERIFICATION\s+REQUIRED:', stripped, re.IGNORECASE):
+        # Accepts: "VERIFICATION REQUIRED:", "## VERIFICATION REQUIRED", "## VERIFICATION REQUIRED:"
+        if re.match(r'^(#{1,3}\s*)?VERIFICATION\s+REQUIRED:?$', stripped, re.IGNORECASE):
             in_section = True
             continue
 
         # Stop parsing at next section header or empty line after content
         if in_section:
-            # Empty line or new section header ends the section
-            if not stripped or re.match(r'^[A-Z][A-Z\s]+:', stripped):
-                if not stripped:
-                    if paths:
-                        break
-                    continue
-                else:
+            # New section header ends the section (markdown or ALLCAPS)
+            # Matches: "## DIFF BUDGET:", "ALLOWED FILES:", etc.
+            if re.match(r'^(#{1,3}\s*)?[A-Z][A-Z\s]+:', stripped):
+                break
+
+            # Empty line: if we have paths, end; otherwise continue looking
+            if not stripped:
+                if paths:
                     break
+                continue
 
             # Parse bullet points: -, *, or • (Unicode bullet U+2022)
             cleaned = stripped.lstrip('-*•').strip()
@@ -392,16 +400,17 @@ def _parse_verification_required_paths(description: str) -> List[str]:
     return paths
 
 
-def _expected_verification_report_path(issue_key: str, description: str) -> str:
+def _expected_verification_report_path(issue_key: str, description: str, run_id: Optional[str] = None) -> str:
     """Get expected verification report path based on description or default.
 
-    If VERIFICATION REQUIRED section exists with matching paths, returns the
-    first path containing the issue key and ending with -verification.md.
-    Otherwise returns the canonical default: reports/{ISSUE_KEY}-verification.md
+    PATCH 3-B: If VERIFICATION REQUIRED section exists with matching paths,
+    returns the first path containing the issue key and ending with -verification.md.
+    Otherwise returns the canonical default under scripts/autonomous-agent/reports/.
 
     Args:
         issue_key: The issue key (e.g., "KAN-16").
         description: Story/bug description text.
+        run_id: Optional run ID for timestamped filename (preferred).
 
     Returns:
         Repo-relative path to expected verification report.
@@ -413,8 +422,11 @@ def _expected_verification_report_path(issue_key: str, description: str) -> str:
         if issue_key in path and path.endswith('-verification.md'):
             return path
 
-    # Default: repo-root reports/{ISSUE_KEY}-verification.md
-    return f"reports/{issue_key}-verification.md"
+    # Default: scripts/autonomous-agent/reports/{ISSUE_KEY}-{RUN_ID}-verification.md (preferred)
+    # Or legacy: scripts/autonomous-agent/reports/{ISSUE_KEY}-verification.md
+    if run_id:
+        return f"scripts/autonomous-agent/reports/{issue_key}-{run_id}-verification.md"
+    return f"scripts/autonomous-agent/reports/{issue_key}-verification.md"
 
 
 def _is_fatal_claude_output(text: str) -> bool:
@@ -503,9 +515,9 @@ def _select_newest_verification_report(issue_key: str, relpaths: List[str], mtim
 def _resolve_verification_report(repo_path: str, issue_key: str) -> Optional[str]:
     """Resolve the most recent verification report for an issue.
 
-    Search precedence (PATCH 2-A):
-    1. Repo-root reports/ (PREFERRED)
-    2. scripts/autonomous-agent/reports/ (fallback)
+    PATCH 3-C: Search precedence:
+    1. scripts/autonomous-agent/reports/ (PREFERRED - canonical location)
+    2. repo-root reports/ (fallback for backward compatibility)
 
     IMPORTANT: Only considers issue-key-prefixed reports:
     - {ISSUE_KEY}-verification.md (legacy)
@@ -515,7 +527,7 @@ def _resolve_verification_report(repo_path: str, issue_key: str) -> Optional[str
 
     Selection rules:
     - Newest by timestamp wins
-    - Break ties in favor of repo-root reports/
+    - Break ties in favor of scripts/autonomous-agent/reports/
 
     Returns: Repo-relative path to the newest verification report, or None if not found.
     """
@@ -569,13 +581,13 @@ def _resolve_verification_report(repo_path: str, issue_key: str) -> Optional[str
                 mtimes[rel_path] = mtime
                 candidates.append((datetime.fromtimestamp(mtime), rel_path, is_preferred))
 
-    # Search location 1: repo-root reports/ (PREFERRED)
-    repo_reports_dir = Path(repo_path) / "reports"
-    add_candidates_from_dir(repo_reports_dir, "reports/", is_preferred=True)
-
-    # Search location 2: scripts/autonomous-agent/reports/ (fallback)
+    # PATCH 3-C: Search location 1: scripts/autonomous-agent/reports/ (PREFERRED)
     script_reports_dir = SCRIPT_DIR / CLAUDE_OUTPUT_DIRNAME
-    add_candidates_from_dir(script_reports_dir, f"scripts/autonomous-agent/{CLAUDE_OUTPUT_DIRNAME}/", is_preferred=False)
+    add_candidates_from_dir(script_reports_dir, f"scripts/autonomous-agent/{CLAUDE_OUTPUT_DIRNAME}/", is_preferred=True)
+
+    # Search location 2: repo-root reports/ (fallback for backward compatibility)
+    repo_reports_dir = Path(repo_path) / "reports"
+    add_candidates_from_dir(repo_reports_dir, "reports/", is_preferred=False)
 
     if not candidates:
         return None
@@ -647,12 +659,61 @@ def _release_claude_lock(repo_path: str) -> None:
         pass  # Best-effort removal
 
 
+def load_dotenv(dotenv_path: Path) -> int:
+    """Load environment variables from a .env file (no external deps).
+
+    PATCH 1: Deterministic dotenv loading.
+    - Ignores blank lines and # comments
+    - Supports 'export KEY=VALUE' and 'KEY=VALUE'
+    - Splits on first '='
+    - Strips whitespace and surrounding quotes from VALUE
+    - Does NOT override existing os.environ keys (env wins)
+
+    Args:
+        dotenv_path: Path to the .env file.
+
+    Returns:
+        Count of variables loaded (not including skipped existing keys).
+    """
+    if not dotenv_path.exists():
+        return 0
+
+    loaded = 0
+    try:
+        with open(dotenv_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                # Skip blank lines and comments
+                if not line or line.startswith('#'):
+                    continue
+                # Strip 'export ' prefix if present
+                if line.startswith('export '):
+                    line = line[7:]
+                # Split on first '='
+                if '=' not in line:
+                    continue
+                key, _, value = line.partition('=')
+                key = key.strip()
+                value = value.strip()
+                # Remove surrounding quotes (single or double)
+                if len(value) >= 2:
+                    if (value[0] == '"' and value[-1] == '"') or (value[0] == "'" and value[-1] == "'"):
+                        value = value[1:-1]
+                # Do NOT override existing env vars
+                if key and key not in os.environ:
+                    os.environ[key] = value
+                    loaded += 1
+    except (OSError, UnicodeDecodeError):
+        pass  # Best-effort loading
+    return loaded
+
+
 # =============================================================================
 # ROLE DEFINITIONS (v3.2)
 # =============================================================================
 
 ROLE_UEP = {
-    'name': 'EXECUTION UEP',
+    'name': 'UEP',
     'version': '3.2',
     'combines': [
         'Lead Product Manager',
@@ -678,7 +739,7 @@ ROLE_UEP = {
 }
 
 ROLE_SUPERVISOR = {
-    'name': 'CLAUDE SUPERVISOR',
+    'name': 'SUPERVISOR',
     'version': '3.2',
     'responsibilities': [
         'Validate UEP intent and resolve ambiguities',
@@ -871,10 +932,12 @@ class JiraClient:
     def get_implement_stories_for_epic(self, epic_key: str) -> List[dict]:
         """Get existing implement-stories linked to this epic.
 
-        PATCH 3-A: Check for existing stories before decomposition.
-        JQL: parent = {epic_key} AND summary ~ "Implement:*"
+        PATCH 4-A: Check for existing stories before decomposition.
+        Covers both Jira variants:
+        - parent = {epic_key} (next-gen projects)
+        - "Epic Link" = {epic_key} (classic projects)
         """
-        jql = f'project = {self.config.software_project} AND issuetype = Story AND parent = {epic_key} AND summary ~ "Implement:*" ORDER BY created ASC'
+        jql = f'project = {self.config.software_project} AND issuetype = Story AND (parent = {epic_key} OR "Epic Link" = {epic_key}) AND summary ~ "Implement:" ORDER BY created ASC'
         return self.search_issues(jql, ['summary', 'status', 'description', 'parent'])
 
     def get_available_transition_names(self, issue_key: str) -> List[str]:
@@ -1717,7 +1780,7 @@ class ExecutionEngine:
         import glob
         import shutil
 
-        expected_path = _expected_verification_report_path(issue_key, description)
+        expected_path = _expected_verification_report_path(issue_key, description, self.run_id)
         expected_fullpath = Path(self.config.repo_path) / expected_path
 
         # If expected path already exists, return it
@@ -1781,6 +1844,15 @@ class ExecutionEngine:
         try:
             shutil.copy2(source_path, expected_fullpath)
             self.log("IMPLEMENTER", f"Copied verification report: {source_path.name} -> {expected_path}")
+
+            # PATCH 3-B: Also write/update legacy alias {ISSUE_KEY}-verification.md (best-effort)
+            legacy_alias = expected_fullpath.parent / f"{issue_key}-verification.md"
+            try:
+                shutil.copy2(expected_fullpath, legacy_alias)
+                self.log("IMPLEMENTER", f"Updated legacy alias: {issue_key}-verification.md")
+            except OSError:
+                pass  # Best-effort for legacy alias
+
             return expected_path
         except OSError as e:
             self.log("IMPLEMENTER", f"Failed to copy verification report: {e}")
@@ -1792,13 +1864,9 @@ class ExecutionEngine:
         PATCH 2 & 5: Tee structured logs to console AND engine-<run_id>.log with flush.
         Role display mapping: internal keys -> display names for consistency.
         """
-        # Map internal role keys to display names
-        role_display_map = {
-            'UEP': 'EXECUTION UEP',
-            'SUPERVISOR': 'CLAUDE SUPERVISOR',
-            'IMPLEMENTER': 'IMPLEMENTER',
-        }
-        display_role = role_display_map.get(role, role)
+        # PATCH 2-C: No role remapping - use exact role keys as passed
+        # Resulting log prefix: [UEP], [SUPERVISOR], [IMPLEMENTER], [SYSTEM], [CLAUDE]
+        display_role = role
 
         timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
         log_line = f"[{timestamp}] [{display_role}] {message}"
@@ -1885,7 +1953,7 @@ class ExecutionEngine:
     def step_1_initiative_intake(self) -> bool:
         """UEP: Process Ideas (Initiatives) from Product Discovery
 
-        The EXECUTION UEP role:
+        The UEP role:
         - Reads Ideas from Atlassian Product Discovery
         - Analyzes the initiative to define WHAT we build and WHY
         - Creates one or more Epics with business goals and acceptance criteria
@@ -1927,7 +1995,7 @@ class ExecutionEngine:
             # Add comment with all created Epics
             epic_list = '\n'.join([f"- {e}" for e in created_epics])
             self.jira.add_comment(key, f"""
-Initiative processed by EXECUTION UEP
+Initiative processed by UEP
 
 Created {len(created_epics)} Epic(s):
 {epic_list}
@@ -1962,7 +2030,7 @@ Business Intent Defined:
     def _claude_code_analyze_idea(self, idea_key: str, summary: str, description: str) -> List[dict]:
         """Use Claude Code CLI to analyze Idea and define business intent (no API key required)"""
         try:
-            prompt = f"""You are the EXECUTION UEP in an autonomous development system.
+            prompt = f"""You are the UEP in an autonomous development system.
 Your role is to analyze Ideas (initiatives) and define business intent for Epics.
 
 ## Idea to Analyze
@@ -2016,7 +2084,7 @@ Generate the Epic description now:"""
             epic_description += """
 
 ---
-*This Epic was created by EXECUTION UEP v3.2*
+*This Epic was created by UEP v3.2*
 *Powered by Claude Code CLI with Opus model (no API key required)*
 *Ready for Supervisor decomposition into implementation Stories*
 """
@@ -2074,7 +2142,7 @@ Generate the Epic description now:"""
 - Dependencies: None identified
 
 ---
-*This Epic was created by EXECUTION UEP v3.2*
+*This Epic was created by UEP v3.2*
 *Ready for Supervisor decomposition into implementation Stories*
 """
 
@@ -2129,7 +2197,7 @@ Generate the Epic description now:"""
             # Add comment with all created Stories
             story_list = '\n'.join([f"- {s}" for s in created_stories])
             self.jira.add_comment(key, f"""
-Epic decomposed by CLAUDE SUPERVISOR v3.2
+Epic decomposed by SUPERVISOR v3.2
 
 Created {len(created_stories)} Story(ies):
 {story_list}
@@ -2309,7 +2377,7 @@ PATCH BATCH: {summary}
 - [ ] Committed to {self.config.feature_branch}
 
 ---
-*Story created by CLAUDE SUPERVISOR v3.2*
+*Story created by SUPERVISOR v3.2*
 *PATCH BATCH instructions generated from codebase analysis*
 *No API key required - using local Claude Code*
 """
@@ -2327,7 +2395,7 @@ PATCH BATCH: {summary}
             for f in files:
                 files_context += f"\n\n### FILE: {f['path']}\n```\n{f['content']}\n```"
 
-            prompt = f"""You are the CLAUDE SUPERVISOR in an autonomous development system. Your role is to analyze code and generate PATCH BATCH instructions for implementation.
+            prompt = f"""You are the SUPERVISOR in an autonomous development system. Your role is to analyze code and generate PATCH BATCH instructions for implementation.
 
 ## Epic Requirements
 {epic_key}: {summary}
@@ -2451,7 +2519,7 @@ Please update this Story with specific PATCH BATCH instructions
 after identifying the relevant codebase locations.
 
 ---
-*Story created by CLAUDE SUPERVISOR v3.2*
+*Story created by SUPERVISOR v3.2*
 *Human assistance required for PATCH BATCH specification*
 """
 
@@ -2976,7 +3044,7 @@ This is an automated escalation from the EngineO Autonomous Execution Engine.
             self.jira.transition_issue(key, 'In Progress')
             epic_list = '\n'.join([f"- {e}" for e in created_epics])
             self.jira.add_comment(key, f"""
-Initiative processed by EXECUTION UEP
+Initiative processed by UEP
 
 Created {len(created_epics)} Epic(s):
 {epic_list}
@@ -2995,12 +3063,27 @@ Business Intent Defined - Ready for Supervisor decomposition.
 
         self.log("SUPERVISOR", f"Decomposing Epic: [{key}] {summary}")
 
-        # PATCH 3-B: Idempotency check - skip if implement-stories already exist
+        # PATCH 4-B: Idempotency check - skip if implement-stories already exist
         existing_stories = self.jira.get_implement_stories_for_epic(key)
         if existing_stories:
             keys = [s['key'] for s in existing_stories]
             self.log("SUPERVISOR", f"[{key}] Skipping decomposition: {len(existing_stories)} implement-stories already exist: {', '.join(keys)}")
-            return False
+
+            # Add comment noting decomposition is already complete
+            story_list = '\n'.join([f"- {s['key']}: {s['fields']['summary']}" for s in existing_stories])
+            self.jira.add_comment(key, f"""
+Epic decomposition already complete.
+
+Existing {len(existing_stories)} implement-story(ies):
+{story_list}
+
+No new stories created (idempotency check).
+""")
+
+            # Transition Epic to In Progress (best-effort)
+            self.jira.transition_issue(key, 'In Progress')
+
+            return True  # Action taken - mark as processed
 
         self.log("SUPERVISOR", "Analyzing codebase to identify implementation targets...")
 
@@ -3018,7 +3101,7 @@ Business Intent Defined - Ready for Supervisor decomposition.
             self.jira.transition_issue(key, 'In Progress')
             story_list = '\n'.join([f"- {s}" for s in created_stories])
             self.jira.add_comment(key, f"""
-Epic decomposed by CLAUDE SUPERVISOR v3.2
+Epic decomposed by SUPERVISOR v3.2
 
 Created {len(created_stories)} Story(ies):
 {story_list}
@@ -3157,8 +3240,8 @@ Human intervention may be required.
         Returns: (success, output, list of modified files, artifact_path)
         """
         # Build the prompt for Claude Code
-        # Compute expected verification report path (from description or default)
-        expected_report_path = _expected_verification_report_path(story_key, description)
+        # PATCH 3-B: Compute expected verification report path with run_id for timestamped filename
+        expected_report_path = _expected_verification_report_path(story_key, description, self.run_id)
 
         prompt = f"""You are the IMPLEMENTER in an autonomous execution system.
 
@@ -3249,6 +3332,8 @@ Begin implementation now.
                     fatal_detected = False  # PATCH 4-B: Track fatal output detection
                     line_buf = ""  # PATCH 4-C: Line buffer for cross-chunk handling
                     LINE_BUF_THRESHOLD = 2048  # PATCH 4-E: Emit partial buffer if exceeds 2KB
+                    recent_output_buf = ""  # PATCH 5-A: Rolling buffer for boundary-safe fatal detection
+                    RECENT_OUTPUT_MAX = 8192  # 8KB rolling buffer
 
                     # Stream output with PTY
                     while True:
@@ -3317,8 +3402,13 @@ Begin implementation now.
                                 artifact_file.flush()
                                 attempt_output.append(decoded)
 
-                                # PATCH 4-B: Fatal output detection - kill immediately
-                                if _is_fatal_claude_output(decoded):
+                                # PATCH 5-A: Update rolling buffer for boundary-safe fatal detection
+                                recent_output_buf += decoded
+                                if len(recent_output_buf) > RECENT_OUTPUT_MAX:
+                                    recent_output_buf = recent_output_buf[-RECENT_OUTPUT_MAX:]
+
+                                # PATCH 5-A: Fatal output detection using rolling buffer (boundary-safe)
+                                if _is_fatal_claude_output(recent_output_buf):
                                     self.log("IMPLEMENTER", f"[{issue_key}] Fatal error detected, killing process")
                                     try:
                                         os.killpg(os.getpgid(process.pid), 15)  # SIGTERM
@@ -3557,20 +3647,11 @@ Examples:
 
     args = parser.parse_args()
 
-    # Load environment from .zshrc if running interactively
-    zshrc = Path.home() / '.zshrc'
-    if zshrc.exists():
-        # Source zshrc to get environment variables
-        result = subprocess.run(
-            ['bash', '-c', f'source {zshrc} && env'],
-            capture_output=True, text=True
-        )
-        for line in result.stdout.split('\n'):
-            if '=' in line:
-                key, _, value = line.partition('=')
-                if key in ['JIRA_URL', 'JIRA_USERNAME', 'JIRA_TOKEN', 'GITHUB_TOKEN',
-                          'GMAIL_ADDRESS', 'GMAIL_APP_PASSWORD', 'ESCALATION_EMAIL']:
-                    os.environ[key] = value
+    # PATCH 1: Deterministic dotenv loading (no .zshrc sourcing)
+    # Load from scripts/autonomous-agent/.env first
+    dotenv_count = load_dotenv(SCRIPT_DIR / '.env')
+    if dotenv_count > 0:
+        print(f"[SETUP] Loaded {dotenv_count} variables from .env")
 
     config = Config.load()
     engine = ExecutionEngine(config, cli_timeout_secs=args.claude_timeout_secs)

@@ -62,3 +62,10 @@ apps/web/test-results/.last-run.json
 # Scripts folder zip files
 scripts/**/*.zip
 scripts/*.zip
+
+# EngineO autonomous-agent runtime artifacts (never commit)
+.engineo/
+scripts/autonomous-agent/reports/*-claude-output-attempt*.txt
+scripts/autonomous-agent/reports/*-verification.md
+# Keep documentation files
+!scripts/autonomous-agent/reports/ENGINE-RUN-ARTIFACTS.md

@@ -24,13 +24,24 @@ This document defines the canonical locations and naming conventions for artifac
 
 ### Default Canonical Path
 
-**Default Location:** `scripts/autonomous-agent/reports/{ISSUE_KEY}-verification.md`
+**Canonical Location:** `scripts/autonomous-agent/reports/`
+
+**Preferred Filename:** `{ISSUE_KEY}-{RUN_ID}-verification.md`
+
+**Legacy Alias:** `{ISSUE_KEY}-verification.md` (also written for backward compatibility)
 
 This default is used when no `## VERIFICATION REQUIRED` section is present in the story description.
 
 ### Custom Path via VERIFICATION REQUIRED
 
-Stories can specify a custom verification report path in their description:
+Stories can specify a custom verification report path in their description using either format:
+
+```markdown
+VERIFICATION REQUIRED:
+- reports/{ISSUE_KEY}-custom-verification.md
+```
+
+Or markdown header style:
 
 ```markdown
 ## VERIFICATION REQUIRED
@@ -44,19 +55,24 @@ The engine parses this section and uses the first matching path as the expected 
 | Pattern | Status | Example |
 |---------|--------|---------|
 | `{ISSUE_KEY}-{RUN_ID}-verification.md` | **Preferred** | `KAN-16-20260127-143047Z-verification.md` |
-| `{ISSUE_KEY}-verification.md` | **Default canonical** | `KAN-16-verification.md` |
-| `TITLE-PREFIX-...-verification.md` | **Non-canonical** | Ignored by Supervisor |
+| `{ISSUE_KEY}-verification.md` | **Legacy alias** | `KAN-16-verification.md` |
+| `TITLE-PREFIX-...-verification.md` | **Invalid** | Ignored by Supervisor |
 
 ### Report Requirements
 
 Verification reports **MUST** contain a `## Checklist` section to be considered valid. Reports without this header will be rejected by the Supervisor.
 
+### Supervisor Lookup Order
+
+1. `scripts/autonomous-agent/reports/` (PREFERRED - canonical location)
+2. `reports/` at repo root (fallback for backward compatibility only)
+
 ### Important Notes
 
-- Title-prefixed verification reports (e.g., `AUTONOMOUS-AGENT-...-verification.md`) are **non-canonical** and will be **ignored** by the Supervisor during verification.
-- If Claude produces a title-prefixed report, the engine will attempt to copy it to a canonical issue-key-prefixed filename.
+- Title-prefixed verification reports (e.g., `AUTONOMOUS-AGENT-...-verification.md`) are **invalid** and will be **ignored** by the Supervisor during verification.
+- If Claude produces a title-prefixed report, the engine may copy it to a canonical issue-key-prefixed filename only if it can safely associate it with the issue.
 - When multiple verification reports exist for an issue, the **newest by timestamp** is selected.
-- The Supervisor searches `reports/` at the repo root **first**, then falls back to `scripts/autonomous-agent/reports/`.
+- The engine writes both the preferred timestamped filename AND the legacy alias for backward compatibility.
 
 ## Claude Output Artifacts
 
