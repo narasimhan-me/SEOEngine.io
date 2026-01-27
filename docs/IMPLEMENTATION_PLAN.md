@@ -4,6 +4,29 @@ This document tracks all implementation phases and their completion status.
 
 > ⚠️ **Authoritative:** `docs/IMPLEMENTATION_PLAN.md` is the single source of truth for EngineO.ai execution. The root `IMPLEMENTATION_PLAN.md` is deprecated.
 
+## AUTONOMOUS-AGENT-RUNTIME-RELIABILITY-FIXUP-2 REVIEW FIXUP-2
+
+**Implemented:** 2026-01-27 17:35 UTC
+**Branch:** feature/agent
+
+### Summary:
+Review fixup for RUNTIME-RELIABILITY-FIXUP-2 - additional cleanup and fallbacks.
+
+### Patches:
+- **PATCH 1**: Untrack `.engineo/state.json` from git (runtime-only artifact)
+- **PATCH 2**: Remove .zshrc sourcing from `run.sh` (non-deterministic)
+- **PATCH 3**: Add repo-root .env fallback in `engine.py` main()
+
+### Files Modified:
+- `.engineo/state.json` (deleted from git tracking)
+- `scripts/autonomous-agent/engine.py`
+- `scripts/autonomous-agent/run.sh`
+
+### Test Results:
+- 86 tests pass
+
+---
+
 ## AUTONOMOUS-AGENT-RUNTIME-RELIABILITY-FIXUP-2
 
 **Implemented:** 2026-01-27 14:35 UTC
