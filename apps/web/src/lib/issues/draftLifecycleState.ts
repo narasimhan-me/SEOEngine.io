@@ -162,3 +162,31 @@ export function checkSavedDraftInSessionStorage(
 
   return false;
 }
+
+/**
+ * [DRAFT-LIFECYCLE-VISIBILITY-1] Counts total pending drafts in sessionStorage for a project.
+ * Scans all sessionStorage keys matching the draft key pattern for the given project.
+ *
+ * @param projectId - Project ID to scan for drafts
+ * @returns Count of unique issue/product combinations with saved drafts
+ */
+export function countPendingDraftsInSessionStorage(projectId: string): number {
+  if (typeof window === 'undefined') return 0;
+
+  const prefix = `issue_draft:${projectId}:`;
+  const seenCombinations = new Set<string>();
+
+  for (let i = 0; i < sessionStorage.length; i++) {
+    const key = sessionStorage.key(i);
+    if (key && key.startsWith(prefix)) {
+      // Extract issueId:productId from key pattern: issue_draft:{projectId}:{issueId}:{productId}:{fieldLabel}
+      const parts = key.split(':');
+      if (parts.length >= 4) {
+        const combination = `${parts[2]}:${parts[3]}`; // issueId:productId
+        seenCombinations.add(combination);
+      }
+    }
+  }
+
+  return seenCombinations.size;
+}

@@ -5,6 +5,8 @@ interface IssuesSummaryCardProps {
   loading?: boolean;
   error?: string | null;
   onViewAll: () => void;
+  /** [DRAFT-LIFECYCLE-VISIBILITY-1] Count of issues with saved drafts pending application */
+  pendingDraftsCount?: number;
 }
 
 export function IssuesSummaryCard({
@@ -12,6 +14,7 @@ export function IssuesSummaryCard({
   loading,
   error,
   onViewAll,
+  pendingDraftsCount = 0,
 }: IssuesSummaryCardProps) {
   if (loading) {
     return (
@@ -94,6 +97,18 @@ export function IssuesSummaryCard({
           {total} issue categor{total === 1 ? 'y' : 'ies'} identified across
           pages and products.
         </p>
+      )}
+
+      {/* [DRAFT-LIFECYCLE-VISIBILITY-1] Pending drafts indicator */}
+      {pendingDraftsCount > 0 && (
+        <div className="mt-3 rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-700 border border-blue-200">
+          <span className="font-medium">
+            {pendingDraftsCount} draft{pendingDraftsCount === 1 ? '' : 's'} saved
+          </span>
+          <span className="ml-1">
+            — ready to apply to Shopify
+          </span>
+        </div>
       )}
     </div>
   );

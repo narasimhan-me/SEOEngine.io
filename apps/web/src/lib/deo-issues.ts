@@ -7,6 +7,18 @@
 
 import type { DeoPillarId } from './deo-pillars';
 
+// [DRAFT-LIFECYCLE-VISIBILITY-1] Re-export draft lifecycle types for convenient access
+export type {
+  DraftLifecycleState,
+  DraftLifecycleSignals,
+  DraftLifecycleCopy,
+} from './issues/draftLifecycleState';
+export {
+  deriveDraftLifecycleState,
+  getDraftLifecycleCopy,
+  checkSavedDraftInSessionStorage,
+} from './issues/draftLifecycleState';
+
 // =============================================================================
 // DEO Score Types
 // =============================================================================

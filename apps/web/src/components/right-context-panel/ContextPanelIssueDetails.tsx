@@ -465,10 +465,23 @@ export function ContextPanelIssueDetails({
           }
 
           // [FIXUP-1] Always render the draft line (removed NO_DRAFT gating)
+          // [DRAFT-LIFECYCLE-VISIBILITY-1] State-appropriate styling for visual distinction
           const draftCopy = getDraftLifecycleCopy(draftState);
+          const getDraftStateClass = () => {
+            switch (draftState) {
+              case 'GENERATED_UNSAVED':
+                return 'text-[hsl(var(--warning-foreground))]';
+              case 'SAVED_NOT_APPLIED':
+                return 'text-[hsl(var(--info-foreground))]';
+              case 'APPLIED':
+                return 'text-[hsl(var(--success-foreground))]';
+              default:
+                return 'text-muted-foreground';
+            }
+          };
           return (
             <p
-              className="mt-1 text-xs text-muted-foreground"
+              className={`mt-1 text-xs ${getDraftStateClass()}`}
               title={draftCopy.description}
             >
               Draft: {draftCopy.shortLabel}
