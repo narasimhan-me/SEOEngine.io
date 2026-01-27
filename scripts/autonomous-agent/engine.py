@@ -2201,7 +2201,7 @@ PATCH BATCH: {summary}
 - [ ] Committed to {self.config.feature_branch}
 
 ---
-*Story created by Supervisor (Claude Code CLI with Opus model)*
+*Story created by CLAUDE SUPERVISOR v3.2*
 *PATCH BATCH instructions generated from codebase analysis*
 *No API key required - using local Claude Code*
 """
@@ -2219,7 +2219,7 @@ PATCH BATCH: {summary}
             for f in files:
                 files_context += f"\n\n### FILE: {f['path']}\n```\n{f['content']}\n```"
 
-            prompt = f"""You are a Supervisor in an autonomous development system. Your role is to analyze code and generate PATCH BATCH instructions for implementation.
+            prompt = f"""You are the CLAUDE SUPERVISOR in an autonomous development system. Your role is to analyze code and generate PATCH BATCH instructions for implementation.
 
 ## Epic Requirements
 {epic_key}: {summary}
@@ -2384,7 +2384,14 @@ after identifying the relevant codebase locations.
         # Use Claude Code CLI to implement the story
         self.log("DEVELOPER", "Invoking Claude Code CLI for implementation...")
 
+        # PATCH 2-A: Capture head SHA before Claude execution
+        head_sha_before = self.git.get_head_sha()
+
         success, output, modified_files, artifact_path = self._invoke_claude_code(key, summary, description)
+
+        # PATCH 2-A: Capture head SHA after Claude execution
+        head_sha_after = self.git.get_head_sha()
+        commit_detected = bool(head_sha_after and head_sha_before and head_sha_after != head_sha_before)
 
         if success:
             self.log("DEVELOPER", f"Claude Code completed implementation")
@@ -2423,6 +2430,19 @@ Ready for Supervisor verification.
 
             # Normalize verification report filename (copy title-prefixed to canonical)
             self._normalize_verification_report_filename(key)
+
+            # PATCH 2-B: Resolve verification report path for ledger
+            resolved_report_path = _resolve_verification_report(self.config.repo_path, key) or ""
+
+            # PATCH 2-C: Upsert ledger entry on success
+            self._upsert_kan_story_run(key, {
+                "status": "implemented",
+                "runId": self.run_id,
+                "baseSha": head_sha_after or head_sha_before or "",
+                "verificationReportPath": resolved_report_path,
+                "attemptArtifacts": [artifact_path] if artifact_path else [],
+                "guardrailsPassed": commit_detected or commit_success,
+            })
         else:
             self.log("DEVELOPER", f"Claude Code encountered issues")
 
@@ -2442,6 +2462,16 @@ Human intervention may be required.
                 f"Story {key} Claude Code implementation issue",
                 f"Claude Code failed; output saved to {artifact_path}\nRun ID: {self.run_id}\n\nStory: {summary}"
             )
+
+            # PATCH 2-C: Upsert ledger entry on failure
+            self._upsert_kan_story_run(key, {
+                "status": "failed",
+                "runId": self.run_id,
+                "baseSha": head_sha_after or head_sha_before or "",
+                "verificationReportPath": "",
+                "attemptArtifacts": [artifact_path] if artifact_path else [],
+                "guardrailsPassed": False,
+            })
 
         self.log("DEVELOPER", "Notifying Supervisor for verification...")
         return True
@@ -2882,7 +2912,14 @@ Ready for Developer implementation.
         # Use Claude Code CLI to implement the story
         self.log("DEVELOPER", "Invoking Claude Code CLI for implementation...")
 
+        # PATCH 2-A: Capture head SHA before Claude execution
+        head_sha_before = self.git.get_head_sha()
+
         success, _, modified_files, artifact_path = self._invoke_claude_code(key, summary, description)
+
+        # PATCH 2-A: Capture head SHA after Claude execution
+        head_sha_after = self.git.get_head_sha()
+        commit_detected = bool(head_sha_after and head_sha_before and head_sha_after != head_sha_before)
 
         if success:
             self.log("DEVELOPER", f"Claude Code completed implementation")
@@ -2921,6 +2958,19 @@ Ready for Supervisor verification.
 
             # Normalize verification report filename (copy title-prefixed to canonical)
             self._normalize_verification_report_filename(key)
+
+            # PATCH 2-B: Resolve verification report path for ledger
+            resolved_report_path = _resolve_verification_report(self.config.repo_path, key) or ""
+
+            # PATCH 2-C: Upsert ledger entry on success
+            self._upsert_kan_story_run(key, {
+                "status": "implemented",
+                "runId": self.run_id,
+                "baseSha": head_sha_after or head_sha_before or "",
+                "verificationReportPath": resolved_report_path,
+                "attemptArtifacts": [artifact_path] if artifact_path else [],
+                "guardrailsPassed": commit_detected or commit_success,
+            })
         else:
             self.log("DEVELOPER", f"Claude Code encountered issues")
 
@@ -2940,6 +2990,16 @@ Human intervention may be required.
                 f"Story {key} Claude Code implementation issue",
                 f"Claude Code failed; output saved to {artifact_path}\nRun ID: {self.run_id}\n\nStory: {summary}"
             )
+
+            # PATCH 2-C: Upsert ledger entry on failure
+            self._upsert_kan_story_run(key, {
+                "status": "failed",
+                "runId": self.run_id,
+                "baseSha": head_sha_after or head_sha_before or "",
+                "verificationReportPath": "",
+                "attemptArtifacts": [artifact_path] if artifact_path else [],
+                "guardrailsPassed": False,
+            })
 
         self.log("DEVELOPER", "Notifying Supervisor for verification...")
         return True
@@ -3069,7 +3129,7 @@ Begin implementation now.
                                         break
                                     decoded = chunk.decode('utf-8', errors='replace')
                                     line_buf += decoded
-                                    artifact_file.write(decoded)
+                                    artifact_file.write(_redact_secrets(decoded))
                                     artifact_file.flush()
                             except (ValueError, OSError):
                                 pass
@@ -3115,8 +3175,8 @@ Begin implementation now.
                                 decoded = chunk.decode('utf-8', errors='replace')
                                 line_buf += decoded
 
-                                # PATCH 4-B: Write to artifact file live
-                                artifact_file.write(decoded)
+                                # PATCH 4-B: Write to artifact file live (redacted)
+                                artifact_file.write(_redact_secrets(decoded))
                                 artifact_file.flush()
                                 attempt_output.append(decoded)
 
@@ -3157,8 +3217,8 @@ Begin implementation now.
 
                     # Flush remaining line buffer (PATCH 4-C)
                     if line_buf.strip():
-                        # Write remaining buffer to artifact
-                        artifact_file.write(line_buf)
+                        # Write remaining buffer to artifact (redacted)
+                        artifact_file.write(_redact_secrets(line_buf))
                         artifact_file.flush()
                         display_text = _parse_stream_json_line(line_buf)
                         if display_text:

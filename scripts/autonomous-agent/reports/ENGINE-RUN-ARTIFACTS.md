@@ -46,7 +46,9 @@ This document defines the canonical locations and naming conventions for artifac
 
 **Example:** `KAN-16-20260127-143047Z-claude-output-attempt1.txt`
 
-**Purpose:** Captures the full output of each Claude Code CLI invocation attempt, with secrets redacted.
+**Purpose:** Captures the full output of each Claude Code CLI invocation attempt.
+
+**IMPORTANT:** All output written to these artifact files is **automatically redacted** to prevent secret leakage. Sensitive values (API tokens, credentials, Authorization headers) are replaced with `[REDACTED]` before being written to disk.
 
 ## Guardrails Ledger
 
