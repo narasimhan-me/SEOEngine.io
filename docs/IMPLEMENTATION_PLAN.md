@@ -4,6 +4,111 @@ This document tracks all implementation phases and their completion status.
 
 > ⚠️ **Authoritative:** `docs/IMPLEMENTATION_PLAN.md` is the single source of truth for EngineO.ai execution. The root `IMPLEMENTATION_PLAN.md` is deprecated.
 
+## AUTONOMOUS-AGENT-VERIFICATION-BACKOFF-FATAL-CLASSIFY-TIMEOUT-UNIFY-1
+
+**Implemented:** 2026-01-27
+**Branch:** feature/agent
+
+### Summary:
+Engine reliability improvements: verification report skeleton creation, verify backoff with comment de-duplication, fatal agent template error classification, and timeout unification across all personas.
+
+### Patches:
+
+- **PATCH 1**: Engine-owned canonical verification report skeleton
+  - Added `_ensure_verification_report_skeleton()` helper
+  - Skeleton created at story creation and before implementation
+  - Template includes `## Checklist` with required items (unchecked)
+  - Idempotent: existing files are never overwritten
+
+- **PATCH 2**: VERIFY/CLOSE backoff + comment de-duplication
+  - Extended WorkLedgerEntry with verify backoff fields
+  - Added `VERIFY_COOLDOWN_SECONDS = 600` (10 minutes)
+  - Added `_should_attempt_verify()` gating logic
+  - Added `_should_post_verify_comment()` de-duplication
+  - Dispatcher checks backoff before calling verify_work_item
+
+- **PATCH 3**: Fatal error classification for AGENT_TEMPLATE_ERROR
+  - Added `FATAL_AGENT_TEMPLATE_ERROR_SIGNATURES` constant
+  - Added `_is_agent_template_error()` detection function
+  - Non-retryable: stops retries, transitions to BLOCKED, escalates once
+  - Jira comment includes signature and artifact path
+
+- **PATCH 4**: Timeout unification across UEP/DECOMPOSE/IMPLEMENT
+  - Replaced hard-coded timeout=120 in `_claude_code_analyze_idea()`
+  - Replaced hard-coded timeout=300 in `_claude_code_generate_patches()`
+  - All steps now use `self.claude_timeout_seconds`
+  - Added step timeout logging
+
+- **PATCH 5**: Tests
+  - `test_verification_skeleton_template.py`
+  - `test_verify_backoff_no_spam.py`
+  - `test_agent_template_error_non_retryable.py`
+  - `test_decompose_timeout_uses_config.py`
+
+- **PATCH 6**: Documentation
+  - README.md: Added sections for verification report contract, verify backoff, fatal classification, timeout unification
+  - ENGINE-RUN-ARTIFACTS.md: Updated with verify backoff fields, skeleton creation, AGENT_TEMPLATE_ERROR, timeout unification
+
+### Files Modified:
+- `scripts/autonomous-agent/engine.py`
+- `scripts/autonomous-agent/work_ledger.py`
+- `scripts/autonomous-agent/README.md`
+- `scripts/autonomous-agent/reports/ENGINE-RUN-ARTIFACTS.md` (updated)
+- `scripts/autonomous-agent/tests/test_verification_skeleton_template.py` (new)
+- `scripts/autonomous-agent/tests/test_verify_backoff_no_spam.py` (new)
+- `scripts/autonomous-agent/tests/test_agent_template_error_non_retryable.py` (new)
+- `scripts/autonomous-agent/tests/test_decompose_timeout_uses_config.py` (new)
+
+### Definition of Done:
+- [x] Verification report skeleton created for all stories
+- [x] VERIFY/CLOSE backoff prevents thrashing
+- [x] Comment de-duplication prevents Jira spam
+- [x] AGENT_TEMPLATE_ERROR is non-retryable and escalated once
+- [x] No hard-coded timeouts in UEP/DECOMPOSE steps
+- [x] Tests added for all patches
+- [x] Documentation updated
+
+---
+
+## AUTONOMOUS-AGENT-AGENT-TEMPLATE-ERROR-NONRETRYABLE-FIXUP-1
+
+**Implemented:** 2026-01-27
+**Branch:** feature/agent
+
+### Summary:
+Fixup for AGENT_TEMPLATE_ERROR handling to prevent double handling and exclude non-retryable entries from resumption.
+
+### Patches:
+
+- **PATCH 1**: Prevent double comment/escalation on AGENT_TEMPLATE_ERROR
+  - Gate `self.escalate()` in `_invoke_claude_code` with same dedup as Jira comment
+  - Add short-circuit in `_process_story` failure branches: if `_is_agent_template_error()` returns True, skip generic failure handling
+  - Log message: `[{key}] AGENT_TEMPLATE_ERROR already handled; skipping generic failure handling`
+  - Return True (terminal handled) without posting generic comment/escalate/ledger write
+
+- **PATCH 2**: Prevent RECOVER from re-running non-retryable AGENT_TEMPLATE_ERROR
+  - Update `get_resumable_entries()` in work_ledger.py to exclude AGENT_TEMPLATE_ERROR entries
+  - Compute expected fingerprint and skip entries where `last_error_fingerprint` matches
+
+- **PATCH 3**: Tests for regressions
+  - `test_agent_template_error_no_double_handling.py`: Verifies escalation gating and short-circuit behavior
+  - `test_work_ledger_nonretryable_not_resumable.py`: Verifies AGENT_TEMPLATE_ERROR entries excluded from resumable
+
+### Files Modified:
+- `scripts/autonomous-agent/engine.py`
+- `scripts/autonomous-agent/work_ledger.py`
+- `scripts/autonomous-agent/tests/test_agent_template_error_no_double_handling.py` (new)
+- `scripts/autonomous-agent/tests/test_work_ledger_nonretryable_not_resumable.py` (new)
+
+### Definition of Done:
+- [x] AGENT_TEMPLATE_ERROR handled once (no double comment/escalation)
+- [x] Generic failure handling skipped when AGENT_TEMPLATE_ERROR detected
+- [x] Non-retryable entries excluded from `get_resumable_entries()`
+- [x] Tests added for all patches
+- [x] All 300 tests pass
+
+---
+
 ## AUTONOMOUS-AGENT-JIRA-PAYLOAD-HARDENING-AND-IDEMPOTENCY-1
 
 **Implemented:** 2026-01-27

@@ -57,7 +57,7 @@ class StepResult(str, Enum):
 class WorkLedgerEntry:
     """Work ledger entry for a single issue.
 
-    Fields (per PATCH 1 schema + FIXUP-1 PATCH 5):
+    Fields (per PATCH 1 schema + FIXUP-1 PATCH 5 + VERIFY-BACKOFF-1 PATCH 2):
     - issueKey: string
     - issueType: enum-ish string (Idea|Epic|Story)
     - parentKey: string|null
@@ -70,6 +70,14 @@ class WorkLedgerEntry:
     - verification_report_path: string (canonical path when set)
     - last_error_fingerprint: string|null
     - last_error_at: ISO-8601 UTC string|null
+
+    VERIFY-BACKOFF-1 PATCH 2 fields:
+    - verify_next_at: ISO-8601 UTC string|null - cooldown gate
+    - verify_last_reason: string|null - last verify failure reason
+    - verify_last_report_hash: string|null - sha256 of report at last failure
+    - verify_last_report_mtime: float|null - mtime of report at last failure
+    - verify_last_commented_reason: string|null - dedup: last reason commented
+    - verify_last_commented_report_hash: string|null - dedup: last hash commented
     """
     issueKey: str
     issueType: str = "Story"
@@ -83,6 +91,13 @@ class WorkLedgerEntry:
     verification_report_path: str = ""
     last_error_fingerprint: Optional[str] = None
     last_error_at: Optional[str] = None
+    # VERIFY-BACKOFF-1 PATCH 2: Verify backoff fields
+    verify_next_at: Optional[str] = None
+    verify_last_reason: Optional[str] = None
+    verify_last_report_hash: Optional[str] = None
+    verify_last_report_mtime: Optional[float] = None
+    verify_last_commented_reason: Optional[str] = None
+    verify_last_commented_report_hash: Optional[str] = None
 
     def to_dict(self) -> dict:
         """Convert entry to dictionary for JSON serialization."""
@@ -104,6 +119,13 @@ class WorkLedgerEntry:
             verification_report_path=data.get('verification_report_path', ''),
             last_error_fingerprint=data.get('last_error_fingerprint'),
             last_error_at=data.get('last_error_at'),
+            # VERIFY-BACKOFF-1 PATCH 2: Verify backoff fields (backward compatible)
+            verify_next_at=data.get('verify_next_at'),
+            verify_last_reason=data.get('verify_last_reason'),
+            verify_last_report_hash=data.get('verify_last_report_hash'),
+            verify_last_report_mtime=data.get('verify_last_report_mtime'),
+            verify_last_commented_reason=data.get('verify_last_commented_reason'),
+            verify_last_commented_report_hash=data.get('verify_last_commented_report_hash'),
         )
 
 
@@ -261,6 +283,7 @@ class WorkLedger:
         2. Either:
            a. Required artifact missing (canonical verification report for VERIFY/RECONCILE)
            b. last_error_fingerprint is present (terminal failure, may have retries)
+        3. AND NOT a non-retryable error (AGENT_TEMPLATE_ERROR)
 
         Args:
             canonical_report_checker: Optional callable(issue_key) -> bool
@@ -269,9 +292,16 @@ class WorkLedger:
         Returns:
             List of resumable WorkLedgerEntry objects.
         """
+        # FIXUP-1 PATCH 2: Non-retryable fingerprint for AGENT_TEMPLATE_ERROR
+        agent_template_error_fp = compute_error_fingerprint(LastStep.IMPLEMENTER.value, "AGENT_TEMPLATE_ERROR")
+
         resumable = []
         for entry in self._entries.values():
             if not entry.last_step:
+                continue
+
+            # FIXUP-1 PATCH 2: Skip non-retryable AGENT_TEMPLATE_ERROR entries
+            if entry.last_error_fingerprint == agent_template_error_fp:
                 continue
 
             # Check for terminal failure with error fingerprint

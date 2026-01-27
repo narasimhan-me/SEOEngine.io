@@ -4,6 +4,7 @@ This document defines the canonical locations and naming conventions for artifac
 
 **PATCH BATCH: AUTONOMOUS-AGENT-RESUME-STATE-MACHINE-RECONCILE-1 FIXUP-1**
 **PATCH BATCH: AUTONOMOUS-AGENT-JIRA-PAYLOAD-HARDENING-AND-IDEMPOTENCY-1**
+**PATCH BATCH: AUTONOMOUS-AGENT-VERIFICATION-BACKOFF-FATAL-CLASSIFY-TIMEOUT-UNIFY-1**
 
 ## Canonical Directories
 
@@ -67,6 +68,153 @@ Near-matches found (not accepted as canonical):
 
 Please ensure the verification report is written to the canonical path.
 ```
+
+## Verification Report Skeleton (PATCH 1)
+
+The engine automatically creates verification report skeletons to ensure every Story has a deterministic verification contract.
+
+### Skeleton Creation Rules
+
+| Condition | Action |
+|-----------|--------|
+| File missing | Create skeleton with canonical template |
+| File exists | NO-OP (preserve user edits) |
+| Directory missing | Create `reports/` directory |
+
+### Creation Points
+
+1. **Story creation** - After story key is known during Epic decomposition
+2. **Implementation start** - Before invoking Claude (covers legacy/external stories)
+
+### Required Headings
+
+The skeleton template MUST include these sections:
+
+| Section | Purpose |
+|---------|---------|
+| `## Summary` | Implementation summary (filled by Implementer) |
+| `## Checklist` | Required checklist items (all must be checked) |
+| `## Evidence` | Commit SHA and file list |
+| `## Manual Testing` | Description of testing performed |
+
+### Required Checklist Items
+
+The `## Checklist` section MUST contain (initially unchecked):
+
+```markdown
+- [ ] Implemented per PATCH BATCH
+- [ ] Tests run (list below)
+- [ ] Canonical report path correct
+- [ ] Evidence (commit SHA) recorded
+```
+
+### Atomic Write
+
+Skeleton creation uses atomic write:
+1. Write to temp file with `.tmp` suffix
+2. `os.replace()` to canonical path
+3. Cleanup temp file on failure
+
+## VERIFY/CLOSE Backoff + Comment De-dup (PATCH 2)
+
+The engine implements backoff logic to prevent VERIFY/CLOSE thrashing and Jira comment spam.
+
+### Cooldown
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `VERIFY_COOLDOWN_SECONDS` | 600 | 10-minute backoff on verify failure |
+
+### Gate Logic
+
+Re-verify is allowed only when:
+
+| Condition | Result |
+|-----------|--------|
+| Report hash changed since last failure | Allow immediately |
+| Cooldown elapsed (10 minutes) | Allow |
+| Cooldown active AND report unchanged | Skip |
+
+### Comment De-duplication
+
+Jira comments are suppressed when `(reason, report_hash)` matches the last posted comment.
+
+### Work Ledger Fields (PATCH 2)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `verify_next_at` | ISO8601 UTC string | Cooldown gate timestamp |
+| `verify_last_reason` | string | Last verify failure reason |
+| `verify_last_report_hash` | SHA256 hex | Report hash at last failure |
+| `verify_last_report_mtime` | float | Report mtime at last failure |
+| `verify_last_commented_reason` | string | Last reason that triggered comment |
+| `verify_last_commented_report_hash` | SHA256 hex | Report hash at last comment |
+
+## Fatal Classification: AGENT_TEMPLATE_ERROR (PATCH 3)
+
+Certain errors indicate deterministic agent/template bugs that will not resolve with retries.
+
+### Fatal Signatures
+
+```python
+FATAL_AGENT_TEMPLATE_ERROR_SIGNATURES = [
+    "NameError: name 'issue_key' is not defined",
+    "issue_key is not defined",
+]
+```
+
+### Non-Retryable Behavior
+
+When fatal signature detected:
+
+1. **Stop retries immediately** (0 further attempts)
+2. **Transition to BLOCKED** status
+3. **Single escalation entry** (idempotent by issue_key + fingerprint)
+4. **Single Jira comment** with:
+   - Signature matched
+   - Artifact path for debugging
+   - Status: BLOCKED — non-retryable until template fixed
+
+### Work Ledger Fields (PATCH 3)
+
+On AGENT_TEMPLATE_ERROR:
+
+| Field | Value |
+|-------|-------|
+| `status` | `BLOCKED` |
+| `last_step` | `IMPLEMENTER` |
+| `last_step_result` | `failed` |
+| `last_error_fingerprint` | `AGENT_TEMPLATE_ERROR` |
+
+## Timeout Unification (PATCH 4)
+
+All Claude CLI invocations share a single configured timeout source.
+
+### Default Timeout
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `CLAUDE_TIMEOUT_SECONDS` | 14400 (4 hours) | Default timeout |
+
+### Step Timeouts
+
+All steps use `self.claude_timeout_seconds`:
+
+| Step | Log Message |
+|------|-------------|
+| UEP | `step timeout: UEP=<N>s (derived from claude_timeout_seconds)` |
+| DECOMPOSE | `step timeout: DECOMPOSE=<N>s (derived from claude_timeout_seconds)` |
+| IMPLEMENT | Uses configured timeout (existing logic) |
+
+### Override Methods
+
+| Method | Priority |
+|--------|----------|
+| CLI `--claude-timeout-secs` | Highest |
+| Env `ENGINEO_CLAUDE_TIMEOUT_SECONDS` | Medium |
+| Per-ticket `HARD TIMEOUT: N` marker | Lowest |
+
+**Warning:** Keep `ENGINEO_CLAUDE_TIMEOUT_SECONDS` unset unless intentionally overriding.
 
 ## Patch Batch Files (PATCH A)
 
@@ -181,7 +329,13 @@ Decomposition skip is ONLY allowed when ALL conditions are met:
       "last_commit_sha": "abc123def456",
       "verification_report_path": "reports/KAN-17-verification.md",
       "last_error_fingerprint": null,
-      "last_error_at": null
+      "last_error_at": null,
+      "verify_next_at": null,
+      "verify_last_reason": null,
+      "verify_last_report_hash": null,
+      "verify_last_report_mtime": null,
+      "verify_last_commented_reason": null,
+      "verify_last_commented_report_hash": null
     }
   }
 }

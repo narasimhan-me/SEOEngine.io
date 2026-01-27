@@ -171,3 +171,174 @@ The engine uses three standardized roles:
 | **IMPLEMENTER** | Applies code changes via Claude Code CLI |
 
 Note: Legacy role labels (`SYSTEM`, `CLAUDE`, `DEVELOPER`) are no longer used.
+
+## Verification Report Contract (Engine-owned skeleton)
+
+The engine ensures a verification report exists for every Story before implementation begins.
+
+### Canonical Path
+
+```
+reports/{ISSUE_KEY}-verification.md
+```
+
+### Required Headings
+
+The skeleton template includes these required sections:
+
+| Section | Purpose |
+|---------|---------|
+| `## Summary` | Implementation summary (filled by Implementer) |
+| `## Checklist` | Required checklist items (must all be checked for verification to pass) |
+| `## Evidence` | Commit SHA and file list |
+| `## Manual Testing` | Description of testing performed |
+
+### Required Checklist Items
+
+The `## Checklist` section MUST contain these items (initially unchecked):
+
+```markdown
+- [ ] Implemented per PATCH BATCH
+- [ ] Tests run (list below)
+- [ ] Canonical report path correct
+- [ ] Evidence (commit SHA) recorded
+```
+
+### Implementer Responsibilities
+
+1. Fill in the `## Summary` section with implementation details
+2. Check all items in `## Checklist` using `- [x]`
+3. Record commit SHA(s) under `## Evidence`
+4. Describe testing performed under `## Manual Testing`
+
+### Skeleton Creation Points
+
+The skeleton is created (if missing) at two points:
+
+1. **Epic decomposition**: After story creation success
+2. **Story implementation**: Before invoking Claude (covers legacy/external stories)
+
+**Important**: Existing files are never overwritten (idempotent behavior).
+
+## VERIFY/CLOSE Backoff
+
+The engine implements backoff logic to prevent VERIFY/CLOSE thrashing and Jira comment spam.
+
+### Cooldown
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `VERIFY_COOLDOWN_SECONDS` | 600 | 10-minute backoff on verify failure |
+
+### Re-verify Conditions
+
+A story is re-verified only when:
+
+1. **Report changed**: Report file hash differs from last failure
+2. **Cooldown elapsed**: 10 minutes have passed since last failure
+
+If neither condition is met, the verify attempt is skipped.
+
+### Comment De-duplication
+
+Jira comments are posted only when the `(reason, report_hash)` pair differs from the last comment:
+
+| Field | Description |
+|-------|-------------|
+| `verify_last_commented_reason` | Last failure reason commented |
+| `verify_last_commented_report_hash` | Report SHA256 at last comment |
+
+This prevents spam when the same failure occurs repeatedly.
+
+### Work Ledger Fields
+
+The Work Ledger tracks verify backoff state:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `verify_next_at` | ISO8601 UTC | Cooldown gate timestamp |
+| `verify_last_reason` | string | Last verify failure reason |
+| `verify_last_report_hash` | SHA256 hex | Report hash at last failure |
+| `verify_last_report_mtime` | float | Report mtime at last failure |
+| `verify_last_commented_reason` | string | Last reason that triggered a comment |
+| `verify_last_commented_report_hash` | SHA256 hex | Report hash at last comment |
+
+## Fatal Classification: AGENT_TEMPLATE_ERROR
+
+Certain errors indicate deterministic agent/template bugs that will not resolve with retries.
+
+### Signature Detection
+
+The engine checks Claude output for fatal signatures:
+
+```python
+FATAL_AGENT_TEMPLATE_ERROR_SIGNATURES = [
+    "NameError: name 'issue_key' is not defined",
+    "issue_key is not defined",
+]
+```
+
+### Behavior on Detection
+
+When a fatal signature is detected:
+
+1. **Retries stop immediately** (0 further attempts)
+2. **Story transitions to BLOCKED**
+3. **At most 1 Jira comment** is posted (de-duplicated by fingerprint)
+4. **At most 1 escalation entry** is created
+5. **Artifact path included** in the Jira comment for debugging
+
+### Jira Comment Format
+
+```markdown
+## AGENT_TEMPLATE_ERROR — Non-Retryable
+
+**Signature matched:** `NameError: name 'issue_key' is not defined`
+**Artifact path:** `reports/KAN-25-abc123-claude-output-attempt1.txt`
+
+This error indicates a deterministic agent/template bug that will not resolve with retries.
+
+**Status:** BLOCKED — non-retryable until template fixed
+```
+
+### Work Ledger Fields
+
+| Field | Value |
+|-------|-------|
+| `status` | `BLOCKED` |
+| `last_step` | `IMPLEMENTER` |
+| `last_step_result` | `failed` |
+| `last_error_fingerprint` | `AGENT_TEMPLATE_ERROR` |
+
+## Timeout Source Unification
+
+All Claude CLI invocations share the same configured timeout source.
+
+### Default Timeout
+
+| Setting | Value | Source |
+|---------|-------|--------|
+| `CLAUDE_TIMEOUT_SECONDS` | 14400 (4 hours) | Constant |
+
+### Override Methods
+
+| Method | Priority | Example |
+|--------|----------|---------|
+| CLI argument | Highest | `--claude-timeout-secs 7200` |
+| Environment variable | Medium | `ENGINEO_CLAUDE_TIMEOUT_SECONDS=7200` |
+| Per-ticket Jira marker | Lowest | `HARD TIMEOUT: 120` in description |
+
+### Step Timeouts
+
+All steps use `self.claude_timeout_seconds`:
+
+| Step | Timeout Source | Log Message |
+|------|---------------|-------------|
+| UEP | `claude_timeout_seconds` | `step timeout: UEP=<N>s (derived from claude_timeout_seconds)` |
+| DECOMPOSE | `claude_timeout_seconds` | `step timeout: DECOMPOSE=<N>s (derived from claude_timeout_seconds)` |
+| IMPLEMENT | `claude_timeout_seconds` | Uses configured timeout |
+
+### Warning
+
+Keep `ENGINEO_CLAUDE_TIMEOUT_SECONDS` unset unless intentionally overriding.
+Setting very low values (< 300s) may cause premature timeouts during complex operations.

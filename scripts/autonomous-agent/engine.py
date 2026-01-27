@@ -125,6 +125,56 @@ RUNTIME_IGNORED_PATHS = {LEDGER_REL_PATH, CLAUDE_LOCK_REL_PATH, ESCALATIONS_REL_
 # Secret env vars to redact from output (values only, not names)
 CLAUDE_SECRET_ENV_VARS = ["JIRA_TOKEN", "JIRA_API_TOKEN", "GITHUB_TOKEN"]
 
+# -----------------------------------------------------------------------------
+# VERIFY BACKOFF CONSTANTS (PATCH 2)
+# -----------------------------------------------------------------------------
+VERIFY_COOLDOWN_SECONDS = 600  # 10 minutes backoff on verify failure
+
+# -----------------------------------------------------------------------------
+# FATAL AGENT TEMPLATE ERROR SIGNATURES (PATCH 3)
+# -----------------------------------------------------------------------------
+FATAL_AGENT_TEMPLATE_ERROR_SIGNATURES = [
+    "NameError: name 'issue_key' is not defined",
+    "issue_key is not defined",
+]
+
+# -----------------------------------------------------------------------------
+# VERIFICATION REPORT SKELETON TEMPLATE (PATCH 1)
+# -----------------------------------------------------------------------------
+VERIFICATION_REPORT_SKELETON_TEMPLATE = """# {issue_key} Verification Report
+
+## Story Information
+- **Story Key**: {issue_key}
+- **Parent**: {parent_key}
+- **Summary**: {summary}
+- **Implementation Date**: {date}
+
+## Summary
+
+[IMPLEMENTER: Fill in implementation summary here]
+
+## Checklist
+
+- [ ] Implemented per PATCH BATCH
+- [ ] Tests run (list below)
+- [ ] Canonical report path correct
+- [ ] Evidence (commit SHA) recorded
+
+## Evidence
+
+- **Commit SHA**: [IMPLEMENTER: Record commit SHA here]
+- **Branch**: feature/agent
+- **Files Changed**: [IMPLEMENTER: List modified files]
+
+## Manual Testing
+
+[IMPLEMENTER: Describe manual testing performed]
+
+---
+
+*Skeleton created by Engine. IMPLEMENTER must fill in all sections and check items.*
+"""
+
 
 def _canonical_verification_report_relpath(issue_key: str) -> str:
     """Get canonical verification report repo-relative path.
@@ -163,6 +213,208 @@ def _find_near_match_reports(repo_path: str, issue_key: str) -> List[str]:
                 near_matches.append(str(path.relative_to(repo_path)))
 
     return near_matches
+
+
+# -----------------------------------------------------------------------------
+# PATCH 1: Verification Report Skeleton Helpers
+# -----------------------------------------------------------------------------
+
+def _ensure_verification_report_skeleton(
+    repo_path: str,
+    issue_key: str,
+    summary: str,
+    parent_key: Optional[str] = None
+) -> Tuple[bool, str]:
+    """Ensure canonical verification report skeleton exists.
+
+    PATCH 1: Engine-owned canonical verification report skeleton.
+
+    Behaviors:
+    - Creates reports/ directory if missing
+    - If file exists: NO-OP (do not overwrite user edits)
+    - If missing: write minimal canonical template with ## Checklist
+
+    Args:
+        repo_path: Path to repository root.
+        issue_key: The issue key (e.g., "KAN-25").
+        summary: Story summary for template.
+        parent_key: Parent Epic key (optional).
+
+    Returns:
+        Tuple of (created: bool, path: str).
+    """
+    canonical_path = _canonical_verification_report_relpath(issue_key)
+    full_path = Path(repo_path) / canonical_path
+
+    # Ensure reports/ directory exists
+    full_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # If file exists, do not overwrite
+    if full_path.exists():
+        return (False, canonical_path)
+
+    # Generate skeleton content
+    date_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    content = VERIFICATION_REPORT_SKELETON_TEMPLATE.format(
+        issue_key=issue_key,
+        parent_key=parent_key or 'N/A',
+        summary=summary[:200] if summary else 'N/A',
+        date=date_str,
+    )
+
+    # Write skeleton (atomic)
+    temp_path = full_path.with_suffix('.md.tmp')
+    try:
+        temp_path.write_text(content, encoding='utf-8')
+        os.replace(str(temp_path), str(full_path))
+        return (True, canonical_path)
+    except OSError:
+        try:
+            temp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return (False, canonical_path)
+
+
+# -----------------------------------------------------------------------------
+# PATCH 2: Verify Backoff Helpers
+# -----------------------------------------------------------------------------
+
+def _hash_file(path: str) -> Optional[str]:
+    """Compute SHA256 hash of file contents.
+
+    PATCH 2: Hash helper for verify backoff.
+
+    Args:
+        path: Full path to file.
+
+    Returns:
+        SHA256 hex string or None if file cannot be read.
+    """
+    try:
+        content = Path(path).read_bytes()
+        return hashlib.sha256(content).hexdigest()
+    except (OSError, IOError):
+        return None
+
+
+def _should_attempt_verify(
+    entry: Optional['WorkLedgerEntry'],
+    report_path: str,
+    now_ts: Optional[float] = None
+) -> Tuple[bool, str]:
+    """Determine if verify should be attempted based on backoff state.
+
+    PATCH 2: Verify backoff gating logic.
+
+    Rules:
+    - If report missing: allow attempt (fail-fast with remediation once)
+    - If entry has verify_next_at in future AND report hash unchanged: skip
+    - If report hash changed since last failure: allow immediately
+    - If cooldown passed: allow
+
+    Args:
+        entry: WorkLedgerEntry or None.
+        report_path: Full path to verification report.
+        now_ts: Current timestamp (for testing); defaults to time.time().
+
+    Returns:
+        Tuple of (should_verify: bool, reason: str).
+    """
+    if now_ts is None:
+        now_ts = time.time()
+
+    # If no entry, allow verify
+    if entry is None:
+        return (True, "no_ledger_entry")
+
+    # Compute current report state
+    report_exists = Path(report_path).exists() if report_path else False
+
+    if not report_exists:
+        # Report missing - allow one attempt (will fail with remediation)
+        # But respect cooldown if already failed for missing report
+        if entry.verify_next_at:
+            try:
+                next_at = datetime.fromisoformat(entry.verify_next_at.replace('Z', '+00:00'))
+                if next_at.timestamp() > now_ts:
+                    # Cooldown still active
+                    if entry.verify_last_reason and "missing" in entry.verify_last_reason.lower():
+                        return (False, "cooldown_active_missing_report")
+            except (ValueError, TypeError):
+                pass
+        return (True, "report_missing")
+
+    # Compute current hash
+    current_hash = _hash_file(report_path)
+
+    # Check if hash changed since last failure
+    if entry.verify_last_report_hash and current_hash:
+        if current_hash != entry.verify_last_report_hash:
+            return (True, "report_changed")
+
+    # Check cooldown
+    if entry.verify_next_at:
+        try:
+            next_at = datetime.fromisoformat(entry.verify_next_at.replace('Z', '+00:00'))
+            if next_at.timestamp() > now_ts:
+                return (False, "cooldown_active_unchanged_report")
+        except (ValueError, TypeError):
+            pass
+
+    # Cooldown passed or not set
+    return (True, "cooldown_elapsed")
+
+
+def _should_post_verify_comment(
+    entry: Optional['WorkLedgerEntry'],
+    verify_reason: str,
+    report_hash: Optional[str]
+) -> bool:
+    """Determine if a Jira comment should be posted for verify failure.
+
+    PATCH 2: Comment de-duplication.
+
+    Args:
+        entry: WorkLedgerEntry or None.
+        verify_reason: Current verify failure reason.
+        report_hash: Current report hash (or None).
+
+    Returns:
+        True if comment should be posted, False if duplicate.
+    """
+    if entry is None:
+        return True
+
+    # Check for duplicate: same reason AND same report hash
+    if (entry.verify_last_commented_reason == verify_reason and
+        entry.verify_last_commented_report_hash == report_hash):
+        return False
+
+    return True
+
+
+# -----------------------------------------------------------------------------
+# PATCH 3: Fatal Agent Template Error Classification
+# -----------------------------------------------------------------------------
+
+def _is_agent_template_error(text: str) -> bool:
+    """Check if text contains a fatal agent template error signature.
+
+    PATCH 3: Fatal error classification for non-retryable agent/template bugs.
+
+    Args:
+        text: Output text to check.
+
+    Returns:
+        True if fatal agent template error detected.
+    """
+    if not text:
+        return False
+    for signature in FATAL_AGENT_TEMPLATE_ERROR_SIGNATURES:
+        if signature in text:
+            return True
+    return False
 
 
 def _claude_output_relpath(issue_key: str, run_id: str, attempt: int) -> str:
@@ -2040,11 +2292,19 @@ class ExecutionEngine:
         last_commit_sha: Optional[str] = None,
         verification_report_path: str = "",
         error_text: Optional[str] = None,
+        # PATCH 2: Verify backoff fields
+        verify_next_at: Optional[str] = None,
+        verify_last_reason: Optional[str] = None,
+        verify_last_report_hash: Optional[str] = None,
+        verify_last_report_mtime: Optional[float] = None,
+        verify_last_commented_reason: Optional[str] = None,
+        verify_last_commented_report_hash: Optional[str] = None,
     ) -> None:
         """Upsert an entry in the work ledger.
 
         PATCH 1: Update work ledger with issue state for resumption.
         FIXUP-1 PATCH 5: Added last_step_result for terminal outcome tracking.
+        PATCH 2: Added verify backoff fields for VERIFY/CLOSE gating.
 
         Args:
             issue_key: The issue key.
@@ -2058,6 +2318,12 @@ class ExecutionEngine:
             last_commit_sha: Commit SHA if any (optional).
             verification_report_path: Path to verification report (optional).
             error_text: Error text if failed (will compute fingerprint).
+            verify_next_at: ISO8601 UTC cooldown gate (PATCH 2).
+            verify_last_reason: Last verify failure reason (PATCH 2).
+            verify_last_report_hash: SHA256 of report at last failure (PATCH 2).
+            verify_last_report_mtime: mtime of report at last failure (PATCH 2).
+            verify_last_commented_reason: Last reason commented (PATCH 2).
+            verify_last_commented_report_hash: Last hash commented (PATCH 2).
         """
         entry = self.work_ledger.get(issue_key)
         if entry is None:
@@ -2090,6 +2356,20 @@ class ExecutionEngine:
             # Clear error on success
             entry.last_error_fingerprint = None
             entry.last_error_at = None
+
+        # PATCH 2: Handle verify backoff fields
+        if verify_next_at is not None:
+            entry.verify_next_at = verify_next_at
+        if verify_last_reason is not None:
+            entry.verify_last_reason = verify_last_reason
+        if verify_last_report_hash is not None:
+            entry.verify_last_report_hash = verify_last_report_hash
+        if verify_last_report_mtime is not None:
+            entry.verify_last_report_mtime = verify_last_report_mtime
+        if verify_last_commented_reason is not None:
+            entry.verify_last_commented_reason = verify_last_commented_reason
+        if verify_last_commented_report_hash is not None:
+            entry.verify_last_commented_report_hash = verify_last_commented_report_hash
 
         self.work_ledger.upsert(entry)
 
@@ -2382,10 +2662,23 @@ class ExecutionEngine:
 
         # Priority 2: VERIFY/CLOSE
         # Stories with statusCategory In Progress OR status BLOCKED
+        # PATCH 2: Apply verify backoff gating
         stories_for_verify = self.jira.get_stories_for_verify_close()
         if stories_for_verify:
             self.log("SUPERVISOR", f"[VERIFY/CLOSE] Found {len(stories_for_verify)} candidates")
             for story in stories_for_verify:
+                story_key = story['key']
+
+                # PATCH 2: Check verify backoff before attempting
+                entry = self.work_ledger.get(story_key)
+                canonical_path = _canonical_verification_report_relpath(story_key)
+                full_report_path = str(Path(self.config.repo_path) / canonical_path)
+
+                should_verify, reason = _should_attempt_verify(entry, full_report_path)
+                if not should_verify:
+                    self.log("SUPERVISOR", f"[VERIFY/CLOSE] Skipping {story_key}: {reason}")
+                    continue
+
                 if self.verify_work_item(story):
                     return True
 
@@ -2617,13 +2910,16 @@ Generate the Epic description now:"""
 
             self.log("UEP", f"Calling Claude Code CLI ({MODEL_UEP}) for business analysis...")
 
+            # PATCH 4: Use unified timeout source
+            self.log("UEP", f"step timeout: UEP={self.claude_timeout_seconds}s (derived from claude_timeout_seconds)")
+
             # Run Claude Code CLI with the prompt (using opus for high-quality analysis)
             result = subprocess.run(
                 ['claude', '--model', MODEL_UEP, '-p', prompt, '--dangerously-skip-permissions'],
                 cwd=self.config.repo_path,
                 capture_output=True,
                 text=True,
-                timeout=120  # 2 minute timeout for analysis
+                timeout=self.claude_timeout_seconds  # PATCH 4: unified timeout
             )
 
             if result.returncode != 0:
@@ -2955,13 +3251,16 @@ Generate the PATCH BATCH instructions now:"""
 
             self.log("SUPERVISOR", f"Calling Claude Code CLI ({MODEL_SUPERVISOR}) for code analysis...")
 
+            # PATCH 4: Use unified timeout source
+            self.log("SUPERVISOR", f"step timeout: DECOMPOSE={self.claude_timeout_seconds}s (derived from claude_timeout_seconds)")
+
             # Run Claude Code CLI with the prompt (using opus for deep code analysis)
             result = subprocess.run(
                 ['claude', '--model', MODEL_SUPERVISOR, '-p', prompt, '--dangerously-skip-permissions'],
                 cwd=self.config.repo_path,
                 capture_output=True,
                 text=True,
-                timeout=300  # 5 minute timeout for code analysis
+                timeout=self.claude_timeout_seconds  # PATCH 4: unified timeout
             )
 
             if result.returncode != 0:
@@ -3210,6 +3509,11 @@ Ready for Supervisor verification.
                 verification_report_path=resolved_report_path,
             )
         else:
+            # FIXUP-1 PATCH 1: Short-circuit if AGENT_TEMPLATE_ERROR already handled in _invoke_claude_code
+            if _is_agent_template_error(output):
+                self.log("IMPLEMENTER", f"[{key}] AGENT_TEMPLATE_ERROR already handled; skipping generic failure handling")
+                return True  # Terminal handled
+
             self.log("IMPLEMENTER", f"Claude Code encountered issues")
 
             self.jira.add_comment(key, f"""
@@ -3434,48 +3738,153 @@ Branch: {self.config.feature_branch}
         if not exists:
             # PENDING: Canonical verification report not found
             self.log("SUPERVISOR", f"[{key}] Canonical verification report not found")
-            comment = f"""Supervisor Verification: PENDING — verification report not found
+
+            # PATCH 2: Compute verify failure state
+            verify_reason = "report_missing"
+            report_hash = None  # Report doesn't exist
+
+            # PATCH 2: Check comment de-dup
+            work_entry = self.work_ledger.get(key)
+            if _should_post_verify_comment(work_entry, verify_reason, report_hash):
+                comment = f"""Supervisor Verification: PENDING — verification report not found
 
 {remediation}"""
-            self.jira.add_comment(key, comment)
+                self.jira.add_comment(key, comment)
+
+            # PATCH 2: Record verify backoff state
+            verify_next_at = (datetime.now(timezone.utc).timestamp() + VERIFY_COOLDOWN_SECONDS)
+            verify_next_at_iso = datetime.fromtimestamp(verify_next_at, timezone.utc).isoformat()
+            self._upsert_work_ledger_entry(
+                issue_key=key,
+                issue_type="Story",
+                status=status,
+                last_step=LastStep.VERIFY.value,
+                last_step_result=StepResult.FAILED.value,
+                verify_next_at=verify_next_at_iso,
+                verify_last_reason=verify_reason,
+                verify_last_report_hash=report_hash,
+                verify_last_commented_reason=verify_reason,
+                verify_last_commented_report_hash=report_hash,
+            )
             return True
 
         # PATCH 2-B: Checklist header validation
         report_full_path = Path(self.config.repo_path) / report_path
+
+        # PATCH 2: Compute report hash for backoff tracking
+        report_hash = _hash_file(str(report_full_path))
+        report_mtime = None
+        try:
+            report_mtime = report_full_path.stat().st_mtime
+        except OSError:
+            pass
+
         try:
             report_content = report_full_path.read_text(encoding='utf-8')
         except (OSError, UnicodeDecodeError) as e:
             self.log("SUPERVISOR", f"[{key}] Cannot read report: {e}")
-            comment = f"""Supervisor Verification: INVALID — cannot read report
+
+            # PATCH 2: Compute verify failure state
+            verify_reason = "cannot_read_report"
+            work_entry = self.work_ledger.get(key)
+
+            # PATCH 2: Check comment de-dup
+            if _should_post_verify_comment(work_entry, verify_reason, report_hash):
+                comment = f"""Supervisor Verification: INVALID — cannot read report
 
 Report: {report_path}
 Error: {e}"""
-            self.jira.add_comment(key, comment)
+                self.jira.add_comment(key, comment)
+
+            # PATCH 2: Record verify backoff state
+            verify_next_at = (datetime.now(timezone.utc).timestamp() + VERIFY_COOLDOWN_SECONDS)
+            verify_next_at_iso = datetime.fromtimestamp(verify_next_at, timezone.utc).isoformat()
+            self._upsert_work_ledger_entry(
+                issue_key=key,
+                issue_type="Story",
+                status=status,
+                last_step=LastStep.VERIFY.value,
+                last_step_result=StepResult.FAILED.value,
+                verify_next_at=verify_next_at_iso,
+                verify_last_reason=verify_reason,
+                verify_last_report_hash=report_hash,
+                verify_last_report_mtime=report_mtime,
+                verify_last_commented_reason=verify_reason,
+                verify_last_commented_report_hash=report_hash,
+            )
             return True
 
         if "## Checklist" not in report_content:
             self.log("SUPERVISOR", f"[{key}] Invalid report: missing ## Checklist")
-            comment = f"""Supervisor Verification: INVALID — report missing ## Checklist header
+
+            # PATCH 2: Compute verify failure state
+            verify_reason = "missing_checklist_header"
+            work_entry = self.work_ledger.get(key)
+
+            # PATCH 2: Check comment de-dup
+            if _should_post_verify_comment(work_entry, verify_reason, report_hash):
+                comment = f"""Supervisor Verification: INVALID — report missing ## Checklist header
 
 Report: {report_path}
 Note: Verification reports MUST contain a ## Checklist section."""
-            self.jira.add_comment(key, comment)
+                self.jira.add_comment(key, comment)
+
+            # PATCH 2: Record verify backoff state
+            verify_next_at = (datetime.now(timezone.utc).timestamp() + VERIFY_COOLDOWN_SECONDS)
+            verify_next_at_iso = datetime.fromtimestamp(verify_next_at, timezone.utc).isoformat()
+            self._upsert_work_ledger_entry(
+                issue_key=key,
+                issue_type="Story",
+                status=status,
+                last_step=LastStep.VERIFY.value,
+                last_step_result=StepResult.FAILED.value,
+                verify_next_at=verify_next_at_iso,
+                verify_last_reason=verify_reason,
+                verify_last_report_hash=report_hash,
+                verify_last_report_mtime=report_mtime,
+                verify_last_commented_reason=verify_reason,
+                verify_last_commented_report_hash=report_hash,
+            )
             return True
 
         # PATCH 8: Check for unchecked items (fail-closed)
         if "- [ ]" in report_content:
             unchecked_count = report_content.count("- [ ]")
             self.log("SUPERVISOR", f"[{key}] Report has {unchecked_count} unchecked checklist items")
-            comment = f"""Supervisor Verification: INCOMPLETE — unchecked checklist items found
+
+            # PATCH 2: Compute verify failure state
+            verify_reason = f"unchecked_items_{unchecked_count}"
+            work_entry = self.work_ledger.get(key)
+
+            # PATCH 2: Check comment de-dup
+            if _should_post_verify_comment(work_entry, verify_reason, report_hash):
+                comment = f"""Supervisor Verification: INCOMPLETE — unchecked checklist items found
 
 Report: {report_path}
 Unchecked items: {unchecked_count}
 Note: All checklist items must be checked (- [x]) for verification to pass."""
-            self.jira.add_comment(key, comment)
+                self.jira.add_comment(key, comment)
 
             # Keep as BLOCKED or set to BLOCKED best-effort, then continue
             if status not in ("BLOCKED", "Blocked"):
                 self.jira.transition_issue(key, "Blocked")
+
+            # PATCH 2: Record verify backoff state
+            verify_next_at = (datetime.now(timezone.utc).timestamp() + VERIFY_COOLDOWN_SECONDS)
+            verify_next_at_iso = datetime.fromtimestamp(verify_next_at, timezone.utc).isoformat()
+            self._upsert_work_ledger_entry(
+                issue_key=key,
+                issue_type="Story",
+                status="BLOCKED",
+                last_step=LastStep.VERIFY.value,
+                last_step_result=StepResult.FAILED.value,
+                verify_next_at=verify_next_at_iso,
+                verify_last_reason=verify_reason,
+                verify_last_report_hash=report_hash,
+                verify_last_report_mtime=report_mtime,
+                verify_last_commented_reason=verify_reason,
+                verify_last_commented_report_hash=report_hash,
+            )
 
             return True
 
@@ -3500,7 +3909,13 @@ Note: All checklist items must be checked (- [x]) for verification to pass."""
         if not commit_evidence:
             # Missing commit evidence - keep/set BLOCKED
             self.log("SUPERVISOR", f"[{key}] Missing commit evidence")
-            comment = f"""Supervisor Verification: BLOCKED — missing commit evidence
+
+            # PATCH 2: Compute verify failure state
+            verify_reason = "missing_commit_evidence"
+
+            # PATCH 2: Check comment de-dup
+            if _should_post_verify_comment(work_entry, verify_reason, report_hash):
+                comment = f"""Supervisor Verification: BLOCKED — missing commit evidence
 
 Report: {report_path} (valid, checklist complete)
 
@@ -3513,10 +3928,27 @@ Report: {report_path} (valid, checklist complete)
 2. Create a commit with {key} in the commit message
 
 Note: Story will remain BLOCKED until commit evidence is found."""
-            self.jira.add_comment(key, comment)
+                self.jira.add_comment(key, comment)
 
             if status not in ("BLOCKED", "Blocked"):
                 self.jira.transition_issue(key, "Blocked")
+
+            # PATCH 2: Record verify backoff state
+            verify_next_at = (datetime.now(timezone.utc).timestamp() + VERIFY_COOLDOWN_SECONDS)
+            verify_next_at_iso = datetime.fromtimestamp(verify_next_at, timezone.utc).isoformat()
+            self._upsert_work_ledger_entry(
+                issue_key=key,
+                issue_type="Story",
+                status="BLOCKED",
+                last_step=LastStep.VERIFY.value,
+                last_step_result=StepResult.FAILED.value,
+                verify_next_at=verify_next_at_iso,
+                verify_last_reason=verify_reason,
+                verify_last_report_hash=report_hash,
+                verify_last_report_mtime=report_mtime,
+                verify_last_commented_reason=verify_reason,
+                verify_last_commented_report_hash=report_hash,
+            )
 
             return True
 
@@ -4064,6 +4496,16 @@ No new stories created.
                 self.log("SUPERVISOR", f"Created Story: {story_key}")
                 created_stories.append(story_key)
 
+                # PATCH 1: Create verification report skeleton for the story
+                skeleton_created, skeleton_path = _ensure_verification_report_skeleton(
+                    self.config.repo_path,
+                    story_key,
+                    story_def['summary'],
+                    parent_key=key,
+                )
+                if skeleton_created:
+                    self.log("SUPERVISOR", f"Created verification report skeleton: {skeleton_path}")
+
                 # Update manifest with created key
                 child = manifest.find_child_by_intent(story_def['summary'])
                 if child:
@@ -4256,6 +4698,22 @@ Expected paths searched:
             self.jira.transition_issue(key, 'In Progress')
             self.jira.add_comment(key, f"Implementation started by IMPLEMENTER\nBranch: {self.config.feature_branch}")
 
+        # PATCH 1: Ensure verification report skeleton exists before invoking Claude
+        # Get parent key from issue if available
+        parent_key = None
+        parent_field = issue.get('fields', {}).get('parent', {})
+        if isinstance(parent_field, dict) and parent_field.get('key'):
+            parent_key = parent_field['key']
+
+        skeleton_created, skeleton_path = _ensure_verification_report_skeleton(
+            self.config.repo_path,
+            key,
+            summary,
+            parent_key=parent_key,
+        )
+        if skeleton_created:
+            self.log("IMPLEMENTER", f"Created verification report skeleton: {skeleton_path}")
+
         # Use Claude Code CLI to implement the story
         self.log("IMPLEMENTER", "Invoking Claude Code CLI for implementation...")
 
@@ -4359,6 +4817,11 @@ Ready for Supervisor verification.
                 verification_report_path=resolved_report_path,
             )
         else:
+            # FIXUP-1 PATCH 1: Short-circuit if AGENT_TEMPLATE_ERROR already handled in _invoke_claude_code
+            if _is_agent_template_error(claude_output):
+                self.log("IMPLEMENTER", f"[{key}] AGENT_TEMPLATE_ERROR already handled; skipping generic failure handling")
+                return True  # Terminal handled
+
             self.log("IMPLEMENTER", f"Claude Code encountered issues")
 
             self.jira.add_comment(key, f"""
@@ -4723,6 +5186,66 @@ Begin implementation now.
 
                     # Failure - check if retryable
                     output_text = "".join(attempt_output)
+
+                    # PATCH 3: Check for AGENT_TEMPLATE_ERROR (non-retryable)
+                    if _is_agent_template_error(output_text):
+                        self.log("IMPLEMENTER", f"[{story_key}] AGENT_TEMPLATE_ERROR detected - non-retryable", model=MODEL_IMPLEMENTER, tool="claude-code-cli")
+
+                        # PATCH 3: Stop retries immediately, transition to BLOCKED
+                        # Compute fingerprint for dedup
+                        error_fingerprint = "AGENT_TEMPLATE_ERROR"
+                        signature_matched = None
+                        for sig in FATAL_AGENT_TEMPLATE_ERROR_SIGNATURES:
+                            if sig in output_text:
+                                signature_matched = sig
+                                break
+
+                        # PATCH 3: Post one Jira comment (dedup by fingerprint)
+                        # Check if we already commented for this fingerprint
+                        work_entry = self.work_ledger.get(story_key)
+                        should_comment = True
+                        if work_entry and work_entry.last_error_fingerprint:
+                            # If fingerprint matches, don't comment again
+                            existing_fp = compute_error_fingerprint(LastStep.IMPLEMENTER.value, error_fingerprint)
+                            if work_entry.last_error_fingerprint == existing_fp:
+                                should_comment = False
+
+                        if should_comment:
+                            self.jira.add_comment(story_key, f"""## AGENT_TEMPLATE_ERROR — Non-Retryable
+
+**Signature matched:** `{signature_matched}`
+**Artifact path:** `{final_artifact_path}`
+
+This error indicates a deterministic agent/template bug that will not resolve with retries.
+
+**Status:** BLOCKED — non-retryable until template fixed
+
+---
+*Detected by Engine PATCH 3*
+""")
+
+                            # FIXUP-1 PATCH 1: Gate escalation with same dedup as Jira comment
+                            self.escalate(
+                                "IMPLEMENTER",
+                                f"AGENT_TEMPLATE_ERROR: {story_key}",
+                                f"Non-retryable agent template error detected.\nSignature: {signature_matched}\nArtifact: {final_artifact_path}\n\nThis requires template fix before retry."
+                            )
+
+                        # PATCH 3: Transition to BLOCKED
+                        self.jira.transition_issue(story_key, 'BLOCKED')
+
+                        # PATCH 3: Record in work ledger
+                        self._upsert_work_ledger_entry(
+                            issue_key=story_key,
+                            issue_type="Story",
+                            status="BLOCKED",
+                            last_step=LastStep.IMPLEMENTER.value,
+                            last_step_result=StepResult.FAILED.value,
+                            error_text=error_fingerprint,
+                        )
+
+                        return False, output_text, [], final_artifact_path
+
                     if _is_transient_claude_failure(output_text) and attempt < CLAUDE_MAX_ATTEMPTS:
                         sleep_seconds = CLAUDE_RETRY_BACKOFF_SECONDS[attempt - 1]
                         self.log("IMPLEMENTER", f"Retrying in {sleep_seconds}s due to transient error...", model=MODEL_IMPLEMENTER, tool="claude-code-cli")
