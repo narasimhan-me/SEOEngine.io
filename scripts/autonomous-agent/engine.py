@@ -4,7 +4,7 @@ EngineO Autonomous Multi-Persona Execution Engine v3.2
 
 This engine coordinates THREE STRICT ROLES:
 
-1) Unified Executive Persona (UEP) v3.2
+1) EXECUTION UEP v3.2
    - Combines: Lead PM, Tech Architect, UX Designer, CTO, CFO, Content Strategist
    - Acts as ONE integrated executive brain
    - Produces high-level intent ONLY — never implementation
@@ -13,7 +13,7 @@ This engine coordinates THREE STRICT ROLES:
    - Reads Ideas from Atlassian Product Discovery
    - Creates Epics with business goals and acceptance criteria
 
-2) GPT-5.x Supervisor v3.2
+2) CLAUDE SUPERVISOR v3.2
    - NEVER writes code
    - ONLY produces PATCH BATCH instructions (surgical, minimal diffs)
    - Decomposes Epics into Stories with exact implementation specs
@@ -21,7 +21,7 @@ This engine coordinates THREE STRICT ROLES:
    - Verifies Stories and Epics
    - Ends each phase with instruction to update Implementation Plan
 
-3) Claude Implementer v3.2
+3) CLAUDE DEVELOPER v3.2
    - Applies PATCH BATCH diffs EXACTLY as specified
    - Writes all code
    - Makes ONLY the modifications shown in patches
@@ -73,7 +73,7 @@ MODEL_DEVELOPER = "sonnet" # Faster for implementation
 CLAUDE_OUTPUT_DIRNAME = "reports"
 CLAUDE_MAX_ATTEMPTS = 3
 CLAUDE_RETRY_BACKOFF_SECONDS = [10, 30]  # attempt2 waits 10s, attempt3 waits 30s
-CLAUDE_TRANSIENT_SUBSTRINGS = ["tool use concurrency", "api error: 400", "rate limit", "timeout"]
+CLAUDE_TRANSIENT_SUBSTRINGS = ["tool use concurrency", "api error: 400", "rate limit", "timeout", "no messages returned"]
 CLAUDE_LOCK_REL_PATH = ".engineo/claude.lock"
 CLAUDE_LOCK_STALE_SECONDS = 900  # 15 minutes
 CLAUDE_TIMEOUT_SECONDS = 14400  # 4 hour default timeout per attempt
@@ -93,6 +93,22 @@ RUNTIME_IGNORED_PATHS = {LEDGER_REL_PATH, CLAUDE_LOCK_REL_PATH, ESCALATIONS_REL_
 
 # Secret env vars to redact from output (values only, not names)
 CLAUDE_SECRET_ENV_VARS = ["JIRA_TOKEN", "JIRA_API_TOKEN", "GITHUB_TOKEN"]
+
+
+def _canonical_verification_report_relpath(issue_key: str, run_id: str) -> str:
+    """Get canonical verification report repo-relative path.
+
+    Returns: scripts/autonomous-agent/reports/{ISSUE_KEY}-{RUN_ID}-verification.md
+    """
+    return f"scripts/autonomous-agent/{CLAUDE_OUTPUT_DIRNAME}/{issue_key}-{run_id}-verification.md"
+
+
+def _legacy_verification_report_relpath(issue_key: str) -> str:
+    """Get legacy verification report repo-relative path.
+
+    Returns: scripts/autonomous-agent/reports/{ISSUE_KEY}-verification.md
+    """
+    return f"scripts/autonomous-agent/{CLAUDE_OUTPUT_DIRNAME}/{issue_key}-verification.md"
 
 
 def _claude_output_relpath(issue_key: str, run_id: str, attempt: int) -> str:
@@ -393,63 +409,111 @@ def _select_newest_verification_report(issue_key: str, relpaths: List[str], mtim
 def _resolve_verification_report(repo_path: str, issue_key: str) -> Optional[str]:
     """Resolve the most recent verification report for an issue.
 
-    Reports are read from scripts/autonomous-agent/reports/ (SCRIPT_DIR).
-    Accepts:
-    - Legacy path: <KAN-KEY>-verification.md
-    - Timestamped paths: <KAN-KEY>-<run_id>-verification.md
+    Searches BOTH locations for backward compatibility:
+    1. Primary: scripts/autonomous-agent/reports/ (SCRIPT_DIR)
+    2. Legacy: repo-root reports/
 
-    Returns: Relative path to the newest verification report, or None if not found.
+    IMPORTANT: Only considers issue-key-prefixed reports:
+    - {ISSUE_KEY}-verification.md (legacy)
+    - {ISSUE_KEY}-{RUN_ID}-verification.md (timestamped)
+
+    Title-prefixed reports (e.g., AUTONOMOUS-AGENT-...-verification.md) are IGNORED.
+
+    Returns: Repo-relative path to the newest verification report, or None if not found.
     """
     import glob
 
-    reports_dir = SCRIPT_DIR / CLAUDE_OUTPUT_DIRNAME
+    prefix = f"{issue_key}-"
+    suffix = "-verification.md"
+    legacy_suffix = f"{issue_key}-verification.md"
 
-    if not reports_dir.exists():
-        return None
+    candidates = []  # List of (timestamp, repo_relative_path)
+    mtimes = {}  # For legacy files without parseable timestamps
 
-    # Pattern for timestamped reports: KAN-17-20260126-143047Z-verification.md
-    timestamped_pattern = str(reports_dir / f"{issue_key}-*-verification.md")
-    timestamped_matches = glob.glob(timestamped_pattern)
+    # Search location 1: scripts/autonomous-agent/reports/ (primary)
+    primary_dir = SCRIPT_DIR / CLAUDE_OUTPUT_DIRNAME
+    if primary_dir.exists():
+        pattern = str(primary_dir / f"{issue_key}-*-verification.md")
+        for match in glob.glob(pattern):
+            path = Path(match)
+            filename = path.name
 
-    # Legacy pattern: KAN-17-verification.md
-    legacy_path = reports_dir / f"{issue_key}-verification.md"
+            # ONLY consider issue-key-prefixed files (ignore title-prefixed)
+            if not filename.startswith(prefix):
+                continue
 
-    candidates = []
+            # Build repo-relative path
+            rel_path = f"scripts/autonomous-agent/{CLAUDE_OUTPUT_DIRNAME}/{filename}"
 
-    # Add timestamped matches with parsed timestamps for sorting
-    for match in timestamped_matches:
-        path = Path(match)
-        # Extract run_id from filename: KAN-17-20260126-143047Z-verification.md
-        # Pattern: {key}-{run_id}-verification.md where run_id is like 20260126-143047Z
-        filename = path.name
-        # Remove key prefix and -verification.md suffix
-        prefix = f"{issue_key}-"
-        suffix = "-verification.md"
-        if filename.startswith(prefix) and filename.endswith(suffix):
-            run_id = filename[len(prefix):-len(suffix)]
-            # Try to parse run_id as timestamp (YYYYMMDD-HHMMSSZ)
-            try:
-                ts = datetime.strptime(run_id, "%Y%m%d-%H%M%SZ")
-                candidates.append((ts, path))
-            except ValueError:
-                # Can't parse - use file mtime as fallback
+            if filename == legacy_suffix:
+                # Legacy format: use mtime
                 mtime = path.stat().st_mtime
-                candidates.append((datetime.fromtimestamp(mtime), path))
+                mtimes[rel_path] = mtime
+                candidates.append((datetime.fromtimestamp(mtime), rel_path))
+            elif filename.endswith(suffix):
+                # Timestamped format: parse run_id
+                run_id = filename[len(prefix):-len(suffix)]
+                try:
+                    ts = datetime.strptime(run_id, "%Y%m%d-%H%M%SZ")
+                    candidates.append((ts, rel_path))
+                except ValueError:
+                    # Can't parse - use mtime as fallback
+                    mtime = path.stat().st_mtime
+                    mtimes[rel_path] = mtime
+                    candidates.append((datetime.fromtimestamp(mtime), rel_path))
 
-    # Add legacy path if it exists (use mtime for sorting)
-    if legacy_path.exists():
-        mtime = legacy_path.stat().st_mtime
-        candidates.append((datetime.fromtimestamp(mtime), legacy_path))
+        # Also check for legacy file in primary location
+        legacy_path = primary_dir / legacy_suffix
+        if legacy_path.exists():
+            rel_path = f"scripts/autonomous-agent/{CLAUDE_OUTPUT_DIRNAME}/{legacy_suffix}"
+            if rel_path not in [c[1] for c in candidates]:
+                mtime = legacy_path.stat().st_mtime
+                mtimes[rel_path] = mtime
+                candidates.append((datetime.fromtimestamp(mtime), rel_path))
+
+    # Search location 2: repo-root reports/ (legacy backward compat)
+    legacy_dir = Path(repo_path) / "reports"
+    if legacy_dir.exists():
+        pattern = str(legacy_dir / f"{issue_key}-*-verification.md")
+        for match in glob.glob(pattern):
+            path = Path(match)
+            filename = path.name
+
+            # ONLY consider issue-key-prefixed files
+            if not filename.startswith(prefix):
+                continue
+
+            rel_path = f"reports/{filename}"
+
+            if filename == legacy_suffix:
+                mtime = path.stat().st_mtime
+                mtimes[rel_path] = mtime
+                candidates.append((datetime.fromtimestamp(mtime), rel_path))
+            elif filename.endswith(suffix):
+                run_id = filename[len(prefix):-len(suffix)]
+                try:
+                    ts = datetime.strptime(run_id, "%Y%m%d-%H%M%SZ")
+                    candidates.append((ts, rel_path))
+                except ValueError:
+                    mtime = path.stat().st_mtime
+                    mtimes[rel_path] = mtime
+                    candidates.append((datetime.fromtimestamp(mtime), rel_path))
+
+        # Also check for legacy file in legacy location
+        legacy_path = legacy_dir / legacy_suffix
+        if legacy_path.exists():
+            rel_path = f"reports/{legacy_suffix}"
+            if rel_path not in [c[1] for c in candidates]:
+                mtime = legacy_path.stat().st_mtime
+                mtimes[rel_path] = mtime
+                candidates.append((datetime.fromtimestamp(mtime), rel_path))
 
     if not candidates:
         return None
 
     # Sort by timestamp descending (newest first) and return the newest
     candidates.sort(key=lambda x: x[0], reverse=True)
-    newest_path = candidates[0][1]
-
-    # Return path relative to SCRIPT_DIR
-    return str(newest_path.relative_to(SCRIPT_DIR))
+    return candidates[0][1]
 
 
 def _is_transient_claude_failure(text: str) -> bool:
@@ -518,7 +582,7 @@ def _release_claude_lock(repo_path: str) -> None:
 # =============================================================================
 
 ROLE_UEP = {
-    'name': 'Unified Executive Persona (UEP)',
+    'name': 'EXECUTION UEP',
     'version': '3.2',
     'combines': [
         'Lead Product Manager',
@@ -544,7 +608,7 @@ ROLE_UEP = {
 }
 
 ROLE_SUPERVISOR = {
-    'name': 'GPT-5.x Supervisor',
+    'name': 'CLAUDE SUPERVISOR',
     'version': '3.2',
     'responsibilities': [
         'Validate UEP intent and resolve ambiguities',
@@ -563,7 +627,7 @@ ROLE_SUPERVISOR = {
 }
 
 ROLE_IMPLEMENTER = {
-    'name': 'Claude Implementer',
+    'name': 'CLAUDE DEVELOPER',
     'version': '3.2',
     'responsibilities': [
         'Apply PATCH BATCH diffs EXACTLY as provided',
@@ -1346,9 +1410,10 @@ class ExecutionEngine:
         deleted_count = rotate_logs(self.logs_dir, max_age_days=2)
         self.log("SYSTEM", f"Log rotation: deleted {deleted_count} old logs (>2 days)")
 
-        # Compute effective Claude timeout from env or default (PATCH 1)
+        # Compute effective Claude timeout from env or default (PATCH 5: alias support)
         self.claude_timeout_seconds = CLAUDE_TIMEOUT_SECONDS
-        env_timeout = os.environ.get(CLAUDE_TIMEOUT_ENV_VAR, "")
+        # Prefer ENGINEO_CLAUDE_TIMEOUT_SECONDS, fall back to CLAUDE_TIMEOUT_SECONDS alias
+        env_timeout = os.environ.get(CLAUDE_TIMEOUT_ENV_VAR, "") or os.environ.get("CLAUDE_TIMEOUT_SECONDS", "")
         if env_timeout:
             try:
                 parsed = int(env_timeout)
@@ -1428,6 +1493,60 @@ class ExecutionEngine:
                 pass
             return False
 
+    def _load_or_init_guardrails_ledger(self) -> dict:
+        """Load guardrails ledger, initializing if missing/unreadable.
+
+        Always returns a valid ledger dict with version and kan_story_runs.
+        Saves immediately if initialized.
+        """
+        ledger = self._load_guardrails_ledger()
+        if ledger is None:
+            ledger = {}
+
+        # Ensure required structure
+        if "version" not in ledger:
+            ledger["version"] = LEDGER_VERSION
+        if "kan_story_runs" not in ledger:
+            ledger["kan_story_runs"] = {}
+
+        # Preserve existing top-level keys (e.g., ea_to_kan)
+        # Save if we had to initialize
+        if self._load_guardrails_ledger() != ledger:
+            self._save_guardrails_ledger(ledger)
+
+        return ledger
+
+    def _upsert_kan_story_run(self, issue_key: str, updates: dict) -> None:
+        """Upsert an entry in kan_story_runs for the given issue.
+
+        Loads/initializes ledger, merges updates, and saves.
+        Always writes issueKey, runId, and updatedAt unless overridden.
+        """
+        ledger = self._load_or_init_guardrails_ledger()
+
+        # Ensure kan_story_runs exists
+        if "kan_story_runs" not in ledger:
+            ledger["kan_story_runs"] = {}
+
+        # Get or create entry
+        entry = ledger["kan_story_runs"].get(issue_key, {})
+
+        # Always set standard fields
+        entry["issueKey"] = issue_key
+        if "runId" not in updates:
+            entry["runId"] = self.run_id
+        entry["updatedAt"] = datetime.now(timezone.utc).isoformat()
+
+        # Merge provided updates
+        entry.update(updates)
+
+        # Write back
+        ledger["kan_story_runs"][issue_key] = entry
+
+        # Save (best-effort, log on failure)
+        if not self._save_guardrails_ledger(ledger):
+            self.log("SYSTEM", f"Warning: failed to save ledger for {issue_key}")
+
     def _find_ledger_entry(self, ledger: Any, issue_key: str) -> Optional[dict]:
         """Recursively search ledger for entry associated with issue_key.
 
@@ -1489,13 +1608,92 @@ class ExecutionEngine:
 
         return (base_sha_short, changed_files_count)
 
+    def _normalize_verification_report_filename(self, issue_key: str) -> Optional[str]:
+        """Normalize title-prefixed verification report to canonical issue-key-prefixed name.
+
+        If a canonical/legacy issue-key-prefixed report already exists, does nothing.
+        Otherwise, searches for title-prefixed reports containing the issue key in content,
+        and COPIES (not moves) the newest to the canonical filename.
+
+        Returns: Repo-relative path to canonical report if copy occurred, else None.
+        """
+        import glob
+        import shutil
+
+        reports_dir = SCRIPT_DIR / CLAUDE_OUTPUT_DIRNAME
+        if not reports_dir.exists():
+            return None
+
+        prefix = f"{issue_key}-"
+
+        # Check if canonical/legacy issue-key-prefixed report already exists
+        canonical_pattern = str(reports_dir / f"{issue_key}-*-verification.md")
+        legacy_path = reports_dir / f"{issue_key}-verification.md"
+
+        existing = glob.glob(canonical_pattern)
+        if existing or legacy_path.exists():
+            # Already have an issue-key-prefixed report, no normalization needed
+            return None
+
+        # Search for title-prefixed reports (not starting with issue_key-)
+        all_reports = glob.glob(str(reports_dir / "*-verification.md"))
+        candidates = []
+
+        for match in all_reports:
+            path = Path(match)
+            filename = path.name
+
+            # Skip issue-key-prefixed files (already handled)
+            if filename.startswith(prefix):
+                continue
+
+            # Check if file content contains the issue key (safety check)
+            try:
+                content = path.read_text(encoding='utf-8')
+                if issue_key not in content:
+                    continue
+            except (OSError, UnicodeDecodeError):
+                continue
+
+            # Use mtime for sorting
+            mtime = path.stat().st_mtime
+            candidates.append((mtime, path))
+
+        if not candidates:
+            return None
+
+        # Choose newest by mtime
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        source_path = candidates[0][1]
+
+        # Copy to canonical filename
+        canonical_filename = f"{issue_key}-{self.run_id}-verification.md"
+        dest_path = reports_dir / canonical_filename
+        try:
+            shutil.copy2(source_path, dest_path)
+            rel_path = f"scripts/autonomous-agent/{CLAUDE_OUTPUT_DIRNAME}/{canonical_filename}"
+            self.log("DEVELOPER", f"Normalized verification report: {source_path.name} -> {canonical_filename}")
+            return rel_path
+        except OSError as e:
+            self.log("DEVELOPER", f"Failed to copy verification report: {e}")
+            return None
+
     def log(self, role: str, message: str):
         """Log with role prefix to both console and run-scoped log file.
 
         PATCH 2 & 5: Tee structured logs to console AND engine-<run_id>.log with flush.
+        Role display mapping: internal keys -> display names for consistency.
         """
+        # Map internal role keys to display names
+        role_display_map = {
+            'UEP': 'EXECUTION UEP',
+            'SUPERVISOR': 'CLAUDE SUPERVISOR',
+            'DEVELOPER': 'CLAUDE DEVELOPER',
+        }
+        display_role = role_display_map.get(role, role)
+
         timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
-        log_line = f"[{timestamp}] [{role}] {message}"
+        log_line = f"[{timestamp}] [{display_role}] {message}"
 
         # Write to stdout with flush (PATCH 5)
         print(log_line, flush=True)
@@ -1579,7 +1777,7 @@ class ExecutionEngine:
     def step_1_initiative_intake(self) -> bool:
         """UEP: Process Ideas (Initiatives) from Product Discovery
 
-        The UEP (Unified Executive Persona) role:
+        The EXECUTION UEP role:
         - Reads Ideas from Atlassian Product Discovery
         - Analyzes the initiative to define WHAT we build and WHY
         - Creates one or more Epics with business goals and acceptance criteria
@@ -1621,7 +1819,7 @@ class ExecutionEngine:
             # Add comment with all created Epics
             epic_list = '\n'.join([f"- {e}" for e in created_epics])
             self.jira.add_comment(key, f"""
-Initiative processed by UEP (Unified Executive Persona)
+Initiative processed by EXECUTION UEP
 
 Created {len(created_epics)} Epic(s):
 {epic_list}
@@ -1656,7 +1854,7 @@ Business Intent Defined:
     def _claude_code_analyze_idea(self, idea_key: str, summary: str, description: str) -> List[dict]:
         """Use Claude Code CLI to analyze Idea and define business intent (no API key required)"""
         try:
-            prompt = f"""You are the Unified Executive Persona (UEP) in an autonomous development system.
+            prompt = f"""You are the EXECUTION UEP in an autonomous development system.
 Your role is to analyze Ideas (initiatives) and define business intent for Epics.
 
 ## Idea to Analyze
@@ -1710,7 +1908,7 @@ Generate the Epic description now:"""
             epic_description += """
 
 ---
-*This Epic was created by the Unified Executive Persona (UEP) v3.2*
+*This Epic was created by EXECUTION UEP v3.2*
 *Powered by Claude Code CLI with Opus model (no API key required)*
 *Ready for Supervisor decomposition into implementation Stories*
 """
@@ -1768,7 +1966,7 @@ Generate the Epic description now:"""
 - Dependencies: None identified
 
 ---
-*This Epic was created by the Unified Executive Persona (UEP) v3.2*
+*This Epic was created by EXECUTION UEP v3.2*
 *Ready for Supervisor decomposition into implementation Stories*
 """
 
@@ -1823,7 +2021,7 @@ Generate the Epic description now:"""
             # Add comment with all created Stories
             story_list = '\n'.join([f"- {s}" for s in created_stories])
             self.jira.add_comment(key, f"""
-Epic decomposed by Supervisor (GPT-5.x Supervisor v3.2)
+Epic decomposed by CLAUDE SUPERVISOR v3.2
 
 Created {len(created_stories)} Story(ies):
 {story_list}
@@ -2145,7 +2343,7 @@ Please update this Story with specific PATCH BATCH instructions
 after identifying the relevant codebase locations.
 
 ---
-*Story created by GPT-5.x Supervisor v3.2*
+*Story created by CLAUDE SUPERVISOR v3.2*
 *Human assistance required for PATCH BATCH specification*
 """
 
@@ -2181,7 +2379,7 @@ after identifying the relevant codebase locations.
         self.jira.transition_issue(key, 'In Progress')
 
         # Add comment noting implementation started
-        self.jira.add_comment(key, f"Implementation started by Claude Code Developer\nBranch: {self.config.feature_branch}")
+        self.jira.add_comment(key, f"Implementation started by CLAUDE DEVELOPER\nBranch: {self.config.feature_branch}")
 
         # Use Claude Code CLI to implement the story
         self.log("DEVELOPER", "Invoking Claude Code CLI for implementation...")
@@ -2212,7 +2410,7 @@ after identifying the relevant codebase locations.
             # Add success comment to Jira
             commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
             self.jira.add_comment(key, f"""
-Implementation completed by Claude Code Developer.
+Implementation completed by CLAUDE DEVELOPER.
 
 Branch: {self.config.feature_branch}
 Status: {commit_status}
@@ -2222,6 +2420,9 @@ Files modified:
 Ready for Supervisor verification.
 """)
             self.log("DEVELOPER", f"Story {key} implementation complete")
+
+            # Normalize verification report filename (copy title-prefixed to canonical)
+            self._normalize_verification_report_filename(key)
         else:
             self.log("DEVELOPER", f"Claude Code encountered issues")
 
@@ -2365,7 +2566,7 @@ Human intervention may be required.
         # Create commit message
         commit_message = f"""feat({story_key}): {summary}
 
-Implemented by EngineO Autonomous Execution Engine (Claude Implementer v3.2)
+Implemented by EngineO Autonomous Execution Engine (CLAUDE DEVELOPER v3.2)
 
 Files modified:
 {chr(10).join(['- ' + f for f in filtered_files])}
@@ -2417,27 +2618,46 @@ Expected pattern: {key}-*-verification.md"""
             self.jira.add_comment(key, comment)
             return True
 
-        # Step 2: Load and check ledger (canonical kan_story_runs first, fallback for backward compat)
+        # Step 2: Load/init ledger and check entry
         ledger = self._load_guardrails_ledger()
+
+        # If ledger file missing/unreadable, initialize it and return PENDING (not FAILED)
+        if ledger is None:
+            self.log("SUPERVISOR", f"[{key}] Ledger file missing, initializing...")
+            ledger = self._load_or_init_guardrails_ledger()
+            comment = f"""Supervisor Verification: PENDING — guardrails ledger initialized; entry missing
+
+Report: {report_path}
+Note: Ledger was just created. Run implementation again or wait for next verification cycle."""
+            self.jira.add_comment(key, comment)
+            return True
+
+        # Look up entry (canonical kan_story_runs first, fallback for backward compat)
         entry = None
-        if ledger and isinstance(ledger, dict):
-            # Canonical structure: ledger["kan_story_runs"][key]
+        if isinstance(ledger, dict):
             entry = ledger.get("kan_story_runs", {}).get(key)
-            # Fallback: recursive search for backward compatibility
             if entry is None:
                 entry = self._find_ledger_entry(ledger, key)
 
-        if not ledger or not entry or not self._ledger_passed(entry):
-            # FAILED: Ledger missing or not passed
-            reason = "ledger file missing" if not ledger else \
-                     "no entry for issue" if not entry else \
-                     "guardrails not passed"
-            self.log("SUPERVISOR", f"[{key}] Verification FAILED: {reason}")
-
-            comment = f"""Supervisor Verification: FAILED — guardrails ledger missing or not passed
+        # If entry missing, return PENDING (not FAILED)
+        if entry is None:
+            self.log("SUPERVISOR", f"[{key}] No ledger entry found")
+            comment = f"""Supervisor Verification: PENDING — no ledger entry for {key}
 
 Report: {report_path}
-Reason: {reason}"""
+Note: Implementation may not have run the commit gate yet."""
+            self.jira.add_comment(key, comment)
+            return True
+
+        # Entry exists - check if guardrails passed
+        if not self._ledger_passed(entry):
+            # FAILED: Entry exists but guardrails not passed
+            self.log("SUPERVISOR", f"[{key}] Verification FAILED: guardrails not passed")
+
+            comment = f"""Supervisor Verification: FAILED — guardrails not passed
+
+Report: {report_path}
+Reason: Entry exists but guardrailsPassed is not true"""
             self.jira.add_comment(key, comment)
 
             # Transition to Blocked (fallback to To Do)
@@ -2445,13 +2665,19 @@ Reason: {reason}"""
                 self.jira.transition_issue(key, "To Do")
 
             # Escalate
-            self.escalate("SUPERVISOR", f"{issue_type} {key} verification failed (ledger gate)",
-                         f"Issue: {key}\nSummary: {summary}\nReason: {reason}\nReport: {report_path}")
+            self.escalate("SUPERVISOR", f"{issue_type} {key} verification failed (guardrails)",
+                         f"Issue: {key}\nSummary: {summary}\nReason: guardrails not passed\nReport: {report_path}")
             return True
 
         # Step 3: PASSED - get evidence and attempt auto-transition
         base_sha_short, changed_files_count = self._ledger_evidence(entry)
         self.log("SUPERVISOR", f"[{key}] Verification PASSED (base={base_sha_short}, files={changed_files_count})")
+
+        # Update ledger entry to mark as verified
+        self._upsert_kan_story_run(key, {
+            "status": "verified",
+            "verificationReportPath": report_path,
+        })
 
         # Probe available transitions (PATCH 2-C)
         names = self.jira.get_available_transition_names(key)
@@ -2590,7 +2816,7 @@ This is an automated escalation from the EngineO Autonomous Execution Engine.
             self.jira.transition_issue(key, 'In Progress')
             epic_list = '\n'.join([f"- {e}" for e in created_epics])
             self.jira.add_comment(key, f"""
-Initiative processed by UEP (Unified Executive Persona)
+Initiative processed by EXECUTION UEP
 
 Created {len(created_epics)} Epic(s):
 {epic_list}
@@ -2624,7 +2850,7 @@ Business Intent Defined - Ready for Supervisor decomposition.
             self.jira.transition_issue(key, 'In Progress')
             story_list = '\n'.join([f"- {s}" for s in created_stories])
             self.jira.add_comment(key, f"""
-Epic decomposed by Supervisor (GPT-5.x Supervisor v3.2)
+Epic decomposed by CLAUDE SUPERVISOR v3.2
 
 Created {len(created_stories)} Story(ies):
 {story_list}
@@ -2651,7 +2877,7 @@ Ready for Developer implementation.
         # Transition to In Progress if not already
         if 'to do' in status:
             self.jira.transition_issue(key, 'In Progress')
-            self.jira.add_comment(key, f"Implementation started by Claude Code Developer\nBranch: {self.config.feature_branch}")
+            self.jira.add_comment(key, f"Implementation started by CLAUDE DEVELOPER\nBranch: {self.config.feature_branch}")
 
         # Use Claude Code CLI to implement the story
         self.log("DEVELOPER", "Invoking Claude Code CLI for implementation...")
@@ -2682,7 +2908,7 @@ Ready for Developer implementation.
             # Add success comment to Jira
             commit_status = "Committed and pushed" if commit_success else "Changes pending commit"
             self.jira.add_comment(key, f"""
-Implementation completed by Claude Code Developer.
+Implementation completed by CLAUDE DEVELOPER.
 
 Branch: {self.config.feature_branch}
 Status: {commit_status}
@@ -2692,6 +2918,9 @@ Files modified:
 Ready for Supervisor verification.
 """)
             self.log("DEVELOPER", f"Story {key} implementation complete")
+
+            # Normalize verification report filename (copy title-prefixed to canonical)
+            self._normalize_verification_report_filename(key)
         else:
             self.log("DEVELOPER", f"Claude Code encountered issues")
 
@@ -2730,7 +2959,10 @@ Human intervention may be required.
         Returns: (success, output, list of modified files, artifact_path)
         """
         # Build the prompt for Claude Code
-        prompt = f"""You are the Developer persona in an autonomous execution system.
+        # Compute canonical verification report path for this run
+        canonical_report = f"{story_key}-{self.run_id}-verification.md"
+
+        prompt = f"""You are the CLAUDE DEVELOPER in an autonomous execution system.
 
 ## Story to Implement
 {story_key}: {summary}
@@ -2745,6 +2977,15 @@ Human intervention may be required.
 4. After implementation, commit the changes with message:
    "feat({story_key}): {summary}"
 5. Do NOT push to remote - just commit locally
+
+## Verification Report (REQUIRED)
+If creating a verification report, write it to:
+  scripts/autonomous-agent/reports/{canonical_report}
+
+IMPORTANT: Use issue-key-prefixed filenames ONLY. Do NOT use title-prefixed filenames like
+AUTONOMOUS-AGENT-...-verification.md. The canonical pattern is:
+  Preferred: {story_key}-<RUN_ID>-verification.md
+  Legacy acceptable: {story_key}-verification.md
 
 Important:
 - Make ONLY the changes specified in the PATCH BATCH
@@ -2785,33 +3026,69 @@ Begin implementation now.
                     # PATCH 4-B: Use PTY for real streaming output
                     master_fd, slave_fd = pty.openpty()
 
+                    # PATCH 4-D: Start subprocess in its own process group for clean timeout kill
                     process = subprocess.Popen(
                         ['claude', '--model', MODEL_DEVELOPER, '-p', prompt, '--dangerously-skip-permissions', '--verbose'],
                         cwd=self.config.repo_path,
                         stdin=slave_fd,
                         stdout=slave_fd,
                         stderr=slave_fd,
+                        start_new_session=True,  # Creates new process group
                     )
 
                     # Parent closes slave_fd immediately
                     os.close(slave_fd)
 
+                    # PATCH 4-B: Open artifact file for live streaming
+                    artifact_relpath = _claude_output_relpath(story_key, self.run_id, attempt)
+                    artifact_fullpath = SCRIPT_DIR / artifact_relpath
+                    artifact_fullpath.parent.mkdir(parents=True, exist_ok=True)
+                    artifact_file = open(artifact_fullpath, 'w', encoding='utf-8')
+                    artifact_file.write(f"=== Attempt {attempt}/{CLAUDE_MAX_ATTEMPTS} ===\n")
+                    artifact_file.flush()
+
                     start_time = time.time()
                     last_output_time = start_time
                     timed_out = False
                     line_buf = ""  # PATCH 4-C: Line buffer for cross-chunk handling
+                    LINE_BUF_THRESHOLD = 2048  # PATCH 4-E: Emit partial buffer if exceeds 2KB
 
                     # Stream output with PTY
                     while True:
+                        # PATCH 4-C: Check process.poll() every iteration
+                        poll_result = process.poll()
+                        if poll_result is not None:
+                            # Process ended - drain remaining output
+                            try:
+                                while True:
+                                    readable, _, _ = select.select([master_fd], [], [], 0.1)
+                                    if not readable:
+                                        break
+                                    chunk = os.read(master_fd, 4096)
+                                    if not chunk:
+                                        break
+                                    decoded = chunk.decode('utf-8', errors='replace')
+                                    line_buf += decoded
+                                    artifact_file.write(decoded)
+                                    artifact_file.flush()
+                            except (ValueError, OSError):
+                                pass
+                            break
+
                         # Check timeout (PATCH 4-E: use computed timeout_seconds)
                         elapsed = time.time() - start_time
                         if elapsed >= timeout_seconds:
                             timed_out = True
-                            process.terminate()
+                            # PATCH 4-D: Kill entire process group
                             try:
+                                os.killpg(os.getpgid(process.pid), 15)  # SIGTERM to process group
                                 process.wait(timeout=5)
-                            except subprocess.TimeoutExpired:
-                                process.kill()
+                            except (subprocess.TimeoutExpired, OSError):
+                                try:
+                                    os.killpg(os.getpgid(process.pid), 9)  # SIGKILL
+                                    process.wait(timeout=2)
+                                except (subprocess.TimeoutExpired, OSError):
+                                    process.kill()  # Fallback
                             break
 
                         # Check for output with short timeout for heartbeat
@@ -2838,6 +3115,11 @@ Begin implementation now.
                                 decoded = chunk.decode('utf-8', errors='replace')
                                 line_buf += decoded
 
+                                # PATCH 4-B: Write to artifact file live
+                                artifact_file.write(decoded)
+                                artifact_file.flush()
+                                attempt_output.append(decoded)
+
                                 # Process complete lines (split on \n or \r)
                                 while '\n' in line_buf or '\r' in line_buf:
                                     # Find earliest delimiter
@@ -2855,14 +3137,17 @@ Begin implementation now.
                                         redacted_line = _redact_secrets(line)
                                         self.log("CLAUDE", redacted_line)
 
-                                # Append raw decoded chunk to attempt output for artifact
-                                attempt_output.append(decoded)
+                                # PATCH 4-E: Emit partial buffer if exceeds threshold (reduces visibility gaps)
+                                if len(line_buf) > LINE_BUF_THRESHOLD:
+                                    redacted_chunk = _redact_secrets(line_buf[:LINE_BUF_THRESHOLD])
+                                    self.log("CLAUDE", f"[partial] {redacted_chunk}")
+                                    line_buf = line_buf[LINE_BUF_THRESHOLD:]
                             else:
                                 # EOF
                                 if process.poll() is not None:
                                     break
                         else:
-                            # No output - check for heartbeat (PATCH 4-D)
+                            # No output - check for heartbeat
                             silent_seconds = time.time() - last_output_time
                             if silent_seconds >= CLAUDE_HEARTBEAT_INTERVAL:
                                 elapsed_mins = int(elapsed // 60)
@@ -2870,18 +3155,23 @@ Begin implementation now.
                                 self.log("DEVELOPER", f"Claude still running... (elapsed: {elapsed_mins}m {elapsed_secs}s)")
                                 last_output_time = time.time()  # Reset heartbeat timer
 
-                            # Check if process ended
-                            if process.poll() is not None:
-                                break
-
                     # Flush remaining line buffer (PATCH 4-C)
                     if line_buf.strip():
+                        # Write remaining buffer to artifact
+                        artifact_file.write(line_buf)
+                        artifact_file.flush()
                         display_text = _parse_stream_json_line(line_buf)
                         if display_text:
                             redacted = _redact_secrets(display_text)
                             self.log("CLAUDE", redacted)
 
-                    # Close master_fd safely (PATCH 4-E)
+                    # PATCH 4-B: Close artifact file
+                    try:
+                        artifact_file.close()
+                    except Exception:
+                        pass
+
+                    # Close master_fd safely
                     if master_fd is not None:
                         try:
                             os.close(master_fd)
@@ -2891,11 +3181,8 @@ Begin implementation now.
 
                     returncode = process.returncode if not timed_out else -1
 
-                    # Write per-attempt artifact with redaction (PATCH 4-F)
-                    artifact_content = _redact_secrets("".join(attempt_output))
-                    final_artifact_path = _write_claude_attempt_output(
-                        self.config.repo_path, story_key, self.run_id, attempt, artifact_content
-                    )
+                    # Artifact was written live, just log the path
+                    final_artifact_path = artifact_relpath
                     self.log("DEVELOPER", f"Attempt artifact: {final_artifact_path}")
 
                     if timed_out:
@@ -2974,6 +3261,12 @@ Begin implementation now.
                         try:
                             os.close(master_fd)
                         except OSError:
+                            pass
+                    # Ensure artifact file is closed
+                    if 'artifact_file' in dir() and artifact_file and not artifact_file.closed:
+                        try:
+                            artifact_file.close()
+                        except Exception:
                             pass
 
             # Should not reach here, but safety fallback

@@ -87,6 +87,60 @@ class TestReportPathResolution(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertIn("20260126-160000Z", result)
 
+    # PATCH 6: Tests for title-prefixed report filtering (KAN-16)
+
+    def test_title_prefixed_report_ignored(self):
+        """Title-prefixed reports should be ignored by the pure helper."""
+        # The pure helper _select_newest_verification_report only considers
+        # paths that start with the issue key prefix
+        relpaths = [
+            f"{CLAUDE_OUTPUT_DIRNAME}/AUTONOMOUS-AGENT-STEP4-VERIFICATION-RESTORE-1-20260127-003423Z-verification.md",
+        ]
+
+        result = _select_newest_verification_report("KAN-16", relpaths)
+        self.assertIsNone(result)
+
+    def test_issue_key_prefixed_selected_over_title_prefixed(self):
+        """Issue-key-prefixed reports are selected; title-prefixed are ignored."""
+        relpaths = [
+            f"{CLAUDE_OUTPUT_DIRNAME}/AUTONOMOUS-AGENT-STEP4-VERIFICATION-RESTORE-1-20260127-003423Z-verification.md",
+            f"{CLAUDE_OUTPUT_DIRNAME}/KAN-16-20260127-003423Z-verification.md",
+        ]
+
+        result = _select_newest_verification_report("KAN-16", relpaths)
+        self.assertIsNotNone(result)
+        self.assertIn("KAN-16-20260127-003423Z", result)
+
+    def test_kan16_legacy_report_selected(self):
+        """KAN-16 legacy format is correctly selected."""
+        relpaths = [f"{CLAUDE_OUTPUT_DIRNAME}/KAN-16-verification.md"]
+        mtimes = {relpaths[0]: 1706400000.0}
+
+        result = _select_newest_verification_report("KAN-16", relpaths, mtimes)
+        self.assertIsNotNone(result)
+        self.assertEqual(result, f"{CLAUDE_OUTPUT_DIRNAME}/KAN-16-verification.md")
+
+    def test_kan16_newest_timestamped_wins(self):
+        """KAN-16: newest timestamped report wins over older ones."""
+        relpaths = [
+            f"{CLAUDE_OUTPUT_DIRNAME}/KAN-16-20260127-003423Z-verification.md",
+            f"{CLAUDE_OUTPUT_DIRNAME}/KAN-16-20260127-000000Z-verification.md",
+        ]
+
+        result = _select_newest_verification_report("KAN-16", relpaths)
+        self.assertIsNotNone(result)
+        self.assertIn("20260127-003423Z", result)
+
+    def test_only_title_prefixed_returns_none(self):
+        """When only title-prefixed reports exist for an issue, return None."""
+        relpaths = [
+            f"{CLAUDE_OUTPUT_DIRNAME}/AUTONOMOUS-AGENT-LEDGER-RESTORE-1-20260127-003423Z-verification.md",
+            f"{CLAUDE_OUTPUT_DIRNAME}/AUTONOMOUS-AGENT-STEP4-VERIFICATION-1-20260126-120000Z-verification.md",
+        ]
+
+        result = _select_newest_verification_report("KAN-16", relpaths)
+        self.assertIsNone(result)
+
 
 if __name__ == '__main__':
     unittest.main()

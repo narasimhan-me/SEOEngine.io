@@ -3,9 +3,9 @@
 # EngineO Autonomous Multi-Persona Execution Engine Runner
 #
 # This script starts the autonomous execution engine that coordinates:
-# - UEP (Unified Executive Persona) - Reads Ideas, creates Epics (Opus model)
-# - Supervisor - Decomposes Epics into Stories with PATCH BATCH specs (Opus model)
-# - Developer - Applies patches, writes code, updates docs (Sonnet model)
+# - EXECUTION UEP - Reads Ideas, creates Epics (Opus model)
+# - CLAUDE SUPERVISOR - Decomposes Epics into Stories with PATCH BATCH specs (Opus model)
+# - CLAUDE DEVELOPER - Applies patches, writes code, updates docs (Sonnet model)
 #
 # NOTE: No API key required! All personas use Claude Code CLI with --model flag.
 #       Ensure 'claude' is installed: npm install -g @anthropic-ai/claude-code
